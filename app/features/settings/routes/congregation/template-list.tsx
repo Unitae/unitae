@@ -1,6 +1,6 @@
 import { ChevronRight, Plus } from 'lucide-react'
 import { Link, redirect } from 'react-router'
-import { dayLabelShort, isSystemTemplate } from '~/features/events'
+import { dayLabelShort, isSystemTemplate, ResponsibleScope } from '~/features/events'
 import { getTemplates } from '~/features/events/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -61,43 +61,56 @@ export default function TemplateListPage({ loaderData }: Route.ComponentProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {templates.map(template => (
-              <TableRow key={template.id}>
-                <TableCell>
-                  <Link to={`./${template.id}`} className="font-medium hover:underline">
-                    {template.name}
-                  </Link>
-                  {isSystemTemplate(template.key) && (
-                    <Badge variant="secondary" className="ml-2 align-middle text-xs">
-                      {m.settings_templates_system_badge()}
-                    </Badge>
-                  )}
-                </TableCell>
-                <TableCell className="text-center max-sm:hidden">{template._count.parts}</TableCell>
-                <TableCell className="text-center max-sm:hidden">{template._count.serviceParts}</TableCell>
-                <TableCell className="text-center max-sm:hidden">
-                  {template.weekDay != null ? (
-                    <Badge variant="outline">{dayLabelShort(template.weekDay)}</Badge>
-                  ) : (
-                    <span className="text-muted-foreground text-sm">{m.settings_templates_one_time()}</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-center max-sm:hidden">
-                  {template.responsibles[0] ? (
-                    <span className="text-sm">
-                      {formatPersonName(resolveAccountName(template.responsibles[0].user))}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground text-sm">—</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Link to={`./${template.id}`}>
-                    <ChevronRight className="size-4 text-muted-foreground" />
-                  </Link>
-                </TableCell>
-              </TableRow>
-            ))}
+            {templates.map(template => {
+              const fullResponsible = template.responsibles.find(r => r.scope === ResponsibleScope.Full)
+              const serviceResponsible = template.responsibles.find(r => r.scope === ResponsibleScope.Service)
+              return (
+                <TableRow key={template.id}>
+                  <TableCell>
+                    <Link to={`./${template.id}`} className="font-medium hover:underline">
+                      {template.name}
+                    </Link>
+                    {isSystemTemplate(template.key) && (
+                      <Badge variant="secondary" className="ml-2 align-middle text-xs">
+                        {m.settings_templates_system_badge()}
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center max-sm:hidden">{template._count.parts}</TableCell>
+                  <TableCell className="text-center max-sm:hidden">{template._count.serviceParts}</TableCell>
+                  <TableCell className="text-center max-sm:hidden">
+                    {template.weekDay != null ? (
+                      <Badge variant="outline">{dayLabelShort(template.weekDay)}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">{m.settings_templates_one_time()}</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center max-sm:hidden">
+                    {fullResponsible || serviceResponsible ? (
+                      <div className="flex flex-col">
+                        {fullResponsible && (
+                          <span className="text-sm">{formatPersonName(resolveAccountName(fullResponsible.user))}</span>
+                        )}
+                        {serviceResponsible && (
+                          <span className="text-muted-foreground text-xs">
+                            {m.settings_template_view_service_responsible_short()}
+                            {': '}
+                            {formatPersonName(resolveAccountName(serviceResponsible.user))}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Link to={`./${template.id}`}>
+                      <ChevronRight className="size-4 text-muted-foreground" />
+                    </Link>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
           </TableBody>
         </Table>
       </div>

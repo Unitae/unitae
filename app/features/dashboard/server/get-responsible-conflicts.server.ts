@@ -17,10 +17,12 @@ export interface ResponsibleConflictsSummary {
 const MAX_ABSENTEE_NAMES = 3
 
 // Scoping:
-//   - non-manager → only events on templates where the user is the documented
-//     responsible (TemplateResponsible.userId);
-//   - ProgramManager → all events, including untemplated ones which have
-//     no responsible relation at all.
+//   - ProgramManager → all released events, including untemplated ones which
+//     have no responsible relation at all;
+//   - full responsible → part AND service conflicts on their templates;
+//   - service responsible → service conflicts only (they cannot resolve part
+//     assignments), so the part query filters on scope: 'full' while the
+//     service query accepts any responsibility.
 export async function getResponsibleConflicts(
   db: TransactionClient,
   userId: number,
@@ -30,13 +32,17 @@ export async function getResponsibleConflicts(
 
   // Drafts stay off the dashboard even for managers — the events-list amber
   // badge and the release-blocking error are their surface for those.
-  const eventFilter = isProgramManager
-    ? { startDate: { gte: now }, status: EventStatus.Released }
-    : { startDate: { gte: now }, status: EventStatus.Released, template: { responsibles: { some: { userId } } } }
+  const baseFilter = { startDate: { gte: now }, status: EventStatus.Released }
+  const partEventFilter = isProgramManager
+    ? baseFilter
+    : { ...baseFilter, template: { responsibles: { some: { userId, scope: 'full' } } } }
+  const serviceEventFilter = isProgramManager
+    ? baseFilter
+    : { ...baseFilter, template: { responsibles: { some: { userId } } } }
 
   const [partRows, serviceRows] = await Promise.all([
     db.eventPart.findMany({
-      where: { hasConflict: true, event: eventFilter },
+      where: { hasConflict: true, event: partEventFilter },
       select: {
         eventId: true,
         assigneeId: true,
@@ -46,7 +52,7 @@ export async function getResponsibleConflicts(
       },
     }),
     db.eventServicePart.findMany({
-      where: { hasConflict: true, event: eventFilter },
+      where: { hasConflict: true, event: serviceEventFilter },
       select: {
         eventId: true,
         assigneeId: true,

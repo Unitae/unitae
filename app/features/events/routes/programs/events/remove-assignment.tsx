@@ -1,7 +1,8 @@
 import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
+import { ResponsibleScope } from '~/features/events/model/responsible-scope.type'
 import { unassignPart, unassignServicePart } from '~/features/events/server/event-part-assignments.server'
-import { canEditEvent } from '~/features/events/server/events-auth.server'
+import { getEventEditScope } from '~/features/events/server/events-auth.server'
 import {
   buildAssignmentContext,
   dispatchAssignmentDiffs,
@@ -41,9 +42,11 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
     if (!event) throw redirect('/programs')
 
-    if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
-      throw redirect('/programs')
-    }
+    const editScope = await getEventEditScope(db, can, currentUser.id, event.templateId ?? null, congregationId)
+    if (editScope == null) throw redirect('/programs')
+    // Removing a program-part assignment is full-responsibility work; service
+    // responsibles may only unassign service rows.
+    if (type === 'part' && editScope !== ResponsibleScope.Full) throw redirect('/programs')
 
     const cong = context.get(congregationContext)
     // `didRemove` gates the success flash so a stale double-submit that finds

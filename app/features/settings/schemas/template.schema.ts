@@ -81,12 +81,15 @@ export const deleteServicePartSchema = z.object({
   roleId: z.coerce.number(),
 })
 
+const responsibleUserId = z
+  .string()
+  .optional()
+  .transform(v => (v != null && v !== '' && v !== 'none' ? Number(v) : null))
+  .pipe(z.number().nullable())
+
 export const templateResponsibleSchema = z.object({
-  userId: z
-    .string()
-    .optional()
-    .transform(v => (v != null && v !== '' && v !== 'none' ? Number(v) : null))
-    .pipe(z.number().nullable()),
+  userId: responsibleUserId,
+  serviceUserId: responsibleUserId,
 })
 
 export type CreateTemplateInput = z.infer<typeof createTemplateSchema>

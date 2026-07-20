@@ -13,13 +13,14 @@ import {
 import { useState } from 'react'
 import { Link, redirect, useFetcher } from 'react-router'
 import { EventStatus } from '~/features/events/model/event-status.type'
+import { ResponsibleScope } from '~/features/events/model/responsible-scope.type'
 import {
   getPartAssignmentAllowedRoleIds,
   getServicePartAssignmentAllowedRoleIds,
   resolveEligibleUserIds,
 } from '~/features/events/server/allowed-roles.server'
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
-import { canEditEvent } from '~/features/events/server/events-auth.server'
+import { getEventEditScope } from '~/features/events/server/events-auth.server'
 import { listExternalSpeakers } from '~/features/events/server/external-speakers.server'
 import { AssignPartSheet } from '~/features/events/ui/AssignPartSheet'
 import { AssignServiceSheet } from '~/features/events/ui/AssignServiceSheet'
@@ -82,16 +83,21 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const event = await getEventProgramme(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
 
-    const canEdit = await canEditEvent(db, can, currentUser.id, event.templateId, congregationId)
+    const editScope = await getEventEditScope(db, can, currentUser.id, event.templateId, congregationId)
+    const canEditParts = editScope === ResponsibleScope.Full
+    const canEditServices = editScope != null
 
-    const users = canEdit
-      ? await db.member.findMany({
-          where: { congregationId, leftAt: null },
-          orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
-        })
-      : []
+    // Both scopes need the member list to pick assignees; parts-only data
+    // (external speakers, part candidates) is skipped for service scope.
+    const users =
+      editScope != null
+        ? await db.member.findMany({
+            where: { congregationId, leftAt: null },
+            orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
+          })
+        : []
 
-    const externalSpeakers = canEdit
+    const externalSpeakers = canEditParts
       ? (await listExternalSpeakers(db, congregationId, { includeArchived: false }))
           .slice()
           .sort((a, b) => {
@@ -105,16 +111,18 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
     const partCandidates: Record<number, { speakerIds: number[]; readerIds: number[] }> = {}
     const serviceCandidates: Record<number, number[]> = {}
-    if (canEdit) {
+    if (editScope != null) {
       const userById = new Map(users.map(u => [u.id, u]))
-      for (const assignment of event.eventParts) {
-        const speakerAllowed = await getPartAssignmentAllowedRoleIds(db, assignment.id, 'speaker', congregationId)
-        const readerAllowed = await getPartAssignmentAllowedRoleIds(db, assignment.id, 'reader', congregationId)
-        const speakerIds = await resolveEligibleUserIds(db, speakerAllowed, congregationId)
-        const readerIds = await resolveEligibleUserIds(db, readerAllowed, congregationId)
-        partCandidates[assignment.id] = {
-          speakerIds: speakerIds.filter(id => userById.has(id)),
-          readerIds: readerIds.filter(id => userById.has(id)),
+      if (canEditParts) {
+        for (const assignment of event.eventParts) {
+          const speakerAllowed = await getPartAssignmentAllowedRoleIds(db, assignment.id, 'speaker', congregationId)
+          const readerAllowed = await getPartAssignmentAllowedRoleIds(db, assignment.id, 'reader', congregationId)
+          const speakerIds = await resolveEligibleUserIds(db, speakerAllowed, congregationId)
+          const readerIds = await resolveEligibleUserIds(db, readerAllowed, congregationId)
+          partCandidates[assignment.id] = {
+            speakerIds: speakerIds.filter(id => userById.has(id)),
+            readerIds: readerIds.filter(id => userById.has(id)),
+          }
         }
       }
       for (const assignment of event.eventServiceParts) {
@@ -128,7 +136,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
     return {
       event,
-      canEdit,
+      canEditParts,
+      canEditServices,
       users,
       externalSpeakers,
       partCandidates,
@@ -139,7 +148,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
 }
 
 export default function EventViewPage({ loaderData }: Route.ComponentProps) {
-  const { event, canEdit, users, externalSpeakers, partCandidates, serviceCandidates, timezone } = loaderData
+  const { event, canEditParts, canEditServices, users, externalSpeakers, partCandidates, serviceCandidates, timezone } =
+    loaderData
 
   const userById = new Map(users.map(u => [u.id, u]))
 
@@ -204,7 +214,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
     lastSection?.tracks.at(-1)?.eventParts.push(part)
   }
 
-  const colCount = 4 + (hasAnyTopic ? 1 : 0) + (canEdit ? 1 : 0)
+  const colCount = 4 + (hasAnyTopic ? 1 : 0) + (canEditParts ? 1 : 0)
 
   const startTime = formatEventTime(event.startDate, timezone)
   const endTime = formatEventTime(event.endDate, timezone)
@@ -249,30 +259,32 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
         breadcrumbs={[{ label: m.sidebar_programs(), to: '/programs' }, { label: event.name }]}
         backTo="/programs"
         actions={
-          canEdit && (
+          (canEditParts || canEditServices) && (
             <div className="flex gap-2">
-              <ReleaseToggleButton status={event.status} eventId={event.id} />
+              {canEditParts && <ReleaseToggleButton status={event.status} eventId={event.id} />}
               <Button variant="outline" size="sm" asChild>
                 <Link to="./edit">
                   <Pencil className="size-4" />
                   {m.common_edit()}
                 </Link>
               </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="size-8">
-                    <MoreHorizontal className="size-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild className="text-destructive focus:text-destructive">
-                    <Link to="./delete">
-                      <Trash2 className="size-4" />
-                      {m.common_delete()}
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {canEditParts && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="size-8">
+                      <MoreHorizontal className="size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild className="text-destructive focus:text-destructive">
+                      <Link to="./delete">
+                        <Trash2 className="size-4" />
+                        {m.common_delete()}
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
           )
         }
@@ -300,7 +312,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                 <TableHead className="w-24">{m.programs_view_duration_col()}</TableHead>
                 <TableHead>{m.programs_view_speaker_col()}</TableHead>
                 <TableHead>{m.programs_view_reader_col()}</TableHead>
-                {canEdit && <TableHead className="w-20">{m.common_actions()}</TableHead>}
+                {canEditParts && <TableHead className="w-20">{m.common_actions()}</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -330,7 +342,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                           <PartRow
                             key={assignment.id}
                             assignment={assignment}
-                            canEdit={canEdit}
+                            canEdit={canEditParts}
                             hasAnyTopic={hasAnyTopic}
                             openPartAssign={openPartAssign}
                             setUnassignTarget={setUnassignTarget}
@@ -365,7 +377,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
               <TableRow>
                 <TableHead>{m.programs_view_role_col()}</TableHead>
                 <TableHead>{m.programs_view_publisher_col()}</TableHead>
-                {canEdit && <TableHead className="w-20">{m.common_actions()}</TableHead>}
+                {canEditServices && <TableHead className="w-20">{m.common_actions()}</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -373,9 +385,9 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                 <TableRow key={assignment.id}>
                   <TableCell className="font-medium text-sm">{assignment.name}</TableCell>
                   <TableCell
-                    className={canEdit ? 'cursor-pointer hover:bg-muted/50' : ''}
+                    className={canEditServices ? 'cursor-pointer hover:bg-muted/50' : ''}
                     onClick={
-                      canEdit
+                      canEditServices
                         ? () => {
                             setAssignServiceTarget({
                               id: assignment.id,
@@ -393,7 +405,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                       hasConflict={assignment.hasConflict}
                     />
                   </TableCell>
-                  {canEdit && (
+                  {canEditServices && (
                     <TableCell>
                       <div className="flex gap-1">
                         <Button

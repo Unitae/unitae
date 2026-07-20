@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
 import { reorderPartAssignments } from '~/features/events/server/event-parts.server'
-import { canEditEvent } from '~/features/events/server/events-auth.server'
+import { canManageEvent } from '~/features/events/server/events-auth.server'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import type { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
@@ -28,7 +28,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
     if (!event) throw redirect('/programs')
 
-    if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
+    if (!(await canManageEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
       throw redirect('/programs')
     }
 

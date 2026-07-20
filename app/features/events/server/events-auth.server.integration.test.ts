@@ -25,6 +25,7 @@ let primaryCongId: number
 let otherCongId: number
 let managerId: number
 let responsibleId: number
+let serviceResponsibleId: number
 let plainId: number
 let otherCongResponsibleId: number
 let templateOwnedId: number
@@ -35,7 +36,9 @@ const allowAll = (_p: Permission) => true
 const allowNone = (_p: Permission) => false
 const allowOnly = (allowed: Permission) => (p: Permission) => p === allowed
 
-const { canEditEvent, getResponsibleTemplateIds, canManageAnyProgram } = await import('./events-auth.server')
+const { canEditEvent, getEventEditScope, getResponsibleTemplateIds, canManageAnyProgram } = await import(
+  './events-auth.server'
+)
 
 beforeAll(async () => {
   const primary = await testDb.congregation.create({
@@ -97,6 +100,31 @@ beforeAll(async () => {
 
     await tx.templateResponsible.create({
       data: { templateId: templateOwnedId, userId: responsibleId, congregationId: primaryCongId },
+    })
+
+    // A service-scoped responsible for the SAME template. Its creation
+    // succeeding alongside the full row above is the live proof that the
+    // @@unique([templateId, scope, congregationId]) index replaced the old
+    // per-template-only uniqueness.
+    const serviceResponsible = await tx.userAccount.create({
+      data: {
+        email: `auth-service-resp-${ts}@test.com`,
+        password: 'hashed',
+        firstname: 'Sam',
+        lastname: 'Service',
+        active: true,
+        congregationId: primaryCongId,
+      },
+    })
+    serviceResponsibleId = serviceResponsible.id
+
+    await tx.templateResponsible.create({
+      data: {
+        templateId: templateOwnedId,
+        userId: serviceResponsibleId,
+        scope: 'service',
+        congregationId: primaryCongId,
+      },
     })
   })
 
@@ -209,5 +237,70 @@ describe('canManageAnyProgram (integration)', () => {
   it('returns false for a plain non-manager user', async () => {
     const result = await withScope(primaryCongId, tx => canManageAnyProgram(tx, allowNone, plainId, primaryCongId))
     expect(result).toBe(false)
+  })
+})
+
+describe('getEventEditScope (integration)', () => {
+  it("returns 'full' for a ProgramManager on any template", async () => {
+    const result = await withScope(primaryCongId, tx =>
+      getEventEditScope(tx, allowOnly(Permission.ProgramManager), managerId, templateOtherId, primaryCongId),
+    )
+    expect(result).toBe('full')
+  })
+
+  it("returns 'full' for the full responsible on their template", async () => {
+    const result = await withScope(primaryCongId, tx =>
+      getEventEditScope(tx, allowNone, responsibleId, templateOwnedId, primaryCongId),
+    )
+    expect(result).toBe('full')
+  })
+
+  it("returns 'service' for the service responsible on their template", async () => {
+    const result = await withScope(primaryCongId, tx =>
+      getEventEditScope(tx, allowNone, serviceResponsibleId, templateOwnedId, primaryCongId),
+    )
+    expect(result).toBe('service')
+  })
+
+  it('returns null for the service responsible on a template they do not own', async () => {
+    const result = await withScope(primaryCongId, tx =>
+      getEventEditScope(tx, allowNone, serviceResponsibleId, templateOtherId, primaryCongId),
+    )
+    expect(result).toBeNull()
+  })
+
+  it('returns null for a plain non-manager', async () => {
+    const result = await withScope(primaryCongId, tx =>
+      getEventEditScope(tx, allowNone, plainId, templateOwnedId, primaryCongId),
+    )
+    expect(result).toBeNull()
+  })
+})
+
+describe('responsible scope isolation (integration)', () => {
+  it('lists the template for the service responsible only when scope is unfiltered', async () => {
+    const all = await withScope(primaryCongId, tx => getResponsibleTemplateIds(tx, serviceResponsibleId, primaryCongId))
+    const fullOnly = await withScope(primaryCongId, tx =>
+      getResponsibleTemplateIds(tx, serviceResponsibleId, primaryCongId, 'full'),
+    )
+    expect(all).toEqual([templateOwnedId])
+    expect(fullOnly).toEqual([])
+  })
+
+  it('does not treat the service responsible as a program manager', async () => {
+    const result = await withScope(primaryCongId, tx =>
+      canManageAnyProgram(tx, allowNone, serviceResponsibleId, primaryCongId),
+    )
+    expect(result).toBe(false)
+  })
+
+  it('rejects a second responsible of the same scope on one template (unique index)', async () => {
+    await expect(
+      withScope(primaryCongId, tx =>
+        tx.templateResponsible.create({
+          data: { templateId: templateOwnedId, userId: plainId, scope: 'service', congregationId: primaryCongId },
+        }),
+      ),
+    ).rejects.toThrow()
   })
 })

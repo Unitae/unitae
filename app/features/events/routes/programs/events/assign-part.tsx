@@ -5,7 +5,7 @@ import { commitSession, getSession } from '~/features/authentication/index.serve
 import { assignPartSchema } from '~/features/events/schemas/assign-part.schema'
 import { loadPartAssignmentCandidates } from '~/features/events/server/assign-part-loader.server'
 import { assignPart, getEventProgramme } from '~/features/events/server/event-part-assignments.server'
-import { canEditEvent } from '~/features/events/server/events-auth.server'
+import { canManageEvent } from '~/features/events/server/events-auth.server'
 import {
   buildAssignmentContext,
   dispatchAssignmentDiffs,
@@ -54,7 +54,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
     const event = await getEventProgramme(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
 
-    if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
+    if (!(await canManageEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
       throw redirect('/programs')
     }
 
@@ -95,7 +95,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
     if (!event) throw redirect('/programs')
 
-    if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
+    if (!(await canManageEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
       throw redirect('/programs')
     }
 

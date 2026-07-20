@@ -1,7 +1,7 @@
 import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { fireReleaseNotifications, releaseEvent } from '~/features/events/server/event-status.server'
-import { canEditEvent } from '~/features/events/server/events-auth.server'
+import { canManageEvent } from '~/features/events/server/events-auth.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -34,7 +34,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const can = (p: Permission) => permissions.has(p)
     const event = await db.event.findFirst({ where: { id: eventId, congregationId }, select: { templateId: true } })
     if (!event) throw redirect('/programs')
-    if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
+    if (!(await canManageEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
       throw redirect('/programs')
     }
     return releaseEvent(db, eventId, congregationId, currentUser.id)

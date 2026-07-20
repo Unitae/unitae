@@ -1,4 +1,5 @@
 import { isSystemTemplate } from '~/features/events/model/event-template.type'
+import { ResponsibleScope } from '~/features/events/model/responsible-scope.type'
 import {
   setTemplatePartAllowedRoles,
   setTemplateServicePartAllowedRoles,
@@ -216,23 +217,30 @@ export function setTemplateResponsible(
   templateId: number,
   userId: number,
   congregationId: number,
+  scope: ResponsibleScope,
 ) {
   return db.templateResponsible.upsert({
     where: {
-      templateId_congregationId: { templateId, congregationId },
+      templateId_scope_congregationId: { templateId, scope, congregationId },
     },
     update: { userId },
     create: {
       templateId,
       userId,
+      scope,
       congregationId,
     },
   })
 }
 
-export function removeTemplateResponsible(db: TransactionClient, templateId: number, congregationId: number) {
+export function removeTemplateResponsible(
+  db: TransactionClient,
+  templateId: number,
+  congregationId: number,
+  scope: ResponsibleScope,
+) {
   return db.templateResponsible.deleteMany({
-    where: { templateId, congregationId },
+    where: { templateId, scope, congregationId },
   })
 }
 
@@ -241,9 +249,10 @@ export function isTemplateResponsible(
   templateId: number,
   userId: number,
   congregationId: number,
+  scope: ResponsibleScope = ResponsibleScope.Full,
 ) {
   return db.templateResponsible.findFirst({
-    where: { templateId, userId, congregationId },
+    where: { templateId, userId, congregationId, scope },
   })
 }
 

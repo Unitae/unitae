@@ -98,7 +98,12 @@ So to give someone access to a feature, you don't grant the permission directly 
 
 ## Programme template responsible
 
-Independently of roles, each programme template can have a **template responsible** assigned. That person can edit, delete, release, and un-release the events that come from that template, and assign publishers to them — without needing the broader Program Manager permission. Useful for delegating one programme (e.g. midweek meeting) without handing over the rest.
+Independently of roles, each programme template can delegate write access to two people:
+
+- a **template responsible**, who can edit, delete, release, and un-release the events that come from that template and assign publishers to them — without needing the broader Program Manager permission; and
+- a **template service responsible**, who can update only the services section of those events (assign services, edit their notes, add or remove service rows) and nothing else.
+
+Useful for delegating one programme (e.g. midweek meeting) — or just its service scheduling — without handing over the rest.
 
 ## Default access
 

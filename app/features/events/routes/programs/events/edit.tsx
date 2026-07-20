@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { data, redirect, useFetcher } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
+import { ResponsibleScope } from '~/features/events/model/responsible-scope.type'
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
 import { getTemplates } from '~/features/events/server/event-templates.server'
-import { canEditEvent } from '~/features/events/server/events-auth.server'
+import { getEventEditScope } from '~/features/events/server/events-auth.server'
 import { EventInfoCard } from '~/features/events/ui/EventInfoCard'
 import { EventPartsCard, type PartAssignment, reorderPartIds } from '~/features/events/ui/EventPartsCard'
 import { EventServicesCard, type ServicePartAssignment } from '~/features/events/ui/EventServicesCard'
@@ -22,7 +23,7 @@ import type { Permission } from '~/shared/types/permission'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { distinct } from '~/shared/utils/distinct'
 import { requireParamId } from '~/shared/utils/params.server'
-import { handleEditIntent } from './_edit-event-intents.server'
+import { handleEditIntent, SERVICE_EDIT_INTENTS } from './_edit-event-intents.server'
 
 import type { Route } from './+types/edit'
 
@@ -42,9 +43,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const event = await getEventProgramme(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
 
-    if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
-      throw redirect('/programs')
-    }
+    const editScope = await getEventEditScope(db, can, currentUser.id, event.templateId ?? null, congregationId)
+    if (editScope == null) throw redirect('/programs')
 
     const [templates, allRoles] = await Promise.all([getTemplates(db, congregationId), listRoles(db, congregationId)])
 
@@ -84,6 +84,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
       roles,
       sectionSuggestions,
       trackSuggestions,
+      editScope,
       timezone: context.get(congregationContext).timezone,
     }
   })
@@ -103,7 +104,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
     if (!event) throw redirect('/programs')
 
-    if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
+    const editScope = await getEventEditScope(db, can, currentUser.id, event.templateId ?? null, congregationId)
+    if (editScope == null) throw redirect('/programs')
+    // Service responsibles may only run service-section intents.
+    if (editScope !== ResponsibleScope.Full && !SERVICE_EDIT_INTENTS.has(String(intent))) {
       throw redirect('/programs')
     }
 
@@ -117,7 +121,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function EditEventPage({ loaderData }: Route.ComponentProps) {
-  const { event, templates, roles, sectionSuggestions, trackSuggestions, timezone } = loaderData
+  const { event, templates, roles, sectionSuggestions, trackSuggestions, editScope, timezone } = loaderData
+  const isFull = editScope === ResponsibleScope.Full
 
   const infoFetcher = useFetcher()
   const partFetcher = useFetcher()
@@ -183,26 +188,28 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
         backTo={`/programs/events/${event.id}`}
       />
 
-      <EventInfoCard event={event} timezone={timezone} fetcher={infoFetcher} />
+      {isFull && <EventInfoCard event={event} timezone={timezone} fetcher={infoFetcher} />}
 
-      <EventPartsCard
-        parts={event.eventParts}
-        templates={templates}
-        selectedTemplateId={selectedTemplateId}
-        onTemplateChange={setSelectedTemplateId}
-        onApplyTemplate={handleApplyTemplate}
-        isApplyingTemplate={templateFetcher.state !== 'idle'}
-        onAddPart={() => {
-          setEditingPart(null)
-          setPartSheetOpen(true)
-        }}
-        onEditPart={part => {
-          setEditingPart(part)
-          setPartSheetOpen(true)
-        }}
-        onDeletePart={target => setDeleteTarget({ type: 'part', id: target.id, name: target.name })}
-        onDragEnd={handlePartDragEnd}
-      />
+      {isFull && (
+        <EventPartsCard
+          parts={event.eventParts}
+          templates={templates}
+          selectedTemplateId={selectedTemplateId}
+          onTemplateChange={setSelectedTemplateId}
+          onApplyTemplate={handleApplyTemplate}
+          isApplyingTemplate={templateFetcher.state !== 'idle'}
+          onAddPart={() => {
+            setEditingPart(null)
+            setPartSheetOpen(true)
+          }}
+          onEditPart={part => {
+            setEditingPart(part)
+            setPartSheetOpen(true)
+          }}
+          onDeletePart={target => setDeleteTarget({ type: 'part', id: target.id, name: target.name })}
+          onDragEnd={handlePartDragEnd}
+        />
+      )}
 
       <EventServicesCard
         services={event.eventServiceParts}
@@ -217,17 +224,19 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
         onDeleteService={target => setDeleteTarget({ type: 'service', id: target.id, name: target.name })}
       />
 
-      <PartEditSheet
-        open={partSheetOpen}
-        onOpenChange={setPartSheetOpen}
-        part={editingPart}
-        mode="event"
-        fetcher={partFetcher}
-        defaultOrder={event.eventParts.length + 1}
-        roles={roles}
-        sectionSuggestions={sectionSuggestions}
-        trackSuggestions={trackSuggestions}
-      />
+      {isFull && (
+        <PartEditSheet
+          open={partSheetOpen}
+          onOpenChange={setPartSheetOpen}
+          part={editingPart}
+          mode="event"
+          fetcher={partFetcher}
+          defaultOrder={event.eventParts.length + 1}
+          roles={roles}
+          sectionSuggestions={sectionSuggestions}
+          trackSuggestions={trackSuggestions}
+        />
+      )}
 
       <ServiceEditSheet
         open={serviceSheetOpen}

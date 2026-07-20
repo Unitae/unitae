@@ -232,31 +232,63 @@ describe('deleteTemplateServicePart', () => {
 })
 
 describe('setTemplateResponsible', () => {
-  it('upserts a responsible user for a template', async () => {
-    const responsible = { id: 1, templateId: 1, userId: 5 }
+  it('upserts a responsible keyed on (templateId, scope, congregationId)', async () => {
+    const responsible = { id: 1, templateId: 1, userId: 5, scope: 'full' }
     vi.mocked(db.templateResponsible.upsert).mockResolvedValue(responsible as never)
 
-    const result = await setTemplateResponsible(db, 1, 5, 1)
+    const result = await setTemplateResponsible(db, 1, 5, 1, 'full')
     expect(result).toEqual(responsible)
+
+    const args = vi.mocked(db.templateResponsible.upsert).mock.calls[0][0]
+    expect(args.where).toEqual({ templateId_scope_congregationId: { templateId: 1, scope: 'full', congregationId: 1 } })
+    expect(args.create).toMatchObject({ templateId: 1, userId: 5, scope: 'full', congregationId: 1 })
+    expect(args.update).toMatchObject({ userId: 5 })
+  })
+
+  it('writes the service scope when asked', async () => {
+    vi.mocked(db.templateResponsible.upsert).mockResolvedValue({} as never)
+
+    await setTemplateResponsible(db, 1, 5, 1, 'service')
+
+    const args = vi.mocked(db.templateResponsible.upsert).mock.calls[0][0]
+    expect(args.where).toEqual({
+      templateId_scope_congregationId: { templateId: 1, scope: 'service', congregationId: 1 },
+    })
+    expect(args.create).toMatchObject({ scope: 'service' })
   })
 })
 
 describe('removeTemplateResponsible', () => {
-  it('removes the responsible from a template', async () => {
+  it('removes only the responsible of the given scope', async () => {
     vi.mocked(db.templateResponsible.deleteMany).mockResolvedValue({ count: 1 } as never)
 
-    const result = await removeTemplateResponsible(db, 1, 1)
+    const result = await removeTemplateResponsible(db, 1, 1, 'service')
     expect(result).toEqual({ count: 1 })
+
+    const args = vi.mocked(db.templateResponsible.deleteMany).mock.calls[0][0]
+    expect(args?.where).toEqual({ templateId: 1, scope: 'service', congregationId: 1 })
   })
 })
 
 describe('isTemplateResponsible', () => {
-  it('returns the record when user is responsible', async () => {
-    const record = { id: 1, templateId: 1, userId: 5 }
+  it('checks the full scope by default', async () => {
+    const record = { id: 1, templateId: 1, userId: 5, scope: 'full' }
     vi.mocked(db.templateResponsible.findFirst).mockResolvedValue(record as never)
 
     const result = await isTemplateResponsible(db, 1, 5, 1)
     expect(result).toEqual(record)
+
+    const args = vi.mocked(db.templateResponsible.findFirst).mock.calls[0][0]
+    expect(args?.where).toEqual({ templateId: 1, userId: 5, congregationId: 1, scope: 'full' })
+  })
+
+  it('checks the requested scope when provided', async () => {
+    vi.mocked(db.templateResponsible.findFirst).mockResolvedValue(null as never)
+
+    await isTemplateResponsible(db, 1, 5, 1, 'service')
+
+    const args = vi.mocked(db.templateResponsible.findFirst).mock.calls[0][0]
+    expect(args?.where).toMatchObject({ scope: 'service' })
   })
 
   it('returns null when user is not responsible', async () => {

@@ -8,9 +8,14 @@ vi.mock('~/shared/infra/db.server', () => ({
   },
 }))
 
-const { canEditEvent, getResponsibleTemplateIds, canManageAnyProgram, filterToManageableEventIds } = await import(
-  './events-auth.server'
-)
+const {
+  canEditEvent,
+  canManageEvent,
+  getEventEditScope,
+  getResponsibleTemplateIds,
+  canManageAnyProgram,
+  filterToManageableEventIds,
+} = await import('./events-auth.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 const CONGREGATION_ID = 4242
@@ -37,23 +42,78 @@ describe('canEditEvent', () => {
     expect(result).toBe(false)
   })
 
-  it('returns true for non-manager when responsible record exists', async () => {
-    vi.mocked(db.templateResponsible.findFirst).mockResolvedValue({
-      id: 1,
-      templateId: TEMPLATE_ID_OWNED,
-      userId: USER_ID,
-      congregationId: CONGREGATION_ID,
-    } as never)
+  it('returns true for non-manager when a full responsible record exists', async () => {
+    vi.mocked(db.templateResponsible.findMany).mockResolvedValue([{ scope: 'full' }] as never)
+
+    const result = await canEditEvent(db, allowNone, USER_ID, TEMPLATE_ID_OWNED, CONGREGATION_ID)
+    expect(result).toBe(true)
+  })
+
+  it('returns true for non-manager when a service responsible record exists', async () => {
+    vi.mocked(db.templateResponsible.findMany).mockResolvedValue([{ scope: 'service' }] as never)
 
     const result = await canEditEvent(db, allowNone, USER_ID, TEMPLATE_ID_OWNED, CONGREGATION_ID)
     expect(result).toBe(true)
   })
 
   it('returns false for non-manager when no responsible record exists', async () => {
-    vi.mocked(db.templateResponsible.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.templateResponsible.findMany).mockResolvedValue([] as never)
 
     const result = await canEditEvent(db, allowNone, USER_ID, TEMPLATE_ID_OTHER, CONGREGATION_ID)
     expect(result).toBe(false)
+  })
+})
+
+describe('getEventEditScope', () => {
+  it("returns 'full' for a ProgramManager regardless of templateId (incl. freeform)", async () => {
+    expect(await getEventEditScope(db, allowOnly(Permission.ProgramManager), USER_ID, null, CONGREGATION_ID)).toBe(
+      'full',
+    )
+  })
+
+  it('returns null for a non-manager on a freeform event (templateId null)', async () => {
+    expect(await getEventEditScope(db, allowNone, USER_ID, null, CONGREGATION_ID)).toBeNull()
+  })
+
+  it("returns 'full' when the user is the full responsible", async () => {
+    vi.mocked(db.templateResponsible.findMany).mockResolvedValue([{ scope: 'full' }] as never)
+    expect(await getEventEditScope(db, allowNone, USER_ID, TEMPLATE_ID_OWNED, CONGREGATION_ID)).toBe('full')
+  })
+
+  it("returns 'service' when the user is only the service responsible", async () => {
+    vi.mocked(db.templateResponsible.findMany).mockResolvedValue([{ scope: 'service' }] as never)
+    expect(await getEventEditScope(db, allowNone, USER_ID, TEMPLATE_ID_OWNED, CONGREGATION_ID)).toBe('service')
+  })
+
+  it("returns 'full' when the user holds both scopes (full dominates)", async () => {
+    vi.mocked(db.templateResponsible.findMany).mockResolvedValue([{ scope: 'service' }, { scope: 'full' }] as never)
+    expect(await getEventEditScope(db, allowNone, USER_ID, TEMPLATE_ID_OWNED, CONGREGATION_ID)).toBe('full')
+  })
+
+  it('returns null when the user holds no responsibility on the template', async () => {
+    vi.mocked(db.templateResponsible.findMany).mockResolvedValue([] as never)
+    expect(await getEventEditScope(db, allowNone, USER_ID, TEMPLATE_ID_OTHER, CONGREGATION_ID)).toBeNull()
+  })
+})
+
+describe('canManageEvent', () => {
+  it('returns true for a ProgramManager', async () => {
+    expect(await canManageEvent(db, allowOnly(Permission.ProgramManager), USER_ID, null, CONGREGATION_ID)).toBe(true)
+  })
+
+  it('returns true for the full responsible', async () => {
+    vi.mocked(db.templateResponsible.findMany).mockResolvedValue([{ scope: 'full' }] as never)
+    expect(await canManageEvent(db, allowNone, USER_ID, TEMPLATE_ID_OWNED, CONGREGATION_ID)).toBe(true)
+  })
+
+  it('returns false for a service responsible (full-only gate)', async () => {
+    vi.mocked(db.templateResponsible.findMany).mockResolvedValue([{ scope: 'service' }] as never)
+    expect(await canManageEvent(db, allowNone, USER_ID, TEMPLATE_ID_OWNED, CONGREGATION_ID)).toBe(false)
+  })
+
+  it('returns false for a plain non-manager', async () => {
+    vi.mocked(db.templateResponsible.findMany).mockResolvedValue([] as never)
+    expect(await canManageEvent(db, allowNone, USER_ID, TEMPLATE_ID_OTHER, CONGREGATION_ID)).toBe(false)
   })
 })
 
@@ -74,6 +134,24 @@ describe('getResponsibleTemplateIds', () => {
     const result = await getResponsibleTemplateIds(db, USER_ID, CONGREGATION_ID)
     expect(result).toEqual([TEMPLATE_ID_OWNED, TEMPLATE_ID_OTHER])
   })
+
+  it('passes an all-scopes filter (no scope) when scope is omitted', async () => {
+    vi.mocked(db.templateResponsible.findMany).mockResolvedValue([] as never)
+
+    await getResponsibleTemplateIds(db, USER_ID, CONGREGATION_ID)
+
+    const where = vi.mocked(db.templateResponsible.findMany).mock.calls[0][0]?.where as Record<string, unknown>
+    expect(where).toEqual({ userId: USER_ID, congregationId: CONGREGATION_ID })
+  })
+
+  it('filters by scope when one is provided', async () => {
+    vi.mocked(db.templateResponsible.findMany).mockResolvedValue([] as never)
+
+    await getResponsibleTemplateIds(db, USER_ID, CONGREGATION_ID, 'full')
+
+    const where = vi.mocked(db.templateResponsible.findMany).mock.calls[0][0]?.where as Record<string, unknown>
+    expect(where).toEqual({ userId: USER_ID, congregationId: CONGREGATION_ID, scope: 'full' })
+  })
 })
 
 describe('canManageAnyProgram', () => {
@@ -87,6 +165,15 @@ describe('canManageAnyProgram', () => {
 
     const result = await canManageAnyProgram(db, allowNone, USER_ID, CONGREGATION_ID)
     expect(result).toBe(true)
+  })
+
+  it('scopes the responsibility check to full responsibilities only', async () => {
+    vi.mocked(db.templateResponsible.findMany).mockResolvedValue([] as never)
+
+    await canManageAnyProgram(db, allowNone, USER_ID, CONGREGATION_ID)
+
+    const where = vi.mocked(db.templateResponsible.findMany).mock.calls[0][0]?.where as Record<string, unknown>
+    expect(where).toMatchObject({ scope: 'full' })
   })
 
   it('returns false for non-manager when no responsible records exist', async () => {

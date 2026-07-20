@@ -22,10 +22,10 @@ describe('getResponsibleConflicts', () => {
     expect(result).toEqual({ count: 0, absenteeNames: [], totalAbsenteesCount: 0 })
   })
 
-  // Non-manager users only see conflicts on templates they are the
-  // responsible for. The join goes through
-  // event.template.responsibles.some.userId.
-  it('scopes the query to templates the user is responsible for (non-manager)', async () => {
+  // Program-part conflicts only surface for a FULL responsible — a service
+  // responsible cannot resolve part assignments, so the part query filters on
+  // scope: 'full'.
+  it('scopes the part query to templates the user is a full responsible for (non-manager)', async () => {
     const userId = 100
     await getResponsibleConflicts(db, userId, false)
 
@@ -35,11 +35,14 @@ describe('getResponsibleConflicts', () => {
     expect(partWhere.event).toEqual({
       startDate: { gte: expect.any(Date) },
       status: 'released',
-      template: { responsibles: { some: { userId } } },
+      template: { responsibles: { some: { userId, scope: 'full' } } },
     })
   })
 
-  it('scopes the service-role query with the same template filter (non-manager)', async () => {
+  // Service conflicts surface for ANY responsible (full or service) — the
+  // service query filter carries no scope so a service responsible still sees
+  // the service absences they are expected to resolve.
+  it('scopes the service query to any responsibility on the template (non-manager)', async () => {
     const userId = 100
     await getResponsibleConflicts(db, userId, false)
 

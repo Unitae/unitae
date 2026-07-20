@@ -893,6 +893,10 @@ model EventServicePartAllowedRole {
 model TemplateResponsible {
   id Int @id @default(autoincrement())
 
+  // "full" | "service" — see app/features/events/model/responsible-scope.type.ts.
+  // full: whole-event edit rights; service: services section only.
+  scope String @default("full")
+
   template   EventTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   templateId Int
 
@@ -902,7 +906,7 @@ model TemplateResponsible {
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
 
-  @@unique([templateId, congregationId])
+  @@unique([templateId, scope, congregationId])
   @@unique([id, congregationId])
 }
 

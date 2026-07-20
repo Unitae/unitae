@@ -124,7 +124,7 @@ export async function importTemplateResponsibles(
   idMap: EntityIdMap,
   congregationId: number,
 ): Promise<void> {
-  const records = await readNdjsonFile<{ id: number; templateId: number; userId: number }>(
+  const records = await readNdjsonFile<{ id: number; templateId: number; userId: number; scope?: string }>(
     zip,
     'programme-template-responsibles',
   )
@@ -134,8 +134,10 @@ export async function importTemplateResponsibles(
     const userId = idMap.getOptional('user-accounts', record.userId)
     if (!templateId || !userId) continue
 
+    // Archives predating the service-responsible feature have no `scope`;
+    // default to 'full' so they import as today's whole-event responsible.
     await db.templateResponsible.create({
-      data: { templateId, userId, congregationId },
+      data: { templateId, userId, scope: record.scope ?? 'full', congregationId },
     })
   }
 }

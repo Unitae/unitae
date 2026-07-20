@@ -169,7 +169,7 @@ beforeAll(async () => {
     })
 
     await tx.templateResponsible.create({
-      data: { templateId: template.id, userId: alice.id, congregationId: sourceId },
+      data: { templateId: template.id, userId: alice.id, scope: 'service', congregationId: sourceId },
     })
 
     const event = await tx.event.create({
@@ -704,6 +704,7 @@ describe('Export/Import round-trip', () => {
       const responsibles = await tx.templateResponsible.findMany({})
       expect(responsibles).toHaveLength(1)
       expect(responsibles[0].userId).toBe(alice.id)
+      expect(responsibles[0].scope).toBe('service')
 
       // Events + assignments
       const events = await tx.event.findMany({})
@@ -975,7 +976,7 @@ describe('AuditLog importer rewrites legacy entityType strings', () => {
     // didn't wire up. Row 0 uses this mapped actor; rows 1..N-1 use
     // `actorId: null` (also a valid archive shape). Row N maps to an actor
     // that isn't in `idMap` — expected to land as `actorId: null`.
-    let sourceActorId = 500
+    const sourceActorId = 500
     let targetActorId = 0
     try {
       const targetAlice = await testDb.userAccount.create({

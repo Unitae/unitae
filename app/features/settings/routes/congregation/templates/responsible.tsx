@@ -1,6 +1,7 @@
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
+import { ResponsibleScope } from '~/features/events'
 import { getTemplateById, removeTemplateResponsible, setTemplateResponsible } from '~/features/events/index.server'
 import { templateResponsibleSchema } from '~/features/settings/schemas/template.schema'
 import * as m from '~/i18n/paraglide/messages'
@@ -45,7 +46,9 @@ export function loader({ params, context }: Route.LoaderArgs) {
     return {
       template,
       users,
-      currentResponsibleId: template.responsibles[0]?.userId ?? null,
+      currentResponsibleId: template.responsibles.find(r => r.scope === ResponsibleScope.Full)?.userId ?? null,
+      currentServiceResponsibleId:
+        template.responsibles.find(r => r.scope === ResponsibleScope.Service)?.userId ?? null,
     }
   })
 }
@@ -62,21 +65,23 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  const { userId } = submission.value
+  const { userId, serviceUserId } = submission.value
+  const { congregationId } = currentUser
 
   return withScopeFromContext(context, async db => {
     const session = await getSession(request.headers.get('Cookie'))
-    if (userId) {
-      await setTemplateResponsible(db, templateId, userId, currentUser.congregationId)
-      session.flash('success', m.settings_template_responsible_assigned_success())
-      logger.info(
-        `Set template responsible. User ID: ${currentUser.id}. Template: ${templateId}. Responsible: ${userId}.`,
-      )
-    } else {
-      await removeTemplateResponsible(db, templateId, currentUser.congregationId)
-      session.flash('success', m.settings_template_responsible_removed_success())
-      logger.info(`Removed template responsible. User ID: ${currentUser.id}. Template: ${templateId}.`)
-    }
+
+    if (userId) await setTemplateResponsible(db, templateId, userId, congregationId, ResponsibleScope.Full)
+    else await removeTemplateResponsible(db, templateId, congregationId, ResponsibleScope.Full)
+
+    if (serviceUserId)
+      await setTemplateResponsible(db, templateId, serviceUserId, congregationId, ResponsibleScope.Service)
+    else await removeTemplateResponsible(db, templateId, congregationId, ResponsibleScope.Service)
+
+    session.flash('success', m.settings_template_responsible_saved_success())
+    logger.info(
+      `Saved template responsibles. Actor: ${currentUser.id}. Template: ${templateId}. Full: ${userId ?? 'none'}. Service: ${serviceUserId ?? 'none'}.`,
+    )
 
     return redirect(`/settings/congregation/templates/${templateId}`, {
       headers: { 'Set-Cookie': await commitSession(session) },
@@ -85,7 +90,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function ResponsiblePage({ loaderData }: Route.ComponentProps) {
-  const { template, users, currentResponsibleId } = loaderData
+  const { template, users, currentResponsibleId, currentServiceResponsibleId } = loaderData
 
   const { blocker, markDirty } = useUnsavedChanges()
 
@@ -109,8 +114,8 @@ export default function ResponsiblePage({ loaderData }: Route.ComponentProps) {
         </CardHeader>
         <CardContent>
           <Form method="post" className="flex flex-col gap-4" onChange={markDirty}>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="userId">{m.settings_template_responsible_label()}</Label>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="userId">{m.settings_template_responsible_full_label()}</Label>
               <PersonDropdown
                 id="userId"
                 name="userId"
@@ -119,6 +124,19 @@ export default function ResponsiblePage({ loaderData }: Route.ComponentProps) {
                 placeholder={m.settings_template_responsible_none()}
                 noneLabel={m.settings_template_responsible_none()}
               />
+              <p className="text-muted-foreground text-xs">{m.settings_template_responsible_full_hint()}</p>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="serviceUserId">{m.settings_template_responsible_service_label()}</Label>
+              <PersonDropdown
+                id="serviceUserId"
+                name="serviceUserId"
+                people={users}
+                defaultValue={currentServiceResponsibleId?.toString() ?? ''}
+                placeholder={m.settings_template_responsible_service_none()}
+                noneLabel={m.settings_template_responsible_service_none()}
+              />
+              <p className="text-muted-foreground text-xs">{m.settings_template_responsible_service_hint()}</p>
             </div>
             <SubmitButton className="w-fit">{m.common_save()}</SubmitButton>
           </Form>

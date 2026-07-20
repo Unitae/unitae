@@ -1,7 +1,7 @@
-import { Calendar, CalendarOff, CalendarPlus, Clock, Copy, Pencil, UserCog } from 'lucide-react'
+import { Calendar, CalendarOff, CalendarPlus, Clock, Copy, Pencil, UserCog, Wrench } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { dayLabel, isSystemTemplate } from '~/features/events'
+import { dayLabel, isSystemTemplate, ResponsibleScope } from '~/features/events'
 import { duplicateTemplate, getTemplateById, isTemplateResponsible } from '~/features/events/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -77,6 +77,8 @@ export function action({ request, params, context }: Route.ActionArgs) {
 
 export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
   const { template, canEdit, isSystem } = loaderData
+  const fullResponsible = template.responsibles.find(r => r.scope === ResponsibleScope.Full)
+  const serviceResponsible = template.responsibles.find(r => r.scope === ResponsibleScope.Service)
 
   return (
     <div className="flex flex-col gap-6">
@@ -124,10 +126,18 @@ export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
             </Badge>
           )}
           {template.weekDay == null && <Badge variant="secondary">{m.settings_template_view_one_time_event()}</Badge>}
-          {template.responsibles[0] && (
+          {fullResponsible && (
             <Badge variant="outline">
               <UserCog className="mr-1 size-3" />
-              {formatPersonName(resolveAccountName(template.responsibles[0].user))}
+              {formatPersonName(resolveAccountName(fullResponsible.user))}
+            </Badge>
+          )}
+          {serviceResponsible && (
+            <Badge variant="outline">
+              <Wrench className="mr-1 size-3" />
+              {m.settings_template_view_service_responsible_short()}
+              {': '}
+              {formatPersonName(resolveAccountName(serviceResponsible.user))}
             </Badge>
           )}
         </div>

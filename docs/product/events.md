@@ -161,11 +161,12 @@ Speakers no longer needed can be **archived** (kept in history but hidden from n
 
 ## Per-Template Responsibility
 
-A **manager** can be assigned to each template. This person gains write access to that template's events (assign publishers, edit structure) without needing the full Program Manager permission.
+Each template can delegate write access to two people, independently of the Program Manager permission:
 
-This is useful for delegating: "this elder manages the midweek meeting programme, that one manages the weekend programme."
+- **Responsible** — full control of that template's events: assign publishers, edit structure, and release, un-release, or delete events. Useful for delegating a whole programme ("this elder manages the midweek meeting").
+- **Service responsible** — can update **only the services section** of that template's events: assign or unassign the service parts (Sound, Stage, Welcome, Cleaning…), edit their notes, and add or remove service rows. They cannot touch the spiritual programme, event details, or release/delete the event. Useful for handing the attendant/sound scheduling to a brother without giving him the whole programme.
 
-If no responsible is set, only users with the Program Manager or Admin permission can edit.
+Both are assigned by a Program Manager or Admin at **Settings > Congregation settings > Programme templates > [template] > Responsible**. A template may have one of each. If neither is set, only Program Manager or Admin users can edit.
 
 ## Permissions
 
@@ -177,6 +178,7 @@ If no responsible is set, only users with the Program Manager or Admin permissio
 | External Speaker Viewer | Open the external speaker registry and pick from it |
 | External Speaker Manager | Add, edit, archive, and unarchive external speakers |
 | Template responsible | Edit, release, un-release, and delete events for their template only. Assign publishers |
+| Template service responsible | Update only the services section of their template's events (assign services, edit notes, add/remove service rows) |
 | Admin | Everything, including creating new templates |
 
 See [Roles and Permissions](roles-and-permissions.md) for the full list of permissions across all features.

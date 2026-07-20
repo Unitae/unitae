@@ -26,6 +26,11 @@ import { combineLocalDateTime } from '~/shared/utils/event-time'
 
 export type IntentResult = { message: string | null } | { reply: () => unknown }
 
+// Edit intents a service responsible (services section only) may run. Every
+// other intent handled below is full-responsibility work (event info, parts,
+// apply-template) and is gated out for service scope in edit.tsx.
+export const SERVICE_EDIT_INTENTS = new Set(['add-service', 'update-service', 'delete-service'])
+
 export function handleEditIntent(
   intent: FormDataEntryValue | null,
   formData: FormData,
