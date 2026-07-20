@@ -24,6 +24,8 @@ interface TemplateWithRelations {
     order: number
     durationMin: number | null
     allowExternalSpeaker: boolean
+    speakerLabel: string | null
+    readerLabel: string | null
     allowedRoles: PartAllowedRoleRow[]
   }[]
   serviceRoles: { id: number; name: string; allowedRoles: AllowedRoleRow[] }[]
@@ -78,6 +80,8 @@ async function createEventWithAssignments(
         order: part.order,
         durationMin: part.durationMin,
         allowExternalSpeaker: part.allowExternalSpeaker,
+        speakerLabel: part.speakerLabel,
+        readerLabel: part.readerLabel,
         congregationId,
       },
     })

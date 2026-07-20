@@ -267,6 +267,64 @@ describe('isTemplateResponsible', () => {
   })
 })
 
+describe('upsertTemplatePart role labels', () => {
+  it('passes speakerLabel and readerLabel through to the create data (Layer 5)', async () => {
+    vi.mocked(db.programmeTemplatePart.create).mockResolvedValue({ id: 42 } as never)
+
+    await upsertTemplatePart(
+      db,
+      1,
+      {
+        name: 'Bible reading',
+        section: '',
+        track: '',
+        order: 1,
+        durationMin: 5,
+        allowExternalSpeaker: false,
+        speakerLabel: 'STUDENT-SENTINEL',
+        readerLabel: null,
+        allowedSpeakerRoleIds: [],
+        allowedReaderRoleIds: [],
+      },
+      7,
+      99,
+    )
+
+    expect(vi.mocked(db.programmeTemplatePart.create)).toHaveBeenCalledWith({
+      data: expect.objectContaining({ speakerLabel: 'STUDENT-SENTINEL', readerLabel: null }),
+    })
+  })
+
+  it('passes speakerLabel and readerLabel through to the update data (Layer 5)', async () => {
+    vi.mocked(db.programmeTemplatePart.update).mockResolvedValue({ id: 42 } as never)
+
+    await upsertTemplatePart(
+      db,
+      1,
+      {
+        id: 42,
+        name: 'Return visit',
+        section: '',
+        track: '',
+        order: 1,
+        durationMin: 10,
+        allowExternalSpeaker: false,
+        speakerLabel: 'STUDENT-SENTINEL',
+        readerLabel: 'HOUSEHOLDER-SENTINEL',
+        allowedSpeakerRoleIds: [],
+        allowedReaderRoleIds: [],
+      },
+      7,
+      99,
+    )
+
+    expect(vi.mocked(db.programmeTemplatePart.update)).toHaveBeenCalledWith({
+      where: { id_congregationId: { id: 42, congregationId: 7 } },
+      data: expect.objectContaining({ speakerLabel: 'STUDENT-SENTINEL', readerLabel: 'HOUSEHOLDER-SENTINEL' }),
+    })
+  })
+})
+
 describe('upsertTemplatePart audit firing', () => {
   it('fires PartAllowedRolesChanged audit when role lists change', async () => {
     vi.mocked(db.programmeTemplatePart.create).mockResolvedValue({ id: 50 } as never)
@@ -456,5 +514,66 @@ describe('duplicateTemplate', () => {
     // Empty lists are skipped
     expect(vi.mocked(db.programmeTemplatePartAllowedRole.createMany)).toHaveBeenCalledTimes(2)
     expect(vi.mocked(db.programmeTemplateServiceRoleAllowedRole.createMany)).toHaveBeenCalledTimes(1)
+  })
+
+  // A duplicated template must carry the source's per-part role labels; without
+  // this, admins who clone a template lose their custom labels silently.
+  it('copies speakerLabel and readerLabel from source parts to the duplicate (Layer 4)', async () => {
+    const source = {
+      id: 5,
+      name: 'Reunion',
+      key: 'midweek',
+      description: '',
+      weekDay: 2,
+      isRecurring: true,
+      parts: [
+        {
+          id: 10,
+          name: 'Bible reading',
+          section: '',
+          track: '',
+          order: 1,
+          durationMin: 5,
+          allowExternalSpeaker: false,
+          // Distinct sentinels per part so an ordering regression in the copy
+          // loop (swapping parts[0] and parts[1]) fails visibly.
+          speakerLabel: 'STUDENT-SENTINEL-P1',
+          readerLabel: null,
+          allowedRoles: [],
+        },
+        {
+          id: 11,
+          name: 'Return visit',
+          section: '',
+          track: '',
+          order: 2,
+          durationMin: 10,
+          allowExternalSpeaker: false,
+          speakerLabel: 'STUDENT-SENTINEL-P2',
+          readerLabel: 'HOUSEHOLDER-SENTINEL-P2',
+          allowedRoles: [],
+        },
+      ],
+      serviceRoles: [],
+    }
+    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue(source as never)
+    vi.mocked(db.programmeTemplate.create).mockResolvedValue({
+      id: 99,
+      name: 'Reunion (copie)',
+      parts: [],
+      serviceRoles: [],
+    } as never)
+
+    await duplicateTemplate(db, 5, 7)
+
+    const createCall = vi.mocked(db.programmeTemplate.create).mock.calls[0][0] as {
+      data: { parts: { create: Array<{ speakerLabel: string | null; readerLabel: string | null }> } }
+    }
+    const createdParts = createCall.data.parts.create
+    expect(createdParts[0]).toMatchObject({ speakerLabel: 'STUDENT-SENTINEL-P1', readerLabel: null })
+    expect(createdParts[1]).toMatchObject({
+      speakerLabel: 'STUDENT-SENTINEL-P2',
+      readerLabel: 'HOUSEHOLDER-SENTINEL-P2',
+    })
   })
 })

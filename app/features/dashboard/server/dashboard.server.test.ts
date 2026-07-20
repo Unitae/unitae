@@ -154,6 +154,8 @@ describe('getNextMeeting', () => {
           section: 'main',
           topic: 'Topic',
           order: 1,
+          speakerLabel: null,
+          readerLabel: null,
           assignee: { id: 42, firstname: 'John', lastname: 'Doe' },
           assistant: null,
         },
@@ -163,6 +165,8 @@ describe('getNextMeeting', () => {
           section: 'main',
           topic: null,
           order: 2,
+          speakerLabel: null,
+          readerLabel: null,
           assignee: { id: 99, firstname: 'Jane', lastname: 'Smith' },
           assistant: null,
         },
@@ -198,6 +202,8 @@ describe('getNextMeeting', () => {
           section: 'main',
           topic: null,
           order: 1,
+          speakerLabel: null,
+          readerLabel: null,
           // Different people in the two slots — this is the exact shape the
           // NextMeetingCard used to compare assignee.id vs assistant.id and
           // always return "speaker" for. The viewer here is the assistant.
@@ -211,6 +217,60 @@ describe('getNextMeeting', () => {
     const result = await getNextMeeting(db, 42)
     expect(result?.userPartIds).toEqual([10])
     expect(result?.partAssignments[0].viewerRole).toBe('reader')
+  })
+
+  // Locks the shape: the Prisma select MUST project speakerLabel and readerLabel
+  // on each partAssignment so the UI can render per-part role labels. A
+  // regression that drops either field from the select would make the label
+  // helper fall back to defaults for every part, silently masking whatever
+  // admins configured.
+  it('projects speakerLabel and readerLabel on every partAssignment (sentinel test)', async () => {
+    vi.mocked(db.event.findFirst).mockResolvedValue({
+      id: 1,
+      name: 'Midweek',
+      startDate: new Date(2026, 3, 25),
+      endDate: new Date(2026, 3, 25),
+      template: null,
+      partAssignments: [
+        {
+          id: 10,
+          name: 'Bible reading',
+          section: 'main',
+          topic: null,
+          order: 1,
+          speakerLabel: 'STUDENT-SENTINEL-42',
+          readerLabel: null,
+          assignee: { id: 42, firstname: 'John', lastname: 'Doe' },
+          assistant: null,
+        },
+        {
+          id: 11,
+          name: 'Return visit',
+          section: 'main',
+          topic: null,
+          order: 2,
+          speakerLabel: 'STUDENT-SENTINEL-99',
+          readerLabel: 'HOUSEHOLDER-SENTINEL-99',
+          assignee: null,
+          assistant: null,
+        },
+      ],
+      serviceRoleAssignments: [],
+    } as never)
+
+    const result = await getNextMeeting(db, 42)
+
+    expect(result?.partAssignments[0]).toMatchObject({ speakerLabel: 'STUDENT-SENTINEL-42', readerLabel: null })
+    expect(result?.partAssignments[1]).toMatchObject({
+      speakerLabel: 'STUDENT-SENTINEL-99',
+      readerLabel: 'HOUSEHOLDER-SENTINEL-99',
+    })
+
+    // Also assert the Prisma select requested the fields — a fixture that
+    // happened to include the sentinels would pass without this.
+    const call = vi.mocked(db.event.findFirst).mock.calls[0][0]
+    const select = call?.select as { partAssignments?: { select?: Record<string, unknown> } }
+    expect(select.partAssignments?.select).toMatchObject({ speakerLabel: true, readerLabel: true })
   })
 
   it('returns empty arrays when user has no assignments', async () => {

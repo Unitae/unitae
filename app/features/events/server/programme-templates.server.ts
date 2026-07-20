@@ -83,6 +83,8 @@ export async function upsertTemplatePart(
     order: number
     durationMin: number | null
     allowExternalSpeaker: boolean
+    speakerLabel?: string | null
+    readerLabel?: string | null
     allowedSpeakerRoleIds: number[]
     allowedReaderRoleIds: number[]
   },
@@ -97,6 +99,8 @@ export async function upsertTemplatePart(
     order: partData.order,
     durationMin: partData.durationMin,
     allowExternalSpeaker: partData.allowExternalSpeaker,
+    speakerLabel: partData.speakerLabel,
+    readerLabel: partData.readerLabel,
   }
 
   const part = partData.id
@@ -279,6 +283,8 @@ export async function duplicateTemplate(db: TransactionClient, templateId: numbe
           order: part.order,
           durationMin: part.durationMin,
           allowExternalSpeaker: part.allowExternalSpeaker,
+          speakerLabel: part.speakerLabel,
+          readerLabel: part.readerLabel,
           congregationId,
         })),
       },

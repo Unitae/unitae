@@ -25,6 +25,7 @@ const {
   deleteEvent,
   updateEvent,
   addPartAssignment,
+  updatePartAssignment,
   deletePartAssignment,
   addServiceRoleAssignment,
   deleteServiceRoleAssignment,
@@ -42,6 +43,7 @@ const mockDb = {
   programmePartAssignment: {
     create: vi.fn(),
     delete: vi.fn(),
+    update: vi.fn(),
   },
   programmeServiceRoleAssignment: {
     create: vi.fn(),
@@ -258,6 +260,33 @@ describe('addPartAssignment', () => {
     expect(result).toEqual(expected)
     expect(mockDb.programmePartAssignment.create).toHaveBeenCalledWith({ data: createData })
   })
+
+  it('passes speakerLabel and readerLabel to create when supplied (Layer 5)', async () => {
+    mockDb.programmePartAssignment.create.mockResolvedValue({ id: 1 })
+
+    await addPartAssignment(
+      mockDb as never,
+      {
+        eventId: 1,
+        name: 'Bible reading',
+        section: 'main',
+        track: 'A',
+        order: 1,
+        durationMin: 5,
+        allowExternalSpeaker: false,
+        speakerLabel: 'STUDENT-SENTINEL',
+        readerLabel: 'HOUSEHOLDER-SENTINEL',
+        allowedSpeakerRoleIds: [],
+        allowedReaderRoleIds: [],
+        congregationId: 10,
+      },
+      99,
+    )
+
+    expect(mockDb.programmePartAssignment.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ speakerLabel: 'STUDENT-SENTINEL', readerLabel: 'HOUSEHOLDER-SENTINEL' }),
+    })
+  })
 })
 
 describe('deletePartAssignment', () => {
@@ -269,6 +298,36 @@ describe('deletePartAssignment', () => {
     expect(result).toEqual({ id: 5 })
     expect(mockDb.programmePartAssignment.delete).toHaveBeenCalledWith({
       where: { id_congregationId: { id: 5, congregationId: 10 } },
+    })
+  })
+})
+
+describe('updatePartAssignment', () => {
+  it('passes speakerLabel and readerLabel to the update when supplied (Layer 5)', async () => {
+    mockDb.programmePartAssignment.update.mockResolvedValue({ id: 5 })
+
+    await updatePartAssignment(
+      mockDb as never,
+      5,
+      {
+        name: 'Bible reading',
+        section: 'main',
+        track: 'A',
+        order: 1,
+        durationMin: 5,
+        allowExternalSpeaker: false,
+        speakerLabel: 'STUDENT-SENTINEL',
+        readerLabel: 'HOUSEHOLDER-SENTINEL',
+        allowedSpeakerRoleIds: [],
+        allowedReaderRoleIds: [],
+      },
+      10,
+      99,
+    )
+
+    expect(mockDb.programmePartAssignment.update).toHaveBeenCalledWith({
+      where: { id_congregationId: { id: 5, congregationId: 10 } },
+      data: expect.objectContaining({ speakerLabel: 'STUDENT-SENTINEL', readerLabel: 'HOUSEHOLDER-SENTINEL' }),
     })
   })
 })
@@ -315,8 +374,28 @@ describe('applyTemplateToEvent', () => {
       id: 5,
       name: 'Reunion vie',
       parts: [
-        { id: 10, name: 'Cantique', section: 'intro', track: 'A', order: 1, durationMin: 5, allowedRoles: [] },
-        { id: 11, name: 'Discours', section: 'main', track: 'A', order: 2, durationMin: 30, allowedRoles: [] },
+        {
+          id: 10,
+          name: 'Cantique',
+          section: 'intro',
+          track: 'A',
+          order: 1,
+          durationMin: 5,
+          speakerLabel: null,
+          readerLabel: null,
+          allowedRoles: [],
+        },
+        {
+          id: 11,
+          name: 'Discours',
+          section: 'main',
+          track: 'A',
+          order: 2,
+          durationMin: 30,
+          speakerLabel: null,
+          readerLabel: null,
+          allowedRoles: [],
+        },
       ],
       serviceRoles: [{ id: 20, name: 'Son', allowedRoles: [] }],
     }
@@ -342,11 +421,64 @@ describe('applyTemplateToEvent', () => {
         track: 'A',
         order: 1,
         durationMin: 5,
+        speakerLabel: null,
+        readerLabel: null,
         congregationId: 10,
       },
     })
     expect(mockDb.programmeServiceRoleAssignment.create).toHaveBeenCalledWith({
       data: { eventId: 1, serviceRoleId: 20, name: 'Son', congregationId: 10 },
+    })
+  })
+
+  // Sentinel test: proves the two label fields are threaded from the template
+  // and not fabricated by the caller. A regression that hardcodes null would
+  // pass the existing shape assertion above (both fields are null there) but
+  // fails this one.
+  it('copies speakerLabel and readerLabel from template parts to assignments (Layer 4)', async () => {
+    // Distinct sentinels per part — a regression that swaps parts[0] and parts[1]
+    // during the copy would produce a false positive if both used the same value.
+    const template = {
+      id: 5,
+      name: 'Reunion',
+      parts: [
+        {
+          id: 10,
+          name: 'Bible reading',
+          section: 'main',
+          track: 'A',
+          order: 1,
+          durationMin: 5,
+          speakerLabel: 'STUDENT-SENTINEL-P1',
+          readerLabel: null,
+          allowedRoles: [],
+        },
+        {
+          id: 11,
+          name: 'Return visit',
+          section: 'main',
+          track: 'A',
+          order: 2,
+          durationMin: 10,
+          speakerLabel: 'STUDENT-SENTINEL-P2',
+          readerLabel: 'HOUSEHOLDER-SENTINEL-P2',
+          allowedRoles: [],
+        },
+      ],
+      serviceRoles: [],
+    }
+    mockDb.programmeTemplate.findFirst.mockResolvedValue(template)
+    mockDb.event.update.mockResolvedValue({})
+    mockDb.programmePartAssignment.create.mockResolvedValue({ id: 999 })
+
+    await applyTemplateToEvent(mockDb as never, 1, 5, 10, 42)
+
+    const calls = mockDb.programmePartAssignment.create.mock.calls
+    expect(calls.length).toBe(2)
+    expect(calls[0][0].data).toMatchObject({ speakerLabel: 'STUDENT-SENTINEL-P1', readerLabel: null })
+    expect(calls[1][0].data).toMatchObject({
+      speakerLabel: 'STUDENT-SENTINEL-P2',
+      readerLabel: 'HOUSEHOLDER-SENTINEL-P2',
     })
   })
 
@@ -362,6 +494,8 @@ describe('applyTemplateToEvent', () => {
           track: '',
           order: 1,
           durationMin: 30,
+          speakerLabel: null,
+          readerLabel: null,
           allowedRoles: [
             { roleId: 100, asKind: 'speaker' },
             { roleId: 101, asKind: 'speaker' },
@@ -401,7 +535,19 @@ describe('applyTemplateToEvent', () => {
     const template = {
       id: 5,
       name: 'Reunion',
-      parts: [{ id: 10, name: 'Cantique', section: '', track: '', order: 1, durationMin: 5, allowedRoles: [] }],
+      parts: [
+        {
+          id: 10,
+          name: 'Cantique',
+          section: '',
+          track: '',
+          order: 1,
+          durationMin: 5,
+          speakerLabel: null,
+          readerLabel: null,
+          allowedRoles: [],
+        },
+      ],
       serviceRoles: [{ id: 20, name: 'Son', allowedRoles: [] }],
     }
     mockDb.programmeTemplate.findFirst.mockResolvedValue(template)

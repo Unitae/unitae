@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useFetcher } from 'react-router'
+import { partReaderLabel, partSpeakerLabel } from '~/features/events/model/part-labels'
 import { ExternalSpeakerInfoCard } from '~/features/events/ui/ExternalSpeakerInfoCard'
 import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
 import * as m from '~/i18n/paraglide/messages'
@@ -22,6 +23,8 @@ type PartAssignment = {
   assistantId: number | null
   allowExternalSpeaker: boolean
   externalSpeakerId: number | null
+  speakerLabel: string | null
+  readerLabel: string | null
 }
 
 type ExternalSpeakerOption = { id: number; name: string }
@@ -170,7 +173,7 @@ export function AssignPartSheet({
           ) : (
             <>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="assigneeId">{m.programs_assign_part_speaker_label()}</Label>
+                <Label htmlFor="assigneeId">{partSpeakerLabel(assignment)}</Label>
                 <PersonDropdown
                   id="assigneeId"
                   name="assigneeId"
@@ -190,7 +193,7 @@ export function AssignPartSheet({
               />
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor="assistantId">{m.programs_assign_part_reader_label()}</Label>
+                <Label htmlFor="assistantId">{partReaderLabel(assignment)}</Label>
                 <PersonDropdown
                   id="assistantId"
                   name="assistantId"

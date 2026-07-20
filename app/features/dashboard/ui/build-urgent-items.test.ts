@@ -50,6 +50,8 @@ type PartAssignment = {
   section: string
   topic: string
   order: number
+  speakerLabel: string | null
+  readerLabel: string | null
   assignee: Person | null
   assistant: Person | null
   viewerRole: 'speaker' | 'reader' | null
@@ -150,6 +152,8 @@ describe('urgentPartAssignmentItems', () => {
           assignee: { id: 1, firstname: 'John', lastname: 'Doe' },
           assistant: null,
           viewerRole: 'speaker',
+          speakerLabel: null,
+          readerLabel: null,
         },
       ],
     })
@@ -169,6 +173,8 @@ describe('urgentPartAssignmentItems', () => {
           assignee: { id: 1, firstname: 'John', lastname: 'Doe' },
           assistant: null,
           viewerRole: 'speaker',
+          speakerLabel: null,
+          readerLabel: null,
         },
       ],
     })
@@ -192,6 +198,8 @@ describe('urgentPartAssignmentItems', () => {
           assignee: { id: 1, firstname: 'John', lastname: 'Doe' },
           assistant: null,
           viewerRole: 'speaker',
+          speakerLabel: null,
+          readerLabel: null,
         },
       ],
     })
@@ -391,6 +399,8 @@ describe('buildUrgentItems', () => {
           assignee: null,
           assistant: null,
           viewerRole: null,
+          speakerLabel: null,
+          readerLabel: null,
         },
       ],
     })
@@ -414,6 +424,8 @@ describe('buildUrgentItems', () => {
           assignee: null,
           assistant: null,
           viewerRole: null,
+          speakerLabel: null,
+          readerLabel: null,
         },
       ],
       serviceRoleAssignments: [{ id: 5, name: 'Son', assignee: null }],

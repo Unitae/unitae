@@ -335,6 +335,8 @@ export async function getNextMeeting(db: TransactionClient, userId: number) {
           section: true,
           topic: true,
           order: true,
+          speakerLabel: true,
+          readerLabel: true,
           assignee: { select: { id: true, firstname: true, lastname: true } },
           assistant: { select: { id: true, firstname: true, lastname: true } },
         },
