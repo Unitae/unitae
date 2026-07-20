@@ -467,10 +467,15 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
     },
     {
       name: 'programme-part-assignment-allowed-roles',
-      export: () =>
-        db.eventPartAllowedRole.findMany({
-          select: { assignmentId: true, roleId: true, asKind: true },
-        }),
+      // Renaming `eventPartId` back to `assignmentId` on write keeps the NDJSON
+      // format stable for pre-2.1 importers — the column was renamed in the
+      // 20260720400000 migration, but the archive schema stays frozen.
+      export: async () => {
+        const rows = await db.eventPartAllowedRole.findMany({
+          select: { eventPartId: true, roleId: true, asKind: true },
+        })
+        return rows.map(r => ({ assignmentId: r.eventPartId, roleId: r.roleId, asKind: r.asKind }))
+      },
     },
     {
       name: 'programme-service-role-assignments',
@@ -489,10 +494,14 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
     },
     {
       name: 'programme-service-role-assignment-allowed-roles',
-      export: () =>
-        db.eventServiceRoleAllowedRole.findMany({
-          select: { assignmentId: true, roleId: true },
-        }),
+      // See comment on programme-part-assignment-allowed-roles above — archive
+      // field name stays `assignmentId` even after the column rename.
+      export: async () => {
+        const rows = await db.eventServiceRoleAllowedRole.findMany({
+          select: { eventServiceRoleId: true, roleId: true },
+        })
+        return rows.map(r => ({ assignmentId: r.eventServiceRoleId, roleId: r.roleId }))
+      },
     },
     {
       name: 'board-sections',

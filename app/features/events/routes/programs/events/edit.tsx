@@ -49,26 +49,24 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const [templates, allRoles] = await Promise.all([getTemplates(db, congregationId), listRoles(db, congregationId)])
 
     const partAllowed = await db.eventPartAllowedRole.findMany({
-      where: { assignmentId: { in: event.eventParts.map(p => p.id) }, congregationId },
-      select: { assignmentId: true, roleId: true, asKind: true },
+      where: { eventPartId: { in: event.eventParts.map(p => p.id) }, congregationId },
+      select: { eventPartId: true, roleId: true, asKind: true },
     })
     const serviceAllowed = await db.eventServiceRoleAllowedRole.findMany({
-      where: { assignmentId: { in: event.eventServiceRoles.map(s => s.id) }, congregationId },
-      select: { assignmentId: true, roleId: true },
+      where: { eventServiceRoleId: { in: event.eventServiceRoles.map(s => s.id) }, congregationId },
+      select: { eventServiceRoleId: true, roleId: true },
     })
 
     const partsWithRoles = event.eventParts.map(p => ({
       ...p,
       allowedSpeakerRoleIds: partAllowed
-        .filter(r => r.assignmentId === p.id && r.asKind === 'speaker')
+        .filter(r => r.eventPartId === p.id && r.asKind === 'speaker')
         .map(r => r.roleId),
-      allowedReaderRoleIds: partAllowed
-        .filter(r => r.assignmentId === p.id && r.asKind === 'reader')
-        .map(r => r.roleId),
+      allowedReaderRoleIds: partAllowed.filter(r => r.eventPartId === p.id && r.asKind === 'reader').map(r => r.roleId),
     }))
     const serviceAssignmentsWithRoles = event.eventServiceRoles.map(s => ({
       ...s,
-      allowedRoleIds: serviceAllowed.filter(r => r.assignmentId === s.id).map(r => r.roleId),
+      allowedRoleIds: serviceAllowed.filter(r => r.eventServiceRoleId === s.id).map(r => r.roleId),
     }))
 
     const roles = allRoles.map(r => ({ id: r.id, key: r.key, name: r.name, isBuiltIn: r.isBuiltIn }))
