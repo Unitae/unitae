@@ -94,8 +94,12 @@ export async function syncBuiltInRoleAssignments(
   })
   if (!member) return
 
+  // Scope by congregationId explicitly. Under RLS-scoped callers this is a
+  // no-op (rows are already filtered), but callers that bypass RLS — e.g. the
+  // seed scripts running as the DB owner — would otherwise match every
+  // congregation's built-in roles and write cross-tenant assignments.
   const builtInRoles = await db.role.findMany({
-    where: { isBuiltIn: true },
+    where: { isBuiltIn: true, congregationId },
     select: { id: true, key: true },
   })
 

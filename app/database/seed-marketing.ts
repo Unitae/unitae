@@ -21,6 +21,8 @@ import { seedDefaultTemplates } from '../features/events/server/seed-templates.s
 import { EntranceKind } from '../features/territories/model/entrance-kind.type'
 import { TerritoryAttributionKind } from '../features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '../features/territories/model/territory-kind.type'
+import { syncBuiltInRoleAssignments } from '../shared/domain/built-in-roles.server'
+import { seedBuiltInRoles } from '../shared/domain/setup.server'
 import { Permission } from '../shared/types/permission'
 import { PublisherType } from '../shared/types/publisher-type'
 import { stripDiacritics } from '../shared/utils/strip-diacritics'
@@ -625,6 +627,11 @@ async function main() {
 
   console.log(`  ✓ Congregation "${congregation.name}" (id=${congId})`)
 
+  // Ensure built-in identity roles (`member`, `publisher`, `brother`, …) exist
+  // for this congregation even when the marketing seed runs on a fresh DB
+  // without the regular seed having run first.
+  await seedBuiltInRoles(prisma, congId)
+
   // ── Event templates ───────────────────────────────────────────────────
   await seedDefaultTemplates(prisma, congId, 'fr')
 
@@ -675,6 +682,11 @@ async function main() {
         congregationId: congId,
       },
     })
+
+    // Populate MemberRoleAssignment rows from the member's flags. The regular
+    // aggregate does this via syncBuiltInRoleAssignments; the direct
+    // prisma.member.create above bypasses it, so call it explicitly here.
+    await syncBuiltInRoleAssignments(prisma, member.id, congId, null)
 
     const account = await prisma.userAccount.upsert({
       where: { email },

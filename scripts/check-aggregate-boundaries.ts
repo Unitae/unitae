@@ -2,10 +2,11 @@
 // CQRS-lite boundary check. Enforces two rules from
 // docs/development/architecture-conventions.md#cqrs-lite:
 //
-//   1. Writes to aggregate-owned models (`db.member.*` / `db.attribution.*`
+//   1. Writes to aggregate-owned models (`db.member.*` / `prisma.member.*` /
+//      `db.attribution.*` / `prisma.attribution.*` with
 //      create/update/updateMany/delete/deleteMany/upsert) are allowed only
 //      inside *.aggregate.ts files or on the allowlist (import-*.server.ts
-//      orchestrators, tests).
+//      orchestrators, tests, and app/database/** seed scripts).
 //
 //   2. UI-shaped reads inside *.aggregate.ts files (`findMany`, `count`,
 //      `aggregate`) are forbidden, unless the enclosing function is prefixed
@@ -27,13 +28,17 @@ const AGGREGATE_MODELS = ['member', 'attribution'] as const
 const WRITE_METHODS = ['create', 'update', 'updateMany', 'delete', 'deleteMany', 'upsert'] as const
 const UI_READ_METHODS = ['findMany', 'count', 'aggregate'] as const
 
-const WRITE_RE = new RegExp(`\\bdb\\.(${AGGREGATE_MODELS.join('|')})\\.(${WRITE_METHODS.join('|')})\\b`)
+const WRITE_RE = new RegExp(`\\b(?:db|prisma)\\.(${AGGREGATE_MODELS.join('|')})\\.(${WRITE_METHODS.join('|')})\\b`)
 const READ_RE = new RegExp(`\\bdb\\.\\w+\\.(${UI_READ_METHODS.join('|')})\\b`)
 const FUNCTION_DECL_RE = /^\s*(?:export\s+)?(?:async\s+)?function\s+(\w+)/
 const ALLOW_COMMENT_RE = /\/\/\s*aggregate-boundaries-allow\b/
 const TEST_FILE_RE = /\.(?:test|integration\.test|spec)\.tsx?$/
 const TEST_INFRA_RE = /^app\/tests\//
 const IMPORT_ORCHESTRATOR_RE = /\/import-[a-z-]+\.server\.ts$/
+// Seed scripts run before any aggregate is wired (no CongregationInfo / services)
+// and legitimately write via the raw client. This exemption used to live only
+// in prose in docs/development/architecture-conventions.md — enforce it here.
+const DB_SEED_RE = /^app\/database\//
 const TS_EXTENSION_RE = /\.tsx?$/
 
 function isCommentLine(line: string): boolean {
@@ -61,7 +66,8 @@ export function analyzeSource(relPath: string, source: string): Violation[] {
     relPath.endsWith('.aggregate.ts') ||
     IMPORT_ORCHESTRATOR_RE.test(relPath) ||
     TEST_FILE_RE.test(relPath) ||
-    TEST_INFRA_RE.test(relPath)
+    TEST_INFRA_RE.test(relPath) ||
+    DB_SEED_RE.test(relPath)
   const isAggregate = relPath.endsWith('.aggregate.ts')
 
   let currentFunction = ''
