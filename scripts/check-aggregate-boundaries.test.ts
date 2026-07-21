@@ -42,6 +42,20 @@ describe('analyzeSource — rule 1: writes on aggregate models', () => {
     }
   })
 
+  it('flags prisma.member.create outside an aggregate/allowlist file', () => {
+    const source = 'const m = await prisma.member.create({ data: {} })'
+    const v = analyzeSource('app/features/publishers/server/thing.server.ts', source)
+    expect(v).toHaveLength(1)
+    expect(v[0].rule).toBe('write-outside-aggregate')
+  })
+
+  it('allows the write inside an app/database seed script', () => {
+    const source = 'const m = await prisma.member.create({ data: {} })'
+    for (const path of ['app/database/seed.ts', 'app/database/seed-marketing.ts']) {
+      expect(analyzeSource(path, source)).toHaveLength(0)
+    }
+  })
+
   it('does not flag writes on non-aggregate models', () => {
     const source = 'await db.role.update({ where, data })'
     const v = analyzeSource('app/features/settings/server/roles.server.ts', source)

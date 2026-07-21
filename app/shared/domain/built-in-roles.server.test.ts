@@ -214,6 +214,23 @@ describe('syncBuiltInRoleAssignments', () => {
     )
   })
 
+  it('scopes the built-in role lookup to the congregation', async () => {
+    // Guards against cross-tenant assignments when the caller bypasses RLS
+    // (e.g. seed scripts running as the DB owner).
+    const db = makeDb({
+      member: { ...BASE, isPublisher: true },
+      builtInRoles: [{ id: 14, key: 'member' }],
+      existingAssignments: [],
+    })
+
+    await syncBuiltInRoleAssignments(db as never, 42, 7, 99)
+
+    expect(db.role.findMany).toHaveBeenCalledWith({
+      where: { isBuiltIn: true, congregationId: 7 },
+      select: { id: true, key: true },
+    })
+  })
+
   it('removes stale assignments and audits the diff', async () => {
     const db = makeDb({
       // Sister publisher only (no elder, since female cannot be elder)
