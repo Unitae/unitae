@@ -34,6 +34,3 @@ playwright-report/
 
 # Database
 /prisma/*.db
-
-# Planning artefacts (DORA metrics reports, agent scratchpads).
-.planning/
