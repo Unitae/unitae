@@ -439,7 +439,7 @@ function main(): void {
   }
 
   const markdown = renderMarkdown(report)
-  const outDir = join(process.cwd(), '.planning', 'dora')
+  const outDir = join(process.cwd(), 'reports', 'dora')
   mkdirSync(outDir, { recursive: true })
   const outPath = join(outDir, `${report.week}.md`)
   writeFileSync(outPath, markdown, 'utf8')

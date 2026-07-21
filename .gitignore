@@ -34,3 +34,6 @@ playwright-report/
 
 # Database
 /prisma/*.db
+
+# DORA metrics reports (local artefacts).
+/reports/

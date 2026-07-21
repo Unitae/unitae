@@ -429,12 +429,12 @@ A weekly script (`scripts/dora-metrics.ts`) computes proxies for software-delive
 ### Running it
 
 ```bash
-pnpm test:dora-metrics                       # previous ISO week, writes .planning/dora/<YYYY-Www>.md
+pnpm test:dora-metrics                       # previous ISO week, writes reports/dora/<YYYY-Www>.md
 pnpm test:dora-metrics -- --week=2026-W28    # a specific week
 pnpm test:dora-metrics -- --json             # JSON to stdout instead of writing a file
 ```
 
-Requires `git` and `gh auth login` for the current repo. Output lands in `.planning/dora/` (gitignored). The current week is usually still in flight, so the default target is the ISO week ending BEFORE `now`.
+Requires `git` and `gh auth login` for the current repo. Output lands in `reports/dora/` (gitignored). The current week is usually still in flight, so the default target is the ISO week ending BEFORE `now`.
 
 > **Disclaimer**: these are *proxies*, not the canonical [DORA metrics](https://dora.dev). True Change Failure Rate and MTTR require production-incident tracking that we don't have yet. The proxies are useful for spotting trends; don't read them as absolute industry benchmarks.
 
@@ -448,7 +448,7 @@ Requires `git` and `gh auth login` for the current repo. Output lands in `.plann
 ### Ownership and response
 
 - **Owner**: tech lead reviews weekly during sprint review.
-- **Output**: `.planning/dora/<YYYY-WW>.md` (gitignored — local artifact, summarized to the team channel manually).
+- **Output**: `reports/dora/<YYYY-WW>.md` (gitignored — local artifact, summarized to the team channel manually).
 - **Response threshold**: if any metric crosses 2× the trailing 4-week median, raise it as a retro item.
 
 If incident tracking lands later, replace the proxies with real CFR and MTTR. Until then, these are decoration-resistant only when used as trend indicators.
