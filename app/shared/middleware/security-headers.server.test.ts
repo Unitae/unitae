@@ -42,6 +42,25 @@ describe('buildContentSecurityPolicy', () => {
     expect(csp).toContain('https://fonts.googleapis.com')
     expect(csp).toContain('https://fonts.gstatic.com')
   })
+
+  it('scopes each external origin to the correct directive', () => {
+    const directives = new Map(
+      buildContentSecurityPolicy('abc123')
+        .split('; ')
+        .map(directive => {
+          const [name, ...values] = directive.split(' ')
+          return [name, values.join(' ')]
+        }),
+    )
+
+    expect(directives.get('default-src')).toBe("'self'")
+    expect(directives.get('connect-src')).toContain('https://maps.googleapis.com')
+    expect(directives.get('img-src')).toContain('data:')
+    expect(directives.get('img-src')).toContain('blob:')
+    expect(directives.get('form-action')).toBe("'self'")
+    // Maps vector rendering spawns blob: web workers.
+    expect(directives.get('worker-src')).toBe("'self' blob:")
+  })
 })
 
 describe('isSecureRequest', () => {
@@ -70,7 +89,18 @@ describe('applySecurityHeaders', () => {
     expect(headers.get('X-Content-Type-Options')).toBe('nosniff')
     expect(headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin')
     expect(headers.get('Permissions-Policy')).toContain('camera=()')
+    // Kept open for the maps "locate me" control — guard against a blanket lock-down.
+    expect(headers.get('Permissions-Policy')).toContain('geolocation=(self)')
     expect(headers.get('Content-Security-Policy-Report-Only')).toContain("'nonce-n0nce'")
+  })
+
+  it('ships CSP in report-only mode, never enforcing', () => {
+    const headers = new Headers()
+
+    applySecurityHeaders(headers, { nonce: 'n', isSecure: true })
+
+    expect(headers.get('Content-Security-Policy-Report-Only')).toBeTruthy()
+    expect(headers.get('Content-Security-Policy')).toBeNull()
   })
 
   it('sets HSTS only over a secure connection', () => {
@@ -125,5 +155,30 @@ describe('securityHeaders middleware', () => {
 
     await expect(middleware({ request, context }, async () => Promise.reject(redirect))).rejects.toBe(redirect)
     expect(redirect.headers.get('X-Frame-Options')).toBe('DENY')
+  })
+
+  it('re-throws a non-Response error untouched', async () => {
+    const middleware = securityHeaders()
+    const context = fakeContext()
+    const request = new Request('https://unitae.app/boom')
+
+    const failure = new Error('loader exploded')
+
+    await expect(middleware({ request, context }, async () => Promise.reject(failure))).rejects.toBe(failure)
+  })
+
+  it('never masks a response whose headers are immutable', async () => {
+    const middleware = securityHeaders()
+    const context = fakeContext()
+    const request = new Request('https://unitae.app/redirect')
+
+    // Response.redirect() produces an immutable header guard — headers.set() throws.
+    const immutable = Response.redirect('https://unitae.app/login', 302)
+
+    const response = await middleware({ request, context }, async () => immutable)
+
+    // The original response survives instead of being replaced by a crash.
+    expect(response).toBe(immutable)
+    expect(response.status).toBe(302)
   })
 })
