@@ -6,13 +6,15 @@ interface RlsGuardInput {
   runtimeUrlSet: boolean
   /** Whether the connected role is a superuser or has `BYPASSRLS` — such roles ignore RLS policies. */
   roleCanBypassRls: boolean
+  /** Fail closed (throw) when true; only explicit development/test environments pass false. */
   isProduction: boolean
 }
 
-interface RlsGuardVerdict {
-  level: 'ok' | 'warn' | 'error'
-  message?: string
-}
+/**
+ * `message` is present exactly when action is required (`warn`/`error`) and absent for `ok`,
+ * so callers can throw/log `message` without a `| undefined` check.
+ */
+type RlsGuardVerdict = { level: 'ok' } | { level: 'warn' | 'error'; message: string }
 
 /**
  * Decides whether the runtime can enforce Row-Level Security, and how strictly to react.
@@ -39,20 +41,40 @@ export function evaluateRlsGuard({ runtimeUrlSet, roleCanBypassRls, isProduction
 }
 
 interface RlsProbeClient {
+  // The row shape must track the `can_bypass` alias in the probe SQL below.
   $queryRaw: (query: TemplateStringsArray, ...values: unknown[]) => Promise<{ can_bypass: boolean }[]>
 }
 
 /**
  * Probes the connected database role at boot and enforces {@link evaluateRlsGuard}'s verdict.
  *
- * In production a bypass-capable role (or a failed/empty probe) throws, so the process crashes
- * and fails closed rather than running with tenant isolation silently disabled.
+ * Fails closed by default: any environment other than an explicit `development`/`test` is treated
+ * as production, so an unset or misspelled `NODE_ENV` refuses to boot rather than silently
+ * downgrading tenant isolation to a warning.
  */
 export async function assertRuntimeRoleEnforcesRls(client: RlsProbeClient = unscopedDb): Promise<void> {
-  const isProduction = process.env.NODE_ENV === 'production'
+  const isProduction = !['development', 'test'].includes(process.env.NODE_ENV ?? '')
   const runtimeUrlSet = Boolean(process.env.DB_RUNTIME_URL)
 
-  const roleCanBypassRls = await probeRoleCanBypassRls(client, isProduction)
+  let roleCanBypassRls: boolean
+  try {
+    const rows = await client.$queryRaw`
+      SELECT (rolsuper OR rolbypassrls) AS can_bypass FROM pg_roles WHERE rolname = current_user
+    `
+    // Fail closed: an unexpected/empty result means we cannot prove RLS is enforced.
+    roleCanBypassRls = rows[0]?.can_bypass ?? true
+  } catch (error) {
+    // The probe itself failed — we cannot prove RLS is enforced. Report this cause directly
+    // (rather than routing through evaluateRlsGuard, which would misattribute it to the role).
+    const message =
+      'Row-Level Security cannot be verified: the database role probe failed. ' +
+      'See docs/development/row-level-security.md.'
+    if (isProduction) {
+      throw new Error(message, { cause: error })
+    }
+    logger.warn(message)
+    return
+  }
 
   const verdict = evaluateRlsGuard({ runtimeUrlSet, roleCanBypassRls, isProduction })
 
@@ -61,25 +83,5 @@ export async function assertRuntimeRoleEnforcesRls(client: RlsProbeClient = unsc
   }
   if (verdict.level === 'warn') {
     logger.warn(verdict.message)
-  }
-}
-
-async function probeRoleCanBypassRls(client: RlsProbeClient, isProduction: boolean): Promise<boolean> {
-  try {
-    const rows = await client.$queryRaw`
-      SELECT (rolsuper OR rolbypassrls) AS can_bypass FROM pg_roles WHERE rolname = current_user
-    `
-    // Fail closed: an unexpected/empty result means we cannot prove RLS is enforced.
-    return rows[0]?.can_bypass ?? true
-  } catch (error) {
-    if (isProduction) {
-      throw new Error(
-        'Row-Level Security cannot be verified: the database role probe failed. ' +
-          'Refusing to start. See docs/development/row-level-security.md.',
-        { cause: error },
-      )
-    }
-    logger.warn('Could not verify the runtime database role can enforce RLS; assuming it cannot.')
-    return true
   }
 }

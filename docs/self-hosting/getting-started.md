@@ -49,7 +49,7 @@ REDIS_PORT=6379
 UNITAE_CRON_SECRET=your-cron-secret-at-least-32-characters
 ```
 
-`DB_RUNTIME_URL` connects as the `unitae_app` role (created by `init-db.sql`), which is bound by Row-Level Security policies. `DB_URL` connects as the superuser and is used only for migrations and one-time setup. Make sure both connection strings carry the right password for their respective role. **In production the app refuses to boot** if `DB_RUNTIME_URL` is unset or points at a superuser / `BYPASSRLS` role, because such a runtime has no database-level tenant isolation — see [Row-Level Security](../development/row-level-security.md).
+`DB_RUNTIME_URL` connects as the `unitae_app` role (created by the `docker/init-db/01-create-app-role.sh` init script), which is bound by Row-Level Security policies. `DB_URL` connects as the superuser and is used only for migrations and one-time setup. Make sure both connection strings carry the right password for their respective role. **In production the app refuses to boot** if `DB_RUNTIME_URL` is unset or points at a superuser / `BYPASSRLS` role, because such a runtime has no database-level tenant isolation — see [Row-Level Security](../development/row-level-security.md).
 
 ### 3. Start the Services
 

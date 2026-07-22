@@ -22,7 +22,7 @@
         "db:seed:marketing": "pnpm tsx app/database/seed-marketing.ts",
         "start:dev": "react-router dev",
         "start:emails": "email dev --dir app/features",
-        "start:worker": "pnpm tsx ./app/workers/worker.server.ts",
+        "start:worker": "NODE_ENV=${NODE_ENV:-development} pnpm tsx ./app/workers/worker.server.ts",
         "test:lint": "biome lint",
         "test:typecheck": "react-router typegen && tsc",
         "test:unit": "react-router typegen && vitest run",
