@@ -1,6 +1,8 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+// Exercise the real production scope wrapper so this test covers the actual RLS setter.
+import { withScope } from './db.server'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -8,16 +10,6 @@ const adapter = new PrismaPg({
   connectionTimeoutMillis: 5000,
 })
 const testDb = new PrismaClient({ adapter })
-
-function withScope<T>(
-  congregationId: number,
-  fn: (tx: Parameters<Parameters<typeof testDb.$transaction>[0]>[0]) => Promise<T>,
-): Promise<T> {
-  return testDb.$transaction(async tx => {
-    await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(congregationId)}'`)
-    return fn(tx)
-  })
-}
 
 let congregationIdA: number
 let congregationIdB: number

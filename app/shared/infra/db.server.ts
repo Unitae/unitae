@@ -31,7 +31,10 @@ function withScope<T>(
   options?: TransactionOptions,
 ): Promise<T> {
   return db.$transaction(async tx => {
-    await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(congregationId)}'`)
+    // Bound parameter (not string interpolation) so this security-critical
+    // statement stays injection-proof even if congregationId ever stops being a number.
+    // `set_config(..., true)` is the transaction-local equivalent of `SET LOCAL`.
+    await tx.$executeRawUnsafe('SELECT set_config($1, $2, true)', 'app.congregation_id', String(congregationId))
     return fn(tx)
   }, options)
 }
