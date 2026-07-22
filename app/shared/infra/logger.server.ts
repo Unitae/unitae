@@ -29,6 +29,16 @@ function redactValue(key: string, value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map((item, i) => redactValue(String(i), item))
   }
+  if (value instanceof Error) {
+    // An Error's `message`/`stack` are non-enumerable, so the generic object branch below
+    // (which iterates `Object.entries`) would serialize it to `{}` and lose everything.
+    // Extract them explicitly so `logger.error('...', { error })` stays useful.
+    return {
+      name: value.name,
+      message: redactValue('message', value.message),
+      stack: value.stack,
+    }
+  }
   if (value != null && typeof value === 'object') {
     return redactObject(value as Record<string, unknown>)
   }

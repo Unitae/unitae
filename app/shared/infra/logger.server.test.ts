@@ -25,6 +25,21 @@ describe('redactValue', () => {
     expect(redactValue('documentId', 10)).toBe(10)
     expect(redactValue('service', 'unitae-app')).toBe('unitae-app')
   })
+
+  it('serializes an Error to name, message, and stack', () => {
+    const result = redactValue('error', new TypeError('boom')) as Record<string, unknown>
+
+    expect(result.name).toBe('TypeError')
+    expect(result.message).toBe('boom')
+    expect(typeof result.stack).toBe('string')
+  })
+
+  it('redacts emails inside an Error message', () => {
+    const result = redactValue('error', new Error('failed for user@example.com')) as Record<string, unknown>
+
+    expect(result.message).not.toContain('user@example.com')
+    expect(result.message).toContain(`[email:${expectedHash('user@example.com')}]`)
+  })
 })
 
 describe('redactObject', () => {
@@ -41,5 +56,14 @@ describe('redactObject', () => {
     expect(result.phone).toBe(`[redacted:${expectedHash('0600000000')}]`)
     const nested = result.nested as Record<string, unknown>
     expect(nested.email).toBe(`[redacted:${expectedHash('nested@test.com')}]`)
+  })
+
+  it('preserves a nested Error instead of emptying it', () => {
+    const result = redactObject({ error: new Error('kaboom'), status: 500 })
+
+    const error = result.error as Record<string, unknown>
+    expect(error.message).toBe('kaboom')
+    expect(error.name).toBe('Error')
+    expect(result.status).toBe(500)
   })
 })
