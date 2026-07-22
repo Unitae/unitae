@@ -20,7 +20,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   requirePermission(permissions, Permission.Admin)
 
   const currentUser = context.get(currentAccountContext)
-  const job = await getOwnedDataTransferJob(params.jobId, currentUser.congregationId, 'import')
+  const job = await getOwnedDataTransferJob(params.jobId, currentUser.congregationId, currentUser.id, 'import')
   if (!job) {
     throw redirect('/settings/data/import')
   }
