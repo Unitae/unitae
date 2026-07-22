@@ -19,7 +19,9 @@ unitae.example.com {
 	reverse_proxy web:8080
 
 	# Redundant edge hardening in case the proxy ever serves a response the app didn't
-	# generate (e.g. its own error page). The app remains the source of truth.
+	# generate (e.g. its own error page). The app remains the source of truth — to make
+	# the app itself emit this stronger HSTS policy, set UNITAE_HSTS_HEADER in its env
+	# (see docs/self-hosting/environment-variables.md) rather than relying on the edge.
 	header {
 		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
 		X-Content-Type-Options "nosniff"

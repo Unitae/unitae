@@ -79,6 +79,14 @@ The API key needs the **Maps JavaScript API**, **Maps Static API**, **Drawing Li
 
 When `GOOGLE_MAPS_API_KEY` is not set, on-screen interactive maps are hidden, the PDF map page is skipped, the *Carte de l'assemblée* page falls back to the GeoJSON import/export workflow only — assemblies can still author their map in an external tool (geojson.io, Google My Maps, QGIS) and paste the result — and the proximity ranking in the territory search degrades silently to text-only matches.
 
+## Security
+
+The application sets security response headers (CSP, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, …) on every response — no reverse proxy required. `Strict-Transport-Security` (HSTS) is emitted only over HTTPS (detected via the `X-Forwarded-Proto` header a TLS-terminating proxy sets, or an `https://` request URL).
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `UNITAE_HSTS_HEADER` | `max-age=63072000` | Full `Strict-Transport-Security` header value. The default omits `includeSubDomains`/`preload` because the app can't know your subdomain topology and those directives are near-irreversible for the `max-age` window. Set the complete value (e.g. `max-age=63072000; includeSubDomains; preload`) when you control **every** subdomain of your registrable domain |
+
 ## Docker Compose
 
 These variables are used by `docker-compose.yml` for the PostgreSQL and Redis containers:

@@ -1,9 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import {
   applySecurityHeaders,
   buildContentSecurityPolicy,
   generateNonce,
+  getStrictTransportSecurity,
   isSecureRequest,
   nonceContext,
   securityHeaders,
@@ -60,6 +61,37 @@ describe('buildContentSecurityPolicy', () => {
     expect(directives.get('form-action')).toBe("'self'")
     // Maps vector rendering spawns blob: web workers.
     expect(directives.get('worker-src')).toBe("'self' blob:")
+  })
+})
+
+describe('getStrictTransportSecurity', () => {
+  afterEach(() => {
+    delete process.env.UNITAE_HSTS_HEADER
+  })
+
+  it('defaults to a subdomain-agnostic policy', () => {
+    delete process.env.UNITAE_HSTS_HEADER
+
+    const value = getStrictTransportSecurity()
+
+    expect(value).toContain('max-age=')
+    expect(value).not.toContain('includeSubDomains')
+    expect(value).not.toContain('preload')
+  })
+
+  it('honours a UNITAE_HSTS_HEADER override verbatim', () => {
+    process.env.UNITAE_HSTS_HEADER = 'max-age=31536000; includeSubDomains; preload'
+
+    expect(getStrictTransportSecurity()).toBe('max-age=31536000; includeSubDomains; preload')
+  })
+
+  it('flows the override through applySecurityHeaders', () => {
+    process.env.UNITAE_HSTS_HEADER = 'max-age=100; includeSubDomains'
+    const headers = new Headers()
+
+    applySecurityHeaders(headers, { nonce: 'n', isSecure: true })
+
+    expect(headers.get('Strict-Transport-Security')).toBe('max-age=100; includeSubDomains')
   })
 })
 

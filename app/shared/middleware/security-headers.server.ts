@@ -20,9 +20,19 @@ const PERMISSIONS_POLICY = 'camera=(), microphone=(), geolocation=(self), paymen
 // Two years, emitted only over HTTPS (see `applySecurityHeaders`). We deliberately omit
 // `includeSubDomains`/`preload` from this in-app default: the app can't know a
 // self-hoster's subdomain topology, and those directives are near-irreversible for the
-// max-age window. Operators serving multiple subdomains opt into the stronger policy at
-// the edge (see docker/Caddyfile.example).
-const STRICT_TRANSPORT_SECURITY = 'max-age=63072000'
+// max-age window. Operators who control their whole domain (e.g. the managed
+// *.unitae.app deployment) opt into a stronger policy via `UNITAE_HSTS_HEADER`.
+const DEFAULT_STRICT_TRANSPORT_SECURITY = 'max-age=63072000'
+
+/**
+ * The `Strict-Transport-Security` value to emit. Defaults to a conservative
+ * subdomain-agnostic policy; override the full header value with `UNITAE_HSTS_HEADER`
+ * (e.g. `max-age=63072000; includeSubDomains; preload`) when you control every
+ * subdomain of the registrable domain.
+ */
+export function getStrictTransportSecurity(): string {
+  return process.env.UNITAE_HSTS_HEADER || DEFAULT_STRICT_TRANSPORT_SECURITY
+}
 
 /**
  * Builds the Content-Security-Policy value. Allow-lists the external origins the app
@@ -66,7 +76,7 @@ export function applySecurityHeaders(headers: Headers, { nonce, isSecure }: Secu
   // HSTS is meaningful (and spec-honoured) only over HTTPS; emitting it on plain
   // HTTP would be ignored and risks trapping self-hosters who serve over http on a LAN.
   if (isSecure) {
-    headers.set('Strict-Transport-Security', STRICT_TRANSPORT_SECURITY)
+    headers.set('Strict-Transport-Security', getStrictTransportSecurity())
   }
 }
 
