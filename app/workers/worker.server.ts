@@ -1,3 +1,4 @@
+import '~/shared/infra/boot.server'
 import '~/shared/utils/worker-locale.server'
 
 import http from 'node:http'

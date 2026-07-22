@@ -124,7 +124,7 @@ In these cases, use `db` or `unscopedDb` directly (they are the same instance). 
 
 ## Development Setup
 
-The dev Docker Compose creates both roles automatically via an init script (`docker/init-db/01-create-app-role.sql`). To use the non-superuser role locally:
+The dev Docker Compose creates both roles automatically via an init script (`docker/init-db/01-create-app-role.sh`). To use the non-superuser role locally:
 
 1. Set `DB_RUNTIME_URL` in your `.env`:
 
@@ -181,13 +181,27 @@ The `unitae_app` role automatically gets DML privileges on new tables thanks to 
 
 ## Self-Hosting Considerations
 
-Self-hosted users deploying with a single database role (superuser) will see a warning at startup:
+RLS is only effective when the runtime connects as a role that **cannot bypass it**. PostgreSQL
+superusers and roles with `BYPASSRLS` ignore RLS policies even under `FORCE ROW LEVEL SECURITY`,
+so a runtime connecting as the superuser has **no database-level tenant isolation** — `SET LOCAL
+app.congregation_id` has no effect.
 
-```
-DB_RUNTIME_URL is not set — RLS enforcement requires a non-superuser database role.
-```
+To catch this, the app probes the connected role at boot (both the web server and the worker):
 
-The application works correctly without `DB_RUNTIME_URL` — tenant isolation still relies on `withScope` at the application level. However, for defense-in-depth, self-hosters should create a non-superuser role:
+- **It fails closed by default.** Any environment other than an explicit `NODE_ENV=development` or
+  `NODE_ENV=test` is treated as production: the app **refuses to start** — throwing and exiting —
+  when `DB_RUNTIME_URL` is unset or the connected role is a superuser / has `BYPASSRLS`. An unset
+  or misspelled `NODE_ENV` therefore errs on the side of refusing to boot, not silently serving
+  requests without isolation.
+- **In development/test** it only logs a warning, so a single-role local setup keeps working.
+
+> **Running the worker outside Docker?** The official images set `NODE_ENV=production`, but the
+> `pnpm start:worker` script defaults to `development` for local convenience. When you run the
+> background worker in production without the official image (systemd, a bare VM, a custom K8s
+> manifest), you **must** set `NODE_ENV=production` yourself — otherwise the boot guard degrades to
+> a warning and the worker runs jobs with tenant isolation disabled.
+
+Set `DB_RUNTIME_URL` to a **non-superuser** role. Create one with:
 
 ```sql
 CREATE ROLE unitae_app LOGIN PASSWORD 'your-secure-password' NOSUPERUSER;
@@ -196,7 +210,20 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO unitae_ap
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO unitae_app;
 ```
 
-Then set `DB_RUNTIME_URL` in the environment to use this role for the runtime.
+Then point `DB_RUNTIME_URL` at this role. The Docker Compose stack does this for you: it creates
+`unitae_app` via `docker/init-db/01-create-app-role.sh` and defaults `DB_RUNTIME_URL` to it.
+
+> **Upgrading an existing Docker Compose stack?** The init script only runs when the Postgres data
+> directory is **first** created, so on a pre-existing volume `unitae_app` was created by the
+> `20260425100000_add_app_database_role` migration as `NOLOGIN` with **no password**. The new
+> default `DB_RUNTIME_URL` then can't authenticate and the app refuses to boot. Grant the role
+> login once (idempotent) against your existing database:
+>
+> ```sql
+> ALTER ROLE unitae_app LOGIN PASSWORD 'your-secure-password';
+> ```
+>
+> Use the same password as your `DB_RUNTIME_PASSWORD` / `DB_RUNTIME_URL`.
 
 ## Related
 

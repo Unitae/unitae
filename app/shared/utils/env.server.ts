@@ -16,9 +16,9 @@ export function validateEnv() {
   requireEnv('DB_URL')
   requireEnv('UNITAE_SESSION_SECRET')
 
-  if (!process.env.DB_RUNTIME_URL) {
-    logger.warn('DB_RUNTIME_URL is not set — RLS enforcement requires a non-superuser database role.')
-  }
+  // DB_RUNTIME_URL / RLS enforceability is validated at boot by assertRuntimeRoleEnforcesRls
+  // (see ~/shared/infra/rls-guard.server), which probes the connected role and fails closed
+  // in production. It needs an async DB query, so it lives outside this synchronous check.
 
   if (!process.env.UNITAE_CRON_SECRET) {
     logger.warn('UNITAE_CRON_SECRET is not set. Cron endpoints will reject all requests.')
