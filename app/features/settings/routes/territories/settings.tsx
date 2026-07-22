@@ -4,11 +4,10 @@ import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { territorySettingsSchema } from '~/features/settings/schemas/territory-settings.schema'
 import { loadTerritorySettings } from '~/features/settings/server/load-territory-settings.server'
-import { assertAllowedOpenDataUrl, getAllowedZips, parseZips, serializeZips } from '~/features/territories/index.server'
+import { banoUrlWriteError, getAllowedZips, parseZips, serializeZips } from '~/features/territories/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getSetting, setSetting } from '~/shared/domain/settings.server'
-import { ValidationError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -309,17 +308,11 @@ export async function action({ request, context }: Route.ActionArgs) {
   const zips = parseZips(submission.value.zips)
   const banoUrl = submission.value['bano-url']
 
-  // Authoritative, env-aware host allowlist check on the write path. The schema
-  // only guarantees the value is empty or a syntactically valid https URL.
-  if (banoUrl !== '') {
-    try {
-      assertAllowedOpenDataUrl(banoUrl)
-    } catch (error) {
-      if (error instanceof ValidationError) {
-        return data(submission.reply({ fieldErrors: { 'bano-url': [error.message] } }), { status: 400 })
-      }
-      throw error
-    }
+  // Authoritative, env-aware host/port allowlist check on the write path. The
+  // schema only guarantees the value is empty or a syntactically valid https URL.
+  const banoUrlError = banoUrlWriteError(banoUrl)
+  if (banoUrlError) {
+    return data(submission.reply({ fieldErrors: { 'bano-url': [banoUrlError] } }), { status: 400 })
   }
 
   const prospectionValidity = submission.value['prospection-validity']

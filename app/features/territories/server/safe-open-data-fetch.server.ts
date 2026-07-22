@@ -91,6 +91,8 @@ export async function safeOpenDataFetch(value: string): Promise<Response> {
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     await assertPublicHost(target)
 
+    // The allowlist is load-bearing here: fetch re-resolves DNS independently of
+    // assertPublicHost, so a rebinding host is only stopped by the host allowlist.
     const response = await fetch(target, {
       redirect: 'manual',
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),

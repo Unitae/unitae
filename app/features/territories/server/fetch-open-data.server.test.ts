@@ -29,21 +29,12 @@ afterEach(() => {
   globalThis.fetch = originalFetch
 })
 
-async function collectRows(stream: NodeJS.ReadableStream, timeoutMs = 500): Promise<unknown[]> {
+// Drains to completion (the mocked streams all end), so a stream error rejects
+// instead of being masked by a timeout race.
+async function collectRows(stream: NodeJS.ReadableStream): Promise<unknown[]> {
   const rows: unknown[] = []
-  const collector = (async () => {
-    for await (const row of stream) rows.push(row)
-  })()
-  await Promise.race([collector, new Promise<void>(resolve => setTimeout(resolve, timeoutMs))])
+  for await (const row of stream) rows.push(row)
   return rows
-}
-
-// Drains to completion (no timeout race) so a stream error rejects rather than
-// being masked by the timeout resolving first.
-async function drain(stream: NodeJS.ReadableStream): Promise<void> {
-  for await (const _row of stream) {
-    // consume
-  }
 }
 
 describe('fetchOpenData', () => {
@@ -89,7 +80,7 @@ describe('fetchOpenData', () => {
     const stream = await fetchOpenData(dbCast)
     // The error must surface on the returned stream (rejects), not as an
     // unhandled 'error' event that takes down the worker process.
-    await expect(drain(stream)).rejects.toThrow()
+    await expect(collectRows(stream)).rejects.toThrow()
   })
 
   it('emits an empty row set when fetch responds with a non-200 status', async () => {
@@ -100,13 +91,13 @@ describe('fetchOpenData', () => {
     // Iterating the empty stream must terminate cleanly (regression guard: an
     // earlier implementation returned `new Readable()` with no _read, which
     // threw ERR_METHOD_NOT_IMPLEMENTED on the first pull).
-    expect(await collectRows(stream, 1000)).toEqual([])
+    expect(await collectRows(stream)).toEqual([])
   })
 
   it('emits an empty row set when the `bano-url` setting is missing (empty stream terminates cleanly)', async () => {
     mockDb.setting.findFirst.mockResolvedValue(null)
     const stream = await fetchOpenData(dbCast)
-    expect(await collectRows(stream, 1000)).toEqual([])
+    expect(await collectRows(stream)).toEqual([])
   })
 
   it('pipes the fetch response body through a CSV parser on success', async () => {
@@ -121,7 +112,7 @@ describe('fetchOpenData', () => {
     globalThis.fetch = vi.fn().mockResolvedValue({ status: 200, body: responseBody }) as unknown as typeof fetch
 
     const stream = await fetchOpenData(dbCast)
-    const rows = await collectRows(stream, 2000)
+    const rows = await collectRows(stream)
     expect(rows).toEqual([
       ['a', 'b', 'c'],
       ['1', '2', '3'],

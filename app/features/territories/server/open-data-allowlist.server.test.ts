@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { ValidationError } from '~/shared/errors/app-error.server'
-import { assertAllowedOpenDataUrl, OPEN_DATA_DEFAULT_HOSTS } from './open-data-allowlist.server'
+import { assertAllowedOpenDataUrl, banoUrlWriteError, OPEN_DATA_DEFAULT_HOSTS } from './open-data-allowlist.server'
 
 const originalAllowlist = process.env.UNITAE_OPEN_DATA_ALLOWLIST
 
@@ -46,6 +46,19 @@ describe('assertAllowedOpenDataUrl', () => {
     expect(() => assertAllowedOpenDataUrl('not a url')).toThrow(ValidationError)
   })
 
+  it('rejects an allowlisted host on a non-standard port', () => {
+    delete process.env.UNITAE_OPEN_DATA_ALLOWLIST
+    expect(() => assertAllowedOpenDataUrl(`https://${OPEN_DATA_DEFAULT_HOSTS[0]}:8080/bano.csv`)).toThrow(
+      ValidationError,
+    )
+  })
+
+  it('accepts an allowlisted host on the explicit standard https port', () => {
+    delete process.env.UNITAE_OPEN_DATA_ALLOWLIST
+    const url = assertAllowedOpenDataUrl(`https://${OPEN_DATA_DEFAULT_HOSTS[0]}:443/bano.csv`)
+    expect(url.hostname).toBe(OPEN_DATA_DEFAULT_HOSTS[0])
+  })
+
   it('throws a ValidationError scoped to the bano-url field', () => {
     delete process.env.UNITAE_OPEN_DATA_ALLOWLIST
     try {
@@ -55,5 +68,22 @@ describe('assertAllowedOpenDataUrl', () => {
       expect(error).toBeInstanceOf(ValidationError)
       expect((error as ValidationError).field).toBe('bano-url')
     }
+  })
+})
+
+describe('banoUrlWriteError', () => {
+  it('returns null for an empty value (feature disabled)', () => {
+    delete process.env.UNITAE_OPEN_DATA_ALLOWLIST
+    expect(banoUrlWriteError('')).toBeNull()
+  })
+
+  it('returns null for an allowlisted https URL', () => {
+    delete process.env.UNITAE_OPEN_DATA_ALLOWLIST
+    expect(banoUrlWriteError(`https://${OPEN_DATA_DEFAULT_HOSTS[0]}/bano.csv`)).toBeNull()
+  })
+
+  it('returns a message for a disallowed host', () => {
+    delete process.env.UNITAE_OPEN_DATA_ALLOWLIST
+    expect(banoUrlWriteError('https://evil.example.com/bano.csv')).toEqual(expect.any(String))
   })
 })

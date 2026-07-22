@@ -38,5 +38,26 @@ export function assertAllowedOpenDataUrl(value: string): URL {
     throw new ValidationError('bano-url', 'Hôte non autorisé pour la synchronisation des données ouvertes')
   }
 
+  // Only the standard https port — an allowlisted host on an arbitrary port
+  // could still reach an unintended service.
+  if (url.port !== '' && url.port !== '443') {
+    throw new ValidationError('bano-url', 'Port non autorisé pour la synchronisation des données ouvertes')
+  }
+
   return url
+}
+
+/**
+ * Write-path guard for the `bano-url` setting. Returns a French error message
+ * to surface as a Conform field error, or null when the value is acceptable
+ * (empty = feature disabled). Keeps the route action free of try/catch glue.
+ */
+export function banoUrlWriteError(value: string): string | null {
+  if (value === '') return null
+  try {
+    assertAllowedOpenDataUrl(value)
+    return null
+  } catch (error) {
+    return error instanceof ValidationError ? error.message : 'URL invalide'
+  }
 }
