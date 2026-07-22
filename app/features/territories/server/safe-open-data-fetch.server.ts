@@ -1,5 +1,5 @@
 import { lookup } from 'node:dns/promises'
-import { isIP } from 'node:net'
+import { BlockList, isIP } from 'node:net'
 import { type Readable, Transform } from 'node:stream'
 import { ValidationError } from '~/shared/errors/app-error.server'
 import { assertAllowedOpenDataUrl } from './open-data-allowlist.server'
@@ -9,22 +9,43 @@ export const MAX_REDIRECTS = 5
 export const MAX_RESPONSE_BYTES = 50 * 1024 * 1024
 
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308])
+const IPV4_MAPPED_HEX = /^([0-9a-f]{1,4}):([0-9a-f]{1,4})$/
 
-function isBlockedIpv4(ip: string): boolean {
-  const parts = ip.split('.').map(Number)
-  if (parts.length !== 4 || parts.some(n => Number.isNaN(n) || n < 0 || n > 255)) {
-    return true
-  }
+// `BlockList` matches on the parsed numeric address, so it canonicalises
+// compressed/expanded IPv6 forms (`::1` and `0:0:0:0:0:0:0:1` both match) —
+// unlike a string-prefix check, which fails open on the expanded form.
+const ipv4BlockList = new BlockList()
+ipv4BlockList.addSubnet('0.0.0.0', 8, 'ipv4') // unspecified
+ipv4BlockList.addSubnet('10.0.0.0', 8, 'ipv4') // private
+ipv4BlockList.addSubnet('127.0.0.0', 8, 'ipv4') // loopback
+ipv4BlockList.addSubnet('169.254.0.0', 16, 'ipv4') // link-local
+ipv4BlockList.addSubnet('172.16.0.0', 12, 'ipv4') // private
+ipv4BlockList.addSubnet('192.168.0.0', 16, 'ipv4') // private
+ipv4BlockList.addSubnet('100.64.0.0', 10, 'ipv4') // CGNAT
 
-  const [a, b] = parts
-  if (a === 0) return true // 0.0.0.0/8 (unspecified)
-  if (a === 10) return true // 10.0.0.0/8 (private)
-  if (a === 127) return true // 127.0.0.0/8 (loopback)
-  if (a === 169 && b === 254) return true // 169.254.0.0/16 (link-local)
-  if (a === 172 && b >= 16 && b <= 31) return true // 172.16.0.0/12 (private)
-  if (a === 192 && b === 168) return true // 192.168.0.0/16 (private)
-  if (a === 100 && b >= 64 && b <= 127) return true // 100.64.0.0/10 (CGNAT)
-  return false
+const ipv6BlockList = new BlockList()
+ipv6BlockList.addAddress('::', 'ipv6') // unspecified
+ipv6BlockList.addAddress('::1', 'ipv6') // loopback
+ipv6BlockList.addSubnet('fe80::', 10, 'ipv6') // link-local
+ipv6BlockList.addSubnet('fc00::', 7, 'ipv6') // unique-local
+
+// Extract the embedded IPv4 of an IPv4-mapped IPv6 address — both the dotted
+// form (`::ffff:127.0.0.1`) and the hex form (`::ffff:7f00:1`) — else null.
+// `BlockList` does not match IPv4-mapped addresses against IPv4 rules, so we
+// route them through the IPv4 list explicitly.
+function mappedIpv4(ip: string): string | null {
+  const lower = ip.toLowerCase()
+  if (!lower.startsWith('::ffff:')) return null
+
+  const rest = lower.slice('::ffff:'.length)
+  if (isIP(rest) === 4) return rest
+
+  const hex = rest.match(IPV4_MAPPED_HEX)
+  if (!hex) return null
+
+  const high = Number.parseInt(hex[1], 16)
+  const low = Number.parseInt(hex[2], 16)
+  return `${high >> 8}.${high & 0xff}.${low >> 8}.${low & 0xff}`
 }
 
 /**
@@ -34,27 +55,23 @@ function isBlockedIpv4(ip: string): boolean {
  */
 export function isBlockedAddress(ip: string): boolean {
   const kind = isIP(ip)
-  if (kind === 4) return isBlockedIpv4(ip)
-  if (kind !== 6) return true
+  if (kind === 4) return ipv4BlockList.check(ip, 'ipv4')
+  if (kind !== 6) return true // not a valid IP → block (fail closed)
 
-  const lower = ip.toLowerCase()
-  if (lower === '::' || lower === '::1') return true // unspecified / loopback
-  if (lower.startsWith('::ffff:') && lower.includes('.')) {
-    return isBlockedIpv4(lower.slice('::ffff:'.length))
-  }
+  const mapped = mappedIpv4(ip)
+  if (mapped) return ipv4BlockList.check(mapped, 'ipv4')
 
-  const firstHextet = Number.parseInt(lower.split(':')[0] || '0', 16)
-  if (firstHextet >= 0xfe80 && firstHextet <= 0xfebf) return true // fe80::/10 (link-local)
-  if (firstHextet >= 0xfc00 && firstHextet <= 0xfdff) return true // fc00::/7 (unique-local)
-  return false
+  return ipv6BlockList.check(ip, 'ipv6')
 }
 
 async function assertPublicHost(url: URL): Promise<void> {
   let addresses: { address: string }[]
   try {
     addresses = await lookup(url.hostname, { all: true })
-  } catch {
-    throw new ValidationError('bano-url', "Résolution DNS impossible pour l'hôte des données ouvertes")
+  } catch (cause) {
+    const error = new ValidationError('bano-url', "Résolution DNS impossible pour l'hôte des données ouvertes")
+    error.cause = cause // preserve EAI_AGAIN vs ENOTFOUND for operators
+    throw error
   }
 
   if (addresses.length === 0 || addresses.some(({ address }) => isBlockedAddress(address))) {
@@ -65,7 +82,8 @@ async function assertPublicHost(url: URL): Promise<void> {
 /**
  * Fetch an open-data URL with SSRF protections: https-only, host allowlist,
  * pre-connect DNS/private-range block, and manual redirect handling that
- * re-validates every hop. Returns the final non-redirect response.
+ * re-validates every hop. Returns the response once it stops redirecting (or a
+ * redirect response that carries no Location header).
  */
 export async function safeOpenDataFetch(value: string): Promise<Response> {
   let target = assertAllowedOpenDataUrl(value)

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ValidationError } from '~/shared/errors/app-error.server'
 
 vi.mock('node:dns/promises', () => ({ lookup: vi.fn() }))
 vi.mock('~/shared/infra/logger.server', () => {
@@ -37,6 +38,14 @@ async function collectRows(stream: NodeJS.ReadableStream, timeoutMs = 500): Prom
   return rows
 }
 
+// Drains to completion (no timeout race) so a stream error rejects rather than
+// being masked by the timeout resolving first.
+async function drain(stream: NodeJS.ReadableStream): Promise<void> {
+  for await (const _row of stream) {
+    // consume
+  }
+}
+
 describe('fetchOpenData', () => {
   it('does not call fetch when the `bano-url` setting is missing', async () => {
     mockDb.setting.findFirst.mockResolvedValue(null)
@@ -58,15 +67,29 @@ describe('fetchOpenData', () => {
     expect(fetchSpy).not.toHaveBeenCalled()
   })
 
-  it('does not fetch a disallowed URL and emits an empty row set', async () => {
+  it('rejects a disallowed URL without hitting the network (so the sync transaction rolls back)', async () => {
     mockDb.setting.findFirst.mockResolvedValue({ value: 'http://169.254.169.254/latest/meta-data/' })
     const fetchSpy = vi.fn()
     globalThis.fetch = fetchSpy as unknown as typeof fetch
 
-    const stream = await fetchOpenData(dbCast)
-
-    expect(await collectRows(stream, 1000)).toEqual([])
+    await expect(fetchOpenData(dbCast)).rejects.toBeInstanceOf(ValidationError)
     expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  it('propagates a mid-stream body error to the consumer instead of crashing the worker', async () => {
+    mockDb.setting.findFirst.mockResolvedValue({ value: ALLOWED_URL })
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('a,b,c\n'))
+        controller.error(new Error('connection reset'))
+      },
+    })
+    globalThis.fetch = vi.fn().mockResolvedValue({ status: 200, body }) as unknown as typeof fetch
+
+    const stream = await fetchOpenData(dbCast)
+    // The error must surface on the returned stream (rejects), not as an
+    // unhandled 'error' event that takes down the worker process.
+    await expect(drain(stream)).rejects.toThrow()
   })
 
   it('emits an empty row set when fetch responds with a non-200 status', async () => {

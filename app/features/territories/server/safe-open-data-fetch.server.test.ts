@@ -5,7 +5,7 @@ import { ValidationError } from '~/shared/errors/app-error.server'
 vi.mock('node:dns/promises', () => ({ lookup: vi.fn() }))
 
 import { lookup } from 'node:dns/promises'
-import { capBytes, isBlockedAddress, safeOpenDataFetch } from './safe-open-data-fetch.server'
+import { capBytes, isBlockedAddress, MAX_REDIRECTS, safeOpenDataFetch } from './safe-open-data-fetch.server'
 
 const lookupMock = vi.mocked(lookup)
 const originalFetch = globalThis.fetch
@@ -13,6 +13,7 @@ const originalAllowlist = process.env.UNITAE_OPEN_DATA_ALLOWLIST
 
 // A default allowlisted BANO host used across the fetch cases.
 const ALLOWED = 'https://bano.openstreetmap.fr/data/bano.csv'
+const TOO_MANY_REDIRECTS = /redirection/i
 
 function publicDns() {
   lookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }] as never)
@@ -46,11 +47,14 @@ describe('isBlockedAddress', () => {
     '169.254.169.254',
     '100.64.0.1',
     '::1',
+    '0:0:0:0:0:0:0:1', // expanded loopback (canonicalised form must still block)
     '::',
     'fe80::1',
     'fc00::1',
     'fd12:3456::1',
-    '::ffff:127.0.0.1',
+    '::ffff:127.0.0.1', // IPv4-mapped, dotted
+    '::ffff:7f00:1', // IPv4-mapped loopback, hex
+    '::ffff:a9fe:a9fe', // IPv4-mapped 169.254.169.254, hex
   ])('blocks the private/loopback/link-local address %s', ip => {
     expect(isBlockedAddress(ip)).toBe(true)
   })
@@ -97,6 +101,86 @@ describe('safeOpenDataFetch', () => {
       .mockResolvedValue({ status: 302, headers: new Headers({ location: 'https://evil.example.com/' }) }) as never
 
     await expect(safeOpenDataFetch(ALLOWED)).rejects.toBeInstanceOf(ValidationError)
+  })
+
+  it('rejects when DNS resolution throws (fail closed)', async () => {
+    lookupMock.mockRejectedValue(new Error('EAI_AGAIN'))
+    const fetchSpy = vi.fn()
+    globalThis.fetch = fetchSpy as unknown as typeof fetch
+
+    await expect(safeOpenDataFetch(ALLOWED)).rejects.toBeInstanceOf(ValidationError)
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  it('rejects when DNS resolves to no addresses (fail closed)', async () => {
+    lookupMock.mockResolvedValue([] as never)
+    const fetchSpy = vi.fn()
+    globalThis.fetch = fetchSpy as unknown as typeof fetch
+
+    await expect(safeOpenDataFetch(ALLOWED)).rejects.toBeInstanceOf(ValidationError)
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  it('fetches the validated URL with manual redirect handling', async () => {
+    publicDns()
+    const fetchSpy = vi.fn().mockResolvedValue({ status: 200, body: null })
+    globalThis.fetch = fetchSpy as unknown as typeof fetch
+
+    const response = await safeOpenDataFetch(ALLOWED)
+
+    expect(response.status).toBe(200)
+    const [requestedUrl, options] = fetchSpy.mock.calls[0]
+    expect(requestedUrl.toString()).toBe(ALLOWED)
+    expect(options.redirect).toBe('manual')
+    expect(options.signal).toBeInstanceOf(AbortSignal)
+  })
+
+  it('follows a redirect to another allowlisted host and re-validates it', async () => {
+    publicDns()
+    const redirectTarget = 'https://adresse.data.gouv.fr/data/bano.csv'
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValueOnce({ status: 302, headers: new Headers({ location: redirectTarget }) })
+      .mockResolvedValueOnce({ status: 200, body: null })
+    globalThis.fetch = fetchSpy as unknown as typeof fetch
+
+    const response = await safeOpenDataFetch(ALLOWED)
+
+    expect(response.status).toBe(200)
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
+    expect(fetchSpy.mock.calls[1][0].toString()).toBe(redirectTarget)
+  })
+
+  it('resolves a relative redirect Location against the current host', async () => {
+    publicDns()
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValueOnce({ status: 301, headers: new Headers({ location: '/data/other.csv' }) })
+      .mockResolvedValueOnce({ status: 200, body: null })
+    globalThis.fetch = fetchSpy as unknown as typeof fetch
+
+    const response = await safeOpenDataFetch(ALLOWED)
+
+    expect(response.status).toBe(200)
+    expect(fetchSpy.mock.calls[1][0].toString()).toBe('https://bano.openstreetmap.fr/data/other.csv')
+  })
+
+  it('rejects a protocol-relative redirect to a disallowed host', async () => {
+    publicDns()
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue({ status: 302, headers: new Headers({ location: '//evil.example.com/x' }) }) as never
+
+    await expect(safeOpenDataFetch(ALLOWED)).rejects.toBeInstanceOf(ValidationError)
+  })
+
+  it('rejects once the redirect chain exceeds MAX_REDIRECTS', async () => {
+    publicDns()
+    // Always redirect to an allowlisted host so the loop is bounded only by MAX_REDIRECTS.
+    globalThis.fetch = vi.fn().mockResolvedValue({ status: 302, headers: new Headers({ location: ALLOWED }) }) as never
+
+    await expect(safeOpenDataFetch(ALLOWED)).rejects.toThrow(TOO_MANY_REDIRECTS)
+    expect(MAX_REDIRECTS).toBeGreaterThan(0)
   })
 
   it('returns the final response for an allowlisted host resolving to a public address', async () => {
