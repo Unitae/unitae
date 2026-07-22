@@ -14,12 +14,16 @@ import {
 
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
+import { nonceContext, securityHeaders } from '~/shared/middleware/security-headers.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
 import { getErrorInfo } from '~/shared/ui/error-info'
 import { IssueReportSection } from '~/shared/ui/IssueReportSection'
 
+import type { Route } from './+types/root'
 import './tailwind.css'
+
+export const middleware: Route.MiddlewareFunction[] = [securityHeaders()]
 
 export const links: LinksFunction = () => [
   { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
@@ -34,13 +38,14 @@ export const links: LinksFunction = () => [
   },
 ]
 
-export function loader() {
-  return { locale: getLocale() }
+export function loader({ context }: Route.LoaderArgs) {
+  return { locale: getLocale(), nonce: context.get(nonceContext) }
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const data = useRouteLoaderData<typeof loader>('root')
   const locale = data?.locale ?? 'fr'
+  const nonce = data?.nonce
 
   // Static inline script to prevent dark mode flash — no user input involved
   const darkModeScript =
@@ -60,14 +65,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Meta />
         <Links />
         <script
+          nonce={nonce}
           // biome-ignore lint/security/noDangerouslySetInnerHtml: static string constant, no user input
           dangerouslySetInnerHTML={{ __html: darkModeScript }}
         />
       </head>
       <body>
         {children}
-        <ScrollRestoration />
-        <Scripts />
+        <ScrollRestoration nonce={nonce} />
+        <Scripts nonce={nonce} />
       </body>
     </html>
   )

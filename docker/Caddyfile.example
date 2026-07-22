@@ -1,0 +1,30 @@
+# Hardened reverse-proxy example for self-hosting Unitae behind Caddy.
+#
+# Caddy gives you automatic HTTPS (Let's Encrypt) with strong TLS defaults out of
+# the box, which is the piece the application cannot provide for itself. The app
+# already sets the security response headers (HSTS, X-Frame-Options, CSP, …) — see
+# app/shared/middleware/security-headers.server.ts — so this file focuses on TLS
+# termination and forwarding. Caddy automatically sets X-Forwarded-Proto=https,
+# which is how the app knows the connection is secure and emits HSTS.
+#
+# Usage:
+#   1. Copy this file to `docker/Caddyfile` and replace unitae.example.com with your domain.
+#   2. Uncomment the `caddy` service in docker-compose.yml.
+#   3. Remove the public `ports:` mapping from the `web` service so the app is only
+#      reachable through Caddy (defense in depth — never expose the app port directly).
+
+unitae.example.com {
+	encode zstd gzip
+
+	reverse_proxy web:8080
+
+	# Redundant edge hardening in case the proxy ever serves a response the app didn't
+	# generate (e.g. its own error page). The app remains the source of truth.
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+}

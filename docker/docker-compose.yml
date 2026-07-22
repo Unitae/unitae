@@ -45,6 +45,8 @@ services:
   web:
     image: ${UNITAE_WEB_IMAGE:-ghcr.io/unitae/unitae:latest}
     restart: unless-stopped
+    # When fronting the app with the `caddy` service below, remove this public port
+    # mapping so the app is only reachable through the TLS-terminating proxy.
     ports:
       - '${UNITAE_WEB_PORT:-8080}:8080'
     env_file: .env
@@ -64,6 +66,25 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  # Optional hardened reverse proxy: automatic HTTPS + TLS termination for self-hosters.
+  # See docker/Caddyfile.example for setup. Uncomment this block (and copy the example
+  # to docker/Caddyfile) to serve Unitae over HTTPS with the app's security headers.
+  # caddy:
+  #   image: caddy:2-alpine
+  #   restart: unless-stopped
+  #   ports:
+  #     - '80:80'
+  #     - '443:443'
+  #   volumes:
+  #     - ./Caddyfile:/etc/caddy/Caddyfile:ro
+  #     - caddy_data:/data
+  #     - caddy_config:/config
+  #   depends_on:
+  #     web:
+  #       condition: service_healthy
+  #   networks:
+  #     - app
 
   worker:
     image: ${UNITAE_WORKER_IMAGE:-ghcr.io/unitae/unitae/worker:latest}
@@ -89,3 +110,6 @@ volumes:
   postgres_data:
   redis_data:
   unitae_content:
+  # Uncomment alongside the `caddy` service above.
+  # caddy_data:
+  # caddy_config:
