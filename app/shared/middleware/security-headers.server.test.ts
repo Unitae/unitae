@@ -85,6 +85,17 @@ describe('getStrictTransportSecurity', () => {
     expect(getStrictTransportSecurity()).toBe('max-age=31536000; includeSubDomains; preload')
   })
 
+  it('ignores a malformed override rather than emitting an invalid header', () => {
+    // A stray newline (e.g. from multi-line env interpolation) would make Headers.set throw.
+    process.env.UNITAE_HSTS_HEADER = 'max-age=63072000;\n includeSubDomains'
+
+    const value = getStrictTransportSecurity()
+
+    expect(value).toBe('max-age=63072000')
+    // The returned value is always a header Headers.set will accept.
+    expect(() => new Headers().set('Strict-Transport-Security', value)).not.toThrow()
+  })
+
   it('flows the override through applySecurityHeaders', () => {
     process.env.UNITAE_HSTS_HEADER = 'max-age=100; includeSubDomains'
     const headers = new Headers()
@@ -212,5 +223,8 @@ describe('securityHeaders middleware', () => {
     // The original response survives instead of being replaced by a crash.
     expect(response).toBe(immutable)
     expect(response.status).toBe(302)
+    // Proves the catch path was actually taken: hardening was attempted and skipped,
+    // not silently succeeded (would fail loudly if the runtime ever made these mutable).
+    expect(response.headers.get('X-Frame-Options')).toBeNull()
   })
 })

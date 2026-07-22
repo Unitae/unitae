@@ -24,14 +24,24 @@ const PERMISSIONS_POLICY = 'camera=(), microphone=(), geolocation=(self), paymen
 // *.unitae.app deployment) opt into a stronger policy via `UNITAE_HSTS_HEADER`.
 const DEFAULT_STRICT_TRANSPORT_SECURITY = 'max-age=63072000'
 
+// Characters `Headers.set` rejects in a header value (CR/LF/NUL) — used to reject a
+// malformed UNITAE_HSTS_HEADER before it can throw.
+const INVALID_HEADER_VALUE_CHARS = /[\r\n\0]/
+
 /**
  * The `Strict-Transport-Security` value to emit. Defaults to a conservative
  * subdomain-agnostic policy; override the full header value with `UNITAE_HSTS_HEADER`
  * (e.g. `max-age=63072000; includeSubDomains; preload`) when you control every
  * subdomain of the registrable domain.
+ *
+ * A malformed override (e.g. a stray CR/LF from multi-line env interpolation) would make
+ * `Headers.set` throw on every request, so we ignore it and fall back to the safe default
+ * — a valid HSTS header is always emitted rather than silently lost.
  */
 export function getStrictTransportSecurity(): string {
-  return process.env.UNITAE_HSTS_HEADER || DEFAULT_STRICT_TRANSPORT_SECURITY
+  const override = process.env.UNITAE_HSTS_HEADER
+  if (override && !INVALID_HEADER_VALUE_CHARS.test(override)) return override
+  return DEFAULT_STRICT_TRANSPORT_SECURITY
 }
 
 /**
@@ -107,7 +117,12 @@ function hardenResponse(response: Response, options: SecurityHeaderOptions): voi
   try {
     applySecurityHeaders(response.headers, options)
   } catch (error) {
-    logger.warn('Failed to apply security headers to response', { err: error })
+    // Pass the message string, not the Error object: the logger's redaction pipeline
+    // iterates enumerable keys and would drop an Error's non-enumerable message/stack.
+    logger.warn('Failed to apply security headers to response', {
+      error: error instanceof Error ? error.message : String(error),
+      status: response.status,
+    })
   }
 }
 
