@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
-import { dataTransferQueue } from '~/features/settings/server/data-transfer-queue.server'
-import { permissionsContext, requirePermission } from '~/shared/auth/route-context.server'
+import { getOwnedDataTransferJob } from '~/features/settings/server/data-transfer.queries'
+import { currentAccountContext, permissionsContext, requirePermission } from '~/shared/auth/route-context.server'
 import { getFileBuffer } from '~/shared/infra/file-storage.server'
 import { Permission } from '~/shared/types/permission'
 import type { Route } from './+types/export-download'
@@ -9,7 +9,8 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.Admin)
 
-  const job = await dataTransferQueue.getJob(params.jobId)
+  const currentUser = context.get(currentAccountContext)
+  const job = await getOwnedDataTransferJob(params.jobId, currentUser.congregationId, currentUser.id, 'export')
   if (!job) {
     throw redirect('/settings/data/export')
   }
