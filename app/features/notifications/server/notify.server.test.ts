@@ -4,9 +4,10 @@ vi.mock('~/shared/infra/email-queue.server', () => ({
   emailQueue: { add: vi.fn() },
 }))
 
-vi.mock('~/shared/infra/logger.server', () => ({
-  createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
-}))
+vi.mock('~/shared/infra/logger.server', () => {
+  const stub = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
+  return { createLogger: () => stub, logger: stub, default: stub }
+})
 
 import { emailQueue } from '~/shared/infra/email-queue.server'
 import { notify } from './notify.server'

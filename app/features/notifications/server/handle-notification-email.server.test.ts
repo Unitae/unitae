@@ -25,9 +25,10 @@ vi.mock('~/shared/infra/mailer.server', () => ({
   mailer: { emails: { send: vi.fn() } },
 }))
 
-vi.mock('~/shared/infra/logger.server', () => ({
-  createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
-}))
+vi.mock('~/shared/infra/logger.server', () => {
+  const stub = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }
+  return { createLogger: () => stub, logger: stub, default: stub }
+})
 
 vi.mock('~/shared/utils/worker-locale.server', () => ({
   // Spy that still passes through, so tests can assert whether the handler

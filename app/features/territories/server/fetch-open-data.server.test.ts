@@ -1,14 +1,27 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('node:dns/promises', () => ({ lookup: vi.fn() }))
+vi.mock('~/shared/infra/logger.server', () => {
+  const stub = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
+  return { createLogger: () => stub, logger: stub, default: stub }
+})
+
+import { lookup } from 'node:dns/promises'
 import { fetchOpenData } from './fetch-open-data.server'
 
 const mockDb = { setting: { findFirst: vi.fn() } }
 // biome-ignore lint/suspicious/noExplicitAny: partial mocked transaction client
 const dbCast = mockDb as any
 
+const lookupMock = vi.mocked(lookup)
 const originalFetch = globalThis.fetch
 
+// An allowlisted BANO host resolving to a public address for the happy paths.
+const ALLOWED_URL = 'https://bano.openstreetmap.fr/data/bano.csv'
+
 beforeEach(() => {
-  vi.resetAllMocks()
+  vi.clearAllMocks()
+  lookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }] as never)
 })
 
 afterEach(() => {
@@ -45,8 +58,19 @@ describe('fetchOpenData', () => {
     expect(fetchSpy).not.toHaveBeenCalled()
   })
 
+  it('does not fetch a disallowed URL and emits an empty row set', async () => {
+    mockDb.setting.findFirst.mockResolvedValue({ value: 'http://169.254.169.254/latest/meta-data/' })
+    const fetchSpy = vi.fn()
+    globalThis.fetch = fetchSpy as unknown as typeof fetch
+
+    const stream = await fetchOpenData(dbCast)
+
+    expect(await collectRows(stream, 1000)).toEqual([])
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
   it('emits an empty row set when fetch responds with a non-200 status', async () => {
-    mockDb.setting.findFirst.mockResolvedValue({ value: 'https://open-data/bano.csv' })
+    mockDb.setting.findFirst.mockResolvedValue({ value: ALLOWED_URL })
     globalThis.fetch = vi.fn().mockResolvedValue({ status: 500, body: null }) as unknown as typeof fetch
 
     const stream = await fetchOpenData(dbCast)
@@ -63,7 +87,7 @@ describe('fetchOpenData', () => {
   })
 
   it('pipes the fetch response body through a CSV parser on success', async () => {
-    mockDb.setting.findFirst.mockResolvedValue({ value: 'https://open-data/bano.csv' })
+    mockDb.setting.findFirst.mockResolvedValue({ value: ALLOWED_URL })
 
     const responseBody = new ReadableStream<Uint8Array>({
       start(controller) {

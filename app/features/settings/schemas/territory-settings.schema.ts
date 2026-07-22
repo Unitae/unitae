@@ -1,8 +1,17 @@
 import { z } from 'zod'
 
+function isEmptyOrHttpsUrl(value: string): boolean {
+  if (value === '') return true
+  try {
+    return new URL(value).protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
 export const territorySettingsSchema = z.object({
   zips: z.string().default(''),
-  'bano-url': z.string().default(''),
+  'bano-url': z.string().default('').refine(isEmptyOrHttpsUrl, 'URL invalide (https requis)'),
   'prospection-validity': z.string().default(''),
   'phone-territory-active': z
     .string()

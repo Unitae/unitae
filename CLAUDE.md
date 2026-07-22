@@ -388,6 +388,7 @@ S3_ACCESS_KEY=""
 S3_SECRET_KEY=""
 MULTI_TENANT="true"                    # Enables /register route for SaaS mode
 UNITAE_COOKIE_DOMAIN=".unitae.app"     # Cookie scoping for multi-subdomain SaaS
+UNITAE_OPEN_DATA_ALLOWLIST=""          # Extra comma-separated hosts allowed for BANO sync (SSRF allowlist); defaults cover bano.openstreetmap.fr / adresse.data.gouv.fr / data.gouv.fr
 ```
 
 **Prisma config:** Uses `prisma.config.ts` with `import 'dotenv/config'` — no `url` field in `schema.prisma`.
