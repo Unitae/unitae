@@ -193,12 +193,16 @@ export async function action({ request, context }: Route.ActionArgs) {
     throw redirect('/settings/data/import')
   }
 
-  const job = await dataTransferQueue.add('import', {
-    type: 'import',
-    congregationId: currentUser.congregationId,
-    userId: currentUser.id,
-    storageKey,
-  })
+  const job = await dataTransferQueue.add(
+    'import',
+    {
+      type: 'import',
+      congregationId: currentUser.congregationId,
+      userId: currentUser.id,
+      storageKey,
+    },
+    { jobId: crypto.randomUUID() },
+  )
 
   return redirect(`/settings/data/import/${job.id}/status`)
 }

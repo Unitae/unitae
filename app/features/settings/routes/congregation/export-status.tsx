@@ -1,9 +1,9 @@
 import { CheckCircle2, Download, Loader2, XCircle } from 'lucide-react'
 import { useEffect } from 'react'
 import { Link, redirect, useRevalidator } from 'react-router'
-import { dataTransferQueue } from '~/features/settings/server/data-transfer-queue.server'
+import { getOwnedDataTransferJob } from '~/features/settings/server/data-transfer.queries'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, requirePermission } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, requirePermission } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -19,7 +19,8 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.Admin)
 
-  const job = await dataTransferQueue.getJob(params.jobId)
+  const currentUser = context.get(currentAccountContext)
+  const job = await getOwnedDataTransferJob(params.jobId, currentUser.congregationId, 'export')
   if (!job) {
     throw redirect('/settings/data/export')
   }

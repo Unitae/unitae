@@ -142,15 +142,19 @@ export async function action({ request, context }: Route.ActionArgs) {
     return submission.reply()
   }
 
-  const job = await dataTransferQueue.add('export', {
-    type: 'export',
-    congregationId: currentUser.congregationId,
-    userId: currentUser.id,
-    options: {
-      includeFiles: submission.value.includeFiles,
-      includeAuditLogs: submission.value.includeAuditLogs,
+  const job = await dataTransferQueue.add(
+    'export',
+    {
+      type: 'export',
+      congregationId: currentUser.congregationId,
+      userId: currentUser.id,
+      options: {
+        includeFiles: submission.value.includeFiles,
+        includeAuditLogs: submission.value.includeAuditLogs,
+      },
     },
-  })
+    { jobId: crypto.randomUUID() },
+  )
 
   return redirect(`/settings/data/export/${job.id}/status`)
 }
