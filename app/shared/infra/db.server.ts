@@ -18,7 +18,8 @@ type TransactionOptions = Parameters<typeof db.$transaction>[1]
 /**
  * Runs a callback inside a PostgreSQL transaction with tenant-scoped RLS.
  *
- * Uses SET LOCAL to set the congregation_id session variable, which is
+ * Sets the app.congregation_id setting transaction-locally (via
+ * set_config(..., true), the equivalent of SET LOCAL), which is
  * automatically unset when the transaction ends. This prevents leaking
  * congregation context across requests via the connection pool.
  *

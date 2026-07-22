@@ -54,13 +54,25 @@ afterAll(async () => {
 })
 
 describe('RLS withScope isolation', () => {
+  it('applique app.congregation_id via set_config, tel que lu par les policies RLS', async () => {
+    // Isole le setter du reste de la pile RLS : échoue précisément si set_config
+    // écrit la mauvaise variable ou une valeur au mauvais format.
+    const rows = await withScope(congregationIdA, tx =>
+      tx.$queryRawUnsafe<{ value: string }[]>(`SELECT current_setting('app.congregation_id', true) AS value`),
+    )
+
+    expect(rows[0].value).toBe(String(congregationIdA))
+  })
+
   it('ne retourne que les utilisateurs de la congrégation A quand le scope est A', async () => {
+    // Pas de filtre applicatif : seul RLS restreint les lignes, donc l'assertion teste vraiment le scope.
     const users = await withScope(congregationIdA, tx => {
-      return tx.userAccount.findMany({ where: { congregationId: congregationIdA } })
+      return tx.userAccount.findMany()
     })
 
     expect(users.length).toBeGreaterThanOrEqual(1)
     expect(users.every((u: { congregationId: number }) => u.congregationId === congregationIdA)).toBe(true)
+    expect(users.some((u: { congregationId: number }) => u.congregationId === congregationIdB)).toBe(false)
   })
 
   it('empêche la congrégation A de voir les données de la congrégation B', async () => {
