@@ -37,7 +37,8 @@ RESEND_API_KEY=re_your-resend-api-key
 # Your public URL (used in emails and redirects)
 UNITAE_BASE_URL=https://unitae.your-domain.com
 
-# RLS enforcement (recommended) — uses the non-superuser role created by init-db
+# RLS enforcement (required in production) — uses the non-superuser role created by init-db.
+# Compose defaults this to the unitae_app role, so you only need to set it to override the password/host.
 DB_RUNTIME_URL=postgresql://unitae_app:your-strong-database-password@postgres:5432/unitae
 
 # Redis (Docker Compose service name)
@@ -48,7 +49,7 @@ REDIS_PORT=6379
 UNITAE_CRON_SECRET=your-cron-secret-at-least-32-characters
 ```
 
-`DB_RUNTIME_URL` connects as the `unitae_app` role (created by `init-db.sql`), which is bound by Row-Level Security policies. `DB_URL` connects as the superuser and is used only for migrations and one-time setup. Make sure both connection strings carry the right password for their respective role.
+`DB_RUNTIME_URL` connects as the `unitae_app` role (created by `init-db.sql`), which is bound by Row-Level Security policies. `DB_URL` connects as the superuser and is used only for migrations and one-time setup. Make sure both connection strings carry the right password for their respective role. **In production the app refuses to boot** if `DB_RUNTIME_URL` is unset or points at a superuser / `BYPASSRLS` role, because such a runtime has no database-level tenant isolation — see [Row-Level Security](../development/row-level-security.md).
 
 ### 3. Start the Services
 
@@ -83,14 +84,14 @@ pnpm build
 
 ### 2. Create the Database Runtime Role
 
-The Docker Compose setup creates the `unitae_app` role automatically via the init-db script. With PM2, you need to create it manually:
+The Docker Compose setup creates the `unitae_app` role automatically via the init-db script. With PM2, you need to create it manually. It **must** be `NOSUPERUSER` (the default) so RLS applies:
 
 ```sql
-CREATE ROLE unitae_app LOGIN PASSWORD 'your-app-password';
+CREATE ROLE unitae_app LOGIN PASSWORD 'your-app-password' NOSUPERUSER;
 GRANT unitae_app TO unitae;
 ```
 
-Then set `DB_RUNTIME_URL` in your `.env` to use this role. See [Row-Level Security](../development/row-level-security.md) for details.
+Then set `DB_RUNTIME_URL` in your `.env` to use this role — it is **required in production**, where the app refuses to boot if the runtime role can bypass RLS. See [Row-Level Security](../development/row-level-security.md) for details.
 
 ### 3. Start with PM2
 

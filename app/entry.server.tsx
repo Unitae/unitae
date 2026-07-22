@@ -1,4 +1,4 @@
-import '~/shared/utils/env.server'
+import '~/shared/infra/boot.server'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { PassThrough } from 'node:stream'
 

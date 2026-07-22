@@ -26,7 +26,7 @@ Complete reference for all configuration variables used by Unitae.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DB_URL` | — | PostgreSQL connection string (required). Used for migrations and seed |
-| `DB_RUNTIME_URL` | — | Non-superuser connection string for the runtime. Enables RLS enforcement. Falls back to `DB_URL` if not set. See [Row-Level Security](../development/row-level-security.md) |
+| `DB_RUNTIME_URL` | — | **Non-superuser** connection string for the runtime — enables RLS enforcement. **Required in production**: the app refuses to boot when this is unset or points at a superuser / `BYPASSRLS` role (it would run with no database-level tenant isolation). Falls back to `DB_URL` only in development, with a warning. The Docker Compose stack defaults this to the `unitae_app` role. See [Row-Level Security](../development/row-level-security.md) |
 | `DB_POOL_MAX` | `10` | Maximum number of PostgreSQL connections in the pool |
 
 The database connection is configured in `prisma.config.ts`, not in `schema.prisma`.

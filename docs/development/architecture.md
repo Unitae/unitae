@@ -116,6 +116,7 @@ Tenant isolation uses **PostgreSQL Row-Level Security (RLS)** activated via `SET
 - **`db` and `unscopedDb`** are the **same** `PrismaClient` instance — there is no Prisma extension or automatic injection
 - **`withScope(congregationId, fn)`** runs `fn` inside a `$transaction` that first executes `SET LOCAL app.congregation_id = '<id>'`. The `SET LOCAL` is automatically rolled back when the transaction ends, preventing context leakage through the connection pool
 - Without `SET LOCAL` (outside `withScope`), RLS policies permit all rows — this is the "unscoped" mode
+- RLS only works when the runtime connects as a **non-superuser** role. A superuser / `BYPASSRLS` role defeats `withScope` entirely, so the app probes the role at boot and **fails closed in production** (refuses to start) via `assertRuntimeRoleEnforcesRls` — see [Row-Level Security](row-level-security.md)
 
 When to use each:
 

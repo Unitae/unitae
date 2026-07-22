@@ -181,13 +181,19 @@ The `unitae_app` role automatically gets DML privileges on new tables thanks to 
 
 ## Self-Hosting Considerations
 
-Self-hosted users deploying with a single database role (superuser) will see a warning at startup:
+RLS is only effective when the runtime connects as a role that **cannot bypass it**. PostgreSQL
+superusers and roles with `BYPASSRLS` ignore RLS policies even under `FORCE ROW LEVEL SECURITY`,
+so a runtime connecting as the superuser has **no database-level tenant isolation** — `SET LOCAL
+app.congregation_id` has no effect.
 
-```
-DB_RUNTIME_URL is not set — RLS enforcement requires a non-superuser database role.
-```
+To catch this, the app probes the connected role at boot (both the web server and the worker):
 
-The application works correctly without `DB_RUNTIME_URL` — tenant isolation still relies on `withScope` at the application level. However, for defense-in-depth, self-hosters should create a non-superuser role:
+- **In production (`NODE_ENV=production`)** it **refuses to start** — throwing and exiting — when
+  `DB_RUNTIME_URL` is unset or the connected role is a superuser / has `BYPASSRLS`. This fails
+  closed rather than silently serving requests without isolation.
+- **In development** it only logs a warning, so a single-role local setup keeps working.
+
+Set `DB_RUNTIME_URL` to a **non-superuser** role. Create one with:
 
 ```sql
 CREATE ROLE unitae_app LOGIN PASSWORD 'your-secure-password' NOSUPERUSER;
@@ -196,7 +202,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO unitae_ap
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO unitae_app;
 ```
 
-Then set `DB_RUNTIME_URL` in the environment to use this role for the runtime.
+Then point `DB_RUNTIME_URL` at this role. The Docker Compose stack does this for you: it creates
+`unitae_app` via `docker/init-db/01-create-app-role.sh` and defaults `DB_RUNTIME_URL` to it.
 
 ## Related
 

@@ -52,6 +52,10 @@ services:
     env_file: .env
     environment:
       PORT: ${UNITAE_WEB_PORT:-8080}
+      # Connect as the non-superuser unitae_app role so PostgreSQL RLS is enforced.
+      # In production the app refuses to boot if this role can bypass RLS (superuser/BYPASSRLS).
+      # An explicit DB_RUNTIME_URL in .env overrides this default.
+      DB_RUNTIME_URL: ${DB_RUNTIME_URL:-postgresql://unitae_app:${DB_RUNTIME_PASSWORD:-${DB_PASSWORD}}@postgres:5432/${DB_NAME:-unitae}}
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -90,6 +94,11 @@ services:
     image: ${UNITAE_WORKER_IMAGE:-ghcr.io/unitae/unitae/worker:latest}
     restart: unless-stopped
     env_file: .env
+    environment:
+      # Connect as the non-superuser unitae_app role so PostgreSQL RLS is enforced.
+      # In production the worker refuses to boot if this role can bypass RLS (superuser/BYPASSRLS).
+      # An explicit DB_RUNTIME_URL in .env overrides this default.
+      DB_RUNTIME_URL: ${DB_RUNTIME_URL:-postgresql://unitae_app:${DB_RUNTIME_PASSWORD:-${DB_PASSWORD}}@postgres:5432/${DB_NAME:-unitae}}
     depends_on:
       migrate:
         condition: service_completed_successfully
