@@ -24,5 +24,3 @@ export function validateEnv() {
     logger.warn('UNITAE_CRON_SECRET is not set. Cron endpoints will reject all requests.')
   }
 }
-
-validateEnv()
