@@ -13,9 +13,10 @@ vi.mock('~/shared/infra/mailer.server', () => ({
   mailer: { emails: { send: vi.fn() } },
 }))
 
-vi.mock('~/shared/infra/logger.server', () => ({
-  createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
-}))
+vi.mock('~/shared/infra/logger.server', () => {
+  const stub = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
+  return { createLogger: () => stub, logger: stub, default: stub }
+})
 
 const { renderNotificationEmail } = await import('./render-notification-email.server')
 const { NOTIFICATION_REGISTRY } = await import('./registry.server')

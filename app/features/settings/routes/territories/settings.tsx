@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { territorySettingsSchema } from '~/features/settings/schemas/territory-settings.schema'
 import { loadTerritorySettings } from '~/features/settings/server/load-territory-settings.server'
-import { getAllowedZips, parseZips, serializeZips } from '~/features/territories/index.server'
+import { banoUrlWriteError, getAllowedZips, parseZips, serializeZips } from '~/features/territories/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getSetting, setSetting } from '~/shared/domain/settings.server'
@@ -307,6 +307,14 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   const zips = parseZips(submission.value.zips)
   const banoUrl = submission.value['bano-url']
+
+  // Authoritative, env-aware host/port allowlist check on the write path. The
+  // schema only guarantees the value is empty or a syntactically valid https URL.
+  const banoUrlError = banoUrlWriteError(banoUrl)
+  if (banoUrlError) {
+    return data(submission.reply({ fieldErrors: { 'bano-url': [banoUrlError] } }), { status: 400 })
+  }
+
   const prospectionValidity = submission.value['prospection-validity']
   const phoneTypeActivated = String(submission.value['phone-territory-active'])
   const mapTabActivated = String(submission.value['map-tab-active'])
