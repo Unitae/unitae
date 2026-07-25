@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 // Jeton signé (HMAC-SHA256) qui autorise un admin connecté à ouvrir la facturation SaaS sur le
 // site marketing sans exposer le slug en clair dans l'URL. Le site vérifie la signature au lieu
 // de faire confiance à un `?congregation=slug` brut. Le secret `BILLING_LINK_SECRET` est partagé
-// entre l'app principale (émission) et le site (vérification).
+// entre les émetteurs (app principale + emails de la plateforme) et le site (vérification).
 
 // TTL des liens ouverts depuis l'app (session active) : court.
 export const BILLING_TOKEN_TTL_MS = 15 * 60 * 1000
