@@ -63,4 +63,37 @@ describe('generateS13ExportExcel', () => {
   it('does not throw on an empty input list', () => {
     expect(() => generateS13ExportExcel([], '2025-2026')).not.toThrow()
   })
+
+  it('escapes a territory number that starts with a formula-trigger character', () => {
+    const wb = generateS13ExportExcel([territory({ id: 1, number: '=SUM(A1:A2)' })], '2025-2026')
+    const ws = wb.getWorksheet('2025-2026')
+    if (!ws) throw new Error('no worksheet')
+
+    const values: string[] = []
+    ws.eachRow(row => row.eachCell(cell => values.push(String(cell.value ?? ''))))
+    expect(values).toContain("'=SUM(A1:A2)")
+    expect(values).not.toContain('=SUM(A1:A2)')
+  })
+
+  it('escapes a publisher name that starts with a formula-trigger character', () => {
+    const wb = generateS13ExportExcel(
+      [
+        territory({
+          id: 1,
+          number: 'T-01',
+          // biome-ignore lint/suspicious/noExplicitAny: exceljs export data shape varies with schema
+          attributions: [
+            { startDate: new Date('2025-09-01'), endDate: null, publisher: { firstname: '=cmd', lastname: 'X' } },
+          ] as any,
+        }),
+      ],
+      '2025-2026',
+    )
+    const ws = wb.getWorksheet('2025-2026')
+    if (!ws) throw new Error('no worksheet')
+
+    const values: string[] = []
+    ws.eachRow(row => row.eachCell(cell => values.push(String(cell.value ?? ''))))
+    expect(values).toContain("'=cmd X")
+  })
 })

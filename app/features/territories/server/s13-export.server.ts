@@ -1,5 +1,6 @@
 import excelJs from 'exceljs'
 
+import { escapeSpreadsheetFormula } from '~/shared/utils/escape-spreadsheet-formula'
 import type { getTerritoriesExportData } from './territories-export-data.server'
 
 export function generateS13ExportExcel(
@@ -149,7 +150,7 @@ function addRowsForTerritory(
   territoryNumber: string,
   lastTerritoryId: number,
 ) {
-  worksheet.addRow([territoryNumber, ''])
+  worksheet.addRow([escapeSpreadsheetFormula(territoryNumber), ''])
   const firstRow = worksheet.lastRow
   worksheet.addRow(['', ''])
   const lastRow = worksheet.lastRow
@@ -193,8 +194,9 @@ function addAttributionColumns(
   for (const attribution of item.attributions.sort((a, b) => a.startDate.getTime() - b.startDate.getTime())) {
     const isLastCol = lastColIndex === colIndex + 1
 
-    firstRow.getCell(colIndex).value =
-      `${attribution.publisher?.firstname || ''} ${attribution.publisher?.lastname || ''}`
+    firstRow.getCell(colIndex).value = escapeSpreadsheetFormula(
+      `${attribution.publisher?.firstname || ''} ${attribution.publisher?.lastname || ''}`,
+    )
     firstRow.getCell(colIndex).border = {
       top: { style: 'thin' },
       left: { style: 'medium' },
