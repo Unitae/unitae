@@ -2,7 +2,7 @@
 
 Unitae lets you decide, precisely, who in the congregation can see what and who can change what. Two ideas work together:
 
-- **Permissions** are the small units of access — for example, *manage territories*, *upload documents to the board*, *view publishers*. There are 20 of them, each tied to one feature.
+- **Permissions** are the small units of access — for example, *manage territories*, *upload documents to the board*, *view publishers*. There are 21 of them, each tied to one feature.
 - **Roles** are named bundles of permissions you assign to a person — for example, *Elder*, *Pioneer team lead*, or anything else you want to call it. A user can hold several roles, and gets the union of their permissions.
 
 You can keep things simple and stick to the built-in roles, or you can create your own roles when the built-ins don't fit how your congregation is organised.
@@ -39,7 +39,7 @@ If you want a built-in role to actually grant access (say, give every elder the 
 You can create as many roles of your own as you need. A custom role has:
 
 - A name (and an optional description, useful for explaining the role to other admins)
-- Any combination of the 20 permissions
+- Any combination of the 21 permissions
 - The list of users who hold it
 
 Typical examples: *Service committee*, *PR coordinator*, *Group overseer*. Whatever names match how your congregation actually works.
@@ -48,7 +48,7 @@ To create a role: **Settings → Roles → New role**. Pick the permissions, sav
 
 You can edit, rename, and delete custom roles at any time. Built-in roles cannot be renamed or deleted (the system depends on their identity).
 
-## The 20 permissions
+## The 21 permissions
 
 Permissions are grouped by area of the app. Most areas come in two flavours: **Viewer** (read-only) and **Manager** (full access). Holding a Manager permission already includes everything a Viewer permission would grant — you don't need to assign both.
 
@@ -72,6 +72,7 @@ Permissions are grouped by area of the app. Most areas come in two flavours: **V
 ### Programme & events
 - **Program Viewer** — open the events list, programmes, and templates
 - **Program Manager** — create, edit, delete, release, and un-release events; assign publishers; manage programme templates
+- **Absence Viewer** — view the congregation's absences (days off) list
 - **External Speaker Viewer** — open the external speaker registry
 - **External Speaker Manager** — add, edit, archive speakers in the registry
 

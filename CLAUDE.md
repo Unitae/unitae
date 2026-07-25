@@ -269,7 +269,7 @@ const permissions = context.get(permissionsContext)
 if (!permissions.has(Permission.TerritoriesManager)) throw redirect('/dashboard')
 ```
 
-**Auth model:** `Permission` (20 entries, in `app/shared/types/permission.ts`) is the unit of access. **Roles** (DB table) bundle permissions and are assigned to users — built-in roles plus custom roles a Roles Manager creates. `requireAuth()` runs `resolveEffectivePermissions` and stores the user's full granted set in `permissionsContext`; the legacy `_required` parameter is retained for call-site compatibility but no longer filters anything. See `docs/development/permissions-and-roles.md`.
+**Auth model:** `Permission` (21 entries, in `app/shared/types/permission.ts`) is the unit of access. **Roles** (DB table) bundle permissions and are assigned to users — built-in roles plus custom roles a Roles Manager creates. `requireAuth()` runs `resolveEffectivePermissions` and stores the user's full granted set in `permissionsContext`; the legacy `_required` parameter is retained for call-site compatibility but no longer filters anything. See `docs/development/permissions-and-roles.md`.
 
 ### Form validation
 
@@ -386,7 +386,7 @@ S3_ENDPOINT=""                         # S3-compatible storage (fallback: local 
 S3_BUCKET=""
 S3_ACCESS_KEY=""
 S3_SECRET_KEY=""
-MULTI_TENANT="true"                    # Enables /register route for SaaS mode
+UNITAE_MULTI_TENANT="true"             # Enables /register route for SaaS mode
 UNITAE_COOKIE_DOMAIN=".unitae.app"     # Cookie scoping for multi-subdomain SaaS
 UNITAE_OPEN_DATA_ALLOWLIST=""          # Extra comma-separated hosts for BANO sync (SSRF allowlist), added to the built-in OPEN_DATA_DEFAULT_HOSTS defaults
 LOGIN_RATE_LIMIT_IP_MAX="10"           # Max failed login attempts per client IP per 15 min (default 10)

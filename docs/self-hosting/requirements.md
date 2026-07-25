@@ -35,7 +35,7 @@ All other dependencies (Node.js, PostgreSQL, Redis) are included in the Docker i
 
 ### Without Docker
 
-- Node.js >= 22
+- Node.js >= 22.22.0
 - PostgreSQL 17+
 - Redis 7+
 - pnpm (package manager)

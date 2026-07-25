@@ -10,9 +10,13 @@ Users log in with an email address and password. The session is stored in a secu
 
 - **Session lifetime** — 1 hour in production, 8 hours in local development.
 
+### Two-factor authentication (2FA)
+
+Users can optionally enable time-based one-time password (TOTP) two-factor authentication from their account security settings, using any standard authenticator app. Once enabled, a valid six-digit code is required at each login in addition to the password. An administrator with the right permission can reset a user's 2FA if they lose access to their authenticator.
+
 ### Rate limiting
 
-Login attempts are limited to **5 attempts per 15 minutes per email address** to prevent brute-force attacks. Password reset requests are similarly limited.
+Login attempts are rate-limited to prevent brute-force attacks. The limit is keyed on the **client's IP address** (and a separate instance-wide cap), **never on the target email address** — so no one can lock a specific user out by hammering their email. Password reset requests are limited separately, per email address. Two-factor code checks are also rate-limited per account.
 
 ### Password security
 
@@ -34,7 +38,7 @@ Uploaded files (board PDFs, territory cards) are stored in separate paths per co
 
 ## Role-based access control
 
-Access to features is controlled through 20 fine-grained permissions, bundled into roles. Every request is checked — both in the UI (to show or hide elements) and on the server (to enforce access).
+Access to features is controlled through 21 fine-grained permissions, bundled into roles. Every request is checked — both in the UI (to show or hide elements) and on the server (to enforce access).
 
 See [Roles and Permissions](roles-and-permissions.md) for the full list of permissions and the built-in and custom roles that group them.
 

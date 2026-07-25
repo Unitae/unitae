@@ -67,7 +67,7 @@ Helpers: `account.member?.firstname ?? account.firstname` for display (use the `
 │  │  Board Docs     │  │  Board Docs      │              │
 │  └─────────────────┘  └──────────────────┘              │
 │                                                         │
-│  Global: Permission (20 permission definitions)         │
+│  Global: Permission (21 permission definitions)         │
 │  Global: PasswordResetToken, EmailVerificationToken,    │
 │          CalendarFeedToken                              │
 └─────────────────────────────────────────────────────────┘
@@ -78,7 +78,7 @@ Helpers: `account.member?.firstname ?? account.firstname` for display (use the `
 1. **Reverse Proxy** (Traefik/Nginx) routes incoming requests to web pods
 2. **React Router** matches route, runs middleware then loader/action
 3. **`requireAuth()`** middleware (from `app/shared/auth/middleware.server.ts`) authenticates user, resolves the full effective permission set, checks GDPR consent, and sets typed context. The `_required` parameter on the function signature is retained for call-site compatibility but no longer used — see [Permissions and Roles](permissions-and-roles.md)
-4. **Loader/action** reads context via `context.get(userContext)`, `context.get(congregationContext)`, `context.get(permissionsContext)`
+4. **Loader/action** reads context via `context.get(currentAccountContext)`, `context.get(congregationContext)`, `context.get(permissionsContext)`
 5. **`withScopeFromContext(context, fn)`** opens a PostgreSQL transaction with `SET LOCAL` for Row-Level Security
 6. **Service functions** (`features/*/server/`) receive the scoped `TransactionClient` and handle business logic
 7. **Route component** renders with loader data
@@ -88,11 +88,11 @@ Middleware → requireAuth()
            → verifySession(request)                          // authenticates user, returns congregation
            → resolveEffectivePermissions(userId, congId)     // unions direct + role-mediated permissions
            → enforceGdprConsent(userId)                      // redirects to /consent if not granted
-           → context.set(userContext, currentUser)
+           → context.set(currentAccountContext, currentUser)
            → context.set(congregationContext, congregation)
            → context.set(permissionsContext, permissions)
 
-Route     → context.get(userContext)             // read current user
+Route     → context.get(currentAccountContext)             // read current user
           → withScopeFromContext(context, async db => { ... })
           → db is a TransactionClient scoped by RLS
           → service functions receive db as first parameter
@@ -162,7 +162,7 @@ Protected Route → requireAuth() middleware on layout route
                   (CongregationUserPermission) + role-mediated grants
                   (RolePermission joined to UserRoleAssignment); expands Admin
                   to every Permission value
-                → context.set(userContext, currentUser)
+                → context.set(currentAccountContext, currentUser)
                 → context.set(congregationContext, congregation)
                 → context.set(permissionsContext, Set<Permission>)
 
@@ -350,7 +350,7 @@ Audit calls belong in service functions (`features/*/server/`), **not** in route
 
 ### actorId threading
 
-Every service function that writes data must accept `actorId: number` — as a positional parameter right after `congregationId`, or as a field in the params interface. Routes extract it from `context.get(userContext).id` and forward it explicitly.
+Every service function that writes data must accept `actorId: number` — as a positional parameter right after `congregationId`, or as a field in the params interface. Routes extract it from `context.get(currentAccountContext).id` and forward it explicitly.
 
 ```typescript
 // Service function
@@ -361,7 +361,7 @@ export async function updateTerritory(db, id, congregationId, actorId, params) {
 }
 
 // Route action
-const currentUser = context.get(userContext)
+const currentUser = context.get(currentAccountContext)
 return withScopeFromContext(context, async db => {
   return updateTerritory(db, id, currentUser.congregationId, currentUser.id, params)
 })
@@ -420,9 +420,9 @@ pnpm test:e2e:headed        # E2E tests with browser visible
 - **Session**: Cookie-based (HTTP-only, `SameSite=Lax`, optional `UNITAE_COOKIE_DOMAIN` for multi-subdomain SaaS), `UNITAE_SESSION_SECRET` required, 1h (prod) / 8h (dev) maxAge
 - **Passwords**: scrypt hashed with a 16-byte random salt and 32-byte derived key, constant-time comparison, never stored in plain text, reset via 24h single-use time-limited tokens generated with `crypto.randomBytes(32)`
 - **Email verification**: Required before accessing the app, 24h token expiry
-- **Rate limiting**: Login (5/15min), password reset (3/15min) per email via Redis
+- **Rate limiting** (via `redisRateLimit`): Login is keyed on the client IP (`LOGIN_RATE_LIMIT_IP_MAX`, default 10 / 15min) plus an instance-wide global counter (`LOGIN_RATE_LIMIT_GLOBAL_MAX`, default 100 / 15min) — deliberately **never** keyed on the target email, so no one can lock out a specific account. Password reset is limited per email (3/15min). Two-factor challenge is limited per account (`TWO_FACTOR_RATE_LIMIT_MAX`, default 5)
 - **Calendar feed tokens**: 32 random bytes encoded as base64url (`crypto.randomBytes(32)`), one active per user, no automatic expiry, manually revoked or regenerated. Audited via `calendar_feed.token.created` and `calendar_feed.token.revoked` actions
-- **Permissions**: 20 congregation-scoped permissions, granted directly via `CongregationUserPermission` or through `Role` membership (see [Permissions and Roles](permissions-and-roles.md))
+- **Permissions**: 21 congregation-scoped permissions, granted directly via `CongregationUserPermission` or through `Role` membership (see [Permissions and Roles](permissions-and-roles.md))
 - **Files**: Congregation-scoped storage keys with UUID filenames (`{congregationId}/board/{uuid}.pdf`)
 - **RLS**: PostgreSQL Row-Level Security for tenant data isolation
 - **Log PII redaction**: Email addresses and personal data fields hashed with SHA-256 in application logs

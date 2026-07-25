@@ -45,7 +45,7 @@ REDIS_PORT="6379"
 Optional variables:
 
 ```ini
-UNITAE_CRON_SECRET="your-cron-secret"          # Required for cron endpoints (/cron/retention, /cron/board-expirations)
+UNITAE_CRON_SECRET="your-cron-secret"          # Required for cron endpoints (/cron/retention, /cron/board-expirations, /cron/process-notifications)
 DB_POOL_MAX="10"                  # PostgreSQL connection pool size (default: 10)
 GOOGLE_MAPS_API_KEY=""                  # Enables maps on territory pages and PDF exports
 GOOGLE_MAPS_MAP_ID=""                   # Enables custom styled maps
@@ -77,7 +77,7 @@ In a separate terminal, start the background worker:
 pnpm start:worker
 ```
 
-The worker processes three job queues: territory data sync, email notifications, and PDF thumbnail generation. It's needed if you're working on territory sync, document uploads, or board notifications.
+The worker processes five job queues: territory data sync, email notifications, PDF thumbnail generation, data transfer (export/import), and the daily data-retention sweep. It's needed if you're working on territory sync, document uploads, board notifications, or congregation export/import.
 
 ## Commands
 
@@ -86,7 +86,7 @@ The worker processes three job queues: territory data sync, email notifications,
 | Command | Description |
 |---------|-------------|
 | `pnpm start:dev` | Development server with HMR |
-| `pnpm start:worker` | Multi-queue background worker (sync, email, thumbnail) |
+| `pnpm start:worker` | Multi-queue background worker (sync, email, thumbnail, data transfer, retention) |
 | `pnpm start:emails` | Email template dev server |
 
 ### Build

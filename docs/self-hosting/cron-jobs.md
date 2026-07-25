@@ -18,12 +18,16 @@ Each endpoint accepts both `GET` and `POST`. Use `POST` from cron schedulers tha
 
 ### `/cron/retention`
 
-Cleans up expired data to comply with retention policies:
+Cleans up expired data to comply with retention policies. It runs four sweeps:
 
-- Expired password reset tokens (older than 24h)
-- Withdrawn consent records past their retention period
+- Expired password reset tokens
+- Withdrawn consent records older than 2 years
+- Read-tracking (`viewedBy`) entries on long-expired board documents
+- Settled notification events
 
 **Recommended schedule**: Once per day (e.g., `0 3 * * *`)
+
+> **Note.** This HTTP endpoint is distinct from the worker's built-in **daily retention sweep** (member auto-anonymisation), which is scheduled inside the background worker itself and needs no external scheduler — see [Background Processing › Retention Queue](../development/background-processing.md#retention-queue).
 
 ### `/cron/board-expirations`
 

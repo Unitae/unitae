@@ -54,12 +54,12 @@ Cross-cutting utilities live in `app/shared/`:
 
 ```
 app/shared/
-├── auth/         # Auth wrapper, crypto, sanitize-user, route context
+├── auth/         # Auth wrapper, crypto, sanitize-user, route context, requireAuth middleware
 ├── domain/       # Congregation, limits, audit, settings, retention, host-settings, consent, setup
 ├── errors/       # AppError hierarchy (NotFoundError, ValidationError, ConflictError, etc.)
 ├── hooks/        # Shared React hooks
 ├── infra/        # Database, Redis, logger, mailer, file storage, queues
-├── middleware/    # requireAuth middleware
+├── middleware/    # Origin/Referer check + security-headers middleware
 ├── types/        # Shared TypeScript types (role, entrance, publisher-type, setting keys)
 ├── ui/           # Shared UI components (shadcn/ui + custom)
 └── utils/        # env, pagination, params, locale, cron, worker-locale, utils
@@ -109,7 +109,7 @@ For the *structural* rules — per-feature folder shape, `index.ts` boundaries b
 - Service functions take **typed parameters**, never the `Request` object
 - Service functions receive `db: TransactionClient` as their first parameter (from `app/shared/infra/db.server`)
 - Route loaders/actions use `withScopeFromContext(context, async db => {...})` then delegate to service functions
-- The `requireAuth` middleware (applied via layout route) sets `userContext`, `congregationContext`, and `permissionsContext` on the route context
+- The `requireAuth` middleware (applied via layout route) sets `currentAccountContext`, `congregationContext`, and `permissionsContext` on the route context
 - **Route files must NOT contain `db.*.create()`, `db.*.update()`, `db.*.delete()`, or `db.*.deleteMany()` calls directly.** All write operations go through service functions.
 
 ```typescript
