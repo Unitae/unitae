@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('~/shared/infra/redis.server', () => ({
   redisRateLimit: {
     eval: vi.fn(),
+    del: vi.fn(),
   },
 }))
 
@@ -13,7 +14,9 @@ vi.mock('~/shared/infra/logger.server', () => ({
   },
 }))
 
-const { guardLoginAttempt, releaseLoginAttempt } = await import('./rate-limit.server')
+const { guardLoginAttempt, releaseLoginAttempt, guardTwoFactorAttempt, releaseTwoFactorAttempts } = await import(
+  './rate-limit.server'
+)
 const { redisRateLimit: redis } = await import('~/shared/infra/redis.server')
 
 beforeEach(() => {
@@ -108,5 +111,56 @@ describe('releaseLoginAttempt', () => {
     vi.mocked(redis.eval).mockRejectedValue(new Error('Redis down'))
 
     await expect(releaseLoginAttempt('203.0.113.7')).resolves.toBeUndefined()
+  })
+})
+
+describe('guardTwoFactorAttempt', () => {
+  it('allows the attempt while the per-account count stays under the limit', async () => {
+    vi.mocked(redis.eval).mockResolvedValueOnce(1)
+
+    expect(await guardTwoFactorAttempt(42)).toEqual({ limited: false })
+  })
+
+  it('allows the attempt exactly at the limit (boundary)', async () => {
+    // Default per-account max is 5 → a count of 5 is still allowed.
+    vi.mocked(redis.eval).mockResolvedValueOnce(5)
+
+    expect(await guardTwoFactorAttempt(42)).toEqual({ limited: false })
+  })
+
+  it('blocks the attempt when the per-account count exceeds the limit', async () => {
+    vi.mocked(redis.eval).mockResolvedValueOnce(6)
+
+    expect(await guardTwoFactorAttempt(42)).toEqual({ limited: true })
+  })
+
+  it('keys the counter on the pending account', async () => {
+    vi.mocked(redis.eval).mockResolvedValueOnce(1)
+
+    await guardTwoFactorAttempt(42)
+
+    expect(vi.mocked(redis.eval).mock.calls[0]?.[2]).toBe('two_factor_fail:user:42')
+  })
+
+  it('fails closed (blocks) when Redis is unavailable', async () => {
+    vi.mocked(redis.eval).mockRejectedValue(new Error('Redis down'))
+
+    expect(await guardTwoFactorAttempt(42)).toEqual({ limited: true })
+  })
+})
+
+describe('releaseTwoFactorAttempts', () => {
+  it('deletes the per-account counter', async () => {
+    vi.mocked(redis.del).mockResolvedValue(1)
+
+    await releaseTwoFactorAttempts(42)
+
+    expect(redis.del).toHaveBeenCalledWith('two_factor_fail:user:42')
+  })
+
+  it('does not throw when Redis is unavailable', async () => {
+    vi.mocked(redis.del).mockRejectedValue(new Error('Redis down'))
+
+    await expect(releaseTwoFactorAttempts(42)).resolves.toBeUndefined()
   })
 })

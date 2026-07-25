@@ -135,7 +135,10 @@ export default function CongregationSettingsPage({ loaderData, actionData }: Rou
               {PASSWORD_SECURITY_SCOPES.map(scope => (
                 <div key={scope.value} className="flex items-start gap-3">
                   <RadioGroupItem value={scope.value} id={`breach-scope-${scope.value}`} className="mt-1" />
-                  <Label htmlFor={`breach-scope-${scope.value}`} className="flex flex-col gap-1 font-normal">
+                  <Label
+                    htmlFor={`breach-scope-${scope.value}`}
+                    className="flex flex-col items-start gap-1 font-normal"
+                  >
                     <span className="font-medium">{scope.label()}</span>
                     <span className="text-muted-foreground text-xs">{scope.hint()}</span>
                   </Label>

@@ -65,6 +65,15 @@ export const consentSchema = z.object({
   purpose: z.string().min(1),
 })
 
+// A 6-digit TOTP code. Whitespace is trimmed so pasted codes with stray spaces
+// still validate.
+export const twoFactorCodeSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/),
+})
+
 export type LoginInput = z.infer<typeof loginSchema>
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>
@@ -72,3 +81,4 @@ export type RegisterInput = z.infer<typeof registerSchema>
 export type SetupInput = z.infer<typeof setupSchema>
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>
 export type ConsentInput = z.infer<typeof consentSchema>
+export type TwoFactorCodeInput = z.infer<typeof twoFactorCodeSchema>
