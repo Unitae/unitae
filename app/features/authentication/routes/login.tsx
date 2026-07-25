@@ -5,10 +5,12 @@ import { loginSchema } from '~/features/authentication/schemas/login.schema'
 import { needSetupProcess } from '~/features/authentication/server/need-setup-process.server'
 import {
   buildLoginRedirectUrl,
+  buildTwoFactorChallengeUrl,
   resolvePostLoginRedirect,
 } from '~/features/authentication/server/post-login-redirect.server'
 import { guardLoginAttempt, releaseLoginAttempt } from '~/features/authentication/server/rate-limit.server'
 import { commitSession, destroySession, getSession } from '~/features/authentication/server/session.server'
+import { isTwoFactorEnabled } from '~/features/authentication/server/two-factor-status.server'
 import { validateCredentials } from '~/features/authentication/server/validate-credentials.server'
 import * as m from '~/i18n/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
@@ -171,7 +173,22 @@ export async function action({ request }: Route.ActionArgs) {
     })
   }
 
+  // Password is correct — release the brute-force budget regardless of what
+  // happens next.
   await releaseLoginAttempt(clientIp)
+
+  // When 2FA is armed, hold the user in a pending state and hand them off to the
+  // TOTP challenge. They are NOT authenticated yet: `userId` is only written once
+  // the challenge succeeds, so no authenticated route can be reached from here.
+  if (await isTwoFactorEnabled(userId)) {
+    session.unset('userId')
+    session.set('pending2faUserId', String(userId))
+
+    return redirect(buildTwoFactorChallengeUrl(postLoginRedirect), {
+      headers: { 'Set-Cookie': await commitSession(session) },
+    })
+  }
+
   session.set('userId', String(userId))
 
   if (urlCongregation) {

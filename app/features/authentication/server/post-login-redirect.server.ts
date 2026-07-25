@@ -21,3 +21,7 @@ export function resolvePostLoginRedirect(request: Request, formData: FormData): 
 export function buildLoginRedirectUrl(target: string): string {
   return target === '/' ? '/login' : `/login?redirectTo=${encodeURIComponent(target)}`
 }
+
+export function buildTwoFactorChallengeUrl(target: string): string {
+  return target === '/' ? '/login/2fa' : `/login/2fa?redirectTo=${encodeURIComponent(target)}`
+}

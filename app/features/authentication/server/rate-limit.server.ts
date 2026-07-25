@@ -11,8 +11,15 @@ const WINDOW_SECONDS = 15 * 60 // 15 minutes
 const LOGIN_IP_MAX = Number(process.env.LOGIN_RATE_LIMIT_IP_MAX) || 10
 const LOGIN_GLOBAL_MAX = Number(process.env.LOGIN_RATE_LIMIT_GLOBAL_MAX) || 100
 
+// The TOTP challenge is keyed on the pending account, not the IP: it only runs
+// after the correct password, so a per-user cap throttles code brute-forcing
+// without the victim-lockout problem the login limiter avoids (the account is
+// already compromised if someone is at this step).
+const TWO_FACTOR_MAX = Number(process.env.TWO_FACTOR_RATE_LIMIT_MAX) || 5
+
 const LOGIN_GLOBAL_KEY = 'login_fail:global'
 const loginIpKey = (ip: string | undefined) => `login_fail:ip:${ip ?? 'unknown'}`
+const twoFactorKey = (userId: number) => `two_factor_fail:user:${userId}`
 
 // Atomic increment-and-check: INCR the counter and, on the first hit of a new
 // window, set its TTL — in one round trip so a concurrent burst cannot slip past a
@@ -77,6 +84,34 @@ export async function releaseLoginAttempt(ip: string | undefined): Promise<void>
     await redis.eval(DECREMENT_SCRIPT, 1, LOGIN_GLOBAL_KEY)
   } catch (error) {
     logger.warn('Failed to release login rate limit counters', { error })
+  }
+}
+
+/**
+ * Gate a TOTP challenge attempt BEFORE verifying the code. Atomically counts the
+ * attempt against a per-account limit. Fails CLOSED like `guardLoginAttempt`.
+ */
+export async function guardTwoFactorAttempt(userId: number): Promise<{ limited: boolean }> {
+  try {
+    const count = await incrementAndCount(twoFactorKey(userId))
+    if (count > TWO_FACTOR_MAX) {
+      logger.warn('Two-factor challenge blocked: per-account rate limit exceeded', { userId })
+      return { limited: true }
+    }
+
+    return { limited: false }
+  } catch (error) {
+    logger.error('Two-factor rate limit check failed, denying request (fail-closed)', { error })
+    return { limited: true }
+  }
+}
+
+/** Reset the challenge counter for an account after a successful TOTP verification. */
+export async function releaseTwoFactorAttempts(userId: number): Promise<void> {
+  try {
+    await redis.del(twoFactorKey(userId))
+  } catch (error) {
+    logger.warn('Failed to release two-factor rate limit counter', { error })
   }
 }
 

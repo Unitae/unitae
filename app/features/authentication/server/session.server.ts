@@ -8,6 +8,10 @@ import logger from '~/shared/infra/logger.server'
 
 type SessionData = {
   userId: string
+  // Set after a correct password when the account has 2FA enabled, but before the
+  // TOTP challenge is passed. The user is NOT authenticated while only this is set —
+  // `userId` is written only once the challenge succeeds.
+  pending2faUserId: string
 }
 
 type SessionFlashData = {

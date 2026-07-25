@@ -8,6 +8,12 @@ export const AuditAction = {
   UserLoginFailed: 'user.login.failed',
   UserLogout: 'user.logout',
 
+  // Two-factor authentication
+  TwoFactorEnabled: 'two_factor.enabled',
+  TwoFactorDisabled: 'two_factor.disabled',
+  TwoFactorChallengeFailed: 'two_factor.challenge.failed',
+  TwoFactorReset: 'two_factor.reset',
+
   // User management
   UserCreated: 'user.created',
   UserUpdated: 'user.updated',

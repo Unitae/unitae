@@ -22,6 +22,7 @@ export default [
     route('password/:userId/invalidate', 'features/authentication/routes/password-invalidation.tsx'),
     route('me', 'features/authentication/routes/user/_layout.tsx', [
       route('profile', 'features/authentication/routes/user/profile.tsx'),
+      route('security', 'features/authentication/routes/user/security.tsx'),
       route('consents', 'features/authentication/routes/user/consents.tsx'),
       route('notifications', 'features/notifications/routes/preferences.tsx'),
       route('territories', 'features/territories/routes/my-territories/list.tsx'),
@@ -78,6 +79,7 @@ export default [
           route('make-publisher', 'features/settings/routes/users/make-publisher.tsx'),
           route('add-to-congregation', 'features/settings/routes/users/add-to-congregation.tsx'),
           route('delete-account', 'features/settings/routes/users/delete-account.tsx'),
+          route('reset-2fa', 'features/settings/routes/users/reset-2fa.tsx'),
         ]),
       ]),
       route('territories', 'features/settings/routes/territories/settings.tsx'),

@@ -221,6 +221,13 @@ model UserAccount {
   platformAdmin   Boolean   @default(false)
   anonymizedAt    DateTime?
 
+  // Optional TOTP two-factor authentication.
+  // twoFactorSecret holds the AES-256-GCM ciphertext of the base32 seed (null = never enrolled).
+  // twoFactorEnabledAt is null while enrollment is pending (secret generated, not yet confirmed)
+  // and set once confirmed — only then is the login challenge armed.
+  twoFactorSecret    String?
+  twoFactorEnabledAt DateTime?
+
   // Account-bound relations
   congregationPermissions  CongregationUserPermission[]
   roleAssignments          UserRoleAssignment[] // management/access roles

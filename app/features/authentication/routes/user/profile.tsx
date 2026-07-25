@@ -155,6 +155,23 @@ export default function ProfilePage({ loaderData, actionData }: Route.ComponentP
 
       <Card>
         <CardHeader>
+          <CardTitle>{m.user_profile_security_title()}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">{m.user_security_2fa_section()}</p>
+              <p className="text-muted-foreground text-xs">{m.user_profile_security_description()}</p>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/me/security">{m.user_profile_manage_button()}</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>{m.user_profile_change_password_section()}</CardTitle>
         </CardHeader>
         <CardContent>

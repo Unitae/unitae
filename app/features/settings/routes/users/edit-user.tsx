@@ -122,6 +122,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
       isAdmin,
       anonymizedAt: user.anonymizedAt ?? user.member?.anonymizedAt ?? null,
       canAnonymize: isAdmin && user.id !== currentUser.id && !user.anonymizedAt,
+      twoFactorEnabled: user.twoFactorEnabledAt != null,
     }
   })
 }
@@ -197,6 +198,27 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
                 {m.settings_user_edit_reset_password()}
               </Button>
             </Form>
+            {user.twoFactorEnabled && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline">{m.settings_user_2fa_reset_button()}</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{m.settings_user_2fa_reset_confirm_title()}</AlertDialogTitle>
+                    <AlertDialogDescription>{m.settings_user_2fa_reset_confirm_description()}</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => submit(null, { method: 'post', action: `/settings/users/${user.id}/reset-2fa` })}
+                    >
+                      {m.settings_user_2fa_reset_button()}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </>
         }
       />

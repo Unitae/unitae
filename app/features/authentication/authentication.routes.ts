@@ -2,6 +2,7 @@ import { prefix, type RouteConfig, route } from '@react-router/dev/routes'
 
 export const authenticationRoutes = [
   route('login', 'features/authentication/routes/login.tsx'),
+  route('login/2fa', 'features/authentication/routes/two-factor-challenge.tsx'),
   route('logout', 'features/authentication/routes/logout.tsx'),
   route('register', 'features/authentication/routes/register.tsx'),
   route('setup', 'features/authentication/routes/setup.tsx'),
