@@ -389,6 +389,8 @@ S3_SECRET_KEY=""
 MULTI_TENANT="true"                    # Enables /register route for SaaS mode
 UNITAE_COOKIE_DOMAIN=".unitae.app"     # Cookie scoping for multi-subdomain SaaS
 UNITAE_OPEN_DATA_ALLOWLIST=""          # Extra comma-separated hosts for BANO sync (SSRF allowlist), added to the built-in OPEN_DATA_DEFAULT_HOSTS defaults
+LOGIN_RATE_LIMIT_IP_MAX="10"           # Max failed login attempts per client IP per 15 min (default 10)
+LOGIN_RATE_LIMIT_GLOBAL_MAX="100"      # Max failed login attempts instance-wide per 15 min (default 100)
 ```
 
 **Prisma config:** Uses `prisma.config.ts` with `import 'dotenv/config'` — no `url` field in `schema.prisma`.
