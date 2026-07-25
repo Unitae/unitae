@@ -239,7 +239,6 @@
     "user_security_2fa_disabled_success": "La vérification en deux étapes a été désactivée.",
     "user_security_2fa_invalid_code_error": "Code invalide. Veuillez réessayer.",
     "user_profile_security_title": "Sécurité",
-    "user_profile_security_description": "Vérification en deux étapes (2FA)",
     "settings_user_2fa_status_label": "Vérification en deux étapes",
     "settings_user_2fa_status_enabled": "Activée",
     "settings_user_2fa_status_disabled": "Désactivée",

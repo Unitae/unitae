@@ -237,7 +237,6 @@
     "user_security_2fa_disabled_success": "Two-step verification has been disabled.",
     "user_security_2fa_invalid_code_error": "Invalid code. Please try again.",
     "user_profile_security_title": "Security",
-    "user_profile_security_description": "Two-step verification (2FA)",
     "settings_user_2fa_status_label": "Two-step verification",
     "settings_user_2fa_status_enabled": "Enabled",
     "settings_user_2fa_status_disabled": "Disabled",

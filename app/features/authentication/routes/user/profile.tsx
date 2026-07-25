@@ -157,42 +157,38 @@ export default function ProfilePage({ loaderData, actionData }: Route.ComponentP
         <CardHeader>
           <CardTitle>{m.user_profile_security_title()}</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between gap-4">
             <div>
               <p className="font-medium text-sm">{m.user_security_2fa_section()}</p>
-              <p className="text-muted-foreground text-xs">{m.user_profile_security_description()}</p>
+              <p className="text-muted-foreground text-xs">{m.user_security_2fa_description()}</p>
             </div>
             <Button asChild variant="outline" size="sm">
               <Link to="/me/security">{m.user_profile_manage_button()}</Link>
             </Button>
           </div>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{m.user_profile_change_password_section()}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)} onChange={markDirty}>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor={fields.password.id}>{m.user_profile_current_password_label()}</Label>
-              <Input {...getInputProps(fields.password, { type: 'password' })} autoComplete="current-password" />
-              {fields.password.errors && <p className="text-destructive text-sm">{fields.password.errors}</p>}
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor={fields.new_password.id}>{m.user_profile_new_password_label()}</Label>
-              <Input {...getInputProps(fields.new_password, { type: 'password' })} autoComplete="new-password" />
-              {fields.new_password.errors && <p className="text-destructive text-sm">{fields.new_password.errors}</p>}
-            </div>
-            <SubmitButton className="w-fit">{m.user_profile_change_password_submit()}</SubmitButton>
-          </Form>
+          <div className="border-t pt-6">
+            <p className="mb-4 font-medium text-sm">{m.user_profile_change_password_section()}</p>
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)} onChange={markDirty}>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor={fields.password.id}>{m.user_profile_current_password_label()}</Label>
+                <Input {...getInputProps(fields.password, { type: 'password' })} autoComplete="current-password" />
+                {fields.password.errors && <p className="text-destructive text-sm">{fields.password.errors}</p>}
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor={fields.new_password.id}>{m.user_profile_new_password_label()}</Label>
+                <Input {...getInputProps(fields.new_password, { type: 'password' })} autoComplete="new-password" />
+                {fields.new_password.errors && <p className="text-destructive text-sm">{fields.new_password.errors}</p>}
+              </div>
+              <SubmitButton className="w-fit">{m.user_profile_change_password_submit()}</SubmitButton>
+            </Form>
+          </div>
         </CardContent>
       </Card>
     </div>
