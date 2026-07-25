@@ -108,7 +108,7 @@ describe('requestPasswordReset', () => {
     expect(audit).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'password.reset.requested', congregationId: 7, actorId: 42, entityId: 42 }),
     )
-    expect(result).toEqual({ status: 'sent', emailSent: true })
+    expect(result).toEqual({ status: 'processed', emailDelivered: true })
   })
 
   it('remonte l’échec d’envoi de l’email sans changer le statut', async () => {
@@ -120,6 +120,6 @@ describe('requestPasswordReset', () => {
 
     const result = await requestPasswordReset('test@example.com')
 
-    expect(result).toEqual({ status: 'sent', emailSent: false })
+    expect(result).toEqual({ status: 'processed', emailDelivered: false })
   })
 })

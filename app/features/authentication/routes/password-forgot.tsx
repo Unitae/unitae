@@ -83,13 +83,15 @@ export async function action({ request }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  // Always flash the same success message: the response must be uniform whether or
-  // not the email belongs to a real account (anti-enumeration).
+  // Flash the same success message for every email — unknown, rate-limited, or real —
+  // so the happy path can't be used to enumerate accounts. The only deliberate
+  // deviation is the send-failure error below, which is reachable solely for a real
+  // account and is not attacker-controllable per address.
   session.flash('success', m.auth_password_forgot_success_message())
 
   const result = await requestPasswordReset(submission.value.email)
 
-  if (result.status === 'sent' && !result.emailSent) {
+  if (result.status === 'processed' && !result.emailDelivered) {
     session.flash('error', m.auth_email_send_error())
   }
 

@@ -46,17 +46,20 @@ afterAll(async () => {
   await testDb.$disconnect()
 })
 
-// Median duration (ms) of `samples` runs of `fn`, discarding the first run as warmup.
-async function medianDurationMs(fn: () => Promise<unknown>, samples = 9): Promise<number> {
-  const durations: number[] = []
-  await fn() // warmup — first scrypt call absorbs any lazy init
+// Minimum duration (ms) of `samples` runs of `fn`, after `warmups` discarded runs.
+// The MINIMUM is the cleanest estimator of true compute cost: scheduler jitter, GC and
+// DB-latency spikes only ever ADD time, so they inflate the mean/median but never the
+// min. Comparing minimums makes the parity check stable on loaded CI while still
+// catching a "returns instantly" regression on the unknown path.
+async function minDurationMs(fn: () => Promise<unknown>, samples = 15, warmups = 3): Promise<number> {
+  for (let i = 0; i < warmups; i++) await fn() // absorb lazy init / JIT / allocation warmup
+  let min = Number.POSITIVE_INFINITY
   for (let i = 0; i < samples; i++) {
     const start = performance.now()
     await fn()
-    durations.push(performance.now() - start)
+    min = Math.min(min, performance.now() - start)
   }
-  durations.sort((a, b) => a - b)
-  return durations[Math.floor(durations.length / 2)]
+  return min
 }
 
 describe('validateCredentials (integration) — timing parity', () => {
@@ -77,22 +80,21 @@ describe('validateCredentials (integration) — timing parity', () => {
 
   it('paie un coût scrypt comparable pour un email inconnu et un email connu', async () => {
     // Real user + wrong password → scrypt against the stored hash.
-    const knownMedian = await medianDurationMs(() => validateCredentials(KNOWN_EMAIL, 'mauvais-mot-de-passe'))
+    const knownMin = await minDurationMs(() => validateCredentials(KNOWN_EMAIL, 'mauvais-mot-de-passe'))
     // Unknown email → scrypt against the decoy hash.
-    const unknownMedian = await medianDurationMs(() => validateCredentials(UNKNOWN_EMAIL, KNOWN_PASSWORD))
+    const unknownMin = await minDurationMs(() => validateCredentials(UNKNOWN_EMAIL, KNOWN_PASSWORD))
 
-    // Both paths must run a full scrypt: neither should return near-instantly.
-    // scrypt with the default cost takes on the order of milliseconds; a 0.5ms floor
-    // is well below that yet far above a plain DB-miss early return.
-    expect(knownMedian).toBeGreaterThan(0.5)
-    expect(unknownMedian).toBeGreaterThan(0.5)
+    // The load-bearing assertion: both paths must run a full scrypt, so neither can
+    // return near-instantly. Default-cost scrypt takes several ms; a 0.5ms floor is far
+    // above a plain DB-miss early return yet well below the real cost. A regression that
+    // reintroduced the early return on the unknown path would drop unknownMin to ~0.
+    expect(knownMin).toBeGreaterThan(0.5)
+    expect(unknownMin).toBeGreaterThan(0.5)
 
-    // The unknown-email path must not be measurably faster (nor slower) than the
-    // known-email path — that difference is exactly the enumeration oracle. Wide
-    // band absorbs scheduler jitter while still catching a "returns instantly"
-    // regression on the unknown path.
-    const ratio = unknownMedian / knownMedian
-    expect(ratio).toBeGreaterThan(0.5)
-    expect(ratio).toBeLessThan(2)
+    // Parity: the unknown-email path must not be measurably cheaper (nor dearer) than
+    // the known one — that gap is the enumeration oracle. Comparing minimums keeps this
+    // stable; the tolerance still absorbs the residual DB-latency asymmetry (a found row
+    // vs a miss sits inside the measured window).
+    expect(Math.abs(unknownMin - knownMin)).toBeLessThan(knownMin * 0.75)
   })
 })

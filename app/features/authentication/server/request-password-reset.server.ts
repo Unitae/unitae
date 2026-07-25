@@ -11,14 +11,17 @@ import { sendResetAccountPasswordEmail } from './send-reset-account-password-ema
 export type RequestPasswordResetResult =
   | { status: 'rate-limited' }
   | { status: 'no-user' }
-  | { status: 'sent'; emailSent: boolean }
+  | { status: 'processed'; emailDelivered: boolean }
 
 /**
- * Orchestrates a password-reset request. The caller always shows the same uniform
- * response regardless of the result — the whole point is that a client cannot tell a
- * known email from an unknown one. To keep that true against a rate-limit oracle, the
- * attempt is recorded BEFORE the user-existence check, so unknown emails also consume
- * the reset budget.
+ * Orchestrates a password-reset request. The caller flashes the same success message
+ * for every result — a client must not be able to tell a known email from an unknown
+ * one. Only `processed` + `emailDelivered: false` (a real account whose email failed to
+ * send) is allowed to diverge; the caller decides how to surface that.
+ *
+ * To keep the happy path non-enumerable, the attempt is recorded BEFORE the
+ * user-existence check, so unknown emails also consume the reset budget (otherwise the
+ * presence/absence of rate-limiting itself leaks which emails belong to real accounts).
  */
 export async function requestPasswordReset(email: string): Promise<RequestPasswordResetResult> {
   const emailStr = email.toLowerCase()
@@ -42,7 +45,7 @@ export async function requestPasswordReset(email: string): Promise<RequestPasswo
 
   const token = await createPasswordResetToken(user.id)
   const congregation = await resolveCongregation(user.congregationId)
-  const emailSent = await sendResetAccountPasswordEmail(
+  const emailDelivered = await sendResetAccountPasswordEmail(
     user.id,
     createElement(ResetPassword, {
       email: user.email,
@@ -61,5 +64,5 @@ export async function requestPasswordReset(email: string): Promise<RequestPasswo
     entityId: user.id,
   })
 
-  return { status: 'sent', emailSent }
+  return { status: 'processed', emailDelivered }
 }
