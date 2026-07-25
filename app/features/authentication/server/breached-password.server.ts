@@ -6,6 +6,8 @@ const logger = createLogger('breached-password')
 
 const HIBP_RANGE_ENDPOINT = 'https://api.pwnedpasswords.com/range'
 const REQUEST_TIMEOUT_MS = 2_500
+// A well-formed range line is `<35-hex-suffix>:<count>`.
+const RANGE_LINE_RE = /^[0-9A-F]{35}:\d+/i
 
 /**
  * Checks a candidate password against the HaveIBeenPwned "Pwned Passwords"
@@ -32,11 +34,29 @@ export async function isPasswordBreached(password: string): Promise<boolean> {
       return false
     }
 
+    // The range endpoint returns newline-delimited `<35-hex-suffix>:<count>`
+    // lines. `Add-Padding: true` (above) mixes in decoy entries to defeat
+    // response-size analysis; they need no filtering here since a decoy suffix
+    // cannot match our real one.
     const body = await response.text()
-    return body.split('\n').some(line => {
-      const lineSuffix = line.split(':')[0]?.trim()
-      return lineSuffix?.toUpperCase() === suffix
-    })
+    const lines = body
+      .split('\n')
+      .map(line => line.trim())
+      .filter(Boolean)
+
+    // A 200 can still carry a CDN/proxy error page or a changed format. Treat an
+    // unparseable body as "not known-breached" (degrade-open) but log it, so a
+    // silent drift in the integration is observable rather than invisible.
+    const looksLikeRange = lines.length > 0 && lines.every(line => RANGE_LINE_RE.test(line))
+    if (!looksLikeRange) {
+      logger.warn('HIBP range body looked malformed; skipping breach check (degrade-open)', {
+        status: response.status,
+        lineCount: lines.length,
+      })
+      return false
+    }
+
+    return lines.some(line => line.split(':')[0]?.toUpperCase() === suffix)
   } catch (error) {
     logger.warn('HIBP range lookup failed; skipping breach check (degrade-open)', { error })
     return false

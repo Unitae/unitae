@@ -23,6 +23,12 @@ describe('changePasswordSchema', () => {
     expect(result.success).toBe(false)
   })
 
+  it('rejects an oversized new password (length is capped to bound the strength estimator)', () => {
+    const result = changePasswordSchema.safeParse({ password: 'current', new_password: 'a'.repeat(129) })
+
+    expect(result.success).toBe(false)
+  })
+
   it('requires the current password to be present', () => {
     const result = changePasswordSchema.safeParse({ password: '', new_password: 'a-strong-new-one' })
 

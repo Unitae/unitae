@@ -6,6 +6,7 @@ vi.mock('./breached-password.server', () => ({ isPasswordBreached: vi.fn() }))
 const { checkNewPasswordPolicy } = await import('./password-policy.server')
 const { evaluatePasswordStrength } = await import('./password-strength.server')
 const { isPasswordBreached } = await import('./breached-password.server')
+const m = await import('~/i18n/paraglide/messages')
 
 function strength(weak: boolean) {
   vi.mocked(evaluatePasswordStrength).mockReturnValue({ score: weak ? 1 : 3, weak })
@@ -18,10 +19,10 @@ beforeEach(() => {
 })
 
 describe('checkNewPasswordPolicy', () => {
-  it('returns a message when the password is too weak', async () => {
+  it('returns the weak-password message when the password is too weak', async () => {
     strength(true)
 
-    expect(await checkNewPasswordPolicy('weak', { checkBreached: false })).not.toBeNull()
+    expect(await checkNewPasswordPolicy('weak', { checkBreached: false })).toBe(m.auth_password_weak_error())
   })
 
   it('returns null for a strong password when breach-checking is off', async () => {
@@ -30,11 +31,13 @@ describe('checkNewPasswordPolicy', () => {
     expect(await checkNewPasswordPolicy('a-strong-passphrase', { checkBreached: false })).toBeNull()
   })
 
-  it('returns a message when the password is strong but breached and breach-checking is on', async () => {
+  it('returns the breached-password message when the password is strong but breached and breach-checking is on', async () => {
     strength(false)
     vi.mocked(isPasswordBreached).mockResolvedValue(true)
 
-    expect(await checkNewPasswordPolicy('leaked-but-strong', { checkBreached: true })).not.toBeNull()
+    expect(await checkNewPasswordPolicy('leaked-but-strong', { checkBreached: true })).toBe(
+      m.auth_password_breached_error(),
+    )
   })
 
   it('returns null for a strong, unbreached password when breach-checking is on', async () => {
@@ -59,7 +62,7 @@ describe('checkNewPasswordPolicy', () => {
     strength(true)
     const weakMessage = await checkNewPasswordPolicy('weak', { checkBreached: true })
 
-    expect(weakMessage).not.toBeNull()
+    expect(weakMessage).toBe(m.auth_password_weak_error())
     expect(weakMessage).not.toBe(breachMessage)
   })
 })

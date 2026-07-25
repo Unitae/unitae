@@ -1,8 +1,11 @@
 import { resolveEffectivePermissions } from '~/shared/auth/permissions.server'
 import { getSetting } from '~/shared/domain/settings.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
-import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
+import { createLogger } from '~/shared/infra/logger.server'
+import { CongregationSettingKey, parseBreachedPasswordCheckScope } from '~/shared/types/congregation-setting-key'
 import { Permission } from '~/shared/types/permission'
+
+const logger = createLogger('breach-scope')
 
 // Management-tier permissions: Admin plus every "*-manager" grant. Holding any
 // of these means the account can read/manage congregation data, so it is a
@@ -24,7 +27,15 @@ export async function isAccountInBreachScope(
   userId: number,
   congregationId: number,
 ): Promise<boolean> {
-  const scope = await getSetting(db, CongregationSettingKey.BreachedPasswordCheckScope, congregationId)
+  const raw = await getSetting(db, CongregationSettingKey.BreachedPasswordCheckScope, congregationId)
+  const { scope, recognized } = parseBreachedPasswordCheckScope(raw)
+
+  // A non-empty value that isn't a known scope means the shared Setting drifted
+  // (control-plane write, migration, manual edit). Fail closed to `off`, but log
+  // so an admin who believes the check is on learns it is silently disabled.
+  if (raw != null && raw !== '' && !recognized) {
+    logger.warn('Unrecognized breached-password check scope; treating as off', { rawScope: raw, congregationId })
+  }
 
   if (scope === 'everyone') return true
   if (scope !== 'responsibilities') return false

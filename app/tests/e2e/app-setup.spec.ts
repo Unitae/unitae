@@ -4,7 +4,9 @@ const LOGIN_URL_RE = /\/login/
 
 test('ensure app is initialised', async ({ page }) => {
   const email = process.env.E2E_USER_EMAIL ?? 'admin@unitae.test'
-  const password = process.env.E2E_USER_PASSWORD ?? 'password'
+  // Must clear the unified password policy (min length + zxcvbn strength) enforced
+  // on the setup flow — a trivial value like "password" is now rejected.
+  const password = process.env.E2E_USER_PASSWORD ?? 'Setup-Str0ng-Passphrase-42'
 
   await page.goto('/login')
   await page.waitForLoadState('networkidle')

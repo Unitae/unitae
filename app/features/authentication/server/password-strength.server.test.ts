@@ -20,6 +20,19 @@ describe('evaluatePasswordStrength', () => {
     expect(evaluatePasswordStrength('qwertyuiop').weak).toBe(true)
   })
 
+  it('flags a repetitive ≥8 password (clears length, trivial by composition)', () => {
+    expect(evaluatePasswordStrength('aaaaaaaa').weak).toBe(true)
+    expect(evaluatePasswordStrength('        ').weak).toBe(true)
+  })
+
+  it('handles an oversized password without hanging by bounding the estimator input', () => {
+    const result = evaluatePasswordStrength('a'.repeat(100_000))
+
+    expect(result.score).toBeGreaterThanOrEqual(0)
+    expect(result.score).toBeLessThanOrEqual(4)
+    expect(result.weak).toBe(true)
+  })
+
   it('accepts a strong passphrase', () => {
     const result = evaluatePasswordStrength('correct-horse-battery-staple-4719')
 

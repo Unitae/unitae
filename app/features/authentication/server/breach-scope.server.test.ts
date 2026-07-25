@@ -52,6 +52,12 @@ describe('isAccountInBreachScope', () => {
     expect(await isAccountInBreachScope(db, USER_ID, CONGREGATION_ID)).toBe(false)
   })
 
+  it('returns false (fail-closed) for an unrecognized/legacy policy value', async () => {
+    withScopeSetting('Responsibilities ') // wrong case + trailing space
+
+    expect(await isAccountInBreachScope(db, USER_ID, CONGREGATION_ID)).toBe(false)
+  })
+
   it('returns true for every account when the policy is everyone', async () => {
     withScopeSetting('everyone')
 
@@ -92,6 +98,20 @@ describe('isAccountInBreachScope', () => {
     it('excludes a plain publisher (no appointment, only viewer access)', async () => {
       withMemberFlags({ isHelder: false, isServant: false })
       withPermissions(Permission.BoardViewer, Permission.PublisherViewer)
+
+      expect(await isAccountInBreachScope(db, USER_ID, CONGREGATION_ID)).toBe(false)
+    })
+
+    it('excludes an account with no linked member and no management access', async () => {
+      withMemberFlags(null)
+      withPermissions(Permission.BoardViewer)
+
+      expect(await isAccountInBreachScope(db, USER_ID, CONGREGATION_ID)).toBe(false)
+    })
+
+    it('excludes when the account row is not found', async () => {
+      userAccountFindFirst.mockResolvedValue(null)
+      withPermissions()
 
       expect(await isAccountInBreachScope(db, USER_ID, CONGREGATION_ID)).toBe(false)
     })

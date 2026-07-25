@@ -222,7 +222,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     })
   }
 
-  return redirect('/profile', {
+  return redirect('/me/profile', {
     headers: {
       'Set-Cookie': await commitSession(session),
     },

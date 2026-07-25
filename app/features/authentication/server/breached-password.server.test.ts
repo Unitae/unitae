@@ -40,9 +40,17 @@ describe('isPasswordBreached', () => {
   })
 
   it('returns false when the suffix is absent from the range response', async () => {
-    fetchMock.mockResolvedValue(textResponse('0000000000000000000000000000000000A:1\r\nFFFF...:2'))
+    fetchMock.mockResolvedValue(
+      textResponse('0000000000000000000000000000000000A:1\r\n1111111111111111111111111111111111B:2'),
+    )
 
     expect(await isPasswordBreached('a-fresh-unseen-passphrase')).toBe(false)
+  })
+
+  it('degrades open (false) on a 200 with a malformed/non-range body (e.g. a CDN error page)', async () => {
+    fetchMock.mockResolvedValue(textResponse('<html><body>Service Unavailable</body></html>'))
+
+    expect(await isPasswordBreached('whatever')).toBe(false)
   })
 
   it('degrades open (false) when the network call rejects', async () => {

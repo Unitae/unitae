@@ -12,7 +12,11 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { getBoolSetting, getSetting } from '~/shared/domain/settings.server'
-import { type BreachedPasswordCheckScope, CongregationSettingKey } from '~/shared/types/congregation-setting-key'
+import {
+  type BreachedPasswordCheckScope,
+  CongregationSettingKey,
+  parseBreachedPasswordCheckScope,
+} from '~/shared/types/congregation-setting-key'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -52,7 +56,7 @@ export function loader({ context }: Route.LoaderArgs) {
 
     return {
       auxiliaryPioneerProfileActivated: auxiliaryPioneerProfileActivated ?? false,
-      breachedPasswordCheckScope: (breachedPasswordCheckScope ?? 'off') as BreachedPasswordCheckScope,
+      breachedPasswordCheckScope: parseBreachedPasswordCheckScope(breachedPasswordCheckScope).scope,
     }
   })
 }
@@ -73,7 +77,7 @@ const PASSWORD_SECURITY_SCOPES = [
     label: m.settings_congregation_password_security_scope_everyone,
     hint: m.settings_congregation_password_security_scope_everyone_hint,
   },
-] as const
+] as const satisfies readonly { value: BreachedPasswordCheckScope; label: () => string; hint: () => string }[]
 
 export default function CongregationSettingsPage({ loaderData, actionData }: Route.ComponentProps) {
   const { auxiliaryPioneerProfileActivated, breachedPasswordCheckScope } = loaderData
