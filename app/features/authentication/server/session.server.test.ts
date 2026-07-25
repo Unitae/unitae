@@ -45,7 +45,7 @@ vi.mock('./sanitize-account.server', () => ({
   }),
 }))
 
-const { verifySession } = await import('./session.server')
+const { verifySession, establishAuthenticatedSession } = await import('./session.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const { resolveCongregation, resolveCongregationFromRequest } = await import('~/shared/domain/congregation.server')
 
@@ -107,6 +107,16 @@ describe('verifySession', () => {
   it("redirige vers /login si l'epoch du cookie est périmé par rapport à celui du compte", async () => {
     // Cookie was issued at epoch 0; a password change bumped the account to epoch 1.
     setSession({ userId: '42', sessionEpoch: '0' })
+    vi.mocked(db.userAccount.findUnique).mockResolvedValue({ ...fakeUser, sessionEpoch: 1 } as never)
+
+    const response = await getRedirectResponse(() => verifySession(makeRequest('http://localhost/territories/1?x=2')))
+    expect(response.headers.get('Location')).toBe('/login?redirectTo=%2Fterritories%2F1%3Fx%3D2')
+  })
+
+  it("redirige vers /login si l'epoch du cookie est supérieur à celui du compte (comparaison stricte)", async () => {
+    // Guards the strict `!==`: a cookie epoch ahead of the account (e.g. after a DB restore)
+    // must also be rejected, not just an older one.
+    setSession({ userId: '42', sessionEpoch: '2' })
     vi.mocked(db.userAccount.findUnique).mockResolvedValue({ ...fakeUser, sessionEpoch: 1 } as never)
 
     const response = await getRedirectResponse(() => verifySession(makeRequest('http://localhost/territories/1?x=2')))
@@ -230,6 +240,26 @@ describe('verifySession', () => {
 
     const response = await getRedirectResponse(() => verifySession(badRequest))
     expect(response.headers.get('Location')).toBe('/login')
+  })
+})
+
+describe('establishAuthenticatedSession', () => {
+  it("inscrit le userId et l'epoch courant du compte dans la session", async () => {
+    vi.mocked(db.userAccount.findUnique).mockResolvedValue({ sessionEpoch: 3 } as never)
+
+    await establishAuthenticatedSession(mockSession as never, 42)
+
+    expect(mockSession.set).toHaveBeenCalledWith('userId', '42')
+    expect(mockSession.set).toHaveBeenCalledWith('sessionEpoch', '3')
+  })
+
+  it("retombe sur l'epoch 0 quand le compte est introuvable", async () => {
+    vi.mocked(db.userAccount.findUnique).mockResolvedValue(null as never)
+
+    await establishAuthenticatedSession(mockSession as never, 42)
+
+    expect(mockSession.set).toHaveBeenCalledWith('userId', '42')
+    expect(mockSession.set).toHaveBeenCalledWith('sessionEpoch', '0')
   })
 })
 

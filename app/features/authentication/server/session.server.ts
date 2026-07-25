@@ -42,9 +42,9 @@ const { getSession, commitSession, destroySession } = createCookieSessionStorage
 export { commitSession, destroySession, getSession }
 
 // Establish an authenticated session: stamp the userId together with the account's current
-// session epoch so verifySession accepts it. Use this everywhere a session is (re)issued —
-// login, 2FA promotion, register, and after a self-service password change — instead of
-// setting `userId` alone, otherwise the freshly-issued cookie carries no epoch and is rejected.
+// session epoch so verifySession accepts it. Use this everywhere a session is (re)issued
+// instead of setting `userId` alone — otherwise the cookie carries no epoch (read as 0) and
+// is rejected as soon as the account's epoch has ever been bumped.
 export async function establishAuthenticatedSession(
   session: Session<SessionData, SessionFlashData>,
   userId: number,
@@ -53,6 +53,13 @@ export async function establishAuthenticatedSession(
     where: { id: userId },
     select: { sessionEpoch: true },
   })
+
+  // Callers pass a freshly-loaded, known-good id, so a miss here means the account vanished
+  // mid-request (a race). Stamp epoch 0 and let the next verifySession fail the existence
+  // check — but surface the anomaly rather than swallowing it.
+  if (account == null) {
+    logger.warn(`establishAuthenticatedSession: no account found for userId ${userId}`)
+  }
 
   session.set('userId', String(userId))
   session.set('sessionEpoch', String(account?.sessionEpoch ?? 0))
