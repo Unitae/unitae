@@ -64,6 +64,15 @@ describe('generateS13ExportExcel', () => {
     expect(() => generateS13ExportExcel([], '2025-2026')).not.toThrow()
   })
 
+  it('escapes a service year that starts with a formula-trigger character', () => {
+    const wb = generateS13ExportExcel([], '=cmd')
+    const ws = wb.getWorksheet('=cmd')
+    if (!ws) throw new Error('no worksheet')
+
+    // The service year is written to cell C3 by the header block.
+    expect(ws.getCell('C3').value).toBe("'=cmd")
+  })
+
   it('escapes a territory number that starts with a formula-trigger character', () => {
     const wb = generateS13ExportExcel([territory({ id: 1, number: '=SUM(A1:A2)' })], '2025-2026')
     const ws = wb.getWorksheet('2025-2026')
@@ -76,24 +85,17 @@ describe('generateS13ExportExcel', () => {
   })
 
   it('escapes a publisher name that starts with a formula-trigger character', () => {
-    const wb = generateS13ExportExcel(
-      [
-        territory({
-          id: 1,
-          number: 'T-01',
-          // biome-ignore lint/suspicious/noExplicitAny: exceljs export data shape varies with schema
-          attributions: [
-            { startDate: new Date('2025-09-01'), endDate: null, publisher: { firstname: '=cmd', lastname: 'X' } },
-          ] as any,
-        }),
-      ],
-      '2025-2026',
-    )
+    // biome-ignore lint/suspicious/noExplicitAny: partial attribution fixture omits fields of the derived export type
+    const attributions: any = [
+      { startDate: new Date('2025-09-01'), endDate: null, publisher: { firstname: '=cmd', lastname: 'X' } },
+    ]
+    const wb = generateS13ExportExcel([territory({ id: 1, number: 'T-01', attributions })], '2025-2026')
     const ws = wb.getWorksheet('2025-2026')
     if (!ws) throw new Error('no worksheet')
 
     const values: string[] = []
     ws.eachRow(row => row.eachCell(cell => values.push(String(cell.value ?? ''))))
     expect(values).toContain("'=cmd X")
+    expect(values).not.toContain('=cmd X')
   })
 })

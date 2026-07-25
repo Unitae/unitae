@@ -48,7 +48,7 @@ export function generateS13ExportExcel(
 function addExportHeaders(worksheet: excelJs.Worksheet, serviceYear: string) {
   worksheet.addRow([`REGISTRE D'ATTRIBUTION DES TERRITOIRES`])
   worksheet.addRow([])
-  worksheet.addRow(['Année de service :', '', serviceYear])
+  worksheet.addRow(['Année de service :', '', escapeSpreadsheetFormula(serviceYear)])
 
   worksheet.getRow(1).font = { bold: true, size: 16 }
   worksheet.getCell('A3').font = { bold: true }
