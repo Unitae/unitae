@@ -60,6 +60,10 @@ describe('createEmailVerificationToken', () => {
     expect(db.emailVerificationToken.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ token: sha256('mock-token-base64url'), userId: 42 }),
     })
+
+    const storedToken = vi.mocked(db.emailVerificationToken.create).mock.calls[0][0].data.token
+    expect(storedToken).not.toBe(token)
+    expect(storedToken).toHaveLength(64)
   })
 })
 

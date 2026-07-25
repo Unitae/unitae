@@ -104,6 +104,7 @@ describe('verifyPasswordResetToken', () => {
 
     const result = await verifyPasswordResetToken('expired-token')
     expect(result).toBeNull()
+    expect(db.passwordResetToken.delete).toHaveBeenCalledWith({ where: { id: 1 } })
   })
 })
 
@@ -119,6 +120,7 @@ describe('consumePasswordResetToken', () => {
 
     await expect(consumePasswordResetToken('to-consume')).resolves.toBeUndefined()
     expect(db.passwordResetToken.findUnique).toHaveBeenCalledWith({ where: { token: sha256('to-consume') } })
+    expect(db.passwordResetToken.delete).toHaveBeenCalledWith({ where: { id: 1 } })
   })
 
   it("ne lance pas d'erreur pour un token inexistant", async () => {

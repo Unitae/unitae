@@ -1,7 +1,29 @@
 import { describe, expect, it } from 'vitest'
-import { compare, hash } from './crypto.server'
+import { compare, hash, hashToken } from './crypto.server'
 
 const HEX_PATTERN = /^[0-9a-f]+$/
+
+describe('hashToken', () => {
+  it('produit un digest SHA-256 hex de 64 caractères', () => {
+    const digest = hashToken('un-token-quelconque')
+
+    expect(digest).toMatch(HEX_PATTERN)
+    expect(digest).toHaveLength(64)
+  })
+
+  it('est déterministe (même entrée → même digest, pour permettre la recherche par index)', () => {
+    expect(hashToken('token-abc')).toBe(hashToken('token-abc'))
+  })
+
+  it('produit des digests différents pour des tokens différents', () => {
+    expect(hashToken('token-a')).not.toBe(hashToken('token-b'))
+  })
+
+  it('ne renvoie jamais le token en clair', () => {
+    const raw = 'token-en-clair'
+    expect(hashToken(raw)).not.toBe(raw)
+  })
+})
 
 describe('hash', () => {
   it('retourne un hash au format salt.key', async () => {
