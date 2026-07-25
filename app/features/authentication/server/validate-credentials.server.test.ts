@@ -47,6 +47,17 @@ describe('validateCredentials', () => {
     expect(result).not.toBe(sentinel) // prouve que le code a bien tourné
   })
 
+  it('exécute quand même un scrypt pour un utilisateur inexistant (égalisation du timing)', async () => {
+    vi.mocked(db.userAccount.findFirst).mockResolvedValue(null as never)
+    vi.mocked(compare).mockResolvedValue(false as never)
+
+    await validateCredentials('inconnu@example.com', 'motdepasse')
+
+    // Sans compte, on doit tout de même payer le coût scrypt contre un hash leurre
+    // pour ne pas exposer d'oracle de timing.
+    expect(compare).toHaveBeenCalledWith('motdepasse', expect.any(String))
+  })
+
   it('retourne undefined pour un utilisateur inactif', async () => {
     vi.mocked(db.userAccount.findFirst).mockResolvedValue({ ...fakeUser, active: false } as never)
 
@@ -55,6 +66,15 @@ describe('validateCredentials', () => {
     result = await validateCredentials('test@example.com', 'motdepasse')
     expect(result).toBeUndefined()
     expect(result).not.toBe(sentinel)
+  })
+
+  it('exécute quand même un scrypt pour un utilisateur inactif (égalisation du timing)', async () => {
+    vi.mocked(db.userAccount.findFirst).mockResolvedValue({ ...fakeUser, active: false } as never)
+    vi.mocked(compare).mockResolvedValue(false as never)
+
+    await validateCredentials('test@example.com', 'motdepasse')
+
+    expect(compare).toHaveBeenCalledWith('motdepasse', expect.any(String))
   })
 
   it('retourne undefined pour un mauvais mot de passe', async () => {

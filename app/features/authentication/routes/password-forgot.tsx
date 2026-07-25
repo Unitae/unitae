@@ -1,28 +1,15 @@
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, Link, redirect } from 'react-router'
-import ResetPassword from '~/features/authentication/emails/reset-password'
 import { forgotPasswordSchema } from '~/features/authentication/schemas/login.schema'
-import { createPasswordResetToken } from '~/features/authentication/server/invalidate-account-password.server'
-import {
-  checkPasswordResetRateLimit,
-  recordPasswordResetAttempt,
-} from '~/features/authentication/server/rate-limit.server'
-import { sendResetAccountPasswordEmail } from '~/features/authentication/server/send-reset-account-password-email.server'
+import { requestPasswordReset } from '~/features/authentication/server/request-password-reset.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/i18n/paraglide/messages'
-import { AuditAction, audit } from '~/shared/domain/audit.server'
-import {
-  getBrandingName,
-  resolveCongregation,
-  resolveCongregationFromRequest,
-} from '~/shared/domain/congregation.server'
-import { unscopedDb as db } from '~/shared/infra/db.server'
+import { getBrandingName, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
-import { displayFirstname } from '~/shared/utils/display-name'
 import type { Route } from './+types/password-forgot'
 
 export const meta: Route.MetaFunction = () => {
@@ -96,54 +83,15 @@ export async function action({ request }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
+  // Always flash the same success message: the response must be uniform whether or
+  // not the email belongs to a real account (anti-enumeration).
   session.flash('success', m.auth_password_forgot_success_message())
 
-  const emailStr = submission.value.email.toLocaleLowerCase()
+  const result = await requestPasswordReset(submission.value.email)
 
-  const allowed = await checkPasswordResetRateLimit(emailStr)
-  if (!allowed) {
-    throw redirect('/password/forgot', {
-      headers: { 'Set-Cookie': await commitSession(session) },
-    })
-  }
-
-  const user = await db.userAccount.findFirst({
-    where: { email: emailStr },
-    include: { member: { select: { firstname: true } } },
-  })
-
-  if (user == null) {
-    throw redirect('/password/forgot', {
-      headers: { 'Set-Cookie': await commitSession(session) },
-    })
-  }
-
-  const token = await createPasswordResetToken(user.id)
-  const congregation = await resolveCongregation(user.congregationId)
-  const sent = await sendResetAccountPasswordEmail(
-    user.id,
-    <ResetPassword
-      email={user.email}
-      firstname={displayFirstname(user) ?? undefined}
-      token={token}
-      baseUrl={congregation.baseUrl}
-      platformName={congregation.displayName}
-    />,
-  )
-
-  if (!sent) {
+  if (result.status === 'sent' && !result.emailSent) {
     session.flash('error', m.auth_email_send_error())
   }
-
-  await recordPasswordResetAttempt(emailStr)
-
-  audit({
-    action: AuditAction.PasswordResetRequested,
-    congregationId: user.congregationId,
-    actorId: user.id,
-    entityType: 'User',
-    entityId: user.id,
-  })
 
   return redirect('/password/forgot', {
     headers: { 'Set-Cookie': await commitSession(session) },
