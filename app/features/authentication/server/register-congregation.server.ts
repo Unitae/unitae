@@ -6,14 +6,18 @@ import { hash } from '~/shared/auth/crypto.server'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import { ConsentPurpose, recordConsentUnscoped } from '~/shared/domain/consent.server'
 import { seedCongregationDefaults, seedPermissions } from '~/shared/domain/setup.server'
+import { createLogger } from '~/shared/infra/logger.server'
 
 type Locale = (typeof locales)[number]
 
 import { unscopedDb as db, withScope } from '~/shared/infra/db.server'
 
-// A random suffix is always appended so the public subdomain cannot be derived
-// from the congregation name. This removes the tenant-enumeration oracle: a
-// taken base name no longer produces a distinct error an attacker can observe.
+const logger = createLogger('register-congregation')
+
+// A random suffix is always appended so the exact public subdomain cannot be
+// predicted from the congregation name. This removes the tenant-enumeration
+// oracle: a taken base name no longer produces a distinct error an attacker can
+// observe.
 async function generateUniqueSlug(baseSlug: string): Promise<string> {
   for (let attempt = 0; attempt < 5; attempt++) {
     const candidate = `${baseSlug}-${randomBytes(4).toString('hex')}`
@@ -40,15 +44,23 @@ export async function registerCongregation(
 
   const hashedPassword = await hash(adminPassword)
 
-  const slug = await generateUniqueSlug(congregationSlug)
-
-  const congregation = await db.congregation.create({
-    data: {
-      name: congregationName,
-      slug,
-      locale,
-    },
-  })
+  // Keep provisioning on the return-based error contract: slug exhaustion and a
+  // concurrent unique-slug collision (P2002 on the @unique column) both surface
+  // as a logged, graceful error instead of an unhandled 500 in the route.
+  let congregation: Awaited<ReturnType<typeof db.congregation.create>>
+  try {
+    const slug = await generateUniqueSlug(congregationSlug)
+    congregation = await db.congregation.create({
+      data: {
+        name: congregationName,
+        slug,
+        locale,
+      },
+    })
+  } catch (error) {
+    logger.error('Failed to provision congregation', { baseSlug: congregationSlug, error })
+    return { error: m.auth_register_generic_error() }
+  }
 
   const user = await db.userAccount.create({
     data: {

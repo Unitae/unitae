@@ -28,6 +28,10 @@ vi.mock('~/shared/domain/built-in-roles.server', () => ({
   BUILT_IN_ROLE_KEYS: ['male', 'female', 'publisher', 'baptized', 'anointed', 'elder', 'assistant-servant'],
 }))
 
+vi.mock('~/shared/infra/logger.server', () => ({
+  createLogger: () => ({ error: vi.fn(), warn: vi.fn(), info: vi.fn() }),
+}))
+
 const { registerCongregation } = await import('./register-congregation.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
@@ -56,7 +60,7 @@ describe('registerCongregation', () => {
     const result = await registerCongregation('Ma Congrégation', 'test-congre', 'admin@test.com', 'motdepasse', 'fr')
 
     expect(result).toHaveProperty('userId', 10)
-    // Le sous-domaine ne doit jamais être dérivable du nom : suffixe aléatoire obligatoire.
+    // The subdomain must never be derivable from the name: a random suffix is mandatory.
     expect('congregationSlug' in result && result.congregationSlug).toMatch(SUFFIXED_SLUG)
     expect('congregationSlug' in result && result.congregationSlug).not.toBe('test-congre')
   })
@@ -81,6 +85,17 @@ describe('registerCongregation', () => {
     expect('congregationSlug' in result && result.congregationSlug).toMatch(SUFFIXED_SLUG)
   })
 
+  it('retourne une erreur gracieuse si aucun slug unique ne peut être généré', async () => {
+    // Every candidate collides → generation is exhausted. The failure must flow
+    // through the return-based error contract, not escape as a thrown 500.
+    vi.mocked(db.congregation.findUnique).mockResolvedValue({ id: 99, slug: 'taken' } as never)
+
+    const result = await registerCongregation('Ma Congrégation', 'test-congre', 'admin@test.com', 'motdepasse', 'fr')
+
+    expect(result).toHaveProperty('error')
+    expect(result).not.toHaveProperty('congregationSlug')
+  })
+
   it("retourne une erreur si l'email existe déjà", async () => {
     vi.mocked(db.userAccount.findUnique).mockResolvedValue({ id: 1, email: 'admin@test.com' } as never)
 
@@ -88,6 +103,8 @@ describe('registerCongregation', () => {
 
     expect(result).toHaveProperty('error')
     expect(result.error).toContain('email')
+    // The email check short-circuits before any slug work — no congregation is created.
+    expect(result).not.toHaveProperty('congregationSlug')
   })
 
   it("normalise l'email en minuscules pour la vérification", async () => {
