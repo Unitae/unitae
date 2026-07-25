@@ -36,4 +36,30 @@ describe('billing token', () => {
   it('rejects a malformed token', () => {
     expect(verifyBillingToken('not-a-token', SECRET, { purpose: 'billing', now: NOW })).toEqual({ valid: false, reason: 'malformed' })
   })
+
+  it('rejects a signed token whose slug is not a valid slug', () => {
+    for (const badSlug of ['Bad Slug', 'a', 'has_underscore', '-leading', '']) {
+      const token = mintBillingToken({ slug: badSlug, purpose: 'billing', exp: NOW + 1000 }, SECRET)
+      expect(verifyBillingToken(token, SECRET, { purpose: 'billing', now: NOW })).toEqual({ valid: false, reason: 'malformed' })
+    }
+  })
+})
+
+// Golden vector — MUST match the platform + website copies byte-for-byte (see their tests).
+describe('cross-repo golden vector', () => {
+  const GOLDEN_SECRET = 'unitae-golden-vector-secret-v1'
+  const GOLDEN_PAYLOAD = { slug: 'golden-congregation', purpose: 'billing', exp: 1_893_456_000_000 } as const
+  const GOLDEN_TOKEN =
+    'eyJzbHVnIjoiZ29sZGVuLWNvbmdyZWdhdGlvbiIsInB1cnBvc2UiOiJiaWxsaW5nIiwiZXhwIjoxODkzNDU2MDAwMDAwfQ.zCJgTnAVAyxcnB7RKJ0PmtiYVVy9b0vTISU39BPoaNE'
+
+  it('mints the exact golden token', () => {
+    expect(mintBillingToken(GOLDEN_PAYLOAD, GOLDEN_SECRET)).toBe(GOLDEN_TOKEN)
+  })
+
+  it('verifies the golden token to the golden payload', () => {
+    expect(verifyBillingToken(GOLDEN_TOKEN, GOLDEN_SECRET, { purpose: 'billing', now: GOLDEN_PAYLOAD.exp - 1 })).toEqual({
+      valid: true,
+      payload: GOLDEN_PAYLOAD,
+    })
+  })
 })

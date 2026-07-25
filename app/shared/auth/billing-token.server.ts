@@ -22,6 +22,14 @@ export type VerifyResult =
   | { valid: true; payload: BillingTokenPayload }
   | { valid: false; reason: 'malformed' | 'bad-signature' | 'expired' | 'bad-purpose' }
 
+// Doit rester identique dans les trois copies (app/site/plateforme). Le slug signé est réinjecté
+// dans des appels API / URLs côté site : on le revalide après parsing plutôt que de lui faire
+// confiance sur la seule signature (défense en profondeur).
+const SLUG_PATTERN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/
+function isValidSlug(slug: unknown): slug is string {
+  return typeof slug === 'string' && slug.length >= 2 && slug.length <= 63 && SLUG_PATTERN.test(slug)
+}
+
 function sign(data: string, secret: string): string {
   return createHmac('sha256', secret).update(data).digest('base64url')
 }
@@ -65,6 +73,7 @@ export function verifyBillingToken(
 
   if (payload.purpose !== opts.purpose) return { valid: false, reason: 'bad-purpose' }
   if (typeof payload.exp !== 'number' || payload.exp < opts.now) return { valid: false, reason: 'expired' }
+  if (!isValidSlug(payload.slug)) return { valid: false, reason: 'malformed' }
 
   return { valid: true, payload }
 }
