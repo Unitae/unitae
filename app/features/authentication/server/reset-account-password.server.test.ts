@@ -33,7 +33,7 @@ describe('resetAccountPassword', () => {
 
     expect(db.userAccount.update).toHaveBeenCalledWith({
       where: { id: 1 },
-      data: { password: 'new-hashed-password', emailVerifiedAt: expect.any(Date) },
+      data: { password: 'new-hashed-password', sessionEpoch: { increment: 1 }, emailVerifiedAt: expect.any(Date) },
     })
   })
 
@@ -45,7 +45,7 @@ describe('resetAccountPassword', () => {
 
     expect(db.userAccount.update).toHaveBeenCalledWith({
       where: { id: 1 },
-      data: { password: 'new-hashed-password' },
+      data: { password: 'new-hashed-password', sessionEpoch: { increment: 1 } },
     })
   })
 })

@@ -221,6 +221,11 @@ model UserAccount {
   platformAdmin   Boolean   @default(false)
   anonymizedAt    DateTime?
 
+  // Session epoch. Embedded in the session cookie when a session is established and
+  // compared on every request in verifySession. Incremented on password change/reset
+  // and on admin invalidation to revoke all previously-issued sessions ("log out everywhere").
+  sessionEpoch    Int       @default(0)
+
   // Optional TOTP two-factor authentication.
   // twoFactorSecret holds the AES-256-GCM ciphertext of the base32 seed (null = never enrolled).
   // twoFactorEnabledAt is null while enrollment is pending (secret generated, not yet confirmed)

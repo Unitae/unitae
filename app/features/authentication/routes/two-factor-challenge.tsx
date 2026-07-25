@@ -7,7 +7,12 @@ import {
   resolvePostLoginRedirect,
 } from '~/features/authentication/server/post-login-redirect.server'
 import { guardTwoFactorAttempt, releaseTwoFactorAttempts } from '~/features/authentication/server/rate-limit.server'
-import { commitSession, destroySession, getSession } from '~/features/authentication/server/session.server'
+import {
+  commitSession,
+  destroySession,
+  establishAuthenticatedSession,
+  getSession,
+} from '~/features/authentication/server/session.server'
 import { verifyTwoFactorChallenge } from '~/features/authentication/server/verify-two-factor-challenge.server'
 import * as m from '~/i18n/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
@@ -163,7 +168,7 @@ export async function action({ request }: Route.ActionArgs) {
   // Challenge passed — promote the pending state to a full session.
   await releaseTwoFactorAttempts(pendingId)
   session.unset('pending2faUserId')
-  session.set('userId', String(pendingId))
+  await establishAuthenticatedSession(session, pendingId)
 
   if (urlCongregation) {
     audit({

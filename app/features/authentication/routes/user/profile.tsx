@@ -6,7 +6,11 @@ import { isAccountInBreachScope } from '~/features/authentication/server/breach-
 import { getCalendarFeedToken } from '~/features/authentication/server/calendar-feed-token.server'
 import { changeAccountPassword } from '~/features/authentication/server/change-account-password.server'
 import { checkNewPasswordPolicy } from '~/features/authentication/server/password-policy.server'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import {
+  commitSession,
+  establishAuthenticatedSession,
+  getSession,
+} from '~/features/authentication/server/session.server'
 import { CalendarFeedCard } from '~/features/authentication/ui/CalendarFeedCard'
 import * as m from '~/i18n/paraglide/messages'
 import { congregationContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -234,6 +238,10 @@ export async function action({ request, context }: Route.ActionArgs) {
       },
     })
   }
+
+  // The password change bumped the account's session epoch, revoking every other device.
+  // Re-stamp this cookie with the fresh epoch so the acting device stays logged in.
+  await establishAuthenticatedSession(session, currentUser.id)
 
   return redirect('/me/profile', {
     headers: {

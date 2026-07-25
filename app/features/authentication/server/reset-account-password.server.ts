@@ -16,6 +16,9 @@ export async function resetAccountPassword(userId: number, password: string) {
     },
     data: {
       password: await hash(password),
+      // Revoke every session issued before this reset — bumping the epoch orphans
+      // their cookies on the next request (see verifySession).
+      sessionEpoch: { increment: 1 },
       ...(account?.emailVerifiedAt == null ? { emailVerifiedAt: new Date() } : {}),
     },
   })

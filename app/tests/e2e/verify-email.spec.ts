@@ -2,8 +2,8 @@ import 'dotenv/config'
 
 import { expect, test } from '@playwright/test'
 import { PrismaPg } from '@prisma/adapter-pg'
-
 import { PrismaClient } from '../../database/generated/client'
+import { hashToken } from '../../shared/auth/crypto.server'
 
 // French UI strings rendered by the confirm route.
 const CONFIRM_BUTTON_RE = /confirmer mon adresse/i
@@ -67,7 +67,9 @@ test.describe('Email verification confirm flow', () => {
     async function seedToken(client: PrismaClient, uid: number): Promise<string> {
       const token = `e2e-token-${ts}-${tokenCounter++}`
       await client.emailVerificationToken.create({
-        data: { token, userId: uid, expiresAt: new Date(Date.now() + 60 * 60 * 1000) },
+        // Store the hash — the app looks tokens up by hashToken(token); the raw value is what
+        // would be emailed to the user and is what the confirm route receives in the URL.
+        data: { token: hashToken(token), userId: uid, expiresAt: new Date(Date.now() + 60 * 60 * 1000) },
       })
       return token
     }
@@ -85,8 +87,8 @@ test.describe('Email verification confirm flow', () => {
       // The confirm button is shown (valid token) — no auto-redirect, no consume.
       await expect(page.getByRole('button', { name: CONFIRM_BUTTON_RE })).toBeVisible()
 
-      // The token survived the GET.
-      const stillValid = await db.emailVerificationToken.findUnique({ where: { token } })
+      // The token survived the GET. Rows are keyed by the hash, so look it up the same way.
+      const stillValid = await db.emailVerificationToken.findUnique({ where: { token: hashToken(token) } })
       expect(stillValid).not.toBeNull()
     })
 
@@ -103,7 +105,7 @@ test.describe('Email verification confirm flow', () => {
       await page.waitForURL(LOGIN_URL_RE, { timeout: 10_000 })
 
       // The token is burnt and the account is now verified.
-      const consumed = await db.emailVerificationToken.findUnique({ where: { token } })
+      const consumed = await db.emailVerificationToken.findUnique({ where: { token: hashToken(token) } })
       expect(consumed).toBeNull()
 
       const account = await db.userAccount.findUnique({ where: { id: userId } })

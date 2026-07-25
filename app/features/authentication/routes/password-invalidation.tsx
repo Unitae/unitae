@@ -1,6 +1,7 @@
 import { redirect } from 'react-router'
 import ResetPasswordRequired from '~/features/authentication/emails/reset-password-required'
 import { createPasswordResetToken } from '~/features/authentication/server/invalidate-account-password.server'
+import { revokeAccountSessions } from '~/features/authentication/server/revoke-account-sessions.server'
 import { sendResetAccountPasswordEmail } from '~/features/authentication/server/send-reset-account-password-email.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/i18n/paraglide/messages'
@@ -35,6 +36,20 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   if (user == null) throw redirect('/settings/users')
 
+  // Revoke the target's active sessions first — this is the security action and must not
+  // depend on email deliverability. An admin forcing a reset on a compromised account needs
+  // the attacker logged out even when the mail provider is down. Audit here too, so the
+  // revocation is recorded whether or not the notification email goes out.
+  await revokeAccountSessions(user.id)
+
+  audit({
+    action: AuditAction.PasswordResetRequested,
+    congregationId: user.congregationId,
+    actorId: currentUser.id,
+    entityType: 'User',
+    entityId: user.id,
+  })
+
   const token = await createPasswordResetToken(user.id)
   const congregation = await resolveCongregation(user.congregationId)
   const sent = await sendResetAccountPasswordEmail(
@@ -54,14 +69,6 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
   }
-
-  audit({
-    action: AuditAction.PasswordResetRequested,
-    congregationId: user.congregationId,
-    actorId: currentUser.id,
-    entityType: 'User',
-    entityId: user.id,
-  })
 
   session.flash('success', m.auth_password_invalidation_success({ email: user.email }))
 

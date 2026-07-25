@@ -4,7 +4,11 @@ import { data, Form, Link, redirect } from 'react-router'
 import { registerSchema } from '~/features/authentication/schemas/login.schema'
 import { checkNewPasswordPolicy } from '~/features/authentication/server/password-policy.server'
 import { registerCongregation } from '~/features/authentication/server/register-congregation.server'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import {
+  commitSession,
+  establishAuthenticatedSession,
+  getSession,
+} from '~/features/authentication/server/session.server'
 import * as m from '~/i18n/paraglide/messages'
 import { locales } from '~/i18n/paraglide/runtime'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
@@ -169,7 +173,7 @@ export async function action({ request }: Route.ActionArgs) {
     return redirect('/register', { headers: { 'Set-Cookie': await commitSession(session) } })
   }
 
-  session.set('userId', String(result.userId))
+  await establishAuthenticatedSession(session, result.userId)
 
   return redirect('/', {
     headers: { 'Set-Cookie': await commitSession(session) },
