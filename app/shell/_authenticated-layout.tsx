@@ -5,6 +5,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { requireAuth } from '~/shared/auth/middleware.server'
 import { congregationContext, currentAccountContext, permissionsContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
+import { billingPortalLink } from '~/shared/domain/billing-link.server'
 import { AppLayout } from '~/shared/ui/AppLayout'
 import { RouteErrorBoundary } from '~/shared/ui/RouteErrorBoundary'
 
@@ -68,6 +69,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         isPlatformAdmin: currentUser.platformAdmin ?? false,
       },
       congregationName: congregation.displayName ?? congregation.name,
+      // Lien de facturation SaaS, réservé aux admins et config-driven (null en auto-hébergement).
+      billingUrl: can(Permission.Admin) ? billingPortalLink(congregation.slug) : null,
       messages,
     },
     {
@@ -79,7 +82,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 }
 
 export default function AuthenticatedLayout({ loaderData }: Route.ComponentProps) {
-  const { permissions, congregationName, messages } = loaderData
+  const { permissions, congregationName, billingUrl, messages } = loaderData
 
   useEffect(() => {
     if (messages.success) {
@@ -90,7 +93,7 @@ export default function AuthenticatedLayout({ loaderData }: Route.ComponentProps
     }
   }, [messages])
 
-  return <AppLayout permissions={permissions} congregationName={congregationName} />
+  return <AppLayout permissions={permissions} congregationName={congregationName} billingUrl={billingUrl} />
 }
 
 export { RouteErrorBoundary as ErrorBoundary }

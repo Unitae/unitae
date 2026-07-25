@@ -1,8 +1,10 @@
 import { Clock, LogOut } from 'lucide-react'
 import { Link } from 'react-router'
+import { getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/i18n/paraglide/messages'
 
-import { getHostSettings } from '~/shared/domain/host-settings.server'
+import { checkoutLink } from '~/shared/domain/billing-link.server'
+import { unscopedDb } from '~/shared/infra/db.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
 
@@ -12,13 +14,26 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: "Période d'essai terminée - Unitae" }]
 }
 
-export function loader() {
-  const hostSettings = getHostSettings()
-  const isMultiTenant = process.env.UNITAE_MULTI_TENANT === 'true'
-
-  return {
-    upgradeUrl: isMultiTenant ? (hostSettings.billing?.upgradeUrl ?? null) : null,
+export async function loader({ request }: Route.LoaderArgs) {
+  // Lien de réabonnement signé, config-driven : `checkoutLink` renvoie null si l'hébergement géré
+  // n'est pas configuré (auto-hébergement) — aucune UI de facturation ne s'affiche alors.
+  let upgradeUrl: string | null = null
+  try {
+    const session = await getSession(request.headers.get('Cookie'))
+    const userId = Number(session.get('userId'))
+    if (!Number.isNaN(userId) && userId > 0) {
+      const user = await unscopedDb.userAccount.findUnique({
+        where: { id: userId },
+        select: { congregation: { select: { slug: true } } },
+      })
+      const slug = user?.congregation?.slug
+      if (slug) upgradeUrl = checkoutLink(slug)
+    }
+  } catch {
+    // Pas de lien si la session ou la base sont indisponibles.
   }
+
+  return { upgradeUrl }
 }
 
 export default function TrialExpiredPage({ loaderData }: Route.ComponentProps) {
