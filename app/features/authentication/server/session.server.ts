@@ -8,6 +8,10 @@ import logger from '~/shared/infra/logger.server'
 
 type SessionData = {
   userId: string
+  // Session epoch stamped when the session is established. Compared against the account's
+  // current sessionEpoch on every request; a mismatch means the account's sessions were
+  // revoked (password change/reset or admin invalidation) and this cookie is stale.
+  sessionEpoch: string
   // Set after a correct password when the account has 2FA enabled, but before the
   // TOTP challenge is passed. The user is NOT authenticated while only this is set —
   // `userId` is written only once the challenge succeeds.
@@ -36,6 +40,23 @@ const { getSession, commitSession, destroySession } = createCookieSessionStorage
 })
 
 export { commitSession, destroySession, getSession }
+
+// Establish an authenticated session: stamp the userId together with the account's current
+// session epoch so verifySession accepts it. Use this everywhere a session is (re)issued —
+// login, 2FA promotion, register, and after a self-service password change — instead of
+// setting `userId` alone, otherwise the freshly-issued cookie carries no epoch and is rejected.
+export async function establishAuthenticatedSession(
+  session: Session<SessionData, SessionFlashData>,
+  userId: number,
+): Promise<void> {
+  const account = await unscopedDb.userAccount.findUnique({
+    where: { id: userId },
+    select: { sessionEpoch: true },
+  })
+
+  session.set('userId', String(userId))
+  session.set('sessionEpoch', String(account?.sessionEpoch ?? 0))
+}
 
 async function redirectToLogin(
   session: Session<SessionData, SessionFlashData>,
@@ -72,6 +93,13 @@ async function findUserFromSession(session: Session<SessionData, SessionFlashDat
     })
 
     if (user == null || !user.active) return redirectToLogin(session, { redirectTo })
+
+    // Reject cookies issued before the account's sessions were revoked. A missing cookie
+    // epoch coerces to 0 so sessions predating this feature stay valid until the first bump.
+    if (Number(session.get('sessionEpoch') ?? 0) !== user.sessionEpoch) {
+      return redirectToLogin(session, { redirectTo })
+    }
+
     return user
   } catch (error) {
     if (error instanceof Error && 'code' in error && (error as Error & { code: string }).code === 'P2007') {

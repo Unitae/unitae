@@ -57,6 +57,7 @@ const fakeUser = {
   congregationId: 1,
   emailVerifiedAt: new Date(),
   platformAdmin: false,
+  sessionEpoch: 0,
   responsibleFor: [],
   deputyFor: [],
 }
@@ -82,9 +83,15 @@ function makeRequest(url = 'http://localhost/') {
   return new Request(url)
 }
 
+// Drive the cookie session per key (userId, sessionEpoch, ...) instead of a single
+// blanket return value, so the epoch check can be exercised independently of userId.
+function setSession(values: Record<string, string | undefined>) {
+  mockSession.get.mockImplementation((key: string) => values[key])
+}
+
 describe('verifySession', () => {
   it('retourne currentUser, congregation et session pour une session valide', async () => {
-    mockSession.get.mockReturnValue('42')
+    setSession({ userId: '42', sessionEpoch: '0' })
     vi.mocked(db.userAccount.findUnique).mockResolvedValue(fakeUser as never)
     vi.mocked(resolveCongregationFromRequest).mockResolvedValue(null as never)
     vi.mocked(resolveCongregation).mockResolvedValue(fakeCongregation as never)
@@ -97,22 +104,54 @@ describe('verifySession', () => {
     expect(result.session).toBe(mockSession)
   })
 
+  it("redirige vers /login si l'epoch du cookie est périmé par rapport à celui du compte", async () => {
+    // Cookie was issued at epoch 0; a password change bumped the account to epoch 1.
+    setSession({ userId: '42', sessionEpoch: '0' })
+    vi.mocked(db.userAccount.findUnique).mockResolvedValue({ ...fakeUser, sessionEpoch: 1 } as never)
+
+    const response = await getRedirectResponse(() => verifySession(makeRequest('http://localhost/territories/1?x=2')))
+    expect(response.headers.get('Location')).toBe('/login?redirectTo=%2Fterritories%2F1%3Fx%3D2')
+  })
+
+  it("accepte la session quand l'epoch du cookie correspond à un epoch non nul du compte", async () => {
+    setSession({ userId: '42', sessionEpoch: '3' })
+    vi.mocked(db.userAccount.findUnique).mockResolvedValue({ ...fakeUser, sessionEpoch: 3 } as never)
+    vi.mocked(resolveCongregationFromRequest).mockResolvedValue(null as never)
+    vi.mocked(resolveCongregation).mockResolvedValue(fakeCongregation as never)
+
+    const result = await verifySession(makeRequest())
+
+    expect(result.currentUser.id).toBe(42)
+  })
+
+  it("accepte une session sans epoch dans le cookie quand le compte est encore à l'epoch 0", async () => {
+    // Backward compatibility: cookies issued before this feature carry no epoch.
+    setSession({ userId: '42' })
+    vi.mocked(db.userAccount.findUnique).mockResolvedValue(fakeUser as never)
+    vi.mocked(resolveCongregationFromRequest).mockResolvedValue(null as never)
+    vi.mocked(resolveCongregation).mockResolvedValue(fakeCongregation as never)
+
+    const result = await verifySession(makeRequest())
+
+    expect(result.currentUser.id).toBe(42)
+  })
+
   it('redirige vers /login avec redirectTo si le userId est absent de la session', async () => {
-    mockSession.get.mockReturnValue(undefined)
+    setSession({})
 
     const response = await getRedirectResponse(() => verifySession(makeRequest('http://localhost/territories/1?x=2')))
     expect(response.headers.get('Location')).toBe('/login?redirectTo=%2Fterritories%2F1%3Fx%3D2')
   })
 
   it('redirige vers /login avec redirectTo si le userId est NaN', async () => {
-    mockSession.get.mockReturnValue('invalid')
+    setSession({ userId: 'invalid' })
 
     const response = await getRedirectResponse(() => verifySession(makeRequest('http://localhost/territories/1?x=2')))
     expect(response.headers.get('Location')).toBe('/login?redirectTo=%2Fterritories%2F1%3Fx%3D2')
   })
 
   it("redirige vers /login avec redirectTo si l'utilisateur n'existe pas", async () => {
-    mockSession.get.mockReturnValue('42')
+    setSession({ userId: '42', sessionEpoch: '0' })
     vi.mocked(db.userAccount.findUnique).mockResolvedValue(null as never)
 
     const response = await getRedirectResponse(() => verifySession(makeRequest('http://localhost/territories/1?x=2')))
@@ -120,7 +159,7 @@ describe('verifySession', () => {
   })
 
   it("redirige vers /login avec redirectTo si l'utilisateur est inactif", async () => {
-    mockSession.get.mockReturnValue('42')
+    setSession({ userId: '42', sessionEpoch: '0' })
     vi.mocked(db.userAccount.findUnique).mockResolvedValue({ ...fakeUser, active: false } as never)
 
     const response = await getRedirectResponse(() => verifySession(makeRequest('http://localhost/territories/1?x=2')))
@@ -128,7 +167,7 @@ describe('verifySession', () => {
   })
 
   it("redirige vers /login sans redirectTo si le subdomain ne correspond pas à l'assemblée de l'utilisateur", async () => {
-    mockSession.get.mockReturnValue('42')
+    setSession({ userId: '42', sessionEpoch: '0' })
     vi.mocked(db.userAccount.findUnique).mockResolvedValue(fakeUser as never)
     vi.mocked(resolveCongregationFromRequest).mockResolvedValue({ id: 999 } as never)
 
@@ -138,7 +177,7 @@ describe('verifySession', () => {
   })
 
   it("redirige vers /suspended si l'assemblée est suspendue", async () => {
-    mockSession.get.mockReturnValue('42')
+    setSession({ userId: '42', sessionEpoch: '0' })
     vi.mocked(db.userAccount.findUnique).mockResolvedValue(fakeUser as never)
     vi.mocked(resolveCongregationFromRequest).mockResolvedValue(null as never)
     vi.mocked(resolveCongregation).mockResolvedValue({
@@ -152,7 +191,7 @@ describe('verifySession', () => {
   })
 
   it("redirige vers /trial-expired si l'essai est terminé", async () => {
-    mockSession.get.mockReturnValue('42')
+    setSession({ userId: '42', sessionEpoch: '0' })
     vi.mocked(db.userAccount.findUnique).mockResolvedValue(fakeUser as never)
     vi.mocked(resolveCongregationFromRequest).mockResolvedValue(null as never)
     const pastDate = new Date()
@@ -167,7 +206,7 @@ describe('verifySession', () => {
   })
 
   it('redirige vers /login avec redirectTo si findUnique échoue avec P2007', async () => {
-    mockSession.get.mockReturnValue('42')
+    setSession({ userId: '42', sessionEpoch: '0' })
     const p2007Error = Object.assign(new Error('Type mismatch'), { code: 'P2007' })
     vi.mocked(db.userAccount.findUnique).mockRejectedValue(p2007Error)
 
@@ -176,7 +215,7 @@ describe('verifySession', () => {
   })
 
   it("redirige vers /verify-email si l'email n'est pas vérifié", async () => {
-    mockSession.get.mockReturnValue('42')
+    setSession({ userId: '42', sessionEpoch: '0' })
     vi.mocked(db.userAccount.findUnique).mockResolvedValue({ ...fakeUser, emailVerifiedAt: null } as never)
     vi.mocked(resolveCongregationFromRequest).mockResolvedValue(null as never)
     vi.mocked(resolveCongregation).mockResolvedValue(fakeCongregation as never)
@@ -186,7 +225,7 @@ describe('verifySession', () => {
   })
 
   it('redirige vers /login sans redirectTo quand request.url est mal formée', async () => {
-    mockSession.get.mockReturnValue(undefined)
+    setSession({})
     const badRequest = { url: 'not-a-valid-url', headers: { get: () => null } } as unknown as Request
 
     const response = await getRedirectResponse(() => verifySession(badRequest))

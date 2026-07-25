@@ -1,6 +1,7 @@
 import { redirect } from 'react-router'
 import ResetPasswordRequired from '~/features/authentication/emails/reset-password-required'
 import { createPasswordResetToken } from '~/features/authentication/server/invalidate-account-password.server'
+import { revokeAccountSessions } from '~/features/authentication/server/revoke-account-sessions.server'
 import { sendResetAccountPasswordEmail } from '~/features/authentication/server/send-reset-account-password-email.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/i18n/paraglide/messages'
@@ -54,6 +55,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
   }
+
+  // Kick the target's active sessions immediately — an admin-forced reset must not wait
+  // for the user to act on the email before an attacker is logged out.
+  await revokeAccountSessions(user.id)
 
   audit({
     action: AuditAction.PasswordResetRequested,

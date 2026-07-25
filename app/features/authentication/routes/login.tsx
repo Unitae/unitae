@@ -9,7 +9,12 @@ import {
   resolvePostLoginRedirect,
 } from '~/features/authentication/server/post-login-redirect.server'
 import { guardLoginAttempt, releaseLoginAttempt } from '~/features/authentication/server/rate-limit.server'
-import { commitSession, destroySession, getSession } from '~/features/authentication/server/session.server'
+import {
+  commitSession,
+  destroySession,
+  establishAuthenticatedSession,
+  getSession,
+} from '~/features/authentication/server/session.server'
 import { isTwoFactorEnabled } from '~/features/authentication/server/two-factor-status.server'
 import { validateCredentials } from '~/features/authentication/server/validate-credentials.server'
 import * as m from '~/i18n/paraglide/messages'
@@ -189,7 +194,7 @@ export async function action({ request }: Route.ActionArgs) {
     })
   }
 
-  session.set('userId', String(userId))
+  await establishAuthenticatedSession(session, userId)
 
   if (urlCongregation) {
     audit({
