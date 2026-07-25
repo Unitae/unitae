@@ -22,7 +22,7 @@ vi.mock('~/features/authentication/server/session.server', () => ({
   commitSession: vi.fn(async () => '__session=committed'),
 }))
 
-const { action, loader } = await import('./verify-email-confirm')
+const { action, isConfirmable, loader } = await import('./verify-email-confirm')
 const { verifyEmailVerificationToken } = await import('~/features/authentication/server/email-verification.server')
 
 const request = new Request('https://unitae.app/verify-email/abc')
@@ -59,6 +59,21 @@ describe('verify-email-confirm loader', () => {
     const result = await loader({ request, params: { token: 'missing' } } as Parameters<typeof loader>[0])
 
     expect(result).toEqual({ valid: false })
+  })
+})
+
+describe('isConfirmable', () => {
+  it('shows the confirm form when the GET validated the token and there is no action yet', () => {
+    expect(isConfirmable({ valid: true }, undefined)).toBe(true)
+  })
+
+  it('hides the form when the token became invalid between the GET and the POST', () => {
+    // e.g. the token expired or was consumed after the page loaded.
+    expect(isConfirmable({ valid: true }, { valid: false })).toBe(false)
+  })
+
+  it('hides the form when the GET already found the token invalid', () => {
+    expect(isConfirmable({ valid: false }, undefined)).toBe(false)
   })
 })
 

@@ -99,6 +99,23 @@ describe('isAllowedOrigin', () => {
     expect(isAllowedOrigin(post({ host: 'unitae.app' }))).toBe(true)
   })
 
+  it('rejects a present-but-unparseable Origin instead of falling through (Origin: null)', () => {
+    // Sandboxed iframes send `Origin: null`. A present Origin must be authoritative: it does
+    // not name our host, so it is a denial — not a fall-through to the (absent) Referer.
+    expect(isAllowedOrigin(post({ host: 'unitae.app', origin: 'null' }))).toBe(false)
+    expect(isAllowedOrigin(post({ host: 'unitae.app', origin: 'not a url' }))).toBe(false)
+  })
+
+  it('does not let a bad Origin fall back to a matching Referer', () => {
+    // A present Origin is authoritative even when unparseable, so a matching Referer can't rescue it.
+    expect(isAllowedOrigin(post({ host: 'unitae.app', origin: 'null', referer: 'https://unitae.app/x' }))).toBe(false)
+  })
+
+  it('matches when the forwarded host carries the scheme default port', () => {
+    // A proxy that sets `x-forwarded-host: unitae.app:443` must still match `Origin: https://unitae.app`.
+    expect(isAllowedOrigin(post({ 'x-forwarded-host': 'unitae.app:443', origin: 'https://unitae.app' }))).toBe(true)
+  })
+
   it('compares against the forwarded host behind a proxy', () => {
     const request = new Request('http://internal:8080/login', {
       method: 'POST',
@@ -154,6 +171,19 @@ describe('originCheck middleware', () => {
   it('blocks a cross-origin mutation with a 403 and never reaches the handler', async () => {
     const request = new Request('https://unitae.app/login', {
       method: 'POST',
+      headers: { host: 'unitae.app', origin: 'https://evil.test' },
+    })
+
+    const { response, reached } = await run(request)
+
+    expect(reached).toBe(false)
+    expect(response.status).toBe(403)
+    expect(await response.text()).toBe('Forbidden')
+  })
+
+  it('blocks a cross-origin DELETE, not just POST', async () => {
+    const request = new Request('https://unitae.app/territories/1', {
+      method: 'DELETE',
       headers: { host: 'unitae.app', origin: 'https://evil.test' },
     })
 

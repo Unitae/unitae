@@ -31,7 +31,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   await consumeEmailVerificationToken(token)
 
-  // Si l'utilisateur a une session active, rediriger vers l'accueil
+  // If the user has an active session, redirect home
   const session = await getSession(request.headers.get('Cookie'))
   const sessionUserId = Number(session.get('userId'))
 
@@ -39,15 +39,23 @@ export async function action({ request, params }: Route.ActionArgs) {
     throw redirect('/')
   }
 
-  // Sinon, rediriger vers la page de connexion
+  // Otherwise redirect to the login page
   session.flash('success', m.verify_email_confirmed())
   throw redirect('/login', {
     headers: { 'Set-Cookie': await commitSession(session) },
   })
 }
 
+/**
+ * Whether to show the confirm form. The GET must have validated the token, and a POST must not
+ * have since found it invalid (token expired/consumed between the GET and the click).
+ */
+export function isConfirmable(loaderData: { valid: boolean }, actionData?: { valid: boolean }): boolean {
+  return loaderData.valid && actionData?.valid !== false
+}
+
 export default function VerifyEmailConfirmPage({ loaderData, actionData }: Route.ComponentProps) {
-  const valid = loaderData.valid && actionData?.valid !== false
+  const valid = isConfirmable(loaderData, actionData)
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
