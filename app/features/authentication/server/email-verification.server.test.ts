@@ -1,4 +1,7 @@
+import { createHash } from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const sha256 = (value: string) => createHash('sha256').update(value).digest('hex')
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
@@ -14,13 +17,18 @@ vi.mock('~/shared/infra/db.server', () => ({
   },
 }))
 
-vi.mock('node:crypto', () => ({
-  default: {
-    randomBytes: vi.fn(() => ({
-      toString: vi.fn(() => 'mock-token-base64url'),
-    })),
-  },
-}))
+vi.mock('node:crypto', async () => {
+  const actual = await vi.importActual<typeof import('node:crypto')>('node:crypto')
+  return {
+    ...actual,
+    default: {
+      ...actual,
+      randomBytes: vi.fn(() => ({
+        toString: vi.fn(() => 'mock-token-base64url'),
+      })),
+    },
+  }
+})
 
 const {
   createEmailVerificationToken,
@@ -50,7 +58,7 @@ describe('createEmailVerificationToken', () => {
     expect(token).toBe('mock-token-base64url')
     expect(db.emailVerificationToken.deleteMany).toHaveBeenCalledWith({ where: { userId: 42 } })
     expect(db.emailVerificationToken.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ token: 'mock-token-base64url', userId: 42 }),
+      data: expect.objectContaining({ token: sha256('mock-token-base64url'), userId: 42 }),
     })
   })
 })
@@ -72,6 +80,9 @@ describe('verifyEmailVerificationToken', () => {
 
     const result = await verifyEmailVerificationToken('valid-token')
     expect(result).toEqual(fakeUser)
+    expect(db.emailVerificationToken.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { token: sha256('valid-token') } }),
+    )
   })
 
   it('retourne null pour un token inexistant', async () => {
@@ -79,6 +90,9 @@ describe('verifyEmailVerificationToken', () => {
 
     const result = await verifyEmailVerificationToken('nonexistent-token')
     expect(result).toBeNull()
+    expect(db.emailVerificationToken.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { token: sha256('nonexistent-token') } }),
+    )
   })
 
   it('retourne null et supprime un token expiré', async () => {
@@ -112,6 +126,7 @@ describe('consumeEmailVerificationToken', () => {
 
     await consumeEmailVerificationToken('valid-token')
 
+    expect(db.emailVerificationToken.findUnique).toHaveBeenCalledWith({ where: { token: sha256('valid-token') } })
     expect(db.$transaction).toHaveBeenCalled()
     expect(db.userAccount.update).toHaveBeenCalledWith({
       where: { id: 42 },

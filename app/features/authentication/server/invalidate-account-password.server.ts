@@ -1,4 +1,5 @@
 import crypto from 'node:crypto'
+import { hashToken } from '~/shared/auth/crypto.server'
 import { type TransactionClient, unscopedDb } from '~/shared/infra/db.server'
 
 const TOKEN_EXPIRY_HOURS = 24
@@ -23,15 +24,17 @@ export async function createPasswordResetToken(
   await client.passwordResetToken.deleteMany({ where: { userId } })
 
   await client.passwordResetToken.create({
-    data: { token, userId, expiresAt },
+    // Store only the hash — a DB read exposure must not yield a usable reset token.
+    data: { token: hashToken(token), userId, expiresAt },
   })
 
+  // The raw token is emailed to the user; only its hash lives in the DB.
   return token
 }
 
 export async function verifyPasswordResetToken(token: string) {
   const resetToken = await unscopedDb.passwordResetToken.findUnique({
-    where: { token },
+    where: { token: hashToken(token) },
     include: { user: true },
   })
 
@@ -45,7 +48,7 @@ export async function verifyPasswordResetToken(token: string) {
 }
 
 export async function consumePasswordResetToken(token: string) {
-  const resetToken = await unscopedDb.passwordResetToken.findUnique({ where: { token } })
+  const resetToken = await unscopedDb.passwordResetToken.findUnique({ where: { token: hashToken(token) } })
   if (resetToken != null) {
     await unscopedDb.passwordResetToken.delete({ where: { id: resetToken.id } })
   }
