@@ -2432,7 +2432,6 @@
     "seed_service_reception": "Attendants",
     "seed_service_cleaning": "Cleaning",
     "auth_setup_default_congregation_name": "My Congregation",
-    "auth_register_slug_taken_error": "This congregation name is already taken.",
     "auth_register_email_taken_error": "An account already exists with this email address.",
     "sidebar_home": "Home",
     "dashboard_greeting": "Hello, {name}",

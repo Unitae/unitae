@@ -2435,7 +2435,6 @@
     "seed_service_reception": "Accueil",
     "seed_service_cleaning": "Nettoyage",
     "auth_setup_default_congregation_name": "Ma Congrégation",
-    "auth_register_slug_taken_error": "Ce nom d'assemblée locale est déjà pris.",
     "auth_register_email_taken_error": "Un compte existe déjà avec cette adresse email.",
     "sidebar_home": "Accueil",
     "dashboard_greeting": "Bonjour, {name}",
