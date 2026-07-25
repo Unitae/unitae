@@ -152,65 +152,92 @@ function TwoFactorDisabled() {
   )
 }
 
+type ActionContext = Route.ActionArgs['context']
+type SecurityActor = { id: number; email: string; congregationId: number }
+type SecuritySession = Awaited<ReturnType<typeof getSession>>
+
+async function handleStart(context: ActionContext, actor: SecurityActor, formData: FormData): Promise<ActionData> {
+  // Re-enrolling regenerates the secret and resets `twoFactorEnabledAt` to null,
+  // which disarms the login gate. So when 2FA is already active, require proof of
+  // the current factor first — otherwise a hijacked authenticated session could
+  // silently switch 2FA off, defeating the guarantee the 'disable' branch enforces.
+  const status = await withScopeFromContext(context, db => getTwoFactorStatus(db, actor.id))
+  if (status.enabled) {
+    const proof = twoFactorCodeSchema.safeParse({ code: formData.get('code') })
+    if (!proof.success || !(await verifyTwoFactorChallenge(actor.id, proof.data.code))) {
+      return { error: m.user_security_2fa_invalid_code_error() }
+    }
+  }
+
+  const { secret, otpauthUri } = await withScopeFromContext(context, db =>
+    startTwoFactorEnrollment(db, actor.id, actor.email),
+  )
+  return { step: 'setup', secret, qrDataUrl: await QRCode.toDataURL(otpauthUri) }
+}
+
+async function handleConfirm(
+  context: ActionContext,
+  session: SecuritySession,
+  actor: SecurityActor,
+  formData: FormData,
+): Promise<ActionData | Response> {
+  const submittedSecret = String(formData.get('secret') ?? '')
+  const setupError = async (): Promise<SetupStep> => ({
+    step: 'setup',
+    secret: submittedSecret,
+    qrDataUrl: await QRCode.toDataURL(buildOtpAuthUri(actor.email, submittedSecret)),
+    error: m.user_security_2fa_invalid_code_error(),
+  })
+
+  const submission = twoFactorCodeSchema.safeParse({ code: formData.get('code') })
+  if (!submission.success) return setupError()
+
+  const confirmed = await withScopeFromContext(context, db =>
+    confirmTwoFactorEnrollment(db, actor.id, submission.data.code),
+  )
+  if (!confirmed) return setupError()
+
+  audit({
+    action: AuditAction.TwoFactorEnabled,
+    congregationId: actor.congregationId,
+    actorId: actor.id,
+    entityType: 'User',
+    entityId: actor.id,
+  })
+  session.flash('success', m.user_security_2fa_enabled_success())
+  return redirect('/me/security', { headers: { 'Set-Cookie': await commitSession(session) } })
+}
+
+async function handleDisable(
+  context: ActionContext,
+  session: SecuritySession,
+  actor: SecurityActor,
+  formData: FormData,
+): Promise<ActionData | Response> {
+  const submission = twoFactorCodeSchema.safeParse({ code: formData.get('code') })
+  const verified = submission.success && (await verifyTwoFactorChallenge(actor.id, submission.data.code))
+  if (!verified) return { error: m.user_security_2fa_invalid_code_error() }
+
+  await withScopeFromContext(context, db => disableTwoFactor(db, actor.id))
+  audit({
+    action: AuditAction.TwoFactorDisabled,
+    congregationId: actor.congregationId,
+    actorId: actor.id,
+    entityType: 'User',
+    entityId: actor.id,
+  })
+  session.flash('success', m.user_security_2fa_disabled_success())
+  return redirect('/me/security', { headers: { 'Set-Cookie': await commitSession(session) } })
+}
+
 export async function action({ request, context }: Route.ActionArgs): Promise<ActionData | Response> {
   const currentUser = context.get(currentAccountContext)
   const session = await getSession(request.headers.get('Cookie'))
   const formData = await request.formData()
   const intent = formData.get('intent')
 
-  if (intent === 'start') {
-    const { secret, otpauthUri } = await withScopeFromContext(context, db =>
-      startTwoFactorEnrollment(db, currentUser.id, currentUser.email),
-    )
-    return { step: 'setup', secret, qrDataUrl: await QRCode.toDataURL(otpauthUri) }
-  }
-
-  const submission = twoFactorCodeSchema.safeParse({ code: formData.get('code') })
-
-  if (intent === 'confirm') {
-    const submittedSecret = String(formData.get('secret') ?? '')
-    const setupError = async (): Promise<SetupStep> => ({
-      step: 'setup',
-      secret: submittedSecret,
-      qrDataUrl: await QRCode.toDataURL(buildOtpAuthUri(currentUser.email, submittedSecret)),
-      error: m.user_security_2fa_invalid_code_error(),
-    })
-
-    if (!submission.success) return setupError()
-
-    const confirmed = await withScopeFromContext(context, db =>
-      confirmTwoFactorEnrollment(db, currentUser.id, submission.data.code),
-    )
-    if (!confirmed) return setupError()
-
-    audit({
-      action: AuditAction.TwoFactorEnabled,
-      congregationId: currentUser.congregationId,
-      actorId: currentUser.id,
-      entityType: 'User',
-      entityId: currentUser.id,
-    })
-    session.flash('success', m.user_security_2fa_enabled_success())
-    return redirect('/me/security', { headers: { 'Set-Cookie': await commitSession(session) } })
-  }
-
-  if (intent === 'disable') {
-    const verified = submission.success && (await verifyTwoFactorChallenge(currentUser.id, submission.data.code))
-    if (!verified) {
-      return { error: m.user_security_2fa_invalid_code_error() }
-    }
-
-    await withScopeFromContext(context, db => disableTwoFactor(db, currentUser.id))
-    audit({
-      action: AuditAction.TwoFactorDisabled,
-      congregationId: currentUser.congregationId,
-      actorId: currentUser.id,
-      entityType: 'User',
-      entityId: currentUser.id,
-    })
-    session.flash('success', m.user_security_2fa_disabled_success())
-    return redirect('/me/security', { headers: { 'Set-Cookie': await commitSession(session) } })
-  }
-
+  if (intent === 'start') return handleStart(context, currentUser, formData)
+  if (intent === 'confirm') return handleConfirm(context, session, currentUser, formData)
+  if (intent === 'disable') return handleDisable(context, session, currentUser, formData)
   return redirect('/me/security')
 }
