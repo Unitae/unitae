@@ -3,6 +3,7 @@ import excelJs from 'exceljs'
 import { wasInactiveDuring } from '~/features/publishers/model/inactive'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { PublisherType, publisherTypeReportsHours } from '~/shared/types/publisher-type'
+import { escapeSpreadsheetFormula } from '~/shared/utils/escape-spreadsheet-formula'
 import { formatGroupName } from '~/shared/utils/format-group-name'
 
 type MonthlyActivities = {
@@ -68,13 +69,15 @@ export async function buildPublishersYearlyActivityXlsx(months: MonthlyActivitie
       if (publisherTypeReportsHours(activity.type)) hours = String(activity.hours)
 
       worksheet.addRow([
-        `${activity.publisher.firstname} ${activity.publisher.lastname}`,
-        activity.publisher.publisherGroup ? formatGroupName(activity.publisher.publisherGroup.name) : '',
+        escapeSpreadsheetFormula(`${activity.publisher.firstname} ${activity.publisher.lastname}`),
+        activity.publisher.publisherGroup
+          ? escapeSpreadsheetFormula(formatGroupName(activity.publisher.publisherGroup.name))
+          : '',
         hours,
         computeStatut(activity, month, yearMonth),
         activity.studies,
         type,
-        activity.notes,
+        escapeSpreadsheetFormula(activity.notes ?? ''),
       ])
     }
   }

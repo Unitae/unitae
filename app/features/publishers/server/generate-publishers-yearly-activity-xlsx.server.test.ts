@@ -268,4 +268,47 @@ describe('buildPublishersYearlyActivityXlsx', () => {
     expect(january2026?.actualRowCount).toBe(3)
     expect(february2026?.actualRowCount).toBe(1)
   })
+
+  it('escapes an Observations note that starts with a formula-trigger character', async () => {
+    const workbook = await buildFromActivities([makeActivity(PublisherType.Normal, { notes: '=SUM(A1:A2)' })])
+    const sheet = workbook.worksheets[0]
+
+    expect(sheet.getRow(2).getCell(7).value).toBe("'=SUM(A1:A2)")
+  })
+
+  it('escapes a group name that starts with a formula-trigger character', async () => {
+    const workbook = await buildFromActivities([
+      {
+        ...makeActivity(PublisherType.Normal, { isPublisher: true }),
+        publisher: {
+          id: 1,
+          firstname: 'Alice',
+          lastname: 'Martin',
+          publisherGroup: { id: 1, name: '=cmd' },
+          inactiveAt: null,
+        },
+      },
+    ])
+    const sheet = workbook.worksheets[0]
+
+    expect(sheet.getRow(2).getCell(2).value).toBe("'=CMD")
+  })
+
+  it('escapes a publisher name that starts with a formula-trigger character', async () => {
+    const workbook = await buildFromActivities([
+      {
+        ...makeActivity(PublisherType.Normal, { isPublisher: true }),
+        publisher: {
+          id: 1,
+          firstname: '=cmd',
+          lastname: 'Martin',
+          publisherGroup: { id: 1, name: 'Groupe A' },
+          inactiveAt: null,
+        },
+      },
+    ])
+    const sheet = workbook.worksheets[0]
+
+    expect(sheet.getRow(2).getCell(1).value).toBe("'=cmd Martin")
+  })
 })

@@ -1,5 +1,6 @@
 import excelJs from 'exceljs'
 
+import { escapeSpreadsheetFormula } from '~/shared/utils/escape-spreadsheet-formula'
 import type { getTerritoriesExportData } from './territories-export-data.server'
 
 export function generateS13ExportExcel(
@@ -47,7 +48,7 @@ export function generateS13ExportExcel(
 function addExportHeaders(worksheet: excelJs.Worksheet, serviceYear: string) {
   worksheet.addRow([`REGISTRE D'ATTRIBUTION DES TERRITOIRES`])
   worksheet.addRow([])
-  worksheet.addRow(['Année de service :', '', serviceYear])
+  worksheet.addRow(['Année de service :', '', escapeSpreadsheetFormula(serviceYear)])
 
   worksheet.getRow(1).font = { bold: true, size: 16 }
   worksheet.getCell('A3').font = { bold: true }
@@ -149,7 +150,7 @@ function addRowsForTerritory(
   territoryNumber: string,
   lastTerritoryId: number,
 ) {
-  worksheet.addRow([territoryNumber, ''])
+  worksheet.addRow([escapeSpreadsheetFormula(territoryNumber), ''])
   const firstRow = worksheet.lastRow
   worksheet.addRow(['', ''])
   const lastRow = worksheet.lastRow
@@ -193,8 +194,9 @@ function addAttributionColumns(
   for (const attribution of item.attributions.sort((a, b) => a.startDate.getTime() - b.startDate.getTime())) {
     const isLastCol = lastColIndex === colIndex + 1
 
-    firstRow.getCell(colIndex).value =
-      `${attribution.publisher?.firstname || ''} ${attribution.publisher?.lastname || ''}`
+    firstRow.getCell(colIndex).value = escapeSpreadsheetFormula(
+      `${attribution.publisher?.firstname || ''} ${attribution.publisher?.lastname || ''}`,
+    )
     firstRow.getCell(colIndex).border = {
       top: { style: 'thin' },
       left: { style: 'medium' },
