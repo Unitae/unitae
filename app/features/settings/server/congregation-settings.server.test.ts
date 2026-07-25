@@ -99,4 +99,25 @@ describe('updateCongregationSettings', () => {
     expect(mockDb.member.updateMany).toHaveBeenCalled()
     expect(syncBuiltInRoleAssignments).not.toHaveBeenCalled()
   })
+
+  it('persists the breached-password check scope when provided', async () => {
+    vi.mocked(setSetting).mockResolvedValue(undefined as never)
+
+    await updateCongregationSettings(mockDb as never, 10, 99, {
+      auxiliaryPioneerProfileActivated: 'true',
+      breachedPasswordCheckScope: 'everyone',
+    })
+
+    expect(setSetting).toHaveBeenCalledWith(mockDb, 'breached-password-check-scope', 'everyone', 10)
+  })
+
+  it('does not touch the breach scope setting when it is omitted', async () => {
+    vi.mocked(setSetting).mockResolvedValue(undefined as never)
+
+    await updateCongregationSettings(mockDb as never, 10, 99, {
+      auxiliaryPioneerProfileActivated: 'true',
+    })
+
+    expect(setSetting).not.toHaveBeenCalledWith(mockDb, 'breached-password-check-scope', expect.anything(), 10)
+  })
 })

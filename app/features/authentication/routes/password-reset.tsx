@@ -1,15 +1,18 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
-import { Form, redirect } from 'react-router'
+import { data, Form, redirect } from 'react-router'
 import { resetPasswordSchema } from '~/features/authentication/schemas/login.schema'
+import { isAccountInBreachScope } from '~/features/authentication/server/breach-scope.server'
 import {
   consumePasswordResetToken,
   verifyPasswordResetToken,
 } from '~/features/authentication/server/invalidate-account-password.server'
+import { checkNewPasswordPolicy } from '~/features/authentication/server/password-policy.server'
 import { resetAccountPassword } from '~/features/authentication/server/reset-account-password.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/i18n/paraglide/messages'
 import { getBrandingName, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
+import { withScope } from '~/shared/infra/db.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -102,11 +105,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   const submission = parseWithZod(await request.formData(), { schema: resetPasswordSchema })
 
   if (submission.status !== 'success') {
-    session.flash('error', m.auth_password_reset_mismatch_error())
-
-    throw redirect(`/password/${params.userHash}/reset`, {
-      headers: { 'Set-Cookie': await commitSession(session) },
-    })
+    return data(submission.reply(), { status: 400 })
   }
 
   const { email: username, password } = submission.value
@@ -119,6 +118,14 @@ export async function action({ request, params }: Route.ActionArgs) {
     throw redirect('/', {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
+  }
+
+  const checkBreached = await withScope(user.congregationId, db =>
+    isAccountInBreachScope(db, user.id, user.congregationId),
+  )
+  const policyError = await checkNewPasswordPolicy(password, { checkBreached })
+  if (policyError) {
+    return data(submission.reply({ fieldErrors: { password: [policyError] } }), { status: 400 })
   }
 
   await resetAccountPassword(user.id, password)

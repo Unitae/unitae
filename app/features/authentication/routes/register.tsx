@@ -2,6 +2,7 @@ import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, Link, redirect } from 'react-router'
 import { registerSchema } from '~/features/authentication/schemas/login.schema'
+import { checkNewPasswordPolicy } from '~/features/authentication/server/password-policy.server'
 import { registerCongregation } from '~/features/authentication/server/register-congregation.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/i18n/paraglide/messages'
@@ -141,14 +142,19 @@ export async function action({ request }: Route.ActionArgs) {
   const submission = parseWithZod(await request.formData(), { schema: registerSchema })
 
   if (submission.status !== 'success') {
-    session.flash('error', m.auth_register_generic_error())
-    return redirect('/register', { headers: { 'Set-Cookie': await commitSession(session) } })
+    return data(submission.reply(), { status: 400 })
   }
 
   const congregationName = submission.value['congregation-name'].trim()
   const locale = submission.value.locale as (typeof locales)[number]
   const email = submission.value.email.trim()
   const password = submission.value.password
+
+  // Brand-new congregation, no policy configured yet: zxcvbn strength only.
+  const policyError = await checkNewPasswordPolicy(password, { checkBreached: false })
+  if (policyError) {
+    return data(submission.reply({ fieldErrors: { password: [policyError] } }), { status: 400 })
+  }
 
   const slug = slugify(congregationName)
   if (slug.length < 2) {

@@ -11,6 +11,7 @@ export async function updateCongregationSettings(
   actorId: number,
   data: {
     auxiliaryPioneerProfileActivated: string
+    breachedPasswordCheckScope?: string
   },
 ) {
   await setSetting(
@@ -19,6 +20,15 @@ export async function updateCongregationSettings(
     data.auxiliaryPioneerProfileActivated,
     congregationId,
   )
+
+  if (data.breachedPasswordCheckScope != null) {
+    await setSetting(
+      db,
+      CongregationSettingKey.BreachedPasswordCheckScope,
+      data.breachedPasswordCheckScope,
+      congregationId,
+    )
+  }
 
   if (data.auxiliaryPioneerProfileActivated === 'false') {
     await memberAggregate.bulkUpdateType(
@@ -34,6 +44,11 @@ export async function updateCongregationSettings(
     action: AuditAction.CongregationSettingsUpdated,
     congregationId,
     actorId,
-    metadata: { auxiliaryPioneerProfileActivated: data.auxiliaryPioneerProfileActivated },
+    metadata: {
+      auxiliaryPioneerProfileActivated: data.auxiliaryPioneerProfileActivated,
+      ...(data.breachedPasswordCheckScope != null
+        ? { breachedPasswordCheckScope: data.breachedPasswordCheckScope }
+        : {}),
+    },
   })
 }
