@@ -1,10 +1,15 @@
-import { useEffect, useState } from 'react'
-import { Form, Link, redirect } from 'react-router'
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
+import { parseWithZod } from '@conform-to/zod'
+import { data, Form, Link, redirect } from 'react-router'
+import { changePasswordSchema } from '~/features/authentication/schemas/login.schema'
+import { isAccountInBreachScope } from '~/features/authentication/server/breach-scope.server'
 import { getCalendarFeedToken } from '~/features/authentication/server/calendar-feed-token.server'
 import { changeAccountPassword } from '~/features/authentication/server/change-account-password.server'
+import { checkNewPasswordPolicy } from '~/features/authentication/server/password-policy.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { CalendarFeedCard } from '~/features/authentication/ui/CalendarFeedCard'
 import * as m from '~/i18n/paraglide/messages'
-import { congregationContext, currentAccountContext } from '~/shared/auth/route-context.server'
+import { congregationContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import logger from '~/shared/infra/logger.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
@@ -50,9 +55,15 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   }
 }
 
-export default function ProfilePage({ loaderData }: Route.ComponentProps) {
+export default function ProfilePage({ loaderData, actionData }: Route.ComponentProps) {
   const { user, error, congregationName, calendar } = loaderData
   const { blocker, markDirty } = useUnsavedChanges()
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: changePasswordSchema })
+    },
+  })
 
   return (
     <div className="flex flex-col gap-6">
@@ -152,14 +163,16 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          <Form method="post" className="flex flex-col gap-4" onChange={markDirty}>
+          <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)} onChange={markDirty}>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="password">{m.user_profile_current_password_label()}</Label>
-              <Input id="password" name="password" type="password" autoComplete="current-password" />
+              <Label htmlFor={fields.password.id}>{m.user_profile_current_password_label()}</Label>
+              <Input {...getInputProps(fields.password, { type: 'password' })} autoComplete="current-password" />
+              {fields.password.errors && <p className="text-destructive text-sm">{fields.password.errors}</p>}
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="new_password">{m.user_profile_new_password_label()}</Label>
-              <Input id="new_password" name="new_password" type="password" autoComplete="new-password" />
+              <Label htmlFor={fields.new_password.id}>{m.user_profile_new_password_label()}</Label>
+              <Input {...getInputProps(fields.new_password, { type: 'password' })} autoComplete="new-password" />
+              {fields.new_password.errors && <p className="text-destructive text-sm">{fields.new_password.errors}</p>}
             </div>
             <SubmitButton className="w-fit">{m.user_profile_change_password_submit()}</SubmitButton>
           </Form>
@@ -169,98 +182,26 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
   )
 }
 
-type CalendarLoaderData = Awaited<ReturnType<typeof loader>>['calendar']
-
-function CalendarFeedCard({ calendar }: { calendar: CalendarLoaderData }) {
-  const [copied, setCopied] = useState(false)
-
-  useEffect(() => {
-    if (!copied) return
-    const id = setTimeout(() => setCopied(false), 2000)
-    return () => clearTimeout(id)
-  }, [copied])
-
-  async function handleCopy() {
-    if (!calendar) return
-    try {
-      await navigator.clipboard.writeText(calendar.url)
-      setCopied(true)
-    } catch {
-      setCopied(false)
-    }
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{m.user_profile_calendar_section()}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-muted-foreground text-sm">{m.user_profile_calendar_description()}</p>
-
-        {calendar == null ? (
-          <div className="flex flex-col gap-3">
-            <p className="text-sm">{m.user_profile_calendar_no_token()}</p>
-            <Form method="post" action="/me/calendar-feed/regenerate">
-              <SubmitButton className="w-fit">{m.user_profile_calendar_generate()}</SubmitButton>
-            </Form>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="calendar-feed-url">{m.user_profile_calendar_url_label()}</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="calendar-feed-url"
-                  type="text"
-                  value={calendar.url}
-                  readOnly
-                  onFocus={event => event.currentTarget.select()}
-                />
-                <Button type="button" variant="outline" onClick={handleCopy}>
-                  {copied ? m.user_profile_calendar_copied() : m.user_profile_calendar_copy()}
-                </Button>
-              </div>
-              <p className="text-muted-foreground text-xs">
-                {calendar.lastUsedAt
-                  ? m.user_profile_calendar_last_used({ date: new Date(calendar.lastUsedAt).toLocaleString() })
-                  : m.user_profile_calendar_never_used()}
-              </p>
-            </div>
-
-            <p className="text-muted-foreground text-xs">{m.user_profile_calendar_help()}</p>
-
-            <Alert variant="destructive">
-              <AlertDescription>{m.user_profile_calendar_regenerate_warning()}</AlertDescription>
-            </Alert>
-
-            <div className="flex flex-wrap gap-2">
-              <Form method="post" action="/me/calendar-feed/regenerate">
-                <SubmitButton variant="outline" className="w-fit">
-                  {m.user_profile_calendar_regenerate()}
-                </SubmitButton>
-              </Form>
-              <Form method="post" action="/me/calendar-feed/revoke">
-                <SubmitButton variant="destructive" className="w-fit">
-                  {m.user_profile_calendar_revoke()}
-                </SubmitButton>
-              </Form>
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
 export async function action({ request, context }: Route.ActionArgs) {
   const currentUser = context.get(currentAccountContext)
   const session = await getSession(request.headers.get('Cookie'))
-  const formData = await request.formData()
-  const password = formData.get('password')
-  const newPassword = formData.get('new_password')
+  const submission = parseWithZod(await request.formData(), { schema: changePasswordSchema })
 
-  const isSuccess = await changeAccountPassword(currentUser.id, String(password), String(newPassword))
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
+
+  const { password, new_password: newPassword } = submission.value
+
+  const checkBreached = await withScopeFromContext(context, db =>
+    isAccountInBreachScope(db, currentUser.id, currentUser.congregationId),
+  )
+  const policyError = await checkNewPasswordPolicy(newPassword, { checkBreached })
+  if (policyError) {
+    return data(submission.reply({ fieldErrors: { new_password: [policyError] } }), { status: 400 })
+  }
+
+  const isSuccess = await changeAccountPassword(currentUser.id, password, newPassword)
 
   if (isSuccess) {
     audit({
@@ -281,7 +222,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     })
   }
 
-  return redirect('/profile', {
+  return redirect('/me/profile', {
     headers: {
       'Set-Cookie': await commitSession(session),
     },

@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 import { login } from './helpers/auth'
 
 const TEST_EMAIL = process.env.E2E_USER_EMAIL ?? 'admin@unitae.test'
-const TEST_PASSWORD = process.env.E2E_USER_PASSWORD ?? 'password'
+const TEST_PASSWORD = process.env.E2E_USER_PASSWORD ?? 'Str0ng-E2E-Passphrase-42'
 const EDIT_URL_RE = /\/territories\/territory\/\d+\/edit/
 const EDIT_URL_ID_RE = /\/territories\/territory\/(\d+)\/edit/
 const RAIL_HEADING_RE = /modifications? en attente|pending changes/i

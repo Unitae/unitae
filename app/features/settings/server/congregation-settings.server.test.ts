@@ -12,6 +12,7 @@ vi.mock('~/shared/domain/settings.server', () => ({
   setSetting: vi.fn(),
 }))
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
+const { audit } = await import('~/shared/domain/audit.server')
 vi.mock('~/shared/domain/built-in-roles.server', () => ({
   syncBuiltInRoleAssignments: vi.fn(),
 }))
@@ -98,5 +99,46 @@ describe('updateCongregationSettings', () => {
 
     expect(mockDb.member.updateMany).toHaveBeenCalled()
     expect(syncBuiltInRoleAssignments).not.toHaveBeenCalled()
+  })
+
+  it('persists the breached-password check scope when provided', async () => {
+    vi.mocked(setSetting).mockResolvedValue(undefined as never)
+
+    await updateCongregationSettings(mockDb as never, 10, 99, {
+      auxiliaryPioneerProfileActivated: 'true',
+      breachedPasswordCheckScope: 'everyone',
+    })
+
+    expect(setSetting).toHaveBeenCalledWith(mockDb, 'breached-password-check-scope', 'everyone', 10)
+  })
+
+  it('does not touch the breach scope setting when it is omitted', async () => {
+    vi.mocked(setSetting).mockResolvedValue(undefined as never)
+
+    await updateCongregationSettings(mockDb as never, 10, 99, {
+      auxiliaryPioneerProfileActivated: 'true',
+    })
+
+    expect(setSetting).not.toHaveBeenCalledWith(mockDb, 'breached-password-check-scope', expect.anything(), 10)
+  })
+
+  it('records the breach scope in the audit metadata only when provided', async () => {
+    vi.mocked(setSetting).mockResolvedValue(undefined as never)
+
+    await updateCongregationSettings(mockDb as never, 10, 99, {
+      auxiliaryPioneerProfileActivated: 'true',
+      breachedPasswordCheckScope: 'responsibilities',
+    })
+    expect(audit).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({ breachedPasswordCheckScope: 'responsibilities' }),
+      }),
+    )
+
+    await updateCongregationSettings(mockDb as never, 10, 99, {
+      auxiliaryPioneerProfileActivated: 'true',
+    })
+    const lastCall = vi.mocked(audit).mock.lastCall?.[0]
+    expect(lastCall?.metadata).not.toHaveProperty('breachedPasswordCheckScope')
   })
 })

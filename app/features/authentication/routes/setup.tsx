@@ -4,6 +4,7 @@ import { data, Form, redirect } from 'react-router'
 import { setupSchema } from '~/features/authentication/schemas/login.schema'
 
 import { needSetupProcess } from '~/features/authentication/server/need-setup-process.server'
+import { checkNewPasswordPolicy } from '~/features/authentication/server/password-policy.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { setupFirstAccount } from '~/features/authentication/server/setup-first-account.server'
 import * as m from '~/i18n/paraglide/messages'
@@ -122,15 +123,17 @@ export async function action({ request }: Route.ActionArgs) {
   const submission = parseWithZod(await request.formData(), { schema: setupSchema })
 
   if (submission.status !== 'success') {
-    session.flash('error', m.auth_setup_generic_error())
-    return redirect('/setup', {
-      headers: {
-        'Set-Cookie': await commitSession(session),
-      },
-    })
+    return data(submission.reply(), { status: 400 })
   }
 
   const { email: username, password, locale } = submission.value
+
+  // The first account belongs to the admin, so no congregation policy exists
+  // yet — zxcvbn strength is enforced, breach-checking is not.
+  const policyError = await checkNewPasswordPolicy(password, { checkBreached: false })
+  if (policyError) {
+    return data(submission.reply({ fieldErrors: { password: [policyError] } }), { status: 400 })
+  }
 
   const userId = await setupFirstAccount(
     username,
