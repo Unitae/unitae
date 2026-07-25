@@ -1,4 +1,5 @@
 import crypto from 'node:crypto'
+import { hashToken } from '~/shared/auth/crypto.server'
 import { unscopedDb as db } from '~/shared/infra/db.server'
 
 const TOKEN_EXPIRY_HOURS = 24
@@ -11,7 +12,8 @@ export async function createEmailVerificationToken(userId: number): Promise<stri
   await db.emailVerificationToken.deleteMany({ where: { userId } })
 
   await db.emailVerificationToken.create({
-    data: { token, userId, expiresAt },
+    // Store only the hash — the raw token is emailed to the user, never persisted.
+    data: { token: hashToken(token), userId, expiresAt },
   })
 
   return token
@@ -19,7 +21,7 @@ export async function createEmailVerificationToken(userId: number): Promise<stri
 
 export async function verifyEmailVerificationToken(token: string) {
   const verificationToken = await db.emailVerificationToken.findUnique({
-    where: { token },
+    where: { token: hashToken(token) },
     include: { user: true },
   })
 
@@ -33,7 +35,7 @@ export async function verifyEmailVerificationToken(token: string) {
 }
 
 export async function consumeEmailVerificationToken(token: string) {
-  const verificationToken = await db.emailVerificationToken.findUnique({ where: { token } })
+  const verificationToken = await db.emailVerificationToken.findUnique({ where: { token: hashToken(token) } })
   if (verificationToken == null) return
 
   await db.$transaction([

@@ -1,4 +1,7 @@
+import { createHash } from 'node:crypto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const sha256 = (value: string) => createHash('sha256').update(value).digest('hex')
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
@@ -41,6 +44,18 @@ describe('createPasswordResetToken', () => {
     expect(typeof token).toBe('string')
     expect(token.length).toBeGreaterThan(0)
   })
+
+  it('stocke le hash SHA-256 du token, pas le token en clair', async () => {
+    vi.mocked(db.passwordResetToken.deleteMany).mockResolvedValue({ count: 0 } as never)
+    vi.mocked(db.passwordResetToken.create).mockResolvedValue({} as never)
+
+    const token = await createPasswordResetToken(42)
+
+    const storedToken = vi.mocked(db.passwordResetToken.create).mock.calls[0][0].data.token
+    expect(storedToken).toBe(sha256(token))
+    expect(storedToken).not.toBe(token)
+    expect(storedToken).toHaveLength(64)
+  })
 })
 
 describe('verifyPasswordResetToken', () => {
@@ -59,6 +74,9 @@ describe('verifyPasswordResetToken', () => {
 
     const result = await verifyPasswordResetToken('valid-token')
     expect(result).toEqual(fakeUser)
+    expect(db.passwordResetToken.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { token: sha256('valid-token') } }),
+    )
   })
 
   it('retourne null pour un token inexistant', async () => {
@@ -66,6 +84,9 @@ describe('verifyPasswordResetToken', () => {
 
     const result = await verifyPasswordResetToken('inexistant')
     expect(result).toBeNull()
+    expect(db.passwordResetToken.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { token: sha256('inexistant') } }),
+    )
   })
 
   it('retourne null et supprime un token expiré', async () => {
@@ -83,6 +104,7 @@ describe('verifyPasswordResetToken', () => {
 
     const result = await verifyPasswordResetToken('expired-token')
     expect(result).toBeNull()
+    expect(db.passwordResetToken.delete).toHaveBeenCalledWith({ where: { id: 1 } })
   })
 })
 
@@ -97,6 +119,8 @@ describe('consumePasswordResetToken', () => {
     vi.mocked(db.passwordResetToken.delete).mockResolvedValue({} as never)
 
     await expect(consumePasswordResetToken('to-consume')).resolves.toBeUndefined()
+    expect(db.passwordResetToken.findUnique).toHaveBeenCalledWith({ where: { token: sha256('to-consume') } })
+    expect(db.passwordResetToken.delete).toHaveBeenCalledWith({ where: { id: 1 } })
   })
 
   it("ne lance pas d'erreur pour un token inexistant", async () => {
