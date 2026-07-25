@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto'
 import { seedDefaultTemplates } from '~/features/events/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import type { locales } from '~/i18n/paraglide/runtime'
@@ -10,6 +11,19 @@ type Locale = (typeof locales)[number]
 
 import { unscopedDb as db, withScope } from '~/shared/infra/db.server'
 
+// A random suffix is always appended so the public subdomain cannot be derived
+// from the congregation name. This removes the tenant-enumeration oracle: a
+// taken base name no longer produces a distinct error an attacker can observe.
+async function generateUniqueSlug(baseSlug: string): Promise<string> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const candidate = `${baseSlug}-${randomBytes(4).toString('hex')}`
+    const existing = await db.congregation.findUnique({ where: { slug: candidate } })
+    if (!existing) return candidate
+  }
+
+  throw new Error('Unable to generate a unique congregation slug')
+}
+
 export async function registerCongregation(
   congregationName: string,
   congregationSlug: string,
@@ -17,11 +31,6 @@ export async function registerCongregation(
   adminPassword: string,
   locale: Locale,
 ) {
-  const existingCongregation = await db.congregation.findUnique({ where: { slug: congregationSlug } })
-  if (existingCongregation) {
-    return { error: m.auth_register_slug_taken_error() }
-  }
-
   const existingUser = await db.userAccount.findUnique({ where: { email: adminEmail.toLowerCase() } })
   if (existingUser) {
     return { error: m.auth_register_email_taken_error() }
@@ -31,10 +40,12 @@ export async function registerCongregation(
 
   const hashedPassword = await hash(adminPassword)
 
+  const slug = await generateUniqueSlug(congregationSlug)
+
   const congregation = await db.congregation.create({
     data: {
       name: congregationName,
-      slug: congregationSlug,
+      slug,
       locale,
     },
   })
