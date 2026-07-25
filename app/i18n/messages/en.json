@@ -552,6 +552,8 @@
     "verify_email_confirmed": "Your email address has been verified successfully.",
     "verify_email_invalid_token": "This verification link is invalid or has expired.",
     "verify_email_try_again": "Resend a verification email",
+    "verify_email_confirm_prompt": "Click the button below to verify your email address.",
+    "verify_email_confirm_button": "Confirm my email address",
     "privacy_title": "Privacy policy",
     "privacy_back": "Back",
     "privacy_last_updated": "Last updated: April 11, 2026",

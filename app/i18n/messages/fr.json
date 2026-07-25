@@ -554,6 +554,8 @@
     "verify_email_confirmed": "Votre adresse e-mail a été vérifiée avec succès.",
     "verify_email_invalid_token": "Ce lien de vérification est invalide ou a expiré.",
     "verify_email_try_again": "Renvoyer un e-mail de vérification",
+    "verify_email_confirm_prompt": "Cliquez sur le bouton ci-dessous pour vérifier votre adresse e-mail.",
+    "verify_email_confirm_button": "Confirmer mon adresse e-mail",
     "privacy_title": "Politique de confidentialité",
     "privacy_back": "Retour",
     "privacy_last_updated": "Dernière mise à jour : 11 avril 2026",

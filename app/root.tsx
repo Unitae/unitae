@@ -14,6 +14,7 @@ import {
 
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
+import { originCheck } from '~/shared/middleware/origin-check.server'
 import { nonceContext, securityHeaders } from '~/shared/middleware/security-headers.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -23,7 +24,8 @@ import { IssueReportSection } from '~/shared/ui/IssueReportSection'
 import type { Route } from './+types/root'
 import './tailwind.css'
 
-export const middleware: Route.MiddlewareFunction[] = [securityHeaders()]
+// securityHeaders stays outer so the 403 originCheck may return is also hardened.
+export const middleware: Route.MiddlewareFunction[] = [securityHeaders(), originCheck()]
 
 export const links: LinksFunction = () => [
   { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
