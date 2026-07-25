@@ -2,97 +2,111 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/infra/redis.server', () => ({
   redisRateLimit: {
-    get: vi.fn(),
-    incr: vi.fn(),
-    expire: vi.fn(),
-    del: vi.fn(),
+    eval: vi.fn(),
   },
 }))
 
 vi.mock('~/shared/infra/logger.server', () => ({
   default: {
     warn: vi.fn(),
+    error: vi.fn(),
   },
 }))
 
-const { checkLoginRateLimit, recordLoginAttempt, clearLoginAttempts } = await import('./rate-limit.server')
+const { guardLoginAttempt, releaseLoginAttempt } = await import('./rate-limit.server')
 const { redisRateLimit: redis } = await import('~/shared/infra/redis.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
 })
 
-describe('checkLoginRateLimit', () => {
-  it("retourne true quand aucune tentative n'a été enregistrée", async () => {
-    vi.mocked(redis.get).mockResolvedValue(null)
+describe('guardLoginAttempt', () => {
+  it('allows the attempt when both per-IP and global counts stay under their limits', async () => {
+    // First eval = per-IP counter, second = global counter.
+    vi.mocked(redis.eval).mockResolvedValueOnce(1).mockResolvedValueOnce(1)
 
-    const result = await checkLoginRateLimit('test@example.com')
-    expect(result).toBe(true)
+    const result = await guardLoginAttempt('203.0.113.7')
+
+    expect(result).toEqual({ limited: false })
   })
 
-  it('retourne true quand le nombre de tentatives est sous la limite', async () => {
-    vi.mocked(redis.get).mockResolvedValue('4')
+  it('allows the attempt exactly at the per-IP limit (boundary)', async () => {
+    // Default per-IP max is 10 → a count of 10 is still allowed.
+    vi.mocked(redis.eval).mockResolvedValueOnce(10).mockResolvedValueOnce(1)
 
-    const result = await checkLoginRateLimit('test@example.com')
-    expect(result).toBe(true)
+    const result = await guardLoginAttempt('203.0.113.7')
+
+    expect(result).toEqual({ limited: false })
   })
 
-  it('retourne false quand la limite est atteinte (5 tentatives)', async () => {
-    vi.mocked(redis.get).mockResolvedValue('5')
+  it('blocks the attempt when the per-IP count exceeds the limit', async () => {
+    // Count of 11 > default max 10.
+    vi.mocked(redis.eval).mockResolvedValueOnce(11)
 
-    const result = await checkLoginRateLimit('test@example.com')
-    expect(result).toBe(false)
+    const result = await guardLoginAttempt('203.0.113.7')
+
+    expect(result).toEqual({ limited: true })
   })
 
-  it('retourne false quand la limite est dépassée', async () => {
-    vi.mocked(redis.get).mockResolvedValue('10')
+  it('does not touch the global counter once the per-IP limit is exceeded', async () => {
+    vi.mocked(redis.eval).mockResolvedValueOnce(11)
 
-    const result = await checkLoginRateLimit('test@example.com')
-    expect(result).toBe(false)
+    await guardLoginAttempt('203.0.113.7')
+
+    expect(redis.eval).toHaveBeenCalledTimes(1)
   })
 
-  it("retourne true en cas d'erreur Redis (dégradation gracieuse)", async () => {
-    vi.mocked(redis.get).mockRejectedValue(new Error('Redis down'))
+  it('blocks the attempt when the global count exceeds the limit', async () => {
+    // Per-IP under limit (1), global over default max 100.
+    vi.mocked(redis.eval).mockResolvedValueOnce(1).mockResolvedValueOnce(101)
 
-    const result = await checkLoginRateLimit('test@example.com')
-    expect(result).toBe(true)
+    const result = await guardLoginAttempt('203.0.113.7')
+
+    expect(result).toEqual({ limited: true })
   })
 
-  it("normalise l'email en minuscules", async () => {
-    vi.mocked(redis.get).mockResolvedValue('4')
+  it('fails closed (blocks) when Redis is unavailable', async () => {
+    vi.mocked(redis.eval).mockRejectedValue(new Error('Redis down'))
 
-    // Les deux doivent retourner le même résultat car la clé est normalisée
-    const result1 = await checkLoginRateLimit('TEST@EXAMPLE.COM')
-    const result2 = await checkLoginRateLimit('test@example.com')
-    expect(result1).toBe(result2)
+    const result = await guardLoginAttempt('203.0.113.7')
+
+    expect(result).toEqual({ limited: true })
+  })
+
+  it('buckets a missing IP under a shared "unknown" key', async () => {
+    vi.mocked(redis.eval).mockResolvedValueOnce(1).mockResolvedValueOnce(1)
+
+    await guardLoginAttempt(undefined)
+
+    // eval(script, numKeys, key, ...args): the key is the third argument.
+    const perIpKey = vi.mocked(redis.eval).mock.calls[0]?.[2]
+    expect(perIpKey).toBe('login_fail:ip:unknown')
+  })
+
+  it('keys the per-IP counter on the provided IP', async () => {
+    vi.mocked(redis.eval).mockResolvedValueOnce(1).mockResolvedValueOnce(1)
+
+    await guardLoginAttempt('203.0.113.7')
+
+    const perIpKey = vi.mocked(redis.eval).mock.calls[0]?.[2]
+    expect(perIpKey).toBe('login_fail:ip:203.0.113.7')
   })
 })
 
-describe('recordLoginAttempt', () => {
-  it("ne lance pas d'erreur en fonctionnement normal", async () => {
-    vi.mocked(redis.incr).mockResolvedValue(1)
-    vi.mocked(redis.expire).mockResolvedValue(1)
+describe('releaseLoginAttempt', () => {
+  it('decrements both the per-IP and global counters', async () => {
+    vi.mocked(redis.eval).mockResolvedValue(0)
 
-    await expect(recordLoginAttempt('test@example.com')).resolves.toBeUndefined()
+    await releaseLoginAttempt('203.0.113.7')
+
+    const keys = vi.mocked(redis.eval).mock.calls.map(call => call[2])
+    expect(keys).toContain('login_fail:ip:203.0.113.7')
+    expect(keys).toContain('login_fail:global')
   })
 
-  it("ne lance pas d'erreur en cas d'erreur Redis", async () => {
-    vi.mocked(redis.incr).mockRejectedValue(new Error('Redis down'))
+  it('does not throw when Redis is unavailable', async () => {
+    vi.mocked(redis.eval).mockRejectedValue(new Error('Redis down'))
 
-    await expect(recordLoginAttempt('test@example.com')).resolves.toBeUndefined()
-  })
-})
-
-describe('clearLoginAttempts', () => {
-  it("ne lance pas d'erreur en fonctionnement normal", async () => {
-    vi.mocked(redis.del).mockResolvedValue(1)
-
-    await expect(clearLoginAttempts('test@example.com')).resolves.toBeUndefined()
-  })
-
-  it("ne lance pas d'erreur en cas d'erreur Redis", async () => {
-    vi.mocked(redis.del).mockRejectedValue(new Error('Redis down'))
-
-    await expect(clearLoginAttempts('test@example.com')).resolves.toBeUndefined()
+    await expect(releaseLoginAttempt('203.0.113.7')).resolves.toBeUndefined()
   })
 })

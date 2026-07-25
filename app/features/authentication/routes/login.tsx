@@ -7,11 +7,7 @@ import {
   buildLoginRedirectUrl,
   resolvePostLoginRedirect,
 } from '~/features/authentication/server/post-login-redirect.server'
-import {
-  checkLoginRateLimit,
-  clearLoginAttempts,
-  recordLoginAttempt,
-} from '~/features/authentication/server/rate-limit.server'
+import { guardLoginAttempt, releaseLoginAttempt } from '~/features/authentication/server/rate-limit.server'
 import { commitSession, destroySession, getSession } from '~/features/authentication/server/session.server'
 import { validateCredentials } from '~/features/authentication/server/validate-credentials.server'
 import * as m from '~/i18n/paraglide/messages'
@@ -23,6 +19,7 @@ import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
+import { getClientIp } from '~/shared/utils/get-client-ip'
 import { safeRedirectUrl } from '~/shared/utils/safe-redirect.server'
 import type { Route } from './+types/login'
 
@@ -146,8 +143,9 @@ export async function action({ request }: Route.ActionArgs) {
 
   const { email: username, password } = submission.value
 
-  const allowed = await checkLoginRateLimit(username)
-  if (!allowed) {
+  const clientIp = getClientIp(request)
+  const { limited } = await guardLoginAttempt(clientIp)
+  if (limited) {
     session.flash('error', m.auth_login_rate_limit_error())
 
     return redirect(loginUrl, {
@@ -159,7 +157,6 @@ export async function action({ request }: Route.ActionArgs) {
   const userId = await validateCredentials(username, password, urlCongregation?.id)
 
   if (userId == null) {
-    await recordLoginAttempt(username)
     if (urlCongregation) {
       audit({
         action: AuditAction.UserLoginFailed,
@@ -174,7 +171,7 @@ export async function action({ request }: Route.ActionArgs) {
     })
   }
 
-  await clearLoginAttempts(username)
+  await releaseLoginAttempt(clientIp)
   session.set('userId', String(userId))
 
   if (urlCongregation) {
