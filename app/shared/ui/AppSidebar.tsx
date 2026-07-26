@@ -5,6 +5,7 @@ import {
   CalendarOff,
   ChevronDown,
   ClipboardList,
+  CreditCard,
   FileText,
   FolderOpen,
   HardDrive,
@@ -67,11 +68,12 @@ export interface AppSidebarPermissions {
 interface AppSidebarProps {
   permissions: AppSidebarPermissions
   congregationName?: string
+  billingUrl?: string | null
   onSearchClick?: () => void
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: sidebar with many permission-based conditional sections
-export function AppSidebar({ permissions, congregationName, onSearchClick }: AppSidebarProps) {
+export function AppSidebar({ permissions, congregationName, billingUrl, onSearchClick }: AppSidebarProps) {
   const showAssemblee =
     permissions.canViewPublishers ||
     permissions.canViewPrograms ||
@@ -287,6 +289,16 @@ export function AppSidebar({ permissions, congregationName, onSearchClick }: App
           <SidebarNavItem to="/me/profile" icon={User} label={m.sidebar_my_profile()} />
           <SidebarNavItem to="/me/territories" icon={MapPin} label={m.sidebar_my_territories()} />
           <SidebarNavItem to="/me/days-off" icon={CalendarOff} label={m.sidebar_my_absences()} />
+          {billingUrl && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild className="min-h-[44px] md:min-h-0">
+                <a href={billingUrl}>
+                  <CreditCard className="size-4" />
+                  <span>{m.sidebar_subscription()}</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
             <Form action="/logout" method="post">
               <SidebarMenuButton type="submit" className="text-muted-foreground hover:text-destructive">
