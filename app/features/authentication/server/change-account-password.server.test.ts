@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+const mockLoggerError = vi.fn()
+
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     userAccount: { findFirst: vi.fn(), update: vi.fn() },
@@ -9,6 +11,10 @@ vi.mock('~/shared/infra/db.server', () => ({
 vi.mock('~/shared/auth/crypto.server', () => ({
   compare: vi.fn(),
   hash: vi.fn(),
+}))
+
+vi.mock('~/shared/infra/logger.server', () => ({
+  default: { error: mockLoggerError, info: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }))
 
 vi.mock('./reset-account-password.server', () => ({
@@ -49,11 +55,19 @@ describe('changeAccountPassword', () => {
     expect(result).toBe(false)
   })
 
-  it('retourne false quand compare lance une erreur', async () => {
+  it('retourne false ET journalise quand compare lance une erreur (pas d’échec silencieux)', async () => {
     vi.mocked(db.userAccount.findFirst).mockResolvedValue(fakeUser as never)
     vi.mocked(compare).mockRejectedValue(new Error('crypto error'))
 
     const result = await changeAccountPassword(1, 'ancien', 'nouveau')
+
+    // A corrupt stored hash or systemic scrypt fault must not be swallowed silently — it would
+    // look identical to a wrong current password, leaving the user unable to change it with no
+    // trace for operators. Mirror validateCredentials: log before returning false.
     expect(result).toBe(false)
+    expect(mockLoggerError).toHaveBeenCalledWith(
+      'Password comparison failed during password change',
+      expect.objectContaining({ userId: 1 }),
+    )
   })
 })
