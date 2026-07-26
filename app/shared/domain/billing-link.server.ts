@@ -9,8 +9,8 @@ import { getHostSettings } from './host-settings.server'
 // does not render. A self-hoster (even in multi-tenant mode) therefore gets no billing UI.
 
 // "URL configured but secret missing" is a static, deployment-wide misconfiguration, yet `linkFor`
-// runs on every admin page render. Log it once so the misconfig surfaces without flooding the log
-// pipeline on every request.
+// runs on every settings-hub render (and the /suspended and /trial-expired shells). Log it once so
+// the misconfig surfaces without flooding the log pipeline.
 let missingSecretWarned = false
 
 function tokenFor(slug: string, purpose: BillingTokenPurpose): string | null {
@@ -50,10 +50,11 @@ export function checkoutLink(slug: string): string | null {
 }
 
 /**
- * Destination for the sidebar « Abonnement » entry, routed by state so there is always a path: a
- * congregation that already has a Stripe customer manages it in the portal; one without (trial /
- * never subscribed) goes to checkout to START a subscription (which creates the customer). Sending
- * the latter to the portal would 410. `null` for non-admins or when self-hosted (link not shown).
+ * Destination for the settings-hub « Abonnement » card (`/settings`), routed by state so there is
+ * always a path: a congregation that already has a Stripe customer manages it in the portal; one
+ * without (trial / never subscribed) goes to checkout to START a subscription (which creates the
+ * customer). Sending the latter to the portal would 410. `null` for non-admins or when self-hosted
+ * (card not shown).
  */
 export function billingEntryUrl(opts: {
   isAdmin: boolean
@@ -61,5 +62,5 @@ export function billingEntryUrl(opts: {
   slug: string
 }): string | null {
   if (!opts.isAdmin) return null
-  return opts.stripeCustomerId ? billingPortalLink(opts.slug) : checkoutLink(opts.slug)
+  return opts.stripeCustomerId !== null ? billingPortalLink(opts.slug) : checkoutLink(opts.slug)
 }

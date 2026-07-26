@@ -68,7 +68,10 @@ const CATALOG: CatalogEntry[] = [
   { key: 'audit', group: 'data', href: '/settings/audit-log', external: false, visible: p => p.canManageSettings },
 ]
 
-const GROUP_ORDER: SettingsGroupKey[] = ['account', 'modules', 'access', 'data']
+// Rank per group. Typed as a Record (not an array) so adding a SettingsGroupKey fails to compile
+// until it is ranked here — otherwise its cards would silently never render.
+const GROUP_RANK: Record<SettingsGroupKey, number> = { account: 0, modules: 1, access: 2, data: 3 }
+const GROUP_ORDER = (Object.keys(GROUP_RANK) as SettingsGroupKey[]).sort((a, b) => GROUP_RANK[a] - GROUP_RANK[b])
 
 export function buildSettingsSections(perms: SettingsSectionPerms, billingUrl: string | null): SettingsSection[] {
   const hasBilling = billingUrl !== null

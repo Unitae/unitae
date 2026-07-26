@@ -221,15 +221,16 @@ export async function action({ request, context }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  await updateGeneralSettings(congregation.id, submission.value)
+  // Two distinct destinations: the congregation columns (via updateGeneralSettings / unscopedDb) and
+  // password security (scoped Setting). We split the scope out so `general` matches GeneralSettingsInput
+  // exactly — otherwise the extra key could leak into a future `data: input` in the column writer.
+  const { [CongregationSettingKey.BreachedPasswordCheckScope]: breachedPasswordCheckScope, ...general } =
+    submission.value
+
+  await updateGeneralSettings(congregation.id, general)
 
   await withScopeFromContext(context, (db, congregationId) =>
-    updatePasswordSecurityScope(
-      db,
-      congregationId,
-      actorId,
-      submission.value[CongregationSettingKey.BreachedPasswordCheckScope],
-    ),
+    updatePasswordSecurityScope(db, congregationId, actorId, breachedPasswordCheckScope),
   )
 
   return redirect('/settings/general')

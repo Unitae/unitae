@@ -37,6 +37,14 @@ describe('buildSettingsSections', () => {
     expect(sections[0].items.map(i => i.key)).toEqual(['users'])
   })
 
+  it('returns no sections when the viewer can manage nothing (drives the hub redirect)', () => {
+    const sections = buildSettingsSections(
+      { canManageSettings: false, canManageUsers: false, canManagePermissions: false },
+      null,
+    )
+    expect(sections).toEqual([])
+  })
+
   it('shows only permissions to a permissions-manager', () => {
     const sections = buildSettingsSections(
       { canManageSettings: false, canManageUsers: false, canManagePermissions: true },
