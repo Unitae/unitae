@@ -1,17 +1,28 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
-import { generalSettingsSchema } from '~/features/settings/schemas/general-settings.schema'
+import { generalPageSchema } from '~/features/settings/schemas/general-settings.schema'
 import { updateGeneralSettings } from '~/features/settings/server/general-settings.server'
+import {
+  getPasswordSecurityScope,
+  updatePasswordSecurityScope,
+} from '~/features/settings/server/password-security.server'
 import * as m from '~/i18n/paraglide/messages'
-import { congregationContext, permissionsContext } from '~/shared/auth/route-context.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import { unscopedDb } from '~/shared/infra/db.server'
+import { type BreachedPasswordCheckScope, CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Permission } from '~/shared/types/permission'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { RadioGroup, RadioGroupItem } from '~/shared/ui/radio-group'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
@@ -36,23 +47,46 @@ export async function loader({ context }: Route.LoaderArgs) {
     select: { displayName: true, locale: true, timezone: true, domain: true },
   })
 
+  const breachedPasswordCheckScope = await withScopeFromContext(context, (db, congregationId) =>
+    getPasswordSecurityScope(db, congregationId),
+  )
+
   return {
     displayName: fullCongregation.displayName ?? '',
     locale: fullCongregation.locale ?? 'fr',
     timezone: fullCongregation.timezone ?? 'Europe/Paris',
     domain: fullCongregation.domain ?? '',
     showDomain: process.env.UNITAE_MULTI_TENANT === 'true',
+    breachedPasswordCheckScope,
   }
 }
 
+const PASSWORD_SECURITY_SCOPES = [
+  {
+    value: 'off',
+    label: m.settings_general_password_security_scope_off,
+    hint: m.settings_general_password_security_scope_off_hint,
+  },
+  {
+    value: 'responsibilities',
+    label: m.settings_general_password_security_scope_responsibilities,
+    hint: m.settings_general_password_security_scope_responsibilities_hint,
+  },
+  {
+    value: 'everyone',
+    label: m.settings_general_password_security_scope_everyone,
+    hint: m.settings_general_password_security_scope_everyone_hint,
+  },
+] as const satisfies readonly { value: BreachedPasswordCheckScope; label: () => string; hint: () => string }[]
+
 export default function GeneralSettingsPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { displayName, locale, timezone, domain, showDomain } = loaderData
+  const { displayName, locale, timezone, domain, showDomain, breachedPasswordCheckScope } = loaderData
   const { blocker, markDirty } = useUnsavedChanges()
 
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
-      return parseWithZod(formData, { schema: generalSettingsSchema })
+      return parseWithZod(formData, { schema: generalPageSchema })
     },
   })
 
@@ -118,6 +152,33 @@ export default function GeneralSettingsPage({ loaderData, actionData }: Route.Co
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader>
+            <CardTitle>{m.settings_general_password_security_title()}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <p className="text-muted-foreground text-sm">{m.settings_general_password_security_description()}</p>
+            <RadioGroup
+              name={CongregationSettingKey.BreachedPasswordCheckScope}
+              defaultValue={breachedPasswordCheckScope}
+              className="gap-3"
+            >
+              {PASSWORD_SECURITY_SCOPES.map(scope => (
+                <div key={scope.value} className="flex items-start gap-3">
+                  <RadioGroupItem value={scope.value} id={`breach-scope-${scope.value}`} className="mt-1" />
+                  <Label
+                    htmlFor={`breach-scope-${scope.value}`}
+                    className="flex flex-col items-start gap-1 font-normal"
+                  >
+                    <span className="font-medium">{scope.label()}</span>
+                    <span className="text-muted-foreground text-xs">{scope.hint()}</span>
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </CardContent>
+        </Card>
+
         {showDomain && (
           <Card>
             <CardHeader>
@@ -148,18 +209,28 @@ export default function GeneralSettingsPage({ loaderData, actionData }: Route.Co
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const congregation = context.get(congregationContext)
+  const { id: actorId } = context.get(currentAccountContext)
   const canManageSettings = permissions.has(Permission.Admin)
 
   if (!canManageSettings) {
     throw redirect('/')
   }
 
-  const submission = parseWithZod(await request.formData(), { schema: generalSettingsSchema })
+  const submission = parseWithZod(await request.formData(), { schema: generalPageSchema })
   if (submission.status !== 'success') {
     return data(submission.reply(), { status: 400 })
   }
 
   await updateGeneralSettings(congregation.id, submission.value)
+
+  await withScopeFromContext(context, (db, congregationId) =>
+    updatePasswordSecurityScope(
+      db,
+      congregationId,
+      actorId,
+      submission.value[CongregationSettingKey.BreachedPasswordCheckScope],
+    ),
+  )
 
   return redirect('/settings/general')
 }
