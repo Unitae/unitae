@@ -41,6 +41,16 @@ The database connection is configured in `prisma.config.ts`, not in `schema.pris
 
 Redis is used for the BullMQ job queue and login rate limiting.
 
+## Rate Limiting
+
+Authentication rate limiting is backed by Redis (via a fail-fast `redisRateLimit` client). Login is keyed on the client IP plus an instance-wide global counter — **never** on the target email — so no one can lock out a specific account. All windows are 15 minutes.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LOGIN_RATE_LIMIT_IP_MAX` | `10` | Max failed login attempts per client IP per 15-minute window |
+| `LOGIN_RATE_LIMIT_GLOBAL_MAX` | `100` | Max failed login attempts instance-wide per 15-minute window |
+| `TWO_FACTOR_RATE_LIMIT_MAX` | `5` | Max two-factor challenge attempts per account per 15-minute window |
+
 ## Email
 
 | Variable | Default | Description |
@@ -78,6 +88,12 @@ By default, uploaded files are stored on the local filesystem. Set `S3_ENDPOINT`
 The API key needs the **Maps JavaScript API**, **Maps Static API**, **Drawing Library**, and **Geocoding API** enabled in the Google Cloud Console. The Geocoding API powers the proximity search; geocoded addresses are cached in Redis for 90 days so repeat searches don't re-query the API.
 
 When `GOOGLE_MAPS_API_KEY` is not set, on-screen interactive maps are hidden, the PDF map page is skipped, the *Carte de l'assemblée* page falls back to the GeoJSON import/export workflow only — assemblies can still author their map in an external tool (geojson.io, Google My Maps, QGIS) and paste the result — and the proximity ranking in the territory search degrades silently to text-only matches.
+
+## Open Data Sync
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `UNITAE_OPEN_DATA_ALLOWLIST` | — | Comma-separated extra hostnames allowed as BANO / open-address CSV sources, in addition to the built-in defaults (`bano.openstreetmap.fr`, `adresse.data.gouv.fr`, `data.gouv.fr`). This is an SSRF control: the territory open-data sync rejects any URL whose host is not allowlisted, and also rejects non-HTTPS URLs and non-standard ports. Set this only if you point the sync at a private mirror. See [Open Data Sync](open-data-sync.md) |
 
 ## Security
 

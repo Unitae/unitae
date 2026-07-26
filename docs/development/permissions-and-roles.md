@@ -6,7 +6,7 @@ For the end-user view of the same system, see the product doc: [Roles and Permis
 
 ## Two layers, distinct concepts
 
-- **Permission** — the unit of access. A finite, code-defined enum (20 entries) declared in `app/shared/types/permission.ts`. New permissions require code + migration changes.
+- **Permission** — the unit of access. A finite, code-defined enum (21 entries) declared in `app/shared/types/permission.ts`. New permissions require code + migration changes.
 - **Role** — a named bundle of permissions. Lives in the database (`Role` table), scoped to a congregation. Roles can be **built-in** (seeded, identity-stable, auto-synced from `Member` flags) or **custom** (created at runtime by a Roles Manager and assigned to a `UserAccount`).
 
 Built-in identity roles attach to **`Member`** via `MemberRoleAssignment`. Custom roles (and the management permissions they grant) attach to **`UserAccount`** via `UserRoleAssignment`. The two tables are siblings: identity ("you are an elder") vs access ("you can manage roles").
@@ -22,7 +22,7 @@ Users do not hold permissions through roles only — there is also a direct `Con
 | Custom role CRUD (create/update/delete, permission sync, user assignment) | `app/shared/domain/roles.server.ts` |
 | Effective-permission resolver | `app/shared/auth/permissions.server.ts` |
 | Auth middleware that runs the resolver | `app/shared/auth/middleware.server.ts` |
-| Typed contexts (`userContext`, `congregationContext`, `permissionsContext`) | `app/shared/auth/route-context.server.ts` |
+| Typed contexts (`currentAccountContext`, `congregationContext`, `permissionsContext`) | `app/shared/auth/route-context.server.ts` |
 | Role admin UI | `app/features/congregation/routes/roles/` |
 | User assignment UI | settings — see `app/features/settings/` |
 

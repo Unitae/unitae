@@ -11,7 +11,7 @@ Checks connectivity to PostgreSQL and Redis.
 - **200 OK** — Both services are reachable (`text/plain` body: `OK`)
 - **503 Service Unavailable** — One or both checks failed (`text/plain` body: `Service Unavailable`)
 
-The check runs `redis.ping()` and `db.user.count()` in parallel. No authentication required.
+The check runs `redis.ping()` and `db.userAccount.count()` in parallel. No authentication required.
 
 ### Example Usage
 

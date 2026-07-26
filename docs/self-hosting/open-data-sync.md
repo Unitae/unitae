@@ -31,6 +31,8 @@ https://bano.openstreetmap.fr/data/full.csv.gz
 
 This URL is stored as the `bano-url` setting in the congregation's settings.
 
+> **Allowed hosts (SSRF protection).** For security, the sync only accepts URLs on an allowlisted host. The built-in defaults are `bano.openstreetmap.fr`, `adresse.data.gouv.fr`, and `data.gouv.fr`. URLs must use **HTTPS** on the standard port (443) — any other host, scheme, or port is rejected with a validation error. If you host the BANO CSV on a private mirror, add its hostname to the `UNITAE_OPEN_DATA_ALLOWLIST` env var (comma-separated) before configuring the URL. See [Environment Variables › Open Data Sync](environment-variables.md#open-data-sync).
+
 ### 2. Configure Allowed Postal Codes
 
 In **Settings > Territories**, specify which postal codes to import. Only addresses matching these codes will be processed — this prevents importing the entire national database.

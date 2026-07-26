@@ -2,7 +2,7 @@
 
 ## Overview
 
-Unitae uses a Redis-based background job processing system built on **BullMQ**. A single multi-queue worker process handles four job types: territory data sync, email notifications, PDF thumbnail generation, and data transfer (export/import). Jobs carry `congregationId` to maintain tenant isolation.
+Unitae uses a Redis-based background job processing system built on **BullMQ**. A single multi-queue worker process handles five job types: territory data sync, email notifications, PDF thumbnail generation, data transfer (export/import), and data retention (daily auto-anonymisation). Jobs carry `congregationId` to maintain tenant isolation.
 
 ## Architecture
 
@@ -21,6 +21,11 @@ Web Pod                                    Worker Pod (workers/worker.server.ts)
                                            │  dataTransferWorker   (concurrency 1)   │
                                            │    → handleDataTransferWork()           │
                                            │                                         │
+                                           │  retentionWorker      (concurrency 1)   │
+                                           │    → handleRetentionWork()              │
+                                           │    ▲ daily cron @ 03:00 UTC             │
+                                           │      (upsertJobScheduler)               │
+                                           │                                         │
                                            │  Health: :9090                          │
                                            └─────────────────────────────────────────┘
 ```
@@ -35,6 +40,7 @@ export const QUEUE_NAMES = {
   email: 'emailQueue',
   thumbnail: 'thumbnailQueue',
   dataTransfer: 'dataTransferQueue',
+  retention: 'retentionQueue',
 } as const
 ```
 
@@ -49,7 +55,7 @@ Imports and processes open data (BANO addresses) for territory management.
 - **Concurrency**: 1 (CPU/IO-intensive import)
 - **Retries**: 3 attempts, exponential backoff (10s base)
 - **Tenant isolation**: Uses `withScope(congregationId, ...)` for RLS-scoped DB access
-- **Job data**: `{ userEmail, userName?, congregationId }`
+- **Job data**: `{ userId, congregationId }`
 
 ### Email Queue
 
@@ -63,9 +69,7 @@ Sends notification emails asynchronously with automatic retries.
 - **Locale**: Wraps email rendering in `runWithLocale(congregation.locale, ...)` for i18n
 
 Job types (discriminated union on `type`):
-- `new-document-notification`: Notifies board validators when a document is uploaded
-- `documents-expiring`: Notifies validators about documents expiring within 48h
-- `notification-digest`: Batched notification email after debounce window settles
+- `notification-digest`: Batched notification email after the debounce window settles
 - `notification-instant`: Immediate notification email (no debounce)
 
 ### Thumbnail Queue
@@ -95,6 +99,19 @@ Job types (discriminated union on `type`):
 - `export`: Creates a `.unitae` archive (ZIP) with congregation data and optional uploaded files
 - `import`: Extracts a `.unitae` archive and imports entities with ID remapping
 
+### Retention Queue
+
+Runs the daily data-retention sweep that auto-anonymises members who left the congregation longer ago than the retention window.
+
+- **Producer**: `app/features/settings/server/retention-queue.server.ts`
+- **Handler**: `app/features/settings/jobs/handle-retention-work.server.ts`
+- **Concurrency**: 1
+- **Retries**: None (1 attempt only)
+- **Schedule**: A single repeating job registered at worker startup via `retentionQueue.upsertJobScheduler('retention-daily', { pattern: '0 <RETENTION_CRON_HOUR_UTC> * * *', tz: 'UTC' })` — runs daily at 03:00 UTC by default. `upsertJobScheduler` is idempotent, so restarts don't pile up duplicate schedules.
+- **Behaviour**: Iterates every active congregation and calls `autoAnonymizeRetentionCandidates(db, congregationId, DEFAULT_RETENTION_MONTHS, ...)`, which anonymises members whose `leftAt` is older than the window. Group responsibles are skipped with a warning (they must be reassigned by an admin first).
+
+This is distinct from the `/cron/retention` HTTP endpoint (expired-token / withdrawn-consent cleanup), which is triggered by an external scheduler — see [Cron Jobs](../self-hosting/cron-jobs.md).
+
 ## Worker Locale Support
 
 Background emails must render in the congregation's language. The worker uses `AsyncLocalStorage` via `app/shared/utils/worker-locale.server.ts`:
@@ -113,7 +130,7 @@ This module is imported at the top of `workers/worker.server.ts` before any hand
 
 ## Worker Health & Lifecycle
 
-The unified worker (`workers/worker.server.ts`) manages all four queue workers:
+The unified worker (`workers/worker.server.ts`) manages all five queue workers:
 
 - **Health endpoint**: HTTP server on port `UNITAE_WORKER_HEALTH_PORT` (default 9090)
 - **Ready check**: Returns 200 only when ALL workers have fired `ready` and none are closing

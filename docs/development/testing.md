@@ -9,7 +9,7 @@ Unitae uses three layers of tests, each with its own configuration and runner.
 | Unit | Vitest | `vitest.config.ts` | `*.test.ts` (co-located) | `pnpm test:unit` |
 | Integration | Vitest | `app/tests/vitest.config.integration.ts` | `*.integration.test.ts` | `pnpm test:integration` |
 | E2E | Playwright | `app/tests/playwright.config.ts` | `app/tests/e2e/*.spec.ts` | `pnpm test:e2e` |
-| Boundaries | ESLint | `.eslintrc.boundaries.cjs` | — | `pnpm test:boundaries` |
+| Boundaries | ESLint | `eslint.config.js` | — | `pnpm test:boundaries` |
 
 ## Commands
 

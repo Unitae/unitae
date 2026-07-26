@@ -97,13 +97,13 @@ The `notify()` pipeline path:
 
 2. `notify()` either buffers a `NotificationEvent` in PostgreSQL (debounced) or enqueues a `notification-instant` job.
 
-3. The worker picks up the job in `app/features/notifications/jobs/handle-email-work.server.tsx`, which delegates to `handle-notification-email.server.tsx`.
+3. The worker picks up the job in `app/features/notifications/jobs/handle-email-work.server.tsx`, which delegates to `handle-notification-email.server.ts`.
 
 4. `renderNotificationEmail` maps the notification type to a subject + React template, wrapped in `runWithLocale()` for i18n.
 
 5. Resend renders the React component to HTML and delivers the email.
 
-The inline path (`mailer.emails.send` directly from a service function) still exists for password reset, email verification, and the legacy `new-document-notification` job — but new work should go through `notify()`.
+The inline path (`mailer.emails.send` directly from a service function) still exists for transactional emails such as password reset and email verification — but new notification work should go through `notify()`.
 
 ## Mailer Configuration
 
