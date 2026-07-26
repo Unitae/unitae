@@ -233,6 +233,16 @@ export function AppSidebar({ permissions, congregationName, billingUrl, onSearch
                           label={m.sidebar_settings_assembly()}
                           end
                         />
+                        {billingUrl && (
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild className="min-h-[44px] md:min-h-0">
+                              <a href={billingUrl}>
+                                <CreditCard className="size-4" />
+                                <span>{m.sidebar_subscription()}</span>
+                              </a>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        )}
                       </>
                     )}
                     {permissions.canManageUsers && (
@@ -289,16 +299,6 @@ export function AppSidebar({ permissions, congregationName, billingUrl, onSearch
           <SidebarNavItem to="/me/profile" icon={User} label={m.sidebar_my_profile()} />
           <SidebarNavItem to="/me/territories" icon={MapPin} label={m.sidebar_my_territories()} />
           <SidebarNavItem to="/me/days-off" icon={CalendarOff} label={m.sidebar_my_absences()} />
-          {billingUrl && (
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild className="min-h-[44px] md:min-h-0">
-                <a href={billingUrl}>
-                  <CreditCard className="size-4" />
-                  <span>{m.sidebar_subscription()}</span>
-                </a>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          )}
           <SidebarMenuItem>
             <Form action="/logout" method="post">
               <SidebarMenuButton type="submit" className="text-muted-foreground hover:text-destructive">
