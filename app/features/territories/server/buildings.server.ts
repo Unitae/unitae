@@ -1,4 +1,4 @@
-import type { Building, Prisma } from '~/database/generated/client'
+import type { Prisma } from '~/database/generated/client'
 import type { Bbox } from '~/features/territories/model/bbox.type'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
@@ -306,28 +306,6 @@ export async function getAvailableEntrances(
   return await db.buildingEntrance.findMany({
     where: selectors,
     include: entranceInclude,
-  })
-}
-
-export async function getEntrance(
-  db: TransactionClient,
-  entranceId: number,
-  congregationId: number,
-): Promise<Entrance | null> {
-  return await db.buildingEntrance.findUnique({
-    where: { id_congregationId: { id: entranceId, congregationId } },
-    include: entranceInclude,
-  })
-}
-
-export async function getBuilding(
-  db: TransactionClient,
-  buildingId: number,
-  congregationId: number,
-): Promise<Building | null> {
-  return await db.building.findUnique({
-    where: { id_congregationId: { id: buildingId, congregationId } },
-    include: { entrances: { include: { buildings: true } } },
   })
 }
 

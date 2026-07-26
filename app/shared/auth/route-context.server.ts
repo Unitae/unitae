@@ -18,6 +18,10 @@ interface RouteContext {
  * Convenience helper: reads congregationId from context and runs fn inside withScope.
  * Use in loaders/actions that need scoped DB access after middleware has run.
  *
+ * The callback receives `(db, congregationId)` — thread that `congregationId`
+ * into service calls so their `where` clauses scope by it (defence-in-depth
+ * over RLS) instead of re-reading it from context.
+ *
  * `options` is forwarded to the underlying `db.$transaction` — use it to
  * extend the 5s default `timeout` for batch actions (bulk release, imports).
  */

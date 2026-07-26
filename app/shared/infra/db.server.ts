@@ -23,6 +23,10 @@ type TransactionOptions = Parameters<typeof db.$transaction>[1]
  * automatically unset when the transaction ends. This prevents leaking
  * congregation context across requests via the connection pool.
  *
+ * The callback receives `(tx, congregationId)` — the scoping `congregationId` is
+ * handed through so service helpers can add it to their `where` clauses
+ * (defence-in-depth over RLS) without re-reading it from context.
+ *
  * `options` is passed through to `db.$transaction` — use it to extend
  * the default 5s `timeout` for long-running batch work (e.g. imports).
  */
