@@ -48,3 +48,18 @@ export function billingPortalLink(slug: string): string | null {
 export function checkoutLink(slug: string): string | null {
   return linkFor(getHostSettings().billing?.upgradeUrl, slug, 'checkout')
 }
+
+/**
+ * Destination for the sidebar « Abonnement » entry, routed by state so there is always a path: a
+ * congregation that already has a Stripe customer manages it in the portal; one without (trial /
+ * never subscribed) goes to checkout to START a subscription (which creates the customer). Sending
+ * the latter to the portal would 410. `null` for non-admins or when self-hosted (link not shown).
+ */
+export function billingEntryUrl(opts: {
+  isAdmin: boolean
+  stripeCustomerId: string | null
+  slug: string
+}): string | null {
+  if (!opts.isAdmin) return null
+  return opts.stripeCustomerId ? billingPortalLink(opts.slug) : checkoutLink(opts.slug)
+}

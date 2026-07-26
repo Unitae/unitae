@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { requireAuth } from '~/shared/auth/middleware.server'
 import { congregationContext, currentAccountContext, permissionsContext } from '~/shared/auth/route-context.server'
-import { billingPortalLink } from '~/shared/domain/billing-link.server'
+import { billingEntryUrl } from '~/shared/domain/billing-link.server'
 import { Permission } from '~/shared/types/permission'
 import { AppLayout } from '~/shared/ui/AppLayout'
 import { RouteErrorBoundary } from '~/shared/ui/RouteErrorBoundary'
@@ -46,6 +46,12 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const can = (role: Permission) => permissions.has(role)
   const messages = { success: session.get('success'), error: session.get('error') }
 
+  const billingUrl = billingEntryUrl({
+    isAdmin: can(Permission.Admin),
+    stripeCustomerId: congregation.stripeCustomerId,
+    slug: congregation.slug,
+  })
+
   return data(
     {
       permissions: {
@@ -69,9 +75,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         isPlatformAdmin: currentUser.platformAdmin ?? false,
       },
       congregationName: congregation.displayName ?? congregation.name,
-      // SaaS billing link: admin-only, config-driven (null when self-hosted), AND only when the
-      // congregation has a Stripe customer — the portal returns 410 otherwise (trial / never subscribed).
-      billingUrl: can(Permission.Admin) && congregation.stripeCustomerId ? billingPortalLink(congregation.slug) : null,
+      billingUrl,
       messages,
     },
     {
