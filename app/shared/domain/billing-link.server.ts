@@ -1,4 +1,5 @@
 import { BILLING_TOKEN_TTL_MS, type BillingTokenPurpose, mintBillingLink } from '~/shared/auth/billing-token.server'
+import logger from '~/shared/infra/logger.server'
 import { getOptionalEnv } from '~/shared/utils/env.server'
 import { getHostSettings } from './host-settings.server'
 
@@ -14,10 +15,20 @@ function tokenFor(slug: string, purpose: BillingTokenPurpose): string | null {
 }
 
 function linkFor(baseUrl: string | undefined, slug: string, purpose: BillingTokenPurpose): string | null {
+  // Pas d'URL configurée = auto-hébergement : null volontaire, aucune UI de facturation.
   if (!baseUrl) return null
   const token = tokenFor(slug, purpose)
-  if (!token) return null
-  return `${baseUrl}?token=${encodeURIComponent(token)}`
+  if (!token) {
+    // URL configurée (déploiement géré) mais jeton non signable → BILLING_LINK_SECRET manquant ou
+    // désynchronisé : l'UI de facturation disparaît en silence. C'est le seul cas asymétrique à
+    // signaler (un self-hébergeur n'a pas d'URL, donc n'atteint jamais cette branche).
+    logger.error('Lien de facturation configuré mais BILLING_LINK_SECRET absent — UI de facturation masquée', {
+      tag: 'billing-link',
+    })
+    return null
+  }
+  const separator = baseUrl.includes('?') ? '&' : '?'
+  return `${baseUrl}${separator}token=${encodeURIComponent(token)}`
 }
 
 /** Lien vers le portail de facturation Stripe (abonnés actifs) — `null` si non configuré. */
