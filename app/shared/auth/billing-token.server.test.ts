@@ -65,21 +65,19 @@ describe('billing token', () => {
 
 // Golden vector — MUST match the platform + website copies byte-for-byte (see their tests).
 describe('cross-repo golden vector', () => {
-  const GOLDEN_SECRET = 'unitae-golden-vector-secret-v1'
-  const GOLDEN_PAYLOAD = { slug: 'golden-congregation', purpose: 'billing', exp: 1_893_456_000_000 } as const
-  const GOLDEN_TOKEN =
+  const goldenSecret = 'unitae-golden-vector-secret-v1'
+  const goldenPayload = { slug: 'golden-congregation', purpose: 'billing', exp: 1_893_456_000_000 } as const
+  const goldenToken =
     'eyJzbHVnIjoiZ29sZGVuLWNvbmdyZWdhdGlvbiIsInB1cnBvc2UiOiJiaWxsaW5nIiwiZXhwIjoxODkzNDU2MDAwMDAwfQ.zCJgTnAVAyxcnB7RKJ0PmtiYVVy9b0vTISU39BPoaNE'
 
   it('mints the exact golden token', () => {
-    expect(mintBillingToken(GOLDEN_PAYLOAD, GOLDEN_SECRET)).toBe(GOLDEN_TOKEN)
+    expect(mintBillingToken(goldenPayload, goldenSecret)).toBe(goldenToken)
   })
 
   it('verifies the golden token to the golden payload', () => {
-    expect(
-      verifyBillingToken(GOLDEN_TOKEN, GOLDEN_SECRET, { purpose: 'billing', now: GOLDEN_PAYLOAD.exp - 1 }),
-    ).toEqual({
+    expect(verifyBillingToken(goldenToken, goldenSecret, { purpose: 'billing', now: goldenPayload.exp - 1 })).toEqual({
       valid: true,
-      payload: GOLDEN_PAYLOAD,
+      payload: goldenPayload,
     })
   })
 })
