@@ -7,6 +7,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 delete process.env.S3_ENDPOINT
 
 let testDir: string
+// Files intentionally created OUTSIDE testDir (to prove containment) — tracked
+// so afterAll removes them and nothing leaks into the shared temp dir.
+const outsidePaths: string[] = []
 
 beforeAll(async () => {
   testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'unitae-storage-test-'))
@@ -14,6 +17,9 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
+  for (const outside of outsidePaths) {
+    await fs.rm(outside, { force: true })
+  }
   await fs.rm(testDir, { recursive: true, force: true })
   delete process.env.UNITAE_STORAGE_PATH
 })
@@ -101,6 +107,63 @@ describe('local filesystem driver', () => {
       const { buildStorageKey } = await getModule()
 
       expect(buildStorageKey(5, 'board', 'abc.pdf')).toBe('5/board/abc.pdf')
+    })
+  })
+
+  describe('path traversal containment', () => {
+    it('rejects an upload whose key escapes the storage root and writes nothing outside', async () => {
+      const { uploadFile, StorageKeyError } = await getModule()
+      const escapeName = `pwned-${process.pid}.txt`
+      const escapePath = path.join(testDir, '..', escapeName)
+      outsidePaths.push(escapePath)
+
+      await expect(uploadFile(`../${escapeName}`, Buffer.from('nope'), 'text/plain')).rejects.toBeInstanceOf(
+        StorageKeyError,
+      )
+      // The escape target outside the root must not have been written.
+      await expect(fs.access(escapePath)).rejects.toThrow()
+    })
+
+    it('rejects an absolute key that escapes the storage root', async () => {
+      const { uploadFile } = await getModule()
+      const absoluteKey = path.join(os.tmpdir(), `unitae-pwned-${process.pid}.txt`)
+      outsidePaths.push(absoluteKey)
+
+      await expect(uploadFile(absoluteKey, Buffer.from('nope'), 'text/plain')).rejects.toThrow()
+      await expect(fs.access(absoluteKey)).rejects.toThrow()
+    })
+
+    it('rejects a sibling directory that shares the root prefix', async () => {
+      // Guards the load-bearing `+ path.sep`: `${ROOT}-evil` must NOT pass a
+      // naive startsWith(ROOT) check.
+      const { uploadFile } = await getModule()
+      const siblingKey = `../${path.basename(testDir)}-evil/x.txt`
+      outsidePaths.push(path.resolve(testDir, siblingKey))
+
+      await expect(uploadFile(siblingKey, Buffer.from('nope'), 'text/plain')).rejects.toThrow()
+    })
+
+    it('does not read a real file outside the root via traversal', async () => {
+      const { getFileBuffer } = await getModule()
+      // Seed a sentinel at the exact path the traversal key resolves to, so a
+      // null result proves containment rather than a coincidental ENOENT.
+      const sentinelName = `sentinel-${process.pid}.txt`
+      const sentinelPath = path.join(testDir, '..', sentinelName)
+      await fs.writeFile(sentinelPath, 'TOP-SECRET')
+      outsidePaths.push(sentinelPath)
+
+      // With the guard removed this would return Buffer('TOP-SECRET').
+      const result = await getFileBuffer(`../${sentinelName}`)
+      expect(result).toBeNull()
+    })
+
+    it('still round-trips a legitimate nested key', async () => {
+      const { uploadFile, getFileBuffer } = await getModule()
+
+      await uploadFile('42/imports/abc.unitae', Buffer.from('archive'), 'application/zip')
+      const result = await getFileBuffer('42/imports/abc.unitae')
+
+      expect(result?.toString()).toBe('archive')
     })
   })
 })

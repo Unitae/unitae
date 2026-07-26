@@ -2,8 +2,10 @@ import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { Form, Link, redirect, useSearchParams } from 'react-router'
 import type { ImportSummary } from '~/features/settings/server/data-transfer.type'
 import { dataTransferQueue } from '~/features/settings/server/data-transfer-queue.server'
+import { isOwnedImportKey } from '~/features/settings/server/import-storage-key.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, requirePermission } from '~/shared/auth/route-context.server'
+import { createLogger } from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { Alert, AlertDescription, AlertTitle } from '~/shared/ui/alert'
 import { Badge } from '~/shared/ui/badge'
@@ -13,6 +15,8 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import type { Route } from './+types/import-confirm'
+
+const logger = createLogger('import-confirm')
 
 const ENTITY_LABELS: Record<string, () => string> = {
   congregation: () => m.data_transfer_entity_congregation(),
@@ -190,6 +194,18 @@ export async function action({ request, context }: Route.ActionArgs) {
   const storageKey = formData.get('storageKey') as string
 
   if (!storageKey) {
+    throw redirect('/settings/data/import')
+  }
+
+  // storageKey arrives from the submitted form, so an Admin can tamper with it.
+  // Only accept a key this congregation could have minted at upload — reject
+  // foreign-tenant prefixes and path traversal before enqueuing the import.
+  if (!isOwnedImportKey(currentUser.congregationId, storageKey)) {
+    logger.warn('import confirm: rejected storageKey not owned by caller', {
+      actorId: currentUser.id,
+      congregationId: currentUser.congregationId,
+      storageKey,
+    })
     throw redirect('/settings/data/import')
   }
 
