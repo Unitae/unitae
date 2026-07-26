@@ -17,7 +17,11 @@ To change the secret without logging everyone out or forcing 2FA re-enrollment, 
 UNITAE_SESSION_SECRET="new-secret,old-secret"
 ```
 
-The first entry signs new cookies; every entry still validates existing cookies and decrypts enrolled 2FA seeds. Once all sessions issued under the old secret have expired, drop the trailing entry and restart. Every entry must meet the 32-character minimum.
+The first entry signs new cookies; every entry still validates existing cookies and decrypts enrolled 2FA seeds. Every entry must meet the 32-character minimum, and the value must not be only separators/whitespace (the app refuses to boot on an empty secret list).
+
+**Keep the old secret until every 2FA user has re-enrolled.** Unlike session cookies (which expire within 1h/8h), enrolled TOTP seeds are stored encrypted with the secret that was current at enrollment and are **never re-encrypted**. Dropping the old secret from the list therefore locks out every user who enrolled before the rotation — they would have to re-enroll. Remove the trailing entry only once you are certain no seed still depends on it (or you accept forcing re-enrollment for the remainder).
+
+> **Upgrade note:** each entry is trimmed of surrounding whitespace. If your existing secret carries leading/trailing whitespace (a common footgun with file- or `echo`-derived secrets), the effective key changes on upgrade — logging everyone out and forcing 2FA re-enrollment. If so, add the whitespace-preserved value as a trailing rotation entry when upgrading.
 
 ## Application
 

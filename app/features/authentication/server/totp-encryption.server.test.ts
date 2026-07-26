@@ -78,6 +78,13 @@ describe('totp-encryption', () => {
       expect(await decryptWith(NEW_SECRET, payload)).toBe(PLAINTEXT)
     })
 
+    it('encrypts new seeds with the current secret, not a previous one', async () => {
+      // Encrypt while both secrets are configured, then fully rotate: dropping OLD must not break
+      // a seed written after the rotation — proving encryption used the current (first) secret.
+      const payload = await encryptWith(`${NEW_SECRET},${OLD_SECRET}`)
+      expect(await decryptWith(NEW_SECRET, payload)).toBe(PLAINTEXT)
+    })
+
     it('fails to decrypt when the encrypting secret has been fully rotated out', async () => {
       const payload = await encryptWith(OLD_SECRET)
       await expect(decryptWith(NEW_SECRET, payload)).rejects.toThrow()

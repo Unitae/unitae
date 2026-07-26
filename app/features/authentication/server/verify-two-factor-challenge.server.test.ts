@@ -14,6 +14,10 @@ vi.mock('./totp-encryption.server', () => ({
   decryptSecret: vi.fn(),
 }))
 
+vi.mock('~/shared/infra/logger.server', () => ({
+  default: { warn: vi.fn(), info: vi.fn(), error: vi.fn() },
+}))
+
 const { verifyTwoFactorChallenge } = await import('./verify-two-factor-challenge.server')
 const { unscopedDb } = await import('~/shared/infra/db.server')
 const { verifyTotpCode } = await import('./totp.server')
@@ -67,5 +71,17 @@ describe('verifyTwoFactorChallenge', () => {
     vi.mocked(unscopedDb.userAccount.findFirst).mockResolvedValue(null as never)
 
     expect(await verifyTwoFactorChallenge(999, '123456')).toBe(false)
+  })
+
+  it('returns false (not throw) when the stored secret cannot be decrypted', async () => {
+    // A seed encrypted under a rotated-out UNITAE_SESSION_SECRET (or a corrupted column) makes
+    // decryptSecret throw. The login action must not 500 — fail the challenge cleanly.
+    vi.mocked(unscopedDb.userAccount.findFirst).mockResolvedValue(enrolledActiveAccount as never)
+    vi.mocked(decryptSecret).mockImplementation(() => {
+      throw new Error('Unsupported state or unable to authenticate data')
+    })
+
+    await expect(verifyTwoFactorChallenge(7, '123456')).resolves.toBe(false)
+    expect(verifyTotpCode).not.toHaveBeenCalled()
   })
 })

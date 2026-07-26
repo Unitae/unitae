@@ -7,7 +7,9 @@ import { getSessionSecrets } from '~/shared/utils/env.server'
 // leaked session secret is already catastrophic, so binding the two is
 // acceptable. Rotation is supported: new seeds are encrypted with the current
 // (first) secret, while decryption tries every configured secret in turn, so
-// rotating the session secret no longer forces users to re-enroll.
+// rotating the session secret no longer forces users to re-enroll — as long as
+// the previous secret stays in the list. Seeds are never re-encrypted, so
+// dropping a still-in-use previous secret locks those users out (they re-enroll).
 const ALGORITHM = 'aes-256-gcm'
 const KEY_LENGTH = 32
 const IV_LENGTH = 12

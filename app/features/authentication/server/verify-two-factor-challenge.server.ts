@@ -1,4 +1,5 @@
 import { unscopedDb } from '~/shared/infra/db.server'
+import logger from '~/shared/infra/logger.server'
 import { verifyTotpCode } from './totp.server'
 import { decryptSecret } from './totp-encryption.server'
 
@@ -18,5 +19,20 @@ export async function verifyTwoFactorChallenge(userId: number, code: string): Pr
     return false
   }
 
-  return verifyTotpCode(decryptSecret(account.twoFactorSecret), code)
+  let secret: string
+  try {
+    secret = decryptSecret(account.twoFactorSecret)
+  } catch (error) {
+    // The stored seed can't be decrypted by any configured secret — most likely a rotated-out
+    // UNITAE_SESSION_SECRET (previous entry dropped too early) or a corrupted column. Fail the
+    // challenge cleanly so the user gets the friendly invalid-code path instead of a 500, and log
+    // it so the operator can diagnose (the seed itself is never logged).
+    logger.error(
+      `verifyTwoFactorChallenge: cannot decrypt stored TOTP secret for user ${userId} — likely a rotated-out UNITAE_SESSION_SECRET or a corrupted column`,
+      error,
+    )
+    return false
+  }
+
+  return verifyTotpCode(secret, code)
 }

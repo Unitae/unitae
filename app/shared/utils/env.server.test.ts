@@ -102,6 +102,44 @@ describe('env.server', () => {
       process.env.UNITAE_SESSION_SECRET = 'too-short'
       expect(() => validateEnv()).not.toThrow()
     })
+
+    it('accepts a secret at exactly the 32-character minimum', async () => {
+      const { validateEnv } = await import('./env.server')
+      vi.stubEnv('NODE_ENV', 'production')
+      process.env.UNITAE_SESSION_SECRET = 'x'.repeat(32)
+      expect('x'.repeat(32).length).toBe(32)
+      expect(() => validateEnv()).not.toThrow()
+    })
+
+    it('throws in production on a 31-character secret (boundary)', async () => {
+      const { validateEnv } = await import('./env.server')
+      vi.stubEnv('NODE_ENV', 'production')
+      process.env.UNITAE_SESSION_SECRET = 'x'.repeat(31)
+      expect(() => validateEnv()).toThrow('UNITAE_SESSION_SECRET')
+    })
+
+    it('throws on a delimiter/whitespace-only secret in every environment (fail closed)', async () => {
+      const { validateEnv } = await import('./env.server')
+      // Raw string is truthy (passes requireEnv) but parses to zero secrets: an empty secrets
+      // array would disable cookie signing entirely, so this must be refused even in development.
+      vi.stubEnv('NODE_ENV', 'development')
+      process.env.UNITAE_SESSION_SECRET = ' , , '
+      expect(() => validateEnv()).toThrow('UNITAE_SESSION_SECRET')
+    })
+
+    it('fails closed on a weak secret when NODE_ENV is unset', async () => {
+      const { validateEnv } = await import('./env.server')
+      vi.stubEnv('NODE_ENV', '')
+      process.env.UNITAE_SESSION_SECRET = 'too-short'
+      expect(() => validateEnv()).toThrow('UNITAE_SESSION_SECRET')
+    })
+
+    it('fails closed on a weak secret in a non-standard environment like staging', async () => {
+      const { validateEnv } = await import('./env.server')
+      vi.stubEnv('NODE_ENV', 'staging')
+      process.env.UNITAE_SESSION_SECRET = 'too-short'
+      expect(() => validateEnv()).toThrow('UNITAE_SESSION_SECRET')
+    })
   })
 
   describe('getSessionSecrets', () => {

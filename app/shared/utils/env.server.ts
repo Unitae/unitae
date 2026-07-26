@@ -38,8 +38,17 @@ export function getSessionSecrets(): string[] {
 function validateSessionSecret() {
   requireEnv('UNITAE_SESSION_SECRET')
 
+  const secrets = getSessionSecrets()
+  // requireEnv only checks the raw string is truthy, but the parser trims and drops empty
+  // segments — so a delimiter/whitespace-only value like "," or "   " passes presence yet yields
+  // no usable secret. An empty array disables cookie signing entirely (react-router treats
+  // `secrets: []` as unsigned), so refuse it in every environment, not just production.
+  if (secrets.length === 0) {
+    throw new Error('UNITAE_SESSION_SECRET must contain at least one non-empty secret')
+  }
+
   const problems: string[] = []
-  for (const secret of getSessionSecrets()) {
+  for (const secret of secrets) {
     if (secret.length < MIN_SESSION_SECRET_LENGTH) {
       problems.push(`must be at least ${MIN_SESSION_SECRET_LENGTH} characters (got ${secret.length})`)
     }
