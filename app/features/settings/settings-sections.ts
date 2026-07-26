@@ -5,7 +5,7 @@
 export type SettingsItemKey =
   | 'general'
   | 'subscription'
-  | 'publishers'
+  | 'congregation'
   | 'territories'
   | 'users'
   | 'permissions'
@@ -43,7 +43,7 @@ const CATALOG: CatalogEntry[] = [
   { key: 'general', group: 'account', href: '/settings/general', external: false, visible: p => p.canManageSettings },
   { key: 'subscription', group: 'account', href: '', external: true, visible: (_p, hasBilling) => hasBilling },
   {
-    key: 'publishers',
+    key: 'congregation',
     group: 'modules',
     href: '/settings/congregation',
     external: false,

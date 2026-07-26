@@ -50,7 +50,7 @@ type IconComponent = React.ComponentType<{ className?: string }>
 const ITEM_DISPLAY: Record<SettingsItemKey, { icon: IconComponent; title: () => string; description: () => string }> = {
   general: { icon: Settings, title: m.sidebar_settings_general, description: m.settings_hub_general_desc },
   subscription: { icon: CreditCard, title: m.sidebar_subscription, description: m.settings_hub_subscription_desc },
-  publishers: { icon: Building2, title: m.settings_hub_publishers_title, description: m.settings_hub_publishers_desc },
+  congregation: { icon: Building2, title: m.sidebar_settings_assembly, description: m.settings_hub_congregation_desc },
   territories: { icon: MapIcon, title: m.sidebar_settings_territories, description: m.settings_hub_territories_desc },
   users: { icon: UserCog, title: m.sidebar_users, description: m.settings_hub_users_desc },
   permissions: { icon: Shield, title: m.sidebar_settings_permissions, description: m.settings_hub_permissions_desc },

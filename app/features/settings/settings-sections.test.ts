@@ -10,7 +10,7 @@ describe('buildSettingsSections', () => {
     expect(sections.map(s => s.key)).toEqual(['account', 'modules', 'access', 'data'])
     expect(sections.map(s => s.items.map(i => i.key))).toEqual([
       ['general', 'subscription'],
-      ['publishers', 'territories'],
+      ['congregation', 'territories'],
       ['users', 'permissions'],
       ['data', 'audit'],
     ])
