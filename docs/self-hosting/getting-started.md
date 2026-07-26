@@ -30,6 +30,7 @@ Edit `.env` and set the required values:
 # Required
 DB_PASSWORD=your-strong-database-password
 REDIS_PASSWORD=your-strong-redis-password
+# Min 32 chars. To rotate later, comma-separate new-then-old: "new-secret,old-secret"
 UNITAE_SESSION_SECRET=your-secret-key-at-least-32-characters
 DB_URL=postgresql://unitae:your-strong-database-password@postgres:5432/unitae
 RESEND_API_KEY=re_your-resend-api-key

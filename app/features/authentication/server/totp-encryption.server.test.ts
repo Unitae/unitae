@@ -47,4 +47,47 @@ describe('totp-encryption', () => {
 
     expect(() => decryptSecret('not-a-valid-payload')).toThrow()
   })
+
+  describe('secret rotation', () => {
+    const OLD_SECRET = 'old-session-secret-value-long-enough-xx'
+    const NEW_SECRET = 'new-session-secret-value-long-enough-yy'
+    const PLAINTEXT = 'JBSWY3DPEHPK3PXP'
+
+    async function encryptWith(secret: string): Promise<string> {
+      vi.resetModules()
+      vi.stubEnv('UNITAE_SESSION_SECRET', secret)
+      const { encryptSecret } = await import('./totp-encryption.server')
+      return encryptSecret(PLAINTEXT)
+    }
+
+    async function decryptWith(secret: string, payload: string): Promise<string> {
+      vi.resetModules()
+      vi.stubEnv('UNITAE_SESSION_SECRET', secret)
+      const { decryptSecret } = await import('./totp-encryption.server')
+      return decryptSecret(payload)
+    }
+
+    it('decrypts a seed encrypted before rotation using a previous secret', async () => {
+      const payload = await encryptWith(OLD_SECRET)
+      // After rotation the current secret is NEW; OLD is kept as a previous entry.
+      expect(await decryptWith(`${NEW_SECRET},${OLD_SECRET}`, payload)).toBe(PLAINTEXT)
+    })
+
+    it('still round-trips with a single current secret', async () => {
+      const payload = await encryptWith(NEW_SECRET)
+      expect(await decryptWith(NEW_SECRET, payload)).toBe(PLAINTEXT)
+    })
+
+    it('encrypts new seeds with the current secret, not a previous one', async () => {
+      // Encrypt while both secrets are configured, then fully rotate: dropping OLD must not break
+      // a seed written after the rotation — proving encryption used the current (first) secret.
+      const payload = await encryptWith(`${NEW_SECRET},${OLD_SECRET}`)
+      expect(await decryptWith(NEW_SECRET, payload)).toBe(PLAINTEXT)
+    })
+
+    it('fails to decrypt when the encrypting secret has been fully rotated out', async () => {
+      const payload = await encryptWith(OLD_SECRET)
+      await expect(decryptWith(NEW_SECRET, payload)).rejects.toThrow()
+    })
+  })
 })

@@ -5,6 +5,7 @@ import { SESSION_MAX_AGE_SECONDS_DEV, SESSION_MAX_AGE_SECONDS_PROD } from '~/sha
 import { resolveCongregation, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
+import { getSessionSecrets } from '~/shared/utils/env.server'
 
 type SessionData = {
   userId: string
@@ -33,8 +34,9 @@ const { getSession, commitSession, destroySession } = createCookieSessionStorage
     maxAge: process.env.NODE_ENV === 'production' ? SESSION_MAX_AGE_SECONDS_PROD : SESSION_MAX_AGE_SECONDS_DEV,
     path: '/',
     sameSite: 'lax',
-    // biome-ignore lint/style/noNonNullAssertion: validated at startup by env.server.ts
-    secrets: [process.env.UNITAE_SESSION_SECRET!],
+    // [current, ...previous] — the first signs new cookies, the rest validate existing ones during
+    // a rotation. Presence/length validated at startup by env.server.ts (validateEnv).
+    secrets: getSessionSecrets(),
     secure: process.env.NODE_ENV === 'production',
   },
 })
