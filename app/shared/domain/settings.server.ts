@@ -33,7 +33,7 @@ export async function setSetting(db: TransactionClient, key: SettingKey, value: 
 
   if (existing) {
     await db.setting.update({
-      where: { id: existing.id },
+      where: { id_congregationId: { id: existing.id, congregationId } },
       data: { value },
     })
   } else {

@@ -28,7 +28,7 @@ export async function importBuildings(
 
   for (const record of records) {
     const existing = await db.building.findFirst({
-      where: { number: record.number, street: record.street, zip: record.zip },
+      where: { number: record.number, street: record.street, zip: record.zip, congregationId },
     })
 
     const data = {
@@ -46,7 +46,7 @@ export async function importBuildings(
     }
 
     if (existing) {
-      await db.building.update({ where: { id: existing.id }, data })
+      await db.building.update({ where: { id_congregationId: { id: existing.id, congregationId } }, data })
       idMap.set('buildings', record.id, existing.id)
     } else {
       const created = await db.building.create({
@@ -163,6 +163,7 @@ export async function importTerritoryEntranceLinks(
   zip: JsZip,
   db: TransactionClient,
   idMap: EntityIdMap,
+  congregationId: number,
 ): Promise<void> {
   const records = await readNdjsonFile<{ territoryId: number; entranceId: number }>(zip, 'territory-entrance-links')
   for (const record of records) {
@@ -171,7 +172,7 @@ export async function importTerritoryEntranceLinks(
     if (!territoryId || !entranceId) continue
 
     await db.territory.update({
-      where: { id: territoryId },
+      where: { id_congregationId: { id: territoryId, congregationId } },
       data: { entrances: { connect: { id: entranceId } } },
     })
   }
@@ -181,6 +182,7 @@ export async function importBuildingEntranceLinks(
   zip: JsZip,
   db: TransactionClient,
   idMap: EntityIdMap,
+  congregationId: number,
 ): Promise<void> {
   const records = await readNdjsonFile<{ buildingId: number; entranceId: number }>(zip, 'building-entrance-links')
   for (const record of records) {
@@ -189,7 +191,7 @@ export async function importBuildingEntranceLinks(
     if (!buildingId || !entranceId) continue
 
     await db.building.update({
-      where: { id: buildingId },
+      where: { id_congregationId: { id: buildingId, congregationId } },
       data: { entrances: { connect: { id: entranceId } } },
     })
   }

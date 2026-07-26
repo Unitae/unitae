@@ -6,6 +6,7 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 export async function setBuildingProspectionData(
   db: TransactionClient,
   buildingId: number,
+  congregationId: number,
   input: BuildingProspectionInput,
 ): Promise<Building> {
   const homes = input.homes ? Number(input.homes) : null
@@ -16,20 +17,19 @@ export async function setBuildingProspectionData(
   const prospectionDate = input['prospection-date']
 
   const building = await db.building.update({
-    where: { id: buildingId },
+    where: { id_congregationId: { id: buildingId, congregationId } },
     data: { prospectionDate: prospectionDate ? new Date(prospectionDate) : null },
     include: { entrances: { where: { kind: EntranceKind.Residential }, take: 1 } },
   })
 
-  const { congregationId } = building
   const hasResidential = Boolean(input['has-residential'])
   const residentialEntrance = building.entrances[0]
 
   // Remove residential entrance if unchecked
   if (!hasResidential && residentialEntrance != null) {
-    await db.buildingResidentialData.deleteMany({ where: { entranceId: residentialEntrance.id } })
-    await db.buildingAccess.deleteMany({ where: { entranceId: residentialEntrance.id } })
-    await db.buildingEntrance.delete({ where: { id: residentialEntrance.id } })
+    await db.buildingResidentialData.deleteMany({ where: { entranceId: residentialEntrance.id, congregationId } })
+    await db.buildingAccess.deleteMany({ where: { entranceId: residentialEntrance.id, congregationId } })
+    await db.buildingEntrance.delete({ where: { id_congregationId: { id: residentialEntrance.id, congregationId } } })
   }
 
   // Create residential entrance if checked but doesn't exist
@@ -48,7 +48,7 @@ export async function setBuildingProspectionData(
   if (currentResidentialEntrance != null) {
     // Update entrance-level fields
     await db.buildingEntrance.update({
-      where: { id: currentResidentialEntrance.id },
+      where: { id_congregationId: { id: currentResidentialEntrance.id, congregationId } },
       data: {
         access: accessType,
         isPMR: Boolean(input.pmr),
@@ -73,7 +73,7 @@ export async function setBuildingProspectionData(
     })
 
     // BuildingAccess
-    await db.buildingAccess.deleteMany({ where: { entranceId: currentResidentialEntrance.id } })
+    await db.buildingAccess.deleteMany({ where: { entranceId: currentResidentialEntrance.id, congregationId } })
     if (accessType != null) {
       await db.buildingAccess.create({
         data: {
@@ -87,11 +87,11 @@ export async function setBuildingProspectionData(
 
     // Recalculate materialized aggregates on the residential entrance
     const aggregates = await db.buildingResidentialData.aggregate({
-      where: { entranceId: currentResidentialEntrance.id },
+      where: { entranceId: currentResidentialEntrance.id, congregationId },
       _sum: { homes: true, phones: true, liberals: true },
     })
     await db.buildingEntrance.update({
-      where: { id: currentResidentialEntrance.id },
+      where: { id_congregationId: { id: currentResidentialEntrance.id, congregationId } },
       data: {
         homes: aggregates._sum.homes,
         phones: aggregates._sum.phones,
@@ -121,7 +121,7 @@ async function syncCommerceEntrances(
   notes: string[],
 ) {
   const existing = await db.buildingEntrance.findMany({
-    where: { kind: EntranceKind.Commerce, buildings: { some: { id: buildingId } } },
+    where: { kind: EntranceKind.Commerce, congregationId, buildings: { some: { id: buildingId } } },
     orderBy: { id: 'asc' },
   })
 
@@ -129,11 +129,11 @@ async function syncCommerceEntrances(
   for (let i = 0; i < existing.length; i++) {
     if (i < shopKinds.length) {
       await db.buildingEntrance.update({
-        where: { id: existing[i].id },
+        where: { id_congregationId: { id: existing[i].id, congregationId } },
         data: { shopKind: shopKinds[i], notes: notes[i] ?? '' },
       })
     } else {
-      await db.buildingEntrance.delete({ where: { id: existing[i].id } })
+      await db.buildingEntrance.delete({ where: { id_congregationId: { id: existing[i].id, congregationId } } })
     }
   }
 
@@ -159,7 +159,7 @@ async function syncUniqueEntrance(
   shouldExist: boolean,
 ) {
   const existing = await db.buildingEntrance.findFirst({
-    where: { kind, buildings: { some: { id: buildingId } } },
+    where: { kind, congregationId, buildings: { some: { id: buildingId } } },
   })
 
   if (shouldExist && existing == null) {
@@ -171,6 +171,6 @@ async function syncUniqueEntrance(
       },
     })
   } else if (!shouldExist && existing != null) {
-    await db.buildingEntrance.delete({ where: { id: existing.id } })
+    await db.buildingEntrance.delete({ where: { id_congregationId: { id: existing.id, congregationId } } })
   }
 }

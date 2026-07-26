@@ -137,7 +137,7 @@ afterAll(async () => {
 
 describe('getTerritoryContent', () => {
   it('aggregates residential homes for a Classical territory (nulls treated as 0)', async () => {
-    const result = await withScope(congId, tx => getTerritoryContent(tx as never, classicalTerritoryId))
+    const result = await withScope(congId, tx => getTerritoryContent(tx as never, classicalTerritoryId, congId))
     expect(result).not.toBeNull()
     expect(result?.kind).toBe(TerritoryKind.Classical)
     expect(result?.entranceCount).toBe(3)
@@ -146,19 +146,19 @@ describe('getTerritoryContent', () => {
   })
 
   it('counts entrances for a Commerces territory', async () => {
-    const result = await withScope(congId, tx => getTerritoryContent(tx as never, commerceTerritoryId))
+    const result = await withScope(congId, tx => getTerritoryContent(tx as never, commerceTerritoryId, congId))
     expect(result?.entranceCount).toBe(3)
     expect(result?.quantity).toBe(3)
     expect(result?.kind).toBe(TerritoryKind.Commerces)
   })
 
   it('returns null when the territory does not exist', async () => {
-    const result = await withScope(congId, tx => getTerritoryContent(tx as never, 999_999_999))
+    const result = await withScope(congId, tx => getTerritoryContent(tx as never, 999_999_999, congId))
     expect(result).toBeNull()
   })
 
   it('returns null when the requested territory belongs to another congregation (RLS)', async () => {
-    const result = await withScope(congId, tx => getTerritoryContent(tx as never, otherCongTerritoryId))
+    const result = await withScope(congId, tx => getTerritoryContent(tx as never, otherCongTerritoryId, otherCongId))
     expect(result).toBeNull()
   })
 })

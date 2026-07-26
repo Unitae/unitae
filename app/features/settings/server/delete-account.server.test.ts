@@ -36,7 +36,9 @@ describe('deleteAccount', () => {
     const result = await deleteAccount(mockDb as never, accountId, 10, 99)
 
     expect(result).toEqual({ accountId: 1, memberId: 42 })
-    expect(mockDb.userAccount.delete).toHaveBeenCalledWith({ where: { id: 1 } })
+    expect(mockDb.userAccount.delete).toHaveBeenCalledWith({
+      where: { id_congregationId: { id: 1, congregationId: 10 } },
+    })
     expect(audit).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'account.deleted',

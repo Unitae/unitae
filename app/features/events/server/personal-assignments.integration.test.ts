@@ -3,7 +3,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import { getPersonalAssignments } from '~/features/events/server/personal-assignments.server'
-import { PublisherType } from '~/shared/types/publisher-type'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -183,7 +182,7 @@ describe('getPersonalAssignments', () => {
   const since = new Date('2026-01-01T00:00:00Z')
 
   it('returns the user own programme assignments and days off', async () => {
-    const items = await withScope(congAId, db => getPersonalAssignments(db, aliceId, since))
+    const items = await withScope(congAId, db => getPersonalAssignments(db, aliceId, congAId, since))
 
     const kinds = items.map(i => i.kind).sort()
     expect(kinds).toEqual(['day-off', 'programme-part', 'programme-service-role'])
@@ -200,12 +199,12 @@ describe('getPersonalAssignments', () => {
   it('does not leak assignments from another congregation under RLS', async () => {
     // Scope is congregation B but we are asking for Alice's assignments.
     // RLS blocks Alice's data from being visible.
-    const items = await withScope(congBId, db => getPersonalAssignments(db, aliceId, since))
+    const items = await withScope(congBId, db => getPersonalAssignments(db, aliceId, congAId, since))
 
     expect(items).toEqual([])
 
     // And asking for Bob's data while scoped to B does see Bob's assignment.
-    const bobItems = await withScope(congBId, db => getPersonalAssignments(db, bobId, since))
+    const bobItems = await withScope(congBId, db => getPersonalAssignments(db, bobId, congBId, since))
     expect(bobItems.length).toBeGreaterThanOrEqual(1)
     expect(bobItems.some(i => i.uid === `programme-part-assignee-${foreignAssignmentId}`)).toBe(true)
   })

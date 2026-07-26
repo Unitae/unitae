@@ -50,10 +50,18 @@ describe('updateBuildingsInEntrance', () => {
     } as never)
 
     // buildingIds [1, 4] → ajouter 4, déconnecter 2 et 3
-    await updateBuildingsInEntrance(db as never, 10, [1, 4], 1)
+    await updateBuildingsInEntrance(db as never, 10, [1, 4], 7)
 
     // update a été appelé pour connecter/déconnecter
     expect(vi.mocked(db.buildingEntrance.update).mock.calls).toHaveLength(1)
+
+    // La lecture et l'écriture sont scopées par congregationId (#281)
+    expect(db.buildingEntrance.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id_congregationId: { id: 10, congregationId: 7 } } }),
+    )
+    expect(vi.mocked(db.buildingEntrance.update).mock.calls[0][0].where).toEqual({
+      id_congregationId: { id: 10, congregationId: 7 },
+    })
   })
 
   it('nettoie les entrées vides après la mise à jour', async () => {
@@ -66,10 +74,14 @@ describe('updateBuildingsInEntrance', () => {
       buildings: [{ id: 1 }],
     } as never)
 
-    await updateBuildingsInEntrance(db as never, 10, [1], 1)
+    await updateBuildingsInEntrance(db as never, 10, [1], 7)
 
-    // deleteMany est toujours appelé pour nettoyer les entrées vides
+    // deleteMany est toujours appelé pour nettoyer les entrées vides,
+    // scopé par congregationId pour ne pas purger celles d'autres congrégations (#281)
     expect(vi.mocked(db.buildingEntrance.deleteMany).mock.calls).toHaveLength(1)
+    expect(db.buildingEntrance.deleteMany).toHaveBeenCalledWith({
+      where: { congregationId: 7, buildings: { none: {} } },
+    })
   })
 
   it('gère les erreurs sans planter', async () => {

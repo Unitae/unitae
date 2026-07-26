@@ -16,8 +16,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
     return data({ error: 'invalid_id' }, { status: 400 })
   }
 
-  return withScopeFromContext(context, async db => {
-    const content = await getTerritoryContent(db, territoryId)
+  return withScopeFromContext(context, async (db, congregationId) => {
+    const content = await getTerritoryContent(db, territoryId, congregationId)
     if (content == null) {
       return data({ error: 'territory_not_found' }, { status: 404 })
     }

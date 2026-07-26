@@ -34,7 +34,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
       if (params.mode === 'edit') {
         const territory = await db.territory.findFirst({
-          where: { id: params.territoryId },
+          where: { id: params.territoryId, congregationId },
           select: { type: true },
         })
         if (territory == null) {

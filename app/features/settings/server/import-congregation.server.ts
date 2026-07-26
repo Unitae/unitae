@@ -195,7 +195,7 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
       await importPublisherGroups(zip, db, idMap, congregationId)
       await progress()
 
-      await updateMemberPublisherGroups(zip, db, idMap)
+      await updateMemberPublisherGroups(zip, db, idMap, congregationId)
       await progress()
 
       await importPublisherActivities(zip, db, idMap, congregationId)
@@ -225,10 +225,10 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
       await importBuildingResidentialData(zip, db, idMap, congregationId)
       await progress()
 
-      await importTerritoryEntranceLinks(zip, db, idMap)
+      await importTerritoryEntranceLinks(zip, db, idMap, congregationId)
       await progress()
 
-      await importBuildingEntranceLinks(zip, db, idMap)
+      await importBuildingEntranceLinks(zip, db, idMap, congregationId)
       await progress()
 
       await importAttributions(zip, db, idMap, congregationId)

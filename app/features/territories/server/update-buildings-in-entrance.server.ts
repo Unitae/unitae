@@ -2,13 +2,13 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 import { computeEntranceCentroid } from './compute-entrance-centroid'
 
-async function recalculateEntranceAggregates(db: TransactionClient, entranceId: number) {
+async function recalculateEntranceAggregates(db: TransactionClient, entranceId: number, congregationId: number) {
   const aggregates = await db.buildingResidentialData.aggregate({
-    where: { entranceId },
+    where: { entranceId, congregationId },
     _sum: { homes: true, phones: true, liberals: true },
   })
   await db.buildingEntrance.update({
-    where: { id: entranceId },
+    where: { id_congregationId: { id: entranceId, congregationId } },
     data: {
       homes: aggregates._sum.homes,
       phones: aggregates._sum.phones,
@@ -17,14 +17,14 @@ async function recalculateEntranceAggregates(db: TransactionClient, entranceId: 
   })
 }
 
-export async function recalculateEntranceCentroid(db: TransactionClient, entranceId: number) {
+export async function recalculateEntranceCentroid(db: TransactionClient, entranceId: number, congregationId: number) {
   const buildings = await db.building.findMany({
-    where: { entrances: { some: { id: entranceId } } },
+    where: { congregationId, entrances: { some: { id: entranceId } } },
     select: { latitude: true, longitude: true },
   })
   const centroid = computeEntranceCentroid(buildings)
   await db.buildingEntrance.update({
-    where: { id: entranceId },
+    where: { id_congregationId: { id: entranceId, congregationId } },
     data: {
       latitude: centroid?.latitude ?? null,
       longitude: centroid?.longitude ?? null,
@@ -39,7 +39,7 @@ export async function updateBuildingsInEntrance(
   congregationId: number,
 ) {
   const entrance = await db.buildingEntrance.findUnique({
-    where: { id: entranceId },
+    where: { id_congregationId: { id: entranceId, congregationId } },
     include: { buildings: true, accesses: { orderBy: { position: 'asc' } } },
   })
 
@@ -66,7 +66,7 @@ export async function updateBuildingsInEntrance(
   try {
     // Update current entrance.
     await db.buildingEntrance.update({
-      where: { id: entrance.id },
+      where: { id_congregationId: { id: entrance.id, congregationId } },
       data: {
         buildings: {
           connect: newBuildingIds.map(buildingId => ({ id: buildingId })),
@@ -103,18 +103,18 @@ export async function updateBuildingsInEntrance(
 
       // Reassign BuildingResidentialData to the new entrance
       await db.buildingResidentialData.updateMany({
-        where: { buildingId: disconnectBuildingId },
+        where: { buildingId: disconnectBuildingId, congregationId },
         data: { entranceId: newEntrance.id },
       })
 
       // Recalculate aggregates and centroid on the new entrance
-      await recalculateEntranceAggregates(db, newEntrance.id)
-      await recalculateEntranceCentroid(db, newEntrance.id)
+      await recalculateEntranceAggregates(db, newEntrance.id, congregationId)
+      await recalculateEntranceCentroid(db, newEntrance.id, congregationId)
     }
 
     // Recalculate aggregates and centroid on the original entrance
-    await recalculateEntranceAggregates(db, entranceId)
-    await recalculateEntranceCentroid(db, entranceId)
+    await recalculateEntranceAggregates(db, entranceId, congregationId)
+    await recalculateEntranceCentroid(db, entranceId, congregationId)
 
     logger.info(`Update of entrance ${entranceId} with buildings ${buildingIds.join(', ')} succeed.`)
   } catch (error) {
@@ -123,6 +123,6 @@ export async function updateBuildingsInEntrance(
 
   // Remove empty entrances.
   await db.buildingEntrance.deleteMany({
-    where: { buildings: { none: {} } },
+    where: { congregationId, buildings: { none: {} } },
   })
 }

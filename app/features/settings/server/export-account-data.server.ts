@@ -21,9 +21,13 @@ interface UserDataExport {
  * `userId` is a UserAccount id. Member-bound data (publisher activities,
  * attributions, group membership) is read via the linked Member when present.
  */
-export async function exportAccountData(db: TransactionClient, userId: number): Promise<UserDataExport> {
+export async function exportAccountData(
+  db: TransactionClient,
+  userId: number,
+  congregationId: number,
+): Promise<UserDataExport> {
   const account = await db.userAccount.findUnique({
-    where: { id: userId },
+    where: { id_congregationId: { id: userId, congregationId } },
     select: {
       id: true,
       firstname: true,

@@ -168,7 +168,7 @@ export async function updateRoleIdentity(
 
   if (fieldsChanged.length === 0) return
 
-  await db.role.update({ where: { id }, data })
+  await db.role.update({ where: { id_congregationId: { id, congregationId } }, data })
   audit({
     action: AuditAction.RoleUpdated,
     congregationId,
@@ -276,7 +276,7 @@ export async function deleteRole(
     throw new ForbiddenError('Built-in roles cannot be deleted')
   }
 
-  await db.role.delete({ where: { id } })
+  await db.role.delete({ where: { id_congregationId: { id, congregationId } } })
 
   audit({
     action: AuditAction.RoleDeleted,

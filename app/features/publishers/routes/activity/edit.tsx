@@ -42,10 +42,11 @@ export function loader({ params, context }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  return withScopeFromContext(context, async db => {
+  return withScopeFromContext(context, async (db, congregationId) => {
     const activity = await db.publisherActivity.findFirst({
       where: {
         id: requireParamId(params.activityId, '/publishers/activity'),
+        congregationId,
       },
       include: {
         publisher: {

@@ -32,7 +32,7 @@ function makeJob(data: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(withScope).mockImplementation(async (_id, fn) => fn({} as never))
+  vi.mocked(withScope).mockImplementation(async (id, fn) => fn({} as never, id))
   vi.mocked(importOpenData).mockResolvedValue(undefined)
   vi.mocked(notify).mockResolvedValue(undefined)
 })

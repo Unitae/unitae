@@ -23,12 +23,16 @@ type TransactionOptions = Parameters<typeof db.$transaction>[1]
  * automatically unset when the transaction ends. This prevents leaking
  * congregation context across requests via the connection pool.
  *
+ * The callback receives `(tx, congregationId)` — the scoping `congregationId` is
+ * handed through so service helpers can add it to their `where` clauses
+ * (defence-in-depth over RLS) without re-reading it from context.
+ *
  * `options` is passed through to `db.$transaction` — use it to extend
  * the default 5s `timeout` for long-running batch work (e.g. imports).
  */
 function withScope<T>(
   congregationId: number,
-  fn: (tx: TransactionClient) => Promise<T>,
+  fn: (tx: TransactionClient, congregationId: number) => Promise<T>,
   options?: TransactionOptions,
 ): Promise<T> {
   return db.$transaction(async tx => {
@@ -36,7 +40,9 @@ function withScope<T>(
     // statement stays injection-proof even if congregationId ever stops being a number.
     // `set_config(..., true)` is the transaction-local equivalent of `SET LOCAL`.
     await tx.$executeRawUnsafe('SELECT set_config($1, $2, true)', 'app.congregation_id', String(congregationId))
-    return fn(tx)
+    // congregationId is also handed to the callback so service helpers can scope
+    // their `where` clauses by it (defence-in-depth over RLS) without re-reading context.
+    return fn(tx, congregationId)
   }, options)
 }
 

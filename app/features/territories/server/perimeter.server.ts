@@ -48,7 +48,7 @@ export async function clearPerimeter(db: TransactionClient, congregationId: numb
   const existing = await db.territoryPerimeter.findFirst()
   if (existing == null) return false
 
-  await db.territoryPerimeter.delete({ where: { id: existing.id } })
+  await db.territoryPerimeter.delete({ where: { id_congregationId: { id: existing.id, congregationId } } })
 
   audit({
     action: AuditAction.PerimeterCleared,

@@ -27,7 +27,7 @@ export async function unlinkAccountFromMember(
   if (!member.account) return null
 
   const { id: accountId, email } = member.account
-  await db.userAccount.delete({ where: { id: accountId } })
+  await db.userAccount.delete({ where: { id_congregationId: { id: accountId, congregationId } } })
 
   audit({
     action: AuditAction.AccountUnlinkedFromMember,

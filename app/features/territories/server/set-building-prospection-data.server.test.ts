@@ -45,10 +45,11 @@ describe('setBuildingProspectionData', () => {
       'prospection-date': '2025-04-08',
     }
 
-    await setBuildingProspectionData(db, 1, input)
+    await setBuildingProspectionData(db, 1, 7, input)
 
     const callArgs = vi.mocked(db.building.update).mock.calls[0][0]
     expect(callArgs.data.prospectionDate).toBeInstanceOf(Date)
+    expect(callArgs.where).toEqual({ id_congregationId: { id: 1, congregationId: 7 } })
   })
 
   it('la date de prospection est null par défaut', async () => {
@@ -57,7 +58,7 @@ describe('setBuildingProspectionData', () => {
       'has-residential': 'on',
     }
 
-    await setBuildingProspectionData(db, 1, input)
+    await setBuildingProspectionData(db, 1, 7, input)
 
     const callArgs = vi.mocked(db.building.update).mock.calls[0][0]
     expect(callArgs.data.prospectionDate).toBeNull()
@@ -73,7 +74,7 @@ describe('setBuildingProspectionData', () => {
       mailboxes: 'on',
     }
 
-    await setBuildingProspectionData(db, 1, input)
+    await setBuildingProspectionData(db, 1, 7, input)
 
     const callArgs = vi.mocked(db.buildingEntrance.update).mock.calls[0][0]
     expect(callArgs.data.access).toBe(3)
@@ -91,7 +92,7 @@ describe('setBuildingProspectionData', () => {
       liberals: '2',
     }
 
-    await setBuildingProspectionData(db, 1, input)
+    await setBuildingProspectionData(db, 1, 7, input)
 
     const callArgs = vi.mocked(db.buildingResidentialData.upsert).mock.calls[0][0]
     expect(callArgs.update.homes).toBe(15)
@@ -105,7 +106,7 @@ describe('setBuildingProspectionData', () => {
       'has-residential': 'on',
     }
 
-    await setBuildingProspectionData(db, 1, input)
+    await setBuildingProspectionData(db, 1, 7, input)
 
     const callArgs = vi.mocked(db.buildingResidentialData.upsert).mock.calls[0][0]
     expect(callArgs.update.homes).toBeNull()
@@ -119,7 +120,7 @@ describe('setBuildingProspectionData', () => {
       shopkinds: ['alimentaire', 'coiffure-cosmetiques'],
     }
 
-    await setBuildingProspectionData(db, 1, input)
+    await setBuildingProspectionData(db, 1, 7, input)
 
     expect(vi.mocked(db.buildingEntrance.create)).toHaveBeenCalledTimes(2)
   })

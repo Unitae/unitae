@@ -23,14 +23,17 @@ describe('getBuildingDetails', () => {
     }
     vi.mocked(db.building.findUnique).mockResolvedValue(fakeBuilding as never)
 
-    const result = await getBuildingDetails(db, 1)
+    const result = await getBuildingDetails(db, 1, 42)
     expect(result).toEqual(fakeBuilding)
+    expect(db.building.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id_congregationId: { id: 1, congregationId: 42 } } }),
+    )
   })
 
   it("retourne null quand le bâtiment n'existe pas", async () => {
     vi.mocked(db.building.findUnique).mockResolvedValue(null as never)
 
-    const result = await getBuildingDetails(db, 999)
+    const result = await getBuildingDetails(db, 999, 42)
     expect(result).toBeNull()
   })
 })

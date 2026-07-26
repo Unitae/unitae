@@ -17,7 +17,11 @@ describe('getPersonalAssignments', () => {
 
   it('queries each source with the user id and time horizon', async () => {
     const db = makeDb({})
-    await getPersonalAssignments(db, 42, since)
+    await getPersonalAssignments(db, 42, 7, since)
+
+    const accountCall = (db as never as { userAccount: { findUnique: { mock: { calls: unknown[][] } } } }).userAccount
+      .findUnique.mock.calls[0][0] as { where: Record<string, unknown> }
+    expect(accountCall.where).toEqual({ id_congregationId: { id: 42, congregationId: 7 } })
 
     const partsCall = (db as never as { eventPart: { findMany: { mock: { calls: unknown[][] } } } }).eventPart.findMany
       .mock.calls[0][0] as { where: Record<string, unknown> }
@@ -59,7 +63,7 @@ describe('getPersonalAssignments', () => {
       ],
     })
 
-    const items = await getPersonalAssignments(db, 42, since)
+    const items = await getPersonalAssignments(db, 42, 7, since)
 
     expect(items).toHaveLength(1)
     expect(items[0].kind).toBe('day-off')
@@ -102,7 +106,7 @@ describe('getPersonalAssignments', () => {
       ],
     })
 
-    const items = await getPersonalAssignments(db, 42, since)
+    const items = await getPersonalAssignments(db, 42, 7, since)
 
     expect(items.find(i => i.uid === 'programme-part-assignee-10')?.kind).toBe('programme-part')
     expect(items.find(i => i.uid === 'programme-part-assistant-11')?.kind).toBe('programme-part-assistant')
@@ -140,7 +144,7 @@ describe('getPersonalAssignments', () => {
       ],
     })
 
-    const items = await getPersonalAssignments(db, 42, since)
+    const items = await getPersonalAssignments(db, 42, 7, since)
     expect(items).toHaveLength(3)
     expect(items.map(i => i.kind).sort()).toEqual(['day-off', 'programme-part', 'programme-service-role'])
   })

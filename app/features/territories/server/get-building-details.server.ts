@@ -1,9 +1,13 @@
 import type { DetailedBuilding } from '~/features/territories/model/detailed-building.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
-export async function getBuildingDetails(db: TransactionClient, buildingId: number): Promise<DetailedBuilding | null> {
+export async function getBuildingDetails(
+  db: TransactionClient,
+  buildingId: number,
+  congregationId: number,
+): Promise<DetailedBuilding | null> {
   return await db.building.findUnique({
-    where: { id: buildingId },
+    where: { id_congregationId: { id: buildingId, congregationId } },
     include: {
       entrances: {
         include: {

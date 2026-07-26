@@ -37,8 +37,12 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
   requirePermission(permissions, Permission.TerritoriesManager)
 
-  return withScopeFromContext(context, async db => {
-    const building = await getBuildingDetails(db, requireParamId(params.buildingId, '/territories/buildings'))
+  return withScopeFromContext(context, async (db, congregationId) => {
+    const building = await getBuildingDetails(
+      db,
+      requireParamId(params.buildingId, '/territories/buildings'),
+      congregationId,
+    )
     if (building == null) {
       throw redirect('/territories/buildings', { status: 404 })
     }
@@ -150,10 +154,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   const { number, street, zip, latitude, longitude } = submission.value
 
-  return withScopeFromContext(context, async db => {
+  return withScopeFromContext(context, async (db, congregationId) => {
     const session = await getSession(request.headers.get('Cookie'))
     try {
-      await editBuilding(db, requireParamId(params.buildingId, '/territories/buildings'), {
+      await editBuilding(db, requireParamId(params.buildingId, '/territories/buildings'), congregationId, {
         coordinates: {
           latitude: latitude ?? undefined,
           longitude: longitude ?? undefined,

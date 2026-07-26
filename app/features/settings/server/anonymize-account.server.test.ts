@@ -57,7 +57,7 @@ describe('anonymizeAccount', () => {
     await anonymizeAccount(dbCast, 5 as AccountId, 42, 99)
 
     const update = mockDb.userAccount.update.mock.calls[0][0]
-    expect(update.where).toEqual({ id: 5 })
+    expect(update.where).toEqual({ id_congregationId: { id: 5, congregationId: 42 } })
     expect(update.data.firstname).toBeNull()
     expect(update.data.lastname).toBeNull()
     expect(update.data.password).toBe('')
@@ -71,8 +71,10 @@ describe('anonymizeAccount', () => {
 
     await anonymizeAccount(dbCast, 5 as AccountId, 42, 99)
 
-    expect(mockDb.congregationUserPermission.deleteMany).toHaveBeenCalledWith({ where: { userId: 5 } })
-    expect(mockDb.userRoleAssignment.deleteMany).toHaveBeenCalledWith({ where: { userId: 5 } })
+    expect(mockDb.congregationUserPermission.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 5, congregationId: 42 },
+    })
+    expect(mockDb.userRoleAssignment.deleteMany).toHaveBeenCalledWith({ where: { userId: 5, congregationId: 42 } })
     expect(mockDb.passwordResetToken.deleteMany).toHaveBeenCalledWith({ where: { userId: 5 } })
   })
 
@@ -82,7 +84,7 @@ describe('anonymizeAccount', () => {
     await anonymizeAccount(dbCast, 5 as AccountId, 42, 99)
 
     expect(mockDb.boardDocumentVersion.updateMany).toHaveBeenCalledWith({
-      where: { uploadedById: 5 },
+      where: { uploadedById: 5, congregationId: 42 },
       data: { uploadedById: null },
     })
   })

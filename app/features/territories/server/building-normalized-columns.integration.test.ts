@@ -81,7 +81,7 @@ describe('Building normalized columns — write-through', () => {
     )
 
     await withScope(congregationId, tx =>
-      editBuilding(tx, created.id, {
+      editBuilding(tx, created.id, congregationId, {
         address: { number: '5', street: 'Avenue Élysée', zip: '75002' },
         coordinates: {},
       }),

@@ -128,10 +128,11 @@ export async function updateIdentity(
   })
 
   if (params.email && params.email.length > 0) {
-    const account = await db.userAccount.findUnique({ where: { memberId: id } })
+    const account = await db.userAccount.findFirst({ where: { memberId: id, congregationId } })
     if (account) {
       await db.userAccount.update({
-        where: { id: account.id },
+        // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
+        where: { id_congregationId: { id: account.id, congregationId } },
         data: { email: params.email.toLocaleLowerCase() },
       })
     }
@@ -253,7 +254,8 @@ export async function updateAccountName(
   lastname: string,
 ) {
   const member = await db.member.update({
-    where: { id: memberId },
+    // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
+    where: { id_congregationId: { id: memberId, congregationId } },
     data: {
       firstname,
       lastname,

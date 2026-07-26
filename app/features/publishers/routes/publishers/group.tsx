@@ -34,8 +34,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  return withScopeFromContext(context, async db => {
-    const group = await getGroup(db, requireParamId(params.groupId, '/groups'))
+  return withScopeFromContext(context, async (db, congregationId) => {
+    const group = await getGroup(db, requireParamId(params.groupId, '/groups'), congregationId)
     if (group == null) {
       throw redirect('/groups/')
     }

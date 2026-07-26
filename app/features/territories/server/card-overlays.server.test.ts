@@ -52,7 +52,13 @@ describe('listCardOverlays', () => {
 describe('getCardOverlay', () => {
   it('retourne null quand absent', async () => {
     vi.mocked(db.territoryCardOverlay.findFirst).mockResolvedValue(null)
-    expect(await getCardOverlay(db as never, 999)).toBeNull()
+    expect(await getCardOverlay(db as never, 999, 42)).toBeNull()
+  })
+
+  it('scope la lecture par congregationId', async () => {
+    vi.mocked(db.territoryCardOverlay.findFirst).mockResolvedValue(null)
+    await getCardOverlay(db as never, 999, 42)
+    expect(db.territoryCardOverlay.findFirst).toHaveBeenCalledWith({ where: { id: 999, congregationId: 42 } })
   })
 
   it('retourne un overlay typé quand présent', async () => {
@@ -62,7 +68,7 @@ describe('getCardOverlay', () => {
       color: '#C2175B',
       paths: SAMPLE_PATHS,
     } as never)
-    const result = await getCardOverlay(db as never, 5)
+    const result = await getCardOverlay(db as never, 5, 42)
     expect(result).toMatchObject({ id: 5, name: 'Centre' })
   })
 })
@@ -133,7 +139,7 @@ describe('updateCardOverlay', () => {
     })
 
     expect(db.territoryCardOverlay.update).toHaveBeenCalledWith({
-      where: { id: 4 },
+      where: { id_congregationId: { id: 4, congregationId: 1 } },
       data: { paths: newPaths },
     })
   })
@@ -160,7 +166,7 @@ describe('updateCardOverlay', () => {
 
     expect(result).toMatchObject({ id: 3, color: '#222222' })
     expect(db.territoryCardOverlay.update).toHaveBeenCalledWith({
-      where: { id: 3 },
+      where: { id_congregationId: { id: 3, congregationId: 1 } },
       data: { color: '#222222' },
     })
     expect(audit).toHaveBeenCalledWith(expect.objectContaining({ action: AuditAction.CardOverlayUpdated, entityId: 3 }))
@@ -187,7 +193,9 @@ describe('deleteCardOverlay', () => {
     const result = await deleteCardOverlay(db as never, 8, 1, 9)
 
     expect(result).toMatchObject({ id: 8, name: 'À supprimer' })
-    expect(db.territoryCardOverlay.delete).toHaveBeenCalledWith({ where: { id: 8 } })
+    expect(db.territoryCardOverlay.delete).toHaveBeenCalledWith({
+      where: { id_congregationId: { id: 8, congregationId: 1 } },
+    })
     expect(audit).toHaveBeenCalledWith(expect.objectContaining({ action: AuditAction.CardOverlayDeleted, entityId: 8 }))
   })
 })

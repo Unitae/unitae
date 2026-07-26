@@ -32,12 +32,13 @@ describe('editBuilding', () => {
   it('met à jour un bâtiment sans coordonnées (inTerritory = true par défaut)', async () => {
     vi.mocked(db.building.update).mockResolvedValue({ id: 1, inTerritory: true, entrances: [] } as never)
 
-    await editBuilding(db, 1, {
+    await editBuilding(db, 1, 42, {
       address: { number: '12', street: 'Rue Test', zip: '75001' },
     })
 
     const callArgs = vi.mocked(db.building.update).mock.calls[0][0]
     expect(callArgs.data.inTerritory).toBe(true)
+    expect(callArgs.where).toEqual({ id_congregationId: { id: 1, congregationId: 42 } })
   })
 
   it('vérifie les coordonnées contre le polygone du territoire', async () => {
@@ -50,7 +51,7 @@ describe('editBuilding', () => {
     vi.mocked(pointInPolygon).mockReturnValue(true as never)
     vi.mocked(db.building.update).mockResolvedValue({ id: 1, inTerritory: true, entrances: [] } as never)
 
-    const result = await editBuilding(db, 1, {
+    const result = await editBuilding(db, 1, 42, {
       address: { number: '5', street: 'Rue Test', zip: '75001' },
       coordinates: { latitude: 5, longitude: 5 },
     })
@@ -61,7 +62,7 @@ describe('editBuilding', () => {
   it('ne vérifie pas le polygone avec coordonnées partielles', async () => {
     vi.mocked(db.building.update).mockResolvedValue({ id: 1, inTerritory: true, entrances: [] } as never)
 
-    await editBuilding(db, 1, {
+    await editBuilding(db, 1, 42, {
       address: { number: '5', street: 'Rue Test', zip: '75001' },
       coordinates: { latitude: 5 },
     })
@@ -74,7 +75,7 @@ describe('editBuilding', () => {
     vi.mocked(getPerimeterPaths).mockResolvedValue(null as never)
     vi.mocked(db.building.update).mockResolvedValue({ id: 1, inTerritory: true, entrances: [] } as never)
 
-    await editBuilding(db, 1, {
+    await editBuilding(db, 1, 42, {
       address: { number: '5', street: 'Rue Test', zip: '75001' },
       coordinates: { latitude: 5, longitude: 5 },
     })

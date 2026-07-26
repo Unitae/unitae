@@ -64,7 +64,7 @@ export async function withdrawConsent(db: TransactionClient, userId: number, pur
   if (!record) return null
 
   return db.consentRecord.update({
-    where: { id: record.id },
+    where: { id_congregationId: { id: record.id, congregationId: record.congregationId } },
     data: { withdrawnAt: new Date() },
   })
 }

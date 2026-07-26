@@ -18,7 +18,11 @@ describe('setBuildingNotes', () => {
     const fakeBuilding = { id: 1, notes: 'Nouvelle note' }
     vi.mocked(db.building.update).mockResolvedValue(fakeBuilding as never)
 
-    const result = await setBuildingNotes(db, 1, { notes: 'Nouvelle note' })
+    const result = await setBuildingNotes(db, 1, 42, { notes: 'Nouvelle note' })
     expect(result).toEqual(fakeBuilding)
+    expect(db.building.update).toHaveBeenCalledWith({
+      where: { id_congregationId: { id: 1, congregationId: 42 } },
+      data: { notes: 'Nouvelle note' },
+    })
   })
 })

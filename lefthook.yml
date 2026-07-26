@@ -33,6 +33,8 @@ pre-push:
       run: pnpm test:boundaries
     aggregate-boundaries:
       run: pnpm test:aggregate-boundaries
+    tenant-scoping:
+      run: pnpm test:tenant-scoping
     server-barrel-exports:
       run: pnpm test:server-barrel-exports
     service-test-coverage:

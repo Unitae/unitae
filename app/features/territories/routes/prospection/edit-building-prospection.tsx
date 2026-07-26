@@ -22,13 +22,7 @@ import {
 } from '~/features/territories/ui/EntranceCard'
 import SharedEntranceField from '~/features/territories/ui/SharedEntranceField'
 import * as m from '~/i18n/paraglide/messages'
-import {
-  congregationContext,
-  currentAccountContext,
-  permissionsContext,
-  requirePermission,
-  withScopeFromContext,
-} from '~/shared/auth/route-context.server'
+import { permissionsContext, requirePermission, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
@@ -53,10 +47,9 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
   requirePermission(permissions, Permission.ProspectionManager)
 
-  const { congregationId } = context.get(currentAccountContext)
-
-  return withScopeFromContext(context, async db => {
-    const building = await getBuildingDetails(db, requireParamId(params.buildingId, '/territories/buildings'))
+  return withScopeFromContext(context, async (db, congregationId) => {
+    const buildingId = requireParamId(params.buildingId, '/territories/buildings')
+    const building = await getBuildingDetails(db, buildingId, congregationId)
     if (building == null) {
       throw redirect('/territories/buildings', { status: 404 })
     }
@@ -241,11 +234,11 @@ export function action({ request, params, context }: Route.ActionArgs) {
   requirePermission(permissions, Permission.ProspectionManager)
 
   const previousPage = request.headers.get('referer') ?? '/territories/buildings'
-  const congregation = context.get(congregationContext)
 
-  return withScopeFromContext(context, async db => {
+  return withScopeFromContext(context, async (db, congregationId) => {
     const session = await getSession(request.headers.get('Cookie'))
-    const building = await getBuildingDetails(db, requireParamId(params.buildingId, '/territories/buildings'))
+    const buildingId = requireParamId(params.buildingId, '/territories/buildings')
+    const building = await getBuildingDetails(db, buildingId, congregationId)
     if (building == null) {
       throw redirect('/territories/buildings', { status: 404 })
     }
@@ -265,7 +258,7 @@ export function action({ request, params, context }: Route.ActionArgs) {
       if (currentEntranceIdsSerialized !== entranceIdsSerialized) {
         try {
           const residentialEntrance = building.entrances.find(e => e.kind === EntranceKind.Residential)
-          await updateBuildingsInEntrance(db, Number(residentialEntrance?.id), entranceIds, congregation.id)
+          await updateBuildingsInEntrance(db, Number(residentialEntrance?.id), entranceIds, congregationId)
           session.flash('success', m.prospection_edit_prospection_shared_success())
         } catch (e) {
           logger.error('Error updating building', { error: e, buildingId: params.buildingId })
@@ -282,7 +275,7 @@ export function action({ request, params, context }: Route.ActionArgs) {
 
     // manage changes in prospection data
     try {
-      await setBuildingProspectionData(db, building.id, submission.value)
+      await setBuildingProspectionData(db, building.id, congregationId, submission.value)
 
       session.flash('success', m.prospection_edit_prospection_success())
     } catch (e) {

@@ -34,8 +34,16 @@ describe('getGroups', () => {
 describe('getGroup', () => {
   it('returns null when the group is missing', async () => {
     mockDb.publisherGroup.findUnique.mockResolvedValue(null)
-    const result = await getGroup(dbCast, 99)
+    const result = await getGroup(dbCast, 99, 42)
     expect(result).toBeNull()
+  })
+
+  it('scopes the findUnique by the id_congregationId compound key', async () => {
+    mockDb.publisherGroup.findUnique.mockResolvedValue(null)
+    await getGroup(dbCast, 99, 42)
+    expect(mockDb.publisherGroup.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id_congregationId: { id: 99, congregationId: 42 } } }),
+    )
   })
 
   it('reshapes members with distinct currentActivity and previousActivity', async () => {
@@ -62,7 +70,7 @@ describe('getGroup', () => {
       members: [member],
     })
 
-    const result = await getGroup(dbCast, 7)
+    const result = await getGroup(dbCast, 7, 42)
 
     expect(result).not.toBeNull()
     expect(result?.members[0].currentActivity?.studies).toBe(5)
@@ -79,7 +87,7 @@ describe('getGroup', () => {
       deputy: null,
       members: [{ id: 10, firstname: 'A', lastname: 'B', account: null, activities: [] }],
     })
-    const result = await getGroup(dbCast, 7)
+    const result = await getGroup(dbCast, 7, 42)
     expect(result?.members[0].currentActivity).toBeUndefined()
     expect(result?.members[0].previousActivity).toBeUndefined()
   })
@@ -93,7 +101,7 @@ describe('getGroup', () => {
       deputy: null,
       members: [],
     })
-    const result = await getGroup(dbCast, 7)
+    const result = await getGroup(dbCast, 7, 42)
     expect(result?.address).toBe('10 rue de la Paix')
   })
 })

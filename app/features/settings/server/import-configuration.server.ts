@@ -29,13 +29,13 @@ export async function importRoles(
   }>(zip, 'roles')
 
   for (const record of records) {
-    const existing = await db.role.findFirst({ where: { key: record.key } })
+    const existing = await db.role.findFirst({ where: { key: record.key, congregationId } })
     if (existing) {
       // Built-in roles are pre-seeded for every congregation; map source id to existing target id.
       // Custom roles imported into a congregation that already has the same key get their
       // metadata refreshed but keep the target's id.
       await db.role.update({
-        where: { id: existing.id },
+        where: { id_congregationId: { id: existing.id, congregationId } },
         data: { name: record.name, description: record.description, isBuiltIn: record.isBuiltIn },
       })
       idMap.set('roles', record.id, existing.id)
