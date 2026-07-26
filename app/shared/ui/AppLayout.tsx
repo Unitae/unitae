@@ -10,10 +10,9 @@ import { Toaster } from '~/shared/ui/sonner'
 interface AppLayoutProps {
   permissions: AppSidebarPermissions
   congregationName?: string
-  billingUrl?: string | null
 }
 
-export function AppLayout({ permissions, congregationName, billingUrl }: AppLayoutProps) {
+export function AppLayout({ permissions, congregationName }: AppLayoutProps) {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -33,7 +32,6 @@ export function AppLayout({ permissions, congregationName, billingUrl }: AppLayo
       <AppSidebar
         permissions={permissions}
         congregationName={congregationName}
-        billingUrl={billingUrl}
         onSearchClick={() => setCommandPaletteOpen(true)}
       />
       <SidebarInset>

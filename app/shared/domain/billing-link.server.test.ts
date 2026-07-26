@@ -7,7 +7,7 @@ vi.mock('~/shared/infra/logger.server', () => ({ default: { error: vi.fn(), warn
 import { verifyBillingToken } from '~/shared/auth/billing-token.server'
 import logger from '~/shared/infra/logger.server'
 import { getOptionalEnv } from '~/shared/utils/env.server'
-import { billingPortalLink, checkoutLink } from './billing-link.server'
+import { billingEntryUrl, billingPortalLink, checkoutLink } from './billing-link.server'
 import { getHostSettings } from './host-settings.server'
 
 const SECRET = 'test-secret'
@@ -85,5 +85,32 @@ describe('config-driven billing links', () => {
     expect(verifyBillingToken(tokenOf(checkout ?? ''), SECRET, { purpose: 'checkout', now: Date.now() }).valid).toBe(
       true,
     )
+  })
+})
+
+describe('billingEntryUrl (sidebar « Abonnement » routing by state)', () => {
+  beforeEach(() => {
+    mockedSettings.mockReturnValue(MANAGED)
+    mockedEnv.mockReturnValue(SECRET)
+  })
+
+  it('returns null for a non-admin', () => {
+    expect(billingEntryUrl({ isAdmin: false, stripeCustomerId: 'cus_1', slug: 'grace-community' })).toBeNull()
+  })
+
+  it('routes a congregation WITH a Stripe customer to the portal (manage)', () => {
+    const url = billingEntryUrl({ isAdmin: true, stripeCustomerId: 'cus_1', slug: 'grace-community' })
+    expect(url?.startsWith('https://www.unitae.app/billing?token=')).toBe(true)
+  })
+
+  it('routes a congregation WITHOUT a Stripe customer to checkout — so a trial can subscribe', () => {
+    const url = billingEntryUrl({ isAdmin: true, stripeCustomerId: null, slug: 'grace-community' })
+    expect(url?.startsWith('https://www.unitae.app/checkout?token=')).toBe(true)
+  })
+
+  it('returns null when self-hosted (no billing URLs), even for an admin, in either state', () => {
+    mockedSettings.mockReturnValue({})
+    expect(billingEntryUrl({ isAdmin: true, stripeCustomerId: null, slug: 'grace-community' })).toBeNull()
+    expect(billingEntryUrl({ isAdmin: true, stripeCustomerId: 'cus_1', slug: 'grace-community' })).toBeNull()
   })
 })

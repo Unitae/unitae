@@ -11,12 +11,8 @@ import {
   permissionsContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
-import { getBoolSetting, getSetting } from '~/shared/domain/settings.server'
-import {
-  type BreachedPasswordCheckScope,
-  CongregationSettingKey,
-  parseBreachedPasswordCheckScope,
-} from '~/shared/types/congregation-setting-key'
+import { getBoolSetting } from '~/shared/domain/settings.server'
+import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -24,7 +20,6 @@ import { Checkbox } from '~/shared/ui/checkbox'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
-import { RadioGroup, RadioGroupItem } from '~/shared/ui/radio-group'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import type { Route } from './+types/settings'
@@ -48,39 +43,15 @@ export function loader({ context }: Route.LoaderArgs) {
       CongregationSettingKey.AuxiliaryPioneerProfileActivated,
       currentUser.congregationId,
     )
-    const breachedPasswordCheckScope = await getSetting(
-      db,
-      CongregationSettingKey.BreachedPasswordCheckScope,
-      currentUser.congregationId,
-    )
 
     return {
       auxiliaryPioneerProfileActivated: auxiliaryPioneerProfileActivated ?? false,
-      breachedPasswordCheckScope: parseBreachedPasswordCheckScope(breachedPasswordCheckScope).scope,
     }
   })
 }
 
-const PASSWORD_SECURITY_SCOPES = [
-  {
-    value: 'off',
-    label: m.settings_congregation_password_security_scope_off,
-    hint: m.settings_congregation_password_security_scope_off_hint,
-  },
-  {
-    value: 'responsibilities',
-    label: m.settings_congregation_password_security_scope_responsibilities,
-    hint: m.settings_congregation_password_security_scope_responsibilities_hint,
-  },
-  {
-    value: 'everyone',
-    label: m.settings_congregation_password_security_scope_everyone,
-    hint: m.settings_congregation_password_security_scope_everyone_hint,
-  },
-] as const satisfies readonly { value: BreachedPasswordCheckScope; label: () => string; hint: () => string }[]
-
 export default function CongregationSettingsPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { auxiliaryPioneerProfileActivated, breachedPasswordCheckScope } = loaderData
+  const { auxiliaryPioneerProfileActivated } = loaderData
   const { blocker, markDirty } = useUnsavedChanges()
 
   const [form] = useForm({
@@ -123,33 +94,6 @@ export default function CongregationSettingsPage({ loaderData, actionData }: Rou
 
         <Card>
           <CardHeader>
-            <CardTitle>{m.settings_congregation_password_security_title()}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <p className="text-muted-foreground text-sm">{m.settings_congregation_password_security_description()}</p>
-            <RadioGroup
-              name={CongregationSettingKey.BreachedPasswordCheckScope}
-              defaultValue={breachedPasswordCheckScope}
-              className="gap-3"
-            >
-              {PASSWORD_SECURITY_SCOPES.map(scope => (
-                <div key={scope.value} className="flex items-start gap-3">
-                  <RadioGroupItem value={scope.value} id={`breach-scope-${scope.value}`} className="mt-1" />
-                  <Label
-                    htmlFor={`breach-scope-${scope.value}`}
-                    className="flex flex-col items-start gap-1 font-normal"
-                  >
-                    <span className="font-medium">{scope.label()}</span>
-                    <span className="text-muted-foreground text-xs">{scope.hint()}</span>
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
             <CardTitle>{m.settings_congregation_programs_title()}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
@@ -185,15 +129,12 @@ export async function action({ request, context }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  const {
-    [CongregationSettingKey.AuxiliaryPioneerProfileActivated]: auxiliaryPioneerProfileActivated,
-    [CongregationSettingKey.BreachedPasswordCheckScope]: breachedPasswordCheckScope,
-  } = submission.value
+  const { [CongregationSettingKey.AuxiliaryPioneerProfileActivated]: auxiliaryPioneerProfileActivated } =
+    submission.value
 
   return withScopeFromContext(context, async db => {
     await updateCongregationSettings(db, congregation.id, actorId, {
       auxiliaryPioneerProfileActivated,
-      breachedPasswordCheckScope,
     })
 
     return redirect('/settings/congregation')

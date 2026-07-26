@@ -4,11 +4,8 @@ import {
   CalendarDays,
   CalendarOff,
   ChevronDown,
-  ClipboardList,
-  CreditCard,
   FileText,
   FolderOpen,
-  HardDrive,
   Home,
   LayoutGrid,
   LogOut,
@@ -19,7 +16,6 @@ import {
   Settings,
   Shield,
   User,
-  UserCog,
   UserRoundCog,
   Users,
   UsersRound,
@@ -68,12 +64,11 @@ export interface AppSidebarPermissions {
 interface AppSidebarProps {
   permissions: AppSidebarPermissions
   congregationName?: string
-  billingUrl?: string | null
   onSearchClick?: () => void
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: sidebar with many permission-based conditional sections
-export function AppSidebar({ permissions, congregationName, billingUrl, onSearchClick }: AppSidebarProps) {
+export function AppSidebar({ permissions, congregationName, onSearchClick }: AppSidebarProps) {
   const showAssemblee =
     permissions.canViewPublishers ||
     permissions.canViewPrograms ||
@@ -213,54 +208,14 @@ export function AppSidebar({ permissions, congregationName, billingUrl, onSearch
         )}
 
         {showReglages && (
-          <Collapsible defaultOpen className="group/collapsible">
-            <SidebarGroup>
-              <SidebarGroupLabel asChild>
-                <CollapsibleTrigger>
-                  {m.sidebar_settings()}
-                  <ChevronDown className="ml-auto size-3 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
-                </CollapsibleTrigger>
-              </SidebarGroupLabel>
-              <CollapsibleContent>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {permissions.canManageSettings && (
-                      <>
-                        <SidebarNavItem to="/settings/general" icon={Settings} label={m.sidebar_settings_general()} />
-                        <SidebarNavItem
-                          to="/settings/congregation"
-                          icon={Building2}
-                          label={m.sidebar_settings_assembly()}
-                          end
-                        />
-                      </>
-                    )}
-                    {permissions.canManageUsers && (
-                      <SidebarNavItem to="/settings/users" icon={UserCog} label={m.sidebar_users()} />
-                    )}
-                    {permissions.canManagePermissions && (
-                      <SidebarNavItem
-                        to="/settings/permissions"
-                        icon={Shield}
-                        label={m.sidebar_settings_permissions()}
-                      />
-                    )}
-                    {permissions.canManageSettings && (
-                      <>
-                        <SidebarNavItem
-                          to="/settings/territories"
-                          icon={MapIcon}
-                          label={m.sidebar_settings_territories()}
-                        />
-                        <SidebarNavItem to="/settings/data" icon={HardDrive} label={m.sidebar_settings_data()} />
-                        <SidebarNavItem to="/settings/audit-log" icon={ClipboardList} label={m.sidebar_audit_log()} />
-                      </>
-                    )}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </SidebarGroup>
-          </Collapsible>
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {/* Single entry → the Settings hub (/settings), which groups every settings area. */}
+                <SidebarNavItem to="/settings" icon={Settings} label={m.sidebar_settings()} />
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
         )}
 
         {permissions.isPlatformAdmin && (
@@ -289,16 +244,6 @@ export function AppSidebar({ permissions, congregationName, billingUrl, onSearch
           <SidebarNavItem to="/me/profile" icon={User} label={m.sidebar_my_profile()} />
           <SidebarNavItem to="/me/territories" icon={MapPin} label={m.sidebar_my_territories()} />
           <SidebarNavItem to="/me/days-off" icon={CalendarOff} label={m.sidebar_my_absences()} />
-          {billingUrl && (
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild className="min-h-[44px] md:min-h-0">
-                <a href={billingUrl}>
-                  <CreditCard className="size-4" />
-                  <span>{m.sidebar_subscription()}</span>
-                </a>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          )}
           <SidebarMenuItem>
             <Form action="/logout" method="post">
               <SidebarMenuButton type="submit" className="text-muted-foreground hover:text-destructive">
