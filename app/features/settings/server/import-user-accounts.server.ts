@@ -98,7 +98,7 @@ export async function importUserAccounts(
       if (existing.congregationId === congregationId) {
         const newMemberId = record.memberId != null ? idMap.getOptional('members', record.memberId) : null
         await db.userAccount.update({
-          where: { id: existing.id },
+          where: { id_congregationId: { id: existing.id, congregationId } },
           data: {
             firstname: record.firstname,
             lastname: record.lastname,
@@ -182,7 +182,7 @@ export async function importCongregationUserPermissions(
     if (!userId || !permissionId) continue
 
     const existing = await db.congregationUserPermission.findFirst({
-      where: { userId, permissionId },
+      where: { userId, permissionId, congregationId },
     })
     if (!existing) {
       await db.congregationUserPermission.create({

@@ -4,14 +4,14 @@ export async function getGroups(db: TransactionClient, congregationId: number) {
   return await db.publisherGroup.findMany({ where: { congregationId } })
 }
 
-export async function getGroup(db: TransactionClient, groupId: number) {
+export async function getGroup(db: TransactionClient, groupId: number, congregationId: number) {
   const today = new Date()
   const lastMonth = new Date()
   lastMonth.setMonth(today.getMonth() - 1)
 
   const group = await db.publisherGroup.findUnique({
     where: {
-      id: groupId,
+      id_congregationId: { id: groupId, congregationId },
     },
     include: {
       members: {

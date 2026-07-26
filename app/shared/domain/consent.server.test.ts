@@ -46,14 +46,14 @@ describe('recordConsentUnscoped', () => {
 
 describe('withdrawConsent', () => {
   it('marque le consentement actif comme retire', async () => {
-    mockScopedDb.consentRecord.findFirst.mockResolvedValue({ id: 5 } as never)
+    mockScopedDb.consentRecord.findFirst.mockResolvedValue({ id: 5, congregationId: 3 } as never)
     mockScopedDb.consentRecord.update.mockResolvedValue({ id: 5, withdrawnAt: new Date() } as never)
 
     const result = await withdrawConsent(mockScopedDb as never, 1, ConsentPurpose.DataProcessing)
 
     expect(result).toBeDefined()
     expect(mockScopedDb.consentRecord.update).toHaveBeenCalledWith({
-      where: { id: 5 },
+      where: { id_congregationId: { id: 5, congregationId: 3 } },
       data: { withdrawnAt: expect.any(Date) },
     })
   })

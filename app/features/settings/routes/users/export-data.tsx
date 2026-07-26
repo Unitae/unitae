@@ -11,7 +11,6 @@ import type { Route } from './+types/export-data'
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const congregationId = currentUser.congregationId
   const accountId = requireParamId(params.accountId, '/settings/users')
 
   // Seul un admin/gestionnaire peut exporter, ou l'utilisateur lui-meme
@@ -22,8 +21,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  return withScopeFromContext(context, async db => {
-    const data = await exportAccountData(db, accountId)
+  return withScopeFromContext(context, async (db, congregationId) => {
+    const data = await exportAccountData(db, accountId, congregationId)
     const json = JSON.stringify(data, null, 2)
 
     audit({

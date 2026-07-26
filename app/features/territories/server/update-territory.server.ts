@@ -50,7 +50,7 @@ export async function updateTerritory(
     }
 
     const linked = await db.buildingEntrance.findFirst({
-      where: { id: reassignment.entranceId, territories: { some: { id: source.id } } },
+      where: { id: reassignment.entranceId, congregationId, territories: { some: { id: source.id } } },
       select: { id: true },
     })
     if (linked == null) {
@@ -61,7 +61,7 @@ export async function updateTerritory(
     }
 
     await db.buildingEntrance.update({
-      where: { id: reassignment.entranceId },
+      where: { id_congregationId: { id: reassignment.entranceId, congregationId } },
       data: { territories: { disconnect: { id: source.id } } },
     })
 

@@ -98,7 +98,9 @@ describe('clearPerimeter', () => {
     const result = await clearPerimeter(db as never, 3, 99)
 
     expect(result).toBe(true)
-    expect(db.territoryPerimeter.delete).toHaveBeenCalledWith({ where: { id: 8 } })
+    expect(db.territoryPerimeter.delete).toHaveBeenCalledWith({
+      where: { id_congregationId: { id: 8, congregationId: 3 } },
+    })
     expect(audit).toHaveBeenCalledWith(expect.objectContaining({ action: AuditAction.PerimeterCleared, entityId: 8 }))
   })
 })

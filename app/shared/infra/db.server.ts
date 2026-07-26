@@ -28,7 +28,7 @@ type TransactionOptions = Parameters<typeof db.$transaction>[1]
  */
 function withScope<T>(
   congregationId: number,
-  fn: (tx: TransactionClient) => Promise<T>,
+  fn: (tx: TransactionClient, congregationId: number) => Promise<T>,
   options?: TransactionOptions,
 ): Promise<T> {
   return db.$transaction(async tx => {
@@ -36,7 +36,9 @@ function withScope<T>(
     // statement stays injection-proof even if congregationId ever stops being a number.
     // `set_config(..., true)` is the transaction-local equivalent of `SET LOCAL`.
     await tx.$executeRawUnsafe('SELECT set_config($1, $2, true)', 'app.congregation_id', String(congregationId))
-    return fn(tx)
+    // congregationId is also handed to the callback so service helpers can scope
+    // their `where` clauses by it (defence-in-depth over RLS) without re-reading context.
+    return fn(tx, congregationId)
   }, options)
 }
 

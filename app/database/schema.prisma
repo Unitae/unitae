@@ -471,6 +471,8 @@ model TerritoryPerimeter {
 
   congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
   congregationId Int          @unique
+
+  @@unique([id, congregationId])
 }
 
 model TerritoryCardOverlay {
@@ -484,6 +486,7 @@ model TerritoryCardOverlay {
   congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
   congregationId Int
 
+  @@unique([id, congregationId])
   @@index([congregationId])
 }
 

@@ -10,6 +10,7 @@ import { recalculateEntranceCentroid } from './update-buildings-in-entrance.serv
 export async function editBuilding(
   db: TransactionClient,
   buildingId: number,
+  congregationId: number,
   {
     address,
     coordinates = {},
@@ -31,7 +32,7 @@ export async function editBuilding(
 
   const building = await db.building.update({
     where: {
-      id: buildingId,
+      id_congregationId: { id: buildingId, congregationId },
     },
     data: {
       number: address.number,
@@ -46,7 +47,7 @@ export async function editBuilding(
   })
 
   for (const entrance of building.entrances) {
-    await recalculateEntranceCentroid(db, entrance.id)
+    await recalculateEntranceCentroid(db, entrance.id, congregationId)
   }
 
   return building

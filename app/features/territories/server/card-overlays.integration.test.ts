@@ -24,7 +24,9 @@ let aId: number
 let bId: number
 let aOverlayId: number
 
-const { createCardOverlay, listCardOverlays } = await import('./card-overlays.server')
+const { createCardOverlay, listCardOverlays, getCardOverlay, updateCardOverlay, deleteCardOverlay } = await import(
+  './card-overlays.server'
+)
 
 const SAMPLE_PATHS = [
   { lat: 45.75, lng: 4.83 },
@@ -95,5 +97,40 @@ describe('TerritoryCardOverlay RLS isolation', () => {
 
     const aOverlays = await withScope(aId, tx => listCardOverlays(tx as never))
     expect(aOverlays.every(o => o.name !== 'Zone B')).toBe(true)
+  })
+})
+
+// Defence-in-depth (#281): the negative cases below run INSIDE congregation A's
+// scope, so RLS would happily return overlay A. They only pass because the
+// helpers scope their `where` by the supplied `congregationId` (via the
+// `id_congregationId` compound key) — proving isolation no longer relies on RLS
+// alone. They would fail if someone dropped `congregationId` from the queries.
+describe('TerritoryCardOverlay tenant-scoping (app-layer, independent of RLS)', () => {
+  it('reads its own overlay when the congregationId matches', async () => {
+    const result = await withScope(aId, tx => getCardOverlay(tx as never, aOverlayId, aId))
+    expect(result?.id).toBe(aOverlayId)
+  })
+
+  it('refuses to read the overlay when the congregationId argument is wrong', async () => {
+    const result = await withScope(aId, tx => getCardOverlay(tx as never, aOverlayId, bId))
+    expect(result).toBeNull()
+  })
+
+  it('refuses to update the overlay when the congregationId argument is wrong', async () => {
+    const result = await withScope(aId, tx =>
+      updateCardOverlay(tx as never, aOverlayId, { color: '#999999', congregationId: bId, actorId: 0 }),
+    )
+    expect(result).toBeNull()
+
+    const untouched = await withScope(aId, tx => getCardOverlay(tx as never, aOverlayId, aId))
+    expect(untouched?.color).toBe('#C2175B')
+  })
+
+  it('refuses to delete the overlay when the congregationId argument is wrong', async () => {
+    const result = await withScope(aId, tx => deleteCardOverlay(tx as never, aOverlayId, bId, 0))
+    expect(result).toBeNull()
+
+    const stillThere = await withScope(aId, tx => getCardOverlay(tx as never, aOverlayId, aId))
+    expect(stillThere).not.toBeNull()
   })
 })

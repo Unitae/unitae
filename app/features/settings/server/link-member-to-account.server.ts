@@ -72,7 +72,7 @@ export async function linkMemberToAccount(
   })
 
   await db.userAccount.update({
-    where: { id: account.id },
+    where: { id_congregationId: { id: account.id, congregationId: params.congregationId } },
     data: { memberId: member.id, firstname: null, lastname: null },
   })
 

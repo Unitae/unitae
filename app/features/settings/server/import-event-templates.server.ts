@@ -20,10 +20,10 @@ export async function importEventTemplates(
   }>(zip, 'programme-templates')
 
   for (const record of records) {
-    const existing = await db.eventTemplate.findFirst({ where: { key: record.key } })
+    const existing = await db.eventTemplate.findFirst({ where: { key: record.key, congregationId } })
     if (existing) {
       await db.eventTemplate.update({
-        where: { id: existing.id },
+        where: { id_congregationId: { id: existing.id, congregationId } },
         data: {
           name: record.name,
           description: record.description,

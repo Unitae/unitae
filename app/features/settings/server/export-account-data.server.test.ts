@@ -75,8 +75,11 @@ describe('exportAccountData', () => {
     mockDb.boardDocumentVersion.findMany.mockResolvedValue([] as never)
     mockDb.consentRecord.findMany.mockResolvedValue([] as never)
 
-    const result = await exportAccountData(mockDb as never, 1)
+    const result = await exportAccountData(mockDb as never, 1, 42)
 
+    expect(mockDb.userAccount.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id_congregationId: { id: 1, congregationId: 42 } } }),
+    )
     expect(result.user).toEqual(fakeAccount)
     expect(result.permissions).toEqual([{ key: 'Admin' }])
     expect(result.publisherActivities).toHaveLength(1)
@@ -89,6 +92,6 @@ describe('exportAccountData', () => {
   it('lance une erreur si l utilisateur n existe pas', async () => {
     mockDb.userAccount.findUnique.mockResolvedValue(null as never)
 
-    await expect(exportAccountData(mockDb as never, 999)).rejects.toThrow('Utilisateur introuvable : 999')
+    await expect(exportAccountData(mockDb as never, 999, 42)).rejects.toThrow('Utilisateur introuvable : 999')
   })
 })

@@ -309,16 +309,24 @@ export async function getAvailableEntrances(
   })
 }
 
-export async function getEntrance(db: TransactionClient, entranceId: number): Promise<Entrance | null> {
+export async function getEntrance(
+  db: TransactionClient,
+  entranceId: number,
+  congregationId: number,
+): Promise<Entrance | null> {
   return await db.buildingEntrance.findUnique({
-    where: { id: entranceId },
+    where: { id_congregationId: { id: entranceId, congregationId } },
     include: entranceInclude,
   })
 }
 
-export async function getBuilding(db: TransactionClient, buildingId: number): Promise<Building | null> {
+export async function getBuilding(
+  db: TransactionClient,
+  buildingId: number,
+  congregationId: number,
+): Promise<Building | null> {
   return await db.building.findUnique({
-    where: { id: buildingId },
+    where: { id_congregationId: { id: buildingId, congregationId } },
     include: { entrances: { include: { buildings: true } } },
   })
 }

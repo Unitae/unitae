@@ -37,6 +37,9 @@ jobs:
       - name: Check aggregate boundaries (CQRS-lite)
         run: pnpm test:aggregate-boundaries
 
+      - name: Check tenant scoping (bare-id queries)
+        run: pnpm test:tenant-scoping
+
       - name: Check server barrel exports (client/server split)
         run: pnpm test:server-barrel-exports
 

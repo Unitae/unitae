@@ -80,7 +80,7 @@ export async function syncBuiltInRoleAssignments(
   actorId: number | null,
 ): Promise<void> {
   const member = await db.member.findUnique({
-    where: { id: memberId },
+    where: { id_congregationId: { id: memberId, congregationId } },
     select: {
       isMale: true,
       isPublisher: true,

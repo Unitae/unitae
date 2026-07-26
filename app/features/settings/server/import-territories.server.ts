@@ -12,10 +12,10 @@ export async function importTerritories(
 ): Promise<void> {
   const records = await readNdjsonFile<{ id: number; number: string; type: string; notes: string }>(zip, 'territories')
   for (const record of records) {
-    const existing = await db.territory.findFirst({ where: { number: record.number } })
+    const existing = await db.territory.findFirst({ where: { number: record.number, congregationId } })
     if (existing) {
       await db.territory.update({
-        where: { id: existing.id },
+        where: { id_congregationId: { id: existing.id, congregationId } },
         data: { type: record.type as TerritoryKind, notes: record.notes },
       })
       idMap.set('territories', record.id, existing.id)

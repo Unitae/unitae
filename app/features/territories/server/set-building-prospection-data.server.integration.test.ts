@@ -27,7 +27,7 @@ let otherBuildingId: number
 
 const { setBuildingProspectionData } = await import('./set-building-prospection-data.server')
 
-function emptyInput(overrides: Partial<Parameters<typeof setBuildingProspectionData>[2]> = {}) {
+function emptyInput(overrides: Partial<Parameters<typeof setBuildingProspectionData>[3]> = {}) {
   return {
     'has-residential': '',
     shopkinds: [],
@@ -46,7 +46,7 @@ function emptyInput(overrides: Partial<Parameters<typeof setBuildingProspectionD
     'residential-notes': '',
     'shared-entrance-buildings': '',
     ...overrides,
-  } satisfies Parameters<typeof setBuildingProspectionData>[2]
+  } satisfies Parameters<typeof setBuildingProspectionData>[3]
 }
 
 beforeAll(async () => {
@@ -92,7 +92,12 @@ afterAll(async () => {
 describe('setBuildingProspectionData (integration)', () => {
   it('creates a residential entrance when has-residential is checked', async () => {
     await withScope(primaryCongId, tx =>
-      setBuildingProspectionData(tx, primaryBuildingId, emptyInput({ 'has-residential': 'on', homes: '3' })),
+      setBuildingProspectionData(
+        tx,
+        primaryBuildingId,
+        primaryCongId,
+        emptyInput({ 'has-residential': 'on', homes: '3' }),
+      ),
     )
 
     const entrances = await withScope(primaryCongId, tx =>
@@ -109,11 +114,16 @@ describe('setBuildingProspectionData (integration)', () => {
   it('removes the residential entrance when has-residential is unchecked', async () => {
     // First ensure one exists
     await withScope(primaryCongId, tx =>
-      setBuildingProspectionData(tx, primaryBuildingId, emptyInput({ 'has-residential': 'on', homes: '2' })),
+      setBuildingProspectionData(
+        tx,
+        primaryBuildingId,
+        primaryCongId,
+        emptyInput({ 'has-residential': 'on', homes: '2' }),
+      ),
     )
 
     // Now uncheck
-    await withScope(primaryCongId, tx => setBuildingProspectionData(tx, primaryBuildingId, emptyInput()))
+    await withScope(primaryCongId, tx => setBuildingProspectionData(tx, primaryBuildingId, primaryCongId, emptyInput()))
 
     const residentialData = await testDb.buildingResidentialData.findFirst({
       where: { buildingId: primaryBuildingId },
@@ -126,6 +136,7 @@ describe('setBuildingProspectionData (integration)', () => {
       setBuildingProspectionData(
         tx,
         primaryBuildingId,
+        primaryCongId,
         emptyInput({ shopkinds: ['bakery', 'pharmacy'], 'commerce-notes': ['fresh bread', ''] }),
       ),
     )
@@ -139,11 +150,13 @@ describe('setBuildingProspectionData (integration)', () => {
     expect(kinds).toContain('pharmacy')
 
     // Cleanup
-    await withScope(primaryCongId, tx => setBuildingProspectionData(tx, primaryBuildingId, emptyInput()))
+    await withScope(primaryCongId, tx => setBuildingProspectionData(tx, primaryBuildingId, primaryCongId, emptyInput()))
   })
 
   it('creates hotel entrance when hotel flag is set', async () => {
-    await withScope(primaryCongId, tx => setBuildingProspectionData(tx, primaryBuildingId, emptyInput({ hotel: 'on' })))
+    await withScope(primaryCongId, tx =>
+      setBuildingProspectionData(tx, primaryBuildingId, primaryCongId, emptyInput({ hotel: 'on' })),
+    )
 
     const hotel = await withScope(primaryCongId, tx =>
       tx.buildingEntrance.findFirst({ where: { kind: EntranceKind.Hotel } }),
@@ -151,23 +164,33 @@ describe('setBuildingProspectionData (integration)', () => {
     expect(hotel).not.toBeNull()
 
     // Cleanup
-    await withScope(primaryCongId, tx => setBuildingProspectionData(tx, primaryBuildingId, emptyInput()))
+    await withScope(primaryCongId, tx => setBuildingProspectionData(tx, primaryBuildingId, primaryCongId, emptyInput()))
   })
 
   it('upsert of residential data does not touch another congregation building with same buildingId sequence — RLS isolation', async () => {
     // Create residential data for primary building
     await withScope(primaryCongId, tx =>
-      setBuildingProspectionData(tx, primaryBuildingId, emptyInput({ 'has-residential': 'on', homes: '5' })),
+      setBuildingProspectionData(
+        tx,
+        primaryBuildingId,
+        primaryCongId,
+        emptyInput({ 'has-residential': 'on', homes: '5' }),
+      ),
     )
 
     // Create residential data for other congregation building
     await withScope(otherCongId, tx =>
-      setBuildingProspectionData(tx, otherBuildingId, emptyInput({ 'has-residential': 'on', homes: '8' })),
+      setBuildingProspectionData(tx, otherBuildingId, otherCongId, emptyInput({ 'has-residential': 'on', homes: '8' })),
     )
 
     // Update primary building
     await withScope(primaryCongId, tx =>
-      setBuildingProspectionData(tx, primaryBuildingId, emptyInput({ 'has-residential': 'on', homes: '10' })),
+      setBuildingProspectionData(
+        tx,
+        primaryBuildingId,
+        primaryCongId,
+        emptyInput({ 'has-residential': 'on', homes: '10' }),
+      ),
     )
 
     const primaryData = await testDb.buildingResidentialData.findFirst({
@@ -185,7 +208,7 @@ describe('setBuildingProspectionData (integration)', () => {
   it('sets prospection date on the building', async () => {
     const date = '2024-06-15'
     await withScope(primaryCongId, tx =>
-      setBuildingProspectionData(tx, primaryBuildingId, emptyInput({ 'prospection-date': date })),
+      setBuildingProspectionData(tx, primaryBuildingId, primaryCongId, emptyInput({ 'prospection-date': date })),
     )
 
     const building = await testDb.building.findUnique({ where: { id: primaryBuildingId } })

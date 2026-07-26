@@ -175,7 +175,7 @@ export async function importBoardDynamicDocumentSettings(
 
     // Upsert by (congregationId, dynamicType, dynamicRef)
     const existing = await db.boardDynamicDocumentSettings.findFirst({
-      where: { dynamicType: record.dynamicType, dynamicRef: record.dynamicRef },
+      where: { dynamicType: record.dynamicType, dynamicRef: record.dynamicRef, congregationId },
     })
 
     const data = {
@@ -189,7 +189,10 @@ export async function importBoardDynamicDocumentSettings(
     }
 
     if (existing) {
-      await db.boardDynamicDocumentSettings.update({ where: { id: existing.id }, data })
+      await db.boardDynamicDocumentSettings.update({
+        where: { id_congregationId: { id: existing.id, congregationId } },
+        data,
+      })
       idMap.set('board-dynamic-document-settings', record.id, existing.id)
     } else {
       const created = await db.boardDynamicDocumentSettings.create({

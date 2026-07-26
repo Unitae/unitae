@@ -34,6 +34,7 @@
         "test:boundaries": "eslint --no-error-on-unmatched-pattern app/features/",
         "test:file-sizes": "tsx scripts/check-file-sizes.ts",
         "test:aggregate-boundaries": "tsx scripts/check-aggregate-boundaries.ts",
+        "test:tenant-scoping": "tsx scripts/check-tenant-scoping.ts",
         "test:server-barrel-exports": "tsx scripts/check-server-barrel-exports.ts",
         "test:service-test-coverage": "tsx scripts/check-service-test-coverage.ts",
         "test:dora-metrics": "tsx scripts/dora-metrics.ts"

@@ -164,7 +164,10 @@ describe('updateRoleIdentity', () => {
 
     await updateRoleIdentity(mockDb as never, 7, 10, 1, { name: 'Orateurs' })
 
-    expect(mockDb.role.update).toHaveBeenCalledWith({ where: { id: 7 }, data: { name: 'Orateurs' } })
+    expect(mockDb.role.update).toHaveBeenCalledWith({
+      where: { id_congregationId: { id: 7, congregationId: 10 } },
+      data: { name: 'Orateurs' },
+    })
     expect(vi.mocked(audit)).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'RoleUpdated', metadata: { fieldsChanged: ['name'] } }),
     )
@@ -259,7 +262,9 @@ describe('deleteRole', () => {
 
     await deleteRole(mockDb as never, 7, 10, 1)
 
-    expect(mockDb.role.delete).toHaveBeenCalledWith({ where: { id: 7 } })
+    expect(mockDb.role.delete).toHaveBeenCalledWith({
+      where: { id_congregationId: { id: 7, congregationId: 10 } },
+    })
     expect(vi.mocked(audit)).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'RoleDeleted',

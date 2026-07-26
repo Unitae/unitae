@@ -108,7 +108,7 @@ describe('entrance centroid maintenance (integration)', () => {
 
   it('propagates a building coordinate change to its linked entrances via editBuilding', async () => {
     await withScope(congId, tx =>
-      editBuilding(tx, buildingAId, {
+      editBuilding(tx, buildingAId, congId, {
         address: { number: '1', street: 'Rue A', zip: '75001' },
         coordinates: { latitude: 49.0, longitude: 3.0 },
       }),

@@ -26,8 +26,8 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
   const displayName = formatPersonName(resolveAccountName(resolved.user), '')
 
-  const ics = await withScope(resolved.user.congregationId, async db => {
-    const items = await getPersonalAssignments(db, resolved.user.id, since)
+  const ics = await withScope(resolved.user.congregationId, async (db, congregationId) => {
+    const items = await getPersonalAssignments(db, resolved.user.id, congregationId, since)
     return buildPersonalCalendarIcs({
       items,
       userLabel: displayName || resolved.user.email,

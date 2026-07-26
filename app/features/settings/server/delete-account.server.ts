@@ -27,7 +27,7 @@ export async function deleteAccount(
 
   await requireNotLastAdmin(accountId, congregationId)
 
-  await db.userAccount.delete({ where: { id: accountId } })
+  await db.userAccount.delete({ where: { id_congregationId: { id: accountId, congregationId } } })
 
   audit({
     action: AuditAction.AccountDeleted,

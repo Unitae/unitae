@@ -23,7 +23,7 @@ interface RouteContext {
  */
 export function withScopeFromContext<T>(
   context: RouteContext,
-  fn: (db: TransactionClient) => Promise<T>,
+  fn: (db: TransactionClient, congregationId: number) => Promise<T>,
   options?: TransactionOptions,
 ): Promise<T> {
   const user = context.get(currentAccountContext)

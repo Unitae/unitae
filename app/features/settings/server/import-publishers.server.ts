@@ -41,6 +41,7 @@ export async function updateMemberPublisherGroups(
   zip: JsZip,
   db: TransactionClient,
   idMap: EntityIdMap,
+  congregationId: number,
 ): Promise<void> {
   interface ExportedMember {
     id: number
@@ -55,7 +56,7 @@ export async function updateMemberPublisherGroups(
     if (!memberId || !groupId) continue
 
     await db.member.update({
-      where: { id: memberId },
+      where: { id_congregationId: { id: memberId, congregationId } },
       data: { publisherGroupId: groupId },
     })
   }

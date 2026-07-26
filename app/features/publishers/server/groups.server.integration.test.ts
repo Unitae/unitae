@@ -80,13 +80,13 @@ describe('getGroups (integration)', () => {
 
 describe('getGroup (integration)', () => {
   it('returns the group when queried inside its congregation scope', async () => {
-    const group = await withScope(congAId, tx => getGroup(tx, groupAId))
+    const group = await withScope(congAId, tx => getGroup(tx, groupAId, congAId))
     expect(group?.id).toBe(groupAId)
     expect(group?.name).toBe('A-Group')
   })
 
   it('returns null when the group belongs to another congregation (RLS hides it)', async () => {
-    const group = await withScope(congAId, tx => getGroup(tx, groupBId))
+    const group = await withScope(congAId, tx => getGroup(tx, groupBId, congBId))
     expect(group).toBeNull()
   })
 })

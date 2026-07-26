@@ -23,7 +23,7 @@ import { checkExpiringDocuments } from './expiration-notifications.server'
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(withScope).mockImplementation((_id, fn) => Promise.resolve(fn({} as never)))
+  vi.mocked(withScope).mockImplementation((id, fn) => Promise.resolve(fn({} as never, id)))
 })
 
 describe('checkExpiringDocuments', () => {

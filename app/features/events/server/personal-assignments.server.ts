@@ -26,10 +26,11 @@ type ServicePartWithEvent = EventServicePart & { event: Event }
 export async function getPersonalAssignments(
   db: TransactionClient,
   userId: number,
+  congregationId: number,
   since: Date,
 ): Promise<PersonalCalendarItem[]> {
   const account = await db.userAccount.findUnique({
-    where: { id: userId },
+    where: { id_congregationId: { id: userId, congregationId } },
     select: { memberId: true },
   })
   const memberId = account?.memberId ?? null

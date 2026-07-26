@@ -48,8 +48,12 @@ export function loader({ params, context }: Route.LoaderArgs) {
     `Loading building data for building nº${params.buildingId}. User ID: ${currentUser.id}. ${canManageProspection ? 'Has' : 'Does NOT have'} rights to modify prospection data.`,
   )
 
-  return withScopeFromContext(context, async db => {
-    const building = await getBuildingDetails(db, requireParamId(params.buildingId, '/territories/buildings'))
+  return withScopeFromContext(context, async (db, congregationId) => {
+    const building = await getBuildingDetails(
+      db,
+      requireParamId(params.buildingId, '/territories/buildings'),
+      congregationId,
+    )
     if (!building) {
       throw redirect('../', { status: 404 })
     }
@@ -145,10 +149,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   const { notes } = submission.value
 
-  return withScopeFromContext(context, async db => {
+  return withScopeFromContext(context, async (db, congregationId) => {
     const session = await getSession(request.headers.get('Cookie'))
     try {
-      await setBuildingNotes(db, requireParamId(params.buildingId, '/territories/buildings'), {
+      await setBuildingNotes(db, requireParamId(params.buildingId, '/territories/buildings'), congregationId, {
         notes,
       })
 

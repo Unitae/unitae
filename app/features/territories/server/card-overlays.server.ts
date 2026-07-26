@@ -25,8 +25,12 @@ export async function listCardOverlays(db: TransactionClient): Promise<CardOverl
   return rows.map(toCardOverlay)
 }
 
-export async function getCardOverlay(db: TransactionClient, id: number): Promise<CardOverlay | null> {
-  const row = await db.territoryCardOverlay.findFirst({ where: { id } })
+export async function getCardOverlay(
+  db: TransactionClient,
+  id: number,
+  congregationId: number,
+): Promise<CardOverlay | null> {
+  const row = await db.territoryCardOverlay.findFirst({ where: { id, congregationId } })
   return row == null ? null : toCardOverlay(row)
 }
 
@@ -72,11 +76,11 @@ export async function updateCardOverlay(
   id: number,
   params: UpdateCardOverlayParams,
 ): Promise<CardOverlay | null> {
-  const existing = await db.territoryCardOverlay.findFirst({ where: { id } })
+  const existing = await db.territoryCardOverlay.findFirst({ where: { id, congregationId: params.congregationId } })
   if (existing == null) return null
 
   const updated = await db.territoryCardOverlay.update({
-    where: { id },
+    where: { id_congregationId: { id, congregationId: params.congregationId } },
     data: {
       ...(params.name !== undefined ? { name: params.name } : {}),
       ...(params.color !== undefined ? { color: params.color } : {}),
@@ -101,10 +105,10 @@ export async function deleteCardOverlay(
   congregationId: number,
   actorId: number,
 ): Promise<CardOverlay | null> {
-  const existing = await db.territoryCardOverlay.findFirst({ where: { id } })
+  const existing = await db.territoryCardOverlay.findFirst({ where: { id, congregationId } })
   if (existing == null) return null
 
-  await db.territoryCardOverlay.delete({ where: { id } })
+  await db.territoryCardOverlay.delete({ where: { id_congregationId: { id, congregationId } } })
 
   audit({
     action: AuditAction.CardOverlayDeleted,

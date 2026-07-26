@@ -17,9 +17,10 @@ export type TerritoryContent = {
 export async function getTerritoryContent(
   db: TransactionClient,
   territoryId: number,
+  congregationId: number,
 ): Promise<TerritoryContent | null> {
   const territory = await db.territory.findFirst({
-    where: { id: territoryId },
+    where: { id: territoryId, congregationId },
     include: {
       entrances: {
         where: { buildings: { some: { active: true } } },

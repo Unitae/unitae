@@ -110,7 +110,10 @@ export interface CreateAttributionParams {
 }
 
 export async function assign(db: TransactionClient, params: CreateAttributionParams) {
-  const territory = await db.territory.findUniqueOrThrow({ where: { id: params.territoryId } })
+  const territory = await db.territory.findUniqueOrThrow({
+    // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
+    where: { id_congregationId: { id: params.territoryId, congregationId: params.congregationId } },
+  })
   const durationDays = await _resolveDurationDays(db, params.type, territory.type, params.congregationId)
 
   const startDate = parseLocalDate(params.startDate)

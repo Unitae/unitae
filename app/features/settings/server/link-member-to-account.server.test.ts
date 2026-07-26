@@ -111,7 +111,7 @@ describe('linkMemberToAccount', () => {
     await linkMemberToAccount(dbCast, baseCongregation, baseParams)
 
     expect(mockDb.userAccount.update).toHaveBeenCalledWith({
-      where: { id: 5 },
+      where: { id_congregationId: { id: 5, congregationId: 42 } },
       data: { memberId: 10, firstname: null, lastname: null },
     })
   })

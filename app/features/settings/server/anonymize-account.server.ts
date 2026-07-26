@@ -36,7 +36,7 @@ export async function anonymizeAccount(
   const anonymizedEmail = `deleted-${randomUUID()}@anonymized.local`
 
   await db.userAccount.update({
-    where: { id: accountId },
+    where: { id_congregationId: { id: accountId, congregationId } },
     data: {
       firstname: null,
       lastname: null,
@@ -47,12 +47,13 @@ export async function anonymizeAccount(
     },
   })
 
-  await db.congregationUserPermission.deleteMany({ where: { userId: accountId } })
-  await db.userRoleAssignment.deleteMany({ where: { userId: accountId } })
+  await db.congregationUserPermission.deleteMany({ where: { userId: accountId, congregationId } })
+  await db.userRoleAssignment.deleteMany({ where: { userId: accountId, congregationId } })
+  // PasswordResetToken has no congregationId column (account-bound); scoped via the verified account above.
   await db.passwordResetToken.deleteMany({ where: { userId: accountId } })
 
   await db.boardDocumentVersion.updateMany({
-    where: { uploadedById: accountId },
+    where: { uploadedById: accountId, congregationId },
     data: { uploadedById: null },
   })
 
