@@ -417,7 +417,7 @@ pnpm test:e2e:headed        # E2E tests with browser visible
 
 ## Security
 
-- **Session**: Cookie-based (HTTP-only, `SameSite=Lax`, optional `UNITAE_COOKIE_DOMAIN` for multi-subdomain SaaS), `UNITAE_SESSION_SECRET` required, 1h (prod) / 8h (dev) maxAge
+- **Session**: Cookie-based (HTTP-only, `SameSite=Lax`, optional `UNITAE_COOKIE_DOMAIN` for multi-subdomain SaaS), 1h (prod) / 8h (dev) maxAge. `UNITAE_SESSION_SECRET` is validated at boot (min 32 chars; the example placeholder is refused) — fail-closed in production, warn-only in dev, like the RLS guard. Rotation is supported by comma-separating the value into `[current, ...previous]`: the first entry signs new cookies, the rest validate existing ones; the same secrets derive the TOTP seed encryption key so rotation does not force 2FA re-enrollment
 - **Passwords**: scrypt hashed with a 16-byte random salt and 32-byte derived key, constant-time comparison, never stored in plain text, reset via 24h single-use time-limited tokens generated with `crypto.randomBytes(32)`
 - **Email verification**: Required before accessing the app, 24h token expiry
 - **Rate limiting** (via `redisRateLimit`): Login is keyed on the client IP (`LOGIN_RATE_LIMIT_IP_MAX`, default 10 / 15min) plus an instance-wide global counter (`LOGIN_RATE_LIMIT_GLOBAL_MAX`, default 100 / 15min) — deliberately **never** keyed on the target email, so no one can lock out a specific account. Password reset is limited per email (3/15min). Two-factor challenge is limited per account (`TWO_FACTOR_RATE_LIMIT_MAX`, default 5)

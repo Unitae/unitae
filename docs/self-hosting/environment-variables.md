@@ -7,7 +7,17 @@ Complete reference for all configuration variables used by Unitae.
 | Variable | Description |
 |----------|-------------|
 | `DB_URL` | PostgreSQL connection string (e.g., `postgresql://user:pass@host:5432/dbname`) |
-| `UNITAE_SESSION_SECRET` | Cookie signing secret. Must be at least 32 characters. Keep this secret |
+| `UNITAE_SESSION_SECRET` | Cookie signing secret. Must be at least 32 characters — the app **refuses to boot in production** on a shorter value or the example placeholder. Also derives the encryption key for enrolled 2FA seeds. Supports rotation: comma-separate `new-secret,old-secret` (first entry is current). Keep this secret |
+
+### Rotating the session secret
+
+To change the secret without logging everyone out or forcing 2FA re-enrollment, put the **new** secret first and keep the **old** one after it, comma-separated:
+
+```ini
+UNITAE_SESSION_SECRET="new-secret,old-secret"
+```
+
+The first entry signs new cookies; every entry still validates existing cookies and decrypts enrolled 2FA seeds. Once all sessions issued under the old secret have expired, drop the trailing entry and restart. Every entry must meet the 32-character minimum.
 
 ## Application
 
