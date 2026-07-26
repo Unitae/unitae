@@ -17,8 +17,14 @@ describe('DECOY_HASH', () => {
     await expect(compare('any-password', DECOY_HASH)).resolves.toBe(false)
   })
 
-  it('a la forme sel.clé attendue (sel 32 hex, clé 64 hex)', () => {
-    const [salt, key] = DECOY_HASH.split('.')
+  it('a la forme auto-descriptive scrypt$N$r$p$sel$clé attendue (N=2^17)', () => {
+    const [scheme, n, r, p, salt, key] = DECOY_HASH.split('$')
+    expect(scheme).toBe('scrypt')
+    // The decoy must use the current parameters so the scrypt cost of the unknown/inactive-user
+    // path equals that of a real current-format verification.
+    expect(n).toBe(String(2 ** 17))
+    expect(r).toBe('8')
+    expect(p).toBe('1')
     expect(salt).toMatch(SALT_RE)
     expect(key).toMatch(KEY_RE)
   })

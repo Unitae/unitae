@@ -35,12 +35,16 @@ const prisma = new PrismaClient({ adapter })
 // Helpers
 // ---------------------------------------------------------------------------
 
+// Hand-mirrors app/shared/auth/crypto.server.ts so seeded demo logins verify through the shared
+// `compare`: current scrypt parameters (N=2^17), raised maxmem, self-describing storage format.
+// This standalone seed script can't import server-only modules, so the params/format are
+// duplicated here — keep them in sync by hand if CURRENT_PARAMS ever changes (not enforced).
 function hashPassword(password: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const salt = randomBytes(16).toString('hex')
-    scrypt(password, salt, 32, (error, derivedKey) => {
+    scrypt(password, salt, 32, { N: 2 ** 17, r: 8, p: 1, maxmem: 256 * 1024 * 1024 }, (error, derivedKey) => {
       if (error) reject(error)
-      resolve(`${salt}.${derivedKey.toString('hex')}`)
+      else resolve(`scrypt$131072$8$1$${salt}$${derivedKey.toString('hex')}`)
     })
   })
 }
