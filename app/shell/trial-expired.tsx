@@ -5,6 +5,7 @@ import * as m from '~/i18n/paraglide/messages'
 
 import { checkoutLink } from '~/shared/domain/billing-link.server'
 import { unscopedDb } from '~/shared/infra/db.server'
+import logger from '~/shared/infra/logger.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
 
@@ -15,8 +16,8 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  // Lien de réabonnement signé, config-driven : `checkoutLink` renvoie null si l'hébergement géré
-  // n'est pas configuré (auto-hébergement) — aucune UI de facturation ne s'affiche alors.
+  // Signed, config-driven resubscription link: `checkoutLink` returns null when managed hosting is
+  // not configured (self-hosting) — no billing UI is shown in that case.
   let upgradeUrl: string | null = null
   try {
     const session = await getSession(request.headers.get('Cookie'))
@@ -29,8 +30,14 @@ export async function loader({ request }: Route.LoaderArgs) {
       const slug = user?.congregation?.slug
       if (slug) upgradeUrl = checkoutLink(slug)
     }
-  } catch {
-    // Pas de lien si la session ou la base sont indisponibles.
+  } catch (error) {
+    // Fall back to no link, but don't hide a real fault: the config-driven "no link" cases already
+    // return null inside checkoutLink without throwing, so reaching here means the session or DB
+    // actually failed.
+    logger.warn('Could not resolve the upgrade link — showing the trial-expired page without it', {
+      tag: 'trial-expired-loader',
+      error: error instanceof Error ? error.message : String(error),
+    })
   }
 
   return { upgradeUrl }

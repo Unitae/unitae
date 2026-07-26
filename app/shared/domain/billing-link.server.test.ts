@@ -15,7 +15,9 @@ const mockedEnv = vi.mocked(getOptionalEnv)
 const mockedSettings = vi.mocked(getHostSettings)
 const mockedLogger = vi.mocked(logger)
 
-const MANAGED = { billing: { portalUrl: 'https://www.unitae.app/billing', upgradeUrl: 'https://www.unitae.app/checkout' } }
+const MANAGED = {
+  billing: { portalUrl: 'https://www.unitae.app/billing', upgradeUrl: 'https://www.unitae.app/checkout' },
+}
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -34,11 +36,38 @@ describe('config-driven billing links', () => {
     expect(mockedLogger.error).not.toHaveBeenCalled()
   })
 
-  it('returns null AND logs when the URL is set but the secret is missing (managed misconfig)', () => {
+  // NOTE: keep this the ONLY test that exercises the missing-secret branch. The once-per-process
+  // guard lives in module state that survives between tests, so a second missing-secret test would
+  // see the flag already tripped and observe zero logs.
+  it('returns null and logs the managed misconfig ONCE, not per call', () => {
     mockedSettings.mockReturnValue(MANAGED)
     mockedEnv.mockReturnValue(undefined)
+
     expect(billingPortalLink('grace-community')).toBeNull()
-    expect(mockedLogger.error).toHaveBeenCalled()
+    expect(checkoutLink('grace-community')).toBeNull()
+
+    // Static, deployment-wide misconfig → surfaced once, not flooded on every admin render.
+    expect(mockedLogger.error).toHaveBeenCalledTimes(1)
+    // Operator-facing contract: the message names the missing var and carries the tag.
+    expect(mockedLogger.error).toHaveBeenCalledWith(expect.stringContaining('BILLING_LINK_SECRET'), {
+      tag: 'billing-link',
+    })
+  })
+
+  it('appends with & when the configured URL already carries a query string', () => {
+    mockedSettings.mockReturnValue({
+      billing: { portalUrl: 'https://www.unitae.app/billing?ref=app', upgradeUrl: 'https://www.unitae.app/checkout' },
+    })
+    mockedEnv.mockReturnValue(SECRET)
+
+    const portal = billingPortalLink('grace-community')
+    expect(portal?.startsWith('https://www.unitae.app/billing?ref=app&token=')).toBe(true)
+    // The token stays a parseable query param instead of being swallowed into `ref`.
+    const url = new URL(portal ?? '')
+    expect(url.searchParams.get('ref')).toBe('app')
+    expect(
+      verifyBillingToken(url.searchParams.get('token') ?? '', SECRET, { purpose: 'billing', now: Date.now() }).valid,
+    ).toBe(true)
   })
 
   it('couples portal→/billing→purpose:billing and checkout→/checkout→purpose:checkout', () => {
@@ -53,6 +82,8 @@ describe('config-driven billing links', () => {
 
     const checkout = checkoutLink('grace-community')
     expect(checkout?.startsWith('https://www.unitae.app/checkout?token=')).toBe(true)
-    expect(verifyBillingToken(tokenOf(checkout ?? ''), SECRET, { purpose: 'checkout', now: Date.now() }).valid).toBe(true)
+    expect(verifyBillingToken(tokenOf(checkout ?? ''), SECRET, { purpose: 'checkout', now: Date.now() }).valid).toBe(
+      true,
+    )
   })
 })

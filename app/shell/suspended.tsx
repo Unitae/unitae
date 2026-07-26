@@ -6,6 +6,7 @@ import * as m from '~/i18n/paraglide/messages'
 import { checkoutLink } from '~/shared/domain/billing-link.server'
 import { getHostSettings } from '~/shared/domain/host-settings.server'
 import { unscopedDb } from '~/shared/infra/db.server'
+import logger from '~/shared/infra/logger.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
 
@@ -19,7 +20,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const hostSettings = getHostSettings()
 
   // Read suspended reason from DB instead of query param to prevent phishing.
-  // Le slug sert à générer le lien de réabonnement signé (config-driven).
+  // The slug is used to build the signed reactivation link (config-driven).
   let reason: string | null = null
   let reactivateUrl: string | null = null
   try {
@@ -34,11 +35,17 @@ export async function loader({ request }: Route.LoaderArgs) {
       const slug = user?.congregation?.slug
       if (slug) reactivateUrl = checkoutLink(slug)
     }
-  } catch {
-    // Default to generic message if DB is unreachable
+  } catch (error) {
+    // Fall back to the generic message, but don't hide a real fault (DB down, session decode
+    // failure after a secret rotation, etc.) — the config-driven "no link" cases already return
+    // null inside checkoutLink without throwing, so reaching here means something actually broke.
+    logger.warn('Could not resolve the reactivation link — showing the generic suspended page', {
+      tag: 'suspended-loader',
+      error: error instanceof Error ? error.message : String(error),
+    })
   }
 
-  // Config-driven (présence de l'URL), pas MULTI_TENANT : un self-hébergeur n'a pas ces liens.
+  // Config-driven (presence of the URL), not MULTI_TENANT: a self-hoster has no such links.
   return {
     reason,
     reactivateUrl,

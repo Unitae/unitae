@@ -4,8 +4,8 @@ import { toast } from 'sonner'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { requireAuth } from '~/shared/auth/middleware.server'
 import { congregationContext, currentAccountContext, permissionsContext } from '~/shared/auth/route-context.server'
-import { Permission } from '~/shared/types/permission'
 import { billingPortalLink } from '~/shared/domain/billing-link.server'
+import { Permission } from '~/shared/types/permission'
 import { AppLayout } from '~/shared/ui/AppLayout'
 import { RouteErrorBoundary } from '~/shared/ui/RouteErrorBoundary'
 
@@ -69,7 +69,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         isPlatformAdmin: currentUser.platformAdmin ?? false,
       },
       congregationName: congregation.displayName ?? congregation.name,
-      // Lien de facturation SaaS, réservé aux admins et config-driven (null en auto-hébergement).
+      // SaaS billing link, admin-only and config-driven (null when self-hosted).
       billingUrl: can(Permission.Admin) ? billingPortalLink(congregation.slug) : null,
       messages,
     },

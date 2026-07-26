@@ -1,13 +1,17 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 
-// Jeton signé (HMAC-SHA256) qui autorise un admin connecté à ouvrir la facturation SaaS sur le
-// site marketing sans exposer le slug en clair dans l'URL. Le site vérifie la signature au lieu
-// de faire confiance à un `?congregation=slug` brut. Le secret `BILLING_LINK_SECRET` est partagé
-// entre les émetteurs (app principale + emails de la plateforme) et le site (vérification).
+// Signed token (HMAC-SHA256) that lets a logged-in admin open the SaaS billing flow on the
+// marketing site without exposing the slug in cleartext in the URL. The site verifies the
+// signature instead of trusting a raw `?congregation=slug`. The `BILLING_LINK_SECRET` secret is
+// shared between the issuers (main app + platform emails) and the site (verification).
+//
+// The token wire format (JSON serialization + base64url + HMAC) must stay byte-identical across
+// the three copies (app / platform / site) or signatures won't validate; the golden-vector test
+// pins it. Keep this file in sync across the repos.
 
-// TTL des liens ouverts depuis l'app (session active) : court.
+// TTL for links opened from the app (active session): short.
 export const BILLING_TOKEN_TTL_MS = 15 * 60 * 1000
-// TTL des liens envoyés par email (clic non authentifié) : plus long, façon magic-link.
+// TTL for links sent by email (unauthenticated click): longer, magic-link style.
 export const BILLING_EMAIL_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 export type BillingTokenPurpose = 'billing' | 'checkout'
@@ -15,16 +19,16 @@ export type BillingTokenPurpose = 'billing' | 'checkout'
 export interface BillingTokenPayload {
   slug: string
   purpose: BillingTokenPurpose
-  exp: number // horodatage unix en ms
+  exp: number // unix timestamp in ms
 }
 
 export type VerifyResult =
   | { valid: true; payload: BillingTokenPayload }
   | { valid: false; reason: 'malformed' | 'bad-signature' | 'expired' | 'bad-purpose' }
 
-// Doit rester identique dans les trois copies (app/site/plateforme). Le slug signé est réinjecté
-// dans des appels API / URLs côté site : on le revalide après parsing plutôt que de lui faire
-// confiance sur la seule signature (défense en profondeur).
+// Verifier-side defense-in-depth: after the signature passes, the signed slug is re-validated
+// before the site reinjects it into API calls / URLs — it is not trusted on the signature alone.
+// (Issuers never run this pattern; only the verifying site does.)
 const SLUG_PATTERN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/
 function isValidSlug(slug: unknown): slug is string {
   return typeof slug === 'string' && slug.length >= 2 && slug.length <= 63 && SLUG_PATTERN.test(slug)

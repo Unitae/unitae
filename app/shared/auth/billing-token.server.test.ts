@@ -8,14 +8,20 @@ describe('billing token', () => {
   it('round-trips a valid token (slug + purpose)', () => {
     const token = mintBillingLink('grace-community', 'billing', SECRET, { now: NOW, ttlMs: 15 * 60 * 1000 })
     const result = verifyBillingToken(token, SECRET, { purpose: 'billing', now: NOW })
-    expect(result).toEqual({ valid: true, payload: { slug: 'grace-community', purpose: 'billing', exp: NOW + 15 * 60 * 1000 } })
+    expect(result).toEqual({
+      valid: true,
+      payload: { slug: 'grace-community', purpose: 'billing', exp: NOW + 15 * 60 * 1000 },
+    })
   })
 
   it('rejects a tampered signature', () => {
     const token = mintBillingToken({ slug: 's', purpose: 'billing', exp: NOW + 1000 }, SECRET)
     const [body] = token.split('.')
     const forged = `${body}.tampered`
-    expect(verifyBillingToken(forged, SECRET, { purpose: 'billing', now: NOW })).toEqual({ valid: false, reason: 'bad-signature' })
+    expect(verifyBillingToken(forged, SECRET, { purpose: 'billing', now: NOW })).toEqual({
+      valid: false,
+      reason: 'bad-signature',
+    })
   })
 
   it('rejects a token signed with a different secret', () => {
@@ -25,22 +31,34 @@ describe('billing token', () => {
 
   it('rejects an expired token', () => {
     const token = mintBillingToken({ slug: 's', purpose: 'billing', exp: NOW - 1 }, SECRET)
-    expect(verifyBillingToken(token, SECRET, { purpose: 'billing', now: NOW })).toEqual({ valid: false, reason: 'expired' })
+    expect(verifyBillingToken(token, SECRET, { purpose: 'billing', now: NOW })).toEqual({
+      valid: false,
+      reason: 'expired',
+    })
   })
 
   it('rejects a purpose mismatch (billing token used for checkout)', () => {
     const token = mintBillingToken({ slug: 's', purpose: 'billing', exp: NOW + 1000 }, SECRET)
-    expect(verifyBillingToken(token, SECRET, { purpose: 'checkout', now: NOW })).toEqual({ valid: false, reason: 'bad-purpose' })
+    expect(verifyBillingToken(token, SECRET, { purpose: 'checkout', now: NOW })).toEqual({
+      valid: false,
+      reason: 'bad-purpose',
+    })
   })
 
   it('rejects a malformed token', () => {
-    expect(verifyBillingToken('not-a-token', SECRET, { purpose: 'billing', now: NOW })).toEqual({ valid: false, reason: 'malformed' })
+    expect(verifyBillingToken('not-a-token', SECRET, { purpose: 'billing', now: NOW })).toEqual({
+      valid: false,
+      reason: 'malformed',
+    })
   })
 
   it('rejects a signed token whose slug is not a valid slug', () => {
     for (const badSlug of ['Bad Slug', 'a', 'has_underscore', '-leading', '']) {
       const token = mintBillingToken({ slug: badSlug, purpose: 'billing', exp: NOW + 1000 }, SECRET)
-      expect(verifyBillingToken(token, SECRET, { purpose: 'billing', now: NOW })).toEqual({ valid: false, reason: 'malformed' })
+      expect(verifyBillingToken(token, SECRET, { purpose: 'billing', now: NOW })).toEqual({
+        valid: false,
+        reason: 'malformed',
+      })
     }
   })
 })
@@ -57,7 +75,9 @@ describe('cross-repo golden vector', () => {
   })
 
   it('verifies the golden token to the golden payload', () => {
-    expect(verifyBillingToken(GOLDEN_TOKEN, GOLDEN_SECRET, { purpose: 'billing', now: GOLDEN_PAYLOAD.exp - 1 })).toEqual({
+    expect(
+      verifyBillingToken(GOLDEN_TOKEN, GOLDEN_SECRET, { purpose: 'billing', now: GOLDEN_PAYLOAD.exp - 1 }),
+    ).toEqual({
       valid: true,
       payload: GOLDEN_PAYLOAD,
     })
