@@ -20,8 +20,8 @@ describe('DECOY_HASH', () => {
   it('a la forme auto-descriptive scrypt$N$r$p$sel$clé attendue (N=2^17)', () => {
     const [scheme, n, r, p, salt, key] = DECOY_HASH.split('$')
     expect(scheme).toBe('scrypt')
-    // Le leurre doit utiliser les paramètres courants pour que le coût scrypt du chemin
-    // "utilisateur inconnu/inactif" égale celui d'une vraie vérification au format courant.
+    // The decoy must use the current parameters so the scrypt cost of the unknown/inactive-user
+    // path equals that of a real current-format verification.
     expect(n).toBe(String(2 ** 17))
     expect(r).toBe('8')
     expect(p).toBe('1')

@@ -70,6 +70,8 @@ describe('validateCredentials', () => {
     result = await validateCredentials('test@example.com', 'motdepasse')
     expect(result).toBeUndefined()
     expect(result).not.toBe(sentinel)
+    // An inactive user must never be rehashed (guard sits before the rehash block).
+    expect(db.userAccount.update).not.toHaveBeenCalled()
   })
 
   it('exécute quand même un scrypt pour un utilisateur inactif (égalisation du timing)', async () => {
@@ -90,6 +92,8 @@ describe('validateCredentials', () => {
     result = await validateCredentials('test@example.com', 'mauvais')
     expect(result).toBeUndefined()
     expect(result).not.toBe(sentinel)
+    // A failed password check must never trigger a rehash write.
+    expect(db.userAccount.update).not.toHaveBeenCalled()
   })
 
   it('retourne undefined si compare lance une erreur', async () => {
@@ -131,9 +135,8 @@ describe('validateCredentials', () => {
 
     const result = await validateCredentials('test@example.com', 'motdepasse')
 
+    // Assert on the observable side-effect (the DB write), not on internal collaborators.
     expect(result).toBe(42)
-    expect(needsRehash).toHaveBeenCalledWith(fakeUser.password)
-    expect(hash).toHaveBeenCalledWith('motdepasse')
     expect(db.userAccount.update).toHaveBeenCalledWith({
       where: { id: 42 },
       data: { password: 'scrypt$131072$8$1$sel$cle' },

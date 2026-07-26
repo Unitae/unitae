@@ -8,6 +8,13 @@ import logger from '~/shared/infra/logger.server'
 // inactive-user path and always returns false. Without it, those paths would return before any
 // scrypt work and leak a timing oracle for account enumeration. It pins the CURRENT parameters
 // (N=2^17) so the decoy path costs the same as verifying a real, current-format hash.
+//
+// KNOWN, SHRINKING WINDOW: a not-yet-migrated legacy account still verifies at N=2^14, ~8x
+// cheaper than this decoy, so a wrong-password probe against such an account is measurably
+// faster than an unknown-email probe — a residual enumeration signal for the legacy cohort.
+// A single fixed-cost decoy cannot equalize a mixed-cost population; this is accepted because
+// rehash-on-login converges every account to N=2^17 over time (see the rehash block below).
+//
 // Exported so a unit test can prove it stays well-formed (a malformed decoy makes `compare`
 // reject before scrypt, silently reintroducing the timing oracle).
 export const DECOY_HASH =

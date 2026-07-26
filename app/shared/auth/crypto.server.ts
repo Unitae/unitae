@@ -21,7 +21,8 @@ const CURRENT_PARAMS: ScryptParams = { N: 2 ** 17, r: 8, p: 1 }
 const LEGACY_PARAMS: ScryptParams = { N: 2 ** 14, r: 8, p: 1 }
 
 // scrypt needs roughly 128 * N * r bytes; at N=2^17/r=8 that is ~128 MiB, above Node's default
-// 32 MiB `maxmem` cap. Sized off the largest parameters so both hashing and verification fit.
+// 32 MiB `maxmem` cap. Set with headroom above that largest requirement (~128 MiB) so both
+// hashing and verification fit; bump this if CURRENT_PARAMS.N is ever raised past 2^18.
 const maxmem = 256 * 1024 * 1024
 
 const SCHEME = 'scrypt'
@@ -48,7 +49,13 @@ function parseStoredHash(stored: string): ParsedHash {
     if (scheme !== SCHEME || !n || !r || !p || !salt || !key) {
       throw new Error('Invalid format for encrypted password')
     }
-    return { params: { N: Number(n), r: Number(r), p: Number(p) }, salt, key }
+    const params = { N: Number(n), r: Number(r), p: Number(p) }
+    // Reject non-numeric params here so a corrupt stored hash fails as a clean format error
+    // rather than a cryptic native scrypt crash ("N out of range … Received NaN") downstream.
+    if (!Number.isInteger(params.N) || !Number.isInteger(params.r) || !Number.isInteger(params.p)) {
+      throw new Error('Invalid format for encrypted password')
+    }
+    return { params, salt, key }
   }
 
   const [salt, key] = stored.split('.')
@@ -82,14 +89,16 @@ export const compare = async (password: string, stored: string): Promise<boolean
 }
 
 /**
- * True when `stored` was derived with parameters weaker than (or otherwise different from)
- * the current ones — a signal for the login path to transparently re-hash the password.
+ * True when `stored` was derived with parameters *weaker* than the current ones — a signal for
+ * the login path to transparently re-hash the password to the stronger cost. Never downgrades:
+ * a hash stronger than current (e.g. a higher N after a future bump-then-rollback) is left as-is,
+ * matching the conventional `password_needs_rehash` semantics (stored cost only ever increases).
  * Unparseable inputs (e.g. the imported-account sentinel) return false: there is nothing to upgrade.
  */
 export const needsRehash = (stored: string): boolean => {
   try {
     const { params } = parseStoredHash(stored)
-    return params.N !== CURRENT_PARAMS.N || params.r !== CURRENT_PARAMS.r || params.p !== CURRENT_PARAMS.p
+    return params.N < CURRENT_PARAMS.N || params.r < CURRENT_PARAMS.r || params.p < CURRENT_PARAMS.p
   } catch {
     return false
   }
