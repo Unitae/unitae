@@ -1,0 +1,87 @@
+// Structure of the Settings hub (/settings): which cards appear, grouped and ordered, given the
+// viewer's permissions and whether billing is configured. Pure so it can be unit-tested; the page
+// component decorates each key with an icon, title and description.
+
+export type SettingsItemKey =
+  | 'general'
+  | 'subscription'
+  | 'publishers'
+  | 'territories'
+  | 'users'
+  | 'permissions'
+  | 'data'
+  | 'audit'
+
+export type SettingsGroupKey = 'account' | 'modules' | 'access' | 'data'
+
+export interface SettingsSectionPerms {
+  canManageSettings: boolean
+  canManageUsers: boolean
+  canManagePermissions: boolean
+}
+
+export interface SettingsCard {
+  key: SettingsItemKey
+  href: string
+  external: boolean
+}
+
+export interface SettingsSection {
+  key: SettingsGroupKey
+  items: SettingsCard[]
+}
+
+interface CatalogEntry {
+  key: SettingsItemKey
+  group: SettingsGroupKey
+  href: string
+  external: boolean
+  visible: (perms: SettingsSectionPerms, hasBilling: boolean) => boolean
+}
+
+const CATALOG: CatalogEntry[] = [
+  { key: 'general', group: 'account', href: '/settings/general', external: false, visible: p => p.canManageSettings },
+  { key: 'subscription', group: 'account', href: '', external: true, visible: (_p, hasBilling) => hasBilling },
+  {
+    key: 'publishers',
+    group: 'modules',
+    href: '/settings/congregation',
+    external: false,
+    visible: p => p.canManageSettings,
+  },
+  {
+    key: 'territories',
+    group: 'modules',
+    href: '/settings/territories',
+    external: false,
+    visible: p => p.canManageSettings,
+  },
+  { key: 'users', group: 'access', href: '/settings/users', external: false, visible: p => p.canManageUsers },
+  {
+    key: 'permissions',
+    group: 'access',
+    href: '/settings/permissions',
+    external: false,
+    visible: p => p.canManagePermissions,
+  },
+  { key: 'data', group: 'data', href: '/settings/data', external: false, visible: p => p.canManageSettings },
+  { key: 'audit', group: 'data', href: '/settings/audit-log', external: false, visible: p => p.canManageSettings },
+]
+
+const GROUP_ORDER: SettingsGroupKey[] = ['account', 'modules', 'access', 'data']
+
+export function buildSettingsSections(perms: SettingsSectionPerms, billingUrl: string | null): SettingsSection[] {
+  const hasBilling = billingUrl !== null
+  const sections: SettingsSection[] = []
+
+  for (const group of GROUP_ORDER) {
+    const items = CATALOG.filter(entry => entry.group === group && entry.visible(perms, hasBilling)).map(entry => ({
+      key: entry.key,
+      href: entry.key === 'subscription' ? (billingUrl ?? '') : entry.href,
+      external: entry.external,
+    }))
+    if (items.length > 0) sections.push({ key: group, items })
+  }
+
+  return sections
+}

@@ -4,7 +4,6 @@ import { toast } from 'sonner'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { requireAuth } from '~/shared/auth/middleware.server'
 import { congregationContext, currentAccountContext, permissionsContext } from '~/shared/auth/route-context.server'
-import { billingEntryUrl } from '~/shared/domain/billing-link.server'
 import { Permission } from '~/shared/types/permission'
 import { AppLayout } from '~/shared/ui/AppLayout'
 import { RouteErrorBoundary } from '~/shared/ui/RouteErrorBoundary'
@@ -46,12 +45,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const can = (role: Permission) => permissions.has(role)
   const messages = { success: session.get('success'), error: session.get('error') }
 
-  const billingUrl = billingEntryUrl({
-    isAdmin: can(Permission.Admin),
-    stripeCustomerId: congregation.stripeCustomerId,
-    slug: congregation.slug,
-  })
-
   return data(
     {
       permissions: {
@@ -75,7 +68,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         isPlatformAdmin: currentUser.platformAdmin ?? false,
       },
       congregationName: congregation.displayName ?? congregation.name,
-      billingUrl,
       messages,
     },
     {
@@ -87,7 +79,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 }
 
 export default function AuthenticatedLayout({ loaderData }: Route.ComponentProps) {
-  const { permissions, congregationName, billingUrl, messages } = loaderData
+  const { permissions, congregationName, messages } = loaderData
 
   useEffect(() => {
     if (messages.success) {
@@ -98,7 +90,7 @@ export default function AuthenticatedLayout({ loaderData }: Route.ComponentProps
     }
   }, [messages])
 
-  return <AppLayout permissions={permissions} congregationName={congregationName} billingUrl={billingUrl} />
+  return <AppLayout permissions={permissions} congregationName={congregationName} />
 }
 
 export { RouteErrorBoundary as ErrorBoundary }
