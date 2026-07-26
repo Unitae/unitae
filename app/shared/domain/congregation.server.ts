@@ -24,6 +24,10 @@ export type CongregationInfo = {
   suspendedAt: Date | null
   suspendedReason: string | null
   trialEndsAt: Date | null
+  // Present only once the congregation has been through Stripe checkout — used to show the billing
+  // portal link only to congregations that actually have a Stripe customer (the portal returns 410
+  // otherwise: trial / never subscribed).
+  stripeCustomerId: string | null
 }
 
 export async function resolveCongregation(congregationId: number): Promise<CongregationInfo> {
@@ -64,6 +68,7 @@ export async function resolveCongregation(congregationId: number): Promise<Congr
     suspendedAt: congregation.suspendedAt,
     suspendedReason: congregation.suspendedReason,
     trialEndsAt: congregation.trialEndsAt,
+    stripeCustomerId: congregation.stripeCustomerId,
   }
 }
 

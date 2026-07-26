@@ -69,8 +69,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         isPlatformAdmin: currentUser.platformAdmin ?? false,
       },
       congregationName: congregation.displayName ?? congregation.name,
-      // SaaS billing link, admin-only and config-driven (null when self-hosted).
-      billingUrl: can(Permission.Admin) ? billingPortalLink(congregation.slug) : null,
+      // SaaS billing link: admin-only, config-driven (null when self-hosted), AND only when the
+      // congregation has a Stripe customer — the portal returns 410 otherwise (trial / never subscribed).
+      billingUrl: can(Permission.Admin) && congregation.stripeCustomerId ? billingPortalLink(congregation.slug) : null,
       messages,
     },
     {
