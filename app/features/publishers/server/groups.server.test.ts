@@ -47,35 +47,42 @@ describe('getGroup', () => {
   })
 
   it('reshapes members with distinct currentActivity and previousActivity', async () => {
-    const today = new Date()
-    const lastMonth = new Date()
-    lastMonth.setMonth(today.getMonth() - 1)
+    // Pin the clock to an end-of-month date whose previous month is shorter
+    // (31 July → June has 30 days). This is the exact case where a naive
+    // `new Date(); setMonth(month - 1)` overflows the day and lands back on the
+    // current month, so `previousActivity` would resolve to the wrong row.
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 6, 31, 12, 0, 0))
 
-    const member = {
-      id: 10,
-      firstname: 'A',
-      lastname: 'B',
-      account: null,
-      activities: [
-        { year: today.getFullYear(), month: today.getMonth(), studies: 5 },
-        { year: lastMonth.getFullYear(), month: lastMonth.getMonth(), studies: 3 },
-      ],
+    try {
+      const member = {
+        id: 10,
+        firstname: 'A',
+        lastname: 'B',
+        account: null,
+        activities: [
+          { year: 2026, month: 6, studies: 5 }, // July 2026 — current month
+          { year: 2026, month: 5, studies: 3 }, // June 2026 — previous month
+        ],
+      }
+      mockDb.publisherGroup.findUnique.mockResolvedValue({
+        id: 7,
+        name: 'Group A',
+        adress: '',
+        responsible: null,
+        deputy: null,
+        members: [member],
+      })
+
+      const result = await getGroup(dbCast, 7, 42)
+
+      expect(result).not.toBeNull()
+      expect(result?.members[0].currentActivity?.studies).toBe(5)
+      expect(result?.members[0].previousActivity?.studies).toBe(3)
+      expect(result?.members[0]).not.toHaveProperty('activities')
+    } finally {
+      vi.useRealTimers()
     }
-    mockDb.publisherGroup.findUnique.mockResolvedValue({
-      id: 7,
-      name: 'Group A',
-      adress: '',
-      responsible: null,
-      deputy: null,
-      members: [member],
-    })
-
-    const result = await getGroup(dbCast, 7, 42)
-
-    expect(result).not.toBeNull()
-    expect(result?.members[0].currentActivity?.studies).toBe(5)
-    expect(result?.members[0].previousActivity?.studies).toBe(3)
-    expect(result?.members[0]).not.toHaveProperty('activities')
   })
 
   it('leaves currentActivity / previousActivity undefined when no rows match', async () => {
