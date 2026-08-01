@@ -150,9 +150,20 @@ the signal):
 
 **B. Auxiliary pioneers** — **informational**, month-by-month, *not* an annual risk queue. Kept out
 of the risk-sorted summary counts, visually lighter, token-neutral (no destructive tint). Per row:
-this-month cell "22 h · moy. cible 30 h" (write **"moy."**, never "avr." — that reads as *avril*),
-plus a **months-met pip strip** ("4/6 mois", a small filled/empty pip row à la
-`CadenceStrip`). Consider collapsing this section by default.
+this-month cell "22 h" with the standard 30h shown only as a **light labelled reference** ("cible
+standard 30 h"), and a per-month hours strip. **No binary met / not-met verdict is rendered** — see
+the auxiliary-goal note below.
+
+> **Why no verdict.** The reduced auxiliary goal (15 h) is an **individual, per-month election**, not
+> a congregation-wide per-month rate — two auxiliaries in the same month can carry different goals.
+> We therefore cannot derive a given auxiliary's target from `(serviceYear, type)`, and marking a
+> 15h-electing publisher "not met" against 30 h would be wrong. Capturing the true goal is also a
+> *timing* problem: the goal is set at the **start** of the month (sign-up), while hours are filed at
+> the **end** of the month by the elders — so it cannot live on the activity row without inventing a
+> 0-hour placeholder row weeks early. The correct home is a separate **auxiliary pioneer enrollment**
+> record (start-of-month sign-up capturing publisher + month + goal), which is its own future feature
+> (§ Future work). Until it exists, this section stays informational: show hours, let the overseer —
+> who knows who signed up for what — interpret.
 
 ### 5.2 Publisher detail activity section — `publisher.tsx`
 
@@ -340,8 +351,11 @@ already present.
 
 - View (roster + detail section): `Permission.ActivityViewer`, **congregation-wide** (matches
   today's activity view page; no group-scoping).
-- Edit goals (phase 2): a congregation/settings-manager permission — **TBD which existing one**
-  (see open questions).
+- Edit goals (phase 2): a **new** `Permission.PioneerGoalManager` (`'pioneer-goal-manager'`), added
+  to the enum in `app/shared/types/permission.ts` (follows the `<Domain>Manager` convention). It is
+  **not** bundled into any built-in role by default — admins grant it to roles as they see fit. Keep
+  it distinct from `ActivityViewer`/`ActivityManager`: viewing pace and entering monthly reports are
+  separate concerns from setting the year's goal figures.
 
 ## 10. Phasing
 
@@ -352,6 +366,16 @@ already present.
 2. **Goal editing** — per-year override UI in settings + `PioneerGoalUpdated` audit.
 
 Shepherding/follow-up workflow is **out of scope** (§2).
+
+### Future work — Auxiliary pioneer enrollment
+
+A separate feature (not part of this spec's phases): a **start-of-month sign-up** capturing
+`(publisher, month, goal)` where goal ∈ {30 h, 15 h}, entered when a publisher declares auxiliary
+pioneering — distinct from the end-of-month activity report and from `Member.type`. Once it exists it
+feeds reliable per-person goals into §5.1 B (enabling a real met/not-met verdict and a "signed up but
+short at month-end" flag). Deliberately deferred: it has a different actor, a different time of month,
+and its own workflow/permission — bolting it onto the activity-entry form would force a 0-hour
+placeholder row weeks before hours are known.
 
 ## 11. Testing
 
@@ -368,11 +392,15 @@ Shepherding/follow-up workflow is **out of scope** (§2).
 
 ## 12. Open questions
 
-1. **Goal-edit permission** — which existing permission gates the phase-2 per-year override UI?
-2. **Editing a past service year's goal** — allowed? It retroactively re-buckets historical pace.
+1. **Editing a past service year's goal** — allowed? It retroactively re-buckets historical pace.
    Lean: allow, since requirements genuinely changed year to year; confirm.
-3. **Reporting grace window length** — how many days into month M+1 before month M counts as
+2. **Reporting grace window length** — how many days into month M+1 before month M counts as
    *overdue* rather than *awaiting*? (Tunable constant.)
-4. **Auxiliary campaign months** — do any target audiences use a reduced auxiliary rate in specific
-   months (historically 15 h)? If so, the rate may need to vary by month, not just by year. Assumed
-   *no* for now (flat monthly rate).
+
+**Resolved:**
+- Goal-edit permission → new `Permission.PioneerGoalManager`, admin-assigned (§9).
+- Auxiliary goal handling → the reduced auxiliary goal (15 h) is an individual per-month election.
+  The auxiliary section stays **informational, no met/not-met verdict** (§5.1 B); no change to the
+  `PublisherActivity` model. Options considered and rejected for this feature: capturing the goal at
+  report-entry, and a full start-of-month enrollment with goal-only rows + `reportedAt` (the latter
+  reshapes the core activity model and belongs in the deferred enrollment feature, §10 Future work).
