@@ -183,6 +183,30 @@ target, print-friendly. *(Resolves the earlier open question.)* **Type-aware:**
 
 The pioneer variant is the *same component* the roster links to — written once, rendered here.
 
+### 5.3 Navigation & information architecture
+
+Without deliberate placement the roster lands three levels deep behind an unlabeled icon button —
+the worst possible discoverability for the app's most *proactive* feature. Decisions:
+
+- **Sidebar entry.** Add a labeled **"Activité"** item to the *Assemblée* group in `AppSidebar.tsx`,
+  gated on `canViewActivity` (`ActivityViewer` — already declared in `AppSidebarPermissions` but not
+  yet rendered). Links to `/publishers/activity`. This replaces the current hidden `BarChart3` icon
+  button on the publishers-list header as the primary entry (the icon button can be retired).
+- **In-page tabs.** The activity area gets a segmented sub-nav — **"Proclamateurs"**
+  (`/publishers/activity`) and **"Pionniers"** (`/publishers/activity/pioneers`) — since they are one
+  dataset sliced two ways. Cleanest as a nested layout route `activity/_layout.tsx` that renders the
+  tabs + `<Outlet/>`, wrapping both the existing list and the new roster.
+- **Dashboard widget.** Add an at-risk-pioneers widget to `features/dashboard/` for `ActivityViewer`
+  users: the count of red-bucket pioneers for the current service year, linking to the roster. This
+  surfaces the signal on the homepage the overseer already lands on — matching the feature's
+  proactive intent better than any menu placement. Uses the documented dashboard cross-feature
+  aggregator (it may import `getPioneerActivitySummary` from `~/features/publishers/index.server`).
+- **Command palette.** Register the roster (and the activity area) in `CommandPalette.tsx` (⌘K).
+- **Detail page.** The activity section keeps its `#activity` anchor; the roster deep-links to it. No
+  other detail-page nav change.
+
+New i18n messages: `sidebar_activity`, the two tab labels, and the dashboard-widget strings.
+
 ## 6. Pace & risk model
 
 All of the below are **pure functions** in `features/publishers/model/pioneer-pace.ts`
@@ -340,6 +364,12 @@ compound-key convention.)
   reference line and a text trend word beside it), `ui/PioneerActivitySection.tsx` (the shared detail
   component), risk `Badge` helpers.
 - Wire `PioneerActivitySection` into `routes/publishers/publisher.tsx`.
+- **Navigation (§5.3):** add the "Activité" sidebar item in `app/shared/ui/AppSidebar.tsx` (wire the
+  already-declared `canViewActivity`); add a nested `activity/_layout.tsx` rendering the
+  Proclamateurs/Pionniers tabs + `<Outlet/>`; register the roster in `app/shared/ui/CommandPalette.tsx`;
+  retire the `BarChart3` icon-button entry on the publishers-list header.
+- **Dashboard (§5.3):** an at-risk-pioneers widget in `features/dashboard/` (imports
+  `getPioneerActivitySummary` via `~/features/publishers/index.server`), gated on `ActivityViewer`.
 
 **Barrels:** export client-safe pieces from `features/publishers/index.ts`, server pieces from
 `index.server.ts` (split enforced by `pnpm test:server-barrel-exports`).
@@ -359,10 +389,13 @@ already present.
 
 ## 10. Phasing
 
-1. **Core + both surfaces** — `PioneerGoal` schema + defaults, `getPioneerActivitySummary`,
-   `pioneer-pace.ts`, the **roster** (both sections, distribution hero, mobile cards) **and** the
-   **publisher-detail activity section**, shipped together so roster rows deep-link into a section
-   that actually exists. Defaults only (no goal-editing UI). *(Merged former phases 1+2 per review.)*
+1. **Core + both surfaces + navigation** — `PioneerGoal` schema + defaults,
+   `getPioneerActivitySummary`, `pioneer-pace.ts`, the **roster** (both sections, distribution hero,
+   mobile cards) **and** the **publisher-detail activity section**, shipped together so roster rows
+   deep-link into a section that actually exists. Plus the navigation work (§5.3): the "Activité"
+   sidebar entry, the Proclamateurs/Pionniers tabs, the ⌘K entry, and the dashboard at-risk widget —
+   without these the roster is undiscoverable. Defaults only (no goal-editing UI).
+   *(Merged former phases 1+2 per review.)*
 2. **Goal editing** — per-year override UI in settings + `PioneerGoalUpdated` audit.
 
 Shepherding/follow-up workflow is **out of scope** (§2).
