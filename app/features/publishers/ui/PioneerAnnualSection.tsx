@@ -7,6 +7,7 @@ import { Badge } from '~/shared/ui/badge'
 import { Separator } from '~/shared/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/shared/ui/tooltip'
+import { formatGroupName } from '~/shared/utils/format-group-name'
 
 import { PioneerRiskBadge, paceLabel, ReportingChip } from './pioneer-risk-badge'
 import { Sparkline } from './Sparkline'
@@ -15,6 +16,17 @@ const TYPE_META: Partial<Record<PublisherType, { code: string; label: () => stri
   [PublisherType.PionnierPermanant]: { code: 'PP', label: () => m.pioneers_type_permanent() },
   [PublisherType.PionnierSpecial]: { code: 'PS', label: () => m.pioneers_type_special() },
   [PublisherType.Missionnaire]: { code: 'M', label: () => m.pioneers_type_missionary() },
+}
+
+function detailUrl(memberId: number) {
+  return `/publishers/${memberId}/view#activity`
+}
+
+function rowTint(row: PioneerAnnualRow): string {
+  if (row.concluded) return 'text-muted-foreground'
+  if (row.pace.riskBucket === 'red') return 'bg-destructive/10 dark:bg-destructive/5'
+  if (row.pace.riskBucket === 'amber') return 'bg-amber-500/10 dark:bg-amber-400/5'
+  return ''
 }
 
 function TypeBadge({ type }: { type: PublisherType }) {
@@ -32,16 +44,36 @@ function TypeBadge({ type }: { type: PublisherType }) {
   )
 }
 
-function detailUrl(memberId: number) {
-  return `/publishers/${memberId}/view#activity`
+// Group + enrolled months (or the concluded marker) — the "who shepherds them" context.
+function SubLine({ row }: { row: PioneerAnnualRow }) {
+  const enrolled = row.concluded
+    ? m.pioneers_concluded()
+    : m.pioneers_enrolled_months({ count: String(row.pace.elapsedEnrolled) })
+  return (
+    <div className="text-muted-foreground text-xs">
+      {row.groupName ? `${formatGroupName(row.groupName)} · ` : ''}
+      {enrolled}
+    </div>
+  )
 }
 
-function RowContent({ row }: { row: PioneerAnnualRow }) {
+// Risk + reporting badges, plus the actionable catch-up line for off-pace pioneers.
+function StatusCell({ row }: { row: PioneerAnnualRow }) {
+  if (row.concluded) return <Badge variant="outline">{m.pioneers_concluded()}</Badge>
   return (
-    <>
-      <PioneerRiskBadge bucket={row.pace.riskBucket} label={paceLabel(row.pace)} />
-      <ReportingChip status={row.pace.reportingStatus} />
-    </>
+    <div className="flex flex-col gap-1">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <PioneerRiskBadge bucket={row.pace.riskBucket} label={paceLabel(row.pace)} />
+        <ReportingChip status={row.pace.reportingStatus} />
+      </div>
+      {row.pace.riskBucket !== 'green' && (
+        <span className="text-muted-foreground text-xs">
+          {row.pace.outOfReach
+            ? m.pioneers_out_of_reach_short()
+            : m.pioneers_needs_per_month({ hours: String(Math.round(row.pace.requiredAvgToFinish)) })}
+        </span>
+      )}
+    </div>
   )
 }
 
@@ -70,39 +102,24 @@ export function PioneerAnnualSection({ rows }: { rows: PioneerAnnualRow[] }) {
           </TableHeader>
           <TableBody>
             {rows.map(row => (
-              <TableRow
-                key={row.memberId}
-                className={
-                  row.pace.riskBucket === 'red' && !row.concluded
-                    ? 'bg-destructive/10 dark:bg-destructive/5'
-                    : row.concluded
-                      ? 'text-muted-foreground'
-                      : ''
-                }
-              >
+              <TableRow key={row.memberId} className={rowTint(row)}>
                 <TableCell>
                   <Link to={detailUrl(row.memberId)} className="font-medium hover:text-primary">
                     {row.firstname} {row.lastname}
                   </Link>
-                  <div className="text-muted-foreground text-xs">
-                    {row.concluded
-                      ? m.pioneers_concluded()
-                      : m.pioneers_enrolled_months({ count: String(row.pace.elapsedEnrolled) })}
-                  </div>
+                  <SubLine row={row} />
                 </TableCell>
                 <TableCell>
                   <TypeBadge type={row.type} />
                 </TableCell>
                 <TableCell>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {row.concluded ? '—' : <RowContent row={row} />}
-                  </div>
+                  <StatusCell row={row} />
                 </TableCell>
                 <TableCell className="whitespace-nowrap tabular-nums">
                   {row.pace.actualToDate} / {row.pace.targetToDate} h
                 </TableCell>
                 <TableCell>
-                  <Sparkline values={row.pace.monthlyHours} rate={row.monthlyRate} />
+                  <Sparkline values={row.pace.monthlyHours} rate={row.monthlyRate} risk={row.pace.riskBucket} />
                 </TableCell>
               </TableRow>
             ))}
@@ -116,22 +133,21 @@ export function PioneerAnnualSection({ rows }: { rows: PioneerAnnualRow[] }) {
           <Link
             key={row.memberId}
             to={detailUrl(row.memberId)}
-            className={`flex flex-col gap-2 rounded-lg border p-3 ${row.pace.riskBucket === 'red' && !row.concluded ? 'bg-destructive/10 dark:bg-destructive/5' : ''}`}
+            className={`flex flex-col gap-2 rounded-lg border p-3 ${rowTint(row)}`}
           >
             <div className="flex items-center justify-between gap-2">
               <span className="font-medium">
                 {row.firstname} {row.lastname}
               </span>
-              <TypeBadge type={row.type} />
+              <Badge variant="outline">{TYPE_META[row.type]?.label() ?? row.type}</Badge>
             </div>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {row.concluded ? m.pioneers_concluded() : <RowContent row={row} />}
-            </div>
+            <SubLine row={row} />
+            <StatusCell row={row} />
             <div className="flex items-center justify-between text-muted-foreground text-sm">
               <span className="tabular-nums">
                 {row.pace.actualToDate} / {row.pace.targetToDate} h
               </span>
-              <Sparkline values={row.pace.monthlyHours} rate={row.monthlyRate} />
+              <Sparkline values={row.pace.monthlyHours} rate={row.monthlyRate} risk={row.pace.riskBucket} />
             </div>
           </Link>
         ))}

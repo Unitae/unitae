@@ -9,6 +9,7 @@ export interface AtRiskPioneer {
   memberId: number
   firstname: string
   lastname: string
+  groupName: string | null
   deficit: number
 }
 export interface AtRiskPioneers {
@@ -31,6 +32,7 @@ export async function getAtRiskPioneers(
       memberId: row.memberId,
       firstname: row.firstname,
       lastname: row.lastname,
+      groupName: row.groupName,
       deficit: Math.abs(row.pace.paceDelta),
     })),
   }

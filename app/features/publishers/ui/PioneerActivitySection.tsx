@@ -2,7 +2,9 @@ import { TriangleAlert } from 'lucide-react'
 
 import type { PioneerActivity, PioneerAnnualRow, PioneerAuxiliaryRow } from '~/features/publishers'
 import * as m from '~/i18n/paraglide/messages'
+import { Badge } from '~/shared/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { formatGroupName } from '~/shared/utils/format-group-name'
 import { PioneerPaceChart } from './PioneerPaceChart'
 import { PioneerRiskBadge, paceLabel, ReportingChip } from './pioneer-risk-badge'
 
@@ -13,10 +15,12 @@ interface Props {
 
 function Stat({ value, label }: { value: string; label: string }) {
   return (
-    <div className="flex flex-col">
-      <span className="font-black text-3xl tracking-tight tabular-nums">{value}</span>
-      <span className="text-muted-foreground text-xs">{label}</span>
-    </div>
+    <Card className="border-dashed">
+      <CardContent className="flex flex-col items-center justify-center gap-1 p-4 text-center">
+        <span className="font-black text-4xl tracking-tight tabular-nums">{value}</span>
+        <span className="text-muted-foreground text-xs">{label}</span>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -24,7 +28,10 @@ export function PioneerActivitySection({ serviceYear, activity }: Props) {
   return (
     <Card id="activity">
       <CardHeader>
-        <CardTitle>{m.pioneers_detail_title()}</CardTitle>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <CardTitle>{m.pioneers_detail_title()}</CardTitle>
+          {activity.row.groupName && <Badge variant="outline">{formatGroupName(activity.row.groupName)}</Badge>}
+        </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {activity.kind === 'annual' ? (
@@ -46,10 +53,11 @@ function AnnualDetail({ serviceYear, row }: { serviceYear: number; row: PioneerA
         <ReportingChip status={pace.reportingStatus} />
       </div>
       <PioneerPaceChart serviceYear={serviceYear} monthlyHours={pace.monthlyHours} rate={row.monthlyRate} />
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Stat value={`${pace.actualToDate} h`} label={m.pioneers_ytd_label()} />
         <Stat value={`${pace.targetToDate} h`} label={m.pioneers_target_label()} />
         <Stat value={`${Math.round(pace.requiredAvgToFinish)} h`} label={m.pioneers_needs_per_month_label()} />
+        <Stat value={`${Math.round(pace.recentAvg)} h`} label={m.pioneers_recent_avg_label()} />
       </div>
       {pace.outOfReach ? (
         <p className="flex items-center gap-2 text-amber-600 text-sm dark:text-amber-400">

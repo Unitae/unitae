@@ -5,8 +5,8 @@ import { Progress } from '~/shared/ui/progress'
 
 const SEGMENTS = [
   { key: 'atRisk' as const, className: 'bg-destructive', label: () => m.pioneers_total_at_risk() },
-  { key: 'behind' as const, className: 'bg-amber-500', label: () => m.pioneers_total_behind() },
-  { key: 'onTrack' as const, className: 'bg-green-600', label: () => m.pioneers_total_on_track() },
+  { key: 'behind' as const, className: 'bg-amber-500 dark:bg-amber-400', label: () => m.pioneers_total_behind() },
+  { key: 'onTrack' as const, className: 'bg-green-600 dark:bg-green-500', label: () => m.pioneers_total_on_track() },
 ]
 
 export function PioneerDistributionBar({ totals }: { totals: PioneerActivityTotals }) {
@@ -15,10 +15,14 @@ export function PioneerDistributionBar({ totals }: { totals: PioneerActivityTota
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <Card>
+      <Card className="h-full">
         <CardContent className="flex flex-col gap-3 p-4">
           <div className="flex items-baseline gap-2">
-            <span className="font-black text-4xl text-destructive tracking-tight">{totals.atRisk}</span>
+            <span
+              className={`font-black text-4xl tracking-tight ${totals.atRisk > 0 ? 'text-destructive' : 'text-foreground'}`}
+            >
+              {totals.atRisk}
+            </span>
             <span className="text-muted-foreground text-sm">{m.pioneers_total_at_risk()}</span>
           </div>
           <div className="flex h-2.5 overflow-hidden rounded-full bg-muted">
@@ -40,13 +44,17 @@ export function PioneerDistributionBar({ totals }: { totals: PioneerActivityTota
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="h-full">
         <CardContent className="flex flex-col justify-center gap-2 p-4">
-          <div className="flex items-baseline justify-between">
-            <span className="text-muted-foreground text-sm">{m.pioneers_collective_hours()}</span>
-            <span className="font-semibold text-sm">
-              {totals.actualHours} / {totals.targetHours} h
+          <div className="flex items-baseline gap-2">
+            <span className="font-black text-4xl tracking-tight">
+              {Math.min(hoursPct, 100)}
+              <span className="text-lg text-muted-foreground">%</span>
             </span>
+            <span className="text-muted-foreground text-sm">{m.pioneers_collective_hours()}</span>
+          </div>
+          <div className="text-muted-foreground text-sm tabular-nums">
+            {totals.actualHours} / {totals.targetHours} h
           </div>
           <Progress value={Math.min(hoursPct, 100)} />
         </CardContent>

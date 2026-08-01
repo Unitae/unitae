@@ -1,3 +1,5 @@
+import type { RiskBucket } from '~/features/publishers'
+
 // A tiny inline trend mark. Recharts is overkill at 88×24; this is the one place a
 // hand-rolled SVG is justified. Decorative (aria-hidden="true") — the numeric trend word is
 // rendered as text beside it for screen readers.
@@ -5,10 +7,25 @@ const WIDTH = 88
 const HEIGHT = 24
 const PADDING = 2
 
-export function Sparkline({ values, rate }: { values: (number | null)[]; rate: number }) {
+// The stroke agrees with the row's risk badge so the trend reads at a glance.
+const STROKE: Record<RiskBucket, string> = {
+  red: 'stroke-destructive',
+  amber: 'stroke-amber-500 dark:stroke-amber-400',
+  green: 'stroke-[color:var(--color-chart-1)]',
+}
+
+export function Sparkline({
+  values,
+  rate,
+  risk = 'green',
+}: {
+  values: (number | null)[]
+  rate: number
+  risk?: RiskBucket
+}) {
   const points = values.map((v, i) => ({ v, i })).filter((p): p is { v: number; i: number } => p.v !== null)
 
-  if (points.length < 2) return <svg width={WIDTH} height={HEIGHT} aria-hidden="true" />
+  if (points.length < 2) return <span className="text-muted-foreground text-xs">—</span>
 
   const max = Math.max(rate, ...points.map(p => p.v)) || 1
   const stepX = (WIDTH - PADDING * 2) / Math.max(values.length - 1, 1)
@@ -19,7 +36,7 @@ export function Sparkline({ values, rate }: { values: (number | null)[]; rate: n
   const rateY = y(rate)
 
   return (
-    <svg width={WIDTH} height={HEIGHT} aria-hidden="true" className="overflow-visible">
+    <svg width={WIDTH} height={HEIGHT} aria-hidden="true">
       <line
         x1={PADDING}
         x2={WIDTH - PADDING}
@@ -33,7 +50,7 @@ export function Sparkline({ values, rate }: { values: (number | null)[]; rate: n
         points={line}
         fill="none"
         strokeWidth={1.5}
-        className="stroke-[color:var(--color-chart-1)]"
+        className={STROKE[risk]}
         strokeLinejoin="round"
         strokeLinecap="round"
       />

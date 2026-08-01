@@ -30,6 +30,7 @@ import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { RelativeTime } from '~/shared/ui/RelativeTime'
+import { formatGroupName } from '~/shared/utils/format-group-name'
 import { zonedNow } from '~/shared/utils/zoned-now'
 
 import type { Route } from './+types/index'
@@ -300,9 +301,14 @@ function PioneersAtRiskCard({ data }: { data: AtRiskPioneers }) {
         <ul className="flex flex-col gap-2">
           {data.pioneers.map(pioneer => (
             <li key={pioneer.memberId} className="flex items-center justify-between gap-2 text-sm">
-              <Link to={`/publishers/${pioneer.memberId}/view#activity`} className="font-medium hover:text-primary">
-                {pioneer.firstname} {pioneer.lastname}
-              </Link>
+              <div className="min-w-0">
+                <Link to={`/publishers/${pioneer.memberId}/view#activity`} className="font-medium hover:text-primary">
+                  {pioneer.firstname} {pioneer.lastname}
+                </Link>
+                {pioneer.groupName && (
+                  <div className="truncate text-muted-foreground text-xs">{formatGroupName(pioneer.groupName)}</div>
+                )}
+              </div>
               <Badge variant="destructive">
                 {m.dashboard_pioneers_at_risk_deficit({ hours: String(pioneer.deficit) })}
               </Badge>

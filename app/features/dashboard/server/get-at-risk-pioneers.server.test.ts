@@ -14,6 +14,7 @@ function annualRow(memberId: number, bucket: 'green' | 'amber' | 'red', paceDelt
     memberId,
     firstname: `F${memberId}`,
     lastname: `L${memberId}`,
+    groupName: null,
     concluded,
     pace: { riskBucket: bucket, paceDelta },
   }

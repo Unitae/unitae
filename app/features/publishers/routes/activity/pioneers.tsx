@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { Link, redirect } from 'react-router'
+import { Link, redirect, type ShouldRevalidateFunctionArgs } from 'react-router'
 
 import { toServiceYear } from '~/features/publishers'
 import { getPioneerActivitySummary } from '~/features/publishers/index.server'
@@ -19,6 +19,13 @@ import { zonedNow } from '~/shared/utils/zoned-now'
 import type { Route } from './+types/pioneers'
 
 export const meta: Route.MetaFunction = () => [{ title: m.pioneers_meta_title() }]
+
+// The roster is loaded once per service year; risk/type/group/search filtering is
+// client-side, so only a change to `sy` should refetch.
+export function shouldRevalidate({ currentUrl, nextUrl, defaultShouldRevalidate }: ShouldRevalidateFunctionArgs) {
+  if (currentUrl.pathname !== nextUrl.pathname) return defaultShouldRevalidate
+  return currentUrl.searchParams.get('sy') !== nextUrl.searchParams.get('sy')
+}
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)

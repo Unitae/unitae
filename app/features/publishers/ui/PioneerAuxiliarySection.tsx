@@ -4,6 +4,7 @@ import type { PioneerAuxiliaryRow } from '~/features/publishers'
 import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 import { Separator } from '~/shared/ui/separator'
+import { formatGroupName } from '~/shared/utils/format-group-name'
 
 function detailUrl(memberId: number) {
   return `/publishers/${memberId}/view#activity`
@@ -33,6 +34,7 @@ export function PioneerAuxiliarySection({ rows }: { rows: PioneerAuxiliaryRow[] 
                 {row.firstname} {row.lastname}
               </div>
               <div className="text-muted-foreground text-xs">
+                {row.groupName ? `${formatGroupName(row.groupName)} · ` : ''}
                 {m.pioneers_aux_months_met({
                   met: String(row.auxiliary.metMonths),
                   total: String(row.auxiliary.enrolledMonths),
