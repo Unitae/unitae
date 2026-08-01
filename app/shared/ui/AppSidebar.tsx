@@ -153,7 +153,7 @@ export function AppSidebar({ permissions, congregationName, onSearchClick }: App
                 <SidebarGroupContent>
                   <SidebarMenu>
                     {permissions.canViewPublishers && (
-                      <SidebarNavItem to="/publishers" icon={Users} label={m.sidebar_publishers()} />
+                      <SidebarNavItem to="/publishers" icon={Users} label={m.sidebar_publishers()} end />
                     )}
                     {permissions.canViewPublishers && (
                       <SidebarNavItem to="/groups" icon={UsersRound} label={m.sidebar_publisher_groups()} />
