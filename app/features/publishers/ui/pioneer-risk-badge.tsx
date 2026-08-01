@@ -32,14 +32,14 @@ export function PioneerRiskBadge({ bucket, label }: { bucket: RiskBucket; label?
   )
 }
 
-// Reporting status is a separate, neutral signal from pace — never folded into it.
+// Only the overdue report is surfaced — an "awaiting" report (expected but not yet due)
+// is normal every month and would just add noise. "overdue" is the actionable one.
 export function ReportingChip({ status }: { status: ReportingStatus }) {
-  if (status === 'filed') return null
-  const label = status === 'awaiting' ? m.pioneers_report_awaiting() : m.pioneers_report_overdue()
+  if (status !== 'overdue') return null
   return (
     <Badge variant="outline" className="gap-1 text-muted-foreground">
       <Clock className="size-3" aria-hidden />
-      <span>{label}</span>
+      <span>{m.pioneers_report_overdue()}</span>
     </Badge>
   )
 }
