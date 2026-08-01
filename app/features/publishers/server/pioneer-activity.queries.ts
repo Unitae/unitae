@@ -1,0 +1,193 @@
+import type { TransactionClient } from '~/shared/infra/db.server'
+import { PublisherType } from '~/shared/types/publisher-type'
+
+import { isAuxiliaryType, isPioneerType } from '../model/pioneer-goals.constants'
+import { computeAuxiliarySummary, computePioneerPace, type PioneerMonth, type PioneerPace } from '../model/pioneer-pace'
+import type {
+  PioneerActivitySummary,
+  PioneerAnnualRow,
+  PioneerAuxiliaryRow,
+  PioneerRosterRowBase,
+} from '../model/pioneer-roster.type'
+import { resolvePioneerGoal } from './pioneer-goals.queries'
+
+const PIONEER_TYPES = [
+  PublisherType.PionnierAuxiliaires,
+  PublisherType.PionnierPermanant,
+  PublisherType.PionnierSpecial,
+  PublisherType.Missionnaire,
+] as const
+
+const RISK_RANK: Record<PioneerPace['riskBucket'], number> = { red: 0, amber: 1, green: 2 }
+
+interface ActivityRow {
+  id: number
+  month: number
+  year: number
+  type: PublisherType
+  hours: number | null
+}
+
+function absMonth(month: number, year: number): number {
+  return year * 12 + month
+}
+
+// One row per (month, year), keeping the highest id (the latest re-filed report).
+function dedupeLatestPerMonth(activities: ActivityRow[]): ActivityRow[] {
+  const byMonth = new Map<number, ActivityRow>()
+  for (const row of activities) {
+    const key = absMonth(row.month, row.year)
+    const existing = byMonth.get(key)
+    if (!existing || row.id > existing.id) byMonth.set(key, row)
+  }
+  return [...byMonth.values()]
+}
+
+// The Sept–Aug service year maps to two calendar years; `month` is 0-indexed.
+function serviceYearWhere(serviceYear: number) {
+  return {
+    OR: [
+      { year: serviceYear, month: { gte: 8 } },
+      { year: serviceYear + 1, month: { lte: 7 } },
+    ],
+  }
+}
+
+export async function getPioneerActivitySummary(
+  db: TransactionClient,
+  _congregationId: number,
+  serviceYear: number,
+  now: Date,
+): Promise<PioneerActivitySummary> {
+  const members = await db.member.findMany({
+    where: {
+      anonymizedAt: null,
+      OR: [
+        { type: { not: PublisherType.Normal } },
+        { activities: { some: { ...serviceYearWhere(serviceYear), type: { not: PublisherType.Normal } } } },
+      ],
+    },
+    include: {
+      publisherGroup: { select: { name: true } },
+      activities: { where: serviceYearWhere(serviceYear), orderBy: { id: 'desc' } },
+    },
+    orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
+  })
+
+  const rates = await resolveRates(db, serviceYear)
+
+  const annual: PioneerAnnualRow[] = []
+  const auxiliary: PioneerAuxiliaryRow[] = []
+
+  for (const member of members) {
+    const classified = classifyPioneerMember(member, rates, serviceYear, now)
+    if (classified?.annual) annual.push(classified.annual)
+    else if (classified?.auxiliary) auxiliary.push(classified.auxiliary)
+  }
+
+  sortMostAtRiskFirst(annual)
+  return { serviceYear, annual, auxiliary, totals: computeTotals(annual) }
+}
+
+// Pace/section for a single member's detail page. Returns null when the member is not a
+// pioneer this service year (nothing to show).
+export async function getPioneerActivityForMember(
+  db: TransactionClient,
+  memberId: number,
+  congregationId: number,
+  serviceYear: number,
+  now: Date,
+): Promise<{ annual?: PioneerAnnualRow; auxiliary?: PioneerAuxiliaryRow } | null> {
+  const member = await db.member.findFirst({
+    where: { id: memberId, congregationId },
+    include: {
+      publisherGroup: { select: { name: true } },
+      activities: { where: serviceYearWhere(serviceYear), orderBy: { id: 'desc' } },
+    },
+  })
+  if (member === null) return null
+
+  const rates = await resolveRates(db, serviceYear)
+  return classifyPioneerMember(member, rates, serviceYear, now)
+}
+
+interface MemberWithActivities {
+  id: number
+  firstname: string
+  lastname: string
+  type: PublisherType
+  publisherGroup: { name: string } | null
+  activities: ActivityRow[]
+}
+
+function classifyPioneerMember(
+  member: MemberWithActivities,
+  rates: Map<PublisherType, number>,
+  serviceYear: number,
+  now: Date,
+): { annual?: PioneerAnnualRow; auxiliary?: PioneerAuxiliaryRow } | null {
+  const rows = dedupeLatestPerMonth(member.activities)
+  const pioneerRows = rows.filter(r => isPioneerType(r.type))
+  if (pioneerRows.length === 0 && !isPioneerType(member.type)) return null
+
+  const latest = mostRecent(rows)
+  const standingType = latest?.type ?? member.type
+  const concluded = !isPioneerType(standingType)
+  const rosterType = isPioneerType(standingType) ? standingType : (mostRecent(pioneerRows)?.type ?? member.type)
+
+  const months: PioneerMonth[] = pioneerRows
+    .filter(r => r.type === rosterType)
+    .map(r => ({ month: r.month, year: r.year, hours: r.hours }))
+  const monthlyRate = rates.get(rosterType) ?? 0
+
+  const base: PioneerRosterRowBase = {
+    memberId: member.id,
+    firstname: member.firstname,
+    lastname: member.lastname,
+    type: rosterType,
+    groupName: member.publisherGroup?.name ?? null,
+    concluded,
+    monthlyRate,
+  }
+
+  if (isAuxiliaryType(rosterType)) {
+    return { auxiliary: { ...base, auxiliary: computeAuxiliarySummary({ serviceYear, monthlyRate, months, now }) } }
+  }
+  return { annual: { ...base, pace: computePioneerPace({ serviceYear, monthlyRate, months, now }) } }
+}
+
+function mostRecent(rows: ActivityRow[]): ActivityRow | null {
+  return rows.reduce<ActivityRow | null>(
+    (acc, r) => (acc === null || absMonth(r.month, r.year) > absMonth(acc.month, acc.year) ? r : acc),
+    null,
+  )
+}
+
+async function resolveRates(db: TransactionClient, serviceYear: number): Promise<Map<PublisherType, number>> {
+  const rates = new Map<PublisherType, number>()
+  for (const type of PIONEER_TYPES) {
+    rates.set(type, await resolvePioneerGoal(db, serviceYear, type))
+  }
+  return rates
+}
+
+function sortMostAtRiskFirst(annual: PioneerAnnualRow[]): void {
+  annual.sort((a, b) => {
+    if (a.concluded !== b.concluded) return a.concluded ? 1 : -1
+    const rank = RISK_RANK[a.pace.riskBucket] - RISK_RANK[b.pace.riskBucket]
+    return rank !== 0 ? rank : a.pace.paceDelta - b.pace.paceDelta
+  })
+}
+
+function computeTotals(annual: PioneerAnnualRow[]): PioneerActivitySummary['totals'] {
+  const totals = { onTrack: 0, behind: 0, atRisk: 0, actualHours: 0, targetHours: 0 }
+  for (const row of annual) {
+    if (row.concluded) continue
+    if (row.pace.riskBucket === 'green') totals.onTrack++
+    else if (row.pace.riskBucket === 'amber') totals.behind++
+    else totals.atRisk++
+    totals.actualHours += row.pace.actualToDate
+    totals.targetHours += row.pace.targetToDate
+  }
+  return totals
+}

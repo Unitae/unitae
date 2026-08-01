@@ -76,6 +76,9 @@ export const AuditAction = {
   PublisherActivityUpdated: 'publisher.activity.updated',
   PublisherActivityDeleted: 'publisher.activity.deleted',
 
+  // Pioneer goals
+  PioneerGoalUpdated: 'pioneer_goal.updated',
+
   // Member lifecycle
   MemberLeft: 'member.left',
   MemberReturned: 'member.returned',

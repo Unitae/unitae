@@ -1,4 +1,4 @@
-import { index, prefix, type RouteConfig, route } from '@react-router/dev/routes'
+import { index, layout, prefix, type RouteConfig, route } from '@react-router/dev/routes'
 
 import { authenticationRoutes } from './features/authentication/authentication.routes'
 import { daysOffRoutes } from './features/events/days-off.routes'
@@ -134,7 +134,10 @@ export default [
         route('make-student', 'features/publishers/routes/publishers/make-student.tsx'),
       ]),
       ...prefix('activity', [
-        index('features/publishers/routes/activity/publisher-list.tsx'),
+        layout('features/publishers/routes/activity/_layout.tsx', [
+          index('features/publishers/routes/activity/publisher-list.tsx'),
+          route('pioneers', 'features/publishers/routes/activity/pioneers.tsx'),
+        ]),
         route('export/xlsx', 'features/publishers/routes/activity/excel-export.tsx'),
         route('export/pdfs', 'features/publishers/routes/activity/pdf-export.tsx'),
         route('new', 'features/publishers/routes/activity/new.tsx'),

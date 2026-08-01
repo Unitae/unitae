@@ -1,0 +1,42 @@
+// A tiny inline trend mark. Recharts is overkill at 88×24; this is the one place a
+// hand-rolled SVG is justified. Decorative (aria-hidden="true") — the numeric trend word is
+// rendered as text beside it for screen readers.
+const WIDTH = 88
+const HEIGHT = 24
+const PADDING = 2
+
+export function Sparkline({ values, rate }: { values: (number | null)[]; rate: number }) {
+  const points = values.map((v, i) => ({ v, i })).filter((p): p is { v: number; i: number } => p.v !== null)
+
+  if (points.length < 2) return <svg width={WIDTH} height={HEIGHT} aria-hidden="true" />
+
+  const max = Math.max(rate, ...points.map(p => p.v)) || 1
+  const stepX = (WIDTH - PADDING * 2) / Math.max(values.length - 1, 1)
+  const y = (v: number) => HEIGHT - PADDING - (v / max) * (HEIGHT - PADDING * 2)
+  const x = (i: number) => PADDING + i * stepX
+
+  const line = points.map(p => `${x(p.i)},${y(p.v)}`).join(' ')
+  const rateY = y(rate)
+
+  return (
+    <svg width={WIDTH} height={HEIGHT} aria-hidden="true" className="overflow-visible">
+      <line
+        x1={PADDING}
+        x2={WIDTH - PADDING}
+        y1={rateY}
+        y2={rateY}
+        strokeDasharray="2 2"
+        className="stroke-muted-foreground/50"
+        strokeWidth={1}
+      />
+      <polyline
+        points={line}
+        fill="none"
+        strokeWidth={1.5}
+        className="stroke-[color:var(--color-chart-1)]"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}

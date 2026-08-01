@@ -1,4 +1,5 @@
 import {
+  BarChart3,
   Building2,
   CalendarCheck,
   CalendarDays,
@@ -71,6 +72,7 @@ interface AppSidebarProps {
 export function AppSidebar({ permissions, congregationName, onSearchClick }: AppSidebarProps) {
   const showAssemblee =
     permissions.canViewPublishers ||
+    permissions.canViewActivity ||
     permissions.canViewPrograms ||
     permissions.canViewAbsences ||
     permissions.canViewExternalSpeakers ||
@@ -155,6 +157,9 @@ export function AppSidebar({ permissions, congregationName, onSearchClick }: App
                     )}
                     {permissions.canViewPublishers && (
                       <SidebarNavItem to="/groups" icon={UsersRound} label={m.sidebar_publisher_groups()} />
+                    )}
+                    {permissions.canViewActivity && (
+                      <SidebarNavItem to="/publishers/activity" icon={BarChart3} label={m.sidebar_activity()} />
                     )}
                     {permissions.canViewRoles && (
                       <SidebarNavItem to="/congregation/roles" icon={Shield} label={m.sidebar_assembly_roles()} />
