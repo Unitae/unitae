@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { formatGroupName } from '~/shared/utils/format-group-name'
 import { PioneerPaceChart } from './PioneerPaceChart'
 import { PioneerRiskBadge, paceLabel, ReportingChip } from './pioneer-risk-badge'
+import { Sparkline } from './Sparkline'
 
 interface Props {
   serviceYear: number
@@ -46,6 +47,13 @@ export function PioneerActivitySection({ serviceYear, activity }: Props) {
 
 function AnnualDetail({ serviceYear, row }: { serviceYear: number; row: PioneerAnnualRow }) {
   const { pace } = row
+
+  if (pace.elapsedEnrolled === 0) {
+    return <p className="text-muted-foreground text-sm">{m.pioneers_insufficient_data()}</p>
+  }
+
+  const totalStudies = pace.monthlyStudies.reduce<number>((sum, s) => sum + (s ?? 0), 0)
+
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
@@ -58,6 +66,13 @@ function AnnualDetail({ serviceYear, row }: { serviceYear: number; row: PioneerA
         <Stat value={`${pace.targetToDate} h`} label={m.pioneers_target_label()} />
         <Stat value={`${Math.round(pace.requiredAvgToFinish)} h`} label={m.pioneers_needs_per_month_label()} />
         <Stat value={`${Math.round(pace.recentAvg)} h`} label={m.pioneers_recent_avg_label()} />
+      </div>
+      <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
+        <div>
+          <div className="font-medium text-sm">{m.pioneers_studies_label()}</div>
+          <div className="text-muted-foreground text-xs tabular-nums">{totalStudies}</div>
+        </div>
+        <Sparkline values={pace.monthlyStudies} />
       </div>
       {pace.outOfReach ? (
         <p className="flex items-center gap-2 text-amber-600 text-sm dark:text-amber-400">

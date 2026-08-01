@@ -22,6 +22,7 @@ export interface PioneerMonth {
   month: number // 0-indexed calendar month
   year: number
   hours: number | null
+  studies?: number
 }
 
 export interface PaceInput {
@@ -45,6 +46,7 @@ export interface PioneerPace {
   riskBucket: RiskBucket
   reportingStatus: ReportingStatus
   monthlyHours: (number | null)[] // aligned to serviceYearMonths, null = not enrolled
+  monthlyStudies: (number | null)[] // aligned to serviceYearMonths, null = not enrolled
 }
 
 export interface AuxiliarySummary {
@@ -133,11 +135,15 @@ export function computePioneerPace(input: PaceInput): PioneerPace {
   const projectedYearEnd = actualToDate + recentAvg * remainingMonths
   const outOfReach = requiredAvgToFinish > monthlyRate * OUT_OF_REACH_FACTOR
 
-  const byKey = new Map(sorted.map(m => [absMonth(m.month, m.year), m.hours ?? 0]))
-  const monthlyHours = serviceYearMonths(serviceYear).map(({ month, year }) => {
-    const key = absMonth(month, year)
-    return byKey.has(key) ? (byKey.get(key) ?? 0) : null
-  })
+  const byHours = new Map(sorted.map(m => [absMonth(m.month, m.year), m.hours ?? 0]))
+  const byStudies = new Map(sorted.map(m => [absMonth(m.month, m.year), m.studies ?? 0]))
+  const align = (source: Map<number, number>) =>
+    serviceYearMonths(serviceYear).map(({ month, year }) => {
+      const key = absMonth(month, year)
+      return source.has(key) ? (source.get(key) ?? 0) : null
+    })
+  const monthlyHours = align(byHours)
+  const monthlyStudies = align(byStudies)
 
   const reportingStatus = reportingStatusFor(input)
 
@@ -155,6 +161,7 @@ export function computePioneerPace(input: PaceInput): PioneerPace {
     riskBucket: riskBucketFor(paceDelta, monthlyRate, reportingStatus),
     reportingStatus,
     monthlyHours,
+    monthlyStudies,
   }
 }
 

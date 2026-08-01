@@ -2371,6 +2371,8 @@
     "pioneers_empty_title": "No pioneers",
     "pioneers_empty_description": "No pioneers are recorded for this service year.",
     "pioneers_insufficient_data": "Service year just started — not enough data to assess pace yet.",
+    "pioneers_insufficient_short": "Not enough data",
+    "pioneers_studies_label": "Studies",
     "pioneers_col_pioneer": "Pioneer",
     "pioneers_col_type": "Type",
     "pioneers_col_status": "Status",

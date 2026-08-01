@@ -20,32 +20,33 @@ export function Sparkline({
   risk = 'green',
 }: {
   values: (number | null)[]
-  rate: number
+  rate?: number
   risk?: RiskBucket
 }) {
   const points = values.map((v, i) => ({ v, i })).filter((p): p is { v: number; i: number } => p.v !== null)
 
   if (points.length < 2) return <span className="text-muted-foreground text-xs">—</span>
 
-  const max = Math.max(rate, ...points.map(p => p.v)) || 1
+  const max = Math.max(rate ?? 0, ...points.map(p => p.v)) || 1
   const stepX = (WIDTH - PADDING * 2) / Math.max(values.length - 1, 1)
   const y = (v: number) => HEIGHT - PADDING - (v / max) * (HEIGHT - PADDING * 2)
   const x = (i: number) => PADDING + i * stepX
 
   const line = points.map(p => `${x(p.i)},${y(p.v)}`).join(' ')
-  const rateY = y(rate)
 
   return (
     <svg width={WIDTH} height={HEIGHT} aria-hidden="true">
-      <line
-        x1={PADDING}
-        x2={WIDTH - PADDING}
-        y1={rateY}
-        y2={rateY}
-        strokeDasharray="2 2"
-        className="stroke-muted-foreground/50"
-        strokeWidth={1}
-      />
+      {rate !== undefined && (
+        <line
+          x1={PADDING}
+          x2={WIDTH - PADDING}
+          y1={y(rate)}
+          y2={y(rate)}
+          strokeDasharray="2 2"
+          className="stroke-muted-foreground/50"
+          strokeWidth={1}
+        />
+      )}
       <polyline
         points={line}
         fill="none"

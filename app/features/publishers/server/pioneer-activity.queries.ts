@@ -27,6 +27,7 @@ interface ActivityRow {
   year: number
   type: PublisherType
   hours: number | null
+  studies: number
 }
 
 function absMonth(month: number, year: number): number {
@@ -138,7 +139,7 @@ function classifyPioneerMember(
 
   const months: PioneerMonth[] = pioneerRows
     .filter(r => r.type === rosterType)
-    .map(r => ({ month: r.month, year: r.year, hours: r.hours }))
+    .map(r => ({ month: r.month, year: r.year, hours: r.hours, studies: r.studies }))
   const monthlyRate = rates.get(rosterType)
   if (monthlyRate === undefined) throw new Error(`No goal rate resolved for pioneer type ${rosterType}`)
 

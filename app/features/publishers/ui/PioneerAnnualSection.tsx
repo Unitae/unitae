@@ -60,6 +60,13 @@ function SubLine({ row }: { row: PioneerAnnualRow }) {
 // Risk + reporting badges, plus the actionable catch-up line for off-pace pioneers.
 function StatusCell({ row }: { row: PioneerAnnualRow }) {
   if (row.concluded) return <Badge variant="outline">{m.pioneers_concluded()}</Badge>
+  if (row.pace.elapsedEnrolled === 0) {
+    return (
+      <Badge variant="secondary" className="text-muted-foreground">
+        {m.pioneers_insufficient_short()}
+      </Badge>
+    )
+  }
   return (
     <div className="flex flex-col gap-1">
       <div className="flex flex-wrap items-center gap-1.5">
