@@ -1,7 +1,8 @@
-// Pure pace/risk math for pioneer monitoring. No DB, no `.server` suffix — the query
-// dedups activity rows (latest id wins) and filters to the member's roster type before
-// calling in, so `months` here is already the enrolled+reported set for the service year.
-// `now` is injected (congregation-tz date) so these functions stay deterministic.
+// Pure pace/risk math for pioneer monitoring. No DB, no `.server` suffix.
+// Precondition (the caller's responsibility): `months` is already deduped to one row
+// per month and filtered to a single pioneer type, so `elapsedEnrolled === months.length`
+// treats "enrolled" as "reported". `now` is injected (congregation-tz date) so these
+// functions stay deterministic.
 
 const FIRST_MONTH_OF_THEOCRATIC_YEAR = 8 // September (0-indexed)
 const MONTHS_IN_YEAR = 12
@@ -9,7 +10,8 @@ const MONTHS_IN_YEAR = 12
 // A report for month M lands in early M+1; a missing month stays "awaiting" for this
 // many days into the following month before it counts as "overdue".
 export const REPORT_OVERDUE_AFTER_DAYS = 10
-// The required catch-up rate is "out of reach" once it exceeds the goal by this factor.
+// The required catch-up rate is "out of reach" once it exceeds this multiple of the
+// monthly goal (i.e. requiredAvgToFinish > OUT_OF_REACH_FACTOR × rate).
 export const OUT_OF_REACH_FACTOR = 1.5
 const RECENT_MONTHS_WINDOW = 3
 
@@ -71,8 +73,9 @@ function firstAbs(serviceYear: number): number {
   return absMonth(FIRST_MONTH_OF_THEOCRATIC_YEAR, serviceYear)
 }
 
-// The most recent *completed* service-year month as of `now`, or null before the year
-// starts. Clamped to August once the year is over.
+// The most recent *completed* service-year month as of `now`, or null until at least one
+// service-year month has completed (i.e. through the whole of September, the first month).
+// Clamped to August once the year is over.
 export function currentExpectedMonth(serviceYear: number, now: Date): { month: number; year: number } | null {
   const start = firstAbs(serviceYear)
   const end = start + MONTHS_IN_YEAR - 1
@@ -83,10 +86,13 @@ export function currentExpectedMonth(serviceYear: number, now: Date): { month: n
   return { month: clamped % MONTHS_IN_YEAR, year: Math.floor(clamped / MONTHS_IN_YEAR) }
 }
 
-function riskBucketFor(paceDelta: number, monthlyRate: number): RiskBucket {
-  if (paceDelta >= 0) return 'green'
-  if (paceDelta >= -monthlyRate) return 'amber'
-  return 'red'
+const ESCALATE: Record<RiskBucket, RiskBucket> = { green: 'amber', amber: 'red', red: 'red' }
+
+function riskBucketFor(paceDelta: number, monthlyRate: number, reportingStatus: ReportingStatus): RiskBucket {
+  const base: RiskBucket = paceDelta >= 0 ? 'green' : paceDelta >= -monthlyRate ? 'amber' : 'red'
+  // An overdue report raises the band one step so a non-reporter is never "on track" —
+  // but a surplus (paceDelta > 0) keeps them green, since banking hours early is fine.
+  return reportingStatus === 'overdue' && paceDelta <= 0 ? ESCALATE[base] : base
 }
 
 function reportingStatusFor(input: PaceInput): ReportingStatus {
@@ -133,6 +139,8 @@ export function computePioneerPace(input: PaceInput): PioneerPace {
     return byKey.has(key) ? (byKey.get(key) ?? 0) : null
   })
 
+  const reportingStatus = reportingStatusFor(input)
+
   return {
     elapsedEnrolled,
     targetToDate,
@@ -144,8 +152,8 @@ export function computePioneerPace(input: PaceInput): PioneerPace {
     recentAvg,
     projectedYearEnd,
     outOfReach,
-    riskBucket: riskBucketFor(paceDelta, monthlyRate),
-    reportingStatus: reportingStatusFor(input),
+    riskBucket: riskBucketFor(paceDelta, monthlyRate, reportingStatus),
+    reportingStatus,
     monthlyHours,
   }
 }

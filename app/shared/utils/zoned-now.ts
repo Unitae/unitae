@@ -1,6 +1,8 @@
-// The current instant expressed as a Date whose *local* fields (getFullYear/getMonth/
-// getDate/getHours) match the wall clock in `timezone`. Used so service-year and
-// "current month" calculations follow the congregation's timezone, not the server's.
+// Returns a Date whose *local* fields (getFullYear/getMonth/getDate/getHours/getMinutes)
+// read as the wall clock in `timezone`. This is NOT the same instant as `base` — only the
+// local getters are valid; do not serialize it or call .getTime()/.toISOString()/UTC
+// methods. Used so service-year and "current month" calculations follow the congregation's
+// timezone, not the server's.
 export function zonedNow(timezone: string, base: Date = new Date()): Date {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: timezone,

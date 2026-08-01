@@ -84,6 +84,26 @@ describe('getPioneerActivitySummary', () => {
     expect(result.annual[0].pace.elapsedEnrolled).toBe(1)
   })
 
+  it('places a mid-year type switcher in one section and excludes off-type months from proration', async () => {
+    vi.mocked(db.member.findMany).mockResolvedValue([
+      member(1, PublisherType.PionnierPermanant, [
+        activity(8, 2025, PublisherType.PionnierAuxiliaires, 30), // Sept: auxiliary
+        activity(9, 2025, PublisherType.PionnierAuxiliaires, 30), // Oct: auxiliary
+        activity(10, 2025, PublisherType.PionnierPermanant, 50), // Nov: switched to permanent
+        activity(11, 2025, PublisherType.PionnierPermanant, 50), // Dec: permanent
+      ]),
+    ] as never)
+
+    const result = await getPioneerActivitySummary(db, 42, SY, NOW)
+
+    // Latest row is permanent → the member appears only in the annual section.
+    expect(result.annual.map(r => r.memberId)).toEqual([1])
+    expect(result.auxiliary).toHaveLength(0)
+    // Only the two permanent months count; the auxiliary months are excluded.
+    expect(result.annual[0].pace.elapsedEnrolled).toBe(2)
+    expect(result.annual[0].pace.actualToDate).toBe(100)
+  })
+
   it('flags concluded pioneers (reverted to Normal) and excludes them from totals', async () => {
     vi.mocked(db.member.findMany).mockResolvedValue([
       member(1, PublisherType.Normal, [

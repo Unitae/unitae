@@ -7,6 +7,7 @@ export {
   toServiceYear,
 } from './model/pioneer-pace'
 export type {
+  PioneerActivity,
   PioneerActivitySummary,
   PioneerActivityTotals,
   PioneerAnnualRow,

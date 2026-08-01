@@ -115,6 +115,72 @@ describe('computePioneerPace — risk from actuals only', () => {
   })
 })
 
+describe('computePioneerPace — overdue escalates the risk band', () => {
+  const now = new Date(2026, 0, 15) // expected month = Dec 2025
+
+  it('escalates an on-pace pioneer with an overdue report to amber (not green)', () => {
+    // Enrolled type but nothing filed yet this year → paceDelta 0, Dec overdue.
+    const pace = computePioneerPace({ serviceYear: SY, monthlyRate: 50, months: [], now })
+    expect(pace.reportingStatus).toBe('overdue')
+    expect(pace.riskBucket).toBe('amber')
+  })
+
+  it('escalates a slightly-behind pioneer with an overdue report to red', () => {
+    const pace = computePioneerPace({
+      serviceYear: SY,
+      monthlyRate: 50,
+      months: [month(8, 2025, 40), month(9, 2025, 40), month(10, 2025, 40)], // Dec unfiled → overdue
+      now,
+    })
+    expect(pace.paceDelta).toBe(-30) // amber base
+    expect(pace.reportingStatus).toBe('overdue')
+    expect(pace.riskBucket).toBe('red')
+  })
+
+  it('keeps a surplus pioneer green even when the report is overdue', () => {
+    const pace = computePioneerPace({
+      serviceYear: SY,
+      monthlyRate: 50,
+      months: [month(8, 2025, 80), month(9, 2025, 80), month(10, 2025, 80)], // +90 surplus, Dec unfiled
+      now,
+    })
+    expect(pace.reportingStatus).toBe('overdue')
+    expect(pace.riskBucket).toBe('green')
+  })
+
+  it('does not escalate at the start of the year (awaiting, not overdue)', () => {
+    const pace = computePioneerPace({ serviceYear: SY, monthlyRate: 50, months: [], now: new Date(2025, 8, 5) })
+    expect(pace.reportingStatus).toBe('awaiting')
+    expect(pace.riskBucket).toBe('green')
+  })
+})
+
+describe('computePioneerPace — boundaries and projection', () => {
+  const now = new Date(2026, 0, 15)
+
+  it('treats a deficit of exactly one month as amber (boundary), filed report does not escalate', () => {
+    const pace = computePioneerPace({
+      serviceYear: SY,
+      monthlyRate: 50,
+      months: [month(8, 2025, 50), month(9, 2025, 50), month(10, 2025, 50), month(11, 2025, 0)], // Dec filed 0h
+      now,
+    })
+    expect(pace.reportingStatus).toBe('filed')
+    expect(pace.paceDelta).toBe(-50)
+    expect(pace.riskBucket).toBe('amber')
+  })
+
+  it('computes required average and projection for a mid-year pioneer', () => {
+    const pace = computePioneerPace({ serviceYear: SY, monthlyRate: 50, months: autumn(30), now })
+    expect(pace.remainingMonths).toBe(8)
+    expect(pace.fullYearTarget).toBe(600) // 50 × (4 elapsed + 8 remaining)
+    expect(pace.requiredAvgToFinish).toBe(60) // (600 − 120) / 8
+    expect(pace.recentAvg).toBe(30) // last ≤3 reported months
+    expect(pace.projectedYearEnd).toBe(360) // 120 + 30 × 8
+    expect(pace.outOfReach).toBe(false)
+  })
+})
+
 describe('computePioneerPace — reporting status grace window', () => {
   it('is awaiting within the grace window', () => {
     const pace = computePioneerPace({

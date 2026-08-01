@@ -20,6 +20,11 @@ export interface PioneerAuxiliaryRow extends PioneerRosterRowBase {
   auxiliary: AuxiliarySummary
 }
 
+// Exactly one kind — a member is either an annual or an auxiliary pioneer, never both.
+export type PioneerActivity =
+  | { kind: 'annual'; row: PioneerAnnualRow }
+  | { kind: 'auxiliary'; row: PioneerAuxiliaryRow }
+
 export interface PioneerActivityTotals {
   onTrack: number
   behind: number

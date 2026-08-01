@@ -1,5 +1,6 @@
 import { Download, Pencil, RotateCcw, UserCheck, UserMinus, Zap, ZapOff } from 'lucide-react'
 import { Form, Link, redirect, useSubmit } from 'react-router'
+import { toServiceYear } from '~/features/publishers'
 import { getPioneerActivityForMember } from '~/features/publishers/server/pioneer-activity.queries'
 import { getPublisherById } from '~/features/publishers/server/publishers.server'
 import { PioneerActivitySection } from '~/features/publishers/ui/PioneerActivitySection'
@@ -37,12 +38,6 @@ import { zonedNow } from '~/shared/utils/zoned-now'
 
 import type { Route } from './+types/publisher'
 
-function computeServiceYearStart(): number {
-  const today = new Date()
-  const cutoff = new Date(today.getFullYear(), 8, 1)
-  return today < cutoff ? today.getFullYear() - 1 : today.getFullYear()
-}
-
 export const meta: Route.MetaFunction = ({ loaderData }) => {
   if (!loaderData) return [{ title: 'Unitae' }]
   return [{ title: `${loaderData.publisher.firstname} ${loaderData.publisher.lastname} - Unitae` }]
@@ -68,7 +63,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
   const publisherId = requireParamId<MemberId>(params.publisherId, '/publishers')
   const now = zonedNow(context.get(congregationContext).timezone)
-  const serviceYear = computeServiceYearStart()
+  const serviceYear = toServiceYear(now.getMonth(), now.getFullYear())
 
   return withScopeFromContext(context, async db => {
     const [publisher, attributions, pioneerActivity] = await Promise.all([
@@ -419,13 +414,7 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
         </CardContent>
       </Card>
 
-      {pioneerActivity && (
-        <PioneerActivitySection
-          serviceYear={serviceYear}
-          annual={pioneerActivity.annual}
-          auxiliary={pioneerActivity.auxiliary}
-        />
-      )}
+      {pioneerActivity && <PioneerActivitySection serviceYear={serviceYear} activity={pioneerActivity} />}
     </div>
   )
 }

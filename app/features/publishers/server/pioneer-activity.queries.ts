@@ -4,6 +4,7 @@ import { PublisherType } from '~/shared/types/publisher-type'
 import { isAuxiliaryType, isPioneerType } from '../model/pioneer-goals.constants'
 import { computeAuxiliarySummary, computePioneerPace, type PioneerMonth, type PioneerPace } from '../model/pioneer-pace'
 import type {
+  PioneerActivity,
   PioneerActivitySummary,
   PioneerAnnualRow,
   PioneerAuxiliaryRow,
@@ -81,8 +82,8 @@ export async function getPioneerActivitySummary(
 
   for (const member of members) {
     const classified = classifyPioneerMember(member, rates, serviceYear, now)
-    if (classified?.annual) annual.push(classified.annual)
-    else if (classified?.auxiliary) auxiliary.push(classified.auxiliary)
+    if (classified?.kind === 'annual') annual.push(classified.row)
+    else if (classified?.kind === 'auxiliary') auxiliary.push(classified.row)
   }
 
   sortMostAtRiskFirst(annual)
@@ -97,7 +98,7 @@ export async function getPioneerActivityForMember(
   congregationId: number,
   serviceYear: number,
   now: Date,
-): Promise<{ annual?: PioneerAnnualRow; auxiliary?: PioneerAuxiliaryRow } | null> {
+): Promise<PioneerActivity | null> {
   const member = await db.member.findFirst({
     where: { id: memberId, congregationId },
     include: {
@@ -125,7 +126,7 @@ function classifyPioneerMember(
   rates: Map<PublisherType, number>,
   serviceYear: number,
   now: Date,
-): { annual?: PioneerAnnualRow; auxiliary?: PioneerAuxiliaryRow } | null {
+): PioneerActivity | null {
   const rows = dedupeLatestPerMonth(member.activities)
   const pioneerRows = rows.filter(r => isPioneerType(r.type))
   if (pioneerRows.length === 0 && !isPioneerType(member.type)) return null
@@ -138,7 +139,8 @@ function classifyPioneerMember(
   const months: PioneerMonth[] = pioneerRows
     .filter(r => r.type === rosterType)
     .map(r => ({ month: r.month, year: r.year, hours: r.hours }))
-  const monthlyRate = rates.get(rosterType) ?? 0
+  const monthlyRate = rates.get(rosterType)
+  if (monthlyRate === undefined) throw new Error(`No goal rate resolved for pioneer type ${rosterType}`)
 
   const base: PioneerRosterRowBase = {
     memberId: member.id,
@@ -151,9 +153,12 @@ function classifyPioneerMember(
   }
 
   if (isAuxiliaryType(rosterType)) {
-    return { auxiliary: { ...base, auxiliary: computeAuxiliarySummary({ serviceYear, monthlyRate, months, now }) } }
+    return {
+      kind: 'auxiliary',
+      row: { ...base, auxiliary: computeAuxiliarySummary({ serviceYear, monthlyRate, months, now }) },
+    }
   }
-  return { annual: { ...base, pace: computePioneerPace({ serviceYear, monthlyRate, months, now }) } }
+  return { kind: 'annual', row: { ...base, pace: computePioneerPace({ serviceYear, monthlyRate, months, now }) } }
 }
 
 function mostRecent(rows: ActivityRow[]): ActivityRow | null {
