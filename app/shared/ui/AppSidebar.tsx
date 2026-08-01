@@ -51,6 +51,7 @@ export interface AppSidebarPermissions {
   canManageTerritories: boolean
   canManageSettings: boolean
   canManageUsers: boolean
+  canManagePioneerGoals: boolean
   canViewPrograms: boolean
   canViewAbsences: boolean
   canViewActivity: boolean
@@ -79,7 +80,11 @@ export function AppSidebar({ permissions, congregationName, onSearchClick }: App
     permissions.canViewRoles
   const showTerritories =
     permissions.canViewTerritories || permissions.canViewProspection || permissions.canManageTerritories
-  const showReglages = permissions.canManageSettings || permissions.canManageUsers || permissions.canManagePermissions
+  const showReglages =
+    permissions.canManageSettings ||
+    permissions.canManageUsers ||
+    permissions.canManagePermissions ||
+    permissions.canManagePioneerGoals
 
   return (
     <Sidebar>

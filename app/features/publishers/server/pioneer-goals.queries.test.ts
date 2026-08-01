@@ -3,11 +3,11 @@ import { PublisherType } from '~/shared/types/publisher-type'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
-    pioneerGoal: { findFirst: vi.fn() },
+    pioneerGoal: { findFirst: vi.fn(), findMany: vi.fn() },
   },
 }))
 
-const { resolvePioneerGoal } = await import('./pioneer-goals.queries')
+const { listPioneerGoalsForYear, resolvePioneerGoal } = await import('./pioneer-goals.queries')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
@@ -38,6 +38,30 @@ describe('resolvePioneerGoal', () => {
 
     expect(db.pioneerGoal.findFirst).toHaveBeenCalledWith({
       where: { serviceYear: 2025, type: PublisherType.PionnierSpecial },
+    })
+  })
+})
+
+describe('listPioneerGoalsForYear', () => {
+  it('returns default, override, and effective rate for each pioneer type', async () => {
+    vi.mocked(db.pioneerGoal.findMany).mockResolvedValue([
+      { type: PublisherType.PionnierPermanant, monthlyHours: 55 },
+    ] as never)
+
+    const result = await listPioneerGoalsForYear(db, 2026)
+
+    expect(result).toHaveLength(4)
+    expect(result.find(g => g.type === PublisherType.PionnierPermanant)).toEqual({
+      type: PublisherType.PionnierPermanant,
+      defaultRate: 50,
+      override: 55,
+      effectiveRate: 55,
+    })
+    expect(result.find(g => g.type === PublisherType.PionnierAuxiliaires)).toEqual({
+      type: PublisherType.PionnierAuxiliaires,
+      defaultRate: 30,
+      override: null,
+      effectiveRate: 30,
     })
   })
 })
