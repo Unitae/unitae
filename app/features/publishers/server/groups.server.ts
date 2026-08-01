@@ -6,8 +6,11 @@ export async function getGroups(db: TransactionClient, congregationId: number) {
 
 export async function getGroup(db: TransactionClient, groupId: number, congregationId: number) {
   const today = new Date()
-  const lastMonth = new Date()
-  lastMonth.setMonth(today.getMonth() - 1)
+  // Anchor to the first of the month before subtracting: a naive
+  // `setMonth(month - 1)` keeps the current day-of-month and overflows when the
+  // previous month is shorter (e.g. 31 July → June has 30 days → rolls back to
+  // July), which would make `previousActivity` resolve to the wrong month.
+  const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1)
 
   const group = await db.publisherGroup.findUnique({
     where: {
