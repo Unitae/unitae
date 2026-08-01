@@ -6,12 +6,12 @@ vi.mock('~/shared/infra/db.server', () => ({
 }))
 vi.mock('~/shared/domain/audit.server', () => ({
   AuditAction: { PioneerGoalUpdated: 'pioneer_goal.updated' },
-  audit: vi.fn(),
+  auditInTransaction: vi.fn(),
 }))
 
 const { setPioneerGoal } = await import('./set-pioneer-goal.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
-const { audit } = await import('~/shared/domain/audit.server')
+const { auditInTransaction } = await import('~/shared/domain/audit.server')
 
 beforeEach(() => vi.resetAllMocks())
 
@@ -41,7 +41,7 @@ describe('setPioneerGoal', () => {
     })
   })
 
-  it('audits the change with the actor and entity', async () => {
+  it('audits the change inside the caller transaction (so a rollback leaves no phantom row)', async () => {
     vi.mocked(db.pioneerGoal.upsert).mockResolvedValue({ id: 7 } as never)
 
     await setPioneerGoal(db, {
@@ -52,12 +52,14 @@ describe('setPioneerGoal', () => {
       actorId: 9,
     })
 
-    expect(audit).toHaveBeenCalledWith(
+    expect(auditInTransaction).toHaveBeenCalledWith(
+      db,
       expect.objectContaining({
         action: 'pioneer_goal.updated',
         congregationId: 3,
         actorId: 9,
         entityId: 7,
+        metadata: { serviceYear: 2026, type: PublisherType.PionnierAuxiliaires, monthlyHours: 30 },
       }),
     )
   })

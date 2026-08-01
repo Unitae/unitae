@@ -1,4 +1,4 @@
-import { AuditAction, audit } from '~/shared/domain/audit.server'
+import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { PublisherType } from '~/shared/types/publisher-type'
 
@@ -12,7 +12,9 @@ export interface SetPioneerGoalParams {
 
 // Upsert a congregation's per-(service year, type) goal override. Plain CRUD, not an
 // aggregate (single writer, no coordinated invariant). RLS scopes the row; congregationId
-// is threaded explicitly for defence-in-depth on create.
+// is threaded explicitly for defence-in-depth on create. The audit shares the caller's
+// transaction (auditInTransaction) so a rolled-back save leaves no phantom audit row —
+// callers save the four types in one transaction.
 export async function setPioneerGoal(db: TransactionClient, params: SetPioneerGoalParams) {
   const { serviceYear, type, monthlyHours, congregationId, actorId } = params
 
@@ -22,7 +24,7 @@ export async function setPioneerGoal(db: TransactionClient, params: SetPioneerGo
     update: { monthlyHours },
   })
 
-  audit({
+  await auditInTransaction(db, {
     action: AuditAction.PioneerGoalUpdated,
     congregationId,
     actorId,

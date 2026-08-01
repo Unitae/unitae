@@ -64,4 +64,13 @@ describe('listPioneerGoalsForYear', () => {
       effectiveRate: 30,
     })
   })
+
+  it('returns all defaults with no overrides when the congregation has set none', async () => {
+    vi.mocked(db.pioneerGoal.findMany).mockResolvedValue([] as never)
+
+    const result = await listPioneerGoalsForYear(db, 2026)
+
+    expect(result).toHaveLength(4)
+    expect(result.every(g => g.override === null && g.effectiveRate === g.defaultRate)).toBe(true)
+  })
 })

@@ -3,7 +3,7 @@ import { parseWithZod } from '@conform-to/zod'
 import { data, Form, Link, redirect } from 'react-router'
 
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { toServiceYear } from '~/features/publishers'
+import { isEditableServiceYear, toServiceYear } from '~/features/publishers'
 import { listPioneerGoalsForYear, setPioneerGoal } from '~/features/publishers/index.server'
 import { pioneerGoalsSchema } from '~/features/settings/schemas/pioneer-goals.schema'
 import * as m from '~/i18n/paraglide/messages'
@@ -37,8 +37,8 @@ const FIELD_TYPES = [
 
 function resolveServiceYear(request: Request, currentYear: number): number {
   const requested = Number(new URL(request.url).searchParams.get('sy'))
-  // Editing is limited to the current and next service year.
-  return requested === currentYear + 1 ? currentYear + 1 : currentYear
+  // Editing is limited to the current and next service year; anything else → current.
+  return isEditableServiceYear(requested, currentYear) ? requested : currentYear
 }
 
 export function loader({ request, context }: Route.LoaderArgs) {
@@ -67,7 +67,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
 
   const { serviceYear } = submission.value
-  if (serviceYear < currentYear) {
+  if (!isEditableServiceYear(serviceYear, currentYear)) {
     return data(submission.reply({ formErrors: [m.settings_pioneer_goals_past_year_error()] }), { status: 400 })
   }
 
@@ -133,6 +133,7 @@ export default function PioneerGoalsPage({ loaderData, actionData }: Route.Compo
                   />
                   <span className="text-muted-foreground text-xs">
                     {m.settings_pioneer_goals_default_hint({ rate: String(goal?.defaultRate ?? 0) })}
+                    {goal?.override != null && ` · ${m.settings_pioneer_goals_customised()}`}
                   </span>
                   {fields[field].errors && <p className="text-destructive text-sm">{fields[field].errors}</p>}
                 </div>

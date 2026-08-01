@@ -704,6 +704,7 @@
     "settings_pioneer_goals_title": "Objectifs des pionniers",
     "settings_pioneer_goals_subtitle": "Définissez l'objectif d'heures mensuel par type de pionnier, pour l'année de service.",
     "settings_pioneer_goals_default_hint": "Valeur par défaut : {rate} h/mois",
+    "settings_pioneer_goals_customised": "personnalisé",
     "settings_pioneer_goals_saved_success": "Objectifs des pionniers enregistrés.",
     "settings_pioneer_goals_past_year_error": "Impossible de modifier les objectifs d'une année de service passée.",
     "settings_hub_users_desc": "Comptes, invitations et gestion RGPD des utilisateurs.",

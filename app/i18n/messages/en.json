@@ -702,6 +702,7 @@
     "settings_pioneer_goals_title": "Pioneer goals",
     "settings_pioneer_goals_subtitle": "Set the monthly hour goal per pioneer type for the service year.",
     "settings_pioneer_goals_default_hint": "Default: {rate} h/mo",
+    "settings_pioneer_goals_customised": "customised",
     "settings_pioneer_goals_saved_success": "Pioneer goals saved.",
     "settings_pioneer_goals_past_year_error": "Cannot edit goals for a past service year.",
     "settings_hub_users_desc": "Accounts, invitations and GDPR user management.",

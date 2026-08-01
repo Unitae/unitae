@@ -1,5 +1,6 @@
 // Public client-safe surface of the publishers feature.
 export {
+  isEditableServiceYear,
   type PioneerPace,
   type ReportingStatus,
   type RiskBucket,

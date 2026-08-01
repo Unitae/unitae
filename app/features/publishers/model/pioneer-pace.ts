@@ -68,6 +68,12 @@ export function toServiceYear(month: number, year: number): number {
   return month >= FIRST_MONTH_OF_THEOCRATIC_YEAR ? year : year - 1
 }
 
+// Goals may only be edited for the current and next service year — past years are
+// read-only. Enforced on both the read (clamp) and write (guard) paths.
+export function isEditableServiceYear(serviceYear: number, currentServiceYear: number): boolean {
+  return serviceYear === currentServiceYear || serviceYear === currentServiceYear + 1
+}
+
 // Ordered Sept…Aug of the service year.
 export function serviceYearMonths(serviceYear: number): { month: number; year: number }[] {
   return Array.from({ length: MONTHS_IN_YEAR }, (_, i) => {

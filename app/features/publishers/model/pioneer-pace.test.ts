@@ -4,6 +4,7 @@ import {
   computeAuxiliarySummary,
   computePioneerPace,
   currentExpectedMonth,
+  isEditableServiceYear,
   type PioneerMonth,
   serviceYearMonths,
   toServiceYear,
@@ -38,6 +39,16 @@ describe('toServiceYear', () => {
   it('maps Jan–Aug to the previous calendar year', () => {
     expect(toServiceYear(0, 2026)).toBe(2025)
     expect(toServiceYear(7, 2026)).toBe(2025)
+  })
+})
+
+describe('isEditableServiceYear', () => {
+  it('allows the current and next service year only', () => {
+    expect(isEditableServiceYear(2025, 2025)).toBe(true)
+    expect(isEditableServiceYear(2026, 2025)).toBe(true)
+    expect(isEditableServiceYear(2024, 2025)).toBe(false) // past
+    expect(isEditableServiceYear(2027, 2025)).toBe(false) // beyond next
+    expect(isEditableServiceYear(9999, 2025)).toBe(false) // crafted far-future
   })
 })
 
