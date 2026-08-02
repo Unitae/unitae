@@ -132,6 +132,36 @@ export async function importEmergencyContacts(
   }
 }
 
+export async function importPioneerGoals(zip: JsZip, db: TransactionClient, congregationId: number): Promise<void> {
+  const records = await readNdjsonFile<{
+    serviceYear: number
+    type: string
+    monthlyHours: number
+  }>(zip, 'pioneer-goals')
+
+  // No id remapping: the natural key is (serviceYear, type, congregationId).
+  // Upsert so importing into a congregation that already has overrides refreshes
+  // them instead of hitting the unique constraint.
+  for (const record of records) {
+    await db.pioneerGoal.upsert({
+      where: {
+        serviceYear_type_congregationId: {
+          serviceYear: record.serviceYear,
+          type: record.type as PublisherType,
+          congregationId,
+        },
+      },
+      create: {
+        serviceYear: record.serviceYear,
+        type: record.type as PublisherType,
+        monthlyHours: record.monthlyHours,
+        congregationId,
+      },
+      update: { monthlyHours: record.monthlyHours },
+    })
+  }
+}
+
 export async function importExternalSpeakers(
   zip: JsZip,
   db: TransactionClient,
