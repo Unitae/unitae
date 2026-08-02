@@ -3,8 +3,8 @@
 **Status:** Draft — design discussed with the maintainer and revised after a three-lens review
 (architecture, JW domain, UX). Locked: full enrolment model; manager sets the auxiliary goal from the
 publisher edit page (no dedicated screen); auxiliary enrolment does **not** change `Member.type`
-(§7.1). **One product decision still open** — removing the raw pioneer-type dropdown (§15.1). Not yet
-implemented.
+(§7.1); the standing pioneer type is set **only** via the annual appointment — the raw type dropdown is
+removed (§10, §15.1). Design is settled; ready for implementation. Not yet implemented.
 **Author:** Nathanaël Cherrier
 **Feature area:** `features/publishers`
 **Related:** [Pioneer Activity Monitoring](./pioneer-activity-monitoring.md), [Emergency-Preparedness Info](./emergency-preparedness-info.md) (structural template), [Architecture Conventions](../architecture-conventions.md), [Row-Level Security](../row-level-security.md), [Data Transfer](../data-transfer.md)
@@ -285,7 +285,9 @@ Extend the **publishing section** of `edit-publisher.tsx`, respecting `Auxiliary
 Two visually distinct subsections (they are structurally different — prevent cross-fill mistakes):
 
 - **Annual appointment** (permanent / special / missionary): start month+year, optional end month+year.
-  *(See §15.1 — pending your call on whether this **replaces** the raw type dropdown.)*
+  This is the **only** way to set a standing pioneer type — the raw type dropdown is **removed**; the
+  current type shows read-only, derived from the active stint (§15.1). No path can leave `Member.type`
+  and the enrolments inconsistent.
 - **Monthly auxiliary enrolment**: month picker (current/next), goal (15 / 30 h), submit. Fine for the
   per-member cadence at typical volume; §15.4 tracks a bulk view if it chafes.
 - When `hideAuxiliaryPioneer` is true, show a muted note ("*Auxiliary enrolment is disabled in
@@ -348,15 +350,13 @@ Enrolments are membership facts, not third-party PII — like activity rows, **p
 
 ## 15. Open questions
 
-1. **Type dropdown vs enrolment controls (§10) — needs your call.** UX + domain both recommend
-   **removing the raw pioneer-type dropdown** and making the annual appointment the only way to set a
-   standing type (dropdown becomes read-only, derived from the active stint), so there is a single
-   source of truth and no way to leave `Member.type` and enrolments inconsistent. *(Lean: remove it.
-   Confirm before Phase 3.)*
-2. **Enrolment permission (§9)** — reuse `PublisherManager` or add a dedicated permission?
-   *(Lean: reuse.)*
+1. **Type dropdown vs enrolment controls (§10) — RESOLVED (locked).** The raw pioneer-type dropdown is
+   **removed**; the annual appointment is the only way to set a standing type, shown read-only and
+   derived from the active stint. Single source of truth; no inconsistent state reachable.
+2. **Enrolment permission (§9)** — reuse `PublisherManager` or add a dedicated permission? *(Lean:
+   reuse; proceeding with reuse unless flagged.)*
 3. **`bulkUpdateType` (`member.aggregate.ts`)** — how does a mass type change reconcile with existing
-   enrolments? *(Lean: out of scope / manual for now; document.)*
+   enrolments? *(Lean: out of scope / manual for now; document at implementation.)*
 
 ## 16. Known simplifications (documented, not blockers)
 
