@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildSettingsSections } from './settings-sections'
 
-const ADMIN = { canManageSettings: true, canManageUsers: true, canManagePermissions: true }
+const ADMIN = { canManageSettings: true, canManageUsers: true, canManagePermissions: true, canManagePioneerGoals: true }
 const BILLING = 'https://www.unitae.app/billing?token=abc'
 
 describe('buildSettingsSections', () => {
@@ -10,7 +10,7 @@ describe('buildSettingsSections', () => {
     expect(sections.map(s => s.key)).toEqual(['account', 'modules', 'access', 'data'])
     expect(sections.map(s => s.items.map(i => i.key))).toEqual([
       ['general', 'subscription'],
-      ['congregation', 'territories'],
+      ['congregation', 'territories', 'pioneer-goals'],
       ['users', 'permissions'],
       ['data', 'audit'],
     ])
@@ -30,7 +30,7 @@ describe('buildSettingsSections', () => {
 
   it('drops empty groups — a user-manager sees only the access group with users', () => {
     const sections = buildSettingsSections(
-      { canManageSettings: false, canManageUsers: true, canManagePermissions: false },
+      { canManageSettings: false, canManageUsers: true, canManagePermissions: false, canManagePioneerGoals: false },
       null,
     )
     expect(sections.map(s => s.key)).toEqual(['access'])
@@ -39,7 +39,7 @@ describe('buildSettingsSections', () => {
 
   it('returns no sections when the viewer can manage nothing (drives the hub redirect)', () => {
     const sections = buildSettingsSections(
-      { canManageSettings: false, canManageUsers: false, canManagePermissions: false },
+      { canManageSettings: false, canManageUsers: false, canManagePermissions: false, canManagePioneerGoals: false },
       null,
     )
     expect(sections).toEqual([])
@@ -47,10 +47,19 @@ describe('buildSettingsSections', () => {
 
   it('shows only permissions to a permissions-manager', () => {
     const sections = buildSettingsSections(
-      { canManageSettings: false, canManageUsers: false, canManagePermissions: true },
+      { canManageSettings: false, canManageUsers: false, canManagePermissions: true, canManagePioneerGoals: false },
       null,
     )
     expect(sections.map(s => s.key)).toEqual(['access'])
     expect(sections[0].items.map(i => i.key)).toEqual(['permissions'])
+  })
+
+  it('shows only pioneer goals to a pioneer-goal-manager', () => {
+    const sections = buildSettingsSections(
+      { canManageSettings: false, canManageUsers: false, canManagePermissions: false, canManagePioneerGoals: true },
+      null,
+    )
+    expect(sections.map(s => s.key)).toEqual(['modules'])
+    expect(sections[0].items.map(i => i.key)).toEqual(['pioneer-goals'])
   })
 })

@@ -7,6 +7,7 @@ export type SettingsItemKey =
   | 'subscription'
   | 'congregation'
   | 'territories'
+  | 'pioneer-goals'
   | 'users'
   | 'permissions'
   | 'data'
@@ -18,6 +19,7 @@ export interface SettingsSectionPerms {
   canManageSettings: boolean
   canManageUsers: boolean
   canManagePermissions: boolean
+  canManagePioneerGoals: boolean
 }
 
 export interface SettingsCard {
@@ -55,6 +57,13 @@ const CATALOG: CatalogEntry[] = [
     href: '/settings/territories',
     external: false,
     visible: p => p.canManageSettings,
+  },
+  {
+    key: 'pioneer-goals',
+    group: 'modules',
+    href: '/settings/pioneer-goals',
+    external: false,
+    visible: p => p.canManagePioneerGoals,
   },
   { key: 'users', group: 'access', href: '/settings/users', external: false, visible: p => p.canManageUsers },
   {

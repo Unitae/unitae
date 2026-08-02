@@ -12,6 +12,14 @@ export const DEFAULT_MONTHLY_GOALS: Record<PublisherType, number> = {
   [PublisherType.Missionnaire]: 100,
 }
 
+// The pioneer types that carry an hour goal (everything except Normal).
+export const PIONEER_TYPES = [
+  PublisherType.PionnierPermanant,
+  PublisherType.PionnierAuxiliaires,
+  PublisherType.PionnierSpecial,
+  PublisherType.Missionnaire,
+] as const
+
 export function resolveDefaultGoal(type: PublisherType): number {
   return DEFAULT_MONTHLY_GOALS[type]
 }
