@@ -23,7 +23,9 @@ export default function AnalysisCoverageGroup({
       <h3 className="font-display font-semibold text-lg">{m.stats_coverage_over_time_heading()}</h3>
       <Card>
         <CardHeader>
-          <CardTitle className="font-display text-lg">{m.stats_monthly_coverage_title()}</CardTitle>
+          <CardTitle as="h4" className="font-display text-lg">
+            {m.stats_monthly_coverage_title()}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <MonthlyCoverageChart data={monthlyCoverage} />
@@ -52,7 +54,9 @@ export default function AnalysisCoverageGroup({
       )}
       <Card>
         <CardHeader>
-          <CardTitle className="font-display text-lg">{m.stats_never_worked_title()}</CardTitle>
+          <CardTitle as="h4" className="font-display text-lg">
+            {m.stats_never_worked_title()}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <TerritoriesNeverWorkedList territories={neverWorked.territories} isCapped={neverWorked.isCapped} />

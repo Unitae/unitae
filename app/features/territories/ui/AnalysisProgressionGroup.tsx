@@ -153,7 +153,9 @@ export default function AnalysisProgressionGroup({
       </div>
       <Card>
         <CardHeader>
-          <CardTitle className="font-display text-lg">{m.stats_attributions_per_month()}</CardTitle>
+          <CardTitle as="h4" className="font-display text-lg">
+            {m.stats_attributions_per_month()}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <AttributionsPerMonthChart data={attributionsPerMonth} />

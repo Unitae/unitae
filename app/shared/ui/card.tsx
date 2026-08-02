@@ -25,8 +25,18 @@ function CardHeader({ className, ...props }: React.ComponentProps<'div'>) {
   )
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div data-slot="card-title" className={cn('font-semibold leading-none', className)} {...props} />
+// A card title is semantically a section heading. It renders an <h2> by
+// default — correct under the app's single page <h1> (PageHeader / dashboard
+// hero) — and accepts `as` to set a different level (e.g. `as="h3"` for a card
+// nested inside another titled section, or `as="div"` for the rare non-heading
+// title). Tailwind preflight resets heading size/margin, so the element choice
+// is invisible; only the accessibility tree changes.
+function CardTitle({
+  className,
+  as: Comp = 'h2',
+  ...props
+}: React.HTMLAttributes<HTMLElement> & { as?: React.ElementType }) {
+  return <Comp data-slot="card-title" className={cn('font-semibold leading-none', className)} {...props} />
 }
 
 function CardDescription({ className, ...props }: React.ComponentProps<'div'>) {

@@ -5,6 +5,7 @@ export const MS_PER_HOUR = 60 * 60 * 1000
 export const MS_PER_DAY = 24 * MS_PER_HOUR
 export const THREE_DAYS_MS = 3 * MS_PER_DAY
 export const TWO_WEEKS_MS = 14 * MS_PER_DAY
+export const FOUR_WEEKS_MS = 28 * MS_PER_DAY
 
 // Session cookie max-age (`cookie.maxAge` is expressed in seconds, not ms)
 export const SESSION_MAX_AGE_SECONDS_PROD = 60 * 60
