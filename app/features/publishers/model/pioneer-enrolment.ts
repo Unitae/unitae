@@ -51,3 +51,9 @@ export function coversMonth(period: EnrolmentPeriod, month: number, year: number
 export function enrolledMonthsInServiceYear(period: EnrolmentPeriod, serviceYear: number): MonthRef[] {
   return serviceYearMonths(serviceYear).filter(({ month, year }) => coversMonth(period, month, year))
 }
+
+// The enrolment covering a given month (stints never overlap, so at most one), or null. Used to
+// derive a report's pioneer type from the plan so the two can't diverge (spec §7.2).
+export function enrolmentForMonth<T extends EnrolmentPeriod>(enrolments: T[], month: number, year: number): T | null {
+  return enrolments.find(e => coversMonth(e, month, year)) ?? null
+}

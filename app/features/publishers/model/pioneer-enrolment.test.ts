@@ -5,6 +5,7 @@ import {
   coversMonth,
   type EnrolmentPeriod,
   enrolledMonthsInServiceYear,
+  enrolmentForMonth,
   isOngoing,
   isSingleMonth,
   resolveEnrolmentGoal,
@@ -130,6 +131,20 @@ describe('enrolledMonthsInServiceYear', () => {
       { month: 0, year: 2026 },
       { month: 1, year: 2026 },
     ])
+  })
+
+  it('exposes enrolmentForMonth for report-type derivation', () => {
+    const perm = stint({ startMonth: 8, startYear: 2025, endMonth: null, endYear: null })
+    const aux = stint({
+      type: PublisherType.PionnierAuxiliaires,
+      startMonth: 2,
+      startYear: 2024,
+      endMonth: 2,
+      endYear: 2024,
+    })
+    expect(enrolmentForMonth([aux, perm], 0, 2026)).toBe(perm) // Jan 2026 covered by the ongoing perm stint
+    expect(enrolmentForMonth([aux, perm], 2, 2024)?.type).toBe(PublisherType.PionnierAuxiliaires) // the single aux month
+    expect(enrolmentForMonth([aux], 5, 2024)).toBeNull() // no stint covers May 2024
   })
 
   it('returns nothing when the stint does not intersect the service year', () => {

@@ -3,7 +3,7 @@ import { PublisherType } from '~/shared/types/publisher-type'
 
 import type { EnrolmentPeriod } from '../model/pioneer-enrolment'
 import { type EnrolmentActualMonth, planFromEnrolments } from '../model/pioneer-enrolment-pace'
-import { computeAuxiliarySummary, computePioneerPace, type PioneerPace } from '../model/pioneer-pace'
+import { computeAuxiliarySummary, computePioneerPace, type PioneerMonth, type PioneerPace } from '../model/pioneer-pace'
 import type {
   PioneerActivity,
   PioneerActivitySummary,
@@ -137,9 +137,17 @@ function classifyPioneerMember(
   }
 
   if (plan.isAuxiliary) {
+    // Auxiliary is scored on the PLAN: every enrolled month counts, with its reported hours joined
+    // (null when no report is filed yet → "enrolled · report pending"). This is why the auxiliary
+    // path uses enrolledMonths rather than only the reported rows.
+    const hoursByMonth = new Map(plan.months.map(pm => [pm.month * 10000 + pm.year, pm]))
+    const auxMonths: PioneerMonth[] = plan.enrolledMonths.map(mr => {
+      const reported = hoursByMonth.get(mr.month * 10000 + mr.year)
+      return { month: mr.month, year: mr.year, hours: reported?.hours ?? null, studies: reported?.studies }
+    })
     return {
       kind: 'auxiliary',
-      row: { ...base, auxiliary: computeAuxiliarySummary({ serviceYear, monthlyRate, months: plan.months, now }) },
+      row: { ...base, auxiliary: computeAuxiliarySummary({ serviceYear, monthlyRate, months: auxMonths, now }) },
     }
   }
   return {

@@ -503,6 +503,7 @@ describe('computeAuxiliarySummary — informational, no verdict', () => {
       now,
     })
     expect(summary.enrolledMonths).toBe(3)
+    expect(summary.reportedMonths).toBe(3)
     expect(summary.metMonths).toBe(2) // 30 and 35 meet, 22 does not
   })
 
@@ -513,6 +514,19 @@ describe('computeAuxiliarySummary — informational, no verdict', () => {
       months: [month(0, 2026, 22)],
       now,
     })
-    expect(summary.thisMonth).toEqual({ hours: 22, rate: 30, met: false })
+    expect(summary.thisMonth).toEqual({ hours: 22, rate: 30, met: false, reported: true })
+  })
+
+  it('marks an enrolled month with no report as pending (report pending)', () => {
+    // Jan 2026 is enrolled (planned) but has null hours → not yet reported.
+    const summary = computeAuxiliarySummary({
+      serviceYear: SY,
+      monthlyRate: 30,
+      months: [month(0, 2026, null)],
+      now,
+    })
+    expect(summary.enrolledMonths).toBe(1)
+    expect(summary.reportedMonths).toBe(0)
+    expect(summary.thisMonth).toEqual({ hours: 0, rate: 30, met: false, reported: false })
   })
 })

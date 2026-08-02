@@ -23,6 +23,7 @@ export interface EnrolmentPlan {
   rosterType: PublisherType
   isAuxiliary: boolean
   months: PioneerMonth[] // actual reported rows of the roster type, in the service year
+  enrolledMonths: MonthRef[] // months planned (enrolled) this year for the roster type — the plan side
   enrolledSinceYearStart: boolean
   concluded: boolean
   notEnrolledMonths: MonthRef[]
@@ -58,6 +59,7 @@ export function planFromEnrolments(
       rosterType: memberType,
       isAuxiliary: isAuxiliaryType(memberType),
       months: [],
+      enrolledMonths: [],
       enrolledSinceYearStart: false,
       concluded: false,
       notEnrolledMonths: [],
@@ -72,10 +74,18 @@ export function planFromEnrolments(
   const rosterType = current.type
   const rosterStints = stintsInSY.filter(e => e.type === rosterType)
 
+  const enrolledMonths: MonthRef[] = []
   const enrolledAbs = new Set<number>()
   for (const stint of rosterStints) {
-    for (const m of enrolledMonthsInServiceYear(stint, serviceYear)) enrolledAbs.add(absMonth(m.month, m.year))
+    for (const mr of enrolledMonthsInServiceYear(stint, serviceYear)) {
+      const abs = absMonth(mr.month, mr.year)
+      if (!enrolledAbs.has(abs)) {
+        enrolledAbs.add(abs)
+        enrolledMonths.push(mr)
+      }
+    }
   }
+  enrolledMonths.sort((a, b) => absMonth(a.month, a.year) - absMonth(b.month, b.year))
 
   const enrolledSinceYearStart = enrolledAbs.has(absMonth(FIRST_MONTH_OF_THEOCRATIC_YEAR, serviceYear))
 
@@ -101,6 +111,7 @@ export function planFromEnrolments(
     rosterType,
     isAuxiliary: isAuxiliaryType(rosterType),
     months,
+    enrolledMonths,
     enrolledSinceYearStart,
     concluded,
     notEnrolledMonths,

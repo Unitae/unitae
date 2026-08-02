@@ -42,9 +42,13 @@ export function PioneerAuxiliarySection({ rows }: { rows: PioneerAuxiliaryRow[] 
               </div>
             </div>
             <div className="text-right">
-              <div className="font-semibold tabular-nums">
-                {row.auxiliary.thisMonth ? `${row.auxiliary.thisMonth.hours} h` : '—'}
-              </div>
+              {row.auxiliary.thisMonth && !row.auxiliary.thisMonth.reported ? (
+                <Badge variant="outline">{m.pioneers_aux_report_pending()}</Badge>
+              ) : (
+                <div className="font-semibold tabular-nums">
+                  {row.auxiliary.thisMonth ? `${row.auxiliary.thisMonth.hours} h` : '—'}
+                </div>
+              )}
               <div className="text-muted-foreground text-xs">
                 {m.pioneers_aux_standard_target({ rate: String(row.monthlyRate) })}
               </div>

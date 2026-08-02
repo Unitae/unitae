@@ -70,9 +70,10 @@ export interface PioneerPace {
 }
 
 export interface AuxiliarySummary {
-  enrolledMonths: number
+  enrolledMonths: number // months planned (enrolled) this year — includes months with no report yet
+  reportedMonths: number // of the enrolled months, how many have an hours report filed
   metMonths: number
-  thisMonth: { hours: number; rate: number; met: boolean } | null
+  thisMonth: { hours: number; rate: number; met: boolean; reported: boolean } | null
 }
 
 export function toServiceYear(month: number, year: number): number {
@@ -249,13 +250,21 @@ export function computePioneerPace(input: PaceInput): PioneerPace {
 
 export function computeAuxiliarySummary(input: PaceInput): AuxiliarySummary {
   const { monthlyRate, months } = input
+  // `months` is the enrolled plan for the year — a month with a null `hours` is enrolled but not yet
+  // reported (report pending).
   const enrolledMonths = months.length
+  const reportedMonths = months.filter(m => m.hours != null).length
   const metMonths = months.filter(m => (m.hours ?? 0) >= monthlyRate).length
 
   const current = months.find(m => m.month === input.now.getMonth() && m.year === input.now.getFullYear())
   const thisMonth = current
-    ? { hours: current.hours ?? 0, rate: monthlyRate, met: (current.hours ?? 0) >= monthlyRate }
+    ? {
+        hours: current.hours ?? 0,
+        rate: monthlyRate,
+        met: (current.hours ?? 0) >= monthlyRate,
+        reported: current.hours != null,
+      }
     : null
 
-  return { enrolledMonths, metMonths, thisMonth }
+  return { enrolledMonths, reportedMonths, metMonths, thisMonth }
 }
