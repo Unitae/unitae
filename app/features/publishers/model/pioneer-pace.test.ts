@@ -288,6 +288,58 @@ describe('computePioneerPace — concluded (service ended mid-year)', () => {
   })
 })
 
+describe('computePioneerPace — stopped then restarted (same type, same year)', () => {
+  it('does not count the months spent as a regular publisher toward the pioneer goal', () => {
+    // Perm Sept–Nov, then a regular publisher Dec–May (explicit non-pioneer rows), perm again
+    // June–July. Now is mid-August. Those six publisher months are NOT missing reports — he was
+    // simply not a pioneer — so they must not read as a deficit.
+    const served = [
+      month(8, 2025, 50), // Sept
+      month(9, 2025, 50), // Oct
+      month(10, 2025, 50), // Nov
+      month(5, 2026, 50), // June
+      month(6, 2026, 50), // July
+    ]
+    const notEnrolled = [
+      { month: 11, year: 2025 }, // Dec
+      { month: 0, year: 2026 }, // Jan
+      { month: 1, year: 2026 }, // Feb
+      { month: 2, year: 2026 }, // Mar
+      { month: 3, year: 2026 }, // Apr
+      { month: 4, year: 2026 }, // May
+    ]
+    const pace = computePioneerPace({
+      serviceYear: SY,
+      monthlyRate: 50,
+      months: served,
+      now: new Date(2026, 7, 15), // 15 Aug → expected month July
+      enrolledSinceYearStart: true,
+      notEnrolledMonths: notEnrolled,
+    })
+    expect(pace.elapsedEnrolled).toBe(5) // five months actually pioneered, not the 11-month span
+    expect(pace.targetToDate).toBe(250)
+    expect(pace.actualToDate).toBe(250)
+    expect(pace.paceDelta).toBe(0) // on track — the gap is not owed
+    expect(pace.remainingMonths).toBe(1) // August still ahead
+    expect(pace.fullYearTarget).toBe(300) // 5 served + 1 remaining, not 600
+  })
+
+  it('still counts a no-row gap (a missed report) as owed', () => {
+    // Same continuing pioneer, but Dec–May have NO rows at all (not even publisher). With no
+    // explicit non-pioneer signal, those stay owed — unchanged from before.
+    const pace = computePioneerPace({
+      serviceYear: SY,
+      monthlyRate: 50,
+      months: [month(8, 2025, 50), month(9, 2025, 50), month(10, 2025, 50), month(5, 2026, 50), month(6, 2026, 50)],
+      now: new Date(2026, 7, 15),
+      enrolledSinceYearStart: true,
+      notEnrolledMonths: [],
+    })
+    expect(pace.elapsedEnrolled).toBe(11) // full Sept→July span still owed
+    expect(pace.paceDelta).toBe(-300) // 250 − 550
+  })
+})
+
 describe('computePioneerPace — reporting status grace window', () => {
   it('is awaiting within the grace window', () => {
     const pace = computePioneerPace({

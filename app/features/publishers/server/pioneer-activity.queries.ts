@@ -158,6 +158,9 @@ function classifyPioneerMember(
   const months: PioneerMonth[] = pioneerRows
     .filter(r => r.type === rosterType)
     .map(r => ({ month: r.month, year: r.year, hours: r.hours, studies: r.studies }))
+  // Months he was explicitly something other than this pioneer type (a regular publisher, or a
+  // different pioneer type) — he was not enrolled then, so they must not accrue toward the goal.
+  const notEnrolledMonths = rows.filter(r => r.type !== rosterType).map(r => ({ month: r.month, year: r.year }))
   const monthlyRate = rates.get(rosterType)
   if (monthlyRate === undefined) throw new Error(`No goal rate resolved for pioneer type ${rosterType}`)
 
@@ -181,7 +184,15 @@ function classifyPioneerMember(
     kind: 'annual',
     row: {
       ...base,
-      pace: computePioneerPace({ serviceYear, monthlyRate, months, now, enrolledSinceYearStart, concluded }),
+      pace: computePioneerPace({
+        serviceYear,
+        monthlyRate,
+        months,
+        now,
+        enrolledSinceYearStart,
+        concluded,
+        notEnrolledMonths,
+      }),
     },
   }
 }
