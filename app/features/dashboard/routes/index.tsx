@@ -398,11 +398,14 @@ function TerritoriesCard({ territories }: { territories: Awaited<ReturnType<type
           </div>
         )}
       </CardContent>
-      {/* "See all" only when the list is non-empty — matches the other cards. */}
+      {/* Footer link only when the list is non-empty — matches the other cards. */}
       {territories != null && territories.length > 0 && (
         <CardFooter className="mt-auto">
-          <Button variant="link" asChild className="px-0">
-            <Link to="/me/territories">{m.dashboard_view_all()}</Link>
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/me/territories">
+              {m.dashboard_territories_link()}
+              <ChevronRight className="size-4" />
+            </Link>
           </Button>
         </CardFooter>
       )}
@@ -464,8 +467,11 @@ function UpcomingAssignmentsCard({ assignments }: { assignments: UpcomingAssignm
       </CardContent>
       {assignments != null && assignments.length > 0 && (
         <CardFooter className="mt-auto">
-          <Button variant="link" asChild className="px-0">
-            <Link to="/board">{m.dashboard_view_all()}</Link>
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/board">
+              {m.dashboard_assignments_link()}
+              <ChevronRight className="size-4" />
+            </Link>
           </Button>
         </CardFooter>
       )}
@@ -509,8 +515,11 @@ function DocumentsCard({ documents }: { documents: Awaited<ReturnType<typeof get
       </CardContent>
       {documents != null && documents.length > 0 && (
         <CardFooter className="mt-auto">
-          <Button variant="link" asChild className="px-0">
-            <Link to="/board">{m.dashboard_view_all()}</Link>
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/board">
+              {m.dashboard_documents_link()}
+              <ChevronRight className="size-4" />
+            </Link>
           </Button>
         </CardFooter>
       )}
@@ -578,8 +587,11 @@ function AbsencesCard({
       </CardContent>
       {absences != null && absences.length > 0 && (
         <CardFooter className="mt-auto">
-          <Button variant="link" asChild className="px-0">
-            <Link to="/me/days-off">{m.dashboard_view_all()}</Link>
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/me/days-off">
+              {m.dashboard_absences_link()}
+              <ChevronRight className="size-4" />
+            </Link>
           </Button>
         </CardFooter>
       )}

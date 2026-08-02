@@ -59,7 +59,7 @@ Displays the member's currently assigned territories (active assignments where n
 
 Territories are sorted by due date (most urgent first). Clicking a territory navigates to the [personal territory view](territories.md#personal-territory-view).
 
-A *See all* link navigates to the full personal territories list at `/me/territories`. It is shown only when the member has territories — hidden on the empty state, like every card's footer.
+A *View my territories* button navigates to the full personal territories list at `/me/territories`. Like every card, the footer uses a specific action label (not a generic "see all") and is shown only when the card has content — hidden on the empty state.
 
 If the member has no assigned territories, an empty state is shown with guidance explaining that their territory manager will assign territories to them.
 
@@ -74,7 +74,7 @@ Each row shows:
 - **Meeting and date** — The meeting it belongs to and its date (e.g., *Midweek meeting — Wed 22 Apr*)
 - **Topic** — Shown when the part has one
 
-Each row is clickable and deep-links to the programme viewer for that meeting on the board — the same link the assignment email points at. Only [released](events.md#draft-and-released-events) events count — assignments on still-draft meetings do not appear. If the member has nothing scheduled in the window, an empty state is shown. A *See all* link opens the [display board](display-board.md) when there are assignments (hidden on the empty state).
+Each row is clickable and deep-links to the programme viewer for that meeting on the board — the same link the assignment email points at. Only [released](events.md#draft-and-released-events) events count — assignments on still-draft meetings do not appear. If the member has nothing scheduled in the window, an empty state is shown. A *View the programme* button opens the [display board](display-board.md) when there are assignments (hidden on the empty state).
 
 ## At-risk pioneers
 
@@ -92,7 +92,7 @@ If the member has no absences planned within the next 2 months, an informational
 
 When no absences are planned and no nudge is shown, a *Plan an absence* action button links directly to the absence creation form.
 
-The *See all* footer link is only shown when the member has absences to browse — it is hidden when the card shows the empty state or nudge.
+The *View my absences* footer button is only shown when the member has absences to browse — it is hidden when the card shows the empty state or nudge.
 
 ## Latest documents
 
@@ -104,7 +104,7 @@ Each document displays:
 - **Publication date** — Displayed as relative time (e.g., *3 days ago*)
 - **Unread indicator** — A small blue dot marks documents the member has not yet viewed
 
-Clicking a document opens it in the board viewer. A *See all* link navigates to the full display board — shown only when there are recent documents.
+Clicking a document opens it in the board viewer. A *View the board* button navigates to the full display board — shown only when there are recent documents.
 
 Only documents within their visibility window are shown (respecting *Visible from* and *Visible until* dates).
 
