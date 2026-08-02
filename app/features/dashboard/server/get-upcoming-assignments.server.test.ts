@@ -169,13 +169,19 @@ describe('getUpcomingAssignments', () => {
 
   // Two assignments on the same meeting share one resolved link — we must not
   // hit the resolver (and its board-document query) once per row.
-  it('resolves the link once per distinct event, not once per assignment', async () => {
+  it('gives assignments on the same event one shared link, resolving it once', async () => {
     vi.mocked(db.eventPart.findMany).mockResolvedValue([
       partRow({ id: 7 }),
       partRow({ id: 8, name: 'Lecture' }),
     ] as never)
+    vi.mocked(resolveProgrammeLink).mockResolvedValue('/board/dynamic/5/viewer?eventId=1')
 
-    await getUpcomingAssignments(db, 100, CONGREGATION_ID, NOW)
+    const result = await getUpcomingAssignments(db, 100, CONGREGATION_ID, NOW)
+    // Observable outcome: both rows (same meeting) carry the same resolved link.
+    expect(result).toHaveLength(2)
+    expect(result[0].link).toBe('/board/dynamic/5/viewer?eventId=1')
+    expect(result[1].link).toBe(result[0].link)
+    // ...and the resolver's board-document lookup ran once, not once per row.
     expect(resolveProgrammeLink).toHaveBeenCalledTimes(1)
   })
 
