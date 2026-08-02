@@ -26,6 +26,8 @@ let congregationId: number
 let memberId: number
 
 const { getPioneerActivitySummary } = await import('./pioneer-activity.queries')
+const { backfillCongregationEnrolments } = await import('./pioneer-enrolment-backfill.server')
+const { flushPendingAuditWrites } = await import('~/shared/domain/audit.server')
 
 beforeAll(async () => {
   const cong = await testDb.congregation.create({
@@ -61,13 +63,20 @@ beforeAll(async () => {
       })
     }
   })
+
+  // The roster now reads enrolments — backfill them from the seeded activity so the pace assertions
+  // exercise the enrolment path end to end (parity with the retired inference).
+  await withScope(congregationId, tx => backfillCongregationEnrolments(tx, congregationId, 1))
 })
 
 afterAll(async () => {
+  await flushPendingAuditWrites()
   await withScope(congregationId, async tx => {
+    await tx.pioneerEnrolment.deleteMany({ where: { congregationId } })
     await tx.publisherActivity.deleteMany({ where: { congregationId } })
     await tx.member.deleteMany({ where: { congregationId } })
   })
+  await testDb.auditLog.deleteMany({ where: { congregationId } })
   await testDb.congregation.delete({ where: { id: congregationId } })
   await testDb.$disconnect()
 })

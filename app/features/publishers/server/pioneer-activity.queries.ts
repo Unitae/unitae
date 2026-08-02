@@ -1,8 +1,9 @@
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 
-import { isAuxiliaryType, isPioneerType } from '../model/pioneer-goals.constants'
-import { computeAuxiliarySummary, computePioneerPace, type PioneerMonth, type PioneerPace } from '../model/pioneer-pace'
+import type { EnrolmentPeriod } from '../model/pioneer-enrolment'
+import { type EnrolmentActualMonth, planFromEnrolments } from '../model/pioneer-enrolment-pace'
+import { computeAuxiliarySummary, computePioneerPace, type PioneerPace } from '../model/pioneer-pace'
 import type {
   PioneerActivity,
   PioneerActivitySummary,
@@ -65,6 +66,12 @@ function serviceYearOfRow(month: number, year: number): number {
   return month >= 8 ? year : year - 1
 }
 
+interface MemberWithEnrolments extends MemberWithActivities {
+  pioneerEnrolments: EnrolmentPeriod[]
+}
+
+// The roster summary, driven by explicit PioneerEnrolment stints (§7.4): the plan (which months are
+// owed, at what goal) comes from the stints, the actual hours from PublisherActivity.
 export async function getPioneerActivitySummary(
   db: TransactionClient,
   _congregationId: number,
@@ -77,17 +84,18 @@ export async function getPioneerActivitySummary(
       OR: [
         { type: { not: PublisherType.Normal } },
         { activities: { some: { ...serviceYearWhere(serviceYear), type: { not: PublisherType.Normal } } } },
+        { pioneerEnrolments: { some: {} } },
       ],
     },
     include: {
       publisherGroup: { select: { name: true } },
       activities: { where: withPriorServiceYearWhere(serviceYear), orderBy: { id: 'desc' } },
+      pioneerEnrolments: true,
     },
     orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
   })
 
   const rates = await resolveRates(db, serviceYear)
-
   const annual: PioneerAnnualRow[] = []
   const auxiliary: PioneerAuxiliaryRow[] = []
 
@@ -99,6 +107,56 @@ export async function getPioneerActivitySummary(
 
   sortMostAtRiskFirst(annual)
   return { serviceYear, annual, auxiliary, totals: computeTotals(annual) }
+}
+
+function classifyPioneerMember(
+  member: MemberWithEnrolments,
+  rates: Map<PublisherType, number>,
+  serviceYear: number,
+  now: Date,
+): PioneerActivity | null {
+  const thisYear = member.activities.filter(r => serviceYearOfRow(r.month, r.year) === serviceYear)
+  const rows: EnrolmentActualMonth[] = dedupeLatestPerMonth(thisYear)
+  const plan = planFromEnrolments(member.pioneerEnrolments, rows, serviceYear, member.type)
+  if (plan === null) return null
+
+  const typeRate = rates.get(plan.rosterType)
+  if (typeRate === undefined) throw new Error(`No goal rate resolved for pioneer type ${plan.rosterType}`)
+  // Per-person goal (auxiliary 15/30) wins; otherwise the resolved type rate.
+  const monthlyRate =
+    plan.currentMonthlyGoal != null && plan.currentMonthlyGoal > 0 ? plan.currentMonthlyGoal : typeRate
+
+  const base: PioneerRosterRowBase = {
+    memberId: member.id,
+    firstname: member.firstname,
+    lastname: member.lastname,
+    type: plan.rosterType,
+    groupName: member.publisherGroup?.name ?? null,
+    concluded: plan.concluded,
+    monthlyRate,
+  }
+
+  if (plan.isAuxiliary) {
+    return {
+      kind: 'auxiliary',
+      row: { ...base, auxiliary: computeAuxiliarySummary({ serviceYear, monthlyRate, months: plan.months, now }) },
+    }
+  }
+  return {
+    kind: 'annual',
+    row: {
+      ...base,
+      pace: computePioneerPace({
+        serviceYear,
+        monthlyRate,
+        months: plan.months,
+        now,
+        enrolledSinceYearStart: plan.enrolledSinceYearStart,
+        concluded: plan.concluded,
+        notEnrolledMonths: plan.notEnrolledMonths,
+      }),
+    },
+  }
 }
 
 // Pace/section for a single member's detail page. Returns null when the member is not a
@@ -115,6 +173,7 @@ export async function getPioneerActivityForMember(
     include: {
       publisherGroup: { select: { name: true } },
       activities: { where: withPriorServiceYearWhere(serviceYear), orderBy: { id: 'desc' } },
+      pioneerEnrolments: true,
     },
   })
   if (member === null) return null
@@ -130,78 +189,6 @@ interface MemberWithActivities {
   type: PublisherType
   publisherGroup: { name: string } | null
   activities: ActivityRow[]
-}
-
-function classifyPioneerMember(
-  member: MemberWithActivities,
-  rates: Map<PublisherType, number>,
-  serviceYear: number,
-  now: Date,
-): PioneerActivity | null {
-  // `activities` spans two service years; the roster reflects the selected year only.
-  const thisYear = member.activities.filter(r => serviceYearOfRow(r.month, r.year) === serviceYear)
-  const rows = dedupeLatestPerMonth(thisYear)
-  const pioneerRows = rows.filter(r => isPioneerType(r.type))
-  if (pioneerRows.length === 0 && !isPioneerType(member.type)) return null
-
-  // A continuing pioneer (any pioneer activity the previous service year) is enrolled from
-  // September, so a missing early report does not shrink their goal.
-  const enrolledSinceYearStart = member.activities.some(
-    r => isPioneerType(r.type) && serviceYearOfRow(r.month, r.year) === serviceYear - 1,
-  )
-
-  const latest = mostRecent(rows)
-  const standingType = latest?.type ?? member.type
-  const concluded = !isPioneerType(standingType)
-  const rosterType = isPioneerType(standingType) ? standingType : (mostRecent(pioneerRows)?.type ?? member.type)
-
-  const months: PioneerMonth[] = pioneerRows
-    .filter(r => r.type === rosterType)
-    .map(r => ({ month: r.month, year: r.year, hours: r.hours, studies: r.studies }))
-  // Months he was explicitly something other than this pioneer type (a regular publisher, or a
-  // different pioneer type) — he was not enrolled then, so they must not accrue toward the goal.
-  const notEnrolledMonths = rows.filter(r => r.type !== rosterType).map(r => ({ month: r.month, year: r.year }))
-  const monthlyRate = rates.get(rosterType)
-  if (monthlyRate === undefined) throw new Error(`No goal rate resolved for pioneer type ${rosterType}`)
-
-  const base: PioneerRosterRowBase = {
-    memberId: member.id,
-    firstname: member.firstname,
-    lastname: member.lastname,
-    type: rosterType,
-    groupName: member.publisherGroup?.name ?? null,
-    concluded,
-    monthlyRate,
-  }
-
-  if (isAuxiliaryType(rosterType)) {
-    return {
-      kind: 'auxiliary',
-      row: { ...base, auxiliary: computeAuxiliarySummary({ serviceYear, monthlyRate, months, now }) },
-    }
-  }
-  return {
-    kind: 'annual',
-    row: {
-      ...base,
-      pace: computePioneerPace({
-        serviceYear,
-        monthlyRate,
-        months,
-        now,
-        enrolledSinceYearStart,
-        concluded,
-        notEnrolledMonths,
-      }),
-    },
-  }
-}
-
-function mostRecent(rows: ActivityRow[]): ActivityRow | null {
-  return rows.reduce<ActivityRow | null>(
-    (acc, r) => (acc === null || absMonth(r.month, r.year) > absMonth(acc.month, acc.year) ? r : acc),
-    null,
-  )
 }
 
 async function resolveRates(db: TransactionClient, serviceYear: number): Promise<Map<PublisherType, number>> {
