@@ -2402,7 +2402,7 @@
     "pioneers_type_missionary": "Missionnaire",
     "pioneers_detail_title": "Activité de pionnier",
     "pioneers_ytd_label": "Heures cumulées",
-    "pioneers_target_label": "Objectif à ce jour",
+    "pioneers_target_label": "Objectif annuel",
     "pioneers_needs_per_month_label": "Requis par mois",
     "pioneers_out_of_reach": "Objectif difficilement atteignable au rythme actuel.",
     "pioneers_projection": "Au rythme récent : ~{projected} h (objectif {goal} h)",

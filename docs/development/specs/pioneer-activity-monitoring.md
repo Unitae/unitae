@@ -37,6 +37,10 @@
 >   insuffisantes") on both roster and detail, not as the single global banner §6 implied.
 >
 > **UI as-built (spec text is aspirational here):**
+> - The displayed **"objectif" is the annual goal** (`fullYearTarget`, prorated to the enrollment
+>   span), not the to-date target — a Sept-start pioneer shows 600 h, a Jan-start pioneer shows their
+>   prorated annual goal. Pace ("dans les temps" / "X h de retard") is carried by the risk badge,
+>   which is still computed against the to-date target.
 > - Roster is a **~5-column** table (name + group/enrolled sub-line, type, status, hours "x / y h",
 >   trend); "last report" is not its own column. Group name, "≈ X h/mois pour finir", and filters
 >   (search / risk / type / group) are present.

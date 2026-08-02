@@ -214,7 +214,7 @@ function computeTotals(annual: PioneerAnnualRow[]): PioneerActivitySummary['tota
     else if (row.pace.riskBucket === 'amber') totals.behind++
     else totals.atRisk++
     totals.actualHours += row.pace.actualToDate
-    totals.targetHours += row.pace.targetToDate
+    totals.targetHours += row.pace.fullYearTarget
   }
   return totals
 }

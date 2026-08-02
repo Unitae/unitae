@@ -123,7 +123,7 @@ export function PioneerAnnualSection({ rows }: { rows: PioneerAnnualRow[] }) {
                   <StatusCell row={row} />
                 </TableCell>
                 <TableCell className="whitespace-nowrap tabular-nums">
-                  {row.pace.actualToDate} / {row.pace.targetToDate} h
+                  {row.pace.actualToDate} / {row.pace.fullYearTarget} h
                 </TableCell>
                 <TableCell>
                   <Sparkline values={row.pace.monthlyHours} rate={row.monthlyRate} risk={row.pace.riskBucket} />
@@ -152,7 +152,7 @@ export function PioneerAnnualSection({ rows }: { rows: PioneerAnnualRow[] }) {
             <StatusCell row={row} />
             <div className="flex items-center justify-between text-muted-foreground text-sm">
               <span className="tabular-nums">
-                {row.pace.actualToDate} / {row.pace.targetToDate} h
+                {row.pace.actualToDate} / {row.pace.fullYearTarget} h
               </span>
               <Sparkline values={row.pace.monthlyHours} rate={row.monthlyRate} risk={row.pace.riskBucket} />
             </div>

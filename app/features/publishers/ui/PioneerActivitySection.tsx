@@ -63,7 +63,7 @@ function AnnualDetail({ serviceYear, row }: { serviceYear: number; row: PioneerA
       <PioneerPaceChart serviceYear={serviceYear} monthlyHours={pace.monthlyHours} rate={row.monthlyRate} />
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Stat value={`${pace.actualToDate} h`} label={m.pioneers_ytd_label()} />
-        <Stat value={`${pace.targetToDate} h`} label={m.pioneers_target_label()} />
+        <Stat value={`${pace.fullYearTarget} h`} label={m.pioneers_target_label()} />
         <Stat value={`${Math.round(pace.requiredAvgToFinish)} h`} label={m.pioneers_needs_per_month_label()} />
         <Stat value={`${Math.round(pace.recentAvg)} h`} label={m.pioneers_recent_avg_label()} />
       </div>
