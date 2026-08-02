@@ -240,6 +240,43 @@ describe('computePioneerPace — boundaries and projection', () => {
   })
 })
 
+describe('computePioneerPace — concluded (service ended mid-year)', () => {
+  it('caps the goal at the served months instead of the full year', () => {
+    // Pioneered Sept–Dec at 50 h then stopped. `now` is long after (mid-July).
+    const pace = computePioneerPace({
+      serviceYear: SY,
+      monthlyRate: 50,
+      months: autumn(50),
+      now: new Date(2026, 6, 15), // July — but the member concluded in December
+      enrolledSinceYearStart: true,
+      concluded: true,
+    })
+    expect(pace.elapsedEnrolled).toBe(4) // Sept–Dec only, not through the current month
+    expect(pace.actualToDate).toBe(200)
+    expect(pace.targetToDate).toBe(200)
+    expect(pace.fullYearTarget).toBe(200) // NOT 600 — no target accrues after service ends
+    expect(pace.remainingMonths).toBe(0)
+    expect(pace.requiredAvgToFinish).toBe(0)
+    expect(pace.outOfReach).toBe(false)
+    expect(pace.paceDelta).toBe(0) // met their served commitment → not "behind"
+  })
+
+  it('keeps the cumulative hours but never reports a full-year deficit when under-served', () => {
+    const pace = computePioneerPace({
+      serviceYear: SY,
+      monthlyRate: 50,
+      months: [month(8, 2025, 30), month(9, 2025, 20), month(10, 2025, 40), month(11, 2025, 10)],
+      now: new Date(2026, 6, 15),
+      enrolledSinceYearStart: true,
+      concluded: true,
+    })
+    expect(pace.actualToDate).toBe(100) // cumulative kept
+    expect(pace.fullYearTarget).toBe(200) // 4 served months × 50, not 600
+    expect(pace.remainingMonths).toBe(0)
+    expect(pace.reportingStatus).toBe('filed') // nothing outstanding — service is over
+  })
+})
+
 describe('computePioneerPace — reporting status grace window', () => {
   it('is awaiting within the grace window', () => {
     const pace = computePioneerPace({

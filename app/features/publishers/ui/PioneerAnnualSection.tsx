@@ -126,7 +126,12 @@ export function PioneerAnnualSection({ rows }: { rows: PioneerAnnualRow[] }) {
                   {row.pace.actualToDate} / {row.pace.fullYearTarget} h
                 </TableCell>
                 <TableCell>
-                  <Sparkline values={row.pace.monthlyHours} rate={row.monthlyRate} risk={row.pace.riskBucket} />
+                  <Sparkline
+                    values={row.pace.monthlyHours}
+                    rate={row.monthlyRate}
+                    risk={row.pace.riskBucket}
+                    muted={row.concluded}
+                  />
                 </TableCell>
               </TableRow>
             ))}
@@ -154,7 +159,12 @@ export function PioneerAnnualSection({ rows }: { rows: PioneerAnnualRow[] }) {
               <span className="tabular-nums">
                 {row.pace.actualToDate} / {row.pace.fullYearTarget} h
               </span>
-              <Sparkline values={row.pace.monthlyHours} rate={row.monthlyRate} risk={row.pace.riskBucket} />
+              <Sparkline
+                values={row.pace.monthlyHours}
+                rate={row.monthlyRate}
+                risk={row.pace.riskBucket}
+                muted={row.concluded}
+              />
             </div>
           </Link>
         ))}

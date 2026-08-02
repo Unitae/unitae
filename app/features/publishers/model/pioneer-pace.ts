@@ -35,6 +35,10 @@ export interface PaceInput {
   // so enrollment starts in September even if they didn't report every month. When false,
   // enrollment starts at their first reported pioneer month (a new mid-year appointment).
   enrolledSinceYearStart?: boolean
+  // True when the member stopped being a pioneer mid-year. Their goal is capped at the last
+  // month they served — no target accrues afterwards — so they are never shown "behind" a
+  // full-year goal they were no longer pursuing.
+  concluded?: boolean
 }
 
 export interface PioneerPace {
@@ -117,35 +121,65 @@ function reportingStatusFor(input: PaceInput): ReportingStatus {
   return withinGrace ? 'awaiting' : 'overdue'
 }
 
+interface EnrollmentWindow {
+  reportedToDate: PioneerMonth[]
+  elapsedEnrolled: number
+  remainingMonths: number
+  fullYearTarget: number
+}
+
+// Resolve the enrolled span and its goal. A concluded pioneer's window ends at their last
+// served month — nothing accrues past it, so their goal is only what they served (never a
+// full-year deficit). An active pioneer runs through the current expected month and counts
+// missed months inside the span as behind (not a smaller goal); only a late start prorates.
+function resolveEnrollmentWindow(
+  sorted: PioneerMonth[],
+  serviceYear: number,
+  monthlyRate: number,
+  currentIndex: number,
+  enrolledSinceYearStart: boolean,
+  concluded: boolean,
+): EnrollmentWindow {
+  const idx = (m: { month: number; year: number }) => absMonth(m.month, m.year) - firstAbs(serviceYear)
+  const lastServedIndex = sorted.length > 0 ? idx(sorted[sorted.length - 1]) : -1
+  const referenceIndex = concluded ? lastServedIndex : currentIndex
+
+  // A month filed ahead of the reference month is not due yet, so it is excluded here (it
+  // would otherwise be double-counted against `remainingMonths`).
+  const reportedToDate = referenceIndex < 0 ? [] : sorted.filter(m => idx(m) <= referenceIndex)
+  const startIndex = enrolledSinceYearStart ? 0 : reportedToDate.length > 0 ? idx(reportedToDate[0]) : null
+  const elapsedEnrolled = startIndex !== null && referenceIndex >= 0 ? referenceIndex - startIndex + 1 : 0
+
+  const remainingMonths = concluded ? 0 : currentIndex < 0 ? MONTHS_IN_YEAR : MONTHS_IN_YEAR - 1 - currentIndex
+  const fullYearTarget = concluded
+    ? monthlyRate * elapsedEnrolled
+    : startIndex === null
+      ? 0
+      : monthlyRate * (MONTHS_IN_YEAR - startIndex)
+
+  return { reportedToDate, elapsedEnrolled, remainingMonths, fullYearTarget }
+}
+
 export function computePioneerPace(input: PaceInput): PioneerPace {
   const { serviceYear, monthlyRate, months } = input
   const sorted = [...months].sort((a, b) => absMonth(a.month, a.year) - absMonth(b.month, b.year))
   const expected = currentExpectedMonth(serviceYear, input.now)
   const enrolledSinceYearStart = input.enrolledSinceYearStart ?? false
+  const concluded = input.concluded ?? false
+  const currentIndex = expected === null ? -1 : absMonth(expected.month, expected.year) - firstAbs(serviceYear)
 
-  const idx = (m: { month: number; year: number }) => absMonth(m.month, m.year) - firstAbs(serviceYear)
-  const currentIndex = expected === null ? -1 : idx(expected)
+  const { reportedToDate, elapsedEnrolled, remainingMonths, fullYearTarget } = resolveEnrollmentWindow(
+    sorted,
+    serviceYear,
+    monthlyRate,
+    currentIndex,
+    enrolledSinceYearStart,
+    concluded,
+  )
 
-  // Everything "to date" is measured through the current expected (last completed) month.
-  // A month filed ahead of it — the in-progress month reported early — is not due yet, so it
-  // is excluded here (it would otherwise be double-counted against `remainingMonths`).
-  const reportedToDate = currentIndex < 0 ? [] : sorted.filter(m => idx(m) <= currentIndex)
-
-  // Enrollment start: September (index 0) for a continuing pioneer, else the first reported
-  // month; null when there's nothing to place a start on.
-  const startIndex = enrolledSinceYearStart ? 0 : reportedToDate.length > 0 ? idx(reportedToDate[0]) : null
-
-  // Span from the start through the current expected month — missed months inside it still
-  // count (behind, not a smaller goal); only a genuinely late start prorates.
-  const elapsedEnrolled = startIndex !== null && currentIndex >= 0 ? currentIndex - startIndex + 1 : 0
   const actualToDate = reportedToDate.reduce((sum, m) => sum + (m.hours ?? 0), 0)
   const targetToDate = monthlyRate * elapsedEnrolled
   const paceDelta = actualToDate - targetToDate
-
-  const remainingMonths = expected === null ? MONTHS_IN_YEAR : MONTHS_IN_YEAR - 1 - currentIndex
-
-  // Annual goal: from the enrollment start (September if continuing) through August.
-  const fullYearTarget = startIndex === null ? 0 : monthlyRate * (MONTHS_IN_YEAR - startIndex)
   const requiredAvgToFinish = remainingMonths === 0 ? 0 : Math.max(0, (fullYearTarget - actualToDate) / remainingMonths)
 
   const recent = reportedToDate.slice(-RECENT_MONTHS_WINDOW)
@@ -163,7 +197,8 @@ export function computePioneerPace(input: PaceInput): PioneerPace {
   const monthlyHours = align(byHours)
   const monthlyStudies = align(byStudies)
 
-  const reportingStatus = reportingStatusFor(input)
+  // A concluded pioneer has no outstanding report — their service is over, not overdue.
+  const reportingStatus = concluded ? 'filed' : reportingStatusFor(input)
 
   return {
     elapsedEnrolled,

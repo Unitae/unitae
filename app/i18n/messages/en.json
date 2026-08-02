@@ -2400,6 +2400,7 @@
     "pioneers_detail_title": "Pioneer activity",
     "pioneers_ytd_label": "Hours to date",
     "pioneers_target_label": "Annual goal",
+    "pioneers_concluded_goal_label": "Adjusted goal",
     "pioneers_needs_per_month_label": "Needed per month",
     "pioneers_out_of_reach": "Goal unlikely to be reached at the current pace.",
     "pioneers_projection": "At recent pace: ~{projected} h (goal {goal} h)",

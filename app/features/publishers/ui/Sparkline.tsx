@@ -18,10 +18,13 @@ export function Sparkline({
   values,
   rate,
   risk = 'green',
+  muted = false,
 }: {
   values: (number | null)[]
   rate?: number
   risk?: RiskBucket
+  // Render neutral (no risk colour) — e.g. a concluded pioneer, who is out of the risk queue.
+  muted?: boolean
 }) {
   const points = values.map((v, i) => ({ v, i })).filter((p): p is { v: number; i: number } => p.v !== null)
 
@@ -51,7 +54,7 @@ export function Sparkline({
         points={line}
         fill="none"
         strokeWidth={1.5}
-        className={STROKE[risk]}
+        className={muted ? 'stroke-muted-foreground' : STROKE[risk]}
         strokeLinejoin="round"
         strokeLinecap="round"
       />

@@ -179,7 +179,10 @@ function classifyPioneerMember(
   }
   return {
     kind: 'annual',
-    row: { ...base, pace: computePioneerPace({ serviceYear, monthlyRate, months, now, enrolledSinceYearStart }) },
+    row: {
+      ...base,
+      pace: computePioneerPace({ serviceYear, monthlyRate, months, now, enrolledSinceYearStart, concluded }),
+    },
   }
 }
 

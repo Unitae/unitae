@@ -45,6 +45,19 @@ export function PioneerActivitySection({ serviceYear, activity }: Props) {
   )
 }
 
+function StudiesRow({ monthlyStudies, muted = false }: { monthlyStudies: (number | null)[]; muted?: boolean }) {
+  const total = monthlyStudies.reduce<number>((sum, s) => sum + (s ?? 0), 0)
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
+      <div>
+        <div className="font-medium text-sm">{m.pioneers_studies_label()}</div>
+        <div className="text-muted-foreground text-xs tabular-nums">{total}</div>
+      </div>
+      <Sparkline values={monthlyStudies} muted={muted} />
+    </div>
+  )
+}
+
 function AnnualDetail({ serviceYear, row }: { serviceYear: number; row: PioneerAnnualRow }) {
   const { pace } = row
 
@@ -52,7 +65,21 @@ function AnnualDetail({ serviceYear, row }: { serviceYear: number; row: PioneerA
     return <p className="text-muted-foreground text-sm">{m.pioneers_insufficient_data()}</p>
   }
 
-  const totalStudies = pace.monthlyStudies.reduce<number>((sum, s) => sum + (s ?? 0), 0)
+  // A concluded pioneer stopped mid-year: show their final cumulative hours against the goal
+  // adjusted to the months they served — never a full-year deficit, projection, or catch-up.
+  if (row.concluded) {
+    return (
+      <>
+        <Badge variant="outline">{m.pioneers_concluded()}</Badge>
+        <PioneerPaceChart serviceYear={serviceYear} monthlyHours={pace.monthlyHours} rate={row.monthlyRate} />
+        <div className="grid grid-cols-2 gap-4">
+          <Stat value={`${pace.actualToDate} h`} label={m.pioneers_ytd_label()} />
+          <Stat value={`${pace.fullYearTarget} h`} label={m.pioneers_concluded_goal_label()} />
+        </div>
+        <StudiesRow monthlyStudies={pace.monthlyStudies} muted />
+      </>
+    )
+  }
 
   return (
     <>
@@ -67,13 +94,7 @@ function AnnualDetail({ serviceYear, row }: { serviceYear: number; row: PioneerA
         <Stat value={`${Math.round(pace.requiredAvgToFinish)} h`} label={m.pioneers_needs_per_month_label()} />
         <Stat value={`${Math.round(pace.recentAvg)} h`} label={m.pioneers_recent_avg_label()} />
       </div>
-      <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
-        <div>
-          <div className="font-medium text-sm">{m.pioneers_studies_label()}</div>
-          <div className="text-muted-foreground text-xs tabular-nums">{totalStudies}</div>
-        </div>
-        <Sparkline values={pace.monthlyStudies} />
-      </div>
+      <StudiesRow monthlyStudies={pace.monthlyStudies} />
       {pace.outOfReach ? (
         <p className="flex items-center gap-2 text-amber-600 text-sm dark:text-amber-400">
           <TriangleAlert className="size-4 shrink-0" />
