@@ -101,6 +101,37 @@ export async function importPublisherActivities(
   }
 }
 
+export async function importEmergencyContacts(
+  zip: JsZip,
+  db: TransactionClient,
+  idMap: EntityIdMap,
+  congregationId: number,
+): Promise<void> {
+  const records = await readNdjsonFile<{
+    id: number
+    memberId: number
+    name: string
+    relationship: string
+    phone: string
+  }>(zip, 'emergency-contacts')
+
+  for (const record of records) {
+    const memberId = idMap.getOptional('members', record.memberId)
+    if (!memberId) continue
+
+    const created = await db.emergencyContact.create({
+      data: {
+        memberId,
+        name: record.name,
+        relationship: record.relationship,
+        phone: record.phone,
+        congregationId,
+      },
+    })
+    idMap.set('emergency-contacts', record.id, created.id)
+  }
+}
+
 export async function importExternalSpeakers(
   zip: JsZip,
   db: TransactionClient,

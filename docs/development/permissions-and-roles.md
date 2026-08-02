@@ -6,7 +6,7 @@ For the end-user view of the same system, see the product doc: [Roles and Permis
 
 ## Two layers, distinct concepts
 
-- **Permission** — the unit of access. A finite, code-defined enum (21 entries) declared in `app/shared/types/permission.ts`. New permissions require code + migration changes.
+- **Permission** — the unit of access. A finite, code-defined enum (23 entries) declared in `app/shared/types/permission.ts`. New permissions require code + migration changes.
 - **Role** — a named bundle of permissions. Lives in the database (`Role` table), scoped to a congregation. Roles can be **built-in** (seeded, identity-stable, auto-synced from `Member` flags) or **custom** (created at runtime by a Roles Manager and assigned to a `UserAccount`).
 
 Built-in identity roles attach to **`Member`** via `MemberRoleAssignment`. Custom roles (and the management permissions they grant) attach to **`UserAccount`** via `UserRoleAssignment`. The two tables are siblings: identity ("you are an elder") vs access ("you can manage roles").

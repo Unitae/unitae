@@ -67,7 +67,7 @@ Helpers: `account.member?.firstname ?? account.firstname` for display (use the `
 │  │  Board Docs     │  │  Board Docs      │              │
 │  └─────────────────┘  └──────────────────┘              │
 │                                                         │
-│  Global: Permission (21 permission definitions)         │
+│  Global: Permission (23 permission definitions)         │
 │  Global: PasswordResetToken, EmailVerificationToken,    │
 │          CalendarFeedToken                              │
 └─────────────────────────────────────────────────────────┘
@@ -422,7 +422,7 @@ pnpm test:e2e:headed        # E2E tests with browser visible
 - **Email verification**: Required before accessing the app, 24h token expiry
 - **Rate limiting** (via `redisRateLimit`): Login is keyed on the client IP (`LOGIN_RATE_LIMIT_IP_MAX`, default 10 / 15min) plus an instance-wide global counter (`LOGIN_RATE_LIMIT_GLOBAL_MAX`, default 100 / 15min) — deliberately **never** keyed on the target email, so no one can lock out a specific account. Password reset is limited per email (3/15min). Two-factor challenge is limited per account (`TWO_FACTOR_RATE_LIMIT_MAX`, default 5)
 - **Calendar feed tokens**: 32 random bytes encoded as base64url (`crypto.randomBytes(32)`), one active per user, no automatic expiry, manually revoked or regenerated. Audited via `calendar_feed.token.created` and `calendar_feed.token.revoked` actions
-- **Permissions**: 21 congregation-scoped permissions, granted directly via `CongregationUserPermission` or through `Role` membership (see [Permissions and Roles](permissions-and-roles.md))
+- **Permissions**: 23 congregation-scoped permissions, granted directly via `CongregationUserPermission` or through `Role` membership (see [Permissions and Roles](permissions-and-roles.md))
 - **Files**: Congregation-scoped storage keys with UUID filenames (`{congregationId}/board/{uuid}.pdf`)
 - **RLS**: PostgreSQL Row-Level Security for tenant data isolation
 - **Log PII redaction**: Email addresses and personal data fields hashed with SHA-256 in application logs

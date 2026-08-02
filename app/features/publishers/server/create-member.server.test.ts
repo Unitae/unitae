@@ -52,29 +52,18 @@ const baseParams = {
 }
 
 describe('createMember', () => {
-  it('creates a Member and a linked UserAccount when email is provided', async () => {
+  it('saves the contact email on the Member and never provisions a login account', async () => {
+    // `email` is a contact email on the Member now; a login is created
+    // separately via linkAccountToMember, so createMember touches no account.
     const member = { id: 1, firstname: 'Jean', lastname: 'Dupont' }
-    const account = { id: 5, memberId: 1, email: 'jean@example.com' }
     mockDb.member.create.mockResolvedValue(member as never)
-    mockDb.userAccount.create.mockResolvedValue(account as never)
 
     const result = await createMember(mockDb as never, baseCongregation, baseParams)
 
     expect(result).toEqual(member)
     const memberCall = mockDb.member.create.mock.calls[0][0]
-    expect(memberCall.data.firstname).toBe('Jean')
+    expect(memberCall.data.email).toBe('jean@example.com')
     expect(memberCall.data.isPublisher).toBe(true)
-    const accountCall = mockDb.userAccount.create.mock.calls[0][0]
-    expect(accountCall.data.email).toBe('jean@example.com')
-    expect(accountCall.data.memberId).toBe(1)
-  })
-
-  it('creates a Member only (no UserAccount) when email is null', async () => {
-    mockDb.member.create.mockResolvedValue({ id: 2 } as never)
-
-    await createMember(mockDb as never, baseCongregation, { ...baseParams, email: null })
-
-    expect(mockDb.member.create).toHaveBeenCalledOnce()
     expect(mockDb.userAccount.create).not.toHaveBeenCalled()
   })
 
@@ -83,7 +72,7 @@ describe('createMember', () => {
 
     await createMember(mockDb as never, baseCongregation, {
       ...baseParams,
-      email: null,
+      email: '',
       phone: '0612345678',
       address: '5 rue de la Paix',
     })

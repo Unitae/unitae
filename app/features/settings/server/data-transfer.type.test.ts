@@ -75,8 +75,8 @@ describe('EntityIdMap', () => {
 })
 
 describe('ARCHIVE_VERSION', () => {
-  it('is the current 2.1 schema version', () => {
-    expect(ARCHIVE_VERSION).toBe('2.1')
+  it('is the current 2.2 schema version', () => {
+    expect(ARCHIVE_VERSION).toBe('2.2')
   })
 })
 
@@ -95,6 +95,10 @@ describe('ENTITY_FILES', () => {
     const groupsIndex = ENTITY_FILES.indexOf('publisher-groups')
 
     expect(membersIndex).toBeLessThan(groupsIndex)
+  })
+
+  it('has members before emergency-contacts (dependency order)', () => {
+    expect(ENTITY_FILES.indexOf('members')).toBeLessThan(ENTITY_FILES.indexOf('emergency-contacts'))
   })
 
   it('has territories before attributions (dependency order)', () => {

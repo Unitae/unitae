@@ -2,7 +2,7 @@
 
 Unitae lets you decide, precisely, who in the congregation can see what and who can change what. Two ideas work together:
 
-- **Permissions** are the small units of access — for example, *manage territories*, *upload documents to the board*, *view publishers*. There are 21 of them, each tied to one feature.
+- **Permissions** are the small units of access — for example, *manage territories*, *upload documents to the board*, *view publishers*. There are 23 of them, each tied to one feature.
 - **Roles** are named bundles of permissions you assign to a person — for example, *Elder*, *Pioneer team lead*, or anything else you want to call it. A user can hold several roles, and gets the union of their permissions.
 
 You can keep things simple and stick to the built-in roles, or you can create your own roles when the built-ins don't fit how your congregation is organised.
@@ -68,6 +68,12 @@ Permissions are grouped by area of the app. Most areas come in two flavours: **V
 - **Publisher Manager** — create, edit, deactivate publishers, manage groups
 - **Activity Viewer** — read the monthly activity reports and statistics
 - **Activity Manager** — record, edit, and export publisher activity
+
+### Emergency
+- **Emergency Info Viewer** — view any publisher's emergency information (DPA card, survival backpack, emergency contacts) across the whole congregation
+- **Emergency Info Manager** — edit any publisher's emergency information across the whole congregation
+
+> A **group responsible** (or deputy) can always view and edit the emergency information of the members of *their own group* — this is tied to their group responsibility, not to these permissions. The permissions above grant that same access **congregation-wide** (for a coordinator or secretary).
 
 ### Programme & events
 - **Program Viewer** — open the events list, programmes, and templates

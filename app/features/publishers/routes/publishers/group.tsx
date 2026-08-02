@@ -1,5 +1,5 @@
 import { parseWithZod } from '@conform-to/zod'
-import { BarChart3, Eye, Mail, Pencil, Plus } from 'lucide-react'
+import { BarChart3, Eye, Mail, Pencil, Plus, Siren } from 'lucide-react'
 import { data, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { updateGroupSchema } from '~/features/publishers/schemas/group.schema'
@@ -40,11 +40,18 @@ export function loader({ params, context }: Route.LoaderArgs) {
       throw redirect('/groups/')
     }
 
+    const canViewEmergency =
+      permissions.has(Permission.EmergencyInfoViewer) ||
+      permissions.has(Permission.EmergencyInfoManager) ||
+      currentUser.member?.responsibleFor?.id === group.id ||
+      currentUser.member?.deputyFor?.id === group.id
+
     return {
       group,
       roles: {
         canManagePublisher,
         canViewPublishers,
+        canViewEmergency,
         canManageActivity:
           canManageActivity || group.responsible.id === currentUser.id || group.deputy?.id === currentUser.id,
       },
@@ -67,13 +74,22 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
         breadcrumbs={[{ label: m.sidebar_publisher_groups(), to: '/groups' }, { label: formatGroupName(group.name) }]}
         backTo="/groups"
         actions={
-          roles.canManagePublisher && (
-            <Button asChild variant="outline" size="icon" title={m.groups_view_edit_title()}>
-              <Link to={'../edit'} relative="path">
-                <Pencil className="size-4" />
-              </Link>
-            </Button>
-          )
+          <>
+            {roles.canManagePublisher && (
+              <Button asChild variant="outline" size="icon" title={m.groups_view_edit_title()}>
+                <Link to={'../edit'} relative="path">
+                  <Pencil className="size-4" />
+                </Link>
+              </Button>
+            )}
+            {roles.canViewEmergency && (
+              <Button asChild variant="outline" size="icon" title={m.publishers_emergency_roster_link()}>
+                <a href={`/publishers/emergency-roster/${group.id}`}>
+                  <Siren className="size-4" />
+                </a>
+              </Button>
+            )}
+          </>
         }
       />
 
@@ -155,8 +171,8 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
                   </Link>
                 </TableCell>
                 <TableCell className="text-center max-sm:hidden">
-                  {member.account?.email && (
-                    <Link to={`mailto:${member.account.email}`} className="hover:text-primary">
+                  {member.email && (
+                    <Link to={`mailto:${member.email}`} className="hover:text-primary">
                       <Mail className="inline size-4" />
                     </Link>
                   )}

@@ -1,4 +1,3 @@
-import { createPasswordResetToken } from '~/features/authentication/index.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
@@ -8,6 +7,7 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 import type { MemberId } from '~/shared/types/branded'
 import type { PublisherType } from '~/shared/types/publisher-type'
 import { stripDiacritics } from '~/shared/utils/strip-diacritics'
+import { purgeEmergencyContacts } from './emergency-info.aggregate'
 import {
   type CreateDirectParams,
   haveIdentityFlagsChanged,
@@ -48,11 +48,12 @@ async function _ensureMemberIsNotGroupResponsible(db: TransactionClient, memberI
 }
 
 export type CreateMemberParams = MemberFormFields & {
-  email: string | null
   congregationId: number
   actorId: number
 }
 
+// Creates a Member with its contact info (including `email` — a contact email,
+// NOT a login). A login is provisioned separately via `linkAccountToMember`.
 export async function createMember(db: TransactionClient, congregation: CongregationInfo, params: CreateMemberParams) {
   const limits = new LimitService(db, congregation)
   await limits.errorIfWouldGoOverLimit('members')
@@ -60,20 +61,6 @@ export async function createMember(db: TransactionClient, congregation: Congrega
   const member = await db.member.create({
     data: { ...memberDataFromForm(params), isPublisher: true, congregationId: params.congregationId },
   })
-
-  if (params.email && params.email.length > 0) {
-    const account = await db.userAccount.create({
-      data: {
-        memberId: member.id,
-        email: params.email.toLocaleLowerCase(),
-        password: '',
-        active: true,
-        emailVerifiedAt: new Date(),
-        congregationId: params.congregationId,
-      },
-    })
-    await createPasswordResetToken(account.id, db)
-  }
 
   await syncBuiltInRoleAssignments(db, member.id, params.congregationId, params.actorId)
 
@@ -106,8 +93,11 @@ export async function createDirect(
   return member
 }
 
-export type UpdateIdentityParams = MemberFormFields & { email: string | null }
+export type UpdateIdentityParams = MemberFormFields
 
+// Updates a Member's identity + contact info. `email` here is the contact
+// email on the Member; the login email lives on UserAccount and is managed via
+// the account/link-login flow, not here.
 export async function updateIdentity(
   db: TransactionClient,
   id: number,
@@ -126,17 +116,6 @@ export async function updateIdentity(
     where: { id_congregationId: { id, congregationId } },
     data: memberDataFromForm(params),
   })
-
-  if (params.email && params.email.length > 0) {
-    const account = await db.userAccount.findFirst({ where: { memberId: id, congregationId } })
-    if (account) {
-      await db.userAccount.update({
-        // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
-        where: { id_congregationId: { id: account.id, congregationId } },
-        data: { email: params.email.toLocaleLowerCase() },
-      })
-    }
-  }
 
   if (haveIdentityFlagsChanged(before, member)) {
     await syncBuiltInRoleAssignments(db, id, congregationId, actorId)
@@ -293,6 +272,7 @@ export async function anonymize(
       lastnameNormalized: stripDiacritics('supprime'),
       phone: '',
       address: '',
+      email: '',
       birthDate: null,
       baptismDate: null,
       isMale: null,
@@ -306,6 +286,9 @@ export async function anonymize(
   })
 
   await db.publisherGroup.updateMany({ where: { deputyId: memberId }, data: { deputyId: null } })
+  // Emergency contacts hold third-party PII and anonymize is an UPDATE, so the
+  // FK cascade never fires — remove them explicitly.
+  await purgeEmergencyContacts(db, memberId, congregationId)
   await syncBuiltInRoleAssignments(db, memberId, congregationId, null)
 
   await db.dataDeletionRecord.create({

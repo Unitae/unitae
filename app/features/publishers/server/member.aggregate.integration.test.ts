@@ -83,7 +83,7 @@ afterAll(async () => {
 const baseFormParams = {
   firstname: 'Alice',
   lastname: 'Smith',
-  email: null,
+  email: '',
   gender: 'male',
   birthDate: null,
   baptismDate: '2010-05-15',
@@ -218,6 +218,7 @@ describe('member.aggregate — integration', () => {
         firstname: `Anon-${ts}`,
         lastname: 'Original',
         phone: '0612345678',
+        email: 'contact@example.com',
         isServant: true,
         congregationId: congId,
         actorId: 1,
@@ -231,6 +232,7 @@ describe('member.aggregate — integration', () => {
     expect(after.firstname).toBe('Utilisateur')
     expect(after.lastname).toBe('supprime')
     expect(after.phone).toBe('')
+    expect(after.email).toBe('')
     expect(after.anonymizedAt).not.toBeNull()
     expect(after.leftAt).not.toBeNull()
     expect(after.isServant).toBe(false)

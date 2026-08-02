@@ -109,7 +109,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       const user = await createMember(db, congregation, {
         firstname,
         lastname,
-        email: email && email.length > 0 ? email : null,
+        email: email ?? '',
         gender,
         birthDate: birthDate || null,
         baptismDate: baptismDate || null,

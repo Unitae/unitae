@@ -46,6 +46,7 @@ beforeAll(async () => {
         firstname: 'Alice',
         lastname: 'Dupont',
         isPublisher: true,
+        email: 'alice.contact@example.com',
         inactiveAt: new Date('2026-03-15T00:00:00Z'),
         congregationId: sourceId,
       },
@@ -139,6 +140,20 @@ beforeAll(async () => {
         publisherId: aliceMember.id,
         hours: 10,
         studies: 1,
+        congregationId: sourceId,
+      },
+    })
+
+    await tx.member.update({
+      where: { id_congregationId: { id: aliceMember.id, congregationId: sourceId } },
+      data: { dpaCardUpToDate: true, survivalBackpackReady: true },
+    })
+    await tx.emergencyContact.create({
+      data: {
+        memberId: aliceMember.id,
+        name: 'Bob Contact',
+        relationship: 'ami',
+        phone: '0600000000',
         congregationId: sourceId,
       },
     })
@@ -374,6 +389,7 @@ afterAll(async () => {
       await tx.boardSection.deleteMany({})
       await tx.attribution.deleteMany({})
       await tx.publisherActivity.deleteMany({})
+      await tx.emergencyContact.deleteMany({})
       await tx.buildingResidentialData.deleteMany({})
       await tx.buildingAccess.deleteMany({})
       const territories = await tx.territory.findMany({ select: { id: true } })
@@ -463,6 +479,7 @@ async function importFromZip(buffer: Buffer, congregationId: number): Promise<vo
     await mod.importPublisherGroups(zip, db, idMap, congregationId)
     await mod.updateMemberPublisherGroups(zip, db, idMap, congregationId)
     await mod.importPublisherActivities(zip, db, idMap, congregationId)
+    await mod.importEmergencyContacts(zip, db, idMap, congregationId)
     await mod.importExternalSpeakers(zip, db, idMap, congregationId)
     await mod.importTerritories(zip, db, idMap, congregationId)
     await mod.importTerritoryCardOverlays(zip, db, idMap, congregationId)
@@ -514,6 +531,7 @@ describe('Export/Import round-trip', () => {
     expect(entityCounts['building-accesses']).toBe(1)
     expect(entityCounts.attributions).toBe(1)
     expect(entityCounts['publisher-activities']).toBe(1)
+    expect(entityCounts['emergency-contacts']).toBe(1)
     expect(entityCounts.events).toBe(1)
     expect(entityCounts['board-sections']).toBe(1)
     expect(entityCounts['board-documents']).toBe(1)
@@ -590,6 +608,7 @@ describe('Export/Import round-trip', () => {
       await tx.boardSection.deleteMany({})
       await tx.attribution.deleteMany({})
       await tx.publisherActivity.deleteMany({})
+      await tx.emergencyContact.deleteMany({})
       await tx.buildingResidentialData.deleteMany({})
       await tx.buildingAccess.deleteMany({})
       const territories = await tx.territory.findMany({ select: { id: true } })
@@ -628,6 +647,16 @@ describe('Export/Import round-trip', () => {
       expect(aliceMember.isPublisher).toBe(true)
       expect(aliceMember.inactiveAt).toEqual(new Date('2026-03-15T00:00:00Z'))
       expect(bobMember.inactiveAt).toBeNull()
+
+      // Contact email (on the Member, distinct from the login email) round-trips
+      expect(aliceMember.email).toBe('alice.contact@example.com')
+
+      // Emergency info (flags on the member + the contact child) round-trips
+      expect(aliceMember.dpaCardUpToDate).toBe(true)
+      expect(aliceMember.survivalBackpackReady).toBe(true)
+      const emergencyContacts = await tx.emergencyContact.findMany({ where: { memberId: aliceMember.id } })
+      expect(emergencyContacts).toHaveLength(1)
+      expect(emergencyContacts[0]).toMatchObject({ name: 'Bob Contact', relationship: 'ami', phone: '0600000000' })
 
       const accounts = await tx.userAccount.findMany({ include: { member: true } })
       expect(accounts).toHaveLength(2)

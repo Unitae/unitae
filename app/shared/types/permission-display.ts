@@ -11,6 +11,8 @@ const PERMISSION_DESCRIPTIONS: Record<Permission, () => string> = {
   [Permission.SettingsUserManager]: () => m.permission_desc_settings_user_manager(),
   [Permission.PublisherViewer]: () => m.permission_desc_publisher_viewer(),
   [Permission.PublisherManager]: () => m.permission_desc_publisher_manager(),
+  [Permission.EmergencyInfoViewer]: () => m.permission_desc_emergency_info_viewer(),
+  [Permission.EmergencyInfoManager]: () => m.permission_desc_emergency_info_manager(),
   [Permission.ActivityManager]: () => m.permission_desc_activity_manager(),
   [Permission.ActivityViewer]: () => m.permission_desc_activity_viewer(),
   [Permission.PioneerGoalManager]: () => m.permission_desc_pioneer_goal_manager(),
@@ -30,7 +32,15 @@ export function getPermissionDescription(key: string): string {
   return PERMISSION_DESCRIPTIONS[key as Permission]?.() ?? key
 }
 
-export const PERMISSION_CATEGORIES = ['admin', 'board', 'territories', 'publishers', 'programs', 'settings'] as const
+export const PERMISSION_CATEGORIES = [
+  'admin',
+  'board',
+  'territories',
+  'publishers',
+  'emergency',
+  'programs',
+  'settings',
+] as const
 
 export type PermissionCategory = (typeof PERMISSION_CATEGORIES)[number]
 
@@ -45,6 +55,8 @@ const PERMISSION_TO_CATEGORY: Record<Permission, PermissionCategory> = {
   [Permission.ProspectionManager]: 'territories',
   [Permission.PublisherViewer]: 'publishers',
   [Permission.PublisherManager]: 'publishers',
+  [Permission.EmergencyInfoViewer]: 'emergency',
+  [Permission.EmergencyInfoManager]: 'emergency',
   [Permission.ActivityViewer]: 'publishers',
   [Permission.ActivityManager]: 'publishers',
   [Permission.PioneerGoalManager]: 'publishers',
@@ -68,6 +80,7 @@ const CATEGORY_LABELS: Record<PermissionCategory, () => string> = {
   board: () => m.permission_category_board(),
   territories: () => m.permission_category_territories(),
   publishers: () => m.permission_category_publishers(),
+  emergency: () => m.permission_category_emergency(),
   programs: () => m.permission_category_programs(),
   settings: () => m.permission_category_settings(),
 }

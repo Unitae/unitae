@@ -81,6 +81,7 @@ describe('updateMember', () => {
         type: PublisherType.Normal,
         address: '12 rue de la Paix',
         phone: '0612345678',
+        email: 'jean@example.com',
       },
     })
   })
@@ -124,24 +125,16 @@ describe('updateMember', () => {
     )
   })
 
-  it('updates the linked account email when email is provided and an account exists', async () => {
+  it('persists the email on the Member and never touches the login account', async () => {
+    // `email` is now a contact email on the Member; the login email lives on
+    // UserAccount and is managed elsewhere, so the account is left untouched.
     mockMemberUpdate.mockResolvedValue({ id: 1 } as never)
-    mockAccountFindFirst.mockResolvedValue({ id: 42 })
 
     await updateMember(mockDb as never, 1, 10, 99, baseParams)
 
-    expect(mockAccountFindFirst).toHaveBeenCalledWith({ where: { memberId: 1, congregationId: 10 } })
-    expect(mockAccountUpdate).toHaveBeenCalledWith({
-      where: { id_congregationId: { id: 42, congregationId: 10 } },
-      data: { email: 'jean@example.com' },
-    })
-  })
-
-  it('does not touch any account when email is null', async () => {
-    mockMemberUpdate.mockResolvedValue({ id: 1 } as never)
-
-    await updateMember(mockDb as never, 1, 10, 99, { ...baseParams, email: null })
-
+    expect(mockMemberUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ email: 'jean@example.com' }) }),
+    )
     expect(mockAccountFindFirst).not.toHaveBeenCalled()
     expect(mockAccountUpdate).not.toHaveBeenCalled()
   })
@@ -164,7 +157,6 @@ describe('updateMember', () => {
 
     await updateMember(mockDb as never, 1, 10, 99, {
       ...baseParams,
-      email: null,
       gender: 'female', // matches BEFORE.isMale=false
       baptismDate: null, // matches BEFORE
       isHelder: false, // matches BEFORE

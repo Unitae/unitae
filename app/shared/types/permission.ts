@@ -10,6 +10,8 @@ export enum Permission {
   SettingsUserManager = 'settings-user-manager',
   PublisherViewer = 'publisher-viewer',
   PublisherManager = 'publisher-manager',
+  EmergencyInfoViewer = 'emergency-info-viewer',
+  EmergencyInfoManager = 'emergency-info-manager',
   ActivityViewer = 'activity-viewer',
   ActivityManager = 'activity-manager',
   PioneerGoalManager = 'pioneer-goal-manager',
