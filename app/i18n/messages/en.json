@@ -2603,7 +2603,6 @@
     "dashboard_urgent_service_role_soon": "You'll soon cover «{name}» — {eventName}",
     "dashboard_urgent_dayoff_conflict": "You're assigned to «{name}» during an absence",
     "dashboard_urgent_unread_documents": "{count} unread documents on the board",
-    "dashboard_quick_action_plan_absence": "Plan an absence",
     "dashboard_quick_action_assign_territory": "Assign territory",
     "dashboard_upcoming_assignments": "My upcoming assignments",
     "dashboard_upcoming_assignments_empty": "No upcoming assignments",

@@ -1,4 +1,5 @@
 // Intentional cross-feature import: dashboard aggregates data from events and the board for the overview
+import { resolveProgrammeLink } from '~/features/display-board/index.server'
 import { EventStatus, EventTemplateKey } from '~/features/events'
 import { getNextDaysOffs } from '~/features/events/index.server'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
@@ -224,7 +225,7 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
   return candidates.at(0) ?? null
 }
 
-export async function getNextMeeting(db: TransactionClient, userId: number) {
+export async function getNextMeeting(db: TransactionClient, userId: number, congregationId: number) {
   const now = new Date()
 
   const event = await db.event.findFirst({
@@ -239,6 +240,9 @@ export async function getNextMeeting(db: TransactionClient, userId: number) {
     },
     select: {
       id: true,
+      // templateId feeds resolveProgrammeLink so the urgent strip's imminent
+      // items deep-link to the board programme viewer, not a generic /board.
+      templateId: true,
       name: true,
       startDate: true,
       endDate: true,
@@ -283,10 +287,16 @@ export async function getNextMeeting(db: TransactionClient, userId: number) {
   const userPartIds = new Set(eventParts.filter(p => p.viewerRole !== null).map(p => p.id))
   const userServicePartIds = new Set(event.eventServiceParts.filter(r => r.assignee?.id === userId).map(r => r.id))
 
+  // Canonical board link for this meeting, shared with the assignment emails
+  // and the upcoming-assignments card. Falls back to /board when no programme
+  // document covers the event's template.
+  const link = await resolveProgrammeLink(db, { id: event.id, templateId: event.templateId }, congregationId)
+
   return {
     ...event,
     eventParts,
     userPartIds: [...userPartIds],
     userServicePartIds: [...userServicePartIds],
+    link,
   }
 }

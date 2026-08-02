@@ -108,7 +108,7 @@ export function loader({ context }: Route.LoaderArgs) {
           )
         : Promise.resolve(0),
       safeQuery('absences', currentUser.id, () => getUpcomingAbsences(db, currentUser.id, currentUser.congregationId)),
-      memberSafeQuery('next-meeting', mid => getNextMeeting(db, mid)),
+      memberSafeQuery('next-meeting', mid => getNextMeeting(db, mid, currentUser.congregationId)),
       memberSafeQuery('upcoming-assignments', mid => getUpcomingAssignments(db, mid, currentUser.congregationId)),
       memberSafeQuery('dayoff-conflict', mid => getConflictingAssignments(db, mid)),
       canViewPrograms
@@ -233,7 +233,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <Button variant="outline" size="sm" asChild>
             <Link to="/me/days-off/new">
               <CalendarPlus className="size-4" />
-              {m.dashboard_quick_action_plan_absence()}
+              {m.dashboard_plan_absence()}
             </Link>
           </Button>
           {(isAdmin || isTerritoriesManager) && (
@@ -399,11 +399,15 @@ function TerritoriesCard({ territories }: { territories: Awaited<ReturnType<type
           </div>
         )}
       </CardContent>
-      <CardFooter className="mt-auto">
-        <Button variant="link" asChild className="px-0">
-          <Link to="/me/territories">{m.dashboard_view_all()}</Link>
-        </Button>
-      </CardFooter>
+      {/* "See all" only when there is something to see — matches the absences
+          card and avoids a link into an empty list. */}
+      {territories != null && territories.length > 0 && (
+        <CardFooter className="mt-auto">
+          <Button variant="link" asChild className="px-0">
+            <Link to="/me/territories">{m.dashboard_view_all()}</Link>
+          </Button>
+        </CardFooter>
+      )}
     </Card>
   )
 }
@@ -460,11 +464,13 @@ function UpcomingAssignmentsCard({ assignments }: { assignments: UpcomingAssignm
           </div>
         )}
       </CardContent>
-      <CardFooter className="mt-auto">
-        <Button variant="link" asChild className="px-0">
-          <Link to="/board">{m.dashboard_view_all()}</Link>
-        </Button>
-      </CardFooter>
+      {assignments != null && assignments.length > 0 && (
+        <CardFooter className="mt-auto">
+          <Button variant="link" asChild className="px-0">
+            <Link to="/board">{m.dashboard_view_all()}</Link>
+          </Button>
+        </CardFooter>
+      )}
     </Card>
   )
 }
@@ -503,11 +509,13 @@ function DocumentsCard({ documents }: { documents: Awaited<ReturnType<typeof get
           </div>
         )}
       </CardContent>
-      <CardFooter className="mt-auto">
-        <Button variant="link" asChild className="px-0">
-          <Link to="/board">{m.dashboard_view_all()}</Link>
-        </Button>
-      </CardFooter>
+      {documents != null && documents.length > 0 && (
+        <CardFooter className="mt-auto">
+          <Button variant="link" asChild className="px-0">
+            <Link to="/board">{m.dashboard_view_all()}</Link>
+          </Button>
+        </CardFooter>
+      )}
     </Card>
   )
 }
@@ -527,7 +535,7 @@ function AbsencesCard({
           <Button variant="ghost" size="icon-xs" asChild>
             <Link to="/me/days-off/new">
               <Plus className="size-4" />
-              <span className="sr-only">{m.dashboard_quick_action_plan_absence()}</span>
+              <span className="sr-only">{m.dashboard_plan_absence()}</span>
             </Link>
           </Button>
         </div>

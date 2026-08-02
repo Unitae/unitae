@@ -66,7 +66,9 @@ export function urgentPartAssignmentItems(nextMeeting: NextMeeting): UrgentItem[
     {
       key: `part-${userPart.id}`,
       label: m.dashboard_urgent_assignment_soon({ name: userPart.name, eventName: nextMeeting.name }),
-      to: '/board',
+      // Deep-link to the specific programme viewer (resolved on the meeting),
+      // matching the upcoming-assignments card rather than a generic /board.
+      to: nextMeeting.link,
       icon: Mic,
       borderClass: 'border-l-primary bg-primary/5',
       iconClass: 'text-primary',
@@ -87,7 +89,7 @@ export function urgentServicePartItems(nextMeeting: NextMeeting): UrgentItem[] {
     {
       key: `service-role-${userRole.id}`,
       label: m.dashboard_urgent_service_role_soon({ name: userRole.name, eventName: nextMeeting.name }),
-      to: '/board',
+      to: nextMeeting.link,
       icon: Mic,
       borderClass: 'border-l-primary bg-primary/5',
       iconClass: 'text-primary',

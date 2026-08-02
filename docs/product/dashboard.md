@@ -36,11 +36,11 @@ A conditional section that surfaces time-sensitive items from across features. I
 
 | Priority | Type | Condition | Link |
 |---|---|---|---|
-| 0 | Imminent part assignment | User has a programme part and the meeting is within 3 days | The board |
+| 0 | Imminent part assignment | User has a programme part and the meeting is within 3 days | The programme viewer for that meeting on the board (same deep link as the assignment email) |
 | 1 | Overdue territory | Territory due date is in the past | The territory page |
 | 1 | Day-off conflict on my own assignment | The user has an upcoming absence overlapping an event where *they* are assigned. Shown red, at the same tier as an overdue territory — a personal clash the user needs to resolve first. Only released events count; draft-event conflicts surface at release time on the programme list | The absences page |
 | 2 | Responsible-conflict card | For programme managers / template responsibles: at least one publisher scheduled on a programme they manage has an overlapping absence. Amber. Sits one tier below the user's own day-off clash so a manager scheduled on a part sees their personal conflict first | The programme list filtered on conflicts |
-| 3 | Imminent service role | User has a service role and the meeting is within 3 days | The board |
+| 3 | Imminent service role | User has a service role and the meeting is within 3 days | The programme viewer for that meeting on the board |
 | 4 | Due-soon territory | Territory due date is within 2 weeks | The territory page |
 | 5 | Unread documents | At least 1 visible document not yet viewed | The board |
 
@@ -59,7 +59,7 @@ Displays the member's currently assigned territories (active assignments where n
 
 Territories are sorted by due date (most urgent first). Clicking a territory navigates to the [personal territory view](territories.md#personal-territory-view).
 
-A *See all* link navigates to the full personal territories list at `/me/territories`.
+A *See all* link navigates to the full personal territories list at `/me/territories`. It is shown only when the member has territories — hidden on the empty state, like every card's footer.
 
 If the member has no assigned territories, an empty state is shown with guidance explaining that their territory manager will assign territories to them.
 
@@ -74,7 +74,7 @@ Each row shows:
 - **Meeting and date** — The meeting it belongs to and its date (e.g., *Midweek meeting — Wed 22 Apr*)
 - **Topic** — Shown when the part has one
 
-Only [released](events.md#draft-and-released-events) events count — assignments on still-draft meetings do not appear. If the member has nothing scheduled in the window, an empty state is shown. A *See all* link opens the [display board](display-board.md), where the full programme lives.
+Each row is clickable and deep-links to the programme viewer for that meeting on the board — the same link the assignment email points at. Only [released](events.md#draft-and-released-events) events count — assignments on still-draft meetings do not appear. If the member has nothing scheduled in the window, an empty state is shown. A *See all* link opens the [display board](display-board.md) when there are assignments (hidden on the empty state).
 
 ## At-risk pioneers
 
@@ -104,7 +104,7 @@ Each document displays:
 - **Publication date** — Displayed as relative time (e.g., *3 days ago*)
 - **Unread indicator** — A small blue dot marks documents the member has not yet viewed
 
-Clicking a document opens it in the board viewer. A *See all* link navigates to the full display board.
+Clicking a document opens it in the board viewer. A *See all* link navigates to the full display board — shown only when there are recent documents.
 
 Only documents within their visibility window are shown (respecting *Visible from* and *Visible until* dates).
 
