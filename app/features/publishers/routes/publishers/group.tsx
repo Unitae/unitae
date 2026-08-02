@@ -1,11 +1,12 @@
 import { parseWithZod } from '@conform-to/zod'
-import { BarChart3, Eye, Mail, Pencil, Plus, Siren } from 'lucide-react'
+import { Eye, Mail, Pencil, Siren } from 'lucide-react'
 import { data, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { canManageGroupActivity } from '~/features/publishers/model/group-activity-access'
 import { updateGroupSchema } from '~/features/publishers/schemas/group.schema'
 import { getGroup } from '~/features/publishers/server/groups.server'
 import { updateGroup } from '~/features/publishers/server/update-group.server'
+import { GroupMemberActivityCell } from '~/features/publishers/ui/GroupMemberActivityCell'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
@@ -184,50 +185,19 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
                 </TableCell>
                 {roles.canManageActivity === true && (
                   <>
-                    <TableCell className="text-center">
-                      <Button asChild variant="ghost" size="sm">
-                        <Link
-                          to={
-                            member.previousActivity != null
-                              ? `/publishers/activity/${member.previousActivity?.id}/edit`
-                              : `/publishers/activity/new?publisherId=${member.id}&month=${lastMonth.getMonth()}&year=${lastMonth.getFullYear()}`
-                          }
-                          title={m.groups_view_activity_edit_title()}
-                        >
-                          {member.previousActivity ? (
-                            <>
-                              <BarChart3 className="size-4" /> {m.groups_view_activity_view()}
-                            </>
-                          ) : (
-                            <>
-                              <Plus className="size-4" /> {m.groups_view_activity_add()}
-                            </>
-                          )}
-                        </Link>
-                      </Button>
-                    </TableCell>
-                    <TableCell className="text-center max-sm:hidden">
-                      <Button asChild variant="ghost" size="sm">
-                        <Link
-                          to={
-                            member.currentActivity != null
-                              ? `/publishers/activity/${member.currentActivity?.id}/edit`
-                              : `/publishers/activity/new?publisherId=${member.id}&month=${today.getMonth()}&year=${today.getFullYear()}`
-                          }
-                          title={m.groups_view_activity_edit_title()}
-                        >
-                          {member.currentActivity ? (
-                            <>
-                              <BarChart3 className="size-4" /> {m.groups_view_activity_view()}
-                            </>
-                          ) : (
-                            <>
-                              <Plus className="size-4" /> {m.groups_view_activity_add()}
-                            </>
-                          )}
-                        </Link>
-                      </Button>
-                    </TableCell>
+                    <GroupMemberActivityCell
+                      memberId={member.id}
+                      activity={member.previousActivity ?? null}
+                      month={lastMonth.getMonth()}
+                      year={lastMonth.getFullYear()}
+                    />
+                    <GroupMemberActivityCell
+                      memberId={member.id}
+                      activity={member.currentActivity ?? null}
+                      month={today.getMonth()}
+                      year={today.getFullYear()}
+                      className="text-center max-sm:hidden"
+                    />
                   </>
                 )}
                 <TableCell>
