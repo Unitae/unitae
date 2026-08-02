@@ -76,7 +76,7 @@ describe('EntityIdMap', () => {
 
 describe('ARCHIVE_VERSION', () => {
   it('is the current 2.3 schema version', () => {
-    expect(ARCHIVE_VERSION).toBe('2.3')
+    expect(ARCHIVE_VERSION).toBe('2.4')
   })
 })
 
@@ -103,6 +103,11 @@ describe('ENTITY_FILES', () => {
 
   it('includes pioneer-goals (congregation-scoped, no cross-entity refs)', () => {
     expect(ENTITY_FILES).toContain('pioneer-goals')
+  })
+
+  it('has members before pioneer-enrolments (dependency order)', () => {
+    expect(ENTITY_FILES).toContain('pioneer-enrolments')
+    expect(ENTITY_FILES.indexOf('members')).toBeLessThan(ENTITY_FILES.indexOf('pioneer-enrolments'))
   })
 
   it('has territories before attributions (dependency order)', () => {

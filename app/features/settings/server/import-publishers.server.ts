@@ -101,6 +101,44 @@ export async function importPublisherActivities(
   }
 }
 
+export async function importPioneerEnrolments(
+  zip: JsZip,
+  db: TransactionClient,
+  idMap: EntityIdMap,
+  congregationId: number,
+): Promise<void> {
+  const records = await readNdjsonFile<{
+    id: number
+    memberId: number
+    type: string
+    startMonth: number
+    startYear: number
+    endMonth: number | null
+    endYear: number | null
+    monthlyGoal: number | null
+  }>(zip, 'pioneer-enrolments')
+
+  for (const record of records) {
+    const memberId = idMap.getOptional('members', record.memberId)
+    if (!memberId) continue
+
+    // Imported verbatim — the stints already satisfied the aggregate's invariants when created.
+    const created = await db.pioneerEnrolment.create({
+      data: {
+        memberId,
+        type: record.type as PublisherType,
+        startMonth: record.startMonth,
+        startYear: record.startYear,
+        endMonth: record.endMonth,
+        endYear: record.endYear,
+        monthlyGoal: record.monthlyGoal,
+        congregationId,
+      },
+    })
+    idMap.set('pioneer-enrolments', record.id, created.id)
+  }
+}
+
 export async function importEmergencyContacts(
   zip: JsZip,
   db: TransactionClient,

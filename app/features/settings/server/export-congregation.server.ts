@@ -234,6 +234,22 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
         }),
     },
     {
+      name: 'pioneer-enrolments',
+      export: () =>
+        db.pioneerEnrolment.findMany({
+          select: {
+            id: true,
+            memberId: true,
+            type: true,
+            startMonth: true,
+            startYear: true,
+            endMonth: true,
+            endYear: true,
+            monthlyGoal: true,
+          },
+        }),
+    },
+    {
       name: 'emergency-contacts',
       export: () =>
         db.emergencyContact.findMany({

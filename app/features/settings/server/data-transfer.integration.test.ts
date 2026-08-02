@@ -5,6 +5,7 @@ import { PrismaClient } from '~/database/generated/client'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { BUILT_IN_ROLE_KEYS } from '~/shared/domain/built-in-roles.server'
+import { PublisherType } from '~/shared/types/publisher-type'
 import { EntityIdMap, type ManifestJson } from './data-transfer.type'
 
 // --- Test DB setup (same pattern as db.server.integration.test.ts) ---
@@ -140,6 +141,16 @@ beforeAll(async () => {
         publisherId: aliceMember.id,
         hours: 10,
         studies: 1,
+        congregationId: sourceId,
+      },
+    })
+
+    await tx.pioneerEnrolment.create({
+      data: {
+        memberId: aliceMember.id,
+        type: PublisherType.PionnierPermanant,
+        startMonth: 8,
+        startYear: 2025,
         congregationId: sourceId,
       },
     })
@@ -484,6 +495,7 @@ async function importFromZip(buffer: Buffer, congregationId: number): Promise<vo
     await mod.importPublisherGroups(zip, db, idMap, congregationId)
     await mod.updateMemberPublisherGroups(zip, db, idMap, congregationId)
     await mod.importPublisherActivities(zip, db, idMap, congregationId)
+    await mod.importPioneerEnrolments(zip, db, idMap, congregationId)
     await mod.importEmergencyContacts(zip, db, idMap, congregationId)
     await mod.importPioneerGoals(zip, db, congregationId)
     await mod.importExternalSpeakers(zip, db, idMap, congregationId)
@@ -537,6 +549,7 @@ describe('Export/Import round-trip', () => {
     expect(entityCounts['building-accesses']).toBe(1)
     expect(entityCounts.attributions).toBe(1)
     expect(entityCounts['publisher-activities']).toBe(1)
+    expect(entityCounts['pioneer-enrolments']).toBe(1)
     expect(entityCounts['emergency-contacts']).toBe(1)
     expect(entityCounts['pioneer-goals']).toBe(1)
     expect(entityCounts.events).toBe(1)
@@ -670,6 +683,17 @@ describe('Export/Import round-trip', () => {
       const pioneerGoals = await tx.pioneerGoal.findMany({})
       expect(pioneerGoals).toHaveLength(1)
       expect(pioneerGoals[0]).toMatchObject({ serviceYear: 2025, type: 'PionnierPermanant', monthlyHours: 55 })
+
+      // Pioneer enrolment round-trips with the member FK remapped to the new id.
+      const enrolments = await tx.pioneerEnrolment.findMany({ where: { memberId: aliceMember.id } })
+      expect(enrolments).toHaveLength(1)
+      expect(enrolments[0]).toMatchObject({
+        type: PublisherType.PionnierPermanant,
+        startMonth: 8,
+        startYear: 2025,
+        endMonth: null,
+        endYear: null,
+      })
 
       const accounts = await tx.userAccount.findMany({ include: { member: true } })
       expect(accounts).toHaveLength(2)
