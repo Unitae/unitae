@@ -330,9 +330,12 @@ function PioneersAtRiskCard({ data }: { data: AtRiskPioneers }) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <ul className="flex flex-col gap-2">
+        {/* Grid so pioneers flow into columns and use the full-width card's
+            space. The pill hugs its own name (no justify-between) so it can't
+            be misread as belonging to the next column's pioneer. */}
+        <ul className="grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
           {data.pioneers.map(pioneer => (
-            <li key={pioneer.memberId} className="flex items-center justify-between gap-2 text-sm">
+            <li key={pioneer.memberId} className="flex items-center gap-2 text-sm">
               <div className="min-w-0">
                 <Link to={`/publishers/${pioneer.memberId}/view#activity`} className="font-medium hover:text-primary">
                   {pioneer.firstname} {pioneer.lastname}
