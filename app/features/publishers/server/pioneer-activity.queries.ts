@@ -55,6 +55,16 @@ function serviceYearWhere(serviceYear: number) {
   }
 }
 
+// The selected service year plus the one before it — used to tell a *continuing* pioneer
+// (enrolled since September) from a genuinely new mid-year appointment.
+function withPriorServiceYearWhere(serviceYear: number) {
+  return { OR: [...serviceYearWhere(serviceYear - 1).OR, ...serviceYearWhere(serviceYear).OR] }
+}
+
+function serviceYearOfRow(month: number, year: number): number {
+  return month >= 8 ? year : year - 1
+}
+
 export async function getPioneerActivitySummary(
   db: TransactionClient,
   _congregationId: number,
@@ -71,7 +81,7 @@ export async function getPioneerActivitySummary(
     },
     include: {
       publisherGroup: { select: { name: true } },
-      activities: { where: serviceYearWhere(serviceYear), orderBy: { id: 'desc' } },
+      activities: { where: withPriorServiceYearWhere(serviceYear), orderBy: { id: 'desc' } },
     },
     orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
   })
@@ -104,7 +114,7 @@ export async function getPioneerActivityForMember(
     where: { id: memberId, congregationId },
     include: {
       publisherGroup: { select: { name: true } },
-      activities: { where: serviceYearWhere(serviceYear), orderBy: { id: 'desc' } },
+      activities: { where: withPriorServiceYearWhere(serviceYear), orderBy: { id: 'desc' } },
     },
   })
   if (member === null) return null
@@ -128,9 +138,17 @@ function classifyPioneerMember(
   serviceYear: number,
   now: Date,
 ): PioneerActivity | null {
-  const rows = dedupeLatestPerMonth(member.activities)
+  // `activities` spans two service years; the roster reflects the selected year only.
+  const thisYear = member.activities.filter(r => serviceYearOfRow(r.month, r.year) === serviceYear)
+  const rows = dedupeLatestPerMonth(thisYear)
   const pioneerRows = rows.filter(r => isPioneerType(r.type))
   if (pioneerRows.length === 0 && !isPioneerType(member.type)) return null
+
+  // A continuing pioneer (any pioneer activity the previous service year) is enrolled from
+  // September, so a missing early report does not shrink their goal.
+  const enrolledSinceYearStart = member.activities.some(
+    r => isPioneerType(r.type) && serviceYearOfRow(r.month, r.year) === serviceYear - 1,
+  )
 
   const latest = mostRecent(rows)
   const standingType = latest?.type ?? member.type
@@ -159,7 +177,10 @@ function classifyPioneerMember(
       row: { ...base, auxiliary: computeAuxiliarySummary({ serviceYear, monthlyRate, months, now }) },
     }
   }
-  return { kind: 'annual', row: { ...base, pace: computePioneerPace({ serviceYear, monthlyRate, months, now }) } }
+  return {
+    kind: 'annual',
+    row: { ...base, pace: computePioneerPace({ serviceYear, monthlyRate, months, now, enrolledSinceYearStart }) },
+  }
 }
 
 function mostRecent(rows: ActivityRow[]): ActivityRow | null {

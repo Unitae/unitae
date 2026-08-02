@@ -19,6 +19,13 @@
 > spec-vs-code audit. Where a section conflicts with this list, this list wins.
 >
 > **Behaviour changes (agreed):**
+> - **Proration is by enrollment *span*, not reported-month count.** `elapsedEnrolled` runs from
+>   the enrollment start (September for a *continuing* pioneer — one with pioneer activity the prior
+>   service year — otherwise their first reported month this year) through the current expected month.
+>   Missed months inside the span still count toward the goal, so a full-year pioneer who skips two
+>   months is 2 months *behind* on a 600 h goal, not prorated to 500 h. Only a genuinely late start
+>   prorates. (Supersedes §6's "elapsedEnrolled = months ≤ asOf whose type matches".) The summary
+>   query fetches the prior service year too, to detect continuing pioneers.
 > - **Risk escalation** — an *overdue* report raises the risk band one step (green→amber, amber→red),
 >   capped so a positive surplus stays green. §6's "risk from actuals only" is superseded by this so a
 >   non-reporter is never scored "on track".

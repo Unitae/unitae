@@ -79,9 +79,28 @@ describe('getPioneerActivitySummary', () => {
 
     const result = await getPioneerActivitySummary(db, 42, SY, NOW)
 
-    // Only one enrolled month, using the latest row's 20h — not 70 summed.
+    // Latest row's 20h wins (not 70 summed). They started in Sept but reported nothing
+    // since, so they're enrolled Sept–Dec (4 months) and behind — the goal isn't shrunk.
     expect(result.annual[0].pace.actualToDate).toBe(20)
-    expect(result.annual[0].pace.elapsedEnrolled).toBe(1)
+    expect(result.annual[0].pace.elapsedEnrolled).toBe(4)
+  })
+
+  it('treats a continuing pioneer as enrolled since September even without a September report', async () => {
+    vi.mocked(db.member.findMany).mockResolvedValue([
+      member(1, PublisherType.PionnierPermanant, [
+        activity(7, 2025, PublisherType.PionnierPermanant, 50), // Aug of the PRIOR service year → continuing
+        activity(9, 2025, PublisherType.PionnierPermanant, 50), // this year: first report is Oct
+        activity(10, 2025, PublisherType.PionnierPermanant, 50), // Nov
+        activity(11, 2025, PublisherType.PionnierPermanant, 50), // Dec
+      ]),
+    ] as never)
+
+    const result = await getPioneerActivitySummary(db, 42, SY, NOW)
+
+    // Enrolled Sept–Dec (4) though Sept was never reported this year; one month behind.
+    expect(result.annual[0].pace.elapsedEnrolled).toBe(4)
+    expect(result.annual[0].pace.actualToDate).toBe(150)
+    expect(result.annual[0].pace.paceDelta).toBe(-50)
   })
 
   it('places a mid-year type switcher in one section and excludes off-type months from proration', async () => {

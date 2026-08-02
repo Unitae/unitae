@@ -30,6 +30,10 @@ export interface PaceInput {
   monthlyRate: number
   months: PioneerMonth[]
   now: Date
+  // True when the member was already pioneering entering this service year (continuing),
+  // so enrollment starts in September even if they didn't report every month. When false,
+  // enrollment starts at their first reported pioneer month (a new mid-year appointment).
+  enrolledSinceYearStart?: boolean
 }
 
 export interface PioneerPace {
@@ -112,16 +116,41 @@ function reportingStatusFor(input: PaceInput): ReportingStatus {
   return withinGrace ? 'awaiting' : 'overdue'
 }
 
+// Number of service-year months the member has been enrolled, as of the current expected
+// month. This is the enrollment *span* — from their start (September if continuing, else
+// their first reported month) through the current expected (or latest reported) month.
+// Missed months inside the span still count, so a gap means "behind", not a smaller goal;
+// only a genuinely late start prorates.
+function computeElapsedEnrolled(
+  sorted: PioneerMonth[],
+  expected: { month: number; year: number } | null,
+  serviceYear: number,
+  enrolledSinceYearStart: boolean,
+): number {
+  const idx = (m: { month: number; year: number }) => absMonth(m.month, m.year) - firstAbs(serviceYear)
+
+  if (sorted.length === 0) {
+    // No reports: a continuing pioneer is still enrolled from September; a member with no
+    // history has no placeable start.
+    return enrolledSinceYearStart && expected !== null ? idx(expected) + 1 : 0
+  }
+
+  const startIndex = enrolledSinceYearStart ? 0 : idx(sorted[0])
+  const lastReported = idx(sorted[sorted.length - 1])
+  const current = expected === null ? lastReported : idx(expected)
+  return Math.max(current, lastReported) - startIndex + 1
+}
+
 export function computePioneerPace(input: PaceInput): PioneerPace {
   const { serviceYear, monthlyRate, months } = input
   const sorted = [...months].sort((a, b) => absMonth(a.month, a.year) - absMonth(b.month, b.year))
+  const expected = currentExpectedMonth(serviceYear, input.now)
 
-  const elapsedEnrolled = sorted.length
+  const elapsedEnrolled = computeElapsedEnrolled(sorted, expected, serviceYear, input.enrolledSinceYearStart ?? false)
   const actualToDate = sorted.reduce((sum, m) => sum + (m.hours ?? 0), 0)
   const targetToDate = monthlyRate * elapsedEnrolled
   const paceDelta = actualToDate - targetToDate
 
-  const expected = currentExpectedMonth(serviceYear, input.now)
   const remainingMonths =
     expected === null
       ? MONTHS_IN_YEAR

@@ -97,7 +97,8 @@ describe('computePioneerPace — risk from actuals only', () => {
       now,
     })
     expect(pace.actualToDate).toBe(240)
-    expect(pace.targetToDate).toBe(150) // only 3 enrolled months
+    expect(pace.targetToDate).toBe(200) // Sept–Dec span — Dec missed, still counts toward the goal
+    expect(pace.paceDelta).toBe(40)
     expect(pace.riskBucket).toBe('green')
     expect(pace.reportingStatus).toBe('overdue') // 15 Jan > grace window
   })
@@ -115,6 +116,47 @@ describe('computePioneerPace — risk from actuals only', () => {
   })
 })
 
+describe('computePioneerPace — enrollment span (missed months do not shrink the goal)', () => {
+  it('keeps the full-year goal when a full-year pioneer misses two months (behind, not prorated)', () => {
+    // Reported 10 of 12 months at 50 h; missed Nov (idx 2) and Feb (idx 5). Year complete.
+    const reported = serviceYearMonths(SY)
+      .filter((_, i) => i !== 2 && i !== 5)
+      .map(({ month: mo, year }) => month(mo, year, 50))
+    const pace = computePioneerPace({ serviceYear: SY, monthlyRate: 50, months: reported, now: new Date(2026, 8, 10) })
+    expect(pace.elapsedEnrolled).toBe(12)
+    expect(pace.targetToDate).toBe(600) // NOT 500 — the two missed months still count
+    expect(pace.actualToDate).toBe(500)
+    expect(pace.paceDelta).toBe(-100) // two months behind
+  })
+
+  it('a continuing pioneer is enrolled since September even if the September report is missing', () => {
+    const pace = computePioneerPace({
+      serviceYear: SY,
+      monthlyRate: 50,
+      months: [month(9, 2025, 50), month(10, 2025, 50), month(11, 2025, 50)], // first report is Oct
+      now: new Date(2026, 0, 15), // expected Dec
+      enrolledSinceYearStart: true,
+    })
+    expect(pace.elapsedEnrolled).toBe(4) // Sept–Dec, though Sept was never reported
+    expect(pace.targetToDate).toBe(200)
+    expect(pace.actualToDate).toBe(150)
+    expect(pace.paceDelta).toBe(-50) // one month (September) behind
+  })
+
+  it('prorates a genuinely new mid-year pioneer to their start month', () => {
+    const pace = computePioneerPace({
+      serviceYear: SY,
+      monthlyRate: 50,
+      months: [month(0, 2026, 50), month(1, 2026, 50)], // first report is January
+      now: new Date(2026, 2, 15), // expected Feb
+      enrolledSinceYearStart: false,
+    })
+    expect(pace.elapsedEnrolled).toBe(2) // Jan–Feb only — a late start does prorate
+    expect(pace.targetToDate).toBe(100)
+    expect(pace.paceDelta).toBe(0)
+  })
+})
+
 describe('computePioneerPace — overdue escalates the risk band', () => {
   const now = new Date(2026, 0, 15) // expected month = Dec 2025
 
@@ -129,10 +171,11 @@ describe('computePioneerPace — overdue escalates the risk band', () => {
     const pace = computePioneerPace({
       serviceYear: SY,
       monthlyRate: 50,
-      months: [month(8, 2025, 40), month(9, 2025, 40), month(10, 2025, 40)], // Dec unfiled → overdue
+      months: [month(8, 2025, 60), month(9, 2025, 60), month(10, 2025, 50)], // Dec unfiled → overdue
       now,
     })
-    expect(pace.paceDelta).toBe(-30) // amber base
+    expect(pace.targetToDate).toBe(200) // Sept–Dec span
+    expect(pace.paceDelta).toBe(-30) // amber base (actual 170)
     expect(pace.reportingStatus).toBe('overdue')
     expect(pace.riskBucket).toBe('red')
   })

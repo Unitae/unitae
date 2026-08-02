@@ -48,7 +48,7 @@ beforeAll(async () => {
 
     const T = PublisherType.PionnierPermanant
     const rows = [
-      { month: 7, year: 2025, hours: 99 }, // Aug 2025 → service year 2024, must be excluded
+      { month: 7, year: 2025, hours: 99 }, // Aug 2025 → prior service year (2024): marks "continuing", not a roster month
       { month: 8, year: 2025, hours: 50 }, // Sept 2025
       { month: 9, year: 2025, hours: 50 }, // Oct 2025 (will be superseded)
       { month: 9, year: 2025, hours: 10 }, // Oct 2025 re-filed (higher id → wins)
@@ -78,8 +78,9 @@ describe('getPioneerActivitySummary (integration)', () => {
 
     const row = result.annual.find(r => r.memberId === memberId)
     expect(row).toBeDefined()
-    // Sept + Oct(deduped to the 10h re-file) + Jan; Aug 2025 and Sept 2026 excluded by the predicate.
-    expect(row?.pace.elapsedEnrolled).toBe(3)
+    // Enrollment span Sept→Jan (5 months); Nov and Dec missed but still count. Actual is
+    // Sept 50 + Oct 10 (deduped re-file) + Jan 50 = 110. Sept 2026 excluded (next year).
+    expect(row?.pace.elapsedEnrolled).toBe(5)
     expect(row?.pace.actualToDate).toBe(110)
     // Dec 2025 is the expected month and was never filed → overdue.
     expect(row?.pace.reportingStatus).toBe('overdue')
