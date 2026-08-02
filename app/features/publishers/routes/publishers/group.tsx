@@ -52,8 +52,12 @@ export function loader({ params, context }: Route.LoaderArgs) {
         canManagePublisher,
         canViewPublishers,
         canViewEmergency,
+        // group.responsible/deputy.id are Member ids, so compare against the
+        // current user's linked Member id — not their UserAccount id.
         canManageActivity:
-          canManageActivity || group.responsible.id === currentUser.id || group.deputy?.id === currentUser.id,
+          canManageActivity ||
+          group.responsible.id === currentUser.member?.id ||
+          group.deputy?.id === currentUser.member?.id,
       },
     }
   })
