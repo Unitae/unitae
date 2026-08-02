@@ -158,6 +158,10 @@ beforeAll(async () => {
       },
     })
 
+    await tx.pioneerGoal.create({
+      data: { serviceYear: 2025, type: 'PionnierPermanant', monthlyHours: 55, congregationId: sourceId },
+    })
+
     const template = await tx.eventTemplate.create({
       data: {
         name: 'Test Template',
@@ -390,6 +394,7 @@ afterAll(async () => {
       await tx.attribution.deleteMany({})
       await tx.publisherActivity.deleteMany({})
       await tx.emergencyContact.deleteMany({})
+      await tx.pioneerGoal.deleteMany({})
       await tx.buildingResidentialData.deleteMany({})
       await tx.buildingAccess.deleteMany({})
       const territories = await tx.territory.findMany({ select: { id: true } })
@@ -480,6 +485,7 @@ async function importFromZip(buffer: Buffer, congregationId: number): Promise<vo
     await mod.updateMemberPublisherGroups(zip, db, idMap, congregationId)
     await mod.importPublisherActivities(zip, db, idMap, congregationId)
     await mod.importEmergencyContacts(zip, db, idMap, congregationId)
+    await mod.importPioneerGoals(zip, db, congregationId)
     await mod.importExternalSpeakers(zip, db, idMap, congregationId)
     await mod.importTerritories(zip, db, idMap, congregationId)
     await mod.importTerritoryCardOverlays(zip, db, idMap, congregationId)
@@ -532,6 +538,7 @@ describe('Export/Import round-trip', () => {
     expect(entityCounts.attributions).toBe(1)
     expect(entityCounts['publisher-activities']).toBe(1)
     expect(entityCounts['emergency-contacts']).toBe(1)
+    expect(entityCounts['pioneer-goals']).toBe(1)
     expect(entityCounts.events).toBe(1)
     expect(entityCounts['board-sections']).toBe(1)
     expect(entityCounts['board-documents']).toBe(1)
@@ -609,6 +616,7 @@ describe('Export/Import round-trip', () => {
       await tx.attribution.deleteMany({})
       await tx.publisherActivity.deleteMany({})
       await tx.emergencyContact.deleteMany({})
+      await tx.pioneerGoal.deleteMany({})
       await tx.buildingResidentialData.deleteMany({})
       await tx.buildingAccess.deleteMany({})
       const territories = await tx.territory.findMany({ select: { id: true } })
@@ -657,6 +665,11 @@ describe('Export/Import round-trip', () => {
       const emergencyContacts = await tx.emergencyContact.findMany({ where: { memberId: aliceMember.id } })
       expect(emergencyContacts).toHaveLength(1)
       expect(emergencyContacts[0]).toMatchObject({ name: 'Bob Contact', relationship: 'ami', phone: '0600000000' })
+
+      // Pioneer goal override (congregation-scoped, natural-key upsert) round-trips
+      const pioneerGoals = await tx.pioneerGoal.findMany({})
+      expect(pioneerGoals).toHaveLength(1)
+      expect(pioneerGoals[0]).toMatchObject({ serviceYear: 2025, type: 'PionnierPermanant', monthlyHours: 55 })
 
       const accounts = await tx.userAccount.findMany({ include: { member: true } })
       expect(accounts).toHaveLength(2)

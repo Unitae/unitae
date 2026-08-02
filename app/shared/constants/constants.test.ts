@@ -102,8 +102,8 @@ describe('limits — time windows', () => {
 })
 
 describe('limits — progress / thresholds', () => {
-  test('IMPORT_TOTAL_STEPS is 38', () => {
-    expect(IMPORT_TOTAL_STEPS).toBe(38)
+  test('IMPORT_TOTAL_STEPS is 39', () => {
+    expect(IMPORT_TOTAL_STEPS).toBe(39)
   })
 
   test('IMPORT_PROGRESS_CAP reserves the last 5% for finalization', () => {

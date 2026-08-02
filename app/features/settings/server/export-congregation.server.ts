@@ -247,6 +247,19 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
         }),
     },
     {
+      name: 'pioneer-goals',
+      // Congregation-scoped, no cross-entity references: the natural key is
+      // (serviceYear, type). Ids are not exported — the importer upserts on that key.
+      export: () =>
+        db.pioneerGoal.findMany({
+          select: {
+            serviceYear: true,
+            type: true,
+            monthlyHours: true,
+          },
+        }),
+    },
+    {
       name: 'external-speakers',
       export: () =>
         db.externalSpeaker.findMany({

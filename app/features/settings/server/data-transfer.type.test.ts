@@ -75,8 +75,8 @@ describe('EntityIdMap', () => {
 })
 
 describe('ARCHIVE_VERSION', () => {
-  it('is the current 2.2 schema version', () => {
-    expect(ARCHIVE_VERSION).toBe('2.2')
+  it('is the current 2.3 schema version', () => {
+    expect(ARCHIVE_VERSION).toBe('2.3')
   })
 })
 
@@ -99,6 +99,10 @@ describe('ENTITY_FILES', () => {
 
   it('has members before emergency-contacts (dependency order)', () => {
     expect(ENTITY_FILES.indexOf('members')).toBeLessThan(ENTITY_FILES.indexOf('emergency-contacts'))
+  })
+
+  it('includes pioneer-goals (congregation-scoped, no cross-entity refs)', () => {
+    expect(ENTITY_FILES).toContain('pioneer-goals')
   })
 
   it('has territories before attributions (dependency order)', () => {
