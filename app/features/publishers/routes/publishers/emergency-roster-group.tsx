@@ -22,7 +22,6 @@ export function loader({ params, context }: Route.LoaderArgs) {
     })
     if (!group) throw redirect('/publishers')
 
-    // Global viewer/manager (any group) OR responsible/deputy of this group.
     const canView = canViewEmergencyInfo({
       hasViewer: permissions.has(Permission.EmergencyInfoViewer),
       hasManager: permissions.has(Permission.EmergencyInfoManager),

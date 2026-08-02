@@ -13,8 +13,7 @@ export type EmergencyInfoViewData = {
   emergencyContacts: EmergencyContactView[]
 }
 
-// Read-only presentation of a publisher's emergency info. Shared by the
-// publisher detail card and the emergency page's viewer mode.
+// Shared by the publisher detail card and the emergency page's viewer mode.
 export default function EmergencyInfoView({ info }: { info: EmergencyInfoViewData }) {
   return (
     <div className="flex flex-col gap-4">

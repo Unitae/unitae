@@ -52,8 +52,8 @@ export type CreateMemberParams = MemberFormFields & {
   actorId: number
 }
 
-// Creates a Member with its contact info (including `email` — a contact email,
-// NOT a login). A login is provisioned separately via `linkAccountToMember`.
+// `email` is the Member's contact email, NOT a login — a login is provisioned
+// separately via `linkAccountToMember`.
 export async function createMember(db: TransactionClient, congregation: CongregationInfo, params: CreateMemberParams) {
   const limits = new LimitService(db, congregation)
   await limits.errorIfWouldGoOverLimit('members')
@@ -95,9 +95,8 @@ export async function createDirect(
 
 export type UpdateIdentityParams = MemberFormFields
 
-// Updates a Member's identity + contact info. `email` here is the contact
-// email on the Member; the login email lives on UserAccount and is managed via
-// the account/link-login flow, not here.
+// `email` here is the Member's contact email — the login email lives on
+// UserAccount and is managed via the link-login flow, not here.
 export async function updateIdentity(
   db: TransactionClient,
   id: number,

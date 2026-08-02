@@ -55,9 +55,6 @@ export async function updateEmergencyInfo(
   return member
 }
 
-// Drops every emergency contact of a member. Called from the anonymize path:
-// anonymize is an UPDATE (not a row delete), so the `onDelete: Cascade` FK does
-// not fire — the third-party PII must be removed explicitly.
 export async function purgeEmergencyContacts(db: TransactionClient, memberId: number, congregationId: number) {
   await db.emergencyContact.deleteMany({ where: { memberId, congregationId } })
 }

@@ -1,9 +1,6 @@
-// Whether a user may manage a publisher group's activity: either they hold the
-// global Activity Manager permission, or they are that group's responsible or
-// deputy. The scope check runs on the **Member** id — `PublisherGroup`'s
-// responsible/deputy are Members, so callers must pass the current user's
-// linked Member id (not their UserAccount id). Pure so it can be unit-tested in
-// isolation.
+// `PublisherGroup`'s responsible/deputy are Members, so `myMemberId` must be the
+// current user's linked Member id (not their UserAccount id) — passing the wrong
+// id space silently denies access. Pure so it can be unit-tested in isolation.
 
 export type GroupActivityAccessInput = {
   hasActivityManager: boolean

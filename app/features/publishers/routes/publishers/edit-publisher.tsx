@@ -77,7 +77,6 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const groups = await db.publisherGroup.findMany({ where: { congregationId: currentUser.congregationId } })
     const { account, ...member } = result
     return {
-      // member.email is the contact email; hasLogin drives the link/unlink UI.
       user: {
         ...member,
         hasLogin: account != null,
@@ -119,7 +118,7 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
                     </DialogHeader>
                     <div className="my-4 flex flex-col gap-2">
                       <Label htmlFor="link-login-email">{m.publishers_edit_link_login_email_label()}</Label>
-                      {/* Prefill the login email from the member's contact email; editable. */}
+                      {/* Seed the login email from the contact email — they may then diverge. */}
                       <Input id="link-login-email" name="email" type="email" defaultValue={user.email ?? ''} required />
                     </div>
                     <DialogFooter>

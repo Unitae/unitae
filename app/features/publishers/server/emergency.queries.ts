@@ -1,7 +1,5 @@
 import type { TransactionClient } from '~/shared/infra/db.server'
 
-// Read side for emergency info (CQRS-lite): no mutations here.
-
 const CONTACT_SELECT = {
   id: true,
   name: true,
@@ -9,9 +7,7 @@ const CONTACT_SELECT = {
   phone: true,
 } as const
 
-// Loads a member's emergency info for the dedicated emergency page / detail
-// card: the two flags, the contacts, plus the fields the access check
-// (`publisherGroupId`) and the page header (`firstname`/`lastname`) need.
+// `publisherGroupId` is selected for the caller's access check, not for display.
 export function getEmergencyInfoForMember(db: TransactionClient, memberId: number, congregationId: number) {
   return db.member.findFirst({
     where: { id: memberId, congregationId },
@@ -29,8 +25,6 @@ export function getEmergencyInfoForMember(db: TransactionClient, memberId: numbe
 
 export type EmergencyRosterScope = { groupId?: number }
 
-// Loads active members with their emergency info for the printable rosters,
-// optionally scoped to a single group. Sorted like the publisher list.
 export function getPublishersWithEmergencyInfo(
   db: TransactionClient,
   congregationId: number,
