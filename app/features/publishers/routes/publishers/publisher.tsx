@@ -406,7 +406,7 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
         </CardContent>
       </Card>
 
-      {emergency && <EmergencyCard info={emergency} canManage={roles.canManageEmergency} publisherId={publisher.id} />}
+      {pioneerActivity && <PioneerActivitySection serviceYear={serviceYear} activity={pioneerActivity} />}
 
       <Card>
         <CardHeader>
@@ -463,7 +463,7 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
         </CardContent>
       </Card>
 
-      {pioneerActivity && <PioneerActivitySection serviceYear={serviceYear} activity={pioneerActivity} />}
+      {emergency && <EmergencyCard info={emergency} canManage={roles.canManageEmergency} publisherId={publisher.id} />}
     </div>
   )
 }
