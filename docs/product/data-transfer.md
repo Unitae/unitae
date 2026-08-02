@@ -24,6 +24,7 @@ The archive contains all congregation data:
 - Territory map overlays and the congregation perimeter
 - Territory attributions
 - Publisher groups and activity records
+- Publisher emergency information — the DPA-card and survival-backpack flags travel with each member; emergency contacts are exported alongside them
 - Events, event kinds, and programme templates with parts, service roles, and the role gating that decides who can be assigned
 - Programme assignments (including the same role gating, copied per event)
 - The visiting-speaker registry
