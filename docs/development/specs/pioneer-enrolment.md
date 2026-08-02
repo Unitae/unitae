@@ -84,13 +84,14 @@ the **start** of the month with a chosen goal, and the hours **report** lands at
   month≤7)`.
 - **Core idea — separate plan from actual:** *plan* = `PioneerEnrolment`; *actual* =
   `PublisherActivity`. Pace = actual vs plan.
-- **Existing setting — kept, repurposed.** `CongregationSettingKey.AuxiliaryPioneerProfileActivated`
+- **Existing setting — kept, repurposed, renamed.** `CongregationSettingKey.AuxiliaryPioneerProfileActivated`
   means *"this congregation uses **permanent** auxiliary pioneers"* — today it gates whether
   `PionnierAuxiliaires` appears as a standing `Member.type` in the profile dropdown
   (`PublisherFieldServiceForm`, 6 call sites). Under this refactor it is **kept** and repurposed to gate
   whether the **permanent-auxiliary appointment** (an ongoing auxiliary stint) is offered in the
-  annual-appointment section (§10). **Monthly** auxiliary enrolment is always available, independent of
-  the setting.
+  standing-appointment section (§10); the TS symbol will be renamed to
+  `PermanentAuxiliaryPioneerProfileActivated` (DB value unchanged — §15.4). **Monthly** auxiliary
+  enrolment is always available, independent of the setting.
 
 ## 4. Conventions consulted
 
@@ -384,8 +385,11 @@ Enrolments are membership facts, not third-party PII — like activity rows, **p
 3. **`bulkUpdateType` (`member.aggregate.ts`)** — how does a mass type change reconcile with existing
    enrolments? *(Lean: out of scope / manual for now; document at implementation.)*
 4. **`AuxiliaryPioneerProfileActivated` (§3, §10) — RESOLVED (locked).** Kept and repurposed to gate
-   the **permanent-auxiliary** standing appointment; monthly auxiliary is always available. Existing
-   setting, schema entry, and stored values are unchanged.
+   the **permanent-auxiliary** standing appointment; monthly auxiliary is always available.
+   **Implementation will rename the TS symbol** `CongregationSettingKey.AuxiliaryPioneerProfileActivated`
+   → `PermanentAuxiliaryPioneerProfileActivated` (clearer intent), across all 6 call sites. The **DB
+   value string** (`'auxiliary-pioneer-profile-active'`) is **unchanged**, so no data migration and no
+   change to stored settings — a pure identifier rename.
 
 ## 16. Known simplifications (documented, not blockers)
 
