@@ -41,13 +41,10 @@ export const BUILT_IN_ROLE_PREDICATES: Record<BuiltInRoleKey, (m: MemberFlags) =
   anointed: m => m.leftAt == null && m.isPublisher && m.baptismDate != null && m.isAnointed,
   elder: m => m.leftAt == null && m.baptismDate != null && m.isMale === true && m.isHelder,
   'assistant-servant': m => m.leftAt == null && m.baptismDate != null && m.isMale === true && m.isServant,
-  pioneer: m =>
-    m.leftAt == null &&
-    m.isPublisher &&
-    m.baptismDate != null &&
-    // Compare against the Prisma enum *names* (what the client returns), not the `@map`-ed DB
-    // strings — the raw-string comparison silently stopped matching at the enum-conversion migration.
-    (m.type === PublisherType.PionnierPermanant || m.type === PublisherType.PionnierAuxiliaires),
+  // Any pioneer type — permanent, auxiliary, special, or missionary (everything but Normal).
+  // Compare against the Prisma enum *names* (what the client returns), not the `@map`-ed DB strings —
+  // the raw-string comparison silently stopped matching at the enum-conversion migration.
+  pioneer: m => m.leftAt == null && m.isPublisher && m.baptismDate != null && m.type !== PublisherType.Normal,
 }
 
 function diffBuiltInAssignments(

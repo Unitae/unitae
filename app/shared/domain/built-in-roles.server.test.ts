@@ -136,24 +136,16 @@ describe('BUILT_IN_ROLE_PREDICATES', () => {
     )
   })
 
-  it('pioneer requires publisher + baptism + permanent or auxiliary type', () => {
+  it('pioneer requires publisher + baptism + any pioneer type (permanent, auxiliary, special, missionary)', () => {
     const baptized = new Date()
-    expect(
-      BUILT_IN_ROLE_PREDICATES.pioneer({
-        ...BASE,
-        isPublisher: true,
-        baptismDate: baptized,
-        type: PublisherType.PionnierPermanant,
-      }),
-    ).toBe(true)
-    expect(
-      BUILT_IN_ROLE_PREDICATES.pioneer({
-        ...BASE,
-        isPublisher: true,
-        baptismDate: baptized,
-        type: PublisherType.PionnierAuxiliaires,
-      }),
-    ).toBe(true)
+    for (const type of [
+      PublisherType.PionnierPermanant,
+      PublisherType.PionnierAuxiliaires,
+      PublisherType.PionnierSpecial,
+      PublisherType.Missionnaire,
+    ]) {
+      expect(BUILT_IN_ROLE_PREDICATES.pioneer({ ...BASE, isPublisher: true, baptismDate: baptized, type })).toBe(true)
+    }
 
     // Normal publisher is not a pioneer
     expect(
