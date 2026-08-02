@@ -835,6 +835,38 @@ describe('Export/Import round-trip', () => {
       expect(visibility[0].roleId).toBe(elderOnTarget.id)
     })
   })
+
+  it('upserts a pioneer goal on re-import: refreshes monthlyHours for an existing (serviceYear, type)', async () => {
+    const { importPioneerGoals } = await import('./import-congregation.server')
+    const cong = await testDb.congregation.create({
+      data: { name: `Upsert ${ts}`, slug: `upsert-${ts}`, active: true },
+    })
+    try {
+      // Congregation already holds an override at 50 h for (2025, PionnierPermanant)
+      await withScope(cong.id, tx =>
+        tx.pioneerGoal.create({
+          data: { serviceYear: 2025, type: 'PionnierPermanant', monthlyHours: 50, congregationId: cong.id },
+        }),
+      )
+
+      // Archive carries the same natural key at 55 h — the import must refresh, not throw on the unique key
+      const zip = new JsZip()
+      const dataDir = zip.folder('data')!
+      dataDir.file(
+        'pioneer-goals.ndjson',
+        `${JSON.stringify({ serviceYear: 2025, type: 'PionnierPermanant', monthlyHours: 55 })}\n`,
+      )
+
+      await withScope(cong.id, tx => importPioneerGoals(zip, tx, cong.id))
+
+      const goals = await withScope(cong.id, tx => tx.pioneerGoal.findMany({}))
+      expect(goals).toHaveLength(1)
+      expect(goals[0].monthlyHours).toBe(55)
+    } finally {
+      await withScope(cong.id, tx => tx.pioneerGoal.deleteMany({}))
+      await testDb.congregation.delete({ where: { id: cong.id } })
+    }
+  })
 })
 
 // Legacy v1.x archive support is deferred — v1.x export shipped a single `users.ndjson`
