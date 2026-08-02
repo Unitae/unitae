@@ -15,7 +15,7 @@ Unitae is a web application designed specifically for Jehovah's Witnesses congre
 - **Publisher management** — Track publisher profiles, organize them into groups, and record monthly field service activity
 - **Virtual display board** — Upload and organize PDF documents for congregation members, with visibility scheduling and highlighting
 - **Event management** — Plan programs, track event kinds, and manage personal days off
-- **Fine-grained access control** — 21 permissions, bundled into built-in or custom roles, to control who can view and manage each feature
+- **Fine-grained access control** — 24 permissions, bundled into built-in or custom roles, to control who can view and manage each feature
 
 ## How Unitae Differs
 
