@@ -2768,6 +2768,10 @@
     "publishers_enrolment_monthly_goal_15": "15 heures",
     "publishers_enrolment_monthly_goal_30": "30 heures",
     "publishers_enrolment_monthly_submit": "Inscrire",
+    "publishers_enrolment_history_title": "Affectations enregistrées",
+    "publishers_enrolment_goal_suffix": "objectif {goal} h",
+    "publishers_enrolment_period_range": "{from} – {to}",
+    "publishers_enrolment_period_single": "{month}",
     "publishers_enrolment_enrolled_success": "Affectation enregistrée.",
     "publishers_enrolment_ended_success": "Affectation clôturée.",
     "publishers_enrolment_error": "L'affectation n'a pas pu être enregistrée."

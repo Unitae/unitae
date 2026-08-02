@@ -58,13 +58,43 @@ interface StandingEnrolment {
   startYear: number
 }
 
+interface EnrolmentRow {
+  id: number
+  type: PublisherType
+  startMonth: number
+  startYear: number
+  endMonth: number | null
+  endYear: number | null
+  monthlyGoal: number | null
+}
+
 interface PioneerEnrolmentFieldsProps {
   currentType: PublisherType
   activeStanding: StandingEnrolment | null
+  enrolments: EnrolmentRow[]
   monthOptions: { month: number; year: number }[]
   yearOptions: number[]
   // When true the setting is off → the permanent-auxiliary option is hidden (monthly aux stays).
   hidePermanentAuxiliary: boolean
+}
+
+function periodLabel(e: EnrolmentRow): string {
+  const start = `${MONTH_LABELS[e.startMonth]()} ${e.startYear}`
+  if (e.endMonth == null || e.endYear == null) return start
+  if (e.endMonth === e.startMonth && e.endYear === e.startYear) {
+    return m.publishers_enrolment_period_single({ month: start })
+  }
+  return m.publishers_enrolment_period_range({ from: start, to: `${MONTH_LABELS[e.endMonth]()} ${e.endYear}` })
+}
+
+// Auxiliary covers two shapes — a single-month stint is a *monthly* auxiliary, an ongoing one is
+// *permanent* — so the history distinguishes them; every other type reads from profileLabel.
+function enrolmentTypeLabel(e: EnrolmentRow): string {
+  if (e.type === PublisherType.PionnierAuxiliaires) {
+    const singleMonth = e.endMonth != null && e.endMonth === e.startMonth && e.endYear === e.startYear
+    return singleMonth ? m.publishers_enrolment_monthly_title() : m.publishers_enrolment_standing_permanent_auxiliary()
+  }
+  return profileLabel(e.type)
 }
 
 // The pioneer-service section of the publisher edit page. The current profile is read-only (kept in
@@ -74,6 +104,7 @@ interface PioneerEnrolmentFieldsProps {
 export default function PioneerEnrolmentFields({
   currentType,
   activeStanding,
+  enrolments,
   monthOptions,
   yearOptions,
   hidePermanentAuxiliary,
@@ -89,6 +120,12 @@ export default function PioneerEnrolmentFields({
 
   const selectedMonth = monthOptions[Number(monthIndex)] ?? now
   const isMonthly = mode === 'monthly-aux'
+
+  // Everything except the active standing appointment (shown with its own close form), most recent
+  // first — so a manager sees the monthly auxiliary they just saved, with its goal.
+  const history = enrolments
+    .filter(e => e.id !== activeStanding?.id)
+    .sort((a, b) => b.startYear * 12 + b.startMonth - (a.startYear * 12 + a.startMonth))
 
   return (
     <Card>
@@ -255,6 +292,23 @@ export default function PioneerEnrolmentFields({
               {isMonthly ? m.publishers_enrolment_monthly_submit() : m.publishers_enrolment_standing_submit()}
             </Button>
           </Form>
+        )}
+
+        {/* Recorded appointments — confirms saved enrolments (esp. monthly auxiliary with its goal). */}
+        {history.length > 0 && (
+          <div className="space-y-2 border-t pt-4">
+            <h3 className="font-semibold text-sm">{m.publishers_enrolment_history_title()}</h3>
+            <ul className="space-y-1 text-sm">
+              {history.map(e => (
+                <li key={e.id} className="text-muted-foreground">
+                  <span className="text-foreground">{enrolmentTypeLabel(e)}</span> · {periodLabel(e)}
+                  {e.monthlyGoal != null && (
+                    <> · {m.publishers_enrolment_goal_suffix({ goal: String(e.monthlyGoal) })}</>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </CardContent>
     </Card>

@@ -76,6 +76,15 @@ export function loader({ params, context }: Route.LoaderArgs) {
             startYear: activeStanding.startYear,
           }
         : null,
+      enrolments: enrolments.map(e => ({
+        id: e.id,
+        type: e.type,
+        startMonth: e.startMonth,
+        startYear: e.startYear,
+        endMonth: e.endMonth,
+        endYear: e.endYear,
+        monthlyGoal: e.monthlyGoal,
+      })),
       monthOptions: enrolmentMonthOptions(new Date()),
       yearOptions: YEAR_OPTIONS,
     }
@@ -83,7 +92,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 }
 
 export default function EditPublisher({ loaderData }: Route.ComponentProps) {
-  const { user, groups, hideAuxiliaryPioneer, activeStanding, monthOptions, yearOptions } = loaderData
+  const { user, groups, hideAuxiliaryPioneer, activeStanding, enrolments, monthOptions, yearOptions } = loaderData
   const { blocker, markDirty } = useUnsavedChanges()
   const [gender, setGender] = useState<'male' | 'female' | null>(user.isMale ? 'male' : 'female')
 
@@ -119,6 +128,7 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
       <PioneerEnrolmentFields
         currentType={user.type}
         activeStanding={activeStanding}
+        enrolments={enrolments}
         monthOptions={monthOptions}
         yearOptions={yearOptions}
         hidePermanentAuxiliary={hideAuxiliaryPioneer}

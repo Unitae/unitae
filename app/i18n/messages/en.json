@@ -2727,6 +2727,10 @@
     "publishers_enrolment_monthly_goal_15": "15 hours",
     "publishers_enrolment_monthly_goal_30": "30 hours",
     "publishers_enrolment_monthly_submit": "Enrol",
+    "publishers_enrolment_history_title": "Recorded appointments",
+    "publishers_enrolment_goal_suffix": "goal {goal} h",
+    "publishers_enrolment_period_range": "{from} – {to}",
+    "publishers_enrolment_period_single": "{month}",
     "publishers_enrolment_enrolled_success": "Appointment saved.",
     "publishers_enrolment_ended_success": "Appointment ended.",
     "publishers_enrolment_error": "The appointment could not be saved."
