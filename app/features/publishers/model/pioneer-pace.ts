@@ -20,6 +20,10 @@ const RECENT_MONTHS_WINDOW = 3
 export type RiskBucket = 'green' | 'amber' | 'red'
 export type ReportingStatus = 'filed' | 'awaiting' | 'overdue'
 
+// A calendar-month reference (0-indexed month + calendar year) — the lightweight shape shared
+// by the ordered service-year list, the "current expected month", and the not-enrolled markers.
+export type MonthRef = { month: number; year: number }
+
 export interface PioneerMonth {
   month: number // 0-indexed calendar month
   year: number
@@ -45,7 +49,7 @@ export interface PaceInput {
   // preaching as a regular publisher). These are excluded from the enrolled span, so a
   // stop-and-restart never reads as a deficit. Months with NO row at all are deliberately not
   // listed here: they stay owed, matching a missed report.
-  notEnrolledMonths?: { month: number; year: number }[]
+  notEnrolledMonths?: MonthRef[]
 }
 
 export interface PioneerPace {
@@ -82,7 +86,7 @@ export function isEditableServiceYear(serviceYear: number, currentServiceYear: n
 }
 
 // Ordered Sept…Aug of the service year.
-export function serviceYearMonths(serviceYear: number): { month: number; year: number }[] {
+export function serviceYearMonths(serviceYear: number): MonthRef[] {
   return Array.from({ length: MONTHS_IN_YEAR }, (_, i) => {
     const abs = serviceYear * MONTHS_IN_YEAR + FIRST_MONTH_OF_THEOCRATIC_YEAR + i
     return { month: abs % MONTHS_IN_YEAR, year: Math.floor(abs / MONTHS_IN_YEAR) }
@@ -100,7 +104,7 @@ function firstAbs(serviceYear: number): number {
 // The most recent *completed* service-year month as of `now`, or null until at least one
 // service-year month has completed (i.e. through the whole of September, the first month).
 // Clamped to August once the year is over.
-export function currentExpectedMonth(serviceYear: number, now: Date): { month: number; year: number } | null {
+export function currentExpectedMonth(serviceYear: number, now: Date): MonthRef | null {
   const start = firstAbs(serviceYear)
   const end = start + MONTHS_IN_YEAR - 1
   const previousCompleted = absMonth(now.getMonth(), now.getFullYear()) - 1
@@ -148,7 +152,7 @@ interface WindowInput {
   currentIndex: number
   enrolledSinceYearStart: boolean
   concluded: boolean
-  notEnrolledMonths: { month: number; year: number }[]
+  notEnrolledMonths: MonthRef[]
 }
 
 // Resolve the enrolled span and its goal. A concluded pioneer's window ends at their last
@@ -159,7 +163,7 @@ interface WindowInput {
 // start prorates.
 function resolveEnrollmentWindow(input: WindowInput): EnrollmentWindow {
   const { sorted, serviceYear, monthlyRate, currentIndex, enrolledSinceYearStart, concluded, notEnrolledMonths } = input
-  const idx = (m: { month: number; year: number }) => absMonth(m.month, m.year) - firstAbs(serviceYear)
+  const idx = (m: MonthRef) => absMonth(m.month, m.year) - firstAbs(serviceYear)
   const lastServedIndex = sorted.length > 0 ? idx(sorted[sorted.length - 1]) : -1
   const referenceIndex = concluded ? lastServedIndex : currentIndex
 
@@ -168,17 +172,18 @@ function resolveEnrollmentWindow(input: WindowInput): EnrollmentWindow {
   const reportedToDate = referenceIndex < 0 ? [] : sorted.filter(m => idx(m) <= referenceIndex)
   const startIndex = enrolledSinceYearStart ? 0 : reportedToDate.length > 0 ? idx(reportedToDate[0]) : null
 
-  // Months inside the span where he was explicitly a non-pioneer — subtracted so the gap is
-  // neither owed nor a deficit.
+  // Months inside the span where he was explicitly not this pioneer type (a regular publisher
+  // or a different pioneer type) — subtracted so the gap is neither owed nor a deficit.
   const gapsInSpan =
     startIndex === null ? 0 : notEnrolledMonths.filter(m => idx(m) >= startIndex && idx(m) <= referenceIndex).length
   const spanLength = startIndex !== null && referenceIndex >= 0 ? referenceIndex - startIndex + 1 : 0
   const elapsedEnrolled = Math.max(0, spanLength - gapsInSpan)
 
   // Annual goal: enrolled months so far plus the months still to come (assumed enrolled). A
-  // concluded pioneer has no remaining months, so this collapses to what they served.
+  // concluded pioneer has no remaining months, so this collapses to what they served; with no
+  // enrollment start yet (a promoted pioneer who hasn't reported) there is no goal to show.
   const remainingMonths = concluded ? 0 : currentIndex < 0 ? MONTHS_IN_YEAR : MONTHS_IN_YEAR - 1 - currentIndex
-  const fullYearTarget = monthlyRate * (elapsedEnrolled + remainingMonths)
+  const fullYearTarget = startIndex === null ? 0 : monthlyRate * (elapsedEnrolled + remainingMonths)
 
   return { reportedToDate, elapsedEnrolled, remainingMonths, fullYearTarget }
 }
