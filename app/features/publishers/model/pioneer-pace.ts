@@ -1,8 +1,9 @@
 // Pure pace/risk math for pioneer monitoring. No DB, no `.server` suffix.
-// Precondition (the caller's responsibility): `months` is already deduped to one row
-// per month and filtered to a single pioneer type, so `elapsedEnrolled === months.length`
-// treats "enrolled" as "reported". `now` is injected (congregation-tz date) so these
-// functions stay deterministic.
+// Precondition (the caller's responsibility): `months` is already deduped to one row per
+// month and filtered to a single pioneer type. Enrollment is measured as a *span* (start →
+// current expected month), so a missed month inside the span still counts toward the goal —
+// see computeElapsedEnrolled. `now` is injected (congregation-tz date) so these functions
+// stay deterministic.
 
 const FIRST_MONTH_OF_THEOCRATIC_YEAR = 8 // September (0-indexed)
 const MONTHS_IN_YEAR = 12
