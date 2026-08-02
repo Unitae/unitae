@@ -36,11 +36,11 @@ A conditional section that surfaces time-sensitive items from across features. I
 
 | Priority | Type | Condition | Link |
 |---|---|---|---|
-| 0 | Imminent part assignment | User has a programme part and the meeting is within 3 days | The board |
+| 0 | Imminent part assignment | User has a programme part and the meeting is within 3 days | The programme viewer for that meeting on the board (same deep link as the assignment email) |
 | 1 | Overdue territory | Territory due date is in the past | The territory page |
 | 1 | Day-off conflict on my own assignment | The user has an upcoming absence overlapping an event where *they* are assigned. Shown red, at the same tier as an overdue territory — a personal clash the user needs to resolve first. Only released events count; draft-event conflicts surface at release time on the programme list | The absences page |
 | 2 | Responsible-conflict card | For programme managers / template responsibles: at least one publisher scheduled on a programme they manage has an overlapping absence. Amber. Sits one tier below the user's own day-off clash so a manager scheduled on a part sees their personal conflict first | The programme list filtered on conflicts |
-| 3 | Imminent service role | User has a service role and the meeting is within 3 days | The board |
+| 3 | Imminent service role | User has a service role and the meeting is within 3 days | The programme viewer for that meeting on the board |
 | 4 | Due-soon territory | Territory due date is within 2 weeks | The territory page |
 | 5 | Unread documents | At least 1 visible document not yet viewed | The board |
 
@@ -59,36 +59,28 @@ Displays the member's currently assigned territories (active assignments where n
 
 Territories are sorted by due date (most urgent first). Clicking a territory navigates to the [personal territory view](territories.md#personal-territory-view).
 
-A *See all* link navigates to the full personal territories list at `/me/territories`.
+A *View my territories* button navigates to the full personal territories list at `/me/territories`. Like every card, the footer uses a specific action label (not a generic "see all") and is shown only when the card has content — hidden on the empty state.
 
 If the member has no assigned territories, an empty state is shown with guidance explaining that their territory manager will assign territories to them.
 
-## Next meeting
+## My upcoming assignments
 
-Shows the next scheduled meeting with the member's assignments highlighted. The card header displays the meeting name and date (e.g., *Midweek meeting — Wednesday 25 April*). Only [released](events.md#draft-and-released-events) events appear here — meetings still in draft are not shown.
+Shows the parts and service roles the member is scheduled for over the **next four weeks**, sorted soonest-first (up to 5). It replaces the older single "next meeting" view: because congregations meet twice a week, the very next meeting is almost always already covered by the [urgent strip](#urgent-strip). This card instead gives lead time on assignments further out, so a member can prepare a talk or demonstration well ahead.
 
-If the member has assignments for that meeting, they are listed with role badges:
+Each row shows:
 
-- **Part assignments** — Speaking or reading parts, with *Speaker* or *Assistant* badge and topic if available
-- **Service role assignments** — Roles like sound or stage, with *Service* badge
+- **Assignment name** — The part or role (e.g., *Bible reading*, *Sound*)
+- **Role badge** — *Speaker* (or the part's custom speaker label), *Reader* (or its reader label), or *Service* for a service role
+- **Meeting and date** — The meeting it belongs to and its date (e.g., *Midweek meeting — Wed 22 Apr*)
+- **Topic** — Shown when the part has one
 
-User assignments are visually highlighted with a tinted background.
+Each row is clickable and deep-links to the programme viewer for that meeting on the board — the same link the assignment email points at. Only [released](events.md#draft-and-released-events) events count — assignments on still-draft meetings do not appear. If the member has nothing scheduled in the window, an empty state is shown. A *View the programme* button opens the [display board](display-board.md) when there are assignments (hidden on the empty state).
 
-If the member has no assignments for the next meeting, a message is shown: *No assignments for this meeting*. If no meeting is scheduled at all, an empty state is displayed.
+## At-risk pioneers
 
-## Latest documents
+Members with the *Activity Viewer* permission see a widget flagging pioneers who are **behind pace** for the current service year. It shows the count of at-risk pioneers and a short list of the most-behind ones with their hour deficit, linking to the full [pioneers monitoring roster](publishers.md#pioneer-activity-monitoring). When no pioneer is behind, the card stays quiet.
 
-Shows the 5 most recently published documents on the [display board](display-board.md), including both uploaded PDFs and dynamic documents (publisher groups, pioneer lists, programmes).
-
-Each document displays:
-
-- **Title** — The document name (bold if unread, muted if already viewed)
-- **Publication date** — Displayed as relative time (e.g., *3 days ago*)
-- **Unread indicator** — A small blue dot marks documents the member has not yet viewed
-
-Clicking a document opens it in the board viewer. A *See all* link navigates to the full display board.
-
-Only documents within their visibility window are shown (respecting *Visible from* and *Visible until* dates).
+Because it is a manager-attention signal an overseer must not miss, it sits **near the top of the widget grid** (right after *My upcoming assignments*) rather than at the bottom — so it surfaces on the homepage the overseer already lands on without scrolling past everything else, matching the feature's proactive intent. On desktop it **spans the full width** of the grid, which both gives it presence and keeps the cards below it (absences, documents) in stable columns whether or not it is showing.
 
 ## My absences
 
@@ -100,11 +92,21 @@ If the member has no absences planned within the next 2 months, an informational
 
 When no absences are planned and no nudge is shown, a *Plan an absence* action button links directly to the absence creation form.
 
-The *See all* footer link is only shown when the member has absences to browse — it is hidden when the card shows the empty state or nudge.
+The *View my absences* footer button is only shown when the member has absences to browse — it is hidden when the card shows the empty state or nudge.
 
-## At-risk pioneers
+## Latest documents
 
-Members with the *Activity Viewer* permission see a widget flagging pioneers who are **behind pace** for the current service year. It shows the count of at-risk pioneers and a short list of the most-behind ones with their hour deficit, linking to the full [pioneers monitoring roster](publishers.md#pioneer-activity-monitoring). When no pioneer is behind, the card stays quiet. This surfaces the signal on the homepage the overseer already lands on, matching the feature's proactive intent.
+Shows the 5 most recently published documents on the [display board](display-board.md), including both uploaded PDFs and dynamic documents (publisher groups, pioneer lists, programmes).
+
+Each document displays:
+
+- **Title** — The document name (bold if unread, muted if already viewed)
+- **Publication date** — Displayed as relative time (e.g., *3 days ago*)
+- **Unread indicator** — A small blue dot marks documents the member has not yet viewed
+
+Clicking a document opens it in the board viewer. A *View the board* button navigates to the full display board — shown only when there are recent documents.
+
+Only documents within their visibility window are shown (respecting *Visible from* and *Visible until* dates).
 
 ## Resilience
 

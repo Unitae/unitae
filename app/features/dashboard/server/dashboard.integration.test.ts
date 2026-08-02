@@ -265,7 +265,7 @@ describe('getRecentDocuments (integration)', () => {
 
 describe('getNextMeeting (integration)', () => {
   it('returns the next future event with programme data', async () => {
-    const result = await withScope(congregationId, tx => getNextMeeting(tx, aliceId))
+    const result = await withScope(congregationId, tx => getNextMeeting(tx, aliceId, congregationId))
     expect(result).not.toBeNull()
     expect(result?.name).toContain('Future Meeting')
     expect(result?.eventParts.length).toBeGreaterThanOrEqual(2)
@@ -273,21 +273,21 @@ describe('getNextMeeting (integration)', () => {
   })
 
   it('identifies parts assigned to the user (as assignee)', async () => {
-    const result = await withScope(congregationId, tx => getNextMeeting(tx, aliceId))
+    const result = await withScope(congregationId, tx => getNextMeeting(tx, aliceId, congregationId))
     expect(result?.userPartIds).toHaveLength(1)
     const userPart = result?.eventParts.find(p => result.userPartIds.includes(p.id))
     expect(userPart?.name).toBe('Talk')
   })
 
   it('identifies parts assigned to the user (as assistant)', async () => {
-    const result = await withScope(congregationId, tx => getNextMeeting(tx, bobId))
+    const result = await withScope(congregationId, tx => getNextMeeting(tx, bobId, congregationId))
     // Bob is assistant on Talk and assignee on Reading
     expect(result?.userPartIds).toHaveLength(2)
     expect(result?.userServicePartIds).toHaveLength(1)
   })
 
   it('does not return past events', async () => {
-    const result = await withScope(congregationId, tx => getNextMeeting(tx, aliceId))
+    const result = await withScope(congregationId, tx => getNextMeeting(tx, aliceId, congregationId))
     expect(result?.id).not.toBe(pastEventId)
   })
 
@@ -311,7 +311,7 @@ describe('getNextMeeting (integration)', () => {
     })
 
     try {
-      const result = await withScope(congregationId, tx => getNextMeeting(tx, aliceId))
+      const result = await withScope(congregationId, tx => getNextMeeting(tx, aliceId, congregationId))
       expect(result?.name).toBe(`Future Meeting ${ts}`)
     } finally {
       await withScope(congregationId, async tx => {

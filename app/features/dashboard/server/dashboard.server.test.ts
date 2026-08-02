@@ -16,6 +16,12 @@ vi.mock('~/features/events/server/days-off.server', () => ({
   getNextDaysOffs: vi.fn(),
 }))
 
+// getNextMeeting deep-links via the shared board resolver (same one the
+// assignment emails use); mock it and assert the event handed to it.
+vi.mock('~/features/display-board/index.server', () => ({
+  resolveProgrammeLink: vi.fn(),
+}))
+
 const {
   getUserTerritories,
   getRecentDocuments,
@@ -26,10 +32,14 @@ const {
 } = await import('./dashboard.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const { getNextDaysOffs } = await import('~/features/events/server/days-off.server')
+const { resolveProgrammeLink } = await import('~/features/display-board/index.server')
+
+const CONGREGATION_ID = 7
 
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(db.role.findMany).mockResolvedValue([] as never)
+  vi.mocked(resolveProgrammeLink).mockResolvedValue('/board')
 })
 
 // --- getUserTerritories ---
@@ -135,7 +145,7 @@ describe('getRecentDocuments', () => {
 describe('getNextMeeting', () => {
   it('returns null when no upcoming event exists', async () => {
     vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
-    const result = await getNextMeeting(db, 1)
+    const result = await getNextMeeting(db, 1, CONGREGATION_ID)
     expect(result).toBeNull()
   })
 
@@ -176,7 +186,7 @@ describe('getNextMeeting', () => {
       ],
     } as never)
 
-    const result = await getNextMeeting(db, 42)
+    const result = await getNextMeeting(db, 42, CONGREGATION_ID)
     expect(result).not.toBeNull()
     expect(result?.userPartIds).toEqual([10])
     expect(result?.userServicePartIds).toEqual([20])
@@ -185,6 +195,28 @@ describe('getNextMeeting', () => {
     const parts = result?.eventParts ?? []
     expect(parts.find(p => p.id === 10)?.viewerRole).toBe('speaker')
     expect(parts.find(p => p.id === 11)?.viewerRole).toBeNull()
+  })
+
+  // The meeting carries its own board deep link so the urgent strip can point
+  // at the specific programme viewer instead of a generic /board — resolved
+  // through the same shared resolver as the assignment emails and the
+  // upcoming-assignments card.
+  it('resolves the board deep link via resolveProgrammeLink and returns it', async () => {
+    vi.mocked(db.event.findFirst).mockResolvedValue({
+      id: 55,
+      templateId: 9,
+      name: 'Midweek',
+      startDate: new Date(2026, 3, 25),
+      endDate: new Date(2026, 3, 25),
+      template: null,
+      eventParts: [],
+      eventServiceParts: [],
+    } as never)
+    vi.mocked(resolveProgrammeLink).mockResolvedValue('/board/dynamic/3/viewer?eventId=55')
+
+    const result = await getNextMeeting(db, 42, CONGREGATION_ID)
+    expect(result?.link).toBe('/board/dynamic/3/viewer?eventId=55')
+    expect(resolveProgrammeLink).toHaveBeenCalledWith(db, { id: 55, templateId: 9 }, CONGREGATION_ID)
   })
 
   it('tags viewerRole as reader when viewer is the assistant (previously mislabeled speaker in the UI)', async () => {
@@ -213,7 +245,7 @@ describe('getNextMeeting', () => {
       eventServiceParts: [],
     } as never)
 
-    const result = await getNextMeeting(db, 42)
+    const result = await getNextMeeting(db, 42, CONGREGATION_ID)
     expect(result?.userPartIds).toEqual([10])
     expect(result?.eventParts[0].viewerRole).toBe('reader')
   })
@@ -257,7 +289,7 @@ describe('getNextMeeting', () => {
       eventServiceParts: [],
     } as never)
 
-    const result = await getNextMeeting(db, 42)
+    const result = await getNextMeeting(db, 42, CONGREGATION_ID)
 
     expect(result?.eventParts[0]).toMatchObject({ speakerLabel: 'STUDENT-SENTINEL-42', readerLabel: null })
     expect(result?.eventParts[1]).toMatchObject({
@@ -293,7 +325,7 @@ describe('getNextMeeting', () => {
       eventServiceParts: [],
     } as never)
 
-    const result = await getNextMeeting(db, 42)
+    const result = await getNextMeeting(db, 42, CONGREGATION_ID)
     expect(result?.userPartIds).toEqual([])
     expect(result?.userServicePartIds).toEqual([])
   })
@@ -303,7 +335,7 @@ describe('getNextMeeting', () => {
   it('filters to status=released', async () => {
     vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
 
-    await getNextMeeting(db, 42)
+    await getNextMeeting(db, 42, CONGREGATION_ID)
 
     const call = vi.mocked(db.event.findFirst).mock.calls[0][0]
     const where = call?.where as Record<string, unknown>
@@ -317,7 +349,7 @@ describe('getNextMeeting', () => {
   it('uses NOT: { template: { key } } so null-template events are not silently dropped', async () => {
     vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
 
-    await getNextMeeting(db, 42)
+    await getNextMeeting(db, 42, CONGREGATION_ID)
 
     const call = vi.mocked(db.event.findFirst).mock.calls[0][0]
     const where = call?.where as Record<string, unknown>

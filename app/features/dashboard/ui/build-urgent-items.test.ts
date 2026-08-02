@@ -65,10 +65,12 @@ function makeNextMeeting(
     userServicePartIds = [] as number[],
     eventParts = [] as PartAssignment[],
     eventServiceParts = [] as ServicePartAssignment[],
+    link = '/board/dynamic/9/viewer?eventId=1',
   } = {},
 ) {
   return {
     id: 1,
+    templateId: 9,
     name: 'Réunion de semaine',
     startDate,
     endDate: new Date(startDate.getTime() + 2 * 60 * 60 * 1000), // +2h
@@ -77,6 +79,7 @@ function makeNextMeeting(
     eventServiceParts,
     userPartIds,
     userServicePartIds,
+    link,
   }
 }
 
@@ -181,7 +184,7 @@ describe('urgentPartAssignmentItems', () => {
     const items = urgentPartAssignmentItems(meeting)
     expect(items).toHaveLength(1)
     expect(items[0].priority).toBe(0)
-    expect(items[0].to).toBe('/board')
+    expect(items[0].to).toBe(meeting.link)
     expect(items[0].label).toContain('Discours')
   })
 
@@ -235,7 +238,7 @@ describe('urgentServicePartItems', () => {
     const items = urgentServicePartItems(meeting)
     expect(items).toHaveLength(1)
     expect(items[0].priority).toBe(3)
-    expect(items[0].to).toBe('/board')
+    expect(items[0].to).toBe(meeting.link)
   })
 })
 

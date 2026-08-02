@@ -1,4 +1,14 @@
-import { AlertTriangle, CalendarOff, CalendarPlus, ChevronRight, FileText, Info, MapPin, Mic, Plus } from 'lucide-react'
+import {
+  AlertTriangle,
+  CalendarClock,
+  CalendarOff,
+  CalendarPlus,
+  ChevronRight,
+  FileText,
+  Info,
+  MapPin,
+  Plus,
+} from 'lucide-react'
 import { Link } from 'react-router'
 
 import {
@@ -12,6 +22,10 @@ import {
 } from '~/features/dashboard/server/dashboard.server'
 import { type AtRiskPioneers, getAtRiskPioneers } from '~/features/dashboard/server/get-at-risk-pioneers.server'
 import { getResponsibleConflicts } from '~/features/dashboard/server/get-responsible-conflicts.server'
+import {
+  getUpcomingAssignments,
+  type UpcomingAssignment,
+} from '~/features/dashboard/server/get-upcoming-assignments.server'
 import { buildUrgentItems } from '~/features/dashboard/ui/build-urgent-items'
 import { OnboardingChecklist } from '~/features/dashboard/ui/OnboardingChecklist'
 import { partReaderLabel, partSpeakerLabel } from '~/features/events/model/part-labels'
@@ -77,6 +91,7 @@ export function loader({ context }: Route.LoaderArgs) {
       unreadDocumentCount,
       absences,
       nextMeeting,
+      upcomingAssignments,
       dayoffConflict,
       responsibleConflicts,
       atRiskPioneers,
@@ -93,7 +108,8 @@ export function loader({ context }: Route.LoaderArgs) {
           )
         : Promise.resolve(0),
       safeQuery('absences', currentUser.id, () => getUpcomingAbsences(db, currentUser.id, currentUser.congregationId)),
-      memberSafeQuery('next-meeting', mid => getNextMeeting(db, mid)),
+      memberSafeQuery('next-meeting', mid => getNextMeeting(db, mid, currentUser.congregationId)),
+      memberSafeQuery('upcoming-assignments', mid => getUpcomingAssignments(db, mid, currentUser.congregationId)),
       memberSafeQuery('dayoff-conflict', mid => getConflictingAssignments(db, mid)),
       canViewPrograms
         ? safeQuery('responsible-conflicts', currentUser.id, () =>
@@ -130,6 +146,7 @@ export function loader({ context }: Route.LoaderArgs) {
       recentDocuments,
       unreadDocumentCount,
       nextMeeting,
+      upcomingAssignments,
       absences,
       dayoffConflict,
       responsibleConflicts,
@@ -168,6 +185,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
     recentDocuments,
     unreadDocumentCount,
     nextMeeting,
+    upcomingAssignments,
     absences,
     dayoffConflict,
     responsibleConflicts,
@@ -198,10 +216,14 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
       {/* Hero greeting */}
       <div className="flex animate-fade-in-up flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="font-display text-lg text-muted-foreground tracking-tight sm:text-xl">
+          {/* sr-only greeting in the <h1> so the page heading reads
+              "Bonjour, {name}" rather than a bare first name; the visible
+              "Bonjour," line is decorative. */}
+          <p aria-hidden className="font-display text-lg text-muted-foreground tracking-tight sm:text-xl">
             {m.dashboard_greeting_hello()}
           </p>
           <h1 className="font-display font-semibold text-4xl tracking-tight md:text-5xl">
+            <span className="sr-only">{m.dashboard_greeting_hello()} </span>
             {currentUser.firstname ?? ''}
           </h1>
           <p className="mt-2 text-muted-foreground">{today}</p>
@@ -210,7 +232,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <Button variant="outline" size="sm" asChild>
             <Link to="/me/days-off/new">
               <CalendarPlus className="size-4" />
-              {m.dashboard_quick_action_plan_absence()}
+              {m.dashboard_plan_absence()}
             </Link>
           </Button>
           {(isAdmin || isTerritoriesManager) && (
@@ -235,7 +257,14 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
 
       {/* Urgent strip */}
       {urgentItems.length > 0 && (
-        <div className="flex animate-fade-in-up flex-col gap-2" style={{ animationDelay: '100ms' }}>
+        <section
+          aria-labelledby="dashboard-urgent-heading"
+          className="flex animate-fade-in-up flex-col gap-2"
+          style={{ animationDelay: '100ms' }}
+        >
+          <h2 id="dashboard-urgent-heading" className="sr-only">
+            {m.dashboard_urgent_section_title()}
+          </h2>
           {urgentItems.map(item => (
             <Link
               key={item.key}
@@ -250,7 +279,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
               <ChevronRight className="size-4 text-muted-foreground" />
             </Link>
           ))}
-        </div>
+        </section>
       )}
 
       {/* Widget grid */}
@@ -259,19 +288,22 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <TerritoriesCard territories={territories} />
         </div>
         <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-          <NextMeetingCard meeting={nextMeeting} />
+          <UpcomingAssignmentsCard assignments={upcomingAssignments} />
         </div>
-        <div className="animate-fade-in-up" style={{ animationDelay: '250ms' }}>
-          <DocumentsCard documents={recentDocuments} />
-        </div>
-        <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-          <AbsencesCard absences={absences?.upcoming ?? null} shouldNudge={absences?.shouldNudge ?? false} />
-        </div>
+        {/* Promoted above the general-state cards so an overseer sees behind-pace
+            pioneers without scrolling. Full-width so toggling it doesn't reshuffle
+            which column the absences/documents cards land in. */}
         {atRiskPioneers != null && atRiskPioneers.count > 0 && (
-          <div className="animate-fade-in-up" style={{ animationDelay: '350ms' }}>
+          <div className="animate-fade-in-up md:col-span-2" style={{ animationDelay: '250ms' }}>
             <PioneersAtRiskCard data={atRiskPioneers} />
           </div>
         )}
+        <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+          <AbsencesCard absences={absences?.upcoming ?? null} shouldNudge={absences?.shouldNudge ?? false} />
+        </div>
+        <div className="animate-fade-in-up" style={{ animationDelay: '350ms' }}>
+          <DocumentsCard documents={recentDocuments} />
+        </div>
       </div>
     </div>
   )
@@ -298,9 +330,12 @@ function PioneersAtRiskCard({ data }: { data: AtRiskPioneers }) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <ul className="flex flex-col gap-2">
+        {/* Grid so pioneers flow into columns and use the full-width card's
+            space. The pill hugs its own name (no justify-between) so it can't
+            be misread as belonging to the next column's pioneer. */}
+        <ul className="grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
           {data.pioneers.map(pioneer => (
-            <li key={pioneer.memberId} className="flex items-center justify-between gap-2 text-sm">
+            <li key={pioneer.memberId} className="flex items-center gap-2 text-sm">
               <div className="min-w-0">
                 <Link to={`/publishers/${pioneer.memberId}/view#activity`} className="font-medium hover:text-primary">
                   {pioneer.firstname} {pioneer.lastname}
@@ -309,9 +344,7 @@ function PioneersAtRiskCard({ data }: { data: AtRiskPioneers }) {
                   <div className="truncate text-muted-foreground text-xs">{formatGroupName(pioneer.groupName)}</div>
                 )}
               </div>
-              <Badge variant="destructive">
-                {m.dashboard_pioneers_at_risk_deficit({ hours: String(pioneer.deficit) })}
-              </Badge>
+              <Badge variant="danger">{m.dashboard_pioneers_at_risk_deficit({ hours: String(pioneer.deficit) })}</Badge>
             </li>
           ))}
         </ul>
@@ -365,82 +398,83 @@ function TerritoriesCard({ territories }: { territories: Awaited<ReturnType<type
           </div>
         )}
       </CardContent>
-      <CardFooter className="mt-auto">
-        <Button variant="link" asChild className="px-0">
-          <Link to="/me/territories">{m.dashboard_view_all()}</Link>
-        </Button>
-      </CardFooter>
+      {/* Footer link only when the list is non-empty — matches the other cards. */}
+      {territories != null && territories.length > 0 && (
+        <CardFooter className="mt-auto">
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/me/territories">
+              {m.dashboard_territories_link()}
+              <ChevronRight className="size-4" />
+            </Link>
+          </Button>
+        </CardFooter>
+      )}
     </Card>
   )
 }
 
-function NextMeetingCard({ meeting }: { meeting: Awaited<ReturnType<typeof getNextMeeting>> | null }) {
-  if (meeting === null) {
-    return (
-      <Card className="h-full">
-        <CardHeader>
-          <CardTitle>{m.dashboard_next_meeting()}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <EmptyState icon={Mic} title={m.dashboard_next_meeting_no_event()} />
-        </CardContent>
-      </Card>
-    )
-  }
+function assignmentRoleLabel(assignment: UpcomingAssignment): string {
+  if (assignment.role === 'service') return m.dashboard_upcoming_assignments_service()
+  if (assignment.role === 'reader') return partReaderLabel(assignment)
+  return partSpeakerLabel(assignment)
+}
 
-  const meetingDate = new Date(meeting.startDate).toLocaleDateString('fr-FR', {
-    weekday: 'long',
+function formatMeetingDate(date: Date | string): string {
+  return new Date(date).toLocaleDateString('fr-FR', {
+    weekday: 'short',
     day: 'numeric',
-    month: 'long',
+    month: 'short',
   })
+}
 
-  const hasUserAssignments = meeting.userPartIds.length > 0 || meeting.userServicePartIds.length > 0
-
+function UpcomingAssignmentsCard({ assignments }: { assignments: UpcomingAssignment[] | null }) {
   return (
     <Card className="h-full">
       <CardHeader>
-        <div>
-          <CardTitle>{m.dashboard_next_meeting()}</CardTitle>
-          <p className="mt-0.5 text-muted-foreground text-sm">
-            {meeting.name} — {meetingDate}
-          </p>
-        </div>
+        <CardTitle>{m.dashboard_upcoming_assignments()}</CardTitle>
       </CardHeader>
       <CardContent>
-        {!hasUserAssignments ? (
-          <p className="text-muted-foreground text-sm">{m.dashboard_next_meeting_no_assignments()}</p>
+        {assignments == null ? (
+          <WidgetError />
+        ) : assignments.length === 0 ? (
+          <EmptyState
+            icon={CalendarClock}
+            title={m.dashboard_upcoming_assignments_empty()}
+            description={m.dashboard_upcoming_assignments_empty_hint()}
+          />
         ) : (
           <div className="flex flex-col gap-1.5">
-            {meeting.eventParts
-              .filter(p => meeting.userPartIds.includes(p.id))
-              .map(part => {
-                const roleLabel = part.viewerRole === 'reader' ? partReaderLabel(part) : partSpeakerLabel(part)
-
-                return (
-                  <div key={part.id} className="rounded-lg bg-primary/5 px-3 py-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-sm">{part.name}</span>
-                      <Badge variant="outline" className="text-xs">
-                        {roleLabel}
-                      </Badge>
-                    </div>
-                    {part.topic && <p className="mt-0.5 text-muted-foreground text-xs">{part.topic}</p>}
-                  </div>
-                )
-              })}
-            {meeting.eventServiceParts
-              .filter(r => meeting.userServicePartIds.includes(r.id))
-              .map(role => (
-                <div key={role.id} className="flex items-center justify-between rounded-lg bg-primary/5 px-3 py-2">
-                  <span className="font-medium text-sm">{role.name}</span>
+            {assignments.map(assignment => (
+              <Link
+                key={assignment.key}
+                to={assignment.link}
+                className="rounded-lg bg-primary/5 px-3 py-2 transition-colors hover:bg-primary/10"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium text-sm">{assignment.name}</span>
                   <Badge variant="outline" className="text-xs">
-                    {m.dashboard_next_meeting_assigned_as_service()}
+                    {assignmentRoleLabel(assignment)}
                   </Badge>
                 </div>
-              ))}
+                <p className="mt-0.5 text-muted-foreground text-xs">
+                  {assignment.eventName} — {formatMeetingDate(assignment.eventStartDate)}
+                </p>
+                {assignment.topic && <p className="mt-0.5 text-muted-foreground text-xs">{assignment.topic}</p>}
+              </Link>
+            ))}
           </div>
         )}
       </CardContent>
+      {assignments != null && assignments.length > 0 && (
+        <CardFooter className="mt-auto">
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/board">
+              {m.dashboard_assignments_link()}
+              <ChevronRight className="size-4" />
+            </Link>
+          </Button>
+        </CardFooter>
+      )}
     </Card>
   )
 }
@@ -479,11 +513,16 @@ function DocumentsCard({ documents }: { documents: Awaited<ReturnType<typeof get
           </div>
         )}
       </CardContent>
-      <CardFooter className="mt-auto">
-        <Button variant="link" asChild className="px-0">
-          <Link to="/board">{m.dashboard_view_all()}</Link>
-        </Button>
-      </CardFooter>
+      {documents != null && documents.length > 0 && (
+        <CardFooter className="mt-auto">
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/board">
+              {m.dashboard_documents_link()}
+              <ChevronRight className="size-4" />
+            </Link>
+          </Button>
+        </CardFooter>
+      )}
     </Card>
   )
 }
@@ -503,7 +542,7 @@ function AbsencesCard({
           <Button variant="ghost" size="icon-xs" asChild>
             <Link to="/me/days-off/new">
               <Plus className="size-4" />
-              <span className="sr-only">{m.dashboard_quick_action_plan_absence()}</span>
+              <span className="sr-only">{m.dashboard_plan_absence()}</span>
             </Link>
           </Button>
         </div>
@@ -548,8 +587,11 @@ function AbsencesCard({
       </CardContent>
       {absences != null && absences.length > 0 && (
         <CardFooter className="mt-auto">
-          <Button variant="link" asChild className="px-0">
-            <Link to="/me/days-off">{m.dashboard_view_all()}</Link>
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/me/days-off">
+              {m.dashboard_absences_link()}
+              <ChevronRight className="size-4" />
+            </Link>
           </Button>
         </CardFooter>
       )}

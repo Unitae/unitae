@@ -25,8 +25,16 @@ function CardHeader({ className, ...props }: React.ComponentProps<'div'>) {
   )
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div data-slot="card-title" className={cn('font-semibold leading-none', className)} {...props} />
+// A card title is semantically a section heading, so it defaults to <h2> —
+// correct under the app's single page <h1> (PageHeader / dashboard hero); pass
+// `as` for a different level. Tailwind preflight resets heading size/margin, so
+// this changes only the accessibility tree, not the visuals.
+function CardTitle({
+  className,
+  as: Comp = 'h2',
+  ...props
+}: React.HTMLAttributes<HTMLElement> & { as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'div' }) {
+  return <Comp data-slot="card-title" className={cn('font-semibold leading-none', className)} {...props} />
 }
 
 function CardDescription({ className, ...props }: React.ComponentProps<'div'>) {
