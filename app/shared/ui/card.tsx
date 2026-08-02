@@ -25,12 +25,10 @@ function CardHeader({ className, ...props }: React.ComponentProps<'div'>) {
   )
 }
 
-// A card title is semantically a section heading. It renders an <h2> by
-// default — correct under the app's single page <h1> (PageHeader / dashboard
-// hero) — and accepts `as` to set a different level (e.g. `as="h3"` for a card
-// nested inside another titled section, or `as="div"` for the rare non-heading
-// title). Tailwind preflight resets heading size/margin, so the element choice
-// is invisible; only the accessibility tree changes.
+// A card title is semantically a section heading, so it defaults to <h2> —
+// correct under the app's single page <h1> (PageHeader / dashboard hero); pass
+// `as` for a different level. Tailwind preflight resets heading size/margin, so
+// this changes only the accessibility tree, not the visuals.
 function CardTitle({
   className,
   as: Comp = 'h2',

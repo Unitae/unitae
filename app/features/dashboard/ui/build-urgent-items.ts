@@ -66,8 +66,7 @@ export function urgentPartAssignmentItems(nextMeeting: NextMeeting): UrgentItem[
     {
       key: `part-${userPart.id}`,
       label: m.dashboard_urgent_assignment_soon({ name: userPart.name, eventName: nextMeeting.name }),
-      // Deep-link to the specific programme viewer (resolved on the meeting),
-      // matching the upcoming-assignments card rather than a generic /board.
+      // Deep-link to the meeting's programme viewer rather than a generic /board.
       to: nextMeeting.link,
       icon: Mic,
       borderClass: 'border-l-primary bg-primary/5',

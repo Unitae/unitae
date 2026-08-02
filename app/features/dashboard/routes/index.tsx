@@ -216,10 +216,9 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
       {/* Hero greeting */}
       <div className="flex animate-fade-in-up flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          {/* The greeting reads as two visual lines but one heading: the small
-              "Bonjour," line is decorative (aria-hidden), and the <h1> carries
-              the full "Bonjour, {name}" for the accessibility tree so the page
-              has a meaningful top-level heading rather than a bare first name. */}
+          {/* sr-only greeting in the <h1> so the page heading reads
+              "Bonjour, {name}" rather than a bare first name; the visible
+              "Bonjour," line is decorative. */}
           <p aria-hidden className="font-display text-lg text-muted-foreground tracking-tight sm:text-xl">
             {m.dashboard_greeting_hello()}
           </p>
@@ -291,12 +290,11 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
           <UpcomingAssignmentsCard assignments={upcomingAssignments} />
         </div>
-        {/* At-risk pioneers is a manager-attention signal — promoted above the
-            general-state cards so an overseer landing on the dashboard sees it
-            without scrolling past everything else. Conditional: only Activity
-            Viewers, and only when a pioneer is actually behind pace. */}
+        {/* Promoted above the general-state cards so an overseer sees behind-pace
+            pioneers without scrolling. Full-width so toggling it doesn't reshuffle
+            which column the absences/documents cards land in. */}
         {atRiskPioneers != null && atRiskPioneers.count > 0 && (
-          <div className="animate-fade-in-up" style={{ animationDelay: '250ms' }}>
+          <div className="animate-fade-in-up md:col-span-2" style={{ animationDelay: '250ms' }}>
             <PioneersAtRiskCard data={atRiskPioneers} />
           </div>
         )}
@@ -343,9 +341,7 @@ function PioneersAtRiskCard({ data }: { data: AtRiskPioneers }) {
                   <div className="truncate text-muted-foreground text-xs">{formatGroupName(pioneer.groupName)}</div>
                 )}
               </div>
-              <Badge variant="destructive">
-                {m.dashboard_pioneers_at_risk_deficit({ hours: String(pioneer.deficit) })}
-              </Badge>
+              <Badge variant="danger">{m.dashboard_pioneers_at_risk_deficit({ hours: String(pioneer.deficit) })}</Badge>
             </li>
           ))}
         </ul>
@@ -399,8 +395,7 @@ function TerritoriesCard({ territories }: { territories: Awaited<ReturnType<type
           </div>
         )}
       </CardContent>
-      {/* "See all" only when there is something to see — matches the absences
-          card and avoids a link into an empty list. */}
+      {/* "See all" only when the list is non-empty — matches the other cards. */}
       {territories != null && territories.length > 0 && (
         <CardFooter className="mt-auto">
           <Button variant="link" asChild className="px-0">

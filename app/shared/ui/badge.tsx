@@ -20,6 +20,11 @@ const badgeVariants = cva(
         warning:
           'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 [a&]:hover:bg-amber-200 dark:[a&]:hover:bg-amber-900/50',
         info: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 [a&]:hover:bg-blue-200 dark:[a&]:hover:bg-blue-900/50',
+        // Soft red sibling of the tinted family — a quieter alternative to the
+        // solid `destructive` fill for signalling a negative value (e.g. an
+        // hour deficit) without the alarm of a solid pill.
+        danger:
+          'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 [a&]:hover:bg-red-200 dark:[a&]:hover:bg-red-900/50',
         link: 'text-primary underline-offset-4 [a&]:hover:underline',
       },
     },

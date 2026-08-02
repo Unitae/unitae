@@ -3,11 +3,6 @@ import { EventStatus, EventTemplateKey } from '~/features/events'
 import { FOUR_WEEKS_MS } from '~/shared/constants/limits'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
-// A single upcoming assignment the viewer holds — either a programme part
-// (as speaker or reader) or a service role. The UI resolves the human label
-// from `role` + the optional `speakerLabel`/`readerLabel` slots, mirroring
-// how the next-meeting card used part-labels.ts. `link` deep-links to the
-// board programme viewer for the event (see resolveProgrammeLink).
 export type UpcomingAssignmentRole = 'speaker' | 'reader' | 'service'
 
 export interface UpcomingAssignment {
@@ -22,18 +17,15 @@ export interface UpcomingAssignment {
   link: string
 }
 
-// Internal shape carrying the event identity needed to resolve the deep link.
-// Stripped down to the public UpcomingAssignment once `link` is attached.
+// Carries the event identity needed to resolve the deep link; stripped to the
+// public UpcomingAssignment once `link` is attached.
 type RawAssignment = Omit<UpcomingAssignment, 'link'> & { eventId: number; templateId: number | null }
 
 const MAX_UPCOMING_ASSIGNMENTS = 5
 
-// Forward-looking companion to getNextMeeting: instead of "the next meeting and
-// my parts on it", this lists every part/role the viewer holds across the next
-// four weeks so they can prepare ahead. The urgent strip still covers the
-// act-now (<=3 days) nudge; this card is the wider horizon. Each row deep-links
-// to the same board programme viewer the assignment-notification email points
-// at, via the shared resolveProgrammeLink resolver.
+// Forward-looking companion to getNextMeeting: the parts/roles the viewer holds
+// across the next four weeks, so they can prepare ahead. The urgent strip covers
+// the act-now (<=3 days) nudge; this is the wider horizon.
 export async function getUpcomingAssignments(
   db: TransactionClient,
   userId: number,
@@ -109,9 +101,8 @@ export async function getUpcomingAssignments(
   raw.sort((a, b) => a.eventStartDate.getTime() - b.eventStartDate.getTime())
   const shown = raw.slice(0, MAX_UPCOMING_ASSIGNMENTS)
 
-  // Resolve one board link per distinct event among the shown rows — several
-  // assignments on the same meeting share a link, so we avoid re-running the
-  // resolver's board-document lookup per row.
+  // Dedupe by event: assignments on the same meeting share a link, so we don't
+  // re-run the resolver's board-document lookup per row.
   const templateByEvent = new Map<number, number | null>()
   for (const assignment of shown) templateByEvent.set(assignment.eventId, assignment.templateId)
 

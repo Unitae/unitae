@@ -240,8 +240,8 @@ export async function getNextMeeting(db: TransactionClient, userId: number, cong
     },
     select: {
       id: true,
-      // templateId feeds resolveProgrammeLink so the urgent strip's imminent
-      // items deep-link to the board programme viewer, not a generic /board.
+      // Feeds resolveProgrammeLink so the strip can deep-link imminent items
+      // instead of pointing at a generic /board.
       templateId: true,
       name: true,
       startDate: true,
@@ -288,8 +288,7 @@ export async function getNextMeeting(db: TransactionClient, userId: number, cong
   const userServicePartIds = new Set(event.eventServiceParts.filter(r => r.assignee?.id === userId).map(r => r.id))
 
   // Canonical board link for this meeting, shared with the assignment emails
-  // and the upcoming-assignments card. Falls back to /board when no programme
-  // document covers the event's template.
+  // and the upcoming-assignments card.
   const link = await resolveProgrammeLink(db, { id: event.id, templateId: event.templateId }, congregationId)
 
   return {

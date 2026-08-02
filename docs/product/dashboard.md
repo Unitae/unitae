@@ -80,7 +80,7 @@ Each row is clickable and deep-links to the programme viewer for that meeting on
 
 Members with the *Activity Viewer* permission see a widget flagging pioneers who are **behind pace** for the current service year. It shows the count of at-risk pioneers and a short list of the most-behind ones with their hour deficit, linking to the full [pioneers monitoring roster](publishers.md#pioneer-activity-monitoring). When no pioneer is behind, the card stays quiet.
 
-Because it is a manager-attention signal an overseer must not miss, it sits **near the top of the widget grid** (right after *My upcoming assignments*) rather than at the bottom — so it surfaces on the homepage the overseer already lands on without scrolling past everything else, matching the feature's proactive intent.
+Because it is a manager-attention signal an overseer must not miss, it sits **near the top of the widget grid** (right after *My upcoming assignments*) rather than at the bottom — so it surfaces on the homepage the overseer already lands on without scrolling past everything else, matching the feature's proactive intent. On desktop it **spans the full width** of the grid, which both gives it presence and keeps the cards below it (absences, documents) in stable columns whether or not it is showing.
 
 ## My absences
 

@@ -133,10 +133,8 @@
   animation: fade-in-up 0.3s ease-out both;
 }
 
-/* Respect users who ask for less motion: collapse animations and transitions
-   to near-instant so entrance fades, the navigation-progress bar, and any
-   component transition don't move. `both` fill on our keyframes means elements
-   still settle on their final (visible) state. */
+/* Respect prefers-reduced-motion. The `both` fill on our keyframes still
+   settles elements on their final (visible) state. */
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,
