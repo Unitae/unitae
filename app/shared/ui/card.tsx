@@ -33,7 +33,7 @@ function CardTitle({
   className,
   as: Comp = 'h2',
   ...props
-}: React.HTMLAttributes<HTMLElement> & { as?: React.ElementType }) {
+}: React.HTMLAttributes<HTMLElement> & { as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'div' }) {
   return <Comp data-slot="card-title" className={cn('font-semibold leading-none', className)} {...props} />
 }
 
