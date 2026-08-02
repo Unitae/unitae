@@ -98,9 +98,16 @@ the **start** of the month with a chosen goal, and the hours **report** lands at
 - **`Member` is a guarded aggregate** (`db.member.*` writes only in `*.aggregate.ts`, checked by
   `pnpm test:aggregate-boundaries`). `member.aggregate.ts` is **323 / 350** lines — near the hard
   budget, so §7.1 first extracts a helper to make room.
-- **Aggregate doctrine:** `PioneerEnrolment` carries invariants (no overlapping stints, `end ≥ start`,
-  end-bounds paired, pioneer-type-only) → its own `pioneer-enrolment.aggregate.ts`, added to
-  `AGGREGATE_MODELS`.
+- **Aggregate doctrine:** `PioneerEnrolment` earns its own aggregate for the doctrine's *stated* test —
+  an **open→close lifecycle plus a non-overlap invariant that bridges create and update**, directly
+  analogous to `Attribution` (the doctrine's own example) — not merely "it has fields to validate". Its
+  own `pioneer-enrolment.aggregate.ts`, added to `AGGREGATE_MODELS` **and** to the *Current aggregates
+  and policies* table in this doc (doctrine step 6). Pure field shape (pioneer-type-only, `goal > 0`,
+  `end ≥ start`) is validated at the **Zod boundary**; the aggregate `_assert*`s only the **structural**
+  invariants (non-overlap, end-bounds paired) that a schema cannot express.
+- **File-size budgets:** `edit-publisher.tsx` is already ~337 lines (over the 300-line route hard
+  budget). §10 **splits it into `ui/` components** (existing forms + the new enrolment fields) so the
+  route stays thin; new components respect the 400-line component budget.
 - **Cross-aggregate orchestration** in a `*.workflow.ts` (enrol/close touches `PioneerEnrolment` +
   `Member.type`).
 - **CQRS-lite:** writes in `*.aggregate.ts` / `*.workflow.ts`, reads in `*.queries.ts`.
@@ -174,8 +181,8 @@ like `{endMonth: 10, endYear: null}` corrupts pace math. Enforce **both**:
 **Migration** (`{timestamp}_add_pioneer_enrolment/migration.sql`): `migrate diff` for the table +
 indexes + FKs (member composite `ON DELETE CASCADE`, congregation `ON DELETE RESTRICT`), then hand-add
 the RLS block (copy from `20260801100000_add_pioneer_goal`) **and** the `end_bounds_paired` check.
-Then run the backfill (§6.1) as a follow-up data migration. `migrate deploy && prisma generate`; copy
-schema to `unitae-platform`.
+`migrate deploy && prisma generate`; copy schema to `unitae-platform`. The backfill (§6.1) is **not**
+part of the SQL migration — it runs as the one-off script described in §8, after deploy.
 
 ### 6.1 Backfill (the inference logic, run once) — precise algorithm
 
@@ -255,11 +262,13 @@ expected month onward.
 ## 8. Server & code changes
 
 **Aggregate** `server/pioneer-enrolment.aggregate.ts` (+ unit + integration tests, TDD-first). In
-`AGGREGATE_MODELS`. Invariants (pure `_assert*`, 100 % branch coverage): pioneer-type-only;
-`_assertEndBoundsPaired`; `end ≥ start`; **no overlapping stints** per member; `monthlyGoal > 0` when
-set. (No single-month invariant — auxiliary may be single-month *or* ongoing per §3.) Functions
-`openEnrolment`, `closeEnrolment`, `updateEnrolment`, `deleteEnrolment`, each `audit(...)` after the
-write.
+`AGGREGATE_MODELS`. **Structural** invariants (pure `_assert*`, 100 % branch coverage):
+`_assertNoOverlap` (no two stints of a member share a month) and `_assertEndBoundsPaired`. Pure field
+shape (pioneer-type-only, `goal > 0`, `end ≥ start`, no single-month rule — auxiliary may be
+single-month *or* ongoing per §3) is validated at the **Zod boundary** (`pioneer-enrolment.schema.ts`),
+not re-asserted here. Functions `openEnrolment`, `closeEnrolment`, `updateEnrolment`, `deleteEnrolment`
+— each takes `(db, memberId, congregationId, actorId, …)`, uses `congregationId: 0 as number` on
+create, and `audit(…, entityType: 'PioneerEnrolment')` after the write.
 
 **Workflow** `server/pioneer-enrolment.workflow.ts` — the route opens `withScopeFromContext`; the
 workflow receives the tx client and makes both writes atomic (a role-sync throw rolls back the whole
@@ -288,8 +297,13 @@ query builds the enrolled-month plan (§7.4) + per-month goal from enrolments, a
 `PublisherActivity`; `computePioneerPace` consumes the plan. Delete `notEnrolledMonths`,
 `enrolledSinceYearStart`, the concluded heuristic **only after** the parity test (§14) is green.
 
-**Backfill** `server/pioneer-enrolment-backfill.server.ts` implements §6.1; invoked by the data
-migration and (for old archives) by import (§11).
+**Backfill** `server/pioneer-enrolment-backfill.server.ts` implements §6.1 and **writes each stint via
+the aggregate's `openEnrolment`** (never `db.pioneerEnrolment.create` directly — so it passes
+`test:aggregate-boundaries` and reuses the structural invariants). Because the grouping logic is TS, not
+SQL, it **cannot** be a `migration.sql`: it runs as a **one-off idempotent script**
+(`scripts/backfill-pioneer-enrolments.ts`, `pnpm`-invoked once **after** `migrate deploy` in the deploy
+step) — idempotent so a re-run is a no-op (skip members who already have enrolments). Import reuses the
+same function for pre-enrolment archives (§11).
 
 **Barrels:** `index.ts` (schema + pure helpers); `index.server.ts` (aggregate, workflow, queries,
 backfill).
@@ -303,8 +317,13 @@ backfill).
 
 ## 10. UI — publisher edit page (decided: no dedicated screen)
 
-Extend the **publishing section** of `edit-publisher.tsx`. Two visually distinct subsections (they are
-structurally different — prevent cross-fill mistakes):
+Enrolment is edited from the publishing section of `edit-publisher.tsx` — but that route is already
+~337 lines (over the 300 route budget), so **first split it into `ui/` components** (extract the
+existing `PublisherNominationForm`/`PublisherFieldServiceForm` wiring and add a new
+`PioneerEnrolmentFields`), leaving the route as thin loader/action orchestration. The route loads the
+member's enrolments + the setting and delegates the enrol/close/update mutation to the workflow; no
+`db.*` writes in the route (coding-conventions). Two visually distinct subsections (structurally
+different — prevent cross-fill mistakes):
 
 - **Standing appointment** (an ongoing stint): permanent / special / missionary, plus **permanent
   auxiliary when `AuxiliaryPioneerProfileActivated` is on**. Start month+year, optional end month+year.
@@ -361,8 +380,12 @@ Enrolments are membership facts, not third-party PII — like activity rows, **p
 
 ## 14. Testing
 
-- `pioneer-enrolment.aggregate.test.ts` (unit) — every invariant incl. `_assertEndBoundsPaired` and
-  overlap rejection, TDD-first; + `*.integration.test.ts` (RLS round-trip, overlap rejection at the DB).
+- `pioneer-enrolment.ts` (pure model) — co-located `*.test.ts` for the period ∩ service-year helper
+  (colocation check requires it), TDD-first.
+- `pioneer-enrolment.aggregate.test.ts` (unit) — `_assertNoOverlap` + `_assertEndBoundsPaired` (100 %
+  branch), TDD-first; + `*.integration.test.ts` (RLS round-trip, overlap rejection at the DB).
+- `pioneer-enrolment.schema.test.ts` — field-shape validation (pioneer-type-only, `goal > 0`,
+  `end ≥ start`) at the boundary.
 - `pioneer-enrolment.workflow.test.ts` — an **ongoing** enrol (annual **and** permanent auxiliary) sets
   `Member.type` + re-syncs roles; a **single-month** auxiliary enrol leaves `type = Normal`; closing the
   last ongoing stint reverts `type` to `Normal`.
