@@ -2412,7 +2412,7 @@
     "pioneers_chart_target": "objectif",
     "pioneers_chart_empty": "Aucune donnée à afficher",
     "pioneers_needs_per_month": "≈ {hours} h/mois pour finir",
-    "pioneers_out_of_reach_short": "Objectif hors d'atteinte",
+    "pioneers_out_of_reach_short": "Difficilement atteignable",
     "pioneers_recent_avg_label": "Moyenne 3 derniers mois",
     "pioneers_type_auxiliary": "Pionnier auxiliaire",
     "pioneers_filters_search_placeholder": "Rechercher un pionnier…",

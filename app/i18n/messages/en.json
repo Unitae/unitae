@@ -2409,7 +2409,7 @@
     "pioneers_chart_target": "goal",
     "pioneers_chart_empty": "No data to display",
     "pioneers_needs_per_month": "≈ {hours} h/mo to finish",
-    "pioneers_out_of_reach_short": "Goal out of reach",
+    "pioneers_out_of_reach_short": "Unlikely at current pace",
     "pioneers_recent_avg_label": "Last 3 months avg",
     "pioneers_type_auxiliary": "Auxiliary pioneer",
     "pioneers_filters_search_placeholder": "Search a pioneer…",
