@@ -17,7 +17,8 @@ export const updateEmergencyInfoSchema = z.object({
     .string()
     .optional()
     .transform(v => v === 'on'),
-  contacts: z.array(emergencyContactSchema).optional().default([]),
+  // Upper bound is a defensive payload guard — real members have a handful.
+  contacts: z.array(emergencyContactSchema).max(20).optional().default([]),
 })
 
 export type EmergencyContactInput = z.infer<typeof emergencyContactSchema>

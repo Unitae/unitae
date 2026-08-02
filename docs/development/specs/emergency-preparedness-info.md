@@ -243,7 +243,7 @@ routes:
 1. **Data + access + edit + read** — schema/migration, permissions wiring, `emergency-access`,
    `emergency-info.aggregate` + purge, `emergency.queries`, the dedicated emergency page + form, and
    the detail-page read card.
-2. **Rosters** — congregation + per-group PDF and the "Urgences" nav entry.
+2. **Rosters** — congregation + per-group PDF, reached from the publisher list and group pages (no dedicated nav entry — see §15).
 
 ## 13. Testing
 

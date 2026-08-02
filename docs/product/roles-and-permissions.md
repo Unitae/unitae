@@ -39,7 +39,7 @@ If you want a built-in role to actually grant access (say, give every elder the 
 You can create as many roles of your own as you need. A custom role has:
 
 - A name (and an optional description, useful for explaining the role to other admins)
-- Any combination of the 21 permissions
+- Any combination of the 23 permissions
 - The list of users who hold it
 
 Typical examples: *Service committee*, *PR coordinator*, *Group overseer*. Whatever names match how your congregation actually works.
@@ -48,7 +48,7 @@ To create a role: **Settings → Roles → New role**. Pick the permissions, sav
 
 You can edit, rename, and delete custom roles at any time. Built-in roles cannot be renamed or deleted (the system depends on their identity).
 
-## The 21 permissions
+## The 23 permissions
 
 Permissions are grouped by area of the app. Most areas come in two flavours: **Viewer** (read-only) and **Manager** (full access). Holding a Manager permission already includes everything a Viewer permission would grant — you don't need to assign both.
 

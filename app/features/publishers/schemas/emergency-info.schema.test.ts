@@ -59,4 +59,10 @@ describe('updateEmergencyInfoSchema — contacts', () => {
     const result = updateEmergencyInfoSchema.safeParse({ contacts: [{ name: 'Marie', phone: 'call me' }] })
     expect(result.success).toBe(false)
   })
+
+  it('rejects more contacts than the upper bound', () => {
+    const contacts = Array.from({ length: 21 }, (_, i) => ({ name: `Contact ${i}` }))
+    const result = updateEmergencyInfoSchema.safeParse({ contacts })
+    expect(result.success).toBe(false)
+  })
 })
