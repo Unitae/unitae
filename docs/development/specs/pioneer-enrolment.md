@@ -2,9 +2,11 @@
 
 **Status:** Draft — design discussed with the maintainer and revised after a three-lens review
 (architecture, JW domain, UX). Locked: full enrolment model; manager sets the auxiliary goal from the
-publisher edit page (no dedicated screen); auxiliary enrolment does **not** change `Member.type`
-(§7.1); the standing pioneer type is set **only** via the annual appointment — the raw type dropdown is
-removed (§10, §15.1). Design is settled; ready for implementation. Not yet implemented.
+publisher edit page (no dedicated screen); an **ongoing** stint sets `Member.type` (permanent / special
+/ missionary / **permanent auxiliary**) while a **single-month** auxiliary leaves it `Normal` (§7.1);
+standing type is set **only** via the appointment — raw type dropdown removed (§10, §15.1);
+`AuxiliaryPioneerProfileActivated` is **kept**, repurposed to gate the permanent-auxiliary appointment
+(§3, §10). Design is settled; ready for implementation. Not yet implemented.
 **Author:** Nathanaël Cherrier
 **Feature area:** `features/publishers`
 **Related:** [Pioneer Activity Monitoring](./pioneer-activity-monitoring.md), [Emergency-Preparedness Info](./emergency-preparedness-info.md) (structural template), [Architecture Conventions](../architecture-conventions.md), [Row-Level Security](../row-level-security.md), [Data Transfer](../data-transfer.md)
@@ -70,16 +72,25 @@ the **start** of the month with a chosen goal, and the hours **report** lands at
   `Missionnaire`. `Normal` is not a pioneer. (Domain lens confirmed: permanent 50 h/mo → 600/yr and
   auxiliary 30 h/mo are current; special/missionary ~100 h/mo are branch-set placeholders, tunable via
   `PioneerGoal`.)
-- **Two rhythms:** permanent/special/missionary carry an **annual** commitment (a continuous stint,
-  which may span service-year boundaries); auxiliary **re-enrols month-to-month** with its own monthly
-  goal, chosen per person.
+- **Two rhythms — and two auxiliary shapes:**
+  - Permanent/special/missionary carry an **annual** commitment: a continuous **ongoing stint** that
+    may span service-year boundaries.
+  - **Monthly auxiliary** (the classic form): a publisher **re-enrols month-to-month** with a per-person
+    goal (15 / 30 h). Modelled as a **single-month** stint. Today this exists only as per-month activity
+    rows typed auxiliary while `Member.type` stays `Normal`.
+  - **Permanent auxiliary**: a *standing*, endless auxiliary status. Today this is `Member.type =
+    PionnierAuxiliaires`, gated by the setting below. Modelled as an **ongoing** auxiliary stint (no end).
 - **Service year** = Sept→Aug; `month` is 0-indexed; `SY` spans `(year=SY, month≥8) OR (year=SY+1,
   month≤7)`.
 - **Core idea — separate plan from actual:** *plan* = `PioneerEnrolment`; *actual* =
   `PublisherActivity`. Pace = actual vs plan.
-- **Existing setting:** `CongregationSettingKey.AuxiliaryPioneerProfileActivated` gates whether the
-  auxiliary option appears (`edit-publisher.tsx` loader → `hideAuxiliaryPioneer`). Enrolment UI must
-  respect it.
+- **Existing setting — kept, repurposed.** `CongregationSettingKey.AuxiliaryPioneerProfileActivated`
+  means *"this congregation uses **permanent** auxiliary pioneers"* — today it gates whether
+  `PionnierAuxiliaires` appears as a standing `Member.type` in the profile dropdown
+  (`PublisherFieldServiceForm`, 6 call sites). Under this refactor it is **kept** and repurposed to gate
+  whether the **permanent-auxiliary appointment** (an ongoing auxiliary stint) is offered in the
+  annual-appointment section (§10). **Monthly** auxiliary enrolment is always available, independent of
+  the setting.
 
 ## 4. Conventions consulted
 
@@ -87,8 +98,8 @@ the **start** of the month with a chosen goal, and the hours **report** lands at
   `pnpm test:aggregate-boundaries`). `member.aggregate.ts` is **323 / 350** lines — near the hard
   budget, so §7.1 first extracts a helper to make room.
 - **Aggregate doctrine:** `PioneerEnrolment` carries invariants (no overlapping stints, `end ≥ start`,
-  end-bounds paired, pioneer-type-only, auxiliary = single month) → its own
-  `pioneer-enrolment.aggregate.ts`, added to `AGGREGATE_MODELS`.
+  end-bounds paired, pioneer-type-only) → its own `pioneer-enrolment.aggregate.ts`, added to
+  `AGGREGATE_MODELS`.
 - **Cross-aggregate orchestration** in a `*.workflow.ts` (enrol/close touches `PioneerEnrolment` +
   `Member.type`).
 - **CQRS-lite:** writes in `*.aggregate.ts` / `*.workflow.ts`, reads in `*.queries.ts`.
@@ -127,7 +138,8 @@ model PioneerEnrolment {
 
   // Inclusive month range, 0-indexed month + calendar year. A continuous stint may span service-year
   // boundaries. endMonth/endYear are null together (ongoing) or set together (closed) — see the
-  // paired check constraint below. Auxiliary enrolments are always a single month (start == end).
+  // paired check constraint below. Auxiliary is either single-month (monthly auxiliary, start == end)
+  // or ongoing (permanent auxiliary, no end); annual types are ongoing until closed.
   startMonth  Int
   startYear   Int
   endMonth    Int?
@@ -179,12 +191,17 @@ so a continuous stint that predates the current window is captured whole):
    `start` = first month of the run; `end` = last month of the run **iff the member is concluded**,
    else null (ongoing). Runs are **not** reset at the Sept boundary — a stint spanning years is one
    record (this is how continuity, formerly `enrolledSinceYearStart`, is preserved — see §7.4).
-4. **Auxiliary** → one **single-month** enrolment per reported auxiliary month; `monthlyGoal = null`
-   explicitly (historical per-person 15/30 is unrecoverable; queries fall back to the type default —
-   §16). Auxiliary is never grouped into multi-month runs.
+4. **Auxiliary** — distinguish the two shapes by the member's *standing* `Member.type`:
+   - **Permanent auxiliary** (`member.type == PionnierAuxiliaires`) → treat auxiliary like an annual
+     type in step 3: group the auxiliary run into **one ongoing stint** (end null unless concluded).
+   - **Monthly auxiliary** (`member.type != PionnierAuxiliaires`, i.e. isolated auxiliary months) →
+     one **single-month** enrolment per reported auxiliary month; never grouped.
+   - Either way `monthlyGoal = null` explicitly (historical per-person 15/30 is unrecoverable; queries
+     fall back to the type default — §16).
 5. **Concluded rule** (must match `pioneer-activity.queries.ts` line 155 exactly):
    `concluded = !isPioneerType(standingType)` where `standingType = latestDedupedRow?.type ??
-   member.type`. Only an annual member's *final* run gets a non-null `end` when concluded.
+   member.type`. Only an ongoing (annual or permanent-auxiliary) member's *final* run gets a non-null
+   `end` when concluded.
 
 This is the exact stop/restart + concluded logic already unit-tested in `pioneer-pace.test.ts`; the
 parity test (§14) runs it on real rows and asserts pace equivalence **before Phase 1 ships**.
@@ -194,14 +211,16 @@ parity test (§14) runs it on real rows and asserts pace equivalence **before Ph
 ### 7.1 `Member.type` ↔ enrolment  *(locked)*
 
 `Member.type` **stays** the current-type cache that drives `syncBuiltInRoleAssignments`. Rewriting role
-sync to read enrolments is out of scope. Rules:
+sync to read enrolments is out of scope. One unified rule keyed on the stint's **shape**, not its type:
 
-- **Annual** enrolment sets `Member.type` on open (permanent/special/missionary) and reverts it to
-  `Normal` when the last ongoing stint closes.
-- **Auxiliary** enrolment does **NOT** touch `Member.type` — it stays `Normal`. (All three review
-  lenses agreed: auxiliary is a transient monthly status, not a standing career type; flipping `type`
-  monthly would churn role sync and misrepresent the member.) Auxiliary status is read from the
-  enrolment record, never from `Member.type`. **Document this rule in CLAUDE.md.**
+- **An ongoing stint sets `Member.type`** to its type (permanent / special / missionary **or permanent
+  auxiliary**) on open, and reverts it to `Normal` when the last ongoing stint closes. A standing status
+  is stable, so this is exactly today's behavior for permanent auxiliary (`type = PionnierAuxiliaires`)
+  — no churn.
+- **A single-month (monthly) auxiliary stint does NOT touch `Member.type`** — it stays `Normal`. (The
+  domain/UX lenses' "auxiliary shouldn't churn `type`" applies to *this* case: a one-month sign-up is
+  transient and must not flip the standing type.) Monthly-auxiliary status is read from the enrolment
+  record, never from `Member.type`. **Document this rule in CLAUDE.md.**
 - Add `setPioneerType(db, memberId, congregationId, actorId, type)` to `member.aggregate.ts` (updates
   `type` + `syncBuiltInRoleAssignments`). **Budget:** first extract an existing helper
   (e.g. `_ensureMemberIsNotGroupResponsible` or `_loadMemberIdentity`) into a `member-*.server.ts`
@@ -236,9 +255,10 @@ expected month onward.
 
 **Aggregate** `server/pioneer-enrolment.aggregate.ts` (+ unit + integration tests, TDD-first). In
 `AGGREGATE_MODELS`. Invariants (pure `_assert*`, 100 % branch coverage): pioneer-type-only;
-`_assertEndBoundsPaired`; `end ≥ start`; **no overlapping stints** per member; auxiliary ⟹ single
-month; `monthlyGoal > 0` when set. Functions `openEnrolment`, `closeEnrolment`, `updateEnrolment`,
-`deleteEnrolment`, each `audit(...)` after the write.
+`_assertEndBoundsPaired`; `end ≥ start`; **no overlapping stints** per member; `monthlyGoal > 0` when
+set. (No single-month invariant — auxiliary may be single-month *or* ongoing per §3.) Functions
+`openEnrolment`, `closeEnrolment`, `updateEnrolment`, `deleteEnrolment`, each `audit(...)` after the
+write.
 
 **Workflow** `server/pioneer-enrolment.workflow.ts` — the route opens `withScopeFromContext`; the
 workflow receives the tx client and makes both writes atomic (a role-sync throw rolls back the whole
@@ -250,8 +270,9 @@ export async function enrolPioneer(
   params: { type: PublisherType; startMonth: number; startYear: number; endMonth?: number; endYear?: number; monthlyGoal?: number },
 ): Promise<PioneerEnrolment> {
   const enrolment = await openEnrolment(db, memberId, congregationId, actorId, params)
-  if (isAnnualPioneerType(params.type)) {
-    await setPioneerType(db, memberId, congregationId, actorId, params.type) // NOT for auxiliary (§7.1)
+  const isOngoing = params.endMonth == null // ongoing stint → standing type (annual OR permanent aux)
+  if (isOngoing) {
+    await setPioneerType(db, memberId, congregationId, actorId, params.type) // §7.1: not for single-month aux
   }
   return enrolment
 }
@@ -281,17 +302,20 @@ backfill).
 
 ## 10. UI — publisher edit page (decided: no dedicated screen)
 
-Extend the **publishing section** of `edit-publisher.tsx`, respecting `AuxiliaryPioneerProfileActivated`.
-Two visually distinct subsections (they are structurally different — prevent cross-fill mistakes):
+Extend the **publishing section** of `edit-publisher.tsx`. Two visually distinct subsections (they are
+structurally different — prevent cross-fill mistakes):
 
-- **Annual appointment** (permanent / special / missionary): start month+year, optional end month+year.
+- **Standing appointment** (an ongoing stint): permanent / special / missionary, plus **permanent
+  auxiliary when `AuxiliaryPioneerProfileActivated` is on**. Start month+year, optional end month+year.
   This is the **only** way to set a standing pioneer type — the raw type dropdown is **removed**; the
   current type shows read-only, derived from the active stint (§15.1). No path can leave `Member.type`
   and the enrolments inconsistent.
-- **Monthly auxiliary enrolment**: month picker (current/next), goal (15 / 30 h), submit. Fine for the
-  per-member cadence at typical volume; §15.4 tracks a bulk view if it chafes.
-- When `hideAuxiliaryPioneer` is true, show a muted note ("*Auxiliary enrolment is disabled in
-  congregation settings*", link to settings if permitted) rather than silently vanishing.
+- **Monthly auxiliary enrolment**: month picker (current/next), goal (15 / 30 h), submit. **Always
+  available**, independent of the setting. Fine for the per-member cadence at typical volume; §15.4
+  tracks a bulk view if it chafes.
+- The setting gates only the **permanent-auxiliary** option in the standing-appointment section — when
+  off, that one option is hidden while monthly auxiliary stays. (This replaces today's
+  `hideAuxiliaryPioneer` gating of the raw dropdown.)
 - Keep the component under the 400-line budget; extract `PioneerEnrolmentFields` if needed.
 
 **Where enrolments are seen (report-pending visibility)** — the monitoring **pioneer roster**
@@ -329,16 +353,18 @@ Enrolments are membership facts, not third-party PII — like activity rows, **p
    queries, goal resolution, backfill, **and the parity integration test (§14) green** as the gate.
 2. **Pace on enrolments** — rewire the query + `pioneer-pace.ts` to read enrolments; keep the monitoring
    suite green; then delete the inference paths.
-3. **Edit-page UI** — annual appointment + auxiliary enrolment; report `type` derived from the active
-   enrolment; activity-entry goal context; roster shows report-pending.
+3. **Edit-page UI** — standing appointment (incl. permanent auxiliary, gated by the setting) + monthly
+   auxiliary enrolment; report `type` derived from the active enrolment; activity-entry goal context;
+   roster shows report-pending.
 4. **Data transfer** — export/import + version bump + old-archive post-import backfill.
 
 ## 14. Testing
 
 - `pioneer-enrolment.aggregate.test.ts` (unit) — every invariant incl. `_assertEndBoundsPaired` and
   overlap rejection, TDD-first; + `*.integration.test.ts` (RLS round-trip, overlap rejection at the DB).
-- `pioneer-enrolment.workflow.test.ts` — annual enrol sets `Member.type` + re-syncs roles; auxiliary
-  enrol leaves `type = Normal`.
+- `pioneer-enrolment.workflow.test.ts` — an **ongoing** enrol (annual **and** permanent auxiliary) sets
+  `Member.type` + re-syncs roles; a **single-month** auxiliary enrol leaves `type = Normal`; closing the
+  last ongoing stint reverts `type` to `Normal`.
 - **Backfill parity (integration, Phase-1 gate)** — seed a congregation with representative activity
   (continuing across the prior year, mid-year start, auxiliary, mid-year type switch, duplicate
   re-files, no-row gaps). Compute pace via the **old** inference on the rows, run the **backfill**, then
@@ -357,6 +383,9 @@ Enrolments are membership facts, not third-party PII — like activity rows, **p
    reuse; proceeding with reuse unless flagged.)*
 3. **`bulkUpdateType` (`member.aggregate.ts`)** — how does a mass type change reconcile with existing
    enrolments? *(Lean: out of scope / manual for now; document at implementation.)*
+4. **`AuxiliaryPioneerProfileActivated` (§3, §10) — RESOLVED (locked).** Kept and repurposed to gate
+   the **permanent-auxiliary** standing appointment; monthly auxiliary is always available. Existing
+   setting, schema entry, and stored values are unchanged.
 
 ## 16. Known simplifications (documented, not blockers)
 
