@@ -58,8 +58,10 @@ Track publisher profiles, organize them into groups, and record field service ac
 - **Profiles** — Personal information, publisher type (publisher, auxiliary pioneer, regular pioneer, etc.), appointment status
 - **Ministry-school students** — People who attend the school but aren't yet declared publishers appear in the same list and can be assigned to programme parts
 - **Field service groups** — Organize publishers into groups with a responsible and a deputy
-- **Activity tracking** — Monthly records of hours, studies, and pioneer service
-- **Reports** — Yearly activity Excel export, individual PDF reports, batch ZIP export
+- **Activity tracking** — Monthly records of hours, studies, and pioneer service, under a dedicated *Activity* area with *Publishers* and *Pioneers* tabs
+- **Pioneer activity monitoring** — A service-year roster that measures each pioneer against a prorated hours goal, sorts them by risk (on track / at risk / behind), flags overdue reports, and surfaces pace, trend, projection, and "hours needed to finish" on the publisher's own profile — with an at-risk-pioneers widget on the dashboard and editable per-year goals in settings
+- **Emergency-preparedness information** — Record each publisher's DPA-card and survival-backpack status plus a list of emergency contacts, print whole-congregation or per-group emergency rosters, with group responsibles able to maintain their own group's data
+- **Reports** — Yearly activity Excel export, individual PDF reports, batch ZIP export, emergency rosters
 - **Lifecycle** — Mark someone as left when they move away (reversible, data preserved); auto-flag inactive publishers after 6 consecutive missed-preach reports so they drop off the public display board without losing visibility for elders; anonymise later for GDPR compliance
 
 See [Publishers](publishers.md) for details.

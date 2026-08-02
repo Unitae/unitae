@@ -100,6 +100,15 @@ The route handlers (`programs/events/release.tsx`, `unrelease.tsx`, `bulk-releas
 
 Bulk routes are hardened against cross-tenant probes: `filterToManageableEventIds` runs a `congregationId`-scoped `findMany` even for managers, so IDs from another tenant are silently dropped and logged as `warn` for triage. Non-manager drops (freeform events, unauthorized templates, cross-tenant IDs) are logged at `info` with counters split by reason.
 
+## Emergency-information access (group-scoped)
+
+Emergency-preparedness info (`features/publishers`) is the second place — after the activity *entry* form (`canManageMyGroupActivity`) — where access is **unioned from a global permission and a group scope**, and the pattern is worth calling out because it does *not* fit the pure permission model.
+
+- **Global** — two ordinary permissions, `EmergencyInfoViewer` and `EmergencyInfoManager`, granted through roles. Congregation-wide.
+- **Scoped, no permission entry** — a member who is the `responsibleFor` / `deputyFor` a group may view *and* edit the emergency info of members **of that group**. This is derived from group responsibility, not from any `Permission`, so it grants no role-editable entry.
+
+The decision lives in pure functions in `app/features/publishers/model/emergency-access.ts` (`canViewEmergencyInfo` / `canManageEmergencyInfo`), which take `{ hasViewer, hasManager, myResponsibleGroupId, myDeputyGroupId, targetGroupId }`. Route loaders/actions (`routes/publishers/emergency.tsx`, the two `emergency-roster*` routes) resolve the caller's group responsibility off `currentAccountContext` (already eager-loaded) and re-check server-side. Because the scope isn't a permission, a group responsible who holds no publisher permission has no in-app nav entry to the roster today — they reach it via the per-group roster link on the group page.
+
 ## Adding a new permission
 
 1. **Enum entry.** Add the new value to `Permission` in `app/shared/types/permission.ts`. Use `kebab-case` for the value (it's the DB key).

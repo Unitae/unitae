@@ -102,6 +102,10 @@ When no absences are planned and no nudge is shown, a *Plan an absence* action b
 
 The *See all* footer link is only shown when the member has absences to browse — it is hidden when the card shows the empty state or nudge.
 
+## At-risk pioneers
+
+Members with the *Activity Viewer* permission see a widget flagging pioneers who are **behind pace** for the current service year. It shows the count of at-risk pioneers and a short list of the most-behind ones with their hour deficit, linking to the full [pioneers monitoring roster](publishers.md#pioneer-activity-monitoring). When no pioneer is behind, the card stays quiet. This surfaces the signal on the homepage the overseer already lands on, matching the feature's proactive intent.
+
 ## Resilience
 
 Each dashboard card loads its own data independently. If one of them fails to load (for example a temporary network hiccup), only that card shows a warning — the rest of the dashboard keeps working.

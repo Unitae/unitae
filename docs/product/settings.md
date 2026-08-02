@@ -55,6 +55,15 @@ Tune how the territory module behaves for your congregation:
 
 Permission required: *Admin*.
 
+## Pioneer goals
+
+Set the **monthly hour goal for each pioneer type**, per service year — the target the [pioneer activity monitoring](publishers.md#pioneer-activity-monitoring) roster measures pioneers against.
+
+- Each pioneer type (regular, auxiliary, special, missionary) has a built-in default (50, 30, 100, 100 h/month respectively). Leave a type untouched to keep its default, or enter a value to override it for the selected service year.
+- Goals are set per service year, so you can adjust them as branch requirements change from one year to the next. Past service years are read-only.
+
+Permission required: *Pioneer Goal Manager*.
+
 ## Data transfer
 
 Run a full export or import of the congregation's data — useful for migrating between Unitae instances, taking a manual backup, or restoring data after an incident.
