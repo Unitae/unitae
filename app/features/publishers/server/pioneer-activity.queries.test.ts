@@ -123,6 +123,28 @@ describe('getPioneerActivitySummary', () => {
     expect(result.annual[0].pace.actualToDate).toBe(100)
   })
 
+  it('excludes a mid-year publisher gap (stopped then restarted) from the pioneer goal', async () => {
+    vi.mocked(db.member.findMany).mockResolvedValue([
+      member(1, PublisherType.PionnierPermanant, [
+        activity(8, 2025, PublisherType.PionnierPermanant, 50), // Sept
+        activity(9, 2025, PublisherType.PionnierPermanant, 50), // Oct
+        activity(10, 2025, PublisherType.PionnierPermanant, 50), // Nov
+        activity(11, 2025, PublisherType.Normal, null), // Dec: stopped — regular publisher
+        activity(0, 2026, PublisherType.Normal, null), // Jan: still a regular publisher
+        activity(1, 2026, PublisherType.PionnierPermanant, 50), // Feb: restarted
+        activity(2, 2026, PublisherType.PionnierPermanant, 50), // Mar
+      ]),
+    ] as never)
+
+    const result = await getPioneerActivitySummary(db, 42, SY, new Date(2026, 3, 15)) // 15 Apr → expected Mar
+
+    // Five months actually pioneered, not the seven-month span — the two publisher months in
+    // the middle are not owed, so he is on track rather than two months behind.
+    expect(result.annual[0].pace.elapsedEnrolled).toBe(5)
+    expect(result.annual[0].pace.actualToDate).toBe(250)
+    expect(result.annual[0].pace.paceDelta).toBe(0)
+  })
+
   it('flags concluded pioneers (reverted to Normal) and excludes them from totals', async () => {
     vi.mocked(db.member.findMany).mockResolvedValue([
       member(1, PublisherType.Normal, [
