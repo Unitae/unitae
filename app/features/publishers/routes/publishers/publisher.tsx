@@ -1,10 +1,18 @@
 import { Download, Pencil, RotateCcw, UserCheck, UserMinus, Zap, ZapOff } from 'lucide-react'
 import { Form, Link, redirect, useSubmit } from 'react-router'
+import { toServiceYear } from '~/features/publishers'
+import { getPioneerActivityForMember } from '~/features/publishers/server/pioneer-activity.queries'
 import { getPublisherById } from '~/features/publishers/server/publishers.server'
+import { PioneerActivitySection } from '~/features/publishers/ui/PioneerActivitySection'
 import { AttributionStatus, TerritoryKind } from '~/features/territories'
 import { findActiveAttributionsForPublisher } from '~/features/territories/index.server'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import type { CongregationId, MemberId } from '~/shared/types/branded'
 import { Permission } from '~/shared/types/permission'
@@ -26,14 +34,9 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import { Separator } from '~/shared/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import { requireParamId } from '~/shared/utils/params.server'
+import { zonedNow } from '~/shared/utils/zoned-now'
 
 import type { Route } from './+types/publisher'
-
-function computeServiceYearStart(): number {
-  const today = new Date()
-  const cutoff = new Date(today.getFullYear(), 8, 1)
-  return today < cutoff ? today.getFullYear() - 1 : today.getFullYear()
-}
 
 export const meta: Route.MetaFunction = ({ loaderData }) => {
   if (!loaderData) return [{ title: 'Unitae' }]
@@ -46,6 +49,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const canViewPublisher = permissions.has(Permission.PublisherViewer)
   const canManagePublisher = permissions.has(Permission.PublisherManager)
   const canManageActivity = permissions.has(Permission.ActivityManager)
+  const canViewActivity = permissions.has(Permission.ActivityViewer)
   const canViewTerritories = permissions.has(Permission.TerritoriesViewer)
 
   if (!canViewPublisher) {
@@ -58,11 +62,16 @@ export function loader({ params, context }: Route.LoaderArgs) {
   )
 
   const publisherId = requireParamId<MemberId>(params.publisherId, '/publishers')
+  const now = zonedNow(context.get(congregationContext).timezone)
+  const serviceYear = toServiceYear(now.getMonth(), now.getFullYear())
 
   return withScopeFromContext(context, async db => {
-    const [publisher, attributions] = await Promise.all([
-      getPublisherById(db, publisherId, currentUser.congregationId as CongregationId, computeServiceYearStart()),
+    const [publisher, attributions, pioneerActivity] = await Promise.all([
+      getPublisherById(db, publisherId, currentUser.congregationId as CongregationId, serviceYear),
       findActiveAttributionsForPublisher(db, publisherId, currentUser.congregationId),
+      canViewActivity
+        ? getPioneerActivityForMember(db, publisherId, currentUser.congregationId, serviceYear, now)
+        : Promise.resolve(null),
     ])
 
     if (!publisher) {
@@ -72,6 +81,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
     return {
       publisher,
       attributions,
+      pioneerActivity,
+      serviceYear,
       roles: {
         canViewPublisher,
         canManagePublisher,
@@ -215,7 +226,7 @@ function InactiveToggle({ publisherId, inactiveAt }: { publisherId: number; inac
 }
 
 export default function PublisherPage({ loaderData }: Route.ComponentProps) {
-  const { publisher, attributions, roles } = loaderData
+  const { publisher, attributions, pioneerActivity, serviceYear, roles } = loaderData
 
   return (
     <div className="flex flex-col gap-6">
@@ -402,6 +413,8 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
           )}
         </CardContent>
       </Card>
+
+      {pioneerActivity && <PioneerActivitySection serviceYear={serviceYear} activity={pioneerActivity} />}
     </div>
   )
 }

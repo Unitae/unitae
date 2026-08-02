@@ -1,6 +1,6 @@
 # Spec: Pioneer Activity Monitoring
 
-**Status:** Draft — design agreed + revised after expert review; not yet implemented
+**Status:** Implemented (PR #326) — see the reconciliation note below for shipped deviations
 **Author:** Nathanaël Cherrier
 **Feature area:** `features/publishers` (activity)
 **Related:** [Publishers (product)](../../product/publishers.md), [Architecture Conventions](../architecture-conventions.md)
@@ -13,6 +13,47 @@
 > group-scoped), hardened the pace/risk math against real data mess (duplicate rows, mid-year type
 > switches, August divide-by-zero, timezone), and simplified the UX (plain language, read-only
 > scope). The sections below reflect those corrections.
+
+> **Implementation reconciliation (as shipped in PR #326).** The sections below are the pre-build
+> design; the following intentional deviations were made during implementation/review and a
+> spec-vs-code audit. Where a section conflicts with this list, this list wins.
+>
+> **Behaviour changes (agreed):**
+> - **Proration is by enrollment *span*, not reported-month count.** `elapsedEnrolled` runs from
+>   the enrollment start (September for a *continuing* pioneer — one with pioneer activity the prior
+>   service year — otherwise their first reported month this year) through the current expected month.
+>   Missed months inside the span still count toward the goal, so a full-year pioneer who skips two
+>   months is 2 months *behind* on a 600 h goal, not prorated to 500 h. Only a genuinely late start
+>   prorates. (Supersedes §6's "elapsedEnrolled = months ≤ asOf whose type matches".) The summary
+>   query fetches the prior service year too, to detect continuing pioneers.
+> - **Risk escalation** — an *overdue* report raises the risk band one step (green→amber, amber→red),
+>   capped so a positive surplus stays green. §6's "risk from actuals only" is superseded by this so a
+>   non-reporter is never scored "on track".
+> - **No "awaiting" chip** — the `awaiting` reporting state is computed (and used by the escalation)
+>   but not displayed; only "overdue" (Rapport en retard) shows. §6's reporting-status chip is
+>   overdue-only.
+> - **Studies** — the detail section shows a studies total + secondary sparkline (§5.2 honoured).
+> - **Start-of-year guard** — implemented **per row** (`elapsedEnrolled === 0` → "données
+>   insuffisantes") on both roster and detail, not as the single global banner §6 implied.
+>
+> **UI as-built (spec text is aspirational here):**
+> - The displayed **"objectif" is the annual goal** (`fullYearTarget`, prorated to the enrollment
+>   span), not the to-date target — a Sept-start pioneer shows 600 h, a Jan-start pioneer shows their
+>   prorated annual goal. Pace ("dans les temps" / "X h de retard") is carried by the risk badge,
+>   which is still computed against the to-date target.
+> - Roster is a **~5-column** table (name + group/enrolled sub-line, type, status, hours "x / y h",
+>   trend); "last report" is not its own column. Group name, "≈ X h/mois pour finir", and filters
+>   (search / risk / type / group) are present.
+> - Distribution hero shows segment **counts in a legend below** the bar (not inside each segment).
+> - Pace chart plots a cumulative-**hours** line with a flat **monthly-rate** `ReferenceLine` (not a
+>   cumulative-vs-target ramp).
+> - **Concluded** pioneers are sorted last **inline** in the annual table (badged "Terminé", excluded
+>   from counts) rather than in a separate "terminé (mois X)" block.
+>
+> **Deferred (not built):** the Phase-2 goal-editing UI; the regular-publisher check-strip on the
+> detail page; retiring the old `BarChart3` icon button on the publishers-list header; the
+> control-plane `schema.prisma` copy. `getPioneerActivitySummary` relies on RLS for tenant scoping
+> (its `congregationId` param is unused), unlike `getPioneerActivityForMember` which also scopes by it.
 
 ## 1. Problem
 

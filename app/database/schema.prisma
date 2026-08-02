@@ -75,6 +75,7 @@ model Congregation {
   attributions                 Attribution[]
   publisherGroups              PublisherGroup[]
   publisherActivities          PublisherActivity[]
+  pioneerGoals                 PioneerGoal[]
   boardSections                BoardSection[]
   boardSectionVisibilityRoles  BoardSectionVisibilityRole[]
   boardDocuments               BoardDocument[]
@@ -654,6 +655,26 @@ model PublisherActivity {
 
   @@unique([id, congregationId])
   @@index([publisherId, month, year], name: "activityId")
+}
+
+// Per-service-year hour goal for a pioneer type. A missing row falls back to the
+// built-in default rate (see pioneer-goals.constants.ts); the control plane never
+// writes this — congregation admins set overrides per year.
+model PioneerGoal {
+  id           Int           @id @default(autoincrement())
+  serviceYear  Int
+  type         PublisherType
+  monthlyHours Int
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([serviceYear, type, congregationId])
+  @@unique([id, congregationId])
+  @@index([congregationId, serviceYear])
 }
 
 model Event {

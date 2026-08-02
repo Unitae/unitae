@@ -1,4 +1,5 @@
 import {
+  BarChart3,
   Bell,
   Building2,
   CalendarCheck,
@@ -13,6 +14,7 @@ import {
   PieChart,
   Search,
   Shield,
+  TrendingUp,
   User,
   UserCog,
   UserRoundCog,
@@ -52,6 +54,10 @@ function getNavigationItems(permissions: AppSidebarPermissions): CommandItem[] {
   if (permissions.canViewPublishers) {
     items.push({ id: 'publishers', label: m.sidebar_publishers(), icon: Users, to: '/publishers' })
     items.push({ id: 'groups', label: m.sidebar_publisher_groups(), icon: UsersRound, to: '/groups' })
+  }
+  if (permissions.canViewActivity) {
+    items.push({ id: 'activity', label: m.sidebar_activity(), icon: BarChart3, to: '/publishers/activity' })
+    items.push({ id: 'pioneers', label: m.pioneers_title(), icon: TrendingUp, to: '/publishers/activity/pioneers' })
   }
   if (permissions.canViewPrograms) {
     items.push({ id: 'programs', label: m.sidebar_programs(), icon: CalendarDays, to: '/programs' })

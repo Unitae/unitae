@@ -10,12 +10,18 @@ import {
   getUserTerritories,
   type TerritoryStatus,
 } from '~/features/dashboard/server/dashboard.server'
+import { type AtRiskPioneers, getAtRiskPioneers } from '~/features/dashboard/server/get-at-risk-pioneers.server'
 import { getResponsibleConflicts } from '~/features/dashboard/server/get-responsible-conflicts.server'
 import { buildUrgentItems } from '~/features/dashboard/ui/build-urgent-items'
 import { OnboardingChecklist } from '~/features/dashboard/ui/OnboardingChecklist'
 import { partReaderLabel, partSpeakerLabel } from '~/features/events/model/part-labels'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
@@ -24,6 +30,8 @@ import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { RelativeTime } from '~/shared/ui/RelativeTime'
+import { formatGroupName } from '~/shared/utils/format-group-name'
+import { zonedNow } from '~/shared/utils/zoned-now'
 
 import type { Route } from './+types/index'
 
@@ -51,6 +59,8 @@ export function loader({ context }: Route.LoaderArgs) {
   // Gate the query the same way so we don't hand a user a link to a page
   // they cannot open — mirrors the canViewBoard pattern below.
   const canViewPrograms = permissions.has(Permission.ProgramViewer) || isProgramManager
+  const canViewActivity = permissions.has(Permission.ActivityViewer)
+  const congregation = context.get(congregationContext)
 
   // Member-bound queries (territories, programme assignments) need the linked
   // Member id; account-bound queries (documents/views) use the UserAccount id.
@@ -69,6 +79,7 @@ export function loader({ context }: Route.LoaderArgs) {
       nextMeeting,
       dayoffConflict,
       responsibleConflicts,
+      atRiskPioneers,
     ] = await Promise.all([
       memberSafeQuery('territories', mid => getUserTerritories(db, mid)),
       canViewBoard
@@ -87,6 +98,11 @@ export function loader({ context }: Route.LoaderArgs) {
       canViewPrograms
         ? safeQuery('responsible-conflicts', currentUser.id, () =>
             getResponsibleConflicts(db, currentUser.id, isProgramManager),
+          )
+        : Promise.resolve(null),
+      canViewActivity
+        ? safeQuery('at-risk-pioneers', currentUser.id, () =>
+            getAtRiskPioneers(db, currentUser.congregationId, zonedNow(congregation.timezone)),
           )
         : Promise.resolve(null),
     ])
@@ -117,6 +133,7 @@ export function loader({ context }: Route.LoaderArgs) {
       absences,
       dayoffConflict,
       responsibleConflicts,
+      atRiskPioneers,
       onboarding,
       isAdmin,
       isTerritoriesManager,
@@ -154,6 +171,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
     absences,
     dayoffConflict,
     responsibleConflicts,
+    atRiskPioneers,
     onboarding,
     isAdmin,
     isTerritoriesManager,
@@ -249,6 +267,11 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
           <AbsencesCard absences={absences?.upcoming ?? null} shouldNudge={absences?.shouldNudge ?? false} />
         </div>
+        {atRiskPioneers != null && atRiskPioneers.count > 0 && (
+          <div className="animate-fade-in-up" style={{ animationDelay: '350ms' }}>
+            <PioneersAtRiskCard data={atRiskPioneers} />
+          </div>
+        )}
       </div>
     </div>
   )
@@ -262,6 +285,46 @@ function WidgetError() {
       <AlertTriangle className="size-4 shrink-0" />
       <span className="text-sm">{m.dashboard_widget_error()}</span>
     </div>
+  )
+}
+
+function PioneersAtRiskCard({ data }: { data: AtRiskPioneers }) {
+  return (
+    <Card className="h-full">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <AlertTriangle className="size-4 text-destructive" />
+          {m.dashboard_pioneers_at_risk_title({ count: String(data.count) })}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ul className="flex flex-col gap-2">
+          {data.pioneers.map(pioneer => (
+            <li key={pioneer.memberId} className="flex items-center justify-between gap-2 text-sm">
+              <div className="min-w-0">
+                <Link to={`/publishers/${pioneer.memberId}/view#activity`} className="font-medium hover:text-primary">
+                  {pioneer.firstname} {pioneer.lastname}
+                </Link>
+                {pioneer.groupName && (
+                  <div className="truncate text-muted-foreground text-xs">{formatGroupName(pioneer.groupName)}</div>
+                )}
+              </div>
+              <Badge variant="destructive">
+                {m.dashboard_pioneers_at_risk_deficit({ hours: String(pioneer.deficit) })}
+              </Badge>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+      <CardFooter className="mt-auto">
+        <Button asChild variant="ghost" size="sm">
+          <Link to="/publishers/activity/pioneers">
+            {m.dashboard_pioneers_at_risk_link()}
+            <ChevronRight className="size-4" />
+          </Link>
+        </Button>
+      </CardFooter>
+    </Card>
   )
 }
 
