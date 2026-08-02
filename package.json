@@ -21,6 +21,7 @@
         "db:seed": "prisma db seed",
         "db:seed:marketing": "pnpm tsx app/database/seed-marketing.ts",
         "db:seed:pioneers": "pnpm tsx scripts/seed-pioneer-demo.ts",
+        "db:backfill:pioneer-enrolments": "pnpm tsx scripts/backfill-pioneer-enrolments.ts",
         "start:dev": "react-router dev",
         "start:emails": "email dev --dir app/features",
         "start:worker": "NODE_ENV=${NODE_ENV:-development} pnpm tsx ./app/workers/worker.server.ts",

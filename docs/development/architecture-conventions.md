@@ -83,6 +83,7 @@ Promote a policy to an aggregate when a third writer appears or when the rule se
 |---|---|---|---|
 | `Member` | aggregate | `app/features/publishers/server/member.aggregate.ts` | 12 mutation sites route through it so `syncBuiltInRoleAssignments` fires after every identity-flag change |
 | `Attribution` | aggregate | `app/features/territories/server/attribution.aggregate.ts` | State machine (assigned → returned → archived) + overlap invariant (one active per publisher × territory time-window) |
+| `PioneerEnrolment` | aggregate | `app/features/publishers/server/pioneer-enrolment.aggregate.ts` | Open → close lifecycle + non-overlap invariant (no two of a member's stints share a month) + end-bounds-paired invariant |
 | `EventPart` | policy | `app/features/events/server/event-part.policy.ts` | Eligibility + distinctness + day-off + external-speaker rules shared by `assignPart` and `assignServicePart` |
 
 ### Aggregate contract

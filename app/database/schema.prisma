@@ -76,6 +76,7 @@ model Congregation {
   publisherGroups              PublisherGroup[]
   publisherActivities          PublisherActivity[]
   pioneerGoals                 PioneerGoal[]
+  pioneerEnrolments            PioneerEnrolment[]
   boardSections                BoardSection[]
   boardSectionVisibilityRoles  BoardSectionVisibilityRole[]
   boardDocuments               BoardDocument[]
@@ -188,6 +189,7 @@ model Member {
   // Domain relations (FK target Member.id)
   attributions             Attribution[]                    @relation("publisher")
   activities               PublisherActivity[]              @relation("publisherActivity")
+  pioneerEnrolments        PioneerEnrolment[]
   eventPartsAsAssignee        EventPart[]        @relation("partAssignee")
   eventPartsAsAssistant       EventPart[]        @relation("partAssistant")
   eventServicePartsAsAssignee EventServicePart[] @relation("servicePartAssignee")
@@ -712,6 +714,39 @@ model PioneerGoal {
   @@unique([serviceYear, type, congregationId])
   @@unique([id, congregationId])
   @@index([congregationId, serviceYear])
+}
+
+// Explicit pioneer enrolment — the *plan* half of the plan/actual split (actual =
+// PublisherActivity). One record per stint: who, which pioneer type, over what month
+// range, at what per-person monthly goal. Source of truth for pace, replacing the
+// per-month `type`-snapshot inference. See docs/development/specs/pioneer-enrolment.md.
+model PioneerEnrolment {
+  id       Int           @id @default(autoincrement())
+  member   Member        @relation(fields: [memberId, congregationId], references: [id, congregationId], onDelete: Cascade)
+  memberId Int
+  type     PublisherType // a pioneer type, never Normal (enforced at the Zod boundary)
+
+  // Inclusive month range, 0-indexed month + calendar year. A continuous stint may span
+  // service-year boundaries. endMonth/endYear are null together (ongoing) or set together
+  // (closed) — see the end_bounds_paired CHECK constraint in the migration. Auxiliary is
+  // either single-month (monthly auxiliary, start == end) or ongoing (permanent auxiliary,
+  // no end); annual types are ongoing until closed.
+  startMonth Int
+  startYear  Int
+  endMonth   Int?
+  endYear    Int?
+
+  monthlyGoal Int? // null = fall back to PioneerGoal(serviceYear, type) → built-in default
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([id, congregationId])
+  @@index([congregationId])
+  @@index([memberId, congregationId])
 }
 
 model Event {

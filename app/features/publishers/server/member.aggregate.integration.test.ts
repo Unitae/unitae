@@ -301,6 +301,38 @@ describe('member.aggregate — integration', () => {
     await testDb.publisherGroup.delete({ where: { id: group.id } })
   })
 
+  it('setPioneerType updates the standing type and attaches the pioneer built-in role', async () => {
+    const member = await withScope(congId, tx =>
+      memberAggregate.createMember(tx, congregationInfo as never, {
+        ...baseFormParams,
+        firstname: `SetType-${ts}`,
+        type: PublisherType.Normal,
+        congregationId: congId,
+        actorId: 1,
+      }),
+    )
+    const pioneerRole = await testDb.role.findFirstOrThrow({ where: { key: 'pioneer', congregationId: congId } })
+    const before = await testDb.memberRoleAssignment.findFirst({
+      where: { memberId: member.id, roleId: pioneerRole.id },
+    })
+    expect(before).toBeNull()
+
+    auditMock.mockClear()
+    await withScope(congId, tx =>
+      memberAggregate.setPioneerType(tx, member.id, congId, 1, PublisherType.PionnierPermanant),
+    )
+
+    const after = await testDb.member.findUniqueOrThrow({ where: { id: member.id } })
+    expect(after.type).toBe(PublisherType.PionnierPermanant)
+    const assignment = await testDb.memberRoleAssignment.findFirst({
+      where: { memberId: member.id, roleId: pioneerRole.id },
+    })
+    expect(assignment).not.toBeNull()
+    expect(auditMock).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'publisher.updated', entityId: member.id }),
+    )
+  })
+
   it('bulkUpdateType flips all matching members and re-syncs each', async () => {
     const m1 = await withScope(congId, tx =>
       memberAggregate.createMember(tx, congregationInfo as never, {

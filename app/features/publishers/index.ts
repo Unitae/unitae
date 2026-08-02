@@ -1,4 +1,13 @@
 // Public client-safe surface of the publishers feature.
+
+export {
+  coversMonth,
+  type EnrolmentPeriod,
+  enrolledMonthsInServiceYear,
+  isOngoing,
+  isSingleMonth,
+  resolveEnrolmentGoal,
+} from './model/pioneer-enrolment'
 export {
   isEditableServiceYear,
   type PioneerPace,
@@ -14,3 +23,4 @@ export type {
   PioneerAnnualRow,
   PioneerAuxiliaryRow,
 } from './model/pioneer-roster.type'
+export { type PioneerEnrolmentInput, pioneerEnrolmentSchema } from './schemas/pioneer-enrolment.schema'

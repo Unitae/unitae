@@ -2,7 +2,7 @@ import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
 import { LimitService } from '~/shared/domain/limits.server'
-import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
+import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { MemberId } from '~/shared/types/branded'
 import type { PublisherType } from '~/shared/types/publisher-type'
@@ -11,41 +11,12 @@ import { purgeEmergencyContacts } from './emergency-info.aggregate'
 import {
   type CreateDirectParams,
   haveIdentityFlagsChanged,
-  MEMBER_IDENTITY_SELECT,
   type MemberFormFields,
-  type MemberIdentityFlags,
   memberDataFromForm,
 } from './member-identity'
+import { _ensureMemberIsNotGroupResponsible, _loadMemberIdentity } from './member-preconditions.server'
 
 export type { CreateDirectParams }
-
-async function _loadMemberIdentity(
-  db: TransactionClient,
-  memberId: number,
-  congregationId: number,
-): Promise<MemberIdentityFlags> {
-  const member = await db.member.findFirst({
-    where: { id: memberId, congregationId },
-    select: MEMBER_IDENTITY_SELECT,
-  })
-  if (!member) throw new NotFoundError('Member')
-  return member
-}
-
-// PublisherGroup.responsibleId is a required unique FK — we cannot null it.
-// The admin must reassign the group's responsibility BEFORE anonymize,
-// otherwise the group would retain an inbound pointer to the scrubbed row.
-async function _ensureMemberIsNotGroupResponsible(db: TransactionClient, memberId: number): Promise<void> {
-  const group = await db.publisherGroup.findFirst({
-    where: { responsibleId: memberId },
-    select: { id: true, name: true },
-  })
-  if (group) {
-    throw new ConflictError(
-      `Cannot anonymize a group responsible — reassign "${group.name}" (group #${group.id}) first`,
-    )
-  }
-}
 
 export type CreateMemberParams = MemberFormFields & {
   congregationId: number
@@ -320,4 +291,35 @@ export async function bulkUpdateType(
   for (const m of affected) {
     await syncBuiltInRoleAssignments(db, m.id, congregationId, actorId)
   }
+}
+
+// Sets a member's standing pioneer type (the synced `Member.type` cache that drives built-in
+// role sync). Called by the pioneer-enrolment workflow when an *ongoing* stint opens/closes —
+// single-month auxiliary enrolments deliberately do NOT touch `Member.type` (see the enrolment
+// workflow and CLAUDE.md). Kept in the aggregate because it writes `Member` + re-syncs roles.
+export async function setPioneerType(
+  db: TransactionClient,
+  memberId: number,
+  congregationId: number,
+  actorId: number,
+  type: PublisherType,
+) {
+  const member = await db.member.update({
+    // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
+    where: { id_congregationId: { id: memberId, congregationId } },
+    data: { type },
+  })
+
+  await syncBuiltInRoleAssignments(db, memberId, congregationId, actorId)
+
+  audit({
+    action: AuditAction.PublisherUpdated,
+    congregationId,
+    actorId,
+    entityType: 'Member',
+    entityId: memberId,
+    metadata: { type },
+  })
+
+  return member
 }

@@ -24,7 +24,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
 
-const AGGREGATE_MODELS = ['member', 'attribution'] as const
+const AGGREGATE_MODELS = ['member', 'attribution', 'pioneerEnrolment'] as const
 const WRITE_METHODS = ['create', 'update', 'updateMany', 'delete', 'deleteMany', 'upsert'] as const
 const UI_READ_METHODS = ['findMany', 'count', 'aggregate'] as const
 
