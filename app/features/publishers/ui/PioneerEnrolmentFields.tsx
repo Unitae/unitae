@@ -70,7 +70,6 @@ interface EnrolmentRow {
 }
 
 interface PioneerEnrolmentFieldsProps {
-  currentType: PublisherType
   activeStanding: StandingEnrolment | null
   enrolments: EnrolmentRow[]
   monthOptions: { month: number; year: number }[]
@@ -98,12 +97,12 @@ function enrolmentTypeLabel(e: EnrolmentRow): string {
   return profileLabel(e.type)
 }
 
-// The pioneer-service section of the publisher edit page. The current profile is read-only (kept in
-// sync by the enrolment workflow); a manager appoints through a single type dropdown that reveals
-// the right fields — a monthly auxiliary needs a month + goal, every other (standing) type needs a
-// start. One form, posting the matching enrolment intent to the edit-publisher route.
+// The pioneer-service section of the publisher edit page. It shows the member's current status once —
+// an active standing appointment, a monthly enrolment for this month, or nothing — with the matching
+// action (close, remove, or a create form). The create form is a single type dropdown that reveals
+// the right fields: a monthly auxiliary needs a month + goal, every other (standing) type needs a
+// start. Each form posts its enrolment intent to the edit-publisher route.
 export default function PioneerEnrolmentFields({
-  currentType,
   activeStanding,
   enrolments,
   monthOptions,
@@ -123,10 +122,8 @@ export default function PioneerEnrolmentFields({
   const isMonthly = mode === 'monthly-aux'
 
   // The enrolment covering the current month (a standing appointment or a monthly auxiliary) — the
-  // member's real current status. Drives the read-only profile and prevents a second enrolment while
-  // already enrolled this month.
+  // member's real current status. Prevents a second enrolment while already enrolled this month.
   const currentEnrolment = enrolments.find(e => coversMonth(e, now.month, now.year)) ?? null
-  const currentProfile = currentEnrolment != null ? enrolmentTypeLabel(currentEnrolment) : profileLabel(currentType)
 
   // Everything except the current active enrolment (shown on its own), most recent first.
   const history = enrolments
@@ -140,22 +137,20 @@ export default function PioneerEnrolmentFields({
         <p className="text-muted-foreground text-sm">{m.publishers_enrolment_section_description()}</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {/* Current profile — read-only, derived from the enrolment covering the current month. */}
-        <div className="space-y-1">
-          <Label>{m.publishers_enrolment_current_profile_label()}</Label>
-          <p className="font-medium text-sm">{currentProfile}</p>
-        </div>
-
         {activeStanding != null ? (
-          // A standing appointment is active — the only action is to close it.
-          <Form method="post" className="flex flex-col gap-3 border-t pt-4">
+          // A standing appointment is active — it *is* the current status; the only action is to close it.
+          <Form method="post" className="flex flex-col gap-3">
             <input type="hidden" name="intent" value="close-standing" />
             <input type="hidden" name="enrolmentId" value={activeStanding.id} />
-            <p className="text-sm">
-              {m.publishers_enrolment_standing_active_label()} — <strong>{profileLabel(activeStanding.type)}</strong> (
-              {MONTH_LABELS[activeStanding.startMonth]()} {activeStanding.startYear})
-            </p>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <p className="font-medium">{profileLabel(activeStanding.type)}</p>
+              <p className="text-muted-foreground text-sm">
+                {m.publishers_enrolment_active_since({
+                  period: `${MONTH_LABELS[activeStanding.startMonth]()} ${activeStanding.startYear}`,
+                })}
+              </p>
+            </div>
+            <div className="grid gap-3 border-t pt-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="close-month">{m.publishers_enrolment_standing_end_label()}</Label>
                 <input type="hidden" name="endMonth" value={endMonth} />
@@ -194,14 +189,13 @@ export default function PioneerEnrolmentFields({
             </Button>
           </Form>
         ) : currentEnrolment != null ? (
-          // Already enrolled for the current month (a monthly auxiliary) — show it with a way to undo,
+          // Enrolled for the current month (a monthly auxiliary) — it *is* the current status; offer undo
           // rather than inviting a duplicate enrolment.
-          <div className="flex items-center justify-between gap-3 border-t pt-4">
-            <div>
-              <p className="text-muted-foreground text-sm">{m.publishers_enrolment_already_enrolled()}</p>
-              <p className="text-sm">
-                <span className="font-medium">{enrolmentTypeLabel(currentEnrolment)}</span> ·{' '}
-                {periodLabel(currentEnrolment)}
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <p className="font-medium">{enrolmentTypeLabel(currentEnrolment)}</p>
+              <p className="text-muted-foreground text-sm">
+                {m.publishers_enrolment_enrolled_for({ period: periodLabel(currentEnrolment) })}
                 {currentEnrolment.monthlyGoal != null &&
                   ` · ${m.publishers_enrolment_goal_suffix({ goal: String(currentEnrolment.monthlyGoal) })}`}
               </p>
@@ -215,9 +209,11 @@ export default function PioneerEnrolmentFields({
             </Form>
           </div>
         ) : (
-          // No active appointment — one form whose fields follow the chosen type.
-          <Form method="post" className="flex flex-col gap-3 border-t pt-4">
+          // No appointment covering this month — state that plainly, then one create form whose fields
+          // follow the chosen type.
+          <Form method="post" className="flex flex-col gap-3">
             <input type="hidden" name="intent" value={isMonthly ? 'enrol-monthly' : 'enrol-standing'} />
+            <p className="text-muted-foreground text-sm">{m.publishers_enrolment_current_none()}</p>
             {!isMonthly && <input type="hidden" name="type" value={STANDING_TYPE[mode]} />}
             {isMonthly && (
               <>
@@ -251,7 +247,7 @@ export default function PioneerEnrolmentFields({
                 <>
                   <div className="space-y-2">
                     <Label htmlFor="monthly-month">{m.publishers_enrolment_monthly_month_label()}</Label>
-                    <Select value={monthIndex} onValueChange={setMonthIndex}>
+                    <Select key="monthly-month" value={monthIndex} onValueChange={setMonthIndex}>
                       <SelectTrigger id="monthly-month" className="w-full">
                         <SelectValue />
                       </SelectTrigger>
@@ -267,7 +263,10 @@ export default function PioneerEnrolmentFields({
                   <div className="space-y-2">
                     <Label htmlFor="monthly-goal">{m.publishers_enrolment_monthly_goal_label()}</Label>
                     <input type="hidden" name="monthlyGoal" value={goal} />
-                    <Select value={goal} onValueChange={setGoal}>
+                    {/* Stable key so React never reconciles this Select into the standing-year Select
+                        when `mode` flips — a reused Radix instance whose old value isn't among the new
+                        items fires onValueChange('') and would silently clear the target state. */}
+                    <Select key="monthly-goal" value={goal} onValueChange={setGoal}>
                       <SelectTrigger id="monthly-goal" className="w-full">
                         <SelectValue />
                       </SelectTrigger>
@@ -283,7 +282,7 @@ export default function PioneerEnrolmentFields({
                   <div className="space-y-2">
                     <Label htmlFor="standing-month">{m.publishers_enrolment_standing_start_label()}</Label>
                     <input type="hidden" name="startMonth" value={startMonth} />
-                    <Select value={startMonth} onValueChange={setStartMonth}>
+                    <Select key="standing-month" value={startMonth} onValueChange={setStartMonth}>
                       <SelectTrigger id="standing-month" className="w-full">
                         <SelectValue />
                       </SelectTrigger>
@@ -299,7 +298,7 @@ export default function PioneerEnrolmentFields({
                   <div className="space-y-2">
                     <Label htmlFor="standing-year">&nbsp;</Label>
                     <input type="hidden" name="startYear" value={startYear} />
-                    <Select value={startYear} onValueChange={setStartYear}>
+                    <Select key="standing-year" value={startYear} onValueChange={setStartYear}>
                       <SelectTrigger id="standing-year" className="w-full">
                         <SelectValue />
                       </SelectTrigger>

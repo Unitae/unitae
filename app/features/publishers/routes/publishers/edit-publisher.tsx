@@ -124,7 +124,6 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
       {/* Pioneer appointments — separate forms, each posting its own enrolment intent (saved on their
           own buttons, independently of the identity form below). */}
       <PioneerEnrolmentFields
-        currentType={user.type}
         activeStanding={activeStanding}
         enrolments={enrolments}
         monthOptions={monthOptions}
