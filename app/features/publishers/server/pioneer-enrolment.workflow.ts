@@ -2,7 +2,7 @@ import type { PioneerEnrolment } from '~/database/generated/client'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { setPioneerType } from './member.aggregate'
-import { closeEnrolment, type OpenEnrolmentParams, openEnrolment } from './pioneer-enrolment.aggregate'
+import { closeEnrolment, deleteEnrolment, type OpenEnrolmentParams, openEnrolment } from './pioneer-enrolment.aggregate'
 
 // Cross-aggregate orchestration for a single manager action: opening/closing an enrolment while
 // keeping the synced `Member.type` cache in step. The route runs this inside its
@@ -48,4 +48,27 @@ export async function endPioneerEnrolment(
   }
 
   return enrolment
+}
+
+// Delete an enrolment outright (undo a mistaken one). If it was the member's last ongoing stint,
+// revert the type cache — mirrors endPioneerEnrolment. In practice this is used for single-month
+// auxiliary enrolments (which never touched Member.type), so the revert is usually a no-op.
+export async function removePioneerEnrolment(
+  db: TransactionClient,
+  enrolmentId: number,
+  congregationId: number,
+  actorId: number,
+): Promise<PioneerEnrolment> {
+  const removed = await deleteEnrolment(db, enrolmentId, congregationId, actorId)
+
+  if (removed.endMonth == null) {
+    const remainingOngoing = await db.pioneerEnrolment.count({
+      where: { memberId: removed.memberId, congregationId, endMonth: null },
+    })
+    if (remainingOngoing === 0) {
+      await setPioneerType(db, removed.memberId, congregationId, actorId, PublisherType.Normal)
+    }
+  }
+
+  return removed
 }

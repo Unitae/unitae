@@ -64,6 +64,13 @@ export const monthlyAuxiliaryEnrolmentSchema = z.object({
   monthlyGoal: z.coerce.number().int().positive(),
 })
 
+// Remove an enrolment outright (used to undo a monthly auxiliary added in error).
+export const removeEnrolmentSchema = z.object({
+  intent: z.literal('remove-enrolment'),
+  enrolmentId: z.coerce.number().int().positive(),
+})
+
 export type StandingAppointmentInput = z.infer<typeof standingAppointmentSchema>
 export type CloseAppointmentInput = z.infer<typeof closeAppointmentSchema>
 export type MonthlyAuxiliaryEnrolmentInput = z.infer<typeof monthlyAuxiliaryEnrolmentSchema>
+export type RemoveEnrolmentInput = z.infer<typeof removeEnrolmentSchema>

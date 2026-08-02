@@ -9,7 +9,7 @@ export {
   getEnrolmentsForServiceYear,
   resolveEnrolmentMonthlyGoal,
 } from './server/pioneer-enrolment.queries'
-export { endPioneerEnrolment, enrolPioneer } from './server/pioneer-enrolment.workflow'
+export { endPioneerEnrolment, enrolPioneer, removePioneerEnrolment } from './server/pioneer-enrolment.workflow'
 export { backfillCongregationEnrolments } from './server/pioneer-enrolment-backfill.server'
 export { listPioneerGoalsForYear, type PioneerGoalRow } from './server/pioneer-goals.queries'
 export { getPublishers } from './server/publishers.server'

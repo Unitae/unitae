@@ -4,9 +4,14 @@ import { commitSession, getSession } from '~/features/authentication/index.serve
 import {
   closeAppointmentSchema,
   monthlyAuxiliaryEnrolmentSchema,
+  removeEnrolmentSchema,
   standingAppointmentSchema,
 } from '~/features/publishers/schemas/pioneer-enrolment.schema'
-import { endPioneerEnrolment, enrolPioneer } from '~/features/publishers/server/pioneer-enrolment.workflow'
+import {
+  endPioneerEnrolment,
+  enrolPioneer,
+  removePioneerEnrolment,
+} from '~/features/publishers/server/pioneer-enrolment.workflow'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { AppError } from '~/shared/errors/app-error.server'
@@ -18,7 +23,7 @@ interface RouteContext {
   get<T>(context: RouterContext<T>): T
 }
 
-export const PIONEER_ENROLMENT_INTENTS = ['enrol-standing', 'close-standing', 'enrol-monthly']
+export const PIONEER_ENROLMENT_INTENTS = ['enrol-standing', 'close-standing', 'enrol-monthly', 'remove-enrolment']
 
 // Handles the three pioneer-enrolment intents posted from the publisher edit page. Each parses its
 // own schema and delegates to the enrolment workflow (which keeps Member.type in sync); a business
@@ -41,11 +46,14 @@ export async function handlePioneerEnrolmentIntent(
 
   try {
     await runIntent(context, formData, memberId, congregationId, actorId)
+    const intent = formData.get('intent')
     session.flash(
       'success',
-      formData.get('intent') === 'close-standing'
+      intent === 'close-standing'
         ? m.publishers_enrolment_ended_success()
-        : m.publishers_enrolment_enrolled_success(),
+        : intent === 'remove-enrolment'
+          ? m.publishers_enrolment_removed_success()
+          : m.publishers_enrolment_enrolled_success(),
     )
   } catch (error) {
     // Validation failures and business-rule violations (AppError, e.g. overlap) become a flash;
@@ -92,6 +100,14 @@ function runIntent(
         endYear: year,
         monthlyGoal,
       }),
+    )
+  }
+
+  if (intent === 'remove-enrolment') {
+    const submission = parseWithZod(formData, { schema: removeEnrolmentSchema })
+    if (submission.status !== 'success') throw new EnrolmentValidationError()
+    return withScopeFromContext(context, db =>
+      removePioneerEnrolment(db, submission.value.enrolmentId, congregationId, actorId),
     )
   }
 

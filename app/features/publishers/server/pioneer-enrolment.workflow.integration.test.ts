@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 import { PublisherType } from '~/shared/types/publisher-type'
-import { endPioneerEnrolment, enrolPioneer } from './pioneer-enrolment.workflow'
+import { endPioneerEnrolment, enrolPioneer, removePioneerEnrolment } from './pioneer-enrolment.workflow'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -125,6 +125,41 @@ describe('pioneer-enrolment workflow (integration)', () => {
     )
 
     await withScope(congId, tx => endPioneerEnrolment(tx, enrolment.id, congId, 1, { endMonth: 1, endYear: 2026 }))
+
+    const after = await testDb.member.findUniqueOrThrow({ where: { id: memberId } })
+    expect(after.type).toBe(PublisherType.Normal)
+    expect(await pioneerRoleAttached(memberId)).toBe(false)
+  })
+
+  it('removing a single-month auxiliary deletes it and leaves the type untouched', async () => {
+    const memberId = await makePublisher(`RemoveAux-${ts}`)
+    const enrolment = await withScope(congId, tx =>
+      enrolPioneer(tx, memberId, congId, 1, {
+        type: PublisherType.PionnierAuxiliaires,
+        startMonth: 2,
+        startYear: 2026,
+        endMonth: 2,
+        endYear: 2026,
+        monthlyGoal: 15,
+      }),
+    )
+
+    await withScope(congId, tx => removePioneerEnrolment(tx, enrolment.id, congId, 1))
+
+    expect(await testDb.pioneerEnrolment.count({ where: { id: enrolment.id } })).toBe(0)
+    expect((await testDb.member.findUniqueOrThrow({ where: { id: memberId } })).type).toBe(PublisherType.Normal)
+  })
+
+  it('removing the last ongoing stint reverts Member.type to Normal', async () => {
+    const memberId = await makePublisher(`RemoveStanding-${ts}`)
+    const enrolment = await withScope(congId, tx =>
+      enrolPioneer(tx, memberId, congId, 1, { type: PublisherType.PionnierPermanant, startMonth: 8, startYear: 2025 }),
+    )
+    expect((await testDb.member.findUniqueOrThrow({ where: { id: memberId } })).type).toBe(
+      PublisherType.PionnierPermanant,
+    )
+
+    await withScope(congId, tx => removePioneerEnrolment(tx, enrolment.id, congId, 1))
 
     const after = await testDb.member.findUniqueOrThrow({ where: { id: memberId } })
     expect(after.type).toBe(PublisherType.Normal)

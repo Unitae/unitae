@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Form } from 'react-router'
+import { coversMonth } from '~/features/publishers/model/pioneer-enrolment'
 import * as m from '~/i18n/paraglide/messages'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
@@ -121,10 +122,15 @@ export default function PioneerEnrolmentFields({
   const selectedMonth = monthOptions[Number(monthIndex)] ?? now
   const isMonthly = mode === 'monthly-aux'
 
-  // Everything except the active standing appointment (shown with its own close form), most recent
-  // first — so a manager sees the monthly auxiliary they just saved, with its goal.
+  // The enrolment covering the current month (a standing appointment or a monthly auxiliary) — the
+  // member's real current status. Drives the read-only profile and prevents a second enrolment while
+  // already enrolled this month.
+  const currentEnrolment = enrolments.find(e => coversMonth(e, now.month, now.year)) ?? null
+  const currentProfile = currentEnrolment != null ? enrolmentTypeLabel(currentEnrolment) : profileLabel(currentType)
+
+  // Everything except the current active enrolment (shown on its own), most recent first.
   const history = enrolments
-    .filter(e => e.id !== activeStanding?.id)
+    .filter(e => e.id !== activeStanding?.id && e.id !== currentEnrolment?.id)
     .sort((a, b) => b.startYear * 12 + b.startMonth - (a.startYear * 12 + a.startMonth))
 
   return (
@@ -133,10 +139,10 @@ export default function PioneerEnrolmentFields({
         <CardTitle>{m.publishers_enrolment_section_title()}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {/* Current profile — read-only, derived from the active appointment. */}
+        {/* Current profile — read-only, derived from the enrolment covering the current month. */}
         <div className="space-y-1">
           <Label>{m.publishers_enrolment_current_profile_label()}</Label>
-          <p className="font-medium text-sm">{profileLabel(currentType)}</p>
+          <p className="font-medium text-sm">{currentProfile}</p>
         </div>
 
         {activeStanding != null ? (
@@ -186,6 +192,27 @@ export default function PioneerEnrolmentFields({
               {m.publishers_enrolment_standing_end_submit()}
             </Button>
           </Form>
+        ) : currentEnrolment != null ? (
+          // Already enrolled for the current month (a monthly auxiliary) — show it with a way to undo,
+          // rather than inviting a duplicate enrolment.
+          <div className="flex items-center justify-between gap-3 border-t pt-4">
+            <div>
+              <p className="text-muted-foreground text-sm">{m.publishers_enrolment_already_enrolled()}</p>
+              <p className="text-sm">
+                <span className="font-medium">{enrolmentTypeLabel(currentEnrolment)}</span> ·{' '}
+                {periodLabel(currentEnrolment)}
+                {currentEnrolment.monthlyGoal != null &&
+                  ` · ${m.publishers_enrolment_goal_suffix({ goal: String(currentEnrolment.monthlyGoal) })}`}
+              </p>
+            </div>
+            <Form method="post">
+              <input type="hidden" name="intent" value="remove-enrolment" />
+              <input type="hidden" name="enrolmentId" value={currentEnrolment.id} />
+              <Button type="submit" variant="secondary">
+                {m.publishers_enrolment_remove()}
+              </Button>
+            </Form>
+          </div>
         ) : (
           // No active appointment — one form whose fields follow the chosen type.
           <Form method="post" className="flex flex-col gap-3 border-t pt-4">
