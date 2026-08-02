@@ -36,8 +36,10 @@ const STANDING_TYPE: Record<Exclude<Mode, 'monthly-aux'>, PublisherType> = {
 
 function profileLabel(type: PublisherType): string {
   switch (type) {
+    // In the enrolment context, a member whose type is auxiliary is a *permanent* auxiliary — a
+    // monthly auxiliary never sets Member.type (§7.1) — so it reads "sans interruption".
     case PublisherType.PionnierAuxiliaires:
-      return m.publishers_form_profile_auxiliary_pioneer()
+      return m.publishers_enrolment_standing_permanent_auxiliary()
     case PublisherType.PionnierPermanant:
       return m.publishers_form_profile_permanent_pioneer()
     case PublisherType.PionnierSpecial:
