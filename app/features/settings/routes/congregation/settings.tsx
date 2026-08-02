@@ -40,7 +40,7 @@ export function loader({ context }: Route.LoaderArgs) {
   return withScopeFromContext(context, async db => {
     const auxiliaryPioneerProfileActivated = await getBoolSetting(
       db,
-      CongregationSettingKey.AuxiliaryPioneerProfileActivated,
+      CongregationSettingKey.PermanentAuxiliaryPioneerProfileActivated,
       currentUser.congregationId,
     )
 
@@ -79,7 +79,7 @@ export default function CongregationSettingsPage({ loaderData, actionData }: Rou
             <div className="flex items-center gap-2">
               <Checkbox
                 id="auxiliary-pioneer"
-                name={CongregationSettingKey.AuxiliaryPioneerProfileActivated}
+                name={CongregationSettingKey.PermanentAuxiliaryPioneerProfileActivated}
                 value="on"
                 defaultChecked={auxiliaryPioneerProfileActivated}
               />
@@ -129,7 +129,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  const { [CongregationSettingKey.AuxiliaryPioneerProfileActivated]: auxiliaryPioneerProfileActivated } =
+  const { [CongregationSettingKey.PermanentAuxiliaryPioneerProfileActivated]: auxiliaryPioneerProfileActivated } =
     submission.value
 
   return withScopeFromContext(context, async db => {

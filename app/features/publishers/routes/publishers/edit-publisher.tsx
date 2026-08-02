@@ -71,7 +71,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
     const showAuxiliaryPioneer = await getBoolSetting(
       db,
-      CongregationSettingKey.AuxiliaryPioneerProfileActivated,
+      CongregationSettingKey.PermanentAuxiliaryPioneerProfileActivated,
       currentUser.congregationId,
     )
     const groups = await db.publisherGroup.findMany({ where: { congregationId: currentUser.congregationId } })

@@ -15,7 +15,7 @@ export async function updateCongregationSettings(
 ) {
   await setSetting(
     db,
-    CongregationSettingKey.AuxiliaryPioneerProfileActivated,
+    CongregationSettingKey.PermanentAuxiliaryPioneerProfileActivated,
     data.auxiliaryPioneerProfileActivated,
     congregationId,
   )

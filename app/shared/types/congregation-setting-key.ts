@@ -1,5 +1,5 @@
 export enum CongregationSettingKey {
-  AuxiliaryPioneerProfileActivated = 'auxiliary-pioneer-profile-active',
+  PermanentAuxiliaryPioneerProfileActivated = 'auxiliary-pioneer-profile-active',
   BreachedPasswordCheckScope = 'breached-password-check-scope',
 }
 
