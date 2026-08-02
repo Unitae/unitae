@@ -54,7 +54,9 @@ export async function handlePioneerEnrolmentIntent(
     session.flash('error', m.publishers_enrolment_error())
   }
 
-  return redirect(`/publishers/${memberId}`, { headers: { 'Set-Cookie': await commitSession(session) } })
+  // Back to the edit page (there is no bare /publishers/:id route) so the manager sees the updated
+  // appointment / close form.
+  return redirect(`/publishers/${memberId}/edit`, { headers: { 'Set-Cookie': await commitSession(session) } })
 }
 
 class EnrolmentValidationError extends Error {}
