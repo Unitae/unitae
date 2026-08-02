@@ -2,6 +2,7 @@ import { parseWithZod } from '@conform-to/zod'
 import { BarChart3, Eye, Mail, Pencil, Plus, Siren } from 'lucide-react'
 import { data, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
+import { canManageGroupActivity } from '~/features/publishers/model/group-activity-access'
 import { updateGroupSchema } from '~/features/publishers/schemas/group.schema'
 import { getGroup } from '~/features/publishers/server/groups.server'
 import { updateGroup } from '~/features/publishers/server/update-group.server'
@@ -52,12 +53,12 @@ export function loader({ params, context }: Route.LoaderArgs) {
         canManagePublisher,
         canViewPublishers,
         canViewEmergency,
-        // group.responsible/deputy.id are Member ids, so compare against the
-        // current user's linked Member id — not their UserAccount id.
-        canManageActivity:
-          canManageActivity ||
-          group.responsible.id === currentUser.member?.id ||
-          group.deputy?.id === currentUser.member?.id,
+        canManageActivity: canManageGroupActivity({
+          hasActivityManager: canManageActivity,
+          responsibleId: group.responsible.id,
+          deputyId: group.deputy?.id ?? null,
+          myMemberId: currentUser.member?.id ?? null,
+        }),
       },
     }
   })
