@@ -105,6 +105,8 @@ model Congregation {
   eventServicePartAllowedRoles    EventServicePartAllowedRole[]
   externalSpeakers                           ExternalSpeaker[]
 
+  emergencyContacts EmergencyContact[]
+
   notificationEvents      NotificationEvent[]
   notificationPreferences NotificationPreference[]
 
@@ -143,6 +145,16 @@ model Member {
   birthDate           DateTime?
   phone               String   @default("")
   address             String   @default("")
+  // Contact email — person data, distinct from the login email on UserAccount.
+  // The two may match or differ; a member can have a contact email without a login.
+  email               String   @default("")
+
+  // Emergency preparedness. `dpaCardUpToDate` = the member holds an up-to-date
+  // DPA card (directive médicale anticipée); `survivalBackpackReady` = their
+  // survival backpack is ready. `emergencyContacts` are third parties to reach
+  // about the member in a crisis (scrubbed on anonymize).
+  dpaCardUpToDate       Boolean @default(false)
+  survivalBackpackReady Boolean @default(false)
 
   // Domain status. `isPublisher = false` means ministry-school student.
   // `type` is only meaningful when `isPublisher = true`.
@@ -184,6 +196,8 @@ model Member {
   // any custom role the user may add later that expresses identity)
   roleAssignments MemberRoleAssignment[]
 
+  emergencyContacts EmergencyContact[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -191,6 +205,29 @@ model Member {
   @@index([congregationId, leftAt])
   @@index([congregationId, firstnameNormalized])
   @@index([congregationId, lastnameNormalized])
+}
+
+// A person to contact about a Member in an emergency — either to get
+// information about the Member's situation or to pass information on. Holds
+// third-party PII (name + phone), so it is purged when the Member is
+// anonymized. Owned by the Member; no invariants of its own.
+model EmergencyContact {
+  id           Int    @id @default(autoincrement())
+  // biome-ignore lint/style/useNamingConvention: Prisma composite FK
+  member       Member @relation(fields: [memberId, congregationId], references: [id, congregationId], onDelete: Cascade)
+  memberId     Int
+  name         String
+  relationship String @default("") // free text: ami, famille, enfant, conjoint…
+  phone        String @default("")
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  createdAt DateTime @default(now())
+
+  @@unique([id, congregationId])
+  @@index([congregationId])
+  @@index([memberId, congregationId])
 }
 
 // A login. Always has an email + password. Optionally points at a Member.

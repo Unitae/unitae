@@ -1,8 +1,11 @@
 import { Download, Pencil, RotateCcw, UserCheck, UserMinus, Zap, ZapOff } from 'lucide-react'
 import { Form, Link, redirect, useSubmit } from 'react-router'
 import { toServiceYear } from '~/features/publishers'
+import { canManageEmergencyInfo, canViewEmergencyInfo } from '~/features/publishers/model/emergency-access'
+import { getEmergencyInfoForMember } from '~/features/publishers/server/emergency.queries'
 import { getPioneerActivityForMember } from '~/features/publishers/server/pioneer-activity.queries'
 import { getPublisherById } from '~/features/publishers/server/publishers.server'
+import EmergencyInfoView, { type EmergencyInfoViewData } from '~/features/publishers/ui/EmergencyInfoView'
 import { PioneerActivitySection } from '~/features/publishers/ui/PioneerActivitySection'
 import { AttributionStatus, TerritoryKind } from '~/features/territories'
 import { findActiveAttributionsForPublisher } from '~/features/territories/index.server'
@@ -78,15 +81,28 @@ export function loader({ params, context }: Route.LoaderArgs) {
       throw redirect('/publishers')
     }
 
+    const emergencyAccess = {
+      hasViewer: permissions.has(Permission.EmergencyInfoViewer),
+      hasManager: permissions.has(Permission.EmergencyInfoManager),
+      myResponsibleGroupId: currentUser.member?.responsibleFor?.id ?? null,
+      myDeputyGroupId: currentUser.member?.deputyFor?.id ?? null,
+      targetGroupId: publisher.publisherGroupId,
+    }
+    const emergency = canViewEmergencyInfo(emergencyAccess)
+      ? await getEmergencyInfoForMember(db, publisherId, currentUser.congregationId as CongregationId)
+      : null
+
     return {
       publisher,
       attributions,
       pioneerActivity,
       serviceYear,
+      emergency,
       roles: {
         canViewPublisher,
         canManagePublisher,
         canViewTerritories,
+        canManageEmergency: canManageEmergencyInfo(emergencyAccess),
         canManageActivity:
           canManageActivity ||
           publisher.publisherGroup?.responsible.id === currentUser.member?.id ||
@@ -225,8 +241,34 @@ function InactiveToggle({ publisherId, inactiveAt }: { publisherId: number; inac
   )
 }
 
+function EmergencyCard({
+  info,
+  canManage,
+  publisherId,
+}: {
+  info: EmergencyInfoViewData
+  canManage: boolean
+  publisherId: number
+}) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between gap-2">
+        <CardTitle>{m.publishers_emergency_section_title()}</CardTitle>
+        {canManage && (
+          <Button asChild variant="outline" size="sm">
+            <Link to={`/publishers/${publisherId}/emergency`}>{m.publishers_emergency_edit_link()}</Link>
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent>
+        <EmergencyInfoView info={info} />
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function PublisherPage({ loaderData }: Route.ComponentProps) {
-  const { publisher, attributions, pioneerActivity, serviceYear, roles } = loaderData
+  const { publisher, attributions, pioneerActivity, serviceYear, emergency, roles } = loaderData
 
   return (
     <div className="flex flex-col gap-6">
@@ -346,11 +388,11 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
             {m.publishers_view_phone()} :{' '}
             <span className="font-medium text-foreground">{publisher.phone ? publisher.phone : '...'}</span>
           </p>
-          {publisher.account?.email && (
+          {publisher.email && (
             <p className="text-muted-foreground text-sm">
               {m.publishers_view_email_address()} :{' '}
-              <Link to={`mailto:${publisher.account.email}`} className="font-medium text-primary hover:underline">
-                {publisher.account.email}
+              <Link to={`mailto:${publisher.email}`} className="font-medium text-primary hover:underline">
+                {publisher.email}
               </Link>
             </p>
           )}
@@ -358,6 +400,8 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
           <p className="text-muted-foreground text-xs italic">{m.publishers_view_contact_secretary_notice()}</p>
         </CardContent>
       </Card>
+
+      {emergency && <EmergencyCard info={emergency} canManage={roles.canManageEmergency} publisherId={publisher.id} />}
 
       <Card>
         <CardHeader>

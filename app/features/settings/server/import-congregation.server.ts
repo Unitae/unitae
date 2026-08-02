@@ -45,6 +45,7 @@ import {
   importEvents,
 } from './import-events.server'
 import {
+  importEmergencyContacts,
   importExternalSpeakers,
   importPublisherActivities,
   importPublisherGroups,
@@ -105,6 +106,7 @@ export {
   importEvents,
 } from './import-events.server'
 export {
+  importEmergencyContacts,
   importExternalSpeakers,
   importPublisherActivities,
   importPublisherGroups,
@@ -199,6 +201,9 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
       await progress()
 
       await importPublisherActivities(zip, db, idMap, congregationId)
+      await progress()
+
+      await importEmergencyContacts(zip, db, idMap, congregationId)
       await progress()
 
       await importExternalSpeakers(zip, db, idMap, congregationId)

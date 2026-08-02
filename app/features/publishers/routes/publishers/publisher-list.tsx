@@ -1,4 +1,4 @@
-import { BarChart3, Eye, Mail, Pencil, UserMinus, Users } from 'lucide-react'
+import { BarChart3, Eye, Mail, Pencil, Siren, UserMinus, Users } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { getPublishersWithGroup } from '~/features/publishers/server/publishers.server'
 import { PublisherListFilters } from '~/features/publishers/ui/PublisherListFilters'
@@ -27,6 +27,8 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const canViewPublishers = permissions.has(Permission.PublisherViewer)
   const canManagePublisher = permissions.has(Permission.PublisherManager)
   const canViewActivities = permissions.has(Permission.ActivityViewer)
+  const canViewEmergency =
+    permissions.has(Permission.EmergencyInfoViewer) || permissions.has(Permission.EmergencyInfoManager)
 
   if (!canViewPublishers) {
     logger.warn(
@@ -61,7 +63,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
     return {
       users: users.map(user => ({
-        email: user.account?.email ?? null,
+        email: user.email || null,
         id: user.id,
         firstname: user.firstname,
         lastname: user.lastname,
@@ -71,6 +73,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
       groups,
       canManagePublisher,
       canViewActivities,
+      canViewEmergency,
       searchQuery: search ?? '',
       selectedGroupIds: groupIds,
       selectedType: type ?? ('all' as const),
@@ -85,6 +88,7 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
     groups,
     canManagePublisher,
     canViewActivities,
+    canViewEmergency,
     searchQuery,
     selectedGroupIds,
     selectedType,
@@ -125,6 +129,13 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
                 <Link to="./activity">
                   <BarChart3 className="size-4" />
                 </Link>
+              </Button>
+            )}
+            {canViewEmergency && (
+              <Button asChild variant="outline" size="icon" title={m.publishers_emergency_roster_link()}>
+                <a href="/publishers/emergency-roster">
+                  <Siren className="size-4" />
+                </a>
               </Button>
             )}
             {canManagePublisher && (

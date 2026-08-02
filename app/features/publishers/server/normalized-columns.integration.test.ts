@@ -73,7 +73,7 @@ afterAll(async () => {
 })
 
 const baseParams = {
-  email: null,
+  email: '',
   gender: 'male',
   birthDate: null,
   baptismDate: '2010-01-01',

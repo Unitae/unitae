@@ -79,7 +79,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     return {
       user: {
         ...member,
-        email: account?.email ?? undefined,
+        hasLogin: account != null,
       },
       groups,
       hideAuxiliaryPioneer: !showAuxiliaryPioneer,
@@ -103,7 +103,7 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
         backTo="/publishers"
         actions={
           <>
-            {user.email == null ? (
+            {!user.hasLogin ? (
               <Dialog>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="icon" title={m.publishers_edit_link_login_title()}>
@@ -118,7 +118,8 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
                     </DialogHeader>
                     <div className="my-4 flex flex-col gap-2">
                       <Label htmlFor="link-login-email">{m.publishers_edit_link_login_email_label()}</Label>
-                      <Input id="link-login-email" name="email" type="email" required />
+                      {/* Seed the login email from the contact email — they may then diverge. */}
+                      <Input id="link-login-email" name="email" type="email" defaultValue={user.email ?? ''} required />
                     </div>
                     <DialogFooter>
                       <Button type="submit">{m.publishers_edit_link_login_submit()}</Button>
@@ -319,7 +320,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         isServant,
         isAnointed,
         groupId: group ?? null,
-        email: email && email.length > 0 ? email : null,
+        email: email ?? '',
         type,
         address,
         phone,

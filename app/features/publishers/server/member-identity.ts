@@ -70,6 +70,7 @@ export type MemberFormFields = {
   type: PublisherType
   phone: string
   address: string
+  email: string
 }
 
 export function memberDataFromForm(params: MemberFormFields) {
@@ -88,5 +89,6 @@ export function memberDataFromForm(params: MemberFormFields) {
     type: params.type,
     address: params.address,
     phone: params.phone,
+    email: params.email,
   }
 }

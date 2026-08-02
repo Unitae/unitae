@@ -70,6 +70,7 @@ export const TENANT_MODELS = [
   'publisherGroup',
   'publisherActivity',
   'pioneerGoal',
+  'emergencyContact',
   'event',
   'eventTemplate',
   'templatePart',

@@ -121,9 +121,12 @@ export default [
       index('features/publishers/routes/publishers/publisher-list.tsx'),
       route('former', 'features/publishers/routes/publishers/former-list.tsx'),
       route('new', 'features/publishers/routes/publishers/new-publisher.tsx'),
+      route('emergency-roster', 'features/publishers/routes/publishers/emergency-roster.tsx'),
+      route('emergency-roster/:groupId', 'features/publishers/routes/publishers/emergency-roster-group.tsx'),
       ...prefix(':publisherId', [
         route('view', 'features/publishers/routes/publishers/publisher.tsx'),
         route('edit', 'features/publishers/routes/publishers/edit-publisher.tsx'),
+        route('emergency', 'features/publishers/routes/publishers/emergency.tsx'),
         route('activity/pdf', 'features/publishers/routes/publishers/activity-pdf.tsx'),
         route('link-login', 'features/publishers/routes/publishers/link-login.tsx'),
         route('unlink-login', 'features/publishers/routes/publishers/unlink-login.tsx'),

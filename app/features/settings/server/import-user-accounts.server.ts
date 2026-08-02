@@ -27,11 +27,16 @@ export async function importMembers(
     isMale: boolean | null
     phone: string
     address: string
+    // Optional: absent in archives from before the contact-email column.
+    email?: string
     birthDate: string | null
     baptismDate: string | null
     isHelder: boolean
     isServant: boolean
     isAnointed: boolean
+    // Optional: absent in pre-2.2 archives.
+    dpaCardUpToDate?: boolean
+    survivalBackpackReady?: boolean
     leftAt: string | null
     inactiveAt: string | null
     anonymizedAt: string | null
@@ -53,11 +58,14 @@ export async function importMembers(
         isMale: record.isMale,
         phone: record.phone,
         address: record.address,
+        email: record.email ?? '',
         birthDate: record.birthDate ? new Date(record.birthDate) : null,
         baptismDate: record.baptismDate ? new Date(record.baptismDate) : null,
         isHelder: record.isHelder,
         isServant: record.isServant,
         isAnointed: record.isAnointed,
+        dpaCardUpToDate: record.dpaCardUpToDate ?? false,
+        survivalBackpackReady: record.survivalBackpackReady ?? false,
         leftAt: record.leftAt ? new Date(record.leftAt) : null,
         inactiveAt: record.inactiveAt ? new Date(record.inactiveAt) : null,
         anonymizedAt: record.anonymizedAt ? new Date(record.anonymizedAt) : null,
