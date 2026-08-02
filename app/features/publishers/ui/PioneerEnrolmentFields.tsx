@@ -111,7 +111,7 @@ export default function PioneerEnrolmentFields({
   hidePermanentAuxiliary,
 }: PioneerEnrolmentFieldsProps) {
   const now = monthOptions[0] ?? { month: 0, year: yearOptions[0] }
-  const [mode, setMode] = useState<Mode>('permanent')
+  const [mode, setMode] = useState<Mode>('monthly-aux')
   const [startMonth, setStartMonth] = useState(String(now.month))
   const [startYear, setStartYear] = useState(String(now.year))
   const [endMonth, setEndMonth] = useState(String(now.month))
@@ -137,6 +137,7 @@ export default function PioneerEnrolmentFields({
     <Card>
       <CardHeader>
         <CardTitle>{m.publishers_enrolment_section_title()}</CardTitle>
+        <p className="text-muted-foreground text-sm">{m.publishers_enrolment_section_description()}</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {/* Current profile — read-only, derived from the enrolment covering the current month. */}

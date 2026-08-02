@@ -2,12 +2,31 @@ import { TriangleAlert } from 'lucide-react'
 
 import type { PioneerActivity, PioneerAnnualRow, PioneerAuxiliaryRow } from '~/features/publishers'
 import * as m from '~/i18n/paraglide/messages'
+import { PublisherType } from '~/shared/types/publisher-type'
 import { Badge } from '~/shared/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { formatGroupName } from '~/shared/utils/format-group-name'
 import { PioneerPaceChart } from './PioneerPaceChart'
 import { PioneerRiskBadge, paceLabel, ReportingChip } from './pioneer-risk-badge'
 import { Sparkline } from './Sparkline'
+
+// The pioneer profile label for a roster/detail type. Shared so the detail section and the publisher
+// view surface the same wording. (Auxiliary here is the roster type; the monthly/permanent shape is
+// distinguished on the edit page, which reads the enrolment stints.)
+export function pioneerProfileLabel(type: PublisherType): string {
+  switch (type) {
+    case PublisherType.PionnierAuxiliaires:
+      return m.publishers_form_profile_auxiliary_pioneer()
+    case PublisherType.PionnierPermanant:
+      return m.publishers_form_profile_permanent_pioneer()
+    case PublisherType.PionnierSpecial:
+      return m.publishers_form_profile_special_pioneer()
+    case PublisherType.Missionnaire:
+      return m.publishers_form_profile_missionary()
+    default:
+      return m.publishers_enrolment_profile_none()
+  }
+}
 
 interface Props {
   serviceYear: number
@@ -30,7 +49,10 @@ export function PioneerActivitySection({ serviceYear, activity }: Props) {
     <Card id="activity">
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle>{m.pioneers_detail_title()}</CardTitle>
+          <div className="flex flex-wrap items-center gap-2">
+            <CardTitle>{m.pioneers_detail_title()}</CardTitle>
+            <Badge variant="secondary">{pioneerProfileLabel(activity.row.type)}</Badge>
+          </div>
           {activity.row.groupName && <Badge variant="outline">{formatGroupName(activity.row.groupName)}</Badge>}
         </div>
       </CardHeader>
@@ -113,16 +135,24 @@ function AnnualDetail({ serviceYear, row }: { serviceYear: number; row: PioneerA
 }
 
 function AuxiliaryDetail({ row }: { row: PioneerAuxiliaryRow }) {
+  const pending = row.auxiliary.thisMonth != null && !row.auxiliary.thisMonth.reported
   return (
-    <div className="grid grid-cols-2 gap-4">
-      <Stat
-        value={row.auxiliary.thisMonth ? `${row.auxiliary.thisMonth.hours} h` : '—'}
-        label={m.pioneers_aux_standard_target({ rate: String(row.monthlyRate) })}
-      />
-      <Stat
-        value={`${row.auxiliary.metMonths}/${row.auxiliary.enrolledMonths}`}
-        label={m.pioneers_aux_months_label()}
-      />
+    <div className="flex flex-col gap-4">
+      {pending && (
+        <Badge variant="outline" className="self-start">
+          {m.pioneers_aux_report_pending()}
+        </Badge>
+      )}
+      <div className="grid grid-cols-2 gap-4">
+        <Stat
+          value={pending || row.auxiliary.thisMonth == null ? '—' : `${row.auxiliary.thisMonth.hours} h`}
+          label={m.pioneers_aux_standard_target({ rate: String(row.monthlyRate) })}
+        />
+        <Stat
+          value={`${row.auxiliary.metMonths}/${row.auxiliary.enrolledMonths}`}
+          label={m.pioneers_aux_months_label()}
+        />
+      </div>
     </div>
   )
 }

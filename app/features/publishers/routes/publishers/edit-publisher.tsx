@@ -108,8 +108,9 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
       />
 
       {/* Member identity + group — the pioneer type is managed by the enrolment forms below, so the
-          field-service form submits it as a read-only hidden value. */}
-      <Form method="post" className="flex flex-col gap-6" onChange={markDirty}>
+          field-service form submits it as a read-only hidden value. Its submit button lives at the
+          bottom (via the form id) so the pioneer card isn't orphaned under a terminal button. */}
+      <Form id="edit-publisher-form" method="post" className="flex flex-col gap-6" onChange={markDirty}>
         <PublisherPersonalInformationForm user={user} onGenderChange={setGender} />
         <PublisherNominationForm user={user} gender={gender} />
         <PublisherFieldServiceForm
@@ -118,13 +119,10 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
           hideAuxiliaryPioneer={hideAuxiliaryPioneer}
           hideTypeSelect
         />
-
-        <SubmitButton size="lg" className="self-start">
-          {m.publishers_edit_submit()}
-        </SubmitButton>
       </Form>
 
-      {/* Pioneer appointments — separate forms, each posting its own enrolment intent. */}
+      {/* Pioneer appointments — separate forms, each posting its own enrolment intent (saved on their
+          own buttons, independently of the identity form below). */}
       <PioneerEnrolmentFields
         currentType={user.type}
         activeStanding={activeStanding}
@@ -133,6 +131,10 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
         yearOptions={yearOptions}
         hidePermanentAuxiliary={hideAuxiliaryPioneer}
       />
+
+      <SubmitButton form="edit-publisher-form" size="lg" className="self-start">
+        {m.publishers_edit_submit()}
+      </SubmitButton>
     </div>
   )
 }
