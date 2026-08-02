@@ -2,8 +2,11 @@ import { parseWithZod } from '@conform-to/zod'
 import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
+import { getEnrolmentsForMember } from '~/features/publishers/index.server'
+import { enrolmentMonthOptions, findActiveStandingEnrolment } from '~/features/publishers/model/pioneer-enrolment-form'
 import { updatePublisherSchema } from '~/features/publishers/schemas/edit-publisher.schema'
 import { updateMember } from '~/features/publishers/server/update-member.server'
+import PioneerEnrolmentFields from '~/features/publishers/ui/PioneerEnrolmentFields'
 import PublisherEditActions from '~/features/publishers/ui/PublisherEditActions'
 import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldServiceForm'
 import PublisherNominationForm from '~/features/publishers/ui/PublisherNominationForm'
@@ -18,7 +21,10 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
+import { handlePioneerEnrolmentIntent, PIONEER_ENROLMENT_INTENTS } from './_pioneer-enrolment-action.server'
 import type { Route } from './+types/edit-publisher'
+
+const YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i)
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.publishers_edit_meta_title() }]
@@ -52,6 +58,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
       currentUser.congregationId,
     )
     const groups = await db.publisherGroup.findMany({ where: { congregationId: currentUser.congregationId } })
+    const enrolments = await getEnrolmentsForMember(db, result.id, currentUser.congregationId)
+    const activeStanding = findActiveStandingEnrolment(enrolments)
     const { account, ...member } = result
     return {
       user: {
@@ -60,12 +68,22 @@ export function loader({ params, context }: Route.LoaderArgs) {
       },
       groups,
       hideAuxiliaryPioneer: !showAuxiliaryPioneer,
+      activeStanding: activeStanding
+        ? {
+            id: activeStanding.id,
+            type: activeStanding.type,
+            startMonth: activeStanding.startMonth,
+            startYear: activeStanding.startYear,
+          }
+        : null,
+      monthOptions: enrolmentMonthOptions(new Date()),
+      yearOptions: YEAR_OPTIONS,
     }
   })
 }
 
 export default function EditPublisher({ loaderData }: Route.ComponentProps) {
-  const { user, groups, hideAuxiliaryPioneer } = loaderData
+  const { user, groups, hideAuxiliaryPioneer, activeStanding, monthOptions, yearOptions } = loaderData
   const { blocker, markDirty } = useUnsavedChanges()
   const [gender, setGender] = useState<'male' | 'female' | null>(user.isMale ? 'male' : 'female')
 
@@ -80,22 +98,46 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
         actions={<PublisherEditActions user={user} />}
       />
 
+      {/* Member identity + group — the pioneer type is managed by the enrolment forms below, so the
+          field-service form submits it as a read-only hidden value. */}
       <Form method="post" className="flex flex-col gap-6" onChange={markDirty}>
         <PublisherPersonalInformationForm user={user} onGenderChange={setGender} />
         <PublisherNominationForm user={user} gender={gender} />
-        <PublisherFieldServiceForm user={user} groups={groups} hideAuxiliaryPioneer={hideAuxiliaryPioneer} />
+        <PublisherFieldServiceForm
+          user={user}
+          groups={groups}
+          hideAuxiliaryPioneer={hideAuxiliaryPioneer}
+          hideTypeSelect
+        />
 
         <SubmitButton size="lg" className="self-start">
           {m.publishers_edit_submit()}
         </SubmitButton>
       </Form>
+
+      {/* Pioneer appointments — separate forms, each posting its own enrolment intent. */}
+      <PioneerEnrolmentFields
+        currentType={user.type}
+        activeStanding={activeStanding}
+        monthOptions={monthOptions}
+        yearOptions={yearOptions}
+        hidePermanentAuxiliary={hideAuxiliaryPioneer}
+      />
     </div>
   )
 }
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const currentUser = context.get(currentAccountContext)
-  const submission = parseWithZod(await request.formData(), { schema: updatePublisherSchema })
+  const formData = await request.formData()
+
+  // Pioneer appointment forms post a dedicated intent; everything else is a member update.
+  const intent = formData.get('intent')
+  if (typeof intent === 'string' && PIONEER_ENROLMENT_INTENTS.includes(intent)) {
+    return handlePioneerEnrolmentIntent(request, params, context, formData)
+  }
+
+  const submission = parseWithZod(formData, { schema: updatePublisherSchema })
 
   if (submission.status !== 'success') {
     return data(submission.reply(), { status: 400 })

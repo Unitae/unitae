@@ -15,10 +15,14 @@ export default function PublisherFieldServiceForm({
   user,
   groups,
   hideAuxiliaryPioneer = false,
+  hideTypeSelect = false,
 }: {
   user?: UserInput
   groups: PublisherGroup[]
   hideAuxiliaryPioneer: boolean
+  // On the edit page the pioneer type is set via enrolment appointments (PioneerEnrolmentFields),
+  // not this dropdown — the current type is submitted as a hidden field so member updates preserve it.
+  hideTypeSelect?: boolean
 }) {
   const [type, setType] = useState(user?.type ?? PublisherType.Normal)
   const [group, setGroup] = useState(user?.publisherGroupId != null ? String(user.publisherGroupId) : NO_GROUP)
@@ -47,32 +51,36 @@ export default function PublisherFieldServiceForm({
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="type">{m.publishers_form_publisher_profile()}</Label>
-          <Select name="type" value={type} onValueChange={value => setType(value as PublisherType)}>
-            <SelectTrigger id="type" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={PublisherType.Normal}>{m.publishers_form_profile_default()}</SelectItem>
-              {!hideAuxiliaryPioneer && (
-                <SelectItem value={PublisherType.PionnierAuxiliaires}>
-                  {m.publishers_form_profile_auxiliary_pioneer()}
+        {hideTypeSelect ? (
+          <input type="hidden" name="type" value={type} />
+        ) : (
+          <div className="space-y-2">
+            <Label htmlFor="type">{m.publishers_form_publisher_profile()}</Label>
+            <Select name="type" value={type} onValueChange={value => setType(value as PublisherType)}>
+              <SelectTrigger id="type" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={PublisherType.Normal}>{m.publishers_form_profile_default()}</SelectItem>
+                {!hideAuxiliaryPioneer && (
+                  <SelectItem value={PublisherType.PionnierAuxiliaires}>
+                    {m.publishers_form_profile_auxiliary_pioneer()}
+                  </SelectItem>
+                )}
+                <SelectItem value={PublisherType.PionnierPermanant}>
+                  {m.publishers_form_profile_permanent_pioneer()}
                 </SelectItem>
-              )}
-              <SelectItem value={PublisherType.PionnierPermanant}>
-                {m.publishers_form_profile_permanent_pioneer()}
-              </SelectItem>
-              <SelectItem value={PublisherType.PionnierSpecial}>
-                {m.publishers_form_profile_special_pioneer()}
-              </SelectItem>
-              <SelectItem value={PublisherType.Missionnaire}>{m.publishers_form_profile_missionary()}</SelectItem>
-            </SelectContent>
-          </Select>
-          {type === PublisherType.PionnierAuxiliaires && (
-            <p className="text-muted-foreground text-xs italic">{m.publishers_form_auxiliary_pioneer_warning()}</p>
-          )}
-        </div>
+                <SelectItem value={PublisherType.PionnierSpecial}>
+                  {m.publishers_form_profile_special_pioneer()}
+                </SelectItem>
+                <SelectItem value={PublisherType.Missionnaire}>{m.publishers_form_profile_missionary()}</SelectItem>
+              </SelectContent>
+            </Select>
+            {type === PublisherType.PionnierAuxiliaires && (
+              <p className="text-muted-foreground text-xs italic">{m.publishers_form_auxiliary_pioneer_warning()}</p>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   )
