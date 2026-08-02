@@ -102,10 +102,38 @@ describe('backfillMemberEnrolments', () => {
   })
 })
 
+describe('backfillMemberEnrolments — no pioneer history', () => {
+  it('writes nothing for a member with only Normal activity', async () => {
+    const plainId = await withScope(congId, async tx => {
+      const plain = await tx.member.create({
+        data: { firstname: 'Plain', lastname: 'Publisher', isPublisher: true, type: NORMAL, congregationId: congId },
+      })
+      await tx.publisherActivity.create({
+        data: {
+          month: 8,
+          year: 2025,
+          type: NORMAL,
+          hours: 10,
+          isPublisher: true,
+          publisherId: plain.id,
+          congregationId: congId,
+        },
+      })
+      return plain.id
+    })
+
+    const written = await withScope(congId, tx =>
+      backfillMemberEnrolments(tx, { id: plainId, type: NORMAL }, congId, 1),
+    )
+    expect(written).toBe(0)
+    expect(await testDb.pioneerEnrolment.count({ where: { memberId: plainId } })).toBe(0)
+  })
+})
+
 describe('backfillCongregationEnrolments', () => {
   it('skips members that already have enrolments (idempotent at the congregation level)', async () => {
     const result = await withScope(congId, tx => backfillCongregationEnrolments(tx, congId, 1))
-    expect(result.members).toBe(1)
-    expect(result.stints).toBe(0) // the member was already backfilled above
+    expect(result.members).toBeGreaterThanOrEqual(1)
+    expect(result.stints).toBe(0) // every member was already backfilled above → no new stints
   })
 })

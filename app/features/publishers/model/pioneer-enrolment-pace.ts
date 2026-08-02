@@ -79,10 +79,12 @@ export function planFromEnrolments(
 
   const enrolledSinceYearStart = enrolledAbs.has(absMonth(FIRST_MONTH_OF_THEOCRATIC_YEAR, serviceYear))
 
-  // Concluded = the member has stopped pioneering, as of their most recent report. An ongoing roster
-  // stint is never concluded; otherwise they are concluded when their latest reported month falls
-  // outside the roster stints (their last report was a non-enrolled month). Mirrors the inference's
-  // "latest snapshot isn't a pioneer" rule from the roster stints instead of the raw type column.
+  // Concluded = the member has stopped pioneering, as of their most recent report. Three conditions,
+  // all required: (1) no ongoing roster stint, (2) they have reported activity this service year
+  // (`latestActivityAbs !== null` — a member with stints but no reports yet is not concluded), and
+  // (3) that latest reported month falls outside the roster stints (their last report was a
+  // non-enrolled month). Mirrors the inference's "latest snapshot isn't a pioneer" rule from the
+  // roster stints instead of the raw type column.
   const rosterOngoing = rosterStints.some(isOngoing)
   const latestActivityAbs = activities.length > 0 ? Math.max(...activities.map(a => absMonth(a.month, a.year))) : null
   const concluded = !rosterOngoing && latestActivityAbs !== null && !enrolledAbs.has(latestActivityAbs)

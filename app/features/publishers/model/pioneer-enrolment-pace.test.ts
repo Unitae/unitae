@@ -30,6 +30,20 @@ describe('planFromEnrolments', () => {
     expect(planFromEnrolments([], [], SY, NORMAL)).toBeNull()
   })
 
+  it('returns a bare plan for a standing pioneer with no stint this year (promoted-but-unreported)', () => {
+    // Member.type is a pioneer but they have no enrolment intersecting the year → an empty plan,
+    // not null, so they still surface on the roster with nothing to pace yet.
+    const plan = planFromEnrolments([], [], SY, PERM)
+    expect(plan).not.toBeNull()
+    expect(plan?.rosterType).toBe(PERM)
+    expect(plan?.isAuxiliary).toBe(false)
+    expect(plan?.months).toEqual([])
+    expect(plan?.enrolledSinceYearStart).toBe(false)
+    expect(plan?.concluded).toBe(false)
+    expect(plan?.notEnrolledMonths).toEqual([])
+    expect(plan?.currentMonthlyGoal).toBeNull()
+  })
+
   it('picks the roster type from the stint covering the latest enrolled month', () => {
     // Bounded permanent Sept–Oct, then an ongoing auxiliary from Nov → auxiliary is current.
     const enrolments = [

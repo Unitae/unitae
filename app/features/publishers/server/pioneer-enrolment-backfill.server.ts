@@ -79,7 +79,11 @@ function singleMonthStint(r: ActivityTypeRow): StintDraft {
 export function deriveStintsFromActivity(rows: ActivityTypeRow[], memberType: PublisherType): StintDraft[] {
   const deduped = dedupeLatestPerMonth(rows)
 
-  // concluded = the member's latest snapshot is no longer a pioneer (matches pioneer-activity.queries).
+  // Concluded here decides whether the member's FINAL run gets a close date: true when their latest
+  // snapshot is no longer a pioneer. This is the backfill's close-the-stint rule — distinct from the
+  // pace query's per-service-year "concluded" (pioneer-enrolment-pace.ts), which asks whether the
+  // member is finished pioneering *this year*. The parity test (§14) checks the two produce matching
+  // pace, not that the intermediate `concluded` values are identical.
   const standingType = deduped.at(-1)?.type ?? memberType
   const concluded = !isPioneerType(standingType)
   const isPermanentAux = memberType === PublisherType.PionnierAuxiliaires

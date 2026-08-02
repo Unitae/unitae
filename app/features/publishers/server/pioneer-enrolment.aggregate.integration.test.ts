@@ -2,9 +2,9 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
-import { ConflictError } from '~/shared/errors/app-error.server'
+import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import { PublisherType } from '~/shared/types/publisher-type'
-import { openEnrolment } from './pioneer-enrolment.aggregate'
+import { closeEnrolment, deleteEnrolment, openEnrolment, updateEnrolment } from './pioneer-enrolment.aggregate'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -103,5 +103,98 @@ describe('pioneer-enrolment aggregate (integration)', () => {
         ),
       ),
     ).rejects.toThrow()
+  })
+
+  // A fresh member per test — the shared `memberId` already carries an ongoing stint that would
+  // overlap everything.
+  async function freshMember(name: string): Promise<number> {
+    const m = await withScope(congregationId, tx =>
+      tx.member.create({
+        data: { firstname: name, lastname: 'Agg', isPublisher: true, type: PublisherType.Normal, congregationId },
+      }),
+    )
+    return m.id
+  }
+
+  it('closeEnrolment sets the end and rejects an end before the start', async () => {
+    const id = await freshMember('Close').then(mid =>
+      withScope(congregationId, tx =>
+        openEnrolment(tx, mid, congregationId, 1, {
+          type: PublisherType.PionnierPermanant,
+          startMonth: 8,
+          startYear: 2025,
+        }),
+      ).then(e => e.id),
+    )
+
+    await expect(
+      withScope(congregationId, tx => closeEnrolment(tx, id, congregationId, 1, { endMonth: 5, endYear: 2025 })),
+    ).rejects.toBeInstanceOf(ConflictError)
+
+    const closed = await withScope(congregationId, tx =>
+      closeEnrolment(tx, id, congregationId, 1, { endMonth: 9, endYear: 2025 }),
+    )
+    expect(closed.endMonth).toBe(9)
+    expect(closed.endYear).toBe(2025)
+  })
+
+  it('closeEnrolment throws NotFoundError for a missing enrolment', async () => {
+    await expect(
+      withScope(congregationId, tx => closeEnrolment(tx, 999_999, congregationId, 1, { endMonth: 9, endYear: 2025 })),
+    ).rejects.toBeInstanceOf(NotFoundError)
+  })
+
+  it('updateEnrolment rejects a change that would overlap another of the member`s stints', async () => {
+    const mid = await freshMember('Update')
+    const first = await withScope(congregationId, tx =>
+      openEnrolment(tx, mid, congregationId, 1, {
+        type: PublisherType.PionnierPermanant,
+        startMonth: 8,
+        startYear: 2025,
+        endMonth: 9,
+        endYear: 2025,
+      }),
+    )
+    await withScope(congregationId, tx =>
+      openEnrolment(tx, mid, congregationId, 1, {
+        type: PublisherType.PionnierPermanant,
+        startMonth: 11,
+        startYear: 2025,
+        endMonth: 0,
+        endYear: 2026,
+      }),
+    )
+
+    // Move the first stint onto December, where the second stint already sits.
+    await expect(
+      withScope(congregationId, tx =>
+        updateEnrolment(tx, first.id, congregationId, 1, {
+          startMonth: 11,
+          startYear: 2025,
+          endMonth: 11,
+          endYear: 2025,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(ConflictError)
+  })
+
+  it('deleteEnrolment removes the row', async () => {
+    const mid = await freshMember('Delete')
+    const created = await withScope(congregationId, tx =>
+      openEnrolment(tx, mid, congregationId, 1, {
+        type: PublisherType.PionnierAuxiliaires,
+        startMonth: 2,
+        startYear: 2026,
+        endMonth: 2,
+        endYear: 2026,
+      }),
+    )
+
+    await withScope(congregationId, tx => deleteEnrolment(tx, created.id, congregationId, 1))
+
+    const gone = await withScope(congregationId, tx =>
+      tx.pioneerEnrolment.findFirst({ where: { id: created.id, congregationId } }),
+    )
+    expect(gone).toBeNull()
   })
 })
