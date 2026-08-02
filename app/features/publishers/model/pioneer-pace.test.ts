@@ -143,6 +143,22 @@ describe('computePioneerPace — enrollment span (missed months do not shrink th
     expect(pace.paceDelta).toBe(-50) // one month (September) behind
   })
 
+  it('does not double-count an in-progress month reported early (annual goal stays 12 months)', () => {
+    // Continuing pioneer who filed all 12 months incl. August (in progress). Now is 2 Aug.
+    const reported = serviceYearMonths(SY).map(({ month: mo, year }) => month(mo, year, 50))
+    const pace = computePioneerPace({
+      serviceYear: SY,
+      monthlyRate: 50,
+      months: reported,
+      now: new Date(2026, 7, 2), // 2 Aug → expected month is July (11 completed)
+      enrolledSinceYearStart: true,
+    })
+    expect(pace.elapsedEnrolled).toBe(11) // Sept–July; August is not due yet
+    expect(pace.targetToDate).toBe(550)
+    expect(pace.fullYearTarget).toBe(600) // NOT 650 — August isn't counted twice
+    expect(pace.remainingMonths).toBe(1)
+  })
+
   it('prorates a genuinely new mid-year pioneer to their start month', () => {
     const pace = computePioneerPace({
       serviceYear: SY,

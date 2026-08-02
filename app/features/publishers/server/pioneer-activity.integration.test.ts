@@ -78,10 +78,11 @@ describe('getPioneerActivitySummary (integration)', () => {
 
     const row = result.annual.find(r => r.memberId === memberId)
     expect(row).toBeDefined()
-    // Enrollment span Sept→Jan (5 months); Nov and Dec missed but still count. Actual is
-    // Sept 50 + Oct 10 (deduped re-file) + Jan 50 = 110. Sept 2026 excluded (next year).
-    expect(row?.pace.elapsedEnrolled).toBe(5)
-    expect(row?.pace.actualToDate).toBe(110)
+    // To date is measured through the expected month (Dec): Sept 50 + Oct 10 (deduped re-file)
+    // = 60 over the Sept–Dec span (4 months). Jan was filed ahead of Dec so it's not yet due;
+    // Sept 2026 is next year.
+    expect(row?.pace.elapsedEnrolled).toBe(4)
+    expect(row?.pace.actualToDate).toBe(60)
     // Dec 2025 is the expected month and was never filed → overdue.
     expect(row?.pace.reportingStatus).toBe('overdue')
   })

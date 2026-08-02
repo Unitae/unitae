@@ -1,9 +1,9 @@
 // Pure pace/risk math for pioneer monitoring. No DB, no `.server` suffix.
 // Precondition (the caller's responsibility): `months` is already deduped to one row per
-// month and filtered to a single pioneer type. Enrollment is measured as a *span* (start →
-// current expected month), so a missed month inside the span still counts toward the goal —
-// see computeElapsedEnrolled. `now` is injected (congregation-tz date) so these functions
-// stay deterministic.
+// month and filtered to a single pioneer type. Everything "to date" is measured through the
+// current expected (last completed) month; a missed month inside the enrollment span still
+// counts toward the goal (behind, not a smaller goal). `now` is injected (congregation-tz
+// date) so these functions stay deterministic.
 
 const FIRST_MONTH_OF_THEOCRATIC_YEAR = 8 // September (0-indexed)
 const MONTHS_IN_YEAR = 12
@@ -117,50 +117,38 @@ function reportingStatusFor(input: PaceInput): ReportingStatus {
   return withinGrace ? 'awaiting' : 'overdue'
 }
 
-// Number of service-year months the member has been enrolled, as of the current expected
-// month. This is the enrollment *span* — from their start (September if continuing, else
-// their first reported month) through the current expected (or latest reported) month.
-// Missed months inside the span still count, so a gap means "behind", not a smaller goal;
-// only a genuinely late start prorates.
-function computeElapsedEnrolled(
-  sorted: PioneerMonth[],
-  expected: { month: number; year: number } | null,
-  serviceYear: number,
-  enrolledSinceYearStart: boolean,
-): number {
-  const idx = (m: { month: number; year: number }) => absMonth(m.month, m.year) - firstAbs(serviceYear)
-
-  if (sorted.length === 0) {
-    // No reports: a continuing pioneer is still enrolled from September; a member with no
-    // history has no placeable start.
-    return enrolledSinceYearStart && expected !== null ? idx(expected) + 1 : 0
-  }
-
-  const startIndex = enrolledSinceYearStart ? 0 : idx(sorted[0])
-  const lastReported = idx(sorted[sorted.length - 1])
-  const current = expected === null ? lastReported : idx(expected)
-  return Math.max(current, lastReported) - startIndex + 1
-}
-
 export function computePioneerPace(input: PaceInput): PioneerPace {
   const { serviceYear, monthlyRate, months } = input
   const sorted = [...months].sort((a, b) => absMonth(a.month, a.year) - absMonth(b.month, b.year))
   const expected = currentExpectedMonth(serviceYear, input.now)
+  const enrolledSinceYearStart = input.enrolledSinceYearStart ?? false
 
-  const elapsedEnrolled = computeElapsedEnrolled(sorted, expected, serviceYear, input.enrolledSinceYearStart ?? false)
-  const actualToDate = sorted.reduce((sum, m) => sum + (m.hours ?? 0), 0)
+  const idx = (m: { month: number; year: number }) => absMonth(m.month, m.year) - firstAbs(serviceYear)
+  const currentIndex = expected === null ? -1 : idx(expected)
+
+  // Everything "to date" is measured through the current expected (last completed) month.
+  // A month filed ahead of it — the in-progress month reported early — is not due yet, so it
+  // is excluded here (it would otherwise be double-counted against `remainingMonths`).
+  const reportedToDate = currentIndex < 0 ? [] : sorted.filter(m => idx(m) <= currentIndex)
+
+  // Enrollment start: September (index 0) for a continuing pioneer, else the first reported
+  // month; null when there's nothing to place a start on.
+  const startIndex = enrolledSinceYearStart ? 0 : reportedToDate.length > 0 ? idx(reportedToDate[0]) : null
+
+  // Span from the start through the current expected month — missed months inside it still
+  // count (behind, not a smaller goal); only a genuinely late start prorates.
+  const elapsedEnrolled = startIndex !== null && currentIndex >= 0 ? currentIndex - startIndex + 1 : 0
+  const actualToDate = reportedToDate.reduce((sum, m) => sum + (m.hours ?? 0), 0)
   const targetToDate = monthlyRate * elapsedEnrolled
   const paceDelta = actualToDate - targetToDate
 
-  const remainingMonths =
-    expected === null
-      ? MONTHS_IN_YEAR
-      : MONTHS_IN_YEAR - 1 - (absMonth(expected.month, expected.year) - firstAbs(serviceYear))
+  const remainingMonths = expected === null ? MONTHS_IN_YEAR : MONTHS_IN_YEAR - 1 - currentIndex
 
-  const fullYearTarget = monthlyRate * (elapsedEnrolled + remainingMonths)
+  // Annual goal: from the enrollment start (September if continuing) through August.
+  const fullYearTarget = startIndex === null ? 0 : monthlyRate * (MONTHS_IN_YEAR - startIndex)
   const requiredAvgToFinish = remainingMonths === 0 ? 0 : Math.max(0, (fullYearTarget - actualToDate) / remainingMonths)
 
-  const recent = sorted.slice(-RECENT_MONTHS_WINDOW)
+  const recent = reportedToDate.slice(-RECENT_MONTHS_WINDOW)
   const recentAvg = recent.length === 0 ? 0 : recent.reduce((sum, m) => sum + (m.hours ?? 0), 0) / recent.length
   const projectedYearEnd = actualToDate + recentAvg * remainingMonths
   const outOfReach = requiredAvgToFinish > monthlyRate * OUT_OF_REACH_FACTOR
