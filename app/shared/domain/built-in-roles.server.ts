@@ -1,5 +1,6 @@
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { PublisherType } from '~/shared/types/publisher-type'
 
 export const BUILT_IN_ROLE_KEYS = [
   'member',
@@ -44,7 +45,9 @@ export const BUILT_IN_ROLE_PREDICATES: Record<BuiltInRoleKey, (m: MemberFlags) =
     m.leftAt == null &&
     m.isPublisher &&
     m.baptismDate != null &&
-    (m.type === 'pionnier-permanant' || m.type === 'pionnier-auxiliaires'),
+    // Compare against the Prisma enum *names* (what the client returns), not the `@map`-ed DB
+    // strings — the raw-string comparison silently stopped matching at the enum-conversion migration.
+    (m.type === PublisherType.PionnierPermanant || m.type === PublisherType.PionnierAuxiliaires),
 }
 
 function diffBuiltInAssignments(

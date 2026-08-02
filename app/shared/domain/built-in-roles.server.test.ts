@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { PublisherType } from '~/shared/types/publisher-type'
 
 vi.mock('~/shared/domain/audit.server', () => ({
   audit: vi.fn(),
@@ -22,7 +23,7 @@ interface MemberFlags {
 const BASE: MemberFlags = {
   isMale: null,
   isPublisher: false,
-  type: 'normal',
+  type: PublisherType.Normal,
   baptismDate: null,
   isAnointed: false,
   isHelder: false,
@@ -142,7 +143,7 @@ describe('BUILT_IN_ROLE_PREDICATES', () => {
         ...BASE,
         isPublisher: true,
         baptismDate: baptized,
-        type: 'pionnier-permanant',
+        type: PublisherType.PionnierPermanant,
       }),
     ).toBe(true)
     expect(
@@ -150,13 +151,18 @@ describe('BUILT_IN_ROLE_PREDICATES', () => {
         ...BASE,
         isPublisher: true,
         baptismDate: baptized,
-        type: 'pionnier-auxiliaires',
+        type: PublisherType.PionnierAuxiliaires,
       }),
     ).toBe(true)
 
     // Normal publisher is not a pioneer
     expect(
-      BUILT_IN_ROLE_PREDICATES.pioneer({ ...BASE, isPublisher: true, baptismDate: baptized, type: 'normal' }),
+      BUILT_IN_ROLE_PREDICATES.pioneer({
+        ...BASE,
+        isPublisher: true,
+        baptismDate: baptized,
+        type: PublisherType.Normal,
+      }),
     ).toBe(false)
   })
 
@@ -168,7 +174,7 @@ describe('BUILT_IN_ROLE_PREDICATES', () => {
       baptismDate: new Date(),
       isHelder: true,
       isAnointed: true,
-      type: 'pionnier-permanant',
+      type: PublisherType.PionnierPermanant,
       leftAt: new Date(),
     }
     for (const predicate of Object.values(BUILT_IN_ROLE_PREDICATES)) {
