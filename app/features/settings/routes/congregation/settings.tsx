@@ -15,7 +15,7 @@ import {
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Permission } from '~/shared/types/permission'
-import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { Card, CardContent } from '~/shared/ui/card'
 import { Checkbox } from '~/shared/ui/checkbox'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Label } from '~/shared/ui/label'
@@ -56,6 +56,11 @@ export function loader({ context }: Route.LoaderArgs) {
   })
 }
 
+// Group heading matching the settings hub's section labels, so the module page reads the same way.
+function SectionHeading({ children }: { children: string }) {
+  return <h2 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">{children}</h2>
+}
+
 export default function CongregationSettingsPage({ loaderData, actionData }: Route.ComponentProps) {
   const { canManageSettings, canManagePioneerGoals, auxiliaryPioneerProfileActivated } = loaderData
   const { blocker, markDirty } = useUnsavedChanges()
@@ -68,7 +73,7 @@ export default function CongregationSettingsPage({ loaderData, actionData }: Rou
   })
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.settings_congregation_title()}
@@ -76,49 +81,57 @@ export default function CongregationSettingsPage({ loaderData, actionData }: Rou
         breadcrumbs={[{ label: m.sidebar_settings(), to: '/settings' }, { label: m.sidebar_settings_assembly() }]}
       />
 
-      {canManagePioneerGoals && (
-        <SettingsNavCard
-          icon={Target}
-          title={m.settings_pioneer_goals_title()}
-          description={m.settings_pioneer_goals_subtitle()}
-          href="./pioneer-goals"
-        />
+      {(canManageSettings || canManagePioneerGoals) && (
+        <section className="flex flex-col gap-3">
+          <SectionHeading>{m.settings_congregation_publishers_title()}</SectionHeading>
+
+          {canManagePioneerGoals && (
+            <SettingsNavCard
+              icon={Target}
+              title={m.settings_pioneer_goals_title()}
+              description={m.settings_pioneer_goals_subtitle()}
+              href="./pioneer-goals"
+            />
+          )}
+
+          {canManageSettings && (
+            <Form method="post" {...getFormProps(form)} className="flex flex-col gap-3" onChange={markDirty}>
+              <Card>
+                <CardContent>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="auxiliary-pioneer"
+                      name={CongregationSettingKey.PermanentAuxiliaryPioneerProfileActivated}
+                      value="on"
+                      defaultChecked={auxiliaryPioneerProfileActivated}
+                    />
+                    <Label htmlFor="auxiliary-pioneer" className="font-normal">
+                      {m.settings_congregation_auxiliary_pioneer_before()}{' '}
+                      <span className="font-bold text-primary">
+                        {m.settings_congregation_auxiliary_pioneer_highlight()}
+                      </span>{' '}
+                      {m.settings_congregation_auxiliary_pioneer_after()}
+                    </Label>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <SubmitButton className="self-start">{m.common_save()}</SubmitButton>
+            </Form>
+          )}
+        </section>
       )}
 
       {canManageSettings && (
-        <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6" onChange={markDirty}>
-          <Card>
-            <CardHeader>
-              <CardTitle>{m.settings_congregation_publishers_title()}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="auxiliary-pioneer"
-                  name={CongregationSettingKey.PermanentAuxiliaryPioneerProfileActivated}
-                  value="on"
-                  defaultChecked={auxiliaryPioneerProfileActivated}
-                />
-                <Label htmlFor="auxiliary-pioneer" className="font-normal">
-                  {m.settings_congregation_auxiliary_pioneer_before()}{' '}
-                  <span className="font-bold text-primary">
-                    {m.settings_congregation_auxiliary_pioneer_highlight()}
-                  </span>{' '}
-                  {m.settings_congregation_auxiliary_pioneer_after()}
-                </Label>
-              </div>
-            </CardContent>
-          </Card>
-
+        <section className="flex flex-col gap-3">
+          <SectionHeading>{m.settings_congregation_programs_title()}</SectionHeading>
           <SettingsNavCard
             icon={CalendarDays}
-            title={m.settings_congregation_programs_title()}
-            description={m.settings_congregation_programs_desc()}
+            title={m.settings_congregation_event_templates_title()}
+            description={m.settings_congregation_event_templates_desc()}
             href="./templates"
           />
-
-          <SubmitButton>{m.common_save()}</SubmitButton>
-        </Form>
+        </section>
       )}
     </div>
   )
