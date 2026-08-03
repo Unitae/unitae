@@ -347,6 +347,14 @@ phone can show **both** the campaign-name badge and the phone method badge.
 
 #### Campaign CRUD (new, `TerritoriesManager`-gated)
 
+Lives under the existing territories layout (`features/territories/routes/_layout.tsx`) as a new
+`campaigns/` prefix in `territory-management.routes.ts`, alongside `attributions/`:
+`territories/campaigns` (index/list), `campaigns/new`, `campaigns/:campaignId/edit`,
+`campaigns/:campaignId` (detail/view — hosts the end-campaign action and the lifecycle preview),
+`campaigns/:campaignId/delete`. A **"Campagnes"** entry is added to the territories navigation (same
+`TerritoriesManager` gate). The `_layout.tsx` outlet is also where `CampaignModeBanner` renders (§5.6
+banner) so it shows across every territories page.
+
 - **List** — a responsive **card grid** (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`) over `Card`; each
   card shows name, date range, scope size ("toutes" when unscoped), and a **status badge** in `CardAction`.
   Delete is disabled while a campaign is active (§12.3).
@@ -431,8 +439,11 @@ migration (§6).
 `previewCampaignLifecycle(campaign, scopeCount, now)` and `previewScopeChange(db, campaign, current, next, congId)`
 that back the form/scope-editor consequence displays), `campaign-lifecycle.workflow.ts` (+test),
 `schemas/campaign.schema.ts`, `jobs/handle-campaign-lifecycle-work.server.ts`,
-`server/campaign-queue.server.ts`, campaign CRUD routes + UI (`CampaignForm`, `CampaignScopeEditor`,
-`CampaignStatusBadge`, `CampaignModeBanner`). New i18n keys in `app/i18n/messages/{fr,en}.json` (French is
+`server/campaign-queue.server.ts`, campaign CRUD routes under a new `campaigns/` prefix in
+`territory-management.routes.ts` (`campaigns` list, `campaigns/new`, `campaigns/:campaignId` detail +
+end-action, `campaigns/:campaignId/edit`, `campaigns/:campaignId/delete`) + UI (`CampaignForm`,
+`CampaignScopeEditor`, `CampaignStatusBadge`, `CampaignModeBanner`), and a "Campagnes" territories-nav
+entry. New i18n keys in `app/i18n/messages/{fr,en}.json` (French is
 source of truth): campaign labels, the four options + inline help + defaults, permission-aware banner copy,
 scheduled/active/ended status labels, `campaign_mode_active`/`campaign_overlap` errors, paused-state labels,
 filter labels (`attributions_filter_campaign*`, `attributions_filter_paused*`).
@@ -499,10 +510,10 @@ filter labels (`attributions_filter_campaign*`, `attributions_filter_paused*`).
    but (a) honor the `endCloseCampaign` toggle ("we'll close manually"), and (b) show a 24h-before "ends
    tomorrow" warning in the banner (optionally an email to managers). **Decision needed** before Phase 3:
    date-driven-with-warning (proposed) vs. require-manual-end-in-v1.
-6. **Does "one active" block *scheduling*?** §7 currently rejects creating a campaign whose
-   `[startDate, endDate]` window overlaps another's — which also blocks *planning* a future campaign while
-   one runs. The **UX review** recommends enforcing the single-active rule only on **activation**
-   (`activatedAt != null && endedAt == null`), while allowing overlapping *scheduled* campaigns to be
-   created, and surfacing a clear conflict message if two would be active at once. This better matches the
-   author's "one active at a time" phrasing. **Decision needed** before Phase 1 (it changes the aggregate
-   invariant): reject-on-overlapping-window (current §7) vs. reject-only-on-second-activation (proposed).
+6. **"One active" rule — RESOLVED (author, 2026-08-03).** Keep §7 as written: reject creating/editing a
+   campaign whose `[startDate, endDate]` window overlaps another campaign's window. This does **not** block
+   planning — non-overlapping future campaigns can be scheduled freely while one runs ("as long as they're
+   not overlapping there is no issue"). The UX review's "blocks planning" concern was based on an
+   *overlapping*-window example, which is exactly the case that should be rejected. Minor edge case
+   deferred to a later wave: a campaign ended *early* by hand still reserves its original window against a
+   later campaign until it is deleted/rescheduled — acceptable for v1.
