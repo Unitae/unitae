@@ -59,7 +59,7 @@ The classic auxiliary form: enrol a publisher for a **single month** with a **pe
 
 ### Goals, and seeing who's enrolled
 
-Each pioneer type has a **default monthly hour goal** (regular ~50 h, auxiliary 30 h), set congregation-wide under [Pioneer goals](settings.md#congregation-settings). A monthly auxiliary enrolment can override it with a **per-person** goal (15 vs 30 h).
+Each pioneer type has a **default monthly hour goal** (regular ~50 h, auxiliary 30 h, special/missionary ~100 h), set congregation-wide under [Pioneer goals](settings.md#pioneer-goals). A monthly auxiliary enrolment can override it with a **per-person** goal (15 vs 30 h).
 
 Because an enrolment is recorded separately from the hours report, a pioneer shows on the roster **before** their report arrives: an auxiliary who has signed up but not yet reported appears as *enrolled · report pending*, with the goal known and the hours still empty.
 

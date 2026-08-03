@@ -307,8 +307,8 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
       // Optional: data deletion records
       await importDataDeletionRecords(zip, db, congregationId)
 
-      // Ensure every member with pioneer activity has enrolments: v2.3+ archives imported them above;
-      // pre-2.3 archives have none, so backfill from the imported activity history (§6.1). Idempotent —
+      // Ensure every member with pioneer activity has enrolments: v2.4+ archives imported them above;
+      // pre-2.4 archives have none, so backfill from the imported activity history (§6.1). Idempotent —
       // members that already have enrolments are skipped, so this is a no-op for new archives.
       await backfillCongregationEnrolments(db, congregationId, userId)
     },
