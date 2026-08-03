@@ -147,7 +147,11 @@ function classifyPioneerMember(
     })
     return {
       kind: 'auxiliary',
-      row: { ...base, auxiliary: computeAuxiliarySummary({ serviceYear, monthlyRate, months: auxMonths, now }) },
+      row: {
+        ...base,
+        permanent: plan.ongoing,
+        auxiliary: computeAuxiliarySummary({ serviceYear, monthlyRate, months: auxMonths, now }),
+      },
     }
   }
   return {

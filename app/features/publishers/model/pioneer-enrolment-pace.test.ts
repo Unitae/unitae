@@ -55,6 +55,25 @@ describe('planFromEnrolments', () => {
     expect(plan?.isAuxiliary).toBe(true)
   })
 
+  describe('ongoing (distinguishes a permanent standing from a single-month enrolment)', () => {
+    it('is true for an ongoing auxiliary stint (permanent auxiliary)', () => {
+      const plan = planFromEnrolments([stint({ type: AUX, endMonth: null, endYear: null })], [], SY, AUX)
+      expect(plan?.ongoing).toBe(true)
+    })
+
+    it('is false for a single-month auxiliary enrolment (monthly auxiliary)', () => {
+      // Enrolled for Nov 2025 only; Member.type stays Normal for a monthly auxiliary.
+      const monthly = stint({ type: AUX, startMonth: 10, startYear: 2025, endMonth: 10, endYear: 2025 })
+      const plan = planFromEnrolments([monthly], [], SY, NORMAL)
+      expect(plan?.rosterType).toBe(AUX)
+      expect(plan?.ongoing).toBe(false)
+    })
+
+    it('is true for a standing pioneer with no stint this year (promoted-but-unreported)', () => {
+      expect(planFromEnrolments([], [], SY, PERM)?.ongoing).toBe(true)
+    })
+  })
+
   it('flags enrolledSinceYearStart when a roster stint covers September', () => {
     // Ongoing permanent starting in a prior year → covers September of SY.
     const plan = planFromEnrolments([stint({ startMonth: 8, startYear: 2024 })], [], SY, PERM)

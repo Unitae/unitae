@@ -10,13 +10,17 @@ import { PioneerPaceChart } from './PioneerPaceChart'
 import { PioneerRiskBadge, paceLabel, ReportingChip } from './pioneer-risk-badge'
 import { Sparkline } from './Sparkline'
 
-// The pioneer profile label for a roster/detail type. Shared so the detail section and the publisher
-// view surface the same wording. (Auxiliary here is the roster type; the monthly/permanent shape is
-// distinguished on the edit page, which reads the enrolment stints.)
-export function pioneerProfileLabel(type: PublisherType): string {
-  switch (type) {
-    case PublisherType.PionnierAuxiliaires:
-      return m.publishers_form_profile_auxiliary_pioneer()
+// The pioneer profile label for an activity. Shared so the detail section and the publisher view
+// surface the same wording — and the same wording the edit page uses. An auxiliary carries two
+// shapes under one roster type: an ongoing (permanent) auxiliary reads "sans interruption", a
+// single-month (monthly) one reads plain "Pionnier auxiliaire".
+export function pioneerProfileLabel(activity: PioneerActivity): string {
+  if (activity.kind === 'auxiliary') {
+    return activity.row.permanent
+      ? m.publishers_enrolment_standing_permanent_auxiliary()
+      : m.publishers_form_profile_auxiliary_pioneer()
+  }
+  switch (activity.row.type) {
     case PublisherType.PionnierPermanant:
       return m.publishers_form_profile_permanent_pioneer()
     case PublisherType.PionnierSpecial:
@@ -51,7 +55,7 @@ export function PioneerActivitySection({ serviceYear, activity }: Props) {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <CardTitle>{m.pioneers_detail_title()}</CardTitle>
-            <Badge variant="secondary">{pioneerProfileLabel(activity.row.type)}</Badge>
+            <Badge variant="secondary">{pioneerProfileLabel(activity)}</Badge>
           </div>
           {activity.row.groupName && <Badge variant="outline">{formatGroupName(activity.row.groupName)}</Badge>}
         </div>
@@ -83,7 +87,10 @@ function StudiesRow({ monthlyStudies, muted = false }: { monthlyStudies: (number
 function AnnualDetail({ serviceYear, row }: { serviceYear: number; row: PioneerAnnualRow }) {
   const { pace } = row
 
-  if (pace.elapsedEnrolled === 0) {
+  // No enrolled span yet, or enrolled but not one report filed: there is no data to compute a rhythm
+  // from, so show the empty state rather than a fabricated full-year deficit (a red "X h de retard",
+  // a "600 h Requis par mois", and an "out of reach" warning all derived from zero actuals).
+  if (pace.elapsedEnrolled === 0 || pace.reportedMonths === 0) {
     return <p className="text-muted-foreground text-sm">{m.pioneers_insufficient_data()}</p>
   }
 

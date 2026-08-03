@@ -22,6 +22,10 @@ export interface EnrolmentActualMonth {
 export interface EnrolmentPlan {
   rosterType: PublisherType
   isAuxiliary: boolean
+  // True when the current roster stint is ongoing (a standing appointment — permanent pioneer or
+  // permanent auxiliary). False when it is a single-month enrolment (a monthly auxiliary). Lets the
+  // UI tell a "Pionnier Auxiliaire (sans interruption)" from a one-month "Pionnier auxiliaire".
+  ongoing: boolean
   months: PioneerMonth[] // actual reported rows of the roster type, in the service year
   enrolledMonths: MonthRef[] // months planned (enrolled) this year for the roster type — the plan side
   enrolledSinceYearStart: boolean
@@ -58,6 +62,8 @@ export function planFromEnrolments(
     return {
       rosterType: memberType,
       isAuxiliary: isAuxiliaryType(memberType),
+      // A standing type with no stint means an ongoing appointment we simply have no record for.
+      ongoing: true,
       months: [],
       enrolledMonths: [],
       enrolledSinceYearStart: false,
@@ -110,6 +116,7 @@ export function planFromEnrolments(
   return {
     rosterType,
     isAuxiliary: isAuxiliaryType(rosterType),
+    ongoing: rosterOngoing,
     months,
     enrolledMonths,
     enrolledSinceYearStart,

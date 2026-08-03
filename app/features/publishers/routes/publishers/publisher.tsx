@@ -276,9 +276,7 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
         title={`${publisher.firstname} ${publisher.lastname}`}
         titleBadge={
           <>
-            {pioneerActivity != null && (
-              <Badge variant="secondary">{pioneerProfileLabel(pioneerActivity.row.type)}</Badge>
-            )}
+            {pioneerActivity != null && <Badge variant="secondary">{pioneerProfileLabel(pioneerActivity)}</Badge>}
             {publisher.inactiveAt != null && <Badge variant="warning">{m.publishers_view_inactive_badge()}</Badge>}
           </>
         }

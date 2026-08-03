@@ -18,6 +18,9 @@ export interface PioneerAnnualRow extends PioneerRosterRowBase {
 
 export interface PioneerAuxiliaryRow extends PioneerRosterRowBase {
   auxiliary: AuxiliarySummary
+  // True = a permanent (ongoing) auxiliary appointment; false = a single-month monthly auxiliary.
+  // Drives the profile label so the view distinguishes the two (the roster type is the same).
+  permanent: boolean
 }
 
 // Exactly one kind — a member is either an annual or an auxiliary pioneer, never both.

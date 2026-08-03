@@ -54,6 +54,7 @@ export interface PaceInput {
 
 export interface PioneerPace {
   elapsedEnrolled: number
+  reportedMonths: number // of the enrolled months to date, how many have an hours report filed
   targetToDate: number
   actualToDate: number
   paceDelta: number
@@ -232,6 +233,7 @@ export function computePioneerPace(input: PaceInput): PioneerPace {
 
   return {
     elapsedEnrolled,
+    reportedMonths: reportedToDate.length,
     targetToDate,
     actualToDate,
     paceDelta,

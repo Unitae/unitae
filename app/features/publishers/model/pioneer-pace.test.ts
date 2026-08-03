@@ -184,6 +184,33 @@ describe('computePioneerPace — enrollment span (missed months do not shrink th
   })
 })
 
+describe('computePioneerPace — reportedMonths (reports filed to date)', () => {
+  it('counts the reported months up to the current expected month', () => {
+    const pace = computePioneerPace({
+      serviceYear: SY,
+      monthlyRate: 50,
+      months: [month(8, 2025, 50), month(9, 2025, 50), month(10, 2025, 50)], // Sept–Nov filed
+      now: new Date(2026, 0, 15), // expected Dec
+      enrolledSinceYearStart: true,
+    })
+    expect(pace.reportedMonths).toBe(3)
+  })
+
+  it('is zero for an enrolled pioneer who has filed nothing yet', () => {
+    // Enrolled since September but not one report → the deficit-generating span exists, yet there is
+    // no data to compute a rhythm from. The detail view keys its empty state off reportedMonths.
+    const pace = computePioneerPace({
+      serviceYear: SY,
+      monthlyRate: 50,
+      months: [],
+      now: new Date(2026, 7, 2), // deep into the year
+      enrolledSinceYearStart: true,
+    })
+    expect(pace.elapsedEnrolled).toBeGreaterThan(0)
+    expect(pace.reportedMonths).toBe(0)
+  })
+})
+
 describe('computePioneerPace — overdue escalates the risk band', () => {
   const now = new Date(2026, 0, 15) // expected month = Dec 2025
 
