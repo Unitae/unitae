@@ -74,6 +74,21 @@ beforeAll(async () => {
     })
     inactivePioneerId = inactivePioneer.id
 
+    // The roster is enrolment-driven: only members with a stint covering the current month appear.
+    // Give both pioneers an ongoing (open-ended) permanent stint started in the past so they cover
+    // now; the inactive one is still filtered out by its Member.inactiveAt.
+    for (const memberId of [activePioneerId, inactivePioneerId]) {
+      await tx.pioneerEnrolment.create({
+        data: {
+          memberId,
+          type: PublisherType.PionnierPermanant,
+          startMonth: 0,
+          startYear: 2020,
+          congregationId,
+        },
+      })
+    }
+
     const group = await tx.publisherGroup.create({
       data: { name: `Group ${ts}`, adress: '1 Rue', responsibleId: activePublisherId, congregationId },
     })

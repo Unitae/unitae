@@ -64,6 +64,18 @@ beforeAll(async () => {
       },
     })
 
+    // The pioneer board is enrolment-driven — Bob needs an ongoing stint covering the current
+    // month to count as a current pioneer.
+    await tx.pioneerEnrolment.create({
+      data: {
+        memberId: bob.id,
+        type: PublisherType.PionnierPermanant,
+        startMonth: 0,
+        startYear: 2020,
+        congregationId,
+      },
+    })
+
     // Create publisher groups
     const group = await tx.publisherGroup.create({
       data: { name: `Group A ${ts}`, adress: '1 Rue de la Paix', responsibleId: aliceId, congregationId },

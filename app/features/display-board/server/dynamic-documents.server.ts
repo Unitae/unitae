@@ -10,11 +10,13 @@ import { EventStatus } from '~/features/events'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 
-const PIONEER_TYPES: PublisherType[] = [
-  PublisherType.PionnierPermanant,
-  PublisherType.PionnierSpecial,
-  PublisherType.Missionnaire,
-]
+// Section order on the board: auxiliaries (permanent + one-month) first, then the standing types.
+const PIONEER_TYPE_RANK: Record<string, number> = {
+  [PublisherType.PionnierAuxiliaires]: 0,
+  [PublisherType.PionnierPermanant]: 1,
+  [PublisherType.PionnierSpecial]: 2,
+  [PublisherType.Missionnaire]: 3,
+}
 
 export type { AvailableDynamicType, ProgrammeDynamicConfig }
 export { parseProgrammeConfig }
@@ -22,6 +24,32 @@ export { parseProgrammeConfig }
 function startOfCurrentMonth(): Date {
   const now = new Date()
   return new Date(now.getFullYear(), now.getMonth(), 1)
+}
+
+// The board shows who is a pioneer *right now*. That is the set of enrolment stints covering the
+// current calendar month — start on or before it, and either ongoing (no end) or ending on or after
+// it (endpoint-inclusive, matching the enrolment aggregate's overlap rule). This is the only correct
+// source: it captures one-month auxiliaries (whose Member.type stays Normal) and, by construction,
+// excludes future stints (start next month) and past ones (ended before this month). Pairs with a
+// `member: { leftAt/inactiveAt/anonymizedAt: null }` filter at every call site.
+function currentEnrolmentWhere(now: Date) {
+  const month = now.getMonth()
+  const year = now.getFullYear()
+  return {
+    AND: [
+      { OR: [{ startYear: { lt: year } }, { startYear: year, startMonth: { lte: month } }] },
+      { OR: [{ endMonth: null }, { endYear: { gt: year } }, { endYear: year, endMonth: { gte: month } }] },
+    ],
+  }
+}
+
+// A stint covers the current month, and its member is an active publisher (not left/inactive/scrubbed).
+function currentPioneerWhere(congregationId: number) {
+  return {
+    congregationId,
+    ...currentEnrolmentWhere(new Date()),
+    member: { leftAt: null, inactiveAt: null, anonymizedAt: null },
+  }
 }
 
 /**
@@ -52,9 +80,7 @@ export async function listAvailableDynamicTypes(
     })
   }
 
-  const pioneerCount = await db.member.count({
-    where: { congregationId, type: { in: PIONEER_TYPES }, leftAt: null },
-  })
+  const pioneerCount = await db.pioneerEnrolment.count({ where: currentPioneerWhere(congregationId) })
   if (pioneerCount > 0) {
     available.push({
       dynamicType: DynamicType.Pioneers,
@@ -106,12 +132,13 @@ export async function getContentVersion(
   }
 
   if (dynamicType === DynamicType.Pioneers) {
-    const pioneer = await db.member.findFirst({
-      where: { congregationId, type: { in: PIONEER_TYPES } },
-      orderBy: { updatedAt: 'desc' },
-      select: { updatedAt: true },
+    // Version tracks both the stint (created/closed/edited) and the member (identity, lifecycle),
+    // so the board re-renders when either side of the current roster changes.
+    const rows = await db.pioneerEnrolment.findMany({
+      where: currentPioneerWhere(congregationId),
+      select: { updatedAt: true, member: { select: { updatedAt: true } } },
     })
-    return pioneer?.updatedAt ?? null
+    return maxDate(...rows.flatMap(row => [row.updatedAt, row.member.updatedAt]))
   }
 
   if (dynamicType === DynamicType.Programme) {
@@ -196,9 +223,8 @@ export async function getDynamicPreview(
   }
 
   if (dynamicType === DynamicType.Pioneers) {
-    const count = await db.member.count({
-      where: { congregationId, type: { in: PIONEER_TYPES }, leftAt: null },
-    })
+    // No-overlap invariant → at most one covering stint per member, so this counts distinct pioneers.
+    const count = await db.pioneerEnrolment.count({ where: currentPioneerWhere(congregationId) })
     return count > 0 ? `${count} pionniers` : null
   }
 
@@ -321,12 +347,22 @@ function fetchPublisherGroups(db: TransactionClient, congregationId: number) {
   })
 }
 
-function fetchPioneers(db: TransactionClient, congregationId: number) {
-  return db.member.findMany({
-    where: { congregationId, type: { in: PIONEER_TYPES }, leftAt: null, inactiveAt: null },
-    select: { ...userSelect, type: true },
-    orderBy: [{ type: 'asc' }, { lastname: 'asc' }, { firstname: 'asc' }],
+async function fetchPioneers(db: TransactionClient, congregationId: number) {
+  // The stint's type is authoritative (a one-month auxiliary reads PionnierAuxiliaires here even
+  // though Member.type is Normal). Ordering can't be done in SQL — it spans the enrolment (type)
+  // and the member (name) — so we sort in JS by section rank then name.
+  const rows = await db.pioneerEnrolment.findMany({
+    where: currentPioneerWhere(congregationId),
+    select: { type: true, member: { select: userSelect } },
   })
+  return rows
+    .map(row => ({ ...row.member, type: row.type }))
+    .sort((a, b) => {
+      const rank = (PIONEER_TYPE_RANK[a.type] ?? 99) - (PIONEER_TYPE_RANK[b.type] ?? 99)
+      if (rank !== 0) return rank
+      const last = (a.lastname ?? '').localeCompare(b.lastname ?? '')
+      return last !== 0 ? last : (a.firstname ?? '').localeCompare(b.firstname ?? '')
+    })
 }
 
 function fetchProgrammeByIds(
