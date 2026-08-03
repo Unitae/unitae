@@ -113,7 +113,7 @@ export default function CongregationSettingsPage({ loaderData, actionData }: Rou
           <SettingsNavCard
             icon={CalendarDays}
             title={m.settings_congregation_programs_title()}
-            description={m.settings_congregation_program_templates_link()}
+            description={m.settings_congregation_programs_desc()}
             href="./templates"
           />
 

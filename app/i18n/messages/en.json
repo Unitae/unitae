@@ -744,7 +744,7 @@
     "settings_general_password_security_scope_everyone": "Everyone",
     "settings_general_password_security_scope_everyone_hint": "Every account in the congregation.",
     "settings_congregation_programs_title": "Programs",
-    "settings_congregation_program_templates_link": "Program templates",
+    "settings_congregation_programs_desc": "Meeting templates used to generate the programs.",
     "settings_templates_meta_title": "Program templates - Unitae",
     "settings_templates_title": "Congregation / Program templates",
     "settings_templates_subtitle": "Manage the meeting templates used to generate programs.",
