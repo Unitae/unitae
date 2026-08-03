@@ -6,7 +6,6 @@ import {
   Map as MapIcon,
   Settings,
   Shield,
-  Target,
   UserCog,
 } from 'lucide-react'
 import { Link, redirect } from 'react-router'
@@ -54,11 +53,6 @@ const ITEM_DISPLAY: Record<SettingsItemKey, { icon: IconComponent; title: () => 
   subscription: { icon: CreditCard, title: m.sidebar_subscription, description: m.settings_hub_subscription_desc },
   congregation: { icon: Building2, title: m.sidebar_settings_assembly, description: m.settings_hub_congregation_desc },
   territories: { icon: MapIcon, title: m.sidebar_settings_territories, description: m.settings_hub_territories_desc },
-  'pioneer-goals': {
-    icon: Target,
-    title: m.settings_pioneer_goals_title,
-    description: m.settings_hub_pioneer_goals_desc,
-  },
   users: { icon: UserCog, title: m.sidebar_users, description: m.settings_hub_users_desc },
   permissions: { icon: Shield, title: m.sidebar_settings_permissions, description: m.settings_hub_permissions_desc },
   data: { icon: HardDrive, title: m.sidebar_settings_data, description: m.settings_hub_data_desc },

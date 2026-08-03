@@ -10,7 +10,7 @@ describe('buildSettingsSections', () => {
     expect(sections.map(s => s.key)).toEqual(['account', 'modules', 'access', 'data'])
     expect(sections.map(s => s.items.map(i => i.key))).toEqual([
       ['general', 'subscription'],
-      ['congregation', 'territories', 'pioneer-goals'],
+      ['congregation', 'territories'],
       ['users', 'permissions'],
       ['data', 'audit'],
     ])
@@ -54,12 +54,14 @@ describe('buildSettingsSections', () => {
     expect(sections[0].items.map(i => i.key)).toEqual(['permissions'])
   })
 
-  it('shows only pioneer goals to a pioneer-goal-manager', () => {
+  it('surfaces the congregation card to a pioneer-goal-manager (goals live inside the congregation module)', () => {
+    // Pioneer goals is a sub-setting of the Congregation module; the parent card aggregates its
+    // children's permissions, so a pioneer-goal-manager reaches goals through Congregation.
     const sections = buildSettingsSections(
       { canManageSettings: false, canManageUsers: false, canManagePermissions: false, canManagePioneerGoals: true },
       null,
     )
     expect(sections.map(s => s.key)).toEqual(['modules'])
-    expect(sections[0].items.map(i => i.key)).toEqual(['pioneer-goals'])
+    expect(sections[0].items.map(i => i.key)).toEqual(['congregation'])
   })
 })

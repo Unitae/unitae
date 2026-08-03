@@ -31,9 +31,13 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
+  // The Congregation module aggregates several sub-settings, each gated by its own permission:
+  // the congregation settings form needs Admin; pioneer goals need PioneerGoalManager. Anyone with
+  // at least one may open the page — it renders only the sub-sections they can access.
   const canManageSettings = permissions.has(Permission.Admin)
+  const canManagePioneerGoals = permissions.has(Permission.PioneerGoalManager)
 
-  if (!canManageSettings) {
+  if (!canManageSettings && !canManagePioneerGoals) {
     throw redirect('/')
   }
 
@@ -45,13 +49,15 @@ export function loader({ context }: Route.LoaderArgs) {
     )
 
     return {
+      canManageSettings,
+      canManagePioneerGoals,
       auxiliaryPioneerProfileActivated: auxiliaryPioneerProfileActivated ?? false,
     }
   })
 }
 
 export default function CongregationSettingsPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { auxiliaryPioneerProfileActivated } = loaderData
+  const { canManageSettings, canManagePioneerGoals, auxiliaryPioneerProfileActivated } = loaderData
   const { blocker, markDirty } = useUnsavedChanges()
 
   const [form] = useForm({
@@ -70,46 +76,68 @@ export default function CongregationSettingsPage({ loaderData, actionData }: Rou
         breadcrumbs={[{ label: m.sidebar_settings(), to: '/settings' }, { label: m.sidebar_settings_assembly() }]}
       />
 
-      <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6" onChange={markDirty}>
+      {canManageSettings && (
+        <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6" onChange={markDirty}>
+          <Card>
+            <CardHeader>
+              <CardTitle>{m.settings_congregation_publishers_title()}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="auxiliary-pioneer"
+                  name={CongregationSettingKey.PermanentAuxiliaryPioneerProfileActivated}
+                  value="on"
+                  defaultChecked={auxiliaryPioneerProfileActivated}
+                />
+                <Label htmlFor="auxiliary-pioneer" className="font-normal">
+                  {m.settings_congregation_auxiliary_pioneer_before()}{' '}
+                  <span className="font-bold text-primary">
+                    {m.settings_congregation_auxiliary_pioneer_highlight()}
+                  </span>{' '}
+                  {m.settings_congregation_auxiliary_pioneer_after()}
+                </Label>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{m.settings_congregation_programs_title()}</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-5 rounded-lg border p-4">
+                <span className="text-sm">{m.settings_congregation_program_templates_link()}</span>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="./templates" className="flex items-center gap-2">
+                    {m.settings_congregation_program_templates_see_all()} <ArrowRight className="size-4" />
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <SubmitButton>{m.common_save()}</SubmitButton>
+        </Form>
+      )}
+
+      {canManagePioneerGoals && (
         <Card>
           <CardHeader>
-            <CardTitle>{m.settings_congregation_publishers_title()}</CardTitle>
+            <CardTitle>{m.settings_pioneer_goals_title()}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="auxiliary-pioneer"
-                name={CongregationSettingKey.PermanentAuxiliaryPioneerProfileActivated}
-                value="on"
-                defaultChecked={auxiliaryPioneerProfileActivated}
-              />
-              <Label htmlFor="auxiliary-pioneer" className="font-normal">
-                {m.settings_congregation_auxiliary_pioneer_before()}{' '}
-                <span className="font-bold text-primary">{m.settings_congregation_auxiliary_pioneer_highlight()}</span>{' '}
-                {m.settings_congregation_auxiliary_pioneer_after()}
-              </Label>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{m.settings_congregation_programs_title()}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-5 rounded-lg border p-4">
-              <span className="text-sm">{m.settings_congregation_program_templates_link()}</span>
+              <span className="text-sm">{m.settings_pioneer_goals_subtitle()}</span>
               <Button variant="ghost" size="sm" asChild>
-                <Link to="./templates" className="flex items-center gap-2">
-                  {m.settings_congregation_program_templates_see_all()} <ArrowRight className="size-4" />
+                <Link to="./pioneer-goals" className="flex items-center gap-2">
+                  {m.settings_congregation_pioneer_goals_manage()} <ArrowRight className="size-4" />
                 </Link>
               </Button>
             </div>
           </CardContent>
         </Card>
-
-        <SubmitButton>{m.common_save()}</SubmitButton>
-      </Form>
+      )}
     </div>
   )
 }

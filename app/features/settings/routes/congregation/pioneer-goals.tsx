@@ -79,7 +79,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   })
 
   session.flash('success', m.settings_pioneer_goals_saved_success())
-  return redirect(`/settings/pioneer-goals?sy=${serviceYear}`, {
+  return redirect(`/settings/congregation/pioneer-goals?sy=${serviceYear}`, {
     headers: { 'Set-Cookie': await commitSession(session) },
   })
 }
@@ -98,8 +98,12 @@ export default function PioneerGoalsPage({ loaderData, actionData }: Route.Compo
       <PageHeader
         title={m.settings_pioneer_goals_title()}
         subtitle={m.settings_pioneer_goals_subtitle()}
-        backTo="/settings"
-        breadcrumbs={[{ label: m.sidebar_settings(), to: '/settings' }, { label: m.settings_pioneer_goals_title() }]}
+        backTo="/settings/congregation"
+        breadcrumbs={[
+          { label: m.sidebar_settings(), to: '/settings' },
+          { label: m.sidebar_settings_assembly(), to: '/settings/congregation' },
+          { label: m.settings_pioneer_goals_title() },
+        ]}
       />
 
       <div className="flex flex-wrap gap-2">
