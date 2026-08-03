@@ -1,10 +1,13 @@
 import { parseWithZod } from '@conform-to/zod'
-import { KeyRound, RotateCcw, UnplugIcon, UserCheck, UserMinus, Zap, ZapOff } from 'lucide-react'
 import { useState } from 'react'
-import { data, Form, redirect, useSubmit } from 'react-router'
+import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
+import { getEnrolmentsForMember } from '~/features/publishers/index.server'
+import { enrolmentMonthOptions, findActiveStandingEnrolment } from '~/features/publishers/model/pioneer-enrolment-form'
 import { updatePublisherSchema } from '~/features/publishers/schemas/edit-publisher.schema'
 import { updateMember } from '~/features/publishers/server/update-member.server'
+import PioneerEnrolmentFields from '~/features/publishers/ui/PioneerEnrolmentFields'
+import PublisherEditActions from '~/features/publishers/ui/PublisherEditActions'
 import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldServiceForm'
 import PublisherNominationForm from '~/features/publishers/ui/PublisherNominationForm'
 import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
@@ -13,35 +16,15 @@ import { currentAccountContext, permissionsContext, withScopeFromContext } from 
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Permission } from '~/shared/types/permission'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '~/shared/ui/alert-dialog'
-import { Button } from '~/shared/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '~/shared/ui/dialog'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
-import { Input } from '~/shared/ui/input'
-import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
+import { handlePioneerEnrolmentIntent, PIONEER_ENROLMENT_INTENTS } from './_pioneer-enrolment-action.server'
 import type { Route } from './+types/edit-publisher'
+
+const YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i)
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.publishers_edit_meta_title() }]
@@ -71,10 +54,12 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
     const showAuxiliaryPioneer = await getBoolSetting(
       db,
-      CongregationSettingKey.AuxiliaryPioneerProfileActivated,
+      CongregationSettingKey.PermanentAuxiliaryPioneerProfileActivated,
       currentUser.congregationId,
     )
     const groups = await db.publisherGroup.findMany({ where: { congregationId: currentUser.congregationId } })
+    const enrolments = await getEnrolmentsForMember(db, result.id, currentUser.congregationId)
+    const activeStanding = findActiveStandingEnrolment(enrolments)
     const { account, ...member } = result
     return {
       user: {
@@ -83,14 +68,32 @@ export function loader({ params, context }: Route.LoaderArgs) {
       },
       groups,
       hideAuxiliaryPioneer: !showAuxiliaryPioneer,
+      activeStanding: activeStanding
+        ? {
+            id: activeStanding.id,
+            type: activeStanding.type,
+            startMonth: activeStanding.startMonth,
+            startYear: activeStanding.startYear,
+          }
+        : null,
+      enrolments: enrolments.map(e => ({
+        id: e.id,
+        type: e.type,
+        startMonth: e.startMonth,
+        startYear: e.startYear,
+        endMonth: e.endMonth,
+        endYear: e.endYear,
+        monthlyGoal: e.monthlyGoal,
+      })),
+      monthOptions: enrolmentMonthOptions(new Date()),
+      yearOptions: YEAR_OPTIONS,
     }
   })
 }
 
 export default function EditPublisher({ loaderData }: Route.ComponentProps) {
-  const { user, groups, hideAuxiliaryPioneer } = loaderData
+  const { user, groups, hideAuxiliaryPioneer, activeStanding, enrolments, monthOptions, yearOptions } = loaderData
   const { blocker, markDirty } = useUnsavedChanges()
-  const submit = useSubmit()
   const [gender, setGender] = useState<'male' | 'female' | null>(user.isMale ? 'male' : 'female')
 
   return (
@@ -101,187 +104,51 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
         subtitle={m.publishers_edit_subtitle()}
         breadcrumbs={[{ label: m.sidebar_publishers(), to: '/publishers' }, { label: m.publishers_edit_title() }]}
         backTo="/publishers"
-        actions={
-          <>
-            {!user.hasLogin ? (
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="icon" title={m.publishers_edit_link_login_title()}>
-                    <KeyRound className="size-4" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <Form method="post" action={`/publishers/${user.id}/link-login`}>
-                    <DialogHeader>
-                      <DialogTitle>{m.publishers_edit_link_login_dialog_title()}</DialogTitle>
-                      <DialogDescription>{m.publishers_edit_link_login_dialog_description()}</DialogDescription>
-                    </DialogHeader>
-                    <div className="my-4 flex flex-col gap-2">
-                      <Label htmlFor="link-login-email">{m.publishers_edit_link_login_email_label()}</Label>
-                      {/* Seed the login email from the contact email — they may then diverge. */}
-                      <Input id="link-login-email" name="email" type="email" defaultValue={user.email ?? ''} required />
-                    </div>
-                    <DialogFooter>
-                      <Button type="submit">{m.publishers_edit_link_login_submit()}</Button>
-                    </DialogFooter>
-                  </Form>
-                </DialogContent>
-              </Dialog>
-            ) : (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="icon" title={m.publishers_edit_unlink_login_title()}>
-                    <UnplugIcon className="size-4" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>{m.publishers_edit_unlink_login_dialog_title()}</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {m.publishers_edit_unlink_login_dialog_description()}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => submit(null, { method: 'post', action: `/publishers/${user.id}/unlink-login` })}
-                    >
-                      {m.publishers_edit_unlink_login_submit()}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-            {user.leftAt != null ? (
-              <Form method="post" action={`/publishers/${user.id}/mark-as-returned`}>
-                <Button type="submit" size="icon" title={m.publishers_view_mark_as_returned_title()}>
-                  <RotateCcw className="size-4" />
-                </Button>
-              </Form>
-            ) : user.isPublisher ? (
-              <>
-                {user.inactiveAt != null ? (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="icon" title={m.publishers_view_mark_as_active_title()}>
-                        <Zap className="size-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>{m.publishers_view_mark_as_active_dialog_title()}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {m.publishers_view_mark_as_active_dialog_description()}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() =>
-                            submit(null, { method: 'post', action: `/publishers/${user.id}/mark-as-active` })
-                          }
-                        >
-                          {m.publishers_view_mark_as_active_confirm()}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                ) : (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="icon" title={m.publishers_view_mark_as_inactive_title()}>
-                        <ZapOff className="size-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>{m.publishers_view_mark_as_inactive_dialog_title()}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {m.publishers_view_mark_as_inactive_dialog_description()}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() =>
-                            submit(null, { method: 'post', action: `/publishers/${user.id}/mark-as-inactive` })
-                          }
-                        >
-                          {m.publishers_view_mark_as_inactive_confirm()}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="secondary" size="icon" title={m.publishers_edit_deactivate_title()}>
-                      <UserMinus className="size-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>{m.publishers_view_mark_as_left_dialog_title()}</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        {m.publishers_view_mark_as_left_dialog_description()}
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => submit(null, { method: 'post', action: `/publishers/${user.id}/mark-as-left` })}
-                      >
-                        {m.publishers_view_mark_as_left_confirm()}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </>
-            ) : (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button size="icon" title={m.publishers_edit_activate_title()}>
-                    <UserCheck className="size-4" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>{m.publishers_view_make_publisher_dialog_title()}</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {m.publishers_view_make_publisher_dialog_description()}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => submit(null, { method: 'post', action: `/publishers/${user.id}/make-publisher` })}
-                    >
-                      {m.publishers_view_make_publisher_confirm()}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-          </>
-        }
+        actions={<PublisherEditActions user={user} />}
       />
 
-      <Form method="post" className="flex flex-col gap-6" onChange={markDirty}>
+      {/* Member identity + group — the pioneer type is managed by the enrolment forms below, so the
+          field-service form submits it as a read-only hidden value. Its submit button lives at the
+          bottom (via the form id) so the pioneer card isn't orphaned under a terminal button. */}
+      <Form id="edit-publisher-form" method="post" className="flex flex-col gap-6" onChange={markDirty}>
         <PublisherPersonalInformationForm user={user} onGenderChange={setGender} />
         <PublisherNominationForm user={user} gender={gender} />
-        <PublisherFieldServiceForm user={user} groups={groups} hideAuxiliaryPioneer={hideAuxiliaryPioneer} />
-
-        <SubmitButton size="lg" className="self-start">
-          {m.publishers_edit_submit()}
-        </SubmitButton>
+        <PublisherFieldServiceForm
+          user={user}
+          groups={groups}
+          hideAuxiliaryPioneer={hideAuxiliaryPioneer}
+          hideTypeSelect
+        />
       </Form>
+
+      {/* Pioneer appointments — separate forms, each posting its own enrolment intent (saved on their
+          own buttons, independently of the identity form below). */}
+      <PioneerEnrolmentFields
+        activeStanding={activeStanding}
+        enrolments={enrolments}
+        monthOptions={monthOptions}
+        yearOptions={yearOptions}
+        hidePermanentAuxiliary={hideAuxiliaryPioneer}
+      />
+
+      <SubmitButton form="edit-publisher-form" size="lg" className="self-start">
+        {m.publishers_edit_submit()}
+      </SubmitButton>
     </div>
   )
 }
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const currentUser = context.get(currentAccountContext)
-  const submission = parseWithZod(await request.formData(), { schema: updatePublisherSchema })
+  const formData = await request.formData()
+
+  // Pioneer appointment forms post a dedicated intent; everything else is a member update.
+  const intent = formData.get('intent')
+  if (typeof intent === 'string' && PIONEER_ENROLMENT_INTENTS.includes(intent)) {
+    return handlePioneerEnrolmentIntent(request, params, context, formData)
+  }
+
+  const submission = parseWithZod(formData, { schema: updatePublisherSchema })
 
   if (submission.status !== 'success') {
     return data(submission.reply(), { status: 400 })

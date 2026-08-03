@@ -3,6 +3,9 @@ import { parseWithZod } from '@conform-to/zod'
 import { useState } from 'react'
 import { data, Form, redirect, useSearchParams } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
+import { getEnrolmentsForMember, resolveEnrolmentMonthlyGoal } from '~/features/publishers/index.server'
+import { enrolmentForMonth } from '~/features/publishers/model/pioneer-enrolment'
+import { toServiceYear } from '~/features/publishers/model/pioneer-pace'
 import { createActivitySchema } from '~/features/publishers/schemas/activity.schema'
 import { createPublisherActivity } from '~/features/publishers/server/publisher-activity-mutations.server'
 import { getPublishers } from '~/features/publishers/server/publishers.server'
@@ -79,17 +82,26 @@ export function loader({ request, context }: Route.LoaderArgs) {
       })
     }
 
+    // Show the enrolled goal as read-only context so the report can be entered against the plan.
+    let enrolmentGoal: number | null = null
+    if (publisher != null) {
+      const enrolments = await getEnrolmentsForMember(db, publisher.id, currentUser.congregationId)
+      const active = enrolmentForMonth(enrolments, month, year)
+      if (active != null) enrolmentGoal = await resolveEnrolmentMonthlyGoal(db, active, toServiceYear(month, year))
+    }
+
     return {
       publishers,
       publisher,
       selectedMonth: { month, year },
+      enrolmentGoal,
       previousPage: request.headers.get('referer'),
     }
   })
 }
 
 export default function NewActivity({ loaderData, actionData }: Route.ComponentProps) {
-  const { publishers, publisher, selectedMonth, previousPage } = loaderData
+  const { publishers, publisher, selectedMonth, enrolmentGoal, previousPage } = loaderData
   const [searchParams, setSearchParams] = useSearchParams()
   const [pioneer, setPioneer] = useState<PublisherType | null>(
     publisher?.type === PublisherType.PionnierAuxiliaires ? PublisherType.PionnierAuxiliaires : null,
@@ -221,6 +233,12 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
               </div>
             </div>
 
+            {enrolmentGoal != null && (
+              <p className="rounded-md bg-muted px-3 py-2 text-muted-foreground text-sm">
+                {m.activity_new_enrolment_goal({ goal: String(enrolmentGoal) })}
+              </p>
+            )}
+
             {publisher?.type != null && publisher.type === PublisherType.Normal && (
               <div className="space-y-2">
                 <Label htmlFor="type">{m.activity_new_pioneer_label()}</Label>
@@ -334,8 +352,14 @@ export async function action({ request, context }: Route.ActionArgs) {
       })
     }
 
+    // Derive the report's pioneer type from the member's active enrolment for that month (spec §7.2)
+    // so plan and actual can't diverge. Falls back to the standing type, then the ad-hoc dropdown
+    // (a Normal member reporting an auxiliary month without a formal enrolment).
+    const enrolments = await getEnrolmentsForMember(db, publisher.id, currentUser.congregationId)
+    const enrolledType = enrolmentForMonth(enrolments, month, year)?.type
     const type =
-      publisher.type === PublisherType.Normal ? (submission.value.type ?? PublisherType.Normal) : publisher.type
+      enrolledType ??
+      (publisher.type === PublisherType.Normal ? (submission.value.type ?? PublisherType.Normal) : publisher.type)
     const activity = await createPublisherActivity(db, {
       publisherId: publisher.id,
       month,

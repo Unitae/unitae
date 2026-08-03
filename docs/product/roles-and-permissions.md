@@ -68,7 +68,7 @@ Permissions are grouped by area of the app. Most areas come in two flavours: **V
 - **Publisher Manager** — create, edit, deactivate publishers, manage groups
 - **Activity Viewer** — read the monthly activity reports and statistics, open the pioneers monitoring roster, and see the dashboard at-risk-pioneers widget
 - **Activity Manager** — record, edit, and export publisher activity
-- **Pioneer Goal Manager** — set the monthly hour goal per pioneer type and service year (Settings → Pioneer goals)
+- **Pioneer Goal Manager** — set the monthly hour goal per pioneer type and service year (congregation settings → Pioneer goals)
 
 ### Emergency
 - **Emergency Info Viewer** — view any publisher's emergency information (DPA card, survival backpack, emergency contacts) across the whole congregation
@@ -90,7 +90,7 @@ Permissions are grouped by area of the app. Most areas come in two flavours: **V
 - **Permissions Manager** — adjust which permissions are attached to a role
 
 ### Admin
-- **Admin** — full access to everything in the congregation, plus congregation-wide settings (display name, configuration, programme templates). Bypasses every other permission check.
+- **Admin** — full access to everything in the congregation, plus congregation-wide settings (display name, configuration, event templates, pioneer goals). Bypasses every other permission check.
 
 Keep the **Admin** permission to a small handful of trusted users.
 

@@ -69,7 +69,6 @@ export default [
     route('settings', 'features/settings/routes/_layout.tsx', [
       index('features/settings/routes/index.tsx'),
       route('general', 'features/settings/routes/general/settings.tsx'),
-      route('pioneer-goals', 'features/settings/routes/pioneer-goals.tsx'),
       ...prefix('users', [
         index('features/settings/routes/users/user-list.tsx'),
         route('new', 'features/settings/routes/users/new-user.tsx'),
@@ -91,6 +90,7 @@ export default [
         route(':roleId/edit', 'features/settings/routes/permissions/edit-permission.tsx'),
       ]),
       route('congregation', 'features/settings/routes/congregation/settings.tsx'),
+      route('congregation/pioneer-goals', 'features/settings/routes/congregation/pioneer-goals.tsx'),
       ...prefix('congregation/templates', [
         index('features/settings/routes/congregation/template-list.tsx'),
         route('new', 'features/settings/routes/congregation/templates/new.tsx'),

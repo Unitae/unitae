@@ -102,7 +102,7 @@ Enforced by [Biome](https://biomejs.dev/). Run `pnpm build:format` to auto-fix.
 
 Business logic belongs in **service functions** (`features/*/server/*.server.ts`), not in route loaders or actions.
 
-For the *structural* rules — per-feature folder shape, `index.ts` boundaries between features, aggregate doctrine for `Member`/`Attribution`/`EventPart`, CQRS-lite read/write split, and file-size budgets — see [Architecture Conventions](architecture-conventions.md). This section covers the mechanics of an individual service function; the architecture doc covers where the file lives and what it's allowed to touch.
+For the *structural* rules — per-feature folder shape, `index.ts` boundaries between features, aggregate doctrine for `Member`/`Attribution`/`PioneerEnrolment`/`EventPart`, CQRS-lite read/write split, and file-size budgets — see [Architecture Conventions](architecture-conventions.md). This section covers the mechanics of an individual service function; the architecture doc covers where the file lives and what it's allowed to touch.
 
 ### Rules
 

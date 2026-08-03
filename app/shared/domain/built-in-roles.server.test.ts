@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { PublisherType } from '~/shared/types/publisher-type'
 
 vi.mock('~/shared/domain/audit.server', () => ({
   audit: vi.fn(),
@@ -22,7 +23,7 @@ interface MemberFlags {
 const BASE: MemberFlags = {
   isMale: null,
   isPublisher: false,
-  type: 'normal',
+  type: PublisherType.Normal,
   baptismDate: null,
   isAnointed: false,
   isHelder: false,
@@ -135,28 +136,25 @@ describe('BUILT_IN_ROLE_PREDICATES', () => {
     )
   })
 
-  it('pioneer requires publisher + baptism + permanent or auxiliary type', () => {
+  it('pioneer requires publisher + baptism + any pioneer type (permanent, auxiliary, special, missionary)', () => {
     const baptized = new Date()
-    expect(
-      BUILT_IN_ROLE_PREDICATES.pioneer({
-        ...BASE,
-        isPublisher: true,
-        baptismDate: baptized,
-        type: 'pionnier-permanant',
-      }),
-    ).toBe(true)
-    expect(
-      BUILT_IN_ROLE_PREDICATES.pioneer({
-        ...BASE,
-        isPublisher: true,
-        baptismDate: baptized,
-        type: 'pionnier-auxiliaires',
-      }),
-    ).toBe(true)
+    for (const type of [
+      PublisherType.PionnierPermanant,
+      PublisherType.PionnierAuxiliaires,
+      PublisherType.PionnierSpecial,
+      PublisherType.Missionnaire,
+    ]) {
+      expect(BUILT_IN_ROLE_PREDICATES.pioneer({ ...BASE, isPublisher: true, baptismDate: baptized, type })).toBe(true)
+    }
 
     // Normal publisher is not a pioneer
     expect(
-      BUILT_IN_ROLE_PREDICATES.pioneer({ ...BASE, isPublisher: true, baptismDate: baptized, type: 'normal' }),
+      BUILT_IN_ROLE_PREDICATES.pioneer({
+        ...BASE,
+        isPublisher: true,
+        baptismDate: baptized,
+        type: PublisherType.Normal,
+      }),
     ).toBe(false)
   })
 
@@ -168,7 +166,7 @@ describe('BUILT_IN_ROLE_PREDICATES', () => {
       baptismDate: new Date(),
       isHelder: true,
       isAnointed: true,
-      type: 'pionnier-permanant',
+      type: PublisherType.PionnierPermanant,
       leftAt: new Date(),
     }
     for (const predicate of Object.values(BUILT_IN_ROLE_PREDICATES)) {

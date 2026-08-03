@@ -83,7 +83,10 @@ Promote a policy to an aggregate when a third writer appears or when the rule se
 |---|---|---|---|
 | `Member` | aggregate | `app/features/publishers/server/member.aggregate.ts` | 12 mutation sites route through it so `syncBuiltInRoleAssignments` fires after every identity-flag change |
 | `Attribution` | aggregate | `app/features/territories/server/attribution.aggregate.ts` | State machine (assigned → returned → archived) + overlap invariant (one active per publisher × territory time-window) |
+| `PioneerEnrolment` | aggregate | `app/features/publishers/server/pioneer-enrolment.aggregate.ts` | Open → close lifecycle + non-overlap invariant (no two of a member's stints share a month) + end-bounds-paired invariant |
 | `EventPart` | policy | `app/features/events/server/event-part.policy.ts` | Eligibility + distinctness + day-off + external-speaker rules shared by `assignPart` and `assignServicePart` |
+
+**`PioneerEnrolment` ↔ `Member.type` sync.** `Member.type` stays the synced cache that drives `syncBuiltInRoleAssignments`; the enrolment **workflow** (`pioneer-enrolment.workflow.ts`), not the aggregate, keeps it in step — keyed on the stint's *shape*, not its type. Opening an **ongoing** stint (permanent / special / missionary / permanent auxiliary) sets `Member.type`; closing or removing the last ongoing stint reverts it to `Normal`. A **single-month** (monthly) auxiliary enrolment deliberately leaves `Member.type = Normal` — a one-month sign-up must not flip the standing type, and its status is read from the enrolment record, never from `Member.type`.
 
 ### Aggregate contract
 

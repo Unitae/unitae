@@ -6,10 +6,9 @@ import {
   Map as MapIcon,
   Settings,
   Shield,
-  Target,
   UserCog,
 } from 'lucide-react'
-import { Link, redirect } from 'react-router'
+import { redirect } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
 import { congregationContext, permissionsContext } from '~/shared/auth/route-context.server'
 import { billingEntryUrl } from '~/shared/domain/billing-link.server'
@@ -20,6 +19,7 @@ import {
   type SettingsGroupKey,
   type SettingsItemKey,
 } from '../settings-sections'
+import { SettingsNavCard } from '../ui/SettingsNavCard'
 import type { Route } from './+types/index'
 
 export function loader({ context }: Route.LoaderArgs) {
@@ -54,11 +54,6 @@ const ITEM_DISPLAY: Record<SettingsItemKey, { icon: IconComponent; title: () => 
   subscription: { icon: CreditCard, title: m.sidebar_subscription, description: m.settings_hub_subscription_desc },
   congregation: { icon: Building2, title: m.sidebar_settings_assembly, description: m.settings_hub_congregation_desc },
   territories: { icon: MapIcon, title: m.sidebar_settings_territories, description: m.settings_hub_territories_desc },
-  'pioneer-goals': {
-    icon: Target,
-    title: m.settings_pioneer_goals_title,
-    description: m.settings_hub_pioneer_goals_desc,
-  },
   users: { icon: UserCog, title: m.sidebar_users, description: m.settings_hub_users_desc },
   permissions: { icon: Shield, title: m.sidebar_settings_permissions, description: m.settings_hub_permissions_desc },
   data: { icon: HardDrive, title: m.sidebar_settings_data, description: m.settings_hub_data_desc },
@@ -74,25 +69,14 @@ const GROUP_TITLE: Record<SettingsGroupKey, () => string> = {
 
 function SettingsCardLink({ item }: { item: SettingsCard }) {
   const display = ITEM_DISPLAY[item.key]
-  const Icon = display.icon
-  const inner = (
-    <div className="flex h-full items-start gap-3 rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent">
-      <Icon className="mt-0.5 size-5 flex-shrink-0 text-muted-foreground" />
-      <div className="min-w-0">
-        <p className="font-medium text-foreground">{display.title()}</p>
-        <p className="mt-1 text-muted-foreground text-sm">{display.description()}</p>
-      </div>
-    </div>
-  )
-
-  return item.external ? (
-    <a href={item.href} className="block">
-      {inner}
-    </a>
-  ) : (
-    <Link to={item.href} className="block">
-      {inner}
-    </Link>
+  return (
+    <SettingsNavCard
+      icon={display.icon}
+      title={display.title()}
+      description={display.description()}
+      href={item.href}
+      external={item.external}
+    />
   )
 }
 

@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 
 export const congregationSettingsSchema = z.object({
-  [CongregationSettingKey.AuxiliaryPioneerProfileActivated]: z
+  [CongregationSettingKey.PermanentAuxiliaryPioneerProfileActivated]: z
     .string()
     .optional()
     .transform(v => String(Boolean(v))),

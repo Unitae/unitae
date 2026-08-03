@@ -80,6 +80,12 @@ export const AuditAction = {
   // Pioneer goals
   PioneerGoalUpdated: 'pioneer_goal.updated',
 
+  // Pioneer enrolment
+  PioneerEnrolled: 'pioneer_enrolment.created',
+  PioneerEnrolmentUpdated: 'pioneer_enrolment.updated',
+  PioneerEnrolmentEnded: 'pioneer_enrolment.ended',
+  PioneerEnrolmentDeleted: 'pioneer_enrolment.deleted',
+
   // Member lifecycle
   MemberLeft: 'member.left',
   MemberReturned: 'member.returned',

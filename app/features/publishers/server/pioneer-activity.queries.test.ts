@@ -9,6 +9,7 @@ vi.mock('~/shared/infra/db.server', () => ({
 }))
 
 const { getPioneerActivitySummary } = await import('./pioneer-activity.queries')
+const { deriveStintsFromActivity } = await import('./pioneer-enrolment-backfill.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 const SY = 2025
@@ -18,8 +19,18 @@ let nextId = 1
 function activity(month: number, year: number, type: PublisherType, hours: number | null) {
   return { id: nextId++, month, year, type, hours, isPublisher: true }
 }
+// Each member's enrolments are the backfill of their activity — so the enrolment-driven summary is
+// exercised with the same fixtures (and must reach the same expected values) as the old inference.
 function member(id: number, type: PublisherType, activities: ReturnType<typeof activity>[], publisherGroup = null) {
-  return { id, firstname: `F${id}`, lastname: `L${id}`, type, publisherGroup, activities }
+  return {
+    id,
+    firstname: `F${id}`,
+    lastname: `L${id}`,
+    type,
+    publisherGroup,
+    activities,
+    pioneerEnrolments: deriveStintsFromActivity(activities, type),
+  }
 }
 
 beforeEach(() => {

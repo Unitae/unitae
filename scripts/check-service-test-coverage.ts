@@ -44,6 +44,7 @@ export const EXEMPT_FILES = new Set<string>([
   // Route action helpers — glue code, TDD-exempt per the doc.
   'app/features/events/routes/programs/events/_edit-event-intents.server.ts',
   'app/features/publishers/routes/publishers/_lifecycle-action.server.ts',
+  'app/features/publishers/routes/publishers/_pioneer-enrolment-action.server.ts',
   'app/features/settings/routes/territories/_card-overlays-action.server.ts',
 
   // Background-job dispatch — thin worker glue, delegates to service functions.

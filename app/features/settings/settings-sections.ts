@@ -7,7 +7,6 @@ export type SettingsItemKey =
   | 'subscription'
   | 'congregation'
   | 'territories'
-  | 'pioneer-goals'
   | 'users'
   | 'permissions'
   | 'data'
@@ -48,8 +47,11 @@ const CATALOG: CatalogEntry[] = [
     key: 'congregation',
     group: 'modules',
     href: '/settings/congregation',
+    // Parent card of the congregation module — aggregates its sub-settings' permissions (the
+    // congregation settings themselves need Admin; pioneer goals live inside and need their own
+    // PioneerGoalManager). The page renders only the sub-sections the viewer may access.
     external: false,
-    visible: p => p.canManageSettings,
+    visible: p => p.canManageSettings || p.canManagePioneerGoals,
   },
   {
     key: 'territories',
@@ -57,13 +59,6 @@ const CATALOG: CatalogEntry[] = [
     href: '/settings/territories',
     external: false,
     visible: p => p.canManageSettings,
-  },
-  {
-    key: 'pioneer-goals',
-    group: 'modules',
-    href: '/settings/pioneer-goals',
-    external: false,
-    visible: p => p.canManagePioneerGoals,
   },
   { key: 'users', group: 'access', href: '/settings/users', external: false, visible: p => p.canManageUsers },
   {

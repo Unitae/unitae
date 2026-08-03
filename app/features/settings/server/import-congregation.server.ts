@@ -1,5 +1,6 @@
 import type { Job } from 'bullmq'
 import JsZip from 'jszip'
+import { backfillCongregationEnrolments } from '~/features/publishers/index.server'
 import {
   IMPORT_PROGRESS_CAP,
   IMPORT_TOTAL_STEPS,
@@ -47,6 +48,7 @@ import {
 import {
   importEmergencyContacts,
   importExternalSpeakers,
+  importPioneerEnrolments,
   importPioneerGoals,
   importPublisherActivities,
   importPublisherGroups,
@@ -109,6 +111,7 @@ export {
 export {
   importEmergencyContacts,
   importExternalSpeakers,
+  importPioneerEnrolments,
   importPioneerGoals,
   importPublisherActivities,
   importPublisherGroups,
@@ -203,6 +206,9 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
       await progress()
 
       await importPublisherActivities(zip, db, idMap, congregationId)
+      await progress()
+
+      await importPioneerEnrolments(zip, db, idMap, congregationId)
       await progress()
 
       await importEmergencyContacts(zip, db, idMap, congregationId)
@@ -300,6 +306,11 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
 
       // Optional: data deletion records
       await importDataDeletionRecords(zip, db, congregationId)
+
+      // Ensure every member with pioneer activity has enrolments: v2.4+ archives imported them above;
+      // pre-2.4 archives have none, so backfill from the imported activity history (§6.1). Idempotent —
+      // members that already have enrolments are skipped, so this is a no-op for new archives.
+      await backfillCongregationEnrolments(db, congregationId, userId)
     },
     importTransactionOptions,
   )

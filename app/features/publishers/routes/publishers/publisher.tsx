@@ -6,7 +6,7 @@ import { getEmergencyInfoForMember } from '~/features/publishers/server/emergenc
 import { getPioneerActivityForMember } from '~/features/publishers/server/pioneer-activity.queries'
 import { getPublisherById } from '~/features/publishers/server/publishers.server'
 import EmergencyInfoView, { type EmergencyInfoViewData } from '~/features/publishers/ui/EmergencyInfoView'
-import { PioneerActivitySection } from '~/features/publishers/ui/PioneerActivitySection'
+import { PioneerActivitySection, pioneerProfileLabel } from '~/features/publishers/ui/PioneerActivitySection'
 import { AttributionStatus, TerritoryKind } from '~/features/territories'
 import { findActiveAttributionsForPublisher } from '~/features/territories/index.server'
 import * as m from '~/i18n/paraglide/messages'
@@ -275,7 +275,10 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={`${publisher.firstname} ${publisher.lastname}`}
         titleBadge={
-          publisher.inactiveAt != null && <Badge variant="warning">{m.publishers_view_inactive_badge()}</Badge>
+          <>
+            {pioneerActivity != null && <Badge variant="secondary">{pioneerProfileLabel(pioneerActivity)}</Badge>}
+            {publisher.inactiveAt != null && <Badge variant="warning">{m.publishers_view_inactive_badge()}</Badge>}
+          </>
         }
         subtitle={m.publishers_view_subtitle()}
         breadcrumbs={[
@@ -401,7 +404,7 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
         </CardContent>
       </Card>
 
-      {emergency && <EmergencyCard info={emergency} canManage={roles.canManageEmergency} publisherId={publisher.id} />}
+      {pioneerActivity && <PioneerActivitySection serviceYear={serviceYear} activity={pioneerActivity} />}
 
       <Card>
         <CardHeader>
@@ -458,7 +461,7 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
         </CardContent>
       </Card>
 
-      {pioneerActivity && <PioneerActivitySection serviceYear={serviceYear} activity={pioneerActivity} />}
+      {emergency && <EmergencyCard info={emergency} canManage={roles.canManageEmergency} publisherId={publisher.id} />}
     </div>
   )
 }

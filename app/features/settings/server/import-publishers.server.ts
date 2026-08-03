@@ -1,8 +1,11 @@
 import type JsZip from 'jszip'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { createLogger } from '~/shared/infra/logger.server'
 import type { PublisherType } from '~/shared/types/publisher-type'
 import type { EntityIdMap } from './data-transfer.type'
 import { readNdjsonFile } from './ndjson-archive'
+
+const logger = createLogger('import-publishers')
 
 export async function importPublisherGroups(
   zip: JsZip,
@@ -98,6 +101,54 @@ export async function importPublisherActivities(
       },
     })
     idMap.set('publisher-activities', record.id, created.id)
+  }
+}
+
+export async function importPioneerEnrolments(
+  zip: JsZip,
+  db: TransactionClient,
+  idMap: EntityIdMap,
+  congregationId: number,
+): Promise<void> {
+  const records = await readNdjsonFile<{
+    id: number
+    memberId: number
+    type: string
+    startMonth: number
+    startYear: number
+    endMonth: number | null
+    endYear: number | null
+    monthlyGoal: number | null
+  }>(zip, 'pioneer-enrolments')
+
+  let skipped = 0
+  for (const record of records) {
+    const memberId = idMap.getOptional('members', record.memberId)
+    if (!memberId) {
+      // The referenced member wasn't imported (e.g. a dropped placeholder account) — skip the stint
+      // rather than orphan it, but count it so a silent data loss is visible in the logs.
+      skipped++
+      continue
+    }
+
+    // Imported verbatim — the stints already satisfied the aggregate's invariants when created.
+    const created = await db.pioneerEnrolment.create({
+      data: {
+        memberId,
+        type: record.type as PublisherType,
+        startMonth: record.startMonth,
+        startYear: record.startYear,
+        endMonth: record.endMonth,
+        endYear: record.endYear,
+        monthlyGoal: record.monthlyGoal,
+        congregationId,
+      },
+    })
+    idMap.set('pioneer-enrolments', record.id, created.id)
+  }
+
+  if (skipped > 0) {
+    logger.warn(`Skipped ${skipped} pioneer enrolment(s) whose member was not imported`, { congregationId, skipped })
   }
 }
 
