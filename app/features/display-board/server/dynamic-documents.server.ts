@@ -28,7 +28,8 @@ function startOfCurrentMonth(): Date {
 
 // The board shows who is a pioneer *right now*. That is the set of enrolment stints covering the
 // current calendar month — start on or before it, and either ongoing (no end) or ending on or after
-// it (endpoint-inclusive, matching the enrolment aggregate's overlap rule). This is the only correct
+// it (endpoint-inclusive). This is the SQL translation of the canonical `coversMonth()` predicate in
+// the publishers pioneer-enrolment model. This is the only correct
 // source: it captures one-month auxiliaries (whose Member.type stays Normal) and, by construction,
 // excludes future stints (start next month) and past ones (ended before this month). Pairs with a
 // `member: { leftAt/inactiveAt/anonymizedAt: null }` filter at every call site.
@@ -349,8 +350,8 @@ function fetchPublisherGroups(db: TransactionClient, congregationId: number) {
 
 async function fetchPioneers(db: TransactionClient, congregationId: number) {
   // The stint's type is authoritative (a one-month auxiliary reads PionnierAuxiliaires here even
-  // though Member.type is Normal). Ordering can't be done in SQL — it spans the enrolment (type)
-  // and the member (name) — so we sort in JS by section rank then name.
+  // though Member.type is Normal). Ordering can't be done in SQL because section order follows the
+  // custom PIONEER_TYPE_RANK (not the enum's own order), so we sort in JS by rank then name.
   const rows = await db.pioneerEnrolment.findMany({
     where: currentPioneerWhere(congregationId),
     select: { type: true, member: { select: userSelect } },
