@@ -35,15 +35,16 @@ Permission required: *Roles Viewer* to read; *Roles Manager* and *Permissions Ma
 
 ## Congregation settings
 
-Top-level preferences for the whole congregation:
+Top-level preferences for the whole congregation, grouped into sections on the page:
 
 - **Display name** — How the congregation appears in the app and emails
-- **Publisher profile fields** — Which fields are shown on publisher profiles
-- **Programme templates** — Define the recurring meeting structures (see [Events](events.md))
+- **Publishers** — Enable the **permanent auxiliary pioneer** status (a standing auxiliary appointment); when off, only month-to-month auxiliary enrolment is offered (see [Publishers → Pioneer service](publishers.md#pioneer-service))
+- **Pioneer goals** — The default monthly hour goal for each pioneer type (regular, auxiliary, special, missionary), per service year (detailed in [Pioneer goals](#pioneer-goals) below)
+- **Event templates** — Reusable templates used to create events (midweek meeting, Memorial, …) faster (see [Events](events.md))
 - **Event types** — Custom categories with colors used to highlight events on the programme list
 - **Default sender address** — The "from" address used for outgoing notification emails (when configurable)
 
-Permission required: *Admin*.
+Permission required: *Admin* — except **Pioneer goals**, which is also open to a *Pioneer Goal Manager* (they reach it through this page without needing full admin).
 
 ## Territory settings
 

@@ -55,7 +55,7 @@ Defined by `BUILT_IN_ROLE_KEYS` in `app/shared/domain/built-in-roles.server.ts`:
 - `anointed` — publisher + baptized + `isAnointed`
 - `elder` — baptized male + `isHelder`
 - `assistant-servant` — baptized male + `isServant`
-- `pioneer` — publisher + baptized + `type` is `pionnier-permanant` or `pionnier-auxiliaires`
+- `pioneer` — publisher + baptized + `type` is any pioneer type (i.e. not `normal` — permanent, auxiliary, special, or missionary). Compared against the `PublisherType` enum *names* the Prisma client returns, not the `@map`-ed DB strings
 
 Membership is computed from `Member` flags (`isPublisher`, `type`, `isMale`, `baptismDate`, `isAnointed`, `isHelder`, `isServant`, `leftAt`) by `BUILT_IN_ROLE_PREDICATES`. After any change to those fields, call `syncBuiltInRoleAssignments(db, memberId, congregationId, actorId)` — it diffs the desired vs current `MemberRoleAssignment` rows and audits the change. When `Member.leftAt` is set, every predicate evaluates to `false`, so soft-leaving a member drops every identity role automatically.
 

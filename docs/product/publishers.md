@@ -18,19 +18,21 @@ Each publisher profile includes:
 - **Date of birth**
 - **Baptism date**
 - **Gender** — Male or female, used for gender-specific assignments
-- **Publisher type** — See below
+- **Publisher type** — Reflects the publisher's pioneer service; set through appointments, not a dropdown (see [Pioneer service](#pioneer-service))
 - **Appointment** — Whether the publisher is an elder or ministerial servant in the congregation
 - **Anointed** — Anointed status
 
 ### Publisher types
 
-The *Publisher type* field offers:
+Every publisher has a **type** that reflects their current standing:
 
-- **Publisher** — Regular publisher (default)
-- **Auxiliary pioneer** — Temporary full-time minister (can be toggled on/off in congregation settings)
-- **Regular pioneer** — Full-time minister
+- **Publisher** — Regular publisher (the default)
+- **Auxiliary pioneer** — Serves as a pioneer for a limited time, with a personal monthly hour goal
+- **Regular pioneer** — Full-time minister with an annual hour goal
 - **Special pioneer**
 - **Missionary**
+
+You don't pick the type from a dropdown. It follows the publisher's **pioneer service**: appoint them (or enrol them for a month) and the type updates automatically. See [Pioneer service](#pioneer-service) below.
 
 ### Territory assignments
 
@@ -40,6 +42,26 @@ The publisher profile displays the list of territories currently assigned to the
 - **Type** — The territory type (Door to door, Businesses, etc.)
 - **Checkout date** — When the assignment started
 - **Status** — Whether the assignment is on time or overdue
+
+## Pioneer service
+
+Pioneers are managed from the **Pioneer service** section of the publisher's edit page, not from a type dropdown — so a publisher's type and their real appointments always stay in sync. There are two ways a publisher serves as a pioneer.
+
+### Standing appointment
+
+A lasting appointment: **regular pioneer**, **special pioneer**, **missionary**, or **permanent auxiliary pioneer**. You choose the type and the start month, and the appointment runs until you close it. While it's active, the publisher's type reflects it and the section shows the appointment read-only with a **Close** control (you pick the closing month). Closing it returns the publisher to *Publisher*.
+
+The **permanent auxiliary pioneer** option only appears when your congregation has enabled it in [congregation settings](settings.md#congregation-settings) — some congregations use a standing auxiliary status, others only the month-to-month form below.
+
+### Monthly auxiliary enrolment
+
+The classic auxiliary form: enrol a publisher for a **single month** with a **personal hour goal** (typically 15 or 30 h). A publisher signs up at the start of the month and their report lands at the end. A monthly enrolment does **not** change the publisher's standing type — it applies to that one month only — and you can remove it if it was added by mistake. It's always available, whatever the permanent-auxiliary setting.
+
+### Goals, and seeing who's enrolled
+
+Each pioneer type has a **default monthly hour goal** (regular ~50 h, auxiliary 30 h), set congregation-wide under [Pioneer goals](settings.md#congregation-settings). A monthly auxiliary enrolment can override it with a **per-person** goal (15 vs 30 h).
+
+Because an enrolment is recorded separately from the hours report, a pioneer shows on the roster **before** their report arrives: an auxiliary who has signed up but not yet reported appears as *enrolled · report pending*, with the goal known and the hours still empty.
 
 ## Publisher Groups
 
@@ -107,7 +129,7 @@ Each monthly record includes:
 - **Month / Year** — The reporting period
 - **Hours** — Hours spent in field ministry
 - **Studies** — Number of Bible studies conducted
-- **Pioneer service** — Type of pioneer service performed that month
+- **Pioneer service** — The pioneer type for that month, taken from the publisher's active enrolment (see [Pioneer service](#pioneer-service))
 - **Publisher was active this month** — Whether the person was active that month
 - **Notes** — Optional notes
 
