@@ -1,9 +1,10 @@
 import { getFormProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
-import { ArrowRight } from 'lucide-react'
-import { data, Form, Link, redirect } from 'react-router'
+import { CalendarDays, Target } from 'lucide-react'
+import { data, Form, redirect } from 'react-router'
 import { congregationSettingsSchema } from '~/features/settings/schemas/congregation-settings.schema'
 import { updateCongregationSettings } from '~/features/settings/server/congregation-settings.server'
+import { SettingsNavCard } from '~/features/settings/ui/SettingsNavCard'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -14,7 +15,6 @@ import {
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Permission } from '~/shared/types/permission'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Checkbox } from '~/shared/ui/checkbox'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
@@ -77,21 +77,12 @@ export default function CongregationSettingsPage({ loaderData, actionData }: Rou
       />
 
       {canManagePioneerGoals && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{m.settings_pioneer_goals_title()}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between gap-5 rounded-lg border p-4">
-              <span className="text-sm">{m.settings_pioneer_goals_subtitle()}</span>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="./pioneer-goals" className="flex items-center gap-2">
-                  {m.settings_congregation_pioneer_goals_manage()} <ArrowRight className="size-4" />
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <SettingsNavCard
+          icon={Target}
+          title={m.settings_pioneer_goals_title()}
+          description={m.settings_pioneer_goals_subtitle()}
+          href="./pioneer-goals"
+        />
       )}
 
       {canManageSettings && (
@@ -119,21 +110,12 @@ export default function CongregationSettingsPage({ loaderData, actionData }: Rou
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>{m.settings_congregation_programs_title()}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2">
-              <div className="flex items-center justify-between gap-5 rounded-lg border p-4">
-                <span className="text-sm">{m.settings_congregation_program_templates_link()}</span>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link to="./templates" className="flex items-center gap-2">
-                    {m.settings_congregation_program_templates_see_all()} <ArrowRight className="size-4" />
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <SettingsNavCard
+            icon={CalendarDays}
+            title={m.settings_congregation_programs_title()}
+            description={m.settings_congregation_program_templates_link()}
+            href="./templates"
+          />
 
           <SubmitButton>{m.common_save()}</SubmitButton>
         </Form>
