@@ -156,6 +156,17 @@ describe('getPioneerActivitySummary', () => {
     expect(result.annual[0].pace.paceDelta).toBe(0)
   })
 
+  it('excludes members who left or are inactive from the roster query', async () => {
+    // A pioneer preaches, so cannot be inactive (inactive = 6 missed-preach reports) and
+    // must not appear once they have left the congregation.
+    vi.mocked(db.member.findMany).mockResolvedValue([] as never)
+
+    await getPioneerActivitySummary(db, 42, SY, NOW)
+
+    const where = vi.mocked(db.member.findMany).mock.calls[0][0]?.where
+    expect(where).toMatchObject({ leftAt: null, inactiveAt: null })
+  })
+
   it('flags concluded pioneers (reverted to Normal) and excludes them from totals', async () => {
     vi.mocked(db.member.findMany).mockResolvedValue([
       member(1, PublisherType.Normal, [
