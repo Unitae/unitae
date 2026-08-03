@@ -76,6 +76,24 @@ export default function CongregationSettingsPage({ loaderData, actionData }: Rou
         breadcrumbs={[{ label: m.sidebar_settings(), to: '/settings' }, { label: m.sidebar_settings_assembly() }]}
       />
 
+      {canManagePioneerGoals && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{m.settings_pioneer_goals_title()}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between gap-5 rounded-lg border p-4">
+              <span className="text-sm">{m.settings_pioneer_goals_subtitle()}</span>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="./pioneer-goals" className="flex items-center gap-2">
+                  {m.settings_congregation_pioneer_goals_manage()} <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {canManageSettings && (
         <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6" onChange={markDirty}>
           <Card>
@@ -119,24 +137,6 @@ export default function CongregationSettingsPage({ loaderData, actionData }: Rou
 
           <SubmitButton>{m.common_save()}</SubmitButton>
         </Form>
-      )}
-
-      {canManagePioneerGoals && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{m.settings_pioneer_goals_title()}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between gap-5 rounded-lg border p-4">
-              <span className="text-sm">{m.settings_pioneer_goals_subtitle()}</span>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="./pioneer-goals" className="flex items-center gap-2">
-                  {m.settings_congregation_pioneer_goals_manage()} <ArrowRight className="size-4" />
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       )}
     </div>
   )
