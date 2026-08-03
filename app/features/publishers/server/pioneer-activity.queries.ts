@@ -80,7 +80,10 @@ export async function getPioneerActivitySummary(
 ): Promise<PioneerActivitySummary> {
   const members = await db.member.findMany({
     where: {
+      // A pioneer preaches, so cannot be inactive; both left and inactive members drop off the roster.
       anonymizedAt: null,
+      leftAt: null,
+      inactiveAt: null,
       OR: [
         { type: { not: PublisherType.Normal } },
         { activities: { some: { ...serviceYearWhere(serviceYear), type: { not: PublisherType.Normal } } } },
