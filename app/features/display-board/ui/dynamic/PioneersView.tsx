@@ -34,6 +34,7 @@ function labelForType(type: string): string {
   if (type === 'PionnierPermanant') return m.board_dynamic_pioneers_type_permanent()
   if (type === 'PionnierSpecial') return m.board_dynamic_pioneers_type_special()
   if (type === 'Missionnaire') return m.board_dynamic_pioneers_type_missionary()
+  if (type === 'PionnierAuxiliaires') return m.board_dynamic_pioneers_type_auxiliary()
   return type
 }
 

@@ -510,6 +510,7 @@
     "board_dynamic_pioneers_type_permanent": "Regular pioneers",
     "board_dynamic_pioneers_type_special": "Special pioneers",
     "board_dynamic_pioneers_type_missionary": "Missionaries",
+    "board_dynamic_pioneers_type_auxiliary": "Auxiliary pioneers",
     "board_dynamic_programme_empty_title": "No upcoming programme",
     "board_dynamic_programme_empty_description": "No event is scheduled since the start of the month.",
     "board_dynamic_programme_assignee": "Assignee:",
