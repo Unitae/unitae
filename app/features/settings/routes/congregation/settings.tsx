@@ -15,7 +15,6 @@ import {
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Permission } from '~/shared/types/permission'
-import { Card, CardContent } from '~/shared/ui/card'
 import { Checkbox } from '~/shared/ui/checkbox'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Label } from '~/shared/ui/label'
@@ -96,25 +95,25 @@ export default function CongregationSettingsPage({ loaderData, actionData }: Rou
 
           {canManageSettings && (
             <Form method="post" {...getFormProps(form)} className="flex flex-col gap-3" onChange={markDirty}>
-              <Card>
-                <CardContent>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="auxiliary-pioneer"
-                      name={CongregationSettingKey.PermanentAuxiliaryPioneerProfileActivated}
-                      value="on"
-                      defaultChecked={auxiliaryPioneerProfileActivated}
-                    />
-                    <Label htmlFor="auxiliary-pioneer" className="font-normal">
-                      {m.settings_congregation_auxiliary_pioneer_before()}{' '}
-                      <span className="font-bold text-primary">
-                        {m.settings_congregation_auxiliary_pioneer_highlight()}
-                      </span>{' '}
-                      {m.settings_congregation_auxiliary_pioneer_after()}
-                    </Label>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Same flat container as SettingsNavCard (border, no shadow) so the editable row and the
+                  navigation cards share one visual language. */}
+              <div className="rounded-lg border border-border bg-card p-4">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="auxiliary-pioneer"
+                    name={CongregationSettingKey.PermanentAuxiliaryPioneerProfileActivated}
+                    value="on"
+                    defaultChecked={auxiliaryPioneerProfileActivated}
+                  />
+                  <Label htmlFor="auxiliary-pioneer" className="font-normal">
+                    {m.settings_congregation_auxiliary_pioneer_before()}{' '}
+                    <span className="font-bold text-primary">
+                      {m.settings_congregation_auxiliary_pioneer_highlight()}
+                    </span>{' '}
+                    {m.settings_congregation_auxiliary_pioneer_after()}
+                  </Label>
+                </div>
+              </div>
 
               <SubmitButton className="self-start">{m.common_save()}</SubmitButton>
             </Form>
