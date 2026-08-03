@@ -7,6 +7,7 @@ import {
   removeEnrolmentSchema,
   standingAppointmentSchema,
 } from '~/features/publishers/schemas/pioneer-enrolment.schema'
+import { PIONEER_ENROLMENT_CONFLICT } from '~/features/publishers/server/pioneer-enrolment.aggregate'
 import {
   endPioneerEnrolment,
   enrolPioneer,
@@ -57,9 +58,9 @@ export async function handlePioneerEnrolmentIntent(
     )
   } catch (error) {
     // Validation failures and business-rule violations (AppError, e.g. overlap) become a flash;
-    // anything unexpected propagates.
+    // anything unexpected propagates. Known business rules get a specific, actionable message.
     if (!(error instanceof AppError) && !(error instanceof EnrolmentValidationError)) throw error
-    session.flash('error', m.publishers_enrolment_error())
+    session.flash('error', enrolmentErrorMessage(error))
   }
 
   // Back to the edit page (there is no bare /publishers/:id route) so the manager sees the updated
@@ -68,6 +69,18 @@ export async function handlePioneerEnrolmentIntent(
 }
 
 class EnrolmentValidationError extends Error {}
+
+// Map a caught enrolment error to the message the manager sees. The aggregate's ConflictError
+// carries a rule code as its message; translate the ones a manager can act on, and fall back to the
+// generic message for validation failures and anything unrecognised.
+function enrolmentErrorMessage(error: AppError | EnrolmentValidationError): string {
+  if (error instanceof AppError) {
+    if (error.message === PIONEER_ENROLMENT_CONFLICT.overlap) return m.publishers_enrolment_error_overlap()
+    if (error.message === PIONEER_ENROLMENT_CONFLICT.endBeforeStart)
+      return m.publishers_enrolment_error_end_before_start()
+  }
+  return m.publishers_enrolment_error()
+}
 
 function runIntent(
   context: RouteContext,

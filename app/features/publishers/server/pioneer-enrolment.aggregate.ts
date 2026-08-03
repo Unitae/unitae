@@ -9,6 +9,14 @@ import type { PublisherType } from '~/shared/types/publisher-type'
 // (_assertNoOverlap), and end bounds are null together or set together (_assertEndBoundsPaired).
 // Field shape (pioneer-type-only, goal > 0, end ≥ start) is validated at the Zod boundary.
 
+// Business-rule violation codes carried as the ConflictError message, so a caller (the edit-page
+// action) can map them to a specific user-facing message instead of one generic error.
+export const PIONEER_ENROLMENT_CONFLICT = {
+  overlap: 'pioneer_enrolment_overlap',
+  endBeforeStart: 'pioneer_enrolment_end_before_start',
+  endBoundsUnpaired: 'pioneer_enrolment_end_bounds_unpaired',
+} as const
+
 interface MonthRange {
   startMonth: number
   startYear: number
@@ -39,7 +47,7 @@ export function endBoundsArePaired(endMonth: number | null, endYear: number | nu
 
 function _assertEndBoundsPaired(endMonth: number | null, endYear: number | null): void {
   if (!endBoundsArePaired(endMonth, endYear)) {
-    throw new ConflictError('pioneer_enrolment_end_bounds_unpaired')
+    throw new ConflictError(PIONEER_ENROLMENT_CONFLICT.endBoundsUnpaired)
   }
 }
 
@@ -59,7 +67,7 @@ async function _assertNoOverlap(
     select: { id: true, startMonth: true, startYear: true, endMonth: true, endYear: true },
   })
   if (existing.some(stint => enrolmentsOverlap(candidate, stint))) {
-    throw new ConflictError('pioneer_enrolment_overlap')
+    throw new ConflictError(PIONEER_ENROLMENT_CONFLICT.overlap)
   }
 }
 
@@ -127,7 +135,7 @@ export async function closeEnrolment(
   })
   if (!existing) throw new NotFoundError('PioneerEnrolment')
   if (absMonth(end.endMonth, end.endYear) < absMonth(existing.startMonth, existing.startYear)) {
-    throw new ConflictError('pioneer_enrolment_end_before_start')
+    throw new ConflictError(PIONEER_ENROLMENT_CONFLICT.endBeforeStart)
   }
 
   const enrolment = await db.pioneerEnrolment.update({

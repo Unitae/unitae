@@ -66,4 +66,9 @@ describe('pioneerEnrolmentSchema', () => {
   it('rejects an out-of-range month', () => {
     expect(pioneerEnrolmentSchema.safeParse({ ...base, startMonth: '12' }).success).toBe(false)
   })
+
+  it('rejects an unpaired end bound (one of month/year set, the other missing)', () => {
+    expect(pioneerEnrolmentSchema.safeParse({ ...base, endMonth: '10' }).success).toBe(false)
+    expect(pioneerEnrolmentSchema.safeParse({ ...base, endYear: '2025' }).success).toBe(false)
+  })
 })

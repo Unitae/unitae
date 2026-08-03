@@ -2737,5 +2737,7 @@
     "publishers_enrolment_period_single": "{month}",
     "publishers_enrolment_enrolled_success": "Appointment saved.",
     "publishers_enrolment_ended_success": "Appointment ended.",
-    "publishers_enrolment_error": "The appointment could not be saved."
+    "publishers_enrolment_error": "The appointment could not be saved.",
+    "publishers_enrolment_error_overlap": "This publisher already has an appointment covering that period. Remove or adjust the existing appointment first.",
+    "publishers_enrolment_error_end_before_start": "The closing month must be on or after the start month."
 }

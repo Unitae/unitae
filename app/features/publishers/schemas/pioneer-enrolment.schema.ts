@@ -6,8 +6,9 @@ import { PublisherType } from '~/shared/types/publisher-type'
 const emptyToUndefined = (v: unknown) => (v === '' || v == null ? undefined : v)
 
 // Field-shape validation at the boundary (spec §4): a pioneer type (never Normal), a positive
-// per-person goal when present, and an end on or after the start. Structural invariants
-// (non-overlap, end-bounds paired) live in the aggregate + DB check, not here.
+// per-person goal when present, an end on or after the start, and end bounds set-or-absent together.
+// The non-overlap invariant lives in the aggregate + DB; end-bounds pairing is mirrored here as
+// defense-in-depth (the aggregate and the DB end_bounds_paired CHECK still enforce it).
 export const pioneerEnrolmentSchema = z
   .object({
     type: z.nativeEnum(PublisherType),
@@ -20,6 +21,15 @@ export const pioneerEnrolmentSchema = z
   .superRefine((val, ctx) => {
     if (val.type === PublisherType.Normal) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['type'], message: 'An enrolment requires a pioneer type' })
+    }
+    // End bounds are paired: both set (closed) or both absent (ongoing). Mirrors the aggregate's
+    // _assertEndBoundsPaired and the DB end_bounds_paired CHECK, so the boundary rejects it too.
+    if ((val.endMonth == null) !== (val.endYear == null)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['endMonth'],
+        message: 'End month and end year must be set together',
+      })
     }
     if (val.endMonth != null && val.endYear != null) {
       const start = val.startYear * 12 + val.startMonth

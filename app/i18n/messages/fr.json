@@ -2778,5 +2778,7 @@
     "publishers_enrolment_period_single": "{month}",
     "publishers_enrolment_enrolled_success": "Affectation enregistrée.",
     "publishers_enrolment_ended_success": "Affectation clôturée.",
-    "publishers_enrolment_error": "L'affectation n'a pas pu être enregistrée."
+    "publishers_enrolment_error": "L'affectation n'a pas pu être enregistrée.",
+    "publishers_enrolment_error_overlap": "Ce proclamateur a déjà une affectation sur cette période. Retirez ou ajustez l'affectation existante d'abord.",
+    "publishers_enrolment_error_end_before_start": "Le mois de clôture doit être postérieur ou égal au mois de début."
 }

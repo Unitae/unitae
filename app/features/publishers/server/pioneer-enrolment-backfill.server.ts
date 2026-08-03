@@ -1,7 +1,10 @@
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { createLogger } from '~/shared/infra/logger.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { isAuxiliaryType, isPioneerType } from '../model/pioneer-goals.constants'
 import { openEnrolment } from './pioneer-enrolment.aggregate'
+
+const logger = createLogger('pioneer-enrolment-backfill')
 
 // One-time backfill: turn the historical per-month `PublisherActivity.type` snapshots into explicit
 // `PioneerEnrolment` stints. This is the inference logic (stop/restart + concluded) run once, per
@@ -155,7 +158,14 @@ export async function backfillCongregationEnrolments(
   })
   let stints = 0
   for (const member of members) {
-    stints += await backfillMemberEnrolments(db, member, congregationId, actorId)
+    try {
+      stints += await backfillMemberEnrolments(db, member, congregationId, actorId)
+    } catch (error) {
+      // A stint failing (e.g. a genuine DB error) aborts the whole backfill so the caller's import
+      // transaction rolls back — but name the member first, otherwise the failure is undiagnosable.
+      logger.error(`Backfill failed for member ${member.id}`, { congregationId, memberId: member.id, error })
+      throw error
+    }
   }
   return { members: members.length, stints }
 }

@@ -54,6 +54,14 @@ describe('buildSettingsSections', () => {
     expect(sections[0].items.map(i => i.key)).toEqual(['permissions'])
   })
 
+  it('surfaces the congregation card to an admin who lacks the pioneer-goal permission (the other half of the OR)', () => {
+    const sections = buildSettingsSections(
+      { canManageSettings: true, canManageUsers: false, canManagePermissions: false, canManagePioneerGoals: false },
+      null,
+    )
+    expect(sections.find(s => s.key === 'modules')?.items.map(i => i.key)).toContain('congregation')
+  })
+
   it('surfaces the congregation card to a pioneer-goal-manager (goals live inside the congregation module)', () => {
     // Pioneer goals is a sub-setting of the Congregation module; the parent card aggregates its
     // children's permissions, so a pioneer-goal-manager reaches goals through Congregation.
