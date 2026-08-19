@@ -2,7 +2,7 @@ import type { ReactElement } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Pipeline-level tests: assert handleInstantEmail resolves recipients, looks up
-// user records with `member` firstname, and calls mailer.emails.send with a
+// user records with `member` firstname, and calls sendEmail with a
 // non-null react element and the expected to/from/subject.
 //
 // "Which template renders for which type" is covered by the per-feature manifest
@@ -22,7 +22,7 @@ vi.mock('~/shared/domain/congregation.server', () => ({
 }))
 
 vi.mock('~/shared/infra/mailer.server', () => ({
-  mailer: { emails: { send: vi.fn() } },
+  sendEmail: vi.fn(),
 }))
 
 vi.mock('~/shared/infra/logger.server', () => {
@@ -49,7 +49,7 @@ vi.mock('./resolve-recipients.server', async () => {
 const { handleDigestEmail, handleInstantEmail } = await import('./handle-notification-email.server')
 const { unscopedDb } = await import('~/shared/infra/db.server')
 const { resolveCongregation } = await import('~/shared/domain/congregation.server')
-const { mailer } = await import('~/shared/infra/mailer.server')
+const { sendEmail } = await import('~/shared/infra/mailer.server')
 const { resolveRecipients } = await import('./resolve-recipients.server')
 const { runInWorkerContext } = await import('~/shared/utils/worker-locale.server')
 
@@ -108,8 +108,8 @@ describe('handleInstantEmail — recipientId branch (targets a specific user)', 
         }),
       }),
     )
-    expect(mailer.emails.send).toHaveBeenCalledTimes(1)
-    const sent = vi.mocked(mailer.emails.send).mock.calls[0][0] as {
+    expect(sendEmail).toHaveBeenCalledTimes(1)
+    const sent = vi.mocked(sendEmail).mock.calls[0][0] as {
       to: string
       from: string
       subject: string
@@ -141,7 +141,7 @@ describe('handleInstantEmail — recipientId branch (targets a specific user)', 
     // The rendered react element should carry the Member firstname, not the
     // UserAccount one. Assert on the outgoing props at whatever depth the
     // template exposes them.
-    const sent = vi.mocked(mailer.emails.send).mock.calls[0][0] as { react: ReactElement }
+    const sent = vi.mocked(sendEmail).mock.calls[0][0] as { react: ReactElement }
     const jsonProps = JSON.stringify(sent.react.props)
     expect(jsonProps).toContain('MemberName')
     expect(jsonProps).not.toContain('AccountName')
@@ -165,7 +165,7 @@ describe('handleInstantEmail — recipientId branch (targets a specific user)', 
       payload: '{}',
     })
 
-    expect(mailer.emails.send).not.toHaveBeenCalled()
+    expect(sendEmail).not.toHaveBeenCalled()
   })
 
   it('still sends when the user has no preference row for this type (opt-out default)', async () => {
@@ -186,7 +186,7 @@ describe('handleInstantEmail — recipientId branch (targets a specific user)', 
       payload: '{}',
     })
 
-    expect(mailer.emails.send).toHaveBeenCalledTimes(1)
+    expect(sendEmail).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -206,9 +206,9 @@ describe('handleInstantEmail — recipientRole branch (targets everyone with a p
       payload: JSON.stringify({ title: 'Removed doc' }),
     })
 
-    expect(mailer.emails.send).toHaveBeenCalledTimes(2)
-    const firstTo = (vi.mocked(mailer.emails.send).mock.calls[0][0] as { to: string }).to
-    const secondTo = (vi.mocked(mailer.emails.send).mock.calls[1][0] as { to: string }).to
+    expect(sendEmail).toHaveBeenCalledTimes(2)
+    const firstTo = (vi.mocked(sendEmail).mock.calls[0][0] as { to: string }).to
+    const secondTo = (vi.mocked(sendEmail).mock.calls[1][0] as { to: string }).to
     expect([firstTo, secondTo]).toEqual(['a@test.org', 'b@test.org'])
   })
 
@@ -225,7 +225,7 @@ describe('handleInstantEmail — recipientRole branch (targets everyone with a p
       payload: JSON.stringify({ documents: [] }),
     })
 
-    expect(mailer.emails.send).not.toHaveBeenCalled()
+    expect(sendEmail).not.toHaveBeenCalled()
   })
 })
 
@@ -237,7 +237,7 @@ describe('handleInstantEmail — transient mailer failures', () => {
       firstname: 'Jean',
       member: null,
     } as never)
-    vi.mocked(mailer.emails.send).mockRejectedValue(new Error('Resend 429: rate limited'))
+    vi.mocked(sendEmail).mockRejectedValue(new Error('Resend 429: rate limited'))
 
     // Single recipient per job → retry cannot double-send. Let BullMQ redrive.
     await expect(
@@ -259,7 +259,7 @@ describe('handleInstantEmail — transient mailer failures', () => {
       { userId: 3, email: 'c@test.org', firstname: 'Carol' },
     ] as never)
     // Alice succeeds, Bob fails transiently, Carol succeeds.
-    vi.mocked(mailer.emails.send)
+    vi.mocked(sendEmail)
       .mockResolvedValueOnce({} as never)
       .mockRejectedValueOnce(new Error('Resend 500: upstream'))
       .mockResolvedValueOnce({} as never)
@@ -280,10 +280,10 @@ describe('handleInstantEmail — transient mailer failures', () => {
     // All three attempts happened, and each targeted its own recipient —
     // guards against a regression that re-closes-over `recipient` and mails
     // the same person N times.
-    expect(mailer.emails.send).toHaveBeenCalledTimes(3)
-    expect(mailer.emails.send).toHaveBeenNthCalledWith(1, expect.objectContaining({ to: 'a@test.org' }))
-    expect(mailer.emails.send).toHaveBeenNthCalledWith(2, expect.objectContaining({ to: 'b@test.org' }))
-    expect(mailer.emails.send).toHaveBeenNthCalledWith(3, expect.objectContaining({ to: 'c@test.org' }))
+    expect(sendEmail).toHaveBeenCalledTimes(3)
+    expect(sendEmail).toHaveBeenNthCalledWith(1, expect.objectContaining({ to: 'a@test.org' }))
+    expect(sendEmail).toHaveBeenNthCalledWith(2, expect.objectContaining({ to: 'b@test.org' }))
+    expect(sendEmail).toHaveBeenNthCalledWith(3, expect.objectContaining({ to: 'c@test.org' }))
   })
 })
 
@@ -300,7 +300,7 @@ describe('handleInstantEmail — missing recipient', () => {
       payload: '{}',
     })
 
-    expect(mailer.emails.send).not.toHaveBeenCalled()
+    expect(sendEmail).not.toHaveBeenCalled()
     // No preference check either — we exit before that lookup.
     expect(unscopedDb.notificationPreference.findFirst).not.toHaveBeenCalled()
   })
@@ -315,7 +315,7 @@ describe('handleDigestEmail — transient mailer failures partition per event', 
       member: null,
     } as never)
     // Event 1 succeeds, event 2 fails transiently, event 3 succeeds.
-    vi.mocked(mailer.emails.send)
+    vi.mocked(sendEmail)
       .mockResolvedValueOnce({} as never)
       .mockRejectedValueOnce(new Error('Resend 500: upstream'))
       .mockResolvedValueOnce({} as never)
@@ -371,7 +371,7 @@ describe('handleDigestEmail — transient mailer failures partition per event', 
     ).resolves.toBeUndefined()
 
     // All three send attempts happened — event 2's failure did not abort.
-    expect(mailer.emails.send).toHaveBeenCalledTimes(3)
+    expect(sendEmail).toHaveBeenCalledTimes(3)
     // Only event 22 is flipped to failed; events 11 and 33 stay `sent` from
     // flush-settled. If we retried, events 11 and 33 would be re-mailed.
     expect(unscopedDb.notificationEvent.updateMany).toHaveBeenCalledTimes(1)
@@ -400,7 +400,7 @@ describe('suspended congregations are gated out of the pipeline', () => {
     })
 
     expect(unscopedDb.userAccount.findFirst).not.toHaveBeenCalled()
-    expect(mailer.emails.send).not.toHaveBeenCalled()
+    expect(sendEmail).not.toHaveBeenCalled()
     // The guard runs BEFORE runInWorkerContext — moving it inside would waste
     // an AsyncLocalStorage frame and this assertion would catch the drift.
     expect(runInWorkerContext).not.toHaveBeenCalled()
@@ -419,7 +419,7 @@ describe('suspended congregations are gated out of the pipeline', () => {
     })
 
     expect(resolveRecipients).not.toHaveBeenCalled()
-    expect(mailer.emails.send).not.toHaveBeenCalled()
+    expect(sendEmail).not.toHaveBeenCalled()
   })
 
   it('handleDigestEmail: does not send and does not mark events failed', async () => {
@@ -440,7 +440,7 @@ describe('suspended congregations are gated out of the pipeline', () => {
       notificationEventIds: [11],
     })
 
-    expect(mailer.emails.send).not.toHaveBeenCalled()
+    expect(sendEmail).not.toHaveBeenCalled()
     // Suspension is not a render failure — leave rows in whatever status
     // flush-settled left them; do not flip anything to `failed`.
     expect(unscopedDb.notificationEvent.updateMany).not.toHaveBeenCalled()
@@ -477,7 +477,7 @@ describe('handleDigestEmail — success / failure partitioning', () => {
     // Both events rendered → no updateMany call. flush-settled already
     // marked them `sent` before the job ran; only failures need a flip.
     expect(unscopedDb.notificationEvent.updateMany).not.toHaveBeenCalled()
-    expect(mailer.emails.send).toHaveBeenCalledTimes(2)
+    expect(sendEmail).toHaveBeenCalledTimes(2)
   })
 
   it('marks only the specific event IDs whose render failed as failed', async () => {
@@ -520,7 +520,7 @@ describe('handleDigestEmail — success / failure partitioning', () => {
       }),
     )
     // Only the valid event's mail was sent.
-    expect(mailer.emails.send).toHaveBeenCalledTimes(1)
+    expect(sendEmail).toHaveBeenCalledTimes(1)
   })
 
   it('does not touch the DB when events is empty', async () => {
@@ -533,7 +533,7 @@ describe('handleDigestEmail — success / failure partitioning', () => {
     })
 
     expect(unscopedDb.notificationEvent.updateMany).not.toHaveBeenCalled()
-    expect(mailer.emails.send).not.toHaveBeenCalled()
+    expect(sendEmail).not.toHaveBeenCalled()
   })
 
   it('respects the recipient preference on the entity-user (recipientId!=0) branch', async () => {
@@ -572,7 +572,7 @@ describe('handleDigestEmail — success / failure partitioning', () => {
     // Preference-blocked events do NOT count as permanent failures — the row
     // stays `sent` (its lifecycle already terminated at flush time). The user
     // simply didn't get an email.
-    expect(mailer.emails.send).not.toHaveBeenCalled()
+    expect(sendEmail).not.toHaveBeenCalled()
     expect(unscopedDb.notificationEvent.updateMany).not.toHaveBeenCalled()
   })
 
@@ -627,7 +627,7 @@ describe('handleDigestEmail — recipientId=0 role-fanout branch', () => {
     // Alice succeeds, Bob fails, Carol succeeds — inside sendEventEmail's
     // role loop. The per-recipient catch keeps the fan-out going and the
     // event ends up marked failed.
-    vi.mocked(mailer.emails.send)
+    vi.mocked(sendEmail)
       .mockResolvedValueOnce({} as never)
       .mockRejectedValueOnce(new Error('Resend 500: upstream'))
       .mockResolvedValueOnce({} as never)
@@ -649,7 +649,7 @@ describe('handleDigestEmail — recipientId=0 role-fanout branch', () => {
       }),
     ).resolves.toBeUndefined()
 
-    expect(mailer.emails.send).toHaveBeenCalledTimes(3)
+    expect(sendEmail).toHaveBeenCalledTimes(3)
     // One transient failure among the three recipients is enough to flip
     // the event; the other two already received their email.
     expect(unscopedDb.notificationEvent.updateMany).toHaveBeenCalledWith(
@@ -679,7 +679,7 @@ describe('handleDigestEmail — recipientId=0 role-fanout branch', () => {
     // Drift between producer and NOTIFICATION_TYPES registry — treat as
     // permanent so it surfaces in ops rather than silently disappearing.
     expect(resolveRecipients).not.toHaveBeenCalled()
-    expect(mailer.emails.send).not.toHaveBeenCalled()
+    expect(sendEmail).not.toHaveBeenCalled()
     expect(unscopedDb.notificationEvent.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: { in: [66] } },
@@ -718,7 +718,7 @@ describe('handleDigestEmail — recipient lookup misses', () => {
       notificationEventIds: [88],
     })
 
-    expect(mailer.emails.send).not.toHaveBeenCalled()
+    expect(sendEmail).not.toHaveBeenCalled()
     expect(unscopedDb.notificationEvent.updateMany).not.toHaveBeenCalled()
   })
 })

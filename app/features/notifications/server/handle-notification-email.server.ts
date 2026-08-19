@@ -3,7 +3,7 @@ import { type CongregationInfo, resolveCongregation } from '~/shared/domain/cong
 import { unscopedDb } from '~/shared/infra/db.server'
 import type { EmailJobData } from '~/shared/infra/email-queue.server'
 import { createLogger } from '~/shared/infra/logger.server'
-import { mailer } from '~/shared/infra/mailer.server'
+import { sendEmail } from '~/shared/infra/mailer.server'
 import { displayFirstname } from '~/shared/utils/display-name'
 import { runInWorkerContext } from '~/shared/utils/worker-locale.server'
 import { NOTIFICATION_TYPES } from './notification-types.server'
@@ -13,7 +13,7 @@ import { isNotificationDisabledForUser, resolveRecipients } from './resolve-reci
 const logger = createLogger('notification-email')
 
 // Return value of the per-event send loop.
-// - `delivered`: mailer.emails.send returned successfully, OR the send was a
+// - `delivered`: sendEmail returned successfully, OR the send was a
 //   deliberate no-op (recipient not found, preference disabled). The DB row
 //   keeps its current status.
 // - `permanent-failure`: the render layer refused to emit (unregistered type
@@ -298,7 +298,7 @@ async function sendNotificationToUser(
   // single-recipient instant path re-throws to trigger a BullMQ retry with
   // backoff; the multi-recipient digest and role-fan-out paths catch here
   // to avoid re-mailing recipients that already succeeded on retry.
-  await mailer.emails.send({ to: recipient.email, from: congregation.emailFrom, subject, react })
+  await sendEmail({ to: recipient.email, from: congregation.emailFrom, subject, react })
 
   return 'delivered'
 }

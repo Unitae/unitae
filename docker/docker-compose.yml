@@ -66,7 +66,17 @@ services:
     volumes:
       - unitae_content:/app/content:rw
     healthcheck:
-      test: ['CMD', 'curl', '-sf', 'http://localhost:8080/health']
+      # `curl` is not present in the node:22-alpine runtime image, and a missing
+      # binary makes every probe fail — the container reports `unhealthy` forever
+      # while serving traffic fine. Use Node's global fetch instead of adding a
+      # package purely for the probe.
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:8080/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -107,7 +117,14 @@ services:
     networks:
       - app
     healthcheck:
-      test: ['CMD', 'curl', '-sf', 'http://localhost:9090/']
+      # Same missing-`curl` caveat as the web service above.
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:9090/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
