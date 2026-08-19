@@ -3,7 +3,7 @@ import * as m from '~/i18n/paraglide/messages'
 import { resolveCongregation } from '~/shared/domain/congregation.server'
 import { unscopedDb as db } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
-import { mailer } from '~/shared/infra/mailer.server'
+import { sendEmail } from '~/shared/infra/mailer.server'
 
 export async function sendVerificationEmail(userId: number, email: ReactNode): Promise<boolean> {
   const user = await db.userAccount.findFirst({ where: { id: userId } })
@@ -13,7 +13,7 @@ export async function sendVerificationEmail(userId: number, email: ReactNode): P
   const congregation = await resolveCongregation(user.congregationId)
 
   try {
-    await mailer.emails.send({
+    await sendEmail({
       to: user.email,
       from: congregation.emailFrom,
       subject: m.email_verify_subject(),

@@ -11,9 +11,7 @@ vi.mock('~/shared/domain/congregation.server', () => ({
 }))
 
 vi.mock('~/shared/infra/mailer.server', () => ({
-  mailer: {
-    emails: { send: vi.fn() },
-  },
+  sendEmail: vi.fn(),
 }))
 
 vi.mock('~/shared/infra/logger.server', () => ({
@@ -25,7 +23,7 @@ vi.mock('~/shared/infra/logger.server', () => ({
 const { sendResetAccountPasswordEmail } = await import('./send-reset-account-password-email.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const { resolveCongregation } = await import('~/shared/domain/congregation.server')
-const { mailer } = await import('~/shared/infra/mailer.server')
+const { sendEmail } = await import('~/shared/infra/mailer.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -46,7 +44,7 @@ describe('sendResetAccountPasswordEmail', () => {
       congregationId: 5,
     } as never)
     vi.mocked(resolveCongregation).mockResolvedValue({ emailFrom: 'Congré <noreply@test.org>' } as never)
-    vi.mocked(mailer.emails.send).mockResolvedValue({} as never)
+    vi.mocked(sendEmail).mockResolvedValue({} as never)
 
     // Ne doit pas retourner false
     const sentinel = Symbol('sentinel')
@@ -63,7 +61,7 @@ describe('sendResetAccountPasswordEmail', () => {
       congregationId: 5,
     } as never)
     vi.mocked(resolveCongregation).mockResolvedValue({ emailFrom: 'Congré <noreply@test.org>' } as never)
-    vi.mocked(mailer.emails.send).mockRejectedValue(new Error('SMTP error'))
+    vi.mocked(sendEmail).mockRejectedValue(new Error('SMTP error'))
 
     await expect(sendResetAccountPasswordEmail(1, 'email-template' as never)).resolves.not.toThrow()
   })

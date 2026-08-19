@@ -10,7 +10,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/infra/mailer.server', () => ({
-  mailer: { emails: { send: vi.fn() } },
+  sendEmail: vi.fn(),
 }))
 
 vi.mock('~/shared/infra/logger.server', () => {

@@ -12,7 +12,7 @@ vi.mock('~/shared/domain/congregation.server', () => ({
   resolveCongregation: mockResolveCongregation,
 }))
 vi.mock('~/shared/infra/mailer.server', () => ({
-  mailer: { emails: { send: mockSend } },
+  sendEmail: mockSend,
 }))
 vi.mock('~/shared/infra/logger.server', () => ({
   default: { error: mockLoggerError, info: vi.fn(), warn: vi.fn(), debug: vi.fn() },
