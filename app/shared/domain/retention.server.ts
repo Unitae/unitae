@@ -48,35 +48,36 @@ export async function cleanupExpiredDocumentViewTracking(): Promise<number> {
   const oneYearAgo = new Date()
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
 
-  // Find documents that expired more than 1 year ago
+  // Find documents that expired more than 1 year ago, pulling their viewer ids in the
+  // same round trip. Selecting only `id` here used to force a second `findUnique` per
+  // document just to count the viewers — an N+1 that grew with the expired-document
+  // backlog. The viewer ids are needed anyway (for the cleared-entry tally), so they
+  // belong in this query.
   const expiredDocuments = await unscopedDb.boardDocument.findMany({
     where: {
       visibleUntil: { not: null, lt: oneYearAgo },
     },
-    select: { id: true },
+    select: { id: true, viewedBy: { select: { id: true } } },
   })
 
   if (expiredDocuments.length === 0) return 0
 
-  // Disconnect all viewedBy entries for these documents
+  // Disconnect all viewedBy entries for these documents. The writes stay per-document:
+  // `viewedBy` is an implicit many-to-many, and Prisma cannot clear a relation across
+  // rows in a single `updateMany`. Documents nobody read are skipped entirely.
   let cleaned = 0
-  for (const doc of expiredDocuments) {
-    const document = await unscopedDb.boardDocument.findUnique({
-      where: { id: doc.id },
-      select: { viewedBy: { select: { id: true } } },
-    })
+  for (const document of expiredDocuments) {
+    if (document.viewedBy.length === 0) continue
 
-    if (document && document.viewedBy.length > 0) {
-      await unscopedDb.boardDocument.update({
-        where: { id: doc.id },
-        data: {
-          viewedBy: {
-            set: [],
-          },
+    await unscopedDb.boardDocument.update({
+      where: { id: document.id },
+      data: {
+        viewedBy: {
+          set: [],
         },
-      })
-      cleaned += document.viewedBy.length
-    }
+      },
+    })
+    cleaned += document.viewedBy.length
   }
 
   if (cleaned > 0) {

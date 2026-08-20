@@ -32,27 +32,6 @@ export function recordConsentUnscoped(
 }
 
 /**
- * Enregistre un consentement dans un contexte scope (transaction RLS).
- */
-export function recordConsent(
-  db: TransactionClient,
-  userId: number,
-  congregationId: number,
-  purpose: ConsentPurpose,
-  ipAddress?: string,
-) {
-  return db.consentRecord.create({
-    data: {
-      userId,
-      congregationId,
-      purpose,
-      consentVersion: CONSENT_VERSION,
-      ipAddress: ipAddress ?? null,
-    },
-  })
-}
-
-/**
  * Retire un consentement (enregistre la date de retrait).
  */
 export async function withdrawConsent(db: TransactionClient, userId: number, purpose: ConsentPurpose) {

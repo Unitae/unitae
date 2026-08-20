@@ -3,7 +3,7 @@ import { TerritoryAccess } from '~/features/territories/model/territory-access.t
 import * as m from '~/i18n/paraglide/messages'
 import type { Entrance } from '~/shared/types/entrance'
 
-export function formatAccessLabel(accessType: number): string {
+function formatAccessLabel(accessType: number): string {
   if (accessType === TerritoryAccess.Intercom) return m.territory_doc_access_intercom()
   if (accessType === TerritoryAccess.Code) return m.territory_doc_access_digicode()
   if (accessType === TerritoryAccess.Doorbell) return m.territory_doc_access_doorbell()

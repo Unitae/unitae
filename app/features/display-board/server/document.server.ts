@@ -1,7 +1,7 @@
 import type { BoardDocument } from '~/database/generated/client'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
-import { deleteBoardFile, getBoardFile, getBoardFileBuffer, saveBoardFile } from './document-storage.server'
+import { deleteBoardFile, getBoardFile, saveBoardFile } from './document-storage.server'
 import { createVersionForUpload } from './document-versions.server'
 import { FileValidationError, validateBoardFile } from './file-validation.server'
 import { thumbnailQueue } from './thumbnail-queue.server'
@@ -29,16 +29,6 @@ export async function getFileStream(document: BoardDocument): Promise<Response |
       'Content-Disposition': buildContentDisposition(document.title),
     },
   })
-}
-
-export async function getFileUrl(document: BoardDocument): Promise<string> {
-  const key = document.uri ?? ''
-  const fileBuffer = await getBoardFileBuffer(key)
-  if (!fileBuffer) {
-    throw new Error(`File not found: ${key}`)
-  }
-  const data = fileBuffer.toString('base64')
-  return `data:application/pdf;base64,${data}`
 }
 
 export async function deleteFile(document: Pick<BoardDocument, 'uri'>): Promise<void> {

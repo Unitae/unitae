@@ -209,7 +209,7 @@ export function extractPrReferences(body: string): number[] {
  * Reads commits on `main` (or the passed branch) reachable from HEAD in
  * `[from, to)`. Includes the body for reference-scraping.
  */
-export function loadCommits(from: Date, to: Date, branch = 'main'): Commit[] {
+function loadCommits(from: Date, to: Date, branch = 'main'): Commit[] {
   const format = ['%H', '%aI', '%s', '%b'].join(GIT_FIELD_SEP_LITERAL) + GIT_RECORD_SEP_LITERAL
   const raw = execFileSync(
     'git',

@@ -3,9 +3,6 @@ import type { PublisherType } from '~/shared/types/publisher-type'
 import type { RiskBucket } from './pioneer-pace'
 import type { PioneerActivitySummary, PioneerAnnualRow, PioneerAuxiliaryRow } from './pioneer-roster.type'
 
-// Client-only filter params — changing these must not trigger a server refetch.
-export const PIONEER_FILTER_PARAMS = ['q', 'risk', 'type', 'group'] as const
-
 export interface PioneerFilters {
   q: string
   risk: RiskBucket | 'all'

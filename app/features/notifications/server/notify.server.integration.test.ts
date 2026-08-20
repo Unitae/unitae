@@ -1,7 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
-import { PublisherType } from '~/shared/types/publisher-type'
 
 // Email queue is not the focus here — isolate from BullMQ
 vi.mock('~/shared/infra/email-queue.server', () => ({

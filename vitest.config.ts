@@ -5,7 +5,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '~': resolve(import.meta.dirname, './app'),
-      emails: resolve(import.meta.dirname, './app/emails'),
     },
   },
   test: {

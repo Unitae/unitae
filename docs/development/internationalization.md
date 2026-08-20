@@ -76,10 +76,10 @@ Background jobs (emails, sync) run outside a web request, so there is no request
 **File:** `app/shared/utils/worker-locale.server.ts`
 
 ```typescript
-import { runWithLocale } from '~/shared/utils/worker-locale.server'
+import { runInWorkerContext } from '~/shared/utils/worker-locale.server'
 
 // In an email handler:
-await runWithLocale(congregation.locale, async () => {
+await runInWorkerContext(congregation.locale, congregation.timezone, async () => {
   // All m.*() calls resolve to the congregation's locale
   await mailer.emails.send({ subject: m.email_subject(), ... })
 })

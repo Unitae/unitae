@@ -20,7 +20,7 @@ export type CreateRoleInput = z.infer<typeof createRoleSchema>
 export type EditRoleInput = z.infer<typeof editRoleSchema>
 export type ToggleInput = z.infer<typeof toggleSchema>
 
-export const BUILT_IN_FILTER_KEYS = [
+const BUILT_IN_FILTER_KEYS = [
   'all',
   'male',
   'female',

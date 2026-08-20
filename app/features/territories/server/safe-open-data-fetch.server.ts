@@ -4,9 +4,9 @@ import { type Readable, Transform } from 'node:stream'
 import { ValidationError } from '~/shared/errors/app-error.server'
 import { assertAllowedOpenDataUrl } from './open-data-allowlist.server'
 
-export const FETCH_TIMEOUT_MS = 15_000
+const FETCH_TIMEOUT_MS = 15_000
 export const MAX_REDIRECTS = 5
-export const MAX_RESPONSE_BYTES = 50 * 1024 * 1024
+const MAX_RESPONSE_BYTES = 50 * 1024 * 1024
 
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308])
 const IPV4_MAPPED_HEX = /^([0-9a-f]{1,4}):([0-9a-f]{1,4})$/

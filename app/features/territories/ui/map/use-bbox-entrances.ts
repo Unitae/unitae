@@ -85,7 +85,10 @@ async function readErrorReason(response: Response): Promise<BboxLoadErrorReason>
     if (body != null && typeof body === 'object' && 'error' in body) {
       return parseErrorReason((body as { error: unknown }).error) ?? 'internal_error'
     }
-  } catch {}
+  } catch {
+    // Body was not JSON (HTML error page from a proxy/CDN). Intentionally swallowed —
+    // the fallback below is the whole point of this function.
+  }
   return 'internal_error'
 }
 

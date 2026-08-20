@@ -11,10 +11,10 @@ const MONTHS_IN_YEAR = 12
 
 // A report for month M lands in early M+1; a missing month stays "awaiting" for this
 // many days into the following month before it counts as "overdue".
-export const REPORT_OVERDUE_AFTER_DAYS = 10
+const REPORT_OVERDUE_AFTER_DAYS = 10
 // The required catch-up rate is "out of reach" once it exceeds this multiple of the
 // monthly goal (i.e. requiredAvgToFinish > OUT_OF_REACH_FACTOR × rate).
-export const OUT_OF_REACH_FACTOR = 1.5
+const OUT_OF_REACH_FACTOR = 1.5
 const RECENT_MONTHS_WINDOW = 3
 
 export type RiskBucket = 'green' | 'amber' | 'red'

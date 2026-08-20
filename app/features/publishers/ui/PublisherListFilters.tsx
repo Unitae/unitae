@@ -7,7 +7,7 @@ import { Button } from '~/shared/ui/button'
 import { SearchInput } from '~/shared/ui/SearchInput'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 
-export const PUBLISHER_LIST_FILTER_PARAM_NAMES = ['q', 'group', 'type'] as const
+const PUBLISHER_LIST_FILTER_PARAM_NAMES = ['q', 'group', 'type'] as const
 
 interface PublisherListFiltersProps {
   groups: PublisherGroupOption[]

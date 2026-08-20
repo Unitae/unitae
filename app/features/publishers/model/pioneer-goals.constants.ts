@@ -34,7 +34,3 @@ export function isPioneerType(type: PublisherType): boolean {
 export function isAuxiliaryType(type: PublisherType): boolean {
   return type === PublisherType.PionnierAuxiliaires
 }
-
-export function isAnnualPioneerType(type: PublisherType): boolean {
-  return isPioneerType(type) && !isAuxiliaryType(type)
-}

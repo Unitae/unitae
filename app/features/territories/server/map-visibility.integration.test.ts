@@ -4,6 +4,7 @@ import { PrismaClient } from '~/database/generated/client'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -240,6 +241,9 @@ afterAll(async () => {
       await tx.building.deleteMany({})
       await tx.territory.deleteMany({})
     })
+    // Drain fire-and-forget audit writes so the deleteMany below clears them all,
+    // otherwise an in-flight write can land after cleanup and break the congregation FK.
+    await flushPendingAuditWrites()
     await testDb.auditLog.deleteMany({ where: { congregationId: congId } })
     await testDb.congregation.deleteMany({ where: { id: congId } })
   }

@@ -8,7 +8,7 @@ import { getOptionalEnv } from '~/shared/utils/env.server'
  */
 export const OPEN_DATA_DEFAULT_HOSTS = ['bano.openstreetmap.fr', 'adresse.data.gouv.fr', 'data.gouv.fr']
 
-export function getOpenDataAllowedHosts(): string[] {
+function getOpenDataAllowedHosts(): string[] {
   const extra = (getOptionalEnv('UNITAE_OPEN_DATA_ALLOWLIST') ?? '')
     .split(',')
     .map(host => host.trim().toLowerCase())

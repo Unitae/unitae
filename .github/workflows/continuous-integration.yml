@@ -46,10 +46,18 @@ jobs:
       - name: Check service-file test colocation (TDD rollout)
         run: pnpm test:service-test-coverage
 
-      - name: Security audit
+      # Reviews only the dependencies a PR *changes*. Catches a bad dep on the way in.
+      - name: Security audit (changed dependencies)
         uses: actions/dependency-review-action@v5
         with:
           fail-on-severity: high
+
+      # Audits the whole installed tree, including deps that were already clean when they
+      # landed and only later had an advisory published against them. The step above cannot
+      # see those — it never inspects an unchanged dependency — which is how a high-severity
+      # advisory can sit in the lockfile indefinitely without CI noticing.
+      - name: Security audit (full dependency tree)
+        run: pnpm audit --audit-level=high
 
   file-sizes:
     name: File-size Budget

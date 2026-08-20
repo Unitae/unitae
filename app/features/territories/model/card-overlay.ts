@@ -16,7 +16,7 @@ export const cardOverlayColorSchema = z
   .string()
   .regex(HEX_COLOR_PATTERN, 'La couleur doit être au format hexadécimal (ex: #C2175B)')
 
-export const cardOverlayPointSchema = z.object({
+const cardOverlayPointSchema = z.object({
   lat: z.number().gte(-90).lte(90),
   lng: z.number().gte(-180).lte(180),
 })
