@@ -38,3 +38,9 @@ playwright-report/
 
 # DORA metrics reports (local artefacts).
 /reports/
+
+# Claude Code
+# settings.json holds shared, non-secret project config (permissions, hooks).
+# settings.local.json is personal and carries real credentials in its `env` block —
+# it must never be committed to this public repo.
+.claude/settings.local.json

@@ -220,7 +220,7 @@ afterAll(async () => {
 const { getUserTerritories, getRecentDocuments, getUnreadDocumentCount, getNextMeeting, getConflictingAssignments } =
   await import('./dashboard.server')
 const { getResponsibleConflicts } = await import('./get-responsible-conflicts.server')
-const { refreshConflictFlags } = await import('~/features/events/server/event-part-assignments.server')
+const { refreshConflictFlags } = await import('~/features/events/server/refresh-conflict-flags.server')
 
 // --- Tests ---
 
