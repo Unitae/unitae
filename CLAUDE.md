@@ -88,11 +88,11 @@ app/
 │   ├── constants/            # limits, retention windows, shared numeric constants
 │   ├── domain/               # audit, congregation, consent, limits, retention, setup
 │   ├── errors/               # AppError hierarchy (NotFoundError, ConflictError, …)
-│   ├── hooks/                # useDebouncedValue, useOnlineStatus, useUnsavedChanges, …
 │   ├── infra/                # db, redis, mailer, file-storage, logger, queues
 │   ├── middleware/           # origin-check, security-headers (requireAuth lives in auth/)
 │   ├── types/                # role, entrance, publisher-type, setting-key enums
 │   ├── ui/                   # Shared components (shadcn/ui + PageHeader, RelativeTime, …)
+│   │   └── hooks/            # use-debounced-value, use-online-status, use-unsaved-changes, …
 │   └── utils/                # env, pagination, params, locale, cron, relative-time
 ├── database/                 # schema.prisma, migrations/, seed.ts, generated/ (gitignored)
 └── tests/
@@ -144,6 +144,14 @@ pnpm test:e2e               # Playwright E2E tests
 pnpm test:lint              # Biome lint check
 pnpm test:typecheck         # react-router typegen + tsc
 
+# Architecture guards (all gate CI — run before pushing a structural change)
+pnpm test:boundaries              # Cross-feature import boundaries
+pnpm test:aggregate-boundaries    # Aggregate ownership + CQRS-lite split
+pnpm test:tenant-scoping          # Bare-id queries that skip congregation scoping
+pnpm test:server-barrel-exports   # index.ts / index.server.ts client/server split
+pnpm test:service-test-coverage   # Co-located test for every service file
+pnpm test:file-sizes              # File-size budgets
+
 # Database
 pnpm prisma generate        # Regenerate client after schema changes
 pnpm prisma migrate deploy  # Apply migrations (prod / CI)
@@ -155,7 +163,7 @@ docker compose -f docker/docker-compose.dev.yml up -d
 
 ## Code Style Guidelines
 
-Enforced by **Biome 2.4.13** (`pnpm build:format` auto-fixes most issues):
+Enforced by **Biome 2.5.3** (`pnpm build:format` auto-fixes most issues):
 
 - **Quotes:** Single quotes in JS/TS, double quotes in JSX attributes
 - **Line width:** 120 characters
@@ -175,7 +183,7 @@ Enforced by **Biome 2.4.13** (`pnpm build:format` auto-fixes most issues):
 | `*.aggregate.ts` | Aggregate root — owns mutations + invariants for a domain entity (e.g., `member.aggregate.ts`) |
 | `*.workflow.ts` | Cross-aggregate orchestration for a single user action (e.g., `anonymize-member.workflow.ts` calls both `memberAggregate.anonymize` and `attributionAggregate.markReturnedForPublisher`) |
 | `*.queries.ts` | Read-only query helpers (CQRS-lite read side) |
-| `*.policy.ts` | Pure-function invariant checks shared across mutators (e.g., `programme-assignment.policy.ts`) |
+| `*.policy.ts` | Pure-function invariant checks shared across mutators (e.g., `event-status.policy.ts`) |
 | `*.type.ts` | TypeScript type/interface definitions |
 | `*.schema.ts` | Conform + Zod form validation schemas |
 | `*.routes.ts` | Route configuration |
@@ -272,6 +280,8 @@ if (!permissions.has(Permission.TerritoriesManager)) throw redirect('/dashboard'
 ```
 
 **Auth model:** `Permission` (24 entries, in `app/shared/types/permission.ts`) is the unit of access. **Roles** (DB table) bundle permissions and are assigned to users — built-in roles plus custom roles a Roles Manager creates. `requireAuth()` runs `resolveEffectivePermissions` and stores the user's full granted set in `permissionsContext`; the legacy `_required` parameter is retained for call-site compatibility but no longer filters anything. See `docs/development/permissions-and-roles.md`.
+
+**Two-factor (TOTP):** opt-in per user. `UserAccount.twoFactorSecret` stores the AES-256-GCM ciphertext of the base32 seed (`null` = never enrolled) and `twoFactorEnabledAt` stays `null` while enrollment is pending. An enrolled user's login lands on `authentication/routes/two-factor-challenge.tsx` before the session is issued — anything that changes the login path must keep that hop intact. Server side: `totp.server.ts`, `start-two-factor-enrollment.server.ts`, `verify-two-factor-challenge.server.ts`.
 
 ### Form validation
 
@@ -462,6 +472,12 @@ Detailed guides are in `docs/development/`:
 | `coding-conventions.md` | Style rules, service layer mechanics, Member vs UserAccount FK rule, language conventions |
 | `background-processing.md` | BullMQ worker architecture, queue names, job data shapes |
 | `getting-started.md` | Local environment setup from scratch |
+| `testing.md` | Unit / integration / E2E setup and conventions |
+| `permissions-and-roles.md` | Permission enum, built-in vs custom roles, effective-permission resolution |
+| `internationalization.md` | Paraglide setup, message keys, locale handling |
+| `notifications.md` | Notification events, preferences, flush worker |
+| `data-transfer.md` | Congregation import/export and archive format |
+| `email-templates.md` | React Email templates, per-feature colocation |
 
 ---
 
