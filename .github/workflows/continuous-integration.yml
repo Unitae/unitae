@@ -226,7 +226,11 @@ jobs:
     name: E2E Tests
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/playwright:v1.61.1-noble
+      # Keep this tag in lockstep with `@playwright/test` in package.json. The image bakes in
+      # the browser build for its own version, so a mismatched pair fails at launch with
+      # "Executable doesn't exist at /ms-playwright/chromium_headless_shell-<rev>/...".
+      # Bumping the npm package alone (or this tag alone) breaks E2E in either direction.
+      image: mcr.microsoft.com/playwright:v1.62.1-noble
       options: --ipc=host
     needs: [build]
     services:
