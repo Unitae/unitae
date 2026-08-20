@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 import { BUILT_IN_ROLE_KEYS } from '~/shared/domain/built-in-roles.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { EntityIdMap, type ManifestJson } from './data-transfer.type'
@@ -433,6 +434,9 @@ afterAll(async () => {
       await tx.member.deleteMany({})
       // Audit logs accumulate from syncBuiltInRoleAssignments and other writes during the test —
       // they hold a non-cascading FK to congregation, so clear them before deleting the row.
+      // Drain fire-and-forget audit writes so the deleteMany below clears them all,
+      // otherwise an in-flight write can land after cleanup and break the congregation FK.
+      await flushPendingAuditWrites()
       await tx.auditLog.deleteMany({})
     })
   }

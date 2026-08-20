@@ -6,6 +6,7 @@ import {
   setSectionVisibilityRoles,
 } from '~/features/display-board/server/section-visibility.server'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
+import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -135,6 +136,9 @@ afterAll(async () => {
   await testDb.userAccount.deleteMany({ where: { congregationId: { in: [primaryCongId, foreignCongId] } } })
   await testDb.member.deleteMany({ where: { congregationId: { in: [primaryCongId, foreignCongId] } } })
   await testDb.role.deleteMany({ where: { congregationId: { in: [primaryCongId, foreignCongId] } } })
+  // Drain fire-and-forget audit writes so the deleteMany below clears them all,
+  // otherwise an in-flight write can land after cleanup and break the congregation FK.
+  await flushPendingAuditWrites()
   await testDb.auditLog.deleteMany({ where: { congregationId: { in: [primaryCongId, foreignCongId] } } })
   await testDb.congregation.deleteMany({ where: { id: { in: [primaryCongId, foreignCongId] } } })
   await testDb.$disconnect()
