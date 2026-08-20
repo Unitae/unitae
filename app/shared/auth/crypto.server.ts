@@ -21,8 +21,10 @@ const CURRENT_PARAMS: ScryptParams = { N: 2 ** 17, r: 8, p: 1 }
 const LEGACY_PARAMS: ScryptParams = { N: 2 ** 14, r: 8, p: 1 }
 
 // scrypt needs roughly 128 * N * r bytes; at N=2^17/r=8 that is ~128 MiB, above Node's default
-// 32 MiB `maxmem` cap. Set with headroom above that largest requirement (~128 MiB) so both
-// hashing and verification fit; bump this if CURRENT_PARAMS.N is ever raised past 2^18.
+// 32 MiB `maxmem` cap. OpenSSL adds per-block overhead on top of that naive figure, so 256 MiB
+// has headroom for N=2^17 ONLY: N=2^18 already exceeds this cap (throws
+// ERR_CRYPTO_INVALID_SCRYPT_PARAMS). Raising CURRENT_PARAMS.N to 2^18 or beyond requires bumping
+// this too.
 const maxmem = 256 * 1024 * 1024
 
 const SCHEME = 'scrypt'

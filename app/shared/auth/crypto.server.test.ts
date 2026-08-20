@@ -3,6 +3,14 @@ import { compare, hash, hashToken, needsRehash } from './crypto.server'
 
 const HEX_PATTERN = /^[0-9a-f]+$/
 
+// `hash`/`compare` run real scrypt at CURRENT_PARAMS (N=2^17), which costs ~0.7s per derivation
+// on a fast dev machine and appreciably more on a loaded CI runner. Vitest's 5s default timeout
+// is calibrated for cheap unit tests and leaves no headroom: the round-trip case below performs
+// 10 derivations and blows past it. Raise it here rather than weakening the KDF cost — a slow
+// password hash is the point. Applied per-describe (not globally) so genuinely hung tests
+// elsewhere still fail fast.
+const SCRYPT_TIMEOUT_MS = 60_000
+
 // A hash produced with Node's historical scrypt defaults (N=2^14) in the pre-#293 `salt.key`
 // format. Kept as a frozen fixture so `compare` must keep verifying legacy hashes even after
 // new hashes moved to N=2^17 — otherwise every existing user would be locked out.
@@ -45,75 +53,83 @@ describe('hashToken', () => {
   })
 })
 
-describe('hash', () => {
-  it('retourne un hash auto-descriptif scrypt$N$r$p$sel$clé (N=2^17)', async () => {
-    const result = await hash('motdepasse')
-    const [scheme, n, r, p, salt, key] = result.split('$')
+describe(
+  'hash',
+  () => {
+    it('retourne un hash auto-descriptif scrypt$N$r$p$sel$clé (N=2^17)', async () => {
+      const result = await hash('motdepasse')
+      const [scheme, n, r, p, salt, key] = result.split('$')
 
-    expect(scheme).toBe('scrypt')
-    expect(n).toBe(String(2 ** 17))
-    expect(r).toBe('8')
-    expect(p).toBe('1')
-    expect(salt).toMatch(HEX_PATTERN)
-    expect(salt).toHaveLength(32)
-    expect(key).toMatch(HEX_PATTERN)
-    expect(key).toHaveLength(64)
-  })
+      expect(scheme).toBe('scrypt')
+      expect(n).toBe(String(2 ** 17))
+      expect(r).toBe('8')
+      expect(p).toBe('1')
+      expect(salt).toMatch(HEX_PATTERN)
+      expect(salt).toHaveLength(32)
+      expect(key).toMatch(HEX_PATTERN)
+      expect(key).toHaveLength(64)
+    })
 
-  it('produit des résultats différents pour le même mot de passe (sel aléatoire)', async () => {
-    const hash1 = await hash('motdepasse')
-    const hash2 = await hash('motdepasse')
+    it('produit des résultats différents pour le même mot de passe (sel aléatoire)', async () => {
+      const hash1 = await hash('motdepasse')
+      const hash2 = await hash('motdepasse')
 
-    expect(hash1).not.toBe(hash2)
-  })
-})
+      expect(hash1).not.toBe(hash2)
+    })
+  },
+  SCRYPT_TIMEOUT_MS,
+)
 
-describe('compare', () => {
-  it('retourne true pour le bon mot de passe', async () => {
-    const hashed = await hash('motdepasse')
-    const result = await compare('motdepasse', hashed)
+describe(
+  'compare',
+  () => {
+    it('retourne true pour le bon mot de passe', async () => {
+      const hashed = await hash('motdepasse')
+      const result = await compare('motdepasse', hashed)
 
-    expect(result).toBe(true)
-  })
-
-  it('retourne false pour un mauvais mot de passe', async () => {
-    const hashed = await hash('motdepasse')
-    const result = await compare('mauvais', hashed)
-
-    expect(result).toBe(false)
-  })
-
-  it('vérifie un hash hérité au format salt.key (N=2^14) — pas de verrouillage des comptes existants', async () => {
-    await expect(compare(LEGACY_PASSWORD, LEGACY_HASH)).resolves.toBe(true)
-    await expect(compare('mauvais', LEGACY_HASH)).resolves.toBe(false)
-  })
-
-  it('rejette un format de hash invalide (sans séparateur)', async () => {
-    await expect(compare('motdepasse', 'formatsansseparateur')).rejects.toThrow('Invalid format')
-  })
-
-  it('rejette le sentinel des comptes importés ($IMPORTED$)', async () => {
-    await expect(compare('motdepasse', '$IMPORTED$')).rejects.toThrow('Invalid format')
-  })
-
-  it('rejette un hash au bon schéma mais aux paramètres non numériques (erreur de format claire)', async () => {
-    await expect(compare('motdepasse', NAN_PARAM_HASH)).rejects.toThrow('Invalid format')
-  })
-
-  it('rejette un hash vide', async () => {
-    await expect(compare('motdepasse', '')).rejects.toThrow('Invalid format')
-  })
-
-  it('fonctionne en aller-retour pour différents mots de passe', async () => {
-    const passwords = ['simple', 'Compl3x!@#', '日本語', '  espaces  ', 'a']
-
-    for (const password of passwords) {
-      const hashed = await hash(password)
-      const result = await compare(password, hashed)
       expect(result).toBe(true)
-    }
-  })
-})
+    })
+
+    it('retourne false pour un mauvais mot de passe', async () => {
+      const hashed = await hash('motdepasse')
+      const result = await compare('mauvais', hashed)
+
+      expect(result).toBe(false)
+    })
+
+    it('vérifie un hash hérité au format salt.key (N=2^14) — pas de verrouillage des comptes existants', async () => {
+      await expect(compare(LEGACY_PASSWORD, LEGACY_HASH)).resolves.toBe(true)
+      await expect(compare('mauvais', LEGACY_HASH)).resolves.toBe(false)
+    })
+
+    it('rejette un format de hash invalide (sans séparateur)', async () => {
+      await expect(compare('motdepasse', 'formatsansseparateur')).rejects.toThrow('Invalid format')
+    })
+
+    it('rejette le sentinel des comptes importés ($IMPORTED$)', async () => {
+      await expect(compare('motdepasse', '$IMPORTED$')).rejects.toThrow('Invalid format')
+    })
+
+    it('rejette un hash au bon schéma mais aux paramètres non numériques (erreur de format claire)', async () => {
+      await expect(compare('motdepasse', NAN_PARAM_HASH)).rejects.toThrow('Invalid format')
+    })
+
+    it('rejette un hash vide', async () => {
+      await expect(compare('motdepasse', '')).rejects.toThrow('Invalid format')
+    })
+
+    it('fonctionne en aller-retour pour différents mots de passe', async () => {
+      const passwords = ['simple', 'Compl3x!@#', '日本語', '  espaces  ', 'a']
+
+      for (const password of passwords) {
+        const hashed = await hash(password)
+        const result = await compare(password, hashed)
+        expect(result).toBe(true)
+      }
+    })
+  },
+  SCRYPT_TIMEOUT_MS,
+)
 
 describe('needsRehash', () => {
   it('renvoie true pour un hash hérité (N=2^14, format salt.key)', () => {

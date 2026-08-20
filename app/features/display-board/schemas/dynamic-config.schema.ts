@@ -6,7 +6,7 @@ const eventTemplateConfigSchema = z.object({
   services: z.boolean(),
 })
 
-export const programmeDynamicConfigSchema = z.object({
+const programmeDynamicConfigSchema = z.object({
   templates: z.array(eventTemplateConfigSchema),
   groupBy: z.enum(['date', 'template']).default('date'),
 })

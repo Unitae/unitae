@@ -2,7 +2,6 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { Permission } from '~/shared/types/permission'
-import { PublisherType } from '~/shared/types/publisher-type'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,

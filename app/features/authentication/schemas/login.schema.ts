@@ -6,7 +6,7 @@ import { z } from 'zod'
 // password on the public register/setup/reset endpoints cannot stall the event
 // loop. login stays uncapped on purpose — it only feeds a fixed-cost hash
 // compare, and a max there could lock out an already-stored long password.
-export const MIN_PASSWORD_LENGTH = 8
+const MIN_PASSWORD_LENGTH = 8
 export const MAX_PASSWORD_LENGTH = 128
 
 const newPassword = () => z.string().min(MIN_PASSWORD_LENGTH).max(MAX_PASSWORD_LENGTH)

@@ -66,7 +66,7 @@ Sends notification emails asynchronously with automatic retries.
 - **Concurrency**: 5 (IO-bound Resend API calls)
 - **Retries**: 3 attempts, exponential backoff (5s base)
 - **Tenant isolation**: Uses `unscopedDb` with explicit `congregationId` filtering
-- **Locale**: Wraps email rendering in `runWithLocale(congregation.locale, ...)` for i18n
+- **Locale**: Wraps email rendering in `runInWorkerContext(congregation.locale, congregation.timezone, ...)` for i18n
 
 Job types (discriminated union on `type`):
 - `notification-digest`: Batched notification email after the debounce window settles
@@ -117,10 +117,10 @@ This is distinct from the `/cron/retention` HTTP endpoint (expired-token / withd
 Background emails must render in the congregation's language. The worker uses `AsyncLocalStorage` via `app/shared/utils/worker-locale.server.ts`:
 
 ```typescript
-import { runWithLocale } from '~/shared/utils/worker-locale.server'
+import { runInWorkerContext } from '~/shared/utils/worker-locale.server'
 
 // In email handler:
-await runWithLocale(congregation.locale, async () => {
+await runInWorkerContext(congregation.locale, congregation.timezone, async () => {
   // All Paraglide m.*() calls resolve to the correct locale
   await mailer.emails.send({ subject: m.email_subject(), ... })
 })
@@ -165,7 +165,7 @@ The worker is only needed if you're working on territory sync, document uploads,
 3. Create handler: `app/features/{feature}/jobs/handle-{name}-work.server.ts` (handlers live in a per-feature `jobs/` directory, separate from `server/`)
    - For scoped DB access: use `withScope(congregationId, ...)`
    - For cross-tenant queries: use `unscopedDb` with explicit `where: { congregationId }`
-   - For email rendering: wrap in `runWithLocale(congregation.locale, ...)`
+   - For email rendering: wrap in `runInWorkerContext(congregation.locale, congregation.timezone, ...)`
 4. Register worker in `workers/worker.server.ts` with appropriate concurrency
 5. No new K8s deployment needed — the unified worker handles all queues
 

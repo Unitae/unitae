@@ -386,6 +386,7 @@ model CongregationUserPermission {
 
   @@unique([userId, permissionId, congregationId])
   @@unique([id, congregationId])
+  @@index([permissionId])
 }
 
 model BoardSection {
@@ -435,6 +436,7 @@ model BoardDocument {
   congregationId Int
 
   @@unique([id, congregationId])
+  @@index([sectionId])
 }
 
 model BoardDocumentVersion {
@@ -452,6 +454,7 @@ model BoardDocumentVersion {
   congregationId Int
 
   @@unique([id, congregationId])
+  @@index([documentId])
 }
 
 model BoardDynamicDocumentSettings {
@@ -474,6 +477,7 @@ model BoardDynamicDocumentSettings {
   congregationId Int
 
   @@unique([id, congregationId])
+  @@index([sectionId])
 }
 
 model BoardDynamicDocumentView {
@@ -485,6 +489,7 @@ model BoardDynamicDocumentView {
   viewedAt   DateTime                     @default(now())
 
   @@unique([settingsId, userId])
+  @@index([userId])
 }
 
 model Territory {
@@ -597,6 +602,8 @@ model BuildingAccess {
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
+
+  @@index([entranceId])
 }
 
 model BuildingResidentialData {
@@ -612,6 +619,8 @@ model BuildingResidentialData {
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
+
+  @@index([entranceId])
 }
 
 model Building {
@@ -824,6 +833,7 @@ model TemplatePart {
   congregationId Int
 
   @@unique([id, congregationId])
+  @@index([templateId])
 }
 
 model TemplateServicePart {
@@ -841,6 +851,7 @@ model TemplateServicePart {
   congregationId Int
 
   @@unique([id, congregationId])
+  @@index([templateId])
 }
 
 model EventPart {
@@ -889,6 +900,8 @@ model EventPart {
 
   @@unique([id, congregationId])
   @@index([externalSpeakerId])
+  @@index([eventId])
+  @@index([partId])
 }
 
 model ExternalSpeaker {
@@ -938,6 +951,8 @@ model EventServicePart {
   congregationId Int
 
   @@unique([id, congregationId])
+  @@index([eventId])
+  @@index([servicePartId])
 }
 
 model TemplatePartAllowedRole {
@@ -1021,6 +1036,8 @@ model PasswordResetToken {
   userId    Int
   expiresAt DateTime
   createdAt DateTime    @default(now())
+
+  @@index([userId])
 }
 
 model EmailVerificationToken {
@@ -1030,6 +1047,8 @@ model EmailVerificationToken {
   userId    Int
   expiresAt DateTime
   createdAt DateTime    @default(now())
+
+  @@index([userId])
 }
 
 model CalendarFeedToken {
@@ -1087,6 +1106,7 @@ model ConsentRecord {
   congregationId Int
 
   @@unique([id, congregationId])
+  @@index([userId])
 }
 
 model NotificationEvent {

@@ -9,6 +9,7 @@ node_modules/
 .react-router/
 app/database/generated/
 app/i18n/paraglide/
+graphify-out/
 
 # Environment
 .env

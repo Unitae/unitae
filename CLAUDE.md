@@ -35,7 +35,7 @@ Core features: territory management with building prospection, publisher activit
 7. **No `throw redirect()` in service functions** — Redirects are only allowed in route guards, middleware, and session validation
 8. **Black-box testing** — Assert on observable outcomes; never spy on implementations
 9. **TypeScript strict mode** — Never use `any`; always define proper interfaces
-10. **Mutations to aggregate-owned entities go through the aggregate** — `Member`, `Attribution`, and `ProgrammeAssignment` invariants live in `*.aggregate.ts` / `*.policy.ts` files. Direct `db.member.update`/`db.attribution.create` outside those files fails `pnpm test:aggregate-boundaries`.
+10. **Mutations to aggregate-owned entities go through the aggregate** — `Member`, `Attribution`, and `PioneerEnrolment` invariants live in `*.aggregate.ts` / `*.policy.ts` files (see `AGGREGATE_MODELS` in `scripts/check-aggregate-boundaries.ts` for the enforced list). Direct `db.member.update`/`db.attribution.create` outside those files fails `pnpm test:aggregate-boundaries`.
 11. **Follow TDD when the architecture-conventions doc requires it** — for new service functions (`app/features/*/server/`) and bug regressions, **write the failing test first**, run it, **watch it fail**, then implement. Do not author the test and the code in the same save. See [Architecture Conventions › TDD Discipline](docs/development/architecture-conventions.md#tdd-discipline) — colocation is enforced by `pnpm test:service-test-coverage`, coverage floor by the vitest threshold.
 
 ### After Making Changes
@@ -71,10 +71,10 @@ pnpm test:integration
 ```
 app/
 ├── root.tsx, entry.*, routes.ts, tailwind.css   # App shell
-├── routes/                   # Shell routes (_index, health, suspended)
+├── shell/                    # Shell routes (health, consent, privacy, suspended, cron.*)
 ├── features/
 │   ├── authentication/       # Login, session, password reset, consent, profile
-│   ├── authorization/        # Role resolution
+│   ├── congregation/         # Custom role CRUD (congregation/roles/*)
 │   ├── dashboard/            # Dashboard stats and urgent items
 │   ├── display-board/        # Document management, PDF upload, dynamic docs
 │   ├── events/               # Days off, meeting events, programme assignments
@@ -85,11 +85,12 @@ app/
 │   └── territories/          # Buildings, entrances, attributions, PDF, maps
 ├── shared/
 │   ├── auth/                 # requireAuth middleware, route context helpers
+│   ├── constants/            # limits, retention windows, shared numeric constants
 │   ├── domain/               # audit, congregation, consent, limits, retention, setup
 │   ├── errors/               # AppError hierarchy (NotFoundError, ConflictError, …)
 │   ├── hooks/                # useDebouncedValue, useOnlineStatus, useUnsavedChanges, …
 │   ├── infra/                # db, redis, mailer, file-storage, logger, queues
-│   ├── middleware/           # requireAuth
+│   ├── middleware/           # origin-check, security-headers (requireAuth lives in auth/)
 │   ├── types/                # role, entrance, publisher-type, setting-key enums
 │   ├── ui/                   # Shared components (shadcn/ui + PageHeader, RelativeTime, …)
 │   └── utils/                # env, pagination, params, locale, cron, relative-time
@@ -104,7 +105,8 @@ app/
 | What | Where |
 |------|-------|
 | Database schema | `app/database/schema.prisma` |
-| Auth middleware | `app/shared/middleware/auth.server.ts` |
+| Auth middleware (`requireAuth`) | `app/shared/auth/middleware.server.ts` |
+| Origin + security-header middleware | `app/shared/middleware/origin-check.server.ts`, `app/shared/middleware/security-headers.server.ts` |
 | Route context helpers | `app/shared/auth/route-context.server.ts` |
 | DB scope wrapper | `app/shared/infra/db.server.ts` → `withScope()` |
 | Audit trail | `app/shared/domain/audit.server.ts` |
@@ -269,7 +271,7 @@ const permissions = context.get(permissionsContext)
 if (!permissions.has(Permission.TerritoriesManager)) throw redirect('/dashboard')
 ```
 
-**Auth model:** `Permission` (21 entries, in `app/shared/types/permission.ts`) is the unit of access. **Roles** (DB table) bundle permissions and are assigned to users — built-in roles plus custom roles a Roles Manager creates. `requireAuth()` runs `resolveEffectivePermissions` and stores the user's full granted set in `permissionsContext`; the legacy `_required` parameter is retained for call-site compatibility but no longer filters anything. See `docs/development/permissions-and-roles.md`.
+**Auth model:** `Permission` (24 entries, in `app/shared/types/permission.ts`) is the unit of access. **Roles** (DB table) bundle permissions and are assigned to users — built-in roles plus custom roles a Roles Manager creates. `requireAuth()` runs `resolveEffectivePermissions` and stores the user's full granted set in `permissionsContext`; the legacy `_required` parameter is retained for call-site compatibility but no longer filters anything. See `docs/development/permissions-and-roles.md`.
 
 ### Form validation
 
@@ -346,7 +348,7 @@ await createTerritory(db, ...)
 - ❌ **Don't use `prisma migrate dev` in CI/scripts** — Non-interactive; use `migrate diff` + `migrate deploy`
 - ❌ **Don't add `.server.ts` to files in `features/*/model/`** — These are shared between client and server; the suffix causes bundler errors
 - ❌ **Don't read flash messages in individual route loaders** — The authenticated layout already reads them; double-reading causes duplicate toasts
-- ❌ **Don't use `congregationId: <real value>` in `db.*.create()`** — Use `congregationId: 0 as number`; RLS injects the real value at runtime
+- ❌ **Don't omit `congregationId` in `db.*.create()`** — Pass the real value explicitly (`congregationId: params.congregationId`). RLS *filters* reads and blocks cross-tenant writes, but it does not populate the column on insert. (An older `congregationId: 0 as number` placeholder convention is gone — it appears nowhere in the codebase.)
 - ❌ **Don't use `any` type** — TypeScript strict mode is enforced everywhere except explicit `noExplicitAny` suppressions
 - ❌ **Don't create circular imports between features** — Features must be independent; use `shared/` for cross-feature utilities
 
@@ -406,7 +408,7 @@ LOGIN_RATE_LIMIT_GLOBAL_MAX="100"      # Max failed login attempts instance-wide
 | Session not persisting in dev | Check `UNITAE_SESSION_SECRET` is set; cookie lifetime is 8h in dev, 1h in prod |
 | Port already in use | `lsof -i :5173` (dev server) or `lsof -i :9090` (worker health) |
 | Worker not processing jobs | Start with `pnpm start:worker`; check Redis connection via `REDIS_HOST`/`REDIS_PORT` |
-| `compound key` TypeScript error | Use `congregationId: 0 as number` in create calls; RLS fills the real value |
+| `compound key` TypeScript error | Pass `congregationId` explicitly in the `data` of the create call; for `where` on a compound unique use the generated key (e.g. `id_congregationId: { id, congregationId }`) |
 | Flash toast appearing twice | Remove `session.flash()` reads from individual route loaders — layout handles it |
 
 ## Commit Message Format
@@ -464,3 +466,13 @@ Detailed guides are in `docs/development/`:
 ---
 
 **Note for AI Agents**: This file is your primary reference for understanding and contributing to this codebase. Always consult this document before making changes. When in doubt about a pattern, read an existing similar implementation before writing new code — the codebase is consistent and existing patterns are the ground truth.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).

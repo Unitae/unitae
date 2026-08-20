@@ -99,7 +99,7 @@ The `notify()` pipeline path:
 
 3. The worker picks up the job in `app/features/notifications/jobs/handle-email-work.server.tsx`, which delegates to `handle-notification-email.server.ts`.
 
-4. `renderNotificationEmail` maps the notification type to a subject + React template, wrapped in `runWithLocale()` for i18n.
+4. `renderNotificationEmail` maps the notification type to a subject + React template, wrapped in `runInWorkerContext()` for i18n and timezone-correct dates.
 
 5. Resend renders the React component to HTML and delivers the email.
 

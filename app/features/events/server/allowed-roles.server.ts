@@ -40,7 +40,7 @@ export async function resolveEligibleUserIds(
   return findMembersWithAnyRole(db, allowedRoleIds, congregationId)
 }
 
-export async function getTemplatePartAllowedRoleIds(
+async function getTemplatePartAllowedRoleIds(
   db: TransactionClient,
   partId: number,
   asKind: PartRoleKind,
@@ -66,7 +66,7 @@ export async function getPartAssignmentAllowedRoleIds(
   return rows.map(r => r.roleId)
 }
 
-export async function getTemplateServicePartAllowedRoleIds(
+async function getTemplateServicePartAllowedRoleIds(
   db: TransactionClient,
   servicePartId: number,
   congregationId: number,
