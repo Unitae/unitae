@@ -46,6 +46,14 @@ afterAll(async () => {
   await testDb.$disconnect()
 })
 
+// The parity case calls `minDurationMs` twice, and each call runs `warmups + samples` = 18
+// logins — 36 real scrypt derivations at CURRENT_PARAMS (N=2^17, ~0.7s each), so ~25s of pure
+// CPU. That does not fit the config's 30s `testTimeout` with any margin: a serial local run
+// measured 28.4s, and it tips over the moment the machine is doing anything else. The sample
+// count is load-bearing (it is what makes the timing comparison stable), so budget for the real
+// cost instead of trimming samples or weakening the KDF.
+const TIMING_PARITY_TIMEOUT_MS = 180_000
+
 // Minimum duration (ms) of `samples` runs of `fn`, after `warmups` discarded runs.
 // The MINIMUM is the cleanest estimator of true compute cost: scheduler jitter, GC and
 // DB-latency spikes only ever ADD time, so they inflate the mean/median but never the
@@ -78,23 +86,29 @@ describe('validateCredentials (integration) — timing parity', () => {
     expect(result).toBeUndefined()
   })
 
-  it('paie un coût scrypt comparable pour un email inconnu et un email connu', async () => {
-    // Real user + wrong password → scrypt against the stored hash.
-    const knownMin = await minDurationMs(() => validateCredentials(KNOWN_EMAIL, 'mauvais-mot-de-passe'))
-    // Unknown email → scrypt against the decoy hash.
-    const unknownMin = await minDurationMs(() => validateCredentials(UNKNOWN_EMAIL, KNOWN_PASSWORD))
+  it(
+    'paie un coût scrypt comparable pour un email inconnu et un email connu',
+    async () => {
+      // Real user + wrong password → scrypt against the stored hash.
+      const knownMin = await minDurationMs(() => validateCredentials(KNOWN_EMAIL, 'mauvais-mot-de-passe'))
+      // Unknown email → scrypt against the decoy hash.
+      const unknownMin = await minDurationMs(() => validateCredentials(UNKNOWN_EMAIL, KNOWN_PASSWORD))
 
-    // The load-bearing assertion: both paths must run a full scrypt, so neither can
-    // return near-instantly. Default-cost scrypt takes several ms; a 0.5ms floor is far
-    // above a plain DB-miss early return yet well below the real cost. A regression that
-    // reintroduced the early return on the unknown path would drop unknownMin to ~0.
-    expect(knownMin).toBeGreaterThan(0.5)
-    expect(unknownMin).toBeGreaterThan(0.5)
+      // The load-bearing assertion: both paths must run a full scrypt, so neither can
+      // return near-instantly. At CURRENT_PARAMS (N=2^17) a derivation costs on the order of
+      // hundreds of ms, so the 0.5ms floor sits far above a plain DB-miss early return yet
+      // orders of magnitude below the real cost — it stays valid across cost-factor bumps.
+      // A regression that reintroduced the early return on the unknown path would drop
+      // unknownMin to ~0.
+      expect(knownMin).toBeGreaterThan(0.5)
+      expect(unknownMin).toBeGreaterThan(0.5)
 
-    // Parity: the unknown-email path must not be measurably cheaper (nor dearer) than
-    // the known one — that gap is the enumeration oracle. Comparing minimums keeps this
-    // stable; the tolerance still absorbs the residual DB-latency asymmetry (a found row
-    // vs a miss sits inside the measured window).
-    expect(Math.abs(unknownMin - knownMin)).toBeLessThan(knownMin * 0.75)
-  })
+      // Parity: the unknown-email path must not be measurably cheaper (nor dearer) than
+      // the known one — that gap is the enumeration oracle. Comparing minimums keeps this
+      // stable; the tolerance still absorbs the residual DB-latency asymmetry (a found row
+      // vs a miss sits inside the measured window).
+      expect(Math.abs(unknownMin - knownMin)).toBeLessThan(knownMin * 0.75)
+    },
+    TIMING_PARITY_TIMEOUT_MS,
+  )
 })
