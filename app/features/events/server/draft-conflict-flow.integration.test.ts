@@ -13,8 +13,8 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { createDayOff } from '~/features/events/server/days-off.server'
-import { refreshConflictFlags } from '~/features/events/server/event-part-assignments.server'
 import { releaseEvent } from '~/features/events/server/event-status.server'
+import { refreshConflictFlags } from '~/features/events/server/refresh-conflict-flags.server'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
