@@ -91,6 +91,11 @@ export default [
       ]),
       route('congregation', 'features/settings/routes/congregation/settings.tsx'),
       route('congregation/pioneer-goals', 'features/settings/routes/congregation/pioneer-goals.tsx'),
+      ...prefix('congregation/presets', [
+        index('features/settings/routes/congregation/preset-list.tsx'),
+        route('new', 'features/settings/routes/congregation/presets/new.tsx'),
+        route(':presetId/edit', 'features/settings/routes/congregation/presets/edit.tsx'),
+      ]),
       ...prefix('congregation/templates', [
         index('features/settings/routes/congregation/template-list.tsx'),
         route('new', 'features/settings/routes/congregation/templates/new.tsx'),
