@@ -13,10 +13,14 @@ export interface AssignmentCandidates {
 /**
  * Who may be offered for each slot on an event.
  *
- * Eligibility comes from roles, so it can name someone who has since left the
- * congregation; intersecting with the member list keeps the picker to people
- * the form can actually display. Speaker and reader are resolved separately
- * because a part may allow different roles for each.
+ * The result is intersected with the member list the page loaded, so the picker
+ * can only offer people the form is able to render. Both sides already exclude
+ * members who have left, so in practice the intersection is a narrowing rather
+ * than a correction — it keeps the two lists from drifting apart if either
+ * filter changes.
+ *
+ * Speaker and reader are resolved separately because a part may allow different
+ * roles for each.
  */
 export async function buildAssignmentCandidates(
   db: TransactionClient,

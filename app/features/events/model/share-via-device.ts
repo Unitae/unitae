@@ -6,21 +6,28 @@ export interface ShareViaDeviceDeps {
   onFailed: () => void
 }
 
-// Chrome and Safari reject a share the user did not actually ask for, and the
-// same errors surface when they simply close the sheet. Neither is a failure
-// worth interrupting them about.
+// Closing the share sheet surfaces as AbortError, and Safari reports a share it
+// considers unrequested as NotAllowedError. Neither is worth interrupting the
+// user about.
+//
+// Matched by shape rather than `instanceof DOMException`: the constructor is
+// per-realm, so an error thrown inside an iframe fails the instanceof check
+// while being the very same condition.
 function isDismissal(error: unknown): boolean {
-  return error instanceof DOMException && (error.name === 'AbortError' || error.name === 'NotAllowedError')
+  if (typeof error !== 'object' || error === null || !('name' in error)) return false
+  const { name } = error as { name: unknown }
+  return name === 'AbortError' || name === 'NotAllowedError'
 }
 
 /**
  * Hands the finished message to the phone's share sheet, falling back to the
  * clipboard where there isn't one.
  *
- * `share` is invoked before this function yields. navigator.share requires
- * transient user activation, and any `await` ahead of it spends that
- * activation — Safari then refuses with NotAllowedError. Callers must not
- * await anything between the click and this call for the same reason.
+ * `share` is called synchronously, before this function reaches its first
+ * `await`. navigator.share requires transient user activation, and any `await`
+ * ahead of the call spends it — Safari then refuses with NotAllowedError. For
+ * the same reason callers must not await anything between the click and this
+ * call.
  *
  * Only `text` is passed. Setting `url` makes WhatsApp collapse the share to a
  * link preview and drop the message body, and `title` is appended

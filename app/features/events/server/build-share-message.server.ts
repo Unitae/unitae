@@ -66,7 +66,7 @@ export function buildAssignmentShareText(args: BuildShareTextArgs): string | nul
 
   const intlLocale = toIntlLocale(locale)
 
-  return renderShareMessage(body, {
+  const text = renderShareMessage(body, {
     assignee,
     assigneeFirstname: part.assignee?.firstname ?? assignee,
     assistant: fullName(part.assistant),
@@ -86,6 +86,15 @@ export function buildAssignmentShareText(args: BuildShareTextArgs): string | nul
     // Relative on its own, and a relative path in an SMS goes nowhere.
     link: `${baseUrl}${link}`,
   })
+
+  // A body whose lines all render away leaves nothing to send. Returning '' here
+  // would happen to work — the caller tests truthiness — but the contract above
+  // says null, and relying on the coincidence is how it stops being true.
+  return text === '' ? null : text
+}
+
+export interface ShareableEventPart extends ShareablePart {
+  id: number
 }
 
 export interface ShareableEvent {
@@ -93,7 +102,7 @@ export interface ShareableEvent {
   templateId: number | null
   name: string
   startDate: Date
-  eventParts: (ShareablePart & { id: number })[]
+  eventParts: ShareableEventPart[]
 }
 
 interface ShareCongregation {

@@ -23,7 +23,9 @@ type ShareAssignmentButtonProps = {
  */
 export function ShareAssignmentButton({ text, label }: ShareAssignmentButtonProps) {
   function handleShare() {
-    shareViaDevice(text, {
+    // `void`: intentionally not awaited (see above). shareViaDevice handles its
+    // own failures, so there is no rejection to catch here.
+    void shareViaDevice(text, {
       share: typeof navigator !== 'undefined' && navigator.share ? data => navigator.share(data) : undefined,
       copy: value => navigator.clipboard.writeText(value),
       onCopied: () => toast.success(m.programs_share_copied()),

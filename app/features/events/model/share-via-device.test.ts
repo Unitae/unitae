@@ -53,6 +53,18 @@ describe('shareViaDevice', () => {
     expect(d.onCopied).not.toHaveBeenCalled()
   })
 
+  it('recognises a dismissal from another realm', async () => {
+    // An error raised inside an iframe is a DOMException from a different
+    // realm, so `instanceof` would miss it and we would toast at a user who
+    // simply closed the sheet.
+    const foreign = { name: 'AbortError', message: 'dismissed' }
+    const d = deps({ share: vi.fn().mockRejectedValue(foreign) })
+
+    await shareViaDevice('message', d)
+
+    expect(d.onFailed).not.toHaveBeenCalled()
+  })
+
   it('reports a genuine share failure', async () => {
     const d = deps({ share: vi.fn().mockRejectedValue(new Error('boom')) })
 

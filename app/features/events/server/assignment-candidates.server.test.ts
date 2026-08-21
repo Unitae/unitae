@@ -21,9 +21,8 @@ beforeEach(() => {
 
 describe('buildAssignmentCandidates', () => {
   it('keeps only eligible people who are actually in the member list', async () => {
-    // resolveEligibleUserIds answers from roles alone, so it can name someone
-    // who has since left. Offering them in the picker would let a manager
-    // assign a person the form cannot then display.
+    // The picker must not offer someone the page did not load, or the form
+    // would have no name to show for them.
     vi.mocked(resolveEligibleUserIds).mockResolvedValue([10, 999] as never)
 
     const result = await buildAssignmentCandidates({} as never, EVENT, [{ id: 10 }], 1)

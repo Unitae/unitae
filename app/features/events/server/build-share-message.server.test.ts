@@ -87,6 +87,24 @@ describe('buildAssignmentShareText', () => {
     expect(text).toContain('Tu as Lecture de la Bible')
   })
 
+  it('returns null when every line renders away, not an empty string', () => {
+    // A body whose only variable is empty renders to nothing. The caller tests
+    // for null, so returning '' would work by accident rather than by contract.
+    const text = buildAssignmentShareText(withPart({ assistant: null, preset: { shareMessage: 'Avec {{assistant}}' } }))
+
+    expect(text).toBeNull()
+  })
+
+  it('falls back to the full name when a member has no first name', () => {
+    const text = buildAssignmentShareText(withPart({ assignee: { firstname: null, lastname: 'Dupont' } }))
+
+    expect(text).toContain('Bonjour Dupont,')
+  })
+
+  it('treats a whitespace-only name as nobody', () => {
+    expect(buildAssignmentShareText(withPart({ assignee: { firstname: '  ', lastname: '  ' } }))).toBeNull()
+  })
+
   it('includes the assistant when there is one', () => {
     const text = buildAssignmentShareText(withPart({ assistant: { firstname: 'Marc', lastname: 'Petit' } }))
 
@@ -135,6 +153,12 @@ describe('buildShareTextsForEvent', () => {
     await buildShareTextsForEvent(eventWith([part(1), part(2), part(3)]) as never, congregation, resolveLink)
 
     expect(resolveLink).toHaveBeenCalledTimes(1)
+  })
+
+  it('handles an event with no parts', async () => {
+    const resolveLink = vi.fn().mockResolvedValue('/board')
+
+    expect(await buildShareTextsForEvent(eventWith([]) as never, congregation, resolveLink)).toEqual({})
   })
 
   it('omits parts with nothing to send instead of storing an empty string', async () => {
