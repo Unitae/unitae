@@ -12,17 +12,20 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, redirect, useFetcher } from 'react-router'
+import { resolveProgrammeLink } from '~/features/display-board/index.server'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import {
   getPartAssignmentAllowedRoleIds,
   getServicePartAssignmentAllowedRoleIds,
   resolveEligibleUserIds,
 } from '~/features/events/server/allowed-roles.server'
+import { buildAssignmentShareText } from '~/features/events/server/build-share-message.server'
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
 import { canEditEvent } from '~/features/events/server/events-auth.server'
 import { listExternalSpeakers } from '~/features/events/server/external-speakers.server'
 import { AssignPartSheet } from '~/features/events/ui/AssignPartSheet'
 import { AssignServiceSheet } from '~/features/events/ui/AssignServiceSheet'
+import { ShareAssignmentButton } from '~/features/events/ui/ShareAssignmentButton'
 import { UnassignConfirmDialog } from '~/features/events/ui/UnassignConfirmDialog'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -124,6 +127,29 @@ export function loader({ params, context }: Route.LoaderArgs) {
       }
     }
 
+    // Built here rather than on click: navigator.share needs the user's
+    // activation, and awaiting anything before it spends that activation.
+    // One link lookup for the whole event, then pure string work per part.
+    const congregation = context.get(congregationContext)
+    const shareTexts: Record<number, string> = {}
+    if (canEdit) {
+      const link = await resolveProgrammeLink(db, { id: event.id, templateId: event.templateId }, congregationId)
+      for (const assignment of event.eventParts) {
+        const text = buildAssignmentShareText({
+          part: assignment,
+          event,
+          link,
+          baseUrl: congregation.baseUrl,
+          congregationName: congregation.displayName,
+          locale: congregation.locale,
+          timezone: congregation.timezone,
+        })
+        // Absent for an unassigned part, a part with no kind, or a kind with no
+        // wording — the button simply does not appear for those.
+        if (text) shareTexts[assignment.id] = text
+      }
+    }
+
     logger.info(`Loading event programme. User ID: ${currentUser.id}. Event ID: ${eventId}.`)
 
     return {
@@ -133,13 +159,15 @@ export function loader({ params, context }: Route.LoaderArgs) {
       externalSpeakers,
       partCandidates,
       serviceCandidates,
-      timezone: context.get(congregationContext).timezone,
+      shareTexts,
+      timezone: congregation.timezone,
     }
   })
 }
 
 export default function EventViewPage({ loaderData }: Route.ComponentProps) {
-  const { event, canEdit, users, externalSpeakers, partCandidates, serviceCandidates, timezone } = loaderData
+  const { event, canEdit, users, externalSpeakers, partCandidates, serviceCandidates, shareTexts, timezone } =
+    loaderData
 
   const userById = new Map(users.map(u => [u.id, u]))
 
@@ -332,6 +360,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                             assignment={assignment}
                             canEdit={canEdit}
                             hasAnyTopic={hasAnyTopic}
+                            shareText={shareTexts[assignment.id]}
                             openPartAssign={openPartAssign}
                             setUnassignTarget={setUnassignTarget}
                           />
@@ -493,12 +522,15 @@ function PartRow({
   assignment,
   canEdit,
   hasAnyTopic,
+  shareText,
   openPartAssign,
   setUnassignTarget,
 }: {
   assignment: PartRowAssignment
   canEdit: boolean
   hasAnyTopic: boolean
+  /** Absent when there is nothing to send — see buildAssignmentShareText. */
+  shareText?: string
   openPartAssign: (assignment: PartRowAssignment) => void
   setUnassignTarget: (
     target: { type: 'part' | 'service'; id: number; name: string; assigneeName: string } | null,
@@ -545,6 +577,16 @@ function PartRow({
       {canEdit && (
         <TableCell>
           <div className="flex gap-1">
+            {shareText && (
+              <ShareAssignmentButton
+                text={shareText}
+                label={m.programs_share_button_label({
+                  name:
+                    assignment.externalSpeaker?.name ??
+                    `${assignment.assignee?.firstname ?? ''} ${assignment.assignee?.lastname ?? ''}`.trim(),
+                })}
+              />
+            )}
             <Button variant="ghost" size="icon" className="size-7" onClick={() => openPartAssign(assignment)}>
               <UserPlus className="size-3" />
             </Button>

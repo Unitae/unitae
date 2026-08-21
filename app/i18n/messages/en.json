@@ -2702,5 +2702,8 @@
     "settings_presets_system_notice": "Default type: you can change its name and message, but not delete it.",
     "settings_presets_error_not_found": "This part type no longer exists.",
     "settings_presets_error_vanished": "This part type was deleted in the meantime; your changes were not saved.",
-    "settings_presets_error_in_use_count": "This type is still used by {count} programme part(s)."
+    "settings_presets_error_in_use_count": "This type is still used by {count} programme part(s).",
+    "programs_share_button_label": "Send the assignment to {name}",
+    "programs_share_copied": "Message copied.",
+    "programs_share_failed": "Sharing failed."
 }

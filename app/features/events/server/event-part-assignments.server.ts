@@ -42,6 +42,9 @@ export function getEventProgramme(db: TransactionClient, eventId: number, congre
           assignee: true,
           assistant: true,
           externalSpeaker: true,
+          // Read live rather than denormalized: an improved wording should
+          // reach assignments that already exist.
+          preset: true,
         },
         orderBy: [{ order: 'asc' }, { trackOrder: { sort: 'asc', nulls: 'last' } }],
       },
