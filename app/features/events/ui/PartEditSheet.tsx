@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { useFetcher } from 'react-router'
 import { partReaderLabel, partSpeakerLabel } from '~/features/events/model/part-labels'
+import { NO_PRESET_VALUE } from '~/features/events/schemas/program-edit.schema'
 import * as m from '~/i18n/paraglide/messages'
 import { Combobox } from '~/shared/ui/Combobox'
 import { Checkbox } from '~/shared/ui/checkbox'
@@ -8,6 +9,7 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { type RoleOption, RolePicker } from '~/shared/ui/RolePicker'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '~/shared/ui/sheet'
 
 type PartData = {
@@ -21,8 +23,14 @@ type PartData = {
   allowExternalSpeaker?: boolean
   speakerLabel?: string | null
   readerLabel?: string | null
+  presetId?: number | null
   allowedSpeakerRoleIds: number[]
   allowedReaderRoleIds: number[]
+}
+
+export type PartPresetOption = {
+  id: number
+  name: string
 }
 
 type PartEditSheetProps = {
@@ -33,6 +41,7 @@ type PartEditSheetProps = {
   fetcher: ReturnType<typeof useFetcher>
   defaultOrder: number
   roles: RoleOption[]
+  presets: PartPresetOption[]
   sectionSuggestions: string[]
   trackSuggestions: string[]
 }
@@ -52,6 +61,7 @@ export function PartEditSheet({
   fetcher,
   defaultOrder,
   roles,
+  presets,
   sectionSuggestions,
   trackSuggestions,
 }: PartEditSheetProps) {
@@ -101,6 +111,27 @@ export function PartEditSheet({
               <div className="flex flex-col gap-2">
                 <Label htmlFor="partName">{m.programs_edit_part_name_label()}</Label>
                 <Input id="partName" name="partName" defaultValue={part?.name ?? ''} required />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="partPresetId">{m.programs_edit_part_preset_label()}</Label>
+                <Select
+                  key={`preset-${pickerKey}`}
+                  name="partPresetId"
+                  defaultValue={part?.presetId ? String(part.presetId) : NO_PRESET_VALUE}
+                >
+                  <SelectTrigger id="partPresetId">
+                    <SelectValue placeholder={m.programs_edit_part_preset_none()} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_PRESET_VALUE}>{m.programs_edit_part_preset_none()}</SelectItem>
+                    {presets.map(preset => (
+                      <SelectItem key={preset.id} value={String(preset.id)}>
+                        {preset.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-muted-foreground text-xs">{m.programs_edit_part_preset_hint()}</p>
               </div>
               <div className="flex gap-3">
                 <div className="flex flex-1 flex-col gap-2">

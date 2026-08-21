@@ -26,6 +26,7 @@ interface TemplateWithRelations {
     allowExternalSpeaker: boolean
     speakerLabel: string | null
     readerLabel: string | null
+    presetId: number | null
     allowedRoles: PartAllowedRoleRow[]
   }[]
   serviceParts: { id: number; name: string; allowedRoles: AllowedRoleRow[] }[]
@@ -82,6 +83,10 @@ async function createEventWithAssignments(
         allowExternalSpeaker: part.allowExternalSpeaker,
         speakerLabel: part.speakerLabel,
         readerLabel: part.readerLabel,
+        // Carried, not denormalized-and-frozen like the labels above: the
+        // preset row itself stays the source of truth for the share message,
+        // so an improved wording reaches assignments that already exist.
+        presetId: part.presetId,
         congregationId,
       },
     })

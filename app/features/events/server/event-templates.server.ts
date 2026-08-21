@@ -85,6 +85,9 @@ export async function upsertTemplatePart(
     allowExternalSpeaker: boolean
     speakerLabel?: string | null
     readerLabel?: string | null
+    // The kind this part defaults to. Null where the template genuinely cannot
+    // know — the ministry parts change kind weekly and are set per event.
+    presetId?: number | null
     allowedSpeakerRoleIds: number[]
     allowedReaderRoleIds: number[]
   },
@@ -101,6 +104,7 @@ export async function upsertTemplatePart(
     allowExternalSpeaker: partData.allowExternalSpeaker,
     speakerLabel: partData.speakerLabel,
     readerLabel: partData.readerLabel,
+    presetId: partData.presetId ?? null,
   }
 
   const part = partData.id

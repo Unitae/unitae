@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addPartSchema, updatePartSchema } from './program-edit.schema'
+import { addPartSchema, NO_PRESET_VALUE, updatePartSchema } from './program-edit.schema'
 
 // The two schemas share the same shape for optional per-part role labels, so
 // the tests below hit both. Anything schema-wide (min/optional handling) is
@@ -119,6 +119,54 @@ describe('updatePartSchema role labels (Layer 6)', () => {
       ...baseUpdateInput(),
       partReaderLabel: 'y'.repeat(51),
     })
+
+    expect(parsed.success).toBe(false)
+  })
+})
+
+describe('part preset selection', () => {
+  it.each([
+    ['addPartSchema', addPartSchema, baseAddInput],
+    ['updatePartSchema', updatePartSchema, baseUpdateInput],
+  ] as const)('%s passes a chosen preset through as a number', (_name, schema, base) => {
+    const parsed = schema.safeParse({ ...base(), partPresetId: '7' })
+
+    expect(parsed.success).toBe(true)
+    expect(parsed.success && parsed.data.partPresetId).toBe(7)
+  })
+
+  it.each([
+    ['addPartSchema', addPartSchema, baseAddInput],
+    ['updatePartSchema', updatePartSchema, baseUpdateInput],
+  ] as const)('%s turns the empty "no kind" option into null, not 0', (_name, schema, base) => {
+    // The <select> submits '' for the blank option. Coercing that to 0 would
+    // write a dangling FK, so it has to become an explicit null.
+    const parsed = schema.safeParse({ ...base(), partPresetId: '' })
+
+    expect(parsed.success).toBe(true)
+    expect(parsed.success && parsed.data.partPresetId).toBeNull()
+  })
+
+  it('treats an absent preset field as null rather than undefined', () => {
+    // Absent means "no kind chosen", which must still clear a previously set
+    // preset rather than silently leaving the old one in place.
+    const parsed = addPartSchema.safeParse(baseAddInput())
+
+    expect(parsed.success).toBe(true)
+    expect(parsed.success && parsed.data.partPresetId).toBeNull()
+  })
+
+  it('treats the Radix "none" sentinel as no preset', () => {
+    // Radix forbids an empty-string item value, so the blank option submits
+    // this instead. Coercing it would fail and reject an entirely valid form.
+    const parsed = addPartSchema.safeParse({ ...baseAddInput(), partPresetId: NO_PRESET_VALUE })
+
+    expect(parsed.success).toBe(true)
+    expect(parsed.success && parsed.data.partPresetId).toBeNull()
+  })
+
+  it('rejects a non-numeric preset id', () => {
+    const parsed = addPartSchema.safeParse({ ...baseAddInput(), partPresetId: 'not-an-id' })
 
     expect(parsed.success).toBe(false)
   })

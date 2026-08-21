@@ -163,6 +163,55 @@ describe('upsertTemplatePart', () => {
     expect(result).toEqual(newPart)
   })
 
+  it('stores the chosen preset on a new part', async () => {
+    vi.mocked(db.templatePart.create).mockResolvedValue({ id: 10 } as never)
+
+    await upsertTemplatePart(
+      db,
+      1,
+      {
+        name: 'Lecture de la Bible',
+        section: '',
+        track: '',
+        order: 1,
+        durationMin: 4,
+        allowExternalSpeaker: false,
+        presetId: 4242,
+        allowedSpeakerRoleIds: [],
+        allowedReaderRoleIds: [],
+      },
+      1,
+      99,
+    )
+
+    expect(vi.mocked(db.templatePart.create).mock.calls[0][0].data.presetId).toBe(4242)
+  })
+
+  it('clears the preset on an existing part when none is chosen', async () => {
+    vi.mocked(db.templatePart.update).mockResolvedValue({ id: 5 } as never)
+
+    await upsertTemplatePart(
+      db,
+      1,
+      {
+        id: 5,
+        name: '1re partie',
+        section: 'Appliquons-nous au ministère',
+        track: '',
+        order: 5,
+        durationMin: null,
+        allowExternalSpeaker: false,
+        presetId: null,
+        allowedSpeakerRoleIds: [],
+        allowedReaderRoleIds: [],
+      },
+      1,
+      99,
+    )
+
+    expect(vi.mocked(db.templatePart.update).mock.calls[0][0].data.presetId).toBeNull()
+  })
+
   it('updates an existing part when id is provided', async () => {
     const updatedPart = { id: 5, name: 'Updated Part' }
     vi.mocked(db.templatePart.update).mockResolvedValue(updatedPart as never)

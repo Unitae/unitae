@@ -104,6 +104,10 @@ export async function addPartAssignment(
     allowExternalSpeaker: boolean
     speakerLabel?: string | null
     readerLabel?: string | null
+    // Which kind of assignment this is. Nullable and settable per event, not
+    // only per template: the ministry parts ("1re partie"…) are a different
+    // kind each week, so the template cannot decide it for them.
+    presetId?: number | null
     allowedSpeakerRoleIds: number[]
     allowedReaderRoleIds: number[]
     congregationId: number
@@ -196,6 +200,7 @@ export async function updatePartAssignment(
     allowExternalSpeaker: boolean
     speakerLabel?: string | null
     readerLabel?: string | null
+    presetId?: number | null
     allowedSpeakerRoleIds: number[]
     allowedReaderRoleIds: number[]
   },

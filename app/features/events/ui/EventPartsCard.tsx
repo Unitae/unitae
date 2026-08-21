@@ -18,6 +18,9 @@ export type PartAssignment = {
   order: number
   durationMin: number | null
   allowExternalSpeaker: boolean
+  // Which kind of assignment this is. Settable per event, not only per
+  // template: the ministry parts are a different kind every week.
+  presetId: number | null
   allowedSpeakerRoleIds: number[]
   allowedReaderRoleIds: number[]
 }

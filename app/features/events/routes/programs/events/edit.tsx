@@ -4,6 +4,7 @@ import { commitSession, getSession } from '~/features/authentication/index.serve
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
 import { getTemplates } from '~/features/events/server/event-templates.server'
 import { canEditEvent } from '~/features/events/server/events-auth.server'
+import { listPartPresets } from '~/features/events/server/part-presets.queries'
 import { EventInfoCard } from '~/features/events/ui/EventInfoCard'
 import { EventPartsCard, type PartAssignment, reorderPartIds } from '~/features/events/ui/EventPartsCard'
 import { EventServicesCard, type ServicePartAssignment } from '~/features/events/ui/EventServicesCard'
@@ -70,6 +71,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     }))
 
     const roles = allRoles.map(r => ({ id: r.id, key: r.key, name: r.name, isBuiltIn: r.isBuiltIn }))
+    const presets = await listPartPresets(db, congregationId)
 
     const sectionSuggestions = distinct(event.eventParts.map(p => p.section))
     const trackSuggestions = distinct(event.eventParts.map(p => p.track))
@@ -82,6 +84,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
       },
       templates,
       roles,
+      presets,
       sectionSuggestions,
       trackSuggestions,
       timezone: context.get(congregationContext).timezone,
@@ -117,7 +120,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function EditEventPage({ loaderData }: Route.ComponentProps) {
-  const { event, templates, roles, sectionSuggestions, trackSuggestions, timezone } = loaderData
+  const { event, templates, roles, presets, sectionSuggestions, trackSuggestions, timezone } = loaderData
 
   const infoFetcher = useFetcher()
   const partFetcher = useFetcher()
@@ -225,6 +228,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
         fetcher={partFetcher}
         defaultOrder={event.eventParts.length + 1}
         roles={roles}
+        presets={presets}
         sectionSuggestions={sectionSuggestions}
         trackSuggestions={trackSuggestions}
       />
