@@ -585,6 +585,55 @@ describe('applyTemplateToEvent', () => {
     })
   })
 
+  it('copies presetId from template parts to assignments', async () => {
+    // Regression: applyTemplateToEvent is the second template -> event path
+    // (generateEventsFromTemplate is the other). It copied the labels but
+    // dropped the preset, so applying a template to an existing event produced
+    // parts with no kind — and therefore no share message.
+    // Distinct sentinels per part so a copy that swaps them still fails.
+    const template = {
+      id: 5,
+      name: 'Reunion',
+      parts: [
+        {
+          id: 10,
+          name: 'Lecture de la Bible',
+          section: 'main',
+          track: 'A',
+          order: 1,
+          durationMin: 5,
+          speakerLabel: null,
+          readerLabel: null,
+          presetId: 7101,
+          allowedRoles: [],
+        },
+        {
+          id: 11,
+          name: 'Cantique',
+          section: '',
+          track: '',
+          order: 2,
+          durationMin: 5,
+          speakerLabel: null,
+          readerLabel: null,
+          // Songs legitimately have no kind — null must survive as null.
+          presetId: null,
+          allowedRoles: [],
+        },
+      ],
+      serviceParts: [],
+    }
+    mockDb.eventTemplate.findFirst.mockResolvedValue(template)
+    mockDb.event.update.mockResolvedValue({})
+    mockDb.eventPart.create.mockResolvedValue({ id: 999 })
+
+    await applyTemplateToEvent(mockDb as never, 1, 5, 10, 42)
+
+    const calls = mockDb.eventPart.create.mock.calls
+    expect(calls[0][0].data.presetId).toBe(7101)
+    expect(calls[1][0].data.presetId).toBeNull()
+  })
+
   it('copies non-empty allowed-role lists from template parts and service roles to assignments', async () => {
     const template = {
       id: 5,

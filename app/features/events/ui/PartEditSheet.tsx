@@ -23,7 +23,9 @@ type PartData = {
   allowExternalSpeaker?: boolean
   speakerLabel?: string | null
   readerLabel?: string | null
-  presetId?: number | null
+  // Required, not optional: a caller that omitted it would silently render
+  // "no kind" for a part that has one, and nothing would flag it.
+  presetId: number | null
   allowedSpeakerRoleIds: number[]
   allowedReaderRoleIds: number[]
 }

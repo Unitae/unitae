@@ -326,6 +326,7 @@ export async function applyTemplateToEvent(
         allowExternalSpeaker: part.allowExternalSpeaker,
         speakerLabel: part.speakerLabel,
         readerLabel: part.readerLabel,
+        presetId: part.presetId,
         congregationId,
       },
     })
@@ -344,7 +345,7 @@ export async function applyTemplateToEvent(
 
   for (const role of template.serviceParts) {
     const assignment = await db.eventServicePart.create({
-      data: { eventId, servicePartId: role.id, name: role.name, congregationId },
+      data: { eventId, servicePartId: role.id, name: role.name, presetId: role.presetId, congregationId },
     })
     if (role.allowedRoles.length > 0) {
       await db.eventServicePartAllowedRole.createMany({

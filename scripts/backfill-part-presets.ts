@@ -17,13 +17,16 @@ async function main() {
   const congregations = await db.congregation.findMany({ select: { id: true, name: true, locale: true } })
   let linked = 0
   let unmatched = 0
+  let missingPresets = 0
   const failed: { id: number; name: string; error: unknown }[] = []
 
   for (const congregation of congregations) {
     try {
       // One transaction per congregation: a failure rolls back only that one.
       const result = await db.$transaction(async tx => {
-        await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(congregation.id)}'`)
+        // Parameterized, matching withScope() in db.server.ts — set_config(..., true)
+        // is the transaction-local equivalent of SET LOCAL.
+        await tx.$executeRawUnsafe('SELECT set_config($1, $2, true)', 'app.congregation_id', String(congregation.id))
         const locale = congregation.locale === 'en' ? 'en' : 'fr'
         await seedDefaultPartPresets(tx, congregation.id, locale)
         return backfillCongregationPartPresets(tx, congregation.id, locale)
@@ -31,6 +34,7 @@ async function main() {
 
       linked += result.templateParts + result.eventParts
       unmatched += result.unmatched
+      missingPresets += result.missingPresets
       // biome-ignore lint/suspicious/noConsole: standalone deploy script
       console.log(
         `  ${congregation.name} (#${congregation.id}): ` +
@@ -58,6 +62,18 @@ async function main() {
       `${unmatched} part(s) could not be identified from their name and still have no preset. ` +
         `This is expected for the ministry parts and songs — set those in the programme editor.`,
     )
+  }
+
+  // A different failure from the expected unmatches above: a rule identified
+  // the part but its preset row was absent, so seeding did not complete. Loud
+  // and non-zero, because re-running the script is the fix.
+  if (missingPresets > 0) {
+    // biome-ignore lint/suspicious/noConsole: standalone deploy script
+    console.error(
+      `${missingPresets} part(s) matched a known kind but their preset row was missing. ` +
+        `Seeding did not complete for at least one congregation — re-run this script.`,
+    )
+    process.exit(1)
   }
 
   if (failed.length > 0) {
