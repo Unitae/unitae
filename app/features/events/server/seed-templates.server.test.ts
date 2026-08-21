@@ -2,11 +2,27 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { seedDefaultTemplates } = await import('./seed-templates.server')
 
+// Sentinel ids, far from any array index, so a linked presetId cannot be
+// mistaken for a coincidental match.
+const SEEDED_PRESETS = [
+  { id: 901, key: 'prayer' },
+  { id: 902, key: 'spiritual-gems' },
+  { id: 903, key: 'bible-reading' },
+  { id: 904, key: 'christian-life-talk' },
+]
+
 function makeDb() {
   return {
     eventTemplate: {
       findFirst: vi.fn(),
       create: vi.fn(),
+    },
+    // seedDefaultTemplates seeds the part presets first, then looks them up to
+    // link each template part to its kind.
+    partPreset: {
+      findFirst: vi.fn().mockResolvedValue(null as never),
+      create: vi.fn().mockResolvedValue({} as never),
+      findMany: vi.fn().mockResolvedValue(SEEDED_PRESETS as never),
     },
   }
 }
@@ -116,6 +132,7 @@ describe('seedDefaultTemplates', () => {
       order: 1,
       durationMin: 5,
       allowExternalSpeaker: false,
+      presetId: 901,
       congregationId: 1,
     })
 
@@ -128,6 +145,44 @@ describe('seedDefaultTemplates', () => {
       expect(part).toHaveProperty('allowExternalSpeaker')
       expect(part).toHaveProperty('congregationId')
     }
+  })
+
+  it('links a seeded part to its preset', async () => {
+    const db = makeDb()
+    db.eventTemplate.findFirst.mockResolvedValue(null as never)
+    db.eventTemplate.create.mockResolvedValue({} as never)
+
+    await seedDefaultTemplates(db, 1, 'fr')
+
+    const midweekParts = db.eventTemplate.create.mock.calls[0][0].data.parts.create
+    expect(midweekParts.find((p: { name: string }) => p.name === 'Lecture de la Bible').presetId).toBe(903)
+  })
+
+  it('leaves the ministry parts unlinked — their kind changes every week', async () => {
+    // "1re partie" may be a demonstration one week and a talk the next, so the
+    // seed must not guess: a wrong preset sends a confidently wrong message.
+    const db = makeDb()
+    db.eventTemplate.findFirst.mockResolvedValue(null as never)
+    db.eventTemplate.create.mockResolvedValue({} as never)
+
+    await seedDefaultTemplates(db, 1, 'fr')
+
+    const midweekParts = db.eventTemplate.create.mock.calls[0][0].data.parts.create
+    const ministry = midweekParts.filter((p: { section: string }) => p.section === 'Appliquons-nous au ministère')
+    expect(ministry).toHaveLength(3)
+    expect(ministry.every((p: { presetId: number | null }) => p.presetId === null)).toBe(true)
+  })
+
+  it('leaves a part unlinked when its preset is missing rather than mislinking it', async () => {
+    const db = makeDb()
+    db.partPreset.findMany.mockResolvedValue([] as never)
+    db.eventTemplate.findFirst.mockResolvedValue(null as never)
+    db.eventTemplate.create.mockResolvedValue({} as never)
+
+    await seedDefaultTemplates(db, 1, 'fr')
+
+    const midweekParts = db.eventTemplate.create.mock.calls[0][0].data.parts.create
+    expect(midweekParts.every((p: { presetId: number | null }) => p.presetId === null)).toBe(true)
   })
 
   it('creates service roles for each meeting template', async () => {

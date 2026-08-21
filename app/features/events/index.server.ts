@@ -17,4 +17,5 @@ export {
   upsertTemplateServicePart,
 } from './server/event-templates.server'
 export { eventsNotifications } from './server/notifications.server'
+export { PART_PRESET_COUNT, seedDefaultPartPresets } from './server/seed-part-presets.server'
 export { seedDefaultTemplates } from './server/seed-templates.server'
