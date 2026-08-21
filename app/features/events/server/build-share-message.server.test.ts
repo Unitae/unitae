@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { buildAssignmentShareText } from './build-share-message.server'
+import { describe, expect, it, vi } from 'vitest'
+import { buildAssignmentShareText, buildShareTextsForEvent } from './build-share-message.server'
 
 const EVENT = {
   name: 'Réunion de semaine',
@@ -101,5 +101,51 @@ describe('buildAssignmentShareText', () => {
     const text = buildAssignmentShareText(args({ locale: 'en' }))
 
     expect(text).toContain('September')
+  })
+})
+
+describe('buildShareTextsForEvent', () => {
+  const congregation = {
+    baseUrl: 'https://lyon.unitae.app',
+    displayName: 'Assemblée de Lyon',
+    locale: 'fr',
+    timezone: 'Europe/Paris',
+  }
+
+  function eventWith(parts: unknown[]) {
+    return { id: 12, templateId: 3, name: 'Réunion de semaine', startDate: EVENT.startDate, eventParts: parts }
+  }
+
+  function part(id: number, patch: Record<string, unknown> = {}) {
+    return { ...args().part, id, ...patch }
+  }
+
+  it('keys the messages by part id', async () => {
+    const resolveLink = vi.fn().mockResolvedValue('/board')
+
+    const texts = await buildShareTextsForEvent(eventWith([part(7)]) as never, congregation, resolveLink)
+
+    expect(Object.keys(texts)).toEqual(['7'])
+  })
+
+  it('resolves the programme link once for the whole event, not once per part', async () => {
+    // One database round trip regardless of how many parts the event has.
+    const resolveLink = vi.fn().mockResolvedValue('/board')
+
+    await buildShareTextsForEvent(eventWith([part(1), part(2), part(3)]) as never, congregation, resolveLink)
+
+    expect(resolveLink).toHaveBeenCalledTimes(1)
+  })
+
+  it('omits parts with nothing to send instead of storing an empty string', async () => {
+    const resolveLink = vi.fn().mockResolvedValue('/board')
+
+    const texts = await buildShareTextsForEvent(
+      eventWith([part(1), part(2, { assignee: null }), part(3, { preset: null })]) as never,
+      congregation,
+      resolveLink,
+    )
+
+    expect(Object.keys(texts)).toEqual(['1'])
   })
 })

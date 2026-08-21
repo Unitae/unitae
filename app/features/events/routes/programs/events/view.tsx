@@ -14,12 +14,8 @@ import { useState } from 'react'
 import { Link, redirect, useFetcher } from 'react-router'
 import { resolveProgrammeLink } from '~/features/display-board/index.server'
 import { EventStatus } from '~/features/events/model/event-status.type'
-import {
-  getPartAssignmentAllowedRoleIds,
-  getServicePartAssignmentAllowedRoleIds,
-  resolveEligibleUserIds,
-} from '~/features/events/server/allowed-roles.server'
-import { buildAssignmentShareText } from '~/features/events/server/build-share-message.server'
+import { buildAssignmentCandidates } from '~/features/events/server/assignment-candidates.server'
+import { buildShareTextsForEvent } from '~/features/events/server/build-share-message.server'
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
 import { canEditEvent } from '~/features/events/server/events-auth.server'
 import { listExternalSpeakers } from '~/features/events/server/external-speakers.server'
@@ -106,49 +102,16 @@ export function loader({ params, context }: Route.LoaderArgs) {
           .map(s => ({ id: s.id, name: s.name }))
       : []
 
-    const partCandidates: Record<number, { speakerIds: number[]; readerIds: number[] }> = {}
-    const serviceCandidates: Record<number, number[]> = {}
-    if (canEdit) {
-      const userById = new Map(users.map(u => [u.id, u]))
-      for (const assignment of event.eventParts) {
-        const speakerAllowed = await getPartAssignmentAllowedRoleIds(db, assignment.id, 'speaker', congregationId)
-        const readerAllowed = await getPartAssignmentAllowedRoleIds(db, assignment.id, 'reader', congregationId)
-        const speakerIds = await resolveEligibleUserIds(db, speakerAllowed, congregationId)
-        const readerIds = await resolveEligibleUserIds(db, readerAllowed, congregationId)
-        partCandidates[assignment.id] = {
-          speakerIds: speakerIds.filter(id => userById.has(id)),
-          readerIds: readerIds.filter(id => userById.has(id)),
-        }
-      }
-      for (const assignment of event.eventServiceParts) {
-        const allowed = await getServicePartAssignmentAllowedRoleIds(db, assignment.id, congregationId)
-        const eligible = await resolveEligibleUserIds(db, allowed, congregationId)
-        serviceCandidates[assignment.id] = eligible.filter(id => userById.has(id))
-      }
-    }
+    const { partCandidates, serviceCandidates } = canEdit
+      ? await buildAssignmentCandidates(db, event, users, congregationId)
+      : { partCandidates: {}, serviceCandidates: {} }
 
     // Built here rather than on click: navigator.share needs the user's
     // activation, and awaiting anything before it spends that activation.
-    // One link lookup for the whole event, then pure string work per part.
     const congregation = context.get(congregationContext)
-    const shareTexts: Record<number, string> = {}
-    if (canEdit) {
-      const link = await resolveProgrammeLink(db, { id: event.id, templateId: event.templateId }, congregationId)
-      for (const assignment of event.eventParts) {
-        const text = buildAssignmentShareText({
-          part: assignment,
-          event,
-          link,
-          baseUrl: congregation.baseUrl,
-          congregationName: congregation.displayName,
-          locale: congregation.locale,
-          timezone: congregation.timezone,
-        })
-        // Absent for an unassigned part, a part with no kind, or a kind with no
-        // wording — the button simply does not appear for those.
-        if (text) shareTexts[assignment.id] = text
-      }
-    }
+    const shareTexts = canEdit
+      ? await buildShareTextsForEvent(event, congregation, target => resolveProgrammeLink(db, target, congregationId))
+      : {}
 
     logger.info(`Loading event programme. User ID: ${currentUser.id}. Event ID: ${eventId}.`)
 

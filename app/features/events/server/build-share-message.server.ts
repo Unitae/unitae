@@ -87,3 +87,53 @@ export function buildAssignmentShareText(args: BuildShareTextArgs): string | nul
     link: `${baseUrl}${link}`,
   })
 }
+
+export interface ShareableEvent {
+  id: number
+  templateId: number | null
+  name: string
+  startDate: Date
+  eventParts: (ShareablePart & { id: number })[]
+}
+
+interface ShareCongregation {
+  baseUrl: string
+  displayName: string
+  locale: string
+  timezone: string
+}
+
+/**
+ * Messages for every part of an event that has one, keyed by part id.
+ *
+ * Lives here rather than in the route so the loader stays free of the logic,
+ * and so the "one link lookup for the whole event" guarantee is testable: the
+ * resolver is injected and the tests assert it is called exactly once however
+ * many parts the event has.
+ *
+ * Parts with nothing to send are absent from the map rather than mapped to an
+ * empty string, so the caller can treat presence as "show the button".
+ */
+export async function buildShareTextsForEvent(
+  event: ShareableEvent,
+  congregation: ShareCongregation,
+  resolveLink: (event: { id: number; templateId: number | null }) => Promise<string>,
+): Promise<Record<number, string>> {
+  const link = await resolveLink({ id: event.id, templateId: event.templateId })
+  const texts: Record<number, string> = {}
+
+  for (const part of event.eventParts) {
+    const text = buildAssignmentShareText({
+      part,
+      event,
+      link,
+      baseUrl: congregation.baseUrl,
+      congregationName: congregation.displayName,
+      locale: congregation.locale,
+      timezone: congregation.timezone,
+    })
+    if (text) texts[part.id] = text
+  }
+
+  return texts
+}
