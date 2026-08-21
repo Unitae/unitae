@@ -75,6 +75,16 @@ describe('createPartPreset', () => {
     expect(createdData(db).key).toBe('discours-2')
   })
 
+  it('fills the first free suffix rather than skipping past a gap', async () => {
+    // Deleting a preset leaves a hole; the next create should reuse it.
+    const db = makeDb()
+    db.partPreset.findMany.mockResolvedValue([{ key: 'discours' }, { key: 'discours-3' }] as never)
+
+    await createPartPreset(db as never, input({ name: 'Discours' }), 1, 7)
+
+    expect(createdData(db).key).toBe('discours-2')
+  })
+
   it('keeps suffixing past an existing suffix', async () => {
     const db = makeDb()
     db.partPreset.findMany.mockResolvedValue([{ key: 'discours' }, { key: 'discours-2' }] as never)
@@ -141,6 +151,15 @@ describe('updatePartPreset', () => {
     expect(updatedData(db).shareMessage).toBe('Nouveau texte {{date}}')
   })
 
+  it('keeps the reader label when the slot stays on', async () => {
+    const db = makeDb()
+    db.partPreset.findFirst.mockResolvedValue({ id: 5, key: 'x', isSystem: false } as never)
+
+    await updatePartPreset(db as never, 5, input({ hasReaderSlot: true, readerLabel: 'Interlocuteur' }), 1, 7)
+
+    expect(updatedData(db).readerLabel).toBe('Interlocuteur')
+  })
+
   it('clears the reader label when the reader slot is turned off', async () => {
     const db = makeDb()
     db.partPreset.findFirst.mockResolvedValue({ id: 5, key: 'x', isSystem: false } as never)
@@ -148,6 +167,40 @@ describe('updatePartPreset', () => {
     await updatePartPreset(db as never, 5, input({ hasReaderSlot: false, readerLabel: 'Lecteur' }), 1, 7)
 
     expect(updatedData(db).readerLabel).toBeNull()
+  })
+})
+
+describe('createPartPreset concurrency', () => {
+  it('retries with a fresh key when another request claimed it first', async () => {
+    // buildKey reads the taken keys and then writes, so two managers creating
+    // a same-named preset at once can both pick the same slug. The unique
+    // constraint catches it; without a retry the loser gets a raw 500.
+    const db = makeDb()
+    db.partPreset.findMany.mockResolvedValueOnce([] as never).mockResolvedValueOnce([{ key: 'discours' }] as never)
+    db.partPreset.create
+      .mockRejectedValueOnce(Object.assign(new Error('unique'), { code: 'P2002' }) as never)
+      .mockResolvedValueOnce({ id: 1 } as never)
+
+    await createPartPreset(db as never, input({ name: 'Discours' }), 1, 7)
+
+    const keys = db.partPreset.create.mock.calls.map(([arg]) => (arg as { data: { key: string } }).data.key)
+    expect(keys).toEqual(['discours', 'discours-2'])
+  })
+
+  it('gives up rather than looping when the conflict persists', async () => {
+    const db = makeDb()
+    db.partPreset.create.mockRejectedValue(Object.assign(new Error('unique'), { code: 'P2002' }) as never)
+
+    await expect(createPartPreset(db as never, input(), 1, 7)).rejects.toThrow()
+    expect(db.partPreset.create).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not swallow an unrelated database error', async () => {
+    const db = makeDb()
+    db.partPreset.create.mockRejectedValue(new Error('connection lost') as never)
+
+    await expect(createPartPreset(db as never, input(), 1, 7)).rejects.toThrow('connection lost')
+    expect(db.partPreset.create).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -186,6 +239,27 @@ describe('deletePartPreset', () => {
 
     expect(await deletePartPreset(db as never, 5, 1, 7)).toEqual({ ok: false, reason: 'in-use', partCount: 11 })
     expect(db.partPreset.delete).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['a single template part', { templateParts: 1, eventParts: 0 }, 1],
+    ['a single event part', { templateParts: 0, eventParts: 1 }, 1],
+  ])('refuses deletion for %s', async (_label, counts, expected) => {
+    // The boundary matters: one referencing part is enough to lose a kind, and
+    // both sides of the sum must count.
+    const db = makeDb()
+    db.partPreset.findFirst.mockResolvedValue({
+      id: 5,
+      name: 'Discours',
+      isSystem: false,
+      _count: counts,
+    } as never)
+
+    expect(await deletePartPreset(db as never, 5, 1, 7)).toEqual({
+      ok: false,
+      reason: 'in-use',
+      partCount: expected,
+    })
   })
 
   it('deletes an unused custom preset', async () => {

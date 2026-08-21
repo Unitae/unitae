@@ -2699,5 +2699,8 @@
     "settings_presets_delete_confirm": "Supprimer ce type de partie ?",
     "settings_presets_error_system": "Les types par défaut ne peuvent pas être supprimés.",
     "settings_presets_error_in_use": "Ce type est encore utilisé par des parties du programme.",
-    "settings_presets_system_notice": "Type par défaut : vous pouvez modifier son nom et son message, mais pas le supprimer."
+    "settings_presets_system_notice": "Type par défaut : vous pouvez modifier son nom et son message, mais pas le supprimer.",
+    "settings_presets_error_not_found": "Ce type de partie n'existe plus.",
+    "settings_presets_error_vanished": "Ce type de partie a été supprimé entre-temps ; vos modifications n'ont pas été enregistrées.",
+    "settings_presets_error_in_use_count": "Ce type est encore utilisé par {count} partie(s) du programme."
 }

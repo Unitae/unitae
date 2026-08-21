@@ -58,21 +58,39 @@ async function buildKey(db: TransactionClient, name: string, congregationId: num
   return `${base}-${suffix}`
 }
 
+function isUniqueViolation(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && (error as { code?: string }).code === 'P2002'
+}
+
 export async function createPartPreset(
   db: TransactionClient,
   data: PartPresetInput,
   congregationId: number,
   actorId: number,
 ) {
-  const preset = await db.partPreset.create({
-    data: {
-      ...normalize(data),
-      key: await buildKey(db, data.name, congregationId),
-      scope: PartPresetScope.Part,
-      isSystem: false,
-      congregationId,
-    },
-  })
+  // buildKey reads the taken keys and then writes, so two managers creating a
+  // same-named preset at once can both settle on the same slug. The unique
+  // constraint catches the loser; retrying once re-reads the keys — now
+  // including the winner's — and resolves it, instead of surfacing a raw 500.
+  // A second failure is a real problem and is left to propagate.
+  let preset: Awaited<ReturnType<typeof db.partPreset.create>> | undefined
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      preset = await db.partPreset.create({
+        data: {
+          ...normalize(data),
+          key: await buildKey(db, data.name, congregationId),
+          scope: PartPresetScope.Part,
+          isSystem: false,
+          congregationId,
+        },
+      })
+      break
+    } catch (error) {
+      if (!isUniqueViolation(error) || attempt === 1) throw error
+    }
+  }
+  if (!preset) throw new Error('createPartPreset: no preset created')
 
   audit({
     action: AuditAction.PartPresetCreated,
@@ -120,9 +138,13 @@ export async function updatePartPreset(
   return preset
 }
 
+// Each refusal is its own member rather than 'not-found' | 'system' sharing
+// one. Grouping them let a caller discriminate on 'system' alone and silently
+// treat a vanished preset as an in-use one — which is exactly what happened.
 export type DeletePartPresetResult =
   | { ok: true; name: string }
-  | { ok: false; reason: 'not-found' | 'system' }
+  | { ok: false; reason: 'not-found' }
+  | { ok: false; reason: 'system' }
   | { ok: false; reason: 'in-use'; partCount: number }
 
 /**

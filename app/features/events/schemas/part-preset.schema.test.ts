@@ -40,6 +40,14 @@ describe('partPresetSchema', () => {
     expect(message).toContain('alsoNope')
   })
 
+  it('tells the author which variables are available, not just what is wrong', () => {
+    const parsed = partPresetSchema.safeParse(base({ shareMessage: '{{nope}}' }))
+
+    const message = parsed.error?.issues[0]?.message ?? ''
+    expect(message).toContain('{{nope}}')
+    expect(message).toContain('{{assigneeFirstname}}')
+  })
+
   it('accepts every documented variable', () => {
     const all =
       '{{assignee}} {{assigneeFirstname}} {{assistant}} {{partName}} {{section}} {{topic}} {{duration}} {{date}} {{time}} {{eventName}} {{note}} {{congregation}} {{link}}'

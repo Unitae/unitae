@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Form } from 'react-router'
 import { renderShareMessage, SHARE_VARIABLES, type ShareMessageContext } from '~/features/events/model/share-message'
+import type { PartPresetFormValues } from '~/features/events/schemas/part-preset.schema'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Checkbox } from '~/shared/ui/checkbox'
@@ -8,19 +9,13 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { Textarea } from '~/shared/ui/textarea'
 
-export type PartPresetFormData = {
-  name: string
-  speakerLabel: string | null
-  readerLabel: string | null
-  hasReaderSlot: boolean
-  allowExternalSpeaker: boolean
-  shareMessage: string
-}
-
 type PartPresetFormProps = {
-  preset: PartPresetFormData | null
+  // Derived from the schema rather than restated, so the form cannot drift
+  // from what the action will accept.
+  preset: PartPresetFormValues | null
   isSystem: boolean
-  error?: string | null
+  // Absent means no error. A separate null state would say nothing extra.
+  errors?: string[]
 }
 
 // Plausible values for the preview. Every slot is filled, so the author sees
@@ -42,12 +37,13 @@ const PREVIEW_CONTEXT: ShareMessageContext = {
   link: 'https://unitae.app/board',
 }
 
-export function PartPresetForm({ preset, isSystem, error }: PartPresetFormProps) {
+export function PartPresetForm({ preset, isSystem, errors }: PartPresetFormProps) {
   const [message, setMessage] = useState(preset?.shareMessage ?? '')
   const [hasReaderSlot, setHasReaderSlot] = useState(preset?.hasReaderSlot ?? false)
 
-  // Rendered with the very same function the share button uses, so the preview
-  // cannot drift from what is sent.
+  // Rendered with renderShareMessage — the same function the share button will
+  // use once it exists, which is the point of keeping that module pure: the
+  // preview and the sent message cannot diverge.
   const preview = renderShareMessage(message, PREVIEW_CONTEXT)
 
   return (
@@ -58,9 +54,13 @@ export function PartPresetForm({ preset, isSystem, error }: PartPresetFormProps)
         </div>
       )}
 
-      {error && (
+      {errors && errors.length > 0 && (
         <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm">
-          {error}
+          <ul className="flex list-inside list-disc flex-col gap-1">
+            {errors.map(message => (
+              <li key={message}>{message}</li>
+            ))}
+          </ul>
         </div>
       )}
 

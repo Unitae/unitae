@@ -17,6 +17,18 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_presets_edit_title() }]
 }
 
+/**
+ * Flattens Conform's per-field errors into a flat list.
+ *
+ * The earlier version read only `shareMessage` and `name`, so a too-long slot
+ * label failed validation and the form re-rendered with nothing to show for it
+ * — the save silently did nothing. Anything the schema can reject has to reach
+ * the user.
+ */
+function collectErrors(reply: { error?: Record<string, string[] | null> | null }): string[] {
+  return Object.values(reply.error ?? {}).flatMap(messages => messages ?? [])
+}
+
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
@@ -56,21 +68,29 @@ export function action({ request, params, context }: Route.ActionArgs) {
     if (formData.get('intent') === 'delete') {
       const result = await deletePartPreset(db, presetId, congregationId, actorId)
       if (result.ok) throw redirect(LIST_PATH)
-      // Refused rather than silently stripping the kind from live parts —
-      // say which of the two reasons it was.
-      return {
-        error: result.reason === 'system' ? m.settings_presets_error_system() : m.settings_presets_error_in_use(),
+      // Every refusal reason is named. An exhaustive switch rather than a
+      // ternary, so adding a reason later fails the build instead of quietly
+      // falling through to the wrong message.
+      switch (result.reason) {
+        case 'system':
+          return { errors: [m.settings_presets_error_system()] }
+        case 'not-found':
+          return { errors: [m.settings_presets_error_not_found()] }
+        case 'in-use':
+          // The count is the actionable part: reassigning two parts is a very
+          // different job from reassigning thirty.
+          return { errors: [m.settings_presets_error_in_use_count({ count: result.partCount })] }
       }
     }
 
     const submission = parseWithZod(formData, { schema: partPresetSchema })
-    if (submission.status !== 'success') {
-      return { error: submission.reply().error?.shareMessage?.[0] ?? submission.reply().error?.name?.[0] ?? null }
-    }
+    if (submission.status !== 'success') return { errors: collectErrors(submission.reply()) }
 
-    // A null return means the preset vanished between load and save; the list
-    // is the right place to land either way.
-    await updatePartPreset(db, presetId, submission.value, congregationId, actorId)
+    const updated = await updatePartPreset(db, presetId, submission.value, congregationId, actorId)
+    // Null means the preset was deleted between load and save. Redirecting
+    // silently would look exactly like a successful save and lose the edit
+    // without ever saying so.
+    if (!updated) return { errors: [m.settings_presets_error_vanished()] }
     throw redirect(LIST_PATH)
   })
 }
@@ -84,7 +104,7 @@ export default function EditPresetPage({ loaderData, actionData }: Route.Compone
         title={m.settings_presets_edit_title()}
         breadcrumbs={[{ label: m.settings_presets_breadcrumb(), to: LIST_PATH }, { label: preset.name }]}
       />
-      <PartPresetForm preset={preset} isSystem={isSystem} error={actionData?.error} />
+      <PartPresetForm preset={preset} isSystem={isSystem} errors={actionData?.errors} />
 
       {!isSystem && (
         <Form method="post">

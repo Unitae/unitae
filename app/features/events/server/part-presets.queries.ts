@@ -18,8 +18,8 @@ export function listPartPresets(db: TransactionClient, congregationId: number) {
 
 /**
  * Full preset rows for the settings screens, with a usage count so the list can
- * show what each kind is applied to and the delete guard has something to
- * explain itself with.
+ * show what each kind is applied to. The delete guard counts independently at
+ * the moment of deletion — this figure is for display and may be stale by then.
  */
 export function listPartPresetsForSettings(db: TransactionClient, congregationId: number) {
   return db.partPreset.findMany({

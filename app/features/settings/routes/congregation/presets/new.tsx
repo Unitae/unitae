@@ -13,6 +13,18 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_presets_new_title() }]
 }
 
+/**
+ * Flattens Conform's per-field errors into a flat list.
+ *
+ * The earlier version read only `shareMessage` and `name`, so a too-long slot
+ * label failed validation and the form re-rendered with nothing to show for it
+ * — the save silently did nothing. Anything the schema can reject has to reach
+ * the user.
+ */
+function collectErrors(reply: { error?: Record<string, string[] | null> | null }): string[] {
+  return Object.values(reply.error ?? {}).flatMap(messages => messages ?? [])
+}
+
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   if (!permissions.has(Permission.ProgramManager)) throw redirect('/settings/congregation/presets')
@@ -27,9 +39,7 @@ export function action({ request, context }: Route.ActionArgs) {
   return withScopeFromContext(context, async db => {
     const formData = await request.formData()
     const submission = parseWithZod(formData, { schema: partPresetSchema })
-    if (submission.status !== 'success') {
-      return { error: submission.reply().error?.shareMessage?.[0] ?? submission.reply().error?.name?.[0] ?? null }
-    }
+    if (submission.status !== 'success') return { errors: collectErrors(submission.reply()) }
 
     await createPartPreset(db, submission.value, currentUser.congregationId, currentUser.id)
     throw redirect('/settings/congregation/presets')
@@ -46,7 +56,7 @@ export default function NewPresetPage({ actionData }: Route.ComponentProps) {
           { label: m.settings_presets_new_title() },
         ]}
       />
-      <PartPresetForm preset={null} isSystem={false} error={actionData?.error} />
+      <PartPresetForm preset={null} isSystem={false} errors={actionData?.errors} />
     </div>
   )
 }
