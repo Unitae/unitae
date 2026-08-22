@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { PART_PRESET_COUNT, seedDefaultPartPresets } = await import('./seed-part-presets.server')
-const { findUnknownVariables, renderShareMessage } = await import('../model/share-message')
+const { findUnknownVariables } = await import('../model/share-message')
 const { PartPresetKey } = await import('../model/part-preset.type')
 const { partPresetName, partPresetReaderLabel, partPresetShareMessage } = await import('../model/part-preset-defaults')
 
@@ -23,8 +23,6 @@ function createdRows(db: ReturnType<typeof makeDb>) {
 function rowFor(db: ReturnType<typeof makeDb>, key: string) {
   return createdRows(db).find(row => row.key === key)
 }
-
-const DANGLING_LABEL = /[:–—-]\s*$/m
 
 beforeEach(() => {
   vi.resetAllMocks()
