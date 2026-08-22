@@ -1,8 +1,8 @@
 import {
-  getPartAssignmentAllowedRoleIds,
-  getServicePartAssignmentAllowedRoleIds,
-  resolveEligibleUserIds,
-} from '~/features/events/server/allowed-roles.server'
+  getPartAssignmentAllowedRoleIdsForParts,
+  getServicePartAssignmentAllowedRoleIdsForParts,
+} from '~/features/events/server/allowed-roles.queries'
+import { resolveEligibleUserIds } from '~/features/events/server/allowed-roles.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export interface AssignmentCandidates {
@@ -32,21 +32,44 @@ export async function buildAssignmentCandidates(
   const partCandidates: AssignmentCandidates['partCandidates'] = {}
   const serviceCandidates: AssignmentCandidates['serviceCandidates'] = {}
 
+  const [partAllowed, serviceAllowed] = await Promise.all([
+    getPartAssignmentAllowedRoleIdsForParts(
+      db,
+      event.eventParts.map(part => part.id),
+      congregationId,
+    ),
+    getServicePartAssignmentAllowedRoleIdsForParts(
+      db,
+      event.eventServiceParts.map(part => part.id),
+      congregationId,
+    ),
+  ])
+
+  // Most slots on a programme restrict nobody, and the ones that do tend to
+  // name the same role. Resolving per slot asked the database the same
+  // question once per slot; keyed on the role set, it is asked once per
+  // distinct answer.
+  const eligibleByRoleSet = new Map<string, Promise<number[]>>()
+  const eligibleFor = (allowedRoleIds: number[]): Promise<number[]> => {
+    const key = [...allowedRoleIds].sort((a, b) => a - b).join(',')
+    const cached = eligibleByRoleSet.get(key)
+    if (cached) return cached
+    const pending = resolveEligibleUserIds(db, allowedRoleIds, congregationId)
+    eligibleByRoleSet.set(key, pending)
+    return pending
+  }
+
+  const offerable = (ids: number[]) => ids.filter(id => memberIds.has(id))
+
   for (const assignment of event.eventParts) {
-    const speakerAllowed = await getPartAssignmentAllowedRoleIds(db, assignment.id, 'speaker', congregationId)
-    const readerAllowed = await getPartAssignmentAllowedRoleIds(db, assignment.id, 'reader', congregationId)
-    const speakerIds = await resolveEligibleUserIds(db, speakerAllowed, congregationId)
-    const readerIds = await resolveEligibleUserIds(db, readerAllowed, congregationId)
-    partCandidates[assignment.id] = {
-      speakerIds: speakerIds.filter(id => memberIds.has(id)),
-      readerIds: readerIds.filter(id => memberIds.has(id)),
-    }
+    const slots = partAllowed.get(assignment.id) ?? { speaker: [], reader: [] }
+    const [speakerIds, readerIds] = await Promise.all([eligibleFor(slots.speaker), eligibleFor(slots.reader)])
+    partCandidates[assignment.id] = { speakerIds: offerable(speakerIds), readerIds: offerable(readerIds) }
   }
 
   for (const assignment of event.eventServiceParts) {
-    const allowed = await getServicePartAssignmentAllowedRoleIds(db, assignment.id, congregationId)
-    const eligible = await resolveEligibleUserIds(db, allowed, congregationId)
-    serviceCandidates[assignment.id] = eligible.filter(id => memberIds.has(id))
+    const eligible = await eligibleFor(serviceAllowed.get(assignment.id) ?? [])
+    serviceCandidates[assignment.id] = offerable(eligible)
   }
 
   return { partCandidates, serviceCandidates }

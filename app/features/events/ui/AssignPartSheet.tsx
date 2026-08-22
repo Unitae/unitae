@@ -208,25 +208,34 @@ export function AssignPartSheet({
                 partSlot="assignee"
               />
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="assistantId">{partReaderLabel(capability)}</Label>
-                <PersonDropdown
-                  id="assistantId"
-                  name="assistantId"
-                  people={readerCandidates}
-                  value={selectedAssistant}
-                  onValueChange={setSelectedAssistant}
-                  placeholder={m.programs_assign_part_no_reader()}
-                  noneLabel={m.programs_assign_part_none()}
-                />
-              </div>
+              {/* A kind done by one person has no second slot, so offering
+                  one invites an assignment nobody can fill. It stays visible
+                  when somebody is already in it: hiding the control on a part
+                  whose kind changed later would strand them there with no way
+                  to take them out. */}
+              {(capability.hasReaderSlot || assignment.assistantId != null) && (
+                <>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="assistantId">{partReaderLabel(capability)}</Label>
+                    <PersonDropdown
+                      id="assistantId"
+                      name="assistantId"
+                      people={readerCandidates}
+                      value={selectedAssistant}
+                      onValueChange={setSelectedAssistant}
+                      placeholder={m.programs_assign_part_no_reader()}
+                      noneLabel={m.programs_assign_part_none()}
+                    />
+                  </div>
 
-              <PublisherInfoCard
-                eventId={eventId}
-                userId={selectedAssistant}
-                excludePartAssignmentId={assignment.id}
-                partSlot="assistant"
-              />
+                  <PublisherInfoCard
+                    eventId={eventId}
+                    userId={selectedAssistant}
+                    excludePartAssignmentId={assignment.id}
+                    partSlot="assistant"
+                  />
+                </>
+              )}
             </>
           )}
 

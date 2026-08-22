@@ -7,7 +7,7 @@ vi.mock('~/shared/infra/db.server', () => ({
     memberRoleAssignment: { findMany: vi.fn() },
     templatePartAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
     eventPartAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
-    eventPart: { findFirst: vi.fn() },
+    eventPart: { findFirst: vi.fn(), findMany: vi.fn() },
     partPresetAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
     templateServicePartAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
     eventServicePartAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
