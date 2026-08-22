@@ -30,6 +30,9 @@ export const AuditAction = {
   RolePermissionChanged: 'role.permission.changed',
   PartAllowedRolesChanged: 'part.allowed_roles.changed',
   ServicePartAllowedRolesChanged: 'service_role.allowed_roles.changed',
+  PartPresetCreated: 'part_preset.created',
+  PartPresetUpdated: 'part_preset.updated',
+  PartPresetDeleted: 'part_preset.deleted',
 
   // Data export
   UserDataExported: 'user.data.exported',
