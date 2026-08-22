@@ -59,6 +59,12 @@ type PartRowAssignment = {
   hasConflict: boolean
   speakerLabel: string | null
   readerLabel: string | null
+  preset: {
+    speakerLabel: string | null
+    readerLabel: string | null
+    hasReaderSlot: boolean
+    allowExternalSpeaker: boolean
+  } | null
   assignee: { firstname: string | null; lastname: string | null } | null
   assistant: { firstname: string | null; lastname: string | null } | null
 }
@@ -147,6 +153,12 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
     externalSpeakerId: number | null
     speakerLabel: string | null
     readerLabel: string | null
+    preset: {
+      speakerLabel: string | null
+      readerLabel: string | null
+      hasReaderSlot: boolean
+      allowExternalSpeaker: boolean
+    } | null
   } | null>(null)
   const [assignPartOpen, setAssignPartOpen] = useState(false)
 
@@ -220,6 +232,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
       externalSpeakerId: assignment.externalSpeakerId,
       speakerLabel: assignment.speakerLabel,
       readerLabel: assignment.readerLabel,
+      preset: assignment.preset,
     })
     setAssignPartOpen(true)
   }

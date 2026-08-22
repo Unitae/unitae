@@ -44,14 +44,53 @@ describe('listPartPresets', () => {
     expect(argsOf(db).orderBy).toEqual({ name: 'asc' })
   })
 
-  it('selects only what the picker needs', async () => {
-    // The share message can be long; the picker never renders it, and shipping
-    // every body to the client on each programme edit would be waste.
+  it('returns the capability the part editor has to show', async () => {
+    // Without these the picker could only show a name, which is what made
+    // choosing a preset look like it did nothing.
     const db = makeDb()
 
     await listPartPresets(db as never, 1)
 
-    expect(Object.keys(argsOf(db).select).sort()).toEqual(['id', 'name'])
+    expect(Object.keys(argsOf(db).select).sort()).toEqual([
+      'allowExternalSpeaker',
+      'hasReaderSlot',
+      'id',
+      'name',
+      'readerLabel',
+      'shareMessage',
+      'speakerLabel',
+    ])
+  })
+
+  it('reduces the share message to a flag rather than shipping every body', async () => {
+    // A body runs to a thousand characters and the editor only needs to say
+    // whether one exists.
+    const db = makeDb()
+    db.partPreset.findMany.mockResolvedValue([
+      {
+        id: 1,
+        name: 'A',
+        speakerLabel: null,
+        readerLabel: null,
+        hasReaderSlot: false,
+        allowExternalSpeaker: false,
+        shareMessage: 'Bonjour',
+      },
+      {
+        id: 2,
+        name: 'B',
+        speakerLabel: null,
+        readerLabel: null,
+        hasReaderSlot: false,
+        allowExternalSpeaker: false,
+        shareMessage: '   ',
+      },
+    ] as never)
+
+    const presets = await listPartPresets(db as never, 1)
+
+    expect(presets.map(p => p.hasShareMessage)).toEqual([true, false])
+    expect(presets[0]).not.toHaveProperty('shareMessage')
   })
 })
 

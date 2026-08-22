@@ -2,18 +2,36 @@ import { PartPresetScope } from '~/features/events/model/part-preset.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 /**
- * The presets offered when choosing what kind a programme part is.
+ * The presets offered when choosing what kind a programme part is, with the
+ * capability each one carries.
  *
- * Selects only id and name: the picker never renders a share message, and the
- * bodies are long enough that shipping them to the client on every programme
- * edit would be pure waste.
+ * The capability travels because the part editor has to show what choosing a
+ * kind actually does — without it the picker could only change a name, which
+ * is what made selecting a preset appear to have no effect at all.
+ *
+ * The share message does not travel. A body runs to a thousand characters and
+ * the editor only needs to know whether one exists, so it is reduced to a flag
+ * here rather than sent to the client on every programme edit.
  */
-export function listPartPresets(db: TransactionClient, congregationId: number) {
-  return db.partPreset.findMany({
+export async function listPartPresets(db: TransactionClient, congregationId: number) {
+  const presets = await db.partPreset.findMany({
     where: { congregationId, scope: PartPresetScope.Part },
     orderBy: { name: 'asc' },
-    select: { id: true, name: true },
+    select: {
+      id: true,
+      name: true,
+      speakerLabel: true,
+      readerLabel: true,
+      hasReaderSlot: true,
+      allowExternalSpeaker: true,
+      shareMessage: true,
+    },
   })
+
+  return presets.map(({ shareMessage, ...preset }) => ({
+    ...preset,
+    hasShareMessage: shareMessage.trim() !== '',
+  }))
 }
 
 /**

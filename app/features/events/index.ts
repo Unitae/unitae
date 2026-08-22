@@ -4,6 +4,7 @@ export { dayLabel, dayLabelShort } from './model/day-label'
 export { EventStatus } from './model/event-status.type'
 export { EventTemplateKey, isSystemTemplate } from './model/event-template.type'
 export { groupPartsBySlot } from './model/group-parts-by-slot'
+export { resolvePartCapability } from './model/part-capability'
 export { PartPresetKey, PartPresetScope } from './model/part-preset.type'
 export {
   findUnknownVariables,
@@ -16,5 +17,6 @@ export { type PartPresetFormValues, partPresetSchema } from './schemas/part-pres
 export { InlineDeleteDialog } from './ui/InlineDeleteDialog'
 export { PartEditSheet } from './ui/PartEditSheet'
 export { PartPresetForm } from './ui/PartPresetForm'
+export { PartPresetSummary } from './ui/PartPresetSummary'
 export { ServiceEditSheet } from './ui/ServiceEditSheet'
 export { SortableRow } from './ui/SortableRow'

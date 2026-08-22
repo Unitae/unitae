@@ -2707,5 +2707,17 @@
     "programs_share_copied": "Message copied.",
     "programs_share_failed": "Sharing failed.",
     "settings_congregation_part_presets_title": "Part types",
-    "settings_congregation_part_presets_desc": "What each programme part is, and the message sent to the assigned person."
+    "settings_congregation_part_presets_desc": "What each programme part is, and the message sent to the assigned person.",
+    "programs_edit_preset_implies_title": "Set by this type",
+    "programs_edit_preset_speaker": "Main role",
+    "programs_edit_preset_reader": "Second role",
+    "programs_edit_preset_reader_none": "No second role",
+    "programs_edit_preset_external_yes": "External speaker allowed",
+    "programs_edit_preset_external_no": "External speaker not allowed",
+    "programs_edit_preset_has_message": "A message is sent to the assigned person",
+    "programs_edit_preset_no_message": "No message is configured for this type",
+    "programs_edit_preset_edit_link": "Edit this type",
+    "programs_edit_group_no_preset": "Without a type",
+    "programs_edit_no_preset_hint": "Without a type, this part uses the settings below and sends no message.",
+    "programs_edit_part_allow_external_label": "Allow an external speaker"
 }

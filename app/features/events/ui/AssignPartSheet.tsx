@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useFetcher } from 'react-router'
+import { resolvePartCapability } from '~/features/events/model/part-capability'
 import { partReaderLabel, partSpeakerLabel } from '~/features/events/model/part-labels'
 import { ExternalSpeakerInfoCard } from '~/features/events/ui/ExternalSpeakerInfoCard'
 import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
@@ -25,6 +26,15 @@ type PartAssignment = {
   externalSpeakerId: number | null
   speakerLabel: string | null
   readerLabel: string | null
+  // The kind this part is, when it has one. It decides the slot labels, whether
+  // there is a second slot, and whether an external speaker may be assigned —
+  // the part's own columns apply only in its absence.
+  preset: {
+    speakerLabel: string | null
+    readerLabel: string | null
+    hasReaderSlot: boolean
+    allowExternalSpeaker: boolean
+  } | null
 }
 
 type ExternalSpeakerOption = { id: number; name: string }
@@ -52,6 +62,12 @@ export function AssignPartSheet({
 }: AssignPartSheetProps) {
   const fetcher = useFetcher<{ ok: boolean }>()
   const prevState = useRef(fetcher.state)
+  // The sheet renders with no assignment while closed; the fallback keeps the
+  // hook order stable and is never shown.
+  const capability = resolvePartCapability(
+    assignment ?? { speakerLabel: null, readerLabel: null, allowExternalSpeaker: false },
+    assignment?.preset ?? null,
+  )
   const [selectedAssignee, setSelectedAssignee] = useState('')
   const [selectedAssistant, setSelectedAssistant] = useState('')
   const [selectedExternalSpeaker, setSelectedExternalSpeaker] = useState('none')
@@ -108,7 +124,7 @@ export function AssignPartSheet({
             </div>
           </div>
 
-          {assignment.allowExternalSpeaker && (
+          {capability.allowExternalSpeaker && (
             <div className="flex flex-col gap-2">
               <Label>{m.programs_assign_part_speaker_type_label()}</Label>
               <RadioGroup
@@ -173,7 +189,7 @@ export function AssignPartSheet({
           ) : (
             <>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="assigneeId">{partSpeakerLabel(assignment)}</Label>
+                <Label htmlFor="assigneeId">{partSpeakerLabel(capability)}</Label>
                 <PersonDropdown
                   id="assigneeId"
                   name="assigneeId"
@@ -193,7 +209,7 @@ export function AssignPartSheet({
               />
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor="assistantId">{partReaderLabel(assignment)}</Label>
+                <Label htmlFor="assistantId">{partReaderLabel(capability)}</Label>
                 <PersonDropdown
                   id="assistantId"
                   name="assistantId"
