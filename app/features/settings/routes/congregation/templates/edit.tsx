@@ -9,7 +9,6 @@ import { InlineDeleteDialog, isSystemTemplate, PartEditSheet, ServiceEditSheet, 
 import {
   deleteTemplatePart,
   deleteTemplateServicePart,
-  ensureDefaultPartPresets,
   getTemplateById,
   isTemplateResponsible,
   listPartPresets,
@@ -93,7 +92,6 @@ export function loader({ params, context }: Route.LoaderArgs) {
     }))
 
     const roles = allRoles.map(r => ({ id: r.id, key: r.key, name: r.name, isBuiltIn: r.isBuiltIn }))
-    await ensureDefaultPartPresets(db, currentUser.congregationId, context.get(congregationContext).locale)
     const presets = await listPartPresets(db, currentUser.congregationId)
 
     const sectionSuggestions = distinct(template.parts.map(p => p.section))

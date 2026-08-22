@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { data, redirect, useFetcher } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { ensureDefaultPartPresets } from '~/features/events/server/ensure-part-presets.server'
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
 import { getTemplates } from '~/features/events/server/event-templates.server'
 import { canEditEvent } from '~/features/events/server/events-auth.server'
@@ -72,7 +71,6 @@ export function loader({ params, context }: Route.LoaderArgs) {
     }))
 
     const roles = allRoles.map(r => ({ id: r.id, key: r.key, name: r.name, isBuiltIn: r.isBuiltIn }))
-    await ensureDefaultPartPresets(db, congregationId, context.get(congregationContext).locale)
     const presets = await listPartPresets(db, congregationId)
 
     const sectionSuggestions = distinct(event.eventParts.map(p => p.section))

@@ -1,6 +1,6 @@
 import { Check, ChevronRight, Plus } from 'lucide-react'
 import { Link, redirect } from 'react-router'
-import { ensureDefaultPartPresets, listPartPresetsForSettings } from '~/features/events/index.server'
+import { listPartPresetsForSettings } from '~/features/events/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -29,8 +29,6 @@ export function loader({ context }: Route.LoaderArgs) {
 
   return withScopeFromContext(context, async db => {
     // Congregations seeded before presets existed have none, and multi-tenant
-    // has no second seeding pass. Cheap when they already exist.
-    await ensureDefaultPartPresets(db, currentUser.congregationId, congregation.locale)
     const presets = await listPartPresetsForSettings(db, currentUser.congregationId)
     return {
       presets: presets.map(preset => ({
