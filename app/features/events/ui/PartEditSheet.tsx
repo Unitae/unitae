@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { useFetcher } from 'react-router'
+import { resolvePartCapability } from '~/features/events/model/part-capability'
 import { partReaderLabel, partSpeakerLabel } from '~/features/events/model/part-labels'
 import { NO_PRESET_VALUE } from '~/features/events/schemas/program-edit.schema'
+import { PartPresetSummary } from '~/features/events/ui/PartPresetSummary'
 import * as m from '~/i18n/paraglide/messages'
 import { Combobox } from '~/shared/ui/Combobox'
 import { Checkbox } from '~/shared/ui/checkbox'
@@ -33,6 +35,11 @@ type PartData = {
 export type PartPresetOption = {
   id: number
   name: string
+  speakerLabel: string | null
+  readerLabel: string | null
+  hasReaderSlot: boolean
+  allowExternalSpeaker: boolean
+  hasShareMessage: boolean
 }
 
 type PartEditSheetProps = {
@@ -70,9 +77,24 @@ export function PartEditSheet({
   const isEditing = part != null
   const prevState = useRef(fetcher.state)
   const [trackValue, setTrackValue] = useState(part?.track ?? '')
+  const [presetValue, setPresetValue] = useState(part?.presetId ? String(part.presetId) : NO_PRESET_VALUE)
+
+  // The chosen kind decides the labels, whether there is a second slot, and
+  // whether an external speaker may be assigned. Resolving here means the form
+  // reacts as soon as the picker changes, instead of looking inert until save.
+  const selectedPreset = presets.find(preset => String(preset.id) === presetValue) ?? null
+  const capability = resolvePartCapability(
+    {
+      speakerLabel: part?.speakerLabel,
+      readerLabel: part?.readerLabel,
+      allowExternalSpeaker: part?.allowExternalSpeaker,
+    },
+    selectedPreset,
+  )
 
   useEffect(() => {
     setTrackValue(part?.track ?? '')
+    setPresetValue(part?.presetId ? String(part.presetId) : NO_PRESET_VALUE)
   }, [part])
 
   useEffect(() => {
@@ -119,7 +141,8 @@ export function PartEditSheet({
                 <Select
                   key={`preset-${pickerKey}`}
                   name="partPresetId"
-                  defaultValue={part?.presetId ? String(part.presetId) : NO_PRESET_VALUE}
+                  value={presetValue}
+                  onValueChange={setPresetValue}
                 >
                   <SelectTrigger id="partPresetId">
                     <SelectValue placeholder={m.programs_edit_part_preset_none()} />
@@ -134,6 +157,7 @@ export function PartEditSheet({
                   </SelectContent>
                 </Select>
                 <p className="text-muted-foreground text-xs">{m.programs_edit_part_preset_hint()}</p>
+                {selectedPreset && <PartPresetSummary preset={selectedPreset} />}
               </div>
               <div className="flex gap-3">
                 <div className="flex flex-1 flex-col gap-2">
@@ -195,26 +219,35 @@ export function PartEditSheet({
 
           {/* Orateur */}
           <section>
-            <GroupHeading>{partSpeakerLabel({ speakerLabel: part?.speakerLabel, readerLabel: null })}</GroupHeading>
+            <GroupHeading>
+              {partSpeakerLabel({ speakerLabel: capability.speakerLabel, readerLabel: null })}
+            </GroupHeading>
             <div className="flex flex-col gap-3">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="partSpeakerLabel">{m.programs_part_speaker_label_field()}</Label>
-                <Input
-                  id="partSpeakerLabel"
-                  name="partSpeakerLabel"
-                  defaultValue={part?.speakerLabel ?? ''}
-                  placeholder={m.programs_part_speaker_label_placeholder()}
-                  maxLength={50}
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="partAllowExternalSpeaker"
-                  name="partAllowExternalSpeaker"
-                  defaultChecked={part?.allowExternalSpeaker ?? false}
-                />
-                <Label htmlFor="partAllowExternalSpeaker">{m.programs_edit_allow_external_speaker()}</Label>
-              </div>
+              {/* Only offered without a kind. With one, these belong to the
+                  preset — editing them here would suggest an override the
+                  model does not have. The summary above shows what applies. */}
+              {!selectedPreset && (
+                <>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="partSpeakerLabel">{m.programs_part_speaker_label_field()}</Label>
+                    <Input
+                      id="partSpeakerLabel"
+                      name="partSpeakerLabel"
+                      defaultValue={part?.speakerLabel ?? ''}
+                      placeholder={m.programs_part_speaker_label_placeholder()}
+                      maxLength={50}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="partAllowExternalSpeaker"
+                      name="partAllowExternalSpeaker"
+                      defaultChecked={part?.allowExternalSpeaker ?? false}
+                    />
+                    <Label htmlFor="partAllowExternalSpeaker">{m.programs_edit_allow_external_speaker()}</Label>
+                  </div>
+                </>
+              )}
               <div className="flex flex-col gap-2">
                 <Label>{m.programs_edit_part_allowed_speaker_label()}</Label>
                 <RolePicker
@@ -230,33 +263,40 @@ export function PartEditSheet({
             </div>
           </section>
 
-          {/* Deuxième orateur */}
-          <section>
-            <GroupHeading>{partReaderLabel({ speakerLabel: null, readerLabel: part?.readerLabel })}</GroupHeading>
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="partReaderLabel">{m.programs_part_reader_label_field()}</Label>
-                <Input
-                  id="partReaderLabel"
-                  name="partReaderLabel"
-                  defaultValue={part?.readerLabel ?? ''}
-                  placeholder={m.programs_part_reader_label_placeholder()}
-                  maxLength={50}
-                />
+          {/* Deuxième orateur — absent entirely when the kind is done by one
+              person, rather than offering a slot nobody can fill. */}
+          {capability.hasReaderSlot && (
+            <section>
+              <GroupHeading>
+                {partReaderLabel({ speakerLabel: null, readerLabel: capability.readerLabel })}
+              </GroupHeading>
+              <div className="flex flex-col gap-3">
+                {!selectedPreset && (
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="partReaderLabel">{m.programs_part_reader_label_field()}</Label>
+                    <Input
+                      id="partReaderLabel"
+                      name="partReaderLabel"
+                      defaultValue={part?.readerLabel ?? ''}
+                      placeholder={m.programs_part_reader_label_placeholder()}
+                      maxLength={50}
+                    />
+                  </div>
+                )}
+                <div className="flex flex-col gap-2">
+                  <Label>{m.programs_edit_part_allowed_reader_label()}</Label>
+                  <RolePicker
+                    key={`reader-${pickerKey}`}
+                    roles={roles}
+                    selectedIds={part?.allowedReaderRoleIds ?? []}
+                    name="allowedReaderRoleIds"
+                    idPrefix={`part-reader-${pickerKey}`}
+                    defaultLabel={defaultChipLabel}
+                  />
+                </div>
               </div>
-              <div className="flex flex-col gap-2">
-                <Label>{m.programs_edit_part_allowed_reader_label()}</Label>
-                <RolePicker
-                  key={`reader-${pickerKey}`}
-                  roles={roles}
-                  selectedIds={part?.allowedReaderRoleIds ?? []}
-                  name="allowedReaderRoleIds"
-                  idPrefix={`part-reader-${pickerKey}`}
-                  defaultLabel={defaultChipLabel}
-                />
-              </div>
-            </div>
-          </section>
+            </section>
+          )}
         </fetcher.Form>
 
         <SheetFooter>

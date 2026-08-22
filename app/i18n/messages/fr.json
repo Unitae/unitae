@@ -2707,5 +2707,17 @@
     "programs_share_copied": "Message copié.",
     "programs_share_failed": "Le partage a échoué.",
     "settings_congregation_part_presets_title": "Types de parties",
-    "settings_congregation_part_presets_desc": "Ce qu'est chaque partie du programme, et le message envoyé à la personne assignée."
+    "settings_congregation_part_presets_desc": "Ce qu'est chaque partie du programme, et le message envoyé à la personne assignée.",
+    "programs_edit_preset_implies_title": "Défini par ce type",
+    "programs_edit_preset_speaker": "Rôle principal",
+    "programs_edit_preset_reader": "Second rôle",
+    "programs_edit_preset_reader_none": "Aucun second rôle",
+    "programs_edit_preset_external_yes": "Orateur externe autorisé",
+    "programs_edit_preset_external_no": "Orateur externe non autorisé",
+    "programs_edit_preset_has_message": "Un message est envoyé à la personne assignée",
+    "programs_edit_preset_no_message": "Aucun message n'est configuré pour ce type",
+    "programs_edit_preset_edit_link": "Modifier ce type",
+    "programs_edit_group_no_preset": "Sans type",
+    "programs_edit_no_preset_hint": "Sans type, cette partie utilise les réglages ci-dessous et n'envoie aucun message.",
+    "programs_edit_part_allow_external_label": "Autoriser un orateur externe"
 }
