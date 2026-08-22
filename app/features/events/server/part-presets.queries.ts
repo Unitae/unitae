@@ -1,4 +1,10 @@
 import { PartPresetScope } from '~/features/events/model/part-preset.type'
+import {
+  hasPartPresetShareMessage,
+  partPresetName,
+  partPresetReaderLabel,
+  partPresetSpeakerLabel,
+} from '~/features/events/model/part-preset-defaults'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 /**
@@ -13,12 +19,16 @@ import type { TransactionClient } from '~/shared/infra/db.server'
  * the editor only needs to know whether one exists, so it is reduced to a flag
  * here rather than sent to the client on every programme edit.
  */
-export async function listPartPresets(db: TransactionClient, congregationId: number) {
+export async function listPartPresets(db: TransactionClient, congregationId: number, locale?: string) {
+  // The congregation stores a bare code; anything unrecognised resolves in the
+  // ambient locale rather than guessing.
+  const messageLocale = locale === 'en' || locale === 'fr' ? locale : undefined
   const presets = await db.partPreset.findMany({
     where: { congregationId, scope: PartPresetScope.Part },
     orderBy: { name: 'asc' },
     select: {
       id: true,
+      key: true,
       name: true,
       speakerLabel: true,
       readerLabel: true,
@@ -28,9 +38,15 @@ export async function listPartPresets(db: TransactionClient, congregationId: num
     },
   })
 
+  // Resolved here rather than in the picker: a seeded kind stores null and
+  // takes its wording from the catalogue, so the client would otherwise render
+  // a blank option.
   return presets.map(({ shareMessage, ...preset }) => ({
     ...preset,
-    hasShareMessage: shareMessage.trim() !== '',
+    name: partPresetName(preset, messageLocale),
+    speakerLabel: partPresetSpeakerLabel(preset, messageLocale),
+    readerLabel: partPresetReaderLabel(preset, messageLocale),
+    hasShareMessage: hasPartPresetShareMessage({ key: preset.key, shareMessage }),
   }))
 }
 

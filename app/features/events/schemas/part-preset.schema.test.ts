@@ -15,12 +15,20 @@ describe('partPresetSchema', () => {
     expect(partPresetSchema.safeParse(base()).success).toBe(true)
   })
 
-  it('requires a name', () => {
-    expect(partPresetSchema.safeParse(base({ name: '' })).success).toBe(false)
+  it('reads a blank name as "use the built-in one"', () => {
+    // The form shows the catalogue name as a placeholder, so leaving the field
+    // alone is how a congregation keeps the default and follows its language.
+    const parsed = partPresetSchema.safeParse(base({ name: '' }))
+
+    expect(parsed.success).toBe(true)
+    expect(parsed.success && parsed.data.name).toBeNull()
   })
 
-  it('requires a share message — a preset with none has nothing to send', () => {
-    expect(partPresetSchema.safeParse(base({ shareMessage: '   ' })).success).toBe(false)
+  it('reads a blank message the same way', () => {
+    const parsed = partPresetSchema.safeParse(base({ shareMessage: '   ' }))
+
+    expect(parsed.success).toBe(true)
+    expect(parsed.success && parsed.data.shareMessage).toBeNull()
   })
 
   it('rejects an unknown variable and names it', () => {

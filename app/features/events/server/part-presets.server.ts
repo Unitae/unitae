@@ -1,4 +1,5 @@
 import { PartPresetScope } from '~/features/events/model/part-preset.type'
+import { partPresetName } from '~/features/events/model/part-preset-defaults'
 import { setPartPresetAllowedRoles } from '~/features/events/server/allowed-roles.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -7,12 +8,13 @@ const NON_SLUG_RE = /[^a-z0-9]+/g
 const TRIM_DASH_RE = /^-+|-+$/g
 
 export interface PartPresetInput {
-  name: string
+  // Null means "use the built-in wording" — see model/part-preset-defaults.ts.
+  name: string | null
   hasReaderSlot: boolean
   speakerLabel: string | null
   readerLabel: string | null
   allowExternalSpeaker: boolean
-  shareMessage: string
+  shareMessage: string | null
   allowedSpeakerRoleIds: number[]
   allowedReaderRoleIds: number[]
 }
@@ -105,7 +107,7 @@ export async function createPartPreset(
       preset = await db.partPreset.create({
         data: {
           ...normalize(data),
-          key: await buildKey(db, data.name, congregationId),
+          key: await buildKey(db, data.name ?? '', congregationId),
           scope: PartPresetScope.Part,
           isSystem: false,
           congregationId,
@@ -126,7 +128,7 @@ export async function createPartPreset(
     actorId,
     entityType: 'PartPreset',
     entityId: preset.id,
-    metadata: { name: preset.name },
+    metadata: { name: partPresetName(preset) },
   })
 
   return preset
@@ -162,7 +164,7 @@ export async function updatePartPreset(
     actorId,
     entityType: 'PartPreset',
     entityId: id,
-    metadata: { name: preset.name },
+    metadata: { name: partPresetName(preset) },
   })
 
   return preset
@@ -194,7 +196,7 @@ export async function deletePartPreset(
 ): Promise<DeletePartPresetResult> {
   const preset = await db.partPreset.findFirst({
     where: { id, congregationId },
-    select: { name: true, isSystem: true, _count: { select: { templateParts: true, eventParts: true } } },
+    select: { key: true, name: true, isSystem: true, _count: { select: { templateParts: true, eventParts: true } } },
   })
   if (!preset) return { ok: false, reason: 'not-found' }
   if (preset.isSystem) return { ok: false, reason: 'system' }
@@ -210,8 +212,8 @@ export async function deletePartPreset(
     actorId,
     entityType: 'PartPreset',
     entityId: id,
-    metadata: { name: preset.name },
+    metadata: { name: partPresetName(preset) },
   })
 
-  return { ok: true, name: preset.name }
+  return { ok: true, name: partPresetName(preset) }
 }

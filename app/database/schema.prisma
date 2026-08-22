@@ -993,12 +993,16 @@ model EventServicePart {
 // to an assignee is a property of the kind of assignment, not of one evening's
 // occurrence of it, so it must not be editable part by part.
 model PartPreset {
-  id    Int    @id @default(autoincrement())
+  id    Int     @id @default(autoincrement())
   key   String
-  name  String
+  // Null on a seeded kind means "use the built-in name for the current locale",
+  // the same convention Role uses for its built-ins: a congregation that
+  // renames one stores its own text, one that never does follows the catalogue
+  // and switches language with the congregation.
+  name  String?
   // 'part' | 'service' — which of the two assignment families this kind
   // applies to, so the picker on a service row never offers "Discours public".
-  scope String @default("part")
+  scope String  @default("part")
 
   // Capability. Fixed at part level, by design.
   hasReaderSlot        Boolean @default(false)
@@ -1008,7 +1012,11 @@ model PartPreset {
 
   // Body of the SMS/WhatsApp message shared with the assignee, written with
   // {{variable}} placeholders — see app/features/events/model/share-message.ts.
-  shareMessage String @default("")
+  //
+  // Three states, and they mean different things. Null: use the built-in body
+  // for the congregation's locale. Empty: deliberately no message, so the kind
+  // has no share button. Text: the congregation's own wording.
+  shareMessage String?
 
   // Seeded presets: `key` is immutable and the row cannot be deleted, matching
   // the isSystemTemplate() convention on EventTemplate.

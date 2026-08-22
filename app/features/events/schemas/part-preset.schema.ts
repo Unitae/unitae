@@ -23,7 +23,14 @@ const roleIdsField = z.preprocess(
 )
 
 export const partPresetSchema = z.object({
-  name: z.string().trim().min(1).max(80),
+  // Blank means "use the built-in name", which is why this is no longer
+  // required: the placeholder in the form shows what blank will produce.
+  name: z
+    .string()
+    .trim()
+    .max(80)
+    .optional()
+    .transform(v => (v == null || v === '' ? null : v)),
   speakerLabel: slotLabelField,
   readerLabel: slotLabelField,
   hasReaderSlot: checkboxField,
@@ -31,12 +38,14 @@ export const partPresetSchema = z.object({
   shareMessage: z
     .string()
     .trim()
-    .min(1)
     .max(1000)
+    .optional()
+    .transform(v => (v == null || v === '' ? null : v))
     // Catch placeholder typos at save time. Without this a mistyped
     // {{prenom}} renders as an empty gap in a message that has already been
     // sent to someone — the defect surfaces on their phone, not in the editor.
     .superRefine((value, ctx) => {
+      if (value == null) return
       const unknown = findUnknownVariables(value)
       if (unknown.length === 0) return
       ctx.addIssue({

@@ -7,6 +7,7 @@ const EVENT = {
 }
 
 const PRESET = {
+  key: 'custom-kind',
   shareMessage:
     'Bonjour {{assigneeFirstname}},\n\nTu as {{partName}} le {{date}} à {{time}}.\nSujet : {{topic}}\nDurée : {{duration}}\nAvec : {{assistant}}\n\n{{link}}',
 }
@@ -68,7 +69,7 @@ describe('buildAssignmentShareText', () => {
   })
 
   it('returns null when the kind carries no message', () => {
-    expect(buildAssignmentShareText(withPart({ preset: { shareMessage: '   ' } }))).toBeNull()
+    expect(buildAssignmentShareText(withPart({ preset: { key: 'custom-kind', shareMessage: '   ' } }))).toBeNull()
   })
 
   it('shares to an external speaker too — they are assigned like anyone else', () => {
@@ -90,7 +91,9 @@ describe('buildAssignmentShareText', () => {
   it('returns null when every line renders away, not an empty string', () => {
     // A body whose only variable is empty renders to nothing. The caller tests
     // for null, so returning '' would work by accident rather than by contract.
-    const text = buildAssignmentShareText(withPart({ assistant: null, preset: { shareMessage: 'Avec {{assistant}}' } }))
+    const text = buildAssignmentShareText(
+      withPart({ assistant: null, preset: { key: 'custom-kind', shareMessage: 'Avec {{assistant}}' } }),
+    )
 
     expect(text).toBeNull()
   })

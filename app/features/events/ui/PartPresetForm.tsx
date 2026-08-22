@@ -16,6 +16,9 @@ type PartPresetFormProps = {
   preset: PartPresetFormValues | null
   isSystem: boolean
   roles: RoleOption[]
+  /** Catalogue wording, shown when a field is blank. Leaving a field empty is
+      how a congregation keeps the built-in text and follows its language. */
+  placeholders?: { name: string; speakerLabel: string; readerLabel: string; shareMessage: string }
   // Absent means no error. A separate null state would say nothing extra.
   errors?: string[]
 }
@@ -39,7 +42,7 @@ const PREVIEW_CONTEXT: ShareMessageContext = {
   link: 'https://unitae.app/board',
 }
 
-export function PartPresetForm({ preset, isSystem, roles, errors }: PartPresetFormProps) {
+export function PartPresetForm({ preset, isSystem, roles, placeholders, errors }: PartPresetFormProps) {
   const [message, setMessage] = useState(preset?.shareMessage ?? '')
   const [hasReaderSlot, setHasReaderSlot] = useState(preset?.hasReaderSlot ?? false)
 
@@ -68,7 +71,13 @@ export function PartPresetForm({ preset, isSystem, roles, errors }: PartPresetFo
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="name">{m.settings_presets_form_name_label()}</Label>
-        <Input id="name" name="name" defaultValue={preset?.name ?? ''} required maxLength={80} />
+        <Input
+          id="name"
+          name="name"
+          defaultValue={preset?.name ?? ''}
+          placeholder={placeholders?.name}
+          maxLength={80}
+        />
       </div>
 
       <div className="flex flex-col gap-3">
@@ -98,7 +107,7 @@ export function PartPresetForm({ preset, isSystem, roles, errors }: PartPresetFo
             id="speakerLabel"
             name="speakerLabel"
             defaultValue={preset?.speakerLabel ?? ''}
-            placeholder={m.settings_presets_form_speaker_placeholder()}
+            placeholder={placeholders?.speakerLabel || m.settings_presets_form_speaker_placeholder()}
             maxLength={50}
           />
         </div>
@@ -111,7 +120,7 @@ export function PartPresetForm({ preset, isSystem, roles, errors }: PartPresetFo
               id="readerLabel"
               name="readerLabel"
               defaultValue={preset?.readerLabel ?? ''}
-              placeholder={m.settings_presets_form_reader_placeholder()}
+              placeholder={placeholders?.readerLabel || m.settings_presets_form_reader_placeholder()}
               maxLength={50}
             />
           </div>
@@ -153,7 +162,7 @@ export function PartPresetForm({ preset, isSystem, roles, errors }: PartPresetFo
           value={message}
           onChange={event => setMessage(event.target.value)}
           rows={10}
-          required
+          placeholder={placeholders?.shareMessage}
           maxLength={1000}
         />
         <p className="text-muted-foreground text-xs">{m.settings_presets_form_message_help()}</p>

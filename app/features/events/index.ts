@@ -7,6 +7,13 @@ export { groupPartsBySlot } from './model/group-parts-by-slot'
 export { resolvePartCapability } from './model/part-capability'
 export { PartPresetKey, PartPresetScope } from './model/part-preset.type'
 export {
+  hasPartPresetShareMessage,
+  partPresetName,
+  partPresetReaderLabel,
+  partPresetShareMessage,
+  partPresetSpeakerLabel,
+} from './model/part-preset-defaults'
+export {
   findUnknownVariables,
   renderShareMessage,
   SHARE_VARIABLES,
