@@ -123,10 +123,16 @@ export function partPresetName(preset: { key: string; name: string | null }, loc
 /**
  * The body sent to whoever is assigned a part of this kind.
  *
- * Null and empty are different on purpose. Null means the kind never set one,
- * so the built-in body for the locale applies. Empty means someone cleared it,
- * which is how a kind opts out of sharing — falling back there would send a
- * message they deliberately removed.
+ * Null means the kind stores no wording of its own, so the built-in body for
+ * the locale applies — that is the state every seeded kind is in, and the state
+ * a congregation returns to by clearing the field.
+ *
+ * Stored text always wins, including the empty string. Nothing can currently
+ * write one: the form maps a blank field to null (part-preset.schema.ts), so
+ * "no message at all" is not expressible for a seeded kind. A kind a
+ * congregation invented has no catalogue entry and so sends nothing, which is
+ * the only way to reach that today. Opting a seeded kind out of sharing needs
+ * a control of its own before this branch means anything.
  */
 export function partPresetShareMessage(preset: { key: string; shareMessage: string | null }, locale: Locale): string {
   if (preset.shareMessage !== null) return preset.shareMessage
@@ -165,7 +171,8 @@ export function partPresetReaderLabel(
  *
  * Deliberately locale-free: a seeded kind has a body in every locale, so this
  * answers the "is there a message" question without the caller having to pick
- * one. Null falls through to the catalogue; empty means someone cleared it.
+ * one. Null falls through to the catalogue, which is why a kind a congregation
+ * invented answers false until it is given wording.
  */
 export function hasPartPresetShareMessage(preset: { key: string; shareMessage: string | null }): boolean {
   if (preset.shareMessage !== null) return preset.shareMessage.trim() !== ''

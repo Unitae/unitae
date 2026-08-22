@@ -32,6 +32,7 @@ const {
   applyTemplateToEvent,
   bulkDeleteEvents,
 } = await import('./event-parts.server')
+const { setPartAssignmentAllowedRoles } = await import('~/features/events/server/allowed-roles.server')
 
 const mockDb = {
   event: {
@@ -432,6 +433,80 @@ describe('updatePartAssignment', () => {
       where: { id_congregationId: { id: 5, congregationId: 10 } },
       data: expect.objectContaining({ speakerLabel: 'STUDENT-SENTINEL', readerLabel: 'HOUSEHOLDER-SENTINEL' }),
     })
+  })
+})
+
+describe('part allowed roles the form did not manage', () => {
+  // With a kind selected the part form hides its role pickers, so the intent
+  // sends nothing for them. Writing an empty selection there would delete the
+  // part's own rows — the very rows the kind falls back to when it restricts
+  // nobody.
+  it('leaves both slots untouched when the caller omits them', async () => {
+    mockDb.eventPart.update.mockResolvedValue({ id: 5 })
+
+    await updatePartAssignment(
+      mockDb as never,
+      5,
+      {
+        name: 'Discours public',
+        section: 'main',
+        track: 'A',
+        order: 1,
+        durationMin: 30,
+        allowExternalSpeaker: false,
+        presetId: 55,
+      },
+      10,
+      99,
+    )
+
+    expect(setPartAssignmentAllowedRoles).not.toHaveBeenCalled()
+  })
+
+  it('still writes the slots the caller does supply', async () => {
+    mockDb.eventPart.update.mockResolvedValue({ id: 5 })
+
+    await updatePartAssignment(
+      mockDb as never,
+      5,
+      {
+        name: 'Discours public',
+        section: 'main',
+        track: 'A',
+        order: 1,
+        durationMin: 30,
+        allowExternalSpeaker: false,
+        allowedSpeakerRoleIds: [7],
+        allowedReaderRoleIds: [],
+      },
+      10,
+      99,
+    )
+
+    expect(setPartAssignmentAllowedRoles).toHaveBeenCalledWith(mockDb, 5, 'speaker', [7], 10)
+    expect(setPartAssignmentAllowedRoles).toHaveBeenCalledWith(mockDb, 5, 'reader', [], 10)
+  })
+
+  it('does not write either slot on create when the caller omits them', async () => {
+    mockDb.eventPart.create.mockResolvedValue({ id: 6 })
+
+    await addPartAssignment(
+      mockDb as never,
+      {
+        eventId: 1,
+        name: 'Discours public',
+        section: 'main',
+        track: 'A',
+        order: 1,
+        durationMin: 30,
+        allowExternalSpeaker: false,
+        presetId: 55,
+        congregationId: 10,
+      },
+      99,
+    )
+
+    expect(setPartAssignmentAllowedRoles).not.toHaveBeenCalled()
   })
 })
 

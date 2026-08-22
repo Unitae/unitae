@@ -223,8 +223,9 @@ export function PartEditSheet({
               {partSpeakerLabel({ speakerLabel: capability.speakerLabel, readerLabel: null })}
             </GroupHeading>
             <div className="flex flex-col gap-3">
-              {/* Only offered without a kind. With one, these belong to the
-                  preset — editing them here would suggest an override the
+              {/* Only offered without a kind. With one, the labels, the
+                  external-speaker rule and the eligible roles all belong to
+                  the preset — editing them here would suggest an override the
                   model does not have. The summary above shows what applies. */}
               {!selectedPreset && (
                 <>
@@ -248,18 +249,20 @@ export function PartEditSheet({
                   </div>
                 </>
               )}
-              <div className="flex flex-col gap-2">
-                <Label>{m.programs_edit_part_allowed_speaker_label()}</Label>
-                <RolePicker
-                  key={`speaker-${pickerKey}`}
-                  roles={roles}
-                  selectedIds={part?.allowedSpeakerRoleIds ?? []}
-                  name="allowedSpeakerRoleIds"
-                  idPrefix={`part-speaker-${pickerKey}`}
-                  defaultLabel={defaultChipLabel}
-                />
-                <p className="text-muted-foreground text-xs">{m.programs_edit_part_external_speaker_note()}</p>
-              </div>
+              {!selectedPreset && (
+                <div className="flex flex-col gap-2">
+                  <Label>{m.programs_edit_part_allowed_speaker_label()}</Label>
+                  <RolePicker
+                    key={`speaker-${pickerKey}`}
+                    roles={roles}
+                    selectedIds={part?.allowedSpeakerRoleIds ?? []}
+                    name="allowedSpeakerRoleIds"
+                    idPrefix={`part-speaker-${pickerKey}`}
+                    defaultLabel={defaultChipLabel}
+                  />
+                  <p className="text-muted-foreground text-xs">{m.programs_edit_part_external_speaker_note()}</p>
+                </div>
+              )}
             </div>
           </section>
 

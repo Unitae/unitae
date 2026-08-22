@@ -88,8 +88,10 @@ export async function upsertTemplatePart(
     // The kind this part defaults to. Null where the template genuinely cannot
     // know — the ministry parts change kind weekly and are set per event.
     presetId?: number | null
-    allowedSpeakerRoleIds: number[]
-    allowedReaderRoleIds: number[]
+    // Optional on purpose: undefined means the editor did not manage the slot,
+    // [] means it did and the selection is empty. See partAllowedRolesToWrite.
+    allowedSpeakerRoleIds?: number[]
+    allowedReaderRoleIds?: number[]
   },
   congregationId: number,
   actorId: number,
@@ -116,20 +118,13 @@ export async function upsertTemplatePart(
         data: { ...baseData, templateId, congregationId },
       })
 
-  const speakerDiff = await setTemplatePartAllowedRoles(
-    db,
-    part.id,
-    'speaker',
-    partData.allowedSpeakerRoleIds,
-    congregationId,
-  )
-  const readerDiff = await setTemplatePartAllowedRoles(
-    db,
-    part.id,
-    'reader',
-    partData.allowedReaderRoleIds,
-    congregationId,
-  )
+  const noChange = { added: [] as number[], removed: [] as number[] }
+  const speakerDiff = partData.allowedSpeakerRoleIds
+    ? await setTemplatePartAllowedRoles(db, part.id, 'speaker', partData.allowedSpeakerRoleIds, congregationId)
+    : noChange
+  const readerDiff = partData.allowedReaderRoleIds
+    ? await setTemplatePartAllowedRoles(db, part.id, 'reader', partData.allowedReaderRoleIds, congregationId)
+    : noChange
 
   if (
     speakerDiff.added.length > 0 ||

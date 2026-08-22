@@ -188,6 +188,35 @@ describe('getPartAssignmentAllowedRoleIds with a preset', () => {
   })
 })
 
+describe('setPartAssignmentAllowedRoles on a part that carries a kind', () => {
+  // The read side resolves the kind first, so it answers "who may fill this
+  // slot". The write side must not reuse that answer as its baseline: the rows
+  // it adds and deletes belong to the part, and diffing them against the kind's
+  // list makes every write wrong in a different way.
+  it("clears the part's own rows when the selection is emptied", async () => {
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({ presetId: 55 } as never)
+    vi.mocked(db.partPresetAllowedRole.findMany).mockResolvedValue([{ roleId: 700 }] as never)
+    vi.mocked(db.eventPartAllowedRole.findMany).mockResolvedValue([{ roleId: 42 }] as never)
+
+    const diff = await setPartAssignmentAllowedRoles(db, 9, 'speaker', [], 1)
+
+    expect(diff.removed).toEqual([42])
+    expect(vi.mocked(db.eventPartAllowedRole.deleteMany).mock.calls[0]?.[0]?.where?.roleId).toEqual({ in: [42] })
+  })
+
+  it('reports no change when the selection already matches the part', async () => {
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({ presetId: 55 } as never)
+    vi.mocked(db.partPresetAllowedRole.findMany).mockResolvedValue([{ roleId: 700 }] as never)
+    vi.mocked(db.eventPartAllowedRole.findMany).mockResolvedValue([{ roleId: 42 }] as never)
+
+    const diff = await setPartAssignmentAllowedRoles(db, 9, 'speaker', [42], 1)
+
+    expect(diff).toEqual({ added: [], removed: [] })
+    expect(db.eventPartAllowedRole.createMany).not.toHaveBeenCalled()
+    expect(db.eventPartAllowedRole.deleteMany).not.toHaveBeenCalled()
+  })
+})
+
 describe('setPartPresetAllowedRoles', () => {
   it('adds only the roles that are missing', async () => {
     vi.mocked(db.partPresetAllowedRole.findMany).mockResolvedValue([{ roleId: 1 }] as never)
