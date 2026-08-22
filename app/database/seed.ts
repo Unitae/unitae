@@ -4,6 +4,12 @@ import { seedDefaultTemplates } from '../features/events/server/seed-templates.s
 import { seedBuiltInRoles, seedPermissions } from '../shared/domain/setup.server'
 import { PrismaClient } from './generated/client'
 
+const DEFAULT_SLUG = 'ma-congregation'
+
+// Written by this seed before the domain was removed; kept only so existing
+// installs are recognised rather than duplicated.
+const LEGACY_PLACEHOLDER_DOMAIN = 'ma-congregation.example.com'
+
 const adapter = new PrismaPg({ connectionString: process.env.DB_URL })
 const prisma = new PrismaClient({ adapter })
 async function main() {
@@ -17,15 +23,24 @@ async function main() {
   if (process.env.UNITAE_MULTI_TENANT !== 'true') {
     const seedLocale = 'fr'
 
-    const defaultCongregation = await prisma.congregation.upsert({
-      where: { slug: 'ma-congregation' },
-      update: {},
-      create: {
-        name: 'Ma Congrégation',
-        slug: 'ma-congregation',
-        domain: 'ma-congregation.example.com',
-      },
+    // Match on either field: the slug is what this seed creates, but installs
+    // seeded before this change carry the placeholder domain and may since have
+    // been renamed. Upserting on slug alone would miss those and then collide
+    // on the unique domain, which is how this script came to fail outright.
+    const existing = await prisma.congregation.findFirst({
+      where: { OR: [{ slug: DEFAULT_SLUG }, { domain: LEGACY_PLACEHOLDER_DOMAIN }] },
     })
+
+    // No domain is set. It exists for multi-tenant custom-domain resolution and
+    // means nothing single-tenant — but resolveCongregation reads it as the
+    // highest-priority source for baseUrl, so a placeholder here sent every
+    // email link and share message to a hostname that does not exist.
+    // Leaving it null lets baseUrl fall through to UNITAE_BASE_URL.
+    const defaultCongregation =
+      existing ??
+      (await prisma.congregation.create({
+        data: { name: 'Ma Congrégation', slug: DEFAULT_SLUG },
+      }))
 
     await seedDefaultTemplates(prisma, defaultCongregation.id, seedLocale)
     await seedBuiltInRoles(prisma, defaultCongregation.id)

@@ -412,6 +412,31 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
         }),
     },
     {
+      name: 'part-presets',
+      export: () =>
+        db.partPreset.findMany({
+          select: {
+            id: true,
+            key: true,
+            name: true,
+            scope: true,
+            hasReaderSlot: true,
+            speakerLabel: true,
+            readerLabel: true,
+            allowExternalSpeaker: true,
+            shareMessage: true,
+            isSystem: true,
+          },
+        }),
+    },
+    {
+      name: 'part-preset-allowed-roles',
+      export: () =>
+        db.partPresetAllowedRole.findMany({
+          select: { presetId: true, roleId: true, asKind: true },
+        }),
+    },
+    {
       name: 'programme-templates',
       export: () =>
         db.eventTemplate.findMany({
@@ -440,6 +465,7 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
             durationMin: true,
             allowExternalSpeaker: true,
             templateId: true,
+            presetId: true,
           },
         }),
     },
@@ -454,7 +480,7 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
       name: 'programme-template-service-roles',
       export: () =>
         db.templateServicePart.findMany({
-          select: { id: true, name: true, key: true, templateId: true },
+          select: { id: true, name: true, key: true, templateId: true, presetId: true },
         }),
     },
     {
@@ -504,6 +530,7 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
             durationMin: true,
             eventId: true,
             partId: true,
+            presetId: true,
             assigneeId: true,
             assistantId: true,
             allowExternalSpeaker: true,
@@ -534,6 +561,7 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
             name: true,
             eventId: true,
             servicePartId: true,
+            presetId: true,
             assigneeId: true,
           },
         }),

@@ -60,6 +60,7 @@ export async function importEventParts(
     durationMin: number | null
     eventId: number
     partId: number | null
+    presetId?: number | null
     assigneeId: number | null
     assistantId: number | null
     allowExternalSpeaker?: boolean
@@ -83,6 +84,9 @@ export async function importEventParts(
         durationMin: record.durationMin,
         eventId,
         partId: idMap.getOptional('programme-template-parts', record.partId),
+        // Absent in pre-2.5 archives, which resolves to null — the part simply
+        // arrives with no kind, as it would before the backfill runs.
+        presetId: idMap.getOptional('part-presets', record.presetId),
         assigneeId: idMap.getOptional('members', record.assigneeId),
         assistantId: idMap.getOptional('members', record.assistantId),
         allowExternalSpeaker: record.allowExternalSpeaker ?? false,
@@ -107,6 +111,7 @@ export async function importEventServiceParts(
     name: string
     eventId: number
     servicePartId: number | null
+    presetId?: number | null
     assigneeId: number | null
   }>(zip, 'programme-service-role-assignments')
 
@@ -121,6 +126,7 @@ export async function importEventServiceParts(
         name: record.name,
         eventId,
         servicePartId: idMap.getOptional('programme-template-service-roles', record.servicePartId),
+        presetId: idMap.getOptional('part-presets', record.presetId),
         assigneeId: idMap.getOptional('members', record.assigneeId),
         congregationId,
       },

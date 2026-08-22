@@ -75,10 +75,12 @@ describe('EntityIdMap', () => {
 })
 
 describe('ARCHIVE_VERSION', () => {
-  it('is the current 2.4 schema version', () => {
-    expect(ARCHIVE_VERSION).toBe('2.4')
+  it('is the current 2.5 schema version', () => {
+    expect(ARCHIVE_VERSION).toBe('2.5')
   })
 })
+
+type EntityFile = (typeof ENTITY_FILES)[number]
 
 describe('ENTITY_FILES', () => {
   it('contains the expected entity types in dependency order', () => {
@@ -108,6 +110,20 @@ describe('ENTITY_FILES', () => {
   it('has members before pioneer-enrolments (dependency order)', () => {
     expect(ENTITY_FILES).toContain('pioneer-enrolments')
     expect(ENTITY_FILES.indexOf('members')).toBeLessThan(ENTITY_FILES.indexOf('pioneer-enrolments'))
+  })
+
+  const PRESET_ORDERING: [EntityFile, EntityFile][] = [
+    ['roles', 'part-presets'],
+    ['part-presets', 'part-preset-allowed-roles'],
+    ['part-presets', 'programme-template-parts'],
+    ['part-presets', 'programme-part-assignments'],
+  ]
+
+  it.each(PRESET_ORDERING)('has %s before %s (dependency order)', (before, after) => {
+    // The importer resolves presetId through the id map filled by the presets
+    // step. Reordering these would not fail a type check — the parts would
+    // simply import with no kind, and their share messages would vanish.
+    expect(ENTITY_FILES.indexOf(before)).toBeLessThan(ENTITY_FILES.indexOf(after))
   })
 
   it('has territories before attributions (dependency order)', () => {

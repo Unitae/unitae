@@ -2705,5 +2705,7 @@
     "settings_presets_error_in_use_count": "Ce type est encore utilisé par {count} partie(s) du programme.",
     "programs_share_button_label": "Envoyer l'assignation à {name}",
     "programs_share_copied": "Message copié.",
-    "programs_share_failed": "Le partage a échoué."
+    "programs_share_failed": "Le partage a échoué.",
+    "settings_congregation_part_presets_title": "Types de parties",
+    "settings_congregation_part_presets_desc": "Ce qu'est chaque partie du programme, et le message envoyé à la personne assignée."
 }

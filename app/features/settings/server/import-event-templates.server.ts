@@ -66,6 +66,7 @@ export async function importTemplateParts(
     durationMin: number | null
     allowExternalSpeaker: boolean
     templateId: number
+    presetId?: number | null
   }>(zip, 'programme-template-parts')
 
   for (const record of records) {
@@ -82,6 +83,8 @@ export async function importTemplateParts(
         durationMin: record.durationMin,
         allowExternalSpeaker: record.allowExternalSpeaker,
         templateId,
+        // Absent in pre-2.5 archives, which resolves to null.
+        presetId: idMap.getOptional('part-presets', record.presetId),
         congregationId,
       },
     })
@@ -100,6 +103,7 @@ export async function importTemplateServiceParts(
     name: string
     key: string
     templateId: number
+    presetId?: number | null
   }>(zip, 'programme-template-service-roles')
 
   for (const record of records) {
@@ -111,6 +115,7 @@ export async function importTemplateServiceParts(
         name: record.name,
         key: record.key,
         templateId,
+        presetId: idMap.getOptional('part-presets', record.presetId),
         congregationId,
       },
     })

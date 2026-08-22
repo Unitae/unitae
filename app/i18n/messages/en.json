@@ -2705,5 +2705,7 @@
     "settings_presets_error_in_use_count": "This type is still used by {count} programme part(s).",
     "programs_share_button_label": "Send the assignment to {name}",
     "programs_share_copied": "Message copied.",
-    "programs_share_failed": "Sharing failed."
+    "programs_share_failed": "Sharing failed.",
+    "settings_congregation_part_presets_title": "Part types",
+    "settings_congregation_part_presets_desc": "What each programme part is, and the message sent to the assigned person."
 }

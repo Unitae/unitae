@@ -1,6 +1,6 @@
 import { getFormProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
-import { CalendarDays, Target } from 'lucide-react'
+import { CalendarDays, Tags, Target } from 'lucide-react'
 import { data, Form, redirect } from 'react-router'
 import { congregationSettingsSchema } from '~/features/settings/schemas/congregation-settings.schema'
 import { updateCongregationSettings } from '~/features/settings/server/congregation-settings.server'
@@ -129,6 +129,12 @@ export default function CongregationSettingsPage({ loaderData, actionData }: Rou
             title={m.settings_congregation_event_templates_title()}
             description={m.settings_congregation_event_templates_desc()}
             href="./templates"
+          />
+          <SettingsNavCard
+            icon={Tags}
+            title={m.settings_congregation_part_presets_title()}
+            description={m.settings_congregation_part_presets_desc()}
+            href="./presets"
           />
         </section>
       )}

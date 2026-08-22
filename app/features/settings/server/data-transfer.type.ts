@@ -1,4 +1,4 @@
-export const ARCHIVE_VERSION = '2.4'
+export const ARCHIVE_VERSION = '2.5'
 
 // Older archive versions an import will still accept. v1.0 archives miss every
 // post-shipping feature table (custom roles, allowed-roles, external speakers,
@@ -15,10 +15,14 @@ export const ARCHIVE_VERSION = '2.4'
 // import fine with no overrides, so pioneers fall back to the built-in default
 // rates. v2.4 adds `pioneer-enrolments.ndjson`; pre-2.4 archives have no
 // enrolments, so the import backfills them from the activity history as a
-// post-import step. v1.x archives are listed here so the import path reports
+// post-import step. v2.5 adds `part-presets.ndjson` and
+// `part-preset-allowed-roles.ndjson`, and carries `presetId` on the four
+// programme part tables; pre-2.5 archives simply import with every part
+// unlinked, which is the same state a congregation is in before the backfill
+// script runs, so nothing downstream needs to special-case it. v1.x archives are listed here so the import path reports
 // them with a warning rather than rejecting outright; a compatibility shim that
 // splits legacy `users.ndjson` is a deferred follow-up.
-export const SUPPORTED_ARCHIVE_VERSIONS = ['1.0', '1.1', '2.0', '2.1', '2.2', '2.3', '2.4'] as const
+export const SUPPORTED_ARCHIVE_VERSIONS = ['1.0', '1.1', '2.0', '2.1', '2.2', '2.3', '2.4', '2.5'] as const
 
 export interface ManifestJson {
   version: string
@@ -72,6 +76,8 @@ export const ENTITY_FILES = [
   'territory-entrance-links',
   'building-entrance-links',
   'attributions',
+  'part-presets',
+  'part-preset-allowed-roles',
   'programme-templates',
   'programme-template-parts',
   'programme-template-part-allowed-roles',
