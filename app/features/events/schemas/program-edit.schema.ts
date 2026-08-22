@@ -15,6 +15,21 @@ const partRoleLabelField = z
   .optional()
   .transform(v => (v == null || v === '' ? undefined : v))
 
+// Which kind of part this is. The <select> submits '' for the blank "no kind"
+// option and the field is absent when the form omits it; both mean "no preset",
+// and both must land as an explicit null. Letting z.coerce.number() see '' would
+// produce 0 — a dangling foreign key — and letting it stay undefined would leave
+// a previously chosen preset silently in place.
+// Radix's Select forbids an empty-string item value, so the "no kind" option
+// carries this sentinel instead. It means exactly what '' and an absent field
+// mean: no preset.
+export const NO_PRESET_VALUE = 'none'
+
+const partPresetField = z.preprocess(
+  v => (v == null || v === '' || v === NO_PRESET_VALUE ? null : v),
+  z.coerce.number().int().positive().nullable(),
+)
+
 export const updateEventSchema = z.object({
   intent: z.literal('update-event'),
   name: z.string().min(1),
@@ -37,6 +52,7 @@ export const addPartSchema = z.object({
     .transform(v => v === 'on'),
   partSpeakerLabel: partRoleLabelField,
   partReaderLabel: partRoleLabelField,
+  partPresetId: partPresetField,
   allowedSpeakerRoleIds: roleIdsField.default([]),
   allowedReaderRoleIds: roleIdsField.default([]),
 })
@@ -72,6 +88,7 @@ export const updatePartSchema = z.object({
     .transform(v => v === 'on'),
   partSpeakerLabel: partRoleLabelField,
   partReaderLabel: partRoleLabelField,
+  partPresetId: partPresetField,
   allowedSpeakerRoleIds: roleIdsField.default([]),
   allowedReaderRoleIds: roleIdsField.default([]),
 })

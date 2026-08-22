@@ -261,6 +261,57 @@ describe('addPartAssignment', () => {
     expect(mockDb.eventPart.create).toHaveBeenCalledWith({ data: createData })
   })
 
+  it('writes the chosen preset onto the assignment', async () => {
+    mockDb.eventPart.create.mockResolvedValue({ id: 1 })
+
+    await addPartAssignment(
+      mockDb as never,
+      {
+        eventId: 1,
+        name: '1re partie',
+        section: 'Appliquons-nous au ministère',
+        track: '',
+        order: 5,
+        durationMin: null,
+        allowExternalSpeaker: false,
+        // 4242 is a sentinel: far from any array index, so a pass-through
+        // cannot be confused with a coincidental value.
+        presetId: 4242,
+        allowedSpeakerRoleIds: [],
+        allowedReaderRoleIds: [],
+        congregationId: 10,
+      },
+      99,
+    )
+
+    expect(mockDb.eventPart.create.mock.calls[0][0].data.presetId).toBe(4242)
+  })
+
+  it('writes a null preset when the part has no kind', async () => {
+    // The ministry parts and songs legitimately have none.
+    mockDb.eventPart.create.mockResolvedValue({ id: 1 })
+
+    await addPartAssignment(
+      mockDb as never,
+      {
+        eventId: 1,
+        name: 'Cantique',
+        section: '',
+        track: '',
+        order: 8,
+        durationMin: 5,
+        allowExternalSpeaker: false,
+        presetId: null,
+        allowedSpeakerRoleIds: [],
+        allowedReaderRoleIds: [],
+        congregationId: 10,
+      },
+      99,
+    )
+
+    expect(mockDb.eventPart.create.mock.calls[0][0].data.presetId).toBeNull()
+  })
+
   it('passes speakerLabel and readerLabel to create when supplied (Layer 5)', async () => {
     mockDb.eventPart.create.mockResolvedValue({ id: 1 })
 
@@ -286,6 +337,58 @@ describe('addPartAssignment', () => {
     expect(mockDb.eventPart.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ speakerLabel: 'STUDENT-SENTINEL', readerLabel: 'HOUSEHOLDER-SENTINEL' }),
     })
+  })
+})
+
+describe('updatePartAssignment preset', () => {
+  it('changes the kind of an existing assignment', async () => {
+    // Load-bearing: "1re partie" is a demonstration one week and a talk the
+    // next, so the kind must be settable per event, not only per template.
+    mockDb.eventPart.update.mockResolvedValue({ id: 3 })
+
+    await updatePartAssignment(
+      mockDb as never,
+      3,
+      {
+        name: '1re partie',
+        section: 'Appliquons-nous au ministère',
+        track: '',
+        order: 5,
+        durationMin: null,
+        allowExternalSpeaker: false,
+        presetId: 4242,
+        allowedSpeakerRoleIds: [],
+        allowedReaderRoleIds: [],
+      },
+      10,
+      99,
+    )
+
+    expect(mockDb.eventPart.update.mock.calls[0][0].data.presetId).toBe(4242)
+  })
+
+  it('clears the kind back to none', async () => {
+    mockDb.eventPart.update.mockResolvedValue({ id: 3 })
+
+    await updatePartAssignment(
+      mockDb as never,
+      3,
+      {
+        name: '1re partie',
+        section: '',
+        track: '',
+        order: 5,
+        durationMin: null,
+        allowExternalSpeaker: false,
+        presetId: null,
+        allowedSpeakerRoleIds: [],
+        allowedReaderRoleIds: [],
+      },
+      10,
+      99,
+    )
+
+    expect(mockDb.eventPart.update.mock.calls[0][0].data.presetId).toBeNull()
   })
 })
 
@@ -480,6 +583,55 @@ describe('applyTemplateToEvent', () => {
       speakerLabel: 'STUDENT-SENTINEL-P2',
       readerLabel: 'HOUSEHOLDER-SENTINEL-P2',
     })
+  })
+
+  it('copies presetId from template parts to assignments', async () => {
+    // Regression: applyTemplateToEvent is the second template -> event path
+    // (generateEventsFromTemplate is the other). It copied the labels but
+    // dropped the preset, so applying a template to an existing event produced
+    // parts with no kind — and therefore no share message.
+    // Distinct sentinels per part so a copy that swaps them still fails.
+    const template = {
+      id: 5,
+      name: 'Reunion',
+      parts: [
+        {
+          id: 10,
+          name: 'Lecture de la Bible',
+          section: 'main',
+          track: 'A',
+          order: 1,
+          durationMin: 5,
+          speakerLabel: null,
+          readerLabel: null,
+          presetId: 7101,
+          allowedRoles: [],
+        },
+        {
+          id: 11,
+          name: 'Cantique',
+          section: '',
+          track: '',
+          order: 2,
+          durationMin: 5,
+          speakerLabel: null,
+          readerLabel: null,
+          // Songs legitimately have no kind — null must survive as null.
+          presetId: null,
+          allowedRoles: [],
+        },
+      ],
+      serviceParts: [],
+    }
+    mockDb.eventTemplate.findFirst.mockResolvedValue(template)
+    mockDb.event.update.mockResolvedValue({})
+    mockDb.eventPart.create.mockResolvedValue({ id: 999 })
+
+    await applyTemplateToEvent(mockDb as never, 1, 5, 10, 42)
+
+    const calls = mockDb.eventPart.create.mock.calls
+    expect(calls[0][0].data.presetId).toBe(7101)
+    expect(calls[1][0].data.presetId).toBeNull()
   })
 
   it('copies non-empty allowed-role lists from template parts and service roles to assignments', async () => {

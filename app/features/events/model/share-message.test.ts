@@ -79,6 +79,20 @@ describe('renderShareMessage', () => {
     expect(renderShareMessage('{{partName}} {{nope}}', context())).toBe('Lecture de la Bible')
   })
 
+  it('normalizes CRLF line endings', () => {
+    // Bodies get pasted in from word processors; a stray \r must not ride along
+    // into the sent message.
+    const body = 'Bonjour {{assigneeFirstname}},\r\nTu as {{partName}}.'
+
+    expect(renderShareMessage(body, context())).toBe('Bonjour Jean,\nTu as Lecture de la Bible.')
+  })
+
+  it('renders every occurrence when a variable is repeated', () => {
+    const body = '{{assigneeFirstname}}, {{assigneeFirstname}} — {{partName}}'
+
+    expect(renderShareMessage(body, context())).toBe('Jean, Jean — Lecture de la Bible')
+  })
+
   it('does not re-expand a variable produced by a substitution', () => {
     const body = 'Sujet : {{topic}}'
 

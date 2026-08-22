@@ -176,6 +176,58 @@ describe('generateEventsFromTemplate', () => {
     expect(secondData.readerLabel).toBe('HOUSEHOLDER-SENTINEL-P2')
   })
 
+  it('copies presetId from template parts to assignments', async () => {
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({
+      id: 1,
+      name: 'Réunion de semaine',
+      weekDay: 2,
+      kindId: null,
+      startTime: '19:00',
+      endTime: '21:00',
+      parts: [
+        {
+          id: 10,
+          name: 'Lecture de la Bible',
+          section: '',
+          track: '',
+          order: 1,
+          durationMin: 4,
+          allowExternalSpeaker: false,
+          speakerLabel: null,
+          readerLabel: null,
+          // Distinct sentinels so an ordering regression fails visibly.
+          presetId: 7201,
+          allowedRoles: [],
+        },
+        {
+          id: 11,
+          name: '1re partie',
+          section: 'Appliquons-nous au ministère',
+          track: '',
+          order: 2,
+          durationMin: null,
+          allowExternalSpeaker: false,
+          speakerLabel: null,
+          readerLabel: null,
+          // The ministry parts have no kind until someone sets it on the event.
+          presetId: null,
+          allowedRoles: [],
+        },
+      ],
+      serviceParts: [],
+    } as never)
+    vi.mocked(db.event.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.event.create).mockResolvedValue({ id: 1 } as never)
+    vi.mocked(db.eventPart.create).mockResolvedValue({} as never)
+
+    await generateEventsFromTemplate(db, 1, 1, 1, 1, TZ)
+
+    const calls = vi.mocked(db.eventPart.create).mock.calls
+    expect(calls.length).toBeGreaterThanOrEqual(2)
+    expect((calls[0][0] as { data: { presetId: number | null } }).data.presetId).toBe(7201)
+    expect((calls[1][0] as { data: { presetId: number | null } }).data.presetId).toBeNull()
+  })
+
   it('copies allowExternalSpeaker from template parts to assignments', async () => {
     vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({
       id: 1,

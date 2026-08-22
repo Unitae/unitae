@@ -1,9 +1,12 @@
 // A share message is the SMS/WhatsApp text a programme manager sends to the
 // person they just assigned. The body lives on the preset (the "kind" of the
 // part) and is written with {{variable}} placeholders; this module turns one
-// into finished text. Pure and client-safe on purpose — the preset editor
-// renders a live preview with it, and the share button reuses the very same
-// function server-side, so what the manager previews is what gets sent.
+// into finished text.
+//
+// Pure and client-safe by design, so that the preset editor and the share
+// button can call the identical function and a preview cannot drift from what
+// is actually sent. Neither of those callers exists yet — today this is
+// exercised only by tests and by the seeded-catalogue checks.
 
 // Every placeholder a preset body may use. Adding one here is what makes it
 // legal in `findUnknownVariables`, so the editor rejects typos at save time
@@ -100,7 +103,11 @@ function renderLine(line: string, context: ShareMessageContext): string | null {
 }
 
 export function renderShareMessage(body: string, context: ShareMessageContext): string {
+  // Normalize line endings first. Congregations paste these bodies in from
+  // word processors, and a stray \r would otherwise ride along into the sent
+  // message on every line the drop rule does not remove.
   return body
+    .replace(/\r\n?/g, '\n')
     .split('\n')
     .map(line => renderLine(line, context))
     .filter(line => line !== null)

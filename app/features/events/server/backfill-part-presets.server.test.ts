@@ -101,14 +101,18 @@ describe('backfillCongregationPartPresets', () => {
     expect(result.unmatched).toBe(1)
   })
 
-  it('skips a matched name whose preset row is absent rather than writing a bad id', async () => {
+  it('reports a missing preset row separately from an unrecognised part', async () => {
+    // Both leave the part unlinked, but they mean different things: an
+    // unrecognised part is expected, whereas a rule matching with no preset row
+    // means seeding never ran. Lumping them together would hide the fault.
     const db = makeDb([part(1, 'Lecture de la Bible')])
     db.partPreset.findMany.mockResolvedValue([] as never)
 
     const result = await backfillCongregationPartPresets(db as never, 1, 'fr')
 
     expect(db.templatePart.update).not.toHaveBeenCalled()
-    expect(result.unmatched).toBe(1)
+    expect(result.missingPresets).toBe(1)
+    expect(result.unmatched).toBe(0)
   })
 
   it('reports nothing to do when every part is already linked', async () => {
@@ -116,6 +120,6 @@ describe('backfillCongregationPartPresets', () => {
 
     const result = await backfillCongregationPartPresets(db as never, 1, 'fr')
 
-    expect(result).toEqual({ templateParts: 0, eventParts: 0, unmatched: 0 })
+    expect(result).toEqual({ templateParts: 0, eventParts: 0, unmatched: 0, missingPresets: 0 })
   })
 })

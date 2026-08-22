@@ -49,6 +49,18 @@ const partRoleLabelField = z
   .optional()
   .transform(v => (v == null || v === '' ? undefined : v))
 
+// Same rules as the program-edit.schema equivalent — kept local for the same
+// reason as the label field above. Change both together.
+// Radix's Select forbids an empty-string item value, so the "no kind" option
+// carries this sentinel instead. It means exactly what '' and an absent field
+// mean: no preset.
+export const NO_PRESET_VALUE = 'none'
+
+const partPresetField = z.preprocess(
+  v => (v == null || v === '' || v === NO_PRESET_VALUE ? null : v),
+  z.coerce.number().int().positive().nullable(),
+)
+
 export const upsertPartSchema = z.object({
   intent: z.literal('upsert-part'),
   partId: z.coerce.number().optional(),
@@ -64,6 +76,7 @@ export const upsertPartSchema = z.object({
     .transform(v => v === 'on'),
   partSpeakerLabel: partRoleLabelField,
   partReaderLabel: partRoleLabelField,
+  partPresetId: partPresetField,
   allowedSpeakerRoleIds: roleIdsField.default([]),
   allowedReaderRoleIds: roleIdsField.default([]),
 })

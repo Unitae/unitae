@@ -2,8 +2,11 @@ import { PartPresetKey } from '~/features/events/model/part-preset.type'
 import * as m from '~/i18n/paraglide/messages'
 import type { locales } from '~/i18n/paraglide/runtime'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { createLogger } from '~/shared/infra/logger.server'
 
 type Locale = (typeof locales)[number]
+
+const logger = createLogger('backfill-part-presets')
 
 // A rule matches a part by the name the seed gave it, optionally narrowed by
 // section. `section: undefined` means the name alone is decisive.
@@ -57,7 +60,15 @@ interface PartRow {
 export interface PartPresetBackfillResult {
   templateParts: number
   eventParts: number
+  /** Parts no rule identified. Expected: the ministry parts and songs. */
   unmatched: number
+  /**
+   * Parts a rule *did* identify but whose preset row is absent — which means
+   * seeding did not run or did not complete. Counted separately from
+   * `unmatched` because that is a data-integrity fault, not the expected
+   * "we decline to guess" outcome, and lumping the two together would hide it.
+   */
+  missingPresets: number
 }
 
 // Compares on a trimmed, case-folded form. Congregations routinely re-case or
@@ -94,16 +105,26 @@ export async function backfillCongregationPartPresets(
   const presetIdByKey = new Map(presets.map(preset => [preset.key, preset.id]))
   const rules = getRules(locale)
 
-  const result: PartPresetBackfillResult = { templateParts: 0, eventParts: 0, unmatched: 0 }
+  const result: PartPresetBackfillResult = { templateParts: 0, eventParts: 0, unmatched: 0, missingPresets: 0 }
 
   const templateParts = await db.templatePart.findMany({
     where: { congregationId, presetId: null },
     select: { id: true, name: true, section: true },
   })
   for (const part of templateParts) {
-    const presetId = presetIdByKey.get(findRule(rules, part)?.preset ?? '')
-    if (presetId == null) {
+    const rule = findRule(rules, part)
+    if (!rule) {
       result.unmatched += 1
+      continue
+    }
+    const presetId = presetIdByKey.get(rule.preset)
+    if (presetId == null) {
+      logger.warn('preset row missing for an identified part; leaving it unlinked', {
+        congregationId,
+        preset: rule.preset,
+        partName: part.name,
+      })
+      result.missingPresets += 1
       continue
     }
     await db.templatePart.update({ where: { id_congregationId: { id: part.id, congregationId } }, data: { presetId } })
@@ -115,9 +136,19 @@ export async function backfillCongregationPartPresets(
     select: { id: true, name: true, section: true },
   })
   for (const part of eventParts) {
-    const presetId = presetIdByKey.get(findRule(rules, part)?.preset ?? '')
-    if (presetId == null) {
+    const rule = findRule(rules, part)
+    if (!rule) {
       result.unmatched += 1
+      continue
+    }
+    const presetId = presetIdByKey.get(rule.preset)
+    if (presetId == null) {
+      logger.warn('preset row missing for an identified part; leaving it unlinked', {
+        congregationId,
+        preset: rule.preset,
+        partName: part.name,
+      })
+      result.missingPresets += 1
       continue
     }
     await db.eventPart.update({ where: { id_congregationId: { id: part.id, congregationId } }, data: { presetId } })

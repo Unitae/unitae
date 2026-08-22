@@ -11,6 +11,7 @@ import {
   deleteTemplateServicePart,
   getTemplateById,
   isTemplateResponsible,
+  listPartPresets,
   updateTemplate,
   upsertTemplatePart,
   upsertTemplateServicePart,
@@ -86,6 +87,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     }))
 
     const roles = allRoles.map(r => ({ id: r.id, key: r.key, name: r.name, isBuiltIn: r.isBuiltIn }))
+    const presets = await listPartPresets(db, currentUser.congregationId)
 
     const sectionSuggestions = distinct(template.parts.map(p => p.section))
     const trackSuggestions = distinct(template.parts.map(p => p.track))
@@ -94,6 +96,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
       template: { ...template, parts: partsWithRoles, serviceParts: servicePartsWithRoles },
       isSystem: isSystemTemplate(template.key),
       roles,
+      presets,
       sectionSuggestions,
       trackSuggestions,
     }
@@ -207,6 +210,7 @@ async function handlePartIntent(
       partAllowExternalSpeaker,
       partSpeakerLabel,
       partReaderLabel,
+      partPresetId,
       allowedSpeakerRoleIds,
       allowedReaderRoleIds,
     } = submission.value
@@ -224,6 +228,7 @@ async function handlePartIntent(
         allowExternalSpeaker: partAllowExternalSpeaker,
         speakerLabel: partSpeakerLabel ?? null,
         readerLabel: partReaderLabel ?? null,
+        presetId: partPresetId,
         allowedSpeakerRoleIds,
         allowedReaderRoleIds,
       },
@@ -283,7 +288,7 @@ async function handleServicePartIntent(
 }
 
 export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
-  const { template, isSystem, roles, sectionSuggestions, trackSuggestions } = loaderData
+  const { template, isSystem, roles, presets, sectionSuggestions, trackSuggestions } = loaderData
 
   const infoFetcher = useFetcher()
   const partFetcher = useFetcher()
@@ -302,6 +307,7 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
     allowExternalSpeaker: boolean
     speakerLabel: string | null
     readerLabel: string | null
+    presetId: number | null
     allowedSpeakerRoleIds: number[]
     allowedReaderRoleIds: number[]
   } | null>(null)
@@ -522,6 +528,7 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
                                         allowExternalSpeaker: part.allowExternalSpeaker,
                                         speakerLabel: part.speakerLabel,
                                         readerLabel: part.readerLabel,
+                                        presetId: part.presetId,
                                         allowedSpeakerRoleIds: part.allowedSpeakerRoleIds,
                                         allowedReaderRoleIds: part.allowedReaderRoleIds,
                                       })
@@ -635,6 +642,7 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
         fetcher={partFetcher}
         defaultOrder={template.parts.length + 1}
         roles={roles}
+        presets={presets}
         sectionSuggestions={sectionSuggestions}
         trackSuggestions={trackSuggestions}
       />

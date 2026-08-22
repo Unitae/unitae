@@ -95,6 +95,7 @@ async function handleAddPart(
     partAllowExternalSpeaker,
     partSpeakerLabel,
     partReaderLabel,
+    partPresetId,
     allowedSpeakerRoleIds,
     allowedReaderRoleIds,
   } = submission.value
@@ -111,6 +112,7 @@ async function handleAddPart(
       allowExternalSpeaker: partAllowExternalSpeaker,
       speakerLabel: partSpeakerLabel ?? null,
       readerLabel: partReaderLabel ?? null,
+      presetId: partPresetId,
       allowedSpeakerRoleIds,
       allowedReaderRoleIds,
       congregationId,
@@ -140,6 +142,7 @@ async function handleUpdatePart(
     partAllowExternalSpeaker,
     partSpeakerLabel,
     partReaderLabel,
+    partPresetId,
     allowedSpeakerRoleIds,
     allowedReaderRoleIds,
   } = submission.value
@@ -156,6 +159,7 @@ async function handleUpdatePart(
       allowExternalSpeaker: partAllowExternalSpeaker,
       speakerLabel: partSpeakerLabel ?? null,
       readerLabel: partReaderLabel ?? null,
+      presetId: partPresetId,
       allowedSpeakerRoleIds,
       allowedReaderRoleIds,
     },
