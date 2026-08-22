@@ -2719,5 +2719,8 @@
     "programs_edit_preset_edit_link": "Modifier ce type",
     "programs_edit_group_no_preset": "Sans type",
     "programs_edit_no_preset_hint": "Sans type, cette partie utilise les réglages ci-dessous et n'envoie aucun message.",
-    "programs_edit_part_allow_external_label": "Autoriser un orateur externe"
+    "programs_edit_part_allow_external_label": "Autoriser un orateur externe",
+    "settings_presets_form_speaker_roles": "Qui peut assurer le rôle principal",
+    "settings_presets_form_reader_roles": "Qui peut assurer le second rôle",
+    "settings_presets_form_roles_any": "Tous les proclamateurs"
 }

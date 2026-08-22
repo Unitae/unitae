@@ -50,5 +50,8 @@ export function listPartPresetsForSettings(db: TransactionClient, congregationId
 
 /** Returns null when the preset does not exist in this congregation. */
 export function getPartPresetById(db: TransactionClient, id: number, congregationId: number) {
-  return db.partPreset.findFirst({ where: { id, congregationId } })
+  return db.partPreset.findFirst({
+    where: { id, congregationId },
+    include: { allowedRoles: { select: { roleId: true, asKind: true } } },
+  })
 }

@@ -2719,5 +2719,8 @@
     "programs_edit_preset_edit_link": "Edit this type",
     "programs_edit_group_no_preset": "Without a type",
     "programs_edit_no_preset_hint": "Without a type, this part uses the settings below and sends no message.",
-    "programs_edit_part_allow_external_label": "Allow an external speaker"
+    "programs_edit_part_allow_external_label": "Allow an external speaker",
+    "settings_presets_form_speaker_roles": "Who can take the main role",
+    "settings_presets_form_reader_roles": "Who can take the second role",
+    "settings_presets_form_roles_any": "Any publisher"
 }

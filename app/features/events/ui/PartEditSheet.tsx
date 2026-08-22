@@ -283,17 +283,19 @@ export function PartEditSheet({
                     />
                   </div>
                 )}
-                <div className="flex flex-col gap-2">
-                  <Label>{m.programs_edit_part_allowed_reader_label()}</Label>
-                  <RolePicker
-                    key={`reader-${pickerKey}`}
-                    roles={roles}
-                    selectedIds={part?.allowedReaderRoleIds ?? []}
-                    name="allowedReaderRoleIds"
-                    idPrefix={`part-reader-${pickerKey}`}
-                    defaultLabel={defaultChipLabel}
-                  />
-                </div>
+                {!selectedPreset && (
+                  <div className="flex flex-col gap-2">
+                    <Label>{m.programs_edit_part_allowed_reader_label()}</Label>
+                    <RolePicker
+                      key={`reader-${pickerKey}`}
+                      roles={roles}
+                      selectedIds={part?.allowedReaderRoleIds ?? []}
+                      name="allowedReaderRoleIds"
+                      idPrefix={`part-reader-${pickerKey}`}
+                      defaultLabel={defaultChipLabel}
+                    />
+                  </div>
+                )}
               </div>
             </section>
           )}

@@ -7,13 +7,17 @@ vi.mock('~/shared/infra/db.server', () => ({
     memberRoleAssignment: { findMany: vi.fn() },
     templatePartAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
     eventPartAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
+    eventPart: { findFirst: vi.fn() },
+    partPresetAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
     templateServicePartAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
     eventServicePartAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
   },
 }))
 
 const {
+  getPartAssignmentAllowedRoleIds,
   resolveEligibleUserIds,
+  setPartPresetAllowedRoles,
   setTemplatePartAllowedRoles,
   setPartAssignmentAllowedRoles,
   setTemplateServicePartAllowedRoles,
@@ -143,5 +147,83 @@ describe('setServicePartAssignmentAllowedRoles', () => {
       data: [{ eventServicePartId: 400, roleId: 6, congregationId: 1 }],
       skipDuplicates: true,
     })
+  })
+})
+
+describe('getPartAssignmentAllowedRoleIds with a preset', () => {
+  it("prefers the preset's roles for the slot", async () => {
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({ presetId: 55 } as never)
+    vi.mocked(db.partPresetAllowedRole.findMany).mockResolvedValue([{ roleId: 700 }] as never)
+    vi.mocked(db.eventPartAllowedRole.findMany).mockResolvedValue([{ roleId: 1 }] as never)
+
+    expect(await getPartAssignmentAllowedRoleIds(db, 9, 'speaker', 1)).toEqual([700])
+  })
+
+  it('falls back to the part when the preset has none configured', async () => {
+    // An empty preset means "not configured", not "everyone" — reading it as
+    // authoritative would widen this part's audience to the whole congregation.
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({ presetId: 55 } as never)
+    vi.mocked(db.partPresetAllowedRole.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.eventPartAllowedRole.findMany).mockResolvedValue([{ roleId: 1 }] as never)
+
+    expect(await getPartAssignmentAllowedRoleIds(db, 9, 'speaker', 1)).toEqual([1])
+  })
+
+  it('uses the part alone when it has no preset', async () => {
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({ presetId: null } as never)
+    vi.mocked(db.eventPartAllowedRole.findMany).mockResolvedValue([{ roleId: 1 }] as never)
+
+    expect(await getPartAssignmentAllowedRoleIds(db, 9, 'speaker', 1)).toEqual([1])
+    expect(db.partPresetAllowedRole.findMany).not.toHaveBeenCalled()
+  })
+
+  it('keeps the two slots separate', async () => {
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({ presetId: 55 } as never)
+    vi.mocked(db.partPresetAllowedRole.findMany).mockResolvedValue([{ roleId: 700 }] as never)
+    vi.mocked(db.eventPartAllowedRole.findMany).mockResolvedValue([] as never)
+
+    await getPartAssignmentAllowedRoleIds(db, 9, 'reader', 1)
+
+    expect(vi.mocked(db.partPresetAllowedRole.findMany).mock.calls[0]?.[0]?.where?.asKind).toBe('reader')
+  })
+})
+
+describe('setPartPresetAllowedRoles', () => {
+  it('adds only the roles that are missing', async () => {
+    vi.mocked(db.partPresetAllowedRole.findMany).mockResolvedValue([{ roleId: 1 }] as never)
+
+    const diff = await setPartPresetAllowedRoles(db, 55, 'speaker', [1, 2], 1)
+
+    expect(diff.added).toEqual([2])
+    expect(vi.mocked(db.partPresetAllowedRole.createMany).mock.calls[0]?.[0]?.data).toEqual([
+      { presetId: 55, roleId: 2, asKind: 'speaker', congregationId: 1 },
+    ])
+  })
+
+  it('removes the roles that are no longer wanted', async () => {
+    vi.mocked(db.partPresetAllowedRole.findMany).mockResolvedValue([{ roleId: 1 }, { roleId: 2 }] as never)
+
+    const diff = await setPartPresetAllowedRoles(db, 55, 'speaker', [1], 1)
+
+    expect(diff.removed).toEqual([2])
+  })
+
+  it('writes nothing when the selection is unchanged', async () => {
+    vi.mocked(db.partPresetAllowedRole.findMany).mockResolvedValue([{ roleId: 1 }] as never)
+
+    await setPartPresetAllowedRoles(db, 55, 'speaker', [1], 1)
+
+    expect(db.partPresetAllowedRole.createMany).not.toHaveBeenCalled()
+    expect(db.partPresetAllowedRole.deleteMany).not.toHaveBeenCalled()
+  })
+
+  it('clearing every role leaves the kind unconfigured, not forbidden', async () => {
+    // Empty means "any member" downstream, so this is how a kind stops
+    // restricting rather than how it blocks everyone.
+    vi.mocked(db.partPresetAllowedRole.findMany).mockResolvedValue([{ roleId: 1 }] as never)
+
+    const diff = await setPartPresetAllowedRoles(db, 55, 'speaker', [], 1)
+
+    expect(diff.removed).toEqual([1])
   })
 })

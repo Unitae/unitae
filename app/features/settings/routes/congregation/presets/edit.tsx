@@ -4,6 +4,7 @@ import { PartPresetForm, partPresetSchema } from '~/features/events'
 import { deletePartPreset, getPartPresetById, updatePartPreset } from '~/features/events/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { listRoles } from '~/shared/domain/roles.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -41,6 +42,12 @@ export function loader({ params, context }: Route.LoaderArgs) {
     if (!preset) throw redirect(LIST_PATH)
 
     return {
+      roles: (await listRoles(db, currentUser.congregationId)).map(r => ({
+        id: r.id,
+        key: r.key,
+        name: r.name,
+        isBuiltIn: r.isBuiltIn,
+      })),
       preset: {
         name: preset.name,
         speakerLabel: preset.speakerLabel,
@@ -48,6 +55,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
         hasReaderSlot: preset.hasReaderSlot,
         allowExternalSpeaker: preset.allowExternalSpeaker,
         shareMessage: preset.shareMessage,
+        allowedSpeakerRoleIds: preset.allowedRoles.filter(r => r.asKind === 'speaker').map(r => r.roleId),
+        allowedReaderRoleIds: preset.allowedRoles.filter(r => r.asKind === 'reader').map(r => r.roleId),
       },
       isSystem: preset.isSystem,
     }
@@ -96,7 +105,7 @@ export function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function EditPresetPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { preset, isSystem } = loaderData
+  const { preset, isSystem, roles } = loaderData
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
@@ -104,7 +113,7 @@ export default function EditPresetPage({ loaderData, actionData }: Route.Compone
         title={m.settings_presets_edit_title()}
         breadcrumbs={[{ label: m.settings_presets_breadcrumb(), to: LIST_PATH }, { label: preset.name }]}
       />
-      <PartPresetForm preset={preset} isSystem={isSystem} errors={actionData?.errors} />
+      <PartPresetForm preset={preset} isSystem={isSystem} roles={roles} errors={actionData?.errors} />
 
       {!isSystem && (
         <Form method="post">

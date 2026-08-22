@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+const setPartPresetAllowedRoles = vi.fn().mockResolvedValue({ added: [], removed: [] })
+vi.mock('~/features/events/server/allowed-roles.server', () => ({
+  setPartPresetAllowedRoles: (...args: unknown[]) => setPartPresetAllowedRoles(...args),
+}))
+
 vi.mock('~/shared/domain/audit.server', () => ({
   audit: vi.fn(),
   AuditAction: {
@@ -31,6 +36,8 @@ function input(overrides: Record<string, unknown> = {}) {
     readerLabel: null,
     allowExternalSpeaker: true,
     shareMessage: 'Bonjour {{assigneeFirstname}}, tu as {{partName}} le {{date}}.',
+    allowedSpeakerRoleIds: [],
+    allowedReaderRoleIds: [],
     ...overrides,
   }
 }
@@ -45,6 +52,7 @@ function updatedData(db: ReturnType<typeof makeDb>) {
 
 beforeEach(() => {
   vi.resetAllMocks()
+  setPartPresetAllowedRoles.mockResolvedValue({ added: [], removed: [] })
 })
 
 describe('createPartPreset', () => {
@@ -273,5 +281,40 @@ describe('deletePartPreset', () => {
 
     expect(await deletePartPreset(db as never, 5, 1, 7)).toEqual({ ok: true, name: 'Discours' })
     expect(db.partPreset.delete).toHaveBeenCalled()
+  })
+})
+
+describe('preset allowed roles', () => {
+  it('stores the roles chosen for each slot', async () => {
+    const db = makeDb()
+
+    await createPartPreset(
+      db as never,
+      input({ hasReaderSlot: true, allowedSpeakerRoleIds: [4], allowedReaderRoleIds: [9] }),
+      1,
+      7,
+    )
+
+    expect(setPartPresetAllowedRoles).toHaveBeenCalledWith(expect.anything(), 1, 'speaker', [4], 1)
+    expect(setPartPresetAllowedRoles).toHaveBeenCalledWith(expect.anything(), 1, 'reader', [9], 1)
+  })
+
+  it('clears reader roles for a kind that has no reader slot', async () => {
+    // Otherwise the selection applies to a slot nobody is ever offered, and
+    // silently comes back if the slot is re-enabled later.
+    const db = makeDb()
+
+    await createPartPreset(db as never, input({ hasReaderSlot: false, allowedReaderRoleIds: [9] }), 1, 7)
+
+    expect(setPartPresetAllowedRoles).toHaveBeenCalledWith(expect.anything(), 1, 'reader', [], 1)
+  })
+
+  it('writes them on update too', async () => {
+    const db = makeDb()
+    db.partPreset.findFirst.mockResolvedValue({ id: 5, key: 'x', isSystem: false } as never)
+
+    await updatePartPreset(db as never, 5, input({ allowedSpeakerRoleIds: [4] }), 1, 7)
+
+    expect(setPartPresetAllowedRoles).toHaveBeenCalledWith(expect.anything(), 5, 'speaker', [4], 1)
   })
 })

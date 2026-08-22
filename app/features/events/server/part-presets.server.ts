@@ -1,4 +1,5 @@
 import { PartPresetScope } from '~/features/events/model/part-preset.type'
+import { setPartPresetAllowedRoles } from '~/features/events/server/allowed-roles.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -12,6 +13,8 @@ export interface PartPresetInput {
   readerLabel: string | null
   allowExternalSpeaker: boolean
   shareMessage: string
+  allowedSpeakerRoleIds: number[]
+  allowedReaderRoleIds: number[]
 }
 
 /**
@@ -62,6 +65,29 @@ function isUniqueViolation(error: unknown): boolean {
   return typeof error === 'object' && error !== null && (error as { code?: string }).code === 'P2002'
 }
 
+/**
+ * Eligibility for the two slots.
+ *
+ * A kind with no reader slot cannot have reader roles — the selection would
+ * apply to a slot that is never offered, and would come back into effect if the
+ * slot were later re-enabled without anyone revisiting it.
+ */
+async function writeAllowedRoles(
+  db: TransactionClient,
+  presetId: number,
+  data: PartPresetInput,
+  congregationId: number,
+): Promise<void> {
+  await setPartPresetAllowedRoles(db, presetId, 'speaker', data.allowedSpeakerRoleIds, congregationId)
+  await setPartPresetAllowedRoles(
+    db,
+    presetId,
+    'reader',
+    data.hasReaderSlot ? data.allowedReaderRoleIds : [],
+    congregationId,
+  )
+}
+
 export async function createPartPreset(
   db: TransactionClient,
   data: PartPresetInput,
@@ -91,6 +117,8 @@ export async function createPartPreset(
     }
   }
   if (!preset) throw new Error('createPartPreset: no preset created')
+
+  await writeAllowedRoles(db, preset.id, data, congregationId)
 
   audit({
     action: AuditAction.PartPresetCreated,
@@ -125,6 +153,8 @@ export async function updatePartPreset(
     where: { id_congregationId: { id, congregationId } },
     data: normalize(data),
   })
+
+  await writeAllowedRoles(db, id, data, congregationId)
 
   audit({
     action: AuditAction.PartPresetUpdated,

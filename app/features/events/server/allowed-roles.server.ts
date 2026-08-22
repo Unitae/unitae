@@ -1,3 +1,4 @@
+import { resolveAllowedRoleIds } from '~/features/events/model/allowed-roles-resolution'
 import { findMembersWithAnyRole } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -53,6 +54,14 @@ async function getTemplatePartAllowedRoleIds(
   return rows.map(r => r.roleId)
 }
 
+/**
+ * Which roles may fill a slot on an assignment.
+ *
+ * The kind decides when it has roles configured; otherwise the part's own rows
+ * apply. See resolveAllowedRoleIds for why an empty preset cannot win here —
+ * empty means "any member", so an unconfigured kind would widen rather than
+ * restrict.
+ */
 export async function getPartAssignmentAllowedRoleIds(
   db: TransactionClient,
   eventPartId: number,
@@ -63,7 +72,23 @@ export async function getPartAssignmentAllowedRoleIds(
     where: { eventPartId, asKind, congregationId },
     select: { roleId: true },
   })
-  return rows.map(r => r.roleId)
+  const partRoleIds = rows.map(r => r.roleId)
+
+  const part = await db.eventPart.findFirst({
+    where: { id: eventPartId, congregationId },
+    select: { presetId: true },
+  })
+  if (!part?.presetId) return partRoleIds
+
+  const presetRows = await db.partPresetAllowedRole.findMany({
+    where: { presetId: part.presetId, asKind, congregationId },
+    select: { roleId: true },
+  })
+
+  return resolveAllowedRoleIds(
+    partRoleIds,
+    presetRows.map(r => r.roleId),
+  )
 }
 
 async function getTemplateServicePartAllowedRoleIds(
@@ -102,6 +127,45 @@ function diffRoleIds(previous: number[], desired: number[]): DiffResult {
     added: desired.filter(id => !previousSet.has(id)),
     removed: previous.filter(id => !desiredSet.has(id)),
   }
+}
+
+async function getPartPresetAllowedRoleIds(
+  db: TransactionClient,
+  presetId: number,
+  asKind: PartRoleKind,
+  congregationId: number,
+): Promise<number[]> {
+  const rows = await db.partPresetAllowedRole.findMany({
+    where: { presetId, asKind, congregationId },
+    select: { roleId: true },
+  })
+  return rows.map(r => r.roleId)
+}
+
+/** Mirrors setTemplatePartAllowedRoles, for the kind rather than one part. */
+export async function setPartPresetAllowedRoles(
+  db: TransactionClient,
+  presetId: number,
+  asKind: PartRoleKind,
+  desiredRoleIds: number[],
+  congregationId: number,
+): Promise<DiffResult> {
+  const previous = await getPartPresetAllowedRoleIds(db, presetId, asKind, congregationId)
+  const diff = diffRoleIds(previous, desiredRoleIds)
+  if (diff.added.length === 0 && diff.removed.length === 0) return diff
+
+  if (diff.removed.length > 0) {
+    await db.partPresetAllowedRole.deleteMany({
+      where: { presetId, asKind, congregationId, roleId: { in: diff.removed } },
+    })
+  }
+  if (diff.added.length > 0) {
+    await db.partPresetAllowedRole.createMany({
+      data: diff.added.map(roleId => ({ presetId, roleId, asKind, congregationId })),
+      skipDuplicates: true,
+    })
+  }
+  return diff
 }
 
 export async function setTemplatePartAllowedRoles(
