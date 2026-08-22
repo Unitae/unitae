@@ -539,6 +539,10 @@ async function cleanCongregationData(congregationId: number) {
   })
   await prisma.templatePart.deleteMany({ where: { congregationId } })
   await prisma.eventTemplate.deleteMany({ where: { congregationId } })
+  // After the parts that point at them, before the congregation itself: the
+  // FK to Congregation restricts, so leaving these behind makes the final
+  // congregation.delete fail. PartPresetAllowedRole cascades from here.
+  await prisma.partPreset.deleteMany({ where: { congregationId } })
   await prisma.event.deleteMany({ where: { congregationId } })
   await prisma.boardDynamicDocumentView.deleteMany({
     where: { settings: { congregationId } },
