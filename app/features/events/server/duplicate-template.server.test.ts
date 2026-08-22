@@ -182,3 +182,80 @@ describe('duplicateTemplate', () => {
     })
   })
 })
+
+describe('duplicateTemplate and the part kind', () => {
+  // The kind is what gives a part its share message, its slot labels and its
+  // external-speaker rule. A copy that loses it looks identical in the list
+  // and behaves like an unclassified part everywhere else.
+  it('carries presetId onto the duplicated parts', async () => {
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({
+      id: 5,
+      name: 'Reunion',
+      key: 'midweek',
+      description: '',
+      weekDay: 2,
+      isRecurring: true,
+      parts: [
+        {
+          id: 10,
+          name: 'Discours public',
+          section: '',
+          track: '',
+          trackOrder: 3,
+          order: 1,
+          durationMin: 30,
+          allowExternalSpeaker: true,
+          speakerLabel: null,
+          readerLabel: null,
+          presetId: 55,
+          allowedRoles: [],
+        },
+      ],
+      serviceParts: [],
+    } as never)
+    vi.mocked(db.eventTemplate.create).mockResolvedValue({ id: 6, parts: [], serviceParts: [] } as never)
+
+    await duplicateTemplate(db, 5, 1)
+
+    const created = vi.mocked(db.eventTemplate.create).mock.calls[0]?.[0]?.data?.parts?.create as
+      | Record<string, unknown>[]
+      | undefined
+    expect(created?.[0]).toEqual(expect.objectContaining({ presetId: 55, trackOrder: 3 }))
+  })
+
+  it('leaves an unclassified part unclassified', async () => {
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({
+      id: 5,
+      name: 'Reunion',
+      key: 'midweek',
+      description: '',
+      weekDay: 2,
+      isRecurring: true,
+      parts: [
+        {
+          id: 10,
+          name: '1re partie',
+          section: '',
+          track: '',
+          trackOrder: null,
+          order: 1,
+          durationMin: 3,
+          allowExternalSpeaker: false,
+          speakerLabel: null,
+          readerLabel: null,
+          presetId: null,
+          allowedRoles: [],
+        },
+      ],
+      serviceParts: [],
+    } as never)
+    vi.mocked(db.eventTemplate.create).mockResolvedValue({ id: 6, parts: [], serviceParts: [] } as never)
+
+    await duplicateTemplate(db, 5, 1)
+
+    const created = vi.mocked(db.eventTemplate.create).mock.calls[0]?.[0]?.data?.parts?.create as
+      | Record<string, unknown>[]
+      | undefined
+    expect(created?.[0]).toEqual(expect.objectContaining({ presetId: null }))
+  })
+})

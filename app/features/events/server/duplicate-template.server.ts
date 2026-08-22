@@ -34,11 +34,16 @@ export async function duplicateTemplate(db: TransactionClient, templateId: numbe
           name: part.name,
           section: part.section,
           track: part.track,
+          trackOrder: part.trackOrder,
           order: part.order,
           durationMin: part.durationMin,
           allowExternalSpeaker: part.allowExternalSpeaker,
           speakerLabel: part.speakerLabel,
           readerLabel: part.readerLabel,
+          // The kind travels with the part. Without it the copy keeps the
+          // name but loses its share message, slot labels and
+          // external-speaker rule, and looks unclassified everywhere.
+          presetId: part.presetId,
           congregationId,
         })),
       },

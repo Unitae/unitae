@@ -201,3 +201,52 @@ describe('getUpcomingAssignments', () => {
     expect(result).toHaveLength(5)
   })
 })
+
+describe('slot labels when the part carries a kind', () => {
+  // The kind owns the wording, and a seeded one stores null and takes it from
+  // the catalogue. Reading the part's own column here showed every assignee a
+  // generic "Orateur" on the one screen where they read their own assignment.
+  it("uses the kind's label rather than the part's empty column", async () => {
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
+      partRow({
+        speakerLabel: null,
+        readerLabel: null,
+        preset: { key: 'watchtower-study', speakerLabel: null, readerLabel: null },
+      }),
+    ] as never)
+    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([] as never)
+    vi.mocked(resolveProgrammeLink).mockResolvedValue('/board/1')
+
+    const [assignment] = await getUpcomingAssignments(db, 100, CONGREGATION_ID, NOW)
+
+    expect(assignment?.speakerLabel).toBe('Conducteur')
+    expect(assignment?.readerLabel).toBe('Lecteur')
+  })
+
+  it("prefers the kind's own wording over the catalogue", async () => {
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
+      partRow({
+        speakerLabel: 'IGNORED-PART-SENTINEL',
+        preset: { key: 'watchtower-study', speakerLabel: 'PRESET-SENTINEL', readerLabel: null },
+      }),
+    ] as never)
+    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([] as never)
+    vi.mocked(resolveProgrammeLink).mockResolvedValue('/board/1')
+
+    const [assignment] = await getUpcomingAssignments(db, 100, CONGREGATION_ID, NOW)
+
+    expect(assignment?.speakerLabel).toBe('PRESET-SENTINEL')
+  })
+
+  it("keeps the part's own label when it has no kind", async () => {
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
+      partRow({ speakerLabel: 'PART-SENTINEL', preset: null }),
+    ] as never)
+    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([] as never)
+    vi.mocked(resolveProgrammeLink).mockResolvedValue('/board/1')
+
+    const [assignment] = await getUpcomingAssignments(db, 100, CONGREGATION_ID, NOW)
+
+    expect(assignment?.speakerLabel).toBe('PART-SENTINEL')
+  })
+})

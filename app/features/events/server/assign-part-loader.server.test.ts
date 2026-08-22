@@ -60,3 +60,61 @@ describe('loadPartAssignmentCandidates', () => {
     expect(result.externalSpeakers.map(s => s.name)).toEqual(['Bob', 'Alice', 'Charlie'])
   })
 })
+
+describe('the external-speaker registry follows the kind, not the part column', () => {
+  // resolvePartCapability makes the kind authoritative including when it says
+  // no. Reading the part's raw column here meant a Discours Public could not
+  // be given a visiting speaker, and a Joyaux spirituels still offered one.
+  it('loads the registry when the kind allows an external speaker', async () => {
+    vi.mocked(allowedRoles.getPartAssignmentAllowedRoleIds).mockResolvedValue([])
+    vi.mocked(allowedRoles.resolveEligibleUserIds).mockResolvedValue([1])
+    vi.mocked(externalSpeakers.listExternalSpeakers).mockResolvedValue([
+      { id: 1, name: 'Visiteur', lastVisitDate: null },
+    ] as never)
+
+    const result = await loadPartAssignmentCandidates(
+      db,
+      {
+        id: 5,
+        allowExternalSpeaker: false,
+        preset: { speakerLabel: null, readerLabel: null, hasReaderSlot: false, allowExternalSpeaker: true },
+      },
+      1,
+    )
+
+    expect(result.externalSpeakers).toHaveLength(1)
+    expect(result.capability.allowExternalSpeaker).toBe(true)
+  })
+
+  it('withholds it when the kind forbids one', async () => {
+    vi.mocked(allowedRoles.getPartAssignmentAllowedRoleIds).mockResolvedValue([])
+    vi.mocked(allowedRoles.resolveEligibleUserIds).mockResolvedValue([1])
+
+    const result = await loadPartAssignmentCandidates(
+      db,
+      {
+        id: 5,
+        allowExternalSpeaker: true,
+        preset: { speakerLabel: null, readerLabel: null, hasReaderSlot: false, allowExternalSpeaker: false },
+      },
+      1,
+    )
+
+    expect(result.externalSpeakers).toEqual([])
+    expect(result.capability.allowExternalSpeaker).toBe(false)
+    expect(externalSpeakers.listExternalSpeakers).not.toHaveBeenCalled()
+  })
+
+  it("falls back to the part's own column when it has no kind", async () => {
+    vi.mocked(allowedRoles.getPartAssignmentAllowedRoleIds).mockResolvedValue([])
+    vi.mocked(allowedRoles.resolveEligibleUserIds).mockResolvedValue([1])
+    vi.mocked(externalSpeakers.listExternalSpeakers).mockResolvedValue([
+      { id: 1, name: 'Visiteur', lastVisitDate: null },
+    ] as never)
+
+    const result = await loadPartAssignmentCandidates(db, { id: 5, allowExternalSpeaker: true, preset: null }, 1)
+
+    expect(result.externalSpeakers).toHaveLength(1)
+    expect(result.capability.allowExternalSpeaker).toBe(true)
+  })
+})

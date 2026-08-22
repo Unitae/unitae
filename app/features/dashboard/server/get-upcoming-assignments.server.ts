@@ -1,5 +1,5 @@
 import { resolveProgrammeLink } from '~/features/display-board/index.server'
-import { EventStatus, EventTemplateKey } from '~/features/events'
+import { EventStatus, EventTemplateKey, partPresetReaderLabel, partPresetSpeakerLabel } from '~/features/events'
 import { FOUR_WEEKS_MS } from '~/shared/constants/limits'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -22,6 +22,25 @@ export interface UpcomingAssignment {
 type RawAssignment = Omit<UpcomingAssignment, 'link'> & { eventId: number; templateId: number | null }
 
 const MAX_UPCOMING_ASSIGNMENTS = 5
+
+/**
+ * What this part's two slots are called.
+ *
+ * Mirrors resolvePartCapability: a kind wins outright, including when it
+ * leaves a label blank, because two parts of the same kind must not read
+ * differently. A part without one keeps its own columns.
+ */
+function slotLabels(part: {
+  speakerLabel: string | null
+  readerLabel: string | null
+  preset: { key: string; speakerLabel: string | null; readerLabel: string | null } | null
+}): { speakerLabel: string | null; readerLabel: string | null } {
+  if (!part.preset) return { speakerLabel: part.speakerLabel, readerLabel: part.readerLabel }
+  return {
+    speakerLabel: partPresetSpeakerLabel(part.preset),
+    readerLabel: partPresetReaderLabel(part.preset),
+  }
+}
 
 // Forward-looking companion to getNextMeeting: the parts/roles the viewer holds
 // across the next four weeks, so they can prepare ahead. The urgent strip covers
@@ -52,6 +71,10 @@ export async function getUpcomingAssignments(
         topic: true,
         speakerLabel: true,
         readerLabel: true,
+        // The kind owns the wording when a part has one, and a seeded kind
+        // stores null and takes it from the catalogue — so the part's own
+        // columns cannot answer this on their own. See slotLabels.
+        preset: { select: { key: true, speakerLabel: true, readerLabel: true } },
         assigneeId: true,
         assistantId: true,
         event: eventSelect,
@@ -74,8 +97,7 @@ export async function getUpcomingAssignments(
         role: part.assigneeId === userId ? 'speaker' : 'reader',
         name: part.name,
         topic: part.topic || null,
-        speakerLabel: part.speakerLabel,
-        readerLabel: part.readerLabel,
+        ...slotLabels(part),
         eventName: part.event.name,
         eventStartDate: part.event.startDate,
         eventId: part.event.id,
