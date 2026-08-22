@@ -2,12 +2,7 @@ import { Check, ChevronRight, Plus } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { listPartPresetsForSettings } from '~/features/events/index.server'
 import * as m from '~/i18n/paraglide/messages'
-import {
-  congregationContext,
-  currentAccountContext,
-  permissionsContext,
-  withScopeFromContext,
-} from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
@@ -23,7 +18,6 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const congregation = context.get(congregationContext)
 
   if (!permissions.has(Permission.ProgramViewer) && !permissions.has(Permission.Admin)) throw redirect('/')
 

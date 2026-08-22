@@ -24,12 +24,7 @@ import {
   upsertServicePartSchema,
 } from '~/features/settings/schemas/template.schema'
 import * as m from '~/i18n/paraglide/messages'
-import {
-  congregationContext,
-  currentAccountContext,
-  permissionsContext,
-  withScopeFromContext,
-} from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { listRoles } from '~/shared/domain/roles.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
