@@ -184,6 +184,20 @@ beforeAll(async () => {
       },
     })
 
+    const preset = await tx.partPreset.create({
+      data: {
+        key: `bible-reading-${ts}`,
+        name: 'Lecture de la Bible',
+        scope: 'part',
+        hasReaderSlot: false,
+        speakerLabel: 'Lecteur',
+        allowExternalSpeaker: false,
+        shareMessage: 'Bonjour {{assigneeFirstname}}, tu as {{partName}} le {{date}}.',
+        isSystem: true,
+        congregationId: sourceId,
+      },
+    })
+
     const part = await tx.templatePart.create({
       data: {
         name: 'Opening',
@@ -191,6 +205,7 @@ beforeAll(async () => {
         order: 1,
         durationMin: 5,
         templateId: template.id,
+        presetId: preset.id,
         congregationId: sourceId,
       },
     })
@@ -224,6 +239,7 @@ beforeAll(async () => {
         section: 'intro',
         order: 1,
         topic: 'Welcome',
+        presetId: preset.id,
         congregationId: sourceId,
       },
     })
@@ -396,6 +412,8 @@ afterAll(async () => {
       await tx.templateResponsible.deleteMany({})
       await tx.templateServicePart.deleteMany({})
       await tx.templatePart.deleteMany({})
+      await tx.partPresetAllowedRole.deleteMany({})
+      await tx.partPreset.deleteMany({})
       await tx.event.deleteMany({})
       await tx.eventTemplate.deleteMany({})
       await tx.consentRecord.deleteMany({})
@@ -513,6 +531,11 @@ async function importFromZip(buffer: Buffer, congregationId: number): Promise<vo
     await mod.importTerritoryEntranceLinks(zip, db, idMap, congregationId)
     await mod.importBuildingEntranceLinks(zip, db, idMap, congregationId)
     await mod.importAttributions(zip, db, idMap, congregationId)
+    // NOTE: this sequence duplicates runImport's. Keep the two in step —
+    // nothing enforces it, so an importer added there and missed here makes the
+    // round-trip test pass while the real import drops the data.
+    await mod.importPartPresets(zip, db, idMap, congregationId)
+    await mod.importPartPresetAllowedRoles(zip, db, idMap, congregationId)
     await mod.importEventTemplates(zip, db, idMap, congregationId)
     await mod.importTemplateParts(zip, db, idMap, congregationId)
     await mod.importTemplatePartAllowedRoles(zip, db, idMap, congregationId)
@@ -623,6 +646,8 @@ describe('Export/Import round-trip', () => {
       await tx.templateResponsible.deleteMany({})
       await tx.templateServicePart.deleteMany({})
       await tx.templatePart.deleteMany({})
+      await tx.partPresetAllowedRole.deleteMany({})
+      await tx.partPreset.deleteMany({})
       await tx.event.deleteMany({})
       await tx.eventTemplate.deleteMany({})
       await tx.consentRecord.deleteMany({})
@@ -856,6 +881,21 @@ describe('Export/Import round-trip', () => {
       expect(servicePartAssignmentAllowed).toHaveLength(1)
       expect(servicePartAssignmentAllowed[0].eventServicePartId).toBe(srAssignments[0].id)
 
+      // Part presets: the kind of each part, and the message sent to whoever is
+      // assigned it. Without these the archive would restore a congregation
+      // whose programme parts have no kind and no share button.
+      const presets = await tx.partPreset.findMany({})
+      expect(presets).toHaveLength(1)
+      expect(presets[0].name).toBe('Lecture de la Bible')
+      expect(presets[0].speakerLabel).toBe('Lecteur')
+      expect(presets[0].isSystem).toBe(true)
+      // The message is the payload — a preset that arrives without it is useless.
+      expect(presets[0].shareMessage).toBe('Bonjour {{assigneeFirstname}}, tu as {{partName}} le {{date}}.')
+
+      // Both part tables must point at the NEW preset row, not the archive's id.
+      expect(templateParts[0].presetId).toBe(presets[0].id)
+      expect(eventParts[0].presetId).toBe(presets[0].id)
+
       // Board section visibility role
       const visibility = await tx.boardSectionVisibilityRole.findMany({})
       expect(visibility).toHaveLength(1)
@@ -973,6 +1013,35 @@ describe.skip('v1.0 archive backward compatibility', () => {
         await tx.auditLog.deleteMany({})
       })
       await testDb.congregation.delete({ where: { id: congId } })
+    }
+  })
+})
+
+describe('pre-2.5 archive compatibility', () => {
+  it('imports an archive with no preset file, leaving parts unlinked', async () => {
+    // A 2.4 archive has no part-presets.ndjson at all. It must import cleanly
+    // with every part simply having no kind — the same state a congregation is
+    // in before the backfill script runs — rather than failing the whole
+    // restore over a file that did not exist when the archive was written.
+    const JsZipMod = (await import('jszip')).default
+    const zip = new JsZipMod()
+    const mod = await import('./import-congregation.server')
+    const { EntityIdMap } = await import('./data-transfer.type')
+
+    const cong = await testDb.congregation.create({
+      data: { name: `Pre25 ${ts}`, slug: `pre25-${ts}`, active: true },
+    })
+
+    try {
+      await withScope(cong.id, async tx => {
+        const idMap = new EntityIdMap()
+        await mod.importPartPresets(zip, tx, idMap, cong.id)
+        await mod.importPartPresetAllowedRoles(zip, tx, idMap, cong.id)
+
+        expect(await tx.partPreset.count({})).toBe(0)
+      })
+    } finally {
+      await testDb.congregation.delete({ where: { id: cong.id } })
     }
   })
 })
