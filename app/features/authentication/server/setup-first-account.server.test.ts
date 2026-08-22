@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const scopedDb = {
   eventKind: { upsert: vi.fn() },
   eventTemplate: { findFirst: vi.fn(), create: vi.fn() },
+  // Seeding the default templates also seeds the part presets they link to.
+  partPreset: { findFirst: vi.fn(), create: vi.fn(), findMany: vi.fn() },
   role: { upsert: vi.fn(), findUnique: vi.fn() },
   permission: { findUnique: vi.fn() },
   rolePermission: { upsert: vi.fn() },
@@ -41,6 +43,9 @@ beforeEach(() => {
   scopedDb.eventKind.upsert.mockResolvedValue({} as never)
   scopedDb.eventTemplate.findFirst.mockResolvedValue(null as never)
   scopedDb.eventTemplate.create.mockResolvedValue({} as never)
+  scopedDb.partPreset.findFirst.mockResolvedValue(null as never)
+  scopedDb.partPreset.create.mockResolvedValue({} as never)
+  scopedDb.partPreset.findMany.mockResolvedValue([] as never)
 })
 
 describe('setupFirstAccount', () => {

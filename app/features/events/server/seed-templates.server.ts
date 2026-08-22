@@ -1,6 +1,8 @@
 import { EventTemplateKey } from '~/features/events/model/event-template.type'
+import { PartPresetKey } from '~/features/events/model/part-preset.type'
 import * as m from '~/i18n/paraglide/messages'
 import type { locales } from '~/i18n/paraglide/runtime'
+import { seedDefaultPartPresets } from './seed-part-presets.server'
 
 type Locale = (typeof locales)[number]
 
@@ -10,6 +12,12 @@ interface PartDefinition {
   order: number
   durationMin: number | null
   allowExternalSpeaker: boolean
+  // Which kind of assignment this part is. Left undefined where the seed
+  // genuinely cannot know: the three ministry parts ("1re partie"…) are a
+  // different kind every week, and songs are not assignments at all. Those are
+  // chosen per event rather than guessed here — a wrong preset would send a
+  // confidently wrong message.
+  preset?: PartPresetKey
 }
 
 interface ServicePartDefinition {
@@ -53,6 +61,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
       parts: [
         {
           name: m.seed_part_song_and_prayer({}, { locale }),
+          preset: PartPresetKey.Prayer,
           section: '',
           order: 1,
           durationMin: 5,
@@ -60,6 +69,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
         },
         {
           name: m.seed_part_discourse({}, { locale }),
+          preset: PartPresetKey.SpiritualGems,
           section: m.seed_section_spiritual_gems({}, { locale }),
           order: 2,
           durationMin: 10,
@@ -67,6 +77,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
         },
         {
           name: m.seed_part_search_spiritual_pearls({}, { locale }),
+          preset: PartPresetKey.SpiritualPearls,
           section: m.seed_section_spiritual_gems({}, { locale }),
           order: 3,
           durationMin: 10,
@@ -74,6 +85,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
         },
         {
           name: m.seed_part_bible_reading({}, { locale }),
+          preset: PartPresetKey.BibleReading,
           section: m.seed_section_spiritual_gems({}, { locale }),
           order: 4,
           durationMin: 4,
@@ -103,6 +115,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
         { name: m.seed_part_song({}, { locale }), section: '', order: 8, durationMin: 5, allowExternalSpeaker: false },
         {
           name: m.seed_part_first_part({}, { locale }),
+          preset: PartPresetKey.ChristianLifeTalk,
           section: m.seed_section_christian_life({}, { locale }),
           order: 9,
           durationMin: null,
@@ -110,6 +123,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
         },
         {
           name: m.seed_part_second_part({}, { locale }),
+          preset: PartPresetKey.ChristianLifeTalk,
           section: m.seed_section_christian_life({}, { locale }),
           order: 10,
           durationMin: null,
@@ -117,6 +131,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
         },
         {
           name: m.seed_part_congregation_bible_study({}, { locale }),
+          preset: PartPresetKey.CongregationBibleStudy,
           section: m.seed_section_christian_life({}, { locale }),
           order: 11,
           durationMin: 30,
@@ -124,6 +139,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
         },
         {
           name: m.seed_part_song_and_closing_prayer({}, { locale }),
+          preset: PartPresetKey.Prayer,
           section: '',
           order: 12,
           durationMin: 5,
@@ -143,6 +159,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
       parts: [
         {
           name: m.seed_part_song_and_prayer({}, { locale }),
+          preset: PartPresetKey.Prayer,
           section: '',
           order: 1,
           durationMin: 5,
@@ -150,6 +167,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
         },
         {
           name: m.seed_part_public_discourse({}, { locale }),
+          preset: PartPresetKey.PublicTalk,
           section: '',
           order: 2,
           durationMin: 30,
@@ -158,6 +176,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
         { name: m.seed_part_song({}, { locale }), section: '', order: 3, durationMin: 5, allowExternalSpeaker: false },
         {
           name: m.seed_part_watchtower_study({}, { locale }),
+          preset: PartPresetKey.WatchtowerStudy,
           section: '',
           order: 4,
           durationMin: 60,
@@ -165,6 +184,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
         },
         {
           name: m.seed_part_song_and_closing_prayer({}, { locale }),
+          preset: PartPresetKey.Prayer,
           section: '',
           order: 5,
           durationMin: 5,
@@ -184,6 +204,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
       parts: [
         {
           name: m.seed_part_song_and_prayer({}, { locale }),
+          preset: PartPresetKey.Prayer,
           section: '',
           order: 1,
           durationMin: 5,
@@ -198,6 +219,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
         },
         {
           name: m.seed_part_prayer_bread({}, { locale }),
+          preset: PartPresetKey.Prayer,
           section: '',
           order: 3,
           durationMin: null,
@@ -205,6 +227,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
         },
         {
           name: m.seed_part_prayer_wine({}, { locale }),
+          preset: PartPresetKey.Prayer,
           section: '',
           order: 4,
           durationMin: null,
@@ -212,6 +235,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
         },
         {
           name: m.seed_part_song_and_closing_prayer({}, { locale }),
+          preset: PartPresetKey.Prayer,
           section: '',
           order: 5,
           durationMin: 5,
@@ -247,6 +271,17 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
 
 // biome-ignore lint/suspicious/noExplicitAny: accepts both PrismaClient and unscoped db
 export async function seedDefaultTemplates(db: any, congregationId: number, locale: Locale) {
+  // Presets first: the parts created below reference them. Both are programme
+  // defaults for a brand-new congregation and share this one injection point
+  // (see seedCongregationDefaults), so there is nothing extra for callers to wire.
+  await seedDefaultPartPresets(db, congregationId, locale)
+
+  const presets: { id: number; key: string }[] = await db.partPreset.findMany({
+    where: { congregationId },
+    select: { id: true, key: true },
+  })
+  const presetIdByKey = new Map(presets.map(preset => [preset.key, preset.id]))
+
   for (const tpl of getTemplates(locale)) {
     const existing = await db.eventTemplate.findFirst({
       where: { key: tpl.key, congregationId },
@@ -271,6 +306,9 @@ export async function seedDefaultTemplates(db: any, congregationId: number, loca
             order: part.order,
             durationMin: part.durationMin,
             allowExternalSpeaker: part.allowExternalSpeaker,
+            // `?? null` rather than a non-null assertion: a part whose kind the
+            // seed cannot know stays unlinked instead of pointing somewhere wrong.
+            presetId: part.preset ? (presetIdByKey.get(part.preset) ?? null) : null,
             congregationId,
           })),
         },
