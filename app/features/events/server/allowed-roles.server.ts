@@ -1,3 +1,4 @@
+import { resolveAllowedRoleIds } from '~/features/events/model/allowed-roles-resolution'
 import { findMembersWithAnyRole } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -53,7 +54,8 @@ async function getTemplatePartAllowedRoleIds(
   return rows.map(r => r.roleId)
 }
 
-export async function getPartAssignmentAllowedRoleIds(
+/** The part's own rows, before the kind has any say. */
+async function getPartOwnAllowedRoleIds(
   db: TransactionClient,
   eventPartId: number,
   asKind: PartRoleKind,
@@ -64,6 +66,41 @@ export async function getPartAssignmentAllowedRoleIds(
     select: { roleId: true },
   })
   return rows.map(r => r.roleId)
+}
+
+/**
+ * Which roles may fill a slot on an assignment.
+ *
+ * The kind decides when it has roles configured; otherwise the part's own rows
+ * apply. See resolveAllowedRoleIds for why an empty preset cannot win here —
+ * empty means "any member", so an unconfigured kind would widen rather than
+ * restrict.
+ *
+ * This is the eligibility answer, not the part's stored state. Anything writing
+ * `EventPartAllowedRole` must read getPartOwnAllowedRoleIds instead — diffing a
+ * write against a list that may belong to the kind deletes rows the part never
+ * had and leaves the ones it does.
+ */
+export async function getPartAssignmentAllowedRoleIds(
+  db: TransactionClient,
+  eventPartId: number,
+  asKind: PartRoleKind,
+  congregationId: number,
+): Promise<number[]> {
+  const partRoleIds = await getPartOwnAllowedRoleIds(db, eventPartId, asKind, congregationId)
+
+  const part = await db.eventPart.findFirst({
+    where: { id: eventPartId, congregationId },
+    select: { presetId: true },
+  })
+  if (!part?.presetId) return partRoleIds
+
+  const presetRows = await db.partPresetAllowedRole.findMany({
+    where: { presetId: part.presetId, asKind, congregationId },
+    select: { roleId: true },
+  })
+
+  return resolveAllowedRoleIds({ partRoleIds, presetRoleIds: presetRows.map(r => r.roleId) })
 }
 
 async function getTemplateServicePartAllowedRoleIds(
@@ -104,6 +141,45 @@ function diffRoleIds(previous: number[], desired: number[]): DiffResult {
   }
 }
 
+async function getPartPresetAllowedRoleIds(
+  db: TransactionClient,
+  presetId: number,
+  asKind: PartRoleKind,
+  congregationId: number,
+): Promise<number[]> {
+  const rows = await db.partPresetAllowedRole.findMany({
+    where: { presetId, asKind, congregationId },
+    select: { roleId: true },
+  })
+  return rows.map(r => r.roleId)
+}
+
+/** Mirrors setTemplatePartAllowedRoles, for the kind rather than one part. */
+export async function setPartPresetAllowedRoles(
+  db: TransactionClient,
+  presetId: number,
+  asKind: PartRoleKind,
+  desiredRoleIds: number[],
+  congregationId: number,
+): Promise<DiffResult> {
+  const previous = await getPartPresetAllowedRoleIds(db, presetId, asKind, congregationId)
+  const diff = diffRoleIds(previous, desiredRoleIds)
+  if (diff.added.length === 0 && diff.removed.length === 0) return diff
+
+  if (diff.removed.length > 0) {
+    await db.partPresetAllowedRole.deleteMany({
+      where: { presetId, asKind, congregationId, roleId: { in: diff.removed } },
+    })
+  }
+  if (diff.added.length > 0) {
+    await db.partPresetAllowedRole.createMany({
+      data: diff.added.map(roleId => ({ presetId, roleId, asKind, congregationId })),
+      skipDuplicates: true,
+    })
+  }
+  return diff
+}
+
 export async function setTemplatePartAllowedRoles(
   db: TransactionClient,
   partId: number,
@@ -136,7 +212,7 @@ export async function setPartAssignmentAllowedRoles(
   desiredRoleIds: number[],
   congregationId: number,
 ): Promise<DiffResult> {
-  const previous = await getPartAssignmentAllowedRoleIds(db, eventPartId, asKind, congregationId)
+  const previous = await getPartOwnAllowedRoleIds(db, eventPartId, asKind, congregationId)
   const diff = diffRoleIds(previous, desiredRoleIds)
   if (diff.added.length === 0 && diff.removed.length === 0) return diff
 

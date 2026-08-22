@@ -13,6 +13,7 @@ import {
 } from '~/features/events/server/notify-assignment.server'
 import { ExternalSpeakerInfoCard } from '~/features/events/ui/ExternalSpeakerInfoCard'
 import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
+import { type SpeakerType, SpeakerTypeToggle } from '~/features/events/ui/SpeakerTypeToggle'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -28,7 +29,6 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { PersonDropdown } from '~/shared/ui/PersonDropdown'
-import { RadioGroup, RadioGroupItem } from '~/shared/ui/radio-group'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
@@ -67,6 +67,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       speakerCandidates: candidates.speakerCandidates,
       readerCandidates: candidates.readerCandidates,
       externalSpeakers: candidates.externalSpeakers,
+      capability: candidates.capability,
       timezone: context.get(congregationContext).timezone,
     }
   })
@@ -154,16 +155,14 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
-  const { event, assignment, speakerCandidates, readerCandidates, externalSpeakers, timezone } = loaderData
+  const { event, assignment, speakerCandidates, readerCandidates, externalSpeakers, capability, timezone } = loaderData
   const [params] = useSearchParams()
   const [selectedAssignee, setSelectedAssignee] = useState(assignment?.assigneeId?.toString() ?? '')
   const [selectedAssistant, setSelectedAssistant] = useState(assignment?.assistantId?.toString() ?? '')
   const [selectedExternalSpeaker, setSelectedExternalSpeaker] = useState(
     assignment?.externalSpeakerId?.toString() ?? 'none',
   )
-  const [speakerType, setSpeakerType] = useState<'internal' | 'external'>(
-    assignment?.externalSpeakerId ? 'external' : 'internal',
-  )
+  const [speakerType, setSpeakerType] = useState<SpeakerType>(assignment?.externalSpeakerId ? 'external' : 'internal')
   const { blocker, markDirty } = useUnsavedChanges()
   const hasRegistry = externalSpeakers.length > 0
   const commonCardProps = { eventId: event.id, excludePartAssignmentId: assignment?.id ?? null }
@@ -192,25 +191,9 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
                 <Input id="topic" name="topic" defaultValue={assignment?.topic ?? ''} />
               </div>
 
-              {assignment?.allowExternalSpeaker && (
-                <div className="flex flex-col gap-2">
-                  <Label>{m.programs_assign_part_speaker_type_label()}</Label>
-                  <RadioGroup
-                    name="speakerType"
-                    value={speakerType}
-                    onValueChange={v => setSpeakerType(v as 'internal' | 'external')}
-                    className="flex gap-4"
-                  >
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="internal" id="speakerInternal" />
-                      <Label htmlFor="speakerInternal">{m.programs_assign_part_speaker_type_internal()}</Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="external" id="speakerExternal" />
-                      <Label htmlFor="speakerExternal">{m.programs_assign_part_speaker_type_external()}</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
+              {/* The kind decides, not the part's own column. */}
+              {capability.allowExternalSpeaker && (
+                <SpeakerTypeToggle value={speakerType} onValueChange={setSpeakerType} />
               )}
 
               {speakerType === 'external' ? (

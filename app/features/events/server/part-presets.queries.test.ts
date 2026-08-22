@@ -51,10 +51,13 @@ describe('listPartPresets', () => {
 
     await listPartPresets(db as never, 1)
 
+    // key travels too: the built-in wording is looked up by it when the row
+    // stores none of its own.
     expect(Object.keys(argsOf(db).select).sort()).toEqual([
       'allowExternalSpeaker',
       'hasReaderSlot',
       'id',
+      'key',
       'name',
       'readerLabel',
       'shareMessage',

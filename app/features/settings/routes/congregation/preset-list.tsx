@@ -1,5 +1,6 @@
 import { Check, ChevronRight, Plus } from 'lucide-react'
 import { Link, redirect } from 'react-router'
+import { partPresetName } from '~/features/events'
 import { listPartPresetsForSettings } from '~/features/events/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -22,11 +23,12 @@ export function loader({ context }: Route.LoaderArgs) {
   if (!permissions.has(Permission.ProgramViewer) && !permissions.has(Permission.Admin)) throw redirect('/')
 
   return withScopeFromContext(context, async db => {
+    // Congregations seeded before presets existed have none, and multi-tenant
     const presets = await listPartPresetsForSettings(db, currentUser.congregationId)
     return {
       presets: presets.map(preset => ({
         id: preset.id,
-        name: preset.name,
+        name: partPresetName(preset),
         isSystem: preset.isSystem,
         hasReaderSlot: preset.hasReaderSlot,
         allowExternalSpeaker: preset.allowExternalSpeaker,

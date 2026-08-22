@@ -5,7 +5,14 @@ import { Clock, Pencil, Plus, Trash2 } from 'lucide-react'
 import { Fragment, useState } from 'react'
 import { data, redirect, useFetcher } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { InlineDeleteDialog, isSystemTemplate, PartEditSheet, ServiceEditSheet, SortableRow } from '~/features/events'
+import {
+  InlineDeleteDialog,
+  isSystemTemplate,
+  PartEditSheet,
+  partAllowedRolesToWrite,
+  ServiceEditSheet,
+  SortableRow,
+} from '~/features/events'
 import {
   deleteTemplatePart,
   deleteTemplateServicePart,
@@ -229,8 +236,7 @@ async function handlePartIntent(
         speakerLabel: partSpeakerLabel ?? null,
         readerLabel: partReaderLabel ?? null,
         presetId: partPresetId,
-        allowedSpeakerRoleIds,
-        allowedReaderRoleIds,
+        ...partAllowedRolesToWrite({ partPresetId, allowedSpeakerRoleIds, allowedReaderRoleIds }),
       },
       congregationId,
       actorId,

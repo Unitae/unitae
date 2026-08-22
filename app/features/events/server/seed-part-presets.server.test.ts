@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { PART_PRESET_COUNT, seedDefaultPartPresets } = await import('./seed-part-presets.server')
-const { findUnknownVariables, renderShareMessage } = await import('../model/share-message')
+const { findUnknownVariables } = await import('../model/share-message')
+const { PartPresetKey } = await import('../model/part-preset.type')
+const { partPresetName, partPresetReaderLabel, partPresetShareMessage } = await import('../model/part-preset-defaults')
 
 function makeDb() {
   return {
@@ -21,8 +23,6 @@ function createdRows(db: ReturnType<typeof makeDb>) {
 function rowFor(db: ReturnType<typeof makeDb>, key: string) {
   return createdRows(db).find(row => row.key === key)
 }
-
-const DANGLING_LABEL = /[:–—-]\s*$/m
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -78,17 +78,6 @@ describe('seedDefaultPartPresets', () => {
     expect(createdRows(db).every(row => row.scope === 'part')).toBe(true)
   })
 
-  it('gives every preset a non-empty share message', async () => {
-    const db = makeDb()
-    db.partPreset.findFirst.mockResolvedValue(null as never)
-    db.partPreset.create.mockResolvedValue({} as never)
-
-    await seedDefaultPartPresets(db, 1, 'fr')
-
-    const empty = createdRows(db).filter(row => String(row.shareMessage ?? '').trim() === '')
-    expect(empty).toEqual([])
-  })
-
   it('carries the reader slot only for the two-person kinds', async () => {
     const db = makeDb()
     db.partPreset.findFirst.mockResolvedValue(null as never)
@@ -114,17 +103,6 @@ describe('seedDefaultPartPresets', () => {
     expect(rowFor(db, 'spiritual-gems')?.allowExternalSpeaker).toBe(false)
   })
 
-  it('names a reader slot only where one exists', async () => {
-    const db = makeDb()
-    db.partPreset.findFirst.mockResolvedValue(null as never)
-    db.partPreset.create.mockResolvedValue({} as never)
-
-    await seedDefaultPartPresets(db, 1, 'fr')
-
-    const mismatched = createdRows(db).filter(row => (row.readerLabel != null) !== (row.hasReaderSlot === true))
-    expect(mismatched).toEqual([])
-  })
-
   it.each(['fr', 'en'] as const)('uses only known variables in every %s message', async locale => {
     // Ties the catalogue to the renderer: a typo'd placeholder would otherwise
     // ship silently and render as a gap in a real SMS.
@@ -140,52 +118,40 @@ describe('seedDefaultPartPresets', () => {
     expect(offenders).toEqual([])
   })
 
-  it('still renders something useful when every optional detail is empty', async () => {
-    // The worst realistic case: no topic, no assistant, no note, no link. The
-    // greeting and the core sentence must survive, with no dangling labels.
+  it('stores no wording of its own, so the catalogue stays in charge', async () => {
+    // The convention Role uses for built-ins. Storing the text here would
+    // freeze the language at seed time for every congregation.
     const db = makeDb()
     db.partPreset.findFirst.mockResolvedValue(null as never)
     db.partPreset.create.mockResolvedValue({} as never)
 
     await seedDefaultPartPresets(db, 1, 'fr')
 
-    const bare = {
-      assignee: 'Jean Dupont',
-      assigneeFirstname: 'Jean',
-      assistant: null,
-      partName: 'Lecture de la Bible',
-      section: null,
-      topic: null,
-      duration: null,
-      date: 'mardi 3 septembre',
-      time: '19:00',
-      eventName: 'Réunion de semaine',
-      note: null,
-      congregation: 'Assemblée de Lyon',
-      link: null,
-    }
-
     for (const row of createdRows(db)) {
-      const text = renderShareMessage(String(row.shareMessage), bare)
-      expect(text).toContain('Jean')
-      expect(text).toContain('mardi 3 septembre')
-      // A line left ending in a label separator means an empty variable was
-      // not cleaned up. A trailing comma is fine — that is the greeting.
-      expect(text).not.toMatch(DANGLING_LABEL)
+      expect(row.name).toBeNull()
+      expect(row.speakerLabel).toBeNull()
+      expect(row.readerLabel).toBeNull()
+      expect(row.shareMessage).toBeNull()
     }
   })
 
-  it('localises names', async () => {
-    const fr = makeDb()
-    fr.partPreset.findFirst.mockResolvedValue(null as never)
-    fr.partPreset.create.mockResolvedValue({} as never)
-    const en = makeDb()
-    en.partPreset.findFirst.mockResolvedValue(null as never)
-    en.partPreset.create.mockResolvedValue({} as never)
+  it.each(['fr', 'en'] as const)('every seeded kind resolves to a %s message and name', locale => {
+    for (const key of Object.values(PartPresetKey)) {
+      expect(partPresetName({ key, name: null }, locale)).not.toBe(key)
+      expect(partPresetShareMessage({ key, shareMessage: null }, locale).trim()).not.toBe('')
+    }
+  })
 
-    await seedDefaultPartPresets(fr, 1, 'fr')
-    await seedDefaultPartPresets(en, 1, 'en')
+  it('names a second slot exactly for the kinds that have one', async () => {
+    const db = makeDb()
+    db.partPreset.findFirst.mockResolvedValue(null as never)
+    db.partPreset.create.mockResolvedValue({} as never)
 
-    expect(rowFor(fr, 'public-talk')?.name).not.toBe(rowFor(en, 'public-talk')?.name)
+    await seedDefaultPartPresets(db, 1, 'fr')
+
+    for (const row of createdRows(db)) {
+      const label = partPresetReaderLabel({ key: String(row.key), readerLabel: null })
+      expect(label !== null).toBe(row.hasReaderSlot === true)
+    }
   })
 })

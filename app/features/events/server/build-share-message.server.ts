@@ -1,3 +1,4 @@
+import { partPresetShareMessage } from '~/features/events/model/part-preset-defaults'
 import { renderShareMessage } from '~/features/events/model/share-message'
 import { formatEventDate, formatEventTime } from '~/shared/utils/event-time'
 
@@ -15,7 +16,7 @@ export interface ShareablePart {
   assignee: PersonName | null
   assistant: PersonName | null
   externalSpeaker: { name: string } | null
-  preset: { shareMessage: string } | null
+  preset: { key: string; shareMessage: string | null } | null
 }
 
 export interface BuildShareTextArgs {
@@ -56,7 +57,10 @@ function toIntlLocale(locale: string): string {
 export function buildAssignmentShareText(args: BuildShareTextArgs): string | null {
   const { part, event, link, baseUrl, congregationName, locale, timezone } = args
 
-  const body = part.preset?.shareMessage
+  // Null on the kind means it never set one, so the catalogue supplies the body
+  // in the congregation's language; empty means someone cleared it deliberately
+  // and this kind sends nothing.
+  const body = part.preset ? partPresetShareMessage(part.preset, locale === 'en' ? 'en' : 'fr') : null
   if (!body || body.trim() === '') return null
 
   // An external speaker is assigned just like a member is, and the manager has

@@ -91,6 +91,50 @@ export async function updateEvent(
   return event
 }
 
+const NO_ROLE_CHANGE = { added: [] as number[], removed: [] as number[] }
+
+/**
+ * Write the slots the caller actually managed.
+ *
+ * Undefined and [] are different: [] is "the editor offered a selection and it
+ * is empty", undefined is "the editor never showed one". The part form hides
+ * its role pickers once a kind is chosen, so it sends undefined — and the
+ * part's own rows must survive, because that is what the kind falls back to
+ * while it restricts nobody.
+ */
+async function writePartAllowedRoles(
+  db: TransactionClient,
+  eventPartId: number,
+  desired: { speaker?: number[]; reader?: number[] },
+  congregationId: number,
+  actorId: number,
+): Promise<void> {
+  const speakerDiff = desired.speaker
+    ? await setPartAssignmentAllowedRoles(db, eventPartId, 'speaker', desired.speaker, congregationId)
+    : NO_ROLE_CHANGE
+  const readerDiff = desired.reader
+    ? await setPartAssignmentAllowedRoles(db, eventPartId, 'reader', desired.reader, congregationId)
+    : NO_ROLE_CHANGE
+
+  if (
+    speakerDiff.added.length === 0 &&
+    speakerDiff.removed.length === 0 &&
+    readerDiff.added.length === 0 &&
+    readerDiff.removed.length === 0
+  ) {
+    return
+  }
+
+  audit({
+    action: AuditAction.PartAllowedRolesChanged,
+    congregationId,
+    actorId,
+    entityType: 'EventPart',
+    entityId: eventPartId,
+    metadata: { speaker: speakerDiff, reader: readerDiff },
+  })
+}
+
 export async function addPartAssignment(
   db: TransactionClient,
   data: {
@@ -108,8 +152,9 @@ export async function addPartAssignment(
     // only per template: the ministry parts ("1re partie"…) are a different
     // kind each week, so the template cannot decide it for them.
     presetId?: number | null
-    allowedSpeakerRoleIds: number[]
-    allowedReaderRoleIds: number[]
+    // Optional on purpose — see writePartAllowedRoles.
+    allowedSpeakerRoleIds?: number[]
+    allowedReaderRoleIds?: number[]
     congregationId: number
   },
   actorId: number,
@@ -117,36 +162,13 @@ export async function addPartAssignment(
   const { allowedSpeakerRoleIds, allowedReaderRoleIds, ...createData } = data
   const assignment = await db.eventPart.create({ data: createData })
 
-  const speakerDiff = await setPartAssignmentAllowedRoles(
+  await writePartAllowedRoles(
     db,
     assignment.id,
-    'speaker',
-    allowedSpeakerRoleIds,
+    { speaker: allowedSpeakerRoleIds, reader: allowedReaderRoleIds },
     data.congregationId,
+    actorId,
   )
-  const readerDiff = await setPartAssignmentAllowedRoles(
-    db,
-    assignment.id,
-    'reader',
-    allowedReaderRoleIds,
-    data.congregationId,
-  )
-
-  if (
-    speakerDiff.added.length > 0 ||
-    speakerDiff.removed.length > 0 ||
-    readerDiff.added.length > 0 ||
-    readerDiff.removed.length > 0
-  ) {
-    audit({
-      action: AuditAction.PartAllowedRolesChanged,
-      congregationId: data.congregationId,
-      actorId,
-      entityType: 'EventPart',
-      entityId: assignment.id,
-      metadata: { speaker: speakerDiff, reader: readerDiff },
-    })
-  }
 
   return assignment
 }
@@ -201,8 +223,9 @@ export async function updatePartAssignment(
     speakerLabel?: string | null
     readerLabel?: string | null
     presetId?: number | null
-    allowedSpeakerRoleIds: number[]
-    allowedReaderRoleIds: number[]
+    // Optional on purpose — see writePartAllowedRoles.
+    allowedSpeakerRoleIds?: number[]
+    allowedReaderRoleIds?: number[]
   },
   congregationId: number,
   actorId: number,
@@ -213,24 +236,13 @@ export async function updatePartAssignment(
     data: updateData,
   })
 
-  const speakerDiff = await setPartAssignmentAllowedRoles(db, id, 'speaker', allowedSpeakerRoleIds, congregationId)
-  const readerDiff = await setPartAssignmentAllowedRoles(db, id, 'reader', allowedReaderRoleIds, congregationId)
-
-  if (
-    speakerDiff.added.length > 0 ||
-    speakerDiff.removed.length > 0 ||
-    readerDiff.added.length > 0 ||
-    readerDiff.removed.length > 0
-  ) {
-    audit({
-      action: AuditAction.PartAllowedRolesChanged,
-      congregationId,
-      actorId,
-      entityType: 'EventPart',
-      entityId: id,
-      metadata: { speaker: speakerDiff, reader: readerDiff },
-    })
-  }
+  await writePartAllowedRoles(
+    db,
+    id,
+    { speaker: allowedSpeakerRoleIds, reader: allowedReaderRoleIds },
+    congregationId,
+    actorId,
+  )
 
   return assignment
 }
