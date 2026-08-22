@@ -25,7 +25,10 @@ describe('shareViaDevice', () => {
     expect(d.copy).not.toHaveBeenCalled()
   })
 
-  it('never passes url or title — WhatsApp drops the body when url is set', async () => {
+  it('passes text alone, never url or title', async () => {
+    // Safari drops `text` when `url` is also present, so the link lives inside
+    // the message body instead. See the note on shareViaDevice.
+
     const d = deps()
 
     await shareViaDevice('message', d)

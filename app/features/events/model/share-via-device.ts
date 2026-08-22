@@ -29,9 +29,18 @@ function isDismissal(error: unknown): boolean {
  * the same reason callers must not await anything between the click and this
  * call.
  *
- * Only `text` is passed. Setting `url` makes WhatsApp collapse the share to a
- * link preview and drop the message body, and `title` is appended
- * inconsistently on Android.
+ * Only `text` is passed, for two separate reasons.
+ *
+ * Safari has a long-standing bug where supplying `text` and `url` together
+ * shares only the url and silently drops the text. Reported against WhatsApp
+ * and Messenger since iOS 14 and still reported on iOS 16; the same code works
+ * on Android. Since the recipients here are on phones, and the message is the
+ * whole point, folding the link into `text` is the only way to be sure it
+ * survives. See https://developer.apple.com/forums/thread/662629
+ *
+ * `title` is omitted because MDN documents it as "May be ignored by the
+ * target" — not something to depend on either way.
+ * https://developer.mozilla.org/en-US/docs/Web/API/Navigator/share
  */
 export async function shareViaDevice(text: string, deps: ShareViaDeviceDeps): Promise<void> {
   if (deps.share) {
