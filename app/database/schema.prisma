@@ -104,7 +104,9 @@ model Congregation {
   eventPartAllowedRoles           EventPartAllowedRole[]
   templateServicePartAllowedRoles TemplateServicePartAllowedRole[]
   eventServicePartAllowedRoles    EventServicePartAllowedRole[]
-  externalSpeakers                           ExternalSpeaker[]
+  partPresets                     PartPreset[]
+  partPresetAllowedRoles          PartPresetAllowedRole[]
+  externalSpeakers                ExternalSpeaker[]
 
   emergencyContacts EmergencyContact[]
 
@@ -140,15 +142,15 @@ model Member {
   // Search aids: lowercased, diacritic-stripped copies of firstname/lastname.
   // Maintained at write-time so search queries can stay in pure Prisma without
   // needing the `unaccent` extension at runtime.
-  firstnameNormalized String   @default("")
-  lastnameNormalized  String   @default("")
+  firstnameNormalized String    @default("")
+  lastnameNormalized  String    @default("")
   isMale              Boolean?
   birthDate           DateTime?
-  phone               String   @default("")
-  address             String   @default("")
+  phone               String    @default("")
+  address             String    @default("")
   // Contact email — person data, distinct from the login email on UserAccount.
   // The two may match or differ; a member can have a contact email without a login.
-  email               String   @default("")
+  email               String    @default("")
 
   // Emergency preparedness. `dpaCardUpToDate` = the member holds an up-to-date
   // DPA card (directive médicale anticipée); `survivalBackpackReady` = their
@@ -187,12 +189,12 @@ model Member {
   account UserAccount?
 
   // Domain relations (FK target Member.id)
-  attributions             Attribution[]                    @relation("publisher")
-  activities               PublisherActivity[]              @relation("publisherActivity")
-  pioneerEnrolments        PioneerEnrolment[]
-  eventPartsAsAssignee        EventPart[]        @relation("partAssignee")
-  eventPartsAsAssistant       EventPart[]        @relation("partAssistant")
-  eventServicePartsAsAssignee EventServicePart[] @relation("servicePartAssignee")
+  attributions                Attribution[]       @relation("publisher")
+  activities                  PublisherActivity[] @relation("publisherActivity")
+  pioneerEnrolments           PioneerEnrolment[]
+  eventPartsAsAssignee        EventPart[]         @relation("partAssignee")
+  eventPartsAsAssistant       EventPart[]         @relation("partAssistant")
+  eventServicePartsAsAssignee EventServicePart[]  @relation("servicePartAssignee")
 
   // Identity-role assignments (built-in roles like brother/elder/pioneer plus
   // any custom role the user may add later that expresses identity)
@@ -264,7 +266,7 @@ model UserAccount {
   // Session epoch. Embedded in the session cookie when a session is established and
   // compared on every request in verifySession. Incremented on password change/reset
   // and on admin invalidation to revoke all previously-issued sessions ("log out everywhere").
-  sessionEpoch    Int       @default(0)
+  sessionEpoch Int @default(0)
 
   // Optional TOTP two-factor authentication.
   // twoFactorSecret holds the AES-256-GCM ciphertext of the base32 seed (null = never enrolled).
@@ -276,11 +278,11 @@ model UserAccount {
   // Account-bound relations
   congregationPermissions  CongregationUserPermission[]
   roleAssignments          UserRoleAssignment[] // management/access roles
-  eventsCreated            Event[]                        @relation("createdBy")
-  documentsViewed          BoardDocument[]                @relation("viewedBy")
-  documentVersionUploads   BoardDocumentVersion[]         @relation("boardDocumentVersionUploader")
+  eventsCreated            Event[]                      @relation("createdBy")
+  documentsViewed          BoardDocument[]              @relation("viewedBy")
+  documentVersionUploads   BoardDocumentVersion[]       @relation("boardDocumentVersionUploader")
   dynamicDocumentViews     BoardDynamicDocumentView[]
-  templateResponsibilities TemplateResponsible[] @relation("templateResponsible")
+  templateResponsibilities TemplateResponsible[]        @relation("templateResponsible")
   passwordResetTokens      PasswordResetToken[]
   emailVerificationTokens  EmailVerificationToken[]
   calendarFeedTokens       CalendarFeedToken[]
@@ -311,11 +313,12 @@ model Role {
   members           UserRoleAssignment[]
   memberAssignments MemberRoleAssignment[]
 
-  allowedForTemplateParts         TemplatePartAllowedRole[]
-  allowedForEventParts            EventPartAllowedRole[]
-  allowedForTemplateServiceParts  TemplateServicePartAllowedRole[]
-  allowedForEventServiceParts     EventServicePartAllowedRole[]
-  allowedForBoardSections          BoardSectionVisibilityRole[]
+  allowedForTemplateParts        TemplatePartAllowedRole[]
+  allowedForEventParts           EventPartAllowedRole[]
+  allowedForPartPresets          PartPresetAllowedRole[]
+  allowedForTemplateServiceParts TemplateServicePartAllowedRole[]
+  allowedForEventServiceParts    EventServicePartAllowedRole[]
+  allowedForBoardSections        BoardSectionVisibilityRole[]
 
   congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
   congregationId Int
@@ -624,20 +627,20 @@ model BuildingResidentialData {
 }
 
 model Building {
-  id               Int     @id @default(autoincrement())
+  id               Int      @id @default(autoincrement())
   number           String
   street           String
   // Search aid: lowercased, diacritic-stripped copy of street.
   // Maintained at write-time so search queries can stay in pure Prisma.
-  streetNormalized String  @default("")
+  streetNormalized String   @default("")
   zip              String
   latitude         Float?
   longitude        Float?
-  active      Boolean  @default(true)
-  inTerritory Boolean  @default(true)
-  inOpenData  Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  active           Boolean  @default(true)
+  inTerritory      Boolean  @default(true)
+  inOpenData       Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   prospectionDate DateTime?
   entrances       BuildingEntrance[]
@@ -667,7 +670,7 @@ model Setting {
 }
 
 model PublisherGroup {
-  id            Int    @id @default(autoincrement())
+  id            Int      @id @default(autoincrement())
   name          String
   adress        String
   members       Member[] @relation("group")
@@ -686,7 +689,7 @@ model PublisherGroup {
 }
 
 model PublisherActivity {
-  id          Int  @id @default(autoincrement())
+  id          Int    @id @default(autoincrement())
   month       Int
   year        Int
   publisher   Member @relation("publisherActivity", fields: [publisherId], references: [id])
@@ -759,12 +762,12 @@ model PioneerEnrolment {
 }
 
 model Event {
-  id          Int        @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   name        String
-  description String     @default("")
+  description String   @default("")
   startDate   DateTime
   endDate     DateTime
-  status      String     @default("draft")
+  status      String   @default("draft")
 
   template   EventTemplate? @relation("templateEvents", fields: [templateId], references: [id])
   templateId Int?
@@ -774,8 +777,8 @@ model Event {
 
   createdBy   UserAccount @relation("createdBy", fields: [createdById], references: [id])
   createdById Int
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
@@ -796,7 +799,7 @@ model EventTemplate {
 
   parts        TemplatePart[]
   serviceParts TemplateServicePart[]
-  events       Event[]                        @relation("templateEvents")
+  events       Event[]               @relation("templateEvents")
   responsibles TemplateResponsible[]
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
@@ -826,6 +829,12 @@ model TemplatePart {
   template   EventTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   templateId Int
 
+  // What kind of part this is. The preset owns capability (reader slot, slot
+  // labels, external-speaker eligibility, share message); this row owns the
+  // defaults (name, section, duration) that a part may later override.
+  preset   PartPreset? @relation(fields: [presetId], references: [id], onDelete: SetNull)
+  presetId Int?
+
   eventParts   EventPart[]
   allowedRoles TemplatePartAllowedRole[]
 
@@ -834,6 +843,7 @@ model TemplatePart {
 
   @@unique([id, congregationId])
   @@index([templateId])
+  @@index([presetId])
 }
 
 model TemplateServicePart {
@@ -844,6 +854,9 @@ model TemplateServicePart {
   template   EventTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   templateId Int
 
+  preset   PartPreset? @relation(fields: [presetId], references: [id], onDelete: SetNull)
+  presetId Int?
+
   eventServiceParts EventServicePart[]
   allowedRoles      TemplateServicePartAllowedRole[]
 
@@ -852,6 +865,7 @@ model TemplateServicePart {
 
   @@unique([id, congregationId])
   @@index([templateId])
+  @@index([presetId])
 }
 
 model EventPart {
@@ -879,6 +893,13 @@ model EventPart {
   part   TemplatePart? @relation(fields: [partId], references: [id], onDelete: SetNull)
   partId Int?
 
+  // Carried from the template part at generation time. Unlike the label and
+  // duration fields above, nothing is denormalized off the preset: the share
+  // message is resolved live so an improved wording applies to assignments
+  // that already exist.
+  preset   PartPreset? @relation(fields: [presetId], references: [id], onDelete: SetNull)
+  presetId Int?
+
   assignee   Member? @relation("partAssignee", fields: [assigneeId], references: [id])
   assigneeId Int?
 
@@ -902,6 +923,7 @@ model EventPart {
   @@index([externalSpeakerId])
   @@index([eventId])
   @@index([partId])
+  @@index([presetId])
 }
 
 model ExternalSpeaker {
@@ -939,6 +961,9 @@ model EventServicePart {
   servicePart   TemplateServicePart? @relation(fields: [servicePartId], references: [id], onDelete: SetNull)
   servicePartId Int?
 
+  preset   PartPreset? @relation(fields: [presetId], references: [id], onDelete: SetNull)
+  presetId Int?
+
   assignee   Member? @relation("servicePartAssignee", fields: [assigneeId], references: [id])
   assigneeId Int?
 
@@ -953,12 +978,80 @@ model EventServicePart {
   @@unique([id, congregationId])
   @@index([eventId])
   @@index([servicePartId])
+  @@index([presetId])
+}
+
+// What a programme part *is*, and what it *can do* — a talk, a Sujet, a
+// Watchtower study. Congregation-scoped and congregation-creatable.
+//
+// Deliberately carries no defaults. The three layers are:
+//   PartPreset   — identity + capability. Never overridable on a part.
+//   TemplatePart — defaults (name, section, duration) so they aren't retyped.
+//   EventPart    — the instance, free to override anything the template set.
+//
+// That split is why `shareMessage` lives here: the wording of the message sent
+// to an assignee is a property of the kind of assignment, not of one evening's
+// occurrence of it, so it must not be editable part by part.
+model PartPreset {
+  id    Int    @id @default(autoincrement())
+  key   String
+  name  String
+  // 'part' | 'service' — which of the two assignment families this kind
+  // applies to, so the picker on a service row never offers "Discours public".
+  scope String @default("part")
+
+  // Capability. Fixed at part level, by design.
+  hasReaderSlot        Boolean @default(false)
+  speakerLabel         String?
+  readerLabel          String?
+  allowExternalSpeaker Boolean @default(false)
+
+  // Body of the SMS/WhatsApp message shared with the assignee, written with
+  // {{variable}} placeholders — see app/features/events/model/share-message.ts.
+  shareMessage String @default("")
+
+  // Seeded presets: `key` is immutable and the row cannot be deleted, matching
+  // the isSystemTemplate() convention on EventTemplate.
+  isSystem Boolean @default(false)
+
+  templateParts        TemplatePart[]
+  eventParts           EventPart[]
+  templateServiceParts TemplateServicePart[]
+  eventServiceParts    EventServicePart[]
+  allowedRoles         PartPresetAllowedRole[]
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([key, congregationId])
+  @@unique([id, congregationId])
+  @@index([congregationId])
+}
+
+// Which roles may be assigned to a part of this kind. Mirrors
+// TemplatePartAllowedRole; `asKind` distinguishes the speaker and reader slots.
+model PartPresetAllowedRole {
+  preset   PartPreset @relation(fields: [presetId], references: [id], onDelete: Cascade)
+  presetId Int
+  role     Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId   Int
+  asKind   String
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
+  @@id([presetId, roleId, asKind])
+  @@index([roleId])
+  @@index([congregationId])
 }
 
 model TemplatePartAllowedRole {
   part   TemplatePart @relation(fields: [partId], references: [id], onDelete: Cascade)
   partId Int
-  role   Role                  @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  role   Role         @relation(fields: [roleId], references: [id], onDelete: Cascade)
   roleId Int
   asKind String
 
