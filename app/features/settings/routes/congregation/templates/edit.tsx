@@ -9,6 +9,7 @@ import { InlineDeleteDialog, isSystemTemplate, PartEditSheet, ServiceEditSheet, 
 import {
   deleteTemplatePart,
   deleteTemplateServicePart,
+  ensureDefaultPartPresets,
   getTemplateById,
   isTemplateResponsible,
   listPartPresets,
@@ -24,7 +25,12 @@ import {
   upsertServicePartSchema,
 } from '~/features/settings/schemas/template.schema'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import { listRoles } from '~/shared/domain/roles.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
@@ -87,6 +93,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     }))
 
     const roles = allRoles.map(r => ({ id: r.id, key: r.key, name: r.name, isBuiltIn: r.isBuiltIn }))
+    await ensureDefaultPartPresets(db, currentUser.congregationId, context.get(congregationContext).locale)
     const presets = await listPartPresets(db, currentUser.congregationId)
 
     const sectionSuggestions = distinct(template.parts.map(p => p.section))

@@ -2,6 +2,7 @@
 
 export { getNextDaysOffs } from './server/days-off.server'
 export { duplicateTemplate } from './server/duplicate-template.server'
+export { ensureDefaultPartPresets } from './server/ensure-part-presets.server'
 export {
   deleteTemplate,
   deleteTemplatePart,
