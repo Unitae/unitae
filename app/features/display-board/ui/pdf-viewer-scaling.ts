@@ -27,6 +27,9 @@ export function clampUserZoom(zoom: number): number {
 }
 
 export const MAX_RENDER_PIXEL_RATIO = 3
+// Below this the backing store would be illegibly soft; past the point where
+// the caps demand it, an oversized canvas is the lesser evil.
+export const MIN_RENDER_PIXEL_RATIO = 0.25
 export const MAX_CANVAS_DIMENSION = 8192
 // Safari silently blanks canvases past ~16.7 megapixels; stay under it.
 export const MAX_CANVAS_AREA = 4096 * 4096
@@ -49,7 +52,7 @@ export function computeRenderPixelRatio(devicePixelRatio: number, cssScale: numb
   if (cssScale > 0 && pageArea > 0) {
     ratio = Math.min(ratio, Math.sqrt(MAX_CANVAS_AREA / (cssScale * cssScale * pageArea)))
   }
-  return Math.max(ratio, Number.MIN_VALUE)
+  return Math.max(ratio, MIN_RENDER_PIXEL_RATIO)
 }
 
 /** Zoom factor of an in-progress pinch, from the two-finger distances. */

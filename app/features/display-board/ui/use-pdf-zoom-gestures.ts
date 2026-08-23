@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-import { clampUserZoom, pinchZoomFactor, wheelZoomFactor } from './pdf-viewer-scaling'
+import { createZoomGestureController } from './pdf-zoom-gesture-controller'
 
 interface ZoomGestureOptions {
   scrollRef: React.RefObject<HTMLDivElement | null>
@@ -9,8 +9,6 @@ interface ZoomGestureOptions {
   zoom: number
   onCommit: (zoom: number) => void
 }
-
-const WHEEL_COMMIT_DELAY_MS = 180
 
 /**
  * Pinch (touch) and ctrl+wheel (trackpad pinch) zoom for the PDF viewer.
@@ -21,8 +19,10 @@ const WHEEL_COMMIT_DELAY_MS = 180
  * goes idle) and the pages re-render crisply at the new scale. The preview
  * transform is cleared by the render effect once the sharp pages land.
  *
- * The scroller needs `touch-action: pan-x pan-y` so the browser keeps
- * one-finger panning but hands two-finger pinches to these pointer handlers.
+ * The state machine lives in createZoomGestureController (unit-tested); this
+ * hook only binds it to DOM events and the preview transform. The scroller
+ * needs `touch-action: pan-x pan-y` so the browser keeps one-finger panning
+ * but hands two-finger pinches to these pointer handlers.
  */
 export function usePdfZoomGestures({ scrollRef, contentRef, zoom, onCommit }: ZoomGestureOptions) {
   const zoomRef = useRef(zoom)
@@ -36,65 +36,28 @@ export function usePdfZoomGestures({ scrollRef, contentRef, zoom, onCommit }: Zo
     const content = contentRef.current
     if (!scroller || !content) return
 
-    const pointers = new Map<number, { x: number; y: number }>()
-    let pinchStartDistance = 0
-    let pinchStartZoom = 1
-    let previewZoom: number | null = null
-    let wheelTimer: ReturnType<typeof setTimeout> | null = null
+    const controller = createZoomGestureController({
+      getZoom: () => zoomRef.current,
+      setPreview: scaleFactor => {
+        if (scaleFactor == null) {
+          content.style.transform = ''
+        } else {
+          content.style.transformOrigin = 'top center'
+          content.style.transform = `scale(${scaleFactor})`
+        }
+      },
+      commit: nextZoom => onCommitRef.current(nextZoom),
+    })
 
-    const distance = () => {
-      const [a, b] = [...pointers.values()]
-      return Math.hypot(a.x - b.x, a.y - b.y)
-    }
-
-    const applyPreview = (nextZoom: number) => {
-      previewZoom = nextZoom
-      content.style.transformOrigin = 'top center'
-      content.style.transform = `scale(${nextZoom / pinchStartZoom})`
-    }
-
-    const commitPreview = () => {
-      if (previewZoom == null) return
-      const target = previewZoom
-      previewZoom = null
-      if (target !== zoomRef.current) onCommitRef.current(target)
-      else content.style.transform = ''
-    }
-
-    const onPointerDown = (event: PointerEvent) => {
-      if (event.pointerType !== 'touch') return
-      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
-      if (pointers.size === 2) {
-        pinchStartDistance = distance()
-        pinchStartZoom = zoomRef.current
-      }
-    }
-
+    const onPointerDown = (event: PointerEvent) =>
+      controller.pointerDown(event.pointerId, event.clientX, event.clientY, event.pointerType === 'touch')
     const onPointerMove = (event: PointerEvent) => {
-      if (!pointers.has(event.pointerId)) return
-      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
-      if (pointers.size !== 2 || pinchStartDistance <= 0) return
-      event.preventDefault()
-      applyPreview(clampUserZoom(pinchStartZoom * pinchZoomFactor(pinchStartDistance, distance())))
+      if (controller.pointerMove(event.pointerId, event.clientX, event.clientY)) event.preventDefault()
     }
-
-    const onPointerEnd = (event: PointerEvent) => {
-      if (!pointers.delete(event.pointerId)) return
-      if (pointers.size < 2) {
-        pinchStartDistance = 0
-        commitPreview()
-      }
-    }
-
+    const onPointerEnd = (event: PointerEvent) => controller.pointerEnd(event.pointerId)
     // Trackpad pinches arrive as wheel events with ctrlKey set.
     const onWheel = (event: WheelEvent) => {
-      if (!event.ctrlKey) return
-      event.preventDefault()
-      if (previewZoom == null) pinchStartZoom = zoomRef.current
-      const current = previewZoom ?? zoomRef.current
-      applyPreview(clampUserZoom(current * wheelZoomFactor(event.deltaY)))
-      if (wheelTimer) clearTimeout(wheelTimer)
-      wheelTimer = setTimeout(commitPreview, WHEEL_COMMIT_DELAY_MS)
+      if (controller.wheel(event.deltaY, event.ctrlKey)) event.preventDefault()
     }
 
     scroller.addEventListener('pointerdown', onPointerDown)
@@ -109,7 +72,10 @@ export function usePdfZoomGestures({ scrollRef, contentRef, zoom, onCommit }: Zo
       scroller.removeEventListener('pointerup', onPointerEnd)
       scroller.removeEventListener('pointercancel', onPointerEnd)
       scroller.removeEventListener('wheel', onWheel)
-      if (wheelTimer) clearTimeout(wheelTimer)
+      // Cancels any pending wheel commit and clears a live preview, so an
+      // unmount or document switch mid-gesture cannot leave a stale
+      // transform behind.
+      controller.dispose()
     }
   }, [scrollRef, contentRef])
 }

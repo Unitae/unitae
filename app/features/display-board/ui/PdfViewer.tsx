@@ -94,9 +94,10 @@ async function renderPageToCanvas(page: any, scale: number, pixelRatio: number):
   canvas.style.height = `${viewport.height / pixelRatio}px`
 
   const context = canvas.getContext('2d')
-  if (context) {
-    await page.render({ canvasContext: context, canvas, viewport }).promise
-  }
+  // Null under memory pressure or oversized canvases — surface it through the
+  // viewer's error card rather than appending silently blank pages.
+  if (!context) throw new Error(`Canvas 2D context unavailable (${canvas.width}x${canvas.height})`)
+  await page.render({ canvasContext: context, canvas, viewport }).promise
   return canvas
 }
 
@@ -129,7 +130,8 @@ async function renderAllPages(
     fragment.appendChild(canvas)
   }
   if (isCancelled()) return
-  // Same frame as the transform reset in the caller — no intermediate paint.
+  // Same paint frame as the transform reset in the caller's .then — the
+  // microtask runs before the browser paints, so no intermediate flash.
   container.replaceChildren(fragment)
 }
 
@@ -252,6 +254,8 @@ export function PdfViewer({ url, downloadUrl, downloadName }: PdfViewerProps) {
         if (!cancelled) {
           setError(buildErrorDetails('render', err, url))
           setLoading(false)
+          // The error card must not sit on top of preview-scaled pages.
+          canvasContainer.style.transform = ''
         }
       })
 

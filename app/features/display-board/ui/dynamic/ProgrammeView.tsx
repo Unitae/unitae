@@ -156,6 +156,9 @@ function PartRow({ part, highlighted, dimmed }: { part: PartAssignment; highligh
   )
 }
 
+// Below sm both row kinds trade their two-column grid for stacked block flow
+// (name, then people indented beneath); the hidden max-sm:inline dash bridges
+// a room label and its assignee into one wrapping line.
 function MultiTrackPart({ parts, query }: { parts: PartAssignment[]; query: string }) {
   const representative = parts[0]
   const hasQuery = query.length > 0

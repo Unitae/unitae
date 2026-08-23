@@ -63,6 +63,11 @@ export function AppLayout({ permissions, congregationName, sidebarOpen = true }:
             <kbd className="font-mono text-[10px]">⌘K</kbd>
           </button>
         </div>
+        {/* The extra max-sm padding reacts to a docked FormActions bar
+            anywhere on the page (its data-form-actions marker), reserving the
+            bar's height so content can scroll clear of it. Progressive
+            enhancement: browsers without :has() fall back to tab-bar-only
+            clearance. */}
         <div className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-[radial-gradient(70%_360px_at_50%_0%,color-mix(in_oklab,var(--color-primary)_5%,transparent),transparent)] p-4 max-md:pb-[calc(4.5rem+env(safe-area-inset-bottom))] max-sm:has-[[data-form-actions]]:pb-[calc(8rem+env(safe-area-inset-bottom))] md:p-6">
           {/* Soft cap so pages keep a readable measure when the sidebar is
               collapsed or on very wide screens. */}

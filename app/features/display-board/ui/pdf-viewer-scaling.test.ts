@@ -7,6 +7,7 @@ import {
   MAX_CANVAS_AREA,
   MAX_CANVAS_DIMENSION,
   MAX_USER_ZOOM,
+  MIN_RENDER_PIXEL_RATIO,
   MIN_USER_ZOOM,
   pinchZoomFactor,
   wheelZoomFactor,
@@ -114,6 +115,14 @@ describe('computeRenderPixelRatio', () => {
     const ratio = computeRenderPixelRatio(2, 12, { width: 612, height: 792 })
     expect(12 * ratio * 792).toBeLessThanOrEqual(MAX_CANVAS_DIMENSION)
     expect(ratio).toBeGreaterThan(0)
+  })
+})
+
+describe('computeRenderPixelRatio floor', () => {
+  it('never returns a ratio below the visible floor, even for absurd scales', () => {
+    // A degenerate ratio would render pages invisibly small on the backing
+    // store; below the floor we accept oversized canvases as the lesser evil.
+    expect(computeRenderPixelRatio(1, 1e9, { width: 612, height: 792 })).toBe(MIN_RENDER_PIXEL_RATIO)
   })
 })
 
