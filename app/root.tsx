@@ -57,7 +57,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <html lang={locale} suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        {/* viewport-fit=cover: without it, iOS reports env(safe-area-inset-*) as 0
+            and every safe-area padding (tab bar, sheets, docked form bars) is inert. */}
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="apple-mobile-web-app-title" content="Unitae" />
         <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fafaf9" />
         <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1c1917" />
