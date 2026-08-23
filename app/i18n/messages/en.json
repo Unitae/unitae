@@ -2772,7 +2772,7 @@
     "campaigns_form_start_action_label": "Ongoing regular attributions",
     "campaigns_form_start_action_pause": "Pause",
     "campaigns_form_start_action_close": "Close",
-    "campaigns_form_start_action_leave": "Leave in place",
+    "campaigns_form_start_action_leave": "Leave outside the campaign",
     "campaigns_form_auto_reassign_label": "Automatically re-assign the same publishers within the campaign",
     "campaigns_form_end_legend": "At end",
     "campaigns_form_end_close_label": "Automatically close campaign attributions",

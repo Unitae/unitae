@@ -2772,7 +2772,7 @@
     "campaigns_form_start_action_label": "Attributions régulières en cours",
     "campaigns_form_start_action_pause": "Suspendre",
     "campaigns_form_start_action_close": "Clôturer",
-    "campaigns_form_start_action_leave": "Laisser en place",
+    "campaigns_form_start_action_leave": "Laisser hors campagne",
     "campaigns_form_auto_reassign_label": "Réattribuer automatiquement les mêmes proclamateurs dans la campagne",
     "campaigns_form_end_legend": "À la fin",
     "campaigns_form_end_close_label": "Clôturer automatiquement les attributions de campagne",
