@@ -67,11 +67,11 @@ export interface NavSection {
 export function buildTabBar(permissions: NavigationPermissions): NavItem[] {
   const tabs: NavItem[] = [{ id: 'home', label: m.sidebar_home, icon: Home, to: '/', end: true }]
   if (permissions.canViewBoard) {
-    tabs.push({ id: 'board', label: m.sidebar_board, icon: LayoutGrid, to: '/board', end: true })
+    tabs.push({ id: 'board', label: m.nav_tab_board, icon: LayoutGrid, to: '/board', end: true })
   }
   tabs.push(
     { id: 'my-territories', label: m.sidebar_my_territories, icon: MapPin, to: '/me/territories' },
-    { id: 'profile', label: m.sidebar_my_profile, icon: User, to: '/me/profile' },
+    { id: 'profile', label: m.nav_tab_profile, icon: User, to: '/me/profile' },
   )
   return tabs
 }

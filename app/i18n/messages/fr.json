@@ -2727,5 +2727,9 @@
     "filters_active_label": "Filtres appliqués",
     "filters_clear_all": "Tout effacer",
     "filters_chip_remove": "Retirer le filtre {label} : {value}",
-    "related_items_view_all": "Tout voir"
+    "related_items_view_all": "Tout voir",
+    "nav_more": "Plus",
+    "nav_primary": "Navigation principale",
+    "nav_tab_board": "Tableau",
+    "nav_tab_profile": "Profil"
 }
