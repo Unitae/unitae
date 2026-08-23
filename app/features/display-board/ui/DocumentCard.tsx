@@ -84,6 +84,9 @@ export function DocumentCard({ file, alreadyViewed = false }: DocumentCardProps)
 
         <div className="flex flex-col gap-1 p-3 max-sm:min-w-0 max-sm:flex-1 max-sm:px-3 max-sm:py-2">
           <span className={cn('line-clamp-2 text-sm', alreadyViewed ? 'font-medium' : 'font-semibold')}>
+            {!alreadyViewed && (
+              <span aria-hidden className="mr-1.5 mb-0.5 inline-block size-2 shrink-0 rounded-full bg-primary" />
+            )}
             {file.title}
           </span>
           <span className="text-muted-foreground text-xs">
