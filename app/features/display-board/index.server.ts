@@ -2,3 +2,4 @@
 
 export { resolveProgrammeLink } from './server/event-link.server'
 export { boardNotifications } from './server/notifications.server'
+export { buildSectionVisibilityFilter } from './server/section-visibility.server'

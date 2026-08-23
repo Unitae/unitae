@@ -21,7 +21,7 @@ const PIONEER_TYPE_RANK: Record<string, number> = {
 export type { AvailableDynamicType, ProgrammeDynamicConfig }
 export { parseProgrammeConfig }
 
-function startOfCurrentMonth(): Date {
+export function startOfCurrentMonth(): Date {
   const now = new Date()
   return new Date(now.getFullYear(), now.getMonth(), 1)
 }

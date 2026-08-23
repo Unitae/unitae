@@ -1,5 +1,24 @@
+import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+
+/**
+ * Which sections this member is allowed to see.
+ *
+ * An empty visibility list means the section is open to anyone holding
+ * BoardViewer; a non-empty one means only those roles, and there is no manager
+ * bypass — a validator or admin sees exactly what their roles allow.
+ *
+ * Shaped to be spread into a `where` rather than checked separately, so a
+ * caller fetching one row by id gets "you may not see this" and "there is no
+ * such row" as the same answer instead of leaking the difference.
+ */
+export async function buildSectionVisibilityFilter(db: TransactionClient, userId: number, congregationId: number) {
+  const viewerRoleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
+  return {
+    OR: [{ visibilityRoles: { none: {} } }, { visibilityRoles: { some: { roleId: { in: viewerRoleIds } } } }],
+  }
+}
 
 export interface DiffResult {
   added: number[]

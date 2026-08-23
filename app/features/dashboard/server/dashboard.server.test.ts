@@ -20,6 +20,11 @@ vi.mock('~/features/events/server/days-off.server', () => ({
 // assignment emails use); mock it and assert the event handed to it.
 vi.mock('~/features/display-board/index.server', () => ({
   resolveProgrammeLink: vi.fn(),
+  // The board owns the visibility rule; the dashboard only spreads it into a
+  // where, so the shape is all that matters here.
+  buildSectionVisibilityFilter: vi.fn(async () => ({
+    OR: [{ visibilityRoles: { none: {} } }, { visibilityRoles: { some: { roleId: { in: [] } } } }],
+  })),
 }))
 
 const {

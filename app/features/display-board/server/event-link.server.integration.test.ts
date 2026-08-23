@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { EventStatus } from '~/features/events'
 
 // Integration coverage for resolveProgrammeLink against a real Postgres
 // instance. The unit tests mock Prisma; this test verifies the JSON
@@ -66,11 +67,18 @@ beforeAll(async () => {
     })
     templateBId = templateB.id
 
+    // Released and dated inside the window a programme document renders —
+    // fixed dates would silently start resolving to /board once the month they
+    // fall in has passed.
+    const soon = new Date(new Date().getFullYear(), new Date().getMonth(), 28, 18, 30)
+    const alsoSoon = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 4, 15, 0)
+
     const eventA = await tx.event.create({
       data: {
         name: 'Meeting A',
-        startDate: new Date('2026-07-20T18:30:00Z'),
-        endDate: new Date('2026-07-20T20:00:00Z'),
+        startDate: soon,
+        endDate: new Date(soon.getTime() + 90 * 60 * 1000),
+        status: EventStatus.Released,
         templateId: templateAId,
         createdById: creatorId,
         congregationId: congId,
@@ -80,8 +88,9 @@ beforeAll(async () => {
     const eventB = await tx.event.create({
       data: {
         name: 'Talk B',
-        startDate: new Date('2026-07-27T15:00:00Z'),
-        endDate: new Date('2026-07-27T16:00:00Z'),
+        startDate: alsoSoon,
+        endDate: new Date(alsoSoon.getTime() + 60 * 60 * 1000),
+        status: EventStatus.Released,
         templateId: templateBId,
         createdById: creatorId,
         congregationId: congId,

@@ -1,6 +1,7 @@
 import { ArrowLeft, Download } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { markDocumentAsViewed } from '~/features/display-board/server/board-document.server'
+import { buildSectionVisibilityFilter } from '~/features/display-board/server/section-visibility.server'
 import { PdfViewer } from '~/features/display-board/ui/PdfViewer'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -30,6 +31,21 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
+    // Visibility first: marking a document read would otherwise be a side
+    // effect of a request the viewer was never entitled to make.
+    const visible = await db.boardDocument.findFirst({
+      where: {
+        id: documentId,
+        congregationId,
+        section: await buildSectionVisibilityFilter(db, currentUser.id, congregationId),
+      },
+      select: { id: true },
+    })
+    if (!visible) {
+      logger.warn(`Document ID: ${documentId} not visible. User ID: ${currentUser.id}.`)
+      throw redirect('/board')
+    }
+
     const document = await markDocumentAsViewed(db, documentId, currentUser.id, congregationId)
 
     if (!document) {

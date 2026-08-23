@@ -8,6 +8,7 @@ import {
   markDynamicDocumentViewed,
 } from '~/features/display-board/server/dynamic-documents.server'
 import { filterDynamicDataToEvent } from '~/features/display-board/server/event-filter.server'
+import { buildSectionVisibilityFilter } from '~/features/display-board/server/section-visibility.server'
 import { PioneersView } from '~/features/display-board/ui/dynamic/PioneersView'
 import { ProgrammeView } from '~/features/display-board/ui/dynamic/ProgrammeView'
 import { PublisherGroupsView } from '~/features/display-board/ui/dynamic/PublisherGroupsView'
@@ -50,9 +51,13 @@ export function loader({ params, request, context }: Route.LoaderArgs) {
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
-    const settings = await db.boardDynamicDocumentSettings.findUnique({
+    // Fetched through the visibility filter, not merely by id: a deep link
+    // into a section the viewer's roles do not cover must not open it.
+    const settings = await db.boardDynamicDocumentSettings.findFirst({
       where: {
-        id_congregationId: { id: dynamicId, congregationId },
+        id: dynamicId,
+        congregationId,
+        section: await buildSectionVisibilityFilter(db, currentUser.id, congregationId),
       },
     })
 

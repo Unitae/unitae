@@ -1,5 +1,6 @@
 import { redirect } from 'react-router'
 import { getFileStream } from '~/features/display-board/server/document.server'
+import { buildSectionVisibilityFilter } from '~/features/display-board/server/section-visibility.server'
 import {
   currentAccountContext,
   permissionsContext,
@@ -24,9 +25,13 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
-    const document = await db.boardDocument.findUnique({
+    // The bytes themselves, so the visibility filter matters more here than on
+    // the page that links to them.
+    const document = await db.boardDocument.findFirst({
       where: {
-        id_congregationId: { id: requireParamId(params.documentId, '/board'), congregationId },
+        id: requireParamId(params.documentId, '/board'),
+        congregationId,
+        section: await buildSectionVisibilityFilter(db, currentUser.id, congregationId),
       },
     })
 
