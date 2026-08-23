@@ -38,3 +38,29 @@ export async function listAllTerritoryIds(db: TransactionClient, congregationId:
   const territories = await db.territory.findMany({ where: { congregationId }, select: { id: true } })
   return territories.map(t => t.id)
 }
+
+/** Campaign list for the CRUD screens — newest window first, with scope size. */
+export function listCampaigns(db: TransactionClient, congregationId: number) {
+  return db.campaign.findMany({
+    where: { congregationId },
+    orderBy: { startDate: 'desc' },
+    // biome-ignore lint/style/useNamingConvention: Prisma count aggregation key
+    include: { _count: { select: { scope: true } } },
+  })
+}
+
+/** One campaign with its scope, or null. */
+export function getCampaign(db: TransactionClient, id: number, congregationId: number) {
+  return db.campaign.findFirst({
+    where: { id, congregationId },
+    include: { scope: { select: { territoryId: true } } },
+  })
+}
+
+/** Next scheduled campaign for the banner — never activated, window not past. */
+export function getUpcomingCampaign(db: TransactionClient, congregationId: number, now: Date) {
+  return db.campaign.findFirst({
+    where: { congregationId, activatedAt: null, endedAt: null, endDate: { gte: now } },
+    orderBy: { startDate: 'asc' },
+  })
+}

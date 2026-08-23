@@ -166,12 +166,11 @@ describe('updateCampaign', () => {
     await expect(updateCampaign(mockDb as never, 1, 10, 99, baseParams)).rejects.toThrow('campaign_overlap')
   })
 
-  it('replaces the scope when scopeTerritoryIds is provided', async () => {
-    await updateCampaign(mockDb as never, 1, 10, 99, { ...baseParams, scopeTerritoryIds: [5] })
+  it('never touches the scope — scope edits go through the lifecycle workflow', async () => {
+    await updateCampaign(mockDb as never, 1, 10, 99, baseParams)
 
-    expect(mockDb.campaignTerritory.deleteMany).toHaveBeenCalledWith({ where: { campaignId: 1, congregationId: 10 } })
-    const call = mockDb.campaignTerritory.createMany.mock.calls[0][0]
-    expect(call.data).toEqual([{ campaignId: 1, territoryId: 5, congregationId: 10 }])
+    expect(mockDb.campaignTerritory.deleteMany).not.toHaveBeenCalled()
+    expect(mockDb.campaignTerritory.createMany).not.toHaveBeenCalled()
   })
 
   it('throws NotFound for an unknown campaign', async () => {

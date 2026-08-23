@@ -55,12 +55,15 @@ export interface CampaignParams {
   startAutoReassign: boolean
   endCloseCampaign: boolean
   endRegularAction: CampaignRegularEndAction
-  scopeTerritoryIds: number[]
   congregationId: number
   actorId: number
 }
 
-export async function createCampaign(db: TransactionClient, params: CampaignParams) {
+export interface CreateCampaignParams extends CampaignParams {
+  scopeTerritoryIds: number[]
+}
+
+export async function createCampaign(db: TransactionClient, params: CreateCampaignParams) {
   const startDate = parseLocalDate(params.startDate)
   const endDate = parseLocalDate(params.endDate)
 
@@ -121,6 +124,9 @@ export async function updateCampaign(
 
   await _assertNoWindowOverlap(db, congregationId, startDate, endDate, id)
 
+  // Scope deliberately untouched here — every scope edit goes through
+  // campaign-lifecycle.workflow.applyScopeChange so an active campaign's
+  // transitions run for added/removed territories.
   const campaign = await db.campaign.update({
     // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
     where: { id_congregationId: { id, congregationId } },
@@ -137,15 +143,12 @@ export async function updateCampaign(
     },
   })
 
-  await replaceScope(db, id, congregationId, params.scopeTerritoryIds)
-
   audit({
     action: AuditAction.CampaignUpdated,
     congregationId,
     actorId,
     entityType: 'Campaign',
     entityId: id,
-    metadata: { scopeSize: params.scopeTerritoryIds.length },
   })
 
   return campaign

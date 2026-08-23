@@ -15,6 +15,7 @@ interface AttributionFiltersProps {
   action?: string
   phoneTypeActive?: boolean
   groups?: PublisherGroup[]
+  campaigns?: { id: number; name: string }[]
   showSort?: boolean
   sortValue?: SortMode
   sortOptions?: SortMode[]
@@ -24,6 +25,7 @@ export default function AttributionFilters({
   action,
   phoneTypeActive = false,
   groups = [],
+  campaigns = [],
   showSort = false,
   sortValue,
   sortOptions = ['date'],
@@ -45,6 +47,20 @@ export default function AttributionFilters({
           {!phoneTypeActive && (
             <SelectItem value={TerritoryAttributionKind.Phone}>{m.territories_type_phone_singular()}</SelectItem>
           )}
+        </SelectContent>
+      </Select>
+      <Select name="campaign" defaultValue={params.get('campaign') ?? 'none'}>
+        <SelectTrigger className="max-sm:flex-1">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">{m.attributions_filter_campaign()}</SelectItem>
+          <SelectItem value="any">{m.attributions_filter_campaign_any()}</SelectItem>
+          {campaigns.map(campaign => (
+            <SelectItem value={String(campaign.id)} key={campaign.id}>
+              {campaign.name}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
       <Select name="group" defaultValue={params.get('group') ?? 'none'}>
@@ -69,6 +85,16 @@ export default function AttributionFilters({
           <SelectItem value="current">{m.territories_filter_status_current()}</SelectItem>
           <SelectItem value="late">{m.territories_filter_status_late()}</SelectItem>
           <SelectItem value="orphaned">{m.territories_filter_status_orphaned()}</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select name="paused" defaultValue={params.get('paused') ?? 'none'}>
+        <SelectTrigger className="max-sm:flex-1">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">{m.attributions_filter_paused()}</SelectItem>
+          <SelectItem value="true">{m.attributions_filter_paused_yes()}</SelectItem>
+          <SelectItem value="false">{m.attributions_filter_paused_no()}</SelectItem>
         </SelectContent>
       </Select>
     </>

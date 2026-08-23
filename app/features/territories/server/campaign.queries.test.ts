@@ -69,3 +69,44 @@ describe('listAllTerritoryIds', () => {
     expect(queriesDb.territory.findMany.mock.calls[0][0].where).toEqual({ congregationId: 10 })
   })
 })
+
+describe('listCampaigns', () => {
+  it('lists the congregation campaigns newest window first with their scope size', async () => {
+    const queriesDb = { campaign: { findMany: vi.fn().mockResolvedValue([]) } }
+
+    const { listCampaigns } = await import('./campaign.queries')
+    await listCampaigns(queriesDb as never, 10)
+
+    const call = queriesDb.campaign.findMany.mock.calls[0][0]
+    expect(call.where).toEqual({ congregationId: 10 })
+    expect(call.orderBy).toEqual({ startDate: 'desc' })
+    expect(call.include).toMatchObject({ _count: { select: { scope: true } } })
+  })
+})
+
+describe('getCampaign', () => {
+  it('fetches one campaign with its scope territory ids', async () => {
+    const queriesDb = { campaign: { findFirst: vi.fn().mockResolvedValue(null) } }
+
+    const { getCampaign } = await import('./campaign.queries')
+    await getCampaign(queriesDb as never, 3, 10)
+
+    const call = queriesDb.campaign.findFirst.mock.calls[0][0]
+    expect(call.where).toEqual({ id: 3, congregationId: 10 })
+    expect(call.include).toMatchObject({ scope: { select: { territoryId: true } } })
+  })
+})
+
+describe('getUpcomingCampaign', () => {
+  it('returns the next never-activated campaign whose window is not past', async () => {
+    const queriesDb = { campaign: { findFirst: vi.fn().mockResolvedValue(null) } }
+    const now = new Date(2026, 0, 10)
+
+    const { getUpcomingCampaign } = await import('./campaign.queries')
+    await getUpcomingCampaign(queriesDb as never, 10, now)
+
+    const call = queriesDb.campaign.findFirst.mock.calls[0][0]
+    expect(call.where).toMatchObject({ congregationId: 10, activatedAt: null, endedAt: null, endDate: { gte: now } })
+    expect(call.orderBy).toEqual({ startDate: 'asc' })
+  })
+})

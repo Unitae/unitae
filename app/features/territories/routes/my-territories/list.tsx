@@ -2,11 +2,13 @@ import { ChevronRight, Download, MapPin, Pause } from 'lucide-react'
 import { Link } from 'react-router'
 
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { getActiveCampaign } from '~/features/territories/server/campaign.queries'
 import {
   getUserTerritoriesWithDetails,
   type TerritoryStatus,
 } from '~/features/territories/server/my-territories.server'
 import { AttributionKindBadge } from '~/features/territories/ui/AttributionKindBadge'
+import { CampaignModeBanner } from '~/features/territories/ui/CampaignModeBanner'
 
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -30,11 +32,23 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const memberId = currentUser.member?.id ?? null
   const showPaused = new URL(request.url).searchParams.get('paused') === '1'
 
-  return withScopeFromContext(context, async db => {
+  return withScopeFromContext(context, async (db, congregationId) => {
     const territories =
       memberId == null ? [] : await getUserTerritoriesWithDetails(db, memberId, { includePaused: showPaused })
 
-    return { territories, showPaused }
+    const activeCampaign = await getActiveCampaign(db, congregationId)
+    const bannerCampaign =
+      activeCampaign == null
+        ? null
+        : {
+            id: activeCampaign.id,
+            name: activeCampaign.name,
+            startDate: activeCampaign.startDate,
+            endDate: activeCampaign.endDate,
+            status: 'active' as const,
+          }
+
+    return { territories, showPaused, bannerCampaign }
   })
 }
 
@@ -74,7 +88,7 @@ function quantityLabel(type: string, entrances: { homes: number | null; phones: 
 }
 
 export default function MyTerritoriesList({ loaderData }: Route.ComponentProps) {
-  const { territories, showPaused } = loaderData
+  const { territories, showPaused, bannerCampaign } = loaderData
 
   return (
     <div className="flex flex-col gap-6">
@@ -83,6 +97,8 @@ export default function MyTerritoriesList({ loaderData }: Route.ComponentProps) 
         subtitle={m.my_territories_subtitle()}
         breadcrumbs={[{ label: m.sidebar_my_territories() }]}
       />
+
+      <CampaignModeBanner campaign={bannerCampaign} variant="publisher" />
 
       <div className="flex justify-end">
         <Link
