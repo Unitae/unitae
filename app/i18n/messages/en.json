@@ -2833,5 +2833,6 @@
     "campaigns_scope_available": "Available ({count})",
     "campaigns_scope_selected_panel": "Selected ({count})",
     "campaigns_scope_add_all": "Add all ({count})",
-    "campaigns_scope_remove_all": "Remove all ({count})"
+    "campaigns_scope_remove_all": "Remove all ({count})",
+    "campaign_banner_starting": "Campaign “{name}” starts today. It will suspend regular attributions."
 }

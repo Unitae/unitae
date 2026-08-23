@@ -107,6 +107,12 @@ campaignQueue
   )
   .catch(err => logger.error('Failed to register campaign lifecycle scheduler', { error: err.message }))
 
+// Catch-up pass on boot: a worker that was down over a campaign's start or end
+// date converges immediately instead of waiting for the next 02:00 slot.
+campaignQueue
+  .add('campaign-lifecycle-sweep', { triggeredAt: new Date().toISOString() })
+  .catch(err => logger.error('Failed to enqueue campaign lifecycle catch-up', { error: err.message }))
+
 const workers = [syncWorker, emailWorker, thumbnailWorker, dataTransferWorker, retentionWorker, campaignWorker]
 const workerNames = [
   QUEUE_NAMES.sync,

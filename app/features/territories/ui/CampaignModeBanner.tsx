@@ -48,8 +48,13 @@ export function CampaignModeBanner({
     : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
   const Icon = isActive ? Megaphone : Calendar
 
+  // A scheduled campaign whose start day has arrived is waiting for the next
+  // lifecycle pass — announcing a past "start" date would read as nonsense.
+  const startsToday = new Date(campaign.startDate).getTime() <= Date.now()
   const message = !isActive
-    ? m.campaign_banner_scheduled({ name: campaign.name, start })
+    ? startsToday
+      ? m.campaign_banner_starting({ name: campaign.name })
+      : m.campaign_banner_scheduled({ name: campaign.name, start })
     : variant === 'manager'
       ? m.campaign_banner_active_manager({ name: campaign.name, start, end })
       : m.campaign_banner_active_publisher({ name: campaign.name })

@@ -2,6 +2,7 @@ import { getFormProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
+import { runCampaignLifecycleSweep } from '~/features/territories/jobs/handle-campaign-lifecycle-work.server'
 import {
   CampaignRegularEndAction,
   CampaignRegularStartAction,
@@ -121,6 +122,10 @@ export function action({ request, context }: Route.ActionArgs) {
         congregationId,
         actorId,
       })
+
+      // A campaign whose start day has already arrived activates right away
+      // instead of waiting for the daily cron (idempotent, same transition).
+      await runCampaignLifecycleSweep(db, congregationId, new Date())
 
       const session = await getSession(request.headers.get('Cookie'))
       session.flash('success', m.campaigns_create_flash_success({ name: campaign.name }))

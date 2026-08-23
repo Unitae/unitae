@@ -1,4 +1,4 @@
-import { Outlet, redirect } from 'react-router'
+import { Outlet, redirect, useLocation } from 'react-router'
 import { getActiveCampaign, getUpcomingCampaign } from '~/features/territories/server/campaign.queries'
 import { type CampaignBannerData, CampaignModeBanner } from '~/features/territories/ui/CampaignModeBanner'
 import * as m from '~/i18n/paraglide/messages'
@@ -51,10 +51,15 @@ export function loader({ context }: Route.LoaderArgs) {
 
 export default function BoardLayout({ loaderData }: Route.ComponentProps) {
   const { bannerCampaign, canManageTerritories } = loaderData
+  // The campaigns section IS the campaign management surface — reminding the
+  // manager about the campaign there is redundant noise.
+  const onCampaignPages = useLocation().pathname.startsWith('/territories/campaigns')
 
   return (
     <div className="flex flex-col gap-4">
-      <CampaignModeBanner campaign={bannerCampaign} variant={canManageTerritories ? 'manager' : 'publisher'} />
+      {!onCampaignPages && (
+        <CampaignModeBanner campaign={bannerCampaign} variant={canManageTerritories ? 'manager' : 'publisher'} />
+      )}
       <Outlet />
     </div>
   )

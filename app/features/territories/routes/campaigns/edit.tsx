@@ -2,6 +2,7 @@ import { getFormProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
+import { runCampaignLifecycleSweep } from '~/features/territories/jobs/handle-campaign-lifecycle-work.server'
 import { campaignSchema } from '~/features/territories/schemas/campaign.schema'
 import { updateCampaign } from '~/features/territories/server/campaign.aggregate'
 import { getCampaign } from '~/features/territories/server/campaign.queries'
@@ -137,6 +138,10 @@ export function action({ request, params, context }: Route.ActionArgs) {
       // Scope goes through the workflow so an active campaign's transitions
       // run for added/removed territories (recomputed server-side — no TOCTOU).
       const scopeResult = await applyScopeChange(db, campaign, input.scope, congregationId, actorId)
+
+      // Date edits can make the campaign due to start (or end) right now —
+      // apply the idempotent lifecycle pass instead of waiting for the cron.
+      await runCampaignLifecycleSweep(db, congregationId, new Date())
 
       const session = await getSession(request.headers.get('Cookie'))
       session.flash('success', m.campaigns_update_flash_success({ name: input.name }))
