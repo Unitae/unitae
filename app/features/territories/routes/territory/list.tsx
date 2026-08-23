@@ -216,8 +216,8 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
                 {proximityActive && (
                   <TableHead className="text-right">{m.territories_filter_distance_header()}</TableHead>
                 )}
-                <TableHead className="text-center">{m.territories_table_type()}</TableHead>
-                <TableHead className="text-center">{m.territories_table_content()}</TableHead>
+                <TableHead className="text-center max-sm:hidden">{m.territories_table_type()}</TableHead>
+                <TableHead className="text-center max-sm:hidden">{m.territories_table_content()}</TableHead>
                 <TableHead>{m.territories_table_assigned_to()}</TableHead>
                 <TableHead className="w-0">
                   <span className="sr-only">Actions</span>
@@ -260,10 +260,10 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
                           </span>
                         </TableCell>
                       )}
-                      <TableCell className="text-center">
+                      <TableCell className="text-center max-sm:hidden">
                         {territoryTypeLabels[territory.type] ?? territory.type}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center max-sm:hidden">
                         {territoryContentLabel(territory.type, territory.entrances)}
                       </TableCell>
                       <TableCell>
