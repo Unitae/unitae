@@ -1,4 +1,4 @@
-import { ArrowLeft, Search, X } from 'lucide-react'
+import { ArrowLeft, Info, Search, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Link, redirect } from 'react-router'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
@@ -72,14 +72,14 @@ export function loader({ params, request, context }: Route.LoaderArgs) {
       }),
       getContentVersion(db, settings.dynamicType, settings.dynamicRef, congregationId, settings.dynamicConfig),
     ])
-    const data = filterDynamicDataToEvent(rawData, eventIdFilter)
+    const { data, requestedEventMissing } = filterDynamicDataToEvent(rawData, eventIdFilter)
 
-    return { settings, data, contentVersion }
+    return { settings, data, contentVersion, requestedEventMissing }
   })
 }
 
 export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) {
-  const { settings, data, contentVersion } = loaderData
+  const { settings, data, contentVersion, requestedEventMissing } = loaderData
   const isProgramme = data?.type === DynamicType.Programme
 
   const [searchOpen, setSearchOpen] = useState(false)
@@ -151,6 +151,15 @@ export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) 
           <h2 className="font-display font-semibold text-3xl leading-tight tracking-[-0.02em] md:text-4xl">
             {settings.title}
           </h2>
+          {/* The deep link named an event this document does not hold. Saying
+              so beats rendering the whole programme as though it were the one
+              that was asked for. */}
+          {requestedEventMissing && (
+            <p className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-amber-900 text-sm dark:text-amber-200">
+              <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+              {m.board_viewer_event_not_here()}
+            </p>
+          )}
         </div>
         {data?.type === DynamicType.PublisherGroups && <PublisherGroupsView groups={data.groups} />}
         {data?.type === DynamicType.Pioneers && <PioneersView pioneers={data.pioneers} />}

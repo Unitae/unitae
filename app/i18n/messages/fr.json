@@ -437,6 +437,7 @@
     "board_read_status_anonymized_user": "Utilisateur anonymisé",
     "board_read_status_link_tooltip": "Voir le statut de lecture",
     "board_viewer_meta_title": "Consultation - Unitae",
+    "board_viewer_event_not_here": "Cette réunion n'est plus affichée ici. Voici l'ensemble du programme.",
     "board_viewer_back": "Retour au tableau",
     "board_viewer_download": "Télécharger",
     "board_viewer_loading": "Chargement du document...",
