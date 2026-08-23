@@ -1,5 +1,5 @@
 import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { Form, Link, redirect } from 'react-router'
+import { Form, Link, redirect, useNavigate } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { previewCampaignLifecycle } from '~/features/territories/model/campaign-preview'
 import { getCampaignStatus } from '~/features/territories/model/campaign-status'
@@ -74,6 +74,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
 export default function CampaignView({ loaderData }: Route.ComponentProps) {
   const { campaign, scopeTerritories, attributions, coveragePercent } = loaderData
+  const navigate = useNavigate()
   const status = getCampaignStatus({
     activatedAt: campaign.activatedAt ? new Date(campaign.activatedAt) : null,
     endedAt: campaign.endedAt ? new Date(campaign.endedAt) : null,
@@ -167,11 +168,21 @@ export default function CampaignView({ loaderData }: Route.ComponentProps) {
                   <TableHead>{m.attributions_table_publisher()}</TableHead>
                   <TableHead className="max-sm:hidden">{m.attributions_table_checkout_date()}</TableHead>
                   <TableHead>{m.campaigns_view_attributions_return()}</TableHead>
+                  <TableHead />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {attributions.map(attribution => (
-                  <TableRow key={attribution.id}>
+                  <TableRow
+                    key={attribution.id}
+                    className="cursor-pointer hover:bg-accent/30"
+                    onClick={event => {
+                      if (event.defaultPrevented) return
+                      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+                      if ((event.target as HTMLElement).closest('a, button, [role="button"]')) return
+                      navigate(`/territories/attributions/${attribution.id}/edit`)
+                    }}
+                  >
                     <TableCell>
                       <Link
                         to={`/territories/territory/${attribution.territory.id}/view`}
@@ -192,6 +203,13 @@ export default function CampaignView({ loaderData }: Route.ComponentProps) {
                       ) : (
                         <Badge variant="warning">{m.campaigns_view_attributions_open()}</Badge>
                       )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" asChild>
+                        <Link to={`/territories/attributions/${attribution.id}/edit`} title={m.campaigns_edit_button()}>
+                          <Pencil className="size-4" />
+                        </Link>
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
