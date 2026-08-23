@@ -40,3 +40,4 @@ export const DEFAULT_RETENTION_MONTHS = 6
 // Retention cron cadence — run daily at 03:00 UTC (quiet hours for
 // most subscribers).
 export const RETENTION_CRON_HOUR_UTC = 3
+export const CAMPAIGN_CRON_HOUR_UTC = 2

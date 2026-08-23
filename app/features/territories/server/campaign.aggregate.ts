@@ -198,3 +198,47 @@ export async function deleteCampaign(db: TransactionClient, id: number, congrega
 
   return campaign
 }
+
+/** Lifecycle stamp: campaign mode turns on the moment this is set. */
+export async function markActivated(
+  db: TransactionClient,
+  id: number,
+  congregationId: number,
+  actorId: number,
+  now: Date,
+) {
+  const campaign = await db.campaign.update({
+    // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
+    where: { id_congregationId: { id, congregationId } },
+    data: { activatedAt: now },
+  })
+
+  audit({
+    action: AuditAction.CampaignActivated,
+    congregationId,
+    actorId,
+    entityType: 'Campaign',
+    entityId: id,
+  })
+
+  return campaign
+}
+
+/** Lifecycle stamp: campaign mode turns off the moment this is set. */
+export async function markEnded(db: TransactionClient, id: number, congregationId: number, actorId: number, now: Date) {
+  const campaign = await db.campaign.update({
+    // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
+    where: { id_congregationId: { id, congregationId } },
+    data: { endedAt: now },
+  })
+
+  audit({
+    action: AuditAction.CampaignEnded,
+    congregationId,
+    actorId,
+    entityType: 'Campaign',
+    entityId: id,
+  })
+
+  return campaign
+}

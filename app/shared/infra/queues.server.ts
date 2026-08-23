@@ -4,4 +4,5 @@ export const QUEUE_NAMES = {
   thumbnail: 'thumbnailQueue',
   dataTransfer: 'dataTransferQueue',
   retention: 'retentionQueue',
+  campaign: 'campaignQueue',
 } as const
