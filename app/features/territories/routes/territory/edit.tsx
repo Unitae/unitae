@@ -18,7 +18,6 @@ import { PendingEntranceList } from '~/features/territories/ui/PendingEntranceLi
 import { TerritoryEditActions } from '~/features/territories/ui/TerritoryEditActions'
 import { TerritoryInfoCard } from '~/features/territories/ui/TerritoryInfoCard'
 import { ownEntranceToBbox, useEntrancePendingState } from '~/features/territories/ui/use-entrance-pending-state'
-
 import * as m from '~/i18n/paraglide/messages'
 import {
   currentAccountContext,
@@ -28,6 +27,7 @@ import {
 } from '~/shared/auth/route-context.server'
 import type { AggregatedEntrance } from '~/shared/types/entrance'
 import { Permission } from '~/shared/types/permission'
+import { FormActions } from '~/shared/ui/FormActions'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
@@ -250,7 +250,11 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
               />
             ) : null}
 
-            <div className="-mx-4 sticky bottom-0 z-10 border-t bg-background/95 px-4 py-3 backdrop-blur">
+            {/* FormActions docks above the mobile tab bar; the previous sticky
+                wrapper never engaged (the shell's overflow-x-hidden content
+                wrapper is the sticky containment root while the document
+                scrolls). */}
+            <FormActions>
               <SubmitButton className="w-full" disabled={pendingChangesCount === 0}>
                 {pendingChangesCount === 0
                   ? m.territories_edit_submit()
@@ -258,7 +262,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
                       count: String(pendingChangesCount),
                     })}
               </SubmitButton>
-            </div>
+            </FormActions>
           </Form>
         </div>
       </div>

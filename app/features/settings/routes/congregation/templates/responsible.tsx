@@ -8,6 +8,7 @@ import { currentAccountContext, permissionsContext, withScopeFromContext } from 
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { FormActions } from '~/shared/ui/FormActions'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -120,7 +121,9 @@ export default function ResponsiblePage({ loaderData }: Route.ComponentProps) {
                 noneLabel={m.settings_template_responsible_none()}
               />
             </div>
-            <SubmitButton className="w-fit">{m.common_save()}</SubmitButton>
+            <FormActions>
+              <SubmitButton>{m.common_save()}</SubmitButton>
+            </FormActions>
           </Form>
         </CardContent>
       </Card>

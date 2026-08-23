@@ -23,6 +23,7 @@ import {
 } from '~/shared/ui/alert-dialog'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
+import { FormActions } from '~/shared/ui/FormActions'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
@@ -102,7 +103,9 @@ export default function EditRolePage({ loaderData, actionData }: Route.Component
               />
               {fields.description.errors && <p className="text-destructive text-sm">{fields.description.errors}</p>}
             </div>
-            <SubmitButton className="self-start">{m.congregation_role_edit_submit()}</SubmitButton>
+            <FormActions>
+              <SubmitButton>{m.congregation_role_edit_submit()}</SubmitButton>
+            </FormActions>
           </Form>
         </CardContent>
       </Card>

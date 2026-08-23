@@ -10,6 +10,7 @@ import { getRole, updateRolePermissions } from '~/shared/domain/roles.server'
 import { Permission } from '~/shared/types/permission'
 import { getRoleDescription, getRoleDisplayName } from '~/shared/types/role'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/shared/ui/card'
+import { FormActions } from '~/shared/ui/FormActions'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -73,7 +74,9 @@ export default function EditPermissionPage({ loaderData, actionData }: Route.Com
         <CardContent>
           <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6" onChange={markDirty}>
             <RolePermissionPicker permissions={permissionList} selectedKeys={role.permissionKeys} showHeader={false} />
-            <SubmitButton className="self-start">{m.settings_permissions_edit_submit()}</SubmitButton>
+            <FormActions>
+              <SubmitButton>{m.settings_permissions_edit_submit()}</SubmitButton>
+            </FormActions>
           </Form>
         </CardContent>
       </Card>

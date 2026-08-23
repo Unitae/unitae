@@ -16,6 +16,7 @@ import { getBoolSetting } from '~/shared/domain/settings.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Permission } from '~/shared/types/permission'
 import { Checkbox } from '~/shared/ui/checkbox'
+import { FormActions } from '~/shared/ui/FormActions'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -115,7 +116,9 @@ export default function CongregationSettingsPage({ loaderData, actionData }: Rou
                 </div>
               </div>
 
-              <SubmitButton className="self-start">{m.common_save()}</SubmitButton>
+              <FormActions>
+                <SubmitButton>{m.common_save()}</SubmitButton>
+              </FormActions>
             </Form>
           )}
         </section>

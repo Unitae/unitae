@@ -26,6 +26,7 @@ import {
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Checkbox } from '~/shared/ui/checkbox'
+import { FormActions } from '~/shared/ui/FormActions'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
@@ -364,7 +365,9 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
           </CardContent>
         </Card>
 
-        <SubmitButton className="self-start">{m.settings_user_edit_submit()}</SubmitButton>
+        <FormActions>
+          <SubmitButton>{m.settings_user_edit_submit()}</SubmitButton>
+        </FormActions>
       </Form>
 
       {canAnonymize && (

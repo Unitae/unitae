@@ -10,6 +10,7 @@ import { currentAccountContext, permissionsContext, withScopeFromContext } from 
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { FormActions } from '~/shared/ui/FormActions'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
@@ -172,7 +173,9 @@ export default function EditGroup({ loaderData, actionData }: Route.ComponentPro
               </div>
             </div>
 
-            <SubmitButton className="self-start">{m.common_save()}</SubmitButton>
+            <FormActions>
+              <SubmitButton>{m.common_save()}</SubmitButton>
+            </FormActions>
           </Form>
         </CardContent>
       </Card>

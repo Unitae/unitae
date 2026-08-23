@@ -14,6 +14,7 @@ import { currentAccountContext, permissionsContext, withScopeFromContext } from 
 import { Permission } from '~/shared/types/permission'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { FormActions } from '~/shared/ui/FormActions'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
@@ -306,7 +307,9 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
               {fields.observations.errors && <p className="text-destructive text-sm">{fields.observations.errors}</p>}
             </div>
 
-            <SubmitButton className="self-start">{m.activity_new_submit()}</SubmitButton>
+            <FormActions>
+              <SubmitButton>{m.activity_new_submit()}</SubmitButton>
+            </FormActions>
           </Form>
         </CardContent>
       </Card>

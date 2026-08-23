@@ -13,6 +13,7 @@ import {
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { Card, CardContent } from '~/shared/ui/card'
+import { FormActions } from '~/shared/ui/FormActions'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
@@ -85,7 +86,9 @@ export default function SettingsLayout({ actionData }: Route.ComponentProps) {
               />
               {fields.email.errors && <p className="text-destructive text-sm">{fields.email.errors}</p>}
             </div>
-            <SubmitButton className="mt-2">{m.settings_user_new_submit()}</SubmitButton>
+            <FormActions>
+              <SubmitButton>{m.settings_user_new_submit()}</SubmitButton>
+            </FormActions>
           </Form>
         </CardContent>
       </Card>

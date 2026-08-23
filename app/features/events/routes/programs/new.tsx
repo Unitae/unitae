@@ -28,6 +28,7 @@ import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { FormActions } from '~/shared/ui/FormActions'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
@@ -440,7 +441,7 @@ export default function NewEventPage({ loaderData, actionData }: Route.Component
             {selectedTemplate && !isRecurring && <SingleFields alreadyExists={alreadyExists} />}
 
             {showForm && (
-              <div className="flex items-center justify-end gap-2 pt-1">
+              <FormActions className="justify-end pt-1">
                 <Button variant="ghost" asChild>
                   <Link to="/programs">{m.common_cancel()}</Link>
                 </Button>
@@ -449,7 +450,7 @@ export default function NewEventPage({ loaderData, actionData }: Route.Component
                     ? m.programs_new_create_event()
                     : m.programs_new_generate_events({ count: occurrences })}
                 </SubmitButton>
-              </div>
+              </FormActions>
             )}
           </Form>
         </CardContent>

@@ -24,6 +24,7 @@ import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
+import { FormActions } from '~/shared/ui/FormActions'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
@@ -182,7 +183,9 @@ export default function NewTerritoryPage({ loaderData, actionData }: Route.Compo
                 selection={territoryEntrances}
                 onSelectionChange={selection => setTerritoryEntrances(selection)}
               />
-              <SubmitButton className="mt-2">{m.territories_form_create_submit()}</SubmitButton>
+              <FormActions>
+                <SubmitButton>{m.territories_form_create_submit()}</SubmitButton>
+              </FormActions>
             </Form>
           </CardContent>
         </Card>

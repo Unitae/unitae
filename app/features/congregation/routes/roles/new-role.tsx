@@ -9,6 +9,7 @@ import { createRole } from '~/shared/domain/roles.server'
 import { ConflictError, ValidationError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
 import { Card, CardContent } from '~/shared/ui/card'
+import { FormActions } from '~/shared/ui/FormActions'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
@@ -78,7 +79,9 @@ export default function NewRolePage({ actionData }: Route.ComponentProps) {
               />
               {fields.description.errors && <p className="text-destructive text-sm">{fields.description.errors}</p>}
             </div>
-            <SubmitButton className="self-start">{m.congregation_role_edit_submit()}</SubmitButton>
+            <FormActions>
+              <SubmitButton>{m.congregation_role_edit_submit()}</SubmitButton>
+            </FormActions>
           </Form>
         </CardContent>
       </Card>
