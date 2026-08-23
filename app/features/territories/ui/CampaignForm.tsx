@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import {
   CampaignRegularEndAction,
   CampaignRegularStartAction,
@@ -6,10 +6,12 @@ import {
 import { previewCampaignLifecycle } from '~/features/territories/model/campaign-preview'
 import { CampaignScopeEditor, type ScopeTerritory } from '~/features/territories/ui/CampaignScopeEditor'
 import * as m from '~/i18n/paraglide/messages'
+import { MS_PER_DAY } from '~/shared/constants/limits'
 import { Checkbox } from '~/shared/ui/checkbox'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import { RadioGroup, RadioGroupItem } from '~/shared/ui/radio-group'
+import { cn } from '~/shared/utils/utils'
 
 export interface CampaignFormDefaults {
   name: string
@@ -49,10 +51,61 @@ function Fieldset({ legend, children }: { legend: string; children: React.ReactN
   )
 }
 
+interface OptionCard {
+  value: string
+  label: string
+  description: string
+  /** Extra control rendered inside the card when it is selected. */
+  extra?: React.ReactNode
+}
+
+/**
+ * Radio cards: each choice carries its one-line consequence so the servant
+ * never has to guess what an option does before picking it.
+ */
+function OptionCards({
+  idPrefix,
+  name,
+  value,
+  onValueChange,
+  disabled = false,
+  options,
+}: {
+  idPrefix: string
+  name?: string
+  value: string
+  onValueChange: (value: string) => void
+  disabled?: boolean
+  options: OptionCard[]
+}) {
+  return (
+    <RadioGroup name={name} value={value} onValueChange={onValueChange} disabled={disabled} className="gap-2">
+      {options.map(option => (
+        <label
+          key={option.value}
+          htmlFor={`${idPrefix}-${option.value}`}
+          className={cn(
+            'flex cursor-pointer items-start gap-3 rounded-md border p-3 transition-colors',
+            value === option.value && 'border-primary bg-primary/5',
+            disabled && 'cursor-not-allowed opacity-60',
+          )}
+        >
+          <RadioGroupItem id={`${idPrefix}-${option.value}`} value={option.value} className="mt-0.5" />
+          <span className="flex flex-1 flex-col gap-1">
+            <span className="font-medium text-sm leading-none">{option.label}</span>
+            <span className="text-muted-foreground text-xs">{option.description}</span>
+            {value === option.value && option.extra}
+          </span>
+        </label>
+      ))}
+    </RadioGroup>
+  )
+}
+
 /**
  * The option sections of the campaign create/edit form. Field names match
- * `campaignSchema`; the lifecycle preview re-renders live from the four
- * controlled options so consequences are visible before saving.
+ * `campaignSchema`; the lifecycle preview re-renders live from the controlled
+ * options so consequences are visible before saving.
  */
 export function CampaignForm({
   defaults,
@@ -70,6 +123,8 @@ export function CampaignForm({
   const [autoReassign, setAutoReassign] = useState(defaults.startAutoReassign)
   const [endClose, setEndClose] = useState(defaults.endCloseCampaign)
   const [endAction, setEndAction] = useState<string>(defaults.endRegularAction)
+  const [startDate, setStartDate] = useState(defaults.startDate)
+  const [endDate, setEndDate] = useState(defaults.endDate)
 
   const preview = previewCampaignLifecycle({
     startRegularAction: startAction,
@@ -77,6 +132,14 @@ export function CampaignForm({
     endCloseCampaign: endClose,
     endRegularAction: endAction,
   })
+
+  // Inclusive length: both bounds are campaign days.
+  const lengthDays =
+    startDate !== '' && endDate !== '' && endDate >= startDate
+      ? Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / MS_PER_DAY) + 1
+      : null
+
+  const endRegularEnabled = startAction === CampaignRegularStartAction.Pause
 
   return (
     <div className="flex flex-col gap-4">
@@ -106,16 +169,26 @@ export function CampaignForm({
               id="campaign-start-date"
               name={startLocked ? undefined : 'start-date'}
               type="date"
-              defaultValue={defaults.startDate}
+              value={startDate}
+              onChange={event => setStartDate(event.target.value)}
               disabled={startLocked}
             />
           </div>
           <div className="flex flex-1 flex-col gap-1.5">
             <Label htmlFor="campaign-end-date">{m.campaigns_form_end_date_label()}</Label>
-            <Input id="campaign-end-date" name="end-date" type="date" defaultValue={defaults.endDate} />
+            <Input
+              id="campaign-end-date"
+              name="end-date"
+              type="date"
+              value={endDate}
+              onChange={event => setEndDate(event.target.value)}
+            />
             {errors?.['end-date'] && <p className="text-destructive text-sm">{errors['end-date']}</p>}
           </div>
         </div>
+        {lengthDays != null && (
+          <p className="text-muted-foreground text-xs">{m.campaigns_form_dates_length_hint({ days: lengthDays })}</p>
+        )}
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="campaign-rest-period">{m.campaigns_form_rest_label()}</Label>
           <Input
@@ -137,40 +210,46 @@ export function CampaignForm({
             {defaults.startAutoReassign && <input type="hidden" name="start-auto-reassign" value="on" />}
           </>
         )}
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="campaign-start-action">{m.campaigns_form_start_action_label()}</Label>
-          <Select
-            name={startLocked ? undefined : 'start-regular-action'}
-            defaultValue={defaults.startRegularAction}
-            onValueChange={setStartAction}
-            disabled={startLocked}
-          >
-            <SelectTrigger id="campaign-start-action" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={CampaignRegularStartAction.Pause}>{m.campaigns_form_start_action_pause()}</SelectItem>
-              <SelectItem value={CampaignRegularStartAction.Close}>{m.campaigns_form_start_action_close()}</SelectItem>
-              <SelectItem value={CampaignRegularStartAction.Leave}>{m.campaigns_form_start_action_leave()}</SelectItem>
-            </SelectContent>
-          </Select>
-          {startAction === CampaignRegularStartAction.Leave && (
-            <p className="text-muted-foreground text-xs">{m.campaigns_form_start_action_leave_help()}</p>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="campaign-auto-reassign"
-            name={startLocked ? undefined : 'start-auto-reassign'}
-            value="on"
-            checked={autoReassign && startAction === CampaignRegularStartAction.Pause}
-            disabled={startLocked || startAction !== CampaignRegularStartAction.Pause}
-            onCheckedChange={checked => setAutoReassign(checked === true)}
-          />
-          <Label htmlFor="campaign-auto-reassign" className="font-normal text-sm">
-            {m.campaigns_form_auto_reassign_label()}
-          </Label>
-        </div>
+        <p className="text-muted-foreground text-xs">{m.campaigns_form_start_action_label()}</p>
+        <OptionCards
+          idPrefix="campaign-start-action"
+          name={startLocked ? undefined : 'start-regular-action'}
+          value={startAction}
+          onValueChange={setStartAction}
+          disabled={startLocked}
+          options={[
+            {
+              value: CampaignRegularStartAction.Pause,
+              label: m.campaigns_form_start_action_pause(),
+              description: m.campaigns_form_start_action_pause_desc(),
+              extra: (
+                <span className="mt-1 flex items-center gap-2">
+                  <Checkbox
+                    id="campaign-auto-reassign"
+                    name={startLocked ? undefined : 'start-auto-reassign'}
+                    value="on"
+                    checked={autoReassign}
+                    disabled={startLocked}
+                    onCheckedChange={checked => setAutoReassign(checked === true)}
+                  />
+                  <Label htmlFor="campaign-auto-reassign" className="font-normal text-xs">
+                    {m.campaigns_form_auto_reassign_label()}
+                  </Label>
+                </span>
+              ),
+            },
+            {
+              value: CampaignRegularStartAction.Close,
+              label: m.campaigns_form_start_action_close(),
+              description: m.campaigns_form_start_action_close_desc(),
+            },
+            {
+              value: CampaignRegularStartAction.Leave,
+              label: m.campaigns_form_start_action_leave(),
+              description: m.campaigns_form_start_action_leave_desc(),
+            },
+          ]}
+        />
         {errors?.['start-auto-reassign'] && <p className="text-destructive text-sm">{errors['start-auto-reassign']}</p>}
       </Fieldset>
 
@@ -187,27 +266,36 @@ export function CampaignForm({
             {m.campaigns_form_end_close_label()}
           </Label>
         </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="campaign-end-action">{m.campaigns_form_end_action_label()}</Label>
-          {startAction !== CampaignRegularStartAction.Pause && (
-            <input type="hidden" name="end-regular-action" value={defaults.endRegularAction} />
-          )}
-          <Select
-            name={startAction === CampaignRegularStartAction.Pause ? 'end-regular-action' : undefined}
-            defaultValue={defaults.endRegularAction}
-            onValueChange={setEndAction}
-            disabled={startAction !== CampaignRegularStartAction.Pause}
-          >
-            <SelectTrigger id="campaign-end-action" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={CampaignRegularEndAction.Resume}>{m.campaigns_form_end_action_resume()}</SelectItem>
-              <SelectItem value={CampaignRegularEndAction.KeepPaused}>{m.campaigns_form_end_action_keep()}</SelectItem>
-              <SelectItem value={CampaignRegularEndAction.Close}>{m.campaigns_form_end_action_close()}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {endRegularEnabled ? (
+          <>
+            <p className="text-muted-foreground text-xs">{m.campaigns_form_end_action_label()}</p>
+            <OptionCards
+              idPrefix="campaign-end-action"
+              name="end-regular-action"
+              value={endAction}
+              onValueChange={setEndAction}
+              options={[
+                {
+                  value: CampaignRegularEndAction.Resume,
+                  label: m.campaigns_form_end_action_resume(),
+                  description: m.campaigns_form_end_action_resume_desc(),
+                },
+                {
+                  value: CampaignRegularEndAction.KeepPaused,
+                  label: m.campaigns_form_end_action_keep(),
+                  description: m.campaigns_form_end_action_keep_desc(),
+                },
+                {
+                  value: CampaignRegularEndAction.Close,
+                  label: m.campaigns_form_end_action_close(),
+                  description: m.campaigns_form_end_action_close_desc(),
+                },
+              ]}
+            />
+          </>
+        ) : (
+          <input type="hidden" name="end-regular-action" value={defaults.endRegularAction} />
+        )}
       </Fieldset>
 
       <Fieldset legend={m.campaigns_form_scope_legend()}>

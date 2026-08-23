@@ -2773,7 +2773,6 @@
     "campaigns_form_start_action_pause": "Pause",
     "campaigns_form_start_action_close": "Close",
     "campaigns_form_start_action_leave": "Leave in place",
-    "campaigns_form_start_action_leave_help": "Warning: regular work and the campaign will run in parallel on the same territories.",
     "campaigns_form_auto_reassign_label": "Automatically re-assign the same publishers within the campaign",
     "campaigns_form_end_legend": "At end",
     "campaigns_form_end_close_label": "Automatically close campaign attributions",
@@ -2842,5 +2841,12 @@
     "campaigns_table_dates": "Dates",
     "campaigns_table_scope": "Scope",
     "campaigns_table_status": "Status",
-    "campaigns_form_start_locked_hint": "The campaign has already started: the start date and start options can no longer be changed."
+    "campaigns_form_start_locked_hint": "The campaign has already started: the start date and start options can no longer be changed.",
+    "campaigns_form_start_action_pause_desc": "Paused during the campaign: the publisher keeps the territory, its due date is frozen.",
+    "campaigns_form_start_action_close_desc": "Returned immediately: after the campaign the rotation starts from scratch.",
+    "campaigns_form_start_action_leave_desc": "They keep running in parallel — regular work and the campaign will share the same territories.",
+    "campaigns_form_end_action_resume_desc": "Each publisher gets their territory back, with the due date shifted by the paused time.",
+    "campaigns_form_end_action_keep_desc": "To be resumed manually, territory by territory, via the “Resume” action.",
+    "campaigns_form_end_action_close_desc": "Returned for good — the territories will go into rest.",
+    "campaigns_form_dates_length_hint": "Campaign length: {days} days."
 }

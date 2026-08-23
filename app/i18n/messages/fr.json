@@ -2773,7 +2773,6 @@
     "campaigns_form_start_action_pause": "Suspendre",
     "campaigns_form_start_action_close": "Clôturer",
     "campaigns_form_start_action_leave": "Laisser en place",
-    "campaigns_form_start_action_leave_help": "Attention : le travail régulier et la campagne se dérouleront en parallèle sur les mêmes territoires.",
     "campaigns_form_auto_reassign_label": "Réattribuer automatiquement les mêmes proclamateurs dans la campagne",
     "campaigns_form_end_legend": "À la fin",
     "campaigns_form_end_close_label": "Clôturer automatiquement les attributions de campagne",
@@ -2842,5 +2841,12 @@
     "campaigns_table_dates": "Dates",
     "campaigns_table_scope": "Portée",
     "campaigns_table_status": "Statut",
-    "campaigns_form_start_locked_hint": "La campagne a déjà démarré : la date et les options de démarrage ne sont plus modifiables."
+    "campaigns_form_start_locked_hint": "La campagne a déjà démarré : la date et les options de démarrage ne sont plus modifiables.",
+    "campaigns_form_start_action_pause_desc": "Mises en pause pendant la campagne : le proclamateur garde son territoire, l’échéance est gelée.",
+    "campaigns_form_start_action_close_desc": "Rendues immédiatement : après la campagne, la rotation repart de zéro.",
+    "campaigns_form_start_action_leave_desc": "Elles continuent en parallèle — le travail régulier et la campagne se dérouleront sur les mêmes territoires.",
+    "campaigns_form_end_action_resume_desc": "Chaque proclamateur retrouve son territoire, avec une échéance décalée du temps de pause.",
+    "campaigns_form_end_action_keep_desc": "À reprendre manuellement, territoire par territoire, via l’action « Reprendre ».",
+    "campaigns_form_end_action_close_desc": "Rendues définitivement — les territoires passeront en repos.",
+    "campaigns_form_dates_length_hint": "Durée de la campagne : {days} jours."
 }
