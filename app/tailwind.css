@@ -29,7 +29,9 @@
     0 20px 44px -6px oklch(0.147 0.004 49.25 / 0.11);
 
   /* Light mode — teal primary, stone neutrals */
-  --color-background: oklch(0.985 0.001 106.423); /* stone-50 */
+  --color-background: oklch(
+    0.962 0.005 95
+  ); /* warm greige — cards separate by contrast, not shadow */
   --color-foreground: oklch(0.216 0.006 56.043); /* stone-900 */
   --color-card: oklch(1 0 0); /* white */
   --color-card-foreground: oklch(0.216 0.006 56.043);
@@ -63,8 +65,8 @@
 
   /* Sidebar */
   --color-sidebar: oklch(
-    0.97 0.001 106.424
-  ); /* stone-100 — darker than page bg */
+    0.962 0.005 95
+  ); /* same as background — one calm surface, hairline divider */
   --color-sidebar-foreground: oklch(0.216 0.006 56.043);
   --color-sidebar-primary: oklch(0.523 0.105 184.704);
   --color-sidebar-primary-foreground: oklch(0.985 0.001 106.423);
@@ -73,8 +75,8 @@
   ); /* stone-200 — visible hover on stone-100 */
   --color-sidebar-accent-foreground: oklch(0.216 0.006 56.043);
   --color-sidebar-border: oklch(
-    0.869 0.005 56.366
-  ); /* stone-300 — distinct from accent */
+    0.885 0.005 76
+  ); /* hairline between sidebar and content */
   --color-sidebar-ring: oklch(0.523 0.105 184.704);
 
   /* Programme section colors (JW workbook) */
@@ -84,7 +86,9 @@
 }
 
 .dark {
-  --color-background: oklch(0.216 0.006 56.043);
+  --color-background: oklch(
+    0.196 0.006 56
+  ); /* deepened — card lift without shadows */
   --color-foreground: oklch(0.985 0.001 106.423);
   --color-card: oklch(0.268 0.007 34.298); /* stone-800 */
   --color-card-foreground: oklch(0.985 0.001 106.423);
@@ -108,13 +112,17 @@
   --color-input: oklch(0.374 0.01 67.558);
   --color-ring: oklch(0.648 0.116 184.117);
 
-  --color-sidebar: oklch(0.18 0.005 56.043); /* darker than page bg */
+  --color-sidebar: oklch(
+    0.196 0.006 56
+  ); /* same as background — one calm surface */
   --color-sidebar-foreground: oklch(0.985 0.001 106.423);
   --color-sidebar-primary: oklch(0.648 0.116 184.117);
   --color-sidebar-primary-foreground: oklch(0.216 0.006 56.043);
   --color-sidebar-accent: oklch(0.268 0.007 34.298);
   --color-sidebar-accent-foreground: oklch(0.985 0.001 106.423);
-  --color-sidebar-border: oklch(0.374 0.01 67.558);
+  --color-sidebar-border: oklch(
+    0.3 0.008 64
+  ); /* hairline between sidebar and content */
   --color-sidebar-ring: oklch(0.648 0.116 184.117);
 
   /* Elevation on dark — deeper black-based shadows so lift stays visible */

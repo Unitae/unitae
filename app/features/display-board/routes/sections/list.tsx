@@ -232,7 +232,7 @@ export default function SectionListPage({ loaderData }: Route.ComponentProps) {
             </div>
           )}
 
-          <div className="overflow-hidden rounded-xl border">
+          <div className="overflow-hidden rounded-2xl border">
             <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <Table>
                 <TableHeader>

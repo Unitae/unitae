@@ -83,7 +83,7 @@ export function PublisherGroupsView({ groups }: PublisherGroupsViewData) {
       {groups.map(group => {
         const roster = buildRoster(group)
         return (
-          <Card key={group.id} className="overflow-hidden rounded-xl border-border/60 shadow-none">
+          <Card key={group.id} className="overflow-hidden rounded-2xl border-border/60 shadow-none">
             <CardContent className="flex flex-col gap-5 p-6">
               <header className="flex flex-col gap-1">
                 <a

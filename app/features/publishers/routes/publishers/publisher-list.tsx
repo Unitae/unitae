@@ -171,7 +171,7 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
           }
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border">
+        <div className="overflow-hidden rounded-2xl border">
           <Table>
             <TableHeader>
               <TableRow>

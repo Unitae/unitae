@@ -61,7 +61,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <>
-      <div className="overflow-hidden rounded-xl border">
+      <div className="overflow-hidden rounded-2xl border">
         <Table>
           <TableHeader>
             <TableRow>

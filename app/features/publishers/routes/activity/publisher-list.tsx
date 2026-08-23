@@ -208,7 +208,7 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
           description={m.activity_filters_no_results_description()}
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border">
+        <div className="overflow-hidden rounded-2xl border">
           <Table>
             <TableHeader>
               <TableRow>

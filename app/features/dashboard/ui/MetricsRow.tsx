@@ -62,7 +62,7 @@ function MetricTile({
   alert?: boolean
 }) {
   return (
-    <Card className="gap-0 py-0 transition-shadow hover:shadow-md">
+    <Card className="gap-0 py-0 transition-colors hover:border-primary/40">
       <Link to={to} className="flex flex-col gap-1 px-4 py-3">
         <span className="flex items-center gap-1.5 text-muted-foreground text-xs uppercase tracking-wider">
           <Icon className="size-3.5" aria-hidden="true" />

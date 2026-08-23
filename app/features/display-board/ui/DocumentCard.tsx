@@ -67,7 +67,7 @@ export function DocumentCard({ file, alreadyViewed = false }: DocumentCardProps)
     <Link to={href} className="group block h-full shrink-0 snap-start">
       <div
         className={cn(
-          'relative flex h-full flex-col rounded-xl border border-border bg-card shadow-sm transition-colors hover:border-primary',
+          'relative flex h-full flex-col rounded-2xl border border-border bg-card transition-colors hover:border-primary',
           'max-sm:w-full max-sm:flex-row max-sm:items-center',
         )}
       >

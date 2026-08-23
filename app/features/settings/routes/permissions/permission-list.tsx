@@ -38,7 +38,7 @@ export default function PermissionListPage({ loaderData }: Route.ComponentProps)
         breadcrumbs={[{ label: m.sidebar_settings(), to: '/settings' }, { label: m.sidebar_settings_permissions() }]}
       />
 
-      <div className="overflow-hidden rounded-xl border">
+      <div className="overflow-hidden rounded-2xl border">
         <Table>
           <TableHeader>
             <TableRow>

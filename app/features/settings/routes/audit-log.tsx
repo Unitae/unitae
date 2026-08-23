@@ -243,7 +243,7 @@ export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
         <SubmitButton variant="secondary">{m.audit_log_filter_apply()}</SubmitButton>
       </RouterForm>
 
-      <div className="overflow-hidden rounded-xl border">
+      <div className="overflow-hidden rounded-2xl border">
         <Table>
           <TableHeader>
             <TableRow>

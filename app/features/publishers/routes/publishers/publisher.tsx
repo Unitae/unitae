@@ -435,7 +435,7 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
         </CardHeader>
         <CardContent>
           {attributions.length > 0 ? (
-            <div className="overflow-hidden rounded-xl border">
+            <div className="overflow-hidden rounded-2xl border">
               <Table>
                 <TableHeader>
                   <TableRow>

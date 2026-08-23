@@ -208,7 +208,7 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
 
       <div className="flex grow flex-col gap-3">
         {wholePageWithoutCoords && <NoCoordinatesPageBanner count={withoutCoordsCount} />}
-        <div className="overflow-hidden rounded-xl border">
+        <div className="overflow-hidden rounded-2xl border">
           <Table>
             <TableHeader>
               <TableRow>

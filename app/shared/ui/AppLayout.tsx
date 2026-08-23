@@ -52,7 +52,7 @@ export function AppLayout({ permissions, congregationName }: AppLayoutProps) {
         <div className="flex items-center p-2 max-md:hidden md:group-has-data-[state=expanded]/sidebar-wrapper:hidden">
           <SidebarTrigger className="size-8 rounded-md" />
         </div>
-        <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 max-md:pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:p-6">
+        <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-[radial-gradient(70%_360px_at_50%_0%,color-mix(in_oklab,var(--color-primary)_5%,transparent),transparent)] p-4 max-md:pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:p-6">
           <Outlet />
         </div>
       </SidebarInset>
