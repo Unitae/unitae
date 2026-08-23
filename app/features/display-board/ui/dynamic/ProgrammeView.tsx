@@ -120,11 +120,11 @@ function PartRow({ part, highlighted, dimmed }: { part: PartAssignment; highligh
   return (
     <li
       className={cn(
-        'grid grid-cols-[1fr_auto] items-baseline gap-x-4 py-0.5 max-sm:grid-cols-1 max-sm:py-1',
+        'grid grid-cols-[1fr_auto] items-baseline gap-x-4 py-0.5 max-sm:block max-sm:py-1',
         dimmed && 'opacity-30 transition-opacity',
       )}
     >
-      <span className="min-w-0 truncate font-semibold text-foreground text-sm max-sm:whitespace-normal">
+      <span className="min-w-0 truncate font-semibold text-foreground text-sm max-sm:block max-sm:whitespace-normal">
         {displayName}
         {part.durationMin != null && (
           <span className="ml-1 font-normal text-muted-foreground text-xs">({part.durationMin} min)</span>
@@ -138,7 +138,7 @@ function PartRow({ part, highlighted, dimmed }: { part: PartAssignment; highligh
       {rightText ? (
         <span
           className={cn(
-            'flex shrink-0 items-center gap-1.5 text-foreground text-sm max-sm:justify-self-end',
+            'flex shrink-0 items-center gap-1.5 text-foreground text-sm max-sm:flex-wrap max-sm:pl-3',
             highlighted && 'rounded-sm bg-amber-100 px-1 dark:bg-amber-900/40',
           )}
         >
@@ -180,17 +180,18 @@ function MultiTrackPart({ parts, query }: { parts: PartAssignment[]; query: stri
           <li
             key={part.id}
             className={cn(
-              'ml-3 grid grid-cols-[1fr_auto] items-baseline gap-x-4 py-0.5 max-sm:grid-cols-1',
+              'ml-3 grid grid-cols-[1fr_auto] items-baseline gap-x-4 py-0.5 max-sm:block',
               dimmed && 'opacity-30 transition-opacity',
             )}
           >
             <span className="shrink-0 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
               {trackName}
+              <span className="hidden font-normal normal-case tracking-normal max-sm:inline"> — </span>
             </span>
             {rightText ? (
               <span
                 className={cn(
-                  'flex shrink-0 items-center gap-1.5 text-foreground text-sm max-sm:justify-self-end',
+                  'flex shrink-0 items-center gap-1.5 text-foreground text-sm max-sm:inline-flex max-sm:flex-wrap',
                   highlighted && 'rounded-sm bg-amber-100 px-1 dark:bg-amber-900/40',
                 )}
               >
@@ -202,7 +203,12 @@ function MultiTrackPart({ parts, query }: { parts: PartAssignment[]; query: stri
                 )}
               </span>
             ) : (
-              <span className="shrink-0 text-muted-foreground/40 text-sm italic">&mdash;</span>
+              <span className="shrink-0 text-muted-foreground/40 text-sm italic max-sm:hidden">&mdash;</span>
+            )}
+            {!rightText && (
+              <span className="hidden text-muted-foreground/70 text-sm italic max-sm:inline">
+                {m.programs_view_unassigned()}
+              </span>
             )}
           </li>
         )
