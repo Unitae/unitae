@@ -150,13 +150,25 @@ An **assignment** is when a territory is given to a publisher for a period of ti
 
 ### Assignment types
 
-The *Assignment type* field offers:
+The *Assignment type* field is the **method** of working the territory:
 
 - **Door to door** — Standard territory assignment
 - **Phones** — Phone witnessing assignment
-- **Distribution campaign** — Special campaign assignment (e.g. memorial invitations)
+
+Campaign membership is a separate, orthogonal layer: an assignment belongs to a campaign when it is created while that campaign is active (see [Publishing campaigns](#publishing-campaigns)). A campaign assignment shows the campaign's name with a megaphone icon; since method and campaign are independent, a phone assignment inside a campaign shows both indicators.
 
 The assignment type is surfaced in three places so the publisher always knows how to approach the territory: as a watermark on the printed territory card, as a pill (with a phone or megaphone icon) on the publisher's `/me/territories` list cards, and again on the territory detail page. *Door to door* is the default and shows no extra indicator in any of these places.
+
+## Publishing campaigns
+
+Territory managers can plan **campaigns** (e.g. a memorial invitation drive) from *Territoires → Campagnes*: a campaign has a name, notes, a start and an **inclusive** end date, an optional attribution-duration override, an optional **scope** (a subset of territories; empty scope = the whole congregation), and four lifecycle options:
+
+- **At start** — what happens to ongoing regular assignments in scope: *pause* them (default), *close* them, or *leave* them running in parallel; with *pause*, an optional toggle **re-assigns the same publishers** into the campaign automatically.
+- **At end** — whether still-open campaign assignments are closed automatically (default yes), and what happens to the assignments the campaign paused: *resume* (default — their due date is pushed back by the time spent paused), *keep paused*, or *close*.
+
+A daily job activates and ends campaigns on their dates; the transitions can also be triggered manually with **Terminer la campagne** on the campaign page. At most **one campaign is active at a time** (overlapping windows are rejected), and non-overlapping future campaigns can be scheduled freely.
+
+While a campaign is active, **campaign mode** is on for the whole module: no regular assignment can be created anywhere (even outside the scope — the scope only limits the automatic transitions), new assignments go into the campaign, and a banner on the territories pages (and on `/me/territories`) announces the campaign with its end date. **Paused** assignments are still held by their publisher but leave the working lists, stop accruing lateness, and show a grey *En pause* badge; a manager can release one early with the *Reprendre* action.
 
 ### Overdue tracking
 

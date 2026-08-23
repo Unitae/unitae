@@ -1,6 +1,6 @@
 # Spec: Publishing Campaigns — first-class, configurable campaign mode
 
-**Status:** Accepted (2026-08-23) — all §12 decisions resolved; implementation starting
+**Status:** Implemented (2026-08-23) — steady-state behavior folded into `docs/product/territories.md`
 **Author:** Nathanaël Cherrier
 **Feature area:** `features/territories` (attributions, new `Campaign` aggregate) + a scheduled lifecycle job + territories-scoped UI
 **Related:** [Architecture Conventions](../architecture-conventions.md), [Row-Level Security](../row-level-security.md), [Background Processing](../background-processing.md), [Permissions & Roles](../permissions-and-roles.md)
