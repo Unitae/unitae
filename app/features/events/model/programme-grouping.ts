@@ -5,11 +5,13 @@ export interface ProgrammePartLike {
   durationMin?: number | null
 }
 
+/** Output-only shape of {@link groupProgrammeParts} — do not hand-construct. */
 export interface ProgrammeTrackGroup<T> {
   track: string
   parts: T[]
 }
 
+/** Output-only shape of {@link groupProgrammeParts} — do not hand-construct. */
 export interface ProgrammeSectionGroup<T> {
   section: string
   tracks: ProgrammeTrackGroup<T>[]

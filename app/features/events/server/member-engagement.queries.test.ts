@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import type { CongregationId, MemberId } from '~/shared/types/branded'
+
 import { findUpcomingAbsencesForMember, findUpcomingAssignmentsForMember } from './member-engagement.queries'
 
 const NOW = new Date(2026, 7, 23)
-const CONGREGATION_ID = 42
-const MEMBER_ID = 7
+const CONGREGATION_ID = 42 as CongregationId
+const MEMBER_ID = 7 as MemberId
 
 describe('findUpcomingAssignmentsForMember', () => {
   it('merges part and service assignments sorted by event date', async () => {
@@ -41,6 +43,27 @@ describe('findUpcomingAssignmentsForMember', () => {
     const partWhere = db.eventPart.findMany.mock.calls[0][0].where
     expect(partWhere.OR).toEqual([{ assigneeId: MEMBER_ID }, { assistantId: MEMBER_ID }])
     expect(partWhere.event.congregationId).toBe(CONGREGATION_ID)
+  })
+
+  it('keeps a deterministic order when a part and a service share the same date', async () => {
+    const sameDay = new Date(2026, 8, 3)
+    const db = {
+      eventPart: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([{ id: 1, name: 'Partie', event: { id: 10, name: 'R', startDate: sameDay } }]),
+      },
+      eventServicePart: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([{ id: 2, name: 'Sono', event: { id: 11, name: 'R', startDate: sameDay } }]),
+      },
+    }
+
+    const assignments = await findUpcomingAssignmentsForMember(db as never, MEMBER_ID, CONGREGATION_ID, NOW)
+
+    // Stable sort: on a date tie, programme parts precede service parts.
+    expect(assignments.map(a => a.key)).toEqual(['part-1', 'service-2'])
   })
 
   it('caps the merged list at five entries', async () => {

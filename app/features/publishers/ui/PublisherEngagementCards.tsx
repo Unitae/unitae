@@ -1,6 +1,6 @@
 import { CalendarDays, CalendarOff } from 'lucide-react'
 
-import type { MemberAbsence, MemberAssignment } from '~/features/events/index.server'
+import type { MemberAbsence, MemberAssignment } from '~/features/events'
 import * as m from '~/i18n/paraglide/messages'
 import { RelatedItemRow, RelatedItemsCard } from '~/shared/ui/RelatedItemsCard'
 

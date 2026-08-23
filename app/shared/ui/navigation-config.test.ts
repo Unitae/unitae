@@ -159,6 +159,14 @@ describe('isNavItemActive', () => {
     expect(isNavItemActive(programsItem!, '/programs/external-speakers', false)).toBe(true)
   })
 
+  it('does not match sibling paths that merely share the prefix string', () => {
+    expect(isNavItemActive(publishersItem!, '/publishersAudit', false)).toBe(false)
+    expect(isNavItemActive(territoriesItem!, '/territoriesArchive', false)).toBe(false)
+    // Exclusion boundaries behave the same way: an activity-adjacent sibling
+    // path is NOT excluded, so it still lights the publishers entry.
+    expect(isNavItemActive(publishersItem!, '/publishers/activity-report', false)).toBe(true)
+  })
+
   it('falls back to the NavLink state for items without a matcher', () => {
     const home = buildTabBar(permissions())[0]
     expect(isNavItemActive(home, '/anywhere', true)).toBe(true)

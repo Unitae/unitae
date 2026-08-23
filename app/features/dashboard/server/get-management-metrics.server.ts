@@ -1,5 +1,6 @@
 import type { TransactionClient } from '~/shared/infra/db.server'
 
+/** `null` blocks mean "not requested for this caller's permissions", never an error. */
 export interface ManagementMetrics {
   territories: { total: number; assigned: number; late: number } | null
   publishers: { total: number } | null

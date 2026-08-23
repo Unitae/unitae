@@ -53,17 +53,32 @@ export interface NavItem {
   end?: boolean
   /**
    * Section-highlight matcher: the item lights up for every path under
-   * `prefix` except paths owned by sibling items (`exclude`). Without it,
-   * highlighting follows NavLink's own matching (`to` + `end`).
+   * `prefix` (path-segment boundaries respected) except paths owned by
+   * sibling items (`exclude`). `match` and `end` are complementary, not
+   * exclusive: `end` still controls NavLink's exact-match `aria-current`,
+   * while `match` takes precedence for the VISUAL active state in
+   * `isNavItemActive`. Without `match`, highlighting follows NavLink's own
+   * matching (`to` + `end`).
    */
   match?: { prefix: string; exclude?: string[] }
+}
+
+/**
+ * Whether `pathname` is `prefix` itself or nested below it. Plain
+ * `startsWith` would let a sibling like `/publishersAudit` light the
+ * `/publishers` entry.
+ */
+function pathIsWithin(pathname: string, prefix: string): boolean {
+  if (!pathname.startsWith(prefix)) return false
+  const rest = pathname.slice(prefix.length)
+  return rest === '' || rest.startsWith('/')
 }
 
 /** Whether `item` should render as active for the current pathname. */
 export function isNavItemActive(item: NavItem, pathname: string, navLinkActive: boolean): boolean {
   if (!item.match) return navLinkActive
-  if (!pathname.startsWith(item.match.prefix)) return false
-  return !item.match.exclude?.some(prefix => pathname.startsWith(prefix))
+  if (!pathIsWithin(pathname, item.match.prefix)) return false
+  return !item.match.exclude?.some(prefix => pathIsWithin(pathname, prefix))
 }
 
 export interface NavSection {

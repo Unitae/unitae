@@ -80,10 +80,10 @@ export function loader({ params, context }: Route.LoaderArgs) {
         ? getPioneerActivityForMember(db, publisherId, currentUser.congregationId, serviceYear, now)
         : Promise.resolve(null),
       canViewPrograms
-        ? findUpcomingAssignmentsForMember(db, publisherId, currentUser.congregationId, now)
+        ? findUpcomingAssignmentsForMember(db, publisherId, currentUser.congregationId as CongregationId, now)
         : Promise.resolve(null),
       canViewAbsences
-        ? findUpcomingAbsencesForMember(db, publisherId, currentUser.congregationId, now)
+        ? findUpcomingAbsencesForMember(db, publisherId, currentUser.congregationId as CongregationId, now)
         : Promise.resolve(null),
     ])
 

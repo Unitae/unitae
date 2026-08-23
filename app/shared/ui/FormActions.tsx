@@ -7,7 +7,7 @@ interface FormActionsProps {
 
 /**
  * Footer for form pages: on phones the actions dock above the bottom tab bar
- * so "Enregistrer" is always reachable; on larger screens they sit inline
+ * so the submit action is always reachable; on larger screens they sit inline
  * after the form sections, matching the existing layout.
  *
  * Fixed rather than sticky — the app shell's overflow-x-hidden content

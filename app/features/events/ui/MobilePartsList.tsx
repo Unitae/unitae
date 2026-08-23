@@ -1,20 +1,17 @@
 import { AlertTriangle, Clock } from 'lucide-react'
 import { Link } from 'react-router'
 
-import type { ProgrammeSectionGroup } from '~/features/events/model/programme-grouping'
+import type { ProgrammePartLike, ProgrammeSectionGroup } from '~/features/events/model/programme-grouping'
 import { sectionDurationMin } from '~/features/events/model/programme-grouping'
 import { SectionHeading, TrackHeading } from '~/features/events/ui/ProgrammeHeadings'
 import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 import { cn } from '~/shared/utils/utils'
 
-export interface MobilePartEntry {
+export interface MobilePartEntry extends ProgrammePartLike {
   id: number
   name: string
   topic: string
-  section: string
-  track: string
-  trackOrder: number | null
   durationMin: number | null
   assigneeId: number | null
   assignee: { firstname: string | null; lastname: string | null } | null

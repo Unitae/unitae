@@ -5,6 +5,7 @@ export { dayLabel, dayLabelShort } from './model/day-label'
 export { EventStatus } from './model/event-status.type'
 export { EventTemplateKey, isSystemTemplate } from './model/event-template.type'
 export { groupPartsBySlot } from './model/group-parts-by-slot'
+export type { MemberAbsence, MemberAssignment } from './model/member-engagement.type'
 export { resolvePartCapability } from './model/part-capability'
 export { PartPresetKey, PartPresetScope } from './model/part-preset.type'
 export {

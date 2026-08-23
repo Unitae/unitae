@@ -7,6 +7,7 @@ import { congregationContext, currentAccountContext, permissionsContext } from '
 import { Permission } from '~/shared/types/permission'
 import { AppLayout } from '~/shared/ui/AppLayout'
 import { RouteErrorBoundary } from '~/shared/ui/RouteErrorBoundary'
+import { readSidebarOpenFromCookie } from '~/shared/ui/sidebar/sidebar-cookie'
 
 import type { Route } from './+types/_authenticated-layout'
 
@@ -37,9 +38,6 @@ export const middleware: Route.MiddlewareFunction[] = [
   ]),
 ]
 
-// The sidebar provider persists its open state in a plain cookie.
-const SIDEBAR_COOKIE_CLOSED_RE = /(?:^|;\s*)sidebar_state=false(?:;|$)/
-
 export async function loader({ request, context }: Route.LoaderArgs) {
   const currentUser = context.get(currentAccountContext)
   const congregation = context.get(congregationContext)
@@ -50,7 +48,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const messages = { success: session.get('success'), error: session.get('error') }
   // Reading the sidebar cookie here keeps a collapsed sidebar collapsed
   // across full page loads.
-  const sidebarOpen = !SIDEBAR_COOKIE_CLOSED_RE.test(request.headers.get('Cookie') ?? '')
+  const sidebarOpen = readSidebarOpenFromCookie(request.headers.get('Cookie'))
 
   return data(
     {

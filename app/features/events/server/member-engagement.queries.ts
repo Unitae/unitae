@@ -1,20 +1,8 @@
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { EventTemplateKey } from '~/features/events/model/event-template.type'
+import type { MemberAbsence, MemberAssignment } from '~/features/events/model/member-engagement.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
-
-export interface MemberAssignment {
-  key: string
-  partName: string
-  eventId: number
-  eventName: string
-  eventStartDate: Date
-}
-
-export interface MemberAbsence {
-  id: number
-  startDate: Date | null
-  endDate: Date | null
-}
+import type { CongregationId, MemberId } from '~/shared/types/branded'
 
 const MAX_ASSIGNMENTS = 5
 
@@ -26,8 +14,8 @@ const MAX_ASSIGNMENTS = 5
  */
 export async function findUpcomingAssignmentsForMember(
   db: TransactionClient,
-  memberId: number,
-  congregationId: number,
+  memberId: MemberId,
+  congregationId: CongregationId,
   now: Date = new Date(),
 ): Promise<MemberAssignment[]> {
   const eventFilter = {
@@ -81,8 +69,8 @@ function toAssignment(part: { name: string; event: { id: number; name: string; s
  */
 export function findUpcomingAbsencesForMember(
   db: TransactionClient,
-  memberId: number,
-  congregationId: number,
+  memberId: MemberId,
+  congregationId: CongregationId,
   now: Date = new Date(),
 ): Promise<MemberAbsence[]> {
   return db.event.findMany({
