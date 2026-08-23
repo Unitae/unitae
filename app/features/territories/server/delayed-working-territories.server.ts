@@ -7,6 +7,7 @@ export async function countDelayedWorkingTerritories(db: TransactionClient, cong
       attributions: {
         some: {
           endDate: null,
+          pausedAt: null,
           lateDate: {
             lte: new Date(),
           },

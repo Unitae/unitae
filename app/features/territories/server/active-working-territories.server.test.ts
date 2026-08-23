@@ -34,3 +34,15 @@ describe('countActiveWorkingTerritories', () => {
     expect(result).toBe(0)
   })
 })
+
+describe('countActiveWorkingTerritories — pause semantics', () => {
+  it('does not count territories whose only open attribution is paused', async () => {
+    const countMock = vi.fn().mockResolvedValue(0)
+    const mockDb = { territory: { count: countMock } }
+
+    await countActiveWorkingTerritories(mockDb as never, 10)
+
+    const some = countMock.mock.calls[0][0].where.attributions.some
+    expect(some).toMatchObject({ pausedAt: null })
+  })
+})

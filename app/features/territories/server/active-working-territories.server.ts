@@ -7,6 +7,7 @@ export async function countActiveWorkingTerritories(db: TransactionClient, congr
       attributions: {
         some: {
           endDate: null,
+          pausedAt: null,
           lateDate: {
             gte: new Date(),
           },

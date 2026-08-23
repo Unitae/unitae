@@ -2742,5 +2742,13 @@
     "publishers_view_no_upcoming_absences": "No planned absence.",
     "programme_section_total_min": "{minutes} min",
     "programme_track_parts_one": "1 part",
-    "programme_track_parts_other": "{count} parts"
+    "programme_track_parts_other": "{count} parts",
+    "attributions_status_paused": "paused",
+    "attributions_paused_badge": "Paused",
+    "my_territories_show_paused": "Show paused territories",
+    "my_territories_hide_paused": "Hide paused territories",
+    "attributions_campaign_mode_notice": "Campaign “{name}” running until {endDate}: regular assignments are suspended. This attribution will be created in the campaign.",
+    "attributions_campaign_mode_error": "Regular assignments are suspended while a campaign is active.",
+    "attributions_campaign_not_active_error": "This campaign is not active anymore.",
+    "attributions_available_campaign_notice": "Campaign “{name}” in progress: territories picked here will be assigned within the campaign."
 }

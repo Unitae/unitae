@@ -4,6 +4,7 @@ import { data, Form, redirect } from 'react-router'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { createAttributionSchema } from '~/features/territories/schemas/attribution.schema'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
+import { getActiveCampaign } from '~/features/territories/server/campaign.queries'
 import { createAttribution } from '~/features/territories/server/create-attribution.server'
 import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
 import * as m from '~/i18n/paraglide/messages'
@@ -51,6 +52,8 @@ export function loader({ request, context }: Route.LoaderArgs) {
   return withScopeFromContext(context, async db => {
     const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
 
+    const activeCampaign = await getActiveCampaign(db, congregationId)
+
     const territory = await db.territory.findUnique({
       where: {
         id_congregationId: { id: Number(url.searchParams.get('territory')), congregationId },
@@ -76,12 +79,21 @@ export function loader({ request, context }: Route.LoaderArgs) {
       ],
     })
 
-    return { users, phoneTypeActive, territory, territoryEntrances: territory.entrances.map(aggregateEntrance) }
+    return {
+      users,
+      phoneTypeActive,
+      territory,
+      territoryEntrances: territory.entrances.map(aggregateEntrance),
+      activeCampaign:
+        activeCampaign == null
+          ? null
+          : { id: activeCampaign.id, name: activeCampaign.name, endDate: activeCampaign.endDate },
+    }
   })
 }
 
 export default function CreateAttributionPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { users, territory, phoneTypeActive, territoryEntrances } = loaderData
+  const { users, territory, phoneTypeActive, territoryEntrances, activeCampaign } = loaderData
   const { blocker, markDirty } = useUnsavedChanges()
   useFocusError(actionData)
   const [form, fields] = useForm({
@@ -103,6 +115,14 @@ export default function CreateAttributionPage({ loaderData, actionData }: Route.
         ]}
         backTo="/territories/attributions"
       />
+      {activeCampaign != null && (
+        <div className="rounded-md bg-blue-100 px-4 py-3 text-blue-700 text-sm dark:bg-blue-900/30 dark:text-blue-400">
+          {m.attributions_campaign_mode_notice({
+            name: activeCampaign.name,
+            endDate: new Date(activeCampaign.endDate).toLocaleDateString('fr-FR'),
+          })}
+        </div>
+      )}
       <Card>
         <CardContent className="pt-6">
           <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={markDirty}>
@@ -123,25 +143,29 @@ export default function CreateAttributionPage({ loaderData, actionData }: Route.
               />
               {fields.publisher.errors && <p className="text-destructive text-sm">{fields.publisher.errors}</p>}
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor={fields.type.id}>{m.attributions_new_type_label()}</Label>
-              <Select name={fields.type.name} defaultValue={TerritoryAttributionKind.Default}>
-                <SelectTrigger id={fields.type.id} className="w-full" aria-invalid={fields.type.errors !== undefined}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={TerritoryAttributionKind.Default}>
-                    {phoneTypeActive ? m.attributions_new_type_default() : m.territories_type_classical_capitalized()}
-                  </SelectItem>
-                  {!phoneTypeActive && (
-                    <SelectItem value={TerritoryAttributionKind.Phone}>
-                      {m.territories_type_phone_singular()}
+            {activeCampaign != null ? (
+              <input type="hidden" name={fields.type.name} value={TerritoryAttributionKind.Default} />
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor={fields.type.id}>{m.attributions_new_type_label()}</Label>
+                <Select name={fields.type.name} defaultValue={TerritoryAttributionKind.Default}>
+                  <SelectTrigger id={fields.type.id} className="w-full" aria-invalid={fields.type.errors !== undefined}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={TerritoryAttributionKind.Default}>
+                      {phoneTypeActive ? m.attributions_new_type_default() : m.territories_type_classical_capitalized()}
                     </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-              {fields.type.errors && <p className="text-destructive text-sm">{fields.type.errors}</p>}
-            </div>
+                    {!phoneTypeActive && (
+                      <SelectItem value={TerritoryAttributionKind.Phone}>
+                        {m.territories_type_phone_singular()}
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+                {fields.type.errors && <p className="text-destructive text-sm">{fields.type.errors}</p>}
+              </div>
+            )}
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={fields['start-date'].id}>{m.attributions_new_start_date_label()}</Label>
               <Input
@@ -190,12 +214,16 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   return withScopeFromContext(context, async db => {
     try {
+      // While a campaign is active the aggregate rejects regular attributions,
+      // so the action steers the assignment into the campaign instead.
+      const activeCampaign = await getActiveCampaign(db, congregation.id)
       const attribution = await createAttribution(db, {
         publisherId,
         territoryId,
         startDate,
         notes,
         type,
+        campaignId: activeCampaign?.id ?? null,
         congregationId: congregation.id,
         actorId,
       })
@@ -204,6 +232,12 @@ export async function action({ request, context }: Route.ActionArgs) {
     } catch (err) {
       if (err instanceof ConflictError && err.message === 'attribution_overlap') {
         return data(submission.reply({ formErrors: [m.attributions_overlap_error()] }), { status: 409 })
+      }
+      if (err instanceof ConflictError && err.message === 'campaign_mode_active') {
+        return data(submission.reply({ formErrors: [m.attributions_campaign_mode_error()] }), { status: 409 })
+      }
+      if (err instanceof ConflictError && err.message === 'campaign_not_active') {
+        return data(submission.reply({ formErrors: [m.attributions_campaign_not_active_error()] }), { status: 409 })
       }
       throw err
     }

@@ -2742,5 +2742,13 @@
     "publishers_view_no_upcoming_absences": "Aucune absence prévue.",
     "programme_section_total_min": "{minutes} min",
     "programme_track_parts_one": "1 partie",
-    "programme_track_parts_other": "{count} parties"
+    "programme_track_parts_other": "{count} parties",
+    "attributions_status_paused": "en pause",
+    "attributions_paused_badge": "En pause",
+    "my_territories_show_paused": "Afficher les territoires suspendus",
+    "my_territories_hide_paused": "Masquer les territoires suspendus",
+    "attributions_campaign_mode_notice": "Campagne « {name} » en cours jusqu’au {endDate} : les attributions régulières sont suspendues. Cette attribution sera créée dans la campagne.",
+    "attributions_campaign_mode_error": "Les attributions régulières sont suspendues pendant la campagne.",
+    "attributions_campaign_not_active_error": "Cette campagne n’est pas ou plus active.",
+    "attributions_available_campaign_notice": "Campagne « {name} » en cours : les territoires choisis ici seront attribués dans la campagne."
 }
