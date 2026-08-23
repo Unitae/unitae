@@ -67,14 +67,14 @@ export function DocumentCard({ file, alreadyViewed = false }: DocumentCardProps)
     <Link to={href} className="group block h-full shrink-0 snap-start">
       <div
         className={cn(
-          'relative flex h-full flex-col rounded-2xl border border-border bg-card transition-colors hover:border-primary',
+          'relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-colors hover:border-primary',
           'max-sm:w-full max-sm:flex-row max-sm:items-center',
         )}
       >
         <div
           className={cn(
-            'relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-t-xl',
-            'max-sm:aspect-auto max-sm:size-14 max-sm:shrink-0 max-sm:rounded-l-xl max-sm:rounded-tr-none',
+            'relative flex aspect-[4/3] items-center justify-center overflow-hidden',
+            'max-sm:aspect-auto max-sm:w-14 max-sm:shrink-0 max-sm:self-stretch',
             file.kind === 'dynamic' ? getDynamicPreviewBg(file.dynamicType) : 'bg-muted',
           )}
         >
