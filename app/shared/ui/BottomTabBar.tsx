@@ -51,7 +51,7 @@ export function BottomTabBar({ permissions, onMoreClick, moreOpen }: BottomTabBa
                 >
                   <tab.icon className={cn('size-5', active && 'text-primary')} aria-hidden="true" />
                 </span>
-                <span className={cn('text-[11px] leading-tight', active && 'font-medium text-primary')}>
+                <span className={cn('whitespace-nowrap text-[11px] leading-tight', active && 'text-primary')}>
                   {tab.label()}
                 </span>
               </>
@@ -75,7 +75,7 @@ export function BottomTabBar({ permissions, onMoreClick, moreOpen }: BottomTabBa
           >
             <Ellipsis className={cn('size-5', moreOpen && 'text-primary')} aria-hidden="true" />
           </span>
-          <span className={cn('text-[11px] leading-tight', moreOpen && 'font-medium text-primary')}>
+          <span className={cn('whitespace-nowrap text-[11px] leading-tight', moreOpen && 'text-primary')}>
             {m.nav_more()}
           </span>
         </button>
