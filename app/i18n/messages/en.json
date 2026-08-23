@@ -2723,5 +2723,9 @@
     "programs_edit_part_allow_external_label": "Allow an external speaker",
     "settings_presets_form_speaker_roles": "Who can take the main role",
     "settings_presets_form_reader_roles": "Who can take the second role",
-    "settings_presets_form_roles_any": "Any publisher"
+    "settings_presets_form_roles_any": "Any publisher",
+    "filters_active_label": "Active filters",
+    "filters_clear_all": "Clear all",
+    "filters_chip_remove": "Remove filter {label}: {value}",
+    "related_items_view_all": "View all"
 }

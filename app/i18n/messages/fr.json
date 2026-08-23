@@ -2723,5 +2723,9 @@
     "programs_edit_part_allow_external_label": "Autoriser un orateur externe",
     "settings_presets_form_speaker_roles": "Qui peut assurer le rôle principal",
     "settings_presets_form_reader_roles": "Qui peut assurer le second rôle",
-    "settings_presets_form_roles_any": "Tous les proclamateurs"
+    "settings_presets_form_roles_any": "Tous les proclamateurs",
+    "filters_active_label": "Filtres appliqués",
+    "filters_clear_all": "Tout effacer",
+    "filters_chip_remove": "Retirer le filtre {label} : {value}",
+    "related_items_view_all": "Tout voir"
 }
