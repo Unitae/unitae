@@ -25,9 +25,13 @@ export function previewCampaignLifecycle(options: {
   }
 
   const end: CampaignLifecyclePreview['end'] = [options.endCloseCampaign ? 'close-campaign' : 'leave-campaign-open']
-  if (options.endRegularAction === 'Resume') end.push('resume')
-  else if (options.endRegularAction === 'KeepPaused') end.push('keep-paused')
-  else end.push('close-regulars')
+  // The end action for regulars only acts on attributions the campaign
+  // paused — without Pause at start there is nothing for it to touch.
+  if (options.startRegularAction === 'Pause') {
+    if (options.endRegularAction === 'Resume') end.push('resume')
+    else if (options.endRegularAction === 'KeepPaused') end.push('keep-paused')
+    else end.push('close-regulars')
+  }
 
   return { start, end }
 }

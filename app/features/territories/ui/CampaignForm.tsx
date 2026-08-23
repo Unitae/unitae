@@ -189,7 +189,15 @@ export function CampaignForm({
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="campaign-end-action">{m.campaigns_form_end_action_label()}</Label>
-          <Select name="end-regular-action" defaultValue={defaults.endRegularAction} onValueChange={setEndAction}>
+          {startAction !== CampaignRegularStartAction.Pause && (
+            <input type="hidden" name="end-regular-action" value={defaults.endRegularAction} />
+          )}
+          <Select
+            name={startAction === CampaignRegularStartAction.Pause ? 'end-regular-action' : undefined}
+            defaultValue={defaults.endRegularAction}
+            onValueChange={setEndAction}
+            disabled={startAction !== CampaignRegularStartAction.Pause}
+          >
             <SelectTrigger id="campaign-end-action" className="w-full">
               <SelectValue />
             </SelectTrigger>

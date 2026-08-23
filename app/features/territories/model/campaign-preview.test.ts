@@ -24,6 +24,11 @@ describe('previewCampaignLifecycle', () => {
     expect(previewCampaignLifecycle({ ...base, startRegularAction: 'Close' }).start).toEqual(['close'])
   })
 
+  it('without Pause at start, nothing gets paused — the end preview has no regular-attribution entry', () => {
+    expect(previewCampaignLifecycle({ ...base, startRegularAction: 'Leave' }).end).toEqual(['close-campaign'])
+    expect(previewCampaignLifecycle({ ...base, startRegularAction: 'Close' }).end).toEqual(['close-campaign'])
+  })
+
   it('Leave start action ignores auto-reassign (validated away upstream)', () => {
     expect(previewCampaignLifecycle({ ...base, startRegularAction: 'Leave', startAutoReassign: true }).start).toEqual([
       'leave',
