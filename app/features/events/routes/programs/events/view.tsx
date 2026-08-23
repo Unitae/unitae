@@ -124,6 +124,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     return {
       event,
       canEdit,
+      canViewPublishers: can(Permission.PublisherViewer),
       users,
       externalSpeakers,
       partCandidates,
@@ -135,8 +136,17 @@ export function loader({ params, context }: Route.LoaderArgs) {
 }
 
 export default function EventViewPage({ loaderData }: Route.ComponentProps) {
-  const { event, canEdit, users, externalSpeakers, partCandidates, serviceCandidates, shareTexts, timezone } =
-    loaderData
+  const {
+    event,
+    canEdit,
+    canViewPublishers,
+    users,
+    externalSpeakers,
+    partCandidates,
+    serviceCandidates,
+    shareTexts,
+    timezone,
+  } = loaderData
 
   const userById = new Map(users.map(u => [u.id, u]))
 
@@ -335,6 +345,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                             key={assignment.id}
                             assignment={assignment}
                             canEdit={canEdit}
+                            canViewPublishers={canViewPublishers}
                             hasAnyTopic={hasAnyTopic}
                             shareText={shareTexts[assignment.id]}
                             openPartAssign={openPartAssign}
@@ -394,6 +405,8 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                   >
                     <AssigneeCell
                       assignee={assignment.assignee}
+                      assigneeId={assignment.assigneeId}
+                      linkToPublisher={canViewPublishers}
                       externalSpeaker={null}
                       hasConflict={assignment.hasConflict}
                     />
@@ -497,6 +510,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
 function PartRow({
   assignment,
   canEdit,
+  canViewPublishers,
   hasAnyTopic,
   shareText,
   openPartAssign,
@@ -504,6 +518,7 @@ function PartRow({
 }: {
   assignment: PartRowAssignment
   canEdit: boolean
+  canViewPublishers: boolean
   hasAnyTopic: boolean
   /** Absent when there is nothing to send — see buildAssignmentShareText. */
   shareText?: string
@@ -534,6 +549,8 @@ function PartRow({
       >
         <AssigneeCell
           assignee={assignment.assignee}
+          assigneeId={assignment.assigneeId}
+          linkToPublisher={canViewPublishers}
           externalSpeaker={assignment.externalSpeaker}
           hasConflict={assignment.hasConflict}
         />
@@ -614,10 +631,14 @@ function ReleaseToggleButton({ status, eventId }: { status: string; eventId: num
 
 function AssigneeCell({
   assignee,
+  assigneeId,
+  linkToPublisher = false,
   externalSpeaker,
   hasConflict,
 }: {
   assignee: { firstname: string | null; lastname: string | null } | null
+  assigneeId?: number | null
+  linkToPublisher?: boolean
   externalSpeaker: { name: string } | null
   hasConflict: boolean
 }) {
@@ -638,9 +659,19 @@ function AssigneeCell({
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm">
-        {assignee.firstname} {assignee.lastname}
-      </span>
+      {linkToPublisher && assigneeId != null ? (
+        <Link
+          to={`/publishers/${assigneeId}/view`}
+          className="text-sm hover:text-primary hover:underline"
+          onClick={e => e.stopPropagation()}
+        >
+          {assignee.firstname} {assignee.lastname}
+        </Link>
+      ) : (
+        <span className="text-sm">
+          {assignee.firstname} {assignee.lastname}
+        </span>
+      )}
       {hasConflict && (
         <Badge variant="destructive" className="gap-1 text-xs">
           <AlertTriangle className="size-3" />

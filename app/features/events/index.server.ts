@@ -16,6 +16,12 @@ export {
   upsertTemplatePart,
   upsertTemplateServicePart,
 } from './server/event-templates.server'
+export {
+  findUpcomingAbsencesForMember,
+  findUpcomingAssignmentsForMember,
+  type MemberAbsence,
+  type MemberAssignment,
+} from './server/member-engagement.queries'
 export { eventsNotifications } from './server/notifications.server'
 export { getPartPresetById, listPartPresets, listPartPresetsForSettings } from './server/part-presets.queries'
 export { createPartPreset, deletePartPreset, updatePartPreset } from './server/part-presets.server'

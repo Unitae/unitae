@@ -2738,5 +2738,9 @@
     "dashboard_metric_territories": "Territories",
     "dashboard_metric_territories_detail": "{assigned} assigned · {late} late",
     "dashboard_metric_publishers": "Publishers",
-    "dashboard_metric_publishers_detail": "active publishers"
+    "dashboard_metric_publishers_detail": "active publishers",
+    "publishers_view_upcoming_assignments": "Upcoming assignments",
+    "publishers_view_no_upcoming_assignments": "No upcoming assignment.",
+    "publishers_view_upcoming_absences": "Upcoming absences",
+    "publishers_view_no_upcoming_absences": "No planned absence."
 }

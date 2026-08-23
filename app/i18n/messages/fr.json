@@ -2738,5 +2738,9 @@
     "dashboard_metric_territories": "Territoires",
     "dashboard_metric_territories_detail": "{assigned} attribués · {late} en retard",
     "dashboard_metric_publishers": "Proclamateurs",
-    "dashboard_metric_publishers_detail": "proclamateurs actifs"
+    "dashboard_metric_publishers_detail": "proclamateurs actifs",
+    "publishers_view_upcoming_assignments": "Prochaines affectations",
+    "publishers_view_no_upcoming_assignments": "Aucune affectation à venir.",
+    "publishers_view_upcoming_absences": "Absences à venir",
+    "publishers_view_no_upcoming_absences": "Aucune absence prévue."
 }

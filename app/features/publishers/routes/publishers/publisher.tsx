@@ -1,5 +1,6 @@
 import { Download, Pencil, RotateCcw, UserCheck, UserMinus, Zap, ZapOff } from 'lucide-react'
 import { Form, Link, redirect, useSubmit } from 'react-router'
+import { findUpcomingAbsencesForMember, findUpcomingAssignmentsForMember } from '~/features/events/index.server'
 import { toServiceYear } from '~/features/publishers'
 import { canManageEmergencyInfo, canViewEmergencyInfo } from '~/features/publishers/model/emergency-access'
 import { getEmergencyInfoForMember } from '~/features/publishers/server/emergency.queries'
@@ -7,6 +8,7 @@ import { getPioneerActivityForMember } from '~/features/publishers/server/pionee
 import { getPublisherById } from '~/features/publishers/server/publishers.server'
 import EmergencyInfoView, { type EmergencyInfoViewData } from '~/features/publishers/ui/EmergencyInfoView'
 import { PioneerActivitySection, pioneerProfileLabel } from '~/features/publishers/ui/PioneerActivitySection'
+import { PublisherEngagementCards } from '~/features/publishers/ui/PublisherEngagementCards'
 import { AttributionStatus, TerritoryKind } from '~/features/territories'
 import { findActiveAttributionsForPublisher } from '~/features/territories/index.server'
 import * as m from '~/i18n/paraglide/messages'
@@ -54,6 +56,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const canManageActivity = permissions.has(Permission.ActivityManager)
   const canViewActivity = permissions.has(Permission.ActivityViewer)
   const canViewTerritories = permissions.has(Permission.TerritoriesViewer)
+  const canViewPrograms = permissions.has(Permission.ProgramViewer)
+  const canViewAbsences = permissions.has(Permission.AbsenceViewer)
 
   if (!canViewPublisher) {
     logger.warn(`Tried to load publisher file. User ID: ${currentUser.id}. Does NOT have rights to view publishers.`)
@@ -69,11 +73,17 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const serviceYear = toServiceYear(now.getMonth(), now.getFullYear())
 
   return withScopeFromContext(context, async db => {
-    const [publisher, attributions, pioneerActivity] = await Promise.all([
+    const [publisher, attributions, pioneerActivity, upcomingAssignments, upcomingAbsences] = await Promise.all([
       getPublisherById(db, publisherId, currentUser.congregationId as CongregationId, serviceYear),
       findActiveAttributionsForPublisher(db, publisherId, currentUser.congregationId),
       canViewActivity
         ? getPioneerActivityForMember(db, publisherId, currentUser.congregationId, serviceYear, now)
+        : Promise.resolve(null),
+      canViewPrograms
+        ? findUpcomingAssignmentsForMember(db, publisherId, currentUser.congregationId, now)
+        : Promise.resolve(null),
+      canViewAbsences
+        ? findUpcomingAbsencesForMember(db, publisherId, currentUser.congregationId, now)
         : Promise.resolve(null),
     ])
 
@@ -96,6 +106,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
       publisher,
       attributions,
       pioneerActivity,
+      upcomingAssignments,
+      upcomingAbsences,
       serviceYear,
       emergency,
       roles: {
@@ -268,7 +280,16 @@ function EmergencyCard({
 }
 
 export default function PublisherPage({ loaderData }: Route.ComponentProps) {
-  const { publisher, attributions, pioneerActivity, serviceYear, emergency, roles } = loaderData
+  const {
+    publisher,
+    attributions,
+    pioneerActivity,
+    upcomingAssignments,
+    upcomingAbsences,
+    serviceYear,
+    emergency,
+    roles,
+  } = loaderData
 
   return (
     <div className="flex flex-col gap-6">
@@ -460,6 +481,8 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
           )}
         </CardContent>
       </Card>
+
+      <PublisherEngagementCards assignments={upcomingAssignments} absences={upcomingAbsences} />
 
       {emergency && <EmergencyCard info={emergency} canManage={roles.canManageEmergency} publisherId={publisher.id} />}
     </div>
