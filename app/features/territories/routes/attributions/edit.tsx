@@ -8,6 +8,7 @@ import { TerritoryAttributionKind } from '~/features/territories/model/territory
 import { updateAttributionSchema } from '~/features/territories/schemas/attribution.schema'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import { updateAttribution } from '~/features/territories/server/update-attribution.server'
+import { AttributionKindBadge } from '~/features/territories/ui/AttributionKindBadge'
 import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -54,7 +55,11 @@ export function loader({ params, context }: Route.LoaderArgs) {
       where: {
         id_congregationId: { id: requireParamId(params.attributionId, '/territories/attributions'), congregationId },
       },
-      include: { territory: { include: { entrances: { include: { buildings: true } } } }, publisher: true },
+      include: {
+        territory: { include: { entrances: { include: { buildings: true } } } },
+        publisher: true,
+        campaign: { select: { name: true } },
+      },
     })
 
     if (attribution == null) {
@@ -133,25 +138,35 @@ export default function EditAttributionPage({ loaderData, actionData }: Route.Co
               />
               {fields.publisher.errors && <p className="text-destructive text-sm">{fields.publisher.errors}</p>}
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor={fields.type.id}>{m.attributions_edit_type_label()}</Label>
-              <Select name={fields.type.name} defaultValue={attribution.type} disabled={attribution.endDate !== null}>
-                <SelectTrigger id={fields.type.id} className="w-full" aria-invalid={fields.type.errors !== undefined}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={TerritoryAttributionKind.Default}>
-                    {phoneTypeActive ? m.attributions_new_type_default() : m.territories_type_classical_capitalized()}
-                  </SelectItem>
-                  {!phoneTypeActive && (
-                    <SelectItem value={TerritoryAttributionKind.Phone}>
-                      {m.territories_type_phone_singular()}
+            {attribution.campaignId != null ? (
+              <div className="flex flex-col gap-1.5">
+                <input type="hidden" name={fields.type.name} value={attribution.type} />
+                <Label>{m.attributions_new_type_label()}</Label>
+                <div>
+                  <AttributionKindBadge type={attribution.type} campaignName={attribution.campaign?.name ?? ''} />
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor={fields.type.id}>{m.attributions_edit_type_label()}</Label>
+                <Select name={fields.type.name} defaultValue={attribution.type} disabled={attribution.endDate !== null}>
+                  <SelectTrigger id={fields.type.id} className="w-full" aria-invalid={fields.type.errors !== undefined}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={TerritoryAttributionKind.Default}>
+                      {phoneTypeActive ? m.attributions_new_type_default() : m.territories_type_classical_capitalized()}
                     </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-              {fields.type.errors && <p className="text-destructive text-sm">{fields.type.errors}</p>}
-            </div>
+                    {!phoneTypeActive && (
+                      <SelectItem value={TerritoryAttributionKind.Phone}>
+                        {m.territories_type_phone_singular()}
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+                {fields.type.errors && <p className="text-destructive text-sm">{fields.type.errors}</p>}
+              </div>
+            )}
             <div className="flex gap-3">
               <div className="flex flex-1 flex-col gap-1.5">
                 <Label htmlFor={fields['start-date'].id}>{m.attributions_edit_start_date_label()}</Label>
