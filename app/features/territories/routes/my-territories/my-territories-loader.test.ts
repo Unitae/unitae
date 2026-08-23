@@ -31,6 +31,7 @@ const attributionRow = {
 }
 
 const fakeDb = {
+  campaign: { findFirst: vi.fn().mockResolvedValue(null) },
   attribution: {
     findMany: vi.fn(({ where }: { where: { publisherId: number } }) =>
       Promise.resolve(where.publisherId === MEMBER_ID ? [attributionRow] : []),

@@ -6,11 +6,11 @@ import { getSetting } from '~/shared/domain/settings.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
-import { parseLocalDate } from '~/shared/utils/date.server'
+import { parseLocalDate, startOfNextDay } from '~/shared/utils/date.server'
+import { getActiveCampaign } from './campaign.queries'
 
 const DEFAULT_DURATION_DAYS = {
   default: 120,
-  campaign: 60,
   phone: 14,
   commerce: 120,
 }
@@ -54,10 +54,6 @@ async function _resolveDurationDays(
     const setting = await getSetting(db, TerritorySettingKey.AttributionPhoneDurationDays, congregationId)
     return parsePositiveDays(setting, DEFAULT_DURATION_DAYS.phone)
   }
-  if (attributionType === TerritoryAttributionKind.Campaign) {
-    const setting = await getSetting(db, TerritorySettingKey.AttributionCampaignDurationDays, congregationId)
-    return parsePositiveDays(setting, DEFAULT_DURATION_DAYS.campaign)
-  }
   if (territoryType === TerritoryKind.Commerces) {
     const setting = await getSetting(db, TerritorySettingKey.AttributionCommerceDurationDays, congregationId)
     return parsePositiveDays(setting, DEFAULT_DURATION_DAYS.commerce)
@@ -81,13 +77,17 @@ async function _assertNoActiveOverlap(
   territoryId: number,
   startDate: Date,
   endDate: Date | null,
+  campaignId: number | null,
   excludeId?: number,
 ): Promise<void> {
+  // Overlap is layer-scoped: regular vs regular and same-campaign vs
+  // same-campaign conflict; regular and campaign work coexist by design.
   const candidates = await db.attribution.findMany({
     where: {
       congregationId,
       publisherId,
       territoryId,
+      campaignId,
       ...(excludeId != null ? { id: { not: excludeId } } : {}),
     },
     select: { id: true, startDate: true, endDate: true },
@@ -105,22 +105,63 @@ export interface CreateAttributionParams {
   startDate: string
   notes: string
   type: TerritoryAttributionKind
+  /** null/absent = regular work; set = attribution inside that campaign */
+  campaignId?: number | null
   congregationId: number
   actorId: number
 }
 
 export async function assign(db: TransactionClient, params: CreateAttributionParams) {
+  const campaignId = params.campaignId ?? null
+
+  // Campaign-mode guard: while a campaign is active no regular attribution can
+  // be created anywhere, and campaign attributions only for the active campaign.
+  const activeCampaign = await getActiveCampaign(db, params.congregationId)
+  if (campaignId == null) {
+    if (activeCampaign != null) throw new ConflictError('campaign_mode_active')
+  } else if (activeCampaign == null || activeCampaign.id !== campaignId) {
+    throw new ConflictError('campaign_not_active')
+  }
+
   const territory = await db.territory.findUniqueOrThrow({
     // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
     where: { id_congregationId: { id: params.territoryId, congregationId: params.congregationId } },
   })
-  const durationDays = await _resolveDurationDays(db, params.type, territory.type, params.congregationId)
+
+  // A territory being actively worked stays out of the campaign: only a
+  // paused (or returned) attribution frees it for campaign assignment. This
+  // is what makes « Laisser hors campagne » mean exactly that.
+  if (campaignId != null) {
+    const occupied = await db.attribution.findFirst({
+      where: { congregationId: params.congregationId, territoryId: params.territoryId, endDate: null, pausedAt: null },
+      select: { id: true },
+    })
+    if (occupied != null) throw new ConflictError('territory_occupied')
+  }
 
   const startDate = parseLocalDate(params.startDate)
-  const lateDate = new Date(startDate)
-  lateDate.setDate(lateDate.getDate() + durationDays)
+  let lateDate: Date
+  if (campaignId != null && activeCampaign != null && activeCampaign.endCloseCampaign) {
+    // Due when the campaign closes — the day after its inclusive end date; the
+    // auto-close returns it before it can ever show as late.
+    lateDate = startOfNextDay(activeCampaign.endDate)
+  } else {
+    // Regular work — or a campaign whose attributions are closed manually
+    // (endCloseCampaign off): the standard method/territory duration applies.
+    const durationDays = await _resolveDurationDays(db, params.type, territory.type, params.congregationId)
+    lateDate = new Date(startDate)
+    lateDate.setDate(lateDate.getDate() + durationDays)
+  }
 
-  await _assertNoActiveOverlap(db, params.congregationId, params.publisherId, params.territoryId, startDate, null)
+  await _assertNoActiveOverlap(
+    db,
+    params.congregationId,
+    params.publisherId,
+    params.territoryId,
+    startDate,
+    null,
+    campaignId,
+  )
 
   const attribution = await db.attribution.create({
     data: {
@@ -128,6 +169,7 @@ export async function assign(db: TransactionClient, params: CreateAttributionPar
       territoryId: params.territoryId,
       notes: params.notes,
       type: params.type,
+      campaignId,
       startDate,
       lateDate,
       congregationId: params.congregationId,
@@ -164,7 +206,7 @@ export async function update(
 ) {
   const existing = await db.attribution.findFirst({
     where: { id, congregationId },
-    select: { id: true, publisherId: true, territoryId: true, startDate: true, endDate: true },
+    select: { id: true, publisherId: true, territoryId: true, startDate: true, endDate: true, campaignId: true },
   })
   if (!existing) throw new NotFoundError('Attribution')
 
@@ -178,7 +220,16 @@ export async function update(
   const endChanged = (nextEnd?.getTime() ?? null) !== (existing.endDate?.getTime() ?? null)
 
   if (publisherChanged || startChanged || endChanged) {
-    await _assertNoActiveOverlap(db, congregationId, nextPublisherId, nextTerritoryId, nextStart, nextEnd, id)
+    await _assertNoActiveOverlap(
+      db,
+      congregationId,
+      nextPublisherId,
+      nextTerritoryId,
+      nextStart,
+      nextEnd,
+      existing.campaignId,
+      id,
+    )
   }
 
   const updateData: Prisma.XOR<Prisma.AttributionUpdateInput, Prisma.AttributionUncheckedUpdateInput> = {

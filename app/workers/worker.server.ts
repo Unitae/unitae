@@ -8,8 +8,10 @@ import { handleEmailWork } from '~/features/notifications/jobs/handle-email-work
 import { handleDataTransferWork } from '~/features/settings/jobs/handle-data-transfer-work.server'
 import { handleRetentionWork } from '~/features/settings/jobs/handle-retention-work.server'
 import { retentionQueue } from '~/features/settings/server/retention-queue.server'
+import { handleCampaignLifecycleWork } from '~/features/territories/jobs/handle-campaign-lifecycle-work.server'
 import { handleSyncWork } from '~/features/territories/jobs/handle-sync-work.server'
-import { RETENTION_CRON_HOUR_UTC } from '~/shared/constants/limits'
+import { campaignQueue } from '~/features/territories/server/campaign-queue.server'
+import { CAMPAIGN_CRON_HOUR_UTC, RETENTION_CRON_HOUR_UTC } from '~/shared/constants/limits'
 import { createLogger } from '~/shared/infra/logger.server'
 import { QUEUE_NAMES } from '~/shared/infra/queues.server'
 import { getBullMQConnection } from '~/shared/infra/redis.server'
@@ -77,6 +79,13 @@ const retentionWorker = new Worker(QUEUE_NAMES.retention, handleRetentionWork, {
   removeOnFail: { count: 30 },
 })
 
+const campaignWorker = new Worker(QUEUE_NAMES.campaign, handleCampaignLifecycleWork, {
+  connection: getBullMQConnection(),
+  concurrency: 1,
+  removeOnComplete: { count: 30 },
+  removeOnFail: { count: 30 },
+})
+
 // Daily retention cron — enqueue a repeating job at 03:00 UTC. BullMQ's
 // `upsertJobScheduler` is idempotent, so the schedule survives restarts
 // without piling up duplicate entries.
@@ -88,13 +97,30 @@ retentionQueue
   )
   .catch(err => logger.error('Failed to register retention scheduler', { error: err.message }))
 
-const workers = [syncWorker, emailWorker, thumbnailWorker, dataTransferWorker, retentionWorker]
+// Daily campaign lifecycle cron — 02:00 UTC, deliberately before the 03:00
+// retention sweep so campaign transitions land first.
+campaignQueue
+  .upsertJobScheduler(
+    'campaign-lifecycle-daily',
+    { pattern: `0 ${CAMPAIGN_CRON_HOUR_UTC} * * *`, tz: 'UTC' },
+    { name: 'campaign-lifecycle-sweep', data: { triggeredAt: new Date().toISOString() } },
+  )
+  .catch(err => logger.error('Failed to register campaign lifecycle scheduler', { error: err.message }))
+
+// Catch-up pass on boot: a worker that was down over a campaign's start or end
+// date converges immediately instead of waiting for the next 02:00 slot.
+campaignQueue
+  .add('campaign-lifecycle-sweep', { triggeredAt: new Date().toISOString() })
+  .catch(err => logger.error('Failed to enqueue campaign lifecycle catch-up', { error: err.message }))
+
+const workers = [syncWorker, emailWorker, thumbnailWorker, dataTransferWorker, retentionWorker, campaignWorker]
 const workerNames = [
   QUEUE_NAMES.sync,
   QUEUE_NAMES.email,
   QUEUE_NAMES.thumbnail,
   QUEUE_NAMES.dataTransfer,
   QUEUE_NAMES.retention,
+  QUEUE_NAMES.campaign,
 ]
 
 for (let i = 0; i < workers.length; i++) {

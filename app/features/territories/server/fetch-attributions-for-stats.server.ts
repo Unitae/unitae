@@ -1,4 +1,5 @@
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { buildAttributionCategoryWhere } from './attribution-category-where.server'
 import { buildAttributionDateOverlapWhere } from './attribution-date-overlap.server'
 import type { StatsAttribution } from './stats-attribution.type'
 import type { StatsFilterParams } from './stats-filter-params.type'
@@ -12,7 +13,7 @@ export async function fetchAttributionsForStats(
     where: {
       congregationId,
       ...(params.territoryKind.length > 0 ? { territory: { type: { in: params.territoryKind } } } : {}),
-      type: { in: params.attributionKind },
+      ...buildAttributionCategoryWhere(params.attributionKind),
       ...buildAttributionDateOverlapWhere(params.startDate, params.endDate),
       ...(params.groupId != null ? { publisher: { publisherGroupId: params.groupId } } : {}),
     },
@@ -26,6 +27,8 @@ export async function fetchAttributionsForStats(
         },
       },
       type: true,
+      campaignId: true,
+      campaign: { select: { restPeriodDays: true } },
       startDate: true,
       endDate: true,
       lateDate: true,
@@ -39,6 +42,8 @@ export async function fetchAttributionsForStats(
     territoryNumber: a.territory.number,
     territoryType: a.territory.type,
     type: a.type,
+    campaignId: a.campaignId,
+    campaignRestPeriodDays: a.campaign?.restPeriodDays ?? null,
     startDate: a.startDate,
     endDate: a.endDate,
     lateDate: a.lateDate,

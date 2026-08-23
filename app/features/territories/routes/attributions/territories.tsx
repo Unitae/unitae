@@ -3,6 +3,7 @@ import React from 'react'
 import { Link, redirect, useSearchParams } from 'react-router'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { getZips } from '~/features/territories/server/buildings.server'
+import { getActiveCampaign } from '~/features/territories/server/campaign.queries'
 import { classifySearch } from '~/features/territories/server/search-intent.server'
 import { findAvailableTerritoriesPaginated } from '~/features/territories/server/territories.server'
 import { territoryContentLabel } from '~/features/territories/server/territory-content-label'
@@ -60,7 +61,15 @@ export function loader({ request, context }: Route.LoaderArgs) {
   return withScopeFromContext(context, async db => {
     const url = new URL(request.url)
     const selectors = computeFilters(url.searchParams)
-    selectors.attributions = { none: { endDate: null } }
+    // While a campaign is active a territory is assignable (into the
+    // campaign) only when nobody actively works it: any open, unpaused
+    // attribution blocks it — paused regulars and returned ones don't.
+    // Outside a campaign, any open attribution blocks: paused regulars are
+    // still held, and campaign attributions left open by an ended campaign
+    // (endCloseCampaign off) still occupy the ground.
+    const activeCampaign = await getActiveCampaign(db, congregationId)
+    selectors.attributions =
+      activeCampaign != null ? { none: { endDate: null, pausedAt: null } } : { none: { endDate: null } }
 
     const search = url.searchParams.get('search') ?? ''
     const intent = classifySearch(search)
@@ -100,6 +109,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
     return {
       zips,
+      activeCampaignName: activeCampaign?.name ?? null,
       stats: { total: result.pagination.total },
       territories: result.territories,
       pagination: result.pagination,
@@ -115,11 +125,21 @@ export function loader({ request, context }: Route.LoaderArgs) {
   })
 }
 
+function CampaignModeNotice({ name }: { name: string | null }) {
+  if (name == null) return null
+  return (
+    <div className="rounded-md bg-blue-100 px-4 py-3 text-blue-700 text-sm dark:bg-blue-900/30 dark:text-blue-400">
+      {m.attributions_available_campaign_notice({ name })}
+    </div>
+  )
+}
+
 export default function TerritorySelectorPage({ loaderData }: Route.ComponentProps) {
   const {
     pagination,
     territories,
     zips,
+    activeCampaignName,
     geocodeResult,
     proximityActive,
     geocodeNotice,
@@ -147,6 +167,7 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
           ]}
           backTo="/territories/attributions"
         />
+        <CampaignModeNotice name={activeCampaignName} />
         <FilterChipBar chips={chips} />
         <GeocodeNotice notice={geocodeNotice} />
         <TerritoryFilters zips={zips} showAccess showSearch showType showZip />
@@ -170,6 +191,7 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
         ]}
         backTo="/territories/attributions"
       />
+      <CampaignModeNotice name={activeCampaignName} />
       <FilterChipBar chips={chips} />
       <GeocodeNotice notice={geocodeNotice} />
       {geocodeResult != null && <ProximityBanner geocode={geocodeResult} />}
@@ -222,7 +244,10 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
                       {territoryContentLabel(territory.type, territory.entrances)}
                     </TableCell>
                     <TableCell className="text-center">
-                      <TerritoryAvaibilityStatus attribution={[...territory.attributions].shift()} />
+                      <TerritoryAvaibilityStatus
+                        attribution={[...territory.attributions].shift()}
+                        campaignMode={activeCampaignName != null}
+                      />
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-2">
@@ -234,7 +259,7 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
                             <ExternalLink className="size-4" />
                           </Link>
                         </Button>
-                        {checkAvailabilityStatus([...territory.attributions].shift()) ? (
+                        {checkAvailabilityStatus([...territory.attributions].shift(), activeCampaignName != null) ? (
                           <Button variant="ghost" size="sm" asChild className="gap-1.5 text-primary">
                             <Link
                               to={`/territories/attributions/new?territory=${territory.id}`}

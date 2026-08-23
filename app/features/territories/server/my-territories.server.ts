@@ -11,17 +11,27 @@ export function computeStatus(lateDate: Date): TerritoryStatus {
 }
 
 // `memberId` — Attribution.publisherId is a Member FK, never pass a UserAccount id.
-export async function getUserTerritoriesWithDetails(db: TransactionClient, memberId: number) {
+// Paused attributions are hidden by default — the territory left the
+// publisher's working list for the campaign; `includePaused` reveals them
+// (with `pausedAt` set) so the list can explain why.
+export async function getUserTerritoriesWithDetails(
+  db: TransactionClient,
+  memberId: number,
+  options: { includePaused?: boolean } = {},
+) {
   const attributions = await db.attribution.findMany({
     where: {
       publisherId: memberId,
       endDate: null,
+      ...(options.includePaused ? {} : { pausedAt: null }),
     },
     select: {
       id: true,
       startDate: true,
       lateDate: true,
       type: true,
+      pausedAt: true,
+      campaign: { select: { name: true } },
       territory: {
         select: {
           id: true,
@@ -60,6 +70,8 @@ export async function getUserTerritoryDetail(db: TransactionClient, memberId: nu
       startDate: true,
       lateDate: true,
       type: true,
+      pausedAt: true,
+      campaign: { select: { name: true } },
       territory: {
         select: {
           id: true,

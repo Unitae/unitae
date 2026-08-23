@@ -68,6 +68,15 @@ export const AuditAction = {
   AttributionCreated: 'attribution.created',
   AttributionUpdated: 'attribution.updated',
   AttributionDeleted: 'attribution.deleted',
+  AttributionPaused: 'attribution.paused',
+  AttributionResumed: 'attribution.resumed',
+
+  // Publishing campaigns
+  CampaignCreated: 'campaign.created',
+  CampaignUpdated: 'campaign.updated',
+  CampaignDeleted: 'campaign.deleted',
+  CampaignActivated: 'campaign.activated',
+  CampaignEnded: 'campaign.ended',
 
   // Publishers
   PublisherCreated: 'publisher.created',

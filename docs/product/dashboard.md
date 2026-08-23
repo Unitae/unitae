@@ -48,7 +48,7 @@ Each item is displayed as a clickable row with a colored left border (red for ov
 
 ## My territories
 
-Displays the member's currently assigned territories (active assignments where no return date is set). Each territory shows:
+Displays the member's currently assigned territories (active assignments where no return date is set and that are not paused for a campaign — a paused territory is still held but its clock is frozen). Each territory shows:
 
 - **Territory number** — The identifier (e.g., *T-12*)
 - **Due date** — The expected return date displayed as relative time (e.g., *in 2 weeks*, *3 days ago*)

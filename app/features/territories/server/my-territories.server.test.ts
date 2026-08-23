@@ -47,6 +47,24 @@ describe('computeStatus', () => {
 })
 
 describe('getUserTerritoriesWithDetails', () => {
+  it('excludes paused attributions by default', async () => {
+    vi.mocked(db.attribution.findMany).mockResolvedValue([])
+
+    await getUserTerritoriesWithDetails(db as never, 1)
+
+    const where = vi.mocked(db.attribution.findMany).mock.calls[0][0]?.where
+    expect(where).toMatchObject({ pausedAt: null })
+  })
+
+  it('includes paused attributions when includePaused is set', async () => {
+    vi.mocked(db.attribution.findMany).mockResolvedValue([])
+
+    await getUserTerritoriesWithDetails(db as never, 1, { includePaused: true })
+
+    const where = vi.mocked(db.attribution.findMany).mock.calls[0][0]?.where
+    expect(where).not.toHaveProperty('pausedAt')
+  })
+
   it('returns empty array when user has no active attributions', async () => {
     vi.mocked(db.attribution.findMany).mockResolvedValue([])
 

@@ -25,6 +25,9 @@ export async function getUserTerritories(db: TransactionClient, userId: number) 
     where: {
       publisherId: userId,
       endDate: null,
+      // Paused for a campaign: still held, but off the working list — its
+      // frozen clock must not surface as an overdue urgent item.
+      pausedAt: null,
     },
     select: {
       id: true,

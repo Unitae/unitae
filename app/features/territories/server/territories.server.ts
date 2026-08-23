@@ -70,7 +70,11 @@ export async function findAvailableTerritoriesPaginated(
       where,
       include: {
         entrances: { include: { buildings: true } },
-        attributions: { orderBy: { endDate: 'desc' }, take: 1 },
+        attributions: {
+          orderBy: { endDate: 'desc' },
+          take: 1,
+          include: { campaign: { select: { restPeriodDays: true } } },
+        },
       },
     })
     const result = paginateByProximity(
@@ -97,7 +101,11 @@ export async function findAvailableTerritoriesPaginated(
     where,
     include: {
       entrances: { include: { buildings: true } },
-      attributions: { orderBy: { endDate: 'desc' }, take: 1 },
+      attributions: {
+        orderBy: { endDate: 'desc' },
+        take: 1,
+        include: { campaign: { select: { restPeriodDays: true } } },
+      },
     },
     orderBy: { attributions: { _count: 'asc' } },
   })

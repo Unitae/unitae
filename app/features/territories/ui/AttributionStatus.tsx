@@ -1,3 +1,4 @@
+import { Pause } from 'lucide-react'
 import type { Attribution } from '~/database/generated/client'
 import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
@@ -20,6 +21,16 @@ export function AttributionStatus({
     return (
       <Badge variant="outline" className="border-destructive text-destructive">
         {m.attributions_status_orphaned()}
+      </Badge>
+    )
+  }
+
+  // A paused attribution has no meaningful overdue state — its clock is frozen.
+  if (attribution.pausedAt != null) {
+    return (
+      <Badge variant="secondary">
+        <Pause />
+        {m.attributions_paused_badge()}
       </Badge>
     )
   }

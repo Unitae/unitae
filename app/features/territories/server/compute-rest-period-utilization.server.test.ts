@@ -10,6 +10,8 @@ function makeAttribution(
   startDate: Date,
   endDate: Date | null,
   id = 1,
+  campaignId: number | null = null,
+  campaignRestPeriodDays: number | null = null,
 ): StatsAttribution {
   return {
     id,
@@ -17,6 +19,8 @@ function makeAttribution(
     territoryNumber: `T-${territoryId}`,
     territoryType: TerritoryKind.Classical,
     type,
+    campaignId,
+    campaignRestPeriodDays,
     startDate,
     endDate,
     lateDate: new Date(2026, 0, 1),
@@ -52,8 +56,8 @@ describe('computeRestPeriodUtilization', () => {
     // Attribution se termine le 1er jan, repos finit le 16 jan
     // Prochaine attribution commence le 26 jan = 10 jours d'inactivité post-repos
     const attributions = [
-      makeAttribution(1, TerritoryAttributionKind.Campaign, new Date(2024, 11, 1), new Date(2025, 0, 1), 1),
-      makeAttribution(1, TerritoryAttributionKind.Campaign, new Date(2025, 0, 26), new Date(2025, 1, 26), 2),
+      makeAttribution(1, TerritoryAttributionKind.Default, new Date(2024, 11, 1), new Date(2025, 0, 1), 1, 7),
+      makeAttribution(1, TerritoryAttributionKind.Default, new Date(2025, 0, 26), new Date(2025, 1, 26), 2, 7),
     ]
     expect(computeRestPeriodUtilization(attributions)).toBe(10)
   })
@@ -75,5 +79,17 @@ describe('computeRestPeriodUtilization', () => {
     ]
     // Première attribution sans endDate → impossible de calculer la fin de repos
     expect(computeRestPeriodUtilization(attributions)).toBe(0)
+  })
+})
+
+describe('computeRestPeriodUtilization — campaign rest override', () => {
+  it('honore le repos configuré sur la campagne', () => {
+    // Repos campagne 30 jours : fin le 1er jan, repos jusqu'au 31 jan,
+    // reprise le 10 fév = 10 jours d'inactivité post-repos
+    const attributions = [
+      makeAttribution(1, TerritoryAttributionKind.Default, new Date(2024, 11, 1), new Date(2025, 0, 1), 1, 7, 30),
+      makeAttribution(1, TerritoryAttributionKind.Default, new Date(2025, 1, 10), new Date(2025, 2, 10), 2, 7, 30),
+    ]
+    expect(computeRestPeriodUtilization(attributions)).toBe(10)
   })
 })

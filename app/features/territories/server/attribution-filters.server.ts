@@ -8,6 +8,8 @@ export function computeFilters(params: URLSearchParams): Prisma.AttributionWhere
 
   filters = applyGroupFilter(filters, params)
   filters = applyTypeFilter(filters, params)
+  filters = applyCampaignFilter(filters, params)
+  filters = applyPausedFilter(filters, params)
   filters = applyStatusFilter(filters, params)
   filters = applySearchFilter(filters, params)
 
@@ -35,6 +37,26 @@ function applyTypeFilter(filters: Prisma.AttributionWhereInput, params: URLSearc
     return { ...filters, type: { equals: params.get('type') as TerritoryAttributionKind } }
   }
 
+  return filters
+}
+
+function applyCampaignFilter(
+  filters: Prisma.AttributionWhereInput,
+  params: URLSearchParams,
+): Prisma.AttributionWhereInput {
+  const value = params.get('campaign')
+  if (value == null || value === 'none') return filters
+  if (value === 'any') return { ...filters, campaignId: { not: null } }
+  return { ...filters, campaignId: { equals: Number(value) } }
+}
+
+function applyPausedFilter(
+  filters: Prisma.AttributionWhereInput,
+  params: URLSearchParams,
+): Prisma.AttributionWhereInput {
+  const value = params.get('paused')
+  if (value === 'true') return { ...filters, pausedAt: { not: null } }
+  if (value === 'false') return { ...filters, pausedAt: null }
   return filters
 }
 

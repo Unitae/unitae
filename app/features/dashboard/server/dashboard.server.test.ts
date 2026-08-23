@@ -69,6 +69,15 @@ describe('getUserTerritories', () => {
     expect(result[2].status).toBe('on-time')
   })
 
+  it('excludes attributions paused for a campaign (frozen clock must not read as overdue)', async () => {
+    vi.mocked(db.attribution.findMany).mockResolvedValue([] as never)
+
+    await getUserTerritories(db as never, 7)
+
+    const where = vi.mocked(db.attribution.findMany).mock.calls[0][0]?.where
+    expect(where).toMatchObject({ pausedAt: null })
+  })
+
   it('returns empty array when user has no attributions', async () => {
     vi.mocked(db.attribution.findMany).mockResolvedValue([] as never)
     const result = await getUserTerritories(db, 1)

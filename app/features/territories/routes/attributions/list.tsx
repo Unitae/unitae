@@ -1,10 +1,11 @@
-import { CalendarCheck, Lock, Pencil, X } from 'lucide-react'
+import { CalendarCheck, Lock, Megaphone, Pencil, Play, X } from 'lucide-react'
 import React from 'react'
-import { Link, redirect, useSearchParams } from 'react-router'
+import { Form, Link, redirect, useSearchParams } from 'react-router'
 import { getGroups } from '~/features/publishers/index.server'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { computeFilters } from '~/features/territories/server/attribution-filters.server'
 import { findActiveAttributionsPaginated } from '~/features/territories/server/attributions.server'
+import { listCampaigns } from '~/features/territories/server/campaign.queries'
 import { classifySearch } from '~/features/territories/server/search-intent.server'
 import { getCurrentTheocraticYear } from '~/features/territories/server/theocratic-year.server'
 import AttributionFilters from '~/features/territories/ui/AttributionFilters'
@@ -93,6 +94,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
     const result = await findActiveAttributionsPaginated(db, selectors, url, congregationId, proximityArgs)
 
     const groups = await getGroups(db, congregationId)
+    const campaigns = (await listCampaigns(db, congregationId)).map(c => ({ id: c.id, name: c.name }))
     const theocraticYear = getCurrentTheocraticYear()
 
     const locale = getLocale()
@@ -119,6 +121,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
       canManagePublisher,
       canViewPublisher,
       groups,
+      campaigns,
       phoneTypeActive,
       theocraticYear,
       geocodeResult,
@@ -139,6 +142,7 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
     canManageTerritories,
     theocraticYear,
     groups,
+    campaigns,
     phoneTypeActive,
     canViewPublisher,
     geocodeResult,
@@ -185,9 +189,17 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
             <>
               <S13ExportButton theocraticYear={theocraticYear} />
               {canManageTerritories && (
-                <Button asChild>
-                  <Link to="./new/available-territories">{m.attributions_assign_button()}</Link>
-                </Button>
+                <>
+                  <Button asChild variant="outline">
+                    <Link to="./campaigns">
+                      <Megaphone />
+                      {m.campaigns_title()}
+                    </Link>
+                  </Button>
+                  <Button asChild>
+                    <Link to="./new/available-territories">{m.attributions_assign_button()}</Link>
+                  </Button>
+                </>
               )}
             </>
           }
@@ -195,7 +207,7 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
 
         <FilterChipBar chips={chips} />
         <GeocodeNotice notice={geocodeNotice} />
-        <AttributionFilters groups={groups} phoneTypeActive={phoneTypeActive} />
+        <AttributionFilters groups={groups} campaigns={campaigns} phoneTypeActive={phoneTypeActive} />
 
         <EmptyState
           icon={CalendarCheck}
@@ -216,9 +228,17 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
           <>
             <S13ExportButton theocraticYear={theocraticYear} />
             {canManageTerritories && (
-              <Button asChild>
-                <Link to="./new/available-territories">{m.attributions_assign_button()}</Link>
-              </Button>
+              <>
+                <Button asChild variant="outline">
+                  <Link to="./campaigns">
+                    <Megaphone />
+                    {m.campaigns_title()}
+                  </Link>
+                </Button>
+                <Button asChild>
+                  <Link to="./new/available-territories">{m.attributions_assign_button()}</Link>
+                </Button>
+              </>
             )}
           </>
         }
@@ -229,6 +249,7 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
       {geocodeResult != null && <ProximityBanner geocode={geocodeResult} />}
       <AttributionFilters
         groups={groups}
+        campaigns={campaigns}
         phoneTypeActive={phoneTypeActive}
         showSort
         sortValue={sort}
@@ -324,9 +345,11 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
                         )}
                       </TableCell>
                       <TableCell className="text-center max-sm:hidden">
-                        {attribution.type === TerritoryAttributionKind.Default && m.attributions_type_default()}
-                        {attribution.type === TerritoryAttributionKind.Campaign && m.attributions_type_campaign()}
-                        {attribution.type === TerritoryAttributionKind.Phone && m.attributions_type_phone()}
+                        {attribution.campaignId != null
+                          ? m.attributions_type_campaign()
+                          : attribution.type === TerritoryAttributionKind.Phone
+                            ? m.attributions_type_phone()
+                            : m.attributions_type_default()}
                       </TableCell>
                       <TableCell className="text-center">
                         <AttributionStatus attribution={attribution} publisher={attribution.publisher} />
@@ -343,6 +366,18 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
                                   <Pencil className="size-4" />
                                 </Link>
                               </Button>
+                              {attribution.pausedAt != null && attribution.endDate == null && (
+                                <Form method="post" action={`/territories/attributions/${attribution.id}/resume`}>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    type="submit"
+                                    title={m.attributions_resume_button()}
+                                  >
+                                    <Play className="size-4" />
+                                  </Button>
+                                </Form>
+                              )}
                               {attribution.endDate == null && (
                                 <Button
                                   variant="ghost"

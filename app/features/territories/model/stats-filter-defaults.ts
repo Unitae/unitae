@@ -1,4 +1,4 @@
-import { TerritoryAttributionKind } from './territory-attribution-kind.type'
+import { AttributionCategory } from './attribution-category'
 import { TerritoryKind } from './territory-kind.type'
 
 // Server truth (`parseStatsFilterParams`) applies these when the URL has no
@@ -7,7 +7,7 @@ import { TerritoryKind } from './territory-kind.type'
 // in lockstep.
 export const DEFAULT_TERRITORY_KINDS: TerritoryKind[] = [TerritoryKind.Classical]
 
-export const DEFAULT_ATTRIBUTION_KINDS: TerritoryAttributionKind[] = [
-  TerritoryAttributionKind.Default,
-  TerritoryAttributionKind.Campaign,
+export const DEFAULT_ATTRIBUTION_KINDS: AttributionCategory[] = [
+  AttributionCategory.Default,
+  AttributionCategory.Campaign,
 ]

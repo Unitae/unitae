@@ -1,5 +1,5 @@
 import type { PublisherGroup } from '~/database/generated/client'
-import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
+import { AttributionCategory } from '~/features/territories/model/attribution-category'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 import { formatGroupName } from '~/shared/utils/format-group-name'
@@ -41,11 +41,11 @@ function territoryKindLabel(kind: string): string {
 
 function attributionLabel(attribution: string, phoneTypeActive: boolean): string {
   switch (attribution) {
-    case TerritoryAttributionKind.Campaign:
+    case AttributionCategory.Campaign:
       return m.stats_filter_badge_campaign()
-    case TerritoryAttributionKind.Default:
+    case AttributionCategory.Default:
       return phoneTypeActive ? m.stats_filter_badge_door_classic() : m.stats_filter_badge_door()
-    case TerritoryAttributionKind.Phone:
+    case AttributionCategory.Phone:
       return m.stats_filter_badge_phone()
     default:
       return attribution

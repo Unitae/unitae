@@ -57,7 +57,7 @@ describe('buildAttributionFilterChips', () => {
 
   it('maps known attribution kinds and status values', () => {
     const chips = buildAttributionFilterChips(
-      new URLSearchParams({ type: TerritoryAttributionKind.Campaign, status: 'orphaned' }),
+      new URLSearchParams({ type: TerritoryAttributionKind.Phone, status: 'orphaned' }),
     )
     const keys = chips.map(c => c.key)
     expect(keys).toEqual(['type', 'status'])

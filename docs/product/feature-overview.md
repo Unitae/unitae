@@ -42,6 +42,7 @@ Manage the congregation's geographic territories and track assignments to publis
 - **Territory types** — Door to door, Universities, Businesses, Phones, Hotels
 - **Map-driven territory editing** — When a Google Maps API key is set, managers edit a territory by clicking markers on the map (add green, remove blue, reassign grey) with an in-place address search, marker clustering, and an atomic Save that audits each cross-territory reassignment
 - **Attributions** — Assign territories to publishers with start, end, and late dates
+- **Publishing campaigns** — Plan special drives (memorial invitations, convention campaigns) with dates, a territory scope, and configurable start/end behavior for ongoing assignments; while a campaign runs, assignments go into the campaign and a banner announces it. See [Publishing campaigns](territories.md#publishing-campaigns)
 - **Building prospection** — Maintain a database of individual buildings with address, entrance type, and prospection data
 - **Open data sync** — Automatically import building addresses from the French national address database — see [Open Data Sync](../self-hosting/open-data-sync.md)
 - **Maps** — Interactive Google Maps integration for building locations and territory visualization (optional)

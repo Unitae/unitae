@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
+import { AttributionCategory } from '~/features/territories/model/attribution-category'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { parseStatsFilterParams } from './parse-stats-filter-params.server'
 
@@ -9,7 +9,7 @@ describe('parseStatsFilterParams', () => {
     const result = parseStatsFilterParams(params, 2025)
 
     expect(result.territoryKind).toEqual([TerritoryKind.Classical])
-    expect(result.attributionKind).toEqual([TerritoryAttributionKind.Default, TerritoryAttributionKind.Campaign])
+    expect(result.attributionKind).toEqual([AttributionCategory.Default, AttributionCategory.Campaign])
     expect(result.startDate).toEqual(new Date(2025, 8, 1))
     expect(result.endDate).toEqual(new Date(2026, 7, 31))
     expect(result.groupId).toBeUndefined()
@@ -19,7 +19,7 @@ describe('parseStatsFilterParams', () => {
     const params = new URLSearchParams()
     params.append('kind', TerritoryKind.Phone)
     params.append('kind', TerritoryKind.Commerces)
-    params.append('attributionKind', TerritoryAttributionKind.Campaign)
+    params.append('attributionKind', AttributionCategory.Campaign)
     params.set('startDate', '2025-01-01')
     params.set('endDate', '2025-06-30')
     params.set('group', '42')
@@ -27,7 +27,7 @@ describe('parseStatsFilterParams', () => {
     const result = parseStatsFilterParams(params, 2025)
 
     expect(result.territoryKind).toEqual([TerritoryKind.Phone, TerritoryKind.Commerces])
-    expect(result.attributionKind).toEqual([TerritoryAttributionKind.Campaign])
+    expect(result.attributionKind).toEqual([AttributionCategory.Campaign])
     expect(result.startDate).toEqual(new Date(2025, 0, 1))
     expect(result.endDate).toEqual(new Date(2025, 5, 30))
     expect(result.groupId).toBe(42)

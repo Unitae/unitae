@@ -1,10 +1,32 @@
+import { Pause } from 'lucide-react'
 import type { Attribution } from '~/database/generated/client'
+import { RESTING_PERIOD_DAYS } from '~/features/territories/model/resting-periods'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 
-export function TerritoryAvaibilityStatus({ attribution }: { attribution?: Attribution }) {
-  const isAvailable = checkAvailabilityStatus(attribution)
+type AttributionWithCampaignRest = Attribution & { campaign?: { restPeriodDays: number | null } | null }
+
+export function TerritoryAvaibilityStatus({
+  attribution,
+  campaignMode = false,
+}: {
+  attribution?: AttributionWithCampaignRest
+  /** An active campaign is assigning: regular rest windows don't gate campaign work. */
+  campaignMode?: boolean
+}) {
+  // Paused for the campaign: the territory is free to re-assign, but showing
+  // why (its regular attribution is on hold) beats a plain « disponible ».
+  if (attribution?.endDate == null && attribution?.pausedAt != null) {
+    return (
+      <Badge variant="secondary">
+        <Pause />
+        {m.attributions_paused_badge()}
+      </Badge>
+    )
+  }
+
+  const isAvailable = checkAvailabilityStatus(attribution, campaignMode)
 
   if (!isAvailable) {
     return (
@@ -21,16 +43,30 @@ export function TerritoryAvaibilityStatus({ attribution }: { attribution?: Attri
   )
 }
 
-export function checkAvailabilityStatus(attribution?: Attribution) {
+export function checkAvailabilityStatus(attribution?: AttributionWithCampaignRest, campaignMode = false) {
   if (attribution == null) {
     return true
   }
 
   if (attribution.endDate == null) {
-    return false
+    // Open but paused (campaign hold) → free for campaign assignment;
+    // open and actively worked → taken.
+    return attribution.pausedAt != null
   }
 
-  const restDays = attribution.type === TerritoryAttributionKind.Default ? 90 : 15
+  // Campaign work is a different kind of contact: the door-to-door/phone rest
+  // windows don't gate it — « Clôturer » at start frees territories for the
+  // campaign immediately. Only recent campaign work keeps its own rest.
+  if (campaignMode && attribution.campaignId == null) {
+    return true
+  }
+
+  const restDays =
+    attribution.campaignId != null
+      ? (attribution.campaign?.restPeriodDays ?? RESTING_PERIOD_DAYS.campaign)
+      : attribution.type === TerritoryAttributionKind.Default
+        ? RESTING_PERIOD_DAYS.doorsToDoors
+        : RESTING_PERIOD_DAYS.phone
   const restPeriod = restDays * 24 * 3600 * 1000
   const endRestPeriod = new Date()
 

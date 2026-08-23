@@ -265,12 +265,11 @@ function AttributionHistoryCard({
                         {durationDays != null ? m.territories_view_duration_days({ days: String(durationDays) }) : '-'}
                       </TableCell>
                       <TableCell className="text-center max-sm:hidden">
-                        {attribution.type === TerritoryAttributionKind.Default &&
-                          m.territories_view_attribution_type_default()}
-                        {attribution.type === TerritoryAttributionKind.Campaign &&
-                          m.territories_view_attribution_type_campaign()}
-                        {attribution.type === TerritoryAttributionKind.Phone &&
-                          m.territories_view_attribution_type_phones()}
+                        {attribution.campaignId != null
+                          ? m.territories_view_attribution_type_campaign()
+                          : attribution.type === TerritoryAttributionKind.Phone
+                            ? m.territories_view_attribution_type_phones()
+                            : m.territories_view_attribution_type_default()}
                       </TableCell>
                     </TableRow>
                   )

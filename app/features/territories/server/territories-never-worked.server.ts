@@ -1,4 +1,5 @@
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { buildAttributionCategoryWhere } from './attribution-category-where.server'
 import { buildAttributionDateOverlapWhere } from './attribution-date-overlap.server'
 import type { StatsFilterParams } from './stats-filter-params.type'
 
@@ -27,7 +28,7 @@ export async function getTerritoriesNeverWorked(
       ...(params.territoryKind.length > 0 ? { type: { in: params.territoryKind } } : {}),
       attributions: {
         none: {
-          type: { in: params.attributionKind },
+          ...buildAttributionCategoryWhere(params.attributionKind),
           ...buildAttributionDateOverlapWhere(params.startDate, params.endDate),
           ...(params.groupId != null ? { publisher: { publisherGroupId: params.groupId } } : {}),
         },

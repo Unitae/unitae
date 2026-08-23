@@ -25,7 +25,7 @@ The personal list shows all territories currently attributed to the member as a 
 - **Territory number** and **type badge** (color-coded)
 - **Quantity label** — e.g., *42 households*, *12 phones*, *8 businesses*
 - **Status badge** — On time / due soon / overdue
-- **Assignment type indicator** — A pill with an icon appears for *Phones* (phone icon) and *Distribution campaign* (megaphone icon) assignments, so the publisher can tell at a glance how the territory is meant to be worked. *Door to door* — the default — shows no extra indicator. This mirrors the watermark on the printed territory card.
+- **Assignment indicators** — A pill with a phone icon appears for *Phones* assignments, and an assignment that belongs to a campaign shows the **campaign's name** with a megaphone icon (see [Publishing campaigns](#publishing-campaigns)); the two are independent, so a phone assignment inside a campaign shows both. *Door to door* — the default — shows no extra indicator. This mirrors the watermark on the printed territory card.
 - **Due date** — Displayed as relative time
 - **PDF download** — Download the territory card directly from the list
 
@@ -40,7 +40,7 @@ Clicking a territory opens a detail page with two tabs:
   - PDF download button for offline use
 - **Map** — Full-width interactive Google Map with markers for each address (when configured). Shows a consent banner before loading the map. If no API key is set, a message indicates the map is unavailable. Markers use the same blue check pin as the admin views (see [Map markers](#map-markers)).
 
-Assignment info (start date, return date with relative time, status, and the assignment-type pill for *Phones* / *Distribution campaign*) is shown above the tabs.
+Assignment info (start date, return date with relative time, status, the *Phones* method pill and the campaign-name pill when applicable) is shown above the tabs.
 
 Members only ever see territories they currently have an active assignment for.
 
@@ -150,13 +150,113 @@ An **assignment** is when a territory is given to a publisher for a period of ti
 
 ### Assignment types
 
-The *Assignment type* field offers:
+The *Assignment type* field is the **method** of working the territory:
 
 - **Door to door** — Standard territory assignment
 - **Phones** — Phone witnessing assignment
-- **Distribution campaign** — Special campaign assignment (e.g. memorial invitations)
+
+Campaign membership is a separate, orthogonal layer: an assignment belongs to a campaign when it is created while that campaign is active (see [Publishing campaigns](#publishing-campaigns)). A campaign assignment shows the campaign's name with a megaphone icon; since method and campaign are independent, a phone assignment inside a campaign shows both indicators.
 
 The assignment type is surfaced in three places so the publisher always knows how to approach the territory: as a watermark on the printed territory card, as a pill (with a phone or megaphone icon) on the publisher's `/me/territories` list cards, and again on the territory detail page. *Door to door* is the default and shows no extra indicator in any of these places.
+
+## Publishing campaigns
+
+A **campaign** is a special preaching drive run over a defined period — a memorial invitation
+campaign, a convention invitation, a special-edition tract. Campaigns are managed by territory
+managers (*TerritoriesManager*) from the attributions page: the **Campagnes** button next to
+*Attribuer un territoire* opens the campaign list (a table of name, dates, scope, and status —
+*à venir*, *en cours*, or *terminée*). Publishers never configure campaigns; they see the banner
+and work their campaign assignments like any other.
+
+### Planning a campaign
+
+A campaign has a name, optional notes, a **start and end date** (both inclusive — the end date is
+the campaign's last day; the form shows the resulting length), an optional **post-campaign rest
+period**, and an optional **scope**.
+
+The scope is picked in a two-panel transfer list (*Disponibles | Sélectionnés*) with search and
+bulk add/remove — click a territory to move it across. **No territory selected means the whole
+territory of the local congregation.** The scope can be edited while the campaign runs: territories
+added to an active campaign's scope go through the start behavior at that moment, removed ones go
+through the end behavior.
+
+Two option groups, presented as choice cards with their consequences spelled out, define how the
+campaign interacts with ongoing regular assignments. A live summary (*Aperçu du déroulement*)
+restates the chosen behavior before saving.
+
+**At start** (« Attributions régulières en cours ») — applies to open regular assignments in scope:
+
+- **Suspendre** (default) — they are paused: the publisher keeps the territory, its due date is
+  frozen, and the territory becomes assignable within the campaign. An optional toggle
+  (*Réattribuer automatiquement*) immediately re-assigns each paused publisher's territory to the
+  same publisher as a campaign assignment.
+- **Clôturer** — they are returned immediately; the territories become assignable within the
+  campaign, and after the campaign the rotation starts from scratch.
+- **Laisser hors campagne** — publishers keep working them, and those territories are **not**
+  re-assignable during the campaign.
+
+**At end** (« À la fin ») —
+
+- **Clôturer automatiquement les attributions de campagne** (default on) — still-open campaign
+  assignments are returned when the campaign ends.
+- For the assignments the campaign paused (shown only with *Suspendre*): **Reprendre** (default —
+  each publisher gets their territory back, with the due date pushed back by the time spent
+  paused), **Laisser suspendues** (to be released manually), or **Clôturer**.
+
+Once a campaign has started, its start date and start options are frozen (the transition already
+ran); the end date, end options, rest period, name, notes, and scope remain editable.
+
+### Campaign mode
+
+While a campaign is active, **campaign mode** is on for the whole territories module:
+
+- **No regular assignment can be created anywhere**, even outside the scope (the scope only limits
+  the automatic start/end transitions). The assignment flow steers into the campaign instead: the
+  availability picker and the new-assignment form show a campaign notice, the method choice is
+  replaced by the campaign badge, and new assignments belong to the campaign.
+- **A territory being actively worked stays out of the campaign**: any open, unpaused assignment
+  blocks campaign assignment. Paused and returned assignments free the territory — so *Suspendre*
+  and *Clôturer* free their territories, while *Laisser hors campagne* keeps them occupied.
+- **Regular rest windows don't gate campaign work**: a territory resting from door-to-door or phone
+  work is assignable in the campaign. Only territories recently worked *in a campaign* keep resting
+  (see below). Paused territories show an *En pause* badge in the picker so the manager sees why the
+  ground is available.
+- A **banner** on the territories pages and on *Mes territoires* announces the campaign — amber
+  with the date range (and a management link) for managers, a shorter encouraging version for
+  publishers, and a blue *à venir* variant for a scheduled campaign (or *démarre aujourd'hui* when
+  its start day has arrived). The banner is dismissible per campaign for the current session and
+  never shows on the campaign-management pages themselves.
+
+Campaign assignments are **due when the campaign closes** (with auto-close on) or follow the
+regular method duration (with it off) — there is no separate campaign duration to configure. A
+campaign assignment shows the **campaign's name** with a megaphone icon; method and campaign are
+independent, so a phone assignment inside a campaign shows both indicators.
+
+### Lifecycle
+
+Campaigns are date-driven: a daily job activates campaigns whose start day has arrived and ends
+campaigns whose last day has passed, applying the configured behaviors. Saving a campaign whose
+start date has already arrived activates it immediately, and the campaign page offers a manual
+**Terminer la campagne** action that runs the same end behavior on the spot. At most **one campaign
+is active at a time** — campaigns with overlapping date windows are rejected — while non-overlapping
+future campaigns can be scheduled freely.
+
+**Paused assignments** are still held by their publisher but leave the working lists (with an
+opt-in *Afficher les territoires suspendus* toggle on *Mes territoires*), stop accruing lateness,
+and show a grey *En pause* badge in the attribution list. A manager can release one early with the
+row's **Reprendre** action — the due date is pushed back by the time spent paused. Each campaign
+only ever resumes the assignments *it* paused: leftovers kept paused by an earlier campaign are
+never touched by a later one.
+
+The campaign page shows the campaign's status, its configured behavior in prose, its scope, and the
+**territories worked** during the campaign — who holds each one, checkout and return dates, and the
+**percentage of the scope covered** — with an *Attribuer un territoire* shortcut while the campaign
+is active. Rows link to the assignment; territory numbers link to the territory.
+
+After the campaign, its territories rest for the campaign's **rest period** (15 days when unset)
+from their return date before appearing as available again. The attribution list can filter by
+campaign (any, or a specific one) and by paused state. A campaign can be deleted only once it is no
+longer active and no assignment history references it; an active campaign must be ended first.
 
 ### Overdue tracking
 

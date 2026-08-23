@@ -1,12 +1,14 @@
-import { ChevronRight, Download, MapPin } from 'lucide-react'
+import { ChevronRight, Download, MapPin, Pause } from 'lucide-react'
 import { Link } from 'react-router'
 
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { getActiveCampaign } from '~/features/territories/server/campaign.queries'
 import {
   getUserTerritoriesWithDetails,
   type TerritoryStatus,
 } from '~/features/territories/server/my-territories.server'
 import { AttributionKindBadge } from '~/features/territories/ui/AttributionKindBadge'
+import { CampaignModeBanner } from '~/features/territories/ui/CampaignModeBanner'
 
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -23,16 +25,30 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.my_territories_meta_title() }]
 }
 
-export function loader({ context }: Route.LoaderArgs) {
+export function loader({ request, context }: Route.LoaderArgs) {
   const currentUser = context.get(currentAccountContext)
   // Attributions are held by the Member, not the login account; accounts
   // without a linked member (e.g. platform admins) legitimately have none.
   const memberId = currentUser.member?.id ?? null
+  const showPaused = new URL(request.url).searchParams.get('paused') === '1'
 
-  return withScopeFromContext(context, async db => {
-    const territories = memberId == null ? [] : await getUserTerritoriesWithDetails(db, memberId)
+  return withScopeFromContext(context, async (db, congregationId) => {
+    const territories =
+      memberId == null ? [] : await getUserTerritoriesWithDetails(db, memberId, { includePaused: showPaused })
 
-    return { territories }
+    const activeCampaign = await getActiveCampaign(db, congregationId)
+    const bannerCampaign =
+      activeCampaign == null
+        ? null
+        : {
+            id: activeCampaign.id,
+            name: activeCampaign.name,
+            startDate: activeCampaign.startDate,
+            endDate: activeCampaign.endDate,
+            status: 'active' as const,
+          }
+
+    return { territories, showPaused, bannerCampaign }
   })
 }
 
@@ -72,7 +88,7 @@ function quantityLabel(type: string, entrances: { homes: number | null; phones: 
 }
 
 export default function MyTerritoriesList({ loaderData }: Route.ComponentProps) {
-  const { territories } = loaderData
+  const { territories, showPaused, bannerCampaign } = loaderData
 
   return (
     <div className="flex flex-col gap-6">
@@ -81,6 +97,17 @@ export default function MyTerritoriesList({ loaderData }: Route.ComponentProps) 
         subtitle={m.my_territories_subtitle()}
         breadcrumbs={[{ label: m.sidebar_my_territories() }]}
       />
+
+      <CampaignModeBanner campaign={bannerCampaign} variant="publisher" />
+
+      <div className="flex justify-end">
+        <Link
+          to={showPaused ? '/me/territories' : '/me/territories?paused=1'}
+          className="text-muted-foreground text-xs underline-offset-4 hover:underline"
+        >
+          {showPaused ? m.my_territories_hide_paused() : m.my_territories_show_paused()}
+        </Link>
+      </div>
 
       {territories.length === 0 ? (
         <EmptyState icon={MapPin} title={m.my_territories_empty()} description={m.my_territories_empty_description()} />
@@ -98,10 +125,17 @@ export default function MyTerritoriesList({ loaderData }: Route.ComponentProps) 
                       <span className="font-display font-semibold text-lg">
                         {m.territory_doc_title({ name: t.territory.number })}
                       </span>
-                      <Badge variant={statusVariant[t.status]} className="text-[10px]">
-                        {statusLabel(t.status)}
-                      </Badge>
-                      <AttributionKindBadge type={t.type} className="text-[10px]" />
+                      {t.pausedAt != null ? (
+                        <Badge variant="secondary" className="text-[10px]">
+                          <Pause />
+                          {m.attributions_paused_badge()}
+                        </Badge>
+                      ) : (
+                        <Badge variant={statusVariant[t.status]} className="text-[10px]">
+                          {statusLabel(t.status)}
+                        </Badge>
+                      )}
+                      <AttributionKindBadge type={t.type} campaignName={t.campaign?.name} className="text-[10px]" />
                     </div>
                     <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-muted-foreground text-xs">
                       <span>{territoryTypeLabel(t.territory.type)}</span>

@@ -26,7 +26,8 @@ export async function getManagementMetrics(
       ? Promise.all([
           db.territory.count(),
           db.attribution.count({ where: { endDate: null } }),
-          db.attribution.count({ where: { endDate: null, lateDate: { lt: now } } }),
+          // Paused attributions have a frozen clock — they are never late.
+          db.attribution.count({ where: { endDate: null, pausedAt: null, lateDate: { lt: now } } }),
         ])
       : Promise.resolve(null),
     options.includePublishers ? db.member.count({ where: { isPublisher: true, leftAt: null } }) : Promise.resolve(null),

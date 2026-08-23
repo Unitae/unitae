@@ -115,7 +115,6 @@ export function loader({ context }: Route.LoaderArgs) {
       phoneTypeActivated: settings[TerritorySettingKey.TerritoryTypePhoneActive] === 'true',
       mapTabActivated: settings[TerritorySettingKey.MapTabActive] === 'true',
       attributionDefaultDuration,
-      attributionCampaignDuration: Number(settings[TerritorySettingKey.AttributionCampaignDurationDays] ?? '60'),
       attributionPhoneDuration: Number(settings[TerritorySettingKey.AttributionPhoneDurationDays] ?? '14'),
       attributionCommerceDuration: Number(settings[TerritorySettingKey.AttributionCommerceDurationDays] ?? '120'),
     }
@@ -130,7 +129,6 @@ export default function TerritorySettingsPage({ loaderData, actionData }: Route.
     phoneTypeActivated,
     mapTabActivated,
     attributionDefaultDuration,
-    attributionCampaignDuration,
     attributionPhoneDuration,
     attributionCommerceDuration,
   } = loaderData
@@ -235,13 +233,6 @@ export default function TerritorySettingsPage({ loaderData, actionData }: Route.
               onChange={markDirty}
             />
             <DurationInput
-              field={fields['attribution-campaign-duration']}
-              label={m.settings_territories_attribution_campaign_duration_label()}
-              hint={m.settings_territories_attribution_campaign_duration_hint()}
-              defaultValue={attributionCampaignDuration}
-              onChange={markDirty}
-            />
-            <DurationInput
               field={fields['attribution-phone-duration']}
               label={m.settings_territories_attribution_phone_duration_label()}
               hint={m.settings_territories_attribution_phone_duration_hint()}
@@ -322,7 +313,6 @@ export async function action({ request, context }: Route.ActionArgs) {
   const phoneTypeActivated = String(submission.value['phone-territory-active'])
   const mapTabActivated = String(submission.value['map-tab-active'])
   const attributionDefaultDuration = submission.value['attribution-default-duration']
-  const attributionCampaignDuration = submission.value['attribution-campaign-duration']
   const attributionPhoneDuration = submission.value['attribution-phone-duration']
   const attributionCommerceDuration = submission.value['attribution-commerce-duration']
 
@@ -336,12 +326,6 @@ export async function action({ request, context }: Route.ActionArgs) {
       db,
       TerritorySettingKey.AttributionDefaultDurationDays,
       attributionDefaultDuration,
-      currentUser.congregationId,
-    )
-    await setSetting(
-      db,
-      TerritorySettingKey.AttributionCampaignDurationDays,
-      attributionCampaignDuration,
       currentUser.congregationId,
     )
     await setSetting(

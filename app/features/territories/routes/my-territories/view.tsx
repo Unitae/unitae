@@ -58,6 +58,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
         startDate: attribution.startDate,
         lateDate: attribution.lateDate,
         type: attribution.type,
+        campaignName: attribution.campaign?.name ?? null,
+        pausedAt: attribution.pausedAt,
         status: computeStatus(attribution.lateDate),
       },
       phoneTypeActive,
@@ -100,7 +102,7 @@ export default function MyTerritoryView({ loaderData }: Route.ComponentProps) {
 
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <Badge variant={statusVariant[attribution.status]}>{statusLabel(attribution.status)}</Badge>
-        <AttributionKindBadge type={attribution.type} />
+        <AttributionKindBadge type={attribution.type} campaignName={attribution.campaignName} />
         <span className="text-muted-foreground">
           {m.my_territories_attributed_on({ date: formatAbsoluteDate(attribution.startDate) })}
         </span>

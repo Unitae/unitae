@@ -2,6 +2,7 @@ import type { Prisma } from '~/database/generated/client'
 import { MS_PER_DAY } from '~/shared/constants/limits'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { startOfNextDay } from '~/shared/utils/date.server'
+import { buildAttributionCategoryWhere } from './attribution-category-where.server'
 import { buildAttributionDateOverlapWhere } from './attribution-date-overlap.server'
 import type { StatsFilterParams } from './stats-filter-params.type'
 
@@ -16,7 +17,7 @@ function buildBaseWhere(params: StatsFilterParams, congregationId: number): Pris
   return {
     congregationId,
     ...(params.territoryKind.length > 0 ? { territory: { type: { in: params.territoryKind } } } : {}),
-    type: { in: params.attributionKind },
+    ...buildAttributionCategoryWhere(params.attributionKind),
     ...buildAttributionDateOverlapWhere(params.startDate, params.endDate),
     ...(params.groupId != null ? { publisher: { publisherGroupId: params.groupId } } : {}),
   }
