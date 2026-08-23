@@ -2835,7 +2835,7 @@
     "campaigns_scope_add_all": "Add all ({count})",
     "campaigns_scope_remove_all": "Remove all ({count})",
     "campaign_banner_starting": "Campaign “{name}” starts today. It will suspend regular attributions.",
-    "campaigns_view_attributions_title": "Territories worked ({done}/{total} returned)",
+    "campaigns_view_attributions_title": "Territories worked — {percent}% of the scope covered",
     "campaigns_view_attributions_empty": "No territory assigned in this campaign yet.",
     "campaigns_view_attributions_return": "Returned",
     "campaigns_view_attributions_open": "in progress"

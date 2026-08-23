@@ -59,13 +59,21 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
     const attributions = await listCampaignAttributions(db, campaign.id, congregationId)
 
-    return { campaign, scopeTerritories, attributions }
+    // Coverage: distinct in-scope territories the campaign has touched, over
+    // the scope size (empty scope = every territory of the congregation).
+    const scopeIds = new Set(campaign.scope.map(scopeRow => scopeRow.territoryId))
+    const scopeSize = scopeIds.size > 0 ? scopeIds.size : await db.territory.count({ where: { congregationId } })
+    const workedTerritoryIds = new Set(
+      attributions.map(a => a.territory.id).filter(id => scopeIds.size === 0 || scopeIds.has(id)),
+    )
+    const coveragePercent = scopeSize === 0 ? 0 : Math.round((workedTerritoryIds.size / scopeSize) * 100)
+
+    return { campaign, scopeTerritories, attributions, coveragePercent }
   })
 }
 
 export default function CampaignView({ loaderData }: Route.ComponentProps) {
-  const { campaign, scopeTerritories, attributions } = loaderData
-  const returnedCount = attributions.filter(a => a.endDate != null).length
+  const { campaign, scopeTerritories, attributions, coveragePercent } = loaderData
   const status = getCampaignStatus({
     activatedAt: campaign.activatedAt ? new Date(campaign.activatedAt) : null,
     endedAt: campaign.endedAt ? new Date(campaign.endedAt) : null,
@@ -136,9 +144,7 @@ export default function CampaignView({ loaderData }: Route.ComponentProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>
-            {m.campaigns_view_attributions_title({ done: returnedCount, total: attributions.length })}
-          </CardTitle>
+          <CardTitle>{m.campaigns_view_attributions_title({ percent: coveragePercent })}</CardTitle>
           {status === 'active' && (
             <CardAction>
               <Button asChild size="sm" variant="outline">
