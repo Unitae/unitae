@@ -1,5 +1,5 @@
 import {
-  RESTING_PERIOD_FOR_CAMPAIGN,
+  getCampaignRestCutoff,
   RESTING_PERIOD_FOR_DOORS_TO_DOORS,
   RESTING_PERIOD_FOR_PHONE,
 } from '~/features/territories/model/resting-periods'
@@ -7,9 +7,16 @@ import { TerritoryAttributionKind } from '~/features/territories/model/territory
 import { MS_PER_DAY } from '~/shared/constants/limits'
 import type { StatsAttribution } from './stats-attribution.type'
 
-function getRestingPeriodMs(attribution: { type: string; campaignId: number | null }): number {
-  // Campaign work rests on the campaign schedule regardless of method.
-  if (attribution.campaignId != null) return RESTING_PERIOD_FOR_CAMPAIGN
+function getRestingPeriodMs(attribution: {
+  type: string
+  campaignId: number | null
+  campaignRestPeriodDays: number | null
+}): number {
+  // Campaign work rests on the campaign's own window regardless of method.
+  if (attribution.campaignId != null) {
+    const reference = new Date(0)
+    return reference.getTime() - getCampaignRestCutoff(attribution.campaignRestPeriodDays, reference).getTime()
+  }
   return attribution.type === TerritoryAttributionKind.Phone
     ? RESTING_PERIOD_FOR_PHONE
     : RESTING_PERIOD_FOR_DOORS_TO_DOORS

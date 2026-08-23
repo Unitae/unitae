@@ -20,7 +20,7 @@ CREATE TABLE "Campaign" (
     "notes" TEXT NOT NULL DEFAULT '',
     "startDate" TIMESTAMP(3) NOT NULL,
     "endDate" TIMESTAMP(3) NOT NULL,
-    "durationDays" INTEGER,
+    "restPeriodDays" INTEGER,
     "startRegularAction" "CampaignRegularStartAction" NOT NULL DEFAULT 'pause',
     "startAutoReassign" BOOLEAN NOT NULL DEFAULT false,
     "endCloseCampaign" BOOLEAN NOT NULL DEFAULT true,
@@ -133,8 +133,7 @@ CREATE POLICY tenant_isolation ON "CampaignTerritory" FOR ALL
     END
   );
 
--- Rename the campaign duration setting: campaign is no longer an attribution *type*, the
--- value becomes the per-congregation fallback for Campaign.durationDays.
-UPDATE "Setting"
-SET "key" = 'campaign-default-duration-days'
+-- Campaign attributions are due when the campaign closes (or use the regular method
+-- duration when endCloseCampaign is off) — the per-type campaign duration setting is gone.
+DELETE FROM "Setting"
 WHERE "key" = 'attribution-campaign-duration-days';

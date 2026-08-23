@@ -1,9 +1,15 @@
-import { getRestPeriodCutoffs } from '~/features/territories/model/resting-periods'
+import { getCampaignRestCutoff, getRestPeriodCutoffs } from '~/features/territories/model/resting-periods'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export async function countRestingTerritories(db: TransactionClient, congregationId: number) {
   const cutoffs = getRestPeriodCutoffs()
+
+  // Per-campaign rest windows — see countAvailableTerritories.
+  const campaigns = await db.campaign.findMany({
+    where: { congregationId },
+    select: { id: true, restPeriodDays: true },
+  })
 
   return await db.territory.count({
     where: {
@@ -16,7 +22,10 @@ export async function countRestingTerritories(db: TransactionClient, congregatio
         none: { endDate: null },
         some: {
           OR: [
-            { campaignId: { not: null }, endDate: { gt: cutoffs.campaign } },
+            ...campaigns.map(campaign => ({
+              campaignId: campaign.id,
+              endDate: { gt: getCampaignRestCutoff(campaign.restPeriodDays) },
+            })),
             { campaignId: null, type: TerritoryAttributionKind.Default, endDate: { gt: cutoffs.doorsToDoors } },
             { campaignId: null, type: TerritoryAttributionKind.Phone, endDate: { gt: cutoffs.phone } },
           ],

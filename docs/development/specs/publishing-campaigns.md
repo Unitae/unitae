@@ -27,6 +27,15 @@
 > `KeepPaused` to be usable at all), and **day-granular end semantics** (`endDate` is inclusive).
 > §12.5 (manual vs. auto end) and the §5.3 module-wide block are now **resolved by the author**.
 
+> **Rework (author, 2026-08-23).** `Campaign.durationDays` and the `CampaignDefaultDurationDays`
+> setting were dropped as redundant: with `endCloseCampaign` on, the campaign window already bounds
+> the work, so a campaign attribution is simply **due when the campaign closes** (`lateDate` = the day
+> after the inclusive `endDate`); with it off, the regular method/territory duration applies. What a
+> campaign *does* configure is **`restPeriodDays`** — how long its territories stay unavailable after
+> being returned (null = the standard 15-day campaign rest). The availability/resting queries build one
+> rest branch per campaign, and the legacy `attribution-campaign-duration-days` setting is deleted by
+> the migration.
+
 ## 1. Problem
 
 Today a "campaign" is a single hardcoded value of an enum on the attribution:
@@ -133,7 +142,7 @@ Attribution.campaignId = layer            → null = regular | set = campaign   
 Attribution.pausedAt   = pause state      → null = active | set = suspended
 
 Campaign (scheduled, one active at a time, optional scope)
-  ├─ config: startRegularAction, startAutoReassign, endCloseCampaign, endRegularAction, durationDays?
+  ├─ config: startRegularAction, startAutoReassign, endCloseCampaign, endRegularAction, restPeriodDays?
   ├─ scope:  CampaignTerritory[]  (empty = all territories)
   └─ lifecycle job (date-driven): activate at startDate, end at endDate
 ```
@@ -153,7 +162,7 @@ model Campaign {
   startDate DateTime                          // schedule; drives activation (local date, see §7)
   endDate   DateTime
 
-  durationDays Int?                           // campaign-attribution duration override; null → setting/default
+  restPeriodDays Int?                         // post-campaign territory rest, in days; null → 15-day default
 
   // lifecycle options — orthogonal, set before start
   startRegularAction  CampaignRegularStartAction @default(Pause)   // Pause | Close | Leave
@@ -217,9 +226,12 @@ used elsewhere in the schema — `Campaign` and `Territory` both carry `@@unique
 an attribution or scope row can never point at another congregation's campaign or territory, even below
 RLS. A nullable `campaignId`/`pausedByCampaignId` simply skips the check (`MATCH SIMPLE`).
 
-**`TerritoryAttributionKind`** loses `Campaign` → `{ Default, Phone }`. New `TerritorySettingKey`:
-`CampaignDefaultDurationDays` (fallback when `Campaign.durationDays` is null; keeps the legacy
-`AttributionCampaignDurationDays` default of 60 as the seed value).
+**`TerritoryAttributionKind`** loses `Campaign` → `{ Default, Phone }`. The legacy
+`AttributionCampaignDurationDays` setting is **deleted** (no replacement): a campaign attribution's
+`lateDate` is the day after the campaign's inclusive `endDate` when `endCloseCampaign` is on, and the
+regular method/territory duration otherwise. Post-campaign availability is governed per campaign by
+`restPeriodDays` (null → the standard 15-day campaign rest), applied as one query branch per campaign
+in the availability/resting counts.
 
 RLS policies: add `Campaign` and `CampaignTerritory` to the RLS migration using the mandatory
 `CASE WHEN NULLIF(current_setting(...), '') IS NULL THEN true ELSE ... END` form (never `OR`).
@@ -273,7 +285,7 @@ Applied to **scoped territories** (or all, if scope empty). Each action is indiv
   - `Close` → set `endDate` (return them) before the campaign begins.
   - `Leave` → leave them open and active (they coexist — scenario 1, "regular work also counts").
 - `startAutoReassign` (only meaningful with `Pause`): additionally create a **campaign attribution** for
-  the *same publisher* on the *same territory* (duration from `durationDays ?? CampaignDefaultDurationDays`).
+  the *same publisher* on the *same territory* (due, like any campaign attribution, when the campaign closes).
 
 **At `endDate`** (campaign ends; stamp `endedAt`):
 
@@ -403,7 +415,7 @@ banner) so it shows across every territories page.
   **scheduled** = `Badge variant="info"` + `Calendar`; **active** = `variant="warning"` + `Megaphone`
   (same amber as the banner); **ended** = `variant="secondary"` + `CheckCircle2`.
 - **Create/edit form** — a `Card` split into `<fieldset>`/`<legend>` sections so the options don't read as
-  a wall of controls: **Infos** (name, notes) · **Dates** (start/end + optional `durationDays`) · **Au
+  a wall of controls: **Infos** (name, notes) · **Dates** (start/end + optional `restPeriodDays`) · **Au
   démarrage** (`startRegularAction` select with inline help; `startAutoReassign` checkbox, **disabled unless
   `startRegularAction = Pause`**) · **À la fin** (`endCloseCampaign` checkbox default on; `endRegularAction`
   select) · **Portée**. Each option carries `text-muted-foreground text-xs` help; the `Leave` option shows a

@@ -856,8 +856,6 @@
     "settings_territories_attribution_durations_section": "Default attribution durations",
     "settings_territories_attribution_default_duration_label": "Default (classical, campus, hotel)",
     "settings_territories_attribution_default_duration_hint": "Duration in days before a standard attribution is considered late. Default: 120 days.",
-    "settings_territories_attribution_campaign_duration_label": "Campaign",
-    "settings_territories_attribution_campaign_duration_hint": "Campaign-type attribution. Default: 60 days.",
     "settings_territories_attribution_phone_duration_label": "Phone",
     "settings_territories_attribution_phone_duration_hint": "Phone-type attribution. Default: 14 days.",
     "settings_territories_attribution_commerce_duration_label": "Commerce",
@@ -2771,8 +2769,6 @@
     "campaigns_form_dates_legend": "Dates",
     "campaigns_form_start_date_label": "Start",
     "campaigns_form_end_date_label": "End (inclusive)",
-    "campaigns_form_duration_label": "Campaign attribution duration (days)",
-    "campaigns_form_duration_help": "Empty = congregation setting (60 days by default).",
     "campaigns_form_start_legend": "At start",
     "campaigns_form_start_action_label": "Ongoing regular attributions",
     "campaigns_form_start_action_pause": "Pause",
@@ -2832,5 +2828,7 @@
     "attributions_resume_button": "Resume",
     "attributions_resume_flash_success": "The attribution has been resumed; its due date was shifted.",
     "campaigns_form_submit": "Save",
-    "campaigns_delete_has_attributions_error": "This campaign has attributions in the history — it cannot be deleted."
+    "campaigns_delete_has_attributions_error": "This campaign has attributions in the history — it cannot be deleted.",
+    "campaigns_form_rest_label": "Territory rest after the campaign (days)",
+    "campaigns_form_rest_help": "How long territories worked during the campaign stay unavailable after being returned. Empty = 15 days."
 }

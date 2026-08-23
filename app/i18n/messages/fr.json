@@ -858,8 +858,6 @@
     "settings_territories_attribution_durations_section": "Durée par défaut des attributions",
     "settings_territories_attribution_default_duration_label": "Défaut (classique, campus, hôtel)",
     "settings_territories_attribution_default_duration_hint": "Durée en jours avant qu'une attribution classique soit considérée en retard. Par défaut : 120 jours.",
-    "settings_territories_attribution_campaign_duration_label": "Campagne",
-    "settings_territories_attribution_campaign_duration_hint": "Attribution de type campagne. Par défaut : 60 jours.",
     "settings_territories_attribution_phone_duration_label": "Téléphone",
     "settings_territories_attribution_phone_duration_hint": "Attribution de type téléphone. Par défaut : 14 jours.",
     "settings_territories_attribution_commerce_duration_label": "Commerces",
@@ -2771,8 +2769,6 @@
     "campaigns_form_dates_legend": "Dates",
     "campaigns_form_start_date_label": "Début",
     "campaigns_form_end_date_label": "Fin (jour inclus)",
-    "campaigns_form_duration_label": "Durée des attributions de campagne (jours)",
-    "campaigns_form_duration_help": "Vide = réglage de la congrégation (60 jours par défaut).",
     "campaigns_form_start_legend": "Au démarrage",
     "campaigns_form_start_action_label": "Attributions régulières en cours",
     "campaigns_form_start_action_pause": "Suspendre",
@@ -2832,5 +2828,7 @@
     "attributions_resume_button": "Reprendre",
     "attributions_resume_flash_success": "L’attribution a été reprise ; son échéance a été décalée.",
     "campaigns_form_submit": "Enregistrer",
-    "campaigns_delete_has_attributions_error": "Cette campagne a des attributions dans l’historique — elle ne peut pas être supprimée."
+    "campaigns_delete_has_attributions_error": "Cette campagne a des attributions dans l’historique — elle ne peut pas être supprimée.",
+    "campaigns_form_rest_label": "Repos des territoires après la campagne (jours)",
+    "campaigns_form_rest_help": "Temps pendant lequel les territoires travaillés en campagne restent indisponibles après leur retour. Vide = 15 jours."
 }

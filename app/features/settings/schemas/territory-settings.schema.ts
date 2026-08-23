@@ -22,7 +22,6 @@ export const territorySettingsSchema = z.object({
     .optional()
     .transform(v => v === 'on' || v === 'true'),
   'attribution-default-duration': z.string().default('120'),
-  'attribution-campaign-duration': z.string().default('60'),
   'attribution-phone-duration': z.string().default('14'),
   'attribution-commerce-duration': z.string().default('120'),
 })

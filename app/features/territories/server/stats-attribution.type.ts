@@ -8,6 +8,7 @@ export interface StatsAttribution {
   territoryType: TerritoryKind
   type: TerritoryAttributionKind
   campaignId: number | null
+  campaignRestPeriodDays: number | null
   startDate: Date
   endDate: Date | null
   lateDate: Date

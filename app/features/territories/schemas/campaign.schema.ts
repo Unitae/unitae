@@ -11,7 +11,7 @@ export const campaignSchema = z
     notes: z.string().optional().default(''),
     'start-date': z.string().min(1),
     'end-date': z.string().min(1),
-    'duration-days': z.coerce.number().int().positive().optional(),
+    'rest-period-days': z.coerce.number().int().positive().optional(),
     'start-regular-action': z.nativeEnum(CampaignRegularStartAction),
     'start-auto-reassign': z.boolean().optional().default(false),
     'end-close-campaign': z.boolean().optional().default(false),

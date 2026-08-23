@@ -76,13 +76,17 @@ describe('createAttribution', () => {
     expect(call.data.lateDate).toEqual(buildExpectedLateDate(14))
   })
 
-  it('uses campaign duration (60 days) for an attribution in the active campaign', async () => {
-    vi.mocked(getActiveCampaign).mockResolvedValue({ id: 5, durationDays: null } as never)
+  it('makes a campaign attribution due when the campaign closes', async () => {
+    vi.mocked(getActiveCampaign).mockResolvedValue({
+      id: 5,
+      endDate: new Date(2025, 4, 20),
+      endCloseCampaign: true,
+    } as never)
 
     await createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Default, campaignId: 5 })
 
     const call = mockDb.attribution.create.mock.calls[0][0]
-    expect(call.data.lateDate).toEqual(buildExpectedLateDate(60))
+    expect(call.data.lateDate).toEqual(new Date(2025, 4, 21))
   })
 
   it('uses commerce duration (120 days) for commerce territory type', async () => {

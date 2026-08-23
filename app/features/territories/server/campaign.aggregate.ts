@@ -50,7 +50,7 @@ export interface CampaignParams {
   notes: string
   startDate: string
   endDate: string
-  durationDays: number | null
+  restPeriodDays: number | null
   startRegularAction: CampaignRegularStartAction
   startAutoReassign: boolean
   endCloseCampaign: boolean
@@ -75,7 +75,7 @@ export async function createCampaign(db: TransactionClient, params: CreateCampai
       notes: params.notes,
       startDate,
       endDate,
-      durationDays: params.durationDays,
+      restPeriodDays: params.restPeriodDays,
       startRegularAction: params.startRegularAction,
       startAutoReassign: params.startAutoReassign,
       endCloseCampaign: params.endCloseCampaign,
@@ -135,7 +135,7 @@ export async function updateCampaign(
       notes: params.notes,
       startDate,
       endDate,
-      durationDays: params.durationDays,
+      restPeriodDays: params.restPeriodDays,
       startRegularAction: params.startRegularAction,
       startAutoReassign: params.startAutoReassign,
       endCloseCampaign: params.endCloseCampaign,

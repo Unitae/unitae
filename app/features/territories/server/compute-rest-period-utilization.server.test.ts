@@ -11,6 +11,7 @@ function makeAttribution(
   endDate: Date | null,
   id = 1,
   campaignId: number | null = null,
+  campaignRestPeriodDays: number | null = null,
 ): StatsAttribution {
   return {
     id,
@@ -19,6 +20,7 @@ function makeAttribution(
     territoryType: TerritoryKind.Classical,
     type,
     campaignId,
+    campaignRestPeriodDays,
     startDate,
     endDate,
     lateDate: new Date(2026, 0, 1),
@@ -77,5 +79,17 @@ describe('computeRestPeriodUtilization', () => {
     ]
     // Première attribution sans endDate → impossible de calculer la fin de repos
     expect(computeRestPeriodUtilization(attributions)).toBe(0)
+  })
+})
+
+describe('computeRestPeriodUtilization — campaign rest override', () => {
+  it('honore le repos configuré sur la campagne', () => {
+    // Repos campagne 30 jours : fin le 1er jan, repos jusqu'au 31 jan,
+    // reprise le 10 fév = 10 jours d'inactivité post-repos
+    const attributions = [
+      makeAttribution(1, TerritoryAttributionKind.Default, new Date(2024, 11, 1), new Date(2025, 0, 1), 1, 7, 30),
+      makeAttribution(1, TerritoryAttributionKind.Default, new Date(2025, 1, 10), new Date(2025, 2, 10), 2, 7, 30),
+    ]
+    expect(computeRestPeriodUtilization(attributions)).toBe(10)
   })
 })

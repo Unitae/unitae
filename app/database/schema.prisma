@@ -593,7 +593,7 @@ model Campaign {
   startDate DateTime // day-granular schedule; drives activation (congregation-local dates)
   endDate   DateTime // inclusive — the last day the campaign runs
 
-  durationDays Int? // campaign-attribution duration override; null -> setting/default
+  restPeriodDays Int? // post-campaign rest for its territories, in days; null -> 15-day default
 
   // lifecycle options — orthogonal, set before start
   startRegularAction CampaignRegularStartAction @default(Pause)

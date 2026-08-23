@@ -15,7 +15,7 @@ export interface CampaignFormDefaults {
   notes: string
   startDate: string
   endDate: string
-  durationDays: number | null
+  restPeriodDays: number | null
   startRegularAction: CampaignRegularStartAction
   startAutoReassign: boolean
   endCloseCampaign: boolean
@@ -127,15 +127,15 @@ export function CampaignForm({
           </div>
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="campaign-duration">{m.campaigns_form_duration_label()}</Label>
+          <Label htmlFor="campaign-rest-period">{m.campaigns_form_rest_label()}</Label>
           <Input
-            id="campaign-duration"
-            name="duration-days"
+            id="campaign-rest-period"
+            name="rest-period-days"
             type="number"
             min={1}
-            defaultValue={defaults.durationDays ?? ''}
+            defaultValue={defaults.restPeriodDays ?? ''}
           />
-          <p className="text-muted-foreground text-xs">{m.campaigns_form_duration_help()}</p>
+          <p className="text-muted-foreground text-xs">{m.campaigns_form_rest_help()}</p>
         </div>
       </Fieldset>
 

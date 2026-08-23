@@ -72,7 +72,7 @@ const baseParams = {
   notes: '',
   startDate: '2026-01-15',
   endDate: '2026-03-01',
-  durationDays: null,
+  restPeriodDays: null,
   startRegularAction: 'Pause' as const,
   startAutoReassign: false,
   endCloseCampaign: true,

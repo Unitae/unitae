@@ -16,6 +16,7 @@ function makeAttribution(
     territoryType: TerritoryKind.Classical,
     type: TerritoryAttributionKind.Default,
     campaignId: null,
+    campaignRestPeriodDays: null,
     startDate,
     endDate,
     lateDate: new Date(2026, 0, 1),

@@ -11,6 +11,13 @@ export const RESTING_PERIOD_FOR_DOORS_TO_DOORS = RESTING_PERIOD_DAYS.doorsToDoor
 export const RESTING_PERIOD_FOR_CAMPAIGN = RESTING_PERIOD_DAYS.campaign * MS_PER_DAY
 export const RESTING_PERIOD_FOR_PHONE = RESTING_PERIOD_DAYS.phone * MS_PER_DAY
 
+// Per-campaign rest: a campaign can override how long its territories stay
+// unavailable after it ends; null falls back to the standard campaign rest.
+export function getCampaignRestCutoff(restPeriodDays: number | null, reference: Date = new Date()): Date {
+  const days = restPeriodDays ?? RESTING_PERIOD_DAYS.campaign
+  return new Date(reference.getTime() - days * MS_PER_DAY)
+}
+
 export interface RestPeriodCutoffs {
   doorsToDoors: Date
   campaign: Date

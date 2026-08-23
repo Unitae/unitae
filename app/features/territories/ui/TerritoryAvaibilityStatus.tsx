@@ -1,9 +1,12 @@
 import type { Attribution } from '~/database/generated/client'
+import { RESTING_PERIOD_DAYS } from '~/features/territories/model/resting-periods'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 
-export function TerritoryAvaibilityStatus({ attribution }: { attribution?: Attribution }) {
+type AttributionWithCampaignRest = Attribution & { campaign?: { restPeriodDays: number | null } | null }
+
+export function TerritoryAvaibilityStatus({ attribution }: { attribution?: AttributionWithCampaignRest }) {
   const isAvailable = checkAvailabilityStatus(attribution)
 
   if (!isAvailable) {
@@ -21,7 +24,7 @@ export function TerritoryAvaibilityStatus({ attribution }: { attribution?: Attri
   )
 }
 
-export function checkAvailabilityStatus(attribution?: Attribution) {
+export function checkAvailabilityStatus(attribution?: AttributionWithCampaignRest) {
   if (attribution == null) {
     return true
   }
@@ -30,7 +33,12 @@ export function checkAvailabilityStatus(attribution?: Attribution) {
     return false
   }
 
-  const restDays = attribution.type === TerritoryAttributionKind.Default ? 90 : 15
+  const restDays =
+    attribution.campaignId != null
+      ? (attribution.campaign?.restPeriodDays ?? RESTING_PERIOD_DAYS.campaign)
+      : attribution.type === TerritoryAttributionKind.Default
+        ? RESTING_PERIOD_DAYS.doorsToDoors
+        : RESTING_PERIOD_DAYS.phone
   const restPeriod = restDays * 24 * 3600 * 1000
   const endRestPeriod = new Date()
 

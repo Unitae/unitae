@@ -6,12 +6,11 @@ import { getSetting } from '~/shared/domain/settings.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
-import { parseLocalDate } from '~/shared/utils/date.server'
+import { parseLocalDate, startOfNextDay } from '~/shared/utils/date.server'
 import { getActiveCampaign } from './campaign.queries'
 
 const DEFAULT_DURATION_DAYS = {
   default: 120,
-  campaign: 60,
   phone: 14,
   commerce: 120,
 }
@@ -71,21 +70,6 @@ async function _resolveDurationDays(
   return DEFAULT_DURATION_DAYS.default
 }
 
-/**
- * Campaign attributions take their duration from the campaign itself:
- * `Campaign.durationDays` override first, then the congregation's
- * `CampaignDefaultDurationDays` setting, then the 60-day default.
- */
-async function _resolveCampaignDurationDays(
-  db: TransactionClient,
-  campaign: { durationDays: number | null },
-  congregationId: number,
-): Promise<number> {
-  if (campaign.durationDays != null && campaign.durationDays > 0) return campaign.durationDays
-  const setting = await getSetting(db, TerritorySettingKey.CampaignDefaultDurationDays, congregationId)
-  return parsePositiveDays(setting, DEFAULT_DURATION_DAYS.campaign)
-}
-
 async function _assertNoActiveOverlap(
   db: TransactionClient,
   congregationId: number,
@@ -143,14 +127,20 @@ export async function assign(db: TransactionClient, params: CreateAttributionPar
     // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
     where: { id_congregationId: { id: params.territoryId, congregationId: params.congregationId } },
   })
-  const durationDays =
-    campaignId != null && activeCampaign != null
-      ? await _resolveCampaignDurationDays(db, activeCampaign, params.congregationId)
-      : await _resolveDurationDays(db, params.type, territory.type, params.congregationId)
 
   const startDate = parseLocalDate(params.startDate)
-  const lateDate = new Date(startDate)
-  lateDate.setDate(lateDate.getDate() + durationDays)
+  let lateDate: Date
+  if (campaignId != null && activeCampaign != null && activeCampaign.endCloseCampaign) {
+    // Due when the campaign closes — the day after its inclusive end date; the
+    // auto-close returns it before it can ever show as late.
+    lateDate = startOfNextDay(activeCampaign.endDate)
+  } else {
+    // Regular work — or a campaign whose attributions are closed manually
+    // (endCloseCampaign off): the standard method/territory duration applies.
+    const durationDays = await _resolveDurationDays(db, params.type, territory.type, params.congregationId)
+    lateDate = new Date(startDate)
+    lateDate.setDate(lateDate.getDate() + durationDays)
+  }
 
   await _assertNoActiveOverlap(
     db,

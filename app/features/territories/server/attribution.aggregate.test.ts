@@ -102,7 +102,7 @@ const baseAssign = {
   actorId: 99,
 }
 
-const activeCampaign = { id: 5, durationDays: null, name: 'Mémorial' }
+const activeCampaign = { id: 5, name: 'Mémorial', endDate: new Date(2026, 3, 30), endCloseCampaign: true }
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -169,7 +169,7 @@ describe('assign — campaign mode guard', () => {
   })
 })
 
-describe('assign — campaign duration', () => {
+describe('assign — campaign due date', () => {
   const localDate = new Date(2026, 2, 15)
   const plusDays = (n: number) => {
     const d = new Date(localDate)
@@ -177,25 +177,17 @@ describe('assign — campaign duration', () => {
     return d
   }
 
-  it('uses the campaign durationDays override', async () => {
-    vi.mocked(getActiveCampaign).mockResolvedValue({ ...activeCampaign, durationDays: 30 } as never)
-
-    await aggregate.assign(mockDb as never, { ...baseAssign, campaignId: 5 })
-    expect(mockDb.attribution.create.mock.calls[0][0].data.lateDate).toEqual(plusDays(30))
-  })
-
-  it('falls back to the CampaignDefaultDurationDays setting', async () => {
-    vi.mocked(getActiveCampaign).mockResolvedValue(activeCampaign as never)
-    vi.mocked(getSetting).mockResolvedValue('45')
-
-    await aggregate.assign(mockDb as never, { ...baseAssign, campaignId: 5 })
-    expect(mockDb.attribution.create.mock.calls[0][0].data.lateDate).toEqual(plusDays(45))
-  })
-
-  it('falls back to 60 days when neither override nor setting exists', async () => {
+  it('is due when the campaign closes (day after the inclusive end date) with endCloseCampaign on', async () => {
     vi.mocked(getActiveCampaign).mockResolvedValue(activeCampaign as never)
 
     await aggregate.assign(mockDb as never, { ...baseAssign, campaignId: 5 })
-    expect(mockDb.attribution.create.mock.calls[0][0].data.lateDate).toEqual(plusDays(60))
+    expect(mockDb.attribution.create.mock.calls[0][0].data.lateDate).toEqual(new Date(2026, 4, 1))
+  })
+
+  it('uses the regular method duration when endCloseCampaign is off', async () => {
+    vi.mocked(getActiveCampaign).mockResolvedValue({ ...activeCampaign, endCloseCampaign: false } as never)
+
+    await aggregate.assign(mockDb as never, { ...baseAssign, campaignId: 5 })
+    expect(mockDb.attribution.create.mock.calls[0][0].data.lateDate).toEqual(plusDays(120))
   })
 })
