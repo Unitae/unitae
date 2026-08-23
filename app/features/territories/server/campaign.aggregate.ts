@@ -115,11 +115,21 @@ export async function updateCampaign(
 ) {
   const existing = await db.campaign.findFirst({
     where: { id, congregationId },
-    select: { id: true, activatedAt: true, endedAt: true },
+    select: {
+      id: true,
+      activatedAt: true,
+      endedAt: true,
+      startDate: true,
+      startRegularAction: true,
+      startAutoReassign: true,
+    },
   })
   if (!existing) throw new NotFoundError('Campaign', id)
 
-  const startDate = parseLocalDate(params.startDate)
+  // Once a campaign has started, its start transition has already run — the
+  // start date and the start options are frozen; only the rest can change.
+  const started = existing.activatedAt != null
+  const startDate = started ? existing.startDate : parseLocalDate(params.startDate)
   const endDate = parseLocalDate(params.endDate)
 
   await _assertNoWindowOverlap(db, congregationId, startDate, endDate, id)
@@ -136,8 +146,8 @@ export async function updateCampaign(
       startDate,
       endDate,
       restPeriodDays: params.restPeriodDays,
-      startRegularAction: params.startRegularAction,
-      startAutoReassign: params.startAutoReassign,
+      startRegularAction: started ? existing.startRegularAction : params.startRegularAction,
+      startAutoReassign: started ? existing.startAutoReassign : params.startAutoReassign,
       endCloseCampaign: params.endCloseCampaign,
       endRegularAction: params.endRegularAction,
     },

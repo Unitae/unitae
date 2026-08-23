@@ -58,10 +58,13 @@ export function CampaignForm({
   defaults,
   territories,
   errors,
+  startLocked = false,
 }: {
   defaults: CampaignFormDefaults
   territories: CampaignFormTerritory[]
   errors?: Record<string, string[] | undefined>
+  /** The campaign has already started — its start transition ran, so the start date and options are frozen. */
+  startLocked?: boolean
 }) {
   const [startAction, setStartAction] = useState<string>(defaults.startRegularAction)
   const [autoReassign, setAutoReassign] = useState(defaults.startAutoReassign)
@@ -98,7 +101,14 @@ export function CampaignForm({
         <div className="flex flex-wrap gap-3">
           <div className="flex flex-1 flex-col gap-1.5">
             <Label htmlFor="campaign-start-date">{m.campaigns_form_start_date_label()}</Label>
-            <Input id="campaign-start-date" name="start-date" type="date" defaultValue={defaults.startDate} />
+            {startLocked && <input type="hidden" name="start-date" value={defaults.startDate} />}
+            <Input
+              id="campaign-start-date"
+              name={startLocked ? undefined : 'start-date'}
+              type="date"
+              defaultValue={defaults.startDate}
+              disabled={startLocked}
+            />
           </div>
           <div className="flex flex-1 flex-col gap-1.5">
             <Label htmlFor="campaign-end-date">{m.campaigns_form_end_date_label()}</Label>
@@ -120,9 +130,21 @@ export function CampaignForm({
       </Fieldset>
 
       <Fieldset legend={m.campaigns_form_start_legend()}>
+        {startLocked && (
+          <>
+            <p className="text-muted-foreground text-xs">{m.campaigns_form_start_locked_hint()}</p>
+            <input type="hidden" name="start-regular-action" value={defaults.startRegularAction} />
+            {defaults.startAutoReassign && <input type="hidden" name="start-auto-reassign" value="on" />}
+          </>
+        )}
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="campaign-start-action">{m.campaigns_form_start_action_label()}</Label>
-          <Select name="start-regular-action" defaultValue={defaults.startRegularAction} onValueChange={setStartAction}>
+          <Select
+            name={startLocked ? undefined : 'start-regular-action'}
+            defaultValue={defaults.startRegularAction}
+            onValueChange={setStartAction}
+            disabled={startLocked}
+          >
             <SelectTrigger id="campaign-start-action" className="w-full">
               <SelectValue />
             </SelectTrigger>
@@ -139,10 +161,10 @@ export function CampaignForm({
         <div className="flex items-center gap-2">
           <Checkbox
             id="campaign-auto-reassign"
-            name="start-auto-reassign"
+            name={startLocked ? undefined : 'start-auto-reassign'}
             value="on"
             checked={autoReassign && startAction === CampaignRegularStartAction.Pause}
-            disabled={startAction !== CampaignRegularStartAction.Pause}
+            disabled={startLocked || startAction !== CampaignRegularStartAction.Pause}
             onCheckedChange={checked => setAutoReassign(checked === true)}
           />
           <Label htmlFor="campaign-auto-reassign" className="font-normal text-sm">

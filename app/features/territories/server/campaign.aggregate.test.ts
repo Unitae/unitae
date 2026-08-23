@@ -179,6 +179,31 @@ describe('updateCampaign', () => {
     mockDb.campaign.findFirst.mockResolvedValue(null as never)
     await expect(updateCampaign(mockDb as never, 1, 10, 99, baseParams)).rejects.toThrow('Campaign')
   })
+
+  it('keeps the start settings of a campaign that has already started', async () => {
+    mockDb.campaign.findFirst.mockResolvedValue({
+      id: 1,
+      activatedAt: new Date(2026, 0, 15),
+      endedAt: null,
+      startDate: new Date(2026, 0, 15),
+      startRegularAction: 'Close',
+      startAutoReassign: false,
+    } as never)
+
+    await updateCampaign(mockDb as never, 1, 10, 99, {
+      ...baseParams,
+      startDate: '2026-02-01',
+      startRegularAction: 'Pause',
+      startAutoReassign: true,
+    })
+
+    const data = mockDb.campaign.update.mock.calls[0][0].data
+    expect(data.startDate).toEqual(new Date(2026, 0, 15))
+    expect(data.startRegularAction).toBe('Close')
+    expect(data.startAutoReassign).toBe(false)
+    // the rest still updates
+    expect(data.name).toBe(baseParams.name)
+  })
 })
 
 describe('deleteCampaign', () => {

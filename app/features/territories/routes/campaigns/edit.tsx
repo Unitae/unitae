@@ -87,6 +87,7 @@ export default function EditCampaignPage({ loaderData, actionData }: Route.Compo
                 scopeTerritoryIds: campaign.scope.map(s => s.territoryId),
               }}
               territories={territories}
+              startLocked={campaign.activatedAt != null}
               errors={{
                 name: fields.name.errors,
                 'end-date': fields['end-date'].errors,

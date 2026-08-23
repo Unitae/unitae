@@ -2841,5 +2841,6 @@
     "campaigns_table_name": "Name",
     "campaigns_table_dates": "Dates",
     "campaigns_table_scope": "Scope",
-    "campaigns_table_status": "Status"
+    "campaigns_table_status": "Status",
+    "campaigns_form_start_locked_hint": "The campaign has already started: the start date and start options can no longer be changed."
 }

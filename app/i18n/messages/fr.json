@@ -2841,5 +2841,6 @@
     "campaigns_table_name": "Nom",
     "campaigns_table_dates": "Dates",
     "campaigns_table_scope": "Portée",
-    "campaigns_table_status": "Statut"
+    "campaigns_table_status": "Statut",
+    "campaigns_form_start_locked_hint": "La campagne a déjà démarré : la date et les options de démarrage ne sont plus modifiables."
 }
