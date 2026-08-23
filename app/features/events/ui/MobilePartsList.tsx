@@ -1,6 +1,9 @@
 import { AlertTriangle, Clock } from 'lucide-react'
 import { Link } from 'react-router'
 
+import type { ProgrammeSectionGroup } from '~/features/events/model/programme-grouping'
+import { sectionDurationMin } from '~/features/events/model/programme-grouping'
+import { SectionHeading, TrackHeading } from '~/features/events/ui/ProgrammeHeadings'
 import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 import { cn } from '~/shared/utils/utils'
@@ -9,6 +12,9 @@ export interface MobilePartEntry {
   id: number
   name: string
   topic: string
+  section: string
+  track: string
+  trackOrder: number | null
   durationMin: number | null
   assigneeId: number | null
   assignee: { firstname: string | null; lastname: string | null } | null
@@ -17,13 +23,8 @@ export interface MobilePartEntry {
   hasConflict: boolean
 }
 
-export interface MobilePartsGroup<T extends MobilePartEntry> {
-  section: string
-  tracks: Array<{ track: string; eventParts: T[] }>
-}
-
 interface MobilePartsListProps<T extends MobilePartEntry> {
-  groups: MobilePartsGroup<T>[]
+  groups: ProgrammeSectionGroup<T>[]
   canEdit: boolean
   canViewPublishers: boolean
   onPartClick: (part: T) => void
@@ -48,18 +49,20 @@ export function MobilePartsList<T extends MobilePartEntry>({
   return (
     <div className="flex flex-col md:hidden">
       {groups.map(group => (
-        <div key={group.tracks[0]?.eventParts[0]?.id ?? group.section} className="flex flex-col">
+        <div key={group.tracks[0]?.parts[0]?.id ?? group.section} className="flex flex-col">
           {group.section && (
-            <div className="bg-muted/50 px-2 py-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wide">
-              {group.section}
+            <div className="bg-muted/50 px-2 py-1.5">
+              <SectionHeading section={group.section} durationMin={sectionDurationMin(group)} />
             </div>
           )}
           {group.tracks.map(trackGroup => (
-            <div key={trackGroup.eventParts[0]?.id ?? trackGroup.track} className="flex flex-col">
+            <div key={trackGroup.parts[0]?.id ?? trackGroup.track} className="flex flex-col">
               {trackGroup.track && (
-                <div className="bg-muted/30 px-2 py-1 text-muted-foreground text-xs italic">{trackGroup.track}</div>
+                <div className="bg-muted/30 px-2 py-1">
+                  <TrackHeading track={trackGroup.track} count={trackGroup.parts.length} />
+                </div>
               )}
-              {trackGroup.eventParts.map(part => (
+              {trackGroup.parts.map(part => (
                 <MobilePartRow
                   key={part.id}
                   part={part}

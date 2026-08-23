@@ -2739,5 +2739,8 @@
     "publishers_view_upcoming_assignments": "Prochaines affectations",
     "publishers_view_no_upcoming_assignments": "Aucune affectation à venir.",
     "publishers_view_upcoming_absences": "Absences à venir",
-    "publishers_view_no_upcoming_absences": "Aucune absence prévue."
+    "publishers_view_no_upcoming_absences": "Aucune absence prévue.",
+    "programme_section_total_min": "{minutes} min",
+    "programme_track_parts_one": "1 partie",
+    "programme_track_parts_other": "{count} parties"
 }

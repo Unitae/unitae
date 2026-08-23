@@ -15,6 +15,14 @@ export {
   partPresetSpeakerLabel,
 } from './model/part-preset-defaults'
 export {
+  groupProgrammeParts,
+  type ProgrammePartLike,
+  type ProgrammeSectionGroup,
+  type ProgrammeTrackGroup,
+  sectionDurationMin,
+} from './model/programme-grouping'
+export { sectionColor, sectionIcon } from './model/section-style'
+export {
   findUnknownVariables,
   renderShareMessage,
   SHARE_VARIABLES,
@@ -26,5 +34,6 @@ export { InlineDeleteDialog } from './ui/InlineDeleteDialog'
 export { PartEditSheet } from './ui/PartEditSheet'
 export { PartPresetForm } from './ui/PartPresetForm'
 export { PartPresetSummary } from './ui/PartPresetSummary'
+export { SectionHeading, TrackHeading } from './ui/ProgrammeHeadings'
 export { ServiceEditSheet } from './ui/ServiceEditSheet'
 export { SortableRow } from './ui/SortableRow'

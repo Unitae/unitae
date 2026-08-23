@@ -3,44 +3,12 @@ import { BookOpen, Calendar, ChevronRight, Gem, HeartHandshake } from 'lucide-re
 import { type RefObject, useEffect, useMemo, useRef, useState } from 'react'
 import type { ProgrammeDynamicConfig } from '~/features/display-board/model/dynamic-document.type'
 import { formatName, getPartDisplay, nameMatches, partMatchesQuery } from '~/features/display-board/model/event-display'
-import { groupPartsBySlot } from '~/features/events'
+import { groupPartsBySlot, sectionColor, sectionIcon } from '~/features/events'
 import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { usePersistedState } from '~/shared/ui/hooks/use-persisted-state'
 import { cn } from '~/shared/utils/utils'
-
-// ---------------------------------------------------------------------------
-// Section color mapping — uses CSS custom properties from tailwind.css
-// ---------------------------------------------------------------------------
-
-const SECTION_COLOR_MAP: [string, string][] = [
-  ['joyaux', 'var(--color-section-treasures)'],
-  ['minist', 'var(--color-section-ministry)'],
-  ['chr', 'var(--color-section-living)'],
-]
-
-function sectionColor(section: string): string {
-  const lower = section.toLowerCase()
-  for (const [pattern, cssVar] of SECTION_COLOR_MAP) {
-    if (lower.includes(pattern)) return cssVar
-  }
-  return 'var(--color-muted-foreground)'
-}
-
-const SECTION_ICONS: [string, LucideIcon][] = [
-  ['joyaux', Gem],
-  ['minist', BookOpen],
-  ['chr', HeartHandshake],
-]
-
-function sectionIcon(section: string): LucideIcon | undefined {
-  const lower = section.toLowerCase()
-  for (const [pattern, icon] of SECTION_ICONS) {
-    if (lower.includes(pattern)) return icon
-  }
-  return undefined
-}
 
 // ---------------------------------------------------------------------------
 // Types

@@ -1,8 +1,16 @@
 import { Calendar, CalendarOff, CalendarPlus, Clock, Copy, Pencil, Trash2, UserCog } from 'lucide-react'
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { Form, Link, redirect, useFetcher } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { dayLabel, InlineDeleteDialog, isSystemTemplate } from '~/features/events'
+import {
+  dayLabel,
+  groupProgrammeParts,
+  InlineDeleteDialog,
+  isSystemTemplate,
+  SectionHeading,
+  sectionDurationMin,
+  TrackHeading,
+} from '~/features/events'
 import {
   deleteTemplate,
   duplicateTemplate,
@@ -208,32 +216,54 @@ export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
               <CardTitle className="text-base">{m.settings_template_view_spiritual_program()}</CardTitle>
             </CardHeader>
             <CardContent>
+              {/* Same grouped rendering as the event pages, so a template
+                  reads exactly like the programme it will generate. */}
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12">#</TableHead>
                     <TableHead>{m.settings_template_view_part_column()}</TableHead>
-                    <TableHead>{m.settings_template_view_section_column()}</TableHead>
                     <TableHead className="w-24">{m.settings_template_view_duration_column()}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {template.parts.map(part => (
-                    <TableRow key={part.id}>
-                      <TableCell className="text-muted-foreground">{part.order}</TableCell>
-                      <TableCell className="font-medium">{part.name}</TableCell>
-                      <TableCell className="text-muted-foreground">{part.section || '—'}</TableCell>
-                      <TableCell>
-                        {part.durationMin ? (
-                          <span className="flex items-center gap-1 text-muted-foreground text-sm">
-                            <Clock className="size-3" />
-                            {m.settings_template_view_duration_min({ minutes: String(part.durationMin) })}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">—</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
+                  {groupProgrammeParts(template.parts).map(group => (
+                    <Fragment key={group.tracks[0]?.parts[0]?.id ?? `section-${group.section}`}>
+                      {group.section && (
+                        <TableRow className="bg-muted/50">
+                          <TableCell colSpan={3} className="py-1.5">
+                            <SectionHeading section={group.section} durationMin={sectionDurationMin(group)} />
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {group.tracks.map(trackGroup => (
+                        <Fragment key={`track-${trackGroup.parts[0]?.id ?? trackGroup.track}`}>
+                          {(group.tracks.length > 1 || trackGroup.track !== '') && trackGroup.track && (
+                            <TableRow className="bg-muted/30">
+                              <TableCell colSpan={3} className="py-1">
+                                <TrackHeading track={trackGroup.track} count={trackGroup.parts.length} />
+                              </TableCell>
+                            </TableRow>
+                          )}
+                          {trackGroup.parts.map(part => (
+                            <TableRow key={part.id}>
+                              <TableCell className="text-muted-foreground">{part.order}</TableCell>
+                              <TableCell className="font-medium">{part.name}</TableCell>
+                              <TableCell>
+                                {part.durationMin ? (
+                                  <span className="flex items-center gap-1 text-muted-foreground text-sm">
+                                    <Clock className="size-3" />
+                                    {m.settings_template_view_duration_min({ minutes: String(part.durationMin) })}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">—</span>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </Fragment>
+                      ))}
+                    </Fragment>
                   ))}
                 </TableBody>
               </Table>

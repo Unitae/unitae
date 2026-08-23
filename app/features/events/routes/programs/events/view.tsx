@@ -14,6 +14,7 @@ import React, { useState } from 'react'
 import { Link, redirect, useFetcher } from 'react-router'
 import { resolveProgrammeLink } from '~/features/display-board/index.server'
 import { EventStatus } from '~/features/events/model/event-status.type'
+import { groupProgrammeParts, sectionDurationMin } from '~/features/events/model/programme-grouping'
 import { buildAssignmentCandidates } from '~/features/events/server/assignment-candidates.server'
 import { buildShareTextsForEvent } from '~/features/events/server/build-share-message.server'
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
@@ -22,6 +23,7 @@ import { listExternalSpeakers } from '~/features/events/server/external-speakers
 import { AssignPartSheet } from '~/features/events/ui/AssignPartSheet'
 import { AssignServiceSheet } from '~/features/events/ui/AssignServiceSheet'
 import { MobilePartsList } from '~/features/events/ui/MobilePartsList'
+import { SectionHeading, TrackHeading } from '~/features/events/ui/ProgrammeHeadings'
 import { ShareAssignmentButton } from '~/features/events/ui/ShareAssignmentButton'
 import { UnassignConfirmDialog } from '~/features/events/ui/UnassignConfirmDialog'
 import * as m from '~/i18n/paraglide/messages'
@@ -192,31 +194,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
   const partAssignedCount = event.eventParts.filter(a => a.assigneeId ?? a.externalSpeakerId).length
   const serviceAssignedCount = event.eventServiceParts.filter(a => a.assigneeId).length
 
-  // Group parts by section, then by track within each section
-  type PartAssignment = (typeof event.eventParts)[number]
-  type TrackGroup = { track: string; eventParts: PartAssignment[] }
-  type SectionGroup = { section: string; tracks: TrackGroup[] }
-
-  const partsBySection: SectionGroup[] = []
-  let currentSection: string | null = null
-  let currentTrack: string | null = null
-
-  for (const part of event.eventParts) {
-    const section = part.section || ''
-    const track = part.track || ''
-
-    if (section !== currentSection) {
-      partsBySection.push({ section, tracks: [{ track, eventParts: [] }] })
-      currentSection = section
-      currentTrack = track
-    } else if (track !== currentTrack) {
-      partsBySection.at(-1)?.tracks.push({ track, eventParts: [] })
-      currentTrack = track
-    }
-
-    const lastSection = partsBySection.at(-1)
-    lastSection?.tracks.at(-1)?.eventParts.push(part)
-  }
+  const partsBySection = groupProgrammeParts(event.eventParts)
 
   const colCount = 4 + (hasAnyTopic ? 1 : 0) + (canEdit ? 1 : 0)
 
@@ -329,26 +307,24 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                 {partsBySection.map(group => {
                   const hasMultipleTracks = group.tracks.length > 1 || group.tracks[0]?.track !== ''
                   return (
-                    <React.Fragment key={group.tracks[0]?.eventParts[0]?.id ?? group.section}>
+                    <React.Fragment key={group.tracks[0]?.parts[0]?.id ?? group.section}>
                       {group.section && (
                         <TableRow key={`section-${group.section}`} className="bg-muted/50">
                           <TableCell colSpan={colCount} className="py-1.5">
-                            <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                              {group.section}
-                            </span>
+                            <SectionHeading section={group.section} durationMin={sectionDurationMin(group)} />
                           </TableCell>
                         </TableRow>
                       )}
                       {group.tracks.map(trackGroup => (
-                        <React.Fragment key={trackGroup.eventParts[0]?.id ?? trackGroup.track}>
+                        <React.Fragment key={trackGroup.parts[0]?.id ?? trackGroup.track}>
                           {hasMultipleTracks && trackGroup.track && (
                             <TableRow key={`track-${group.section}-${trackGroup.track}`} className="bg-muted/30">
-                              <TableCell colSpan={colCount} className="py-1 pl-8">
-                                <span className="text-muted-foreground text-xs italic">{trackGroup.track}</span>
+                              <TableCell colSpan={colCount} className="py-1 pl-4">
+                                <TrackHeading track={trackGroup.track} count={trackGroup.parts.length} />
                               </TableCell>
                             </TableRow>
                           )}
-                          {trackGroup.eventParts.map(assignment => (
+                          {trackGroup.parts.map(assignment => (
                             <PartRow
                               key={assignment.id}
                               assignment={assignment}
