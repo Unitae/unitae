@@ -249,6 +249,7 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
       {geocodeResult != null && <ProximityBanner geocode={geocodeResult} />}
       <AttributionFilters
         groups={groups}
+        campaigns={campaigns}
         phoneTypeActive={phoneTypeActive}
         showSort
         sortValue={sort}
