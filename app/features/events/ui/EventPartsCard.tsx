@@ -81,8 +81,8 @@ export function EventPartsCard({
     <Card>
       <CardHeader>
         <CardTitle className="text-base">{m.programs_edit_spiritual_program()}</CardTitle>
-        <CardAction>
-          <div className="flex items-center gap-2">
+        <CardAction className="max-sm:col-span-2 max-sm:row-start-3 max-sm:justify-self-start">
+          <div className="flex flex-wrap items-center gap-2">
             {templates.length > 0 && (
               <div className="flex items-center gap-1">
                 <Select value={selectedTemplateId} onValueChange={onTemplateChange}>
@@ -123,7 +123,7 @@ export function EventPartsCard({
                   <TableRow>
                     <TableHead className="w-8" />
                     <TableHead>{m.programs_view_part_col()}</TableHead>
-                    <TableHead className="w-24">{m.programs_view_duration_col()}</TableHead>
+                    <TableHead className="w-24 max-sm:hidden">{m.programs_view_duration_col()}</TableHead>
                     <TableHead className="w-20">{m.common_actions()}</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -141,10 +141,10 @@ export function EventPartsCard({
                       )}
                       {group.parts.map(assignment => (
                         <SortableRow key={assignment.id} id={assignment.id}>
-                          <TableCell>
+                          <TableCell className="max-sm:whitespace-normal">
                             <span className="font-medium text-sm">{assignment.name}</span>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="max-sm:hidden">
                             {assignment.durationMin ? (
                               <span className="flex items-center gap-1 text-muted-foreground text-sm">
                                 <Clock className="size-3" />
