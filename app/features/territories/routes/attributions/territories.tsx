@@ -64,12 +64,12 @@ export function loader({ request, context }: Route.LoaderArgs) {
     // While a campaign is active a territory is assignable (into the
     // campaign) only when nobody actively works it: any open, unpaused
     // attribution blocks it — paused regulars and returned ones don't.
-    // Outside a campaign, only an open regular attribution blocks.
+    // Outside a campaign, any open attribution blocks: paused regulars are
+    // still held, and campaign attributions left open by an ended campaign
+    // (endCloseCampaign off) still occupy the ground.
     const activeCampaign = await getActiveCampaign(db, congregationId)
     selectors.attributions =
-      activeCampaign != null
-        ? { none: { endDate: null, pausedAt: null } }
-        : { none: { endDate: null, campaignId: null } }
+      activeCampaign != null ? { none: { endDate: null, pausedAt: null } } : { none: { endDate: null } }
 
     const search = url.searchParams.get('search') ?? ''
     const intent = classifySearch(search)
@@ -244,7 +244,10 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
                       {territoryContentLabel(territory.type, territory.entrances)}
                     </TableCell>
                     <TableCell className="text-center">
-                      <TerritoryAvaibilityStatus attribution={[...territory.attributions].shift()} />
+                      <TerritoryAvaibilityStatus
+                        attribution={[...territory.attributions].shift()}
+                        campaignMode={activeCampaignName != null}
+                      />
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-2">
@@ -256,7 +259,7 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
                             <ExternalLink className="size-4" />
                           </Link>
                         </Button>
-                        {checkAvailabilityStatus([...territory.attributions].shift()) ? (
+                        {checkAvailabilityStatus([...territory.attributions].shift(), activeCampaignName != null) ? (
                           <Button variant="ghost" size="sm" asChild className="gap-1.5 text-primary">
                             <Link
                               to={`/territories/attributions/new?territory=${territory.id}`}

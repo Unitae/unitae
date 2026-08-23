@@ -25,4 +25,19 @@ describe('checkAvailabilityStatus', () => {
     const yesterday = new Date(Date.now() - 24 * 3600 * 1000)
     expect(checkAvailabilityStatus({ ...(base as object), endDate: yesterday } as never)).toBe(false)
   })
+
+  it('campaign mode ignores the regular rest window (Clôturer frees territories for the campaign)', () => {
+    const yesterday = new Date(Date.now() - 24 * 3600 * 1000)
+    expect(checkAvailabilityStatus({ ...(base as object), endDate: yesterday } as never, true)).toBe(true)
+  })
+
+  it('campaign mode still rests territories recently worked in a campaign', () => {
+    const yesterday = new Date(Date.now() - 24 * 3600 * 1000)
+    expect(
+      checkAvailabilityStatus(
+        { ...(base as object), endDate: yesterday, campaignId: 5, campaign: null } as never,
+        true,
+      ),
+    ).toBe(false)
+  })
 })

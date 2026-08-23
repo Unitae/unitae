@@ -7,7 +7,14 @@ import { Badge } from '~/shared/ui/badge'
 
 type AttributionWithCampaignRest = Attribution & { campaign?: { restPeriodDays: number | null } | null }
 
-export function TerritoryAvaibilityStatus({ attribution }: { attribution?: AttributionWithCampaignRest }) {
+export function TerritoryAvaibilityStatus({
+  attribution,
+  campaignMode = false,
+}: {
+  attribution?: AttributionWithCampaignRest
+  /** An active campaign is assigning: regular rest windows don't gate campaign work. */
+  campaignMode?: boolean
+}) {
   // Paused for the campaign: the territory is free to re-assign, but showing
   // why (its regular attribution is on hold) beats a plain « disponible ».
   if (attribution?.endDate == null && attribution?.pausedAt != null) {
@@ -19,7 +26,7 @@ export function TerritoryAvaibilityStatus({ attribution }: { attribution?: Attri
     )
   }
 
-  const isAvailable = checkAvailabilityStatus(attribution)
+  const isAvailable = checkAvailabilityStatus(attribution, campaignMode)
 
   if (!isAvailable) {
     return (
@@ -36,7 +43,7 @@ export function TerritoryAvaibilityStatus({ attribution }: { attribution?: Attri
   )
 }
 
-export function checkAvailabilityStatus(attribution?: AttributionWithCampaignRest) {
+export function checkAvailabilityStatus(attribution?: AttributionWithCampaignRest, campaignMode = false) {
   if (attribution == null) {
     return true
   }
@@ -45,6 +52,13 @@ export function checkAvailabilityStatus(attribution?: AttributionWithCampaignRes
     // Open but paused (campaign hold) → free for campaign assignment;
     // open and actively worked → taken.
     return attribution.pausedAt != null
+  }
+
+  // Campaign work is a different kind of contact: the door-to-door/phone rest
+  // windows don't gate it — « Clôturer » at start frees territories for the
+  // campaign immediately. Only recent campaign work keeps its own rest.
+  if (campaignMode && attribution.campaignId == null) {
+    return true
   }
 
   const restDays =

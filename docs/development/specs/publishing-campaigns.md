@@ -32,7 +32,11 @@
 > cannot receive a campaign assignment (`ConflictError('territory_occupied')`; the campaign availability
 > picker blocks on `none: { endDate: null, pausedAt: null }`). Paused and returned attributions free the
 > territory, so `Pause`/`Close` behave as before — but « Laisser hors campagne » now means exactly that:
-> actively worked territories are not re-assigned during the campaign.
+> actively worked territories are not re-assigned during the campaign. Two corollaries: the regular
+> availability picker blocks on **any** open attribution (a campaign attribution left open by
+> `endCloseCampaign = false` still occupies the ground), and the door-to-door/phone **rest windows do
+> not gate campaign assignment** — « Clôturer » at start frees territories for the campaign
+> immediately; only recent campaign work keeps its own `restPeriodDays` rest.
 
 > **Rework (author, 2026-08-23).** `Campaign.durationDays` and the `CampaignDefaultDurationDays`
 > setting were dropped as redundant: with `endCloseCampaign` on, the campaign window already bounds
