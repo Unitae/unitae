@@ -58,7 +58,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="apple-mobile-web-app-title" content="Conflu" />
+        <meta name="apple-mobile-web-app-title" content="Unitae" />
+        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fafaf9" />
+        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1c1917" />
         <link rel="icon" type="image/png" href="/icon.png" sizes="96x96" />
         <link rel="icon" type="image/svg+xml" href="/icon.svg" />
         <link rel="shortcut icon" href="/favicon.ico" />
