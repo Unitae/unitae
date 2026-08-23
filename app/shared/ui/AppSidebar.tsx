@@ -1,11 +1,12 @@
 import { ChevronDown, Home, LayoutGrid, LogOut, Search } from 'lucide-react'
-import { Form, NavLink } from 'react-router'
+import { Form, NavLink, useLocation } from 'react-router'
 
 import * as m from '~/i18n/paraglide/messages'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/shared/ui/collapsible'
 import {
   buildManagementSections,
   buildPersonalItems,
+  isNavItemActive,
   type NavItem,
   type NavigationPermissions,
   type NavSection,
@@ -135,11 +136,16 @@ function SidebarNavSection({ section }: { section: NavSection }) {
 
 function SidebarNavItem({ item }: { item: NavItem }) {
   const { isMobile, setOpenMobile } = useSidebar()
+  const { pathname } = useLocation()
   const Icon = item.icon
+  // Section-aware highlight: deep pages (a publisher record, a territory
+  // sheet) keep their owning entry lit even though NavLink's exact `end`
+  // match no longer applies.
+  const isActive = item.match ? isNavItemActive(item, pathname, false) : undefined
 
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton asChild className="min-h-[44px] md:min-h-0">
+      <SidebarMenuButton asChild isActive={isActive} className="min-h-[44px] md:min-h-0">
         <NavLink
           to={item.to}
           end={item.end}

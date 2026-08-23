@@ -51,6 +51,19 @@ export interface NavItem {
   to: string
   /** Pass to NavLink so the item only highlights on an exact route match. */
   end?: boolean
+  /**
+   * Section-highlight matcher: the item lights up for every path under
+   * `prefix` except paths owned by sibling items (`exclude`). Without it,
+   * highlighting follows NavLink's own matching (`to` + `end`).
+   */
+  match?: { prefix: string; exclude?: string[] }
+}
+
+/** Whether `item` should render as active for the current pathname. */
+export function isNavItemActive(item: NavItem, pathname: string, navLinkActive: boolean): boolean {
+  if (!item.match) return navLinkActive
+  if (!pathname.startsWith(item.match.prefix)) return false
+  return !item.match.exclude?.some(prefix => pathname.startsWith(prefix))
 }
 
 export interface NavSection {
@@ -67,7 +80,14 @@ export interface NavSection {
 export function buildTabBar(permissions: NavigationPermissions): NavItem[] {
   const tabs: NavItem[] = [{ id: 'home', label: m.sidebar_home, icon: Home, to: '/', end: true }]
   if (permissions.canViewBoard) {
-    tabs.push({ id: 'board', label: m.nav_tab_board, icon: LayoutGrid, to: '/board', end: true })
+    tabs.push({
+      id: 'board',
+      label: m.nav_tab_board,
+      icon: LayoutGrid,
+      to: '/board',
+      end: true,
+      match: { prefix: '/board' },
+    })
   }
   tabs.push(
     { id: 'my-territories', label: m.sidebar_my_territories, icon: MapPin, to: '/me/territories' },
@@ -97,7 +117,14 @@ export function buildManagementSections(permissions: NavigationPermissions): Nav
   const assemblyItems: NavItem[] = []
   if (permissions.canViewPublishers) {
     assemblyItems.push(
-      { id: 'publishers', label: m.sidebar_publishers, icon: Users, to: '/publishers', end: true },
+      {
+        id: 'publishers',
+        label: m.sidebar_publishers,
+        icon: Users,
+        to: '/publishers',
+        end: true,
+        match: { prefix: '/publishers', exclude: ['/publishers/activity'] },
+      },
       { id: 'groups', label: m.sidebar_publisher_groups, icon: UsersRound, to: '/groups' },
     )
   }
@@ -108,7 +135,14 @@ export function buildManagementSections(permissions: NavigationPermissions): Nav
     assemblyItems.push({ id: 'roles', label: m.sidebar_assembly_roles, icon: Shield, to: '/congregation/roles' })
   }
   if (permissions.canViewPrograms) {
-    assemblyItems.push({ id: 'programs', label: m.sidebar_programs, icon: CalendarDays, to: '/programs', end: true })
+    assemblyItems.push({
+      id: 'programs',
+      label: m.sidebar_programs,
+      icon: CalendarDays,
+      to: '/programs',
+      end: true,
+      match: { prefix: '/programs' },
+    })
   } else if (permissions.canViewAbsences) {
     assemblyItems.push({ id: 'absences', label: m.sidebar_absences, icon: CalendarOff, to: '/programs/days-off' })
   }
@@ -120,7 +154,17 @@ export function buildManagementSections(permissions: NavigationPermissions): Nav
   if (permissions.canViewTerritories) {
     territoryItems.push(
       { id: 'attributions', label: m.sidebar_attributions, icon: CalendarCheck, to: '/territories/attributions' },
-      { id: 'territories', label: m.sidebar_territories, icon: MapIcon, to: '/territories', end: true },
+      {
+        id: 'territories',
+        label: m.sidebar_territories,
+        icon: MapIcon,
+        to: '/territories',
+        end: true,
+        match: {
+          prefix: '/territories',
+          exclude: ['/territories/attributions', '/territories/buildings', '/territories/stats'],
+        },
+      },
     )
   }
   if (permissions.canViewProspection) {

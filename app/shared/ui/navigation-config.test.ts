@@ -5,6 +5,7 @@ import {
   buildPersonalItems,
   buildTabBar,
   hasManagementSections,
+  isNavItemActive,
   type NavigationPermissions,
 } from './navigation-config'
 
@@ -125,5 +126,42 @@ describe('buildManagementSections', () => {
 describe('buildPersonalItems', () => {
   it('always exposes profile, my territories and my absences', () => {
     expect(buildPersonalItems().map(i => i.id)).toEqual(['profile', 'my-territories', 'my-absences'])
+  })
+})
+
+describe('isNavItemActive', () => {
+  const sections = buildManagementSections(
+    permissions({ canViewPublishers: true, canViewActivity: true, canViewTerritories: true, canViewPrograms: true }),
+  )
+  const assembly = sections.find(s => s.id === 'assembly')
+  const territories = sections.find(s => s.id === 'territories')
+  const publishersItem = assembly?.items.find(i => i.id === 'publishers')
+  const programsItem = assembly?.items.find(i => i.id === 'programs')
+  const territoriesItem = territories?.items.find(i => i.id === 'territories')
+
+  it('keeps the publishers entry lit on a publisher record page', () => {
+    expect(isNavItemActive(publishersItem!, '/publishers/1199/view', false)).toBe(true)
+    expect(isNavItemActive(publishersItem!, '/publishers', false)).toBe(true)
+  })
+
+  it('yields the activity sibling its own pages', () => {
+    expect(isNavItemActive(publishersItem!, '/publishers/activity/pioneers', false)).toBe(false)
+  })
+
+  it('keeps the territories entry lit on a territory sheet but not on sibling areas', () => {
+    expect(isNavItemActive(territoriesItem!, '/territories/territory/575/view', false)).toBe(true)
+    expect(isNavItemActive(territoriesItem!, '/territories/attributions/new', false)).toBe(false)
+    expect(isNavItemActive(territoriesItem!, '/territories/buildings', false)).toBe(false)
+  })
+
+  it('lights the programmes entry across events, speakers and days off', () => {
+    expect(isNavItemActive(programsItem!, '/programs/events/421/view', false)).toBe(true)
+    expect(isNavItemActive(programsItem!, '/programs/external-speakers', false)).toBe(true)
+  })
+
+  it('falls back to the NavLink state for items without a matcher', () => {
+    const home = buildTabBar(permissions())[0]
+    expect(isNavItemActive(home, '/anywhere', true)).toBe(true)
+    expect(isNavItemActive(home, '/anywhere', false)).toBe(false)
   })
 })

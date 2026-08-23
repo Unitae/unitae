@@ -1,8 +1,13 @@
 import { Ellipsis } from 'lucide-react'
-import { NavLink } from 'react-router'
+import { NavLink, useLocation } from 'react-router'
 
 import * as m from '~/i18n/paraglide/messages'
-import { buildTabBar, hasManagementSections, type NavigationPermissions } from '~/shared/ui/navigation-config'
+import {
+  buildTabBar,
+  hasManagementSections,
+  isNavItemActive,
+  type NavigationPermissions,
+} from '~/shared/ui/navigation-config'
 import { cn } from '~/shared/utils/utils'
 
 interface BottomTabBarProps {
@@ -19,6 +24,7 @@ interface BottomTabBarProps {
 export function BottomTabBar({ permissions, onMoreClick, moreOpen }: BottomTabBarProps) {
   const tabs = buildTabBar(permissions)
   const showMore = hasManagementSections(permissions)
+  const { pathname } = useLocation()
 
   return (
     <nav
@@ -33,21 +39,24 @@ export function BottomTabBar({ permissions, onMoreClick, moreOpen }: BottomTabBa
           viewTransition
           className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-muted-foreground transition-colors"
         >
-          {({ isActive }) => (
-            <>
-              <span
-                className={cn(
-                  'flex items-center justify-center rounded-full px-4 py-0.5 transition-colors',
-                  isActive && 'bg-primary/10',
-                )}
-              >
-                <tab.icon className={cn('size-5', isActive && 'text-primary')} aria-hidden="true" />
-              </span>
-              <span className={cn('text-[11px] leading-tight', isActive && 'font-medium text-primary')}>
-                {tab.label()}
-              </span>
-            </>
-          )}
+          {({ isActive }) => {
+            const active = isNavItemActive(tab, pathname, isActive)
+            return (
+              <>
+                <span
+                  className={cn(
+                    'flex items-center justify-center rounded-full px-4 py-0.5 transition-colors',
+                    active && 'bg-primary/10',
+                  )}
+                >
+                  <tab.icon className={cn('size-5', active && 'text-primary')} aria-hidden="true" />
+                </span>
+                <span className={cn('text-[11px] leading-tight', active && 'font-medium text-primary')}>
+                  {tab.label()}
+                </span>
+              </>
+            )
+          }}
         </NavLink>
       ))}
 
