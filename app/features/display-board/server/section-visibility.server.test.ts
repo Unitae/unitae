@@ -6,6 +6,10 @@ vi.mock('~/shared/infra/db.server', () => ({
   },
 }))
 
+vi.mock('~/shared/auth/permissions.server', () => ({
+  resolveEffectiveRoleIds: vi.fn(),
+}))
+
 vi.mock('~/shared/domain/audit.server', async () => {
   const actual = await vi.importActual<typeof import('~/shared/domain/audit.server')>('~/shared/domain/audit.server')
   return {
@@ -14,7 +18,10 @@ vi.mock('~/shared/domain/audit.server', async () => {
   }
 })
 
-const { getSectionVisibilityRoleIds, setSectionVisibilityRoles } = await import('./section-visibility.server')
+const { buildSectionVisibilityFilter, getSectionVisibilityRoleIds, setSectionVisibilityRoles } = await import(
+  './section-visibility.server'
+)
+const { resolveEffectiveRoleIds } = await import('~/shared/auth/permissions.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const { audit, AuditAction } = await import('~/shared/domain/audit.server')
 
@@ -113,5 +120,30 @@ describe('setSectionVisibilityRoles', () => {
       skipDuplicates: true,
     })
     expect(audit).toHaveBeenCalledWith(expect.objectContaining({ metadata: { added: [3], removed: [1] } }))
+  })
+})
+
+describe('buildSectionVisibilityFilter', () => {
+  // A section with no visibility roles is open to anyone holding BoardViewer;
+  // one that names roles is open only to those roles, with no manager bypass.
+  // The filter is written to be spread into a `where`, so a caller that fetches
+  // by id gets "not visible" and "not found" as the same answer.
+  it('lets an unrestricted section through for anyone', async () => {
+    vi.mocked(resolveEffectiveRoleIds).mockResolvedValue([])
+
+    const filter = await buildSectionVisibilityFilter(db, 7, 1)
+
+    expect(filter).toEqual({
+      OR: [{ visibilityRoles: { none: {} } }, { visibilityRoles: { some: { roleId: { in: [] } } } }],
+    })
+  })
+
+  it("names the viewer's own roles for restricted sections", async () => {
+    vi.mocked(resolveEffectiveRoleIds).mockResolvedValue([4, 9])
+
+    const filter = await buildSectionVisibilityFilter(db, 7, 1)
+
+    expect(filter.OR[1]).toEqual({ visibilityRoles: { some: { roleId: { in: [4, 9] } } } })
+    expect(resolveEffectiveRoleIds).toHaveBeenCalledWith(db, 7, 1)
   })
 })

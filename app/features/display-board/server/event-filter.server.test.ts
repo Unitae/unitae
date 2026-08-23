@@ -17,28 +17,43 @@ const PROGRAMME_DATA = {
 describe('filterDynamicDataToEvent', () => {
   it('returns the data untouched when eventId is null', () => {
     const result = filterDynamicDataToEvent(PROGRAMME_DATA as never, null)
-    expect(result).toBe(PROGRAMME_DATA)
+    expect(result.data).toBe(PROGRAMME_DATA)
+    // Nothing was asked for, so nothing is missing.
+    expect(result.requestedEventMissing).toBe(false)
   })
 
   it('narrows events to the matching one when the id is present in the list', () => {
-    const result = filterDynamicDataToEvent(PROGRAMME_DATA as never, 200) as typeof PROGRAMME_DATA
-    expect(result.events).toHaveLength(1)
-    expect(result.events[0].id).toBe(200)
+    const result = filterDynamicDataToEvent(PROGRAMME_DATA as never, 200)
+    const data = result.data as typeof PROGRAMME_DATA
+    expect(data.events).toHaveLength(1)
+    expect(data.events[0]?.id).toBe(200)
+    expect(result.requestedEventMissing).toBe(false)
   })
 
-  it('leaves the full list untouched when the id is not present (past event / different template)', () => {
+  it('says so when the requested event is not in this document', () => {
+    // Silently rendering the whole programme leaves the reader hunting a list
+    // for something that is not in it. The viewer needs to be able to say why.
     const result = filterDynamicDataToEvent(PROGRAMME_DATA as never, 999)
-    expect(result).toBe(PROGRAMME_DATA)
+    expect(result.data).toBe(PROGRAMME_DATA)
+    expect(result.requestedEventMissing).toBe(true)
+  })
+
+  it('does not claim a miss on a document that has no events at all', () => {
+    const empty = { type: DynamicType.Programme, events: [] }
+    const result = filterDynamicDataToEvent(empty as never, 999)
+    expect(result.requestedEventMissing).toBe(true)
   })
 
   it('returns the data untouched for non-Programme dynamic types', () => {
     const pioneers = { type: DynamicType.Pioneers, pioneers: [] }
     const result = filterDynamicDataToEvent(pioneers as never, 100)
-    expect(result).toBe(pioneers)
+    expect(result.data).toBe(pioneers)
+    expect(result.requestedEventMissing).toBe(false)
   })
 
   it('returns null when the input is null', () => {
     const result = filterDynamicDataToEvent(null, 100)
-    expect(result).toBeNull()
+    expect(result.data).toBeNull()
+    expect(result.requestedEventMissing).toBe(false)
   })
 })

@@ -133,8 +133,15 @@ describe('buildShareTextsForEvent', () => {
     timezone: 'Europe/Paris',
   }
 
-  function eventWith(parts: unknown[]) {
-    return { id: 12, templateId: 3, name: 'Réunion de semaine', startDate: EVENT.startDate, eventParts: parts }
+  function eventWith(parts: unknown[], status = 'released') {
+    return {
+      id: 12,
+      templateId: 3,
+      name: 'Réunion de semaine',
+      startDate: EVENT.startDate,
+      status,
+      eventParts: parts,
+    }
   }
 
   function part(id: number, patch: Record<string, unknown> = {}) {
@@ -174,5 +181,23 @@ describe('buildShareTextsForEvent', () => {
     )
 
     expect(Object.keys(texts)).toEqual(['1'])
+  })
+  it('shares nothing from a programme that has not been released yet', async () => {
+    // The board only renders released events, so the link would land the reader
+    // on a programme without their assignment. It also matches the notification
+    // path, which deliberately stays quiet on drafts.
+    const resolveLink = vi.fn().mockResolvedValue('/board')
+
+    const texts = await buildShareTextsForEvent(eventWith([part(7)], 'draft') as never, congregation, resolveLink)
+
+    expect(texts).toEqual({})
+  })
+
+  it('does not even resolve a link for a draft', async () => {
+    const resolveLink = vi.fn().mockResolvedValue('/board')
+
+    await buildShareTextsForEvent(eventWith([part(7)], 'draft') as never, congregation, resolveLink)
+
+    expect(resolveLink).not.toHaveBeenCalled()
   })
 })

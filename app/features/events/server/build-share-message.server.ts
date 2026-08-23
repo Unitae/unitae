@@ -1,3 +1,4 @@
+import { EventStatus } from '~/features/events/model/event-status.type'
 import { partPresetShareMessage } from '~/features/events/model/part-preset-defaults'
 import { renderShareMessage } from '~/features/events/model/share-message'
 import { formatEventDate, formatEventTime } from '~/shared/utils/event-time'
@@ -106,6 +107,7 @@ export interface ShareableEvent {
   templateId: number | null
   name: string
   startDate: Date
+  status: string
   eventParts: ShareableEventPart[]
 }
 
@@ -132,6 +134,12 @@ export async function buildShareTextsForEvent(
   congregation: ShareCongregation,
   resolveLink: (event: { id: number; templateId: number | null }) => Promise<string>,
 ): Promise<Record<number, string>> {
+  // Nothing to share from a draft. The board only renders released events, so
+  // the link would put the reader on a programme their assignment is not in,
+  // and the assignment itself may still change. The notification path already
+  // stays quiet on drafts for the same reason.
+  if (event.status !== EventStatus.Released) return {}
+
   const link = await resolveLink({ id: event.id, templateId: event.templateId })
   const texts: Record<number, string> = {}
 

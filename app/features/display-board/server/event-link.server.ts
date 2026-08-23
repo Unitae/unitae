@@ -1,8 +1,42 @@
 import { parseProgrammeConfig } from '~/features/display-board/model/dynamic-document.type'
+import { startOfCurrentMonth } from '~/features/display-board/server/dynamic-documents.server'
+import { EventStatus } from '~/features/events'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 
 const logger = createLogger('event-link')
+
+/**
+ * The event as a document would see it, or null if none could show it.
+ *
+ * Matching the template is not the same as holding the event: a document
+ * renders released events from the start of the current month onwards, so a
+ * draft — or one that has aged out — would leave the reader on a programme
+ * their assignment is not in, with nothing on the page to say why.
+ */
+async function readRenderableEvent(
+  db: TransactionClient,
+  event: { id: number; templateId: number | null },
+  congregationId: number,
+) {
+  const row = await db.event.findFirst({
+    where: { id: event.id, congregationId },
+    select: { status: true, startDate: true, template: { select: { key: true } } },
+  })
+  if (!row) {
+    // The caller just persisted a write referencing this event, so its
+    // disappearing here is a real race worth surfacing rather than masking.
+    logger.warn('programme link fell back to /board: event missing at resolve time', {
+      eventId: event.id,
+      templateId: event.templateId,
+      congregationId,
+    })
+    return null
+  }
+  if (row.status !== EventStatus.Released) return null
+  if (row.startDate < startOfCurrentMonth()) return null
+  return row
+}
 
 // Resolves the best-effort public URL where an assignee can view their upcoming
 // event. Preferred target is a Programme dynamic document on the board that
@@ -23,6 +57,9 @@ export async function resolveProgrammeLink(
 ): Promise<string> {
   if (event.templateId == null) return '/board'
 
+  const eventRow = await readRenderableEvent(db, event, congregationId)
+  if (!eventRow) return '/board'
+
   const candidates = await db.boardDynamicDocumentSettings.findMany({
     where: { congregationId, dynamicType: 'programme' },
     orderBy: { id: 'asc' },
@@ -39,6 +76,7 @@ export async function resolveProgrammeLink(
     hasConfigField: c.dynamicConfig != null,
   }))
 
+  const matches: { id: number; breadth: number }[] = []
   for (const { candidate, config, hasConfigField } of parsed) {
     // A non-null `dynamicConfig` that fails to parse is a data-integrity issue,
     // not a legit legacy row. Log so operators can spot it — the row would
@@ -51,8 +89,18 @@ export async function resolveProgrammeLink(
       continue
     }
     if (config?.templates.some(t => t.templateId === event.templateId)) {
-      return `/board/dynamic/${candidate.id}/viewer?eventId=${event.id}`
+      matches.push({ id: candidate.id, breadth: config.templates.length })
     }
+  }
+
+  // Several documents can hold the same event and nothing in the model says
+  // which one it belongs to. The narrowest is the likelier destination — a
+  // document built for this one programme beats a catch-all — and id breaks
+  // the remaining tie so the same event always resolves the same way. Giving a
+  // document a scope of its own is what would answer this properly.
+  if (matches.length > 0) {
+    const best = matches.sort((a, b) => a.breadth - b.breadth || a.id - b.id)[0]
+    return `/board/dynamic/${best?.id}/viewer?eventId=${event.id}`
   }
 
   // No multi-template match — fall back to legacy `dynamicRef` (template key).
@@ -61,23 +109,8 @@ export async function resolveProgrammeLink(
   const legacyCandidates = parsed.filter(p => !p.hasConfigField && p.candidate.dynamicRef != null)
   if (legacyCandidates.length === 0) return '/board'
 
-  const eventRow = await db.event.findFirst({
-    where: { id: event.id, congregationId },
-    select: { template: { select: { key: true } } },
-  })
-  const templateKey = eventRow?.template?.key
-  if (!templateKey) {
-    // Reaching this branch means the caller had `event.templateId` set but
-    // the event or its template row disappeared before we could resolve the
-    // key. Since the caller just persisted a write referencing this event,
-    // this is a real data-race worth surfacing rather than silently masking.
-    logger.warn('programme link fell back to /board: event or template missing at resolve time', {
-      eventId: event.id,
-      templateId: event.templateId,
-      congregationId,
-    })
-    return '/board'
-  }
+  const templateKey = eventRow.template?.key
+  if (!templateKey) return '/board'
 
   for (const { candidate } of legacyCandidates) {
     if (candidate.dynamicRef === templateKey) {

@@ -1,19 +1,14 @@
 // Intentional cross-feature import: dashboard aggregates data from events and the board for the overview
-import { resolveProgrammeLink } from '~/features/display-board/index.server'
+import { buildSectionVisibilityFilter, resolveProgrammeLink } from '~/features/display-board/index.server'
 import { EventStatus, EventTemplateKey } from '~/features/events'
 import { getNextDaysOffs } from '~/features/events/index.server'
-import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import { TWO_WEEKS_MS } from '~/shared/constants/limits'
 import { DASHBOARD_RECENT_ITEMS_LIMIT } from '~/shared/constants/pagination'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
-async function buildSectionVisibilityFilter(db: TransactionClient, userId: number, congregationId: number) {
-  const viewerRoleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
-  return {
-    section: {
-      OR: [{ visibilityRoles: { none: {} } }, { visibilityRoles: { some: { roleId: { in: viewerRoleIds } } } }],
-    },
-  }
+// The board owns this rule; keeping a second copy here is how the two drift.
+async function sectionVisibilityWhere(db: TransactionClient, userId: number, congregationId: number) {
+  return { section: await buildSectionVisibilityFilter(db, userId, congregationId) }
 }
 
 export type TerritoryStatus = 'on-time' | 'due-soon' | 'overdue'
@@ -60,7 +55,7 @@ export async function getRecentDocuments(db: TransactionClient, userId: number, 
       { visibleFrom: { lte: now }, visibleUntil: null },
     ],
   }
-  const sectionVisibility = await buildSectionVisibilityFilter(db, userId, congregationId)
+  const sectionVisibility = await sectionVisibilityWhere(db, userId, congregationId)
 
   const [recentPdfs, recentDynamic] = await Promise.all([
     db.boardDocument.findMany({
@@ -131,7 +126,7 @@ export async function getUnreadDocumentCount(db: TransactionClient, userId: numb
       { visibleFrom: { lte: now }, visibleUntil: null },
     ],
   }
-  const sectionVisibility = await buildSectionVisibilityFilter(db, userId, congregationId)
+  const sectionVisibility = await sectionVisibilityWhere(db, userId, congregationId)
 
   const [unreadPdfCount, unreadDynamicCount] = await Promise.all([
     db.boardDocument.count({

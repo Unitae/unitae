@@ -1,10 +1,10 @@
 import { FileText, FolderOpen, Megaphone } from 'lucide-react'
 import { Link } from 'react-router'
 import { getContentVersion, getDynamicPreview } from '~/features/display-board/server/dynamic-documents.server'
+import { buildSectionVisibilityFilter } from '~/features/display-board/server/section-visibility.server'
 import { BoardSection } from '~/features/display-board/ui/BoardSection'
 import { DocumentCard, type DocumentCardItem } from '~/features/display-board/ui/DocumentCard'
 import * as m from '~/i18n/paraglide/messages'
-import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import {
   currentAccountContext,
   permissionsContext,
@@ -46,13 +46,7 @@ export function loader({ context }: Route.LoaderArgs) {
   return withScopeFromContext(context, async db => {
     const congregationId = currentUser.congregationId
 
-    const viewerRoleIds = await resolveEffectiveRoleIds(db, currentUser.id, congregationId)
-    // Empty visibilityRoles list = visible to everyone with BoardViewer.
-    // Non-empty list = visible only when at least one of the viewer's roles intersects.
-    // No manager bypass: validators/uploaders/admins see exactly what their roles allow here.
-    const sectionVisibility = {
-      OR: [{ visibilityRoles: { none: {} } }, { visibilityRoles: { some: { roleId: { in: viewerRoleIds } } } }],
-    }
+    const sectionVisibility = await buildSectionVisibilityFilter(db, currentUser.id, congregationId)
 
     const folders = await db.boardSection.findMany({
       where: { congregationId, ...sectionVisibility },
