@@ -30,7 +30,7 @@ describe('getManagementMetrics', () => {
     expect(metrics.publishers).toBeNull()
     // Late attributions are the still-running ones past their due date.
     expect(db.attribution.count).toHaveBeenCalledWith({
-      where: { endDate: null, lateDate: { lt: NOW } },
+      where: { endDate: null, pausedAt: null, lateDate: { lt: NOW } },
     })
   })
 

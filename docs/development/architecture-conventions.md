@@ -82,7 +82,8 @@ Promote a policy to an aggregate when a third writer appears or when the rule se
 | Name | Kind | Location | Reason |
 |---|---|---|---|
 | `Member` | aggregate | `app/features/publishers/server/member.aggregate.ts` | 12 mutation sites route through it so `syncBuiltInRoleAssignments` fires after every identity-flag change |
-| `Attribution` | aggregate | `app/features/territories/server/attribution.aggregate.ts` | State machine (assigned → returned → archived) + overlap invariant (one active per publisher × territory time-window) |
+| `Attribution` | aggregate | `app/features/territories/server/attribution.aggregate.ts` | State machine (assigned → returned → archived) + layer-aware overlap invariant (one active per publisher × territory time-window, scoped regular vs campaign) + campaign-mode and occupied-territory guards; pause/resume and the bulk campaign transitions live in `attribution-pause.aggregate.ts` |
+| `Campaign` | aggregate | `app/features/territories/server/campaign.aggregate.ts` | CRUD + one-active window-overlap invariant + lifecycle stamps (`activatedAt`/`endedAt`) + delete guards (active, referenced by history); cross-aggregate start/end/scope transitions orchestrated by `campaign-lifecycle.workflow.ts` |
 | `PioneerEnrolment` | aggregate | `app/features/publishers/server/pioneer-enrolment.aggregate.ts` | Open → close lifecycle + non-overlap invariant (no two of a member's stints share a month) + end-bounds-paired invariant |
 | `EventPart` | policy | `app/features/events/server/event-part.policy.ts` | Eligibility + distinctness + day-off + external-speaker rules shared by `assignPart` and `assignServicePart` |
 

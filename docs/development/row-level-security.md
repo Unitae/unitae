@@ -74,7 +74,7 @@ The authoritative source is the set of `CREATE POLICY tenant_isolation` statemen
 
 **Tenant-scoped (RLS enforced):**
 
-Attribution, AuditLog, BoardDocument, BoardDocumentVersion, BoardDynamicDocumentSettings, BoardSection, BoardSectionVisibilityRole, Building, BuildingAccess, BuildingEntrance, BuildingResidentialData, CongregationUserPermission, ConsentRecord, DataDeletionRecord, Event, EventPart, EventPartAllowedRole, EventServicePart, EventServicePartAllowedRole, EventTemplate, ExternalSpeaker, Member, MemberRoleAssignment, NotificationEvent, NotificationPreference, PublisherActivity, PublisherGroup, Role, RolePermission, Setting, TemplatePart, TemplatePartAllowedRole, TemplateResponsible, TemplateServicePart, TemplateServicePartAllowedRole, Territory, TerritoryCardOverlay, TerritoryPerimeter, UserAccount, UserRoleAssignment.
+Attribution, AuditLog, BoardDocument, BoardDocumentVersion, BoardDynamicDocumentSettings, BoardSection, BoardSectionVisibilityRole, Building, BuildingAccess, BuildingEntrance, BuildingResidentialData, Campaign, CampaignTerritory, CongregationUserPermission, ConsentRecord, DataDeletionRecord, Event, EventPart, EventPartAllowedRole, EventServicePart, EventServicePartAllowedRole, EventTemplate, ExternalSpeaker, Member, MemberRoleAssignment, NotificationEvent, NotificationPreference, PublisherActivity, PublisherGroup, Role, RolePermission, Setting, TemplatePart, TemplatePartAllowedRole, TemplateResponsible, TemplateServicePart, TemplateServicePartAllowedRole, Territory, TerritoryCardOverlay, TerritoryPerimeter, UserAccount, UserRoleAssignment.
 
 **Global (no `congregationId`, RLS not applicable):**
 

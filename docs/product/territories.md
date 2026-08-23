@@ -25,7 +25,7 @@ The personal list shows all territories currently attributed to the member as a 
 - **Territory number** and **type badge** (color-coded)
 - **Quantity label** — e.g., *42 households*, *12 phones*, *8 businesses*
 - **Status badge** — On time / due soon / overdue
-- **Assignment type indicator** — A pill with an icon appears for *Phones* (phone icon) and *Distribution campaign* (megaphone icon) assignments, so the publisher can tell at a glance how the territory is meant to be worked. *Door to door* — the default — shows no extra indicator. This mirrors the watermark on the printed territory card.
+- **Assignment indicators** — A pill with a phone icon appears for *Phones* assignments, and an assignment that belongs to a campaign shows the **campaign's name** with a megaphone icon (see [Publishing campaigns](#publishing-campaigns)); the two are independent, so a phone assignment inside a campaign shows both. *Door to door* — the default — shows no extra indicator. This mirrors the watermark on the printed territory card.
 - **Due date** — Displayed as relative time
 - **PDF download** — Download the territory card directly from the list
 
@@ -40,7 +40,7 @@ Clicking a territory opens a detail page with two tabs:
   - PDF download button for offline use
 - **Map** — Full-width interactive Google Map with markers for each address (when configured). Shows a consent banner before loading the map. If no API key is set, a message indicates the map is unavailable. Markers use the same blue check pin as the admin views (see [Map markers](#map-markers)).
 
-Assignment info (start date, return date with relative time, status, and the assignment-type pill for *Phones* / *Distribution campaign*) is shown above the tabs.
+Assignment info (start date, return date with relative time, status, the *Phones* method pill and the campaign-name pill when applicable) is shown above the tabs.
 
 Members only ever see territories they currently have an active assignment for.
 

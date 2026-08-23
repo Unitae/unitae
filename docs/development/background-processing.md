@@ -2,7 +2,7 @@
 
 ## Overview
 
-Unitae uses a Redis-based background job processing system built on **BullMQ**. A single multi-queue worker process handles five job types: territory data sync, email notifications, PDF thumbnail generation, data transfer (export/import), and data retention (daily auto-anonymisation). Jobs carry `congregationId` to maintain tenant isolation.
+Unitae uses a Redis-based background job processing system built on **BullMQ**. A single multi-queue worker process handles six job types: territory data sync, email notifications, PDF thumbnail generation, data transfer (export/import), data retention (daily auto-anonymisation), and the campaign lifecycle (daily date-driven activation/end of publishing campaigns). Jobs carry `congregationId` to maintain tenant isolation.
 
 ## Architecture
 
@@ -41,6 +41,7 @@ export const QUEUE_NAMES = {
   thumbnail: 'thumbnailQueue',
   dataTransfer: 'dataTransferQueue',
   retention: 'retentionQueue',
+  campaign: 'campaignQueue',
 } as const
 ```
 
@@ -112,6 +113,20 @@ Runs the daily data-retention sweep that auto-anonymises members who left the co
 
 This is distinct from the `/cron/retention` HTTP endpoint (expired-token / withdrawn-consent cleanup), which is triggered by an external scheduler — see [Cron Jobs](../self-hosting/cron-jobs.md).
 
+### Campaign Lifecycle Queue
+
+Runs the daily date-driven pass over publishing campaigns: activates campaigns whose start day has
+arrived and ends campaigns whose inclusive end date is fully past, applying each campaign's
+configured start/end transitions (pause/close regular attributions, auto-reassign, auto-close
+campaign attributions, resume).
+
+- **Producer**: `app/features/territories/server/campaign-queue.server.ts`
+- **Handler**: `app/features/territories/jobs/handle-campaign-lifecycle-work.server.ts`
+- **Concurrency**: 1
+- **Retries**: None (1 attempt only — transitions are idempotent and the next tick converges)
+- **Schedule**: A repeating job registered at worker startup via `campaignQueue.upsertJobScheduler('campaign-lifecycle-daily', { pattern: '0 <CAMPAIGN_CRON_HOUR_UTC> * * *', tz: 'UTC' })` — daily at 02:00 UTC by default, deliberately an hour before the retention sweep. The worker also enqueues one catch-up sweep at boot so a worker that was down over a start/end date converges immediately.
+- **Behaviour**: Iterates every active congregation with per-tenant error isolation and runs `runCampaignLifecycleSweep`, which delegates to the campaign lifecycle workflow (`campaign-lifecycle.workflow.ts`) as a synthetic system actor. Saving a campaign create/edit form also runs the sweep inline for that congregation, so a campaign that is already due activates without waiting for the cron.
+
 ## Worker Locale Support
 
 Background emails must render in the congregation's language. The worker uses `AsyncLocalStorage` via `app/shared/utils/worker-locale.server.ts`:
@@ -130,7 +145,7 @@ This module is imported at the top of `workers/worker.server.ts` before any hand
 
 ## Worker Health & Lifecycle
 
-The unified worker (`workers/worker.server.ts`) manages all five queue workers:
+The unified worker (`workers/worker.server.ts`) manages all six queue workers:
 
 - **Health endpoint**: HTTP server on port `UNITAE_WORKER_HEALTH_PORT` (default 9090)
 - **Ready check**: Returns 200 only when ALL workers have fired `ready` and none are closing
