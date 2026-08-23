@@ -2789,7 +2789,7 @@
     "campaigns_preview_start_pause": "ongoing regular attributions (in scope) will be paused",
     "campaigns_preview_start_reassign": "each paused publisher gets a campaign attribution on their territory",
     "campaigns_preview_start_close": "ongoing regular attributions (in scope) will be closed",
-    "campaigns_preview_start_leave": "regular attributions stay active in parallel",
+    "campaigns_preview_start_leave": "ongoing regular attributions keep running; their territories stay outside the campaign",
     "campaigns_preview_end_close_campaign": "still-open campaign attributions will be closed",
     "campaigns_preview_end_leave_open": "campaign attributions stay open (manual close)",
     "campaigns_preview_end_resume": "attributions paused by the campaign resume (due date shifted)",
@@ -2842,11 +2842,12 @@
     "campaigns_table_scope": "Scope",
     "campaigns_table_status": "Status",
     "campaigns_form_start_locked_hint": "The campaign has already started: the start date and start options can no longer be changed.",
-    "campaigns_form_start_action_pause_desc": "Paused during the campaign: the publisher keeps the territory, its due date is frozen.",
-    "campaigns_form_start_action_close_desc": "Returned immediately: after the campaign the rotation starts from scratch.",
-    "campaigns_form_start_action_leave_desc": "They keep running in parallel — regular work and the campaign will share the same territories.",
+    "campaigns_form_start_action_pause_desc": "Paused: the publisher keeps the territory, its due date is frozen, and the territory can be re-assigned within the campaign.",
+    "campaigns_form_start_action_close_desc": "Returned immediately: the territory can be re-assigned within the campaign, then the rotation starts from scratch.",
+    "campaigns_form_start_action_leave_desc": "Publishers keep working them; these territories will not be re-assigned during the campaign.",
     "campaigns_form_end_action_resume_desc": "Each publisher gets their territory back, with the due date shifted by the paused time.",
     "campaigns_form_end_action_keep_desc": "To be resumed manually, territory by territory, via the “Resume” action.",
     "campaigns_form_end_action_close_desc": "Returned for good — the territories will go into rest.",
-    "campaigns_form_dates_length_hint": "Campaign length: {days} days."
+    "campaigns_form_dates_length_hint": "Campaign length: {days} days.",
+    "attributions_territory_occupied_error": "This territory is already being worked — it stays outside the campaign."
 }

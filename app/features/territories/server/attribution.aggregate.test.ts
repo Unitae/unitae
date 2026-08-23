@@ -169,6 +169,28 @@ describe('assign — campaign mode guard', () => {
   })
 })
 
+describe('assign — occupied territories stay out of the campaign', () => {
+  it('rejects a campaign assignment when the territory has an open, unpaused attribution', async () => {
+    vi.mocked(getActiveCampaign).mockResolvedValue(activeCampaign as never)
+    mockDb.attribution.findFirst.mockResolvedValue({ id: 99 } as never)
+
+    await expect(aggregate.assign(mockDb as never, { ...baseAssign, campaignId: 5 })).rejects.toThrow(
+      'territory_occupied',
+    )
+    const where = mockDb.attribution.findFirst.mock.calls[0][0].where
+    expect(where).toMatchObject({ territoryId: 2, endDate: null, pausedAt: null })
+    expect(mockDb.attribution.create).not.toHaveBeenCalled()
+  })
+
+  it('allows a campaign assignment when the regular attribution is paused', async () => {
+    vi.mocked(getActiveCampaign).mockResolvedValue(activeCampaign as never)
+    mockDb.attribution.findFirst.mockResolvedValue(null as never)
+
+    await aggregate.assign(mockDb as never, { ...baseAssign, campaignId: 5 })
+    expect(mockDb.attribution.create).toHaveBeenCalled()
+  })
+})
+
 describe('assign — campaign due date', () => {
   const localDate = new Date(2026, 2, 15)
   const plusDays = (n: number) => {

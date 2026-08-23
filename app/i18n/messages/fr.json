@@ -2789,7 +2789,7 @@
     "campaigns_preview_start_pause": "les attributions régulières en cours (dans la portée) seront suspendues",
     "campaigns_preview_start_reassign": "chaque proclamateur suspendu recevra une attribution de campagne sur son territoire",
     "campaigns_preview_start_close": "les attributions régulières en cours (dans la portée) seront clôturées",
-    "campaigns_preview_start_leave": "les attributions régulières restent actives en parallèle",
+    "campaigns_preview_start_leave": "les attributions régulières en cours continuent ; leurs territoires resteront hors campagne",
     "campaigns_preview_end_close_campaign": "les attributions de campagne encore ouvertes seront clôturées",
     "campaigns_preview_end_leave_open": "les attributions de campagne resteront ouvertes (clôture manuelle)",
     "campaigns_preview_end_resume": "les attributions suspendues par la campagne reprendront (échéance décalée)",
@@ -2842,11 +2842,12 @@
     "campaigns_table_scope": "Portée",
     "campaigns_table_status": "Statut",
     "campaigns_form_start_locked_hint": "La campagne a déjà démarré : la date et les options de démarrage ne sont plus modifiables.",
-    "campaigns_form_start_action_pause_desc": "Mises en pause pendant la campagne : le proclamateur garde son territoire, l’échéance est gelée.",
-    "campaigns_form_start_action_close_desc": "Rendues immédiatement : après la campagne, la rotation repart de zéro.",
-    "campaigns_form_start_action_leave_desc": "Elles continuent en parallèle — le travail régulier et la campagne se dérouleront sur les mêmes territoires.",
+    "campaigns_form_start_action_pause_desc": "Mises en pause : le proclamateur garde son territoire, l’échéance est gelée, et le territoire peut être réattribué dans la campagne.",
+    "campaigns_form_start_action_close_desc": "Rendues immédiatement : le territoire peut être réattribué dans la campagne, puis la rotation repart de zéro.",
+    "campaigns_form_start_action_leave_desc": "Les proclamateurs continuent de les travailler ; ces territoires ne seront pas réattribués pendant la campagne.",
     "campaigns_form_end_action_resume_desc": "Chaque proclamateur retrouve son territoire, avec une échéance décalée du temps de pause.",
     "campaigns_form_end_action_keep_desc": "À reprendre manuellement, territoire par territoire, via l’action « Reprendre ».",
     "campaigns_form_end_action_close_desc": "Rendues définitivement — les territoires passeront en repos.",
-    "campaigns_form_dates_length_hint": "Durée de la campagne : {days} jours."
+    "campaigns_form_dates_length_hint": "Durée de la campagne : {days} jours.",
+    "attributions_territory_occupied_error": "Ce territoire est déjà en cours de travail — il reste hors campagne."
 }

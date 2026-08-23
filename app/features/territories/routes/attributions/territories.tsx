@@ -61,14 +61,14 @@ export function loader({ request, context }: Route.LoaderArgs) {
   return withScopeFromContext(context, async db => {
     const url = new URL(request.url)
     const selectors = computeFilters(url.searchParams)
-    // Layer-aware availability: while a campaign is active, only campaign
-    // attributions can be created, so a territory is taken only if it already
-    // has an open attribution in *that* campaign; otherwise only an open
-    // regular attribution blocks it (campaign work coexists with regular).
+    // While a campaign is active a territory is assignable (into the
+    // campaign) only when nobody actively works it: any open, unpaused
+    // attribution blocks it — paused regulars and returned ones don't.
+    // Outside a campaign, only an open regular attribution blocks.
     const activeCampaign = await getActiveCampaign(db, congregationId)
     selectors.attributions =
       activeCampaign != null
-        ? { none: { endDate: null, campaignId: activeCampaign.id } }
+        ? { none: { endDate: null, pausedAt: null } }
         : { none: { endDate: null, campaignId: null } }
 
     const search = url.searchParams.get('search') ?? ''

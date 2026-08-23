@@ -246,6 +246,9 @@ export async function action({ request, context }: Route.ActionArgs) {
       if (err instanceof ConflictError && err.message === 'campaign_not_active') {
         return data(submission.reply({ formErrors: [m.attributions_campaign_not_active_error()] }), { status: 409 })
       }
+      if (err instanceof ConflictError && err.message === 'territory_occupied') {
+        return data(submission.reply({ formErrors: [m.attributions_territory_occupied_error()] }), { status: 409 })
+      }
       throw err
     }
   })

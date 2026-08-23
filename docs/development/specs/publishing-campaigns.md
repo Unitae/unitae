@@ -27,6 +27,13 @@
 > `KeepPaused` to be usable at all), and **day-granular end semantics** (`endDate` is inclusive).
 > §12.5 (manual vs. auto end) and the §5.3 module-wide block are now **resolved by the author**.
 
+> **Occupied territories stay out of the campaign (author, 2026-08-23).** §5.2's original
+> "regular ↔ campaign never conflict" is narrowed: a territory with an **open, unpaused** attribution
+> cannot receive a campaign assignment (`ConflictError('territory_occupied')`; the campaign availability
+> picker blocks on `none: { endDate: null, pausedAt: null }`). Paused and returned attributions free the
+> territory, so `Pause`/`Close` behave as before — but « Laisser hors campagne » now means exactly that:
+> actively worked territories are not re-assigned during the campaign.
+
 > **Rework (author, 2026-08-23).** `Campaign.durationDays` and the `CampaignDefaultDurationDays`
 > setting were dropped as redundant: with `endCloseCampaign` on, the campaign window already bounds
 > the work, so a campaign attribution is simply **due when the campaign closes** (`lateDate` = the day

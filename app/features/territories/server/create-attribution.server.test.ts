@@ -9,8 +9,9 @@ vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn()
 vi.mock('./campaign.queries', () => ({ getActiveCampaign: vi.fn() }))
 
 const mockDb = {
-  // aggregate.assign runs _assertNoActiveOverlap which calls findMany.
-  attribution: { create: vi.fn(), findMany: vi.fn() },
+  // aggregate.assign runs _assertNoActiveOverlap (findMany) and the
+  // occupied-territory guard for campaign assignments (findFirst).
+  attribution: { create: vi.fn(), findMany: vi.fn(), findFirst: vi.fn() },
   territory: { findUniqueOrThrow: vi.fn() },
 }
 
@@ -42,6 +43,7 @@ beforeEach(() => {
   vi.mocked(getActiveCampaign).mockResolvedValue(null as never)
   mockDb.attribution.create.mockResolvedValue({} as never)
   mockDb.attribution.findMany.mockResolvedValue([])
+  mockDb.attribution.findFirst.mockResolvedValue(null as never)
   mockDb.territory.findUniqueOrThrow.mockResolvedValue({ type: TerritoryKind.Classical } as never)
 })
 

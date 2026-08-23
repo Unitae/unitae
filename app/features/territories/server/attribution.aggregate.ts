@@ -128,6 +128,17 @@ export async function assign(db: TransactionClient, params: CreateAttributionPar
     where: { id_congregationId: { id: params.territoryId, congregationId: params.congregationId } },
   })
 
+  // A territory being actively worked stays out of the campaign: only a
+  // paused (or returned) attribution frees it for campaign assignment. This
+  // is what makes « Laisser hors campagne » mean exactly that.
+  if (campaignId != null) {
+    const occupied = await db.attribution.findFirst({
+      where: { congregationId: params.congregationId, territoryId: params.territoryId, endDate: null, pausedAt: null },
+      select: { id: true },
+    })
+    if (occupied != null) throw new ConflictError('territory_occupied')
+  }
+
   const startDate = parseLocalDate(params.startDate)
   let lateDate: Date
   if (campaignId != null && activeCampaign != null && activeCampaign.endCloseCampaign) {
