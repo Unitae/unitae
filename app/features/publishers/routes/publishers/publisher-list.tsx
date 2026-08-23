@@ -154,12 +154,7 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
         }
       />
 
-      <PublisherListFilters
-        groups={groups}
-        selectedGroupIds={selectedGroupIds}
-        selectedType={selectedType}
-        hasActiveFilters={hasActiveFilters}
-      />
+      <PublisherListFilters groups={groups} selectedGroupIds={selectedGroupIds} selectedType={selectedType} />
 
       {users.length < 1 ? (
         <EmptyState

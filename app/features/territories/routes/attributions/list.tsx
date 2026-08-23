@@ -7,7 +7,6 @@ import { computeFilters } from '~/features/territories/server/attribution-filter
 import { findActiveAttributionsPaginated } from '~/features/territories/server/attributions.server'
 import { classifySearch } from '~/features/territories/server/search-intent.server'
 import { getCurrentTheocraticYear } from '~/features/territories/server/theocratic-year.server'
-import ActiveTerritoryFilters from '~/features/territories/ui/ActiveTerritoryFilters'
 import AttributionFilters from '~/features/territories/ui/AttributionFilters'
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import { buildAttributionFilterChips } from '~/features/territories/ui/build-filter-chips'
@@ -24,6 +23,7 @@ import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
+import { FilterChipBar } from '~/shared/ui/filters/FilterChipBar'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
 import S13ExportButton from '~/shared/ui/S13ExportButton'
@@ -193,7 +193,7 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
           }
         />
 
-        <ActiveTerritoryFilters chips={chips} />
+        <FilterChipBar chips={chips} />
         <GeocodeNotice notice={geocodeNotice} />
         <AttributionFilters groups={groups} phoneTypeActive={phoneTypeActive} />
 
@@ -224,7 +224,7 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
         }
       />
 
-      <ActiveTerritoryFilters chips={chips} />
+      <FilterChipBar chips={chips} />
       <GeocodeNotice notice={geocodeNotice} />
       {geocodeResult != null && <ProximityBanner geocode={geocodeResult} />}
       <AttributionFilters

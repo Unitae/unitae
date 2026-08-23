@@ -1,9 +1,8 @@
-import { X } from 'lucide-react'
 import { useSearchParams } from 'react-router'
 import { PublisherGroupFilter, type PublisherGroupOption } from '~/features/publishers/ui/PublisherGroupFilter'
 import * as m from '~/i18n/paraglide/messages'
 import { PublisherType } from '~/shared/types/publisher-type'
-import { Button } from '~/shared/ui/button'
+import { FilterBar } from '~/shared/ui/filters/FilterBar'
 import { SearchInput } from '~/shared/ui/SearchInput'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 
@@ -13,15 +12,9 @@ interface PublisherListFiltersProps {
   groups: PublisherGroupOption[]
   selectedGroupIds: number[]
   selectedType: PublisherType | 'all'
-  hasActiveFilters: boolean
 }
 
-export function PublisherListFilters({
-  groups,
-  selectedGroupIds,
-  selectedType,
-  hasActiveFilters,
-}: PublisherListFiltersProps) {
+export function PublisherListFilters({ groups, selectedGroupIds, selectedType }: PublisherListFiltersProps) {
   const [, setSearchParams] = useSearchParams()
 
   const setType = (next: PublisherType | 'all') => {
@@ -35,18 +28,8 @@ export function PublisherListFilters({
     )
   }
 
-  const clearAll = () => {
-    setSearchParams(
-      prev => {
-        for (const name of PUBLISHER_LIST_FILTER_PARAM_NAMES) prev.delete(name)
-        return prev
-      },
-      { replace: true },
-    )
-  }
-
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <FilterBar paramNames={PUBLISHER_LIST_FILTER_PARAM_NAMES}>
       <div className="min-w-[220px] flex-1">
         <SearchInput paramName="q" placeholder={m.publishers_search_placeholder()} />
       </div>
@@ -68,13 +51,6 @@ export function PublisherListFilters({
           <SelectItem value={PublisherType.Missionnaire}>{m.activity_filters_type_missionary()}</SelectItem>
         </SelectContent>
       </Select>
-
-      {hasActiveFilters && (
-        <Button variant="ghost" size="sm" onClick={clearAll}>
-          <X className="size-3.5" />
-          {m.activity_filters_clear()}
-        </Button>
-      )}
-    </div>
+    </FilterBar>
   )
 }

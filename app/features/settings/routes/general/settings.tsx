@@ -18,6 +18,7 @@ import { unscopedDb } from '~/shared/infra/db.server'
 import { type BreachedPasswordCheckScope, CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Permission } from '~/shared/types/permission'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { FormActions } from '~/shared/ui/FormActions'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
@@ -200,7 +201,9 @@ export default function GeneralSettingsPage({ loaderData, actionData }: Route.Co
           </Card>
         )}
 
-        <SubmitButton>{m.common_save()}</SubmitButton>
+        <FormActions>
+          <SubmitButton>{m.common_save()}</SubmitButton>
+        </FormActions>
       </Form>
     </div>
   )

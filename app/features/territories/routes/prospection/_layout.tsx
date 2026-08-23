@@ -2,7 +2,6 @@ import { Map as MapIcon, RefreshCw } from 'lucide-react'
 import { Form, Link, NavLink, Outlet, redirect, useSearchParams } from 'react-router'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { getZips } from '~/features/territories/server/buildings.server'
-import ActiveTerritoryFilters from '~/features/territories/ui/ActiveTerritoryFilters'
 import { buildTerritoryFilterChips } from '~/features/territories/ui/build-filter-chips'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/i18n/paraglide/messages'
@@ -11,6 +10,7 @@ import { getSetting } from '~/shared/domain/settings.server'
 import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
+import { FilterChipBar } from '~/shared/ui/filters/FilterChipBar'
 import { PageHeader } from '~/shared/ui/PageHeader'
 
 import type { Route } from './+types/_layout'
@@ -237,7 +237,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
         )}
       </div>
 
-      <ActiveTerritoryFilters chips={chips} />
+      <FilterChipBar chips={chips} />
       <TerritoryFilters
         action="/territories/buildings/all"
         zips={zips}

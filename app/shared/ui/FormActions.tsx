@@ -6,20 +6,26 @@ interface FormActionsProps {
 }
 
 /**
- * Footer for form pages: on phones the actions stick to the bottom of the
- * viewport above the keyboard-safe area so "Enregistrer" is always reachable;
- * on larger screens they sit inline after the form sections, matching the
- * existing layout.
+ * Footer for form pages: on phones the actions dock above the bottom tab bar
+ * so "Enregistrer" is always reachable; on larger screens they sit inline
+ * after the form sections, matching the existing layout.
+ *
+ * Fixed rather than sticky — the app shell's overflow-x-hidden content
+ * wrapper would swallow a sticky element (it becomes the sticky containment
+ * root while the document does the scrolling).
  */
 export function FormActions({ children, className }: FormActionsProps) {
   return (
-    <div
-      className={cn(
-        'max-sm:-mx-4 flex items-center gap-2 max-sm:sticky max-sm:bottom-0 max-sm:z-10 max-sm:border-t max-sm:bg-background/85 max-sm:px-4 max-sm:pt-3 max-sm:pb-[max(env(safe-area-inset-bottom),0.75rem)] max-sm:backdrop-blur-sm',
-        className,
-      )}
-    >
-      {children}
-    </div>
+    <>
+      <div
+        className={cn(
+          'flex items-center gap-2 max-sm:fixed max-sm:inset-x-0 max-sm:bottom-[calc(3.5rem+env(safe-area-inset-bottom))] max-sm:z-20 max-sm:border-t max-sm:bg-background/85 max-sm:px-4 max-sm:py-2.5 max-sm:backdrop-blur-sm',
+          className,
+        )}
+      >
+        {children}
+      </div>
+      <div aria-hidden className="h-14 sm:hidden" />
+    </>
   )
 }
