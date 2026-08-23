@@ -1,6 +1,6 @@
 # Spec: Publishing Campaigns — first-class, configurable campaign mode
 
-**Status:** Draft — design agreed with author; not yet implemented
+**Status:** Accepted (2026-08-23) — all §12 decisions resolved; implementation starting
 **Author:** Nathanaël Cherrier
 **Feature area:** `features/territories` (attributions, new `Campaign` aggregate) + a scheduled lifecycle job + territories-scoped UI
 **Related:** [Architecture Conventions](../architecture-conventions.md), [Row-Level Security](../row-level-security.md), [Background Processing](../background-processing.md), [Permissions & Roles](../permissions-and-roles.md)
@@ -15,6 +15,17 @@
 > banner mirrors the existing `app/shared/ui/OfflineBanner.tsx`. Two review findings touch decisions the
 > author already made — **manual vs. auto end** and whether **"one active" should block *scheduling*
 > future campaigns** — and are carried to §12 as author decisions, **not** applied.
+
+> **Re-verification (2026-08-23).** Re-checked against `main` after the UI refresh (#358). The badge
+> variants, `OfflineBanner`, the availability picker and the route-config anchor points all still hold,
+> but two things moved: **« Mes territoires » now lives at `/me/territories`** (under the `me` layout,
+> outside the territories section layout) and **navigation is centralized in
+> `app/shared/ui/navigation-config.ts`** — §5.6 and §9 are re-anchored accordingly. Four design gaps
+> were fixed: a **`pausedByCampaignId`** column (without it, "resume what *this* campaign paused" is
+> unimplementable and a `KeepPaused` leftover from an earlier campaign would be wrongly resumed),
+> **compound tenant-safe FKs** for the new relations, a **manual resume action** (required for
+> `KeepPaused` to be usable at all), and **day-granular end semantics** (`endDate` is inclusive).
+> §12.5 (manual vs. auto end) and the §5.3 module-wide block are now **resolved by the author**.
 
 ## 1. Problem
 
@@ -154,8 +165,9 @@ model Campaign {
   activatedAt DateTime?
   endedAt     DateTime?
 
-  attributions Attribution[]
-  scope        CampaignTerritory[]
+  attributions       Attribution[]       @relation("campaignAttributions")
+  pausedAttributions Attribution[]       @relation("pausedAttributions")
+  scope              CampaignTerritory[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -175,9 +187,9 @@ RLS-scoped — use an explicit model, consistent with the rest of the schema):
 
 ```prisma
 model CampaignTerritory {
-  campaign   Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaign   Campaign  @relation(fields: [campaignId, congregationId], references: [id, congregationId], onDelete: Cascade)
   campaignId Int
-  territory  Territory @relation(fields: [territoryId], references: [id], onDelete: Cascade)
+  territory  Territory @relation(fields: [territoryId, congregationId], references: [id, congregationId], onDelete: Cascade)
   territoryId Int
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
@@ -192,11 +204,18 @@ model CampaignTerritory {
 ```prisma
 model Attribution {
   // ... existing fields, with `type` now { Default, Phone } ...
-  campaign   Campaign? @relation(fields: [campaignId], references: [id])
+  campaign   Campaign? @relation("campaignAttributions", fields: [campaignId, congregationId], references: [id, congregationId])
   campaignId Int?
   pausedAt   DateTime?     // paused: still open (endDate = null) but inactive; overdue clock frozen
+  pausedByCampaign   Campaign? @relation("pausedAttributions", fields: [pausedByCampaignId, congregationId], references: [id, congregationId])
+  pausedByCampaignId Int?     // which campaign paused it — end/scope-remove transitions target exactly these rows
 }
 ```
+
+Every new FK is a **compound tenant-safe FK** (`references: [id, congregationId]`, the convention already
+used elsewhere in the schema — `Campaign` and `Territory` both carry `@@unique([id, congregationId])`), so
+an attribution or scope row can never point at another congregation's campaign or territory, even below
+RLS. A nullable `campaignId`/`pausedByCampaignId` simply skips the check (`MATCH SIMPLE`).
 
 **`TerritoryAttributionKind`** loses `Campaign` → `{ Default, Phone }`. New `TerritorySettingKey`:
 `CampaignDefaultDurationDays` (fallback when `Campaign.durationDays` is null; keeps the legacy
@@ -236,6 +255,8 @@ even if the job is mid-run). While on, **regardless of scope**:
 - Campaign attributions may be created only **for the active campaign**.
 - The **scope only limits the automatic transitions** (§5.4) — out-of-scope territories' existing regular
   attributions are left untouched by the job, but new regular attributions are still blocked module-wide.
+  *(Re-challenged and re-confirmed by the author on 2026-08-23: campaign mode stays a single binary
+  switch; a scope-aware block is deliberately out of v1.)*
 
 A `getActiveCampaign(db, congregationId)` query (returns the single active campaign or `null`) is the one
 source of truth the aggregate, the routes, and the banner all read.
@@ -247,7 +268,8 @@ Applied to **scoped territories** (or all, if scope empty). Each action is indiv
 **At `startDate`** (campaign activates; stamp `activatedAt`):
 
 - `startRegularAction`:
-  - `Pause` (default) → set `pausedAt` on open regular attributions in scope; freeze their overdue clock.
+  - `Pause` (default) → set `pausedAt` **and `pausedByCampaignId`** on open regular attributions in
+    scope; freeze their overdue clock.
   - `Close` → set `endDate` (return them) before the campaign begins.
   - `Leave` → leave them open and active (they coexist — scenario 1, "regular work also counts").
 - `startAutoReassign` (only meaningful with `Pause`): additionally create a **campaign attribution** for
@@ -256,10 +278,13 @@ Applied to **scoped territories** (or all, if scope empty). Each action is indiv
 **At `endDate`** (campaign ends; stamp `endedAt`):
 
 - `endCloseCampaign` (default true) → set `endDate` on all still-open campaign attributions.
-- `endRegularAction` (applies to attributions paused *by this campaign*):
-  - `Resume` (default) → clear `pausedAt`; extend `lateDate` by the paused duration so no publisher is
-    retroactively "late" for the campaign window.
-  - `KeepPaused` → leave `pausedAt` set (the territory service handles them manually).
+- `endRegularAction` (applies to attributions with `pausedByCampaignId = campaign.id` — `pausedAt` alone
+  cannot say *which* campaign paused a row, and a `KeepPaused` leftover from an earlier campaign must
+  never be resumed by the next campaign's end):
+  - `Resume` (default) → clear `pausedAt`/`pausedByCampaignId`; extend `lateDate` by the paused duration
+    so no publisher is retroactively "late" for the campaign window.
+  - `KeepPaused` → leave `pausedAt`/`pausedByCampaignId` set; the territory service releases them via the
+    **manual resume action** (below) or by closing them.
   - `Close` → set `endDate`.
 
 **Mid-campaign scope edits** ("the scope might change during the campaign"): adding a territory to the
@@ -272,6 +297,11 @@ overdue/late computations, and its `lateDate` is shifted on resume by the elapse
 regulars still occupy the regular layer for overlap purposes (you can't create a second regular
 attribution on a territory whose regular attribution is merely paused).
 
+**Manual resume** (new — without it `KeepPaused` is a dead end): a paused attribution exposes a
+manager-gated **« Reprendre »** action (`attributions/:attributionId/resume`) that clears
+`pausedAt`/`pausedByCampaignId` and shifts `lateDate` by the elapsed paused time — the same aggregate
+operation the `Resume` end transition uses; audited as `AttributionResumed`.
+
 ### 5.5 Scheduled job
 
 A daily BullMQ scheduler mirroring the retention cron:
@@ -281,8 +311,10 @@ A daily BullMQ scheduler mirroring the retention cron:
   `worker.server.ts` via `upsertJobScheduler('campaign-lifecycle-daily', { pattern: '0 H * * *', tz:'UTC' }, …)`
   under a new `CAMPAIGN_CRON_HOUR_UTC` constant.
 - Sweep: `unscopedDb` list of active congregations → `withScope(cong.id, …)` → for each, activate
-  campaigns whose `startDate <= now && activatedAt == null`, and end campaigns whose
-  `endDate <= now && endedAt == null`. Transitions run inside the aggregate, are **idempotent** (guarded
+  campaigns whose `startDate <= today && activatedAt == null`, and end campaigns whose
+  `endDate < today && endedAt == null` — `today` being the current date in the congregation's timezone.
+  **`endDate` is inclusive** (the last day the campaign runs, matching the banner's « 15 janv. –
+  1er mars »), so the end transition runs on the morning *after* `endDate`. Transitions run inside the aggregate, are **idempotent** (guarded
   by `activatedAt`/`endedAt`), and per-congregation errors are logged and swallowed (one tenant's failure
   never stops the sweep).
 - The transition logic lives in the campaign aggregate/workflow and is unit-tested directly; the job is a
@@ -297,8 +329,11 @@ pattern cover every need below). French copy is source of truth; English glosses
 
 #### Campaign-mode banner (territories pages only)
 
-Scoped to the **territories section layout outlet** (rendered above `PageHeader` on the territories list,
-attributions list, my-territories), **not** the global authenticated layout — campaign mode only affects
+Rendered in two places, **not** the global authenticated layout: above `PageHeader` in the **territories
+section layout outlet** (`features/territories/routes/_layout.tsx` — territories list, attributions, stats)
+and directly on the **`/me/territories` list route** (`routes/my-territories/list.tsx`), which since the
+UI refresh lives under the `me` layout, outside the territories section — and is precisely the page the
+publisher copy points at — campaign mode only affects
 this module, and showing it everywhere dilutes the signal. Reads the same `getActiveCampaign` state as the
 enforcement layer (no extra query). Visual mirrors `OfflineBanner`, using the **amber `warning`** register
 (a mode change, not an error — `destructive` red would over-alarm), with the `Megaphone` icon:
@@ -317,7 +352,10 @@ bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200   (matches 
 - **Scheduled-but-not-started** — softer **`info`** (blue) register, `Calendar` icon, not the amber "active"
   banner: *« Campagne à venir : "…" débute le 15 janv. Elle suspendra les attributions régulières. »*
 
-Dismissal is **client-side only** (`localStorage` per `campaignId`) and re-appears on reload — it's a
+The date range in the manager copy doubles as the **auto-end warning** — the end date is always visible,
+so the date-driven close (§12.5, resolved) is never a surprise; there is no separate « se termine
+demain » banner state in v1. Dismissal is **client-side only** (`localStorage` per `campaignId`) and
+re-appears on reload — it's a
 contextual reminder, not a preference. Banner copy stays generic re: scope in v1 (open question §12.1).
 
 #### Attribution `new` flow while campaign mode is active
@@ -351,8 +389,11 @@ Lives under the existing territories layout (`features/territories/routes/_layou
 `campaigns/` prefix in `territory-management.routes.ts`, alongside `attributions/`:
 `territories/campaigns` (index/list), `campaigns/new`, `campaigns/:campaignId/edit`,
 `campaigns/:campaignId` (detail/view — hosts the end-campaign action and the lifecycle preview),
-`campaigns/:campaignId/delete`. A **"Campagnes"** entry is added to the territories navigation (same
-`TerritoriesManager` gate). The `_layout.tsx` outlet is also where `CampaignModeBanner` renders (§5.6
+`campaigns/:campaignId/delete`. A **"Campagnes"** entry is added to the territories section of
+`app/shared/ui/navigation-config.ts` (the UI refresh centralized navigation there — sidebar, bottom tab
+bar and « Plus » sheet all derive from it), gated on `TerritoriesManager` like its siblings; the
+territories item's `exclude` list gains `'/territories/campaigns'` so campaign pages don't highlight the
+« Territoires » entry. The `_layout.tsx` outlet is also where `CampaignModeBanner` renders (§5.6
 banner) so it shows across every territories page.
 
 - **List** — a responsive **card grid** (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`) over `Card`; each
@@ -430,7 +471,8 @@ Reuses existing values — campaign management is gated by **`Permission.Territo
 
 ## 9. Data & code changes (summary)
 
-**Schema:** `Campaign`, `CampaignTerritory`, two enums; `Attribution.campaignId`/`pausedAt`;
+**Schema:** `Campaign`, `CampaignTerritory`, two enums; `Attribution.campaignId`/`pausedAt`/
+`pausedByCampaignId` (compound tenant-safe FKs);
 `TerritoryAttributionKind` → `{ Default, Phone }`; new setting key; RLS for the two new tables; data
 migration (§6).
 
@@ -441,7 +483,8 @@ that back the form/scope-editor consequence displays), `campaign-lifecycle.workf
 `schemas/campaign.schema.ts`, `jobs/handle-campaign-lifecycle-work.server.ts`,
 `server/campaign-queue.server.ts`, campaign CRUD routes under a new `campaigns/` prefix in
 `territory-management.routes.ts` (`campaigns` list, `campaigns/new`, `campaigns/:campaignId` detail +
-end-action, `campaigns/:campaignId/edit`, `campaigns/:campaignId/delete`) + UI (`CampaignForm`,
+end-action, `campaigns/:campaignId/edit`, `campaigns/:campaignId/delete`), an `attributions/:attributionId/resume`
+action route + UI (`CampaignForm`,
 `CampaignScopeEditor`, `CampaignStatusBadge`, `CampaignModeBanner`), and a "Campagnes" territories-nav
 entry. New i18n keys in `app/i18n/messages/{fr,en}.json` (French is
 source of truth): campaign labels, the four options + inline help + defaults, permission-aware banner copy,
@@ -451,7 +494,9 @@ filter labels (`attributions_filter_campaign*`, `attributions_filter_paused*`).
 **Modify:** `attribution.aggregate.ts` (layer-aware overlap, campaign-mode guard, duration via campaign),
 `attribution.schema.ts` + `new`/`edit` routes (method radio, campaign-mode handling),
 `attribution-filters.server.ts`, `AttributionKindBadge.tsx`, `available-territories.server.ts`,
-`resting-territories.server.ts`, `my-territories.server.ts` (hide paused), the stats family + `s13-export`,
+`resting-territories.server.ts`, `my-territories.server.ts` (hide paused), `routes/my-territories/list.tsx` (render `CampaignModeBanner`),
+`shared/ui/navigation-config.ts` (« Campagnes » entry + territories `exclude`), the stats family +
+`s13-export`,
 `queues.server.ts`, `worker.server.ts`, `shared/constants/limits.ts` (`CAMPAIGN_CRON_HOUR_UTC`),
 `territory-setting-key.ts`, both features' `index.ts`/`index.server.ts` barrels. Copy `schema.prisma` +
 `prisma generate` in the control-plane repo.
@@ -475,7 +520,10 @@ filter labels (`attributions_filter_campaign*`, `attributions_filter_paused*`).
   Cover: layer-scoped overlap (regular↔campaign coexist; same-campaign conflict), one-active invariant,
   each `startRegularAction`/`endRegularAction` branch, `startAutoReassign`, `endCloseCampaign`, pause
   clock-freeze/resume `lateDate` shift, campaign-mode creation guard, scoped vs unscoped transitions,
-  mid-campaign scope add/remove. Aim for 100% branch coverage of the `_assert*` helpers.
+  mid-campaign scope add/remove, the manual resume action (`pausedAt`/`pausedByCampaignId` cleared,
+  `lateDate` shift), and that end transitions only touch `pausedByCampaignId = campaign.id` rows (a
+  `KeepPaused` leftover from an earlier campaign stays untouched). Aim for 100% branch coverage of the
+  `_assert*` helpers.
 - **Migration:** integration test on a seeded congregation with legacy `type = Campaign` rows — assert the
   synthetic campaign, repointed `campaignId`, `type = Default`, and unchanged counts.
 - **Job:** unit-test the sweep against fixed clocks (idempotent re-runs; per-congregation error isolation).
@@ -491,6 +539,10 @@ filter labels (`attributions_filter_campaign*`, `attributions_filter_paused*`).
 
 ## 12. Open questions
 
+*Items 1–4 are adopted as their stated leans (author, 2026-08-23): generic banner copy, a distinct
+`CAMPAIGN_CRON_HOUR_UTC` (02:00), forbid deleting an active campaign, and validating away
+`Leave` + `startAutoReassign`.*
+
 1. **Scoped-campaign banner copy** — should the banner name the affected scope ("… sur 12 territoires")
    or stay generic? Lean: generic in v1.
 2. **`CAMPAIGN_CRON_HOUR_UTC` default** — reuse the retention hour (03:00 UTC) or a distinct hour to avoid
@@ -503,13 +555,12 @@ filter labels (`attributions_filter_campaign*`, `attributions_filter_paused*`).
 
 **Author decisions raised by the review** (surfaced, not applied — these revisit choices already made):
 
-5. **Manual vs. auto end.** The author chose date-driven activation *and* end, with auto-close as an
-   opt-out setting. The **UX review** recommends *requiring* an explicit "End campaign" click in v1,
-   because auto-closing dozens of attributions silently on a date is a large, irreversible surprise if the
-   cron misbehaves. Reconciliation that keeps the author's intent: **keep date-driven end as the default**,
-   but (a) honor the `endCloseCampaign` toggle ("we'll close manually"), and (b) show a 24h-before "ends
-   tomorrow" warning in the banner (optionally an email to managers). **Decision needed** before Phase 3:
-   date-driven-with-warning (proposed) vs. require-manual-end-in-v1.
+5. **Manual vs. auto end — RESOLVED (author, 2026-08-23).** Date-driven activation *and* end stay, with
+   `endCloseCampaign` honored as the opt-out. The warning mechanism is the banner itself: the active
+   banner always shows the campaign's end date, so the automatic close is announced for the campaign's
+   whole duration — no separate "ends tomorrow" state and no mandatory manual end in v1. The campaign
+   detail page keeps a manual « Terminer la campagne » action as the escape hatch (runs the same end
+   transitions immediately, idempotent with the cron).
 6. **"One active" rule — RESOLVED (author, 2026-08-03).** Keep §7 as written: reject creating/editing a
    campaign whose `[startDate, endDate]` window overlaps another campaign's window. This does **not** block
    planning — non-overlapping future campaigns can be scheduled freely while one runs ("as long as they're
