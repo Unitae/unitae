@@ -169,6 +169,13 @@
   animation: fade-in-up 0.3s ease-out both;
 }
 
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* Respect prefers-reduced-motion. The `both` fill on our keyframes still
    settles elements on their final (visible) state. */
 @media (prefers-reduced-motion: reduce) {

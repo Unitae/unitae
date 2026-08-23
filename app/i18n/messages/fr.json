@@ -2731,5 +2731,12 @@
     "nav_more": "Plus",
     "nav_primary": "Navigation principale",
     "nav_tab_board": "Tableau",
-    "nav_tab_profile": "Profil"
+    "nav_tab_profile": "Profil",
+    "dashboard_quick_action_new_publisher": "Nouveau proclamateur",
+    "dashboard_quick_action_new_document": "Ajouter un document",
+    "dashboard_quick_action_new_program": "Nouveau programme",
+    "dashboard_metric_territories": "Territoires",
+    "dashboard_metric_territories_detail": "{assigned} attribués · {late} en retard",
+    "dashboard_metric_publishers": "Proclamateurs",
+    "dashboard_metric_publishers_detail": "proclamateurs actifs"
 }

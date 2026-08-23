@@ -2731,5 +2731,12 @@
     "nav_more": "More",
     "nav_primary": "Primary navigation",
     "nav_tab_board": "Board",
-    "nav_tab_profile": "Profile"
+    "nav_tab_profile": "Profile",
+    "dashboard_quick_action_new_publisher": "New publisher",
+    "dashboard_quick_action_new_document": "Add a document",
+    "dashboard_quick_action_new_program": "New programme",
+    "dashboard_metric_territories": "Territories",
+    "dashboard_metric_territories_detail": "{assigned} assigned · {late} late",
+    "dashboard_metric_publishers": "Publishers",
+    "dashboard_metric_publishers_detail": "active publishers"
 }
