@@ -6,31 +6,38 @@ import { Badge } from '~/shared/ui/badge'
 
 type AttributionKindBadgeProps = {
   type: TerritoryAttributionKind
+  /** Campaign the attribution belongs to, if any — shows the campaign badge. */
+  campaignName?: string | null
   className?: string
 }
 
-export function AttributionKindBadge({ type, className }: AttributionKindBadgeProps) {
-  if (type === TerritoryAttributionKind.Default) {
-    return null
-  }
-
-  if (type === TerritoryAttributionKind.Phone) {
-    return (
+/**
+ * Method and campaign are orthogonal layers: a campaign attribution worked by
+ * phone shows both badges.
+ */
+export function AttributionKindBadge({ type, campaignName, className }: AttributionKindBadgeProps) {
+  const phoneBadge =
+    type === TerritoryAttributionKind.Phone ? (
       <Badge variant="secondary" className={className}>
         <Phone />
         {m.attributions_type_phone()}
       </Badge>
-    )
-  }
+    ) : null
 
-  if (type === TerritoryAttributionKind.Campaign) {
-    return (
-      <Badge variant="secondary" className={className}>
+  const campaignBadge =
+    campaignName != null ? (
+      <Badge variant="secondary" className={`max-w-xs truncate ${className ?? ''}`}>
         <Megaphone />
-        {m.attributions_type_campaign()}
+        {campaignName.length > 0 ? campaignName : m.attributions_type_campaign()}
       </Badge>
-    )
-  }
+    ) : null
 
-  return null
+  if (phoneBadge == null && campaignBadge == null) return null
+
+  return (
+    <>
+      {campaignBadge}
+      {phoneBadge}
+    </>
+  )
 }

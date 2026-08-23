@@ -12,6 +12,7 @@ function makeAttribution(territoryId: number, territoryType: TerritoryKind): Sta
     territoryNumber: `T-${territoryId}`,
     territoryType,
     type: TerritoryAttributionKind.Default,
+    campaignId: null,
     startDate: new Date(2025, 9, 1),
     endDate: new Date(2025, 10, 1),
     lateDate: new Date(2025, 11, 1),

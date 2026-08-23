@@ -10,8 +10,18 @@ export async function countAvailableTerritories(db: TransactionClient, congregat
       congregationId,
       attributions: {
         every: {
+          // Campaign work rests on the campaign cutoff regardless of method;
+          // the method cutoffs only apply to regular (non-campaign) work.
           OR: [
             {
+              campaignId: { not: null },
+              endDate: {
+                lt: cutoffs.campaign,
+                not: null,
+              },
+            },
+            {
+              campaignId: null,
               type: TerritoryAttributionKind.Default,
               endDate: {
                 lt: cutoffs.doorsToDoors,
@@ -19,13 +29,7 @@ export async function countAvailableTerritories(db: TransactionClient, congregat
               },
             },
             {
-              type: TerritoryAttributionKind.Campaign,
-              endDate: {
-                lt: cutoffs.campaign,
-                not: null,
-              },
-            },
-            {
+              campaignId: null,
               type: TerritoryAttributionKind.Phone,
               endDate: {
                 lt: cutoffs.phone,

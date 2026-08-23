@@ -115,7 +115,7 @@ export function loader({ context }: Route.LoaderArgs) {
       phoneTypeActivated: settings[TerritorySettingKey.TerritoryTypePhoneActive] === 'true',
       mapTabActivated: settings[TerritorySettingKey.MapTabActive] === 'true',
       attributionDefaultDuration,
-      attributionCampaignDuration: Number(settings[TerritorySettingKey.AttributionCampaignDurationDays] ?? '60'),
+      attributionCampaignDuration: Number(settings[TerritorySettingKey.CampaignDefaultDurationDays] ?? '60'),
       attributionPhoneDuration: Number(settings[TerritorySettingKey.AttributionPhoneDurationDays] ?? '14'),
       attributionCommerceDuration: Number(settings[TerritorySettingKey.AttributionCommerceDurationDays] ?? '120'),
     }
@@ -340,7 +340,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     )
     await setSetting(
       db,
-      TerritorySettingKey.AttributionCampaignDurationDays,
+      TerritorySettingKey.CampaignDefaultDurationDays,
       attributionCampaignDuration,
       currentUser.congregationId,
     )

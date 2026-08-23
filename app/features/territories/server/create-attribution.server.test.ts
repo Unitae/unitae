@@ -6,6 +6,7 @@ vi.mock('~/shared/domain/settings.server', () => ({
   getSetting: vi.fn(),
 }))
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
+vi.mock('./campaign.queries', () => ({ getActiveCampaign: vi.fn() }))
 
 const mockDb = {
   // aggregate.assign runs _assertNoActiveOverlap which calls findMany.
@@ -15,6 +16,7 @@ const mockDb = {
 
 const { createAttribution } = await import('./create-attribution.server')
 const { getSetting } = await import('~/shared/domain/settings.server')
+const { getActiveCampaign } = await import('./campaign.queries')
 
 const baseParams = {
   publisherId: 1,
@@ -37,6 +39,7 @@ function buildExpectedLateDate(addDays: number): Date {
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(getSetting).mockResolvedValue(undefined)
+  vi.mocked(getActiveCampaign).mockResolvedValue(null as never)
   mockDb.attribution.create.mockResolvedValue({} as never)
   mockDb.attribution.findMany.mockResolvedValue([])
   mockDb.territory.findUniqueOrThrow.mockResolvedValue({ type: TerritoryKind.Classical } as never)
@@ -73,8 +76,10 @@ describe('createAttribution', () => {
     expect(call.data.lateDate).toEqual(buildExpectedLateDate(14))
   })
 
-  it('uses campaign duration (60 days) for campaign attribution type', async () => {
-    await createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Campaign })
+  it('uses campaign duration (60 days) for an attribution in the active campaign', async () => {
+    vi.mocked(getActiveCampaign).mockResolvedValue({ id: 5, durationDays: null } as never)
+
+    await createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Default, campaignId: 5 })
 
     const call = mockDb.attribution.create.mock.calls[0][0]
     expect(call.data.lateDate).toEqual(buildExpectedLateDate(60))

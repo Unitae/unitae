@@ -16,9 +16,9 @@ export async function countRestingTerritories(db: TransactionClient, congregatio
         none: { endDate: null },
         some: {
           OR: [
-            { type: TerritoryAttributionKind.Default, endDate: { gt: cutoffs.doorsToDoors } },
-            { type: TerritoryAttributionKind.Campaign, endDate: { gt: cutoffs.campaign } },
-            { type: TerritoryAttributionKind.Phone, endDate: { gt: cutoffs.phone } },
+            { campaignId: { not: null }, endDate: { gt: cutoffs.campaign } },
+            { campaignId: null, type: TerritoryAttributionKind.Default, endDate: { gt: cutoffs.doorsToDoors } },
+            { campaignId: null, type: TerritoryAttributionKind.Phone, endDate: { gt: cutoffs.phone } },
           ],
         },
       },

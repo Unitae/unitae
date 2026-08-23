@@ -112,6 +112,7 @@ interface TerritoryDocumentProps {
   owner?: string
   restitutionDate?: Date
   attributionType?: TerritoryAttributionKind
+  attributionCampaign?: boolean
 }
 
 export function TerritoryDocument({
@@ -126,6 +127,7 @@ export function TerritoryDocument({
   owner,
   restitutionDate,
   attributionType = TerritoryAttributionKind.Default,
+  attributionCampaign = false,
 }: TerritoryDocumentProps) {
   let unit = m.territory_doc_unit_entrances()
   if (type === TerritoryKind.Phone) {
@@ -179,7 +181,7 @@ export function TerritoryDocument({
             {m.territory_doc_return_by()} {restitutionDate?.toLocaleDateString('fr') ?? '..................'}
           </Text>
         </View>
-        <DocumentWaterMark type={attributionType} />
+        <DocumentWaterMark type={attributionType} isCampaign={attributionCampaign} />
       </Page>
       {showMapPage && googleMapKey != null && (
         <Page size={{ width: 270, height: 425 }} style={styles.map}>
@@ -204,8 +206,8 @@ export function TerritoryDocument({
   )
 }
 
-function DocumentWaterMark({ type }: { type: TerritoryAttributionKind }) {
-  if (type === TerritoryAttributionKind.Campaign) {
+function DocumentWaterMark({ type, isCampaign }: { type: TerritoryAttributionKind; isCampaign: boolean }) {
+  if (isCampaign) {
     return <Text style={styles.watermark}>{m.territory_doc_watermark_campaign()}</Text>
   }
 

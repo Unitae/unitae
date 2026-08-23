@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PublisherGroup } from '~/database/generated/client'
-import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
+import { AttributionCategory } from '~/features/territories/model/attribution-category'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { type BuildStatsFilterChipsInput, buildStatsFilterChips } from './stats-filter-chips'
 
@@ -12,7 +12,7 @@ function baseInput(overrides: Partial<BuildStatsFilterChipsInput> = {}): BuildSt
     startDate: '2024-09-01',
     endDate: '2025-08-31',
     kinds: [],
-    attributionKinds: [TerritoryAttributionKind.Default, TerritoryAttributionKind.Campaign],
+    attributionKinds: [AttributionCategory.Default, AttributionCategory.Campaign],
     groupId: null,
     groups: [],
     phoneTypeActive: false,
@@ -52,20 +52,20 @@ describe('buildStatsFilterChips', () => {
     const chips = buildStatsFilterChips(baseInput())
     const attributionChips = chips.filter(c => c.tone === 'attribution')
     expect(attributionChips.map(c => c.key)).toEqual([
-      `attribution-${TerritoryAttributionKind.Default}`,
-      `attribution-${TerritoryAttributionKind.Campaign}`,
+      `attribution-${AttributionCategory.Default}`,
+      `attribution-${AttributionCategory.Campaign}`,
     ])
   })
 
   it('renders the classic-door label for Default attribution when phoneTypeActive is true', () => {
     const chips = buildStatsFilterChips(baseInput({ phoneTypeActive: true }))
-    const doorChip = chips.find(c => c.key === `attribution-${TerritoryAttributionKind.Default}`)
+    const doorChip = chips.find(c => c.key === `attribution-${AttributionCategory.Default}`)
     expect(doorChip?.label).toMatch(CLASSIQUE_PATTERN)
   })
 
   it('renders the door-to-door label for Default attribution when phoneTypeActive is false', () => {
     const chips = buildStatsFilterChips(baseInput({ phoneTypeActive: false }))
-    const doorChip = chips.find(c => c.key === `attribution-${TerritoryAttributionKind.Default}`)
+    const doorChip = chips.find(c => c.key === `attribution-${AttributionCategory.Default}`)
     expect(doorChip?.label).toMatch(PORTE_PATTERN)
   })
 
@@ -106,8 +106,8 @@ describe('buildStatsFilterChips', () => {
     expect(new Set(labels).size).toBe(labels.length)
   })
 
-  it('renders a distinct non-empty label for every TerritoryAttributionKind (door-to-door mode)', () => {
-    const allAttributions = Object.values(TerritoryAttributionKind) as string[]
+  it('renders a distinct non-empty label for every AttributionCategory (door-to-door mode)', () => {
+    const allAttributions = Object.values(AttributionCategory) as string[]
     const labels = allAttributions.map(attribution => {
       const chips = buildStatsFilterChips(baseInput({ attributionKinds: [attribution] }))
       return chips.find(c => c.tone === 'attribution')?.label
@@ -119,11 +119,11 @@ describe('buildStatsFilterChips', () => {
     expect(new Set(labels).size).toBe(labels.length)
   })
 
-  it('emits an attribution chip for TerritoryAttributionKind.Phone', () => {
-    const chips = buildStatsFilterChips(baseInput({ attributionKinds: [TerritoryAttributionKind.Phone] }))
+  it('emits an attribution chip for AttributionCategory.Phone', () => {
+    const chips = buildStatsFilterChips(baseInput({ attributionKinds: [AttributionCategory.Phone] }))
     const attributionChips = chips.filter(c => c.tone === 'attribution')
     expect(attributionChips).toHaveLength(1)
-    expect(attributionChips[0].key).toBe(`attribution-${TerritoryAttributionKind.Phone}`)
+    expect(attributionChips[0].key).toBe(`attribution-${AttributionCategory.Phone}`)
     expect(attributionChips[0].label).toBeTruthy()
   })
 })

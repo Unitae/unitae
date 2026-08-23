@@ -324,9 +324,11 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
                         )}
                       </TableCell>
                       <TableCell className="text-center max-sm:hidden">
-                        {attribution.type === TerritoryAttributionKind.Default && m.attributions_type_default()}
-                        {attribution.type === TerritoryAttributionKind.Campaign && m.attributions_type_campaign()}
-                        {attribution.type === TerritoryAttributionKind.Phone && m.attributions_type_phone()}
+                        {attribution.campaignId != null
+                          ? m.attributions_type_campaign()
+                          : attribution.type === TerritoryAttributionKind.Phone
+                            ? m.attributions_type_phone()
+                            : m.attributions_type_default()}
                       </TableCell>
                       <TableCell className="text-center">
                         <AttributionStatus attribution={attribution} publisher={attribution.publisher} />

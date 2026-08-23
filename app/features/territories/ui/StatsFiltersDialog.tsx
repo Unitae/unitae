@@ -1,8 +1,8 @@
 import { SlidersHorizontal } from 'lucide-react'
 import { Form, useSearchParams } from 'react-router'
 import type { PublisherGroup } from '~/database/generated/client'
+import { AttributionCategory } from '~/features/territories/model/attribution-category'
 import { DEFAULT_ATTRIBUTION_KINDS } from '~/features/territories/model/stats-filter-defaults'
-import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
@@ -92,8 +92,8 @@ export default function StatsFiltersDialog({
                 <input
                   type="checkbox"
                   name="attributionKind"
-                  value={TerritoryAttributionKind.Default}
-                  defaultChecked={attributionKinds.includes(TerritoryAttributionKind.Default)}
+                  value={AttributionCategory.Default}
+                  defaultChecked={attributionKinds.includes(AttributionCategory.Default)}
                   className="rounded border border-input"
                 />
                 {phoneTypeActive ? m.stats_filter_classic_mode() : m.stats_filter_door_to_door_mode()}
@@ -103,8 +103,8 @@ export default function StatsFiltersDialog({
                   <input
                     type="checkbox"
                     name="attributionKind"
-                    value={TerritoryAttributionKind.Phone}
-                    defaultChecked={attributionKinds.includes(TerritoryAttributionKind.Phone)}
+                    value={AttributionCategory.Phone}
+                    defaultChecked={attributionKinds.includes(AttributionCategory.Phone)}
                     className="rounded border border-input"
                   />
                   {m.stats_filter_phone_mode()}
@@ -114,8 +114,8 @@ export default function StatsFiltersDialog({
                 <input
                   type="checkbox"
                   name="attributionKind"
-                  value={TerritoryAttributionKind.Campaign}
-                  defaultChecked={attributionKinds.includes(TerritoryAttributionKind.Campaign)}
+                  value={AttributionCategory.Campaign}
+                  defaultChecked={attributionKinds.includes(AttributionCategory.Campaign)}
                   className="rounded border border-input"
                 />
                 {m.stats_filter_campaign_mode()}

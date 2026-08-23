@@ -11,6 +11,7 @@ function makeAttribution(territoryId: number, startDate: Date, endDate: Date | n
     territoryNumber: `T-${territoryId}`,
     territoryType: TerritoryKind.Classical,
     type: TerritoryAttributionKind.Default,
+    campaignId: null,
     startDate,
     endDate,
     lateDate: new Date(2026, 0, 1),

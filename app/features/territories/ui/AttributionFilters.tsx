@@ -45,7 +45,6 @@ export default function AttributionFilters({
           {!phoneTypeActive && (
             <SelectItem value={TerritoryAttributionKind.Phone}>{m.territories_type_phone_singular()}</SelectItem>
           )}
-          <SelectItem value={TerritoryAttributionKind.Campaign}>{m.attributions_type_campaign()}</SelectItem>
         </SelectContent>
       </Select>
       <Select name="group" defaultValue={params.get('group') ?? 'none'}>

@@ -32,9 +32,20 @@ enum EntranceKind {
 }
 
 enum TerritoryAttributionKind {
-  Default  @map("default")
-  Phone    @map("phones")
-  Campaign @map("campaign")
+  Default @map("default")
+  Phone   @map("phones")
+}
+
+enum CampaignRegularStartAction {
+  Pause @map("pause")
+  Close @map("close")
+  Leave @map("leave")
+}
+
+enum CampaignRegularEndAction {
+  Resume     @map("resume")
+  KeepPaused @map("keep-paused")
+  Close      @map("close")
 }
 
 model Congregation {
@@ -73,6 +84,8 @@ model Congregation {
   buildings                    Building[]
   buildingEntrances            BuildingEntrance[]
   attributions                 Attribution[]
+  campaigns                    Campaign[]
+  campaignTerritories          CampaignTerritory[]
   publisherGroups              PublisherGroup[]
   publisherActivities          PublisherActivity[]
   pioneerGoals                 PioneerGoal[]
@@ -496,14 +509,15 @@ model BoardDynamicDocumentView {
 }
 
 model Territory {
-  id           Int                @id @default(autoincrement())
-  number       String
-  type         TerritoryKind      @default(Classical)
-  notes        String             @default("")
-  attributions Attribution[]      @relation("territory")
-  entrances    BuildingEntrance[]
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
+  id             Int                 @id @default(autoincrement())
+  number         String
+  type           TerritoryKind       @default(Classical)
+  notes          String              @default("")
+  attributions   Attribution[]       @relation("territory")
+  campaignScopes CampaignTerritory[]
+  entrances      BuildingEntrance[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
@@ -550,6 +564,17 @@ model Attribution {
   lateDate    DateTime
   notes       String                   @default("")
 
+  // Campaign layer — orthogonal to `type` (the method). null = regular work.
+  campaign   Campaign? @relation("campaignAttributions", fields: [campaignId, congregationId], references: [id, congregationId])
+  campaignId Int?
+
+  // Pause state — still open (endDate = null) but inactive; overdue clock frozen.
+  // pausedByCampaignId records which campaign paused it so end/scope transitions
+  // only ever touch their own rows.
+  pausedAt           DateTime?
+  pausedByCampaign   Campaign? @relation("pausedAttributions", fields: [pausedByCampaignId, congregationId], references: [id, congregationId])
+  pausedByCampaignId Int?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -557,6 +582,54 @@ model Attribution {
   congregationId Int
 
   @@unique([id, congregationId])
+  @@index([campaignId])
+  @@index([pausedByCampaignId])
+}
+
+model Campaign {
+  id        Int      @id @default(autoincrement())
+  name      String
+  notes     String   @default("")
+  startDate DateTime // day-granular schedule; drives activation (congregation-local dates)
+  endDate   DateTime // inclusive — the last day the campaign runs
+
+  durationDays Int? // campaign-attribution duration override; null -> setting/default
+
+  // lifecycle options — orthogonal, set before start
+  startRegularAction CampaignRegularStartAction @default(Pause)
+  startAutoReassign  Boolean                    @default(false)
+  endCloseCampaign   Boolean                    @default(true)
+  endRegularAction   CampaignRegularEndAction   @default(Resume)
+
+  // lifecycle bookkeeping — set by the job (idempotency + "is mode on?")
+  activatedAt DateTime?
+  endedAt     DateTime?
+
+  attributions       Attribution[]       @relation("campaignAttributions")
+  pausedAttributions Attribution[]       @relation("pausedAttributions")
+  scope              CampaignTerritory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  @@unique([id, congregationId])
+  @@index([congregationId])
+}
+
+model CampaignTerritory {
+  campaign    Campaign  @relation(fields: [campaignId, congregationId], references: [id, congregationId], onDelete: Cascade)
+  campaignId  Int
+  territory   Territory @relation(fields: [territoryId, congregationId], references: [id, congregationId], onDelete: Cascade)
+  territoryId Int
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  @@id([campaignId, territoryId])
+  @@index([congregationId])
 }
 
 model BuildingEntrance {

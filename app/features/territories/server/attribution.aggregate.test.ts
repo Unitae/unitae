@@ -1,4 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
+import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { attributionsOverlap } from './attribution.aggregate'
 
 // Attribution overlap covers the 5 cases the state model exposes:
@@ -72,5 +74,128 @@ describe('attributionsOverlap', () => {
     const a = { startDate: d('2026-01-01'), endDate: d('2026-06-01') }
     const b = { startDate: d('2026-04-01'), endDate: d('2026-09-01') }
     expect(attributionsOverlap(a, b)).toBe(attributionsOverlap(b, a))
+  })
+})
+
+// ——— mocked-db aggregate behavior (campaign layer) ———
+
+vi.mock('~/shared/domain/settings.server', () => ({ getSetting: vi.fn() }))
+vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
+vi.mock('./campaign.queries', () => ({ getActiveCampaign: vi.fn() }))
+
+const mockDb = {
+  attribution: { create: vi.fn(), update: vi.fn(), findMany: vi.fn(), findFirst: vi.fn() },
+  territory: { findUniqueOrThrow: vi.fn() },
+}
+
+const aggregate = await import('./attribution.aggregate')
+const { getActiveCampaign } = await import('./campaign.queries')
+const { getSetting } = await import('~/shared/domain/settings.server')
+
+const baseAssign = {
+  publisherId: 1,
+  territoryId: 2,
+  startDate: '2026-03-15',
+  notes: '',
+  type: TerritoryAttributionKind.Default,
+  congregationId: 10,
+  actorId: 99,
+}
+
+const activeCampaign = { id: 5, durationDays: null, name: 'Mémorial' }
+
+beforeEach(() => {
+  vi.resetAllMocks()
+  vi.mocked(getSetting).mockResolvedValue(undefined)
+  vi.mocked(getActiveCampaign).mockResolvedValue(null as never)
+  mockDb.attribution.create.mockResolvedValue({ id: 42 } as never)
+  mockDb.attribution.update.mockResolvedValue({ id: 42 } as never)
+  mockDb.attribution.findMany.mockResolvedValue([])
+  mockDb.attribution.findFirst.mockResolvedValue(null as never)
+  mockDb.territory.findUniqueOrThrow.mockResolvedValue({ type: TerritoryKind.Classical } as never)
+})
+
+describe('assign — layer-aware overlap', () => {
+  it('checks regular assignments only against the regular layer', async () => {
+    await aggregate.assign(mockDb as never, baseAssign)
+
+    const where = mockDb.attribution.findMany.mock.calls[0][0].where
+    expect(where.campaignId).toBeNull()
+  })
+
+  it('checks campaign assignments only against the same campaign', async () => {
+    vi.mocked(getActiveCampaign).mockResolvedValue(activeCampaign as never)
+
+    await aggregate.assign(mockDb as never, { ...baseAssign, campaignId: 5 })
+
+    const where = mockDb.attribution.findMany.mock.calls[0][0].where
+    expect(where.campaignId).toBe(5)
+  })
+})
+
+describe('assign — campaign mode guard', () => {
+  it('rejects a regular assignment while a campaign is active', async () => {
+    vi.mocked(getActiveCampaign).mockResolvedValue(activeCampaign as never)
+
+    await expect(aggregate.assign(mockDb as never, baseAssign)).rejects.toThrow('campaign_mode_active')
+    expect(mockDb.attribution.create).not.toHaveBeenCalled()
+  })
+
+  it('rejects a campaign assignment for a campaign that is not the active one', async () => {
+    vi.mocked(getActiveCampaign).mockResolvedValue(activeCampaign as never)
+
+    await expect(aggregate.assign(mockDb as never, { ...baseAssign, campaignId: 6 })).rejects.toThrow(
+      'campaign_not_active',
+    )
+  })
+
+  it('rejects a campaign assignment when no campaign is active at all', async () => {
+    await expect(aggregate.assign(mockDb as never, { ...baseAssign, campaignId: 5 })).rejects.toThrow(
+      'campaign_not_active',
+    )
+  })
+
+  it('accepts a campaign assignment for the active campaign', async () => {
+    vi.mocked(getActiveCampaign).mockResolvedValue(activeCampaign as never)
+
+    await aggregate.assign(mockDb as never, { ...baseAssign, campaignId: 5 })
+    expect(mockDb.attribution.create).toHaveBeenCalled()
+    expect(mockDb.attribution.create.mock.calls[0][0].data.campaignId).toBe(5)
+  })
+
+  it('accepts a regular assignment when no campaign is active', async () => {
+    await aggregate.assign(mockDb as never, baseAssign)
+    expect(mockDb.attribution.create).toHaveBeenCalled()
+  })
+})
+
+describe('assign — campaign duration', () => {
+  const localDate = new Date(2026, 2, 15)
+  const plusDays = (n: number) => {
+    const d = new Date(localDate)
+    d.setDate(d.getDate() + n)
+    return d
+  }
+
+  it('uses the campaign durationDays override', async () => {
+    vi.mocked(getActiveCampaign).mockResolvedValue({ ...activeCampaign, durationDays: 30 } as never)
+
+    await aggregate.assign(mockDb as never, { ...baseAssign, campaignId: 5 })
+    expect(mockDb.attribution.create.mock.calls[0][0].data.lateDate).toEqual(plusDays(30))
+  })
+
+  it('falls back to the CampaignDefaultDurationDays setting', async () => {
+    vi.mocked(getActiveCampaign).mockResolvedValue(activeCampaign as never)
+    vi.mocked(getSetting).mockResolvedValue('45')
+
+    await aggregate.assign(mockDb as never, { ...baseAssign, campaignId: 5 })
+    expect(mockDb.attribution.create.mock.calls[0][0].data.lateDate).toEqual(plusDays(45))
+  })
+
+  it('falls back to 60 days when neither override nor setting exists', async () => {
+    vi.mocked(getActiveCampaign).mockResolvedValue(activeCampaign as never)
+
+    await aggregate.assign(mockDb as never, { ...baseAssign, campaignId: 5 })
+    expect(mockDb.attribution.create.mock.calls[0][0].data.lateDate).toEqual(plusDays(60))
   })
 })

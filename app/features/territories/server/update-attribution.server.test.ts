@@ -51,7 +51,7 @@ describe('updateAttribution', () => {
     await updateAttribution(db as never, 5, 2, 99, {
       publisherId: 3,
       notes: 'note',
-      type: TerritoryAttributionKind.Campaign,
+      type: TerritoryAttributionKind.Phone,
       startDate,
     })
 

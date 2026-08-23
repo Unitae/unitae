@@ -11,6 +11,7 @@ function makeAttribution(startDate: Date, id = 1): StatsAttribution {
     territoryNumber: 'T-1',
     territoryType: TerritoryKind.Classical,
     type: TerritoryAttributionKind.Default,
+    campaignId: null,
     startDate,
     endDate: null,
     lateDate: new Date(2026, 0, 1),

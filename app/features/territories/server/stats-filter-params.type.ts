@@ -1,9 +1,9 @@
-import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
+import type { AttributionCategory } from '~/features/territories/model/attribution-category'
 import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 
 export interface StatsFilterParams {
   territoryKind: TerritoryKind[]
-  attributionKind: TerritoryAttributionKind[]
+  attributionKind: AttributionCategory[]
   startDate: Date
   endDate: Date
   groupId?: number

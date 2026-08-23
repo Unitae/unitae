@@ -68,6 +68,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
         owner={owner}
         restitutionDate={currentAttribution?.lateDate ?? undefined}
         attributionType={currentAttribution?.type}
+        attributionCampaign={currentAttribution?.campaignId != null}
       />,
       filename,
     )

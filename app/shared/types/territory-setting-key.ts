@@ -6,7 +6,7 @@ export enum TerritorySettingKey {
   /** @deprecated use AttributionDefaultDurationDays */
   AttributionDefaultDurationMonths = 'attribution-default-duration-months',
   AttributionDefaultDurationDays = 'attribution-default-duration-days',
-  AttributionCampaignDurationDays = 'attribution-campaign-duration-days',
+  CampaignDefaultDurationDays = 'campaign-default-duration-days',
   AttributionPhoneDurationDays = 'attribution-phone-duration-days',
   AttributionCommerceDurationDays = 'attribution-commerce-duration-days',
   MapTabActive = 'map-tab-active',

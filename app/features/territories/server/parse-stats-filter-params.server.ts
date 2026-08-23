@@ -1,5 +1,5 @@
+import type { AttributionCategory } from '~/features/territories/model/attribution-category'
 import { DEFAULT_ATTRIBUTION_KINDS, DEFAULT_TERRITORY_KINDS } from '~/features/territories/model/stats-filter-defaults'
-import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { parseLocalDate } from '~/shared/utils/date.server'
 import type { StatsFilterParams } from './stats-filter-params.type'
@@ -15,7 +15,7 @@ function parseLocalDateOrDefault(value: string | null, fallback: Date): Date {
 
 export function parseStatsFilterParams(params: URLSearchParams, theocraticYear: number): StatsFilterParams {
   const rawKinds = params.getAll('kind')
-  const attributionKinds = params.getAll('attributionKind') as TerritoryAttributionKind[]
+  const attributionKinds = params.getAll('attributionKind') as AttributionCategory[]
 
   // `kind=none` is the "Tous types" placeholder option: it means "no kind filter".
   // We distinguish it from the empty (no-param) case which still defaults to Classical.

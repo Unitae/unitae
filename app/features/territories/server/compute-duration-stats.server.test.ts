@@ -15,6 +15,7 @@ function makeAttribution(
     territoryNumber: overrides.territoryNumber ?? 'T-1',
     territoryType: TerritoryKind.Classical,
     type: TerritoryAttributionKind.Default,
+    campaignId: null,
     startDate,
     endDate,
     lateDate: new Date(2026, 0, 1),

@@ -10,6 +10,7 @@ function makeAttribution(
   startDate: Date,
   endDate: Date | null,
   id = 1,
+  campaignId: number | null = null,
 ): StatsAttribution {
   return {
     id,
@@ -17,6 +18,7 @@ function makeAttribution(
     territoryNumber: `T-${territoryId}`,
     territoryType: TerritoryKind.Classical,
     type,
+    campaignId,
     startDate,
     endDate,
     lateDate: new Date(2026, 0, 1),
@@ -52,8 +54,8 @@ describe('computeRestPeriodUtilization', () => {
     // Attribution se termine le 1er jan, repos finit le 16 jan
     // Prochaine attribution commence le 26 jan = 10 jours d'inactivité post-repos
     const attributions = [
-      makeAttribution(1, TerritoryAttributionKind.Campaign, new Date(2024, 11, 1), new Date(2025, 0, 1), 1),
-      makeAttribution(1, TerritoryAttributionKind.Campaign, new Date(2025, 0, 26), new Date(2025, 1, 26), 2),
+      makeAttribution(1, TerritoryAttributionKind.Default, new Date(2024, 11, 1), new Date(2025, 0, 1), 1, 7),
+      makeAttribution(1, TerritoryAttributionKind.Default, new Date(2025, 0, 26), new Date(2025, 1, 26), 2, 7),
     ]
     expect(computeRestPeriodUtilization(attributions)).toBe(10)
   })

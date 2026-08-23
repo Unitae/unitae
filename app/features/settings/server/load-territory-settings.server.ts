@@ -7,7 +7,7 @@ const TERRITORY_SETTING_KEYS = [
   TerritorySettingKey.TerritoryTypePhoneActive,
   TerritorySettingKey.MapTabActive,
   TerritorySettingKey.AttributionDefaultDurationDays,
-  TerritorySettingKey.AttributionCampaignDurationDays,
+  TerritorySettingKey.CampaignDefaultDurationDays,
   TerritorySettingKey.AttributionPhoneDurationDays,
   TerritorySettingKey.AttributionCommerceDurationDays,
 ] as const

@@ -45,8 +45,6 @@ function attributionTypeChipValue(raw: string): string | null {
       return m.attributions_type_default()
     case TerritoryAttributionKind.Phone:
       return m.attributions_type_phone()
-    case TerritoryAttributionKind.Campaign:
-      return m.attributions_type_campaign()
     default:
       return null
   }

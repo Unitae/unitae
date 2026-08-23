@@ -148,7 +148,6 @@ export default function EditAttributionPage({ loaderData, actionData }: Route.Co
                       {m.territories_type_phone_singular()}
                     </SelectItem>
                   )}
-                  <SelectItem value={TerritoryAttributionKind.Campaign}>{m.attributions_type_campaign()}</SelectItem>
                 </SelectContent>
               </Select>
               {fields.type.errors && <p className="text-destructive text-sm">{fields.type.errors}</p>}
