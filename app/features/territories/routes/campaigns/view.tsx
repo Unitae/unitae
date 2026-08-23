@@ -3,7 +3,7 @@ import { Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { previewCampaignLifecycle } from '~/features/territories/model/campaign-preview'
 import { getCampaignStatus } from '~/features/territories/model/campaign-status'
-import { getCampaign } from '~/features/territories/server/campaign.queries'
+import { getCampaign, listCampaignAttributions } from '~/features/territories/server/campaign.queries'
 import { endCampaign } from '~/features/territories/server/campaign-lifecycle.workflow'
 import { CampaignStatusBadge } from '~/features/territories/ui/CampaignStatusBadge'
 import * as m from '~/i18n/paraglide/messages'
@@ -14,9 +14,11 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
+import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/view'
@@ -55,12 +57,15 @@ export function loader({ params, context }: Route.LoaderArgs) {
       orderBy: { number: 'asc' },
     })
 
-    return { campaign, scopeTerritories }
+    const attributions = await listCampaignAttributions(db, campaign.id, congregationId)
+
+    return { campaign, scopeTerritories, attributions }
   })
 }
 
 export default function CampaignView({ loaderData }: Route.ComponentProps) {
-  const { campaign, scopeTerritories } = loaderData
+  const { campaign, scopeTerritories, attributions } = loaderData
+  const returnedCount = attributions.filter(a => a.endDate != null).length
   const status = getCampaignStatus({
     activatedAt: campaign.activatedAt ? new Date(campaign.activatedAt) : null,
     endedAt: campaign.endedAt ? new Date(campaign.endedAt) : null,
@@ -126,6 +131,57 @@ export default function CampaignView({ loaderData }: Route.ComponentProps) {
             <span className="text-muted-foreground">{m.campaigns_preview_end_prefix()}</span>{' '}
             {preview.end.map(key => endLabels[key]()).join(' ; ')}
           </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            {m.campaigns_view_attributions_title({ done: returnedCount, total: attributions.length })}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {attributions.length === 0 ? (
+            <p className="text-muted-foreground text-sm">{m.campaigns_view_attributions_empty()}</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{m.attributions_table_number()}</TableHead>
+                  <TableHead>{m.attributions_table_publisher()}</TableHead>
+                  <TableHead className="max-sm:hidden">{m.attributions_table_checkout_date()}</TableHead>
+                  <TableHead>{m.campaigns_view_attributions_return()}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {attributions.map(attribution => (
+                  <TableRow key={attribution.id}>
+                    <TableCell>
+                      <Link
+                        to={`/territories/territory/${attribution.territory.id}/view`}
+                        className="hover:text-primary"
+                      >
+                        {attribution.territory.number}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      {attribution.publisher.firstname} {attribution.publisher.lastname?.toLocaleUpperCase()}
+                    </TableCell>
+                    <TableCell className="max-sm:hidden">
+                      {new Date(attribution.startDate).toLocaleDateString('fr-FR')}
+                    </TableCell>
+                    <TableCell>
+                      {attribution.endDate != null ? (
+                        new Date(attribution.endDate).toLocaleDateString('fr-FR')
+                      ) : (
+                        <Badge variant="warning">{m.campaigns_view_attributions_open()}</Badge>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 

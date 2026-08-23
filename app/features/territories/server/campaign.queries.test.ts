@@ -110,3 +110,20 @@ describe('getUpcomingCampaign', () => {
     expect(call.orderBy).toEqual({ startDate: 'asc' })
   })
 })
+
+describe('listCampaignAttributions', () => {
+  it('lists the campaign attributions with territory and publisher, territory number first', async () => {
+    const queriesDb = { attribution: { findMany: vi.fn().mockResolvedValue([]) } }
+
+    const { listCampaignAttributions } = await import('./campaign.queries')
+    await listCampaignAttributions(queriesDb as never, 3, 10)
+
+    const call = queriesDb.attribution.findMany.mock.calls[0][0]
+    expect(call.where).toEqual({ campaignId: 3, congregationId: 10 })
+    expect(call.select).toMatchObject({
+      territory: { select: { id: true, number: true } },
+      publisher: { select: { firstname: true, lastname: true } },
+    })
+    expect(call.orderBy).toEqual([{ territory: { number: 'asc' } }, { startDate: 'asc' }])
+  })
+})

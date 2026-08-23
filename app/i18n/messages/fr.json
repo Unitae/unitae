@@ -2834,5 +2834,9 @@
     "campaigns_scope_selected_panel": "Sélectionnés ({count})",
     "campaigns_scope_add_all": "Tout ajouter ({count})",
     "campaigns_scope_remove_all": "Tout retirer ({count})",
-    "campaign_banner_starting": "La campagne « {name} » démarre aujourd’hui. Elle suspendra les attributions régulières."
+    "campaign_banner_starting": "La campagne « {name} » démarre aujourd’hui. Elle suspendra les attributions régulières.",
+    "campaigns_view_attributions_title": "Territoires travaillés ({done}/{total} rendus)",
+    "campaigns_view_attributions_empty": "Aucun territoire attribué dans cette campagne pour le moment.",
+    "campaigns_view_attributions_return": "Retour",
+    "campaigns_view_attributions_open": "en cours"
 }

@@ -64,3 +64,21 @@ export function getUpcomingCampaign(db: TransactionClient, congregationId: numbe
     orderBy: { startDate: 'asc' },
   })
 }
+
+/**
+ * The campaign's own attributions — the territories worked during the
+ * campaign, who held them and whether they came back. Feeds the detail page.
+ */
+export function listCampaignAttributions(db: TransactionClient, campaignId: number, congregationId: number) {
+  return db.attribution.findMany({
+    where: { campaignId, congregationId },
+    select: {
+      id: true,
+      startDate: true,
+      endDate: true,
+      territory: { select: { id: true, number: true } },
+      publisher: { select: { firstname: true, lastname: true } },
+    },
+    orderBy: [{ territory: { number: 'asc' } }, { startDate: 'asc' }],
+  })
+}
