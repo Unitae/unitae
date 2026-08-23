@@ -5,7 +5,15 @@ import { Button } from '~/shared/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/shared/ui/collapsible'
 import { useIsMobile } from '~/shared/ui/hooks/use-mobile'
 import { Skeleton } from '~/shared/ui/skeleton'
-import { computeAutoFitScale, MAX_USER_ZOOM, MIN_USER_ZOOM, type ViewportSize, ZOOM_STEP } from './pdf-viewer-scaling'
+import {
+  computeAutoFitScale,
+  computeRenderPixelRatio,
+  MAX_USER_ZOOM,
+  MIN_USER_ZOOM,
+  type ViewportSize,
+  ZOOM_STEP,
+} from './pdf-viewer-scaling'
+import { usePdfZoomGestures } from './use-pdf-zoom-gestures'
 
 interface PdfViewerProps {
   url: string
@@ -74,14 +82,16 @@ async function loadPdfJs() {
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: pdfjs page type is complex and not exported cleanly
-async function renderPageToCanvas(page: any, scale: number): Promise<HTMLCanvasElement> {
-  const viewport = page.getViewport({ scale })
+async function renderPageToCanvas(page: any, scale: number, pixelRatio: number): Promise<HTMLCanvasElement> {
+  // Backing store at scale x pixelRatio, displayed at scale — this is what
+  // keeps text crisp on high-density screens.
+  const viewport = page.getViewport({ scale: scale * pixelRatio })
   const canvas = document.createElement('canvas')
   canvas.width = viewport.width
   canvas.height = viewport.height
   canvas.className = 'rounded shadow-sm'
-  canvas.style.width = `${viewport.width}px`
-  canvas.style.height = `${viewport.height}px`
+  canvas.style.width = `${viewport.width / pixelRatio}px`
+  canvas.style.height = `${viewport.height / pixelRatio}px`
 
   const context = canvas.getContext('2d')
   if (context) {
@@ -105,7 +115,12 @@ async function renderAllPages(
     if (isCancelled()) return
     const unscaled = page.getViewport({ scale: 1 })
     const autoFit = computeAutoFitScale({ width: unscaled.width, height: unscaled.height }, viewport, isMobile)
-    const canvas = await renderPageToCanvas(page, autoFit * userZoom)
+    const cssScale = autoFit * userZoom
+    const pixelRatio = computeRenderPixelRatio(window.devicePixelRatio ?? 1, cssScale, {
+      width: unscaled.width,
+      height: unscaled.height,
+    })
+    const canvas = await renderPageToCanvas(page, cssScale, pixelRatio)
     if (isCancelled()) return
     container.appendChild(canvas)
   }
@@ -174,6 +189,13 @@ export function PdfViewer({ url, downloadUrl, downloadName }: PdfViewerProps) {
     setZoom(1)
   }, [])
 
+  usePdfZoomGestures({
+    scrollRef,
+    contentRef: canvasContainerRef,
+    zoom,
+    onCommit: setZoom,
+  })
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: url is a re-trigger signal, not consumed
   useEffect(() => {
     setZoom(1)
@@ -213,7 +235,11 @@ export function PdfViewer({ url, downloadUrl, downloadName }: PdfViewerProps) {
 
     renderAllPages(pdf, canvasContainer, viewport, isMobile, zoom, () => cancelled)
       .then(() => {
-        if (!cancelled) setLoading(false)
+        if (cancelled) return
+        setLoading(false)
+        // The zoom gesture previews with a CSS transform; the sharp render
+        // replaces it.
+        canvasContainer.style.transform = ''
       })
       .catch(err => {
         if (!cancelled) {
@@ -263,7 +289,10 @@ export function PdfViewer({ url, downloadUrl, downloadName }: PdfViewerProps) {
           </Button>
         </div>
       )}
-      <div ref={scrollRef} className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-auto p-4">
+      <div
+        ref={scrollRef}
+        className="flex min-h-0 min-w-0 max-w-full flex-1 touch-pan-x touch-pan-y flex-col overflow-auto p-4"
+      >
         {loading && (
           <div className="flex flex-col gap-4">
             <Skeleton className="h-96 w-full" />

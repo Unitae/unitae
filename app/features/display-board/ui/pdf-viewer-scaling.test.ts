@@ -2,9 +2,13 @@ import { describe, expect, it } from 'vitest'
 import {
   clampUserZoom,
   computeAutoFitScale,
+  computeRenderPixelRatio,
   MAX_AUTO_FIT_SCALE,
+  MAX_CANVAS_DIMENSION,
   MAX_USER_ZOOM,
   MIN_USER_ZOOM,
+  pinchZoomFactor,
+  wheelZoomFactor,
 } from './pdf-viewer-scaling'
 
 describe('computeAutoFitScale', () => {
@@ -76,5 +80,52 @@ describe('clampUserZoom', () => {
 
   it('clamps above MAX_USER_ZOOM down to MAX_USER_ZOOM', () => {
     expect(clampUserZoom(99)).toBe(MAX_USER_ZOOM)
+  })
+})
+
+describe('computeRenderPixelRatio', () => {
+  it('uses the device ratio up to the cap', () => {
+    expect(computeRenderPixelRatio(1, 1, { width: 612, height: 792 })).toBe(1)
+    expect(computeRenderPixelRatio(2, 1, { width: 612, height: 792 })).toBe(2)
+    expect(computeRenderPixelRatio(5, 1, { width: 612, height: 792 })).toBe(3)
+  })
+
+  it('never drops below 1 and guards invalid input', () => {
+    expect(computeRenderPixelRatio(0, 1, { width: 612, height: 792 })).toBe(1)
+    expect(computeRenderPixelRatio(Number.NaN, 1, { width: 612, height: 792 })).toBe(1)
+  })
+
+  it('backs off so the canvas stays under the dimension cap at extreme zoom', () => {
+    // 792pt page at css scale 12 would be 9504px; a 2x ratio would double it.
+    const ratio = computeRenderPixelRatio(2, 12, { width: 612, height: 792 })
+    expect(12 * ratio * 792).toBeLessThanOrEqual(MAX_CANVAS_DIMENSION)
+    expect(ratio).toBeGreaterThan(0)
+  })
+})
+
+describe('pinchZoomFactor', () => {
+  it('is the ratio of finger distances', () => {
+    expect(pinchZoomFactor(100, 200)).toBe(2)
+    expect(pinchZoomFactor(200, 100)).toBe(0.5)
+  })
+
+  it('guards degenerate distances', () => {
+    expect(pinchZoomFactor(0, 150)).toBe(1)
+    expect(pinchZoomFactor(150, 0)).toBe(1)
+  })
+})
+
+describe('wheelZoomFactor', () => {
+  it('zooms in on negative delta and out on positive, symmetrically', () => {
+    const zoomIn = wheelZoomFactor(-100)
+    const zoomOut = wheelZoomFactor(100)
+    expect(zoomIn).toBeGreaterThan(1)
+    expect(zoomOut).toBeLessThan(1)
+    expect(zoomIn * zoomOut).toBeCloseTo(1, 10)
+  })
+
+  it('bounds a single wheel event to a gentle step', () => {
+    expect(wheelZoomFactor(-10000)).toBeLessThanOrEqual(1.5)
+    expect(wheelZoomFactor(10000)).toBeGreaterThanOrEqual(1 / 1.5)
   })
 })
