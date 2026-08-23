@@ -1,4 +1,4 @@
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { previewCampaignLifecycle } from '~/features/territories/model/campaign-preview'
@@ -16,7 +16,7 @@ import {
 import { Permission } from '~/shared/types/permission'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import { requireParamId } from '~/shared/utils/params.server'
@@ -139,6 +139,16 @@ export default function CampaignView({ loaderData }: Route.ComponentProps) {
           <CardTitle>
             {m.campaigns_view_attributions_title({ done: returnedCount, total: attributions.length })}
           </CardTitle>
+          {status === 'active' && (
+            <CardAction>
+              <Button asChild size="sm" variant="outline">
+                <Link to="/territories/attributions/new/available-territories">
+                  <Plus />
+                  {m.attributions_assign_button()}
+                </Link>
+              </Button>
+            </CardAction>
+          )}
         </CardHeader>
         <CardContent>
           {attributions.length === 0 ? (
