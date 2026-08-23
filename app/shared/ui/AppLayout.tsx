@@ -1,3 +1,4 @@
+import { Search } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { Outlet } from 'react-router'
 import { AppSidebar, type AppSidebarPermissions } from '~/shared/ui/AppSidebar'
@@ -14,6 +15,8 @@ import { Toaster } from '~/shared/ui/sonner'
 interface AppLayoutProps {
   permissions: AppSidebarPermissions
   congregationName?: string
+  /** Initial sidebar state, read from the persistence cookie by the layout loader. */
+  sidebarOpen?: boolean
 }
 
 /**
@@ -22,7 +25,7 @@ interface AppLayoutProps {
  * bottom tab bar (+ "Plus" sheet for responsibility-holders); at md+ the
  * sidebar is the only chrome.
  */
-export function AppLayout({ permissions, congregationName }: AppLayoutProps) {
+export function AppLayout({ permissions, congregationName, sidebarOpen = true }: AppLayoutProps) {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
 
@@ -39,7 +42,7 @@ export function AppLayout({ permissions, congregationName }: AppLayoutProps) {
   }, [handleKeyDown])
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={sidebarOpen}>
       <AppSidebar
         permissions={permissions}
         congregationName={congregationName}
@@ -49,11 +52,23 @@ export function AppLayout({ permissions, congregationName }: AppLayoutProps) {
         <NavigationProgress />
         <OfflineBanner />
         <MobileHeader congregationName={congregationName} onSearchClick={() => setCommandPaletteOpen(true)} />
-        <div className="flex items-center p-2 max-md:hidden md:group-has-data-[state=expanded]/sidebar-wrapper:hidden">
+        <div className="flex items-center gap-1 p-2 max-md:hidden md:group-has-data-[state=expanded]/sidebar-wrapper:hidden">
           <SidebarTrigger className="size-8 rounded-md" />
+          <button
+            type="button"
+            onClick={() => setCommandPaletteOpen(true)}
+            className="flex h-8 items-center gap-2 rounded-lg border px-2.5 text-muted-foreground text-xs transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <Search className="size-3.5" />
+            <kbd className="font-mono text-[10px]">⌘K</kbd>
+          </button>
         </div>
-        <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-[radial-gradient(70%_360px_at_50%_0%,color-mix(in_oklab,var(--color-primary)_5%,transparent),transparent)] p-4 max-md:pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:p-6">
-          <Outlet />
+        <div className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-[radial-gradient(70%_360px_at_50%_0%,color-mix(in_oklab,var(--color-primary)_5%,transparent),transparent)] p-4 max-md:pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:p-6">
+          {/* Soft cap so pages keep a readable measure when the sidebar is
+              collapsed or on very wide screens. */}
+          <div className="mx-auto w-full max-w-7xl">
+            <Outlet />
+          </div>
         </div>
       </SidebarInset>
       <BottomTabBar permissions={permissions} onMoreClick={() => setMoreOpen(open => !open)} moreOpen={moreOpen} />

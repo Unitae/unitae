@@ -282,12 +282,12 @@ function RecurringFields({
         />
       </div>
       {previewDates.length > 0 && (
-        <div className="border-l-2 border-primary/30 pl-3">
+        <div className="border-primary/30 border-l-2 pl-3">
           <p className="mb-2 text-muted-foreground text-xs">{m.programs_new_occurrences_preview_label()}</p>
           <div className="flex flex-col gap-1.5">
             {Object.entries(previewByMonth).map(([month, dates]) => (
               <div key={month} className="flex flex-wrap items-baseline gap-1.5">
-                <span className="w-24 shrink-0 capitalize text-muted-foreground text-xs">{month}</span>
+                <span className="w-24 shrink-0 text-muted-foreground text-xs capitalize">{month}</span>
                 {dates.map(d => (
                   <span key={d.toISOString()} className="rounded bg-muted px-1.5 py-0.5 text-xs tabular-nums">
                     {d.toLocaleDateString('fr-FR', { day: 'numeric' })}
