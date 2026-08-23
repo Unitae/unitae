@@ -37,7 +37,7 @@ import { handleAppError } from '~/shared/utils/handle-app-error.server'
 import type { Route } from './+types/new'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: `Création de section sur Tableau d'affichage - Unitae` }]
+  return [{ title: `Création de document sur Tableau d'affichage - Unitae` }]
 }
 
 export function loader({ context }: Route.LoaderArgs) {
