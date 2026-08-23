@@ -116,7 +116,7 @@ export default function CongregationSettingsPage({ loaderData, actionData }: Rou
                 </div>
               </div>
 
-              <FormActions>
+              <FormActions dock={false}>
                 <SubmitButton>{m.common_save()}</SubmitButton>
               </FormActions>
             </Form>
