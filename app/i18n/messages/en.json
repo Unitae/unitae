@@ -2838,5 +2838,9 @@
     "campaigns_view_attributions_title": "Territories worked — {percent}% of the scope covered",
     "campaigns_view_attributions_empty": "No territory assigned in this campaign yet.",
     "campaigns_view_attributions_return": "Returned",
-    "campaigns_view_attributions_open": "in progress"
+    "campaigns_view_attributions_open": "in progress",
+    "campaigns_table_name": "Name",
+    "campaigns_table_dates": "Dates",
+    "campaigns_table_scope": "Scope",
+    "campaigns_table_status": "Status"
 }

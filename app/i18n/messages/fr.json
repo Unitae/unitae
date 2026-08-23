@@ -2838,5 +2838,9 @@
     "campaigns_view_attributions_title": "Territoires travaillés — {percent} % de la portée couverte",
     "campaigns_view_attributions_empty": "Aucun territoire attribué dans cette campagne pour le moment.",
     "campaigns_view_attributions_return": "Retour",
-    "campaigns_view_attributions_open": "en cours"
+    "campaigns_view_attributions_open": "en cours",
+    "campaigns_table_name": "Nom",
+    "campaigns_table_dates": "Dates",
+    "campaigns_table_scope": "Portée",
+    "campaigns_table_status": "Statut"
 }
