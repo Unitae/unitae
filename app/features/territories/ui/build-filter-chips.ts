@@ -3,8 +3,17 @@ import { TerritoryAccess } from '~/features/territories/model/territory-access.t
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
+import type { FilterChip } from '~/shared/ui/filters/FilterChipBar'
 import { formatGroupName } from '~/shared/utils/format-group-name'
-import type { ActiveTerritoryFilterChip, TerritoryFilterKey } from './ActiveTerritoryFilters'
+
+// URL query parameter a chip's X clears. Constrained to the parameters the
+// filter forms actually parse so a typo (`'zipcode'`) can't silently produce
+// a chip whose X clears nothing.
+export type TerritoryFilterKey = 'search' | 'zip' | 'type' | 'access' | 'shops' | 'group' | 'status'
+
+export interface ActiveTerritoryFilterChip extends FilterChip {
+  key: TerritoryFilterKey
+}
 
 interface BuildChipsOptions {
   // Map of publisherGroupId → display name, supplied by pages showing the

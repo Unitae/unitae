@@ -2,6 +2,8 @@ import { closestCenter, DndContext, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Clock, Pencil, Plus, Trash2 } from 'lucide-react'
 import { Fragment } from 'react'
+import { groupProgrammeParts, sectionDurationMin } from '~/features/events/model/programme-grouping'
+import { SectionHeading, TrackHeading } from '~/features/events/ui/ProgrammeHeadings'
 import { SortableRow } from '~/features/events/ui/SortableRow'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
@@ -36,20 +38,6 @@ export function reorderPartIds(ids: number[], activeId: number, overId: number):
   return reordered
 }
 
-function groupPartsBySection(parts: PartAssignment[]): { section: string; parts: PartAssignment[] }[] {
-  const groups: { section: string; parts: PartAssignment[] }[] = []
-  let currentSection: string | null = null
-  for (const part of parts) {
-    const section = part.section || ''
-    if (section !== currentSection) {
-      groups.push({ section, parts: [] })
-      currentSection = section
-    }
-    groups.at(-1)?.parts.push(part)
-  }
-  return groups
-}
-
 type EventPartsCardProps = {
   parts: PartAssignment[]
   templates: { id: number; name: string }[]
@@ -75,14 +63,14 @@ export function EventPartsCard({
   onDeletePart,
   onDragEnd,
 }: EventPartsCardProps) {
-  const partsBySection = groupPartsBySection(parts)
+  const partsBySection = groupProgrammeParts(parts)
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">{m.programs_edit_spiritual_program()}</CardTitle>
-        <CardAction>
-          <div className="flex items-center gap-2">
+        <CardAction className="max-sm:col-span-2 max-sm:row-start-3 max-sm:justify-self-start">
+          <div className="flex flex-wrap items-center gap-2">
             {templates.length > 0 && (
               <div className="flex items-center gap-1">
                 <Select value={selectedTemplateId} onValueChange={onTemplateChange}>
@@ -123,7 +111,7 @@ export function EventPartsCard({
                   <TableRow>
                     <TableHead className="w-8" />
                     <TableHead>{m.programs_view_part_col()}</TableHead>
-                    <TableHead className="w-24">{m.programs_view_duration_col()}</TableHead>
+                    <TableHead className="w-24 max-sm:hidden">{m.programs_view_duration_col()}</TableHead>
                     <TableHead className="w-20">{m.common_actions()}</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -133,48 +121,57 @@ export function EventPartsCard({
                       {group.section && (
                         <TableRow className="bg-muted/50">
                           <TableCell colSpan={4} className="py-1.5">
-                            <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                              {group.section}
-                            </span>
+                            <SectionHeading section={group.section} durationMin={sectionDurationMin(group)} />
                           </TableCell>
                         </TableRow>
                       )}
-                      {group.parts.map(assignment => (
-                        <SortableRow key={assignment.id} id={assignment.id}>
-                          <TableCell>
-                            <span className="font-medium text-sm">{assignment.name}</span>
-                          </TableCell>
-                          <TableCell>
-                            {assignment.durationMin ? (
-                              <span className="flex items-center gap-1 text-muted-foreground text-sm">
-                                <Clock className="size-3" />
-                                {assignment.durationMin} min
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground text-sm">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="size-7"
-                                onClick={() => onEditPart(assignment)}
-                              >
-                                <Pencil className="size-3" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="size-7 text-destructive hover:text-destructive"
-                                onClick={() => onDeletePart({ id: assignment.id, name: assignment.name })}
-                              >
-                                <Trash2 className="size-3" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </SortableRow>
+                      {group.tracks.map(trackGroup => (
+                        <Fragment key={`track-${trackGroup.parts[0]?.id ?? trackGroup.track}`}>
+                          {(group.tracks.length > 1 || trackGroup.track !== '') && trackGroup.track && (
+                            <TableRow className="bg-muted/30">
+                              <TableCell colSpan={4} className="py-1">
+                                <TrackHeading track={trackGroup.track} count={trackGroup.parts.length} />
+                              </TableCell>
+                            </TableRow>
+                          )}
+                          {trackGroup.parts.map(assignment => (
+                            <SortableRow key={assignment.id} id={assignment.id}>
+                              <TableCell className="max-sm:whitespace-normal">
+                                <span className="font-medium text-sm">{assignment.name}</span>
+                              </TableCell>
+                              <TableCell className="max-sm:hidden">
+                                {assignment.durationMin ? (
+                                  <span className="flex items-center gap-1 text-muted-foreground text-sm">
+                                    <Clock className="size-3" />
+                                    {assignment.durationMin} min
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-7"
+                                    onClick={() => onEditPart(assignment)}
+                                  >
+                                    <Pencil className="size-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-7 text-destructive hover:text-destructive"
+                                    onClick={() => onDeletePart({ id: assignment.id, name: assignment.name })}
+                                  >
+                                    <Trash2 className="size-3" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </SortableRow>
+                          ))}
+                        </Fragment>
                       ))}
                     </Fragment>
                   ))}

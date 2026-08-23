@@ -12,6 +12,7 @@ import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
+import { FormActions } from '~/shared/ui/FormActions'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
@@ -134,7 +135,9 @@ export default function EditBuildingPage({ loaderData, actionData }: Route.Compo
               </div>
             </div>
 
-            <SubmitButton className="mt-2">{m.prospection_edit_building_submit()}</SubmitButton>
+            <FormActions>
+              <SubmitButton>{m.prospection_edit_building_submit()}</SubmitButton>
+            </FormActions>
           </Form>
         </CardContent>
       </Card>

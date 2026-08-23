@@ -22,6 +22,7 @@ import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
+import { FormActions } from '~/shared/ui/FormActions'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
@@ -204,15 +205,15 @@ export default function EditAttributionPage({ loaderData, actionData }: Route.Co
               {fields.notes.errors && <p className="text-destructive text-sm">{fields.notes.errors}</p>}
             </div>
 
-            {shouldShowEndDate ? (
-              <Button variant="destructive" type="submit" disabled={attribution.endDate !== null} className="mt-2">
-                {m.attributions_edit_return_submit()}
-              </Button>
-            ) : (
-              <SubmitButton disabled={attribution.endDate !== null} className="mt-2">
-                {m.attributions_edit_save_submit()}
-              </SubmitButton>
-            )}
+            <FormActions>
+              {shouldShowEndDate ? (
+                <Button variant="destructive" type="submit" disabled={attribution.endDate !== null}>
+                  {m.attributions_edit_return_submit()}
+                </Button>
+              ) : (
+                <SubmitButton disabled={attribution.endDate !== null}>{m.attributions_edit_save_submit()}</SubmitButton>
+              )}
+            </FormActions>
           </Form>
         </CardContent>
       </Card>

@@ -10,10 +10,11 @@ import {
   UserPlus,
   X,
 } from 'lucide-react'
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Link, redirect, useFetcher } from 'react-router'
 import { resolveProgrammeLink } from '~/features/display-board/index.server'
 import { EventStatus } from '~/features/events/model/event-status.type'
+import { groupProgrammeParts, sectionDurationMin } from '~/features/events/model/programme-grouping'
 import { buildAssignmentCandidates } from '~/features/events/server/assignment-candidates.server'
 import { buildShareTextsForEvent } from '~/features/events/server/build-share-message.server'
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
@@ -21,6 +22,8 @@ import { canEditEvent } from '~/features/events/server/events-auth.server'
 import { listExternalSpeakers } from '~/features/events/server/external-speakers.server'
 import { AssignPartSheet } from '~/features/events/ui/AssignPartSheet'
 import { AssignServiceSheet } from '~/features/events/ui/AssignServiceSheet'
+import { MobilePartsList } from '~/features/events/ui/MobilePartsList'
+import { SectionHeading, TrackHeading } from '~/features/events/ui/ProgrammeHeadings'
 import { ShareAssignmentButton } from '~/features/events/ui/ShareAssignmentButton'
 import { UnassignConfirmDialog } from '~/features/events/ui/UnassignConfirmDialog'
 import * as m from '~/i18n/paraglide/messages'
@@ -124,6 +127,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     return {
       event,
       canEdit,
+      canViewPublishers: can(Permission.PublisherViewer),
       users,
       externalSpeakers,
       partCandidates,
@@ -135,8 +139,17 @@ export function loader({ params, context }: Route.LoaderArgs) {
 }
 
 export default function EventViewPage({ loaderData }: Route.ComponentProps) {
-  const { event, canEdit, users, externalSpeakers, partCandidates, serviceCandidates, shareTexts, timezone } =
-    loaderData
+  const {
+    event,
+    canEdit,
+    canViewPublishers,
+    users,
+    externalSpeakers,
+    partCandidates,
+    serviceCandidates,
+    shareTexts,
+    timezone,
+  } = loaderData
 
   const userById = new Map(users.map(u => [u.id, u]))
 
@@ -181,31 +194,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
   const partAssignedCount = event.eventParts.filter(a => a.assigneeId ?? a.externalSpeakerId).length
   const serviceAssignedCount = event.eventServiceParts.filter(a => a.assigneeId).length
 
-  // Group parts by section, then by track within each section
-  type PartAssignment = (typeof event.eventParts)[number]
-  type TrackGroup = { track: string; eventParts: PartAssignment[] }
-  type SectionGroup = { section: string; tracks: TrackGroup[] }
-
-  const partsBySection: SectionGroup[] = []
-  let currentSection: string | null = null
-  let currentTrack: string | null = null
-
-  for (const part of event.eventParts) {
-    const section = part.section || ''
-    const track = part.track || ''
-
-    if (section !== currentSection) {
-      partsBySection.push({ section, tracks: [{ track, eventParts: [] }] })
-      currentSection = section
-      currentTrack = track
-    } else if (track !== currentTrack) {
-      partsBySection.at(-1)?.tracks.push({ track, eventParts: [] })
-      currentTrack = track
-    }
-
-    const lastSection = partsBySection.at(-1)
-    lastSection?.tracks.at(-1)?.eventParts.push(part)
-  }
+  const partsBySection = groupProgrammeParts(event.eventParts)
 
   const colCount = 4 + (hasAnyTopic ? 1 : 0) + (canEdit ? 1 : 0)
 
@@ -296,58 +285,65 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
           </CardAction>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{m.programs_view_part_col()}</TableHead>
-                {hasAnyTopic && <TableHead>{m.programs_view_topic_col()}</TableHead>}
-                <TableHead className="w-24">{m.programs_view_duration_col()}</TableHead>
-                <TableHead>{m.programs_view_speaker_col()}</TableHead>
-                <TableHead>{m.programs_view_reader_col()}</TableHead>
-                {canEdit && <TableHead className="w-20">{m.common_actions()}</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {partsBySection.map(group => {
-                const hasMultipleTracks = group.tracks.length > 1 || group.tracks[0]?.track !== ''
-                return (
-                  <>
-                    {group.section && (
-                      <TableRow key={`section-${group.section}`} className="bg-muted/50">
-                        <TableCell colSpan={colCount} className="py-1.5">
-                          <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                            {group.section}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                    {group.tracks.map(trackGroup => (
-                      <>
-                        {hasMultipleTracks && trackGroup.track && (
-                          <TableRow key={`track-${group.section}-${trackGroup.track}`} className="bg-muted/30">
-                            <TableCell colSpan={colCount} className="py-1 pl-8">
-                              <span className="text-muted-foreground text-xs italic">{trackGroup.track}</span>
-                            </TableCell>
-                          </TableRow>
-                        )}
-                        {trackGroup.eventParts.map(assignment => (
-                          <PartRow
-                            key={assignment.id}
-                            assignment={assignment}
-                            canEdit={canEdit}
-                            hasAnyTopic={hasAnyTopic}
-                            shareText={shareTexts[assignment.id]}
-                            openPartAssign={openPartAssign}
-                            setUnassignTarget={setUnassignTarget}
-                          />
-                        ))}
-                      </>
-                    ))}
-                  </>
-                )
-              })}
-            </TableBody>
-          </Table>
+          <MobilePartsList
+            groups={partsBySection}
+            canEdit={canEdit}
+            canViewPublishers={canViewPublishers}
+            onPartClick={openPartAssign}
+          />
+          <div className="max-md:hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{m.programs_view_part_col()}</TableHead>
+                  {hasAnyTopic && <TableHead>{m.programs_view_topic_col()}</TableHead>}
+                  <TableHead className="w-24">{m.programs_view_duration_col()}</TableHead>
+                  <TableHead>{m.programs_view_speaker_col()}</TableHead>
+                  <TableHead>{m.programs_view_reader_col()}</TableHead>
+                  {canEdit && <TableHead className="w-20">{m.common_actions()}</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {partsBySection.map(group => {
+                  const hasMultipleTracks = group.tracks.length > 1 || group.tracks[0]?.track !== ''
+                  return (
+                    <React.Fragment key={group.tracks[0]?.parts[0]?.id ?? group.section}>
+                      {group.section && (
+                        <TableRow key={`section-${group.section}`} className="bg-muted/50">
+                          <TableCell colSpan={colCount} className="py-1.5">
+                            <SectionHeading section={group.section} durationMin={sectionDurationMin(group)} />
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {group.tracks.map(trackGroup => (
+                        <React.Fragment key={trackGroup.parts[0]?.id ?? trackGroup.track}>
+                          {hasMultipleTracks && trackGroup.track && (
+                            <TableRow key={`track-${group.section}-${trackGroup.track}`} className="bg-muted/30">
+                              <TableCell colSpan={colCount} className="py-1 pl-4">
+                                <TrackHeading track={trackGroup.track} count={trackGroup.parts.length} />
+                              </TableCell>
+                            </TableRow>
+                          )}
+                          {trackGroup.parts.map(assignment => (
+                            <PartRow
+                              key={assignment.id}
+                              assignment={assignment}
+                              canEdit={canEdit}
+                              canViewPublishers={canViewPublishers}
+                              hasAnyTopic={hasAnyTopic}
+                              shareText={shareTexts[assignment.id]}
+                              openPartAssign={openPartAssign}
+                              setUnassignTarget={setUnassignTarget}
+                            />
+                          ))}
+                        </React.Fragment>
+                      ))}
+                    </React.Fragment>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -394,6 +390,8 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                   >
                     <AssigneeCell
                       assignee={assignment.assignee}
+                      assigneeId={assignment.assigneeId}
+                      linkToPublisher={canViewPublishers}
                       externalSpeaker={null}
                       hasConflict={assignment.hasConflict}
                     />
@@ -497,6 +495,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
 function PartRow({
   assignment,
   canEdit,
+  canViewPublishers,
   hasAnyTopic,
   shareText,
   openPartAssign,
@@ -504,6 +503,7 @@ function PartRow({
 }: {
   assignment: PartRowAssignment
   canEdit: boolean
+  canViewPublishers: boolean
   hasAnyTopic: boolean
   /** Absent when there is nothing to send — see buildAssignmentShareText. */
   shareText?: string
@@ -534,6 +534,8 @@ function PartRow({
       >
         <AssigneeCell
           assignee={assignment.assignee}
+          assigneeId={assignment.assigneeId}
+          linkToPublisher={canViewPublishers}
           externalSpeaker={assignment.externalSpeaker}
           hasConflict={assignment.hasConflict}
         />
@@ -614,10 +616,14 @@ function ReleaseToggleButton({ status, eventId }: { status: string; eventId: num
 
 function AssigneeCell({
   assignee,
+  assigneeId,
+  linkToPublisher = false,
   externalSpeaker,
   hasConflict,
 }: {
   assignee: { firstname: string | null; lastname: string | null } | null
+  assigneeId?: number | null
+  linkToPublisher?: boolean
   externalSpeaker: { name: string } | null
   hasConflict: boolean
 }) {
@@ -638,9 +644,19 @@ function AssigneeCell({
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm">
-        {assignee.firstname} {assignee.lastname}
-      </span>
+      {linkToPublisher && assigneeId != null ? (
+        <Link
+          to={`/publishers/${assigneeId}/view`}
+          className="text-sm hover:text-primary hover:underline"
+          onClick={e => e.stopPropagation()}
+        >
+          {assignee.firstname} {assignee.lastname}
+        </Link>
+      ) : (
+        <span className="text-sm">
+          {assignee.firstname} {assignee.lastname}
+        </span>
+      )}
       {hasConflict && (
         <Badge variant="destructive" className="gap-1 text-xs">
           <AlertTriangle className="size-3" />

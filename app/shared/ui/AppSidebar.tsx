@@ -1,30 +1,16 @@
-import {
-  BarChart3,
-  Building2,
-  CalendarCheck,
-  CalendarDays,
-  CalendarOff,
-  ChevronDown,
-  FileText,
-  FolderOpen,
-  Home,
-  LayoutGrid,
-  LogOut,
-  Map as MapIcon,
-  MapPin,
-  PieChart,
-  Search,
-  Settings,
-  Shield,
-  User,
-  UserRoundCog,
-  Users,
-  UsersRound,
-} from 'lucide-react'
-import { Form, NavLink } from 'react-router'
+import { ChevronDown, Home, LayoutGrid, LogOut, Search } from 'lucide-react'
+import { Form, NavLink, useLocation } from 'react-router'
 
 import * as m from '~/i18n/paraglide/messages'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/shared/ui/collapsible'
+import {
+  buildManagementSections,
+  buildPersonalItems,
+  isNavItemActive,
+  type NavItem,
+  type NavigationPermissions,
+  type NavSection,
+} from '~/shared/ui/navigation-config'
 import {
   Sidebar,
   SidebarContent,
@@ -41,27 +27,7 @@ import {
 } from '~/shared/ui/sidebar'
 import { ThemeToggle } from '~/shared/ui/ThemeToggle'
 
-export interface AppSidebarPermissions {
-  canViewBoard: boolean
-  canUploadDocument: boolean
-  canManageBoard: boolean
-  canViewPublishers: boolean
-  canViewTerritories: boolean
-  canViewProspection: boolean
-  canManageTerritories: boolean
-  canManageSettings: boolean
-  canManageUsers: boolean
-  canManagePioneerGoals: boolean
-  canViewPrograms: boolean
-  canViewAbsences: boolean
-  canViewActivity: boolean
-  canViewExternalSpeakers: boolean
-  canManageExternalSpeakers: boolean
-  canViewRoles: boolean
-  canManageRoles: boolean
-  canManagePermissions: boolean
-  isPlatformAdmin: boolean
-}
+export type AppSidebarPermissions = NavigationPermissions
 
 interface AppSidebarProps {
   permissions: AppSidebarPermissions
@@ -69,22 +35,11 @@ interface AppSidebarProps {
   onSearchClick?: () => void
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: sidebar with many permission-based conditional sections
 export function AppSidebar({ permissions, congregationName, onSearchClick }: AppSidebarProps) {
-  const showAssemblee =
-    permissions.canViewPublishers ||
-    permissions.canViewActivity ||
-    permissions.canViewPrograms ||
-    permissions.canViewAbsences ||
-    permissions.canViewExternalSpeakers ||
-    permissions.canViewRoles
-  const showTerritories =
-    permissions.canViewTerritories || permissions.canViewProspection || permissions.canManageTerritories
-  const showReglages =
-    permissions.canManageSettings ||
-    permissions.canManageUsers ||
-    permissions.canManagePermissions ||
-    permissions.canManagePioneerGoals
+  const sections = buildManagementSections(permissions)
+  // Members without board management see the board as a simple top-level item;
+  // managers get it inside the board section instead.
+  const showSimpleBoardItem = permissions.canViewBoard && !sections.some(section => section.id === 'board')
 
   return (
     <Sidebar>
@@ -113,147 +68,34 @@ export function AppSidebar({ permissions, congregationName, onSearchClick }: App
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarNavItem to="/" icon={Home} label={m.sidebar_home()} end />
-              {permissions.canViewBoard && !permissions.canUploadDocument && !permissions.canManageBoard && (
-                <SidebarNavItem to="/board" icon={LayoutGrid} label={m.sidebar_board()} />
+              <SidebarNavItem item={{ id: 'home', label: m.sidebar_home, icon: Home, to: '/', end: true }} />
+              {showSimpleBoardItem && (
+                <SidebarNavItem item={{ id: 'board', label: m.sidebar_board, icon: LayoutGrid, to: '/board' }} />
               )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {(permissions.canUploadDocument || permissions.canManageBoard) && (
-          <Collapsible defaultOpen className="group/collapsible">
-            <SidebarGroup>
-              <SidebarGroupLabel asChild>
-                <CollapsibleTrigger>
-                  {m.sidebar_board()}
-                  <ChevronDown className="ml-auto size-3 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
-                </CollapsibleTrigger>
-              </SidebarGroupLabel>
-              <CollapsibleContent>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    <SidebarNavItem to="/board" icon={LayoutGrid} label={m.sidebar_board()} end />
-                    {permissions.canManageBoard && (
-                      <SidebarNavItem to="/board/sections" icon={FolderOpen} label={m.sidebar_sections()} />
-                    )}
-                    <SidebarNavItem to="/board/documents" icon={FileText} label={m.sidebar_documents()} />
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
+        {sections.map(section =>
+          section.items.length === 1 ? (
+            <SidebarGroup key={section.id}>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarNavItem item={section.items[0]} />
+                </SidebarMenu>
+              </SidebarGroupContent>
             </SidebarGroup>
-          </Collapsible>
-        )}
-
-        {showAssemblee && (
-          <Collapsible defaultOpen className="group/collapsible">
-            <SidebarGroup>
-              <SidebarGroupLabel asChild>
-                <CollapsibleTrigger>
-                  {m.sidebar_assembly()}
-                  <ChevronDown className="ml-auto size-3 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
-                </CollapsibleTrigger>
-              </SidebarGroupLabel>
-              <CollapsibleContent>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {permissions.canViewPublishers && (
-                      <SidebarNavItem to="/publishers" icon={Users} label={m.sidebar_publishers()} end />
-                    )}
-                    {permissions.canViewPublishers && (
-                      <SidebarNavItem to="/groups" icon={UsersRound} label={m.sidebar_publisher_groups()} />
-                    )}
-                    {permissions.canViewActivity && (
-                      <SidebarNavItem to="/publishers/activity" icon={BarChart3} label={m.sidebar_activity()} />
-                    )}
-                    {permissions.canViewRoles && (
-                      <SidebarNavItem to="/congregation/roles" icon={Shield} label={m.sidebar_assembly_roles()} />
-                    )}
-                    {permissions.canViewPrograms && (
-                      <SidebarNavItem to="/programs" icon={CalendarDays} label={m.sidebar_programs()} end />
-                    )}
-                    {!permissions.canViewPrograms && permissions.canViewAbsences && (
-                      <SidebarNavItem to="/programs/days-off" icon={CalendarOff} label={m.sidebar_absences()} />
-                    )}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </SidebarGroup>
-          </Collapsible>
-        )}
-
-        {showTerritories && (
-          <Collapsible defaultOpen className="group/collapsible">
-            <SidebarGroup>
-              <SidebarGroupLabel asChild>
-                <CollapsibleTrigger>
-                  {m.sidebar_territories()}
-                  <ChevronDown className="ml-auto size-3 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
-                </CollapsibleTrigger>
-              </SidebarGroupLabel>
-              <CollapsibleContent>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {permissions.canViewTerritories && (
-                      <SidebarNavItem
-                        to="/territories/attributions"
-                        icon={CalendarCheck}
-                        label={m.sidebar_attributions()}
-                      />
-                    )}
-                    {permissions.canViewTerritories && (
-                      <SidebarNavItem to="/territories" icon={MapIcon} label={m.sidebar_territories()} end />
-                    )}
-                    {permissions.canViewProspection && (
-                      <SidebarNavItem to="/territories/buildings" icon={Building2} label={m.sidebar_prospection()} />
-                    )}
-                    {permissions.canManageTerritories && (
-                      <SidebarNavItem to="/territories/stats" icon={PieChart} label={m.sidebar_statistics()} />
-                    )}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </SidebarGroup>
-          </Collapsible>
-        )}
-
-        {showReglages && (
-          <SidebarGroup>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {/* Single entry → the Settings hub (/settings), which groups every settings area. */}
-                <SidebarNavItem to="/settings" icon={Settings} label={m.sidebar_settings()} />
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {permissions.isPlatformAdmin && (
-          <Collapsible defaultOpen className="group/collapsible">
-            <SidebarGroup>
-              <SidebarGroupLabel asChild>
-                <CollapsibleTrigger>
-                  {m.sidebar_platform()}
-                  <ChevronDown className="ml-auto size-3 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
-                </CollapsibleTrigger>
-              </SidebarGroupLabel>
-              <CollapsibleContent>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    <SidebarNavItem to="/platform-admin" icon={UserRoundCog} label={m.sidebar_administration()} />
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </SidebarGroup>
-          </Collapsible>
+          ) : (
+            <SidebarNavSection key={section.id} section={section} />
+          ),
         )}
       </SidebarContent>
 
       <SidebarFooter className="border-sidebar-border border-t">
         <SidebarMenu>
-          <SidebarNavItem to="/me/profile" icon={User} label={m.sidebar_my_profile()} />
-          <SidebarNavItem to="/me/territories" icon={MapPin} label={m.sidebar_my_territories()} />
-          <SidebarNavItem to="/me/days-off" icon={CalendarOff} label={m.sidebar_my_absences()} />
+          {buildPersonalItems().map(item => (
+            <SidebarNavItem key={item.id} item={item} />
+          ))}
           <SidebarMenuItem>
             <Form action="/logout" method="post">
               <SidebarMenuButton type="submit" className="text-muted-foreground hover:text-destructive">
@@ -268,31 +110,51 @@ export function AppSidebar({ permissions, congregationName, onSearchClick }: App
   )
 }
 
-function SidebarNavItem({
-  to,
-  icon: Icon,
-  label,
-  end,
-}: {
-  to: string
-  icon: React.ComponentType<{ className?: string }>
-  label: string
-  end?: boolean
-}) {
+function SidebarNavSection({ section }: { section: NavSection }) {
+  return (
+    <Collapsible defaultOpen className="group/collapsible">
+      <SidebarGroup>
+        <SidebarGroupLabel asChild>
+          <CollapsibleTrigger>
+            {section.label()}
+            <ChevronDown className="ml-auto size-3 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
+          </CollapsibleTrigger>
+        </SidebarGroupLabel>
+        <CollapsibleContent>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {section.items.map(item => (
+                <SidebarNavItem key={item.id} item={item} />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </CollapsibleContent>
+      </SidebarGroup>
+    </Collapsible>
+  )
+}
+
+function SidebarNavItem({ item }: { item: NavItem }) {
   const { isMobile, setOpenMobile } = useSidebar()
+  const { pathname } = useLocation()
+  const Icon = item.icon
+  // Section-aware highlight: deep pages (a publisher record, a territory
+  // sheet) keep their owning entry lit even though NavLink's exact `end`
+  // match no longer applies.
+  const isActive = item.match ? isNavItemActive(item, pathname, false) : undefined
 
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton asChild className="min-h-[44px] md:min-h-0">
+      <SidebarMenuButton asChild isActive={isActive} className="min-h-[44px] md:min-h-0">
         <NavLink
-          to={to}
-          end={end}
+          to={item.to}
+          end={item.end}
           onClick={() => {
             if (isMobile) setOpenMobile(false)
           }}
         >
           <Icon className="size-4" />
-          <span>{label}</span>
+          <span>{item.label()}</span>
         </NavLink>
       </SidebarMenuButton>
     </SidebarMenuItem>

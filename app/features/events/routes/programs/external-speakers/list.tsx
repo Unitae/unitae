@@ -133,7 +133,7 @@ export default function ExternalSpeakerListPage({ loaderData }: Route.ComponentP
         </label>
       </div>
 
-      <div className="overflow-hidden rounded-xl border">
+      <div className="overflow-hidden rounded-2xl border">
         <Table>
           <TableHeader>
             <TableRow>

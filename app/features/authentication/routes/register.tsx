@@ -9,6 +9,7 @@ import {
   establishAuthenticatedSession,
   getSession,
 } from '~/features/authentication/server/session.server'
+import { AuthShell } from '~/features/authentication/ui/AuthShell'
 import * as m from '~/i18n/paraglide/messages'
 import { locales } from '~/i18n/paraglide/runtime'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
@@ -56,88 +57,85 @@ export default function RegisterPage({ loaderData, actionData }: Route.Component
   })
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md overflow-hidden shadow-md">
-        <div className="h-1 bg-primary" />
-        <CardHeader className="items-center space-y-2 text-center">
-          <h1 className="font-bold font-display text-2xl tracking-tight">Unitae</h1>
-          <p className="text-muted-foreground text-sm">{m.auth_register_subtitle()}</p>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          {success && (
-            <Alert className="mb-4">
-              <AlertDescription>{success}</AlertDescription>
-            </Alert>
-          )}
-          <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)}>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor={fields['congregation-name'].id}>{m.auth_register_congregation_name_label()}</Label>
-              <Input
-                {...getInputProps(fields['congregation-name'], { type: 'text' })}
-                placeholder={m.auth_register_congregation_name_placeholder()}
-              />
-              {fields['congregation-name'].errors && (
-                <p className="text-destructive text-sm">{fields['congregation-name'].errors}</p>
-              )}
-            </div>
+    <AuthShell>
+      <CardHeader className="items-center space-y-2 text-center">
+        <h1 className="font-bold font-display text-2xl tracking-tight">Unitae</h1>
+        <p className="text-muted-foreground text-sm">{m.auth_register_subtitle()}</p>
+      </CardHeader>
+      <CardContent>
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        {success && (
+          <Alert className="mb-4">
+            <AlertDescription>{success}</AlertDescription>
+          </Alert>
+        )}
+        <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)}>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor={fields['congregation-name'].id}>{m.auth_register_congregation_name_label()}</Label>
+            <Input
+              {...getInputProps(fields['congregation-name'], { type: 'text' })}
+              placeholder={m.auth_register_congregation_name_placeholder()}
+            />
+            {fields['congregation-name'].errors && (
+              <p className="text-destructive text-sm">{fields['congregation-name'].errors}</p>
+            )}
+          </div>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor={fields.locale.id}>{m.auth_register_locale_label()}</Label>
-              <Select name={fields.locale.name} defaultValue={fields.locale.initialValue ?? 'fr'}>
-                <SelectTrigger id={fields.locale.id}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {locales.map(locale => (
-                    <SelectItem key={locale} value={locale}>
-                      {locale === 'fr' ? m.common_locale_fr() : m.common_locale_en()}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {fields.locale.errors && <p className="text-destructive text-sm">{fields.locale.errors}</p>}
-            </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor={fields.locale.id}>{m.auth_register_locale_label()}</Label>
+            <Select name={fields.locale.name} defaultValue={fields.locale.initialValue ?? 'fr'}>
+              <SelectTrigger id={fields.locale.id}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {locales.map(locale => (
+                  <SelectItem key={locale} value={locale}>
+                    {locale === 'fr' ? m.common_locale_fr() : m.common_locale_en()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {fields.locale.errors && <p className="text-destructive text-sm">{fields.locale.errors}</p>}
+          </div>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor={fields.email.id}>{m.auth_register_admin_email_label()}</Label>
-              <Input {...getInputProps(fields.email, { type: 'email' })} autoComplete="email" />
-              {fields.email.errors && <p className="text-destructive text-sm">{fields.email.errors}</p>}
-            </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor={fields.email.id}>{m.auth_register_admin_email_label()}</Label>
+            <Input {...getInputProps(fields.email, { type: 'email' })} autoComplete="email" />
+            {fields.email.errors && <p className="text-destructive text-sm">{fields.email.errors}</p>}
+          </div>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor={fields.password.id}>{m.auth_register_password_label()}</Label>
-              <Input {...getInputProps(fields.password, { type: 'password' })} autoComplete="new-password" />
-              {fields.password.errors && <p className="text-destructive text-sm">{fields.password.errors}</p>}
-            </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor={fields.password.id}>{m.auth_register_password_label()}</Label>
+            <Input {...getInputProps(fields.password, { type: 'password' })} autoComplete="new-password" />
+            {fields.password.errors && <p className="text-destructive text-sm">{fields.password.errors}</p>}
+          </div>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor={fields['repeat-password'].id}>{m.auth_register_confirm_password_label()}</Label>
-              <Input {...getInputProps(fields['repeat-password'], { type: 'password' })} autoComplete="new-password" />
-              {fields['repeat-password'].errors && (
-                <p className="text-destructive text-sm">{fields['repeat-password'].errors}</p>
-              )}
-            </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor={fields['repeat-password'].id}>{m.auth_register_confirm_password_label()}</Label>
+            <Input {...getInputProps(fields['repeat-password'], { type: 'password' })} autoComplete="new-password" />
+            {fields['repeat-password'].errors && (
+              <p className="text-destructive text-sm">{fields['repeat-password'].errors}</p>
+            )}
+          </div>
 
-            <Button type="submit" className="mt-4 w-full">
-              {m.auth_register_submit()}
-            </Button>
-          </Form>
-        </CardContent>
-        <CardFooter className="justify-center">
-          <p className="text-muted-foreground text-sm">
-            {m.auth_register_existing_account()}{' '}
-            <Link to="/login" className="text-primary hover:underline">
-              {m.auth_register_login_link()}
-            </Link>
-          </p>
-        </CardFooter>
-      </Card>
-    </div>
+          <Button type="submit" className="mt-4 w-full">
+            {m.auth_register_submit()}
+          </Button>
+        </Form>
+      </CardContent>
+      <CardFooter className="justify-center">
+        <p className="text-muted-foreground text-sm">
+          {m.auth_register_existing_account()}{' '}
+          <Link to="/login" className="text-primary hover:underline">
+            {m.auth_register_login_link()}
+          </Link>
+        </p>
+      </CardFooter>
+    </AuthShell>
   )
 }
 

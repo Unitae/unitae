@@ -131,7 +131,7 @@ export default function UserListPage({ loaderData }: Route.ComponentProps) {
 
       <SearchInput placeholder={m.settings_users_search_placeholder()} />
 
-      <div className="overflow-hidden rounded-xl border">
+      <div className="overflow-hidden rounded-2xl border">
         <Table>
           <TableHeader>
             <TableRow>

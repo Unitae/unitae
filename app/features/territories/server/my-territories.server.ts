@@ -10,10 +10,11 @@ export function computeStatus(lateDate: Date): TerritoryStatus {
   return 'on-time'
 }
 
-export async function getUserTerritoriesWithDetails(db: TransactionClient, userId: number) {
+// `memberId` — Attribution.publisherId is a Member FK, never pass a UserAccount id.
+export async function getUserTerritoriesWithDetails(db: TransactionClient, memberId: number) {
   const attributions = await db.attribution.findMany({
     where: {
-      publisherId: userId,
+      publisherId: memberId,
       endDate: null,
     },
     select: {
@@ -47,10 +48,10 @@ export async function getUserTerritoriesWithDetails(db: TransactionClient, userI
   }))
 }
 
-export async function getUserTerritoryDetail(db: TransactionClient, userId: number, territoryId: number) {
+export async function getUserTerritoryDetail(db: TransactionClient, memberId: number, territoryId: number) {
   const attribution = await db.attribution.findFirst({
     where: {
-      publisherId: userId,
+      publisherId: memberId,
       endDate: null,
       territoryId,
     },

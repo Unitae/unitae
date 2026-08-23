@@ -13,6 +13,7 @@ import {
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { FormActions } from '~/shared/ui/FormActions'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
@@ -135,7 +136,9 @@ export default function NewTemplatePage() {
                 <Input id="endTime" name="endTime" type="time" defaultValue="21:00" />
               </div>
             </div>
-            <SubmitButton className="w-fit">{m.settings_template_new_submit()}</SubmitButton>
+            <FormActions>
+              <SubmitButton>{m.settings_template_new_submit()}</SubmitButton>
+            </FormActions>
           </Form>
         </CardContent>
       </Card>

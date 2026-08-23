@@ -8,6 +8,7 @@ import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 import { Badge } from '~/shared/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { FormActions } from '~/shared/ui/FormActions'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
@@ -133,9 +134,9 @@ export default function EditCongregationPage({ loaderData, actionData }: Route.C
               <Label htmlFor={fields.active.id}>{m.platform_admin_edit_congregation_active_label()}</Label>
             </div>
 
-            <div className="pt-2">
+            <FormActions className="pt-2">
               <SubmitButton>{m.common_save()}</SubmitButton>
-            </div>
+            </FormActions>
           </Form>
         </CardContent>
       </Card>

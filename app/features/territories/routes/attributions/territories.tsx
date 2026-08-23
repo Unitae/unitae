@@ -7,7 +7,6 @@ import { classifySearch } from '~/features/territories/server/search-intent.serv
 import { findAvailableTerritoriesPaginated } from '~/features/territories/server/territories.server'
 import { territoryContentLabel } from '~/features/territories/server/territory-content-label'
 import { computeFilters } from '~/features/territories/server/territory-filters.server'
-import ActiveTerritoryFilters from '~/features/territories/ui/ActiveTerritoryFilters'
 import { buildTerritoryFilterChips } from '~/features/territories/ui/build-filter-chips'
 import GeocodeNotice, { type GeocodeNoticeData } from '~/features/territories/ui/GeocodeNotice'
 import { NoCoordinatesDivider, NoCoordinatesPageBanner } from '~/features/territories/ui/NoCoordinatesNotice'
@@ -21,6 +20,7 @@ import { type GeocodeResult, geocode } from '~/shared/infra/geocoder.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
+import { FilterChipBar } from '~/shared/ui/filters/FilterChipBar'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
@@ -147,7 +147,7 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
           ]}
           backTo="/territories/attributions"
         />
-        <ActiveTerritoryFilters chips={chips} />
+        <FilterChipBar chips={chips} />
         <GeocodeNotice notice={geocodeNotice} />
         <TerritoryFilters zips={zips} showAccess showSearch showType showZip />
 
@@ -170,7 +170,7 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
         ]}
         backTo="/territories/attributions"
       />
-      <ActiveTerritoryFilters chips={chips} />
+      <FilterChipBar chips={chips} />
       <GeocodeNotice notice={geocodeNotice} />
       {geocodeResult != null && <ProximityBanner geocode={geocodeResult} />}
       <TerritoryFilters
@@ -193,8 +193,8 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
               {proximityActive && (
                 <TableHead className="w-[120px] text-right">{m.territories_filter_distance_header()}</TableHead>
               )}
-              <TableHead className="w-[150px] text-center">{m.territories_table_type()}</TableHead>
-              <TableHead className="w-[150px] text-center">{m.territories_table_content()}</TableHead>
+              <TableHead className="w-[150px] text-center max-sm:hidden">{m.territories_table_type()}</TableHead>
+              <TableHead className="w-[150px] text-center max-sm:hidden">{m.territories_table_content()}</TableHead>
               <TableHead className="w-[150px] text-center">{m.attributions_available_table_status()}</TableHead>
               <TableHead className="w-[150px] text-center" />
             </TableRow>
@@ -215,10 +215,10 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
                         </span>
                       </TableCell>
                     )}
-                    <TableCell className="text-center">
+                    <TableCell className="text-center max-sm:hidden">
                       {territoryTypeLabels[territory.type] ?? territory.type}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center max-sm:hidden">
                       {territoryContentLabel(territory.type, territory.entrances)}
                     </TableCell>
                     <TableCell className="text-center">

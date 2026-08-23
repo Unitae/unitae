@@ -3,44 +3,12 @@ import { BookOpen, Calendar, ChevronRight, Gem, HeartHandshake } from 'lucide-re
 import { type RefObject, useEffect, useMemo, useRef, useState } from 'react'
 import type { ProgrammeDynamicConfig } from '~/features/display-board/model/dynamic-document.type'
 import { formatName, getPartDisplay, nameMatches, partMatchesQuery } from '~/features/display-board/model/event-display'
-import { groupPartsBySlot } from '~/features/events'
+import { groupPartsBySlot, sectionColor, sectionIcon } from '~/features/events'
 import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { usePersistedState } from '~/shared/ui/hooks/use-persisted-state'
 import { cn } from '~/shared/utils/utils'
-
-// ---------------------------------------------------------------------------
-// Section color mapping — uses CSS custom properties from tailwind.css
-// ---------------------------------------------------------------------------
-
-const SECTION_COLOR_MAP: [string, string][] = [
-  ['joyaux', 'var(--color-section-treasures)'],
-  ['minist', 'var(--color-section-ministry)'],
-  ['chr', 'var(--color-section-living)'],
-]
-
-function sectionColor(section: string): string {
-  const lower = section.toLowerCase()
-  for (const [pattern, cssVar] of SECTION_COLOR_MAP) {
-    if (lower.includes(pattern)) return cssVar
-  }
-  return 'var(--color-muted-foreground)'
-}
-
-const SECTION_ICONS: [string, LucideIcon][] = [
-  ['joyaux', Gem],
-  ['minist', BookOpen],
-  ['chr', HeartHandshake],
-]
-
-function sectionIcon(section: string): LucideIcon | undefined {
-  const lower = section.toLowerCase()
-  for (const [pattern, icon] of SECTION_ICONS) {
-    if (lower.includes(pattern)) return icon
-  }
-  return undefined
-}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -152,20 +120,25 @@ function PartRow({ part, highlighted, dimmed }: { part: PartAssignment; highligh
   return (
     <li
       className={cn(
-        'grid grid-cols-[1fr_auto] items-baseline gap-x-4 py-0.5',
+        'grid grid-cols-[1fr_auto] items-baseline gap-x-4 py-0.5 max-sm:block max-sm:py-1',
         dimmed && 'opacity-30 transition-opacity',
       )}
     >
-      <span className="min-w-0 truncate font-semibold text-foreground text-sm">
+      <span className="min-w-0 truncate font-semibold text-foreground text-sm max-sm:block max-sm:whitespace-normal">
         {displayName}
         {part.durationMin != null && (
           <span className="ml-1 font-normal text-muted-foreground text-xs">({part.durationMin} min)</span>
+        )}
+        {part.track !== '' && (
+          <span className="ml-1.5 font-normal text-muted-foreground text-xs uppercase tracking-wide">
+            · {part.track}
+          </span>
         )}
       </span>
       {rightText ? (
         <span
           className={cn(
-            'flex shrink-0 items-center gap-1.5 text-foreground text-sm',
+            'flex shrink-0 items-center gap-1.5 text-foreground text-sm max-sm:flex-wrap max-sm:pl-3',
             highlighted && 'rounded-sm bg-amber-100 px-1 dark:bg-amber-900/40',
           )}
         >
@@ -177,12 +150,15 @@ function PartRow({ part, highlighted, dimmed }: { part: PartAssignment; highligh
           )}
         </span>
       ) : (
-        <span className="shrink-0 text-muted-foreground/40 text-sm italic">&mdash;</span>
+        <span className="shrink-0 text-muted-foreground/40 text-sm italic max-sm:hidden">&mdash;</span>
       )}
     </li>
   )
 }
 
+// Below sm both row kinds trade their two-column grid for stacked block flow
+// (name, then people indented beneath); the hidden max-sm:inline dash bridges
+// a room label and its assignee into one wrapping line.
 function MultiTrackPart({ parts, query }: { parts: PartAssignment[]; query: string }) {
   const representative = parts[0]
   const hasQuery = query.length > 0
@@ -207,17 +183,18 @@ function MultiTrackPart({ parts, query }: { parts: PartAssignment[]; query: stri
           <li
             key={part.id}
             className={cn(
-              'ml-3 grid grid-cols-[1fr_auto] items-baseline gap-x-4 py-0.5',
+              'ml-3 grid grid-cols-[1fr_auto] items-baseline gap-x-4 py-0.5 max-sm:block',
               dimmed && 'opacity-30 transition-opacity',
             )}
           >
             <span className="shrink-0 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
               {trackName}
+              <span className="hidden font-normal normal-case tracking-normal max-sm:inline"> — </span>
             </span>
             {rightText ? (
               <span
                 className={cn(
-                  'flex shrink-0 items-center gap-1.5 text-foreground text-sm',
+                  'flex shrink-0 items-center gap-1.5 text-foreground text-sm max-sm:inline-flex max-sm:flex-wrap',
                   highlighted && 'rounded-sm bg-amber-100 px-1 dark:bg-amber-900/40',
                 )}
               >
@@ -229,7 +206,12 @@ function MultiTrackPart({ parts, query }: { parts: PartAssignment[]; query: stri
                 )}
               </span>
             ) : (
-              <span className="shrink-0 text-muted-foreground/40 text-sm italic">&mdash;</span>
+              <span className="shrink-0 text-muted-foreground/40 text-sm italic max-sm:hidden">&mdash;</span>
+            )}
+            {!rightText && (
+              <span className="hidden text-muted-foreground/70 text-sm italic max-sm:inline">
+                {m.programs_view_unassigned()}
+              </span>
             )}
           </li>
         )

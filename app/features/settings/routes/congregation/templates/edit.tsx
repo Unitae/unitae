@@ -6,12 +6,16 @@ import { Fragment, useState } from 'react'
 import { data, redirect, useFetcher } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import {
+  groupProgrammeParts,
   InlineDeleteDialog,
   isSystemTemplate,
   PartEditSheet,
   partAllowedRolesToWrite,
+  SectionHeading,
   ServiceEditSheet,
   SortableRow,
+  sectionDurationMin,
+  TrackHeading,
 } from '~/features/events'
 import {
   deleteTemplatePart,
@@ -367,17 +371,7 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
     setDeleteTarget(null)
   }
 
-  // Group parts by section
-  const partsBySection: { section: string; parts: typeof template.parts }[] = []
-  let currentSection: string | null = null
-  for (const part of template.parts) {
-    const section = part.section || ''
-    if (section !== currentSection) {
-      partsBySection.push({ section, parts: [] })
-      currentSection = section
-    }
-    partsBySection.at(-1)?.parts.push(part)
-  }
+  const partsBySection = groupProgrammeParts(template.parts)
 
   return (
     <div className="flex flex-col gap-6">
@@ -490,70 +484,79 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
                     </TableHeader>
                     <TableBody>
                       {partsBySection.map(group => (
-                        <Fragment key={group.parts[0]?.id ?? `section-${group.section}`}>
+                        <Fragment key={group.tracks[0]?.parts[0]?.id ?? `section-${group.section}`}>
                           {group.section && (
                             <TableRow key={`section-${group.section}`} className="bg-muted/50">
                               <TableCell colSpan={5} className="py-1.5">
-                                <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                                  {group.section}
-                                </span>
+                                <SectionHeading section={group.section} durationMin={sectionDurationMin(group)} />
                               </TableCell>
                             </TableRow>
                           )}
-                          {group.parts.map(part => (
-                            <SortableRow key={part.id} id={part.id}>
-                              <TableCell className="text-muted-foreground">{part.order}</TableCell>
-                              <TableCell>
-                                <span className="font-medium text-sm">{part.name}</span>
-                              </TableCell>
-                              <TableCell>
-                                {part.durationMin ? (
-                                  <span className="flex items-center gap-1 text-muted-foreground text-sm">
-                                    <Clock className="size-3" />
-                                    {part.durationMin} min
-                                  </span>
-                                ) : (
-                                  <span className="text-muted-foreground text-sm">—</span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex gap-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="size-7"
-                                    onClick={() => {
-                                      setEditingPart({
-                                        id: part.id,
-                                        name: part.name,
-                                        section: part.section,
-                                        track: part.track,
-                                        trackOrder: part.trackOrder,
-                                        order: part.order,
-                                        durationMin: part.durationMin,
-                                        allowExternalSpeaker: part.allowExternalSpeaker,
-                                        speakerLabel: part.speakerLabel,
-                                        readerLabel: part.readerLabel,
-                                        presetId: part.presetId,
-                                        allowedSpeakerRoleIds: part.allowedSpeakerRoleIds,
-                                        allowedReaderRoleIds: part.allowedReaderRoleIds,
-                                      })
-                                      setPartSheetOpen(true)
-                                    }}
-                                  >
-                                    <Pencil className="size-3" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="size-7 text-destructive hover:text-destructive"
-                                    onClick={() => setDeleteTarget({ type: 'part', id: part.id, name: part.name })}
-                                  >
-                                    <Trash2 className="size-3" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </SortableRow>
+                          {group.tracks.map(trackGroup => (
+                            <Fragment key={`track-${trackGroup.parts[0]?.id ?? trackGroup.track}`}>
+                              {(group.tracks.length > 1 || trackGroup.track !== '') && trackGroup.track && (
+                                <TableRow className="bg-muted/30">
+                                  <TableCell colSpan={5} className="py-1">
+                                    <TrackHeading track={trackGroup.track} count={trackGroup.parts.length} />
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                              {trackGroup.parts.map(part => (
+                                <SortableRow key={part.id} id={part.id}>
+                                  <TableCell className="text-muted-foreground">{part.order}</TableCell>
+                                  <TableCell>
+                                    <span className="font-medium text-sm">{part.name}</span>
+                                  </TableCell>
+                                  <TableCell>
+                                    {part.durationMin ? (
+                                      <span className="flex items-center gap-1 text-muted-foreground text-sm">
+                                        <Clock className="size-3" />
+                                        {part.durationMin} min
+                                      </span>
+                                    ) : (
+                                      <span className="text-muted-foreground text-sm">—</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex gap-1">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="size-7"
+                                        onClick={() => {
+                                          setEditingPart({
+                                            id: part.id,
+                                            name: part.name,
+                                            section: part.section,
+                                            track: part.track,
+                                            trackOrder: part.trackOrder,
+                                            order: part.order,
+                                            durationMin: part.durationMin,
+                                            allowExternalSpeaker: part.allowExternalSpeaker,
+                                            speakerLabel: part.speakerLabel,
+                                            readerLabel: part.readerLabel,
+                                            presetId: part.presetId,
+                                            allowedSpeakerRoleIds: part.allowedSpeakerRoleIds,
+                                            allowedReaderRoleIds: part.allowedReaderRoleIds,
+                                          })
+                                          setPartSheetOpen(true)
+                                        }}
+                                      >
+                                        <Pencil className="size-3" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="size-7 text-destructive hover:text-destructive"
+                                        onClick={() => setDeleteTarget({ type: 'part', id: part.id, name: part.name })}
+                                      >
+                                        <Trash2 className="size-3" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </SortableRow>
+                              ))}
+                            </Fragment>
                           ))}
                         </Fragment>
                       ))}

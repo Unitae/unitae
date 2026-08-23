@@ -387,7 +387,7 @@ export default function ViewTerritoryPage({ loaderData }: Route.ComponentProps) 
                   <span className="text-muted-foreground text-sm">({territoryEntrances.length})</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-col gap-2">
+              <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {territoryEntrances.map(entrance => (
                   <div key={entrance.id} className="flex items-center justify-between gap-3 rounded-md border p-3">
                     <div className="flex flex-col">

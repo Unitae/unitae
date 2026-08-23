@@ -13,6 +13,7 @@ import {
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { Card, CardContent } from '~/shared/ui/card'
+import { FormActions } from '~/shared/ui/FormActions'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
@@ -93,7 +94,9 @@ export default function CreateBuildingPage({ actionData }: Route.ComponentProps)
                 {fields.longitude.errors && <p className="text-destructive text-sm">{fields.longitude.errors}</p>}
               </div>
             </div>
-            <SubmitButton className="mt-2">{m.prospection_new_building_submit()}</SubmitButton>
+            <FormActions>
+              <SubmitButton>{m.prospection_new_building_submit()}</SubmitButton>
+            </FormActions>
           </Form>
         </CardContent>
       </Card>

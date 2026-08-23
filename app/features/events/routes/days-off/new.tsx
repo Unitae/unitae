@@ -8,6 +8,7 @@ import * as m from '~/i18n/paraglide/messages'
 import { congregationContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Card, CardContent } from '~/shared/ui/card'
+import { FormActions } from '~/shared/ui/FormActions'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
@@ -81,7 +82,9 @@ export default function DaysOffPage({ loaderData }: Route.ComponentProps) {
                 required
               />
             </div>
-            <SubmitButton className="w-fit">{m.common_save()}</SubmitButton>
+            <FormActions>
+              <SubmitButton>{m.common_save()}</SubmitButton>
+            </FormActions>
           </Form>
         </CardContent>
       </Card>

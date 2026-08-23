@@ -7,6 +7,7 @@ import { congregationContext, currentAccountContext, permissionsContext } from '
 import { Permission } from '~/shared/types/permission'
 import { AppLayout } from '~/shared/ui/AppLayout'
 import { RouteErrorBoundary } from '~/shared/ui/RouteErrorBoundary'
+import { readSidebarOpenFromCookie } from '~/shared/ui/sidebar/sidebar-cookie'
 
 import type { Route } from './+types/_authenticated-layout'
 
@@ -45,6 +46,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
   const can = (role: Permission) => permissions.has(role)
   const messages = { success: session.get('success'), error: session.get('error') }
+  // Reading the sidebar cookie here keeps a collapsed sidebar collapsed
+  // across full page loads.
+  const sidebarOpen = readSidebarOpenFromCookie(request.headers.get('Cookie'))
 
   return data(
     {
@@ -71,6 +75,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       },
       congregationName: congregation.displayName ?? congregation.name,
       messages,
+      sidebarOpen,
     },
     {
       headers: {
@@ -81,7 +86,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 }
 
 export default function AuthenticatedLayout({ loaderData }: Route.ComponentProps) {
-  const { permissions, congregationName, messages } = loaderData
+  const { permissions, congregationName, messages, sidebarOpen } = loaderData
 
   useEffect(() => {
     if (messages.success) {
@@ -92,7 +97,7 @@ export default function AuthenticatedLayout({ loaderData }: Route.ComponentProps
     }
   }, [messages])
 
-  return <AppLayout permissions={permissions} congregationName={congregationName} />
+  return <AppLayout permissions={permissions} congregationName={congregationName} sidebarOpen={sidebarOpen} />
 }
 
 export { RouteErrorBoundary as ErrorBoundary }

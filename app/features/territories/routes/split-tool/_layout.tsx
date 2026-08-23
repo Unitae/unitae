@@ -1,7 +1,6 @@
 import { NavLink, Outlet, useSearchParams } from 'react-router'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { countAvailableEntrances, getZips } from '~/features/territories/server/buildings.server'
-import ActiveTerritoryFilters from '~/features/territories/ui/ActiveTerritoryFilters'
 import { buildTerritoryFilterChips } from '~/features/territories/ui/build-filter-chips'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/i18n/paraglide/messages'
@@ -14,6 +13,7 @@ import {
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
+import { FilterChipBar } from '~/shared/ui/filters/FilterChipBar'
 import { PageHeader } from '~/shared/ui/PageHeader'
 
 import type { Route } from './+types/_layout'
@@ -157,7 +157,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
         </NavLink>
       </div>
 
-      <ActiveTerritoryFilters chips={chips} />
+      <FilterChipBar chips={chips} />
       <TerritoryFilters zips={zips} showAccess showSearch showZip />
 
       <div className="flex grow flex-col gap-3">

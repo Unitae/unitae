@@ -10,8 +10,28 @@
     Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
   --font-display: "Fraunces", Georgia, serif;
 
+  /* Elevation — warm, stone-tinted layered shadows (override Tailwind defaults) */
+  --shadow-2xs: 0 1px 2px oklch(0.147 0.004 49.25 / 0.05);
+  --shadow-xs:
+    0 1px 2px oklch(0.147 0.004 49.25 / 0.05),
+    0 1px 1px oklch(0.147 0.004 49.25 / 0.03);
+  --shadow-sm:
+    0 1px 2px oklch(0.147 0.004 49.25 / 0.06),
+    0 2px 6px -1px oklch(0.147 0.004 49.25 / 0.05);
+  --shadow-md:
+    0 2px 4px oklch(0.147 0.004 49.25 / 0.05),
+    0 6px 16px -2px oklch(0.147 0.004 49.25 / 0.07);
+  --shadow-lg:
+    0 4px 8px oklch(0.147 0.004 49.25 / 0.05),
+    0 12px 28px -4px oklch(0.147 0.004 49.25 / 0.09);
+  --shadow-xl:
+    0 8px 16px oklch(0.147 0.004 49.25 / 0.06),
+    0 20px 44px -6px oklch(0.147 0.004 49.25 / 0.11);
+
   /* Light mode — teal primary, stone neutrals */
-  --color-background: oklch(0.985 0.001 106.423); /* stone-50 */
+  --color-background: oklch(
+    0.962 0.005 95
+  ); /* warm greige — cards separate by contrast, not shadow */
   --color-foreground: oklch(0.216 0.006 56.043); /* stone-900 */
   --color-card: oklch(1 0 0); /* white */
   --color-card-foreground: oklch(0.216 0.006 56.043);
@@ -28,7 +48,9 @@
   --color-accent: oklch(0.97 0.001 106.424);
   --color-accent-foreground: oklch(0.216 0.006 56.043);
   --color-destructive: oklch(0.577 0.245 27.325);
-  --color-destructive-foreground: oklch(0.577 0.245 27.325);
+  --color-destructive-foreground: oklch(
+    0.985 0.001 106.423
+  ); /* readable on destructive bg */
   --color-border: oklch(
     0.895 0.004 56.366
   ); /* between stone-200 and stone-300 */
@@ -43,8 +65,8 @@
 
   /* Sidebar */
   --color-sidebar: oklch(
-    0.97 0.001 106.424
-  ); /* stone-100 — darker than page bg */
+    0.962 0.005 95
+  ); /* same as background — one calm surface, hairline divider */
   --color-sidebar-foreground: oklch(0.216 0.006 56.043);
   --color-sidebar-primary: oklch(0.523 0.105 184.704);
   --color-sidebar-primary-foreground: oklch(0.985 0.001 106.423);
@@ -53,8 +75,8 @@
   ); /* stone-200 — visible hover on stone-100 */
   --color-sidebar-accent-foreground: oklch(0.216 0.006 56.043);
   --color-sidebar-border: oklch(
-    0.869 0.005 56.366
-  ); /* stone-300 — distinct from accent */
+    0.885 0.005 76
+  ); /* hairline between sidebar and content */
   --color-sidebar-ring: oklch(0.523 0.105 184.704);
 
   /* Programme section colors (JW workbook) */
@@ -64,7 +86,9 @@
 }
 
 .dark {
-  --color-background: oklch(0.216 0.006 56.043);
+  --color-background: oklch(
+    0.196 0.006 56
+  ); /* deepened — card lift without shadows */
   --color-foreground: oklch(0.985 0.001 106.423);
   --color-card: oklch(0.268 0.007 34.298); /* stone-800 */
   --color-card-foreground: oklch(0.985 0.001 106.423);
@@ -75,23 +99,43 @@
   --color-secondary: oklch(0.268 0.007 34.298);
   --color-secondary-foreground: oklch(0.985 0.001 106.423);
   --color-muted: oklch(0.268 0.007 34.298);
-  --color-muted-foreground: oklch(0.709 0.01 56.259); /* stone-400 */
+  --color-muted-foreground: oklch(
+    0.723 0.011 56.259
+  ); /* slightly above stone-400 for legibility */
   --color-accent: oklch(0.268 0.007 34.298);
   --color-accent-foreground: oklch(0.985 0.001 106.423);
   --color-destructive: oklch(0.577 0.245 27.325);
-  --color-destructive-foreground: oklch(0.577 0.245 27.325);
+  --color-destructive-foreground: oklch(
+    0.985 0.001 106.423
+  ); /* readable on destructive bg */
   --color-border: oklch(0.35 0.009 64); /* between stone-700 and stone-800 */
   --color-input: oklch(0.374 0.01 67.558);
   --color-ring: oklch(0.648 0.116 184.117);
 
-  --color-sidebar: oklch(0.18 0.005 56.043); /* darker than page bg */
+  --color-sidebar: oklch(
+    0.196 0.006 56
+  ); /* same as background — one calm surface */
   --color-sidebar-foreground: oklch(0.985 0.001 106.423);
   --color-sidebar-primary: oklch(0.648 0.116 184.117);
   --color-sidebar-primary-foreground: oklch(0.216 0.006 56.043);
   --color-sidebar-accent: oklch(0.268 0.007 34.298);
   --color-sidebar-accent-foreground: oklch(0.985 0.001 106.423);
-  --color-sidebar-border: oklch(0.374 0.01 67.558);
+  --color-sidebar-border: oklch(
+    0.3 0.008 64
+  ); /* hairline between sidebar and content */
   --color-sidebar-ring: oklch(0.648 0.116 184.117);
+
+  /* Elevation on dark — deeper black-based shadows so lift stays visible */
+  --shadow-2xs: 0 1px 2px oklch(0 0 0 / 0.3);
+  --shadow-xs: 0 1px 2px oklch(0 0 0 / 0.3), 0 1px 1px oklch(0 0 0 / 0.2);
+  --shadow-sm:
+    0 1px 2px oklch(0 0 0 / 0.35), 0 2px 6px -1px oklch(0 0 0 / 0.25);
+  --shadow-md:
+    0 2px 4px oklch(0 0 0 / 0.35), 0 6px 16px -2px oklch(0 0 0 / 0.3);
+  --shadow-lg:
+    0 4px 8px oklch(0 0 0 / 0.35), 0 12px 28px -4px oklch(0 0 0 / 0.35);
+  --shadow-xl:
+    0 8px 16px oklch(0 0 0 / 0.4), 0 20px 44px -6px oklch(0 0 0 / 0.4);
 
   /* Programme section colors (JW workbook) — brighter for dark bg */
   --color-section-treasures: #8a9aa6;
@@ -133,6 +177,13 @@
   animation: fade-in-up 0.3s ease-out both;
 }
 
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* Respect prefers-reduced-motion. The `both` fill on our keyframes still
    settles elements on their final (visible) state. */
 @media (prefers-reduced-motion: reduce) {
@@ -162,5 +213,6 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+    overscroll-behavior-y: contain;
   }
 }

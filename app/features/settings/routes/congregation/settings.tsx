@@ -16,6 +16,7 @@ import { getBoolSetting } from '~/shared/domain/settings.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Permission } from '~/shared/types/permission'
 import { Checkbox } from '~/shared/ui/checkbox'
+import { FormActions } from '~/shared/ui/FormActions'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -105,17 +106,23 @@ export default function CongregationSettingsPage({ loaderData, actionData }: Rou
                     value="on"
                     defaultChecked={auxiliaryPioneerProfileActivated}
                   />
-                  <Label htmlFor="auxiliary-pioneer" className="font-normal">
-                    {m.settings_congregation_auxiliary_pioneer_before()}{' '}
-                    <span className="font-bold text-primary">
-                      {m.settings_congregation_auxiliary_pioneer_highlight()}
-                    </span>{' '}
-                    {m.settings_congregation_auxiliary_pioneer_after()}
+                  {/* Single child span: the Label is a flex container, so multiple
+                      inline children would lay out as gap-separated columns. */}
+                  <Label htmlFor="auxiliary-pioneer" className="font-normal leading-normal">
+                    <span>
+                      {m.settings_congregation_auxiliary_pioneer_before()}{' '}
+                      <span className="font-bold text-primary">
+                        {m.settings_congregation_auxiliary_pioneer_highlight()}
+                      </span>{' '}
+                      {m.settings_congregation_auxiliary_pioneer_after()}
+                    </span>
                   </Label>
                 </div>
               </div>
 
-              <SubmitButton className="self-start">{m.common_save()}</SubmitButton>
+              <FormActions dock={false}>
+                <SubmitButton>{m.common_save()}</SubmitButton>
+              </FormActions>
             </Form>
           )}
         </section>

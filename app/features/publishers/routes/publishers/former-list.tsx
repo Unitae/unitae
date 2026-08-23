@@ -99,7 +99,7 @@ export default function FormerPublishersPage({ loaderData }: Route.ComponentProp
           description={m.publishers_former_empty_no_match_description({ query: searchQuery })}
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border">
+        <div className="overflow-hidden rounded-2xl border">
           <Table>
             <TableHeader>
               <TableRow>

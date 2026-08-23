@@ -17,6 +17,7 @@ import { Permission } from '~/shared/types/permission'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
+import { FormActions } from '~/shared/ui/FormActions'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -144,7 +145,9 @@ export default function PioneerGoalsPage({ loaderData, actionData }: Route.Compo
               )
             })}
             {form.errors && <p className="text-destructive text-sm">{form.errors}</p>}
-            <SubmitButton>{m.common_save()}</SubmitButton>
+            <FormActions>
+              <SubmitButton>{m.common_save()}</SubmitButton>
+            </FormActions>
           </Form>
         </CardContent>
       </Card>

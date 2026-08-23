@@ -1,14 +1,4 @@
-import {
-  AlertTriangle,
-  CalendarClock,
-  CalendarOff,
-  CalendarPlus,
-  ChevronRight,
-  FileText,
-  Info,
-  MapPin,
-  Plus,
-} from 'lucide-react'
+import { AlertTriangle, CalendarClock, CalendarOff, ChevronRight, FileText, Info, MapPin, Plus } from 'lucide-react'
 import { Link } from 'react-router'
 
 import {
@@ -21,13 +11,16 @@ import {
   type TerritoryStatus,
 } from '~/features/dashboard/server/dashboard.server'
 import { type AtRiskPioneers, getAtRiskPioneers } from '~/features/dashboard/server/get-at-risk-pioneers.server'
+import { getManagementMetrics } from '~/features/dashboard/server/get-management-metrics.server'
 import { getResponsibleConflicts } from '~/features/dashboard/server/get-responsible-conflicts.server'
 import {
   getUpcomingAssignments,
   type UpcomingAssignment,
 } from '~/features/dashboard/server/get-upcoming-assignments.server'
 import { buildUrgentItems } from '~/features/dashboard/ui/build-urgent-items'
+import { MetricsRow } from '~/features/dashboard/ui/MetricsRow'
 import { OnboardingChecklist } from '~/features/dashboard/ui/OnboardingChecklist'
+import { QuickActions } from '~/features/dashboard/ui/QuickActions'
 import { partReaderLabel, partSpeakerLabel } from '~/features/events/model/part-labels'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -74,6 +67,9 @@ export function loader({ context }: Route.LoaderArgs) {
   // they cannot open — mirrors the canViewBoard pattern below.
   const canViewPrograms = permissions.has(Permission.ProgramViewer) || isProgramManager
   const canViewActivity = permissions.has(Permission.ActivityViewer)
+  const canCreatePublisher = permissions.has(Permission.PublisherManager) || isAdmin
+  const canViewPublishers = permissions.has(Permission.PublisherViewer) || isAdmin
+  const canUploadDocument = permissions.has(Permission.BoardUploader) || isAdmin
   const congregation = context.get(congregationContext)
 
   // Member-bound queries (territories, programme assignments) need the linked
@@ -123,6 +119,13 @@ export function loader({ context }: Route.LoaderArgs) {
         : Promise.resolve(null),
     ])
 
+    const metrics = await safeQuery('management-metrics', currentUser.id, () =>
+      getManagementMetrics(db, zonedNow(congregation.timezone), {
+        includeTerritories: isAdmin || isTerritoriesManager,
+        includePublishers: canViewPublishers,
+      }),
+    )
+
     // Onboarding: count entities for admin checklist
     let onboarding = null
     if (isAdmin) {
@@ -152,8 +155,12 @@ export function loader({ context }: Route.LoaderArgs) {
       responsibleConflicts,
       atRiskPioneers,
       onboarding,
+      metrics,
       isAdmin,
       isTerritoriesManager,
+      isProgramManager,
+      canCreatePublisher,
+      canUploadDocument,
     }
   })
 }
@@ -191,8 +198,12 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
     responsibleConflicts,
     atRiskPioneers,
     onboarding,
+    metrics,
     isAdmin,
     isTerritoriesManager,
+    isProgramManager,
+    canCreatePublisher,
+    canUploadDocument,
   } = loaderData
 
   const today = new Date().toLocaleDateString('fr-FR', {
@@ -228,22 +239,12 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           </h1>
           <p className="mt-2 text-muted-foreground">{today}</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/me/days-off/new">
-              <CalendarPlus className="size-4" />
-              {m.dashboard_plan_absence()}
-            </Link>
-          </Button>
-          {(isAdmin || isTerritoriesManager) && (
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/territories/attributions/new/available-territories">
-                <MapPin className="size-4" />
-                {m.dashboard_quick_action_assign_territory()}
-              </Link>
-            </Button>
-          )}
-        </div>
+        <QuickActions
+          canAssignTerritory={isAdmin || isTerritoriesManager}
+          canCreatePublisher={canCreatePublisher}
+          canUploadDocument={canUploadDocument}
+          canCreateProgram={isProgramManager}
+        />
       </div>
 
       {/* Onboarding checklist (admin only) */}
@@ -280,6 +281,13 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
             </Link>
           ))}
         </section>
+      )}
+
+      {/* Management metrics */}
+      {metrics && (metrics.territories || metrics.publishers) && (
+        <div className="animate-fade-in-up" style={{ animationDelay: '125ms' }}>
+          <MetricsRow metrics={metrics} />
+        </div>
       )}
 
       {/* Widget grid */}

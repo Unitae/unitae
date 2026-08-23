@@ -56,7 +56,7 @@ export default function UsersPage({ loaderData }: Route.ComponentProps) {
         breadcrumbs={[{ label: m.sidebar_administration() }]}
       />
 
-      <div className="overflow-hidden rounded-xl border">
+      <div className="overflow-hidden rounded-2xl border">
         <Table>
           <TableHeader>
             <TableRow>

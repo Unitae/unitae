@@ -25,9 +25,12 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const currentUser = context.get(currentAccountContext)
+  // Attributions are held by the Member, not the login account; accounts
+  // without a linked member (e.g. platform admins) legitimately have none.
+  const memberId = currentUser.member?.id ?? null
 
   return withScopeFromContext(context, async db => {
-    const territories = await getUserTerritoriesWithDetails(db, currentUser.id)
+    const territories = memberId == null ? [] : await getUserTerritoriesWithDetails(db, memberId)
 
     return { territories }
   })

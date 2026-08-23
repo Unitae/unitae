@@ -58,7 +58,7 @@ export function PioneersView({ pioneers }: PioneersViewData) {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 p-4 md:gap-6 md:p-6">
       {Object.entries(byType).map(([type, members]) => (
-        <Card key={type} className="overflow-hidden rounded-xl border-border/60 shadow-none">
+        <Card key={type} className="overflow-hidden rounded-2xl border-border/60 shadow-none">
           <CardContent className="flex flex-col gap-5 p-6">
             <h2 className="font-display font-semibold text-xl leading-tight tracking-tight">
               {labelForType(type)}

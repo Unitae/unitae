@@ -12,6 +12,7 @@ import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Checkbox } from '~/shared/ui/checkbox'
+import { FormActions } from '~/shared/ui/FormActions'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
@@ -284,7 +285,9 @@ export default function TerritorySettingsPage({ loaderData, actionData }: Route.
           </CardContent>
         </Card>
 
-        <SubmitButton>{m.common_save()}</SubmitButton>
+        <FormActions>
+          <SubmitButton>{m.common_save()}</SubmitButton>
+        </FormActions>
       </Form>
     </div>
   )

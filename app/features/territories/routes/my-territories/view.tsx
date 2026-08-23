@@ -35,9 +35,10 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
 export function loader({ params, context }: Route.LoaderArgs) {
   const currentUser = context.get(currentAccountContext)
   const territoryId = requireParamId(params.territoryId, '/me/territories')
+  const memberId = currentUser.member?.id ?? null
 
   return withScopeFromContext(context, async db => {
-    const attribution = await getUserTerritoryDetail(db, currentUser.id, territoryId)
+    const attribution = memberId == null ? null : await getUserTerritoryDetail(db, memberId, territoryId)
 
     if (attribution == null) {
       throw redirect('/me/territories')

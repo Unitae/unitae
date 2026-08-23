@@ -16,6 +16,7 @@ import { currentAccountContext, permissionsContext, withScopeFromContext } from 
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Permission } from '~/shared/types/permission'
+import { FormActions } from '~/shared/ui/FormActions'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
@@ -131,9 +132,11 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
         hidePermanentAuxiliary={hideAuxiliaryPioneer}
       />
 
-      <SubmitButton form="edit-publisher-form" size="lg" className="self-start">
-        {m.publishers_edit_submit()}
-      </SubmitButton>
+      <FormActions>
+        <SubmitButton form="edit-publisher-form" size="lg">
+          {m.publishers_edit_submit()}
+        </SubmitButton>
+      </FormActions>
     </div>
   )
 }

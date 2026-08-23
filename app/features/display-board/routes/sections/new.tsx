@@ -17,6 +17,7 @@ import {
 import { Permission } from '~/shared/types/permission'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Card, CardContent } from '~/shared/ui/card'
+import { FormActions } from '~/shared/ui/FormActions'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
@@ -92,7 +93,9 @@ export default function NewSectionPage({ loaderData, actionData }: Route.Compone
               showLockoutWarning={showLockoutWarning}
             />
 
-            <SubmitButton className="w-fit">{m.board_sections_new_submit()}</SubmitButton>
+            <FormActions>
+              <SubmitButton>{m.board_sections_new_submit()}</SubmitButton>
+            </FormActions>
           </Form>
         </CardContent>
       </Card>

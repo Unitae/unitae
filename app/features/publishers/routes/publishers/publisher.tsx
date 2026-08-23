@@ -1,5 +1,6 @@
 import { Download, Pencil, RotateCcw, UserCheck, UserMinus, Zap, ZapOff } from 'lucide-react'
 import { Form, Link, redirect, useSubmit } from 'react-router'
+import { findUpcomingAbsencesForMember, findUpcomingAssignmentsForMember } from '~/features/events/index.server'
 import { toServiceYear } from '~/features/publishers'
 import { canManageEmergencyInfo, canViewEmergencyInfo } from '~/features/publishers/model/emergency-access'
 import { getEmergencyInfoForMember } from '~/features/publishers/server/emergency.queries'
@@ -7,6 +8,7 @@ import { getPioneerActivityForMember } from '~/features/publishers/server/pionee
 import { getPublisherById } from '~/features/publishers/server/publishers.server'
 import EmergencyInfoView, { type EmergencyInfoViewData } from '~/features/publishers/ui/EmergencyInfoView'
 import { PioneerActivitySection, pioneerProfileLabel } from '~/features/publishers/ui/PioneerActivitySection'
+import { PublisherEngagementCards } from '~/features/publishers/ui/PublisherEngagementCards'
 import { AttributionStatus, TerritoryKind } from '~/features/territories'
 import { findActiveAttributionsForPublisher } from '~/features/territories/index.server'
 import * as m from '~/i18n/paraglide/messages'
@@ -54,6 +56,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const canManageActivity = permissions.has(Permission.ActivityManager)
   const canViewActivity = permissions.has(Permission.ActivityViewer)
   const canViewTerritories = permissions.has(Permission.TerritoriesViewer)
+  const canViewPrograms = permissions.has(Permission.ProgramViewer)
+  const canViewAbsences = permissions.has(Permission.AbsenceViewer)
 
   if (!canViewPublisher) {
     logger.warn(`Tried to load publisher file. User ID: ${currentUser.id}. Does NOT have rights to view publishers.`)
@@ -69,11 +73,17 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const serviceYear = toServiceYear(now.getMonth(), now.getFullYear())
 
   return withScopeFromContext(context, async db => {
-    const [publisher, attributions, pioneerActivity] = await Promise.all([
+    const [publisher, attributions, pioneerActivity, upcomingAssignments, upcomingAbsences] = await Promise.all([
       getPublisherById(db, publisherId, currentUser.congregationId as CongregationId, serviceYear),
       findActiveAttributionsForPublisher(db, publisherId, currentUser.congregationId),
       canViewActivity
         ? getPioneerActivityForMember(db, publisherId, currentUser.congregationId, serviceYear, now)
+        : Promise.resolve(null),
+      canViewPrograms
+        ? findUpcomingAssignmentsForMember(db, publisherId, currentUser.congregationId as CongregationId, now)
+        : Promise.resolve(null),
+      canViewAbsences
+        ? findUpcomingAbsencesForMember(db, publisherId, currentUser.congregationId as CongregationId, now)
         : Promise.resolve(null),
     ])
 
@@ -96,6 +106,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
       publisher,
       attributions,
       pioneerActivity,
+      upcomingAssignments,
+      upcomingAbsences,
       serviceYear,
       emergency,
       roles: {
@@ -268,7 +280,16 @@ function EmergencyCard({
 }
 
 export default function PublisherPage({ loaderData }: Route.ComponentProps) {
-  const { publisher, attributions, pioneerActivity, serviceYear, emergency, roles } = loaderData
+  const {
+    publisher,
+    attributions,
+    pioneerActivity,
+    upcomingAssignments,
+    upcomingAbsences,
+    serviceYear,
+    emergency,
+    roles,
+  } = loaderData
 
   return (
     <div className="flex flex-col gap-6">
@@ -312,97 +333,99 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
         }
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{m.publishers_view_personal_info()}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-4 sm:flex-row">
-            <div className="flex flex-1 flex-col gap-3">
-              <p className="text-muted-foreground text-sm">
-                {m.publishers_view_gender_label()} :{' '}
-                <span className="font-medium text-foreground">
-                  {publisher.isMale ? m.publishers_view_gender_male() : m.publishers_view_gender_female()}
-                </span>
-              </p>
-              <p className="text-muted-foreground text-sm">
-                {m.publishers_view_birth_date_label()} :{' '}
-                <span className="font-medium text-foreground">
-                  {publisher.birthDate?.toLocaleDateString('fr-FR', {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                  })}
-                </span>
-              </p>
-              {publisher.baptismDate != null && (
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>{m.publishers_view_personal_info()}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-4 sm:flex-row">
+              <div className="flex flex-1 flex-col gap-3">
                 <p className="text-muted-foreground text-sm">
-                  {m.publishers_view_baptism_date_label()} :{' '}
+                  {m.publishers_view_gender_label()} :{' '}
                   <span className="font-medium text-foreground">
-                    {publisher.baptismDate?.toLocaleDateString('fr-FR', {
+                    {publisher.isMale ? m.publishers_view_gender_male() : m.publishers_view_gender_female()}
+                  </span>
+                </p>
+                <p className="text-muted-foreground text-sm">
+                  {m.publishers_view_birth_date_label()} :{' '}
+                  <span className="font-medium text-foreground">
+                    {publisher.birthDate?.toLocaleDateString('fr-FR', {
                       year: 'numeric',
                       month: '2-digit',
                       day: '2-digit',
                     })}
                   </span>
                 </p>
-              )}
-            </div>
-            {publisher.baptismDate != null && (
-              <div className="flex flex-1 flex-col gap-3">
-                <p className="text-muted-foreground text-sm">
-                  {m.publishers_view_anointed_label()} :{' '}
-                  <span className="font-medium text-foreground">
-                    {publisher.isAnointed ? m.common_yes() : m.common_no()}
-                  </span>
-                </p>
-                {publisher.isMale && (
-                  <>
-                    <p className="text-muted-foreground text-sm">
-                      {m.publishers_view_elder_label()} :{' '}
-                      <span className="font-medium text-foreground">
-                        {publisher.isHelder ? m.common_yes() : m.common_no()}
-                      </span>
-                    </p>
-                    <p className="text-muted-foreground text-sm">
-                      {m.publishers_view_servant_label()} :{' '}
-                      <span className="font-medium text-foreground">
-                        {publisher.isServant ? m.common_yes() : m.common_no()}
-                      </span>
-                    </p>
-                  </>
+                {publisher.baptismDate != null && (
+                  <p className="text-muted-foreground text-sm">
+                    {m.publishers_view_baptism_date_label()} :{' '}
+                    <span className="font-medium text-foreground">
+                      {publisher.baptismDate?.toLocaleDateString('fr-FR', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                      })}
+                    </span>
+                  </p>
                 )}
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              {publisher.baptismDate != null && (
+                <div className="flex flex-1 flex-col gap-3">
+                  <p className="text-muted-foreground text-sm">
+                    {m.publishers_view_anointed_label()} :{' '}
+                    <span className="font-medium text-foreground">
+                      {publisher.isAnointed ? m.common_yes() : m.common_no()}
+                    </span>
+                  </p>
+                  {publisher.isMale && (
+                    <>
+                      <p className="text-muted-foreground text-sm">
+                        {m.publishers_view_elder_label()} :{' '}
+                        <span className="font-medium text-foreground">
+                          {publisher.isHelder ? m.common_yes() : m.common_no()}
+                        </span>
+                      </p>
+                      <p className="text-muted-foreground text-sm">
+                        {m.publishers_view_servant_label()} :{' '}
+                        <span className="font-medium text-foreground">
+                          {publisher.isServant ? m.common_yes() : m.common_no()}
+                        </span>
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{m.publishers_view_contact_info()}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <p className="text-muted-foreground text-sm">
-            {m.publishers_view_postal_address()} :{' '}
-            <span className="font-medium text-foreground">{publisher.address ? publisher.address : '...'}</span>
-          </p>
-          <p className="text-muted-foreground text-sm">
-            {m.publishers_view_phone()} :{' '}
-            <span className="font-medium text-foreground">{publisher.phone ? publisher.phone : '...'}</span>
-          </p>
-          {publisher.email && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{m.publishers_view_contact_info()}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
             <p className="text-muted-foreground text-sm">
-              {m.publishers_view_email_address()} :{' '}
-              <Link to={`mailto:${publisher.email}`} className="font-medium text-primary hover:underline">
-                {publisher.email}
-              </Link>
+              {m.publishers_view_postal_address()} :{' '}
+              <span className="font-medium text-foreground">{publisher.address ? publisher.address : '...'}</span>
             </p>
-          )}
-          <Separator className="my-2" />
-          <p className="text-muted-foreground text-xs italic">{m.publishers_view_contact_secretary_notice()}</p>
-        </CardContent>
-      </Card>
+            <p className="text-muted-foreground text-sm">
+              {m.publishers_view_phone()} :{' '}
+              <span className="font-medium text-foreground">{publisher.phone ? publisher.phone : '...'}</span>
+            </p>
+            {publisher.email && (
+              <p className="text-muted-foreground text-sm">
+                {m.publishers_view_email_address()} :{' '}
+                <Link to={`mailto:${publisher.email}`} className="font-medium text-primary hover:underline">
+                  {publisher.email}
+                </Link>
+              </p>
+            )}
+            <Separator className="my-2" />
+            <p className="text-muted-foreground text-xs italic">{m.publishers_view_contact_secretary_notice()}</p>
+          </CardContent>
+        </Card>
+      </div>
 
       {pioneerActivity && <PioneerActivitySection serviceYear={serviceYear} activity={pioneerActivity} />}
 
@@ -412,7 +435,7 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
         </CardHeader>
         <CardContent>
           {attributions.length > 0 ? (
-            <div className="overflow-hidden rounded-xl border">
+            <div className="overflow-hidden rounded-2xl border">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -460,6 +483,8 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
           )}
         </CardContent>
       </Card>
+
+      <PublisherEngagementCards assignments={upcomingAssignments} absences={upcomingAbsences} />
 
       {emergency && <EmergencyCard info={emergency} canManage={roles.canManageEmergency} publisherId={publisher.id} />}
     </div>

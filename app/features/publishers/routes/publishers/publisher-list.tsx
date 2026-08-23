@@ -154,12 +154,7 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
         }
       />
 
-      <PublisherListFilters
-        groups={groups}
-        selectedGroupIds={selectedGroupIds}
-        selectedType={selectedType}
-        hasActiveFilters={hasActiveFilters}
-      />
+      <PublisherListFilters groups={groups} selectedGroupIds={selectedGroupIds} selectedType={selectedType} />
 
       {users.length < 1 ? (
         <EmptyState
@@ -176,7 +171,7 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
           }
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border">
+        <div className="overflow-hidden rounded-2xl border">
           <Table>
             <TableHeader>
               <TableRow>

@@ -473,7 +473,7 @@ function SectionBlock({
   return (
     <div className="flex flex-col gap-3">
       <h2 className="font-display font-semibold text-lg">{section.name}</h2>
-      <div className="overflow-hidden rounded-xl border">
+      <div className="overflow-hidden rounded-2xl border">
         <DndContext collisionDetection={closestCenter} onDragEnd={onDragEnd}>
           <Table>
             <TableHeader>

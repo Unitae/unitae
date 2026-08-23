@@ -29,7 +29,7 @@ export function PageHeader({ actions, title, titleBadge, subtitle, breadcrumbs, 
           )}
           <div>
             <div className="flex flex-wrap items-baseline gap-2">
-              <h1 className="font-display font-semibold text-2xl tracking-tight max-sm:text-xl">{title}</h1>
+              <h1 className="font-display font-semibold text-3xl tracking-tight max-sm:text-2xl">{title}</h1>
               {titleBadge}
             </div>
             {subtitle && <p className="mt-0.5 text-muted-foreground text-sm">{subtitle}</p>}

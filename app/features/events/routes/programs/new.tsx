@@ -28,6 +28,7 @@ import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { FormActions } from '~/shared/ui/FormActions'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
@@ -281,12 +282,12 @@ function RecurringFields({
         />
       </div>
       {previewDates.length > 0 && (
-        <div className="border-l-2 border-primary/30 pl-3">
+        <div className="border-primary/30 border-l-2 pl-3">
           <p className="mb-2 text-muted-foreground text-xs">{m.programs_new_occurrences_preview_label()}</p>
           <div className="flex flex-col gap-1.5">
             {Object.entries(previewByMonth).map(([month, dates]) => (
               <div key={month} className="flex flex-wrap items-baseline gap-1.5">
-                <span className="w-24 shrink-0 capitalize text-muted-foreground text-xs">{month}</span>
+                <span className="w-24 shrink-0 text-muted-foreground text-xs capitalize">{month}</span>
                 {dates.map(d => (
                   <span key={d.toISOString()} className="rounded bg-muted px-1.5 py-0.5 text-xs tabular-nums">
                     {d.toLocaleDateString('fr-FR', { day: 'numeric' })}
@@ -440,7 +441,7 @@ export default function NewEventPage({ loaderData, actionData }: Route.Component
             {selectedTemplate && !isRecurring && <SingleFields alreadyExists={alreadyExists} />}
 
             {showForm && (
-              <div className="flex items-center justify-end gap-2 pt-1">
+              <FormActions className="justify-end pt-1">
                 <Button variant="ghost" asChild>
                   <Link to="/programs">{m.common_cancel()}</Link>
                 </Button>
@@ -449,7 +450,7 @@ export default function NewEventPage({ loaderData, actionData }: Route.Component
                     ? m.programs_new_create_event()
                     : m.programs_new_generate_events({ count: occurrences })}
                 </SubmitButton>
-              </div>
+              </FormActions>
             )}
           </Form>
         </CardContent>

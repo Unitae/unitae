@@ -67,14 +67,14 @@ export function DocumentCard({ file, alreadyViewed = false }: DocumentCardProps)
     <Link to={href} className="group block h-full shrink-0 snap-start">
       <div
         className={cn(
-          'relative flex h-full flex-col rounded-xl border border-border bg-card shadow-sm transition-colors hover:border-primary',
+          'relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-colors hover:border-primary',
           'max-sm:w-full max-sm:flex-row max-sm:items-center',
         )}
       >
         <div
           className={cn(
-            'relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-t-xl',
-            'max-sm:aspect-auto max-sm:size-14 max-sm:shrink-0 max-sm:rounded-l-xl max-sm:rounded-tr-none',
+            'relative flex aspect-[4/3] items-center justify-center overflow-hidden',
+            'max-sm:aspect-auto max-sm:w-14 max-sm:shrink-0 max-sm:self-stretch',
             file.kind === 'dynamic' ? getDynamicPreviewBg(file.dynamicType) : 'bg-muted',
           )}
         >
@@ -84,6 +84,9 @@ export function DocumentCard({ file, alreadyViewed = false }: DocumentCardProps)
 
         <div className="flex flex-col gap-1 p-3 max-sm:min-w-0 max-sm:flex-1 max-sm:px-3 max-sm:py-2">
           <span className={cn('line-clamp-2 text-sm', alreadyViewed ? 'font-medium' : 'font-semibold')}>
+            {!alreadyViewed && (
+              <span aria-hidden className="mr-1.5 mb-0.5 inline-block size-2 shrink-0 rounded-full bg-primary" />
+            )}
             {file.title}
           </span>
           <span className="text-muted-foreground text-xs">

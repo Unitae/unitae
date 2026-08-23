@@ -9,6 +9,7 @@ import { currentAccountContext, permissionsContext, withScopeFromContext } from 
 import { ConflictError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
 import { Card, CardContent } from '~/shared/ui/card'
+import { FormActions } from '~/shared/ui/FormActions'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
@@ -113,7 +114,9 @@ export default function ExternalSpeakerNewPage({ actionData }: Route.ComponentPr
               {fields.notes.errors && <p className="text-destructive text-sm">{fields.notes.errors}</p>}
             </div>
             {form.errors && <p className="text-destructive text-sm">{form.errors}</p>}
-            <SubmitButton className="mt-2">{m.common_save()}</SubmitButton>
+            <FormActions>
+              <SubmitButton>{m.common_save()}</SubmitButton>
+            </FormActions>
           </Form>
         </CardContent>
       </Card>
