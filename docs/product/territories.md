@@ -161,16 +161,102 @@ The assignment type is surfaced in three places so the publisher always knows ho
 
 ## Publishing campaigns
 
-Territory managers can plan **campaigns** (e.g. a memorial invitation drive) from *Territoires → Attributions → Campagnes*: a campaign has a name, notes, a start and an **inclusive** end date, an optional **post-campaign rest period** (how long its territories stay unavailable after being returned — 15 days when unset), an optional **scope** (a subset of territories; empty scope = the whole congregation), and four lifecycle options:
+A **campaign** is a special preaching drive run over a defined period — a memorial invitation
+campaign, a convention invitation, a special-edition tract. Campaigns are managed by territory
+managers (*TerritoriesManager*) from the attributions page: the **Campagnes** button next to
+*Attribuer un territoire* opens the campaign list (a table of name, dates, scope, and status —
+*à venir*, *en cours*, or *terminée*). Publishers never configure campaigns; they see the banner
+and work their campaign assignments like any other.
 
-- **At start** — what happens to ongoing regular assignments in scope: *pause* them (default), *close* them, or *leave them outside the campaign* (publishers keep working them and those territories are not re-assigned during the campaign); with *pause*, an optional toggle **re-assigns the same publishers** into the campaign automatically.
-- **At end** — whether still-open campaign assignments are closed automatically (default yes), and what happens to the assignments the campaign paused: *resume* (default — their due date is pushed back by the time spent paused), *keep paused*, or *close*.
+### Planning a campaign
 
-A daily job activates and ends campaigns on their dates; the transitions can also be triggered manually with **Terminer la campagne** on the campaign page. At most **one campaign is active at a time** (overlapping windows are rejected), and non-overlapping future campaigns can be scheduled freely.
+A campaign has a name, optional notes, a **start and end date** (both inclusive — the end date is
+the campaign's last day; the form shows the resulting length), an optional **post-campaign rest
+period**, and an optional **scope**.
 
-Campaign assignments are **due when the campaign closes** (when auto-close is on) or follow the regular method duration (when it is off) — there is no separate campaign duration to configure.
+The scope is picked in a two-panel transfer list (*Disponibles | Sélectionnés*) with search and
+bulk add/remove — click a territory to move it across. **No territory selected means the whole
+territory of the local congregation.** The scope can be edited while the campaign runs: territories
+added to an active campaign's scope go through the start behavior at that moment, removed ones go
+through the end behavior.
 
-While a campaign is active, **campaign mode** is on for the whole module: no regular assignment can be created anywhere (even outside the scope — the scope only limits the automatic transitions), new assignments go into the campaign, and a banner on the territories pages (and on `/me/territories`) announces the campaign with its end date. **Paused** assignments are still held by their publisher but leave the working lists, stop accruing lateness, and show a grey *En pause* badge; a manager can release one early with the *Reprendre* action.
+Two option groups, presented as choice cards with their consequences spelled out, define how the
+campaign interacts with ongoing regular assignments. A live summary (*Aperçu du déroulement*)
+restates the chosen behavior before saving.
+
+**At start** (« Attributions régulières en cours ») — applies to open regular assignments in scope:
+
+- **Suspendre** (default) — they are paused: the publisher keeps the territory, its due date is
+  frozen, and the territory becomes assignable within the campaign. An optional toggle
+  (*Réattribuer automatiquement*) immediately re-assigns each paused publisher's territory to the
+  same publisher as a campaign assignment.
+- **Clôturer** — they are returned immediately; the territories become assignable within the
+  campaign, and after the campaign the rotation starts from scratch.
+- **Laisser hors campagne** — publishers keep working them, and those territories are **not**
+  re-assignable during the campaign.
+
+**At end** (« À la fin ») —
+
+- **Clôturer automatiquement les attributions de campagne** (default on) — still-open campaign
+  assignments are returned when the campaign ends.
+- For the assignments the campaign paused (shown only with *Suspendre*): **Reprendre** (default —
+  each publisher gets their territory back, with the due date pushed back by the time spent
+  paused), **Laisser suspendues** (to be released manually), or **Clôturer**.
+
+Once a campaign has started, its start date and start options are frozen (the transition already
+ran); the end date, end options, rest period, name, notes, and scope remain editable.
+
+### Campaign mode
+
+While a campaign is active, **campaign mode** is on for the whole territories module:
+
+- **No regular assignment can be created anywhere**, even outside the scope (the scope only limits
+  the automatic start/end transitions). The assignment flow steers into the campaign instead: the
+  availability picker and the new-assignment form show a campaign notice, the method choice is
+  replaced by the campaign badge, and new assignments belong to the campaign.
+- **A territory being actively worked stays out of the campaign**: any open, unpaused assignment
+  blocks campaign assignment. Paused and returned assignments free the territory — so *Suspendre*
+  and *Clôturer* free their territories, while *Laisser hors campagne* keeps them occupied.
+- **Regular rest windows don't gate campaign work**: a territory resting from door-to-door or phone
+  work is assignable in the campaign. Only territories recently worked *in a campaign* keep resting
+  (see below). Paused territories show an *En pause* badge in the picker so the manager sees why the
+  ground is available.
+- A **banner** on the territories pages and on *Mes territoires* announces the campaign — amber
+  with the date range (and a management link) for managers, a shorter encouraging version for
+  publishers, and a blue *à venir* variant for a scheduled campaign (or *démarre aujourd'hui* when
+  its start day has arrived). The banner is dismissible per campaign for the current session and
+  never shows on the campaign-management pages themselves.
+
+Campaign assignments are **due when the campaign closes** (with auto-close on) or follow the
+regular method duration (with it off) — there is no separate campaign duration to configure. A
+campaign assignment shows the **campaign's name** with a megaphone icon; method and campaign are
+independent, so a phone assignment inside a campaign shows both indicators.
+
+### Lifecycle
+
+Campaigns are date-driven: a daily job activates campaigns whose start day has arrived and ends
+campaigns whose last day has passed, applying the configured behaviors. Saving a campaign whose
+start date has already arrived activates it immediately, and the campaign page offers a manual
+**Terminer la campagne** action that runs the same end behavior on the spot. At most **one campaign
+is active at a time** — campaigns with overlapping date windows are rejected — while non-overlapping
+future campaigns can be scheduled freely.
+
+**Paused assignments** are still held by their publisher but leave the working lists (with an
+opt-in *Afficher les territoires suspendus* toggle on *Mes territoires*), stop accruing lateness,
+and show a grey *En pause* badge in the attribution list. A manager can release one early with the
+row's **Reprendre** action — the due date is pushed back by the time spent paused. Each campaign
+only ever resumes the assignments *it* paused: leftovers kept paused by an earlier campaign are
+never touched by a later one.
+
+The campaign page shows the campaign's status, its configured behavior in prose, its scope, and the
+**territories worked** during the campaign — who holds each one, checkout and return dates, and the
+**percentage of the scope covered** — with an *Attribuer un territoire* shortcut while the campaign
+is active. Rows link to the assignment; territory numbers link to the territory.
+
+After the campaign, its territories rest for the campaign's **rest period** (15 days when unset)
+from their return date before appearing as available again. The attribution list can filter by
+campaign (any, or a specific one) and by paused state. A campaign can be deleted only once it is no
+longer active and no assignment history references it; an active campaign must be ended first.
 
 ### Overdue tracking
 
