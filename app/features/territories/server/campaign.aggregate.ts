@@ -186,6 +186,16 @@ export async function deleteCampaign(db: TransactionClient, id: number, congrega
     throw new ConflictError('campaign_active')
   }
 
+  // The campaign FKs are RESTRICT: a campaign referenced by attribution history
+  // must be kept — deleting would fail on the FK with a raw 500.
+  // aggregate-boundaries-allow: precondition read — count of referencing attributions
+  const referencing = await db.attribution.count({
+    where: { congregationId, OR: [{ campaignId: id }, { pausedByCampaignId: id }] },
+  })
+  if (referencing > 0) {
+    throw new ConflictError('campaign_has_attributions')
+  }
+
   const campaign = await db.campaign.delete({
     // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
     where: { id_congregationId: { id, congregationId } },

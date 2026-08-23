@@ -72,6 +72,12 @@ export function action({ request, params, context }: Route.ActionArgs) {
           headers: { 'Set-Cookie': await commitSession(session) },
         })
       }
+      if (err instanceof ConflictError && err.message === 'campaign_has_attributions') {
+        session.flash('error', m.campaigns_delete_has_attributions_error())
+        return redirect(`/territories/campaigns/${id}`, {
+          headers: { 'Set-Cookie': await commitSession(session) },
+        })
+      }
       throw err
     }
   })

@@ -11,6 +11,7 @@ const mockDb = {
     findMany: vi.fn(),
     findFirst: vi.fn(),
   },
+  attribution: { count: vi.fn() },
   campaignTerritory: {
     createMany: vi.fn(),
     deleteMany: vi.fn(),
@@ -89,6 +90,7 @@ beforeEach(() => {
   mockDb.campaign.delete.mockResolvedValue({ id: 1 } as never)
   mockDb.campaignTerritory.createMany.mockResolvedValue({ count: 0 } as never)
   mockDb.campaignTerritory.deleteMany.mockResolvedValue({ count: 0 } as never)
+  mockDb.attribution.count.mockResolvedValue(0)
 })
 
 describe('createCampaign', () => {
@@ -196,6 +198,18 @@ describe('deleteCampaign', () => {
 
     await deleteCampaign(mockDb as never, 1, 10, 99)
     expect(mockDb.campaign.delete).toHaveBeenCalled()
+  })
+
+  it('refuses to delete a campaign still referenced by attributions', async () => {
+    mockDb.campaign.findFirst.mockResolvedValue({
+      id: 1,
+      activatedAt: new Date(2026, 0, 15),
+      endedAt: new Date(2026, 2, 1),
+    } as never)
+    mockDb.attribution.count.mockResolvedValue(3)
+
+    await expect(deleteCampaign(mockDb as never, 1, 10, 99)).rejects.toThrow('campaign_has_attributions')
+    expect(mockDb.campaign.delete).not.toHaveBeenCalled()
   })
 
   it('deletes an ended campaign', async () => {

@@ -2831,5 +2831,6 @@
     "attributions_filter_paused_no": "Actives",
     "attributions_resume_button": "Reprendre",
     "attributions_resume_flash_success": "L’attribution a été reprise ; son échéance a été décalée.",
-    "campaigns_form_submit": "Enregistrer"
+    "campaigns_form_submit": "Enregistrer",
+    "campaigns_delete_has_attributions_error": "Cette campagne a des attributions dans l’historique — elle ne peut pas être supprimée."
 }
