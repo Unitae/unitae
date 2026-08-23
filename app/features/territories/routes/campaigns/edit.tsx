@@ -33,11 +33,11 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.TerritoriesManager)
 
-  const id = requireParamId(params.campaignId, '/territories/campaigns')
+  const id = requireParamId(params.campaignId, '/territories/attributions/campaigns')
 
   return withScopeFromContext(context, async (db, congregationId) => {
     const campaign = await getCampaign(db, id, congregationId)
-    if (campaign == null) throw redirect('/territories/campaigns')
+    if (campaign == null) throw redirect('/territories/attributions/campaigns')
 
     const territories = await db.territory.findMany({
       where: { congregationId },
@@ -63,11 +63,12 @@ export default function EditCampaignPage({ loaderData, actionData }: Route.Compo
         title={m.campaigns_edit_title()}
         subtitle={campaign.name}
         breadcrumbs={[
-          { label: m.campaigns_title(), to: '/territories/campaigns' },
-          { label: campaign.name, to: `/territories/campaigns/${campaign.id}` },
+          { label: m.sidebar_attributions(), to: '/territories/attributions' },
+          { label: m.campaigns_title(), to: '/territories/attributions/campaigns' },
+          { label: campaign.name, to: `/territories/attributions/campaigns/${campaign.id}` },
           { label: m.campaigns_edit_title() },
         ]}
-        backTo={`/territories/campaigns/${campaign.id}`}
+        backTo={`/territories/attributions/campaigns/${campaign.id}`}
       />
       <Card>
         <CardContent className="pt-6">
@@ -108,7 +109,7 @@ export function action({ request, params, context }: Route.ActionArgs) {
   requirePermission(permissions, Permission.TerritoriesManager)
 
   const { id: actorId } = context.get(currentAccountContext)
-  const id = requireParamId(params.campaignId, '/territories/campaigns')
+  const id = requireParamId(params.campaignId, '/territories/attributions/campaigns')
 
   return withScopeFromContext(context, async (db, congregationId) => {
     const submission = parseWithZod(await request.formData(), { schema: campaignSchema })
@@ -118,7 +119,7 @@ export function action({ request, params, context }: Route.ActionArgs) {
     const input = submission.value
 
     const campaign = await getCampaign(db, id, congregationId)
-    if (campaign == null) throw redirect('/territories/campaigns')
+    if (campaign == null) throw redirect('/territories/attributions/campaigns')
 
     try {
       await updateCampaign(db, id, congregationId, actorId, {
@@ -151,7 +152,7 @@ export function action({ request, params, context }: Route.ActionArgs) {
           m.campaigns_scope_change_flash({ added: String(scopeResult.added), removed: String(scopeResult.removed) }),
         )
       }
-      return redirect(`/territories/campaigns/${id}`, {
+      return redirect(`/territories/attributions/campaigns/${id}`, {
         headers: { 'Set-Cookie': await commitSession(session) },
       })
     } catch (err) {

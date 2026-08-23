@@ -1,4 +1,4 @@
-import { CalendarCheck, Lock, Pencil, Play, X } from 'lucide-react'
+import { CalendarCheck, Lock, Megaphone, Pencil, Play, X } from 'lucide-react'
 import React from 'react'
 import { Form, Link, redirect, useSearchParams } from 'react-router'
 import { getGroups } from '~/features/publishers/index.server'
@@ -189,9 +189,17 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
             <>
               <S13ExportButton theocraticYear={theocraticYear} />
               {canManageTerritories && (
-                <Button asChild>
-                  <Link to="./new/available-territories">{m.attributions_assign_button()}</Link>
-                </Button>
+                <>
+                  <Button asChild variant="outline">
+                    <Link to="./campaigns">
+                      <Megaphone />
+                      {m.campaigns_title()}
+                    </Link>
+                  </Button>
+                  <Button asChild>
+                    <Link to="./new/available-territories">{m.attributions_assign_button()}</Link>
+                  </Button>
+                </>
               )}
             </>
           }
@@ -220,9 +228,17 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
           <>
             <S13ExportButton theocraticYear={theocraticYear} />
             {canManageTerritories && (
-              <Button asChild>
-                <Link to="./new/available-territories">{m.attributions_assign_button()}</Link>
-              </Button>
+              <>
+                <Button asChild variant="outline">
+                  <Link to="./campaigns">
+                    <Megaphone />
+                    {m.campaigns_title()}
+                  </Link>
+                </Button>
+                <Button asChild>
+                  <Link to="./new/available-territories">{m.attributions_assign_button()}</Link>
+                </Button>
+              </>
             )}
           </>
         }

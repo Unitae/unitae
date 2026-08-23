@@ -24,11 +24,11 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.TerritoriesManager)
 
-  const id = requireParamId(params.campaignId, '/territories/campaigns')
+  const id = requireParamId(params.campaignId, '/territories/attributions/campaigns')
 
   return withScopeFromContext(context, async (db, congregationId) => {
     const campaign = await getCampaign(db, id, congregationId)
-    if (campaign == null) throw redirect('/territories/campaigns')
+    if (campaign == null) throw redirect('/territories/attributions/campaigns')
     return { campaign }
   })
 }
@@ -40,7 +40,7 @@ export default function DeleteCampaignPage({ loaderData }: Route.ComponentProps)
     <DeleteConfirmation
       title={m.campaigns_delete_title()}
       submitLabel={m.campaigns_delete_submit({ name: campaign.name })}
-      cancelTo={`/territories/campaigns/${campaign.id}`}
+      cancelTo={`/territories/attributions/campaigns/${campaign.id}`}
     >
       <p>
         {campaign.name} — {new Date(campaign.startDate).toLocaleDateString('fr-FR')} –{' '}
@@ -55,26 +55,26 @@ export function action({ request, params, context }: Route.ActionArgs) {
   requirePermission(permissions, Permission.TerritoriesManager)
 
   const { id: actorId } = context.get(currentAccountContext)
-  const id = requireParamId(params.campaignId, '/territories/campaigns')
+  const id = requireParamId(params.campaignId, '/territories/attributions/campaigns')
 
   return withScopeFromContext(context, async (db, congregationId) => {
     const session = await getSession(request.headers.get('Cookie'))
     try {
       const campaign = await deleteCampaign(db, id, congregationId, actorId)
       session.flash('success', m.campaigns_delete_flash_success({ name: campaign.name }))
-      return redirect('/territories/campaigns', {
+      return redirect('/territories/attributions/campaigns', {
         headers: { 'Set-Cookie': await commitSession(session) },
       })
     } catch (err) {
       if (err instanceof ConflictError && err.message === 'campaign_active') {
         session.flash('error', m.campaigns_delete_active_error())
-        return redirect(`/territories/campaigns/${id}`, {
+        return redirect(`/territories/attributions/campaigns/${id}`, {
           headers: { 'Set-Cookie': await commitSession(session) },
         })
       }
       if (err instanceof ConflictError && err.message === 'campaign_has_attributions') {
         session.flash('error', m.campaigns_delete_has_attributions_error())
-        return redirect(`/territories/campaigns/${id}`, {
+        return redirect(`/territories/attributions/campaigns/${id}`, {
           headers: { 'Set-Cookie': await commitSession(session) },
         })
       }

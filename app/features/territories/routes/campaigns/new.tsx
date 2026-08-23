@@ -57,8 +57,12 @@ export default function NewCampaignPage({ loaderData, actionData }: Route.Compon
     <div className="flex flex-col gap-6">
       <PageHeader
         title={m.campaigns_new_title()}
-        breadcrumbs={[{ label: m.campaigns_title(), to: '/territories/campaigns' }, { label: m.campaigns_new_title() }]}
-        backTo="/territories/campaigns"
+        breadcrumbs={[
+          { label: m.sidebar_attributions(), to: '/territories/attributions' },
+          { label: m.campaigns_title(), to: '/territories/attributions/campaigns' },
+          { label: m.campaigns_new_title() },
+        ]}
+        backTo="/territories/attributions/campaigns"
       />
       <Card>
         <CardContent className="pt-6">
@@ -129,7 +133,7 @@ export function action({ request, context }: Route.ActionArgs) {
 
       const session = await getSession(request.headers.get('Cookie'))
       session.flash('success', m.campaigns_create_flash_success({ name: campaign.name }))
-      return redirect(`/territories/campaigns/${campaign.id}`, {
+      return redirect(`/territories/attributions/campaigns/${campaign.id}`, {
         headers: { 'Set-Cookie': await commitSession(session) },
       })
     } catch (err) {

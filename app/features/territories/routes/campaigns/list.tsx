@@ -46,10 +46,13 @@ export default function CampaignsList({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={m.campaigns_title()}
         subtitle={m.campaigns_subtitle()}
-        breadcrumbs={[{ label: m.campaigns_title() }]}
+        breadcrumbs={[
+          { label: m.sidebar_attributions(), to: '/territories/attributions' },
+          { label: m.campaigns_title() },
+        ]}
         actions={
           <Button asChild>
-            <Link to="/territories/campaigns/new">
+            <Link to="/territories/attributions/campaigns/new">
               <Plus />
               {m.campaigns_new_button()}
             </Link>
@@ -79,11 +82,11 @@ export default function CampaignsList({ loaderData }: Route.ComponentProps) {
                   if (event.defaultPrevented) return
                   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
                   if ((event.target as HTMLElement).closest('a, button, [role="button"]')) return
-                  navigate(`/territories/campaigns/${campaign.id}`)
+                  navigate(`/territories/attributions/campaigns/${campaign.id}`)
                 }}
               >
                 <TableCell className="font-medium">
-                  <Link to={`/territories/campaigns/${campaign.id}`} className="hover:text-primary">
+                  <Link to={`/territories/attributions/campaigns/${campaign.id}`} className="hover:text-primary">
                     {campaign.name}
                   </Link>
                 </TableCell>
@@ -101,7 +104,10 @@ export default function CampaignsList({ loaderData }: Route.ComponentProps) {
                 </TableCell>
                 <TableCell className="text-right">
                   <Button variant="ghost" size="icon" asChild>
-                    <Link to={`/territories/campaigns/${campaign.id}/edit`} title={m.campaigns_edit_button()}>
+                    <Link
+                      to={`/territories/attributions/campaigns/${campaign.id}/edit`}
+                      title={m.campaigns_edit_button()}
+                    >
                       <Pencil className="size-4" />
                     </Link>
                   </Button>

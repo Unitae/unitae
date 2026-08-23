@@ -67,7 +67,10 @@ export function CampaignModeBanner({
         {variant === 'manager' && (
           <>
             {' '}
-            <Link to={`/territories/campaigns/${campaign.id}`} className="font-medium underline underline-offset-4">
+            <Link
+              to={`/territories/attributions/campaigns/${campaign.id}`}
+              className="font-medium underline underline-offset-4"
+            >
               {m.campaign_banner_manage_link()}
             </Link>
           </>

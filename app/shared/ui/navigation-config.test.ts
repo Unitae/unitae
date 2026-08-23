@@ -107,13 +107,7 @@ describe('buildManagementSections', () => {
     const assembly = sections.find(s => s.id === 'assembly')
     expect(assembly?.items.map(i => i.id)).toEqual(['publishers', 'groups', 'activity', 'roles', 'programs'])
     const territories = sections.find(s => s.id === 'territories')
-    expect(territories?.items.map(i => i.id)).toEqual([
-      'attributions',
-      'territories',
-      'prospection',
-      'campaigns',
-      'stats',
-    ])
+    expect(territories?.items.map(i => i.id)).toEqual(['attributions', 'territories', 'prospection', 'stats'])
   })
 
   it('shows settings when any settings-adjacent permission is granted', () => {

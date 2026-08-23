@@ -11,7 +11,6 @@ import {
   type LucideIcon,
   Map as MapIcon,
   MapPin,
-  Megaphone,
   PieChart,
   Settings,
   Shield,
@@ -178,12 +177,7 @@ export function buildManagementSections(permissions: NavigationPermissions): Nav
         end: true,
         match: {
           prefix: '/territories',
-          exclude: [
-            '/territories/attributions',
-            '/territories/campaigns',
-            '/territories/buildings',
-            '/territories/stats',
-          ],
+          exclude: ['/territories/attributions', '/territories/buildings', '/territories/stats'],
         },
       },
     )
@@ -197,10 +191,7 @@ export function buildManagementSections(permissions: NavigationPermissions): Nav
     })
   }
   if (permissions.canManageTerritories) {
-    territoryItems.push(
-      { id: 'campaigns', label: m.sidebar_campaigns, icon: Megaphone, to: '/territories/campaigns' },
-      { id: 'stats', label: m.sidebar_statistics, icon: PieChart, to: '/territories/stats' },
-    )
+    territoryItems.push({ id: 'stats', label: m.sidebar_statistics, icon: PieChart, to: '/territories/stats' })
   }
   if (territoryItems.length > 0) {
     sections.push({ id: 'territories', label: m.sidebar_territories, items: territoryItems })

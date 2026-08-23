@@ -45,11 +45,11 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.TerritoriesManager)
 
-  const id = requireParamId(params.campaignId, '/territories/campaigns')
+  const id = requireParamId(params.campaignId, '/territories/attributions/campaigns')
 
   return withScopeFromContext(context, async (db, congregationId) => {
     const campaign = await getCampaign(db, id, congregationId)
-    if (campaign == null) throw redirect('/territories/campaigns')
+    if (campaign == null) throw redirect('/territories/attributions/campaigns')
 
     const scopeTerritories = await db.territory.findMany({
       where: { id: { in: campaign.scope.map(s => s.territoryId) }, congregationId },
@@ -89,12 +89,16 @@ export default function CampaignView({ loaderData }: Route.ComponentProps) {
         subtitle={`${new Date(campaign.startDate).toLocaleDateString('fr-FR')} – ${new Date(
           campaign.endDate,
         ).toLocaleDateString('fr-FR')}`}
-        breadcrumbs={[{ label: m.campaigns_title(), to: '/territories/campaigns' }, { label: campaign.name }]}
-        backTo="/territories/campaigns"
+        breadcrumbs={[
+          { label: m.sidebar_attributions(), to: '/territories/attributions' },
+          { label: m.campaigns_title(), to: '/territories/attributions/campaigns' },
+          { label: campaign.name },
+        ]}
+        backTo="/territories/attributions/campaigns"
         actions={
           <>
             <Button asChild variant="outline">
-              <Link to={`/territories/campaigns/${campaign.id}/edit`}>
+              <Link to={`/territories/attributions/campaigns/${campaign.id}/edit`}>
                 <Pencil />
                 {m.campaigns_edit_button()}
               </Link>
@@ -108,7 +112,7 @@ export default function CampaignView({ loaderData }: Route.ComponentProps) {
               </Form>
             ) : (
               <Button asChild variant="outline" className="text-destructive">
-                <Link to={`/territories/campaigns/${campaign.id}/delete`}>
+                <Link to={`/territories/attributions/campaigns/${campaign.id}/delete`}>
                   <Trash2 />
                   {m.campaigns_delete_title()}
                 </Link>
@@ -246,18 +250,18 @@ export function action({ request, params, context }: Route.ActionArgs) {
   requirePermission(permissions, Permission.TerritoriesManager)
 
   const { id: actorId } = context.get(currentAccountContext)
-  const id = requireParamId(params.campaignId, '/territories/campaigns')
+  const id = requireParamId(params.campaignId, '/territories/attributions/campaigns')
 
   return withScopeFromContext(context, async (db, congregationId) => {
     const campaign = await getCampaign(db, id, congregationId)
-    if (campaign == null) throw redirect('/territories/campaigns')
+    if (campaign == null) throw redirect('/territories/attributions/campaigns')
 
     // Manual « Terminer la campagne » — same idempotent transition the cron runs.
     await endCampaign(db, campaign, congregationId, actorId)
 
     const session = await getSession(request.headers.get('Cookie'))
     session.flash('success', m.campaigns_end_flash_success({ name: campaign.name }))
-    return redirect(`/territories/campaigns/${campaign.id}`, {
+    return redirect(`/territories/attributions/campaigns/${campaign.id}`, {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
   })

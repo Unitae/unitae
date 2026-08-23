@@ -2750,7 +2750,6 @@
     "attributions_campaign_not_active_error": "Cette campagne n’est pas ou plus active.",
     "attributions_available_campaign_notice": "Campagne « {name} » en cours : les territoires choisis ici seront attribués dans la campagne.",
     "campaigns_meta_title": "Campagnes - Unitae",
-    "sidebar_campaigns": "Campagnes",
     "campaigns_title": "Campagnes",
     "campaigns_subtitle": "Planifiez et gérez les campagnes de prédication",
     "campaigns_new_button": "Nouvelle campagne",

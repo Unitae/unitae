@@ -161,7 +161,7 @@ The assignment type is surfaced in three places so the publisher always knows ho
 
 ## Publishing campaigns
 
-Territory managers can plan **campaigns** (e.g. a memorial invitation drive) from *Territoires → Campagnes*: a campaign has a name, notes, a start and an **inclusive** end date, an optional **post-campaign rest period** (how long its territories stay unavailable after being returned — 15 days when unset), an optional **scope** (a subset of territories; empty scope = the whole congregation), and four lifecycle options:
+Territory managers can plan **campaigns** (e.g. a memorial invitation drive) from *Territoires → Attributions → Campagnes*: a campaign has a name, notes, a start and an **inclusive** end date, an optional **post-campaign rest period** (how long its territories stay unavailable after being returned — 15 days when unset), an optional **scope** (a subset of territories; empty scope = the whole congregation), and four lifecycle options:
 
 - **At start** — what happens to ongoing regular assignments in scope: *pause* them (default), *close* them, or *leave* them running in parallel; with *pause*, an optional toggle **re-assigns the same publishers** into the campaign automatically.
 - **At end** — whether still-open campaign assignments are closed automatically (default yes), and what happens to the assignments the campaign paused: *resume* (default — their due date is pushed back by the time spent paused), *keep paused*, or *close*.

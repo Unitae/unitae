@@ -399,13 +399,11 @@ phone can show **both** the campaign-name badge and the phone method badge.
 
 Lives under the existing territories layout (`features/territories/routes/_layout.tsx`) as a new
 `campaigns/` prefix in `territory-management.routes.ts`, alongside `attributions/`:
-`territories/campaigns` (index/list), `campaigns/new`, `campaigns/:campaignId/edit`,
+`territories/attributions/campaigns` (index/list — campaigns are a sublevel of attributions), `campaigns/new`, `campaigns/:campaignId/edit`,
 `campaigns/:campaignId` (detail/view — hosts the end-campaign action and the lifecycle preview),
-`campaigns/:campaignId/delete`. A **"Campagnes"** entry is added to the territories section of
-`app/shared/ui/navigation-config.ts` (the UI refresh centralized navigation there — sidebar, bottom tab
-bar and « Plus » sheet all derive from it), gated on `TerritoriesManager` like its siblings; the
-territories item's `exclude` list gains `'/territories/campaigns'` so campaign pages don't highlight the
-« Territoires » entry. The `_layout.tsx` outlet is also where `CampaignModeBanner` renders (§5.6
+`campaigns/:campaignId/delete`. Campaigns are reached from the **attributions list page** (a « Campagnes » header action,
+`TerritoriesManager`-gated) rather than a sidebar entry — campaign management is a sublevel of
+attributions, and the routes live under the `attributions/` prefix accordingly. The `_layout.tsx` outlet is also where `CampaignModeBanner` renders (§5.6
 banner) so it shows across every territories page.
 
 - **List** — a responsive **card grid** (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`) over `Card`; each

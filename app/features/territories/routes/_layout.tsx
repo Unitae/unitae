@@ -53,7 +53,7 @@ export default function BoardLayout({ loaderData }: Route.ComponentProps) {
   const { bannerCampaign, canManageTerritories } = loaderData
   // The campaigns section IS the campaign management surface — reminding the
   // manager about the campaign there is redundant noise.
-  const onCampaignPages = useLocation().pathname.startsWith('/territories/campaigns')
+  const onCampaignPages = useLocation().pathname.startsWith('/territories/attributions/campaigns')
 
   return (
     <div className="flex flex-col gap-4">
