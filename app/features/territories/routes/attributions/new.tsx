@@ -6,6 +6,7 @@ import { createAttributionSchema } from '~/features/territories/schemas/attribut
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import { getActiveCampaign } from '~/features/territories/server/campaign.queries'
 import { createAttribution } from '~/features/territories/server/create-attribution.server'
+import { AttributionKindBadge } from '~/features/territories/ui/AttributionKindBadge'
 import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -144,7 +145,13 @@ export default function CreateAttributionPage({ loaderData, actionData }: Route.
               {fields.publisher.errors && <p className="text-destructive text-sm">{fields.publisher.errors}</p>}
             </div>
             {activeCampaign != null ? (
-              <input type="hidden" name={fields.type.name} value={TerritoryAttributionKind.Default} />
+              <div className="flex flex-col gap-1.5">
+                <input type="hidden" name={fields.type.name} value={TerritoryAttributionKind.Default} />
+                <Label>{m.attributions_new_type_label()}</Label>
+                <div>
+                  <AttributionKindBadge type={TerritoryAttributionKind.Default} campaignName={activeCampaign.name} />
+                </div>
+              </div>
             ) : (
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor={fields.type.id}>{m.attributions_new_type_label()}</Label>
