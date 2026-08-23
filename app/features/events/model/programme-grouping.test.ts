@@ -64,6 +64,22 @@ describe('groupProgrammeParts', () => {
   it('returns an empty list for no parts', () => {
     expect(groupProgrammeParts([])).toEqual([])
   })
+
+  it('projects true parallel slots (same order, one part per room) into per-room running orders', () => {
+    // App convention: parts sharing an `order` run simultaneously in
+    // different rooms. The manager surfaces read each room as its own
+    // coherent schedule.
+    const groups = groupProgrammeParts([
+      { id: 1, section: 'Ministère', track: 'Salle principale', trackOrder: 1, order: 5 },
+      { id: 2, section: 'Ministère', track: 'Salle B', trackOrder: 2, order: 5 },
+      { id: 3, section: 'Ministère', track: 'Salle principale', trackOrder: 1, order: 6 },
+      { id: 4, section: 'Ministère', track: 'Salle B', trackOrder: 2, order: 6 },
+    ])
+
+    expect(groups[0].tracks.map(t => t.track)).toEqual(['Salle principale', 'Salle B'])
+    expect(groups[0].tracks[0].parts.map(p => p.id)).toEqual([1, 3])
+    expect(groups[0].tracks[1].parts.map(p => p.id)).toEqual([2, 4])
+  })
 })
 
 describe('sectionDurationMin', () => {

@@ -120,20 +120,25 @@ function PartRow({ part, highlighted, dimmed }: { part: PartAssignment; highligh
   return (
     <li
       className={cn(
-        'grid grid-cols-[1fr_auto] items-baseline gap-x-4 py-0.5',
+        'grid grid-cols-[1fr_auto] items-baseline gap-x-4 py-0.5 max-sm:grid-cols-1 max-sm:py-1',
         dimmed && 'opacity-30 transition-opacity',
       )}
     >
-      <span className="min-w-0 truncate font-semibold text-foreground text-sm">
+      <span className="min-w-0 truncate font-semibold text-foreground text-sm max-sm:whitespace-normal">
         {displayName}
         {part.durationMin != null && (
           <span className="ml-1 font-normal text-muted-foreground text-xs">({part.durationMin} min)</span>
+        )}
+        {part.track !== '' && (
+          <span className="ml-1.5 font-normal text-muted-foreground text-xs uppercase tracking-wide">
+            · {part.track}
+          </span>
         )}
       </span>
       {rightText ? (
         <span
           className={cn(
-            'flex shrink-0 items-center gap-1.5 text-foreground text-sm',
+            'flex shrink-0 items-center gap-1.5 text-foreground text-sm max-sm:justify-self-end',
             highlighted && 'rounded-sm bg-amber-100 px-1 dark:bg-amber-900/40',
           )}
         >
@@ -145,7 +150,7 @@ function PartRow({ part, highlighted, dimmed }: { part: PartAssignment; highligh
           )}
         </span>
       ) : (
-        <span className="shrink-0 text-muted-foreground/40 text-sm italic">&mdash;</span>
+        <span className="shrink-0 text-muted-foreground/40 text-sm italic max-sm:hidden">&mdash;</span>
       )}
     </li>
   )
@@ -175,7 +180,7 @@ function MultiTrackPart({ parts, query }: { parts: PartAssignment[]; query: stri
           <li
             key={part.id}
             className={cn(
-              'ml-3 grid grid-cols-[1fr_auto] items-baseline gap-x-4 py-0.5',
+              'ml-3 grid grid-cols-[1fr_auto] items-baseline gap-x-4 py-0.5 max-sm:grid-cols-1',
               dimmed && 'opacity-30 transition-opacity',
             )}
           >
@@ -185,7 +190,7 @@ function MultiTrackPart({ parts, query }: { parts: PartAssignment[]; query: stri
             {rightText ? (
               <span
                 className={cn(
-                  'flex shrink-0 items-center gap-1.5 text-foreground text-sm',
+                  'flex shrink-0 items-center gap-1.5 text-foreground text-sm max-sm:justify-self-end',
                   highlighted && 'rounded-sm bg-amber-100 px-1 dark:bg-amber-900/40',
                 )}
               >
