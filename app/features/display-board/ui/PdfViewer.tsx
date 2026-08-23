@@ -109,7 +109,11 @@ async function renderAllPages(
   userZoom: number,
   isCancelled: () => boolean,
 ) {
-  while (container.firstChild) container.removeChild(container.firstChild)
+  // Render into a detached fragment and swap atomically: the previous pages
+  // (possibly under a zoom-gesture preview transform) stay visible until the
+  // sharp render is complete, so a zoom commit never flashes an empty column
+  // or double-scaled pages.
+  const fragment = document.createDocumentFragment()
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
     const page = await pdf.getPage(pageNum)
     if (isCancelled()) return
@@ -122,8 +126,11 @@ async function renderAllPages(
     })
     const canvas = await renderPageToCanvas(page, cssScale, pixelRatio)
     if (isCancelled()) return
-    container.appendChild(canvas)
+    fragment.appendChild(canvas)
   }
+  if (isCancelled()) return
+  // Same frame as the transform reset in the caller — no intermediate paint.
+  container.replaceChildren(fragment)
 }
 
 async function fetchPdfDocument(url: string) {

@@ -4,6 +4,7 @@ import {
   computeAutoFitScale,
   computeRenderPixelRatio,
   MAX_AUTO_FIT_SCALE,
+  MAX_CANVAS_AREA,
   MAX_CANVAS_DIMENSION,
   MAX_USER_ZOOM,
   MIN_USER_ZOOM,
@@ -93,6 +94,19 @@ describe('computeRenderPixelRatio', () => {
   it('never drops below 1 and guards invalid input', () => {
     expect(computeRenderPixelRatio(0, 1, { width: 612, height: 792 })).toBe(1)
     expect(computeRenderPixelRatio(Number.NaN, 1, { width: 612, height: 792 })).toBe(1)
+  })
+
+  it('backs off so the canvas area stays under the browser-safe cap at high zoom', () => {
+    // Letter page at desktop max zoom (css scale 12): unbounded 2x rendering
+    // would be a ~50-megapixel canvas — Safari silently blanks those.
+    const ratio = computeRenderPixelRatio(2, 12, { width: 612, height: 792 })
+    const area = 12 * ratio * 612 * (12 * ratio * 792)
+    expect(area).toBeLessThanOrEqual(MAX_CANVAS_AREA)
+  })
+
+  it('does not reduce quality when the area budget is not threatened', () => {
+    // Fit-width phone rendering must keep the full device ratio.
+    expect(computeRenderPixelRatio(3, 0.6, { width: 612, height: 792 })).toBe(3)
   })
 
   it('backs off so the canvas stays under the dimension cap at extreme zoom', () => {

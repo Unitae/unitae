@@ -28,20 +28,26 @@ export function clampUserZoom(zoom: number): number {
 
 export const MAX_RENDER_PIXEL_RATIO = 3
 export const MAX_CANVAS_DIMENSION = 8192
+// Safari silently blanks canvases past ~16.7 megapixels; stay under it.
+export const MAX_CANVAS_AREA = 4096 * 4096
 
 /**
  * Backing-store ratio for a page canvas. Rendering at the device pixel ratio
  * is what keeps fit-width text crisp on high-density screens; the ratio backs
  * off when `cssScale x ratio` would push the canvas past MAX_CANVAS_DIMENSION
- * (browsers silently blank oversized canvases).
+ * on a side or MAX_CANVAS_AREA overall (browsers silently blank oversized
+ * canvases — the document reads as "glitching" at high zoom).
  */
 export function computeRenderPixelRatio(devicePixelRatio: number, cssScale: number, page: PageSize): number {
   const base = Number.isFinite(devicePixelRatio) && devicePixelRatio > 1 ? devicePixelRatio : 1
   let ratio = Math.min(base, MAX_RENDER_PIXEL_RATIO)
   const maxPageDimension = Math.max(page.width, page.height)
+  const pageArea = page.width * page.height
   if (cssScale > 0 && maxPageDimension > 0) {
-    const cap = MAX_CANVAS_DIMENSION / (cssScale * maxPageDimension)
-    ratio = Math.min(ratio, cap)
+    ratio = Math.min(ratio, MAX_CANVAS_DIMENSION / (cssScale * maxPageDimension))
+  }
+  if (cssScale > 0 && pageArea > 0) {
+    ratio = Math.min(ratio, Math.sqrt(MAX_CANVAS_AREA / (cssScale * cssScale * pageArea)))
   }
   return Math.max(ratio, Number.MIN_VALUE)
 }
