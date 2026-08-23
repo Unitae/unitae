@@ -2785,7 +2785,6 @@
     "campaigns_form_scope_legend": "Scope",
     "campaigns_form_scope_help": "No territory selected = the whole congregation.",
     "campaigns_form_scope_search": "Search a territory…",
-    "campaigns_form_scope_selected": "{count} selected",
     "campaigns_preview_title": "Lifecycle preview",
     "campaigns_preview_start_prefix": "At start:",
     "campaigns_preview_end_prefix": "At end:",
@@ -2830,5 +2829,9 @@
     "campaigns_form_submit": "Save",
     "campaigns_delete_has_attributions_error": "This campaign has attributions in the history — it cannot be deleted.",
     "campaigns_form_rest_label": "Territory rest after the campaign (days)",
-    "campaigns_form_rest_help": "How long territories worked during the campaign stay unavailable after being returned. Empty = 15 days."
+    "campaigns_form_rest_help": "How long territories worked during the campaign stay unavailable after being returned. Empty = 15 days.",
+    "campaigns_scope_available": "Available ({count})",
+    "campaigns_scope_selected_panel": "Selected ({count})",
+    "campaigns_scope_add_all": "Add all ({count})",
+    "campaigns_scope_remove_all": "Remove all ({count})"
 }

@@ -2785,7 +2785,6 @@
     "campaigns_form_scope_legend": "Portée",
     "campaigns_form_scope_help": "Aucun territoire sélectionné = toute la congrégation.",
     "campaigns_form_scope_search": "Rechercher un territoire…",
-    "campaigns_form_scope_selected": "{count} sélectionnés",
     "campaigns_preview_title": "Aperçu du déroulement",
     "campaigns_preview_start_prefix": "Au démarrage :",
     "campaigns_preview_end_prefix": "À la fin :",
@@ -2830,5 +2829,9 @@
     "campaigns_form_submit": "Enregistrer",
     "campaigns_delete_has_attributions_error": "Cette campagne a des attributions dans l’historique — elle ne peut pas être supprimée.",
     "campaigns_form_rest_label": "Repos des territoires après la campagne (jours)",
-    "campaigns_form_rest_help": "Temps pendant lequel les territoires travaillés en campagne restent indisponibles après leur retour. Vide = 15 jours."
+    "campaigns_form_rest_help": "Temps pendant lequel les territoires travaillés en campagne restent indisponibles après leur retour. Vide = 15 jours.",
+    "campaigns_scope_available": "Disponibles ({count})",
+    "campaigns_scope_selected_panel": "Sélectionnés ({count})",
+    "campaigns_scope_add_all": "Tout ajouter ({count})",
+    "campaigns_scope_remove_all": "Tout retirer ({count})"
 }

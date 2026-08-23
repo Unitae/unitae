@@ -4,6 +4,7 @@ import {
   CampaignRegularStartAction,
 } from '~/features/territories/model/campaign-lifecycle.type'
 import { previewCampaignLifecycle } from '~/features/territories/model/campaign-preview'
+import { CampaignScopeEditor, type ScopeTerritory } from '~/features/territories/ui/CampaignScopeEditor'
 import * as m from '~/i18n/paraglide/messages'
 import { Checkbox } from '~/shared/ui/checkbox'
 import { Input } from '~/shared/ui/input'
@@ -23,11 +24,7 @@ export interface CampaignFormDefaults {
   scopeTerritoryIds: number[]
 }
 
-export interface CampaignFormTerritory {
-  id: number
-  number: string
-  type: string
-}
+export type CampaignFormTerritory = ScopeTerritory
 
 const startPreviewLabels: Record<string, () => string> = {
   pause: m.campaigns_preview_start_pause,
@@ -70,8 +67,6 @@ export function CampaignForm({
   const [autoReassign, setAutoReassign] = useState(defaults.startAutoReassign)
   const [endClose, setEndClose] = useState(defaults.endCloseCampaign)
   const [endAction, setEndAction] = useState<string>(defaults.endRegularAction)
-  const [scopeSearch, setScopeSearch] = useState('')
-  const [selected, setSelected] = useState<Set<number>>(new Set(defaults.scopeTerritoryIds))
 
   const preview = previewCampaignLifecycle({
     startRegularAction: startAction,
@@ -79,21 +74,6 @@ export function CampaignForm({
     endCloseCampaign: endClose,
     endRegularAction: endAction,
   })
-
-  const visibleTerritories = useMemo(() => {
-    const needle = scopeSearch.trim().toLowerCase()
-    if (needle === '') return territories
-    return territories.filter(t => t.number.toLowerCase().includes(needle))
-  }, [territories, scopeSearch])
-
-  const toggle = (id: number, checked: boolean) => {
-    setSelected(prev => {
-      const next = new Set(prev)
-      if (checked) next.add(id)
-      else next.delete(id)
-      return next
-    })
-  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -202,29 +182,7 @@ export function CampaignForm({
 
       <Fieldset legend={m.campaigns_form_scope_legend()}>
         <p className="text-muted-foreground text-xs">{m.campaigns_form_scope_help()}</p>
-        <Input
-          type="search"
-          placeholder={m.campaigns_form_scope_search()}
-          value={scopeSearch}
-          onChange={e => setScopeSearch(e.target.value)}
-        />
-        <p className="text-muted-foreground text-xs">{m.campaigns_form_scope_selected({ count: selected.size })}</p>
-        <div className="grid max-h-64 grid-cols-2 gap-1 overflow-y-auto sm:grid-cols-3">
-          {visibleTerritories.map(territory => (
-            <div key={territory.id} className="flex items-center gap-2 rounded px-1 py-0.5 hover:bg-muted/40">
-              <Checkbox
-                id={`campaign-scope-${territory.id}`}
-                name="scope"
-                value={String(territory.id)}
-                checked={selected.has(territory.id)}
-                onCheckedChange={checked => toggle(territory.id, checked === true)}
-              />
-              <Label htmlFor={`campaign-scope-${territory.id}`} className="truncate font-normal text-sm">
-                {territory.number}
-              </Label>
-            </div>
-          ))}
-        </div>
+        <CampaignScopeEditor territories={territories} defaultSelectedIds={defaults.scopeTerritoryIds} />
       </Fieldset>
 
       <div className="rounded-md bg-muted/50 px-4 py-3 text-sm">
