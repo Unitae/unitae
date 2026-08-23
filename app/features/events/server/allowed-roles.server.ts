@@ -127,6 +127,8 @@ export async function getServicePartAssignmentAllowedRoleIds(
   return rows.map(r => r.roleId)
 }
 
+/** Service roles carry no slot split, so one read answers the whole event. */
+
 interface DiffResult {
   added: number[]
   removed: number[]
