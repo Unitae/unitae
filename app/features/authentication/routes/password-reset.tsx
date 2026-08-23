@@ -10,6 +10,7 @@ import {
 import { checkNewPasswordPolicy } from '~/features/authentication/server/password-policy.server'
 import { resetAccountPassword } from '~/features/authentication/server/reset-account-password.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { AuthShell } from '~/features/authentication/ui/AuthShell'
 import * as m from '~/i18n/paraglide/messages'
 import { getBrandingName, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
 import { withScope } from '~/shared/infra/db.server'
@@ -56,47 +57,44 @@ export default function PasswordResetPage({ loaderData, actionData }: Route.Comp
   })
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md overflow-hidden shadow-md">
-        <div className="h-1 bg-primary" />
-        <CardHeader className="items-center space-y-2 text-center">
-          <h1 className="font-bold font-display text-2xl tracking-tight">{brandingName}</h1>
-          <p className="text-muted-foreground text-sm">{m.auth_password_reset_subtitle()}</p>
-        </CardHeader>
-        <CardContent>
-          <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)}>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor={fields.email.id}>{m.auth_password_reset_email_label()}</Label>
-              <Input
-                {...getInputProps(fields.email, { type: 'email' })}
-                autoComplete="username"
-                readOnly
-                className="bg-muted"
-              />
-              {fields.email.errors && <p className="text-destructive text-sm">{fields.email.errors}</p>}
-            </div>
+    <AuthShell>
+      <CardHeader className="items-center space-y-2 text-center">
+        <h1 className="font-bold font-display text-2xl tracking-tight">{brandingName}</h1>
+        <p className="text-muted-foreground text-sm">{m.auth_password_reset_subtitle()}</p>
+      </CardHeader>
+      <CardContent>
+        <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)}>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor={fields.email.id}>{m.auth_password_reset_email_label()}</Label>
+            <Input
+              {...getInputProps(fields.email, { type: 'email' })}
+              autoComplete="username"
+              readOnly
+              className="bg-muted"
+            />
+            {fields.email.errors && <p className="text-destructive text-sm">{fields.email.errors}</p>}
+          </div>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor={fields.password.id}>{m.auth_password_reset_new_password_label()}</Label>
-              <Input {...getInputProps(fields.password, { type: 'password' })} autoComplete="new-password" />
-              {fields.password.errors && <p className="text-destructive text-sm">{fields.password.errors}</p>}
-            </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor={fields.password.id}>{m.auth_password_reset_new_password_label()}</Label>
+            <Input {...getInputProps(fields.password, { type: 'password' })} autoComplete="new-password" />
+            {fields.password.errors && <p className="text-destructive text-sm">{fields.password.errors}</p>}
+          </div>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor={fields.passwordConfirm.id}>{m.auth_password_reset_confirm_password_label()}</Label>
-              <Input {...getInputProps(fields.passwordConfirm, { type: 'password' })} autoComplete="new-password" />
-              {fields.passwordConfirm.errors && (
-                <p className="text-destructive text-sm">{fields.passwordConfirm.errors}</p>
-              )}
-            </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor={fields.passwordConfirm.id}>{m.auth_password_reset_confirm_password_label()}</Label>
+            <Input {...getInputProps(fields.passwordConfirm, { type: 'password' })} autoComplete="new-password" />
+            {fields.passwordConfirm.errors && (
+              <p className="text-destructive text-sm">{fields.passwordConfirm.errors}</p>
+            )}
+          </div>
 
-            <Button type="submit" className="mt-4 w-full">
-              {m.auth_password_reset_submit()}
-            </Button>
-          </Form>
-        </CardContent>
-      </Card>
-    </div>
+          <Button type="submit" className="mt-4 w-full">
+            {m.auth_password_reset_submit()}
+          </Button>
+        </Form>
+      </CardContent>
+    </AuthShell>
   )
 }
 

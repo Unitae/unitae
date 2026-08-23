@@ -14,6 +14,7 @@ import {
   getSession,
 } from '~/features/authentication/server/session.server'
 import { verifyTwoFactorChallenge } from '~/features/authentication/server/verify-two-factor-challenge.server'
+import { AuthShell } from '~/features/authentication/ui/AuthShell'
 import * as m from '~/i18n/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { getBrandingName, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
@@ -80,49 +81,46 @@ export default function TwoFactorChallengePage({ loaderData, actionData }: Route
   })
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md overflow-hidden shadow-md">
-        <div className="h-1 bg-primary" />
-        <CardHeader className="items-center space-y-2 text-center">
-          <h1 className="font-bold font-display text-2xl tracking-tight">{brandingName}</h1>
-          <p className="font-medium text-sm">{m.auth_2fa_challenge_heading()}</p>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)}>
-            <input type="hidden" name="redirectTo" value={redirectTo} />
-            <p className="text-muted-foreground text-sm">{m.auth_2fa_challenge_instruction()}</p>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor={fields.code.id}>{m.auth_2fa_challenge_code_label()}</Label>
-              <Input
-                {...getInputProps(fields.code, { type: 'text' })}
-                autoFocus={true}
-                autoComplete="one-time-code"
-                inputMode="numeric"
-                maxLength={6}
-              />
-              {fields.code.errors && <p className="text-destructive text-sm">{fields.code.errors}</p>}
-            </div>
+    <AuthShell>
+      <CardHeader className="items-center space-y-2 text-center">
+        <h1 className="font-bold font-display text-2xl tracking-tight">{brandingName}</h1>
+        <p className="font-medium text-sm">{m.auth_2fa_challenge_heading()}</p>
+      </CardHeader>
+      <CardContent>
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)}>
+          <input type="hidden" name="redirectTo" value={redirectTo} />
+          <p className="text-muted-foreground text-sm">{m.auth_2fa_challenge_instruction()}</p>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor={fields.code.id}>{m.auth_2fa_challenge_code_label()}</Label>
+            <Input
+              {...getInputProps(fields.code, { type: 'text' })}
+              autoFocus={true}
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              maxLength={6}
+            />
+            {fields.code.errors && <p className="text-destructive text-sm">{fields.code.errors}</p>}
+          </div>
 
-            <Button type="submit" className="mt-2 w-full">
-              {m.auth_2fa_challenge_submit()}
-            </Button>
-          </Form>
-        </CardContent>
-        <CardFooter className="justify-center">
-          {/* POST to /logout so the pending 2FA state is cleared from the session. */}
-          <Form method="post" action="/logout">
-            <button type="submit" className="text-primary text-xs hover:underline">
-              {m.auth_2fa_challenge_back_to_login()}
-            </button>
-          </Form>
-        </CardFooter>
-      </Card>
-    </div>
+          <Button type="submit" className="mt-2 w-full">
+            {m.auth_2fa_challenge_submit()}
+          </Button>
+        </Form>
+      </CardContent>
+      <CardFooter className="justify-center">
+        {/* POST to /logout so the pending 2FA state is cleared from the session. */}
+        <Form method="post" action="/logout">
+          <button type="submit" className="text-primary text-xs hover:underline">
+            {m.auth_2fa_challenge_back_to_login()}
+          </button>
+        </Form>
+      </CardFooter>
+    </AuthShell>
   )
 }
 

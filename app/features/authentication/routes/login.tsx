@@ -17,6 +17,7 @@ import {
 } from '~/features/authentication/server/session.server'
 import { isTwoFactorEnabled } from '~/features/authentication/server/two-factor-status.server'
 import { validateCredentials } from '~/features/authentication/server/validate-credentials.server'
+import { AuthShell } from '~/features/authentication/ui/AuthShell'
 import * as m from '~/i18n/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { getBrandingName, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
@@ -95,45 +96,42 @@ export default function LoginPage({ loaderData, actionData }: Route.ComponentPro
   })
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md overflow-hidden shadow-md">
-        <div className="h-1 bg-primary" />
-        <CardHeader className="items-center space-y-2 text-center">
-          <h1 className="font-bold font-display text-2xl tracking-tight">{brandingName}</h1>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)}>
-            <input type="hidden" name="redirectTo" value={redirectTo} />
-            <div className="flex flex-col gap-2">
-              <Label htmlFor={fields.email.id}>{m.auth_login_email()}</Label>
-              <Input {...getInputProps(fields.email, { type: 'email' })} autoFocus={true} autoComplete="username" />
-              {fields.email.errors && <p className="text-destructive text-sm">{fields.email.errors}</p>}
-            </div>
+    <AuthShell>
+      <CardHeader className="items-center space-y-2 text-center">
+        <h1 className="font-bold font-display text-2xl tracking-tight">{brandingName}</h1>
+      </CardHeader>
+      <CardContent>
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)}>
+          <input type="hidden" name="redirectTo" value={redirectTo} />
+          <div className="flex flex-col gap-2">
+            <Label htmlFor={fields.email.id}>{m.auth_login_email()}</Label>
+            <Input {...getInputProps(fields.email, { type: 'email' })} autoFocus={true} autoComplete="username" />
+            {fields.email.errors && <p className="text-destructive text-sm">{fields.email.errors}</p>}
+          </div>
 
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor={fields.password.id}>{m.auth_login_password()}</Label>
-                <Link to="/password/forgot" className="text-primary text-xs hover:underline">
-                  {m.auth_login_forgot_password()}
-                </Link>
-              </div>
-              <Input {...getInputProps(fields.password, { type: 'password' })} autoComplete="current-password" />
-              {fields.password.errors && <p className="text-destructive text-sm">{fields.password.errors}</p>}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor={fields.password.id}>{m.auth_login_password()}</Label>
+              <Link to="/password/forgot" className="text-primary text-xs hover:underline">
+                {m.auth_login_forgot_password()}
+              </Link>
             </div>
+            <Input {...getInputProps(fields.password, { type: 'password' })} autoComplete="current-password" />
+            {fields.password.errors && <p className="text-destructive text-sm">{fields.password.errors}</p>}
+          </div>
 
-            <Button type="submit" className="mt-4 w-full">
-              {m.auth_login_submit()}
-            </Button>
-          </Form>
-        </CardContent>
-        <CardFooter />
-      </Card>
-    </div>
+          <Button type="submit" className="mt-4 w-full">
+            {m.auth_login_submit()}
+          </Button>
+        </Form>
+      </CardContent>
+      <CardFooter />
+    </AuthShell>
   )
 }
 
