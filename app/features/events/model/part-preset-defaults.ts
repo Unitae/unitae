@@ -18,12 +18,10 @@ type MessageFn = (inputs?: Record<string, never>, options?: { locale?: Locale })
 const BUILT_IN_NAMES: Record<string, MessageFn> = {
   [PartPresetKey.Prayer]: m.seed_preset_prayer,
   [PartPresetKey.Chairman]: m.seed_preset_chairman,
-  [PartPresetKey.SpiritualGems]: m.seed_preset_spiritual_gems,
-  [PartPresetKey.SpiritualPearls]: m.seed_preset_spiritual_pearls,
+  [PartPresetKey.MidweekTalk]: m.seed_preset_midweek_talk,
   [PartPresetKey.BibleReading]: m.seed_preset_bible_reading,
   [PartPresetKey.SchoolDemonstration]: m.seed_preset_school_demonstration,
   [PartPresetKey.SchoolTalk]: m.seed_preset_school_talk,
-  [PartPresetKey.ChristianLifeTalk]: m.seed_preset_christian_life_talk,
   [PartPresetKey.PublicTalk]: m.seed_preset_public_talk,
   [PartPresetKey.WatchtowerStudy]: m.seed_preset_watchtower_study,
   [PartPresetKey.CongregationBibleStudy]: m.seed_preset_congregation_bible_study,
@@ -36,12 +34,10 @@ const BUILT_IN_NAMES: Record<string, MessageFn> = {
 const BUILT_IN_SPEAKER_LABELS: Record<string, MessageFn> = {
   [PartPresetKey.Prayer]: m.seed_preset_label_brother,
   [PartPresetKey.Chairman]: m.seed_preset_label_chairman,
-  [PartPresetKey.SpiritualGems]: m.seed_preset_label_speaker,
-  [PartPresetKey.SpiritualPearls]: m.seed_preset_label_conductor,
+  [PartPresetKey.MidweekTalk]: m.seed_preset_label_speaker,
   [PartPresetKey.BibleReading]: m.seed_preset_label_reader,
   [PartPresetKey.SchoolDemonstration]: m.seed_preset_label_publisher,
   [PartPresetKey.SchoolTalk]: m.seed_preset_label_speaker,
-  [PartPresetKey.ChristianLifeTalk]: m.seed_preset_label_speaker,
   [PartPresetKey.PublicTalk]: m.seed_preset_label_speaker,
   [PartPresetKey.WatchtowerStudy]: m.seed_preset_label_conductor,
   [PartPresetKey.CongregationBibleStudy]: m.seed_preset_label_conductor,
@@ -60,18 +56,14 @@ export const SHARE_MESSAGES: Record<Locale, Record<PartPresetKey, string>> = {
       'Bonjour {{assigneeFirstname}},\n\nTu as la prière le {{date}} à {{time}} ({{eventName}}).\n\n{{link}}',
     [PartPresetKey.Chairman]:
       'Bonjour {{assigneeFirstname}},\n\nTu présides la réunion du {{date}} à {{time}}.\n\n{{link}}',
-    [PartPresetKey.SpiritualGems]:
-      'Bonjour {{assigneeFirstname}},\n\nTu as un discours dans les Joyaux de la Parole de Dieu le {{date}} à {{time}}.\nSujet : {{topic}}\nDurée : {{duration}}\nNote : {{note}}\n\n{{link}}',
-    [PartPresetKey.SpiritualPearls]:
-      'Bonjour {{assigneeFirstname}},\n\nTu conduis « Recherchons des perles spirituelles » le {{date}} à {{time}}.\nDurée : {{duration}}\nNote : {{note}}\n\n{{link}}',
+    [PartPresetKey.MidweekTalk]:
+      'Bonjour {{assigneeFirstname}},\n\nTu as un sujet à la réunion Vie chrétienne et ministère le {{date}} à {{time}}.\nPartie : {{partName}}\nSujet : {{topic}}\nDurée : {{duration}}\nNote : {{note}}\n\n{{link}}',
     [PartPresetKey.BibleReading]:
       'Bonjour {{assigneeFirstname}},\n\nTu as la lecture de la Bible le {{date}} à {{time}}.\nPassage : {{topic}}\nDurée : {{duration}}\nNote : {{note}}\n\n{{link}}',
     [PartPresetKey.SchoolDemonstration]:
       "Bonjour {{assigneeFirstname}},\n\nTu as un sujet de l'école le {{date}} à {{time}}.\nSujet : {{topic}}\nDurée : {{duration}}\nAvec : {{assistant}}\nNote : {{note}}\n\n{{link}}",
     [PartPresetKey.SchoolTalk]:
       "Bonjour {{assigneeFirstname}},\n\nTu as un discours de l'école le {{date}} à {{time}}.\nSujet : {{topic}}\nDurée : {{duration}}\nNote : {{note}}\n\n{{link}}",
-    [PartPresetKey.ChristianLifeTalk]:
-      'Bonjour {{assigneeFirstname}},\n\nTu as un discours dans « Vie chrétienne » le {{date}} à {{time}}.\nSujet : {{topic}}\nDurée : {{duration}}\nNote : {{note}}\n\n{{link}}',
     [PartPresetKey.PublicTalk]:
       'Bonjour {{assigneeFirstname}},\n\nTu donnes le discours public le {{date}} à {{time}}.\nThème : {{topic}}\nNote : {{note}}\n\n{{link}}',
     [PartPresetKey.WatchtowerStudy]:
@@ -84,18 +76,14 @@ export const SHARE_MESSAGES: Record<Locale, Record<PartPresetKey, string>> = {
       'Hi {{assigneeFirstname}},\n\nYou have the prayer on {{date}} at {{time}} ({{eventName}}).\n\n{{link}}',
     [PartPresetKey.Chairman]:
       'Hi {{assigneeFirstname}},\n\nYou are chairing the meeting on {{date}} at {{time}}.\n\n{{link}}',
-    [PartPresetKey.SpiritualGems]:
-      "Hi {{assigneeFirstname}},\n\nYou have a talk in Treasures From God's Word on {{date}} at {{time}}.\nTopic: {{topic}}\nLength: {{duration}}\nNote: {{note}}\n\n{{link}}",
-    [PartPresetKey.SpiritualPearls]:
-      'Hi {{assigneeFirstname}},\n\nYou are conducting Digging for Spiritual Gems on {{date}} at {{time}}.\nLength: {{duration}}\nNote: {{note}}\n\n{{link}}',
+    [PartPresetKey.MidweekTalk]:
+      'Hi {{assigneeFirstname}},\n\nYou have a talk in the midweek meeting on {{date}} at {{time}}.\nPart: {{partName}}\nTopic: {{topic}}\nLength: {{duration}}\nNote: {{note}}\n\n{{link}}',
     [PartPresetKey.BibleReading]:
       'Hi {{assigneeFirstname}},\n\nYou have the Bible reading on {{date}} at {{time}}.\nPassage: {{topic}}\nLength: {{duration}}\nNote: {{note}}\n\n{{link}}',
     [PartPresetKey.SchoolDemonstration]:
       'Hi {{assigneeFirstname}},\n\nYou have a school demonstration on {{date}} at {{time}}.\nTopic: {{topic}}\nLength: {{duration}}\nWith: {{assistant}}\nNote: {{note}}\n\n{{link}}',
     [PartPresetKey.SchoolTalk]:
       'Hi {{assigneeFirstname}},\n\nYou have a school talk on {{date}} at {{time}}.\nTopic: {{topic}}\nLength: {{duration}}\nNote: {{note}}\n\n{{link}}',
-    [PartPresetKey.ChristianLifeTalk]:
-      'Hi {{assigneeFirstname}},\n\nYou have a talk in Living as Christians on {{date}} at {{time}}.\nTopic: {{topic}}\nLength: {{duration}}\nNote: {{note}}\n\n{{link}}',
     [PartPresetKey.PublicTalk]:
       'Hi {{assigneeFirstname}},\n\nYou are giving the public talk on {{date}} at {{time}}.\nTheme: {{topic}}\nNote: {{note}}\n\n{{link}}',
     [PartPresetKey.WatchtowerStudy]:

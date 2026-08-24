@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { MANAGED_ROLE_SLOTS_FIELD } from '~/features/events'
 
 const TIME_REGEX = /^\d{2}:\d{2}$/
 
@@ -40,6 +41,14 @@ const roleIdsField = z.preprocess(
   z.array(z.coerce.number().int().positive()),
 )
 
+// Which role pickers the part sheet drew — same rules as the program-edit
+// equivalent, and the shared field name is imported rather than retyped so the
+// two cannot drift. See partAllowedRolesToWrite.
+const managedRoleSlotsField = z.preprocess(
+  v => (Array.isArray(v) ? v : v == null || v === '' ? [] : [v]),
+  z.array(z.string()),
+)
+
 // Same rules as the program-edit.schema equivalent — kept local to avoid a
 // cross-feature import from settings to events. Change both together.
 const partRoleLabelField = z
@@ -79,6 +88,7 @@ export const upsertPartSchema = z.object({
   partPresetId: partPresetField,
   allowedSpeakerRoleIds: roleIdsField.default([]),
   allowedReaderRoleIds: roleIdsField.default([]),
+  [MANAGED_ROLE_SLOTS_FIELD]: managedRoleSlotsField.default([]),
 })
 
 export const deletePartSchema = z.object({

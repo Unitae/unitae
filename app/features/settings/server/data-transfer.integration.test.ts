@@ -412,7 +412,6 @@ afterAll(async () => {
       await tx.templateResponsible.deleteMany({})
       await tx.templateServicePart.deleteMany({})
       await tx.templatePart.deleteMany({})
-      await tx.partPresetAllowedRole.deleteMany({})
       await tx.partPreset.deleteMany({})
       await tx.event.deleteMany({})
       await tx.eventTemplate.deleteMany({})
@@ -535,7 +534,6 @@ async function importFromZip(buffer: Buffer, congregationId: number): Promise<vo
     // nothing enforces it, so an importer added there and missed here makes the
     // round-trip test pass while the real import drops the data.
     await mod.importPartPresets(zip, db, idMap, congregationId)
-    await mod.importPartPresetAllowedRoles(zip, db, idMap, congregationId)
     await mod.importEventTemplates(zip, db, idMap, congregationId)
     await mod.importTemplateParts(zip, db, idMap, congregationId)
     await mod.importTemplatePartAllowedRoles(zip, db, idMap, congregationId)
@@ -646,7 +644,6 @@ describe('Export/Import round-trip', () => {
       await tx.templateResponsible.deleteMany({})
       await tx.templateServicePart.deleteMany({})
       await tx.templatePart.deleteMany({})
-      await tx.partPresetAllowedRole.deleteMany({})
       await tx.partPreset.deleteMany({})
       await tx.event.deleteMany({})
       await tx.eventTemplate.deleteMany({})
@@ -1036,7 +1033,6 @@ describe('pre-2.5 archive compatibility', () => {
       await withScope(cong.id, async tx => {
         const idMap = new EntityIdMap()
         await mod.importPartPresets(zip, tx, idMap, cong.id)
-        await mod.importPartPresetAllowedRoles(zip, tx, idMap, cong.id)
 
         expect(await tx.partPreset.count({})).toBe(0)
       })

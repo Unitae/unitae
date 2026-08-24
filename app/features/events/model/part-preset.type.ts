@@ -10,12 +10,12 @@
 export enum PartPresetKey {
   Prayer = 'prayer',
   Chairman = 'chairman',
-  SpiritualGems = 'spiritual-gems',
-  SpiritualPearls = 'spiritual-pearls',
+  // One kind for every midweek-meeting talk (Joyaux, Perles, Vie chrétienne):
+  // eligibility lives on the parts, so nothing distinguished them any more.
+  MidweekTalk = 'midweek-talk',
   BibleReading = 'bible-reading',
   SchoolDemonstration = 'school-demonstration',
   SchoolTalk = 'school-talk',
-  ChristianLifeTalk = 'christian-life-talk',
   PublicTalk = 'public-talk',
   WatchtowerStudy = 'watchtower-study',
   CongregationBibleStudy = 'congregation-bible-study',

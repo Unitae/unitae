@@ -1,6 +1,10 @@
 // Public client-safe surface of the events feature.
 
-export { partAllowedRolesToWrite, resolveAllowedRoleIds } from './model/allowed-roles-resolution'
+export {
+  MANAGED_ROLE_SLOTS_FIELD,
+  type PartRoleSlot,
+  partAllowedRolesToWrite,
+} from './model/allowed-roles-write'
 export { dayLabel, dayLabelShort } from './model/day-label'
 export { EventStatus } from './model/event-status.type'
 export { EventTemplateKey, isSystemTemplate } from './model/event-template.type'

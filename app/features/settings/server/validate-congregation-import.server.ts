@@ -1,6 +1,7 @@
 import JsZip from 'jszip'
 import { unscopedDb, withScope } from '~/shared/infra/db.server'
 import { getFileBuffer } from '~/shared/infra/file-storage.server'
+import { legacyPresetWarnings } from '../archive-warnings'
 import { type ImportConflict, type ImportSummary, SUPPORTED_ARCHIVE_VERSIONS } from './data-transfer.type'
 import { migrateLegacyUsersNdjson } from './migrate-legacy-users-ndjson.server'
 import { readManifest, readNdjsonFile } from './ndjson-archive'
@@ -44,6 +45,10 @@ export async function validateImport(storageKey: string, congregationId: number)
       )
     }
   }
+
+  // Told before the import runs, not after: the part-kind fold is lossy and
+  // irreversible, so it belongs on the confirmation screen.
+  warnings.push(...legacyPresetWarnings(manifest.version))
 
   // v1.x → v2.0 shim: synthesize members.ndjson + user-accounts.ndjson from
   // the legacy users.ndjson so the rest of the validation reads the v2.0

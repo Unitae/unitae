@@ -224,6 +224,7 @@ async function handlePartIntent(
       partPresetId,
       allowedSpeakerRoleIds,
       allowedReaderRoleIds,
+      managedRoleSlots,
     } = submission.value
     await upsertTemplatePart(
       db,
@@ -240,7 +241,7 @@ async function handlePartIntent(
         speakerLabel: partSpeakerLabel ?? null,
         readerLabel: partReaderLabel ?? null,
         presetId: partPresetId,
-        ...partAllowedRolesToWrite({ partPresetId, allowedSpeakerRoleIds, allowedReaderRoleIds }),
+        ...partAllowedRolesToWrite({ managedSlots: managedRoleSlots, allowedSpeakerRoleIds, allowedReaderRoleIds }),
       },
       congregationId,
       actorId,

@@ -22,14 +22,13 @@ const PRESETS: PresetCapability[] = [
   // A visiting brother may offer prayer.
   { key: PartPresetKey.Prayer, hasReaderSlot: false, allowExternalSpeaker: true },
   { key: PartPresetKey.Chairman, hasReaderSlot: false, allowExternalSpeaker: false },
-  // Local assignment.
-  { key: PartPresetKey.SpiritualGems, hasReaderSlot: false, allowExternalSpeaker: false },
-  { key: PartPresetKey.SpiritualPearls, hasReaderSlot: false, allowExternalSpeaker: false },
+  // One kind for every midweek-meeting talk (Joyaux, Perles, Vie chrétienne).
+  // External speakers stay possible: a visiting brother may take a talk.
+  { key: PartPresetKey.MidweekTalk, hasReaderSlot: false, allowExternalSpeaker: true },
   { key: PartPresetKey.BibleReading, hasReaderSlot: false, allowExternalSpeaker: false },
   // The only school part with two people on stage.
   { key: PartPresetKey.SchoolDemonstration, hasReaderSlot: true, allowExternalSpeaker: false },
   { key: PartPresetKey.SchoolTalk, hasReaderSlot: false, allowExternalSpeaker: false },
-  { key: PartPresetKey.ChristianLifeTalk, hasReaderSlot: false, allowExternalSpeaker: true },
   { key: PartPresetKey.PublicTalk, hasReaderSlot: false, allowExternalSpeaker: true },
   { key: PartPresetKey.WatchtowerStudy, hasReaderSlot: true, allowExternalSpeaker: false },
   { key: PartPresetKey.CongregationBibleStudy, hasReaderSlot: true, allowExternalSpeaker: false },
@@ -46,10 +45,6 @@ export const PART_PRESET_COUNT = PRESETS.length
  *
  * The locale argument is retained for call-site compatibility and is no longer
  * used: nothing language-specific is stored any more.
- *
- * Deliberately does not populate allowedRoles either. Eligibility is set on the
- * kind through the preset editor, and a seeded restriction nobody asked for
- * would narrow who can be assigned from the first day.
  */
 // biome-ignore lint/suspicious/noExplicitAny: matches seedDefaultTemplates, called with a scoped client
 export async function seedDefaultPartPresets(db: any, congregationId: number, _locale: Locale): Promise<void> {

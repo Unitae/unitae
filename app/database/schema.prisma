@@ -118,7 +118,6 @@ model Congregation {
   templateServicePartAllowedRoles TemplateServicePartAllowedRole[]
   eventServicePartAllowedRoles    EventServicePartAllowedRole[]
   partPresets                     PartPreset[]
-  partPresetAllowedRoles          PartPresetAllowedRole[]
   externalSpeakers                ExternalSpeaker[]
 
   emergencyContacts EmergencyContact[]
@@ -328,7 +327,6 @@ model Role {
 
   allowedForTemplateParts        TemplatePartAllowedRole[]
   allowedForEventParts           EventPartAllowedRole[]
-  allowedForPartPresets          PartPresetAllowedRole[]
   allowedForTemplateServiceParts TemplateServicePartAllowedRole[]
   allowedForEventServiceParts    EventServicePartAllowedRole[]
   allowedForBoardSections        BoardSectionVisibilityRole[]
@@ -1058,9 +1056,18 @@ model EventServicePart {
 // Watchtower study. Congregation-scoped and congregation-creatable.
 //
 // Deliberately carries no defaults. The three layers are:
-//   PartPreset   — identity + capability. Never overridable on a part.
+//   PartPreset   — identity + capability: the reader slot, the slot labels,
+//                  the external-speaker rule, the share message. Never
+//                  overridable on a part.
 //   TemplatePart — defaults (name, section, duration) so they aren't retyped.
 //   EventPart    — the instance, free to override anything the template set.
+//
+// Eligibility — which roles may fill a slot — is deliberately NOT in that
+// first layer, though it was until the 20260824 migration. Two parts of the
+// same kind can be done by different roles depending on where they sit in the
+// programme, so it belongs to the part. Only TemplatePart and EventPart carry
+// allowedRoles; a new field goes here only if it is true of every occurrence
+// of the kind.
 //
 // That split is why `shareMessage` lives here: the wording of the message sent
 // to an assignee is a property of the kind of assignment, not of one evening's
@@ -1099,7 +1106,6 @@ model PartPreset {
   eventParts           EventPart[]
   templateServiceParts TemplateServicePart[]
   eventServiceParts    EventServicePart[]
-  allowedRoles         PartPresetAllowedRole[]
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
@@ -1109,23 +1115,6 @@ model PartPreset {
 
   @@unique([key, congregationId])
   @@unique([id, congregationId])
-  @@index([congregationId])
-}
-
-// Which roles may be assigned to a part of this kind. Mirrors
-// TemplatePartAllowedRole; `asKind` distinguishes the speaker and reader slots.
-model PartPresetAllowedRole {
-  preset   PartPreset @relation(fields: [presetId], references: [id], onDelete: Cascade)
-  presetId Int
-  role     Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  roleId   Int
-  asKind   String
-
-  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
-  congregationId Int
-
-  @@id([presetId, roleId, asKind])
-  @@index([roleId])
   @@index([congregationId])
 }
 

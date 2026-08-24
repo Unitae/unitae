@@ -84,7 +84,6 @@ export const TENANT_MODELS = [
   'templatePartAllowedRole',
   'eventPartAllowedRole',
   'partPreset',
-  'partPresetAllowedRole',
   'templateServicePartAllowedRole',
   'eventServicePartAllowedRole',
   'templateResponsible',

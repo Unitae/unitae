@@ -7,7 +7,6 @@ import { Button } from '~/shared/ui/button'
 import { Checkbox } from '~/shared/ui/checkbox'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
-import { type RoleOption, RolePicker } from '~/shared/ui/RolePicker'
 import { Textarea } from '~/shared/ui/textarea'
 
 type PartPresetFormProps = {
@@ -15,7 +14,6 @@ type PartPresetFormProps = {
   // from what the action will accept.
   preset: PartPresetFormValues | null
   isSystem: boolean
-  roles: RoleOption[]
   /** Catalogue wording, shown when a field is blank. Leaving a field empty is
       how a congregation keeps the built-in text and follows its language. */
   placeholders?: { name: string; speakerLabel: string; readerLabel: string; shareMessage: string }
@@ -42,7 +40,7 @@ const PREVIEW_CONTEXT: ShareMessageContext = {
   link: 'https://unitae.app/board',
 }
 
-export function PartPresetForm({ preset, isSystem, roles, placeholders, errors }: PartPresetFormProps) {
+export function PartPresetForm({ preset, isSystem, placeholders, errors }: PartPresetFormProps) {
   const [message, setMessage] = useState(preset?.shareMessage ?? '')
   const [hasReaderSlot, setHasReaderSlot] = useState(preset?.hasReaderSlot ?? false)
 
@@ -126,33 +124,6 @@ export function PartPresetForm({ preset, isSystem, roles, placeholders, errors }
           </div>
         )}
       </div>
-
-      {/* Eligibility belongs to the kind, so it is set once here rather than
-          repeated on every part that uses it. An empty selection means any
-          member — that is the widest setting, not the narrowest. */}
-      <div className="flex flex-col gap-2">
-        <Label>{m.settings_presets_form_speaker_roles()}</Label>
-        <RolePicker
-          roles={roles}
-          selectedIds={preset?.allowedSpeakerRoleIds ?? []}
-          name="allowedSpeakerRoleIds"
-          idPrefix="preset-speaker"
-          defaultLabel={m.settings_presets_form_roles_any()}
-        />
-      </div>
-
-      {hasReaderSlot && (
-        <div className="flex flex-col gap-2">
-          <Label>{m.settings_presets_form_reader_roles()}</Label>
-          <RolePicker
-            roles={roles}
-            selectedIds={preset?.allowedReaderRoleIds ?? []}
-            name="allowedReaderRoleIds"
-            idPrefix="preset-reader"
-            defaultLabel={m.settings_presets_form_roles_any()}
-          />
-        </div>
-      )}
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="shareMessage">{m.settings_presets_form_message_label()}</Label>

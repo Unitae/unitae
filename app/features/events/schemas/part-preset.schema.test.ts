@@ -84,25 +84,3 @@ describe('partPresetSchema', () => {
     expect(parsed.success && parsed.data.readerLabel).toBeNull()
   })
 })
-
-describe('partPresetSchema allowed roles', () => {
-  it('accepts a single role as a bare value', () => {
-    const parsed = partPresetSchema.safeParse({ ...base(), allowedSpeakerRoleIds: '4' })
-
-    expect(parsed.success && parsed.data.allowedSpeakerRoleIds).toEqual([4])
-  })
-
-  it('accepts several roles', () => {
-    const parsed = partPresetSchema.safeParse({ ...base(), allowedReaderRoleIds: ['4', '9'] })
-
-    expect(parsed.success && parsed.data.allowedReaderRoleIds).toEqual([4, 9])
-  })
-
-  it('treats no selection as unrestricted rather than invalid', () => {
-    // Empty means "any member" downstream — it is a legitimate choice, not an
-    // omission to reject.
-    const parsed = partPresetSchema.safeParse(base())
-
-    expect(parsed.success && parsed.data.allowedSpeakerRoleIds).toEqual([])
-  })
-})

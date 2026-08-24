@@ -88,8 +88,8 @@ export async function upsertTemplatePart(
     // The kind this part defaults to. Null where the template genuinely cannot
     // know — the ministry parts change kind weekly and are set per event.
     presetId?: number | null
-    // Optional on purpose: undefined means the editor did not manage the slot,
-    // [] means it did and the selection is empty. See partAllowedRolesToWrite.
+    // Optional on purpose: undefined means the caller does not manage the
+    // slot, [] means it does and the selection is empty.
     allowedSpeakerRoleIds?: number[]
     allowedReaderRoleIds?: number[]
   },

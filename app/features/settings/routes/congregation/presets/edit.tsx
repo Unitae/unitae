@@ -11,7 +11,6 @@ import {
 import { deletePartPreset, getPartPresetById, updatePartPreset } from '~/features/events/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { listRoles } from '~/shared/domain/roles.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -49,12 +48,6 @@ export function loader({ params, context }: Route.LoaderArgs) {
     if (!preset) throw redirect(LIST_PATH)
 
     return {
-      roles: (await listRoles(db, currentUser.congregationId)).map(r => ({
-        id: r.id,
-        key: r.key,
-        name: r.name,
-        isBuiltIn: r.isBuiltIn,
-      })),
       // Stored values only: a blank field means "use the catalogue", and the
       // placeholders below show what that will be.
       preset: {
@@ -64,8 +57,6 @@ export function loader({ params, context }: Route.LoaderArgs) {
         hasReaderSlot: preset.hasReaderSlot,
         allowExternalSpeaker: preset.allowExternalSpeaker,
         shareMessage: preset.shareMessage ?? '',
-        allowedSpeakerRoleIds: preset.allowedRoles.filter(r => r.asKind === 'speaker').map(r => r.roleId),
-        allowedReaderRoleIds: preset.allowedRoles.filter(r => r.asKind === 'reader').map(r => r.roleId),
       },
       isSystem: preset.isSystem,
       placeholders: {
@@ -120,7 +111,7 @@ export function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function EditPresetPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { preset, isSystem, roles, placeholders } = loaderData
+  const { preset, isSystem, placeholders } = loaderData
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
@@ -131,13 +122,7 @@ export default function EditPresetPage({ loaderData, actionData }: Route.Compone
           { label: preset.name || placeholders.name },
         ]}
       />
-      <PartPresetForm
-        preset={preset}
-        isSystem={isSystem}
-        roles={roles}
-        placeholders={placeholders}
-        errors={actionData?.errors}
-      />
+      <PartPresetForm preset={preset} isSystem={isSystem} placeholders={placeholders} errors={actionData?.errors} />
 
       {!isSystem && (
         <Form method="post">
