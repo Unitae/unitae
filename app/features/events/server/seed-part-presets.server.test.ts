@@ -90,9 +90,9 @@ describe('seedDefaultPartPresets', () => {
     expect(rowFor(db, 'watchtower-study')?.hasReaderSlot).toBe(true)
   })
 
-  it('allows an external speaker on prayer but not on spiritual gems', async () => {
-    // Both confirmed explicitly — spiritual gems is a local assignment, whereas
-    // a visiting brother may offer prayer.
+  it('allows an external speaker on prayer but not on the Bible reading', async () => {
+    // Both confirmed explicitly — the Bible reading is a local assignment,
+    // whereas a visiting brother may offer prayer.
     const db = makeDb()
     db.partPreset.findFirst.mockResolvedValue(null as never)
     db.partPreset.create.mockResolvedValue({} as never)
@@ -100,7 +100,7 @@ describe('seedDefaultPartPresets', () => {
     await seedDefaultPartPresets(db, 1, 'fr')
 
     expect(rowFor(db, 'prayer')?.allowExternalSpeaker).toBe(true)
-    expect(rowFor(db, 'spiritual-gems')?.allowExternalSpeaker).toBe(false)
+    expect(rowFor(db, 'bible-reading')?.allowExternalSpeaker).toBe(false)
   })
 
   it.each(['fr', 'en'] as const)('uses only known variables in every %s message', async locale => {

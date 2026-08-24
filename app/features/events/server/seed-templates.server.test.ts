@@ -6,9 +6,8 @@ const { seedDefaultTemplates } = await import('./seed-templates.server')
 // mistaken for a coincidental match.
 const SEEDED_PRESETS = [
   { id: 901, key: 'prayer' },
-  { id: 902, key: 'spiritual-gems' },
+  { id: 902, key: 'midweek-talk' },
   { id: 903, key: 'bible-reading' },
-  { id: 904, key: 'christian-life-talk' },
 ]
 
 function makeDb() {

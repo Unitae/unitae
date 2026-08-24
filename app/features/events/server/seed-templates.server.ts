@@ -69,7 +69,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
         },
         {
           name: m.seed_part_discourse({}, { locale }),
-          preset: PartPresetKey.SpiritualGems,
+          preset: PartPresetKey.MidweekTalk,
           section: m.seed_section_spiritual_gems({}, { locale }),
           order: 2,
           durationMin: 10,
@@ -77,7 +77,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
         },
         {
           name: m.seed_part_search_spiritual_pearls({}, { locale }),
-          preset: PartPresetKey.SpiritualPearls,
+          preset: PartPresetKey.MidweekTalk,
           section: m.seed_section_spiritual_gems({}, { locale }),
           order: 3,
           durationMin: 10,
@@ -115,7 +115,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
         { name: m.seed_part_song({}, { locale }), section: '', order: 8, durationMin: 5, allowExternalSpeaker: false },
         {
           name: m.seed_part_first_part({}, { locale }),
-          preset: PartPresetKey.ChristianLifeTalk,
+          preset: PartPresetKey.MidweekTalk,
           section: m.seed_section_christian_life({}, { locale }),
           order: 9,
           durationMin: null,
@@ -123,7 +123,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
         },
         {
           name: m.seed_part_second_part({}, { locale }),
-          preset: PartPresetKey.ChristianLifeTalk,
+          preset: PartPresetKey.MidweekTalk,
           section: m.seed_section_christian_life({}, { locale }),
           order: 10,
           durationMin: null,

@@ -15,13 +15,6 @@ const checkboxField = z
   .optional()
   .transform(v => v === 'on')
 
-// Same shape as the part form's role fields — a single value arrives as a
-// string, several as an array, and nothing at all as an empty selection.
-const roleIdsField = z.preprocess(
-  v => (Array.isArray(v) ? v : v == null || v === '' ? [] : [v]),
-  z.array(z.coerce.number().int().positive()),
-)
-
 export const partPresetSchema = z.object({
   // Blank means "use the built-in name", which is why this is no longer
   // required: the placeholder in the form shows what blank will produce.
@@ -53,8 +46,6 @@ export const partPresetSchema = z.object({
         message: `Variable(s) inconnue(s) : ${unknown.map(name => `{{${name}}}`).join(', ')}. Disponibles : ${SHARE_VARIABLES.map(name => `{{${name}}}`).join(', ')}`,
       })
     }),
-  allowedSpeakerRoleIds: roleIdsField.default([]),
-  allowedReaderRoleIds: roleIdsField.default([]),
 })
 
 export type PartPresetFormValues = z.infer<typeof partPresetSchema>

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const readNdjsonFile = vi.fn()
 vi.mock('./ndjson-archive', () => ({ readNdjsonFile: (...args: unknown[]) => readNdjsonFile(...args) }))
 
-const { importPartPresetAllowedRoles, importPartPresets } = await import('./import-part-presets.server')
+const { importPartPresets } = await import('./import-part-presets.server')
 const { EntityIdMap } = await import('./data-transfer.type')
 
 function preset(id: number, overrides: Record<string, unknown> = {}) {
@@ -23,10 +23,18 @@ function preset(id: number, overrides: Record<string, unknown> = {}) {
 }
 
 function makeDb() {
+  let nextId = 700
   return {
-    partPreset: { create: vi.fn().mockResolvedValue({ id: 700 } as never) },
-    partPresetAllowedRole: { createMany: vi.fn().mockResolvedValue({} as never) },
+    partPreset: { create: vi.fn().mockImplementation(() => Promise.resolve({ id: nextId++ })) },
   }
+}
+
+function archive(presets: unknown[], legacyEligibility: unknown[] = []) {
+  readNdjsonFile.mockImplementation((_zip: unknown, name: unknown) => {
+    if (name === 'part-presets') return Promise.resolve(presets)
+    if (name === 'part-preset-allowed-roles') return Promise.resolve(legacyEligibility)
+    return Promise.resolve([])
+  })
 }
 
 beforeEach(() => {
@@ -35,7 +43,7 @@ beforeEach(() => {
 
 describe('importPartPresets', () => {
   it('recreates presets under the target congregation and records the id remap', async () => {
-    readNdjsonFile.mockResolvedValue([preset(12)])
+    archive([preset(12)])
     const db = makeDb()
     const idMap = new EntityIdMap()
 
@@ -48,7 +56,7 @@ describe('importPartPresets', () => {
   })
 
   it('preserves whether a preset was a system one', async () => {
-    readNdjsonFile.mockResolvedValue([preset(1, { isSystem: false })])
+    archive([preset(1, { isSystem: false })])
     const db = makeDb()
 
     await importPartPresets({} as never, db as never, new EntityIdMap(), 1)
@@ -57,7 +65,7 @@ describe('importPartPresets', () => {
   })
 
   it('carries the share message across, which is the whole point of the table', async () => {
-    readNdjsonFile.mockResolvedValue([preset(1, { shareMessage: 'Texte personnalisé {{date}}' })])
+    archive([preset(1, { shareMessage: 'Texte personnalisé {{date}}' })])
     const db = makeDb()
 
     await importPartPresets({} as never, db as never, new EntityIdMap(), 1)
@@ -66,49 +74,48 @@ describe('importPartPresets', () => {
   })
 
   it('does nothing for a pre-2.5 archive with no preset file', async () => {
-    readNdjsonFile.mockResolvedValue([])
+    archive([])
     const db = makeDb()
 
     await importPartPresets({} as never, db as never, new EntityIdMap(), 1)
 
     expect(db.partPreset.create).not.toHaveBeenCalled()
   })
-})
 
-describe('importPartPresetAllowedRoles', () => {
-  it('remaps both foreign keys', async () => {
-    readNdjsonFile.mockResolvedValue([{ presetId: 12, roleId: 3, asKind: 'speaker' }])
-    const db = makeDb()
-    const idMap = new EntityIdMap()
-    idMap.set('part-presets', 12, 700)
-    idMap.set('roles', 3, 900)
-
-    await importPartPresetAllowedRoles({} as never, db as never, idMap, 42)
-
-    expect(db.partPresetAllowedRole.createMany.mock.calls[0][0].data).toEqual([
-      { presetId: 700, roleId: 900, asKind: 'speaker', congregationId: 42 },
+  it('folds the three legacy midweek talk kinds into one midweek-talk row', async () => {
+    archive([
+      preset(10, { key: 'spiritual-gems' }),
+      preset(11, { key: 'spiritual-pearls' }),
+      preset(12, { key: 'christian-life-talk' }),
     ])
-  })
-
-  it('skips a row whose preset did not import rather than writing a dangling key', async () => {
-    readNdjsonFile.mockResolvedValue([{ presetId: 999, roleId: 3, asKind: 'speaker' }])
     const db = makeDb()
     const idMap = new EntityIdMap()
-    idMap.set('roles', 3, 900)
 
-    await importPartPresetAllowedRoles({} as never, db as never, idMap, 1)
+    await importPartPresets({} as never, db as never, idMap, 42)
 
-    expect(db.partPresetAllowedRole.createMany).not.toHaveBeenCalled()
+    // One row, on catalogue defaults, and every legacy id resolves to it so
+    // parts pointing at any of the three stay linked.
+    expect(db.partPreset.create).toHaveBeenCalledTimes(1)
+    expect(db.partPreset.create.mock.calls[0][0].data).toMatchObject({
+      key: 'midweek-talk',
+      name: null,
+      shareMessage: null,
+      isSystem: true,
+      congregationId: 42,
+    })
+    expect(idMap.get('part-presets', 10)).toBe(700)
+    expect(idMap.get('part-presets', 11)).toBe(700)
+    expect(idMap.get('part-presets', 12)).toBe(700)
   })
 
-  it('skips a row whose role did not import', async () => {
-    readNdjsonFile.mockResolvedValue([{ presetId: 12, roleId: 999, asKind: 'speaker' }])
+  it('leaves a custom preset alone even if it shares a legacy key', async () => {
+    // Only system rows fold: a congregation-created preset is its own kind,
+    // whatever it happens to be called.
+    archive([preset(10, { key: 'spiritual-gems', isSystem: false })])
     const db = makeDb()
-    const idMap = new EntityIdMap()
-    idMap.set('part-presets', 12, 700)
 
-    await importPartPresetAllowedRoles({} as never, db as never, idMap, 1)
+    await importPartPresets({} as never, db as never, new EntityIdMap(), 1)
 
-    expect(db.partPresetAllowedRole.createMany).not.toHaveBeenCalled()
+    expect(db.partPreset.create.mock.calls[0][0].data).toMatchObject({ key: 'spiritual-gems', isSystem: false })
   })
 })

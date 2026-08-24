@@ -223,10 +223,11 @@ export function PartEditSheet({
               {partSpeakerLabel({ speakerLabel: capability.speakerLabel, readerLabel: null })}
             </GroupHeading>
             <div className="flex flex-col gap-3">
-              {/* Only offered without a kind. With one, the labels, the
-                  external-speaker rule and the eligible roles all belong to
-                  the preset — editing them here would suggest an override the
-                  model does not have. The summary above shows what applies. */}
+              {/* Label and external-speaker rule are capability and belong to
+                  the kind when one is chosen — editing them here would suggest
+                  an override the model does not have. The summary above shows
+                  what applies. Eligibility stays per part: two parts of the
+                  same kind can be done by different roles. */}
               {!selectedPreset && (
                 <>
                   <div className="flex flex-col gap-2">
@@ -249,20 +250,18 @@ export function PartEditSheet({
                   </div>
                 </>
               )}
-              {!selectedPreset && (
-                <div className="flex flex-col gap-2">
-                  <Label>{m.programs_edit_part_allowed_speaker_label()}</Label>
-                  <RolePicker
-                    key={`speaker-${pickerKey}`}
-                    roles={roles}
-                    selectedIds={part?.allowedSpeakerRoleIds ?? []}
-                    name="allowedSpeakerRoleIds"
-                    idPrefix={`part-speaker-${pickerKey}`}
-                    defaultLabel={defaultChipLabel}
-                  />
-                  <p className="text-muted-foreground text-xs">{m.programs_edit_part_external_speaker_note()}</p>
-                </div>
-              )}
+              <div className="flex flex-col gap-2">
+                <Label>{m.programs_edit_part_allowed_speaker_label()}</Label>
+                <RolePicker
+                  key={`speaker-${pickerKey}`}
+                  roles={roles}
+                  selectedIds={part?.allowedSpeakerRoleIds ?? []}
+                  name="allowedSpeakerRoleIds"
+                  idPrefix={`part-speaker-${pickerKey}`}
+                  defaultLabel={defaultChipLabel}
+                />
+                <p className="text-muted-foreground text-xs">{m.programs_edit_part_external_speaker_note()}</p>
+              </div>
             </div>
           </section>
 
@@ -286,19 +285,17 @@ export function PartEditSheet({
                     />
                   </div>
                 )}
-                {!selectedPreset && (
-                  <div className="flex flex-col gap-2">
-                    <Label>{m.programs_edit_part_allowed_reader_label()}</Label>
-                    <RolePicker
-                      key={`reader-${pickerKey}`}
-                      roles={roles}
-                      selectedIds={part?.allowedReaderRoleIds ?? []}
-                      name="allowedReaderRoleIds"
-                      idPrefix={`part-reader-${pickerKey}`}
-                      defaultLabel={defaultChipLabel}
-                    />
-                  </div>
-                )}
+                <div className="flex flex-col gap-2">
+                  <Label>{m.programs_edit_part_allowed_reader_label()}</Label>
+                  <RolePicker
+                    key={`reader-${pickerKey}`}
+                    roles={roles}
+                    selectedIds={part?.allowedReaderRoleIds ?? []}
+                    name="allowedReaderRoleIds"
+                    idPrefix={`part-reader-${pickerKey}`}
+                    defaultLabel={defaultChipLabel}
+                  />
+                </div>
               </div>
             </section>
           )}

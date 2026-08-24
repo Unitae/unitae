@@ -1,4 +1,4 @@
-export const ARCHIVE_VERSION = '2.5'
+export const ARCHIVE_VERSION = '2.6'
 
 // Older archive versions an import will still accept. v1.0 archives miss every
 // post-shipping feature table (custom roles, allowed-roles, external speakers,
@@ -19,10 +19,15 @@ export const ARCHIVE_VERSION = '2.5'
 // `part-preset-allowed-roles.ndjson`, and carries `presetId` on the four
 // programme part tables; pre-2.5 archives simply import with every part
 // unlinked, which is the same state a congregation is in before the backfill
-// script runs, so nothing downstream needs to special-case it. v1.x archives are listed here so the import path reports
+// script runs, so nothing downstream needs to special-case it. v2.6 drops
+// `part-preset-allowed-roles.ndjson` — eligibility lives on the parts, whose
+// own rows import through the part importers — and merges the three seeded
+// midweek talk kinds into 'midweek-talk'; the preset importer folds v2.5
+// archives accordingly and discards their preset-level eligibility with a log
+// line. v1.x archives are listed here so the import path reports
 // them with a warning rather than rejecting outright; a compatibility shim that
 // splits legacy `users.ndjson` is a deferred follow-up.
-export const SUPPORTED_ARCHIVE_VERSIONS = ['1.0', '1.1', '2.0', '2.1', '2.2', '2.3', '2.4', '2.5'] as const
+export const SUPPORTED_ARCHIVE_VERSIONS = ['1.0', '1.1', '2.0', '2.1', '2.2', '2.3', '2.4', '2.5', '2.6'] as const
 
 export interface ManifestJson {
   version: string
@@ -77,7 +82,6 @@ export const ENTITY_FILES = [
   'building-entrance-links',
   'attributions',
   'part-presets',
-  'part-preset-allowed-roles',
   'programme-templates',
   'programme-template-parts',
   'programme-template-part-allowed-roles',

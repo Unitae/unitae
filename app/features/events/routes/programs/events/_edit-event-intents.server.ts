@@ -1,5 +1,4 @@
 import { parseWithZod } from '@conform-to/zod'
-import { partAllowedRolesToWrite } from '~/features/events'
 import {
   addPartSchema,
   addServiceSchema,
@@ -114,7 +113,8 @@ async function handleAddPart(
       speakerLabel: partSpeakerLabel ?? null,
       readerLabel: partReaderLabel ?? null,
       presetId: partPresetId,
-      ...partAllowedRolesToWrite({ partPresetId, allowedSpeakerRoleIds, allowedReaderRoleIds }),
+      allowedSpeakerRoleIds,
+      allowedReaderRoleIds,
       congregationId,
     },
     actorId,
@@ -160,7 +160,8 @@ async function handleUpdatePart(
       speakerLabel: partSpeakerLabel ?? null,
       readerLabel: partReaderLabel ?? null,
       presetId: partPresetId,
-      ...partAllowedRolesToWrite({ partPresetId, allowedSpeakerRoleIds, allowedReaderRoleIds }),
+      allowedSpeakerRoleIds,
+      allowedReaderRoleIds,
     },
     congregationId,
     actorId,

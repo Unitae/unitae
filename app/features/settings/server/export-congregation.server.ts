@@ -430,13 +430,6 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
         }),
     },
     {
-      name: 'part-preset-allowed-roles',
-      export: () =>
-        db.partPresetAllowedRole.findMany({
-          select: { presetId: true, roleId: true, asKind: true },
-        }),
-    },
-    {
       name: 'programme-templates',
       export: () =>
         db.eventTemplate.findMany({

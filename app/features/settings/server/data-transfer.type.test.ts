@@ -75,8 +75,8 @@ describe('EntityIdMap', () => {
 })
 
 describe('ARCHIVE_VERSION', () => {
-  it('is the current 2.5 schema version', () => {
-    expect(ARCHIVE_VERSION).toBe('2.5')
+  it('is the current 2.6 schema version', () => {
+    expect(ARCHIVE_VERSION).toBe('2.6')
   })
 })
 
@@ -114,7 +114,6 @@ describe('ENTITY_FILES', () => {
 
   const PRESET_ORDERING: [EntityFile, EntityFile][] = [
     ['roles', 'part-presets'],
-    ['part-presets', 'part-preset-allowed-roles'],
     ['part-presets', 'programme-template-parts'],
     ['part-presets', 'programme-part-assignments'],
   ]

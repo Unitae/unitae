@@ -97,10 +97,8 @@ const NO_ROLE_CHANGE = { added: [] as number[], removed: [] as number[] }
  * Write the slots the caller actually managed.
  *
  * Undefined and [] are different: [] is "the editor offered a selection and it
- * is empty", undefined is "the editor never showed one". The part form hides
- * its role pickers once a kind is chosen, so it sends undefined — and the
- * part's own rows must survive, because that is what the kind falls back to
- * while it restricts nobody.
+ * is empty" and clears the slot's rows, undefined is "this caller does not
+ * manage eligibility" and leaves them alone.
  */
 async function writePartAllowedRoles(
   db: TransactionClient,

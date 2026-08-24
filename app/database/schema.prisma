@@ -118,7 +118,6 @@ model Congregation {
   templateServicePartAllowedRoles TemplateServicePartAllowedRole[]
   eventServicePartAllowedRoles    EventServicePartAllowedRole[]
   partPresets                     PartPreset[]
-  partPresetAllowedRoles          PartPresetAllowedRole[]
   externalSpeakers                ExternalSpeaker[]
 
   emergencyContacts EmergencyContact[]
@@ -328,7 +327,6 @@ model Role {
 
   allowedForTemplateParts        TemplatePartAllowedRole[]
   allowedForEventParts           EventPartAllowedRole[]
-  allowedForPartPresets          PartPresetAllowedRole[]
   allowedForTemplateServiceParts TemplateServicePartAllowedRole[]
   allowedForEventServiceParts    EventServicePartAllowedRole[]
   allowedForBoardSections        BoardSectionVisibilityRole[]
@@ -1099,7 +1097,6 @@ model PartPreset {
   eventParts           EventPart[]
   templateServiceParts TemplateServicePart[]
   eventServiceParts    EventServicePart[]
-  allowedRoles         PartPresetAllowedRole[]
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
@@ -1109,23 +1106,6 @@ model PartPreset {
 
   @@unique([key, congregationId])
   @@unique([id, congregationId])
-  @@index([congregationId])
-}
-
-// Which roles may be assigned to a part of this kind. Mirrors
-// TemplatePartAllowedRole; `asKind` distinguishes the speaker and reader slots.
-model PartPresetAllowedRole {
-  preset   PartPreset @relation(fields: [presetId], references: [id], onDelete: Cascade)
-  presetId Int
-  role     Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  roleId   Int
-  asKind   String
-
-  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
-  congregationId Int
-
-  @@id([presetId, roleId, asKind])
-  @@index([roleId])
   @@index([congregationId])
 }
 

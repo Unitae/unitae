@@ -45,7 +45,7 @@ import {
   importEventServiceParts,
   importEvents,
 } from './import-events.server'
-import { importPartPresetAllowedRoles, importPartPresets } from './import-part-presets.server'
+import { importPartPresets } from './import-part-presets.server'
 import {
   importEmergencyContacts,
   importExternalSpeakers,
@@ -109,7 +109,7 @@ export {
   importEventServiceParts,
   importEvents,
 } from './import-events.server'
-export { importPartPresetAllowedRoles, importPartPresets } from './import-part-presets.server'
+export { importPartPresets } from './import-part-presets.server'
 export {
   importEmergencyContacts,
   importExternalSpeakers,
@@ -253,11 +253,8 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
       await progress()
 
       // Before the template parts and event parts, which carry a presetId that
-      // resolves through the map these fill.
+      // resolves through the map this fills.
       await importPartPresets(zip, db, idMap, congregationId)
-      await progress()
-
-      await importPartPresetAllowedRoles(zip, db, idMap, congregationId)
       await progress()
 
       await importEventTemplates(zip, db, idMap, congregationId)
