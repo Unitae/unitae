@@ -3,6 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const readNdjsonFile = vi.fn()
 vi.mock('./ndjson-archive', () => ({ readNdjsonFile: (...args: unknown[]) => readNdjsonFile(...args) }))
 
+const warn = vi.fn()
+vi.mock('~/shared/infra/logger.server', () => ({ createLogger: () => ({ warn, info: vi.fn(), error: vi.fn() }) }))
+
 const { importPartPresets } = await import('./import-part-presets.server')
 const { EntityIdMap } = await import('./data-transfer.type')
 
@@ -117,5 +120,27 @@ describe('importPartPresets', () => {
     await importPartPresets({} as never, db as never, new EntityIdMap(), 1)
 
     expect(db.partPreset.create.mock.calls[0][0].data).toMatchObject({ key: 'spiritual-gems', isSystem: false })
+  })
+})
+
+describe('discarded preset-level eligibility', () => {
+  it('logs how many rows a v2.5 archive lost, so a support case can be reconstructed', () => {
+    // The user is warned before confirming (see legacyPresetWarnings); this is
+    // the operator-side record of what actually went missing.
+    archive([preset(1)], [{ presetId: 10 }, { presetId: 11 }])
+    const db = makeDb()
+
+    return importPartPresets({} as never, db as never, new EntityIdMap(), 42).then(() => {
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('2'), expect.objectContaining({ congregationId: 42 }))
+    })
+  })
+
+  it('stays quiet when the archive carries no preset-level eligibility', async () => {
+    archive([preset(1)], [])
+    const db = makeDb()
+
+    await importPartPresets({} as never, db as never, new EntityIdMap(), 42)
+
+    expect(warn).not.toHaveBeenCalled()
   })
 })

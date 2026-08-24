@@ -5,10 +5,12 @@
 -- the programme. The kind keeps capability only (reader slot, labels,
 -- external-speaker rule, share message).
 --
--- Step 1 makes the change behaviour-neutral: under the old rule a kind with
--- roles configured for a slot decided that slot and the part's own rows lay
--- dormant. Materialize that effective answer into the part rows before the
--- preset rows disappear, so no existing part widens or narrows.
+-- Step 1 makes the change neutral *for eligibility*: under the old rule a kind
+-- with roles configured for a slot decided that slot and the part's own rows
+-- lay dormant. Materialize that effective answer into the part rows before the
+-- preset rows disappear, so no existing part's eligibility widens or narrows.
+-- Step 2 is not neutral in one respect — see the allowExternalSpeaker note
+-- there.
 
 DELETE FROM "TemplatePartAllowedRole" tpar
 USING "TemplatePart" tp
@@ -45,6 +47,17 @@ DROP TABLE "PartPresetAllowedRole";
 -- into one "Sujet VCM" kind. Custom wording stored on the old rows (a rename
 -- or an edited share message) is dropped; the merged kind starts on the
 -- catalogue defaults.
+--
+-- One thing does change for existing parts, and the neutrality claim above
+-- does not cover it: the three kinds disagreed on allowExternalSpeaker
+-- (Joyaux and Perles said no, Vie chrétienne said yes), and one merged kind
+-- can only hold one answer. It keeps yes, so parts that were Joyaux or Perles
+-- start offering the external-speaker option.
+--
+-- Widening deliberately rather than narrowing: the flag only decides whether
+-- the picker offers an external speaker, and nothing enforces it at assignment
+-- time. Answering no would have withdrawn the option from parts that were Vie
+-- chrétienne and hidden anyone already assigned that way.
 
 INSERT INTO "PartPreset" ("key", "scope", "hasReaderSlot", "allowExternalSpeaker", "isSystem", "congregationId", "updatedAt")
 SELECT 'midweek-talk', 'part', false, true, true, c."id", CURRENT_TIMESTAMP

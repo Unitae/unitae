@@ -1,8 +1,17 @@
 import { z } from 'zod'
+import { MANAGED_ROLE_SLOTS_FIELD } from '~/features/events/model/allowed-roles-write'
 
 const roleIdsField = z.preprocess(
   v => (Array.isArray(v) ? v : v == null || v === '' ? [] : [v]),
   z.array(z.coerce.number().int().positive()),
+)
+
+// Which role pickers the editor actually drew. Absent means it drew none, so
+// every stored row is left alone — never "it drew both and they were empty".
+// See partAllowedRolesToWrite for why the two must stay distinguishable.
+const managedRoleSlotsField = z.preprocess(
+  v => (Array.isArray(v) ? v : v == null || v === '' ? [] : [v]),
+  z.array(z.string()),
 )
 
 // Free-text per-part display labels — capped at 50 to keep DB rows sensible
@@ -55,6 +64,7 @@ export const addPartSchema = z.object({
   partPresetId: partPresetField,
   allowedSpeakerRoleIds: roleIdsField.default([]),
   allowedReaderRoleIds: roleIdsField.default([]),
+  [MANAGED_ROLE_SLOTS_FIELD]: managedRoleSlotsField.default([]),
 })
 
 export const deletePartSchema = z.object({
@@ -91,6 +101,7 @@ export const updatePartSchema = z.object({
   partPresetId: partPresetField,
   allowedSpeakerRoleIds: roleIdsField.default([]),
   allowedReaderRoleIds: roleIdsField.default([]),
+  [MANAGED_ROLE_SLOTS_FIELD]: managedRoleSlotsField.default([]),
 })
 
 export const updateServiceSchema = z.object({

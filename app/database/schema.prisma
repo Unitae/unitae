@@ -1056,9 +1056,18 @@ model EventServicePart {
 // Watchtower study. Congregation-scoped and congregation-creatable.
 //
 // Deliberately carries no defaults. The three layers are:
-//   PartPreset   — identity + capability. Never overridable on a part.
+//   PartPreset   — identity + capability: the reader slot, the slot labels,
+//                  the external-speaker rule, the share message. Never
+//                  overridable on a part.
 //   TemplatePart — defaults (name, section, duration) so they aren't retyped.
 //   EventPart    — the instance, free to override anything the template set.
+//
+// Eligibility — which roles may fill a slot — is deliberately NOT in that
+// first layer, though it was until the 20260824 migration. Two parts of the
+// same kind can be done by different roles depending on where they sit in the
+// programme, so it belongs to the part. Only TemplatePart and EventPart carry
+// allowedRoles; a new field goes here only if it is true of every occurrence
+// of the kind.
 //
 // That split is why `shareMessage` lives here: the wording of the message sent
 // to an assignee is a property of the kind of assignment, not of one evening's

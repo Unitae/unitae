@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { useFetcher } from 'react-router'
+import { MANAGED_ROLE_SLOTS_FIELD } from '~/features/events/model/allowed-roles-write'
 import { resolvePartCapability } from '~/features/events/model/part-capability'
 import { partReaderLabel, partSpeakerLabel } from '~/features/events/model/part-labels'
 import { NO_PRESET_VALUE } from '~/features/events/schemas/program-edit.schema'
@@ -251,6 +252,11 @@ export function PartEditSheet({
                 </>
               )}
               <div className="flex flex-col gap-2">
+                {/* Declared alongside the picker, not somewhere else in the
+                    form: an empty picker and an absent one submit the same
+                    thing, so the action can only tell them apart if whatever
+                    draws the picker also says it did. */}
+                <input type="hidden" name={MANAGED_ROLE_SLOTS_FIELD} value="speaker" />
                 <Label>{m.programs_edit_part_allowed_speaker_label()}</Label>
                 <RolePicker
                   key={`speaker-${pickerKey}`}
@@ -286,6 +292,10 @@ export function PartEditSheet({
                   </div>
                 )}
                 <div className="flex flex-col gap-2">
+                  {/* This whole section disappears when the kind has no second
+                      slot, which is exactly when the part's stored reader roles
+                      must survive untouched. */}
+                  <input type="hidden" name={MANAGED_ROLE_SLOTS_FIELD} value="reader" />
                   <Label>{m.programs_edit_part_allowed_reader_label()}</Label>
                   <RolePicker
                     key={`reader-${pickerKey}`}

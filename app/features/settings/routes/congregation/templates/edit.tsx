@@ -10,6 +10,7 @@ import {
   InlineDeleteDialog,
   isSystemTemplate,
   PartEditSheet,
+  partAllowedRolesToWrite,
   SectionHeading,
   ServiceEditSheet,
   SortableRow,
@@ -223,6 +224,7 @@ async function handlePartIntent(
       partPresetId,
       allowedSpeakerRoleIds,
       allowedReaderRoleIds,
+      managedRoleSlots,
     } = submission.value
     await upsertTemplatePart(
       db,
@@ -239,8 +241,7 @@ async function handlePartIntent(
         speakerLabel: partSpeakerLabel ?? null,
         readerLabel: partReaderLabel ?? null,
         presetId: partPresetId,
-        allowedSpeakerRoleIds,
-        allowedReaderRoleIds,
+        ...partAllowedRolesToWrite({ managedSlots: managedRoleSlots, allowedSpeakerRoleIds, allowedReaderRoleIds }),
       },
       congregationId,
       actorId,

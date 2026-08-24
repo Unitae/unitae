@@ -171,3 +171,42 @@ describe('part preset selection', () => {
     expect(parsed.success).toBe(false)
   })
 })
+
+describe('managed role slots', () => {
+  // The part editor declares which role pickers it drew. Without that, a
+  // picker that was never rendered and one the user emptied both arrive as an
+  // absent field, and the action cannot tell "leave these rows alone" from
+  // "delete them" — the reader half of the 78a9219 regression.
+  function partForm(fields: Record<string, string | string[]>) {
+    const fd = new FormData()
+    fd.set('intent', 'update-part')
+    fd.set('partAssignmentId', '9')
+    fd.set('partName', 'Sujet')
+    fd.set('partOrder', '1')
+    for (const [key, value] of Object.entries(fields)) {
+      for (const entry of Array.isArray(value) ? value : [value]) fd.append(key, entry)
+    }
+    return Object.fromEntries(
+      [...new Set([...fd.keys()])].map(key => [key, fd.getAll(key).length > 1 ? fd.getAll(key) : fd.get(key)]),
+    )
+  }
+
+  it('parses the slots the editor says it drew', () => {
+    const parsed = updatePartSchema.safeParse(partForm({ managedRoleSlots: ['speaker', 'reader'] }))
+
+    expect(parsed.success && parsed.data.managedRoleSlots).toEqual(['speaker', 'reader'])
+  })
+
+  it('parses a single declared slot arriving as a bare value', () => {
+    const parsed = updatePartSchema.safeParse(partForm({ managedRoleSlots: 'speaker' }))
+
+    expect(parsed.success && parsed.data.managedRoleSlots).toEqual(['speaker'])
+  })
+
+  it('treats an absent declaration as "managed nothing" rather than "managed both"', () => {
+    // A caller that never drew a picker must not clear the stored rows.
+    const parsed = updatePartSchema.safeParse(partForm({}))
+
+    expect(parsed.success && parsed.data.managedRoleSlots).toEqual([])
+  })
+})

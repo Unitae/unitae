@@ -1,4 +1,5 @@
 import { parseWithZod } from '@conform-to/zod'
+import { partAllowedRolesToWrite } from '~/features/events/model/allowed-roles-write'
 import {
   addPartSchema,
   addServiceSchema,
@@ -98,6 +99,7 @@ async function handleAddPart(
     partPresetId,
     allowedSpeakerRoleIds,
     allowedReaderRoleIds,
+    managedRoleSlots,
   } = submission.value
   await addPartAssignment(
     db,
@@ -113,8 +115,7 @@ async function handleAddPart(
       speakerLabel: partSpeakerLabel ?? null,
       readerLabel: partReaderLabel ?? null,
       presetId: partPresetId,
-      allowedSpeakerRoleIds,
-      allowedReaderRoleIds,
+      ...partAllowedRolesToWrite({ managedSlots: managedRoleSlots, allowedSpeakerRoleIds, allowedReaderRoleIds }),
       congregationId,
     },
     actorId,
@@ -145,6 +146,7 @@ async function handleUpdatePart(
     partPresetId,
     allowedSpeakerRoleIds,
     allowedReaderRoleIds,
+    managedRoleSlots,
   } = submission.value
   await updatePartAssignment(
     db,
@@ -160,8 +162,7 @@ async function handleUpdatePart(
       speakerLabel: partSpeakerLabel ?? null,
       readerLabel: partReaderLabel ?? null,
       presetId: partPresetId,
-      allowedSpeakerRoleIds,
-      allowedReaderRoleIds,
+      ...partAllowedRolesToWrite({ managedSlots: managedRoleSlots, allowedSpeakerRoleIds, allowedReaderRoleIds }),
     },
     congregationId,
     actorId,
