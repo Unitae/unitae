@@ -72,6 +72,8 @@ export const ENTITY_FILES = [
   'pioneer-goals',
   'external-speakers',
   'territories',
+  'territory-kinds',
+  'territory-kind-allowed-roles',
   'territory-card-overlays',
   'territory-perimeter',
   'buildings',

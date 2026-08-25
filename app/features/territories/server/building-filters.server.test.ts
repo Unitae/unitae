@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { computeFilters } from './building-filters.server'
 
 describe('computeFilters', () => {
@@ -20,31 +20,31 @@ describe('computeFilters', () => {
   })
 
   it('applies type filter for Classical → residential entrances with homes', () => {
-    const result = computeFilters(new URLSearchParams({ type: TerritoryKind.Classical }))
+    const result = computeFilters(new URLSearchParams({ type: TerritoryKindKey.Classical }))
     expect(result).toMatchObject({
       entrances: { some: { kind: EntranceKind.Residential, homes: { gt: 0 } } },
     })
   })
 
   it('applies type filter for Phone → residential entrances with phones', () => {
-    const result = computeFilters(new URLSearchParams({ type: TerritoryKind.Phone }))
+    const result = computeFilters(new URLSearchParams({ type: TerritoryKindKey.Phone }))
     expect(result).toMatchObject({
       entrances: { some: { kind: EntranceKind.Residential, phones: { gt: 0 } } },
     })
   })
 
   it('applies type filter for Commerce → commerce entrances', () => {
-    const result = computeFilters(new URLSearchParams({ type: TerritoryKind.Commerces }))
+    const result = computeFilters(new URLSearchParams({ type: TerritoryKindKey.Commerces }))
     expect(result).toMatchObject({ entrances: { some: { kind: EntranceKind.Commerce } } })
   })
 
   it('applies type filter for Hotel → hotel entrances', () => {
-    const result = computeFilters(new URLSearchParams({ type: TerritoryKind.Hotel }))
+    const result = computeFilters(new URLSearchParams({ type: TerritoryKindKey.Hotel }))
     expect(result).toMatchObject({ entrances: { some: { kind: EntranceKind.Hotel } } })
   })
 
   it('applies type filter for Univ → campus entrances', () => {
-    const result = computeFilters(new URLSearchParams({ type: TerritoryKind.Univ }))
+    const result = computeFilters(new URLSearchParams({ type: TerritoryKindKey.Univ }))
     expect(result).toMatchObject({ entrances: { some: { kind: EntranceKind.Campus } } })
   })
 
@@ -118,7 +118,7 @@ describe('computeFilters', () => {
   })
 
   it('combines zip and type filters', () => {
-    const result = computeFilters(new URLSearchParams({ zip: '75001', type: TerritoryKind.Classical }))
+    const result = computeFilters(new URLSearchParams({ zip: '75001', type: TerritoryKindKey.Classical }))
     expect(result).toHaveProperty('zip')
     expect(result).toHaveProperty('entrances')
   })

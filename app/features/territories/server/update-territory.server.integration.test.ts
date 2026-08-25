@@ -2,7 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 import { ValidationError } from '~/shared/errors/app-error.server'
 
@@ -48,17 +48,17 @@ beforeAll(async () => {
 
   await withScope(primaryCongId, async tx => {
     const targetTerritory = await tx.territory.create({
-      data: { number: `UT-TGT-${ts}`, type: TerritoryKind.Classical, congregationId: primaryCongId },
+      data: { number: `UT-TGT-${ts}`, type: TerritoryKindKey.Classical, congregationId: primaryCongId },
     })
     targetTerritoryId = targetTerritory.id
 
     const sourceTerritory = await tx.territory.create({
-      data: { number: `UT-SRC-${ts}`, type: TerritoryKind.Classical, congregationId: primaryCongId },
+      data: { number: `UT-SRC-${ts}`, type: TerritoryKindKey.Classical, congregationId: primaryCongId },
     })
     sourceTerritoryId = sourceTerritory.id
 
     const phoneTerritory = await tx.territory.create({
-      data: { number: `UT-PHN-${ts}`, type: TerritoryKind.Phone, congregationId: primaryCongId },
+      data: { number: `UT-PHN-${ts}`, type: TerritoryKindKey.Phone, congregationId: primaryCongId },
     })
     phoneTerritoryId = phoneTerritory.id
 
@@ -90,7 +90,7 @@ beforeAll(async () => {
 
   await withScope(otherCongId, async tx => {
     const crossCong = await tx.territory.create({
-      data: { number: `UT-XC-${ts}`, type: TerritoryKind.Classical, congregationId: otherCongId },
+      data: { number: `UT-XC-${ts}`, type: TerritoryKindKey.Classical, congregationId: otherCongId },
     })
     crossCongTerritoryId = crossCong.id
 

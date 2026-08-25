@@ -2,7 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 
 const adapter = new PrismaPg({
@@ -43,11 +43,11 @@ beforeAll(async () => {
 
   await withScope(congId, async tx => {
     const classical = await tx.territory.create({
-      data: { number: `C-${ts}`, type: TerritoryKind.Classical, congregationId: congId },
+      data: { number: `C-${ts}`, type: TerritoryKindKey.Classical, congregationId: congId },
     })
     classicalTerritoryId = classical.id
     const commerce = await tx.territory.create({
-      data: { number: `S-${ts}`, type: TerritoryKind.Commerces, congregationId: congId },
+      data: { number: `S-${ts}`, type: TerritoryKindKey.Commerces, congregationId: congId },
     })
     commerceTerritoryId = commerce.id
 
@@ -96,7 +96,7 @@ beforeAll(async () => {
 
   await withScope(otherCongId, async tx => {
     const foreign = await tx.territory.create({
-      data: { number: `O-${ts}`, type: TerritoryKind.Classical, congregationId: otherCongId },
+      data: { number: `O-${ts}`, type: TerritoryKindKey.Classical, congregationId: otherCongId },
     })
     otherCongTerritoryId = foreign.id
     const b = await tx.building.create({
@@ -143,7 +143,7 @@ describe('getTerritoryContent', () => {
   it('aggregates residential homes for a Classical territory (nulls treated as 0)', async () => {
     const result = await withScope(congId, tx => getTerritoryContent(tx as never, classicalTerritoryId, congId))
     expect(result).not.toBeNull()
-    expect(result?.kind).toBe(TerritoryKind.Classical)
+    expect(result?.kind).toBe(TerritoryKindKey.Classical)
     expect(result?.entranceCount).toBe(3)
     expect(result?.homes).toBe(5)
     expect(result?.quantity).toBe(5)
@@ -153,7 +153,7 @@ describe('getTerritoryContent', () => {
     const result = await withScope(congId, tx => getTerritoryContent(tx as never, commerceTerritoryId, congId))
     expect(result?.entranceCount).toBe(3)
     expect(result?.quantity).toBe(3)
-    expect(result?.kind).toBe(TerritoryKind.Commerces)
+    expect(result?.kind).toBe(TerritoryKindKey.Commerces)
   })
 
   it('returns null when the territory does not exist', async () => {

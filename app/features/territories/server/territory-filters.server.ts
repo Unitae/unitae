@@ -1,5 +1,5 @@
 import type { Prisma } from '~/database/generated/client'
-import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 import { addressRegex, proximityPrefix } from './address-regex'
 
@@ -41,7 +41,7 @@ function applyTypeFilter(filters: Prisma.TerritoryWhereInput, params: URLSearchP
       ...filters,
       type: {
         ...(typeof filters.type !== 'string' ? filters.type : {}),
-        equals: params.get('type') as TerritoryKind,
+        equals: params.get('type') as TerritoryKindKey,
       },
     }
   }

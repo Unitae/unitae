@@ -1,6 +1,6 @@
 import type { AttributionCategory } from '~/features/territories/model/attribution-category'
 import { DEFAULT_ATTRIBUTION_KINDS, DEFAULT_TERRITORY_KINDS } from '~/features/territories/model/stats-filter-defaults'
-import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { parseLocalDate } from '~/shared/utils/date.server'
 import type { StatsFilterParams } from './stats-filter-params.type'
 import { getBeginingDateOfTheocraticYear, getEndDateOfTheocraticYear } from './theocratic-year.server'
@@ -22,7 +22,7 @@ export function parseStatsFilterParams(params: URLSearchParams, theocraticYear: 
   const territoryKind = rawKinds.includes('none')
     ? []
     : rawKinds.length > 0
-      ? (rawKinds as TerritoryKind[])
+      ? (rawKinds as TerritoryKindKey[])
       : DEFAULT_TERRITORY_KINDS
 
   let startDate = parseLocalDateOrDefault(params.get('startDate'), getBeginingDateOfTheocraticYear(theocraticYear))

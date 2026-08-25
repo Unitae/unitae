@@ -1,17 +1,17 @@
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import type { TerritoryContent } from '~/features/territories/server/territory-content.queries'
 
 const territoryContentSchema = z.object({
   id: z.number(),
   number: z.string(),
   kind: z.enum([
-    TerritoryKind.Classical,
-    TerritoryKind.Phone,
-    TerritoryKind.Commerces,
-    TerritoryKind.Hotel,
-    TerritoryKind.Univ,
+    TerritoryKindKey.Classical,
+    TerritoryKindKey.Phone,
+    TerritoryKindKey.Commerces,
+    TerritoryKindKey.Hotel,
+    TerritoryKindKey.Univ,
   ]),
   entranceCount: z.number().nonnegative(),
   quantity: z.number().nonnegative(),

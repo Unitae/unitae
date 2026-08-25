@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 
 vi.mock('~/i18n/paraglide/messages', () => ({
   dashboard_urgent_territory_overdue: ({ number }: { number: string }) => `Territory ${number} — overdue`,
@@ -38,7 +38,7 @@ function makeTerritory(id: number, number: string, status: 'on-time' | 'due-soon
     id,
     startDate: new Date(2026, 0, 1),
     lateDate,
-    territory: { id, number, type: TerritoryKind.Classical },
+    territory: { id, number, type: TerritoryKindKey.Classical },
     status,
   }
 }

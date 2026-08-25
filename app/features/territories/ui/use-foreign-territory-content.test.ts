@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import type { TerritoryContent } from '~/features/territories/server/territory-content.queries'
 
 let capturedEffect: (() => undefined | (() => void)) | null = null
@@ -24,7 +24,7 @@ const { useForeignTerritoryContent } = await import('./use-foreign-territory-con
 const okContent: TerritoryContent = {
   id: 7,
   number: 'T7',
-  kind: TerritoryKind.Classical,
+  kind: TerritoryKindKey.Classical,
   entranceCount: 3,
   quantity: 5,
   homes: 5,

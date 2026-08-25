@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { parseEntrancesInBboxParams } from './entrances-in-bbox-params'
 
 const wideBbox = '48.0,2.0,49.0,3.0'
@@ -37,13 +37,13 @@ describe('parseEntrancesInBboxParams — edit mode (default)', () => {
 })
 
 describe('parseEntrancesInBboxParams — create mode', () => {
-  it('parses a valid bbox + TerritoryKind', () => {
-    const params = new URLSearchParams({ bbox: wideBbox, mode: 'create', kind: TerritoryKind.Commerces })
+  it('parses a valid bbox + TerritoryKindKey', () => {
+    const params = new URLSearchParams({ bbox: wideBbox, mode: 'create', kind: TerritoryKindKey.Commerces })
     const result = parseEntrancesInBboxParams(params)
     expect(result).toEqual({
       mode: 'create',
       bbox: { swLat: 48, swLng: 2, neLat: 49, neLng: 3 },
-      kind: TerritoryKind.Commerces,
+      kind: TerritoryKindKey.Commerces,
     })
   })
 
@@ -58,12 +58,12 @@ describe('parseEntrancesInBboxParams — create mode', () => {
   })
 
   it('rejects an unknown mode', () => {
-    const params = new URLSearchParams({ bbox: wideBbox, mode: 'delete', kind: TerritoryKind.Commerces })
+    const params = new URLSearchParams({ bbox: wideBbox, mode: 'delete', kind: TerritoryKindKey.Commerces })
     expect(parseEntrancesInBboxParams(params)).toBeNull()
   })
 
   it('rejects an empty bbox even when mode + kind are valid', () => {
-    const params = new URLSearchParams({ mode: 'create', kind: TerritoryKind.Commerces })
+    const params = new URLSearchParams({ mode: 'create', kind: TerritoryKindKey.Commerces })
     expect(parseEntrancesInBboxParams(params)).toBeNull()
   })
 
@@ -71,14 +71,14 @@ describe('parseEntrancesInBboxParams — create mode', () => {
     const params = new URLSearchParams({
       bbox: wideBbox,
       mode: 'create',
-      kind: TerritoryKind.Hotel,
+      kind: TerritoryKindKey.Hotel,
       territoryId: '999',
     })
     const result = parseEntrancesInBboxParams(params)
     expect(result).toEqual({
       mode: 'create',
       bbox: { swLat: 48, swLng: 2, neLat: 49, neLng: 3 },
-      kind: TerritoryKind.Hotel,
+      kind: TerritoryKindKey.Hotel,
     })
   })
 })

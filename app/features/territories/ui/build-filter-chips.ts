@@ -1,7 +1,7 @@
 import { ShopKind } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 import type { FilterChip } from '~/shared/ui/filters/FilterChipBar'
 import { formatGroupName } from '~/shared/utils/format-group-name'
@@ -24,15 +24,15 @@ interface BuildChipsOptions {
 
 function typeChipValue(raw: string): string | null {
   switch (raw) {
-    case TerritoryKind.Classical:
+    case TerritoryKindKey.Classical:
       return m.territories_type_classical_capitalized()
-    case TerritoryKind.Commerces:
+    case TerritoryKindKey.Commerces:
       return m.territories_type_commerces()
-    case TerritoryKind.Phone:
+    case TerritoryKindKey.Phone:
       return m.territories_type_phone()
-    case TerritoryKind.Hotel:
+    case TerritoryKindKey.Hotel:
       return m.territories_type_hotel()
-    case TerritoryKind.Univ:
+    case TerritoryKindKey.Univ:
       return m.territories_type_university_singular()
     default:
       return null

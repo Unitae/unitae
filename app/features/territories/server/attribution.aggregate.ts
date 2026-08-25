@@ -1,6 +1,6 @@
 import type { Prisma } from '~/database/generated/client'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { getSetting } from '~/shared/domain/settings.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
@@ -47,14 +47,14 @@ function parsePositiveDays(value: string | null | undefined, fallback: number): 
 async function _resolveDurationDays(
   db: TransactionClient,
   attributionType: TerritoryAttributionKind,
-  territoryType: TerritoryKind,
+  territoryType: TerritoryKindKey,
   congregationId: number,
 ): Promise<number> {
   if (attributionType === TerritoryAttributionKind.Phone) {
     const setting = await getSetting(db, TerritorySettingKey.AttributionPhoneDurationDays, congregationId)
     return parsePositiveDays(setting, DEFAULT_DURATION_DAYS.phone)
   }
-  if (territoryType === TerritoryKind.Commerces) {
+  if (territoryType === TerritoryKindKey.Commerces) {
     const setting = await getSetting(db, TerritorySettingKey.AttributionCommerceDurationDays, congregationId)
     return parsePositiveDays(setting, DEFAULT_DURATION_DAYS.commerce)
   }

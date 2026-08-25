@@ -1,5 +1,5 @@
 import { Minus, Plus, RotateCcw, X } from 'lucide-react'
-import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
 import { computeTerritoryQuantity } from '~/features/territories/server/compute-territory-quantity'
 import * as m from '~/i18n/paraglide/messages'
@@ -7,7 +7,7 @@ import type { AggregatedEntrance } from '~/shared/types/entrance'
 import { Button } from '~/shared/ui/button'
 
 type Props = {
-  territoryType: TerritoryKind
+  territoryType: TerritoryKindKey
   initialEntrances: AggregatedEntrance[]
   pendingAdditions: ReadonlyMap<number, BboxEntrance>
   pendingRemovals: ReadonlyMap<number, BboxEntrance | AggregatedEntrance>

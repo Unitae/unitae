@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
 import EntrancePopup, { type EditPendingState } from '~/features/territories/ui/EntrancePopup'
 import { pinVariantFor } from '~/features/territories/ui/entrance-pin-variant'
@@ -14,7 +14,7 @@ export type { EntranceFocusRequest }
 type Props = {
   apiKey?: string
   territoryId: number
-  territoryType: TerritoryKind
+  territoryType: TerritoryKindKey
   ownEntrances: BboxEntrance[]
   pendingAdditions: ReadonlyMap<number, unknown>
   pendingRemovals: ReadonlyMap<number, unknown>

@@ -1,23 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 
 vi.mock('~/shared/domain/settings.server', () => ({
   getSetting: vi.fn(),
 }))
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 vi.mock('./campaign.queries', () => ({ getActiveCampaign: vi.fn() }))
+vi.mock('./attribution-eligibility.policy', () => ({ assertPublisherAllowedForKind: vi.fn() }))
 
 const mockDb = {
   // aggregate.assign runs _assertNoActiveOverlap (findMany) and the
   // occupied-territory guard for campaign assignments (findFirst).
   attribution: { create: vi.fn(), findMany: vi.fn(), findFirst: vi.fn() },
-  territory: { findUniqueOrThrow: vi.fn() },
+  // findFirst resolves the kind for the role gate; findUniqueOrThrow is the aggregate's own read.
+  territory: { findUniqueOrThrow: vi.fn(), findFirst: vi.fn() },
 }
 
 const { createAttribution } = await import('./create-attribution.server')
 const { getSetting } = await import('~/shared/domain/settings.server')
 const { getActiveCampaign } = await import('./campaign.queries')
+const { assertPublisherAllowedForKind } = await import('./attribution-eligibility.policy')
+const { ConflictError } = await import('~/shared/errors/app-error.server')
 
 const baseParams = {
   publisherId: 1,
@@ -44,7 +48,8 @@ beforeEach(() => {
   mockDb.attribution.create.mockResolvedValue({} as never)
   mockDb.attribution.findMany.mockResolvedValue([])
   mockDb.attribution.findFirst.mockResolvedValue(null as never)
-  mockDb.territory.findUniqueOrThrow.mockResolvedValue({ type: TerritoryKind.Classical } as never)
+  mockDb.territory.findUniqueOrThrow.mockResolvedValue({ type: TerritoryKindKey.Classical } as never)
+  mockDb.territory.findFirst.mockResolvedValue({ type: TerritoryKindKey.Classical } as never)
 })
 
 describe('createAttribution', () => {
@@ -92,7 +97,7 @@ describe('createAttribution', () => {
   })
 
   it('uses commerce duration (120 days) for commerce territory type', async () => {
-    mockDb.territory.findUniqueOrThrow.mockResolvedValue({ type: TerritoryKind.Commerces } as never)
+    mockDb.territory.findUniqueOrThrow.mockResolvedValue({ type: TerritoryKindKey.Commerces } as never)
 
     await createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Default })
 
@@ -107,5 +112,22 @@ describe('createAttribution', () => {
     const result = await createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Default })
 
     expect(result).toEqual(fake)
+  })
+
+  it('creates nothing when the publisher fails the role gate', async () => {
+    vi.mocked(assertPublisherAllowedForKind).mockRejectedValue(new ConflictError('publisher_role_not_allowed'))
+
+    await expect(
+      createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Default }),
+    ).rejects.toThrow('publisher_role_not_allowed')
+    expect(mockDb.attribution.create).not.toHaveBeenCalled()
+  })
+
+  it('creates the attribution when the gate passes', async () => {
+    mockDb.territory.findFirst.mockResolvedValue({ type: TerritoryKindKey.Phone } as never)
+
+    await createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Default })
+
+    expect(mockDb.attribution.create).toHaveBeenCalled()
   })
 })

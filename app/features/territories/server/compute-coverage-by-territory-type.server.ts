@@ -1,10 +1,10 @@
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 import type { StatsAttribution } from './stats-attribution.type'
 import type { TerritoryCountByType } from './territory-count-by-type.type'
 
 export interface CoverageByType {
-  kind: TerritoryKind
+  kind: TerritoryKindKey
   label: string
   coverage: number
   totalCoverage: number
@@ -12,11 +12,11 @@ export interface CoverageByType {
 
 function territoryKindLabels(): Record<string, string> {
   return {
-    [TerritoryKind.Classical]: m.territory_kind_label_classical(),
-    [TerritoryKind.Univ]: m.territory_kind_label_univ(),
-    [TerritoryKind.Commerces]: m.territory_kind_label_commerces(),
-    [TerritoryKind.Phone]: m.territory_kind_label_phone(),
-    [TerritoryKind.Hotel]: m.territory_kind_label_hotel(),
+    [TerritoryKindKey.Classical]: m.territory_kind_label_classical(),
+    [TerritoryKindKey.Univ]: m.territory_kind_label_univ(),
+    [TerritoryKindKey.Commerces]: m.territory_kind_label_commerces(),
+    [TerritoryKindKey.Phone]: m.territory_kind_label_phone(),
+    [TerritoryKindKey.Hotel]: m.territory_kind_label_hotel(),
   }
 }
 

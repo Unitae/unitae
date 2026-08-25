@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: { territory: { create: vi.fn() }, auditLog: { create: vi.fn() } },
@@ -15,12 +15,12 @@ beforeEach(() => {
 
 describe('createTerritory', () => {
   it('returns the created territory', async () => {
-    const fake = { id: 1, number: 'D001', type: TerritoryKind.Classical, congregationId: 1 }
+    const fake = { id: 1, number: 'D001', type: TerritoryKindKey.Classical, congregationId: 1 }
     vi.mocked(db.territory.create).mockResolvedValue(fake as never)
 
     const result = await createTerritory(db as never, {
       number: 'D001',
-      type: TerritoryKind.Classical,
+      type: TerritoryKindKey.Classical,
       entranceIds: [10, 20],
       congregationId: 1,
       actorId: 99,
@@ -34,7 +34,7 @@ describe('createTerritory', () => {
 
     await createTerritory(db as never, {
       number: 'H002',
-      type: TerritoryKind.Hotel,
+      type: TerritoryKindKey.Hotel,
       entranceIds: [3, 5, 7],
       congregationId: 2,
       actorId: 99,
@@ -43,7 +43,7 @@ describe('createTerritory', () => {
     expect(db.territory.create).toHaveBeenCalledWith({
       data: {
         number: 'H002',
-        type: TerritoryKind.Hotel,
+        type: TerritoryKindKey.Hotel,
         entrances: {
           connect: [{ id: 3 }, { id: 5 }, { id: 7 }],
         },

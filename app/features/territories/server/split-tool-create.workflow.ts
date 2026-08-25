@@ -1,4 +1,4 @@
-import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { createTerritoryFromSplit } from '~/features/territories/server/create-territory-from-split.server'
 import * as m from '~/i18n/paraglide/messages'
 import { AppError } from '~/shared/errors/app-error.server'
@@ -14,7 +14,7 @@ type LimitGuard = {
 }
 
 type WorkflowParams = {
-  type: TerritoryKind
+  type: TerritoryKindKey
   entranceIds: number[]
   congregationId: number
   actorId: number

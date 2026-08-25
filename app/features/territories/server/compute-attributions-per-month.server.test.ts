@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { computeAttributionsPerMonth } from './compute-attributions-per-month.server'
 import type { StatsAttribution } from './stats-attribution.type'
 
@@ -9,7 +9,7 @@ function makeAttribution(startDate: Date, id = 1): StatsAttribution {
     id,
     territoryId: 1,
     territoryNumber: 'T-1',
-    territoryType: TerritoryKind.Classical,
+    territoryType: TerritoryKindKey.Classical,
     type: TerritoryAttributionKind.Default,
     campaignId: null,
     campaignRestPeriodDays: null,

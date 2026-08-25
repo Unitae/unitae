@@ -1,12 +1,22 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
-import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
-import { territorySettingsSchema } from '~/features/settings/schemas/territory-settings.schema'
+import { KIND_ROLES_FIELD_PREFIX, territorySettingsSchema } from '~/features/settings/schemas/territory-settings.schema'
 import { loadTerritorySettings } from '~/features/settings/server/load-territory-settings.server'
-import { banoUrlWriteError, getAllowedZips, parseZips, serializeZips } from '~/features/territories/index.server'
+import { DurationInput } from '~/features/settings/ui/DurationInput'
+import { TerritoryKindSettingsList } from '~/features/settings/ui/TerritoryKindSettingsList'
+import { TerritoryKindKey } from '~/features/territories'
+import {
+  banoUrlWriteError,
+  getAllowedZips,
+  listTerritoryKindsWithRoles,
+  parseZips,
+  serializeZips,
+  setKindAllowedRoles,
+} from '~/features/territories/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { listRoles } from '~/shared/domain/roles.server'
 import { getSetting, setSetting } from '~/shared/domain/settings.server'
 import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
@@ -27,58 +37,6 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_territories_meta_title() }]
 }
 
-function formatDayHint(days: number): string {
-  if (days < 14) return `${days} jour${days > 1 ? 's' : ''}`
-  if (days < 28) {
-    const weeks = Math.round(days / 7)
-    return `= ${weeks} semaine${weeks > 1 ? 's' : ''}`
-  }
-  const months = Math.round(days / 30)
-  return `≈ ${months} mois`
-}
-
-function DurationInput({
-  field,
-  label,
-  hint,
-  defaultValue,
-  onChange,
-}: {
-  field: { id: string; name: string; errors?: string[] }
-  label: string
-  hint: string
-  defaultValue: number
-  onChange: () => void
-}) {
-  const [hint_, setHint] = useState(formatDayHint(defaultValue))
-
-  return (
-    <div className="space-y-2">
-      <Label htmlFor={field.id}>{label}</Label>
-      <div className="flex items-center gap-3">
-        <Input
-          id={field.id}
-          name={field.name}
-          type="number"
-          min={1}
-          max={365}
-          defaultValue={defaultValue}
-          className="w-28"
-          onChange={e => {
-            const v = Number(e.target.value)
-            if (v > 0) setHint(formatDayHint(v))
-            onChange()
-          }}
-        />
-        <span className="text-muted-foreground text-sm">{m.settings_territories_attribution_duration_days_unit()}</span>
-        <span className="text-muted-foreground text-xs">{hint_}</span>
-      </div>
-      {field.errors && <p className="text-destructive text-sm">{field.errors}</p>}
-      <p className="text-muted-foreground text-xs">{hint}</p>
-    </div>
-  )
-}
-
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
@@ -89,9 +47,11 @@ export function loader({ context }: Route.LoaderArgs) {
   }
 
   return withScopeFromContext(context, async db => {
-    const [zips, settings] = await Promise.all([
+    const [zips, settings, kinds, roles] = await Promise.all([
       getAllowedZips(db),
       loadTerritorySettings(db, currentUser.congregationId),
+      listTerritoryKindsWithRoles(db, currentUser.congregationId),
+      listRoles(db, currentUser.congregationId),
     ])
 
     // Attribution default duration — fall back to legacy months×30 for pre-v2 congregations
@@ -109,6 +69,9 @@ export function loader({ context }: Route.LoaderArgs) {
     }
 
     return {
+      kinds,
+      // Same ordering as the board-section pickers: built-ins first, then custom.
+      roles: roles.map(({ id, key, name, isBuiltIn }) => ({ id, key, name, isBuiltIn })),
       zips: serializeZips(zips),
       banoUrl: settings[TerritorySettingKey.BanoUrl] ?? '',
       prospectionValidity: Number(settings[TerritorySettingKey.ProspectionValidity] ?? '24'),
@@ -131,6 +94,8 @@ export default function TerritorySettingsPage({ loaderData, actionData }: Route.
     attributionDefaultDuration,
     attributionPhoneDuration,
     attributionCommerceDuration,
+    kinds,
+    roles,
   } = loaderData
 
   const [form, fields] = useForm({
@@ -248,19 +213,12 @@ export default function TerritorySettingsPage({ loaderData, actionData }: Route.
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <p className="font-medium text-sm">{m.settings_territories_types_title()}</p>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="phone-territory-active"
-                name="phone-territory-active"
-                value="on"
-                defaultChecked={phoneTypeActivated}
-              />
-              <Label htmlFor="phone-territory-active" className="font-normal">
-                {m.settings_territories_phone_type_before()}{' '}
-                <span className="font-bold text-primary">{m.settings_territories_phone_type_highlight()}</span>
-                {m.settings_territories_phone_type_after()}
-              </Label>
-            </div>
+            <TerritoryKindSettingsList
+              kinds={kinds}
+              roles={roles}
+              phoneTypeActivated={phoneTypeActivated}
+              onChange={markDirty}
+            />
 
             <Separator />
 
@@ -340,6 +298,16 @@ export async function action({ request, context }: Route.ActionArgs) {
       attributionCommerceDuration,
       currentUser.congregationId,
     )
+
+    for (const key of Object.values(TerritoryKindKey)) {
+      await setKindAllowedRoles(
+        db,
+        key,
+        submission.value[`${KIND_ROLES_FIELD_PREFIX}${key}`],
+        currentUser.congregationId,
+        currentUser.id,
+      )
+    }
 
     return redirect('/settings/territories')
   })

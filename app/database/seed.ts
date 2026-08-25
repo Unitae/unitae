@@ -1,6 +1,7 @@
 import 'dotenv/config'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { seedDefaultTemplates } from '../features/events/server/seed-templates.server'
+import { seedBuiltInTerritoryKinds } from '../features/territories/server/territory-kinds.server'
 import { seedBuiltInRoles, seedPermissions } from '../shared/domain/setup.server'
 import { PrismaClient } from './generated/client'
 
@@ -44,6 +45,7 @@ async function main() {
 
     await seedDefaultTemplates(prisma, defaultCongregation.id, seedLocale)
     await seedBuiltInRoles(prisma, defaultCongregation.id)
+    await seedBuiltInTerritoryKinds(prisma, defaultCongregation.id)
   }
 }
 

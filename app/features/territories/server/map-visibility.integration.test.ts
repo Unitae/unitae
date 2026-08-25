@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 
 const adapter = new PrismaPg({
@@ -103,15 +103,15 @@ beforeAll(async () => {
 
   await withScope(congId, async tx => {
     const own = await tx.territory.create({
-      data: { number: `T-own-${ts}`, type: TerritoryKind.Classical, congregationId: congId },
+      data: { number: `T-own-${ts}`, type: TerritoryKindKey.Classical, congregationId: congId },
     })
     ownClassicalId = own.id
     const other = await tx.territory.create({
-      data: { number: `T-other-${ts}`, type: TerritoryKind.Classical, congregationId: congId },
+      data: { number: `T-other-${ts}`, type: TerritoryKindKey.Classical, congregationId: congId },
     })
     otherClassicalId = other.id
     const phone = await tx.territory.create({
-      data: { number: `T-phone-${ts}`, type: TerritoryKind.Phone, congregationId: congId },
+      data: { number: `T-phone-${ts}`, type: TerritoryKindKey.Phone, congregationId: congId },
     })
     phoneTerritoryId = phone.id
 
@@ -250,7 +250,11 @@ afterAll(async () => {
   await testDb.$disconnect()
 })
 
-async function idsFor(territoryId: number, territoryType: TerritoryKind, phoneTypeActive: boolean): Promise<number[]> {
+async function idsFor(
+  territoryId: number,
+  territoryType: TerritoryKindKey,
+  phoneTypeActive: boolean,
+): Promise<number[]> {
   return withScope(congId, async tx => {
     const result = await getEntrancesInBbox(tx as never, congId, territoryId, territoryType, BBOX, { phoneTypeActive })
     return result.entrances.map(e => e.id).sort((a, b) => a - b)
@@ -259,7 +263,7 @@ async function idsFor(territoryId: number, territoryType: TerritoryKind, phoneTy
 
 describe('getEntrancesInBbox — map-visibility rule', () => {
   it('Classical territory with phone-toggle ON: only homes>0 or digicode; own bypass; commerce/homes=0/phones-only excluded', async () => {
-    const ids = await idsFor(ownClassicalId, TerritoryKind.Classical, true)
+    const ids = await idsFor(ownClassicalId, TerritoryKindKey.Classical, true)
     expect(ids).toContain(ownProspected)
     expect(ids).toContain(ownBypassNoProspection)
     expect(ids).toContain(availableHomesOnly)
@@ -272,14 +276,14 @@ describe('getEntrancesInBbox — map-visibility rule', () => {
   })
 
   it('Classical territory with phone-toggle OFF: also includes phones-only', async () => {
-    const ids = await idsFor(ownClassicalId, TerritoryKind.Classical, false)
+    const ids = await idsFor(ownClassicalId, TerritoryKindKey.Classical, false)
     expect(ids).toContain(availablePhonesOnly)
     expect(ids).not.toContain(availableHomesZero)
     expect(ids).not.toContain(unprospected)
   })
 
   it('Phone territory (toggle ON): only phones>0 or digicode; homes-only excluded', async () => {
-    const ids = await idsFor(phoneTerritoryId, TerritoryKind.Phone, true)
+    const ids = await idsFor(phoneTerritoryId, TerritoryKindKey.Phone, true)
     expect(ids).toContain(availablePhonesOnly)
     expect(ids).toContain(availableDigicode)
     expect(ids).not.toContain(availableHomesOnly)
@@ -289,7 +293,7 @@ describe('getEntrancesInBbox — map-visibility rule', () => {
 
   it('exposes buildingId on each returned entrance so the popup can link to the building view', async () => {
     const result = await withScope(congId, async tx =>
-      getEntrancesInBbox(tx as never, congId, ownClassicalId, TerritoryKind.Classical, BBOX, {
+      getEntrancesInBbox(tx as never, congId, ownClassicalId, TerritoryKindKey.Classical, BBOX, {
         phoneTypeActive: true,
       }),
     )
@@ -299,8 +303,8 @@ describe('getEntrancesInBbox — map-visibility rule', () => {
   })
 
   it('shows an entrance attached to multiple territories as own from each perspective (Classical and Phone)', async () => {
-    const classicalIds = await idsFor(ownClassicalId, TerritoryKind.Classical, true)
-    const phoneIds = await idsFor(phoneTerritoryId, TerritoryKind.Phone, true)
+    const classicalIds = await idsFor(ownClassicalId, TerritoryKindKey.Classical, true)
+    const phoneIds = await idsFor(phoneTerritoryId, TerritoryKindKey.Phone, true)
     // Content clause would exclude the dual entrance (homes=null, phones=null, no code, no prospection).
     // Only the own-visible OR branch can surface it.
     expect(classicalIds).toContain(dualAttribution)
@@ -309,7 +313,7 @@ describe('getEntrancesInBbox — map-visibility rule', () => {
 
   it('returns the first building id for entrances attached to multiple buildings', async () => {
     const result = await withScope(congId, async tx =>
-      getEntrancesInBbox(tx as never, congId, ownClassicalId, TerritoryKind.Classical, BBOX, {
+      getEntrancesInBbox(tx as never, congId, ownClassicalId, TerritoryKindKey.Classical, BBOX, {
         phoneTypeActive: true,
       }),
     )

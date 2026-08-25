@@ -12,7 +12,7 @@ import {
 import { Link, redirect } from 'react-router'
 import type { Attribution, Member } from '~/database/generated/client'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { findAdjacentTerritories, findTerritoryWithHistory } from '~/features/territories/server/attributions.server'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import { entranceContentLabel } from '~/features/territories/server/entrance-content-label'
@@ -83,11 +83,11 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
 
 function getTerritoryTypeLabel(type: string): string {
   const labels: Record<string, () => string> = {
-    [TerritoryKind.Classical]: () => m.territories_type_classical_capitalized(),
-    [TerritoryKind.Commerces]: () => m.territories_type_commerces(),
-    [TerritoryKind.Hotel]: () => m.territories_type_hotel(),
-    [TerritoryKind.Phone]: () => m.territories_type_phone_singular(),
-    [TerritoryKind.Univ]: () => m.territories_type_university_singular(),
+    [TerritoryKindKey.Classical]: () => m.territories_type_classical_capitalized(),
+    [TerritoryKindKey.Commerces]: () => m.territories_type_commerces(),
+    [TerritoryKindKey.Hotel]: () => m.territories_type_hotel(),
+    [TerritoryKindKey.Phone]: () => m.territories_type_phone_singular(),
+    [TerritoryKindKey.Univ]: () => m.territories_type_university_singular(),
   }
   return labels[type]?.() ?? type
 }
@@ -355,7 +355,7 @@ export default function ViewTerritoryPage({ loaderData }: Route.ComponentProps) 
                 <dt className="text-muted-foreground">{m.territories_view_type_label()}</dt>
                 <dd className="font-medium">{getTerritoryTypeLabel(territory.type)}</dd>
                 <dt className="text-muted-foreground">
-                  {territory.type === TerritoryKind.Phone
+                  {territory.type === TerritoryKindKey.Phone
                     ? m.territories_view_phones_count_label()
                     : m.territories_view_homes_count_label()}
                 </dt>

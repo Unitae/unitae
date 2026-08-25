@@ -172,6 +172,12 @@ describe('ENTITY_FILES', () => {
     expect(ENTITY_FILES.indexOf('roles')).toBeLessThan(visibilityIndex)
   })
 
+  it('has territory-kinds and roles before territory-kind-allowed-roles (dependency order)', () => {
+    const allowedIndex = ENTITY_FILES.indexOf('territory-kind-allowed-roles')
+    expect(ENTITY_FILES.indexOf('territory-kinds')).toBeLessThan(allowedIndex)
+    expect(ENTITY_FILES.indexOf('roles')).toBeLessThan(allowedIndex)
+  })
+
   it('has programme-template-parts before programme-template-part-allowed-roles (dependency order)', () => {
     expect(ENTITY_FILES.indexOf('programme-template-parts')).toBeLessThan(
       ENTITY_FILES.indexOf('programme-template-part-allowed-roles'),

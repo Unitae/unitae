@@ -1,21 +1,21 @@
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Label } from '~/shared/ui/label'
 import { Textarea } from '~/shared/ui/textarea'
 
 type TerritoryInfoCardProps = {
-  territory: { number: string; type: TerritoryKind; notes: string | null }
+  territory: { number: string; type: TerritoryKindKey; notes: string | null }
   projectedContent: string
   onNotesChange: () => void
 }
 
-function typeLabel(type: TerritoryKind): string {
-  if (type === TerritoryKind.Classical) return m.territories_type_classical_capitalized()
-  if (type === TerritoryKind.Commerces) return m.territories_type_commerces()
-  if (type === TerritoryKind.Hotel) return m.territories_type_hotel()
-  if (type === TerritoryKind.Phone) return m.territories_type_phone_singular()
-  if (type === TerritoryKind.Univ) return m.territories_type_university_singular()
+function typeLabel(type: TerritoryKindKey): string {
+  if (type === TerritoryKindKey.Classical) return m.territories_type_classical_capitalized()
+  if (type === TerritoryKindKey.Commerces) return m.territories_type_commerces()
+  if (type === TerritoryKindKey.Hotel) return m.territories_type_hotel()
+  if (type === TerritoryKindKey.Phone) return m.territories_type_phone_singular()
+  if (type === TerritoryKindKey.Univ) return m.territories_type_university_singular()
   return ''
 }
 

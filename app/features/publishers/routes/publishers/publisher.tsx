@@ -9,7 +9,7 @@ import { getPublisherById } from '~/features/publishers/server/publishers.server
 import EmergencyInfoView, { type EmergencyInfoViewData } from '~/features/publishers/ui/EmergencyInfoView'
 import { PioneerActivitySection, pioneerProfileLabel } from '~/features/publishers/ui/PioneerActivitySection'
 import { PublisherEngagementCards } from '~/features/publishers/ui/PublisherEngagementCards'
-import { AttributionStatus, TerritoryKind } from '~/features/territories'
+import { AttributionStatus, TerritoryKindKey } from '~/features/territories'
 import { findActiveAttributionsForPublisher } from '~/features/territories/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -461,13 +461,13 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
                         )}
                       </TableCell>
                       <TableCell className="max-sm:hidden">
-                        {attribution.territory.type === TerritoryKind.Classical &&
+                        {attribution.territory.type === TerritoryKindKey.Classical &&
                           m.publishers_view_territory_classical()}
-                        {attribution.territory.type === TerritoryKind.Commerces &&
+                        {attribution.territory.type === TerritoryKindKey.Commerces &&
                           m.publishers_view_territory_commerces()}
-                        {attribution.territory.type === TerritoryKind.Phone && m.publishers_view_territory_phone()}
-                        {attribution.territory.type === TerritoryKind.Hotel && m.publishers_view_territory_hotel()}
-                        {attribution.territory.type === TerritoryKind.Univ && m.publishers_view_territory_univ()}
+                        {attribution.territory.type === TerritoryKindKey.Phone && m.publishers_view_territory_phone()}
+                        {attribution.territory.type === TerritoryKindKey.Hotel && m.publishers_view_territory_hotel()}
+                        {attribution.territory.type === TerritoryKindKey.Univ && m.publishers_view_territory_univ()}
                       </TableCell>
                       <TableCell className="text-center">{attribution.startDate.toLocaleDateString('fr-FR')}</TableCell>
                       <TableCell className="text-center">

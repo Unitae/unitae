@@ -1,4 +1,4 @@
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { countAvailableEntrances } from '~/features/territories/server/buildings.server'
 import { computeNextTerritoryNumber } from '~/features/territories/server/compute-next-territory-number.server'
 import { getCongregationCenter } from '~/features/territories/server/get-congregation-center.server'
@@ -33,9 +33,9 @@ export function loader({ context }: Route.LoaderArgs) {
     const phoneTypeActive =
       (await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)) ?? false
     const [suggestedNumber, fallbackCenter, counts] = await Promise.all([
-      computeNextTerritoryNumber(db, congregationId, TerritoryKind.Univ),
+      computeNextTerritoryNumber(db, congregationId, TerritoryKindKey.Univ),
       getCongregationCenter(db, congregationId),
-      countAvailableEntrances(db, congregationId, TerritoryKind.Univ, { phoneTypeActive }),
+      countAvailableEntrances(db, congregationId, TerritoryKindKey.Univ, { phoneTypeActive }),
     ])
     return { apiKey, suggestedNumber, fallbackCenter, counts }
   })
@@ -46,7 +46,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
   return (
     <BuildingEntranceMapCreator
       apiKey={apiKey}
-      kind={TerritoryKind.Univ}
+      kind={TerritoryKindKey.Univ}
       suggestedNumber={suggestedNumber}
       fallbackCenter={fallbackCenter ?? undefined}
       totalAvailable={counts.total}

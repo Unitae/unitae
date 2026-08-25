@@ -1,7 +1,7 @@
 import { ExternalLink, Send } from 'lucide-react'
 import React from 'react'
 import { Link, redirect, useSearchParams } from 'react-router'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { getZips } from '~/features/territories/server/buildings.server'
 import { getActiveCampaign } from '~/features/territories/server/campaign.queries'
 import { classifySearch } from '~/features/territories/server/search-intent.server'
@@ -29,11 +29,11 @@ import { formatDistance } from '~/shared/utils/distance'
 import { sortFromUrl } from '~/shared/utils/pagination.server'
 
 const territoryTypeLabels: Record<string, string> = {
-  [TerritoryKind.Classical]: m.territories_type_classical(),
-  [TerritoryKind.Commerces]: m.territories_type_commerces(),
-  [TerritoryKind.Phone]: m.territories_type_phone(),
-  [TerritoryKind.Hotel]: m.territories_type_hotel(),
-  [TerritoryKind.Univ]: m.territories_type_university(),
+  [TerritoryKindKey.Classical]: m.territories_type_classical(),
+  [TerritoryKindKey.Commerces]: m.territories_type_commerces(),
+  [TerritoryKindKey.Phone]: m.territories_type_phone(),
+  [TerritoryKindKey.Hotel]: m.territories_type_hotel(),
+  [TerritoryKindKey.Univ]: m.territories_type_university(),
 }
 
 import type { Route } from './+types/territories'

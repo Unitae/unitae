@@ -1,4 +1,4 @@
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
 
 export type DraftTotals = {
@@ -12,13 +12,13 @@ export type DraftTotals = {
  * so the number the user sees while drafting matches what the created territory
  * will display afterwards.
  */
-export function computeDraftTotals(kind: TerritoryKind, entrances: readonly BboxEntrance[]): DraftTotals {
+export function computeDraftTotals(kind: TerritoryKindKey, entrances: readonly BboxEntrance[]): DraftTotals {
   const count = entrances.length
 
-  if (kind === TerritoryKind.Phone) {
+  if (kind === TerritoryKindKey.Phone) {
     return { metric: 'phones', primary: entrances.reduce((s, e) => s + e.phones, 0), count }
   }
-  if (kind === TerritoryKind.Classical || kind === TerritoryKind.Univ) {
+  if (kind === TerritoryKindKey.Classical || kind === TerritoryKindKey.Univ) {
     return { metric: 'homes', primary: entrances.reduce((s, e) => s + (e.homes || e.phones), 0), count }
   }
   return { metric: 'count', primary: count, count }

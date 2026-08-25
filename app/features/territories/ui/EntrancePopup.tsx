@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { useState } from 'react'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
-import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
 import { entranceContentLabel } from '~/features/territories/server/entrance-content-label'
 import { EntranceImpactBlock } from '~/features/territories/ui/EntranceImpactBlock'
@@ -25,7 +25,7 @@ export type EntrancePendingState = EditPendingState | CreatePendingState
 
 type Props = {
   entrance: BboxEntrance
-  territoryType: TerritoryKind
+  territoryType: TerritoryKindKey
   pending: EntrancePendingState
   onAct: () => void
 }
@@ -94,7 +94,7 @@ function PopupFrame({ accent, children }: { accent: string; children: ReactNode 
   )
 }
 
-function PopupHeader({ entrance, territoryType }: { entrance: BboxEntrance; territoryType: TerritoryKind }) {
+function PopupHeader({ entrance, territoryType }: { entrance: BboxEntrance; territoryType: TerritoryKindKey }) {
   const badges = accessBadges(entrance)
   const prospectedOn = formatProspectionDate(entrance.prospectionDate)
   return (

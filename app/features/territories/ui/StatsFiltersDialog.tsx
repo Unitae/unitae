@@ -3,7 +3,7 @@ import { Form, useSearchParams } from 'react-router'
 import type { PublisherGroup } from '~/database/generated/client'
 import { AttributionCategory } from '~/features/territories/model/attribution-category'
 import { DEFAULT_ATTRIBUTION_KINDS } from '~/features/territories/model/stats-filter-defaults'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -39,10 +39,10 @@ export default function StatsFiltersDialog({
   // URL parser accepts `?kind=a&kind=b` (chip bar renders one per value); the
   // select stays single-value to keep the form simple. `kind=none` is the
   // explicit "Tous types" placeholder — distinct from the empty-URL default
-  // which resolves to `[TerritoryKind.Classical]` on the server.
+  // which resolves to `[TerritoryKindKey.Classical]` on the server.
   const rawKinds = params.getAll('kind')
   const isAllTypes = rawKinds.includes('none')
-  const selectKind = rawKinds.find(k => k !== 'none') ?? TerritoryKind.Classical
+  const selectKind = rawKinds.find(k => k !== 'none') ?? TerritoryKindKey.Classical
 
   const attributionKinds =
     params.getAll('attributionKind').length > 0 ? params.getAll('attributionKind') : DEFAULT_ATTRIBUTION_KINDS
@@ -75,13 +75,13 @@ export default function StatsFiltersDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">{m.stats_filter_territory_all_types()}</SelectItem>
-                  <SelectItem value={TerritoryKind.Classical}>{m.stats_filter_territory_door()}</SelectItem>
+                  <SelectItem value={TerritoryKindKey.Classical}>{m.stats_filter_territory_door()}</SelectItem>
                   {phoneTypeActive && (
-                    <SelectItem value={TerritoryKind.Phone}>{m.stats_filter_territory_phone()}</SelectItem>
+                    <SelectItem value={TerritoryKindKey.Phone}>{m.stats_filter_territory_phone()}</SelectItem>
                   )}
-                  <SelectItem value={TerritoryKind.Commerces}>{m.stats_filter_territory_commerce()}</SelectItem>
-                  <SelectItem value={TerritoryKind.Hotel}>{m.stats_filter_territory_hotel()}</SelectItem>
-                  <SelectItem value={TerritoryKind.Univ}>{m.stats_filter_territory_university()}</SelectItem>
+                  <SelectItem value={TerritoryKindKey.Commerces}>{m.stats_filter_territory_commerce()}</SelectItem>
+                  <SelectItem value={TerritoryKindKey.Hotel}>{m.stats_filter_territory_hotel()}</SelectItem>
+                  <SelectItem value={TerritoryKindKey.Univ}>{m.stats_filter_territory_university()}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

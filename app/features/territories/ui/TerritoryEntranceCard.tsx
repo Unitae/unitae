@@ -2,7 +2,7 @@ import { DoorOpen, Phone, Store } from 'lucide-react'
 import { formatAccessSequence } from '~/features/territories/model/access-format'
 import { shopKindLabels as getShopKindLabels, type ShopKind } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 import type { Entrance } from '~/shared/types/entrance'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -20,7 +20,7 @@ export function TerritoryEntranceCard({ entrance, territoryType, showPhone = fal
   const numbers = entrance.buildings.map(b => b.number).join(', ')
   const address = `${numbers} ${firstBuilding.street}, ${firstBuilding.zip}`
 
-  if (territoryType === TerritoryKind.Commerces) {
+  if (territoryType === TerritoryKindKey.Commerces) {
     return <CommerceCard address={address} entrance={entrance} />
   }
 
@@ -43,7 +43,7 @@ function ResidentialCard({
     (entrance.accesses ?? []).some(a => a.type === TerritoryAccess.Code) || entrance.access === TerritoryAccess.Code
   const phones = entrance.phones ?? 0
   const homes = entrance.homes ?? 0
-  const isPhoneTerritory = territoryType === TerritoryKind.Phone
+  const isPhoneTerritory = territoryType === TerritoryKindKey.Phone
 
   return (
     <Card>

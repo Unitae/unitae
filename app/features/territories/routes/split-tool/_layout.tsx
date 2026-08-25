@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useSearchParams } from 'react-router'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { countAvailableEntrances, getZips } from '~/features/territories/server/buildings.server'
 import { buildTerritoryFilterChips } from '~/features/territories/ui/build-filter-chips'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
@@ -34,11 +34,11 @@ export function loader({ context }: Route.LoaderArgs) {
       (await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)) ?? false
     const ctx = { phoneTypeActive }
     const [classical, phones, commerce, campus, hotel, zips] = await Promise.all([
-      countAvailableEntrances(db, congregationId, TerritoryKind.Classical, ctx),
-      countAvailableEntrances(db, congregationId, TerritoryKind.Phone, ctx),
-      countAvailableEntrances(db, congregationId, TerritoryKind.Commerces, ctx),
-      countAvailableEntrances(db, congregationId, TerritoryKind.Univ, ctx),
-      countAvailableEntrances(db, congregationId, TerritoryKind.Hotel, ctx),
+      countAvailableEntrances(db, congregationId, TerritoryKindKey.Classical, ctx),
+      countAvailableEntrances(db, congregationId, TerritoryKindKey.Phone, ctx),
+      countAvailableEntrances(db, congregationId, TerritoryKindKey.Commerces, ctx),
+      countAvailableEntrances(db, congregationId, TerritoryKindKey.Univ, ctx),
+      countAvailableEntrances(db, congregationId, TerritoryKindKey.Hotel, ctx),
       getZips(db, congregationId),
     ])
 

@@ -1,7 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -42,29 +42,29 @@ beforeAll(async () => {
 
   await withScope(primaryCongId, async tx => {
     const t01 = await tx.territory.create({
-      data: { number: 'T01', type: TerritoryKind.Classical, congregationId: primaryCongId },
+      data: { number: 'T01', type: TerritoryKindKey.Classical, congregationId: primaryCongId },
     })
     t01Id = t01.id
     const t02 = await tx.territory.create({
-      data: { number: 'T02', type: TerritoryKind.Classical, congregationId: primaryCongId },
+      data: { number: 'T02', type: TerritoryKindKey.Classical, congregationId: primaryCongId },
     })
     t02Id = t02.id
     const t03 = await tx.territory.create({
-      data: { number: 'T03', type: TerritoryKind.Classical, congregationId: primaryCongId },
+      data: { number: 'T03', type: TerritoryKindKey.Classical, congregationId: primaryCongId },
     })
     t03Id = t03.id
 
     // Different type — must be excluded by the type filter even though the number "P01"
     // sorts before "T01" lexicographically.
     await tx.territory.create({
-      data: { number: 'P01', type: TerritoryKind.Phone, congregationId: primaryCongId },
+      data: { number: 'P01', type: TerritoryKindKey.Phone, congregationId: primaryCongId },
     })
   })
 
   // Cross-congregation territory of the same number+type — must be excluded by tenant isolation.
   await withScope(otherCongId, async tx => {
     const crossT02 = await tx.territory.create({
-      data: { number: 'T02', type: TerritoryKind.Classical, congregationId: otherCongId },
+      data: { number: 'T02', type: TerritoryKindKey.Classical, congregationId: otherCongId },
     })
     crossCongT02Id = crossT02.id
   })
@@ -84,7 +84,7 @@ afterAll(async () => {
 describe('findAdjacentTerritories (integration)', () => {
   it('returns prev=T01 and next=T03 for the middle territory T02', async () => {
     const result = await withScope(primaryCongId, tx =>
-      findAdjacentTerritories(tx, 'T02', TerritoryKind.Classical, primaryCongId),
+      findAdjacentTerritories(tx, 'T02', TerritoryKindKey.Classical, primaryCongId),
     )
     expect(result.prev).toEqual({ id: t01Id, number: 'T01' })
     expect(result.next).toEqual({ id: t03Id, number: 'T03' })
@@ -92,7 +92,7 @@ describe('findAdjacentTerritories (integration)', () => {
 
   it('returns prev=null and next=T02 for the first territory T01', async () => {
     const result = await withScope(primaryCongId, tx =>
-      findAdjacentTerritories(tx, 'T01', TerritoryKind.Classical, primaryCongId),
+      findAdjacentTerritories(tx, 'T01', TerritoryKindKey.Classical, primaryCongId),
     )
     expect(result.prev).toBeNull()
     expect(result.next).toEqual({ id: t02Id, number: 'T02' })
@@ -100,7 +100,7 @@ describe('findAdjacentTerritories (integration)', () => {
 
   it('returns prev=T02 and next=null for the last territory T03', async () => {
     const result = await withScope(primaryCongId, tx =>
-      findAdjacentTerritories(tx, 'T03', TerritoryKind.Classical, primaryCongId),
+      findAdjacentTerritories(tx, 'T03', TerritoryKindKey.Classical, primaryCongId),
     )
     expect(result.prev).toEqual({ id: t02Id, number: 'T02' })
     expect(result.next).toBeNull()
@@ -108,7 +108,7 @@ describe('findAdjacentTerritories (integration)', () => {
 
   it('does not cross territory types (P01 has no Classical neighbours)', async () => {
     const result = await withScope(primaryCongId, tx =>
-      findAdjacentTerritories(tx, 'P01', TerritoryKind.Phone, primaryCongId),
+      findAdjacentTerritories(tx, 'P01', TerritoryKindKey.Phone, primaryCongId),
     )
     expect(result.prev).toBeNull()
     expect(result.next).toBeNull()
@@ -116,7 +116,7 @@ describe('findAdjacentTerritories (integration)', () => {
 
   it('does not leak across congregations (other-cong T02 is invisible)', async () => {
     const result = await withScope(primaryCongId, tx =>
-      findAdjacentTerritories(tx, 'T02', TerritoryKind.Classical, primaryCongId),
+      findAdjacentTerritories(tx, 'T02', TerritoryKindKey.Classical, primaryCongId),
     )
     // Sanity: result.prev/next must reference primary's T01/T03, not the cross-cong T02.
     expect(result.prev?.id).not.toBe(crossCongT02Id)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { computeFilters } from './territory-filters.server'
 
 describe('computeFilters', () => {
@@ -29,8 +29,8 @@ describe('computeFilters', () => {
   })
 
   it('applies type filter', () => {
-    const result = computeFilters(new URLSearchParams({ type: TerritoryKind.Classical }))
-    expect(result).toMatchObject({ type: { equals: TerritoryKind.Classical } })
+    const result = computeFilters(new URLSearchParams({ type: TerritoryKindKey.Classical }))
+    expect(result).toMatchObject({ type: { equals: TerritoryKindKey.Classical } })
   })
 
   it('ignores type filter when type is "none"', () => {

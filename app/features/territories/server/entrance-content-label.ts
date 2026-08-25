@@ -1,5 +1,5 @@
 import { EntranceKind, entranceKindLabels } from '~/features/territories/model/entrance-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 
 type EntranceLike = {
@@ -14,7 +14,7 @@ function capitalize(value: string): string {
   return value.charAt(0).toLocaleUpperCase() + value.slice(1)
 }
 
-export function entranceContentLabel(territoryType: TerritoryKind, entrance: EntranceLike): string {
+export function entranceContentLabel(territoryType: TerritoryKindKey, entrance: EntranceLike): string {
   const labels = entranceKindLabels()
 
   if (entrance.kind === EntranceKind.Commerce) {
@@ -27,7 +27,7 @@ export function entranceContentLabel(territoryType: TerritoryKind, entrance: Ent
   if (entrance.kind === EntranceKind.Laundromat) return labels[EntranceKind.Laundromat]
 
   // Residential entrance: pick the count that matches the territory's purpose.
-  if (territoryType === TerritoryKind.Phone) {
+  if (territoryType === TerritoryKindKey.Phone) {
     return m.territories_content_phones({ count: entrance.phones ?? 0 })
   }
   const homes = entrance.homes ?? entrance.phones ?? 0

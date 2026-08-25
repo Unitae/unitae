@@ -23,11 +23,13 @@ export async function seedPermissions(db: any) {
 
 // biome-ignore lint/suspicious/noExplicitAny: accepts both PrismaClient and scoped transaction client
 type SeedTemplatesFn = (db: any, congregationId: number, locale: Locale) => Promise<void>
+// biome-ignore lint/suspicious/noExplicitAny: accepts both PrismaClient and scoped transaction client
+type SeedTerritoryKindsFn = (db: any, congregationId: number) => Promise<void>
 
 /**
- * Seed the default programme templates and roles for a newly created
- * congregation. Pass `seedTemplates` to inject the templates seeder from the
- * events feature — the caller must supply it to avoid a domain→feature
+ * Seed the default programme templates, roles and territory kinds for a newly
+ * created congregation. Pass `seedTemplates` / `seedTerritoryKinds` to inject the
+ * feature-owned seeders — the caller must supply them to avoid a domain→feature
  * dependency inversion.
  */
 export async function seedCongregationDefaults(
@@ -36,8 +38,10 @@ export async function seedCongregationDefaults(
   congregationId: number,
   locale: Locale,
   seedTemplates: SeedTemplatesFn = async () => {},
+  seedTerritoryKinds: SeedTerritoryKindsFn = async () => {},
 ) {
   await seedTemplates(db, congregationId, locale)
+  await seedTerritoryKinds(db, congregationId)
 
   await seedBuiltInRoles(db, congregationId)
 }

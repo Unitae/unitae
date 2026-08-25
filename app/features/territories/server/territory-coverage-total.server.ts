@@ -1,5 +1,5 @@
 import type { AttributionCategory } from '~/features/territories/model/attribution-category'
-import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { buildAttributionCategoryWhere } from './attribution-category-where.server'
 import { buildAttributionDateOverlapWhere } from './attribution-date-overlap.server'
@@ -7,7 +7,7 @@ import { buildAttributionDateOverlapWhere } from './attribution-date-overlap.ser
 export async function computeTerritoryCoverageTotal(
   db: TransactionClient,
   congregationId: number,
-  territoryKind: TerritoryKind[],
+  territoryKind: TerritoryKindKey[],
   attributionKind: AttributionCategory[],
   startDate: Date,
   endDate: Date,

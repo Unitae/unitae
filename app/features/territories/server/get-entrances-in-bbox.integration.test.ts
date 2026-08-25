@@ -2,7 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -52,12 +52,12 @@ beforeAll(async () => {
 
   await withScope(primaryCongId, async tx => {
     const primaryTerritory = await tx.territory.create({
-      data: { number: `T-PRIM-${ts}`, type: TerritoryKind.Classical, congregationId: primaryCongId },
+      data: { number: `T-PRIM-${ts}`, type: TerritoryKindKey.Classical, congregationId: primaryCongId },
     })
     primaryTerritoryId = primaryTerritory.id
 
     const otherTerritory = await tx.territory.create({
-      data: { number: `T-OTHR-${ts}`, type: TerritoryKind.Classical, congregationId: primaryCongId },
+      data: { number: `T-OTHR-${ts}`, type: TerritoryKindKey.Classical, congregationId: primaryCongId },
     })
     otherTerritoryId = otherTerritory.id
 
@@ -154,7 +154,7 @@ beforeAll(async () => {
     entranceWrongKindId = entranceShop.id
 
     const commerceTerritory = await tx.territory.create({
-      data: { number: `T-COM-${ts}`, type: TerritoryKind.Commerces, congregationId: primaryCongId },
+      data: { number: `T-COM-${ts}`, type: TerritoryKindKey.Commerces, congregationId: primaryCongId },
     })
     commerceTerritoryId = commerceTerritory.id
 
@@ -224,7 +224,7 @@ beforeAll(async () => {
 
   await withScope(otherCongId, async tx => {
     const crossCongTerritory = await tx.territory.create({
-      data: { number: `T-XC-${ts}`, type: TerritoryKind.Classical, congregationId: otherCongId },
+      data: { number: `T-XC-${ts}`, type: TerritoryKindKey.Classical, congregationId: otherCongId },
     })
     crossCongTerritoryId = crossCongTerritory.id
 
@@ -273,7 +273,7 @@ describe('getEntrancesInBbox (integration)', () => {
 
   it('classifies entrances by status relative to the requested territory', async () => {
     const result = await withScope(primaryCongId, tx =>
-      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKind.Classical, wideBbox, {
+      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKindKey.Classical, wideBbox, {
         phoneTypeActive: true,
       }),
     )
@@ -292,7 +292,7 @@ describe('getEntrancesInBbox (integration)', () => {
 
   it('filters out entrances whose kind does not match the territory type', async () => {
     const result = await withScope(primaryCongId, tx =>
-      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKind.Classical, wideBbox, {
+      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKindKey.Classical, wideBbox, {
         phoneTypeActive: true,
       }),
     )
@@ -302,7 +302,7 @@ describe('getEntrancesInBbox (integration)', () => {
   it('only returns entrances whose centroid falls within the bbox', async () => {
     const tightBbox = { swLat: 48.849, swLng: 2.349, neLat: 48.851, neLng: 2.351 }
     const result = await withScope(primaryCongId, tx =>
-      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKind.Classical, tightBbox, {
+      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKindKey.Classical, tightBbox, {
         phoneTypeActive: true,
       }),
     )
@@ -311,7 +311,7 @@ describe('getEntrancesInBbox (integration)', () => {
 
   it('does not leak entrances from another congregation', async () => {
     const result = await withScope(primaryCongId, tx =>
-      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKind.Classical, wideBbox, {
+      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKindKey.Classical, wideBbox, {
         phoneTypeActive: true,
       }),
     )
@@ -324,7 +324,7 @@ describe('getEntrancesInBbox (integration)', () => {
         tx,
         primaryCongId,
         primaryTerritoryId,
-        TerritoryKind.Classical,
+        TerritoryKindKey.Classical,
         wideBbox,
         {
           phoneTypeActive: true,
@@ -339,7 +339,7 @@ describe('getEntrancesInBbox (integration)', () => {
 
   it('returns total=null when not truncated', async () => {
     const result = await withScope(primaryCongId, tx =>
-      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKind.Classical, wideBbox, {
+      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKindKey.Classical, wideBbox, {
         phoneTypeActive: true,
       }),
     )
@@ -350,7 +350,7 @@ describe('getEntrancesInBbox (integration)', () => {
   it('returns an empty array when no entrance is in the bbox', async () => {
     const emptyBbox = { swLat: 0, swLng: 0, neLat: 1, neLng: 1 }
     const result = await withScope(primaryCongId, tx =>
-      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKind.Classical, emptyBbox, {
+      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKindKey.Classical, emptyBbox, {
         phoneTypeActive: true,
       }),
     )
@@ -364,7 +364,7 @@ describe('getAvailableEntrancesInBbox (integration)', () => {
 
   it('returns commerce entrances not yet attached to any Commerces territory', async () => {
     const result = await withScope(primaryCongId, tx =>
-      getAvailableEntrancesInBbox(tx, primaryCongId, TerritoryKind.Commerces, wideBbox, {
+      getAvailableEntrancesInBbox(tx, primaryCongId, TerritoryKindKey.Commerces, wideBbox, {
         phoneTypeActive: true,
       }),
     )
@@ -375,7 +375,7 @@ describe('getAvailableEntrancesInBbox (integration)', () => {
 
   it('excludes commerce entrances already attached to a Commerces territory', async () => {
     const result = await withScope(primaryCongId, tx =>
-      getAvailableEntrancesInBbox(tx, primaryCongId, TerritoryKind.Commerces, wideBbox, {
+      getAvailableEntrancesInBbox(tx, primaryCongId, TerritoryKindKey.Commerces, wideBbox, {
         phoneTypeActive: true,
       }),
     )
@@ -386,7 +386,7 @@ describe('getAvailableEntrancesInBbox (integration)', () => {
 
   it('excludes commerce entrances whose building lacks a prospection date', async () => {
     const result = await withScope(primaryCongId, tx =>
-      getAvailableEntrancesInBbox(tx, primaryCongId, TerritoryKind.Commerces, wideBbox, {
+      getAvailableEntrancesInBbox(tx, primaryCongId, TerritoryKindKey.Commerces, wideBbox, {
         phoneTypeActive: true,
       }),
     )
@@ -397,7 +397,7 @@ describe('getAvailableEntrancesInBbox (integration)', () => {
 
   it('excludes entrances of a different kind', async () => {
     const result = await withScope(primaryCongId, tx =>
-      getAvailableEntrancesInBbox(tx, primaryCongId, TerritoryKind.Commerces, wideBbox, {
+      getAvailableEntrancesInBbox(tx, primaryCongId, TerritoryKindKey.Commerces, wideBbox, {
         phoneTypeActive: true,
       }),
     )
@@ -409,7 +409,7 @@ describe('getAvailableEntrancesInBbox (integration)', () => {
 
   it('never surfaces the in-this-territory status (no territory context in create mode)', async () => {
     const result = await withScope(primaryCongId, tx =>
-      getAvailableEntrancesInBbox(tx, primaryCongId, TerritoryKind.Commerces, wideBbox, {
+      getAvailableEntrancesInBbox(tx, primaryCongId, TerritoryKindKey.Commerces, wideBbox, {
         phoneTypeActive: true,
       }),
     )
@@ -421,7 +421,7 @@ describe('getAvailableEntrancesInBbox (integration)', () => {
 
   it('does not leak entrances from another congregation', async () => {
     const result = await withScope(primaryCongId, tx =>
-      getAvailableEntrancesInBbox(tx, primaryCongId, TerritoryKind.Commerces, wideBbox, {
+      getAvailableEntrancesInBbox(tx, primaryCongId, TerritoryKindKey.Commerces, wideBbox, {
         phoneTypeActive: true,
       }),
     )
@@ -433,7 +433,7 @@ describe('getAvailableEntrancesInBbox (integration)', () => {
   it('returns an empty array when no entrance is in the bbox', async () => {
     const emptyBbox = { swLat: 0, swLng: 0, neLat: 1, neLng: 1 }
     const result = await withScope(primaryCongId, tx =>
-      getAvailableEntrancesInBbox(tx, primaryCongId, TerritoryKind.Commerces, emptyBbox, {
+      getAvailableEntrancesInBbox(tx, primaryCongId, TerritoryKindKey.Commerces, emptyBbox, {
         phoneTypeActive: true,
       }),
     )
@@ -445,7 +445,7 @@ describe('getAvailableEntrancesInBbox (integration)', () => {
 describe('countAvailableEntrances (integration)', () => {
   it('counts commerce entrances that pass availableForCreateWhere (with and without coords)', async () => {
     const result = await withScope(primaryCongId, tx =>
-      countAvailableEntrances(tx, primaryCongId, TerritoryKind.Commerces, { phoneTypeActive: true }),
+      countAvailableEntrances(tx, primaryCongId, TerritoryKindKey.Commerces, { phoneTypeActive: true }),
     )
     // free (with coords) + no-coords ; excludes taken and wrong-kind
     expect(result.total).toBe(2)
@@ -454,7 +454,7 @@ describe('countAvailableEntrances (integration)', () => {
 
   it('does not count entrances already attached to a territory of the same kind', async () => {
     const result = await withScope(primaryCongId, tx =>
-      countAvailableEntrances(tx, primaryCongId, TerritoryKind.Commerces, { phoneTypeActive: true }),
+      countAvailableEntrances(tx, primaryCongId, TerritoryKindKey.Commerces, { phoneTypeActive: true }),
     )
     // If entranceCommerceTaken was counted, total would be 3
     expect(result.total).toBe(2)
@@ -464,12 +464,12 @@ describe('countAvailableEntrances (integration)', () => {
 
   it('does not leak entrances from another congregation', async () => {
     const result = await withScope(primaryCongId, tx =>
-      countAvailableEntrances(tx, primaryCongId, TerritoryKind.Commerces, { phoneTypeActive: true }),
+      countAvailableEntrances(tx, primaryCongId, TerritoryKindKey.Commerces, { phoneTypeActive: true }),
     )
     // Cross-cong entrance is Residential in fixtures; use Hotel kind (empty in other cong) as a
     // sanity check that we don't spuriously match across congregations either.
     const otherCongResult = await withScope(otherCongId, tx =>
-      countAvailableEntrances(tx, otherCongId, TerritoryKind.Commerces, { phoneTypeActive: true }),
+      countAvailableEntrances(tx, otherCongId, TerritoryKindKey.Commerces, { phoneTypeActive: true }),
     )
     expect(otherCongResult.total).toBe(0)
     expect(result.total).toBe(2)

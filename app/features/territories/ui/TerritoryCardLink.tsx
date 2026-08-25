@@ -1,7 +1,7 @@
 import { ExternalLink } from 'lucide-react'
 import { Link } from 'react-router'
 import type { Territory } from '~/database/generated/client'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 import type { AggregatedEntrance } from '~/shared/types/entrance'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -13,11 +13,11 @@ export function TerritoryCardLink({ territory, entrances }: { territory: Territo
         <div className="flex flex-col">
           <span className="font-medium">{territory.number}</span>
           <span className="text-muted-foreground text-sm">
-            {territory.type === TerritoryKind.Classical && m.territories_type_classical()}
-            {territory.type === TerritoryKind.Commerces && m.territories_type_commerces()}
-            {territory.type === TerritoryKind.Phone && m.territories_type_phone()}
-            {territory.type === TerritoryKind.Hotel && m.territories_type_hotel()}
-            {territory.type === TerritoryKind.Univ && m.territories_type_university()},{' '}
+            {territory.type === TerritoryKindKey.Classical && m.territories_type_classical()}
+            {territory.type === TerritoryKindKey.Commerces && m.territories_type_commerces()}
+            {territory.type === TerritoryKindKey.Phone && m.territories_type_phone()}
+            {territory.type === TerritoryKindKey.Hotel && m.territories_type_hotel()}
+            {territory.type === TerritoryKindKey.Univ && m.territories_type_university()},{' '}
             {entrances.reduce((aggr, curr) => aggr + (curr.homes ?? curr.phones ?? 0), 0)} {m.territories_card_doors()}
           </span>
         </div>

@@ -1,7 +1,7 @@
 import { Download, Map as MapIcon, Pencil, Trash2 } from 'lucide-react'
 import React from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { getZips } from '~/features/territories/server/buildings.server'
 import { classifySearch } from '~/features/territories/server/search-intent.server'
 import { findTerritoriesWithDetailsPaginated } from '~/features/territories/server/territories.server'
@@ -35,11 +35,11 @@ import { sortFromUrl } from '~/shared/utils/pagination.server'
 import type { Route } from './+types/list'
 
 const territoryTypeLabels: Record<string, string> = {
-  [TerritoryKind.Classical]: m.territories_type_classical(),
-  [TerritoryKind.Commerces]: m.territories_type_commerces(),
-  [TerritoryKind.Phone]: m.territories_type_phone(),
-  [TerritoryKind.Hotel]: m.territories_type_hotel(),
-  [TerritoryKind.Univ]: m.territories_type_university(),
+  [TerritoryKindKey.Classical]: m.territories_type_classical(),
+  [TerritoryKindKey.Commerces]: m.territories_type_commerces(),
+  [TerritoryKindKey.Phone]: m.territories_type_phone(),
+  [TerritoryKindKey.Hotel]: m.territories_type_hotel(),
+  [TerritoryKindKey.Univ]: m.territories_type_university(),
 }
 
 export const meta: Route.MetaFunction = () => {

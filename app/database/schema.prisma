@@ -15,7 +15,9 @@ enum PublisherType {
   Missionnaire        @map("missionnaire")
 }
 
-enum TerritoryKind {
+// The key set of the built-in territory kinds. The `TerritoryKind` model is the
+// entity; this enum still types `Territory.type` until territories move onto the FK.
+enum TerritoryKindKey {
   Classical @map("doors-to-doors")
   Univ      @map("campus")
   Commerces @map("commerces")
@@ -81,6 +83,8 @@ model Congregation {
   members                      Member[]
   memberRoleAssignments        MemberRoleAssignment[]
   territories                  Territory[]
+  territoryKinds               TerritoryKind[]
+  territoryKindAllowedRoles    TerritoryKindAllowedRole[]
   buildings                    Building[]
   buildingEntrances            BuildingEntrance[]
   attributions                 Attribution[]
@@ -330,6 +334,7 @@ model Role {
   allowedForTemplateServiceParts TemplateServicePartAllowedRole[]
   allowedForEventServiceParts    EventServicePartAllowedRole[]
   allowedForBoardSections        BoardSectionVisibilityRole[]
+  allowedForTerritoryKinds       TerritoryKindAllowedRole[]
 
   congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
   congregationId Int
@@ -506,10 +511,49 @@ model BoardDynamicDocumentView {
   @@index([userId])
 }
 
+// A kind of territory, per congregation. The five built-ins are seeded from
+// `TerritoryKindKey` at congregation setup; `key` becomes a free-form slug once
+// congregations can define their own kinds. `Territory.type` still points at the
+// enum — moving it onto a FK here is a later change.
+model TerritoryKind {
+  id        Int     @id @default(autoincrement())
+  key       String
+  // null for built-ins — the label comes from i18n, as it does for Role
+  name      String?
+  isBuiltIn Boolean @default(true)
+
+  allowedRoles TerritoryKindAllowedRole[]
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([key, congregationId])
+  @@unique([id, congregationId])
+  @@index([congregationId])
+}
+
+// Roles a publisher must hold to be attributed a territory of this kind.
+// No rows for a kind means no restriction — any active publisher qualifies.
+model TerritoryKindAllowedRole {
+  kind           TerritoryKind @relation(fields: [kindId, congregationId], references: [id, congregationId], onDelete: Cascade)
+  kindId         Int
+  role           Role          @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId         Int
+  congregation   Congregation  @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
+  @@id([kindId, roleId])
+  @@index([roleId])
+  @@index([congregationId])
+}
+
 model Territory {
   id             Int                 @id @default(autoincrement())
   number         String
-  type           TerritoryKind       @default(Classical)
+  type           TerritoryKindKey    @default(Classical)
   notes          String              @default("")
   attributions   Attribution[]       @relation("territory")
   campaignScopes CampaignTerritory[]

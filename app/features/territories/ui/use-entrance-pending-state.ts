@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
 import { territoryContentLabel } from '~/features/territories/server/territory-content-label'
 import type { EntranceAction, EntranceFocusRequest } from '~/features/territories/ui/BuildingEntranceMapEditor'
@@ -42,7 +42,10 @@ export function ownEntranceToBbox(entrance: AggregatedEntrance): BboxEntrance | 
   }
 }
 
-export function useEntrancePendingState(savedTerritoryEntrances: AggregatedEntrance[], territoryType: TerritoryKind) {
+export function useEntrancePendingState(
+  savedTerritoryEntrances: AggregatedEntrance[],
+  territoryType: TerritoryKindKey,
+) {
   const { blocker, markDirty } = useUnsavedChanges()
 
   const [pendingAdditions, setPendingAdditions] = useState<Map<number, BboxEntrance>>(new Map())

@@ -1,9 +1,9 @@
 import type { Bbox } from '~/features/territories/model/bbox.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 
 export type EntrancesInBboxParams =
   | { mode: 'edit'; bbox: Bbox; territoryId: number }
-  | { mode: 'create'; bbox: Bbox; kind: TerritoryKind }
+  | { mode: 'create'; bbox: Bbox; kind: TerritoryKindKey }
 
 function parseBbox(value: string | null): Bbox | null {
   if (!value) return null
@@ -13,9 +13,9 @@ function parseBbox(value: string | null): Bbox | null {
   return { swLat, swLng, neLat, neLng }
 }
 
-function parseKind(value: string | null): TerritoryKind | null {
+function parseKind(value: string | null): TerritoryKindKey | null {
   if (value == null) return null
-  return (Object.values(TerritoryKind) as string[]).includes(value) ? (value as TerritoryKind) : null
+  return (Object.values(TerritoryKindKey) as string[]).includes(value) ? (value as TerritoryKindKey) : null
 }
 
 export function parseEntrancesInBboxParams(searchParams: URLSearchParams): EntrancesInBboxParams | null {

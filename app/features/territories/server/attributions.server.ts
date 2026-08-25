@@ -1,4 +1,4 @@
-import type { Prisma, TerritoryKind } from '~/database/generated/client'
+import type { Prisma, TerritoryKindKey } from '~/database/generated/client'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { LatLng } from '~/shared/utils/distance'
 import { paginationFromUrl } from '~/shared/utils/pagination.server'
@@ -88,7 +88,7 @@ export function findTerritoryWithHistory(db: TransactionClient, territoryId: num
 export async function findAdjacentTerritories(
   db: TransactionClient,
   territoryNumber: string,
-  territoryType: TerritoryKind,
+  territoryType: TerritoryKindKey,
   congregationId: number,
 ): Promise<{
   prev: { id: number; number: string } | null

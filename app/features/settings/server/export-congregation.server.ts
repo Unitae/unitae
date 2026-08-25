@@ -299,6 +299,20 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
         }),
     },
     {
+      name: 'territory-kinds',
+      export: () =>
+        db.territoryKind.findMany({
+          select: { id: true, key: true, name: true, isBuiltIn: true },
+        }),
+    },
+    {
+      name: 'territory-kind-allowed-roles',
+      export: () =>
+        db.territoryKindAllowedRole.findMany({
+          select: { kindId: true, roleId: true },
+        }),
+    },
+    {
       name: 'territory-card-overlays',
       export: () =>
         db.territoryCardOverlay.findMany({

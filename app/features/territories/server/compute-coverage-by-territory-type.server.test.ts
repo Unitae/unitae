@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { computeCoverageByTerritoryType } from './compute-coverage-by-territory-type.server'
 import type { StatsAttribution } from './stats-attribution.type'
 import type { TerritoryCountByType } from './territory-count-by-type.type'
 
-function makeAttribution(territoryId: number, territoryType: TerritoryKind): StatsAttribution {
+function makeAttribution(territoryId: number, territoryType: TerritoryKindKey): StatsAttribution {
   return {
     id: territoryId,
     territoryId,
@@ -22,7 +22,7 @@ function makeAttribution(territoryId: number, territoryType: TerritoryKind): Sta
 
 describe('computeCoverageByTerritoryType', () => {
   it("retourne des couvertures à 0 quand il n'y a aucune attribution", () => {
-    const counts: TerritoryCountByType[] = [{ type: TerritoryKind.Classical, count: 10 }]
+    const counts: TerritoryCountByType[] = [{ type: TerritoryKindKey.Classical, count: 10 }]
     const result = computeCoverageByTerritoryType([], counts)
 
     expect(result).toHaveLength(1)
@@ -33,14 +33,14 @@ describe('computeCoverageByTerritoryType', () => {
 
   it('calcule la couverture par type de territoire', () => {
     const counts: TerritoryCountByType[] = [
-      { type: TerritoryKind.Classical, count: 10 },
-      { type: TerritoryKind.Commerces, count: 5 },
+      { type: TerritoryKindKey.Classical, count: 10 },
+      { type: TerritoryKindKey.Commerces, count: 5 },
     ]
     const attributions = [
-      makeAttribution(1, TerritoryKind.Classical),
-      makeAttribution(2, TerritoryKind.Classical),
-      makeAttribution(2, TerritoryKind.Classical), // même territoire, 2 fois
-      makeAttribution(10, TerritoryKind.Commerces),
+      makeAttribution(1, TerritoryKindKey.Classical),
+      makeAttribution(2, TerritoryKindKey.Classical),
+      makeAttribution(2, TerritoryKindKey.Classical), // même territoire, 2 fois
+      makeAttribution(10, TerritoryKindKey.Commerces),
     ]
 
     const result = computeCoverageByTerritoryType(attributions, counts)
@@ -55,7 +55,7 @@ describe('computeCoverageByTerritoryType', () => {
   })
 
   it('gère un type avec 0 territoires', () => {
-    const counts: TerritoryCountByType[] = [{ type: TerritoryKind.Hotel, count: 0 }]
+    const counts: TerritoryCountByType[] = [{ type: TerritoryKindKey.Hotel, count: 0 }]
     const result = computeCoverageByTerritoryType([], counts)
 
     expect(result[0].coverage).toBe(0)
@@ -63,14 +63,14 @@ describe('computeCoverageByTerritoryType', () => {
   })
 
   it('utilise le type brut comme label pour un type inconnu avec 0 territoires', () => {
-    const counts: TerritoryCountByType[] = [{ type: 'special' as TerritoryKind, count: 0 }]
+    const counts: TerritoryCountByType[] = [{ type: 'special' as TerritoryKindKey, count: 0 }]
     const result = computeCoverageByTerritoryType([], counts)
 
     expect(result[0].label).toBe('special')
   })
 
   it('utilise le type brut comme label quand le type est inconnu', () => {
-    const counts: TerritoryCountByType[] = [{ type: 'unknown-type' as TerritoryKind, count: 5 }]
+    const counts: TerritoryCountByType[] = [{ type: 'unknown-type' as TerritoryKindKey, count: 5 }]
     const result = computeCoverageByTerritoryType([], counts)
 
     expect(result[0].label).toBe('unknown-type')
@@ -78,8 +78,8 @@ describe('computeCoverageByTerritoryType', () => {
   })
 
   it('utilise le type brut comme label pour un type inconnu avec des attributions', () => {
-    const counts: TerritoryCountByType[] = [{ type: 'custom' as TerritoryKind, count: 2 }]
-    const attributions = [makeAttribution(1, 'custom' as TerritoryKind)]
+    const counts: TerritoryCountByType[] = [{ type: 'custom' as TerritoryKindKey, count: 2 }]
+    const attributions = [makeAttribution(1, 'custom' as TerritoryKindKey)]
 
     const result = computeCoverageByTerritoryType(attributions, counts)
 

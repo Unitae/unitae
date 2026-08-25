@@ -1,5 +1,5 @@
 import type JsZip from 'jszip'
-import type { TerritoryAttributionKind, TerritoryKind } from '~/features/territories'
+import type { TerritoryAttributionKind, TerritoryKindKey } from '~/features/territories'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { EntityIdMap } from './data-transfer.type'
 import { readNdjsonFile } from './ndjson-archive'
@@ -16,15 +16,64 @@ export async function importTerritories(
     if (existing) {
       await db.territory.update({
         where: { id_congregationId: { id: existing.id, congregationId } },
-        data: { type: record.type as TerritoryKind, notes: record.notes },
+        data: { type: record.type as TerritoryKindKey, notes: record.notes },
       })
       idMap.set('territories', record.id, existing.id)
     } else {
       const created = await db.territory.create({
-        data: { number: record.number, type: record.type as TerritoryKind, notes: record.notes, congregationId },
+        data: { number: record.number, type: record.type as TerritoryKindKey, notes: record.notes, congregationId },
       })
       idMap.set('territories', record.id, created.id)
     }
+  }
+}
+
+/**
+ * Kinds are seeded per congregation before an import runs, so the archive's rows
+ * are matched by key rather than created — only a kind the target congregation
+ * does not have yet (a future custom kind) is inserted.
+ */
+export async function importTerritoryKinds(
+  zip: JsZip,
+  db: TransactionClient,
+  idMap: EntityIdMap,
+  congregationId: number,
+): Promise<void> {
+  const records = await readNdjsonFile<{ id: number; key: string; name: string | null; isBuiltIn: boolean }>(
+    zip,
+    'territory-kinds',
+  )
+  for (const record of records) {
+    const existing = await db.territoryKind.findFirst({ where: { key: record.key, congregationId } })
+    if (existing) {
+      idMap.set('territory-kinds', record.id, existing.id)
+      continue
+    }
+    const created = await db.territoryKind.create({
+      data: { key: record.key, name: record.name, isBuiltIn: record.isBuiltIn, congregationId },
+    })
+    idMap.set('territory-kinds', record.id, created.id)
+  }
+}
+
+export async function importTerritoryKindAllowedRoles(
+  zip: JsZip,
+  db: TransactionClient,
+  idMap: EntityIdMap,
+  congregationId: number,
+): Promise<void> {
+  const records = await readNdjsonFile<{ kindId: number; roleId: number }>(zip, 'territory-kind-allowed-roles')
+  const data: { kindId: number; roleId: number; congregationId: number }[] = []
+
+  for (const record of records) {
+    const kindId = idMap.getOptional('territory-kinds', record.kindId)
+    const roleId = idMap.getOptional('roles', record.roleId)
+    if (!kindId || !roleId) continue
+    data.push({ kindId, roleId, congregationId })
+  }
+
+  if (data.length > 0) {
+    await db.territoryKindAllowedRole.createMany({ data, skipDuplicates: true })
   }
 }
 

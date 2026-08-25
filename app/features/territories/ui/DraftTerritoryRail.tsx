@@ -1,5 +1,5 @@
 import type { FetcherWithComponents } from 'react-router'
-import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
 import { computeDraftTotals } from '~/features/territories/ui/compute-draft-totals'
 import { PendingEntranceList } from '~/features/territories/ui/PendingEntranceList'
@@ -8,7 +8,7 @@ import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 
 type Props = {
-  kind: TerritoryKind
+  kind: TerritoryKindKey
   draft: ReadonlyMap<number, BboxEntrance>
   suggestedNumber: string
   onFocusEntrance: (entranceId: number) => void
@@ -17,7 +17,7 @@ type Props = {
   fetcher: FetcherWithComponents<unknown>
 }
 
-function totalsLabel(kind: TerritoryKind, draft: ReadonlyMap<number, BboxEntrance>): string {
+function totalsLabel(kind: TerritoryKindKey, draft: ReadonlyMap<number, BboxEntrance>): string {
   const totals = computeDraftTotals(kind, [...draft.values()])
   if (totals.count === 0) return m.split_tool_create_rail_empty()
 

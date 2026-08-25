@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import type { StatsFilterParams } from './stats-filter-params.type'
 
 vi.mock('~/shared/infra/db.server', () => ({
@@ -13,7 +13,7 @@ const { fetchAttributionsForStats } = await import('./fetch-attributions-for-sta
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 const baseParams: StatsFilterParams = {
-  territoryKind: [TerritoryKind.Classical],
+  territoryKind: [TerritoryKindKey.Classical],
   attributionKind: [TerritoryAttributionKind.Default],
   startDate: new Date(2025, 8, 1),
   endDate: new Date(2026, 7, 31),
@@ -30,7 +30,7 @@ describe('fetchAttributionsForStats', () => {
       {
         id: 1,
         territoryId: 10,
-        territory: { number: 'T-1', type: TerritoryKind.Classical },
+        territory: { number: 'T-1', type: TerritoryKindKey.Classical },
         type: TerritoryAttributionKind.Default,
         campaignId: null,
         campaign: null,
@@ -47,7 +47,7 @@ describe('fetchAttributionsForStats', () => {
         id: 1,
         territoryId: 10,
         territoryNumber: 'T-1',
-        territoryType: TerritoryKind.Classical,
+        territoryType: TerritoryKindKey.Classical,
         type: TerritoryAttributionKind.Default,
         campaignId: null,
         campaignRestPeriodDays: null,

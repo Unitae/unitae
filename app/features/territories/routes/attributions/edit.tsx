@@ -3,9 +3,9 @@ import { parseWithZod } from '@conform-to/zod'
 import { ArrowDownToLine, X } from 'lucide-react'
 import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
-import { getPublishers } from '~/features/publishers/index.server'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { updateAttributionSchema } from '~/features/territories/schemas/attribution.schema'
+import { findAttributablePublishers } from '~/features/territories/server/attributable-publishers.queries'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import { updateAttribution } from '~/features/territories/server/update-attribution.server'
 import { AttributionKindBadge } from '~/features/territories/ui/AttributionKindBadge'
@@ -66,7 +66,11 @@ export function loader({ params, context }: Route.LoaderArgs) {
       throw redirect('/territories/attributions')
     }
 
-    const users = await getPublishers(db, congregationId)
+    // The attribution's own publisher stays listed even if they no longer hold
+    // an allowed role, so tightening a kind never locks an existing attribution.
+    const users = await findAttributablePublishers(db, attribution.territory.type, congregationId, {
+      alwaysIncludeMemberId: attribution.publisherId,
+    })
 
     return { users, phoneTypeActive, attribution, entrances: attribution.territory.entrances.map(aggregateEntrance) }
   })
@@ -275,6 +279,11 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     } catch (err) {
       if (err instanceof ConflictError && err.message === 'attribution_overlap') {
         return data(submission.reply({ formErrors: [m.attributions_overlap_error()] }), { status: 409 })
+      }
+      if (err instanceof ConflictError && err.message === 'publisher_role_not_allowed') {
+        return data(submission.reply({ fieldErrors: { publisher: [m.attributions_publisher_role_error()] } }), {
+          status: 409,
+        })
       }
       throw err
     }

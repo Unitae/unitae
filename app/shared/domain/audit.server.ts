@@ -62,6 +62,7 @@ export const AuditAction = {
   TerritoryCreated: 'territory.created',
   TerritoryUpdated: 'territory.updated',
   TerritoryDeleted: 'territory.deleted',
+  TerritoryKindAllowedRolesChanged: 'territory_kind.allowed_roles.changed',
   EntranceReassigned: 'entrance.reassigned',
 
   // Attributions

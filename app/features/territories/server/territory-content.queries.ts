@@ -1,4 +1,4 @@
-import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import { computeTerritoryQuantity } from '~/features/territories/server/compute-territory-quantity'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -6,7 +6,7 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 export type TerritoryContent = {
   id: number
   number: string
-  kind: TerritoryKind
+  kind: TerritoryKindKey
   entranceCount: number
   quantity: number
   homes: number

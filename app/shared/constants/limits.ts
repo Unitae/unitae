@@ -22,7 +22,7 @@ export const GEOCODER_CACHE_TTL_SECONDS = 60 * 60 * 24 * 90
 // Progress / thresholds
 // Must equal the number of progress() calls in runImport; the last 5% is
 // reserved for finalization + audit writes after the transaction commits.
-export const IMPORT_TOTAL_STEPS = 41
+export const IMPORT_TOTAL_STEPS = 43
 export const IMPORT_PROGRESS_CAP = 95
 
 // Export streams NDJSON up to 90%; the trailing 10% is packaging + upload.
