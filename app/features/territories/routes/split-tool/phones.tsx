@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
 
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { countAvailableEntrances } from '~/features/territories/server/buildings.server'
 import { computeNextTerritoryNumber } from '~/features/territories/server/compute-next-territory-number.server'
 import { getCongregationCenter } from '~/features/territories/server/get-congregation-center.server'
@@ -38,9 +38,9 @@ export function loader({ context }: Route.LoaderArgs) {
     }
 
     const [suggestedNumber, fallbackCenter, counts] = await Promise.all([
-      computeNextTerritoryNumber(db, congregationId, TerritoryKind.Phone),
+      computeNextTerritoryNumber(db, congregationId, TerritoryKindKey.Phone),
       getCongregationCenter(db, congregationId),
-      countAvailableEntrances(db, congregationId, TerritoryKind.Phone, { phoneTypeActive }),
+      countAvailableEntrances(db, congregationId, TerritoryKindKey.Phone, { phoneTypeActive }),
     ])
     return { apiKey, suggestedNumber, fallbackCenter, counts }
   })
@@ -51,7 +51,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
   return (
     <BuildingEntranceMapCreator
       apiKey={apiKey}
-      kind={TerritoryKind.Phone}
+      kind={TerritoryKindKey.Phone}
       suggestedNumber={suggestedNumber}
       fallbackCenter={fallbackCenter ?? undefined}
       totalAvailable={counts.total}

@@ -2,7 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -101,7 +101,7 @@ beforeAll(async () => {
 
     // ── Boundary scenario: attribution on the last day of the filter window ──
     const lastDayTerritory = await tx.territory.create({
-      data: { number: `T-BOUNDARY-${ts}`, type: TerritoryKind.Classical, congregationId },
+      data: { number: `T-BOUNDARY-${ts}`, type: TerritoryKindKey.Classical, congregationId },
     })
     lastDayTerritoryId = lastDayTerritory.id
 
@@ -118,10 +118,10 @@ beforeAll(async () => {
 
     // ── Group-filter scenario: each group has its own attribution ──
     const groupATerritory = await tx.territory.create({
-      data: { number: `T-GA-${ts}`, type: TerritoryKind.Classical, congregationId },
+      data: { number: `T-GA-${ts}`, type: TerritoryKindKey.Classical, congregationId },
     })
     const groupBTerritory = await tx.territory.create({
-      data: { number: `T-GB-${ts}`, type: TerritoryKind.Classical, congregationId },
+      data: { number: `T-GB-${ts}`, type: TerritoryKindKey.Classical, congregationId },
     })
     await tx.attribution.create({
       data: {
@@ -151,7 +151,7 @@ beforeAll(async () => {
     //   2. An in-progress attribution
     // It should count as `active working`, NOT `resting`, NOT `available`.
     const workingResting = await tx.territory.create({
-      data: { number: `T-WR-${ts}`, type: TerritoryKind.Classical, congregationId },
+      data: { number: `T-WR-${ts}`, type: TerritoryKindKey.Classical, congregationId },
     })
     workingPlusRestingTerritoryId = workingResting.id
 
@@ -188,7 +188,7 @@ beforeAll(async () => {
     const oldTerritory = await tx.territory.create({
       data: {
         number: `T-OLD-${ts}`,
-        type: TerritoryKind.Classical,
+        type: TerritoryKindKey.Classical,
         congregationId,
         createdAt: new Date(2024, 0, 1), // before Aug 31, 2025 cutoff
       },
@@ -198,7 +198,7 @@ beforeAll(async () => {
     const recentTerritory = await tx.territory.create({
       data: {
         number: `T-NEW-${ts}`,
-        type: TerritoryKind.Classical,
+        type: TerritoryKindKey.Classical,
         congregationId,
         createdAt: new Date(2026, 0, 1), // after Aug 31, 2025 cutoff
       },
@@ -209,7 +209,7 @@ beforeAll(async () => {
     // Seed enough untouched territories that getTerritoriesNeverWorked must cap.
     for (let i = 0; i < NEVER_WORKED_MAX + 1; i += 1) {
       await tx.territory.create({
-        data: { number: `T-CAP-${ts}-${String(i).padStart(2, '0')}`, type: TerritoryKind.Classical, congregationId },
+        data: { number: `T-CAP-${ts}-${String(i).padStart(2, '0')}`, type: TerritoryKindKey.Classical, congregationId },
       })
     }
 
@@ -218,7 +218,7 @@ beforeAll(async () => {
     // lateDate falls BEFORE the filter window. The in-window aggregate should only
     // count the in-window late event.
     const overdueTerritory = await tx.territory.create({
-      data: { number: `T-OVERDUE-${ts}`, type: TerritoryKind.Classical, congregationId },
+      data: { number: `T-OVERDUE-${ts}`, type: TerritoryKindKey.Classical, congregationId },
     })
     overdueTerritoryId = overdueTerritory.id
 
@@ -272,7 +272,7 @@ describe('stats aggregates — boundary semantics (R1)', () => {
       return fetchAttributionsForStats(
         tx as never,
         {
-          territoryKind: [TerritoryKind.Classical],
+          territoryKind: [TerritoryKindKey.Classical],
           attributionKind: [TerritoryAttributionKind.Default],
           startDate: FILTER_START,
           endDate: FILTER_END,
@@ -292,7 +292,7 @@ describe('stats aggregates — group scoping (#8)', () => {
         computeTerritoryCoverage(
           tx as never,
           congregationId,
-          [TerritoryKind.Classical],
+          [TerritoryKindKey.Classical],
           [TerritoryAttributionKind.Default],
           FILTER_START,
           FILTER_END,
@@ -300,7 +300,7 @@ describe('stats aggregates — group scoping (#8)', () => {
         computeTerritoryCoverage(
           tx as never,
           congregationId,
-          [TerritoryKind.Classical],
+          [TerritoryKindKey.Classical],
           [TerritoryAttributionKind.Default],
           FILTER_START,
           FILTER_END,
@@ -309,7 +309,7 @@ describe('stats aggregates — group scoping (#8)', () => {
         computeTerritoryCoverage(
           tx as never,
           congregationId,
-          [TerritoryKind.Classical],
+          [TerritoryKindKey.Classical],
           [TerritoryAttributionKind.Default],
           FILTER_START,
           FILTER_END,
@@ -366,7 +366,7 @@ describe('stats aggregates — never-worked cap (T17)', () => {
       return getTerritoriesNeverWorked(
         tx as never,
         {
-          territoryKind: [TerritoryKind.Classical],
+          territoryKind: [TerritoryKindKey.Classical],
           attributionKind: [TerritoryAttributionKind.Default],
           startDate: FILTER_START,
           endDate: FILTER_END,
@@ -386,7 +386,7 @@ describe('stats aggregates — overdue rate restricted to in-window lateDate (#1
       return aggregateAttributionStatsForWindow(
         tx as never,
         {
-          territoryKind: [TerritoryKind.Classical],
+          territoryKind: [TerritoryKindKey.Classical],
           attributionKind: [TerritoryAttributionKind.Default],
           startDate: FILTER_START,
           endDate: FILTER_END,
@@ -413,7 +413,7 @@ describe('stats aggregates — previous-year denominator (#11)', () => {
     const [allCount, beforeCutoffCount] = await withScope(congregationId, async tx => {
       return Promise.all([
         tx.territory.count({ where: { congregationId } }),
-        countTerritoriesExistingBefore(tx as never, congregationId, cutoff, [TerritoryKind.Classical]),
+        countTerritoriesExistingBefore(tx as never, congregationId, cutoff, [TerritoryKindKey.Classical]),
       ])
     })
 

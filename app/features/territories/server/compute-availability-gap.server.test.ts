@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { computeAvailabilityGap } from './compute-availability-gap.server'
 import type { StatsAttribution } from './stats-attribution.type'
 
@@ -9,7 +9,7 @@ function makeAttribution(territoryId: number, startDate: Date, endDate: Date | n
     id,
     territoryId,
     territoryNumber: `T-${territoryId}`,
-    territoryType: TerritoryKind.Classical,
+    territoryType: TerritoryKindKey.Classical,
     type: TerritoryAttributionKind.Default,
     campaignId: null,
     campaignRestPeriodDays: null,

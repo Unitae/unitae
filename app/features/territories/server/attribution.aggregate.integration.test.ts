@@ -2,7 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { ConflictError } from '~/shared/errors/app-error.server'
 
 const auditMock = vi.fn()
@@ -56,7 +56,7 @@ beforeAll(async () => {
     })
     secondPublisherId = p2.id
     const t = await tx.territory.create({
-      data: { number: `T-${ts}`, type: TerritoryKind.Classical, congregationId: congId },
+      data: { number: `T-${ts}`, type: TerritoryKindKey.Classical, congregationId: congId },
     })
     territoryId = t.id
   })

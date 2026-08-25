@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { buildAttributionFilterChips, buildTerritoryFilterChips } from './build-filter-chips'
 
 describe('buildTerritoryFilterChips', () => {
@@ -23,7 +23,7 @@ describe('buildTerritoryFilterChips', () => {
   })
 
   it('maps a known type enum to its label', () => {
-    const chips = buildTerritoryFilterChips(new URLSearchParams({ type: TerritoryKind.Classical }))
+    const chips = buildTerritoryFilterChips(new URLSearchParams({ type: TerritoryKindKey.Classical }))
     expect(chips).toHaveLength(1)
     expect(chips[0].key).toBe('type')
     expect(chips[0].value.length).toBeGreaterThan(0)

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: { territory: { count: vi.fn(), create: vi.fn() }, auditLog: { create: vi.fn() } },
@@ -16,10 +16,14 @@ beforeEach(() => {
 describe('createTerritoryFromSplit', () => {
   it('generates D-prefixed number for classical territory type', async () => {
     vi.mocked(db.territory.count).mockResolvedValue(4 as never)
-    vi.mocked(db.territory.create).mockResolvedValue({ id: 1, number: 'D005', type: TerritoryKind.Classical } as never)
+    vi.mocked(db.territory.create).mockResolvedValue({
+      id: 1,
+      number: 'D005',
+      type: TerritoryKindKey.Classical,
+    } as never)
 
     const result = await createTerritoryFromSplit(db as never, {
-      type: TerritoryKind.Classical,
+      type: TerritoryKindKey.Classical,
       entranceIds: [1],
       congregationId: 1,
       actorId: 99,
@@ -30,10 +34,10 @@ describe('createTerritoryFromSplit', () => {
 
   it('generates H-prefixed number for hotel territory type', async () => {
     vi.mocked(db.territory.count).mockResolvedValue(0 as never)
-    vi.mocked(db.territory.create).mockResolvedValue({ id: 2, number: 'H001', type: TerritoryKind.Hotel } as never)
+    vi.mocked(db.territory.create).mockResolvedValue({ id: 2, number: 'H001', type: TerritoryKindKey.Hotel } as never)
 
     const result = await createTerritoryFromSplit(db as never, {
-      type: TerritoryKind.Hotel,
+      type: TerritoryKindKey.Hotel,
       entranceIds: [2],
       congregationId: 1,
       actorId: 99,
@@ -47,7 +51,7 @@ describe('createTerritoryFromSplit', () => {
     vi.mocked(db.territory.create).mockResolvedValue({ id: 3 } as never)
 
     const result = await createTerritoryFromSplit(db as never, {
-      type: TerritoryKind.Univ,
+      type: TerritoryKindKey.Univ,
       entranceIds: [3],
       congregationId: 1,
       actorId: 99,
@@ -61,7 +65,7 @@ describe('createTerritoryFromSplit', () => {
     vi.mocked(db.territory.create).mockResolvedValue({ id: 4 } as never)
 
     const result = await createTerritoryFromSplit(db as never, {
-      type: TerritoryKind.Commerces,
+      type: TerritoryKindKey.Commerces,
       entranceIds: [4],
       congregationId: 1,
       actorId: 99,
@@ -75,7 +79,7 @@ describe('createTerritoryFromSplit', () => {
     vi.mocked(db.territory.create).mockResolvedValue({ id: 5 } as never)
 
     const result = await createTerritoryFromSplit(db as never, {
-      type: TerritoryKind.Phone,
+      type: TerritoryKindKey.Phone,
       entranceIds: [5],
       congregationId: 1,
       actorId: 99,
@@ -89,7 +93,7 @@ describe('createTerritoryFromSplit', () => {
     vi.mocked(db.territory.create).mockResolvedValue({ id: 6 } as never)
 
     const result = await createTerritoryFromSplit(db as never, {
-      type: TerritoryKind.Classical,
+      type: TerritoryKindKey.Classical,
       entranceIds: [6],
       congregationId: 1,
       actorId: 99,
@@ -103,7 +107,7 @@ describe('createTerritoryFromSplit', () => {
     vi.mocked(db.territory.create).mockResolvedValue({ id: 7 } as never)
 
     await createTerritoryFromSplit(db as never, {
-      type: TerritoryKind.Classical,
+      type: TerritoryKindKey.Classical,
       entranceIds: [10, 20, 30],
       congregationId: 5,
       actorId: 99,
@@ -112,7 +116,7 @@ describe('createTerritoryFromSplit', () => {
     expect(db.territory.create).toHaveBeenCalledWith({
       data: {
         number: 'D001',
-        type: TerritoryKind.Classical,
+        type: TerritoryKindKey.Classical,
         entrances: {
           connect: [{ id: 10 }, { id: 20 }, { id: 30 }],
         },

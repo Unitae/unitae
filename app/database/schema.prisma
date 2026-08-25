@@ -15,7 +15,9 @@ enum PublisherType {
   Missionnaire        @map("missionnaire")
 }
 
-enum TerritoryKind {
+// The key set of the built-in territory kinds. The `TerritoryKind` model is the
+// entity; this enum still types `Territory.type` until territories move onto the FK.
+enum TerritoryKindKey {
   Classical @map("doors-to-doors")
   Univ      @map("campus")
   Commerces @map("commerces")
@@ -509,7 +511,7 @@ model BoardDynamicDocumentView {
 model Territory {
   id             Int                 @id @default(autoincrement())
   number         String
-  type           TerritoryKind       @default(Classical)
+  type           TerritoryKindKey    @default(Classical)
   notes          String              @default("")
   attributions   Attribution[]       @relation("territory")
   campaignScopes CampaignTerritory[]

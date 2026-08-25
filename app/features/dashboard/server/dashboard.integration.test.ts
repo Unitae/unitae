@@ -1,7 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -76,7 +76,7 @@ beforeAll(async () => {
 
     // Territory with attribution to Alice
     const territory = await tx.territory.create({
-      data: { number: `T-DASH-${ts}`, type: TerritoryKind.Classical, congregationId },
+      data: { number: `T-DASH-${ts}`, type: TerritoryKindKey.Classical, congregationId },
     })
 
     await tx.attribution.create({

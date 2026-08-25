@@ -1,5 +1,5 @@
 import type JsZip from 'jszip'
-import type { TerritoryAttributionKind, TerritoryKind } from '~/features/territories'
+import type { TerritoryAttributionKind, TerritoryKindKey } from '~/features/territories'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { EntityIdMap } from './data-transfer.type'
 import { readNdjsonFile } from './ndjson-archive'
@@ -16,12 +16,12 @@ export async function importTerritories(
     if (existing) {
       await db.territory.update({
         where: { id_congregationId: { id: existing.id, congregationId } },
-        data: { type: record.type as TerritoryKind, notes: record.notes },
+        data: { type: record.type as TerritoryKindKey, notes: record.notes },
       })
       idMap.set('territories', record.id, existing.id)
     } else {
       const created = await db.territory.create({
-        data: { number: record.number, type: record.type as TerritoryKind, notes: record.notes, congregationId },
+        data: { number: record.number, type: record.type as TerritoryKindKey, notes: record.notes, congregationId },
       })
       idMap.set('territories', record.id, created.id)
     }

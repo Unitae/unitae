@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { attributionsOverlap } from './attribution.aggregate'
 
 // Attribution overlap covers the 5 cases the state model exposes:
@@ -112,7 +112,7 @@ beforeEach(() => {
   mockDb.attribution.update.mockResolvedValue({ id: 42 } as never)
   mockDb.attribution.findMany.mockResolvedValue([])
   mockDb.attribution.findFirst.mockResolvedValue(null as never)
-  mockDb.territory.findUniqueOrThrow.mockResolvedValue({ type: TerritoryKind.Classical } as never)
+  mockDb.territory.findUniqueOrThrow.mockResolvedValue({ type: TerritoryKindKey.Classical } as never)
 })
 
 describe('assign — layer-aware overlap', () => {

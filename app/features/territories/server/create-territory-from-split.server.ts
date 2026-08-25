@@ -1,11 +1,11 @@
-import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 import { computeNextTerritoryNumber } from './compute-next-territory-number.server'
 
 export interface CreateTerritoryFromSplitParams {
-  type: TerritoryKind
+  type: TerritoryKindKey
   entranceIds: number[]
   congregationId: number
   actorId: number

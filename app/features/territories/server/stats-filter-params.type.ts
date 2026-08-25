@@ -1,8 +1,8 @@
 import type { AttributionCategory } from '~/features/territories/model/attribution-category'
-import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 
 export interface StatsFilterParams {
-  territoryKind: TerritoryKind[]
+  territoryKind: TerritoryKindKey[]
   attributionKind: AttributionCategory[]
   startDate: Date
   endDate: Date

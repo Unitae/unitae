@@ -1,6 +1,6 @@
 import type { Prisma } from '~/database/generated/client'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 
 /**
  * Which entrances appear on the territory edit map, as a Prisma `where` fragment.
@@ -29,29 +29,29 @@ const digicodeUnknown: Prisma.BuildingEntranceWhereInput = {
 }
 
 export function contentPresentClause(
-  territoryType: TerritoryKind,
+  territoryType: TerritoryKindKey,
   { phoneTypeActive }: MapVisibilityContext,
 ): Prisma.BuildingEntranceWhereInput | null {
   switch (territoryType) {
-    case TerritoryKind.Commerces:
-    case TerritoryKind.Hotel:
-    case TerritoryKind.Univ:
+    case TerritoryKindKey.Commerces:
+    case TerritoryKindKey.Hotel:
+    case TerritoryKindKey.Univ:
       return null
-    case TerritoryKind.Phone:
+    case TerritoryKindKey.Phone:
       return { OR: [{ phones: { gt: 0 } }, digicodeUnknown] }
-    case TerritoryKind.Classical:
+    case TerritoryKindKey.Classical:
       return phoneTypeActive
         ? { OR: [{ homes: { gt: 0 } }, digicodeUnknown] }
         : { OR: [{ homes: { gt: 0 } }, { phones: { gt: 0 } }, digicodeUnknown] }
     default: {
       const exhaustiveCheck: never = territoryType
-      throw new Error(`Unhandled TerritoryKind in contentPresentClause: ${String(exhaustiveCheck)}`)
+      throw new Error(`Unhandled TerritoryKindKey in contentPresentClause: ${String(exhaustiveCheck)}`)
     }
   }
 }
 
 export function mapVisibleWhere(
-  territoryType: TerritoryKind,
+  territoryType: TerritoryKindKey,
   territoryId: number,
   ctx: MapVisibilityContext,
 ): Prisma.BuildingEntranceWhereInput {
@@ -84,7 +84,7 @@ export function mapVisibleWhere(
  *        Univ       → no access filter
  */
 export function availableForCreateWhere(
-  kind: TerritoryKind,
+  kind: TerritoryKindKey,
   ctx: MapVisibilityContext,
 ): Prisma.BuildingEntranceWhereInput {
   const notInSameKindTerritory: Prisma.BuildingEntranceWhereInput = {
@@ -99,11 +99,11 @@ export function availableForCreateWhere(
 }
 
 function accessClauseForCreate(
-  kind: TerritoryKind,
+  kind: TerritoryKindKey,
   { phoneTypeActive }: MapVisibilityContext,
 ): Prisma.BuildingEntranceWhereInput | null {
   switch (kind) {
-    case TerritoryKind.Classical:
+    case TerritoryKindKey.Classical:
       return {
         OR: [
           { access: TerritoryAccess.Intercom },
@@ -111,17 +111,17 @@ function accessClauseForCreate(
           phoneTypeActive ? { access: TerritoryAccess.Code, isOpenEarly: true } : { access: TerritoryAccess.Code },
         ],
       }
-    case TerritoryKind.Phone:
+    case TerritoryKindKey.Phone:
       return {
         OR: [{ phones: { gt: 0 } }, { access: TerritoryAccess.Code, isOpenEarly: false }],
       }
-    case TerritoryKind.Commerces:
-    case TerritoryKind.Hotel:
-    case TerritoryKind.Univ:
+    case TerritoryKindKey.Commerces:
+    case TerritoryKindKey.Hotel:
+    case TerritoryKindKey.Univ:
       return null
     default: {
       const exhaustiveCheck: never = kind
-      throw new Error(`Unhandled TerritoryKind in accessClauseForCreate: ${String(exhaustiveCheck)}`)
+      throw new Error(`Unhandled TerritoryKindKey in accessClauseForCreate: ${String(exhaustiveCheck)}`)
     }
   }
 }

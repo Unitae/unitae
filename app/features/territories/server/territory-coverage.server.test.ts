@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
@@ -12,8 +12,8 @@ vi.mock('~/shared/infra/db.server', () => ({
 const { computeTerritoryCoverage } = await import('./territory-coverage.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
-const baseArgs: [TerritoryKind[], TerritoryAttributionKind[], Date, Date] = [
-  [TerritoryKind.Classical],
+const baseArgs: [TerritoryKindKey[], TerritoryAttributionKind[], Date, Date] = [
+  [TerritoryKindKey.Classical],
   [TerritoryAttributionKind.Default],
   new Date(2025, 8, 1),
   new Date(2026, 7, 31),

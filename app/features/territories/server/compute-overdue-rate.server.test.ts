@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { computeOverdueRate } from './compute-overdue-rate.server'
 import type { StatsAttribution } from './stats-attribution.type'
 
@@ -9,7 +9,7 @@ function makeAttribution(endDate: Date | null, lateDate: Date): StatsAttribution
     id: 1,
     territoryId: 1,
     territoryNumber: 'T-1',
-    territoryType: TerritoryKind.Classical,
+    territoryType: TerritoryKindKey.Classical,
     type: TerritoryAttributionKind.Default,
     campaignId: null,
     campaignRestPeriodDays: null,

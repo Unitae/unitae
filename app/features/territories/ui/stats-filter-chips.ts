@@ -1,6 +1,6 @@
 import type { PublisherGroup } from '~/database/generated/client'
 import { AttributionCategory } from '~/features/territories/model/attribution-category'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 import { formatGroupName } from '~/shared/utils/format-group-name'
 
@@ -24,15 +24,15 @@ export interface BuildStatsFilterChipsInput {
 
 function territoryKindLabel(kind: string): string {
   switch (kind) {
-    case TerritoryKind.Classical:
+    case TerritoryKindKey.Classical:
       return m.stats_filter_territory_door()
-    case TerritoryKind.Phone:
+    case TerritoryKindKey.Phone:
       return m.stats_filter_territory_phone()
-    case TerritoryKind.Commerces:
+    case TerritoryKindKey.Commerces:
       return m.stats_filter_territory_commerce()
-    case TerritoryKind.Hotel:
+    case TerritoryKindKey.Hotel:
       return m.stats_filter_territory_hotel()
-    case TerritoryKind.Univ:
+    case TerritoryKindKey.Univ:
       return m.stats_filter_territory_university()
     default:
       return kind

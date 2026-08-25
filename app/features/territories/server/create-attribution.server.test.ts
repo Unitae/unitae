@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 
 vi.mock('~/shared/domain/settings.server', () => ({
   getSetting: vi.fn(),
@@ -44,7 +44,7 @@ beforeEach(() => {
   mockDb.attribution.create.mockResolvedValue({} as never)
   mockDb.attribution.findMany.mockResolvedValue([])
   mockDb.attribution.findFirst.mockResolvedValue(null as never)
-  mockDb.territory.findUniqueOrThrow.mockResolvedValue({ type: TerritoryKind.Classical } as never)
+  mockDb.territory.findUniqueOrThrow.mockResolvedValue({ type: TerritoryKindKey.Classical } as never)
 })
 
 describe('createAttribution', () => {
@@ -92,7 +92,7 @@ describe('createAttribution', () => {
   })
 
   it('uses commerce duration (120 days) for commerce territory type', async () => {
-    mockDb.territory.findUniqueOrThrow.mockResolvedValue({ type: TerritoryKind.Commerces } as never)
+    mockDb.territory.findUniqueOrThrow.mockResolvedValue({ type: TerritoryKindKey.Commerces } as never)
 
     await createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Default })
 

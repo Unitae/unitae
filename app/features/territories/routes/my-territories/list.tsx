@@ -1,7 +1,7 @@
 import { ChevronRight, Download, MapPin, Pause } from 'lucide-react'
 import { Link } from 'react-router'
 
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { getActiveCampaign } from '~/features/territories/server/campaign.queries'
 import {
   getUserTerritoriesWithDetails,
@@ -65,23 +65,23 @@ function statusLabel(status: TerritoryStatus): string {
 }
 
 function territoryTypeLabel(type: string): string {
-  if (type === TerritoryKind.Phone) return m.territories_type_phone_singular()
-  if (type === TerritoryKind.Commerces) return m.territories_type_commerces()
-  if (type === TerritoryKind.Hotel) return m.territories_type_hotel_singular()
-  if (type === TerritoryKind.Univ) return m.territories_type_university_singular()
+  if (type === TerritoryKindKey.Phone) return m.territories_type_phone_singular()
+  if (type === TerritoryKindKey.Commerces) return m.territories_type_commerces()
+  if (type === TerritoryKindKey.Hotel) return m.territories_type_hotel_singular()
+  if (type === TerritoryKindKey.Univ) return m.territories_type_university_singular()
   return m.territories_type_classical()
 }
 
 function quantityLabel(type: string, entrances: { homes: number | null; phones: number | null }[]): string {
-  if (type === TerritoryKind.Phone) {
+  if (type === TerritoryKindKey.Phone) {
     const count = entrances.reduce((acc, e) => acc + (e.phones ?? 0), 0)
     return m.my_territories_phones_count({ count })
   }
-  if (type === TerritoryKind.Classical || type === TerritoryKind.Univ) {
+  if (type === TerritoryKindKey.Classical || type === TerritoryKindKey.Univ) {
     const count = entrances.reduce((acc, e) => acc + ((e.homes ?? 0) || (e.phones ?? 0)), 0)
     return m.my_territories_homes_count({ count })
   }
-  if (type === TerritoryKind.Commerces) {
+  if (type === TerritoryKindKey.Commerces) {
     return m.my_territories_commerces_count({ count: entrances.length })
   }
   return m.my_territories_entrances_count({ count: entrances.length })

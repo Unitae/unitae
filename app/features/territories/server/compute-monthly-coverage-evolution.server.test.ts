@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { computeMonthlyCoverageEvolution } from './compute-monthly-coverage-evolution.server'
 import type { StatsAttribution } from './stats-attribution.type'
 import type { TerritoryCountByType } from './territory-count-by-type.type'
@@ -10,7 +10,7 @@ function makeAttribution(territoryId: number, startDate: Date, endDate: Date | n
     id: territoryId,
     territoryId,
     territoryNumber: `T-${territoryId}`,
-    territoryType: TerritoryKind.Classical,
+    territoryType: TerritoryKindKey.Classical,
     type: TerritoryAttributionKind.Default,
     campaignId: null,
     campaignRestPeriodDays: null,
@@ -21,7 +21,7 @@ function makeAttribution(territoryId: number, startDate: Date, endDate: Date | n
 }
 
 describe('computeMonthlyCoverageEvolution', () => {
-  const counts: TerritoryCountByType[] = [{ type: TerritoryKind.Classical, count: 10 }]
+  const counts: TerritoryCountByType[] = [{ type: TerritoryKindKey.Classical, count: 10 }]
 
   it("retourne un tableau vide quand il n'y a aucun territoire", () => {
     const result = computeMonthlyCoverageEvolution([], [], new Date(2025, 8, 1), new Date(2025, 10, 30))

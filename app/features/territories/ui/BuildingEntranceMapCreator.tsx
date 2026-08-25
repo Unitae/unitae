@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useFetcher } from 'react-router'
 import { toast } from 'sonner'
-import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import type { SplitToolCreateActionResult } from '~/features/territories/routes/split-tool/create'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
 import { DraftTerritoryRail } from '~/features/territories/ui/DraftTerritoryRail'
@@ -14,7 +14,7 @@ import * as m from '~/i18n/paraglide/messages'
 
 type Props = {
   apiKey?: string
-  kind: TerritoryKind
+  kind: TerritoryKindKey
   suggestedNumber: string
   fallbackCenter?: { lat: number; lng: number }
   /** Total entrances eligible for this kind — the tab count. Passed to the canvas so its "N sur M" chip has a denominator. */

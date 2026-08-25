@@ -1,5 +1,5 @@
 import { ExternalLink, Plus, RotateCcw, Trash2 } from 'lucide-react'
-import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
 import { entranceContentLabel } from '~/features/territories/server/entrance-content-label'
 import type { EditPendingState } from '~/features/territories/ui/EntrancePopup'
@@ -63,7 +63,7 @@ type PendingEntranceListProps = {
   pendingAdditions: Map<number, BboxEntrance>
   pendingRemovals: Map<number, BboxEntrance | AggregatedEntrance>
   pendingReassignments: Map<number, { entrance: BboxEntrance; fromTerritoryId: number; fromTerritoryNumber: string }>
-  territoryType: TerritoryKind
+  territoryType: TerritoryKindKey
   showMap: boolean
   onFocusEntrance: (entranceId: number) => void
   onRevert: (entranceId: number) => void

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { PublisherGroup } from '~/database/generated/client'
 import { AttributionCategory } from '~/features/territories/model/attribution-category'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { type BuildStatsFilterChipsInput, buildStatsFilterChips } from './stats-filter-chips'
 
 const CLASSIQUE_PATTERN = /classique/i
@@ -43,9 +43,9 @@ describe('buildStatsFilterChips', () => {
   })
 
   it('emits one chip per selected territory kind', () => {
-    const chips = buildStatsFilterChips(baseInput({ kinds: [TerritoryKind.Classical, TerritoryKind.Hotel] }))
+    const chips = buildStatsFilterChips(baseInput({ kinds: [TerritoryKindKey.Classical, TerritoryKindKey.Hotel] }))
     const kindChips = chips.filter(c => c.tone === 'kind')
-    expect(kindChips.map(c => c.key)).toEqual([`kind-${TerritoryKind.Classical}`, `kind-${TerritoryKind.Hotel}`])
+    expect(kindChips.map(c => c.key)).toEqual([`kind-${TerritoryKindKey.Classical}`, `kind-${TerritoryKindKey.Hotel}`])
   })
 
   it('emits an attribution chip per selected attribution kind', () => {
@@ -93,8 +93,8 @@ describe('buildStatsFilterChips', () => {
     expect(groupChip?.key).toBe('group-99')
   })
 
-  it('renders a distinct non-empty label for every TerritoryKind', () => {
-    const allKinds = Object.values(TerritoryKind) as string[]
+  it('renders a distinct non-empty label for every TerritoryKindKey', () => {
+    const allKinds = Object.values(TerritoryKindKey) as string[]
     const labels = allKinds.map(kind => {
       const chips = buildStatsFilterChips(baseInput({ kinds: [kind] }))
       return chips.find(c => c.tone === 'kind')?.label

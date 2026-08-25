@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { computeRankedTerritories } from './compute-ranked-territories.server'
 import type { StatsAttribution } from './stats-attribution.type'
 
@@ -9,7 +9,7 @@ function makeAttribution(overrides: Partial<StatsAttribution> = {}): StatsAttrib
     id: 1,
     territoryId: 1,
     territoryNumber: 'T-1',
-    territoryType: TerritoryKind.Classical,
+    territoryType: TerritoryKindKey.Classical,
     type: TerritoryAttributionKind.Default,
     campaignId: null,
     campaignRestPeriodDays: null,

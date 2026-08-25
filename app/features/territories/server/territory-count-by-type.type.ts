@@ -1,7 +1,7 @@
-import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 
 export interface TerritoryCountByType {
-  type: TerritoryKind
+  type: TerritoryKindKey
   count: number
 }
 

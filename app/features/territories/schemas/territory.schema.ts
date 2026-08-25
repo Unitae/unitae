@@ -1,9 +1,9 @@
 import { z } from 'zod'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 
 export const createTerritorySchema = z.object({
   number: z.string().min(1),
-  type: z.nativeEnum(TerritoryKind),
+  type: z.nativeEnum(TerritoryKindKey),
   entrances: z
     .array(z.coerce.number())
     .or(z.coerce.number().transform(v => [v]))

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { ConflictError, LimitReachedError } from '~/shared/errors/app-error.server'
 
 vi.mock('~/shared/infra/db.server', () => ({
@@ -27,7 +27,7 @@ const limitBreached: LimitStub = {
 }
 
 const validParams = {
-  type: TerritoryKind.Classical,
+  type: TerritoryKindKey.Classical,
   entranceIds: [1, 2, 3],
   congregationId: 42,
   actorId: 99,
@@ -44,7 +44,7 @@ describe('splitToolCreateWorkflow', () => {
     vi.mocked(createTerritoryFromSplit).mockResolvedValue({
       id: 7,
       number: 'D001',
-      type: TerritoryKind.Classical,
+      type: TerritoryKindKey.Classical,
     } as never)
 
     const result = await splitToolCreateWorkflow(db as never, validParams, okLimits)

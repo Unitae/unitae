@@ -1,6 +1,6 @@
 import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import type { Attribution, Member, Territory } from '~/database/generated/client'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 
 type TerritoryRepport = Territory & { attributions: (Attribution & { publisher: Member })[] }
@@ -20,7 +20,7 @@ export function TerritoryAttributionDocument({
       createdAt: new Date(),
       updatedAt: new Date(),
       notes: '',
-      type: TerritoryKind.Classical,
+      type: TerritoryKindKey.Classical,
       congregationId: 0,
     },
   ],

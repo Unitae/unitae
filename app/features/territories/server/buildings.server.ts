@@ -1,7 +1,7 @@
 import type { Prisma } from '~/database/generated/client'
 import type { Bbox } from '~/features/territories/model/bbox.type'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import {
   availableForCreateWhere,
   type MapVisibilityContext,
@@ -11,12 +11,12 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 import type { AggregatedEntrance, Entrance } from '~/shared/types/entrance'
 import { paginationFromUrl } from '~/shared/utils/pagination.server'
 
-const entranceKindForTerritoryType: Record<TerritoryKind, EntranceKind> = {
-  [TerritoryKind.Classical]: EntranceKind.Residential,
-  [TerritoryKind.Phone]: EntranceKind.Residential,
-  [TerritoryKind.Commerces]: EntranceKind.Commerce,
-  [TerritoryKind.Hotel]: EntranceKind.Hotel,
-  [TerritoryKind.Univ]: EntranceKind.Campus,
+const entranceKindForTerritoryType: Record<TerritoryKindKey, EntranceKind> = {
+  [TerritoryKindKey.Classical]: EntranceKind.Residential,
+  [TerritoryKindKey.Phone]: EntranceKind.Residential,
+  [TerritoryKindKey.Commerces]: EntranceKind.Commerce,
+  [TerritoryKindKey.Hotel]: EntranceKind.Hotel,
+  [TerritoryKindKey.Univ]: EntranceKind.Campus,
 }
 
 export type BboxEntranceStatus = 'in-this-territory' | 'available' | 'on-other-territory'
@@ -128,7 +128,7 @@ export function aggregateEntrance(entrance: Entrance): AggregatedEntrance {
   }
 }
 
-export async function getZips(db: TransactionClient, congregationId: number, territoryType?: TerritoryKind) {
+export async function getZips(db: TransactionClient, congregationId: number, territoryType?: TerritoryKindKey) {
   const selectors: Prisma.BuildingWhereInput = { active: true, congregationId }
 
   if (territoryType != null) {
@@ -146,7 +146,11 @@ export async function getZips(db: TransactionClient, congregationId: number, ter
   return await db.building.groupBy({ by: 'zip', where: selectors })
 }
 
-export async function getAvailableZips(db: TransactionClient, congregationId: number, territoryType?: TerritoryKind) {
+export async function getAvailableZips(
+  db: TransactionClient,
+  congregationId: number,
+  territoryType?: TerritoryKindKey,
+) {
   const selectors: Prisma.BuildingWhereInput = { active: true, congregationId }
 
   if (territoryType != null) {
@@ -168,7 +172,7 @@ export async function getAvailableStreets(
   db: TransactionClient,
   congregationId: number,
   zip?: string,
-  territoryType?: TerritoryKind,
+  territoryType?: TerritoryKindKey,
 ) {
   const selectors: Prisma.BuildingWhereInput = { active: true, congregationId }
 
@@ -195,7 +199,7 @@ export async function getAvailableEntrances(
   congregationId: number,
   zip?: string,
   street?: string,
-  territoryType?: TerritoryKind,
+  territoryType?: TerritoryKindKey,
 ): Promise<Entrance[]> {
   const selectors: Prisma.BuildingEntranceWhereInput = {
     congregationId,
@@ -223,7 +227,7 @@ export async function getAvailableEntrances(
 async function queryEntrancesInBbox(
   db: TransactionClient,
   where: Prisma.BuildingEntranceWhereInput,
-  territoryType: TerritoryKind,
+  territoryType: TerritoryKindKey,
   matchesThisTerritory: (row: { territories: { id: number; number: string }[] }) => {
     inThisTerritory: boolean
     otherTerritory: { id: number; number: string } | null
@@ -285,7 +289,7 @@ export async function getEntrancesInBbox(
   db: TransactionClient,
   congregationId: number,
   territoryId: number,
-  territoryType: TerritoryKind,
+  territoryType: TerritoryKindKey,
   bbox: Bbox,
   ctx: MapVisibilityContext,
   limit = 1500,
@@ -319,7 +323,7 @@ export async function getEntrancesInBbox(
 export async function countAvailableEntrances(
   db: TransactionClient,
   congregationId: number,
-  kind: TerritoryKind,
+  kind: TerritoryKindKey,
   ctx: MapVisibilityContext,
 ): Promise<{ total: number; withoutCoordinates: number }> {
   const baseWhere = {
@@ -341,7 +345,7 @@ export async function countAvailableEntrances(
 export async function getAvailableEntrancesInBbox(
   db: TransactionClient,
   congregationId: number,
-  kind: TerritoryKind,
+  kind: TerritoryKindKey,
   bbox: Bbox,
   ctx: MapVisibilityContext,
   limit = 1500,

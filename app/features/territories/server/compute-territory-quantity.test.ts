@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import type { AggregatedEntrance } from '~/shared/types/entrance'
 import { computeTerritoryQuantity } from './compute-territory-quantity'
 
@@ -52,38 +52,38 @@ function makeEntrance(overrides: { homes?: number; phones?: number } = {}): Aggr
 describe('computeTerritoryQuantity', () => {
   it('retourne la somme des foyers pour un territoire classique', () => {
     const entrances = [makeEntrance({ homes: 10 }), makeEntrance({ homes: 20 })]
-    expect(computeTerritoryQuantity(TerritoryKind.Classical, entrances)).toBe(30)
+    expect(computeTerritoryQuantity(TerritoryKindKey.Classical, entrances)).toBe(30)
   })
 
   it('retourne la somme des foyers pour un territoire universitaire', () => {
     const entrances = [makeEntrance({ homes: 5 }), makeEntrance({ homes: 15 })]
-    expect(computeTerritoryQuantity(TerritoryKind.Univ, entrances)).toBe(20)
+    expect(computeTerritoryQuantity(TerritoryKindKey.Univ, entrances)).toBe(20)
   })
 
   it('utilise les téléphones en fallback quand les foyers sont absents pour un territoire classique', () => {
     const entrance = makeEntrance({ phones: 8 })
     entrance.homes = 0
-    expect(computeTerritoryQuantity(TerritoryKind.Classical, [entrance])).toBe(8)
+    expect(computeTerritoryQuantity(TerritoryKindKey.Classical, [entrance])).toBe(8)
   })
 
   it('retourne la somme des téléphones pour un territoire téléphone', () => {
     const entrances = [makeEntrance({ phones: 12 }), makeEntrance({ phones: 8 })]
-    expect(computeTerritoryQuantity(TerritoryKind.Phone, entrances)).toBe(20)
+    expect(computeTerritoryQuantity(TerritoryKindKey.Phone, entrances)).toBe(20)
   })
 
   it("retourne le nombre d'allées pour un territoire commerces", () => {
     const entrances = [makeEntrance(), makeEntrance(), makeEntrance()]
-    expect(computeTerritoryQuantity(TerritoryKind.Commerces, entrances)).toBe(3)
+    expect(computeTerritoryQuantity(TerritoryKindKey.Commerces, entrances)).toBe(3)
   })
 
   it("retourne le nombre d'allées pour un territoire hôtels", () => {
     const entrances = [makeEntrance(), makeEntrance()]
-    expect(computeTerritoryQuantity(TerritoryKind.Hotel, entrances)).toBe(2)
+    expect(computeTerritoryQuantity(TerritoryKindKey.Hotel, entrances)).toBe(2)
   })
 
   it("retourne 0 quand il n'y a pas d'allées", () => {
-    expect(computeTerritoryQuantity(TerritoryKind.Classical, [])).toBe(0)
-    expect(computeTerritoryQuantity(TerritoryKind.Phone, [])).toBe(0)
-    expect(computeTerritoryQuantity(TerritoryKind.Commerces, [])).toBe(0)
+    expect(computeTerritoryQuantity(TerritoryKindKey.Classical, [])).toBe(0)
+    expect(computeTerritoryQuantity(TerritoryKindKey.Phone, [])).toBe(0)
+    expect(computeTerritoryQuantity(TerritoryKindKey.Commerces, [])).toBe(0)
   })
 })

@@ -4,7 +4,7 @@ import { Form, useSearchParams } from 'react-router'
 import type { Prisma } from '~/database/generated/client'
 import { ShopKind } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
@@ -64,11 +64,11 @@ export default function TerritoryFilters({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="none">{m.territories_filter_type()}</SelectItem>
-            <SelectItem value={TerritoryKind.Classical}>{m.territories_type_classical_capitalized()}</SelectItem>
-            <SelectItem value={TerritoryKind.Commerces}>{m.territories_filter_shops()}</SelectItem>
-            <SelectItem value={TerritoryKind.Hotel}>{m.territories_type_hotel()}</SelectItem>
-            <SelectItem value={TerritoryKind.Phone}>{m.territories_type_phone()}</SelectItem>
-            <SelectItem value={TerritoryKind.Univ}>{m.territories_type_university_singular()}</SelectItem>
+            <SelectItem value={TerritoryKindKey.Classical}>{m.territories_type_classical_capitalized()}</SelectItem>
+            <SelectItem value={TerritoryKindKey.Commerces}>{m.territories_filter_shops()}</SelectItem>
+            <SelectItem value={TerritoryKindKey.Hotel}>{m.territories_type_hotel()}</SelectItem>
+            <SelectItem value={TerritoryKindKey.Phone}>{m.territories_type_phone()}</SelectItem>
+            <SelectItem value={TerritoryKindKey.Univ}>{m.territories_type_university_singular()}</SelectItem>
           </SelectContent>
         </Select>
       )}

@@ -3,7 +3,7 @@ import JsZip from 'jszip'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 import { BUILT_IN_ROLE_KEYS } from '~/shared/domain/built-in-roles.server'
 import { PublisherType } from '~/shared/types/publisher-type'
@@ -90,7 +90,7 @@ beforeAll(async () => {
     })
 
     const territory = await tx.territory.create({
-      data: { number: `T-${ts}`, type: TerritoryKind.Classical, notes: 'Test territory', congregationId: sourceId },
+      data: { number: `T-${ts}`, type: TerritoryKindKey.Classical, notes: 'Test territory', congregationId: sourceId },
     })
 
     const building = await tx.building.create({

@@ -4,7 +4,7 @@ import { ExternalLink, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { getSession } from '~/features/authentication/index.server'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { createTerritorySchema } from '~/features/territories/schemas/territory.schema'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import { createTerritory } from '~/features/territories/server/create-territory.server'
@@ -120,20 +120,20 @@ export default function NewTerritoryPage({ loaderData, actionData }: Route.Compo
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor={fields.type.id}>{m.territories_form_type()}</Label>
-                <Select name={fields.type.name} defaultValue={TerritoryKind.Classical}>
+                <Select name={fields.type.name} defaultValue={TerritoryKindKey.Classical}>
                   <SelectTrigger id={fields.type.id} className="w-full" aria-invalid={fields.type.errors !== undefined}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={TerritoryKind.Classical}>
+                    <SelectItem value={TerritoryKindKey.Classical}>
                       {m.territories_type_classical_capitalized()}
                     </SelectItem>
-                    <SelectItem value={TerritoryKind.Commerces}>{m.territories_type_commerces()}</SelectItem>
-                    <SelectItem value={TerritoryKind.Hotel}>{m.territories_type_hotel()}</SelectItem>
+                    <SelectItem value={TerritoryKindKey.Commerces}>{m.territories_type_commerces()}</SelectItem>
+                    <SelectItem value={TerritoryKindKey.Hotel}>{m.territories_type_hotel()}</SelectItem>
                     {phoneTypeActive && (
-                      <SelectItem value={TerritoryKind.Phone}>{m.territories_type_phone_singular()}</SelectItem>
+                      <SelectItem value={TerritoryKindKey.Phone}>{m.territories_type_phone_singular()}</SelectItem>
                     )}
-                    <SelectItem value={TerritoryKind.Univ}>{m.territories_type_university_singular()}</SelectItem>
+                    <SelectItem value={TerritoryKindKey.Univ}>{m.territories_type_university_singular()}</SelectItem>
                   </SelectContent>
                 </Select>
                 {fields.type.errors && <p className="text-destructive text-sm">{fields.type.errors}</p>}

@@ -20,7 +20,7 @@ import { EventTemplateKey } from '../features/events/model/event-template.type'
 import { seedDefaultTemplates } from '../features/events/server/seed-templates.server'
 import { EntranceKind } from '../features/territories/model/entrance-kind.type'
 import { TerritoryAttributionKind } from '../features/territories/model/territory-attribution-kind.type'
-import { TerritoryKind } from '../features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '../features/territories/model/territory-kind.type'
 import { syncBuiltInRoleAssignments } from '../shared/domain/built-in-roles.server'
 import { seedBuiltInRoles } from '../shared/domain/setup.server'
 import { Permission } from '../shared/types/permission'
@@ -366,35 +366,35 @@ const PUBLISHERS: {
   },
 ]
 
-const TERRITORIES: { number: string; type: TerritoryKind; notes: string }[] = [
-  { number: 'T01', type: TerritoryKind.Classical, notes: 'Centre-ville, secteur piéton' },
-  { number: 'T02', type: TerritoryKind.Classical, notes: '' },
-  { number: 'T03', type: TerritoryKind.Classical, notes: 'Résidences récentes, beaucoup de jeunes familles' },
-  { number: 'T04', type: TerritoryKind.Classical, notes: '' },
-  { number: 'T05', type: TerritoryKind.Classical, notes: 'Quartier calme, peu de refus' },
-  { number: 'T06', type: TerritoryKind.Classical, notes: '' },
-  { number: 'T07', type: TerritoryKind.Classical, notes: 'Immeubles avec digicodes — voir notes entrées' },
-  { number: 'T08', type: TerritoryKind.Classical, notes: '' },
-  { number: 'T09', type: TerritoryKind.Classical, notes: '' },
-  { number: 'T10', type: TerritoryKind.Classical, notes: 'Proche de la gare' },
-  { number: 'T11', type: TerritoryKind.Classical, notes: '' },
-  { number: 'T12', type: TerritoryKind.Classical, notes: 'Longue distance entre immeubles' },
-  { number: 'T13', type: TerritoryKind.Classical, notes: '' },
-  { number: 'T14', type: TerritoryKind.Classical, notes: '' },
-  { number: 'P01', type: TerritoryKind.Phone, notes: 'Territoire téléphonique — personnes âgées' },
-  { number: 'P02', type: TerritoryKind.Phone, notes: 'Territoire téléphonique' },
-  { number: 'C01', type: TerritoryKind.Commerces, notes: 'Commerces rue principale' },
-  { number: 'C02', type: TerritoryKind.Commerces, notes: 'Commerces zone commerciale' },
-  { number: 'H01', type: TerritoryKind.Hotel, notes: 'Hôtels du quartier' },
-  { number: 'U01', type: TerritoryKind.Univ, notes: 'Campus universitaire' },
+const TERRITORIES: { number: string; type: TerritoryKindKey; notes: string }[] = [
+  { number: 'T01', type: TerritoryKindKey.Classical, notes: 'Centre-ville, secteur piéton' },
+  { number: 'T02', type: TerritoryKindKey.Classical, notes: '' },
+  { number: 'T03', type: TerritoryKindKey.Classical, notes: 'Résidences récentes, beaucoup de jeunes familles' },
+  { number: 'T04', type: TerritoryKindKey.Classical, notes: '' },
+  { number: 'T05', type: TerritoryKindKey.Classical, notes: 'Quartier calme, peu de refus' },
+  { number: 'T06', type: TerritoryKindKey.Classical, notes: '' },
+  { number: 'T07', type: TerritoryKindKey.Classical, notes: 'Immeubles avec digicodes — voir notes entrées' },
+  { number: 'T08', type: TerritoryKindKey.Classical, notes: '' },
+  { number: 'T09', type: TerritoryKindKey.Classical, notes: '' },
+  { number: 'T10', type: TerritoryKindKey.Classical, notes: 'Proche de la gare' },
+  { number: 'T11', type: TerritoryKindKey.Classical, notes: '' },
+  { number: 'T12', type: TerritoryKindKey.Classical, notes: 'Longue distance entre immeubles' },
+  { number: 'T13', type: TerritoryKindKey.Classical, notes: '' },
+  { number: 'T14', type: TerritoryKindKey.Classical, notes: '' },
+  { number: 'P01', type: TerritoryKindKey.Phone, notes: 'Territoire téléphonique — personnes âgées' },
+  { number: 'P02', type: TerritoryKindKey.Phone, notes: 'Territoire téléphonique' },
+  { number: 'C01', type: TerritoryKindKey.Commerces, notes: 'Commerces rue principale' },
+  { number: 'C02', type: TerritoryKindKey.Commerces, notes: 'Commerces zone commerciale' },
+  { number: 'H01', type: TerritoryKindKey.Hotel, notes: 'Hôtels du quartier' },
+  { number: 'U01', type: TerritoryKindKey.Univ, notes: 'Campus universitaire' },
 ]
 
-const ENTRANCE_KIND_FOR_TERRITORY: Record<TerritoryKind, EntranceKind> = {
-  [TerritoryKind.Classical]: EntranceKind.Residential,
-  [TerritoryKind.Phone]: EntranceKind.Residential,
-  [TerritoryKind.Commerces]: EntranceKind.Commerce,
-  [TerritoryKind.Hotel]: EntranceKind.Hotel,
-  [TerritoryKind.Univ]: EntranceKind.Campus,
+const ENTRANCE_KIND_FOR_TERRITORY: Record<TerritoryKindKey, EntranceKind> = {
+  [TerritoryKindKey.Classical]: EntranceKind.Residential,
+  [TerritoryKindKey.Phone]: EntranceKind.Residential,
+  [TerritoryKindKey.Commerces]: EntranceKind.Commerce,
+  [TerritoryKindKey.Hotel]: EntranceKind.Hotel,
+  [TerritoryKindKey.Univ]: EntranceKind.Campus,
 }
 
 const SHOP_KINDS = [

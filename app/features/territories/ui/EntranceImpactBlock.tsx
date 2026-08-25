@@ -1,4 +1,4 @@
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
 import type { TerritoryContent } from '~/features/territories/server/territory-content.queries'
 import {
@@ -15,14 +15,14 @@ function errorLine(reason: ForeignContentErrorReason): string {
 type ImpactSummary = { current: string; afterRemoval: string }
 
 function summariseImpact(content: TerritoryContent, entrance: BboxEntrance): ImpactSummary {
-  if (content.kind === TerritoryKind.Phone) {
+  if (content.kind === TerritoryKindKey.Phone) {
     const after = Math.max(0, content.phones - entrance.phones)
     return {
       current: m.territories_map_popup_impact_phones({ count: content.phones }),
       afterRemoval: m.territories_map_popup_impact_after_removal_phones({ count: after }),
     }
   }
-  if (content.kind === TerritoryKind.Classical || content.kind === TerritoryKind.Univ) {
+  if (content.kind === TerritoryKindKey.Classical || content.kind === TerritoryKindKey.Univ) {
     // Mirror computeTerritoryQuantity — Classical/Univ aggregate as `homes || phones` per entrance.
     const contribution = entrance.homes || entrance.phones
     const after = Math.max(0, content.quantity - contribution)
@@ -39,8 +39,8 @@ function summariseImpact(content: TerritoryContent, entrance: BboxEntrance): Imp
 }
 
 function secondaryAggregates(content: TerritoryContent): string[] {
-  const isPhonePrimary = content.kind === TerritoryKind.Phone
-  const isHomesPrimary = content.kind === TerritoryKind.Classical || content.kind === TerritoryKind.Univ
+  const isPhonePrimary = content.kind === TerritoryKindKey.Phone
+  const isHomesPrimary = content.kind === TerritoryKindKey.Classical || content.kind === TerritoryKindKey.Univ
   const isEntrancePrimary = !isPhonePrimary && !isHomesPrimary
 
   const parts: string[] = []

@@ -11,7 +11,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 
 vi.mock('~/shared/domain/audit.server', () => ({
   audit: vi.fn(),
@@ -58,7 +58,7 @@ beforeAll(async () => {
   await withScope(congregationId, async tx => {
     // Near territory — building ~500m from origin.
     const near = await tx.territory.create({
-      data: { number: '01', type: TerritoryKind.Classical, congregationId },
+      data: { number: '01', type: TerritoryKindKey.Classical, congregationId },
     })
     nearId = near.id
     await tx.buildingEntrance.create({
@@ -75,7 +75,7 @@ beforeAll(async () => {
 
     // Far territory — ~5km from origin.
     const far = await tx.territory.create({
-      data: { number: '02', type: TerritoryKind.Classical, congregationId },
+      data: { number: '02', type: TerritoryKindKey.Classical, congregationId },
     })
     farId = far.id
     await tx.buildingEntrance.create({
@@ -92,7 +92,7 @@ beforeAll(async () => {
 
     // No-coords territory — entrance and building both null lat/lng.
     const noCoords = await tx.territory.create({
-      data: { number: '03', type: TerritoryKind.Classical, congregationId },
+      data: { number: '03', type: TerritoryKindKey.Classical, congregationId },
     })
     noCoordsId = noCoords.id
     await tx.buildingEntrance.create({

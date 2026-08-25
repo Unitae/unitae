@@ -1,5 +1,5 @@
 import { Trash2 } from 'lucide-react'
-import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
 import { entranceContentLabel } from '~/features/territories/server/entrance-content-label'
 import * as m from '~/i18n/paraglide/messages'
@@ -8,7 +8,7 @@ import { Button } from '~/shared/ui/button'
 
 type EntrancesWithoutCoordinatesListProps = {
   entrances: AggregatedEntrance[]
-  territoryType: TerritoryKind
+  territoryType: TerritoryKindKey
   pendingRemovals: Map<number, BboxEntrance | AggregatedEntrance>
   onRemove: (entrance: AggregatedEntrance) => void
   onRevert: (entranceId: number) => void

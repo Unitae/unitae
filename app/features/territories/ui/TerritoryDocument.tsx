@@ -6,7 +6,7 @@ import { shopKindLabels as getShopKindLabels, type ShopKind } from '~/features/t
 import { buildTerritoryStaticMapUrl } from '~/features/territories/model/static-map-url'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 import type { Entrance } from '~/shared/types/entrance'
 
@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
 
 interface TerritoryDocumentProps {
   name: string
-  type: TerritoryKind
+  type: TerritoryKindKey
   entrances: Entrance[]
   googleMapId: string | undefined
   googleMapKey: string | undefined
@@ -117,7 +117,7 @@ interface TerritoryDocumentProps {
 
 export function TerritoryDocument({
   name,
-  type = TerritoryKind.Classical,
+  type = TerritoryKindKey.Classical,
   entrances = [],
   googleMapKey,
   googleMapId,
@@ -130,18 +130,18 @@ export function TerritoryDocument({
   attributionCampaign = false,
 }: TerritoryDocumentProps) {
   let unit = m.territory_doc_unit_entrances()
-  if (type === TerritoryKind.Phone) {
+  if (type === TerritoryKindKey.Phone) {
     unit = m.territory_doc_unit_phones()
   }
-  if (type === TerritoryKind.Classical || type === TerritoryKind.Univ) {
+  if (type === TerritoryKindKey.Classical || type === TerritoryKindKey.Univ) {
     unit = m.territory_doc_unit_homes()
   }
 
   let quantity = entrances.length
-  if (type === TerritoryKind.Phone) {
+  if (type === TerritoryKindKey.Phone) {
     quantity = entrances.reduce((acc, entrance) => acc + (entrance.phones ?? 0), 0)
   }
-  if (type === TerritoryKind.Classical || type === TerritoryKind.Univ) {
+  if (type === TerritoryKindKey.Classical || type === TerritoryKindKey.Univ) {
     quantity = entrances.reduce((acc, entrance) => acc + ((entrance.homes ?? 0) || (entrance.phones ?? 0)), 0)
   }
 
@@ -166,7 +166,7 @@ export function TerritoryDocument({
           </View>
           <TypeInformations type={type} />
           {entrances.map(entrance => {
-            if (type === TerritoryKind.Commerces) {
+            if (type === TerritoryKindKey.Commerces) {
               return <CommerceInformations key={entrance.id} entrance={entrance} />
             }
 
@@ -220,13 +220,13 @@ function DocumentWaterMark({ type, isCampaign }: { type: TerritoryAttributionKin
   return null
 }
 
-function TypeInformations({ type }: { type: TerritoryKind }) {
+function TypeInformations({ type }: { type: TerritoryKindKey }) {
   return (
     <Text style={styles.type}>
-      {type === TerritoryKind.Phone && m.territories_type_phone_singular()}
-      {type === TerritoryKind.Univ && m.territories_type_university_singular()}
-      {type === TerritoryKind.Commerces && m.territory_doc_type_commerce()}
-      {type === TerritoryKind.Hotel && m.territories_type_hotel_singular()}
+      {type === TerritoryKindKey.Phone && m.territories_type_phone_singular()}
+      {type === TerritoryKindKey.Univ && m.territories_type_university_singular()}
+      {type === TerritoryKindKey.Commerces && m.territory_doc_type_commerce()}
+      {type === TerritoryKindKey.Hotel && m.territories_type_hotel_singular()}
     </Text>
   )
 }

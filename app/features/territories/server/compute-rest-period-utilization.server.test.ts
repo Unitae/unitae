@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { computeRestPeriodUtilization } from './compute-rest-period-utilization.server'
 import type { StatsAttribution } from './stats-attribution.type'
 
@@ -17,7 +17,7 @@ function makeAttribution(
     id,
     territoryId,
     territoryNumber: `T-${territoryId}`,
-    territoryType: TerritoryKind.Classical,
+    territoryType: TerritoryKindKey.Classical,
     type,
     campaignId,
     campaignRestPeriodDays,
