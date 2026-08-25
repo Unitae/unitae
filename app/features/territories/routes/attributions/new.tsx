@@ -3,6 +3,7 @@ import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { createAttributionSchema } from '~/features/territories/schemas/attribution.schema'
+import { findAttributablePublishers } from '~/features/territories/server/attributable-publishers.queries'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import { getActiveCampaign } from '~/features/territories/server/campaign.queries'
 import { createAttribution } from '~/features/territories/server/create-attribution.server'
@@ -66,19 +67,9 @@ export function loader({ request, context }: Route.LoaderArgs) {
       throw redirect('/territories/attributions/new/available-territories')
     }
 
-    const users = await db.member.findMany({
-      where: {
-        isPublisher: true,
-        leftAt: null,
-        congregationId,
-      },
-      orderBy: [
-        {
-          lastname: 'asc',
-        },
-        { firstname: 'asc' },
-      ],
-    })
+    // Only publishers holding a role this territory's kind allows. An
+    // unrestricted kind yields every active publisher, as before role gating.
+    const users = await findAttributablePublishers(db, territory.type, congregationId)
 
     return {
       users,
@@ -248,6 +239,11 @@ export async function action({ request, context }: Route.ActionArgs) {
       }
       if (err instanceof ConflictError && err.message === 'territory_occupied') {
         return data(submission.reply({ formErrors: [m.attributions_territory_occupied_error()] }), { status: 409 })
+      }
+      if (err instanceof ConflictError && err.message === 'publisher_role_not_allowed') {
+        return data(submission.reply({ fieldErrors: { publisher: [m.attributions_publisher_role_error()] } }), {
+          status: 409,
+        })
       }
       throw err
     }

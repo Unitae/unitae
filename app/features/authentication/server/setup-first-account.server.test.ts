@@ -6,6 +6,8 @@ const scopedDb = {
   // Seeding the default templates also seeds the part presets they link to.
   partPreset: { findFirst: vi.fn(), create: vi.fn(), findMany: vi.fn() },
   role: { upsert: vi.fn(), findUnique: vi.fn() },
+  // Setup also seeds the built-in territory kinds.
+  territoryKind: { upsert: vi.fn() },
   permission: { findUnique: vi.fn() },
   rolePermission: { upsert: vi.fn() },
 }

@@ -11,9 +11,11 @@ vi.mock('~/shared/infra/db.server', () => ({
   },
 }))
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
+vi.mock('./attribution-eligibility.policy', () => ({ assertPublisherAllowedForAttribution: vi.fn() }))
 
 const { updateAttribution } = await import('./update-attribution.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
+const { assertPublisherAllowedForAttribution } = await import('./attribution-eligibility.policy')
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -92,5 +94,32 @@ describe('updateAttribution', () => {
 
     const call = vi.mocked(db.attribution.update).mock.calls[0][0] as { data: Record<string, unknown> }
     expect(call.data.endDate).toBe(endDate)
+  })
+
+  it("gates the incoming publisher against the attribution's territory kind", async () => {
+    vi.mocked(db.attribution.update).mockResolvedValue({} as never)
+
+    await updateAttribution(db as never, 5, 2, 99, {
+      publisherId: 10,
+      notes: '',
+      type: TerritoryAttributionKind.Default,
+      startDate: new Date('2025-01-01'),
+    })
+
+    expect(assertPublisherAllowedForAttribution).toHaveBeenCalledWith(db, 5, 10, 2)
+  })
+
+  it('updates nothing when the publisher fails the role gate', async () => {
+    vi.mocked(assertPublisherAllowedForAttribution).mockRejectedValue(new Error('publisher_role_not_allowed'))
+
+    await expect(
+      updateAttribution(db as never, 5, 2, 99, {
+        publisherId: 10,
+        notes: '',
+        type: TerritoryAttributionKind.Default,
+        startDate: new Date('2025-01-01'),
+      }),
+    ).rejects.toThrow('publisher_role_not_allowed')
+    expect(db.attribution.update).not.toHaveBeenCalled()
   })
 })

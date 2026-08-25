@@ -59,6 +59,8 @@ import {
   importAttributions,
   importTerritories,
   importTerritoryCardOverlays,
+  importTerritoryKindAllowedRoles,
+  importTerritoryKinds,
   importTerritoryPerimeter,
 } from './import-territories.server'
 import {
@@ -123,6 +125,8 @@ export {
   importAttributions,
   importTerritories,
   importTerritoryCardOverlays,
+  importTerritoryKindAllowedRoles,
+  importTerritoryKinds,
   importTerritoryPerimeter,
 } from './import-territories.server'
 export {
@@ -223,6 +227,12 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
       await progress()
 
       await importTerritories(zip, db, idMap, congregationId)
+      await progress()
+
+      await importTerritoryKinds(zip, db, idMap, congregationId)
+      await progress()
+
+      await importTerritoryKindAllowedRoles(zip, db, idMap, congregationId)
       await progress()
 
       await importTerritoryCardOverlays(zip, db, idMap, congregationId)

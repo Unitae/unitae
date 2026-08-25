@@ -21,6 +21,7 @@ import { seedDefaultTemplates } from '../features/events/server/seed-templates.s
 import { EntranceKind } from '../features/territories/model/entrance-kind.type'
 import { TerritoryAttributionKind } from '../features/territories/model/territory-attribution-kind.type'
 import { TerritoryKindKey } from '../features/territories/model/territory-kind.type'
+import { seedBuiltInTerritoryKinds } from '../features/territories/server/territory-kinds.server'
 import { syncBuiltInRoleAssignments } from '../shared/domain/built-in-roles.server'
 import { seedBuiltInRoles } from '../shared/domain/setup.server'
 import { Permission } from '../shared/types/permission'
@@ -639,6 +640,7 @@ async function main() {
   // for this congregation even when the marketing seed runs on a fresh DB
   // without the regular seed having run first.
   await seedBuiltInRoles(prisma, congId)
+  await seedBuiltInTerritoryKinds(prisma, congId)
 
   // ── Event templates ───────────────────────────────────────────────────
   await seedDefaultTemplates(prisma, congId, 'fr')

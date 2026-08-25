@@ -7,17 +7,20 @@ vi.mock('~/shared/domain/settings.server', () => ({
 }))
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 vi.mock('./campaign.queries', () => ({ getActiveCampaign: vi.fn() }))
+vi.mock('./attribution-eligibility.policy', () => ({ assertPublisherAllowedForKind: vi.fn() }))
 
 const mockDb = {
   // aggregate.assign runs _assertNoActiveOverlap (findMany) and the
   // occupied-territory guard for campaign assignments (findFirst).
   attribution: { create: vi.fn(), findMany: vi.fn(), findFirst: vi.fn() },
-  territory: { findUniqueOrThrow: vi.fn() },
+  // findFirst resolves the kind for the role gate; findUniqueOrThrow is the aggregate's own read.
+  territory: { findUniqueOrThrow: vi.fn(), findFirst: vi.fn() },
 }
 
 const { createAttribution } = await import('./create-attribution.server')
 const { getSetting } = await import('~/shared/domain/settings.server')
 const { getActiveCampaign } = await import('./campaign.queries')
+const { assertPublisherAllowedForKind } = await import('./attribution-eligibility.policy')
 
 const baseParams = {
   publisherId: 1,
@@ -45,6 +48,7 @@ beforeEach(() => {
   mockDb.attribution.findMany.mockResolvedValue([])
   mockDb.attribution.findFirst.mockResolvedValue(null as never)
   mockDb.territory.findUniqueOrThrow.mockResolvedValue({ type: TerritoryKindKey.Classical } as never)
+  mockDb.territory.findFirst.mockResolvedValue({ type: TerritoryKindKey.Classical } as never)
 })
 
 describe('createAttribution', () => {
@@ -107,5 +111,22 @@ describe('createAttribution', () => {
     const result = await createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Default })
 
     expect(result).toEqual(fake)
+  })
+
+  it("gates the publisher against the territory kind's allowed roles", async () => {
+    mockDb.territory.findFirst.mockResolvedValue({ type: TerritoryKindKey.Phone } as never)
+
+    await createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Default })
+
+    expect(assertPublisherAllowedForKind).toHaveBeenCalledWith(mockDb, TerritoryKindKey.Phone, 1, 10)
+  })
+
+  it('creates nothing when the publisher fails the role gate', async () => {
+    vi.mocked(assertPublisherAllowedForKind).mockRejectedValue(new Error('publisher_role_not_allowed'))
+
+    await expect(
+      createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Default }),
+    ).rejects.toThrow('publisher_role_not_allowed')
+    expect(mockDb.attribution.create).not.toHaveBeenCalled()
   })
 })

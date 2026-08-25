@@ -61,6 +61,8 @@ export const TENANT_MODELS = [
   'territory',
   'territoryPerimeter',
   'territoryCardOverlay',
+  'territoryKind',
+  'territoryKindAllowedRole',
   'attribution',
   'campaign',
   'campaignTerritory',

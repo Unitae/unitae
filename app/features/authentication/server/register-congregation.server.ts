@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { seedDefaultTemplates } from '~/features/events/index.server'
+import { seedBuiltInTerritoryKinds } from '~/features/territories/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import type { locales } from '~/i18n/paraglide/runtime'
 import { hash } from '~/shared/auth/crypto.server'
@@ -87,7 +88,7 @@ export async function registerCongregation(
   // freeform templates) inside a scoped transaction so PostgreSQL RLS allows
   // the inserts.
   await withScope(congregation.id, async scopedDb => {
-    await seedCongregationDefaults(scopedDb, congregation.id, locale, seedDefaultTemplates)
+    await seedCongregationDefaults(scopedDb, congregation.id, locale, seedDefaultTemplates, seedBuiltInTerritoryKinds)
     await syncBuiltInRoleAssignments(scopedDb, user.id, congregation.id, user.id)
   })
 
