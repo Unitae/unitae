@@ -21,6 +21,7 @@ const { createAttribution } = await import('./create-attribution.server')
 const { getSetting } = await import('~/shared/domain/settings.server')
 const { getActiveCampaign } = await import('./campaign.queries')
 const { assertPublisherAllowedForKind } = await import('./attribution-eligibility.policy')
+const { ConflictError } = await import('~/shared/errors/app-error.server')
 
 const baseParams = {
   publisherId: 1,
@@ -113,20 +114,20 @@ describe('createAttribution', () => {
     expect(result).toEqual(fake)
   })
 
-  it("gates the publisher against the territory kind's allowed roles", async () => {
-    mockDb.territory.findFirst.mockResolvedValue({ type: TerritoryKindKey.Phone } as never)
-
-    await createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Default })
-
-    expect(assertPublisherAllowedForKind).toHaveBeenCalledWith(mockDb, TerritoryKindKey.Phone, 1, 10)
-  })
-
   it('creates nothing when the publisher fails the role gate', async () => {
-    vi.mocked(assertPublisherAllowedForKind).mockRejectedValue(new Error('publisher_role_not_allowed'))
+    vi.mocked(assertPublisherAllowedForKind).mockRejectedValue(new ConflictError('publisher_role_not_allowed'))
 
     await expect(
       createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Default }),
     ).rejects.toThrow('publisher_role_not_allowed')
     expect(mockDb.attribution.create).not.toHaveBeenCalled()
+  })
+
+  it('creates the attribution when the gate passes', async () => {
+    mockDb.territory.findFirst.mockResolvedValue({ type: TerritoryKindKey.Phone } as never)
+
+    await createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Default })
+
+    expect(mockDb.attribution.create).toHaveBeenCalled()
   })
 })

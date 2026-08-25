@@ -10,6 +10,7 @@ import { assertPublisherAllowedForKind } from './attribution-eligibility.policy'
 import { createAttribution } from './create-attribution.server'
 import { getKindAllowedRoleIds, listTerritoryKindsWithRoles } from './territory-kinds.queries'
 import { seedBuiltInTerritoryKinds, setKindAllowedRoles } from './territory-kinds.server'
+import { updateAttribution } from './update-attribution.server'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -256,6 +257,71 @@ describe('role gating on the attribution paths', () => {
     // swallows ConflictError, so a gate here would silently drop the territory.
     const carried = await withScope(primaryCongId, tx => attributionAggregate.assign(tx, params))
     expect(carried.publisherId).toBe(plainMemberId)
+
+    await withScope(primaryCongId, async tx => {
+      await tx.attribution.deleteMany({ where: { territoryId: territory.id } })
+      await tx.territory.delete({ where: { id_congregationId: { id: territory.id, congregationId: primaryCongId } } })
+      await setKindAllowedRoles(tx, TerritoryKindKey.Phone, [], primaryCongId, actorId)
+    })
+  })
+})
+
+describe('editing an attribution after its kind is restricted', () => {
+  it('saves an unchanged publisher but rejects a swap to another who does not qualify', async () => {
+    const territory = await withScope(primaryCongId, tx =>
+      tx.territory.create({
+        data: { number: `TK-EDIT-${ts}`, type: TerritoryKindKey.Phone, notes: '', congregationId: primaryCongId },
+      }),
+    )
+    const attribution = await withScope(primaryCongId, tx =>
+      attributionAggregate.assign(tx, {
+        publisherId: plainMemberId,
+        territoryId: territory.id,
+        startDate: '2026-01-05',
+        notes: '',
+        type: TerritoryAttributionKind.Default,
+        congregationId: primaryCongId,
+        actorId,
+      }),
+    )
+
+    // Tighten the kind only after the attribution exists — the publisher on it
+    // no longer qualifies.
+    await withScope(primaryCongId, tx =>
+      setKindAllowedRoles(tx, TerritoryKindKey.Phone, [elderRoleId], primaryCongId, actorId),
+    )
+
+    const saved = await withScope(primaryCongId, tx =>
+      updateAttribution(tx, attribution.id, primaryCongId, actorId, {
+        publisherId: plainMemberId,
+        notes: 'still editable',
+        type: TerritoryAttributionKind.Default,
+        startDate: attribution.startDate,
+      }),
+    )
+    expect(saved.notes).toBe('still editable')
+
+    await withScope(primaryCongId, async tx => {
+      await expect(
+        updateAttribution(tx, attribution.id, primaryCongId, actorId, {
+          publisherId: accountElderMemberId,
+          notes: '',
+          type: TerritoryAttributionKind.Default,
+          startDate: attribution.startDate,
+        }),
+      ).resolves.toBeDefined()
+    })
+
+    await withScope(primaryCongId, async tx => {
+      await expect(
+        updateAttribution(tx, attribution.id, primaryCongId, actorId, {
+          publisherId: plainMemberId,
+          notes: '',
+          type: TerritoryAttributionKind.Default,
+          startDate: attribution.startDate,
+        }),
+      ).rejects.toThrow('publisher_role_not_allowed')
+    })
 
     await withScope(primaryCongId, async tx => {
       await tx.attribution.deleteMany({ where: { territoryId: territory.id } })

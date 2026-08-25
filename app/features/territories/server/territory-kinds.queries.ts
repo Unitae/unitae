@@ -1,3 +1,4 @@
+import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export interface TerritoryKindWithRoles {
@@ -42,10 +43,15 @@ export async function listTerritoryKindsWithRoles(
  * Roles a publisher must hold to be attributed a territory of this kind. Empty
  * means no restriction — which is also the answer for a kind that has no row
  * yet, so a congregation that predates seeding keeps working.
+ *
+ * `kindKey` is the enum rather than `string` precisely because that fallback is
+ * fail-open: a mistyped key would find no row and read as "unrestricted", so the
+ * compiler has to be the thing that rejects it. Widen this to `string` when
+ * congregations can define their own kinds, not before.
  */
 export async function getKindAllowedRoleIds(
   db: TransactionClient,
-  kindKey: string,
+  kindKey: TerritoryKindKey,
   congregationId: number,
 ): Promise<number[]> {
   const kind = await db.territoryKind.findFirst({

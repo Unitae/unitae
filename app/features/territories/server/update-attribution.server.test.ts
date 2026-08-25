@@ -96,19 +96,6 @@ describe('updateAttribution', () => {
     expect(call.data.endDate).toBe(endDate)
   })
 
-  it("gates the incoming publisher against the attribution's territory kind", async () => {
-    vi.mocked(db.attribution.update).mockResolvedValue({} as never)
-
-    await updateAttribution(db as never, 5, 2, 99, {
-      publisherId: 10,
-      notes: '',
-      type: TerritoryAttributionKind.Default,
-      startDate: new Date('2025-01-01'),
-    })
-
-    expect(assertPublisherAllowedForAttribution).toHaveBeenCalledWith(db, 5, 10, 2)
-  })
-
   it('updates nothing when the publisher fails the role gate', async () => {
     vi.mocked(assertPublisherAllowedForAttribution).mockRejectedValue(new Error('publisher_role_not_allowed'))
 

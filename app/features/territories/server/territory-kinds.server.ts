@@ -5,8 +5,13 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 
 /**
  * The keys of the built-in territory kinds, as stored in `TerritoryKind.key`.
- * They are the mapped values of `TerritoryKindKey`, which still types
- * `Territory.type` — the two must stay in step until territories move onto the FK.
+ *
+ * `Object.values(TerritoryKindKey)` yields the enum *member names* ('Classical',
+ * 'Univ', …), not the `@map` strings the column stores ('doors-to-doors',
+ * 'campus', …). Storing the member name is deliberate: it is what the Prisma
+ * client surfaces as `Territory.type`, so a caller can look a kind up by
+ * `territory.type` with no translation table. The two must stay in step until
+ * territories move onto the FK.
  */
 export const BUILT_IN_TERRITORY_KIND_KEYS = Object.values(TerritoryKindKey)
 
@@ -52,7 +57,7 @@ function diffRoleIds(previous: number[], desired: number[]): DiffResult {
  */
 export async function setKindAllowedRoles(
   db: TransactionClient,
-  kindKey: string,
+  kindKey: TerritoryKindKey,
   desiredRoleIds: number[],
   congregationId: number,
   actorId: number,

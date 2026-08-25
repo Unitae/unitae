@@ -1,3 +1,4 @@
+import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { findMembersWithAnyRole } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { getKindAllowedRoleIds } from './territory-kinds.queries'
@@ -23,7 +24,7 @@ interface Options {
  */
 export async function findAttributablePublishers(
   db: TransactionClient,
-  kindKey: string,
+  kindKey: TerritoryKindKey,
   congregationId: number,
   options?: Options,
 ) {

@@ -1,3 +1,4 @@
+import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { findMembersWithAnyRole } from '~/shared/auth/permissions.server'
 import { ConflictError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -16,7 +17,7 @@ import { getKindAllowedRoleIds } from './territory-kinds.queries'
  */
 export async function assertPublisherAllowedForKind(
   db: TransactionClient,
-  kindKey: string,
+  kindKey: TerritoryKindKey,
   publisherId: number,
   congregationId: number,
 ): Promise<void> {

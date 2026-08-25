@@ -1,24 +1,35 @@
 import { describe, expect, it } from 'vitest'
-import { territorySettingsSchema } from './territory-settings.schema'
+import { TerritoryKindKey } from '~/features/territories'
+import { KIND_ROLES_FIELD_PREFIX, territorySettingsSchema } from './territory-settings.schema'
 
-function parseBanoUrl(value: string) {
-  return territorySettingsSchema.safeParse({ zips: '', 'bano-url': value, 'prospection-validity': '' })
-}
+describe('territorySettingsSchema — per-kind role fields', () => {
+  // The five kind fields are hand-spelled so the parsed value stays typed. That
+  // makes them driftable: add a kind to the enum, forget the schema, and the
+  // form silently drops that kind's roles on every save. This is the guard.
+  it('declares a role field for every territory kind', () => {
+    const declared = Object.keys(territorySettingsSchema.shape).filter(key => key.startsWith(KIND_ROLES_FIELD_PREFIX))
+    const expected = Object.values(TerritoryKindKey).map(key => `${KIND_ROLES_FIELD_PREFIX}${key}`)
 
-describe('territorySettingsSchema bano-url', () => {
-  it('accepts an empty value', () => {
-    expect(parseBanoUrl('').success).toBe(true)
+    expect(declared.sort()).toEqual(expected.sort())
   })
 
-  it('accepts a valid https URL', () => {
-    expect(parseBanoUrl('https://bano.openstreetmap.fr/data/bano.csv').success).toBe(true)
+  it('reads a cleared checkbox group as an explicit "no restriction"', () => {
+    const result = territorySettingsSchema.parse({})
+
+    expect(result[`${KIND_ROLES_FIELD_PREFIX}${TerritoryKindKey.Phone}`]).toEqual([])
   })
 
-  it('rejects a non-https URL', () => {
-    expect(parseBanoUrl('http://bano.openstreetmap.fr/data/bano.csv').success).toBe(false)
+  it('coerces a single posted role id into a list', () => {
+    const result = territorySettingsSchema.parse({ [`${KIND_ROLES_FIELD_PREFIX}${TerritoryKindKey.Phone}`]: '7' })
+
+    expect(result[`${KIND_ROLES_FIELD_PREFIX}${TerritoryKindKey.Phone}`]).toEqual([7])
   })
 
-  it('rejects a syntactically invalid URL', () => {
-    expect(parseBanoUrl('not a url').success).toBe(false)
+  it('keeps every posted role id when several are checked', () => {
+    const result = territorySettingsSchema.parse({
+      [`${KIND_ROLES_FIELD_PREFIX}${TerritoryKindKey.Phone}`]: ['7', '9'],
+    })
+
+    expect(result[`${KIND_ROLES_FIELD_PREFIX}${TerritoryKindKey.Phone}`]).toEqual([7, 9])
   })
 })
