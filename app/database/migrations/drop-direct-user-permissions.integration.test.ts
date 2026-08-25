@@ -19,6 +19,28 @@ const MIGRATION_SQL = resolve(import.meta.dirname, '20260826000000_drop_direct_u
 const DROP_STATEMENT = 'DROP TABLE "CongregationUserPermission"'
 
 /**
+ * The table as it stood before this migration dropped it, reduced to the three
+ * columns the migration actually reads.
+ *
+ * CI runs `prisma migrate deploy` before this suite, so by the time the test
+ * executes the real table is already gone and there would be no "before" to
+ * migrate. `IF NOT EXISTS` makes this a no-op on a development database where
+ * the migration has not been applied yet, so the test behaves the same in both.
+ *
+ * Deliberately without foreign keys: they are irrelevant to what is under test
+ * and would make any drop of this table take ACCESS EXCLUSIVE on `UserAccount`,
+ * `Permission` and `Congregation`.
+ */
+const RECREATE_DROPPED_TABLE = `
+  CREATE TABLE IF NOT EXISTS "CongregationUserPermission" (
+    "id"             SERIAL PRIMARY KEY,
+    "userId"         INTEGER NOT NULL,
+    "permissionId"   INTEGER NOT NULL,
+    "congregationId" INTEGER NOT NULL
+  )
+`
+
+/**
  * The real migration file, split into statements.
  *
  * Reading the shipped artifact rather than a paraphrase is the point: a test
@@ -37,11 +59,11 @@ function migrationStatements(): string[] {
 /**
  * Everything the migration does except the final `DROP TABLE`.
  *
- * The drop is withheld deliberately. Dropping a table takes ACCESS EXCLUSIVE not
- * only on it but on every table its foreign keys reference — `UserAccount`,
- * `Permission`, `Congregation` — and this fixture holds that lock until it rolls
- * back. Integration files run in parallel against one database, so executing it
- * here deadlocks unrelated suites at random.
+ * The drop is withheld deliberately. On a development database the table still
+ * carries its foreign keys, so dropping it takes ACCESS EXCLUSIVE on
+ * `UserAccount`, `Permission` and `Congregation` too, and this fixture holds
+ * that until it rolls back. Integration files run in parallel against one
+ * database, so executing it deadlocked unrelated suites at random.
  *
  * Withholding it costs nothing in coverage: the backfill above is the part that
  * can be wrong, and `drops the direct-grant table` below still pins that the
@@ -109,6 +131,11 @@ interface Captured {
   collidingRoleGrants: string[]
   /** Keys of the roles the migration created in congregation B. */
   createdRoleKeysInB: string[]
+  /** The permission key deliberately left out of the migration's mapping table. */
+  unmappedPermissionKey: string
+  /** Row counts after one backfill, and after running it a second time. */
+  countsAfterFirstRun: Record<string, number>
+  countsAfterSecondRun: Record<string, number>
 }
 
 let fixtureRun: Promise<Captured> | undefined
@@ -138,6 +165,8 @@ async function executeMigrationOverFixture(): Promise<Captured> {
           permissionId('program-viewer'),
           permissionId('board-validator'),
         ])
+
+        await tx.$executeRawUnsafe(RECREATE_DROPPED_TABLE)
 
         const congA = await tx.congregation.create({ data: { name: `${stamp}-a`, slug: `${stamp}-a`, active: true } })
         const congB = await tx.congregation.create({ data: { name: `${stamp}-b`, slug: `${stamp}-b`, active: true } })
@@ -190,6 +219,15 @@ async function executeMigrationOverFixture(): Promise<Captured> {
           data: { memberId: member.id, roleId: memberRole.id, congregationId: congA.id },
         })
 
+        // A permission the mapping table has never heard of. Reachable if a
+        // permission ships between this migration being written and being run.
+        // Its grants must survive anyway — the table is about to be dropped, so
+        // anything not carried across is lost for good.
+        const unmappedKey = `${stamp}-unmapped`
+        const unmapped = await tx.permission.create({ data: { key: unmappedKey }, select: { id: true } })
+        const aUnmapped = await account(congA.id, 'a-unmapped')
+        await directGrant(aUnmapped.id, unmapped.id, congA.id)
+
         // No grants at all — must stay empty, and must not get an audit row.
         const aNone = await account(congA.id, 'a-none')
 
@@ -215,6 +253,7 @@ async function executeMigrationOverFixture(): Promise<Captured> {
           { label: 'a-admin', id: aAdmin.id, congregationId: congA.id },
           { label: 'a-mixed', id: aMixed.id, congregationId: congA.id },
           { label: 'a-member', id: aViaMember.id, congregationId: congA.id },
+          { label: 'a-unmapped', id: aUnmapped.id, congregationId: congA.id },
           { label: 'a-none', id: aNone.id, congregationId: congA.id },
           { label: 'b-bystander', id: bBystander.id, congregationId: congB.id },
           { label: 'b-admin', id: bAdmin.id, congregationId: congB.id },
@@ -236,6 +275,23 @@ async function executeMigrationOverFixture(): Promise<Captured> {
           })
         }
 
+        const countRows = async (): Promise<Record<string, number>> => ({
+          roles: await tx.role.count({ where: { congregationId: { in: [congA.id, congB.id] } } }),
+          rolePermissions: await tx.rolePermission.count({ where: { congregationId: { in: [congA.id, congB.id] } } }),
+          assignments: await tx.userRoleAssignment.count({ where: { congregationId: { in: [congA.id, congB.id] } } }),
+          auditRows: await tx.auditLog.count({ where: { congregationId: { in: [congA.id, congB.id] } } }),
+        })
+
+        const countsAfterFirstRun = await countRows()
+
+        // The file claims to be re-runnable (every INSERT is ON CONFLICT DO
+        // NOTHING). A deploy that retries would otherwise duplicate roles and
+        // double-count the audit metadata.
+        for (const statement of backfillStatements()) {
+          await tx.$executeRawUnsafe(statement)
+        }
+        const countsAfterSecondRun = await countRows()
+
         const auditRows = await tx.auditLog.findMany({
           where: { congregationId: { in: [congA.id, congB.id] } },
           select: { action: true, congregationId: true },
@@ -255,6 +311,9 @@ async function executeMigrationOverFixture(): Promise<Captured> {
           accounts,
           auditActions: auditRows.map(r => r.action),
           auditCongregationIds: auditRows.map(r => r.congregationId).sort((a, b) => a - b),
+          unmappedPermissionKey: unmappedKey,
+          countsAfterFirstRun,
+          countsAfterSecondRun,
           collidingRoleGrants: collidingGrants.map(g => g.permission.key).sort(),
           createdRoleKeysInB: rolesInB.map(r => r.key).sort(),
         }
@@ -291,6 +350,11 @@ describe('20260826000000_drop_direct_user_permissions', () => {
     const viaMember = result.accounts.find(a => a.label === 'a-member')
     expect(viaMember?.after).toEqual(['board-validator'])
     expect(result.accounts.find(a => a.label === 'a-none')?.after).toEqual([])
+
+    // A permission missing from the mapping table still has to survive: the
+    // grant table is dropped, so a skipped row is permanently lost access.
+    const unmapped = result.accounts.find(a => a.label === 'a-unmapped')
+    expect(unmapped?.after).toEqual([result.unmappedPermissionKey])
   })
 
   it('never widens a role a congregation already owned under the auto-role key', async () => {
@@ -308,6 +372,15 @@ describe('20260826000000_drop_direct_user_permissions', () => {
 
     expect(result.auditActions).toEqual(['permission.direct_grants_migrated', 'permission.direct_grants_migrated'])
     expect(new Set(result.auditCongregationIds).size).toBe(2)
+  })
+
+  it('is re-runnable without duplicating anything', async () => {
+    const result = await runMigrationOverFixture()
+
+    expect(result.countsAfterSecondRun).toEqual(result.countsAfterFirstRun)
+    // Guard against the comparison passing on two empty snapshots.
+    expect(result.countsAfterFirstRun.roles).toBeGreaterThan(0)
+    expect(result.countsAfterFirstRun.assignments).toBeGreaterThan(0)
   })
 
   it('drops the direct-grant table', () => {

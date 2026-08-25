@@ -244,8 +244,30 @@ export async function importCongregationUserPermissions(
   for (const record of merged) {
     const userId = idMap.getOptional('user-accounts', record.userId)
     const permissionId = permissionKeyToId.get(record.permissionKey)
-    const baseKey = autoRoleKeyForPermission(record.permissionKey)
-    if (!userId || !permissionId || !baseKey) continue
+
+    // Both misses drop a grant the archive says someone had, so neither is
+    // allowed to pass silently — a restore that quietly returns less access
+    // than it was given looks like a success to the admin who ran it.
+    if (!userId) {
+      logger.warn('Skipping permission grant: the archive user is not in the import map', {
+        congregationId,
+        sourceUserId: record.userId,
+        permissionKey: record.permissionKey,
+      })
+      continue
+    }
+    if (!permissionId) {
+      logger.warn('Skipping permission grant: permission key is not seeded in this database', {
+        congregationId,
+        sourceUserId: record.userId,
+        permissionKey: record.permissionKey,
+      })
+      continue
+    }
+
+    // Same fallback the migration applies: a key the mapping has never heard of
+    // still gets a role rather than being dropped.
+    const baseKey = autoRoleKeyForPermission(record.permissionKey) ?? `can-${record.permissionKey}`
 
     let roleId = roleIdByPermission.get(permissionId)
     if (roleId === undefined) {

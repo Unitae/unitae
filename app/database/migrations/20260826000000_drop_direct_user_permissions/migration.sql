@@ -37,24 +37,58 @@ CREATE TEMP TABLE "_direct_grant_role" (
 );
 
 -- A congregation may already own a custom role slugified to one of these keys — an
--- admin is free to create a role called "Peut tout faire". Reusing it would silently
+-- admin is free to create a role called "Peut tout faire". Adopting it would silently
 -- grant that permission to everyone already assigned to it, so a taken key falls back
 -- to "<key>-migrated", and then to "<key>-migrated-<permissionId>".
+--
+-- "Taken" means taken *by something else*: a key whose role already grants exactly this
+-- one permission is a role this migration itself created, so it is reused rather than
+-- duplicated. That is what makes the file re-runnable, and it matches the rule
+-- `resolveAutoRoleId` applies on the archive-import path.
 INSERT INTO "_direct_grant_role" ("congregationId", "permissionId", "roleKey")
 SELECT n.cid,
        n.pid,
        CASE
-           WHEN NOT EXISTS (SELECT 1 FROM "Role" r WHERE r."congregationId" = n.cid AND r."key" = n.base)
+           WHEN NOT EXISTS (
+                   SELECT 1 FROM "Role" r
+                   WHERE r."congregationId" = n.cid AND r."key" = n.base
+                     AND NOT (
+                         (SELECT COUNT(*) FROM "RolePermission" rp WHERE rp."roleId" = r."id") = 1
+                         AND EXISTS (
+                             SELECT 1 FROM "RolePermission" rp
+                             WHERE rp."roleId" = r."id" AND rp."permissionId" = n.pid
+                         )
+                     )
+               )
                THEN n.base
-           WHEN NOT EXISTS (SELECT 1 FROM "Role" r WHERE r."congregationId" = n.cid AND r."key" = n.base || '-migrated')
+           WHEN NOT EXISTS (
+                   SELECT 1 FROM "Role" r
+                   WHERE r."congregationId" = n.cid AND r."key" = n.base || '-migrated'
+                     AND NOT (
+                         (SELECT COUNT(*) FROM "RolePermission" rp WHERE rp."roleId" = r."id") = 1
+                         AND EXISTS (
+                             SELECT 1 FROM "RolePermission" rp
+                             WHERE rp."roleId" = r."id" AND rp."permissionId" = n.pid
+                         )
+                     )
+               )
                THEN n.base || '-migrated'
            ELSE n.base || '-migrated-' || n.pid::text
        END
 FROM (
-    SELECT DISTINCT cup."congregationId" AS cid, cup."permissionId" AS pid, m.role_key AS base
+    -- LEFT JOIN with a COALESCE fallback, not an inner join. A permission that
+    -- shipped between this file being written and being run would not be in the
+    -- VALUES list, and an inner join would drop its grants on the floor —
+    -- permanently, since the table goes away at the end of this migration.
+    -- `can-<key>` is a less pretty role name than the curated ones below, and an
+    -- admin can rename it; silently revoking someone's access is not fixable.
+    SELECT DISTINCT
+        cup."congregationId" AS cid,
+        cup."permissionId" AS pid,
+        COALESCE(m.role_key, 'can-' || p."key") AS base
     FROM "CongregationUserPermission" cup
     JOIN "Permission" p ON p."id" = cup."permissionId"
-    JOIN (VALUES
+    LEFT JOIN (VALUES
         ('admin',                    'can-do-anything'),
         ('board-viewer',             'can-view-board-documents'),
         ('board-uploader',           'can-upload-board-documents'),
@@ -123,6 +157,14 @@ SELECT 'permission.direct_grants_migrated',
        cup."congregationId",
        CURRENT_TIMESTAMP
 FROM "CongregationUserPermission" cup
+WHERE NOT EXISTS (
+    -- Unlike the inserts above there is no unique key to conflict on, so the
+    -- re-run guard has to be explicit: without it a replay would file a second
+    -- event per congregation and make the trail read as two migrations.
+    SELECT 1 FROM "AuditLog" a
+    WHERE a."congregationId" = cup."congregationId"
+      AND a."action" = 'permission.direct_grants_migrated'
+)
 GROUP BY cup."congregationId";
 
 DROP TABLE "_direct_grant_role";

@@ -1,4 +1,5 @@
 import * as m from '~/i18n/paraglide/messages'
+import type { AutoRoleKey } from '~/shared/types/permission'
 
 interface RoleDisplay {
   key: string
@@ -44,9 +45,11 @@ const BUILT_IN_DESCRIPTIONS: Record<string, () => string> = {
  * already owned a role under the base key; they fall through to the raw key,
  * which is exactly the signal an admin needs that two roles collided.
  *
- * Keep in sync with `AUTO_ROLE_KEY_BY_PERMISSION` in `permission.ts`.
+ * Keyed by `AutoRoleKey` rather than `string`, so adding a permission without
+ * giving its auto-role a name fails to compile instead of quietly rendering the
+ * raw slug to an admin.
  */
-const AUTO_ROLE_NAMES: Record<string, () => string> = {
+const AUTO_ROLE_NAMES: Record<AutoRoleKey, () => string> = {
   'can-do-anything': () => m.role_name_can_do_anything(),
   'can-view-board-documents': () => m.role_name_can_view_board_documents(),
   'can-upload-board-documents': () => m.role_name_can_upload_board_documents(),
@@ -75,7 +78,7 @@ const AUTO_ROLE_NAMES: Record<string, () => string> = {
 
 export function getRoleDisplayName(role: RoleDisplay): string {
   if (role.name) return role.name
-  return BUILT_IN_NAMES[role.key]?.() ?? AUTO_ROLE_NAMES[role.key]?.() ?? role.key
+  return BUILT_IN_NAMES[role.key]?.() ?? AUTO_ROLE_NAMES[role.key as AutoRoleKey]?.() ?? role.key
 }
 
 export function getRoleDescription(role: RoleDisplay): string {

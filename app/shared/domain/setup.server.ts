@@ -1,5 +1,6 @@
 import type { locales } from '~/i18n/paraglide/runtime'
 import { BUILT_IN_ROLE_KEYS } from '~/shared/domain/built-in-roles.server'
+import { createLogger } from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 
 type Locale = (typeof locales)[number]
@@ -110,7 +111,17 @@ export async function ensureAdminRole(db: any, congregationId: number): Promise<
     where: { key: Permission.Admin },
     select: { id: true },
   })
-  if (adminPermission == null) return null
+  if (adminPermission == null) {
+    // Both callers run seedPermissions immediately before this, so reaching here
+    // means that write did not take effect — and the congregation is about to be
+    // provisioned with nobody able to administer it. Provisioning still
+    // continues (a half-created congregation is worse than an admin-less one),
+    // but this must not pass without a trace.
+    createLogger('setup').error('Admin permission row is missing — congregation provisioned without an admin role', {
+      congregationId,
+    })
+    return null
+  }
 
   const role = await db.role.upsert({
     where: { key_congregationId: { key: ADMIN_ROLE_KEY, congregationId } },

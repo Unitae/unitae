@@ -38,7 +38,7 @@ export enum Permission {
  * `app/database/migrations/20260826000000_drop_direct_user_permissions/migration.sql`
  * and with `AUTO_ROLE_NAMES` in `app/shared/types/role.ts`.
  */
-export const AUTO_ROLE_KEY_BY_PERMISSION: Record<Permission, string> = {
+export const AUTO_ROLE_KEY_BY_PERMISSION = {
   [Permission.Admin]: 'can-do-anything',
   [Permission.BoardViewer]: 'can-view-board-documents',
   [Permission.BoardUploader]: 'can-upload-board-documents',
@@ -63,7 +63,10 @@ export const AUTO_ROLE_KEY_BY_PERMISSION: Record<Permission, string> = {
   [Permission.RolesViewer]: 'can-view-roles',
   [Permission.RolesManager]: 'can-manage-roles',
   [Permission.PermissionsManager]: 'can-manage-permissions',
-}
+} as const satisfies Record<Permission, string>
+
+/** The set of auto-role keys, so anything keyed by them stays exhaustive. */
+export type AutoRoleKey = (typeof AUTO_ROLE_KEY_BY_PERMISSION)[Permission]
 
 export function autoRoleKeyForPermission(permissionKey: string): string | null {
   return AUTO_ROLE_KEY_BY_PERMISSION[permissionKey as Permission] ?? null
