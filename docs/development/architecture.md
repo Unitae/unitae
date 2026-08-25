@@ -18,7 +18,7 @@ Four valid combinations, all real personas:
 
 FK target rule of thumb:
 
-- **Action requires a login** → FK targets `UserAccount`. Examples: audit `actorId`, `Event.createdBy`, `BoardDocument.viewedBy`, `BoardDocumentVersion.uploadedBy`, all token tables, `CongregationUserPermission.user`, `UserRoleAssignment.user`.
+- **Action requires a login** → FK targets `UserAccount`. Examples: audit `actorId`, `Event.createdBy`, `BoardDocument.viewedBy`, `BoardDocumentVersion.uploadedBy`, all token tables, `UserRoleAssignment.user`.
 - **Subject is a person in the congregation** → FK targets `Member`. Examples: `Attribution.publisherId`, `PublisherActivity.publisherId`, `EventPart.{assigneeId,assistantId}`, `EventServicePart.assigneeId`, `PublisherGroup.{members,responsible,deputy}`, `MemberRoleAssignment.member`.
 
 Helpers: `account.member?.firstname ?? account.firstname` for display (use the `accountDisplayName` helper in `app/shared/utils/display-name.ts`); `currentUser.member?.id` to get the linked member id from the session-loaded account.
@@ -129,7 +129,7 @@ When to use each:
 
 **Scoped models** (all carry `congregationId` and are isolated by RLS):
 - **Identity**: Member (person currently in the congregation), UserAccount (login), MemberRoleAssignment (identity-role memberships)
-- **Auth**: CongregationUserPermission, Role, RolePermission, UserRoleAssignment (management-role memberships)
+- **Auth**: Role, RolePermission, UserRoleAssignment (management-role memberships)
 - **Board**: BoardSection, BoardSectionVisibilityRole, BoardDocument, BoardDocumentVersion, BoardDynamicDocumentSettings
 - **Territories**: Territory, Attribution, Building, BuildingEntrance, BuildingAccess, BuildingResidentialData, TerritoryCardOverlay, TerritoryPerimeter
 - **Publishers**: PublisherGroup, PublisherActivity
@@ -158,8 +158,8 @@ Session expiry → verifySession bounces to /login?redirectTo=<current path>
 
 Protected Route → requireAuth() middleware on layout route
                 → verifySession: fetch user (unscopedDb), check suspension/trial/email
-                → resolveEffectivePermissions: union direct grants
-                  (CongregationUserPermission) + role-mediated grants
+                → resolveEffectivePermissions: union role-mediated grants
+                  (account roles + linked-member identity roles)
                   (RolePermission joined to UserRoleAssignment); expands Admin
                   to every Permission value
                 → context.set(currentAccountContext, currentUser)
@@ -382,7 +382,7 @@ The full list lives in the `AuditAction` map in `app/shared/domain/audit.server.
 | Domain | When fired |
 |---|---|
 | Authentication | Login, logout, failed login |
-| User management | User created/updated/anonymized, direct permission grants, role assignments synced and changed |
+| User management | User created/updated/anonymized, role assignments synced and changed |
 | Roles | Role created/updated/deleted, role-permission set changed, allowed-roles changed (programme parts, service roles) |
 | Calendar feed | Personal token created and revoked |
 | Consent | Granted, withdrawn |

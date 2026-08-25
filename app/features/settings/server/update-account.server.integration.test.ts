@@ -61,12 +61,19 @@ beforeAll(async () => {
     })
     primaryUserId = user.id
 
-    await tx.congregationUserPermission.create({
-      data: { userId: user.id, permissionId: adminPermissionId, congregationId: primaryCongId },
+    // Admin arrives through the auto-role the #149 backfill mints.
+    const adminRole = await tx.role.create({
+      data: { key: 'can-do-anything', isBuiltIn: false, congregationId: primaryCongId },
+    })
+    await tx.rolePermission.create({
+      data: { roleId: adminRole.id, permissionId: adminPermissionId, congregationId: primaryCongId },
+    })
+    await tx.userRoleAssignment.create({
+      data: { userId: user.id, roleId: adminRole.id, congregationId: primaryCongId },
     })
 
-    // Spare admin so requireNotLastAdmin doesn't block these tests when they
-    // demote the primary user away from Admin. Never touched.
+    // Spare admin, kept from the era when this service could demote the primary
+    // user away from Admin. Never touched.
     const sentinelAdmin = await tx.userAccount.create({
       data: {
         email: `update-user-primary-sentinel-${ts}@test.com`,
@@ -75,8 +82,8 @@ beforeAll(async () => {
         congregationId: primaryCongId,
       },
     })
-    await tx.congregationUserPermission.create({
-      data: { userId: sentinelAdmin.id, permissionId: adminPermissionId, congregationId: primaryCongId },
+    await tx.userRoleAssignment.create({
+      data: { userId: sentinelAdmin.id, roleId: adminRole.id, congregationId: primaryCongId },
     })
   })
 
@@ -93,8 +100,14 @@ beforeAll(async () => {
     })
     otherUserId = user.id
 
-    await tx.congregationUserPermission.create({
-      data: { userId: user.id, permissionId: adminPermissionId, congregationId: otherCongId },
+    const otherAdminRole = await tx.role.create({
+      data: { key: 'can-do-anything', isBuiltIn: false, congregationId: otherCongId },
+    })
+    await tx.rolePermission.create({
+      data: { roleId: otherAdminRole.id, permissionId: adminPermissionId, congregationId: otherCongId },
+    })
+    await tx.userRoleAssignment.create({
+      data: { userId: user.id, roleId: otherAdminRole.id, congregationId: otherCongId },
     })
   })
 })
@@ -103,7 +116,9 @@ afterAll(async () => {
   for (const congId of [primaryCongId, otherCongId]) {
     if (!congId) continue
     await withScope(congId, async tx => {
-      await tx.congregationUserPermission.deleteMany({})
+      await tx.userRoleAssignment.deleteMany({})
+      await tx.rolePermission.deleteMany({})
+      await tx.role.deleteMany({})
       await tx.userAccount.deleteMany({})
     })
   }
@@ -119,7 +134,6 @@ describe('updateAccount (integration)', () => {
         lastname: 'After',
         email: `update-user-primary-${ts}@test.com`,
         active: false,
-        permissions: ['admin'],
       }),
     )
 
@@ -128,64 +142,48 @@ describe('updateAccount (integration)', () => {
     expect(user?.active).toBe(false)
   })
 
-  it('replaces congregation roles — removes old, creates new', async () => {
-    // Start with admin role, switch to board-uploader role
+  it("leaves the account's role assignments untouched", async () => {
+    // Editing identity must not disturb access. Since #149 this service has no
+    // permission arm at all; granting and revoking live in
+    // setUserCustomRoleAssignments, covered by roles.server.integration.test.ts.
+    const before = await testDb.userRoleAssignment.findMany({
+      where: { userId: primaryUserId, congregationId: primaryCongId },
+      select: { roleId: true },
+    })
+
     await withScope(primaryCongId, tx =>
       updateAccount(tx, primaryUserId, primaryCongId, primaryUserId, {
         firstname: 'Alice',
         lastname: 'After',
         email: `update-user-primary-${ts}@test.com`,
         active: true,
-        permissions: ['board-uploader'],
       }),
     )
 
-    const assignments = await testDb.congregationUserPermission.findMany({
+    const after = await testDb.userRoleAssignment.findMany({
       where: { userId: primaryUserId, congregationId: primaryCongId },
-      include: { permission: true },
+      select: { roleId: true },
     })
-    const assignedKeys = assignments.map(a => a.permission.key)
-    expect(assignedKeys).not.toContain('admin')
-    expect(assignedKeys).toContain('board-uploader')
+    expect(before.length).toBeGreaterThan(0)
+    expect(after.map(a => a.roleId).sort()).toEqual(before.map(a => a.roleId).sort())
   })
 
-  it('removes all permissions when empty permissions array is given', async () => {
-    await withScope(primaryCongId, tx =>
-      updateAccount(tx, primaryUserId, primaryCongId, primaryUserId, {
-        firstname: 'Alice',
-        lastname: 'After',
-        email: `update-user-primary-${ts}@test.com`,
-        active: true,
-        permissions: [],
-      }),
-    )
-
-    const roles = await testDb.congregationUserPermission.findMany({
-      where: { userId: primaryUserId, congregationId: primaryCongId },
-    })
-    expect(roles).toHaveLength(0)
-  })
-
-  it('role deleteMany does not touch other congregation user roles — RLS isolation', async () => {
-    // Ensure other congregation user has their admin role
-    const otherRolesBefore = await testDb.congregationUserPermission.findMany({
+  it("does not touch another congregation's role assignments — RLS isolation", async () => {
+    const otherRolesBefore = await testDb.userRoleAssignment.findMany({
       where: { userId: otherUserId, congregationId: otherCongId },
     })
     expect(otherRolesBefore.length).toBeGreaterThan(0)
 
-    // Update primary user (deletes roles for primary user in primary congregation)
     await withScope(primaryCongId, tx =>
       updateAccount(tx, primaryUserId, primaryCongId, primaryUserId, {
         firstname: 'Alice',
         lastname: 'After',
         email: `update-user-primary-${ts}@test.com`,
         active: true,
-        permissions: ['admin'],
       }),
     )
 
-    // Other congregation user's roles must be intact
-    const otherRolesAfter = await testDb.congregationUserPermission.findMany({
+    const otherRolesAfter = await testDb.userRoleAssignment.findMany({
       where: { userId: otherUserId, congregationId: otherCongId },
     })
     expect(otherRolesAfter).toHaveLength(otherRolesBefore.length)
@@ -198,7 +196,6 @@ describe('updateAccount (integration)', () => {
         lastname: 'After',
         email: `Update-User-PRIMARY-${ts}@TEST.COM`,
         active: true,
-        permissions: [],
       }),
     )
 

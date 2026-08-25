@@ -14,11 +14,6 @@ export const editUserSchema = z.object({
     .string()
     .optional()
     .transform(v => v === 'on'),
-  permissions: z
-    .array(z.string())
-    .or(z.string().transform(v => [v]))
-    .optional()
-    .default([]),
   customRoleIds: z
     .array(z.coerce.number().int().positive())
     .or(

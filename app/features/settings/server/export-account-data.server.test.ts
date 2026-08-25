@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockDb = {
   userAccount: { findUnique: vi.fn() },
-  congregationUserPermission: { findMany: vi.fn() },
+  rolePermission: { findMany: vi.fn() },
   publisherActivity: { findMany: vi.fn() },
   attribution: { findMany: vi.fn() },
   publisherGroup: { findFirst: vi.fn() },
@@ -50,7 +50,8 @@ describe('exportAccountData', () => {
     }
 
     mockDb.userAccount.findUnique.mockResolvedValue(fakeAccount as never)
-    mockDb.congregationUserPermission.findMany.mockResolvedValue([{ permission: { key: 'Admin' } }] as never)
+    // Permissions reach an account only through roles since #149.
+    mockDb.rolePermission.findMany.mockResolvedValue([{ permission: { key: 'Admin' } }] as never)
     mockDb.publisherActivity.findMany.mockResolvedValue([
       { month: 3, year: 2025, hours: 10, studies: 1, type: 'normal', isPublisher: true, notes: '' },
     ] as never)

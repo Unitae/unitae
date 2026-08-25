@@ -28,6 +28,10 @@ export const AuditAction = {
   RoleUpdated: 'role.updated',
   RoleDeleted: 'role.deleted',
   RolePermissionChanged: 'role.permission.changed',
+  // Written once per congregation by 20260826000000_drop_direct_user_permissions,
+  // not by any service. Declared here so the action string has a code-side home
+  // and the audit viewer can label it.
+  DirectPermissionGrantsMigrated: 'permission.direct_grants_migrated',
   PartAllowedRolesChanged: 'part.allowed_roles.changed',
   ServicePartAllowedRolesChanged: 'service_role.allowed_roles.changed',
   PartPresetCreated: 'part_preset.created',

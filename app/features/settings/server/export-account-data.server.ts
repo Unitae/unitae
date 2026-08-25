@@ -68,11 +68,19 @@ export async function exportAccountData(
   const memberId = account.memberId
 
   const [permissions, events, documentsViewed, documentVersionUploads, consentRecords] = await Promise.all([
-    db.congregationUserPermission.findMany({
-      where: { userId },
-      select: {
-        permission: { select: { key: true } },
+    // Permissions reach an account through the roles it holds, or the roles its
+    // linked Member holds. The export reports what was granted, so `admin` is
+    // listed as itself rather than expanded into the full enum.
+    db.rolePermission.findMany({
+      where: {
+        role: {
+          OR: [
+            { members: { some: { userId } } },
+            { memberAssignments: { some: { member: { account: { id: userId } } } } },
+          ],
+        },
       },
+      select: { permission: { select: { key: true } } },
     }),
     db.event.findMany({
       where: { createdById: userId },
@@ -162,7 +170,7 @@ export async function exportAccountData(
     exportDate: new Date().toISOString(),
     exportVersion: '2.0',
     user: account,
-    permissions: permissions.map(p => p.permission),
+    permissions: [...new Set(permissions.map(p => p.permission.key))].map(key => ({ key })),
     publisherActivities: activities,
     attributions: attributions.map(a => ({
       territory: a.territory,

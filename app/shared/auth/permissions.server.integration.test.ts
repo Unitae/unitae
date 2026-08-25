@@ -20,7 +20,7 @@ let memberRoleId: number
 let accountRoleId: number
 let memberOnlyAccountId: number
 let accountOnlyAccountId: number
-let directGrantAccountId: number
+let autoRoleAccountId: number
 let noMemberAccountId: number
 let memberOnlyMemberId: number
 let accountOnlyMemberId: number
@@ -109,20 +109,28 @@ beforeAll(async () => {
     data: { memberId: leaverMember.id, roleId: memberRoleId, congregationId },
   })
 
-  // Account 3: BoardViewer reached only via direct CongregationUserPermission.
-  const directGrantAccount = await testDb.userAccount.create({
+  // Account 3: BoardViewer reached only through an auto-role — the shape #149's
+  // migration leaves behind where a direct CongregationUserPermission grant used
+  // to be. Same key the migration mints for `board-viewer`.
+  const autoRole = await testDb.role.create({
+    data: { key: 'can-view-board-documents', isBuiltIn: false, congregationId },
+  })
+  await testDb.rolePermission.create({
+    data: { roleId: autoRole.id, permissionId: boardViewer.id, congregationId },
+  })
+  const autoRoleAccount = await testDb.userAccount.create({
     data: {
-      email: `perms-direct-${ts}@test.com`,
+      email: `perms-auto-${ts}@test.com`,
       password: 'h',
       active: true,
-      firstname: 'Direct',
-      lastname: 'Grant',
+      firstname: 'Auto',
+      lastname: 'Role',
       congregationId,
     },
   })
-  directGrantAccountId = directGrantAccount.id
-  await testDb.congregationUserPermission.create({
-    data: { userId: directGrantAccount.id, permissionId: boardViewer.id, congregationId },
+  autoRoleAccountId = autoRoleAccount.id
+  await testDb.userRoleAssignment.create({
+    data: { userId: autoRoleAccount.id, roleId: autoRole.id, congregationId },
   })
 
   // Account 4: no linked Member, no grants. Used to verify helpers don't crash
@@ -141,7 +149,6 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  await testDb.congregationUserPermission.deleteMany({ where: { congregationId } })
   await testDb.memberRoleAssignment.deleteMany({ where: { congregationId } })
   await testDb.userRoleAssignment.deleteMany({ where: { congregationId } })
   await testDb.rolePermission.deleteMany({ where: { congregationId } })
@@ -163,8 +170,8 @@ describe('resolveEffectivePermissions (integration)', () => {
     expect(perms.has(Permission.BoardViewer)).toBe(true)
   })
 
-  it('grants BoardViewer through a direct CongregationUserPermission grant', async () => {
-    const perms = await resolveEffectivePermissions(directGrantAccountId, congregationId)
+  it('grants BoardViewer through a migrated auto-role', async () => {
+    const perms = await resolveEffectivePermissions(autoRoleAccountId, congregationId)
     expect(perms.has(Permission.BoardViewer)).toBe(true)
   })
 
@@ -195,7 +202,7 @@ describe('findAccountsWithPermission (integration)', () => {
   it('returns every account that holds the permission via any source', async () => {
     const accounts = await findAccountsWithPermission(testDb, congregationId, Permission.BoardViewer)
     const ids = accounts.map(a => a.id).sort((a, b) => a - b)
-    const expected = [memberOnlyAccountId, accountOnlyAccountId, directGrantAccountId].sort((a, b) => a - b)
+    const expected = [memberOnlyAccountId, accountOnlyAccountId, autoRoleAccountId].sort((a, b) => a - b)
     expect(ids).toEqual(expected)
   })
 

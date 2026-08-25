@@ -165,7 +165,7 @@ Cancellation types (e.g., `board.document.deleted`) attempt to cancel pending de
 
 `resolveRecipients()` finds `UserAccount`s that should receive a notification:
 
-1. Queries active accounts in the congregation that hold the configured permission via any of the three sources (direct `CongregationUserPermission`, account-scoped `UserRoleAssignment` → role permissions, or identity-scoped `MemberRoleAssignment` on the linked Member → role permissions). Uses `findAccountsWithPermission`, which builds the three-branch OR filter.
+1. Queries active accounts in the congregation that hold the configured permission via either source (account-scoped `UserRoleAssignment` → role permissions, or identity-scoped `MemberRoleAssignment` on the linked Member → role permissions). Uses `findAccountsWithPermission`, which builds the two-branch OR filter.
 2. Loads `NotificationPreference` records for those accounts.
 3. Filters out accounts that have disabled this notification type (exact match or wildcard `category.*`).
 4. Resolves the display firstname per account (prefers linked Member's firstname over UserAccount's) via `displayFirstname`.

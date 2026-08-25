@@ -7,13 +7,10 @@ vi.mock('~/shared/domain/audit.server', () => ({
 vi.mock('~/shared/domain/built-in-roles.server', () => ({
   syncBuiltInRoleAssignments: vi.fn(),
 }))
-vi.mock('~/shared/auth/permissions.server', () => ({ requireNotLastAdmin: vi.fn() }))
 
 const mockDb = {
   userAccount: { update: vi.fn(), findUnique: vi.fn() },
   member: { update: vi.fn() },
-  congregationUserPermission: { deleteMany: vi.fn(), createMany: vi.fn() },
-  permission: { findMany: vi.fn() },
 }
 
 const { updateAccount } = await import('./update-account.server')
@@ -28,15 +25,12 @@ beforeEach(() => {
 describe('updateAccount', () => {
   it('updates user data', async () => {
     mockDb.userAccount.update.mockResolvedValue({} as never)
-    mockDb.congregationUserPermission.deleteMany.mockResolvedValue({ count: 0 } as never)
-    mockDb.permission.findMany.mockResolvedValue([] as never)
 
     await updateAccount(mockDb as never, 1, 10, 99, {
       firstname: 'Marie',
       lastname: 'Martin',
       email: 'Marie.Martin@Example.COM',
       active: true,
-      permissions: [],
     })
 
     const call = mockDb.userAccount.update.mock.calls[0][0]
@@ -46,46 +40,31 @@ describe('updateAccount', () => {
     expect(call.data.active).toBe(true)
   })
 
-  it('deletes existing permissions and creates new ones', async () => {
+  it('touches no permission table — access is granted by role assignment alone', async () => {
     mockDb.userAccount.update.mockResolvedValue({} as never)
-    mockDb.congregationUserPermission.deleteMany.mockResolvedValue({ count: 2 } as never)
-    mockDb.permission.findMany.mockResolvedValue([
-      { id: 100, key: 'admin' },
-      { id: 101, key: 'board-uploader' },
-    ] as never)
-    mockDb.congregationUserPermission.createMany.mockResolvedValue({ count: 2 } as never)
 
-    await updateAccount(mockDb as never, 5, 10, 99, {
-      firstname: 'Paul',
-      lastname: 'Durand',
-      email: 'paul@example.com',
-      active: true,
-      permissions: ['admin', 'board-uploader'],
-    })
-
-    expect(mockDb.congregationUserPermission.deleteMany).toHaveBeenCalledWith({
-      where: { userId: 5, congregationId: 10 },
-    })
-
-    expect(mockDb.congregationUserPermission.createMany).toHaveBeenCalledWith({
-      data: [
-        { userId: 5, permissionId: 100, congregationId: 10 },
-        { userId: 5, permissionId: 101, congregationId: 10 },
-      ],
-    })
+    // The mock deliberately exposes no permission or role accessors. Since #149
+    // this service edits identity only; a regression that reintroduced a
+    // permission write here would throw rather than silently re-open the
+    // direct grant path.
+    await expect(
+      updateAccount(mockDb as never, 5, 10, 99, {
+        firstname: 'Paul',
+        lastname: 'Durand',
+        email: 'paul@example.com',
+        active: true,
+      }),
+    ).resolves.toBeUndefined()
   })
 
   it('calls audit with correct action', async () => {
     mockDb.userAccount.update.mockResolvedValue({} as never)
-    mockDb.congregationUserPermission.deleteMany.mockResolvedValue({ count: 0 } as never)
-    mockDb.permission.findMany.mockResolvedValue([] as never)
 
     await updateAccount(mockDb as never, 7, 10, 99, {
       firstname: 'Luc',
       lastname: 'Bernard',
       email: 'luc@example.com',
       active: false,
-      permissions: ['admin'],
     })
 
     expect(vi.mocked(audit)).toHaveBeenCalledWith({
@@ -94,7 +73,6 @@ describe('updateAccount', () => {
       actorId: 99,
       entityType: 'UserAccount',
       entityId: 7,
-      metadata: { permissions: ['admin'] },
     })
   })
 })

@@ -87,3 +87,43 @@ export async function seedBuiltInRoles(db: any, congregationId: number) {
     })
   }
 }
+
+/**
+ * The custom role that carries `Permission.Admin`. Matches the auto-role key the
+ * #149 backfill migration mints for `admin`, so a freshly provisioned congregation
+ * and a migrated one end up in the same shape.
+ */
+export const ADMIN_ROLE_KEY = 'can-do-anything'
+
+/**
+ * Idempotently ensure the congregation has a role granting `admin`, returning its
+ * id — or `null` when the `admin` Permission row is somehow absent, which leaves
+ * provisioning to continue rather than failing the whole registration.
+ *
+ * Created as a *custom* role (`isBuiltIn: false`) with a null name, so admins can
+ * rename or delete it like any role they own and `getRoleDisplayName` resolves the
+ * label from the message catalogue instead of a language pinned into the database.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: accepts both PrismaClient and scoped transaction client
+export async function ensureAdminRole(db: any, congregationId: number): Promise<number | null> {
+  const adminPermission = await db.permission.findUnique({
+    where: { key: Permission.Admin },
+    select: { id: true },
+  })
+  if (adminPermission == null) return null
+
+  const role = await db.role.upsert({
+    where: { key_congregationId: { key: ADMIN_ROLE_KEY, congregationId } },
+    update: {},
+    create: { key: ADMIN_ROLE_KEY, isBuiltIn: false, congregationId },
+    select: { id: true },
+  })
+
+  await db.rolePermission.upsert({
+    where: { roleId_permissionId: { roleId: role.id, permissionId: adminPermission.id } },
+    update: {},
+    create: { roleId: role.id, permissionId: adminPermission.id, congregationId },
+  })
+
+  return role.id
+}

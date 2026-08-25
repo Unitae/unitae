@@ -4,7 +4,6 @@ import { Download, IdCard, ShieldAlert, UserPlus } from 'lucide-react'
 import { data, Form, Link, redirect, useSubmit } from 'react-router'
 import { editUserSchema } from '~/features/settings/schemas/user.schema'
 import { updateAccount } from '~/features/settings/server/update-account.server'
-import { RolePermissionPicker } from '~/features/settings/ui/RolePermissionPicker'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { setUserCustomRoleAssignments } from '~/shared/domain/roles.server'
@@ -24,7 +23,7 @@ import {
   AlertDialogTrigger,
 } from '~/shared/ui/alert-dialog'
 import { Button } from '~/shared/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/shared/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Checkbox } from '~/shared/ui/checkbox'
 import { FormActions } from '~/shared/ui/FormActions'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
@@ -64,7 +63,6 @@ export function loader({ params, context }: Route.LoaderArgs) {
       },
       include: {
         member: { select: { id: true, firstname: true, lastname: true, isPublisher: true, anonymizedAt: true } },
-        congregationPermissions: { include: { permission: true } },
         // Identity-role assignments for the matrix come from the linked Member
       },
     })
@@ -82,7 +80,6 @@ export function loader({ params, context }: Route.LoaderArgs) {
       select: { roleId: true },
     })
 
-    const permissionList = await db.permission.findMany()
     const allRoles = await db.role.findMany({
       where: { congregationId: currentUser.congregationId },
       orderBy: [{ isBuiltIn: 'desc' }, { name: 'asc' }, { key: 'asc' }],
@@ -98,8 +95,6 @@ export function loader({ params, context }: Route.LoaderArgs) {
       active: user.active,
       firstname: user.member?.firstname ?? user.firstname,
       lastname: user.member?.lastname ?? user.lastname,
-      permissions: user.congregationPermissions.map(cp => cp.permission),
-      permissionList,
       builtInRoles: allRoles
         .filter(r => r.isBuiltIn)
         .map(r => ({
@@ -130,8 +125,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: large edit page with multiple optional sections (custom roles, danger-zone, anonymized banner)
 export default function SettingsLayout({ loaderData, actionData }: Route.ComponentProps) {
-  const { permissionList, builtInRoles, customRoles, canManageRoles, isAdmin, canAnonymize, anonymizedAt, ...user } =
-    loaderData
+  const { builtInRoles, customRoles, canManageRoles, canAnonymize, anonymizedAt, ...user } = loaderData
 
   const { blocker, markDirty } = useUnsavedChanges()
   const submit = useSubmit()
@@ -341,29 +335,17 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
           </Card>
         )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">{m.settings_user_edit_rights_title()}</CardTitle>
-            <CardDescription>{m.settings_user_edit_rights_subtitle()}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {publisherNotUser ? (
+        {publisherNotUser && (
+          <Card>
+            <CardContent className="pt-6">
               <p className="text-center text-muted-foreground text-sm">
                 {m.settings_user_edit_publisher_only_notice()}
                 <br />
                 {m.settings_user_edit_publisher_only_hint()}
               </p>
-            ) : (
-              <RolePermissionPicker
-                permissions={permissionList}
-                selectedKeys={user.permissions.map(p => p.key)}
-                name="permissions"
-                showHeader={false}
-                disabledKeys={isAdmin ? [] : [Permission.Admin]}
-              />
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         <FormActions>
           <SubmitButton>{m.settings_user_edit_submit()}</SubmitButton>
@@ -457,7 +439,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  const { firstname, lastname, email, active, permissions: selectedPermissions, customRoleIds } = submission.value
+  const { firstname, lastname, email, active, customRoleIds } = submission.value
 
   return withScopeFromContext(context, async db => {
     try {
@@ -466,7 +448,6 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         lastname,
         email,
         active,
-        permissions: selectedPermissions,
       })
 
       await setUserCustomRoleAssignments(db, accountId, currentUser.congregationId, currentUser.id, customRoleIds)

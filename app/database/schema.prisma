@@ -101,7 +101,6 @@ model Congregation {
   boardDynamicDocumentSettings BoardDynamicDocumentSettings[]
   events                       Event[]
   settings                     Setting[]
-  userPermissions              CongregationUserPermission[]
   roles                        Role[]
   rolePermissions              RolePermission[]
   userRoleAssignments          UserRoleAssignment[]
@@ -292,13 +291,12 @@ model UserAccount {
   twoFactorEnabledAt DateTime?
 
   // Account-bound relations
-  congregationPermissions  CongregationUserPermission[]
   roleAssignments          UserRoleAssignment[] // management/access roles
-  eventsCreated            Event[]                      @relation("createdBy")
-  documentsViewed          BoardDocument[]              @relation("viewedBy")
-  documentVersionUploads   BoardDocumentVersion[]       @relation("boardDocumentVersionUploader")
+  eventsCreated            Event[]                    @relation("createdBy")
+  documentsViewed          BoardDocument[]            @relation("viewedBy")
+  documentVersionUploads   BoardDocumentVersion[]     @relation("boardDocumentVersionUploader")
   dynamicDocumentViews     BoardDynamicDocumentView[]
-  templateResponsibilities TemplateResponsible[]        @relation("templateResponsible")
+  templateResponsibilities TemplateResponsible[]      @relation("templateResponsible")
   passwordResetTokens      PasswordResetToken[]
   emailVerificationTokens  EmailVerificationToken[]
   calendarFeedTokens       CalendarFeedToken[]
@@ -312,10 +310,9 @@ model UserAccount {
 }
 
 model Permission {
-  id                      Int                          @id @default(autoincrement())
-  key                     String                       @unique
-  congregationPermissions CongregationUserPermission[]
-  rolePermissions         RolePermission[]
+  id              Int              @id @default(autoincrement())
+  key             String           @unique
+  rolePermissions RolePermission[]
 }
 
 model Role {
@@ -392,20 +389,6 @@ model MemberRoleAssignment {
   @@id([memberId, roleId])
   @@index([congregationId])
   @@index([roleId])
-}
-
-model CongregationUserPermission {
-  id             Int          @id @default(autoincrement())
-  user           UserAccount  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId         Int
-  permission     Permission   @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-  permissionId   Int
-  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
-  congregationId Int
-
-  @@unique([userId, permissionId, congregationId])
-  @@unique([id, congregationId])
-  @@index([permissionId])
 }
 
 model BoardSection {
