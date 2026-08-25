@@ -1,7 +1,9 @@
 import type JsZip from 'jszip'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
+import { ConflictError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
+import { autoRoleKeyForPermission } from '~/shared/types/permission'
 import type { PublisherType } from '~/shared/types/publisher-type'
 import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 import type { EntityIdMap } from './data-transfer.type'
@@ -164,6 +166,59 @@ export async function importUserRoleAssignments(
   }
 }
 
+/**
+ * Resolve (creating if needed) the auto-role that grants `permissionId` in this
+ * congregation, mirroring what the #149 backfill migration does in SQL.
+ *
+ * A congregation may already own a custom role slugified to the same key — an
+ * admin is free to name a role "Peut tout faire". Adopting it would silently
+ * widen it for everyone already assigned, so a taken key falls back to
+ * `<key>-migrated`, then to `<key>-migrated-<permissionId>`.
+ */
+async function resolveAutoRoleId(
+  db: TransactionClient,
+  baseKey: string,
+  permissionId: number,
+  congregationId: number,
+): Promise<number> {
+  for (const key of [baseKey, `${baseKey}-migrated`, `${baseKey}-migrated-${permissionId}`]) {
+    const existing = await db.role.findFirst({
+      where: { key, congregationId },
+      select: { id: true, permissions: { select: { permissionId: true } } },
+    })
+
+    if (!existing) {
+      // Name and description stay null: the display string comes from the
+      // message catalogue, so no language is pinned into the database.
+      const created = await db.role.create({
+        data: { key, isBuiltIn: false, congregationId },
+        select: { id: true },
+      })
+      await db.rolePermission.create({ data: { roleId: created.id, permissionId, congregationId } })
+      return created.id
+    }
+
+    // Reuse only a role this importer would itself have created: one that grants
+    // exactly this permission and nothing else.
+    if (existing.permissions.length === 1 && existing.permissions[0].permissionId === permissionId) {
+      return existing.id
+    }
+  }
+
+  throw new ConflictError(`Unable to allocate an auto-role key for "${baseKey}" — all candidate keys are taken`)
+}
+
+/**
+ * Import the direct permission grants carried by a pre-#149 archive.
+ *
+ * The `CongregationUserPermission` table those rows described no longer exists,
+ * so each grant lands as a membership in the auto-role for its permission —
+ * exactly the shape the backfill migration produced for live data. Without this,
+ * restoring an older backup would silently drop everyone's access.
+ *
+ * Current archives carry no such file and this is a no-op for them; roles,
+ * role-permissions and role assignments travel as their own entities.
+ */
 export async function importCongregationUserPermissions(
   zip: JsZip,
   db: TransactionClient,
@@ -184,18 +239,45 @@ export async function importCongregationUserPermissions(
       : []
   const merged = records.length > 0 ? records : legacyRecords
 
+  const roleIdByPermission = new Map<number, number>()
+
   for (const record of merged) {
     const userId = idMap.getOptional('user-accounts', record.userId)
     const permissionId = permissionKeyToId.get(record.permissionKey)
-    if (!userId || !permissionId) continue
 
-    const existing = await db.congregationUserPermission.findFirst({
-      where: { userId, permissionId, congregationId },
-    })
-    if (!existing) {
-      await db.congregationUserPermission.create({
-        data: { userId, permissionId, congregationId },
+    // Both misses drop a grant the archive says someone had, so neither is
+    // allowed to pass silently — a restore that quietly returns less access
+    // than it was given looks like a success to the admin who ran it.
+    if (!userId) {
+      logger.warn('Skipping permission grant: the archive user is not in the import map', {
+        congregationId,
+        sourceUserId: record.userId,
+        permissionKey: record.permissionKey,
       })
+      continue
+    }
+    if (!permissionId) {
+      logger.warn('Skipping permission grant: permission key is not seeded in this database', {
+        congregationId,
+        sourceUserId: record.userId,
+        permissionKey: record.permissionKey,
+      })
+      continue
+    }
+
+    // Same fallback the migration applies: a key the mapping has never heard of
+    // still gets a role rather than being dropped.
+    const baseKey = autoRoleKeyForPermission(record.permissionKey) ?? `can-${record.permissionKey}`
+
+    let roleId = roleIdByPermission.get(permissionId)
+    if (roleId === undefined) {
+      roleId = await resolveAutoRoleId(db, baseKey, permissionId, congregationId)
+      roleIdByPermission.set(permissionId, roleId)
+    }
+
+    const existing = await db.userRoleAssignment.findFirst({ where: { userId, roleId }, select: { userId: true } })
+    if (!existing) {
+      await db.userRoleAssignment.create({ data: { userId, roleId, congregationId } })
     }
   }
 }

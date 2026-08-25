@@ -6,6 +6,7 @@ const scopedDb = {
   // Seeding the default templates also seeds the part presets they link to.
   partPreset: { findFirst: vi.fn(), create: vi.fn(), findMany: vi.fn() },
   role: { upsert: vi.fn(), findUnique: vi.fn() },
+  userRoleAssignment: { create: vi.fn() },
   // Setup also seeds the built-in territory kinds.
   territoryKind: { upsert: vi.fn() },
   permission: { findUnique: vi.fn() },
@@ -17,7 +18,6 @@ vi.mock('~/shared/infra/db.server', () => ({
     congregation: { findUnique: vi.fn(), create: vi.fn() },
     userAccount: { findUnique: vi.fn(), create: vi.fn() },
     permission: { findUnique: vi.fn(), upsert: vi.fn() },
-    congregationUserPermission: { create: vi.fn() },
     consentRecord: { create: vi.fn() },
   },
   withScope: vi.fn((_id: number, fn: (db: unknown) => Promise<unknown>) => fn(scopedDb)),
@@ -53,7 +53,10 @@ beforeEach(() => {
   })) as never)
   vi.mocked(db.userAccount.create).mockResolvedValue({ id: 10 } as never)
   vi.mocked(db.permission.findUnique).mockResolvedValue({ id: 5, key: 'admin' } as never)
-  vi.mocked(db.congregationUserPermission.create).mockResolvedValue({} as never)
+  scopedDb.permission.findUnique.mockResolvedValue({ id: 5 } as never)
+  scopedDb.role.upsert.mockResolvedValue({ id: 77 } as never)
+  scopedDb.rolePermission.upsert.mockResolvedValue({} as never)
+  scopedDb.userRoleAssignment.create.mockResolvedValue({} as never)
   scopedDb.eventKind.upsert.mockResolvedValue({} as never)
   scopedDb.eventTemplate.findFirst.mockResolvedValue(null as never)
   scopedDb.eventTemplate.create.mockResolvedValue({} as never)
@@ -70,6 +73,19 @@ describe('registerCongregation', () => {
     // The subdomain must never be derivable from the name: a random suffix is mandatory.
     expect('congregationSlug' in result && result.congregationSlug).toMatch(SUFFIXED_SLUG)
     expect('congregationSlug' in result && result.congregationSlug).not.toBe('test-congre')
+  })
+
+  it('donne les droits admin au premier compte via un rôle, pas un octroi direct', async () => {
+    await registerCongregation('Ma Congrégation', 'test-congre', 'admin@test.com', 'motdepasse', 'fr')
+
+    // Depuis #149 l'arête directe utilisateur->permission n'existe plus : le
+    // compte créé à l'inscription ne peut devenir admin qu'en passant par un rôle.
+    expect(scopedDb.role.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ create: { key: 'can-do-anything', isBuiltIn: false, congregationId: 1 } }),
+    )
+    expect(scopedDb.userRoleAssignment.create).toHaveBeenCalledWith({
+      data: { userId: 10, roleId: 77, congregationId: 1 },
+    })
   })
 
   it('génère des slugs différents pour deux inscriptions du même nom', async () => {

@@ -88,7 +88,7 @@ export default function EditRolePage({ loaderData, actionData }: Route.Component
               <Input
                 {...getInputProps(fields.name, { type: 'text' })}
                 key={fields.name.id}
-                defaultValue={role.name ?? ''}
+                defaultValue={getRoleDisplayName(role)}
                 required
               />
               {fields.name.errors && <p className="text-destructive text-sm">{fields.name.errors}</p>}

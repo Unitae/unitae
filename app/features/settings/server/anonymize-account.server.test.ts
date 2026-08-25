@@ -17,7 +17,7 @@ vi.mock('~/shared/domain/audit.server', () => ({
 
 const mockDb = {
   userAccount: { findFirst: vi.fn(), update: vi.fn() },
-  congregationUserPermission: { deleteMany: vi.fn() },
+
   userRoleAssignment: { deleteMany: vi.fn() },
   passwordResetToken: { deleteMany: vi.fn() },
   boardDocumentVersion: { updateMany: vi.fn() },
@@ -66,14 +66,13 @@ describe('anonymizeAccount', () => {
     expect(update.data.email).toMatch(ANON_EMAIL_RE)
   })
 
-  it('purges direct permissions, role assignments, password-reset tokens', async () => {
+  it('purges role assignments and password-reset tokens', async () => {
     mockDb.userAccount.findFirst.mockResolvedValue({ id: 5, anonymizedAt: null })
 
     await anonymizeAccount(dbCast, 5 as AccountId, 42, 99)
 
-    expect(mockDb.congregationUserPermission.deleteMany).toHaveBeenCalledWith({
-      where: { userId: 5, congregationId: 42 },
-    })
+    // Dropping the role assignments is what actually revokes access now: since
+    // #149 there is no direct grant left to strip alongside them.
     expect(mockDb.userRoleAssignment.deleteMany).toHaveBeenCalledWith({ where: { userId: 5, congregationId: 42 } })
     expect(mockDb.passwordResetToken.deleteMany).toHaveBeenCalledWith({ where: { userId: 5 } })
   })

@@ -11,7 +11,7 @@ For the end-user view of the same system, see the product doc: [Roles and Permis
 
 Built-in identity roles attach to **`Member`** via `MemberRoleAssignment`. Custom roles (and the management permissions they grant) attach to **`UserAccount`** via `UserRoleAssignment`. The two tables are siblings: identity ("you are an elder") vs access ("you can manage roles").
 
-Users do not hold permissions through roles only — there is also a direct `CongregationUserPermission` table for one-off grants. Both sources are unioned at request time.
+Roles are the **only** carrier of a permission. The former `CongregationUserPermission` table, which let an admin grant a permission to one user directly, was migrated into auto-created roles and dropped in #149 — so the role screens are the single place access is granted. See [Auto-roles](#auto-roles) below.
 
 ## Where things live
 
@@ -26,17 +26,14 @@ Users do not hold permissions through roles only — there is also a direct `Con
 | Role admin UI | `app/features/congregation/routes/roles/` |
 | User assignment UI | settings — see `app/features/settings/` |
 
-Database schema is in `app/database/schema.prisma`. The relevant tables are `Permission`, `Role`, `RolePermission`, `UserRoleAssignment` (custom/management roles, on `UserAccount`), `MemberRoleAssignment` (built-in identity roles, on `Member`), and `CongregationUserPermission`.
+Database schema is in `app/database/schema.prisma`. The relevant tables are `Permission`, `Role`, `RolePermission`, `UserRoleAssignment` (custom/management roles, on `UserAccount`) and `MemberRoleAssignment` (built-in identity roles, on `Member`).
 
 ## Resolution flow
 
 When a request hits an authenticated layout:
 
 1. `requireAuth()` middleware runs (`app/shared/auth/middleware.server.ts`). It calls `verifySession`, then `resolveEffectivePermissions(userId, congregationId)`, then enforces GDPR consent.
-2. `resolveEffectivePermissions` (`app/shared/auth/permissions.server.ts`) reads two sources in parallel:
-   - direct grants from `CongregationUserPermission`
-   - role-mediated grants from `RolePermission` joined to roles the `UserAccount` holds via `UserRoleAssignment` (custom/management roles only — identity-role assignments on `MemberRoleAssignment` aren't consulted here, since identity roles don't carry permissions by themselves)
-   It unions both, and if the result contains `Permission.Admin`, expands it to every value of the enum.
+2. `resolveEffectivePermissions` (`app/shared/auth/permissions.server.ts`) reads `RolePermission` joined to every role the account reaches — via `UserRoleAssignment` (custom/management roles on the `UserAccount`) or `MemberRoleAssignment` (identity roles on the linked `Member`). If the result contains `Permission.Admin`, it expands to every value of the enum.
 3. The middleware sets `permissionsContext` to the resulting `Set<Permission>`.
 4. Loaders/actions read `context.get(permissionsContext)` and call `requirePermission(permissions, Permission.X)` (which redirects on failure) or `permissions.has(...)` for conditional UI.
 
@@ -108,6 +105,32 @@ Emergency-preparedness info (`features/publishers`) is the second place — afte
 - **Scoped, no permission entry** — a member who is the `responsibleFor` / `deputyFor` a group may view *and* edit the emergency info of members **of that group**. This is derived from group responsibility, not from any `Permission`, so it grants no role-editable entry.
 
 The decision lives in pure functions in `app/features/publishers/model/emergency-access.ts` (`canViewEmergencyInfo` / `canManageEmergencyInfo`), which take `{ hasViewer, hasManager, myResponsibleGroupId, myDeputyGroupId, targetGroupId }`. Route loaders/actions (`routes/publishers/emergency.tsx`, the two `emergency-roster*` routes) resolve the caller's group responsibility off `currentAccountContext` (already eager-loaded) and re-check server-side. Because the scope isn't a permission, a group responsible who holds no publisher permission has no in-app nav entry to the roster today — they reach it via the per-group roster link on the group page.
+
+## Auto-roles
+
+Migration `20260826000000_drop_direct_user_permissions` turned every direct grant into a
+role assignment, then dropped the table. For each `(congregation, permission)` pair that had
+at least one direct grant, it created one custom role granting exactly that permission,
+keyed `can-<verb>-<subject>` — the full table lives in `AUTO_ROLE_KEY_BY_PERMISSION`
+(`app/shared/types/permission.ts`).
+
+Three properties are worth knowing:
+
+- **They are ordinary custom roles.** `isBuiltIn` is `false`, so an admin can rename,
+  re-scope or delete one like any role they created. Nothing special-cases them at runtime.
+- **`name` and `description` are `NULL`.** `getRoleDisplayName` resolves the label from
+  `AUTO_ROLE_NAMES` in `app/shared/types/role.ts` for the reader's locale — the same
+  convention built-in roles use, so no language is pinned into the database. An admin who
+  renames one stores a `name`, and that wins.
+- **Key collisions are suffixed.** A congregation that already owned a role slugified to
+  `can-do-anything` keeps it untouched; the auto-role lands on `can-do-anything-migrated`
+  (then `-migrated-<permissionId>`). Adopting the existing role would have silently widened
+  it for everyone assigned to it.
+
+The same mapping and collision rule are reimplemented in
+`importCongregationUserPermissions` (`app/features/settings/server/import-user-accounts.server.ts`),
+so an archive exported before the cutover still restores everyone's access. Current exports
+carry no such file — roles, role-permissions and role assignments travel as their own entities.
 
 ## Adding a new permission
 

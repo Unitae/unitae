@@ -81,8 +81,16 @@ beforeAll(async () => {
       },
     })
 
-    await tx.congregationUserPermission.create({
-      data: { userId: alice.id, permissionId: adminPermissionId, congregationId: sourceId },
+    // Admin reaches Alice through a role — the only path left since #149. The key
+    // matches the auto-role the backfill migration mints for `admin`.
+    const adminRole = await tx.role.create({
+      data: { key: 'can-do-anything', isBuiltIn: false, congregationId: sourceId },
+    })
+    await tx.rolePermission.create({
+      data: { roleId: adminRole.id, permissionId: adminPermissionId, congregationId: sourceId },
+    })
+    await tx.userRoleAssignment.create({
+      data: { userId: alice.id, roleId: adminRole.id, congregationId: sourceId },
     })
 
     await tx.setting.create({
@@ -443,7 +451,6 @@ afterAll(async () => {
       await tx.userRoleAssignment.deleteMany({})
       await tx.rolePermission.deleteMany({})
       await tx.role.deleteMany({})
-      await tx.congregationUserPermission.deleteMany({})
       // Clear publisherGroupId FK on members before deleting groups
       await tx.member.updateMany({ data: { publisherGroupId: null } })
       await tx.publisherGroup.deleteMany({})
@@ -582,12 +589,13 @@ describe('Export/Import round-trip', () => {
     expect(entityCounts['board-documents']).toBe(1)
     expect(entityCounts['consent-records']).toBe(1)
     expect(entityCounts.settings).toBe(1)
-    expect(entityCounts['congregation-user-permissions']).toBe(1)
+    // The direct user->permission edge is gone (#149); nothing exports it any more.
+    expect(entityCounts['congregation-user-permissions']).toBeUndefined()
 
     // v1.1 entities
-    expect(entityCounts.roles).toBe(11) // 10 built-ins + 1 custom
-    expect(entityCounts['role-permissions']).toBe(1)
-    expect(entityCounts['user-role-assignments']).toBe(1)
+    expect(entityCounts.roles).toBe(12) // 10 built-ins + 1 custom + the admin auto-role
+    expect(entityCounts['role-permissions']).toBe(2)
+    expect(entityCounts['user-role-assignments']).toBe(2)
     expect(entityCounts['external-speakers']).toBe(1)
     expect(entityCounts['territory-card-overlays']).toBe(1)
     expect(entityCounts['territory-perimeter']).toBe(1)
@@ -614,7 +622,8 @@ describe('Export/Import round-trip', () => {
 
   it('exported permissions use key instead of numeric permissionId', async () => {
     const { zip } = await exportToZip(sourceId)
-    const content = await zip.file('data/congregation-user-permissions.ndjson')!.async('string')
+    // Permissions travel attached to their role now, not to a user directly.
+    const content = await zip.file('data/role-permissions.ndjson')!.async('string')
     const records = content
       .split('\n')
       .filter(l => l.trim())
@@ -623,7 +632,7 @@ describe('Export/Import round-trip', () => {
     expect(records.length).toBeGreaterThan(0)
     for (const record of records) {
       expect(record).toHaveProperty('permissionKey')
-      expect(record).toHaveProperty('userId')
+      expect(record).toHaveProperty('roleId')
       expect(record).not.toHaveProperty('permissionId')
     }
   })
@@ -675,7 +684,6 @@ describe('Export/Import round-trip', () => {
       await tx.userRoleAssignment.deleteMany({})
       await tx.rolePermission.deleteMany({})
       await tx.role.deleteMany({})
-      await tx.congregationUserPermission.deleteMany({})
       await tx.member.updateMany({ data: { publisherGroupId: null } })
       await tx.publisherGroup.deleteMany({})
       await tx.userAccount.deleteMany({})
@@ -731,10 +739,14 @@ describe('Export/Import round-trip', () => {
       expect(bob).toBeDefined()
       expect(bobMember).toBeDefined()
 
-      // Permissions
-      const assignments = await tx.congregationUserPermission.findMany({})
+      // Permissions — carried by roles now, so the round trip has to preserve the
+      // role, its permission row, and the membership.
+      const restoredRole = await tx.role.findFirst({ where: { key: 'can-do-anything' } })
+      expect(restoredRole).not.toBeNull()
+      const restoredGrants = await tx.rolePermission.findMany({ where: { roleId: restoredRole?.id } })
+      expect(restoredGrants.map(g => g.permissionId)).toEqual([adminPermissionId])
+      const assignments = await tx.userRoleAssignment.findMany({ where: { roleId: restoredRole?.id } })
       expect(assignments).toHaveLength(1)
-      expect(assignments[0].permissionId).toBe(adminPermissionId)
       expect(assignments[0].userId).toBe(alice.id)
 
       // Settings
@@ -824,9 +836,9 @@ describe('Export/Import round-trip', () => {
       expect(consents).toHaveLength(1)
       expect(consents[0].userId).toBe(alice.id)
 
-      // 10 built-ins (pre-seeded) + 1 custom.
+      // 10 built-ins (pre-seeded) + 1 custom + the admin auto-role.
       const roles = await tx.role.findMany({})
-      expect(roles).toHaveLength(11)
+      expect(roles).toHaveLength(12)
       const customRoleOnTarget = roles.find(r => r.key.startsWith('custom-'))
       expect(customRoleOnTarget).toBeDefined()
       expect(customRoleOnTarget?.name).toBe('Custom QA Reviewer')
@@ -937,6 +949,167 @@ describe('Export/Import round-trip', () => {
 // Legacy v1.x archive support is deferred — v1.x export shipped a single `users.ndjson`
 // with publisher fields embedded, and v2.0 splits that into `members` + `user-accounts`.
 // The forward-only path is the only one currently supported; backward compat will be a
+describe('legacy direct-grant archives', () => {
+  // Archives exported before #149 carry `congregation-user-permissions.ndjson`
+  // (and, before #152, `congregation-user-roles.ndjson`). The table those rows
+  // described no longer exists, so the import has to land them on the auto-role
+  // for each permission — otherwise restoring an old backup silently drops
+  // everyone's access.
+  it.each([
+    ['congregation-user-permissions', { userId: 9001, permissionKey: 'admin' }],
+    ['congregation-user-roles', { userId: 9001, roleKey: 'admin' }],
+  ])('routes %s.ndjson onto the admin auto-role', async (filename, record) => {
+    const congregation = await testDb.congregation.create({
+      data: { name: `Legacy ${filename} ${ts}`, slug: `legacy-${filename}-${ts}`, active: true },
+    })
+    const congId = congregation.id
+
+    try {
+      const zip = new JsZip()
+      const dataDir = zip.folder('data')!
+      dataDir.file(
+        'user-accounts.ndjson',
+        `${JSON.stringify({
+          id: 9001,
+          memberId: null,
+          firstname: 'Legacy',
+          lastname: 'User',
+          email: `legacy-${filename}-${ts}@test.com`,
+          active: true,
+          emailVerifiedAt: null,
+          anonymizedAt: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })}\n`,
+      )
+      dataDir.file(`${filename}.ndjson`, `${JSON.stringify(record)}\n`)
+      zip.file(
+        'manifest.json',
+        JSON.stringify({
+          version: '2.0',
+          exportDate: new Date().toISOString(),
+          sourceApp: 'unitae',
+          entityCounts: { 'user-accounts': 1, [filename]: 1 },
+        }),
+      )
+
+      const mod = await import('./import-congregation.server')
+      const allPermissions = await testDb.permission.findMany({ select: { id: true, key: true } })
+      const permissionKeyToId = new Map(allPermissions.map(p => [p.key, p.id]))
+      const idMap = new EntityIdMap()
+      const loadedZip = await JsZip.loadAsync(await zip.generateAsync({ type: 'nodebuffer' }))
+
+      await withScope(congId, async tx => {
+        await mod.importUserAccounts(loadedZip, tx, idMap, congId)
+        await mod.importCongregationUserPermissions(loadedZip, tx, idMap, permissionKeyToId, congId)
+      })
+
+      await withScope(congId, async tx => {
+        const users = await tx.userAccount.findMany({})
+        expect(users).toHaveLength(1)
+
+        const role = await tx.role.findFirst({ where: { key: 'can-do-anything' } })
+        expect(role).not.toBeNull()
+        expect(role?.isBuiltIn).toBe(false)
+        // Null name so the display string comes from the message catalogue.
+        expect(role?.name).toBeNull()
+
+        const grants = await tx.rolePermission.findMany({ where: { roleId: role?.id } })
+        expect(grants.map(g => g.permissionId)).toEqual([adminPermissionId])
+
+        const assignments = await tx.userRoleAssignment.findMany({ where: { roleId: role?.id } })
+        expect(assignments).toHaveLength(1)
+        expect(assignments[0].userId).toBe(users[0].id)
+      })
+    } finally {
+      await withScope(congId, async tx => {
+        await tx.userRoleAssignment.deleteMany({})
+        await tx.rolePermission.deleteMany({})
+        await tx.role.deleteMany({})
+        await tx.userAccount.deleteMany({})
+        await tx.member.deleteMany({})
+        await tx.auditLog.deleteMany({})
+      })
+      await testDb.congregation.delete({ where: { id: congId } })
+    }
+  })
+
+  it('never widens a role the congregation already owns under the auto-role key', async () => {
+    const congregation = await testDb.congregation.create({
+      data: { name: `Legacy collide ${ts}`, slug: `legacy-collide-${ts}`, active: true },
+    })
+    const congId = congregation.id
+
+    try {
+      // The target congregation already owns a role slugified to the auto-role
+      // key, granting something else entirely. Reusing it would hand admin to
+      // everyone already assigned to it.
+      const existing = await withScope(congId, tx =>
+        tx.role.create({
+          data: { key: 'can-do-anything', name: 'Peut tout faire', isBuiltIn: false, congregationId: congId },
+        }),
+      )
+
+      const zip = new JsZip()
+      const dataDir = zip.folder('data')!
+      dataDir.file(
+        'user-accounts.ndjson',
+        `${JSON.stringify({
+          id: 9002,
+          memberId: null,
+          firstname: 'Legacy',
+          lastname: 'Collide',
+          email: `legacy-collide-${ts}@test.com`,
+          active: true,
+          emailVerifiedAt: null,
+          anonymizedAt: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })}\n`,
+      )
+      dataDir.file(
+        'congregation-user-permissions.ndjson',
+        `${JSON.stringify({ userId: 9002, permissionKey: 'admin' })}\n`,
+      )
+      zip.file(
+        'manifest.json',
+        JSON.stringify({ version: '2.0', exportDate: new Date().toISOString(), sourceApp: 'unitae', entityCounts: {} }),
+      )
+
+      const mod = await import('./import-congregation.server')
+      const allPermissions = await testDb.permission.findMany({ select: { id: true, key: true } })
+      const permissionKeyToId = new Map(allPermissions.map(p => [p.key, p.id]))
+      const idMap = new EntityIdMap()
+      const loadedZip = await JsZip.loadAsync(await zip.generateAsync({ type: 'nodebuffer' }))
+
+      await withScope(congId, async tx => {
+        await mod.importUserAccounts(loadedZip, tx, idMap, congId)
+        await mod.importCongregationUserPermissions(loadedZip, tx, idMap, permissionKeyToId, congId)
+      })
+
+      await withScope(congId, async tx => {
+        // The pre-existing role granted nothing and must still grant nothing.
+        const existingGrants = await tx.rolePermission.findMany({ where: { roleId: existing.id } })
+        expect(existingGrants).toHaveLength(0)
+
+        const suffixed = await tx.role.findFirst({ where: { key: 'can-do-anything-migrated' } })
+        expect(suffixed).not.toBeNull()
+        const grants = await tx.rolePermission.findMany({ where: { roleId: suffixed?.id } })
+        expect(grants.map(g => g.permissionId)).toEqual([adminPermissionId])
+      })
+    } finally {
+      await withScope(congId, async tx => {
+        await tx.userRoleAssignment.deleteMany({})
+        await tx.rolePermission.deleteMany({})
+        await tx.role.deleteMany({})
+        await tx.userAccount.deleteMany({})
+        await tx.auditLog.deleteMany({})
+      })
+      await testDb.congregation.delete({ where: { id: congId } })
+    }
+  })
+})
+
 // follow-up. Keep the test skipped so it documents the intent without blocking CI.
 describe.skip('v1.0 archive backward compatibility', () => {
   it('accepts a v1.0 manifest and routes legacy congregation-user-roles.ndjson via permission keys', async () => {
@@ -996,15 +1169,21 @@ describe.skip('v1.0 archive backward compatibility', () => {
       await withScope(congId, async tx => {
         const users = await tx.userAccount.findMany({})
         expect(users).toHaveLength(1)
-        const grants = await tx.congregationUserPermission.findMany({})
-        expect(grants).toHaveLength(1)
-        expect(grants[0].permissionId).toBe(adminPermissionId)
-        expect(grants[0].userId).toBe(users[0].id)
+        // Post-#149 the grant lands on the admin auto-role rather than a
+        // direct row. The role shape itself is covered, unskipped, by the
+        // "legacy direct-grant archives" suite above; what stays unverified
+        // here is the v1.0 manifest and users.ndjson split.
+        const role = await tx.role.findFirst({ where: { key: 'can-do-anything' } })
+        expect(role).not.toBeNull()
+        const assignments = await tx.userRoleAssignment.findMany({ where: { roleId: role?.id } })
+        expect(assignments).toHaveLength(1)
+        expect(assignments[0].userId).toBe(users[0].id)
       })
     } finally {
       await withScope(congId, async tx => {
-        await tx.congregationUserPermission.deleteMany({})
         await tx.userRoleAssignment.deleteMany({})
+        await tx.rolePermission.deleteMany({})
+        await tx.role.deleteMany({})
         await tx.userAccount.deleteMany({})
         await tx.member.deleteMany({})
         await tx.auditLog.deleteMany({})

@@ -24,7 +24,7 @@ import { TerritoryKindKey } from '../features/territories/model/territory-kind.t
 import { seedBuiltInTerritoryKinds } from '../features/territories/server/territory-kinds.server'
 import { syncBuiltInRoleAssignments } from '../shared/domain/built-in-roles.server'
 import { seedBuiltInRoles } from '../shared/domain/setup.server'
-import { Permission } from '../shared/types/permission'
+import { autoRoleKeyForPermission, Permission } from '../shared/types/permission'
 import { PublisherType } from '../shared/types/publisher-type'
 import { stripDiacritics } from '../shared/utils/strip-diacritics'
 import { PrismaClient } from './generated/client'
@@ -563,7 +563,9 @@ async function cleanCongregationData(congregationId: number) {
   await prisma.buildingEntrance.deleteMany({ where: { congregationId } })
   await prisma.building.deleteMany({ where: { congregationId } })
   await prisma.territory.deleteMany({ where: { congregationId } })
-  await prisma.congregationUserPermission.deleteMany({ where: { congregationId } })
+  await prisma.userRoleAssignment.deleteMany({ where: { congregationId } })
+  await prisma.rolePermission.deleteMany({ where: { congregationId } })
+  await prisma.role.deleteMany({ where: { congregationId, isBuiltIn: false } })
   await prisma.member.updateMany({
     where: { congregationId },
     data: { publisherGroupId: null },
@@ -765,40 +767,41 @@ async function main() {
     settingsUserManagerRole,
   ].filter(Boolean)
 
-  for (const role of rolesToAssign) {
-    if (!role) continue
-    await prisma.congregationUserPermission.upsert({
-      where: {
-        userId_permissionId_congregationId: {
-          userId: mainAdmin.accountId,
-          permissionId: role.id,
-          congregationId: congId,
-        },
-      },
+  // Permissions travel through roles only. The demo tenant therefore gets the
+  // same auto-roles the #149 backfill mints for a real congregation, so what a
+  // demo admin sees on the roles screen matches production.
+  async function grantViaAutoRole(accountId: number, permission: { id: number; key: string }) {
+    const key = autoRoleKeyForPermission(permission.key)
+    if (!key) return
+
+    const role = await prisma.role.upsert({
+      where: { key_congregationId: { key, congregationId: congId } },
       update: {},
-      create: { userId: mainAdmin.accountId, permissionId: role.id, congregationId: congId },
+      create: { key, isBuiltIn: false, congregationId: congId },
+      select: { id: true },
     })
+    await prisma.rolePermission.upsert({
+      where: { roleId_permissionId: { roleId: role.id, permissionId: permission.id } },
+      update: {},
+      create: { roleId: role.id, permissionId: permission.id, congregationId: congId },
+    })
+    await prisma.userRoleAssignment.upsert({
+      where: { userId_roleId: { userId: accountId, roleId: role.id } },
+      update: {},
+      create: { userId: accountId, roleId: role.id, congregationId: congId },
+    })
+  }
+
+  for (const permission of rolesToAssign) {
+    if (!permission) continue
+    await grantViaAutoRole(mainAdmin.accountId, permission)
   }
 
   // Other elders get territory viewer + board validator
   for (let i = 1; i < 5; i++) {
-    for (const role of [terrViewerRole, boardValidatorRole]) {
-      if (!role) continue
-      await prisma.congregationUserPermission.upsert({
-        where: {
-          userId_permissionId_congregationId: {
-            userId: createdUsers[i].accountId,
-            permissionId: role.id,
-            congregationId: congId,
-          },
-        },
-        update: {},
-        create: {
-          userId: createdUsers[i].accountId,
-          permissionId: role.id,
-          congregationId: congId,
-        },
-      })
+    for (const permission of [terrViewerRole, boardValidatorRole]) {
+      if (!permission) continue
+      await grantViaAutoRole(createdUsers[i].accountId, permission)
     }
   }
 

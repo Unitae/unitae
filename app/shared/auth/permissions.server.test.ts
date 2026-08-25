@@ -3,7 +3,6 @@ import { Permission } from '~/shared/types/permission'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
-    congregationUserPermission: { findMany: vi.fn() },
     rolePermission: { findMany: vi.fn() },
     role: { findMany: vi.fn() },
     userAccount: { findMany: vi.fn() },
@@ -27,11 +26,9 @@ beforeEach(() => {
 })
 
 describe('resolveEffectivePermissions', () => {
-  it('returns the union of direct grants and role-mediated grants', async () => {
-    vi.mocked(unscopedDb.congregationUserPermission.findMany).mockResolvedValue([
-      { permission: { key: 'territories-manager' } },
-    ] as never)
+  it('returns every permission the user reaches through a role', async () => {
     vi.mocked(unscopedDb.rolePermission.findMany).mockResolvedValue([
+      { permission: { key: 'territories-manager' } },
       { permission: { key: 'publisher-viewer' } },
     ] as never)
 
@@ -40,11 +37,9 @@ describe('resolveEffectivePermissions', () => {
     expect(result).toEqual(new Set(['territories-manager', 'publisher-viewer']))
   })
 
-  it('deduplicates when the same non-admin permission is granted directly and via a role', async () => {
-    vi.mocked(unscopedDb.congregationUserPermission.findMany).mockResolvedValue([
-      { permission: { key: 'territories-manager' } },
-    ] as never)
+  it("deduplicates a permission two of the user's roles both grant", async () => {
     vi.mocked(unscopedDb.rolePermission.findMany).mockResolvedValue([
+      { permission: { key: 'territories-manager' } },
       { permission: { key: 'territories-manager' } },
     ] as never)
 
@@ -54,10 +49,7 @@ describe('resolveEffectivePermissions', () => {
   })
 
   it('expands admin to every permission so feature checks pass without explicit grants', async () => {
-    vi.mocked(unscopedDb.congregationUserPermission.findMany).mockResolvedValue([
-      { permission: { key: 'admin' } },
-    ] as never)
-    vi.mocked(unscopedDb.rolePermission.findMany).mockResolvedValue([] as never)
+    vi.mocked(unscopedDb.rolePermission.findMany).mockResolvedValue([{ permission: { key: 'admin' } }] as never)
 
     const result = await resolveEffectivePermissions(42, 1)
 
@@ -66,8 +58,7 @@ describe('resolveEffectivePermissions', () => {
     }
   })
 
-  it('returns an empty set when the user has no grants', async () => {
-    vi.mocked(unscopedDb.congregationUserPermission.findMany).mockResolvedValue([] as never)
+  it('returns an empty set when the user holds no role that grants anything', async () => {
     vi.mocked(unscopedDb.rolePermission.findMany).mockResolvedValue([] as never)
 
     const result = await resolveEffectivePermissions(42, 1)
@@ -75,15 +66,13 @@ describe('resolveEffectivePermissions', () => {
     expect(result.size).toBe(0)
   })
 
-  it('scopes the direct query to the user/congregation and matches roles via both assignment tables', async () => {
-    vi.mocked(unscopedDb.congregationUserPermission.findMany).mockResolvedValue([] as never)
+  it('matches roles via both assignment tables and reads nothing else', async () => {
     vi.mocked(unscopedDb.rolePermission.findMany).mockResolvedValue([] as never)
 
     await resolveEffectivePermissions(42, 7)
 
-    expect(unscopedDb.congregationUserPermission.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: expect.objectContaining({ userId: 42, congregationId: 7 }) }),
-    )
+    // Roles are now the only path. A second source reappearing here would mean
+    // the direct user->permission edge had crept back in.
     expect(unscopedDb.rolePermission.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
@@ -151,7 +140,6 @@ describe('findAccountsWithPermission', () => {
       where: {
         congregationId: 7,
         OR: [
-          { congregationPermissions: { some: { permission: { key: Permission.BoardValidator } } } },
           {
             roleAssignments: {
               some: { role: { permissions: { some: { permission: { key: Permission.BoardValidator } } } } },
@@ -236,7 +224,6 @@ describe('findNotificationRecipientsWithPermission', () => {
         AND: [
           {
             OR: [
-              { congregationPermissions: { some: { permission: { key: Permission.BoardValidator } } } },
               {
                 roleAssignments: {
                   some: { role: { permissions: { some: { permission: { key: Permission.BoardValidator } } } } },

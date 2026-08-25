@@ -3,13 +3,14 @@ import { ConflictError } from '~/shared/errors/app-error.server'
 import { type TransactionClient, unscopedDb } from '~/shared/infra/db.server'
 import { Permission } from '~/shared/types/permission'
 
-// A permission reaches a UserAccount through three independent paths:
-//   1. Direct grant — CongregationUserPermission (FK to UserAccount)
-//   2. Account-bound role — UserRoleAssignment → Role → RolePermission
-//   3. Member-bound role — MemberRoleAssignment → Role → RolePermission, via UserAccount.member
+// A permission reaches a UserAccount through two independent paths:
+//   1. Account-bound role — UserRoleAssignment → Role → RolePermission
+//   2. Member-bound role — MemberRoleAssignment → Role → RolePermission, via UserAccount.member
 //
-// Roles reach a Member through two of those paths — the direct grant (#1) is
-// account-scoped only and does not factor in when resolving role → members.
+// There is no third path. The direct CongregationUserPermission edge was
+// migrated into auto-created roles and dropped in #149, so a role is now the
+// only thing that can carry a permission — which is what makes the settings
+// role screens the single place access is granted.
 //
 // The rule lives in the builders below, one per query direction. Every
 // permission/role-membership resolver in the app must go through them.
@@ -23,7 +24,6 @@ function rolesAssignedToAccount(userId: number): Prisma.RoleWhereInput {
 function accountsWithPermissionFilter(permissionKey: Permission): Prisma.UserAccountWhereInput {
   return {
     OR: [
-      { congregationPermissions: { some: { permission: { key: permissionKey } } } },
       {
         roleAssignments: {
           some: { role: { permissions: { some: { permission: { key: permissionKey } } } } },
@@ -73,18 +73,12 @@ export const notificationRecipientFilter: Prisma.UserAccountWhereInput = {
 type DbClient = TransactionClient | typeof unscopedDb
 
 export async function resolveEffectivePermissions(userId: number, congregationId: number): Promise<Set<Permission>> {
-  const [direct, viaRoles] = await Promise.all([
-    unscopedDb.congregationUserPermission.findMany({
-      where: { userId, congregationId },
-      select: { permission: { select: { key: true } } },
-    }),
-    unscopedDb.rolePermission.findMany({
-      where: { congregationId, role: rolesAssignedToAccount(userId) },
-      select: { permission: { select: { key: true } } },
-    }),
-  ])
+  const viaRoles = await unscopedDb.rolePermission.findMany({
+    where: { congregationId, role: rolesAssignedToAccount(userId) },
+    select: { permission: { select: { key: true } } },
+  })
 
-  const granted = new Set([...direct, ...viaRoles].map(row => row.permission.key as Permission))
+  const granted = new Set(viaRoles.map(row => row.permission.key as Permission))
 
   // Admin implies every permission. Without this expansion, `permissions.has(Permission.X)`
   // returns false for admins on non-admin features — admins would lose UI access everywhere.

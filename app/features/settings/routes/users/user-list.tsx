@@ -62,11 +62,6 @@ export function loader({ request, context }: Route.LoaderArgs) {
         member: { select: { firstname: true, lastname: true, isPublisher: true, leftAt: true } },
         // UserRoleAssignment holds management/custom roles only (post-split).
         roleAssignments: { select: { roleId: true } },
-        _count: {
-          select: {
-            congregationPermissions: true,
-          },
-        },
       },
       orderBy: [
         {
@@ -102,7 +97,6 @@ export function loader({ request, context }: Route.LoaderArgs) {
         isPublisher: account.member?.isPublisher ?? false,
         builtInRoleCount: account.memberId ? (builtInCountByMember.get(account.memberId) ?? 0) : 0,
         customRoleCount: account.roleAssignments.length,
-        directPermissionCount: account._count.congregationPermissions,
       })),
       roles: {
         canViewPublishers,
@@ -140,7 +134,6 @@ export default function UserListPage({ loaderData }: Route.ComponentProps) {
               <TableHead className="max-sm:hidden">{m.settings_users_table_email()}</TableHead>
               <TableHead className="text-center">{m.settings_users_table_publisher()}</TableHead>
               <TableHead className="text-center max-sm:hidden">{m.settings_users_table_roles()}</TableHead>
-              <TableHead className="text-center max-sm:hidden">{m.settings_users_table_custom_permissions()}</TableHead>
               <TableHead className="w-0">
                 <span className="sr-only">{m.settings_users_table_actions_sr()}</span>
               </TableHead>
@@ -204,13 +197,6 @@ export default function UserListPage({ loaderData }: Route.ComponentProps) {
                       </span>
                     )}
                   </div>
-                </TableCell>
-                <TableCell className="text-center max-sm:hidden">
-                  {user.directPermissionCount > 0 ? (
-                    <span>{user.directPermissionCount}</span>
-                  ) : (
-                    <span className="text-muted-foreground">0</span>
-                  )}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">

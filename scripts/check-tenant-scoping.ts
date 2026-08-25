@@ -52,7 +52,6 @@ export const TENANT_MODELS = [
   'rolePermission',
   'userRoleAssignment',
   'memberRoleAssignment',
-  'congregationUserPermission',
   'boardSection',
   'boardSectionVisibilityRole',
   'boardDocument',

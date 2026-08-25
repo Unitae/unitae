@@ -7,8 +7,8 @@ import type { AccountId } from '~/shared/types/branded'
 
 /**
  * Anonymize a UserAccount: scramble the email, clear password and display
- * name, mark inactive, stamp `anonymizedAt`. Strips direct permission grants
- * and password-reset tokens. Detaches from board document version uploads
+ * name, mark inactive, stamp `anonymizedAt`. Strips role assignments — which
+ * since #149 is what actually revokes access — and password-reset tokens. Detaches from board document version uploads
  * (FK is `onDelete: SetNull` on delete, but anonymization keeps the row, so
  * we null the FK explicitly).
  *
@@ -47,7 +47,6 @@ export async function anonymizeAccount(
     },
   })
 
-  await db.congregationUserPermission.deleteMany({ where: { userId: accountId, congregationId } })
   await db.userRoleAssignment.deleteMany({ where: { userId: accountId, congregationId } })
   // PasswordResetToken has no congregationId column (account-bound); scoped via the verified account above.
   await db.passwordResetToken.deleteMany({ where: { userId: accountId } })

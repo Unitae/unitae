@@ -6,7 +6,7 @@ import type { locales } from '~/i18n/paraglide/runtime'
 import { hash } from '~/shared/auth/crypto.server'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import { ConsentPurpose, recordConsentUnscoped } from '~/shared/domain/consent.server'
-import { seedCongregationDefaults, seedPermissions } from '~/shared/domain/setup.server'
+import { ensureAdminRole, seedCongregationDefaults, seedPermissions } from '~/shared/domain/setup.server'
 import { createLogger } from '~/shared/infra/logger.server'
 
 type Locale = (typeof locales)[number]
@@ -72,23 +72,20 @@ export async function registerCongregation(
     },
   })
 
-  // Assign admin permission
-  const adminPermission = await db.permission.findUnique({ where: { key: 'admin' } })
-  if (adminPermission) {
-    await db.congregationUserPermission.create({
-      data: {
-        userId: user.id,
-        permissionId: adminPermission.id,
-        congregationId: congregation.id,
-      },
-    })
-  }
-
   // Create default programme templates (including the system day-off and
   // freeform templates) inside a scoped transaction so PostgreSQL RLS allows
-  // the inserts.
+  // the inserts. The admin role belongs here too: Role, RolePermission and
+  // UserRoleAssignment are all RLS-scoped, unlike the direct grant this replaced.
   await withScope(congregation.id, async scopedDb => {
     await seedCongregationDefaults(scopedDb, congregation.id, locale, seedDefaultTemplates, seedBuiltInTerritoryKinds)
+
+    const adminRoleId = await ensureAdminRole(scopedDb, congregation.id)
+    if (adminRoleId != null) {
+      await scopedDb.userRoleAssignment.create({
+        data: { userId: user.id, roleId: adminRoleId, congregationId: congregation.id },
+      })
+    }
+
     await syncBuiltInRoleAssignments(scopedDb, user.id, congregation.id, user.id)
   })
 

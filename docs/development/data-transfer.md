@@ -26,7 +26,9 @@ Entities are exported in dependency order so an import can replay them top-down 
 
 `1.0` archives are missing every feature table added after the export first shipped (custom roles, role-permissions, user-role-assignments, board section visibility, allowed-roles on template parts / template service parts and their per-event copies, external speakers, territory card overlays, territory perimeter). The import accepts them with a warning and proceeds — those tables stay empty on the target.
 
-A subset of `1.0` archives, created before [PR #152](https://github.com/Unitae/unitae/pull/152), use the legacy filename `data/congregation-user-roles.ndjson` with a `roleKey` field instead of `data/congregation-user-permissions.ndjson` with `permissionKey`. The rename was a pure terminology change (`UserRole` → `Permission`, key values preserved); `importCongregationUserPermissions` falls back to the legacy filename when the current one is missing.
+Archives created before [#149](https://github.com/Unitae/unitae/issues/149) carry `data/congregation-user-permissions.ndjson` — the direct user→permission grants that existed before roles became the only carrier. Current exports omit the file entirely; those grants now travel as `roles`, `role-permissions` and `user-role-assignments`. On import, `importCongregationUserPermissions` still reads it and lands each grant on the auto-role for that permission (see [Auto-roles](permissions-and-roles.md#auto-roles)), so an older backup restores everyone's access rather than silently dropping it.
+
+A further subset, created before [PR #152](https://github.com/Unitae/unitae/pull/152), uses the older filename `data/congregation-user-roles.ndjson` with a `roleKey` field. That rename was a pure terminology change (`UserRole` → `Permission`, key values preserved); the importer falls back to the legacy filename when the current one is missing, and routes it through the same auto-role path.
 
 When extending `ENTITY_FILES`, bump `ARCHIVE_VERSION` and add the previous value to `SUPPORTED_ARCHIVE_VERSIONS` if you want existing archives to keep importing.
 

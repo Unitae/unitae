@@ -191,18 +191,10 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
           select: { memberId: true, roleId: true },
         }),
     },
-    {
-      name: 'congregation-user-permissions',
-      export: async () => {
-        const permissions = await db.congregationUserPermission.findMany({
-          select: {
-            userId: true,
-            permission: { select: { key: true } },
-          },
-        })
-        return permissions.map(p => ({ userId: p.userId, permissionKey: p.permission.key }))
-      },
-    },
+    // No `congregation-user-permissions` entry: the direct user→permission edge
+    // was dropped in #149. Everything it carried now travels as `roles`,
+    // `role-permissions` and `user-role-assignments` above. The importer still
+    // reads the old file so archives taken before that keep restoring.
     {
       name: 'publisher-groups',
       export: () =>

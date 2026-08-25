@@ -95,8 +95,16 @@ beforeAll(async () => {
     })
     primaryUserId = user.id
 
-    await tx.congregationUserPermission.create({
-      data: { userId: user.id, permissionId: adminPermissionId, congregationId: primaryCongId },
+    // Admin arrives through the auto-role the #149 backfill mints — the only
+    // path left now the direct grant is gone.
+    const adminRole = await tx.role.create({
+      data: { key: 'can-do-anything', isBuiltIn: false, congregationId: primaryCongId },
+    })
+    await tx.rolePermission.create({
+      data: { roleId: adminRole.id, permissionId: adminPermissionId, congregationId: primaryCongId },
+    })
+    await tx.userRoleAssignment.create({
+      data: { userId: user.id, roleId: adminRole.id, congregationId: primaryCongId },
     })
 
     // Spare admin so requireNotLastAdmin doesn't block deletion of the
@@ -109,8 +117,8 @@ beforeAll(async () => {
         congregationId: primaryCongId,
       },
     })
-    await tx.congregationUserPermission.create({
-      data: { userId: sentinelAdmin.id, permissionId: adminPermissionId, congregationId: primaryCongId },
+    await tx.userRoleAssignment.create({
+      data: { userId: sentinelAdmin.id, roleId: adminRole.id, congregationId: primaryCongId },
     })
   })
 
@@ -142,7 +150,9 @@ afterAll(async () => {
     await withScope(congId, async tx => {
       await tx.dataDeletionRecord.deleteMany({})
       await tx.attribution.deleteMany({})
-      await tx.congregationUserPermission.deleteMany({})
+      await tx.userRoleAssignment.deleteMany({})
+      await tx.rolePermission.deleteMany({})
+      await tx.role.deleteMany({})
       await tx.publisherGroup.deleteMany({})
       await tx.userAccount.deleteMany({})
       await tx.member.deleteMany({})
@@ -175,8 +185,6 @@ describe('anonymizeUser (integration)', () => {
   })
 
   it('deletes congregation roles for the anonymized user', async () => {
-    const directPerms = await testDb.congregationUserPermission.findMany({ where: { userId: primaryUserId } })
-    expect(directPerms).toHaveLength(0)
     const roleAssignments = await testDb.userRoleAssignment.findMany({ where: { userId: primaryUserId } })
     expect(roleAssignments).toHaveLength(0)
   })
