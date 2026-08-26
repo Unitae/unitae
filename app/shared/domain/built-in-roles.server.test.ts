@@ -6,7 +6,9 @@ vi.mock('~/shared/domain/audit.server', () => ({
   AuditAction: { RoleAssignmentsSynced: 'role.assignments.synced' },
 }))
 
-const { BUILT_IN_ROLE_PREDICATES, syncBuiltInRoleAssignments } = await import('./built-in-roles.server')
+const { BUILT_IN_ROLE_KEYS, BUILT_IN_ROLE_PREDICATES, syncBuiltInRoleAssignments } = await import(
+  './built-in-roles.server'
+)
 const { audit } = await import('~/shared/domain/audit.server')
 
 interface MemberFlags {
@@ -212,9 +214,12 @@ describe('syncBuiltInRoleAssignments', () => {
     )
   })
 
-  it('scopes the built-in role lookup to the congregation', async () => {
-    // Guards against cross-tenant assignments when the caller bypasses RLS
-    // (e.g. seed scripts running as the DB owner).
+  it('scopes the built-in role lookup to the congregation and to identity roles', async () => {
+    // Two guards in one query. The congregation filter stops cross-tenant assignments
+    // when the caller bypasses RLS (e.g. seed scripts running as the DB owner). The key
+    // filter keeps system roles such as `admin` out: they are stored with isBuiltIn too
+    // but have no predicate here, so matching on the flag would treat them as
+    // "not desired" and delete the assignment.
     const db = makeDb({
       member: { ...BASE, isPublisher: true },
       builtInRoles: [{ id: 14, key: 'member' }],
@@ -224,7 +229,7 @@ describe('syncBuiltInRoleAssignments', () => {
     await syncBuiltInRoleAssignments(db as never, 42, 7, 99)
 
     expect(db.role.findMany).toHaveBeenCalledWith({
-      where: { isBuiltIn: true, congregationId: 7 },
+      where: { key: { in: [...BUILT_IN_ROLE_KEYS] }, congregationId: 7 },
       select: { id: true, key: true },
     })
   })

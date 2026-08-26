@@ -1,12 +1,31 @@
 import { requireNotLastAdmin } from '~/shared/auth/permissions.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
-import { BUILT_IN_ROLE_KEYS } from '~/shared/domain/built-in-roles.server'
+import { BUILT_IN_ROLE_KEYS, isIdentityRoleKey, SYSTEM_ROLE_KEYS } from '~/shared/domain/built-in-roles.server'
 import { ConflictError, ForbiddenError, ValidationError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { Permission } from '~/shared/types/permission'
 import { getRoleDisplayName } from '~/shared/types/role'
 
-const BUILT_IN_ORDER = new Map<string, number>(BUILT_IN_ROLE_KEYS.map((key, index) => [key, index]))
+// Identity roles first, in their canonical order, then system roles. Both carry
+// isBuiltIn, so a single map over BUILT_IN_ROLE_KEYS left `admin` unranked — and
+// `?? 0` then sorted it level with `member` rather than after the identity block.
+const BUILT_IN_ORDER = new Map<string, number>([
+  ...BUILT_IN_ROLE_KEYS.map((key, index) => [key, index] as const),
+  ...SYSTEM_ROLE_KEYS.map((key, index) => [key, BUILT_IN_ROLE_KEYS.length + index] as const),
+])
+
+/**
+ * Roles that attach to a UserAccount and are granted by hand: custom roles, plus system
+ * roles such as `admin`. Identity roles are excluded — they live on the Member and are
+ * reconciled from its flags, so accepting one here would be overwritten on the next sync.
+ *
+ * Defined once because it is needed on both sides of the assignment diff, and a filter
+ * that drifted between the two would drop `admin` from the desired set while leaving it
+ * in the existing set — which reads as "no change" and silently refuses the grant.
+ */
+function accountAssignableRole() {
+  return { OR: [{ isBuiltIn: false }, { key: { in: [...SYSTEM_ROLE_KEYS] } }] }
+}
 
 export interface RoleListItem {
   id: number
@@ -38,7 +57,11 @@ export async function listRoles(db: TransactionClient, congregationId: number): 
     }))
     .sort((a, b) => {
       if (a.isBuiltIn && b.isBuiltIn) {
-        return (BUILT_IN_ORDER.get(a.key) ?? 0) - (BUILT_IN_ORDER.get(b.key) ?? 0)
+        // Number.MAX_SAFE_INTEGER, not 0: an unranked key belongs after everything
+        // ranked, and defaulting to 0 silently promotes it to the front instead.
+        const orderA = BUILT_IN_ORDER.get(a.key) ?? Number.MAX_SAFE_INTEGER
+        const orderB = BUILT_IN_ORDER.get(b.key) ?? Number.MAX_SAFE_INTEGER
+        return orderA - orderB
       }
       if (a.isBuiltIn) return -1
       if (b.isBuiltIn) return 1
@@ -206,8 +229,10 @@ export async function addUserToRole(
   const role = await db.role.findFirst({ where: { id: roleId, congregationId } })
   if (!role) return
 
-  if (role.isBuiltIn) {
-    throw new ForbiddenError('Built-in role memberships are managed automatically')
+  // Identity roles only. System roles such as `admin` are also isBuiltIn — undeletable —
+  // but they are granted by hand, so gating on the flag would wrongly refuse them.
+  if (isIdentityRoleKey(role.key)) {
+    throw new ForbiddenError('Identity role memberships are managed automatically')
   }
 
   const existing = await db.userRoleAssignment.findFirst({
@@ -238,8 +263,10 @@ export async function removeUserFromRole(
   const role = await db.role.findFirst({ where: { id: roleId, congregationId } })
   if (!role) return
 
-  if (role.isBuiltIn) {
-    throw new ForbiddenError('Built-in role memberships are managed automatically')
+  // Identity roles only. System roles such as `admin` are also isBuiltIn — undeletable —
+  // but they are granted by hand, so gating on the flag would wrongly refuse them.
+  if (isIdentityRoleKey(role.key)) {
+    throw new ForbiddenError('Identity role memberships are managed automatically')
   }
 
   const existing = await db.userRoleAssignment.findFirst({
@@ -295,15 +322,20 @@ export async function setUserCustomRoleAssignments(
   actorId: number,
   customRoleIds: number[],
 ): Promise<void> {
+  // Account-assignable = custom roles plus system roles such as `admin`. Identity
+  // roles are excluded: they live on the Member and are reconciled from its flags by
+  // syncBuiltInRoleAssignments, so accepting one here would be overwritten anyway.
+  // Filtering on `isBuiltIn: false` alone would silently drop `admin` from both the
+  // desired set and the existing set, making it impossible to grant through the UI.
   const customRoles = await db.role.findMany({
-    where: { congregationId, isBuiltIn: false },
+    where: { congregationId, ...accountAssignableRole() },
     select: { id: true, key: true },
   })
   const customRoleIdSet = new Set(customRoles.map(r => r.id))
   const desired = new Set(customRoleIds.filter(id => customRoleIdSet.has(id)))
 
   const existing = await db.userRoleAssignment.findMany({
-    where: { userId, role: { isBuiltIn: false } },
+    where: { userId, role: accountAssignableRole() },
     select: { roleId: true },
   })
   const existingIds = new Set(existing.map(a => a.roleId))

@@ -63,7 +63,7 @@ beforeAll(async () => {
 
     // Admin arrives through the auto-role the #149 backfill mints.
     const adminRole = await tx.role.create({
-      data: { key: 'can-do-anything', isBuiltIn: false, congregationId: primaryCongId },
+      data: { key: 'admin', isBuiltIn: true, congregationId: primaryCongId },
     })
     await tx.rolePermission.create({
       data: { roleId: adminRole.id, permissionId: adminPermissionId, congregationId: primaryCongId },
@@ -101,7 +101,7 @@ beforeAll(async () => {
     otherUserId = user.id
 
     const otherAdminRole = await tx.role.create({
-      data: { key: 'can-do-anything', isBuiltIn: false, congregationId: otherCongId },
+      data: { key: 'admin', isBuiltIn: true, congregationId: otherCongId },
     })
     await tx.rolePermission.create({
       data: { roleId: otherAdminRole.id, permissionId: adminPermissionId, congregationId: otherCongId },

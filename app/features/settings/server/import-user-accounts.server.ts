@@ -1,9 +1,9 @@
 import type JsZip from 'jszip'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
-import { ConflictError } from '~/shared/errors/app-error.server'
+import { ensureAdminRole } from '~/shared/domain/setup.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
-import { autoRoleKeyForPermission } from '~/shared/types/permission'
+import { Permission } from '~/shared/types/permission'
 import type { PublisherType } from '~/shared/types/publisher-type'
 import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 import type { EntityIdMap } from './data-transfer.type'
@@ -167,58 +167,41 @@ export async function importUserRoleAssignments(
 }
 
 /**
- * Resolve (creating if needed) the auto-role that grants `permissionId` in this
- * congregation, mirroring what the #149 backfill migration does in SQL.
- *
- * A congregation may already own a custom role slugified to the same key — an
- * admin is free to name a role "Peut tout faire". Adopting it would silently
- * widen it for everyone already assigned, so a taken key falls back to
- * `<key>-migrated`, then to `<key>-migrated-<permissionId>`.
- */
-async function resolveAutoRoleId(
-  db: TransactionClient,
-  baseKey: string,
-  permissionId: number,
-  congregationId: number,
-): Promise<number> {
-  for (const key of [baseKey, `${baseKey}-migrated`, `${baseKey}-migrated-${permissionId}`]) {
-    const existing = await db.role.findFirst({
-      where: { key, congregationId },
-      select: { id: true, permissions: { select: { permissionId: true } } },
-    })
-
-    if (!existing) {
-      // Name and description stay null: the display string comes from the
-      // message catalogue, so no language is pinned into the database.
-      const created = await db.role.create({
-        data: { key, isBuiltIn: false, congregationId },
-        select: { id: true },
-      })
-      await db.rolePermission.create({ data: { roleId: created.id, permissionId, congregationId } })
-      return created.id
-    }
-
-    // Reuse only a role this importer would itself have created: one that grants
-    // exactly this permission and nothing else.
-    if (existing.permissions.length === 1 && existing.permissions[0].permissionId === permissionId) {
-      return existing.id
-    }
-  }
-
-  throw new ConflictError(`Unable to allocate an auto-role key for "${baseKey}" — all candidate keys are taken`)
-}
-
-/**
  * Import the direct permission grants carried by a pre-#149 archive.
  *
- * The `CongregationUserPermission` table those rows described no longer exists,
- * so each grant lands as a membership in the auto-role for its permission —
- * exactly the shape the backfill migration produced for live data. Without this,
- * restoring an older backup would silently drop everyone's access.
+ * The `CongregationUserPermission` table those rows described no longer exists, and
+ * neither does the role-per-permission shape that briefly replaced it. This mirrors
+ * `20260826120000_replace_auto_roles_with_admin_role`: an `admin` grant becomes the
+ * `admin` system role, and every other legacy grant is dropped with a warning rather
+ * than minting a synthetic role for it.
+ *
+ * Dropping is deliberate. A restored archive lands with the permissions its roles
+ * carry; whoever restores it re-grants anything the legacy direct edge held. The
+ * warning names each one so that is a decision, not a surprise.
  *
  * Current archives carry no such file and this is a no-op for them; roles,
  * role-permissions and role assignments travel as their own entities.
  */
+interface LegacyGrantRecord {
+  userId: number
+  permissionKey: string
+}
+
+/**
+ * The direct grants an archive carries, under either filename.
+ *
+ * Pre-#152 archives use `congregation-user-roles.ndjson` with a `roleKey` field. The
+ * rename was a pure terminology change (UserRole table → Permission) and the key values
+ * were preserved, so both shapes route through the same `permissionKeyToId` map.
+ */
+async function readLegacyGrantRecords(zip: JsZip): Promise<LegacyGrantRecord[]> {
+  const records = await readNdjsonFile<LegacyGrantRecord>(zip, 'congregation-user-permissions')
+  if (records.length > 0) return records
+
+  const legacy = await readNdjsonFile<{ userId: number; roleKey: string }>(zip, 'congregation-user-roles')
+  return legacy.map(r => ({ userId: r.userId, permissionKey: r.roleKey }))
+}
+
 export async function importCongregationUserPermissions(
   zip: JsZip,
   db: TransactionClient,
@@ -226,19 +209,7 @@ export async function importCongregationUserPermissions(
   permissionKeyToId: Map<string, number>,
   congregationId: number,
 ): Promise<void> {
-  // Pre-#152 archives use the legacy `congregation-user-roles.ndjson` shape with `roleKey`.
-  // The rename was a pure terminology change (UserRole table → Permission), so the keys are
-  // identical and route through the same `permissionKeyToId` map.
-  const records = await readNdjsonFile<{ userId: number; permissionKey: string }>(zip, 'congregation-user-permissions')
-  const legacyRecords =
-    records.length === 0
-      ? (await readNdjsonFile<{ userId: number; roleKey: string }>(zip, 'congregation-user-roles')).map(r => ({
-          userId: r.userId,
-          permissionKey: r.roleKey,
-        }))
-      : []
-  const merged = records.length > 0 ? records : legacyRecords
-
+  const merged = await readLegacyGrantRecords(zip)
   const roleIdByPermission = new Map<number, number>()
 
   for (const record of merged) {
@@ -265,13 +236,26 @@ export async function importCongregationUserPermissions(
       continue
     }
 
-    // Same fallback the migration applies: a key the mapping has never heard of
-    // still gets a role rather than being dropped.
-    const baseKey = autoRoleKeyForPermission(record.permissionKey) ?? `can-${record.permissionKey}`
+    if (record.permissionKey !== Permission.Admin) {
+      logger.warn('Dropping legacy direct permission grant: no role carries it in the current model', {
+        congregationId,
+        sourceUserId: record.userId,
+        permissionKey: record.permissionKey,
+      })
+      continue
+    }
 
     let roleId = roleIdByPermission.get(permissionId)
     if (roleId === undefined) {
-      roleId = await resolveAutoRoleId(db, baseKey, permissionId, congregationId)
+      const adminRoleId = await ensureAdminRole(db, congregationId)
+      if (adminRoleId == null) {
+        logger.warn('Dropping legacy admin grant: the admin role could not be resolved', {
+          congregationId,
+          sourceUserId: record.userId,
+        })
+        continue
+      }
+      roleId = adminRoleId
       roleIdByPermission.set(permissionId, roleId)
     }
 

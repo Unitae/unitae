@@ -17,6 +17,36 @@ export const BUILT_IN_ROLE_KEYS = [
 
 export type BuiltInRoleKey = (typeof BUILT_IN_ROLE_KEYS)[number]
 
+/**
+ * Roles that exist in every congregation but are **not** derived from Member flags.
+ *
+ * `BUILT_IN_ROLE_KEYS` above describes identity — who someone is in the congregation —
+ * and `syncBuiltInRoleAssignments` reconciles those assignments automatically from the
+ * Member row. A system role is the opposite: it carries authority, nothing about the
+ * Member implies it, and it is only ever granted deliberately by an admin.
+ *
+ * Both kinds are stored with `isBuiltIn = true` so neither can be renamed or deleted,
+ * which is why the sync must select by key list and not by that flag — see
+ * `syncBuiltInRoleAssignments`.
+ */
+export const SYSTEM_ROLE_KEYS = ['admin'] as const
+
+export type SystemRoleKey = (typeof SYSTEM_ROLE_KEYS)[number]
+
+const IDENTITY_ROLE_KEYS: ReadonlySet<string> = new Set(BUILT_IN_ROLE_KEYS)
+
+/**
+ * True for the roles derived from Member flags, which attach to the Member and are
+ * reconciled automatically. Everything else — custom roles and system roles alike —
+ * attaches to the UserAccount and is granted by hand.
+ *
+ * Prefer this over reading `isBuiltIn`: both identity and system roles carry that flag,
+ * so it answers "can this be deleted", not "who does it attach to".
+ */
+export function isIdentityRoleKey(key: string): boolean {
+  return IDENTITY_ROLE_KEYS.has(key)
+}
+
 interface MemberFlags {
   isMale: boolean | null
   isPublisher: boolean
@@ -98,8 +128,12 @@ export async function syncBuiltInRoleAssignments(
   // no-op (rows are already filtered), but callers that bypass RLS — e.g. the
   // seed scripts running as the DB owner — would otherwise match every
   // congregation's built-in roles and write cross-tenant assignments.
+  // Selected by key list, not by `isBuiltIn`. System roles such as `admin` are also
+  // stored with isBuiltIn = true but have no predicate here, and diffBuiltInAssignments
+  // treats a role with no predicate as "not desired" — so matching on the flag would
+  // silently strip an admin's assignment on the next sync of their Member row.
   const builtInRoles = await db.role.findMany({
-    where: { isBuiltIn: true, congregationId },
+    where: { key: { in: [...BUILT_IN_ROLE_KEYS] }, congregationId },
     select: { id: true, key: true },
   })
 

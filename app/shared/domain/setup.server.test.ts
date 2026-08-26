@@ -34,16 +34,16 @@ describe('ensureAdminRole', () => {
     await expect(ensureAdminRole(db, CONGREGATION_ID)).resolves.toBe(ADMIN_ROLE_ID)
   })
 
-  it('creates it as a deletable custom role with no stored name', async () => {
+  it('creates it as an undeletable system role with no stored name', async () => {
     const db = createDbStub()
 
     await ensureAdminRole(db, CONGREGATION_ID)
 
-    // isBuiltIn false so an admin can rename or delete it afterwards; no `name`
-    // so the label comes from the message catalogue rather than pinning a
-    // language into the database.
+    // isBuiltIn true: a congregation with no admin role cannot be administered, so
+    // the role must not be renameable or deletable. No `name` so the label comes from
+    // the message catalogue rather than pinning a language into the database.
     const [args] = db.role.upsert.mock.calls[0]
-    expect(args.create).toEqual({ key: ADMIN_ROLE_KEY, isBuiltIn: false, congregationId: CONGREGATION_ID })
+    expect(args.create).toEqual({ key: ADMIN_ROLE_KEY, isBuiltIn: true, congregationId: CONGREGATION_ID })
   })
 
   it('attaches the admin permission to that role', async () => {
