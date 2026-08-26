@@ -1010,7 +1010,7 @@ describe('legacy direct-grant archives', () => {
         const users = await tx.userAccount.findMany({})
         expect(users).toHaveLength(1)
 
-        const role = await tx.role.findFirst({ where: { key: 'admin' } })
+        const role = await tx.role.findFirst({ where: { key: 'admin', congregationId: congId } })
         expect(role).not.toBeNull()
         // A system role: undeletable, and with a null name so the display string comes
         // from the message catalogue rather than a language pinned into the database.
@@ -1156,11 +1156,12 @@ describe('legacy direct-grant archives', () => {
       await withScope(congId, async tx => {
         const users = await tx.userAccount.findMany({})
         expect(users).toHaveLength(1)
-        // Post-#149 the grant lands on the admin auto-role rather than a
-        // direct row. The role shape itself is covered, unskipped, by the
-        // "legacy direct-grant archives" suite above; what stays unverified
-        // here is the v1.0 manifest and users.ndjson split.
-        const role = await tx.role.findFirst({ where: { key: 'admin' } })
+        // The grant lands on the `admin` system role rather than a direct row. The role
+        // shape itself is covered by the "legacy direct-grant archives" suite above; what
+        // stays unverified here is the v1.0 manifest and users.ndjson split.
+        // Scoped by congregation: every congregation is seeded with an `admin` role now,
+        // and these suites share one database.
+        const role = await tx.role.findFirst({ where: { key: 'admin', congregationId: congId } })
         expect(role).not.toBeNull()
         const assignments = await tx.userRoleAssignment.findMany({ where: { roleId: role?.id } })
         expect(assignments).toHaveLength(1)

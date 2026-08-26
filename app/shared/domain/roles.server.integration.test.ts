@@ -44,7 +44,7 @@ function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promi
   })
 }
 
-const BUILT_IN_MESSAGE_PATTERN = /Built-in role memberships/i
+const IDENTITY_MESSAGE_PATTERN = /Identity role memberships/i
 
 const ts = Date.now()
 let congregationId: number
@@ -226,7 +226,7 @@ describe('roles.server (integration)', () => {
     await withScope(congregationId, tx => deleteRole(tx, role.id, congregationId, userId))
   })
 
-  it('addUserToRole rejects built-in role assignment with ForbiddenError', async () => {
+  it('addUserToRole rejects identity role assignment with ForbiddenError', async () => {
     const elder = await testDb.role.findFirst({ where: { congregationId, key: 'elder' } })
     if (!elder) throw new Error('elder role not seeded')
 
@@ -237,7 +237,22 @@ describe('roles.server (integration)', () => {
       caught = error
     }
     expect(caught).toBeInstanceOf(Error)
-    expect((caught as Error).message).toMatch(BUILT_IN_MESSAGE_PATTERN)
+    expect((caught as Error).message).toMatch(IDENTITY_MESSAGE_PATTERN)
+  })
+
+  it('addUserToRole accepts the admin system role', async () => {
+    // `admin` is isBuiltIn like the identity roles, but nothing about a Member implies
+    // it — it is granted by hand. Gating this on the flag rather than on identity would
+    // make it ungrantable.
+    const admin = await testDb.role.findFirst({ where: { congregationId, key: 'admin' } })
+    if (!admin) throw new Error('admin role not seeded')
+
+    await withScope(congregationId, tx => addUserToRole(tx, userId, admin.id, congregationId, userId))
+
+    const assignments = await testDb.userRoleAssignment.findMany({ where: { userId, roleId: admin.id } })
+    expect(assignments).toHaveLength(1)
+
+    await withScope(congregationId, tx => removeUserFromRole(tx, userId, admin.id, congregationId, userId))
   })
 
   it('updateRoleIdentity rejects built-in roles', async () => {
