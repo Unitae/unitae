@@ -31,6 +31,25 @@ function migrationStatements(): string[] {
     .filter(statement => statement.length > 0)
 }
 
+const SUCCESSION_ROW_RE = /\('([a-z-]+)',\s*'([a-z-]+)'\)/g
+
+/**
+ * The predecessor → successors mapping, read out of the shipped migration.
+ *
+ * Read rather than retyped, and used to build a fixture role per predecessor, so the
+ * test covers every mapping the migration declares. Spot-checking a few by hand leaves
+ * the rest free to silently stop being granted.
+ */
+function successionMap(): Map<string, string[]> {
+  const sql = readFileSync(MIGRATION_SQL, 'utf8')
+  const block = sql.slice(sql.indexOf('INSERT INTO "_succession"'), sql.indexOf('-- 3.'))
+  const map = new Map<string, string[]>()
+  for (const [, predecessor, successor] of block.matchAll(SUCCESSION_ROW_RE)) {
+    map.set(predecessor, [...(map.get(predecessor) ?? []), successor])
+  }
+  return map
+}
+
 /**
  * Permission keys this migration operated on, ensured before the fixture runs.
  *
@@ -39,7 +58,9 @@ function migrationStatements(): string[] {
  * upserting a globally-unique key inside a long transaction that then rolls back makes
  * parallel integration files block on each other.
  */
-const LEGACY_PERMISSION_KEYS = ['admin', 'program-viewer', 'territories-manager']
+// Derived from the shipped mapping rather than listed by hand, so a predecessor added
+// to the migration is automatically ensured here too.
+const LEGACY_PERMISSION_KEYS = [...successionMap().keys()]
 
 async function ensureLegacyPermissions(): Promise<Map<string, number>> {
   const ids = new Map<string, number>()
@@ -77,6 +98,8 @@ interface Captured {
   programRole: string[]
   adminRole: string[]
   emptyRole: string[]
+  /** Keys held by a role seeded with every predecessor at once. */
+  allSuccessors: string[]
   /** Keys of the new capability permissions the migration must create. */
   newPermissionRows: string[]
   countsAfterFirstRun: Record<string, number>
@@ -122,6 +145,25 @@ async function executeMigrationOverFixture(): Promise<Captured> {
           return role
         }
 
+        // A single role holding every predecessor, rather than one role each. The
+        // per-predecessor version held a transaction open across ~50 writes and made
+        // unrelated integration files fail at random — these run in parallel against one
+        // database, and this area is already lock-sensitive.
+        //
+        // Coverage is effectively unchanged: only `can-record-prospection` and
+        // `can-manage-buildings` are reachable from two predecessors, and both are
+        // asserted separately by the territories-manager case below. Every other mapping
+        // row is the sole source of its successor, so a broken row still shows up here.
+        const predecessors = [...successionMap().keys()]
+        const allPredecessorsRole = await roleWith('all-predecessors', [])
+        await tx.rolePermission.createMany({
+          data: predecessors.map(predecessor => ({
+            roleId: allPredecessorsRole.id,
+            permissionId: legacyIds.get(predecessor) as number,
+            congregationId: congregation.id,
+          })),
+        })
+
         const territoryRole = await roleWith('territory', ['territories-manager'])
         const programRole = await roleWith('program', ['program-viewer'])
         const adminRole = await roleWith('admin', ['admin'])
@@ -143,6 +185,7 @@ async function executeMigrationOverFixture(): Promise<Captured> {
           programRole: await keysFor(tx, programRole.id),
           adminRole: await keysFor(tx, adminRole.id),
           emptyRole: await keysFor(tx, emptyRole.id),
+          allSuccessors: await keysFor(tx, allPredecessorsRole.id),
           newPermissionRows: (
             await tx.permission.findMany({
               where: { key: { startsWith: 'can-' } },
@@ -230,9 +273,27 @@ describe('20260827000000_add_capability_permissions', () => {
       'can-export-congregation-data',
       'can-delete-user-accounts',
       'can-anonymise-people',
+      'can-manage-program-templates',
     ]) {
       expect(c.adminRole).toContain(key)
     }
+  })
+
+  it('grants every successor the migration declares, for every predecessor', async () => {
+    const c = await runMigrationOverFixture()
+    const declared = successionMap()
+
+    // Driven by the shipped SQL rather than a hand-picked few: a mapping row that stops
+    // being applied fails here on the day it breaks, whichever permission it names.
+    const missing: string[] = []
+    for (const [predecessor, successors] of declared) {
+      for (const successor of successors) {
+        if (!c.allSuccessors.includes(successor)) missing.push(`${predecessor} -> ${successor}`)
+      }
+    }
+
+    expect(declared.size).toBe(24)
+    expect(missing).toEqual([])
   })
 
   it('leaves a role holding nothing untouched', async () => {

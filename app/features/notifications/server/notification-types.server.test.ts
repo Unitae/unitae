@@ -8,13 +8,13 @@ describe('NOTIFICATION_TYPES config', () => {
     expect(NOTIFICATION_TYPES['board.document.deleted']).toBeDefined()
   })
 
-  it('board.document.created is a debounced type routed to the board-validator role', () => {
+  it('board.document.created is a debounced type routed to whoever reviews board documents', () => {
     const config = NOTIFICATION_TYPES['board.document.created']
     expect(isCancellationType(config)).toBe(false)
     if (isCancellationType(config)) return // narrow for TS
     expect(config.debounceMinutes).toBeGreaterThan(0)
     expect(config.recipientStrategy).toBe('role')
-    expect(config.recipientRole).toBe('board-validator')
+    expect(config.recipientRole).toBe('can-review-board-documents')
   })
 
   it('board.document.deleted cancels its create/update siblings', () => {
@@ -29,7 +29,7 @@ describe('NOTIFICATION_TYPES config', () => {
     if (!isCancellationType(config)) throw new Error('expected cancellation type')
     expect(config.fallback).toBeDefined()
     expect(config.fallback.recipientStrategy).toBe('role')
-    expect(config.fallback.recipientRole).toBe('board-validator')
+    expect(config.fallback.recipientRole).toBe('can-review-board-documents')
   })
 
   it('every debounced entry sets recipientStrategy and either recipientRole or entity-* strategy', () => {

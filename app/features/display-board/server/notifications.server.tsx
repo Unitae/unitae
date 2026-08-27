@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { defineNotificationType, manifest } from '~/features/notifications'
 import * as m from '~/i18n/paraglide/messages'
+import { Permission } from '~/shared/types/permission'
 import BoardDocumentDeleted from '../emails/board-document-deleted'
 import BoardDocumentUpdated from '../emails/board-document-updated'
 import DocumentsExpiring from '../emails/documents-expiring'
@@ -16,7 +17,7 @@ const boardDocumentCreated = defineNotificationType({
   routing: {
     debounceMinutes: 10,
     recipientStrategy: 'role',
-    recipientRole: 'board-validator',
+    recipientRole: Permission.CanReviewBoardDocuments,
   },
   payload: z.object({
     title: z.string(),
@@ -44,7 +45,7 @@ const boardDocumentUpdated = defineNotificationType({
   routing: {
     debounceMinutes: 10,
     recipientStrategy: 'role',
-    recipientRole: 'board-validator',
+    recipientRole: Permission.CanReviewBoardDocuments,
   },
   payload: z.object({
     title: z.string(),
@@ -75,7 +76,7 @@ const boardDocumentDeleted = defineNotificationType({
     fallback: {
       debounceMinutes: 0,
       recipientStrategy: 'role',
-      recipientRole: 'board-validator',
+      recipientRole: Permission.CanReviewBoardDocuments,
     },
   },
   payload: z.object({
@@ -103,7 +104,7 @@ const boardDocumentExpiring = defineNotificationType({
   routing: {
     debounceMinutes: 0,
     recipientStrategy: 'role',
-    recipientRole: 'board-validator',
+    recipientRole: Permission.CanReviewBoardDocuments,
   },
   payload: z.object({
     documents: z.array(z.object({ id: z.number().int().positive(), title: z.string() })).min(1),

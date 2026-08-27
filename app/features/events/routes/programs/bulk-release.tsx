@@ -45,6 +45,15 @@ export async function action({ request, context }: Route.ActionArgs) {
     return filterToManageableEventIds(db, can, ids, currentUser.id, congregationId, Permission.CanPublishPrograms)
   })
 
+  // The outer gate asks whether the caller can manage any programme at all, while the
+  // filter asks for the publish capability — different permissions since the split. So a
+  // programme manager without publish rights passes the gate and gets an empty list. Say
+  // so: otherwise the page reports nothing at all and the click looks like it did work.
+  if (ids.length > 0 && allowedIds.length === 0) {
+    session.flash('error', m.programs_bulk_not_permitted())
+    return data({ ok: false }, { headers: { 'Set-Cookie': await commitSession(session) } })
+  }
+
   // Phase 2: per-event scoped release. Each event opens its own withScope
   // inside bulkReleaseEvents so a slow/failing event only rolls back itself,
   // and partial progress is preserved on batch failure.

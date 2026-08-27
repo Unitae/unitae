@@ -1,10 +1,14 @@
 #!/usr/bin/env tsx
 // Permission-coverage check.
 //
-// A permission an admin can tick but which gates nothing is worse than no
-// permission at all: the authorisation screen promises a restriction the app
-// does not apply. `absence-viewer` shipped in exactly that state — consulted in
-// three places, every one of them a UI flag, never a guard.
+// A permission an admin can tick but which gates nothing is worse than no permission at
+// all: the authorisation screen promises a restriction the app does not apply.
+//
+// No permission was in that state when this check was written — an earlier claim that
+// `absence-viewer` gated nothing turned out to be wrong; it was enforced at
+// programs/days-off.tsx, as an alternative to `can-view-programs` rather than a
+// requirement. The check exists because that class of mistake is invisible in review:
+// `permissions.has(...)` read into the loader payload looks exactly like enforcement.
 //
 // This check fails when a `Permission` member is never *enforced* anywhere.
 // Enforcement means the caller is turned away: `requirePermission(...)`, or a
@@ -230,6 +234,25 @@ export function findDanglingRequires(requires: Record<string, string[]>, members
   return [...dangling]
 }
 
+const REQUIRES_ENTRY_RE = /\[Permission\.([A-Za-z0-9_]+)\]:\s*\[([^\]]*)\]/g
+
+/**
+ * The declared prerequisites, read from the same source as the enum.
+ *
+ * Parsed rather than imported for the same reason as the enum: importing would pull in
+ * the whole module graph, and this script has to run as a standalone check.
+ */
+export function parsePermissionRequires(src: string): Record<string, string[]> {
+  const start = src.indexOf('PERMISSION_REQUIRES')
+  if (start === -1) return {}
+
+  const requires: Record<string, string[]> = {}
+  for (const match of src.slice(start).matchAll(REQUIRES_ENTRY_RE)) {
+    requires[match[1]] = [...match[2].matchAll(PERMISSION_REF_RE)].map(ref => ref[1])
+  }
+  return requires
+}
+
 /** Enum members and their stored keys, read from the source rather than imported. */
 export function parsePermissionEnum(src: string): Array<{ member: string; key: string }> {
   const entries: Array<{ member: string; key: string }> = []
@@ -257,7 +280,8 @@ function walk(dir: string, out: string[] = []): string[] {
 }
 
 function scan() {
-  const permissions = parsePermissionEnum(readFileSync(join(ROOT, PERMISSION_FILE), 'utf8'))
+  const permissionSource = readFileSync(join(ROOT, PERMISSION_FILE), 'utf8')
+  const permissions = parsePermissionEnum(permissionSource)
 
   const enforced = new Set<string>()
   let checked = 0
@@ -271,8 +295,11 @@ function scan() {
   const en = JSON.parse(readFileSync(join(ROOT, EN_MESSAGES), 'utf8')) as Record<string, unknown>
   const fr = JSON.parse(readFileSync(join(ROOT, FR_MESSAGES), 'utf8')) as Record<string, unknown>
 
+  const members = permissions.map(p => p.member)
+
   return {
     checked,
+    danglingRequires: findDanglingRequires(parsePermissionRequires(permissionSource), members),
     unenforced: findUnenforcedPermissions(
       permissions.map(p => p.member),
       enforced,
@@ -288,7 +315,8 @@ function scan() {
 function main(): void {
   const json = process.argv.includes('--json')
   const result = scan()
-  const failed = result.unenforced.length > 0 || result.missingDescriptions.length > 0
+  const failed =
+    result.unenforced.length > 0 || result.missingDescriptions.length > 0 || result.danglingRequires.length > 0
 
   if (json) {
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`)
@@ -311,6 +339,12 @@ function main(): void {
       process.stderr.write(`  ${locale}.json is missing ${key}\n`)
     }
     process.stderr.write('\nBoth message catalogues must carry every permission description.\n\n')
+  }
+
+  if (result.danglingRequires.length > 0) {
+    process.stderr.write(`\n❌ ${result.danglingRequires.length} dangling PERMISSION_REQUIRES entr(y/ies):\n`)
+    for (const name of result.danglingRequires) process.stderr.write(`  Permission.${name}\n`)
+    process.stderr.write('\nEvery key and prerequisite must be a real permission.\n\n')
   }
 
   if (failed) process.exit(1)

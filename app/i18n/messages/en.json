@@ -1381,6 +1381,7 @@
     "programs_release_success": "Event published.",
     "programs_release_success_bulk": "{count} event(s) published.",
     "programs_release_blocked_bulk": "{count} event(s) with absence conflict(s) could not be published.",
+    "programs_bulk_not_permitted": "You do not have permission to publish the selected programmes.",
     "programs_release_failed_bulk": "{count} event(s) could not be published due to a technical error.",
     "programs_bulk_not_found": "{count} event(s) not found. Refresh the page.",
     "programs_unrelease_success": "Event moved back to draft.",
