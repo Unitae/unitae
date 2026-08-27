@@ -1,5 +1,5 @@
 import type { locales } from '~/i18n/paraglide/runtime'
-import { BUILT_IN_ROLE_KEYS } from '~/shared/domain/built-in-roles.server'
+import { BUILT_IN_ROLE_KEYS, SYSTEM_ROLE_KEYS } from '~/shared/domain/built-in-roles.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 
@@ -48,7 +48,7 @@ export async function seedCongregationDefaults(
 }
 
 /**
- * Idempotently upsert the seven built-in roles for a congregation. Built-ins have
+ * Idempotently upsert the built-in identity roles and system roles for a congregation. Built-ins have
  * null name/description — display strings are sourced from Paraglide via
  * `getRoleDisplayName` / `getRoleDescription` so locale switches don't require DB writes.
  *
@@ -58,7 +58,10 @@ export async function seedCongregationDefaults(
  */
 // biome-ignore lint/suspicious/noExplicitAny: accepts both PrismaClient and scoped transaction client
 export async function seedBuiltInRoles(db: any, congregationId: number) {
-  for (const key of BUILT_IN_ROLE_KEYS) {
+  // Identity roles (synced from Member flags) and system roles (granted by hand) are
+  // both undeletable, so both carry isBuiltIn. Only the first group has predicates in
+  // built-in-roles.server.ts, which is why the sync there matches on key, not the flag.
+  for (const key of [...BUILT_IN_ROLE_KEYS, ...SYSTEM_ROLE_KEYS]) {
     await db.role.upsert({
       where: { key_congregationId: { key, congregationId } },
       update: { isBuiltIn: true },
@@ -90,20 +93,27 @@ export async function seedBuiltInRoles(db: any, congregationId: number) {
 }
 
 /**
- * The custom role that carries `Permission.Admin`. Matches the auto-role key the
- * #149 backfill migration mints for `admin`, so a freshly provisioned congregation
- * and a migrated one end up in the same shape.
+ * The system role that carries `Permission.Admin`.
+ *
+ * Was `can-do-anything` while the #149 backfill minted one role per permission. That
+ * shape is gone: `admin` is now a system role seeded into every congregation alongside
+ * the identity roles, and `20260826120000_replace_auto_roles_with_admin_role` carries
+ * existing `can-do-anything` holders onto it.
  */
-export const ADMIN_ROLE_KEY = 'can-do-anything'
+export const ADMIN_ROLE_KEY = 'admin'
 
 /**
  * Idempotently ensure the congregation has a role granting `admin`, returning its
  * id — or `null` when the `admin` Permission row is somehow absent, which leaves
  * provisioning to continue rather than failing the whole registration.
  *
- * Created as a *custom* role (`isBuiltIn: false`) with a null name, so admins can
- * rename or delete it like any role they own and `getRoleDisplayName` resolves the
- * label from the message catalogue instead of a language pinned into the database.
+ * Created as a *system* role (`isBuiltIn: true`) with a null name: it must not be
+ * renamed or deleted — a congregation with no admin role cannot be administered — and
+ * `getRoleDisplayName` resolves the label from the message catalogue instead of a
+ * language pinned into the database.
+ *
+ * `seedBuiltInRoles` already creates it; this stays idempotent so the two provisioning
+ * paths can run in either order.
  */
 // biome-ignore lint/suspicious/noExplicitAny: accepts both PrismaClient and scoped transaction client
 export async function ensureAdminRole(db: any, congregationId: number): Promise<number | null> {
@@ -126,7 +136,7 @@ export async function ensureAdminRole(db: any, congregationId: number): Promise<
   const role = await db.role.upsert({
     where: { key_congregationId: { key: ADMIN_ROLE_KEY, congregationId } },
     update: {},
-    create: { key: ADMIN_ROLE_KEY, isBuiltIn: false, congregationId },
+    create: { key: ADMIN_ROLE_KEY, isBuiltIn: true, congregationId },
     select: { id: true },
   })
 

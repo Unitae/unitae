@@ -98,7 +98,7 @@ beforeAll(async () => {
     // Admin arrives through the auto-role the #149 backfill mints — the only
     // path left now the direct grant is gone.
     const adminRole = await tx.role.create({
-      data: { key: 'can-do-anything', isBuiltIn: false, congregationId: primaryCongId },
+      data: { key: 'admin', isBuiltIn: true, congregationId: primaryCongId },
     })
     await tx.rolePermission.create({
       data: { roleId: adminRole.id, permissionId: adminPermissionId, congregationId: primaryCongId },

@@ -55,7 +55,7 @@ beforeEach(() => {
 })
 
 describe('listRoles', () => {
-  it('returns built-in roles first ordered by canonical key, then custom roles alphabetically', async () => {
+  it('orders identity roles by canonical key, then system roles, then custom roles alphabetically', async () => {
     mockDb.role.findMany.mockResolvedValue([
       { id: 1, key: 'elder', name: null, description: null, isBuiltIn: true, _count: { permissions: 2, members: 5 } },
       {
@@ -68,11 +68,19 @@ describe('listRoles', () => {
       },
       {
         id: 3,
-        key: 'male',
+        key: 'member',
         name: null,
         description: null,
         isBuiltIn: true,
         _count: { permissions: 0, members: 10 },
+      },
+      {
+        id: 5,
+        key: 'admin',
+        name: null,
+        description: null,
+        isBuiltIn: true,
+        _count: { permissions: 1, members: 1 },
       },
       {
         id: 4,
@@ -86,7 +94,10 @@ describe('listRoles', () => {
 
     const roles = await listRoles(mockDb as never, 10)
 
-    expect(roles.map(r => r.key)).toEqual(['male', 'elder', 'accountant', 'speaker'])
+    // Identity roles in BUILT_IN_ROLE_KEYS order, then system roles, then custom ones by
+    // display name. `admin` is isBuiltIn but has no identity index — it must land after
+    // the identity block, not level with the first of them.
+    expect(roles.map(r => r.key)).toEqual(['member', 'elder', 'admin', 'accountant', 'speaker'])
   })
 })
 
@@ -290,7 +301,7 @@ describe('setUserCustomRoleAssignments', () => {
     expect(vi.mocked(audit)).not.toHaveBeenCalled()
   })
 
-  it('only diffs custom assignments — built-in role IDs are filtered out by the query', async () => {
+  it('only diffs account-assignable roles — identity role IDs are filtered out by the query', async () => {
     mockDb.role.findMany.mockResolvedValue([
       { id: 5, key: 'speaker' },
       { id: 6, key: 'accountant' },
@@ -301,8 +312,11 @@ describe('setUserCustomRoleAssignments', () => {
 
     await setUserCustomRoleAssignments(mockDb as never, 1, 10, 99, [6, 999])
 
+    // Custom roles OR system roles: identity roles attach to the Member and are
+    // reconciled from its flags, but `admin` carries isBuiltIn too and must stay
+    // grantable here — filtering on the flag alone would make it unassignable.
     const findManyCall = mockDb.userRoleAssignment.findMany.mock.calls[0][0]
-    expect(findManyCall.where.role).toEqual({ isBuiltIn: false })
+    expect(findManyCall.where.role).toEqual({ OR: [{ isBuiltIn: false }, { key: { in: ['admin'] } }] })
 
     const createCall = mockDb.userRoleAssignment.createMany.mock.calls[0][0]
     expect(createCall.data).toEqual([{ userId: 1, roleId: 6, congregationId: 10 }])

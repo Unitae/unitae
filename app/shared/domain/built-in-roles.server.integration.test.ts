@@ -2,7 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { PublisherType } from '~/shared/types/publisher-type'
-import { BUILT_IN_ROLE_KEYS } from './built-in-roles.server'
+import { BUILT_IN_ROLE_KEYS, SYSTEM_ROLE_KEYS } from './built-in-roles.server'
 
 vi.mock('~/shared/domain/audit.server', () => ({
   audit: vi.fn(),
@@ -100,18 +100,33 @@ afterAll(async () => {
 })
 
 describe('seedBuiltInRoles', () => {
-  it('creates exactly the configured built-in roles per congregation', async () => {
+  // Both kinds of undeletable role, not just the identity ones: `admin` is seeded here
+  // too, and a congregation provisioned without it cannot be administered.
+  const SEEDED_KEYS = [...BUILT_IN_ROLE_KEYS, ...SYSTEM_ROLE_KEYS]
+
+  it('creates exactly the configured identity and system roles per congregation', async () => {
     const roles = await testDb.role.findMany({
       where: { congregationId: primaryCongId, isBuiltIn: true },
       select: { key: true },
     })
-    expect(roles.map(r => r.key).sort()).toEqual([...BUILT_IN_ROLE_KEYS].sort())
+    expect(roles.map(r => r.key).sort()).toEqual([...SEEDED_KEYS].sort())
+  })
+
+  it('seeds the admin system role', async () => {
+    const admin = await testDb.role.findFirst({
+      where: { congregationId: primaryCongId, key: 'admin' },
+      select: { isBuiltIn: true, name: true },
+    })
+    // Undeletable, and unnamed so the label comes from the message catalogue.
+    expect(admin).not.toBeNull()
+    expect(admin?.isBuiltIn).toBe(true)
+    expect(admin?.name).toBeNull()
   })
 
   it('is idempotent — calling twice does not duplicate', async () => {
     await seedRoles(testDb, primaryCongId)
     const count = await testDb.role.count({ where: { congregationId: primaryCongId, isBuiltIn: true } })
-    expect(count).toBe(BUILT_IN_ROLE_KEYS.length)
+    expect(count).toBe(SEEDED_KEYS.length)
   })
 })
 

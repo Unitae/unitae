@@ -11,7 +11,7 @@ For the end-user view of the same system, see the product doc: [Roles and Permis
 
 Built-in identity roles attach to **`Member`** via `MemberRoleAssignment`. Custom roles (and the management permissions they grant) attach to **`UserAccount`** via `UserRoleAssignment`. The two tables are siblings: identity ("you are an elder") vs access ("you can manage roles").
 
-Roles are the **only** carrier of a permission. The former `CongregationUserPermission` table, which let an admin grant a permission to one user directly, was migrated into auto-created roles and dropped in #149 — so the role screens are the single place access is granted. See [Auto-roles](#auto-roles) below.
+Roles are the **only** carrier of a permission. The former `CongregationUserPermission` table, which let an admin grant a permission to one user directly, was migrated into roles and dropped in #149 — so the role screens are the single place access is granted. See [Role kinds](#role-kinds) below.
 
 ## Where things live
 
@@ -106,31 +106,48 @@ Emergency-preparedness info (`features/publishers`) is the second place — afte
 
 The decision lives in pure functions in `app/features/publishers/model/emergency-access.ts` (`canViewEmergencyInfo` / `canManageEmergencyInfo`), which take `{ hasViewer, hasManager, myResponsibleGroupId, myDeputyGroupId, targetGroupId }`. Route loaders/actions (`routes/publishers/emergency.tsx`, the two `emergency-roster*` routes) resolve the caller's group responsibility off `currentAccountContext` (already eager-loaded) and re-check server-side. Because the scope isn't a permission, a group responsible who holds no publisher permission has no in-app nav entry to the roster today — they reach it via the per-group roster link on the group page.
 
-## Auto-roles
+## Role kinds
 
-Migration `20260826000000_drop_direct_user_permissions` turned every direct grant into a
-role assignment, then dropped the table. For each `(congregation, permission)` pair that had
-at least one direct grant, it created one custom role granting exactly that permission,
-keyed `can-<verb>-<subject>` — the full table lives in `AUTO_ROLE_KEY_BY_PERMISSION`
-(`app/shared/types/permission.ts`).
+Three kinds of role exist, and the difference that matters is **who attaches them**, not
+the `isBuiltIn` flag — that flag only answers "can this be renamed or deleted".
 
-Three properties are worth knowing:
+| Kind | Keys | `isBuiltIn` | Attaches to | Managed by |
+|---|---|---|---|---|
+| Identity | `BUILT_IN_ROLE_KEYS` (`member`, `publisher`, `elder`, …) | `true` | `Member` | `syncBuiltInRoleAssignments`, from Member flags |
+| System | `SYSTEM_ROLE_KEYS` (`admin`) | `true` | `UserAccount` | granted by hand |
+| Custom | whatever an admin creates | `false` | `UserAccount` | granted by hand |
 
-- **They are ordinary custom roles.** `isBuiltIn` is `false`, so an admin can rename,
-  re-scope or delete one like any role they created. Nothing special-cases them at runtime.
-- **`name` and `description` are `NULL`.** `getRoleDisplayName` resolves the label from
-  `AUTO_ROLE_NAMES` in `app/shared/types/role.ts` for the reader's locale — the same
-  convention built-in roles use, so no language is pinned into the database. An admin who
-  renames one stores a `name`, and that wins.
-- **Key collisions are suffixed.** A congregation that already owned a role slugified to
-  `can-do-anything` keeps it untouched; the auto-role lands on `can-do-anything-migrated`
-  (then `-migrated-<permissionId>`). Adopting the existing role would have silently widened
-  it for everyone assigned to it.
+Both lists live in `app/shared/domain/built-in-roles.server.ts`, alongside
+`isIdentityRoleKey()` — prefer that helper over reading `isBuiltIn` when the question is
+"does this attach to the Member or the account".
 
-The same mapping and collision rule are reimplemented in
-`importCongregationUserPermissions` (`app/features/settings/server/import-user-accounts.server.ts`),
-so an archive exported before the cutover still restores everyone's access. Current exports
-carry no such file — roles, role-permissions and role assignments travel as their own entities.
+Two consequences are easy to get wrong:
+
+- **`syncBuiltInRoleAssignments` selects by key list, not by `isBuiltIn`.** A role with no
+  predicate is treated as "not desired" and its assignment deleted, so matching on the flag
+  would silently strip `admin` on the next Member sync.
+- **Account-assignable means custom *or* system.** `setUserCustomRoleAssignments` filters on
+  `isBuiltIn: false OR key IN SYSTEM_ROLE_KEYS`; filtering on the flag alone makes `admin`
+  impossible to grant through the UI.
+
+`admin` carries `Permission.Admin`, which `resolveEffectivePermissions` expands to every
+permission. It is seeded into every congregation by `seedBuiltInRoles`, which is also why an
+admin can never create a custom role that collides with the key — `createRole` rejects a
+duplicate key.
+
+### The auto-role interlude
+
+Migration `20260826000000_drop_direct_user_permissions` turned every direct grant into its
+own single-permission role keyed `can-<verb>-<subject>`. That was a mistake: one role per
+permission re-encodes the permission table as roles and leaves an admin staring at two dozen
+synthetic entries. `20260826120000_replace_auto_roles_with_admin_role` undid it — the
+`can-do-anything` role became the `admin` system role, and every other auto-role was deleted
+together with the access it carried.
+
+That deletion was a deliberate revocation, safe only because no live congregation had run the
+earlier migration. `importCongregationUserPermissions` mirrors it for archives exported before
+the cutover: an `admin` grant lands on the `admin` role, and every other legacy grant is
+dropped with a warning naming it.
 
 ## Adding a new permission
 

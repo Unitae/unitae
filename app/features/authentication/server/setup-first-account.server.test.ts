@@ -30,6 +30,7 @@ vi.mock('~/shared/auth/crypto.server', () => ({
 vi.mock('~/shared/domain/built-in-roles.server', () => ({
   syncBuiltInRoleAssignments: vi.fn(),
   BUILT_IN_ROLE_KEYS: ['male', 'female', 'publisher', 'baptized', 'anointed', 'elder', 'assistant-servant'],
+  SYSTEM_ROLE_KEYS: ['admin'],
 }))
 
 const { setupFirstAccount } = await import('./setup-first-account.server')
@@ -72,7 +73,7 @@ describe('setupFirstAccount', () => {
     // Depuis #149 l'arête directe utilisateur->permission n'existe plus : le
     // premier compte ne peut devenir admin qu'en passant par un rôle.
     expect(scopedDb.role.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({ create: { key: 'can-do-anything', isBuiltIn: false, congregationId: 1 } }),
+      expect.objectContaining({ create: { key: 'admin', isBuiltIn: true, congregationId: 1 } }),
     )
     expect(scopedDb.userRoleAssignment.create).toHaveBeenCalledWith({
       data: { userId: 42, roleId: 77, congregationId: 1 },

@@ -23,8 +23,8 @@ import { TerritoryAttributionKind } from '../features/territories/model/territor
 import { TerritoryKindKey } from '../features/territories/model/territory-kind.type'
 import { seedBuiltInTerritoryKinds } from '../features/territories/server/territory-kinds.server'
 import { syncBuiltInRoleAssignments } from '../shared/domain/built-in-roles.server'
-import { seedBuiltInRoles } from '../shared/domain/setup.server'
-import { autoRoleKeyForPermission, Permission } from '../shared/types/permission'
+import { ensureAdminRole, seedBuiltInRoles } from '../shared/domain/setup.server'
+import { Permission } from '../shared/types/permission'
 import { PublisherType } from '../shared/types/publisher-type'
 import { stripDiacritics } from '../shared/utils/strip-diacritics'
 import { PrismaClient } from './generated/client'
@@ -726,83 +726,48 @@ async function main() {
   console.log(`  ✓ ${createdUsers.length} publishers`)
 
   // ── Roles ─────────────────────────────────────────────────────────────
-  const adminRole = await prisma.permission.findUnique({
-    where: { key: Permission.Admin },
-  })
-  const terrManagerRole = await prisma.permission.findUnique({
-    where: { key: Permission.TerritoriesManager },
-  })
   const terrViewerRole = await prisma.permission.findUnique({
     where: { key: Permission.TerritoriesViewer },
-  })
-  const boardUploaderRole = await prisma.permission.findUnique({
-    where: { key: Permission.BoardUploader },
   })
   const boardValidatorRole = await prisma.permission.findUnique({
     where: { key: Permission.BoardValidator },
   })
-  const pubManagerRole = await prisma.permission.findUnique({
-    where: { key: Permission.PublisherManager },
-  })
-  const activityManagerRole = await prisma.permission.findUnique({
-    where: { key: Permission.ActivityManager },
-  })
-  const programManagerRole = await prisma.permission.findUnique({
-    where: { key: Permission.ProgramManager },
-  })
-  const settingsUserManagerRole = await prisma.permission.findUnique({
-    where: { key: Permission.SettingsUserManager },
-  })
 
   // First elder = admin with all management roles
   const mainAdmin = createdUsers[0]
-  const rolesToAssign = [
-    adminRole,
-    terrManagerRole,
-    boardUploaderRole,
-    boardValidatorRole,
-    pubManagerRole,
-    activityManagerRole,
-    programManagerRole,
-    settingsUserManagerRole,
-  ].filter(Boolean)
-
-  // Permissions travel through roles only. The demo tenant therefore gets the
-  // same auto-roles the #149 backfill mints for a real congregation, so what a
-  // demo admin sees on the roles screen matches production.
-  async function grantViaAutoRole(accountId: number, permission: { id: number; key: string }) {
-    const key = autoRoleKeyForPermission(permission.key)
-    if (!key) return
-
-    const role = await prisma.role.upsert({
-      where: { key_congregationId: { key, congregationId: congId } },
-      update: {},
-      create: { key, isBuiltIn: false, congregationId: congId },
-      select: { id: true },
-    })
-    await prisma.rolePermission.upsert({
-      where: { roleId_permissionId: { roleId: role.id, permissionId: permission.id } },
-      update: {},
-      create: { roleId: role.id, permissionId: permission.id, congregationId: congId },
-    })
+  // Permissions travel through roles only, and a role is a job, not a permission.
+  // The demo therefore shows the two shapes a real congregation uses: the `admin`
+  // system role for whoever runs the place, and one purpose-named custom role
+  // bundling what the other elders actually do.
+  async function assignRole(accountId: number, roleId: number) {
     await prisma.userRoleAssignment.upsert({
-      where: { userId_roleId: { userId: accountId, roleId: role.id } },
+      where: { userId_roleId: { userId: accountId, roleId } },
       update: {},
-      create: { userId: accountId, roleId: role.id, congregationId: congId },
+      create: { userId: accountId, roleId, congregationId: congId },
     })
   }
 
-  for (const permission of rolesToAssign) {
-    if (!permission) continue
-    await grantViaAutoRole(mainAdmin.accountId, permission)
-  }
+  // Admin implies every permission (see resolveEffectivePermissions), so the main
+  // admin needs this role and nothing else.
+  const adminRoleId = await ensureAdminRole(prisma, congId)
+  if (adminRoleId != null) await assignRole(mainAdmin.accountId, adminRoleId)
 
-  // Other elders get territory viewer + board validator
+  const territoryTeamRole = await prisma.role.upsert({
+    where: { key_congregationId: { key: 'territory-team', congregationId: congId } },
+    update: {},
+    create: { key: 'territory-team', name: 'Équipe territoires', isBuiltIn: false, congregationId: congId },
+    select: { id: true },
+  })
+  for (const permission of [terrViewerRole, boardValidatorRole]) {
+    if (!permission) continue
+    await prisma.rolePermission.upsert({
+      where: { roleId_permissionId: { roleId: territoryTeamRole.id, permissionId: permission.id } },
+      update: {},
+      create: { roleId: territoryTeamRole.id, permissionId: permission.id, congregationId: congId },
+    })
+  }
   for (let i = 1; i < 5; i++) {
-    for (const permission of [terrViewerRole, boardValidatorRole]) {
-      if (!permission) continue
-      await grantViaAutoRole(createdUsers[i].accountId, permission)
-    }
+    await assignRole(createdUsers[i].accountId, territoryTeamRole.id)
   }
 
   console.log('  ✓ Permission assignments')

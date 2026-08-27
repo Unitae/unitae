@@ -6,6 +6,7 @@ import { editUserSchema } from '~/features/settings/schemas/user.schema'
 import { updateAccount } from '~/features/settings/server/update-account.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { isIdentityRoleKey } from '~/shared/domain/built-in-roles.server'
 import { setUserCustomRoleAssignments } from '~/shared/domain/roles.server'
 import { ConflictError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
@@ -95,8 +96,13 @@ export function loader({ params, context }: Route.LoaderArgs) {
       active: user.active,
       firstname: user.member?.firstname ?? user.firstname,
       lastname: user.member?.lastname ?? user.lastname,
+      // Split on identity, not on isBuiltIn. System roles such as `admin` are stored
+      // with isBuiltIn too — they must not be renamed or deleted — but they attach to
+      // the UserAccount like a custom role, not to the Member. Grouping them with the
+      // identity roles would submit them down the member-side path, where
+      // syncBuiltInRoleAssignments does not manage them and the account never gets them.
       builtInRoles: allRoles
-        .filter(r => r.isBuiltIn)
+        .filter(r => isIdentityRoleKey(r.key))
         .map(r => ({
           id: r.id,
           key: r.key,
@@ -105,7 +111,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
           isAssigned: assignedBuiltInIds.has(r.id),
         })),
       customRoles: allRoles
-        .filter(r => !r.isBuiltIn)
+        .filter(r => !isIdentityRoleKey(r.key))
         .map(r => ({
           id: r.id,
           key: r.key,

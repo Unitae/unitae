@@ -81,10 +81,11 @@ beforeAll(async () => {
       },
     })
 
-    // Admin reaches Alice through a role — the only path left since #149. The key
-    // matches the auto-role the backfill migration mints for `admin`.
+    // Admin reaches Alice through a role — the only path left since #149. An ordinary
+    // custom role, so this exercises the round trip of role + permission + assignment
+    // rather than the seeded `admin` system role.
     const adminRole = await tx.role.create({
-      data: { key: 'can-do-anything', isBuiltIn: false, congregationId: sourceId },
+      data: { key: 'legacy-admin', isBuiltIn: false, congregationId: sourceId },
     })
     await tx.rolePermission.create({
       data: { roleId: adminRole.id, permissionId: adminPermissionId, congregationId: sourceId },
@@ -741,7 +742,7 @@ describe('Export/Import round-trip', () => {
 
       // Permissions — carried by roles now, so the round trip has to preserve the
       // role, its permission row, and the membership.
-      const restoredRole = await tx.role.findFirst({ where: { key: 'can-do-anything' } })
+      const restoredRole = await tx.role.findFirst({ where: { key: 'legacy-admin' } })
       expect(restoredRole).not.toBeNull()
       const restoredGrants = await tx.rolePermission.findMany({ where: { roleId: restoredRole?.id } })
       expect(restoredGrants.map(g => g.permissionId)).toEqual([adminPermissionId])
@@ -951,14 +952,15 @@ describe('Export/Import round-trip', () => {
 // The forward-only path is the only one currently supported; backward compat will be a
 describe('legacy direct-grant archives', () => {
   // Archives exported before #149 carry `congregation-user-permissions.ndjson`
-  // (and, before #152, `congregation-user-roles.ndjson`). The table those rows
-  // described no longer exists, so the import has to land them on the auto-role
-  // for each permission — otherwise restoring an old backup silently drops
-  // everyone's access.
+  // (and, before #152, `congregation-user-roles.ndjson`). Neither the table those rows
+  // described nor the role-per-permission shape that briefly replaced it exists now.
+  // The importer mirrors 20260826120000: an `admin` grant lands on the `admin` system
+  // role, every other legacy grant is dropped with a warning rather than minting a
+  // synthetic role for it.
   it.each([
     ['congregation-user-permissions', { userId: 9001, permissionKey: 'admin' }],
     ['congregation-user-roles', { userId: 9001, roleKey: 'admin' }],
-  ])('routes %s.ndjson onto the admin auto-role', async (filename, record) => {
+  ])('routes %s.ndjson onto the admin system role', async (filename, record) => {
     const congregation = await testDb.congregation.create({
       data: { name: `Legacy ${filename} ${ts}`, slug: `legacy-${filename}-${ts}`, active: true },
     })
@@ -1008,10 +1010,11 @@ describe('legacy direct-grant archives', () => {
         const users = await tx.userAccount.findMany({})
         expect(users).toHaveLength(1)
 
-        const role = await tx.role.findFirst({ where: { key: 'can-do-anything' } })
+        const role = await tx.role.findFirst({ where: { key: 'admin', congregationId: congId } })
         expect(role).not.toBeNull()
-        expect(role?.isBuiltIn).toBe(false)
-        // Null name so the display string comes from the message catalogue.
+        // A system role: undeletable, and with a null name so the display string comes
+        // from the message catalogue rather than a language pinned into the database.
+        expect(role?.isBuiltIn).toBe(true)
         expect(role?.name).toBeNull()
 
         const grants = await tx.rolePermission.findMany({ where: { roleId: role?.id } })
@@ -1034,46 +1037,30 @@ describe('legacy direct-grant archives', () => {
     }
   })
 
-  it('never widens a role the congregation already owns under the auto-role key', async () => {
+  it('drops a legacy grant that is not admin, without minting a role for it', async () => {
     const congregation = await testDb.congregation.create({
-      data: { name: `Legacy collide ${ts}`, slug: `legacy-collide-${ts}`, active: true },
+      data: { name: `Legacy drop ${ts}`, slug: `legacy-drop-${ts}`, active: true },
     })
     const congId = congregation.id
 
     try {
-      // The target congregation already owns a role slugified to the auto-role
-      // key, granting something else entirely. Reusing it would hand admin to
-      // everyone already assigned to it.
-      const existing = await withScope(congId, tx =>
-        tx.role.create({
-          data: { key: 'can-do-anything', name: 'Peut tout faire', isBuiltIn: false, congregationId: congId },
-        }),
-      )
-
       const zip = new JsZip()
       const dataDir = zip.folder('data')!
       dataDir.file(
         'user-accounts.ndjson',
         `${JSON.stringify({
-          id: 9002,
+          id: 9003,
           memberId: null,
           firstname: 'Legacy',
-          lastname: 'Collide',
-          email: `legacy-collide-${ts}@test.com`,
+          lastname: 'Drop',
+          email: `legacy-drop-${ts}@test.invalid`,
+          password: 'hashed',
           active: true,
-          emailVerifiedAt: null,
-          anonymizedAt: null,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
         })}\n`,
       )
       dataDir.file(
         'congregation-user-permissions.ndjson',
-        `${JSON.stringify({ userId: 9002, permissionKey: 'admin' })}\n`,
-      )
-      zip.file(
-        'manifest.json',
-        JSON.stringify({ version: '2.0', exportDate: new Date().toISOString(), sourceApp: 'unitae', entityCounts: {} }),
+        `${JSON.stringify({ userId: 9003, permissionKey: 'territories-manager' })}\n`,
       )
 
       const mod = await import('./import-congregation.server')
@@ -1088,14 +1075,17 @@ describe('legacy direct-grant archives', () => {
       })
 
       await withScope(congId, async tx => {
-        // The pre-existing role granted nothing and must still grant nothing.
-        const existingGrants = await tx.rolePermission.findMany({ where: { roleId: existing.id } })
-        expect(existingGrants).toHaveLength(0)
+        // One role per permission is not a role model, so a non-admin legacy grant
+        // buys nothing: the account is restored, the grant is logged and dropped, and
+        // whoever restores the archive re-grants it through a role that means something.
+        const users = await tx.userAccount.findMany({})
+        expect(users).toHaveLength(1)
 
-        const suffixed = await tx.role.findFirst({ where: { key: 'can-do-anything-migrated' } })
-        expect(suffixed).not.toBeNull()
-        const grants = await tx.rolePermission.findMany({ where: { roleId: suffixed?.id } })
-        expect(grants.map(g => g.permissionId)).toEqual([adminPermissionId])
+        const roles = await tx.role.findMany({})
+        expect(roles.map(r => r.key)).not.toContain('can-edit-territories')
+
+        const assignments = await tx.userRoleAssignment.findMany({})
+        expect(assignments).toHaveLength(0)
       })
     } finally {
       await withScope(congId, async tx => {
@@ -1110,7 +1100,10 @@ describe('legacy direct-grant archives', () => {
   })
 })
 
-// follow-up. Keep the test skipped so it documents the intent without blocking CI.
+// Skipped upstream of this change, and still skipped: importUserAccounts reads
+// `user-accounts.ndjson` only, so the v1.0 `users.ndjson` split it asserts is not
+// implemented. Un-skipping it fails on the account import, long before it reaches
+// anything about roles.
 describe.skip('v1.0 archive backward compatibility', () => {
   it('accepts a v1.0 manifest and routes legacy congregation-user-roles.ndjson via permission keys', async () => {
     const congregation = await testDb.congregation.create({
@@ -1169,11 +1162,12 @@ describe.skip('v1.0 archive backward compatibility', () => {
       await withScope(congId, async tx => {
         const users = await tx.userAccount.findMany({})
         expect(users).toHaveLength(1)
-        // Post-#149 the grant lands on the admin auto-role rather than a
-        // direct row. The role shape itself is covered, unskipped, by the
-        // "legacy direct-grant archives" suite above; what stays unverified
-        // here is the v1.0 manifest and users.ndjson split.
-        const role = await tx.role.findFirst({ where: { key: 'can-do-anything' } })
+        // The grant lands on the `admin` system role rather than a direct row. The role
+        // shape itself is covered by the "legacy direct-grant archives" suite above; what
+        // stays unverified here is the v1.0 manifest and users.ndjson split.
+        // Scoped by congregation: every congregation is seeded with an `admin` role now,
+        // and these suites share one database.
+        const role = await tx.role.findFirst({ where: { key: 'admin', congregationId: congId } })
         expect(role).not.toBeNull()
         const assignments = await tx.userRoleAssignment.findMany({ where: { roleId: role?.id } })
         expect(assignments).toHaveLength(1)

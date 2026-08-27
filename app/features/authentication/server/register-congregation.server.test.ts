@@ -30,6 +30,7 @@ vi.mock('~/shared/auth/crypto.server', () => ({
 vi.mock('~/shared/domain/built-in-roles.server', () => ({
   syncBuiltInRoleAssignments: vi.fn(),
   BUILT_IN_ROLE_KEYS: ['male', 'female', 'publisher', 'baptized', 'anointed', 'elder', 'assistant-servant'],
+  SYSTEM_ROLE_KEYS: ['admin'],
 }))
 
 vi.mock('~/shared/infra/logger.server', () => ({
@@ -81,7 +82,7 @@ describe('registerCongregation', () => {
     // Depuis #149 l'arête directe utilisateur->permission n'existe plus : le
     // compte créé à l'inscription ne peut devenir admin qu'en passant par un rôle.
     expect(scopedDb.role.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({ create: { key: 'can-do-anything', isBuiltIn: false, congregationId: 1 } }),
+      expect.objectContaining({ create: { key: 'admin', isBuiltIn: true, congregationId: 1 } }),
     )
     expect(scopedDb.userRoleAssignment.create).toHaveBeenCalledWith({
       data: { userId: 10, roleId: 77, congregationId: 1 },
