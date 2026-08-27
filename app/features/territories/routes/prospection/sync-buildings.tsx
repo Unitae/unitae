@@ -24,7 +24,7 @@ export function loader(_args: Route.LoaderArgs) {
 export function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  requirePermission(permissions, Permission.TerritoriesManager)
+  requirePermission(permissions, Permission.CanManageBuildings)
 
   const currentUser = context.get(currentAccountContext)
 

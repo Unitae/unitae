@@ -34,8 +34,10 @@ let adminPermissionId: number
 const { updateAccount } = await import('./update-account.server')
 
 beforeAll(async () => {
-  const adminPermission = await testDb.permission.findFirst({ where: { key: 'admin' } })
-  if (!adminPermission) throw new Error('Permission "admin" not found — run pnpm prisma db seed first')
+  // The current admin capability. `admin` is no longer a seeded Permission row — it
+  // survives only as a legacy row on deployed databases, so a test must not depend on it.
+  const adminPermission = await testDb.permission.findFirst({ where: { key: 'can-do-anything' } })
+  if (!adminPermission) throw new Error('Permission "can-do-anything" not found — run pnpm prisma db seed first')
   adminPermissionId = adminPermission.id
 
   const primaryCong = await testDb.congregation.create({

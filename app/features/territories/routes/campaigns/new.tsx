@@ -32,7 +32,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.TerritoriesManager)
+  requirePermission(permissions, Permission.CanManageTerritoryCampaigns)
 
   return withScopeFromContext(context, async (db, congregationId) => {
     const territories = await db.territory.findMany({
@@ -100,7 +100,7 @@ export default function NewCampaignPage({ loaderData, actionData }: Route.Compon
 
 export function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.TerritoriesManager)
+  requirePermission(permissions, Permission.CanManageTerritoryCampaigns)
 
   const { id: actorId } = context.get(currentAccountContext)
 

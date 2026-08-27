@@ -37,7 +37,7 @@ export async function handlePioneerEnrolmentIntent(
 ): Promise<Response> {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  if (!permissions.has(Permission.PublisherManager)) {
+  if (!permissions.has(Permission.CanManagePublishers)) {
     throw redirect('/')
   }
 

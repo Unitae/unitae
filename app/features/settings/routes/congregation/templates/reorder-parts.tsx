@@ -26,7 +26,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
     const responsible = await isTemplateResponsible(db, templateId, currentUser.id, congregationId)
-    if (!permissions.has(Permission.ProgramManager) && !responsible) {
+    if (!permissions.has(Permission.CanManageProgramTemplates) && !responsible) {
       throw redirect('/settings/congregation/templates')
     }
 

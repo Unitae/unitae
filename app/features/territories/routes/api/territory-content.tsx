@@ -7,7 +7,7 @@ import type { Route } from './+types/territory-content'
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.TerritoriesManager)
+  requirePermission(permissions, Permission.CanManageTerritories)
 
   // JSON API — reject invalid ids with a 400 body the client can parse,
   // rather than redirecting to an HTML page that would break `response.json()`.

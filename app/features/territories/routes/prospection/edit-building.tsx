@@ -36,7 +36,7 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  requirePermission(permissions, Permission.TerritoriesManager)
+  requirePermission(permissions, Permission.CanManageBuildings)
 
   return withScopeFromContext(context, async (db, congregationId) => {
     const building = await getBuildingDetails(
@@ -148,7 +148,7 @@ export default function EditBuildingPage({ loaderData, actionData }: Route.Compo
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  requirePermission(permissions, Permission.TerritoriesManager)
+  requirePermission(permissions, Permission.CanManageBuildings)
 
   const submission = parseWithZod(await request.formData(), { schema: updateBuildingSchema })
   if (submission.status !== 'success') {

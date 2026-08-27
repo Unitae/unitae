@@ -37,11 +37,11 @@ const visibleNow = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.BoardViewer)
+  requirePermission(permissions, Permission.CanViewBoard)
 
   const currentUser = context.get(currentAccountContext)
-  const canUploadDocument = permissions.has(Permission.BoardUploader)
-  const canManageBoard = permissions.has(Permission.BoardValidator)
+  const canUploadDocument = permissions.has(Permission.CanUploadBoardDocuments)
+  const canManageBoard = permissions.has(Permission.CanReviewBoardDocuments)
 
   return withScopeFromContext(context, async db => {
     const congregationId = currentUser.congregationId

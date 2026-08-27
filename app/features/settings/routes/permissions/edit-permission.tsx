@@ -27,7 +27,7 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  if (!permissions.has(Permission.PermissionsManager)) throw redirect('/')
+  if (!permissions.has(Permission.CanConfigurePermissions)) throw redirect('/')
 
   const roleId = requireParamId(params.roleId, '/settings/permissions')
 
@@ -87,7 +87,7 @@ export default function EditPermissionPage({ loaderData, actionData }: Route.Com
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  if (!permissions.has(Permission.PermissionsManager)) throw redirect('/')
+  if (!permissions.has(Permission.CanConfigurePermissions)) throw redirect('/')
 
   const roleId = requireParamId(params.roleId, '/settings/permissions')
   const submission = parseWithZod(await request.formData(), { schema: editPermissionsSchema })

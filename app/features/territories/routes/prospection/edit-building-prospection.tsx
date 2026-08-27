@@ -44,9 +44,9 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const canManageTerritories = permissions.has(Permission.TerritoriesManager)
+  const canManageTerritories = permissions.has(Permission.CanManageBuildings)
 
-  requirePermission(permissions, Permission.ProspectionManager)
+  requirePermission(permissions, Permission.CanRecordProspection)
 
   return withScopeFromContext(context, async (db, congregationId) => {
     const buildingId = requireParamId(params.buildingId, '/territories/buildings')
@@ -232,9 +232,9 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
 
 export function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  const canManageTerritories = permissions.has(Permission.TerritoriesManager)
+  const canManageTerritories = permissions.has(Permission.CanManageBuildings)
 
-  requirePermission(permissions, Permission.ProspectionManager)
+  requirePermission(permissions, Permission.CanRecordProspection)
 
   const previousPage = request.headers.get('referer') ?? '/territories/buildings'
 

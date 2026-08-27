@@ -47,7 +47,7 @@ beforeAll(async () => {
   })
   accountRoleId = accountRole.id
 
-  const boardViewer = await testDb.permission.findUniqueOrThrow({ where: { key: Permission.BoardViewer } })
+  const boardViewer = await testDb.permission.findUniqueOrThrow({ where: { key: Permission.CanViewBoard } })
   await testDb.rolePermission.createMany({
     data: [
       { roleId: memberRoleId, permissionId: boardViewer.id, congregationId },
@@ -162,17 +162,17 @@ afterAll(async () => {
 describe('resolveEffectivePermissions (integration)', () => {
   it('grants BoardViewer through MemberRoleAssignment (publisher-style path)', async () => {
     const perms = await resolveEffectivePermissions(memberOnlyAccountId, congregationId)
-    expect(perms.has(Permission.BoardViewer)).toBe(true)
+    expect(perms.has(Permission.CanViewBoard)).toBe(true)
   })
 
   it('grants BoardViewer through UserRoleAssignment (custom account role)', async () => {
     const perms = await resolveEffectivePermissions(accountOnlyAccountId, congregationId)
-    expect(perms.has(Permission.BoardViewer)).toBe(true)
+    expect(perms.has(Permission.CanViewBoard)).toBe(true)
   })
 
   it('grants BoardViewer through a migrated auto-role', async () => {
     const perms = await resolveEffectivePermissions(autoRoleAccountId, congregationId)
-    expect(perms.has(Permission.BoardViewer)).toBe(true)
+    expect(perms.has(Permission.CanViewBoard)).toBe(true)
   })
 
   it('returns an empty set for an account with no grants and no linked Member', async () => {
@@ -200,14 +200,14 @@ describe('resolveEffectiveRoleIds (integration)', () => {
 
 describe('findAccountsWithPermission (integration)', () => {
   it('returns every account that holds the permission via any source', async () => {
-    const accounts = await findAccountsWithPermission(testDb, congregationId, Permission.BoardViewer)
+    const accounts = await findAccountsWithPermission(testDb, congregationId, Permission.CanViewBoard)
     const ids = accounts.map(a => a.id).sort((a, b) => a - b)
     const expected = [memberOnlyAccountId, accountOnlyAccountId, autoRoleAccountId].sort((a, b) => a - b)
     expect(ids).toEqual(expected)
   })
 
   it('does not return accounts that lack the permission', async () => {
-    const accounts = await findAccountsWithPermission(testDb, congregationId, Permission.BoardViewer)
+    const accounts = await findAccountsWithPermission(testDb, congregationId, Permission.CanViewBoard)
     expect(accounts.some(a => a.id === noMemberAccountId)).toBe(false)
   })
 })

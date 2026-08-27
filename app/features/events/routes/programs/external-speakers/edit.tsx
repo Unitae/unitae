@@ -47,8 +47,8 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const canManage = permissions.has(Permission.ExternalSpeakerManager)
-  const canView = canManage || permissions.has(Permission.ExternalSpeakerViewer)
+  const canManage = permissions.has(Permission.CanManageExternalSpeakers)
+  const canView = canManage || permissions.has(Permission.CanViewExternalSpeakers)
   if (!canView) throw redirect('/')
 
   const externalSpeakerId = requireParamId(params.externalSpeakerId, '/programs/external-speakers')
@@ -78,7 +78,7 @@ const intentSchema = z.object({ intent: z.enum(['update', 'archive', 'unarchive'
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Permission.ExternalSpeakerManager)) throw redirect('/')
+  if (!permissions.has(Permission.CanManageExternalSpeakers)) throw redirect('/')
 
   const currentUser = context.get(currentAccountContext)
   const externalSpeakerId = requireParamId(params.externalSpeakerId, '/programs/external-speakers')

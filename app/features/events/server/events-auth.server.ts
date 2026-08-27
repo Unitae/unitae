@@ -5,14 +5,27 @@ import { Permission } from '~/shared/types/permission'
 
 const logger = createLogger('events-auth')
 
+/**
+ * Whether the caller may act on this event.
+ *
+ * `required` is the capability the calling route needs — assigning a part and publishing
+ * a programme are different jobs, so those routes ask for their own permission rather
+ * than the blanket manage one. It defaults to `CanManagePrograms` for routes that really
+ * do mean "edit this event".
+ *
+ * The template-responsible path is checked regardless of which capability was asked for:
+ * delegating a template to someone must keep working without granting them a
+ * congregation-wide permission.
+ */
 export async function canEditEvent(
   db: TransactionClient,
   can: (role: Permission) => boolean,
   userId: number,
   templateId: number | null,
   congregationId: number,
+  required: Permission = Permission.CanManagePrograms,
 ): Promise<boolean> {
-  if (can(Permission.ProgramManager)) return true
+  if (can(required)) return true
   if (templateId == null) return false
   const responsible = await isTemplateResponsible(db, templateId, userId, congregationId)
   return responsible != null
@@ -36,7 +49,7 @@ export async function canManageAnyProgram(
   userId: number,
   congregationId: number,
 ): Promise<boolean> {
-  if (can(Permission.ProgramManager)) return true
+  if (can(Permission.CanManagePrograms)) return true
   const ids = await getResponsibleTemplateIds(db, userId, congregationId)
   return ids.length > 0
 }
@@ -59,12 +72,13 @@ export async function filterToManageableEventIds(
   eventIds: number[],
   userId: number,
   congregationId: number,
+  required: Permission = Permission.CanManagePrograms,
 ): Promise<number[]> {
   // Empty input short-circuits — no DB roundtrip, no reliance on Prisma's
   // empty-`in: []` semantics.
   if (eventIds.length === 0) return []
 
-  const isProgramManager = can(Permission.ProgramManager)
+  const holdsRequiredCapability = can(required)
   const events = await db.event.findMany({
     where: { id: { in: eventIds }, congregationId },
     select: { id: true, templateId: true },
@@ -72,7 +86,7 @@ export async function filterToManageableEventIds(
   // Cross-tenant / stale ids: submitted but not present in this congregation.
   const droppedCrossTenant = eventIds.length - events.length
 
-  if (isProgramManager) {
+  if (holdsRequiredCapability) {
     if (droppedCrossTenant > 0) {
       // Distinct from "not found" further down the pipeline: at THIS point we
       // know the id was submitted by a manager for another congregation (or a

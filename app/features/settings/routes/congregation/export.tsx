@@ -23,7 +23,7 @@ export const meta: Route.MetaFunction = () => {
 export async function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  requirePermission(permissions, Permission.Admin)
+  requirePermission(permissions, Permission.CanExportCongregationData)
 
   const jobs = await dataTransferQueue.getJobs(['completed'])
   const completedExports = jobs
@@ -132,7 +132,7 @@ export default function ExportPage({ loaderData, actionData }: Route.ComponentPr
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.Admin)
+  requirePermission(permissions, Permission.CanExportCongregationData)
 
   const currentUser = context.get(currentAccountContext)
   const formData = await request.formData()

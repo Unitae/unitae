@@ -158,10 +158,10 @@ describe('getResponsibleTemplateIds (integration)', () => {
 describe('canEditEvent (integration)', () => {
   it('returns true for ProgramManager regardless of templateId (incl. freeform)', async () => {
     const onTemplate = await withScope(primaryCongId, tx =>
-      canEditEvent(tx, allowOnly(Permission.ProgramManager), managerId, templateOtherId, primaryCongId),
+      canEditEvent(tx, allowOnly(Permission.CanManagePrograms), managerId, templateOtherId, primaryCongId),
     )
     const freeform = await withScope(primaryCongId, tx =>
-      canEditEvent(tx, allowOnly(Permission.ProgramManager), managerId, null, primaryCongId),
+      canEditEvent(tx, allowOnly(Permission.CanManagePrograms), managerId, null, primaryCongId),
     )
     expect(onTemplate).toBe(true)
     expect(freeform).toBe(true)

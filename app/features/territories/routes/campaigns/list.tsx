@@ -19,7 +19,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.TerritoriesManager)
+  requirePermission(permissions, Permission.CanManageTerritoryCampaigns)
 
   return withScopeFromContext(context, async (db, congregationId) => {
     const campaigns = await listCampaigns(db, congregationId)

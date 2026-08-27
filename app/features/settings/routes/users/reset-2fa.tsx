@@ -18,7 +18,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
 
-  requirePermission(permissions, Permission.SettingsUserManager)
+  requirePermission(permissions, Permission.CanManageUsers)
 
   const accountId = requireParamId<AccountId>(params.accountId, '/settings/users')
   const session = await getSession(request.headers.get('Cookie'))

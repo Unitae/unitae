@@ -55,7 +55,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.Admin)
+  requirePermission(permissions, Permission.CanImportCongregationData)
   return null
 }
 
@@ -187,7 +187,7 @@ export default function ImportConfirmPage() {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.Admin)
+  requirePermission(permissions, Permission.CanImportCongregationData)
 
   const currentUser = context.get(currentAccountContext)
   const formData = await request.formData()

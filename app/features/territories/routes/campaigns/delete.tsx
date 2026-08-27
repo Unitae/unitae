@@ -22,7 +22,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.TerritoriesManager)
+  requirePermission(permissions, Permission.CanManageTerritoryCampaigns)
 
   const id = requireParamId(params.campaignId, '/territories/attributions/campaigns')
 
@@ -52,7 +52,7 @@ export default function DeleteCampaignPage({ loaderData }: Route.ComponentProps)
 
 export function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.TerritoriesManager)
+  requirePermission(permissions, Permission.CanManageTerritoryCampaigns)
 
   const { id: actorId } = context.get(currentAccountContext)
   const id = requireParamId(params.campaignId, '/territories/attributions/campaigns')

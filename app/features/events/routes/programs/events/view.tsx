@@ -80,7 +80,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
 
-  requirePermission(permissions, Permission.ProgramViewer)
+  requirePermission(permissions, Permission.CanViewPrograms)
 
   const eventId = requireParamId(params.eventId, '/programs')
 
@@ -127,7 +127,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     return {
       event,
       canEdit,
-      canViewPublishers: can(Permission.PublisherViewer),
+      canViewPublishers: can(Permission.CanViewPublishers),
       users,
       externalSpeakers,
       partCandidates,

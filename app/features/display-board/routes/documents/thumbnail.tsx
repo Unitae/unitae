@@ -13,7 +13,7 @@ import type { Route } from './+types/thumbnail'
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.BoardViewer)
+  requirePermission(permissions, Permission.CanViewBoard)
 
   return withScopeFromContext(context, async db => {
     const currentUser = context.get(currentAccountContext)

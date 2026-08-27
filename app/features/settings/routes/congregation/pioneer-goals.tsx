@@ -44,7 +44,7 @@ function resolveServiceYear(request: Request, currentYear: number): number {
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Permission.PioneerGoalManager)) throw redirect('/settings')
+  if (!permissions.has(Permission.CanSetPioneerGoals)) throw redirect('/settings')
 
   const now = zonedNow(context.get(congregationContext).timezone)
   const currentYear = toServiceYear(now.getMonth(), now.getFullYear())
@@ -59,7 +59,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const { id: actorId } = context.get(currentAccountContext)
-  if (!permissions.has(Permission.PioneerGoalManager)) throw redirect('/settings')
+  if (!permissions.has(Permission.CanSetPioneerGoals)) throw redirect('/settings')
 
   const now = zonedNow(context.get(congregationContext).timezone)
   const currentYear = toServiceYear(now.getMonth(), now.getFullYear())

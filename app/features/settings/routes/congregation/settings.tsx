@@ -34,8 +34,8 @@ export function loader({ context }: Route.LoaderArgs) {
   // The Congregation module aggregates several sub-settings, each gated by its own permission:
   // the congregation settings form needs Admin; pioneer goals need PioneerGoalManager. Anyone with
   // at least one may open the page — it renders only the sub-sections they can access.
-  const canManageSettings = permissions.has(Permission.Admin)
-  const canManagePioneerGoals = permissions.has(Permission.PioneerGoalManager)
+  const canManageSettings = permissions.has(Permission.CanConfigureCongregation)
+  const canManagePioneerGoals = permissions.has(Permission.CanSetPioneerGoals)
 
   if (!canManageSettings && !canManagePioneerGoals) {
     throw redirect('/')
@@ -153,7 +153,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const congregation = context.get(congregationContext)
   const { id: actorId } = context.get(currentAccountContext)
-  const canManageSettings = permissions.has(Permission.Admin)
+  const canManageSettings = permissions.has(Permission.CanConfigureCongregation)
 
   if (!canManageSettings) {
     throw redirect('/')

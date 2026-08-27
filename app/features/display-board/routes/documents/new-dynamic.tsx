@@ -29,7 +29,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.BoardValidator)
+  requirePermission(permissions, Permission.CanManageDynamicBoardDocuments)
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = context.get(currentAccountContext)
@@ -109,7 +109,7 @@ function AvailableCard({ item, disabled }: { item: AvailableDynamicType; disable
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.BoardValidator)
+  requirePermission(permissions, Permission.CanManageDynamicBoardDocuments)
 
   const session = await getSession(request.headers.get('Cookie'))
   const submission = parseWithZod(await request.formData(), { schema: createDynamicDocumentSchema })

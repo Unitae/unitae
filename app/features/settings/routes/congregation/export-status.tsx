@@ -17,7 +17,7 @@ export const meta: Route.MetaFunction = () => {
 
 export async function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.Admin)
+  requirePermission(permissions, Permission.CanExportCongregationData)
 
   const currentUser = context.get(currentAccountContext)
   const job = await getOwnedDataTransferJob(params.jobId, currentUser.congregationId, currentUser.id, 'export')

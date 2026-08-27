@@ -19,7 +19,7 @@ export function loader(_args: Route.LoaderArgs) {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.BoardValidator)
+  requirePermission(permissions, Permission.CanOrganiseBoardDocuments)
 
   const { items, sectionId } = (await request.json()) as { items: BulkItem[]; sectionId: number }
 

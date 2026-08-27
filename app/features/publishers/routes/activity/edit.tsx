@@ -32,7 +32,7 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canManagePublisher = permissions.has(Permission.PublisherManager)
+  const canManagePublisher = permissions.has(Permission.CanManagePublishers)
 
   const member = currentUser.member
   const canManageMyGroupActivity =
@@ -211,7 +211,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const previousPage = request.headers.get('referer')
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canManagePublisher = permissions.has(Permission.PublisherManager)
+  const canManagePublisher = permissions.has(Permission.CanManagePublishers)
 
   const member = currentUser.member
   const canManageMyGroupActivity =

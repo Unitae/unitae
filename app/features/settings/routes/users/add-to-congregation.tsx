@@ -46,8 +46,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
 
-  requirePermission(permissions, Permission.SettingsUserManager)
-  requirePermission(permissions, Permission.PublisherManager)
+  requirePermission(permissions, Permission.CanManageUsers)
+  requirePermission(permissions, Permission.CanManagePublishers)
 
   const accountId = requireParamId<AccountId>(params.accountId, '/settings/users')
 
@@ -151,8 +151,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const currentUser = context.get(currentAccountContext)
   const congregation = context.get(congregationContext)
 
-  requirePermission(permissions, Permission.SettingsUserManager)
-  requirePermission(permissions, Permission.PublisherManager)
+  requirePermission(permissions, Permission.CanManageUsers)
+  requirePermission(permissions, Permission.CanManagePublishers)
 
   const accountId = requireParamId<AccountId>(params.accountId, '/settings/users')
   const submission = parseWithZod(await request.formData(), { schema: addToCongregationSchema })

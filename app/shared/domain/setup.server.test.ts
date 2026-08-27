@@ -57,7 +57,7 @@ describe('ensureAdminRole', () => {
       permissionId: ADMIN_PERMISSION_ID,
       congregationId: CONGREGATION_ID,
     })
-    expect(db.permission.findUnique.mock.calls[0][0].where).toEqual({ key: Permission.Admin })
+    expect(db.permission.findUnique.mock.calls[0][0].where).toEqual({ key: Permission.CanDoAnything })
   })
 
   it('returns the same role on a second call without overwriting it', async () => {

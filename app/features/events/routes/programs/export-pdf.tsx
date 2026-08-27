@@ -20,7 +20,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Permission.ProgramViewer)) throw redirect('/programs')
+  if (!permissions.has(Permission.CanViewPrograms)) throw redirect('/programs')
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = context.get(currentAccountContext)

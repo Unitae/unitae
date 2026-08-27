@@ -90,7 +90,7 @@ describe('roles.server (integration)', () => {
       createRole(tx, congregationId, userId, {
         name: 'Speaker',
         description: 'Frères qualifiés pour parler',
-        permissionKeys: [Permission.ProgramViewer, Permission.BoardUploader],
+        permissionKeys: [Permission.CanViewPrograms, Permission.CanUploadBoardDocuments],
       }),
     )
 
@@ -101,7 +101,7 @@ describe('roles.server (integration)', () => {
     expect(fetched?.name).toBe('Speaker')
     expect(fetched?.isBuiltIn).toBe(false)
     expect(fetched?.permissions.map(p => p.permission.key).sort()).toEqual(
-      [Permission.BoardUploader, Permission.ProgramViewer].sort(),
+      [Permission.CanUploadBoardDocuments, Permission.CanViewPrograms].sort(),
     )
 
     await withScope(congregationId, tx => deleteRole(tx, role.id, congregationId, userId))
@@ -121,14 +121,14 @@ describe('roles.server (integration)', () => {
     )
 
     const beforeGrant = await resolveEffectivePermissions(userId, congregationId)
-    expect(beforeGrant.has(Permission.ExternalSpeakerManager)).toBe(false)
+    expect(beforeGrant.has(Permission.CanManageExternalSpeakers)).toBe(false)
 
     await withScope(congregationId, tx =>
-      updateRolePermissions(tx, role.id, congregationId, userId, [Permission.ExternalSpeakerManager]),
+      updateRolePermissions(tx, role.id, congregationId, userId, [Permission.CanManageExternalSpeakers]),
     )
 
     const afterGrant = await resolveEffectivePermissions(userId, congregationId)
-    expect(afterGrant.has(Permission.ExternalSpeakerManager)).toBe(true)
+    expect(afterGrant.has(Permission.CanManageExternalSpeakers)).toBe(true)
 
     await withScope(congregationId, tx => deleteRole(tx, role.id, congregationId, userId))
   })
@@ -138,7 +138,7 @@ describe('roles.server (integration)', () => {
       createRole(tx, congregationId, userId, {
         name: `Cascade ${ts}`,
         description: null,
-        permissionKeys: [Permission.ActivityViewer],
+        permissionKeys: [Permission.CanViewActivity],
       }),
     )
 

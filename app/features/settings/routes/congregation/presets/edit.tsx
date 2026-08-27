@@ -39,7 +39,7 @@ function collectErrors(reply: { error?: Record<string, string[] | null> | null }
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  if (!permissions.has(Permission.ProgramManager)) throw redirect(LIST_PATH)
+  if (!permissions.has(Permission.CanManagePrograms)) throw redirect(LIST_PATH)
 
   const presetId = requireParamId(params.presetId, LIST_PATH)
 
@@ -72,7 +72,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 export function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  if (!permissions.has(Permission.ProgramManager)) throw redirect(LIST_PATH)
+  if (!permissions.has(Permission.CanManagePrograms)) throw redirect(LIST_PATH)
 
   const presetId = requireParamId(params.presetId, LIST_PATH)
 

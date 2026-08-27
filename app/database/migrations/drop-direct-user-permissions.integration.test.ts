@@ -73,6 +73,29 @@ function backfillStatements(): string[] {
   return migrationStatements().filter(statement => !statement.startsWith(DROP_STATEMENT))
 }
 
+/**
+ * Permission keys this migration operated on, ensured before the fixture runs.
+ *
+ * They predate the capability rename, so `seedPermissions` no longer creates them and a
+ * freshly seeded database has none. Ensured OUTSIDE the fixture transaction on purpose:
+ * upserting a globally-unique key inside a long transaction that then rolls back makes
+ * parallel integration files block on each other.
+ */
+const LEGACY_PERMISSION_KEYS = ['admin', 'board-validator', 'program-viewer', 'territories-manager']
+
+async function ensureLegacyPermissions(): Promise<Map<string, number>> {
+  const ids = new Map<string, number>()
+  for (const key of LEGACY_PERMISSION_KEYS) {
+    // Raw INSERT ... ON CONFLICT DO NOTHING, not `upsert`: Prisma's upsert is a
+    // find-then-create, so several migration files starting at once on a fresh database
+    // all miss, all insert, and all but one fail on the unique key. This is atomic.
+    await testDb.$executeRaw`INSERT INTO "Permission" ("key") VALUES (${key}) ON CONFLICT ("key") DO NOTHING`
+    const row = await testDb.permission.findUniqueOrThrow({ where: { key }, select: { id: true } })
+    ids.set(key, row.id)
+  }
+  return ids
+}
+
 /** Thrown to roll the fixture back; every assertion runs on captured values. */
 class Rollback extends Error {}
 
@@ -148,6 +171,7 @@ function runMigrationOverFixture(): Promise<Captured> {
 
 async function executeMigrationOverFixture(): Promise<Captured> {
   let captured: Captured | undefined
+  const legacyIds = await ensureLegacyPermissions()
 
   try {
     await testDb.$transaction(
@@ -155,9 +179,9 @@ async function executeMigrationOverFixture(): Promise<Captured> {
         const stamp = `dropdirect-${process.pid}-${globalThis.performance.now().toString().replace('.', '')}`
 
         const permissionId = async (key: string) => {
-          const row = await tx.permission.findUnique({ where: { key }, select: { id: true } })
-          if (!row) throw new Error(`Permission "${key}" is not seeded in this database`)
-          return row.id
+          const id = legacyIds.get(key)
+          if (id == null) throw new Error(`Legacy permission "${key}" was not ensured for this fixture`)
+          return id
         }
         const [adminPid, territoriesPid, programPid, boardValidatorPid] = await Promise.all([
           permissionId('admin'),

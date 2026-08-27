@@ -16,7 +16,7 @@ export function loader() {
 export async function action({ params, request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  if (!permissions.has(Permission.RolesManager)) throw redirect('/congregation/roles')
+  if (!permissions.has(Permission.CanManageRoles)) throw redirect('/congregation/roles')
 
   const roleId = requireParamId(params.roleId, '/congregation/roles')
   const session = await getSession(request.headers.get('Cookie'))

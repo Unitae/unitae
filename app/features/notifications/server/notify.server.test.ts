@@ -45,7 +45,7 @@ describe('notify', () => {
         type: 'board.document.created',
         entityType: 'BoardDocument',
         entityId: 42,
-        debounceKey: 'BoardDocument:42:role:board-validator',
+        debounceKey: 'BoardDocument:42:role:can-review-board-documents',
       }),
     })
   })
@@ -124,7 +124,7 @@ describe('notify', () => {
     // Should cancel the old event
     expect(mockDb.notificationEvent.updateMany).toHaveBeenCalledWith({
       where: expect.objectContaining({
-        debounceKey: 'BoardDocument:42:role:board-validator',
+        debounceKey: 'BoardDocument:42:role:can-review-board-documents',
         status: 'pending',
         type: 'board.document.created',
       }),

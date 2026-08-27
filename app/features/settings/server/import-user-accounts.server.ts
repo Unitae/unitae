@@ -3,13 +3,20 @@ import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.serve
 import { ensureAdminRole } from '~/shared/domain/setup.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
-import { Permission } from '~/shared/types/permission'
 import type { PublisherType } from '~/shared/types/publisher-type'
 import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 import type { EntityIdMap } from './data-transfer.type'
 import { readNdjsonFile } from './ndjson-archive'
 
 const logger = createLogger('import-user-accounts')
+
+/**
+ * The permission key an archive written before the capability rename uses for admin.
+ *
+ * Fixed on purpose: it is a fact about old files, not a reference to the current enum,
+ * so renaming permissions again must not change it.
+ */
+const LEGACY_ADMIN_PERMISSION_KEY = 'admin'
 
 // Password that can never match any valid scrypt hash
 const IMPORTED_PASSWORD_PLACEHOLDER = '$IMPORTED$'
@@ -192,7 +199,7 @@ interface LegacyGrantRecord {
  *
  * Pre-#152 archives use `congregation-user-roles.ndjson` with a `roleKey` field. The
  * rename was a pure terminology change (UserRole table → Permission) and the key values
- * were preserved, so both shapes route through the same `permissionKeyToId` map.
+ * were preserved, so both shapes are read the same way.
  */
 async function readLegacyGrantRecords(zip: JsZip): Promise<LegacyGrantRecord[]> {
   const records = await readNdjsonFile<LegacyGrantRecord>(zip, 'congregation-user-permissions')
@@ -206,19 +213,16 @@ export async function importCongregationUserPermissions(
   zip: JsZip,
   db: TransactionClient,
   idMap: EntityIdMap,
-  permissionKeyToId: Map<string, number>,
   congregationId: number,
 ): Promise<void> {
   const merged = await readLegacyGrantRecords(zip)
-  const roleIdByPermission = new Map<number, number>()
+  let adminRoleId: number | null | undefined
 
   for (const record of merged) {
     const userId = idMap.getOptional('user-accounts', record.userId)
-    const permissionId = permissionKeyToId.get(record.permissionKey)
 
-    // Both misses drop a grant the archive says someone had, so neither is
-    // allowed to pass silently — a restore that quietly returns less access
-    // than it was given looks like a success to the admin who ran it.
+    // Dropping a grant the archive says someone had must never pass silently — a restore
+    // that quietly returns less access than it was given looks like a success.
     if (!userId) {
       logger.warn('Skipping permission grant: the archive user is not in the import map', {
         congregationId,
@@ -227,16 +231,11 @@ export async function importCongregationUserPermissions(
       })
       continue
     }
-    if (!permissionId) {
-      logger.warn('Skipping permission grant: permission key is not seeded in this database', {
-        congregationId,
-        sourceUserId: record.userId,
-        permissionKey: record.permissionKey,
-      })
-      continue
-    }
 
-    if (record.permissionKey !== Permission.Admin) {
+    // Compared against the LEGACY key, not the current enum. These archives predate the
+    // capability rename by definition, so they carry `admin`; `can-do-anything` never
+    // appears in one and matching on it would drop every grant, including the admin's.
+    if (record.permissionKey !== LEGACY_ADMIN_PERMISSION_KEY) {
       logger.warn('Dropping legacy direct permission grant: no role carries it in the current model', {
         congregationId,
         sourceUserId: record.userId,
@@ -245,19 +244,19 @@ export async function importCongregationUserPermissions(
       continue
     }
 
-    let roleId = roleIdByPermission.get(permissionId)
-    if (roleId === undefined) {
-      const adminRoleId = await ensureAdminRole(db, congregationId)
-      if (adminRoleId == null) {
-        logger.warn('Dropping legacy admin grant: the admin role could not be resolved', {
-          congregationId,
-          sourceUserId: record.userId,
-        })
-        continue
-      }
-      roleId = adminRoleId
-      roleIdByPermission.set(permissionId, roleId)
+    if (adminRoleId === undefined) {
+      // Resolved lazily and once: ensureAdminRole seeds the role and its permission, so
+      // there is no dependency on a legacy `admin` Permission row still existing.
+      adminRoleId = await ensureAdminRole(db, congregationId)
     }
+    if (adminRoleId == null) {
+      logger.warn('Dropping legacy admin grant: the admin role could not be resolved', {
+        congregationId,
+        sourceUserId: record.userId,
+      })
+      continue
+    }
+    const roleId = adminRoleId
 
     const existing = await db.userRoleAssignment.findFirst({ where: { userId, roleId }, select: { userId: true } })
     if (!existing) {

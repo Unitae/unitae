@@ -21,8 +21,8 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canViewPublishers = permissions.has(Permission.PublisherViewer)
-  const canManagePublisher = permissions.has(Permission.PublisherManager)
+  const canViewPublishers = permissions.has(Permission.CanViewPublishers)
+  const canManagePublisher = permissions.has(Permission.CanManagePublisherGroups)
 
   if (!canViewPublishers) {
     logger.warn(

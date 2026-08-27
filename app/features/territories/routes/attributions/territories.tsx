@@ -46,7 +46,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
 
-  if (!permissions.has(Permission.TerritoriesManager)) {
+  if (!permissions.has(Permission.CanManageTerritoryAttributions)) {
     logger.warn(
       `Tried to load territories available for attribution. User ID: ${currentUser.id}. Does NOT have rights to manage territories.`,
     )
@@ -55,7 +55,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
   logger.info(`Loading territories available for attribution. User ID: ${currentUser.id}.`)
 
-  const canManageTerritories = permissions.has(Permission.TerritoriesManager)
+  const canManageTerritories = permissions.has(Permission.CanManageTerritoryAttributions)
   const { congregationId } = currentUser
 
   return withScopeFromContext(context, async db => {

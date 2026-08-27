@@ -24,11 +24,11 @@ const PUBLISHER_TYPE_VALUES: readonly string[] = Object.values(PublisherType)
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canViewPublishers = permissions.has(Permission.PublisherViewer)
-  const canManagePublisher = permissions.has(Permission.PublisherManager)
-  const canViewActivities = permissions.has(Permission.ActivityViewer)
+  const canViewPublishers = permissions.has(Permission.CanViewPublishers)
+  const canManagePublisher = permissions.has(Permission.CanManagePublishers)
+  const canViewActivities = permissions.has(Permission.CanViewActivity)
   const canViewEmergency =
-    permissions.has(Permission.EmergencyInfoViewer) || permissions.has(Permission.EmergencyInfoManager)
+    permissions.has(Permission.CanViewEmergencyInfo) || permissions.has(Permission.CanManageEmergencyInfo)
 
   if (!canViewPublishers) {
     logger.warn(

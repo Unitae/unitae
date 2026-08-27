@@ -26,7 +26,7 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  requirePermission(permissions, Permission.TerritoriesViewer)
+  requirePermission(permissions, Permission.CanViewTerritories)
 
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
   const { congregationId } = context.get(currentAccountContext)

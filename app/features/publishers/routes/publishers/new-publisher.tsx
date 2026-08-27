@@ -33,7 +33,7 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canManagePublisher = permissions.has(Permission.PublisherManager)
+  const canManagePublisher = permissions.has(Permission.CanManagePublishers)
 
   if (!canManagePublisher) {
     throw redirect('/')

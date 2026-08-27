@@ -19,7 +19,7 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  if (!permissions.has(Permission.PermissionsManager)) throw redirect('/')
+  if (!permissions.has(Permission.CanConfigurePermissions)) throw redirect('/')
 
   return withScopeFromContext(context, async db => {
     const roles = await listRoles(db, currentUser.congregationId)

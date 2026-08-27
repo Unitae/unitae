@@ -60,8 +60,8 @@ function buildBuiltInWhere(filter: BuiltInFilterKey) {
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canViewRoles = permissions.has(Permission.RolesViewer) || permissions.has(Permission.RolesManager)
-  const canManageRoles = permissions.has(Permission.RolesManager)
+  const canViewRoles = permissions.has(Permission.CanViewRoles) || permissions.has(Permission.CanManageRoles)
+  const canManageRoles = permissions.has(Permission.CanManageRoles)
 
   if (!canViewRoles) throw redirect('/')
 
@@ -129,7 +129,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  if (!permissions.has(Permission.RolesManager)) throw redirect('/')
+  if (!permissions.has(Permission.CanManageRoles)) throw redirect('/')
 
   const submission = parseWithZod(await request.formData(), { schema: toggleSchema })
   if (submission.status !== 'success') {

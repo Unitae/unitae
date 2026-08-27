@@ -43,7 +43,7 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  if (!permissions.has(Permission.RolesManager)) throw redirect('/congregation/roles')
+  if (!permissions.has(Permission.CanManageRoles)) throw redirect('/congregation/roles')
 
   const roleId = requireParamId(params.roleId, '/congregation/roles')
 
@@ -157,7 +157,7 @@ export default function EditRolePage({ loaderData, actionData }: Route.Component
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  if (!permissions.has(Permission.RolesManager)) throw redirect('/congregation/roles')
+  if (!permissions.has(Permission.CanManageRoles)) throw redirect('/congregation/roles')
 
   const roleId = requireParamId(params.roleId, '/congregation/roles')
   const submission = parseWithZod(await request.formData(), { schema: editRoleSchema })

@@ -20,7 +20,8 @@ export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
 
-  if (!permissions.has(Permission.ProgramViewer) && !permissions.has(Permission.Admin)) throw redirect('/')
+  if (!permissions.has(Permission.CanViewPrograms) && !permissions.has(Permission.CanManageProgramTemplates))
+    throw redirect('/')
 
   return withScopeFromContext(context, async db => {
     // Congregations seeded before presets existed have none, and multi-tenant

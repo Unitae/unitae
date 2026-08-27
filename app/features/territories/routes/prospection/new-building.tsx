@@ -29,7 +29,7 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  requirePermission(permissions, Permission.TerritoriesManager)
+  requirePermission(permissions, Permission.CanManageBuildings)
 
   return null
 }
@@ -107,7 +107,7 @@ export default function CreateBuildingPage({ actionData }: Route.ComponentProps)
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  requirePermission(permissions, Permission.TerritoriesManager)
+  requirePermission(permissions, Permission.CanManageBuildings)
 
   const submission = parseWithZod(await request.formData(), { schema: createBuildingSchema })
   if (submission.status !== 'success') {

@@ -48,10 +48,13 @@ const context = {
     key === currentAccountContext ? { id: ACCOUNT_ID, congregationId: 42, member: { id: MEMBER_ID } } : undefined,
 }
 
+// Imported once at module scope: a dynamic import inside the test body puts the route's
+// transform cost inside the measured window, which made this test time out at random
+// under a full parallel run.
+const { loader } = await import('./list')
+
 describe('/me/territories loader', () => {
   it('lists the territories attributed to the signed-in member', async () => {
-    const { loader } = await import('./list')
-
     const result = await loader({ context, params: {}, request: new Request('http://test/me/territories') } as never)
 
     expect(result.territories).toHaveLength(1)

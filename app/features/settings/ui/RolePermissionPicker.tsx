@@ -3,6 +3,7 @@ import {
   getPermissionCategory,
   getPermissionCategoryLabel,
   getPermissionDescription,
+  getPermissionRequirements,
   PERMISSION_CATEGORIES,
   type PermissionCategory,
 } from '~/shared/types/permission-display'
@@ -55,6 +56,8 @@ export function RolePermissionPicker({
             <div className="flex flex-wrap gap-3">
               {items.map(permission => {
                 const isDisabled = disabled.has(permission.key)
+                const requirements = getPermissionRequirements(permission.key)
+                const unmet = requirements.some(requirement => !selected.has(requirement.key))
                 return (
                   <div
                     key={permission.id}
@@ -67,9 +70,19 @@ export function RolePermissionPicker({
                       defaultChecked={selected.has(permission.key)}
                       disabled={isDisabled}
                     />
-                    <Label htmlFor={`${idPrefix}-${permission.id}`} className="font-normal leading-tight">
-                      {getPermissionDescription(permission.key)}
-                    </Label>
+                    <div className="flex flex-col gap-1">
+                      <Label htmlFor={`${idPrefix}-${permission.id}`} className="font-normal leading-tight">
+                        {getPermissionDescription(permission.key)}
+                      </Label>
+                      {requirements.length > 0 && (
+                        // Stated, never enforced: the admin decides. Highlighted only when a
+                        // prerequisite is not currently granted, so the note is quiet when the
+                        // combination already makes sense.
+                        <p className={`text-xs leading-tight ${unmet ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                          {m.permission_requires_label()} {requirements.map(r => r.description).join(', ')}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 )
               })}

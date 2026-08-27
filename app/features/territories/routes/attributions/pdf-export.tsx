@@ -17,7 +17,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
 
-  if (!permissions.has(Permission.TerritoriesViewer)) {
+  if (!permissions.has(Permission.CanViewTerritoryAttributions)) {
     logger.warn(
       `Try to generate S-13 PDF report. User ID: ${currentUser.id}. Does NOT have rights to access territories.`,
     )

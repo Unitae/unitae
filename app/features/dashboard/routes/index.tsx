@@ -58,18 +58,18 @@ async function safeQuery<T>(label: string, userId: number, fn: () => Promise<T>)
 export function loader({ context }: Route.LoaderArgs) {
   const currentUser = context.get(currentAccountContext)
   const permissions = context.get(permissionsContext)
-  const isAdmin = permissions.has(Permission.Admin)
-  const isTerritoriesManager = permissions.has(Permission.TerritoriesManager)
-  const isProgramManager = permissions.has(Permission.ProgramManager)
-  const canViewBoard = permissions.has(Permission.BoardViewer)
+  const isAdmin = permissions.has(Permission.CanDoAnything)
+  const isTerritoriesManager = permissions.has(Permission.CanManageTerritories)
+  const isProgramManager = permissions.has(Permission.CanManagePrograms)
+  const canViewBoard = permissions.has(Permission.CanViewBoard)
   // The responsible-conflict card deep-links to /programs?hasConflicts=true.
   // Gate the query the same way so we don't hand a user a link to a page
   // they cannot open — mirrors the canViewBoard pattern below.
-  const canViewPrograms = permissions.has(Permission.ProgramViewer) || isProgramManager
-  const canViewActivity = permissions.has(Permission.ActivityViewer)
-  const canCreatePublisher = permissions.has(Permission.PublisherManager) || isAdmin
-  const canViewPublishers = permissions.has(Permission.PublisherViewer) || isAdmin
-  const canUploadDocument = permissions.has(Permission.BoardUploader) || isAdmin
+  const canViewPrograms = permissions.has(Permission.CanViewPrograms) || isProgramManager
+  const canViewActivity = permissions.has(Permission.CanViewActivity)
+  const canCreatePublisher = permissions.has(Permission.CanManagePublishers) || isAdmin
+  const canViewPublishers = permissions.has(Permission.CanViewPublishers) || isAdmin
+  const canUploadDocument = permissions.has(Permission.CanUploadBoardDocuments) || isAdmin
   const congregation = context.get(congregationContext)
 
   // Member-bound queries (territories, programme assignments) need the linked

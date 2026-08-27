@@ -45,7 +45,7 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  requirePermission(permissions, Permission.TerritoriesManager)
+  requirePermission(permissions, Permission.CanManageTerritories)
 
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
   const { congregationId } = context.get(currentAccountContext)
@@ -199,7 +199,7 @@ export default function NewTerritoryPage({ loaderData, actionData }: Route.Compo
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  requirePermission(permissions, Permission.TerritoriesManager)
+  requirePermission(permissions, Permission.CanManageTerritories)
 
   const submission = parseWithZod(await request.formData(), { schema: createTerritorySchema })
   if (submission.status !== 'success') {

@@ -28,7 +28,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
 
-  if (!permissions.has(Permission.ProgramManager)) throw redirect('/settings/congregation/templates')
+  if (!permissions.has(Permission.CanManageProgramTemplates)) throw redirect('/settings/congregation/templates')
 
   const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
 
@@ -55,7 +55,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
 
-  if (!permissions.has(Permission.ProgramManager)) throw redirect('/settings/congregation/templates')
+  if (!permissions.has(Permission.CanManageProgramTemplates)) throw redirect('/settings/congregation/templates')
 
   const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
   const submission = parseWithZod(await request.formData(), { schema: templateResponsibleSchema })

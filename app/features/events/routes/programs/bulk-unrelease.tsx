@@ -6,7 +6,7 @@ import { canManageAnyProgram, filterToManageableEventIds } from '~/features/even
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import type { Permission } from '~/shared/types/permission'
+import { Permission } from '~/shared/types/permission'
 import { joinMessages } from '~/shared/utils/join-messages'
 
 import type { Route } from './+types/bulk-unrelease'
@@ -34,8 +34,17 @@ export async function action({ request, context }: Route.ActionArgs) {
   const allowedIds = await withScopeFromContext(context, async db => {
     const can = (p: Permission) => permissions.has(p)
     if (!(await canManageAnyProgram(db, can, currentUser.id, congregationId))) throw redirect('/programs')
-    return filterToManageableEventIds(db, can, ids, currentUser.id, congregationId)
+    return filterToManageableEventIds(db, can, ids, currentUser.id, congregationId, Permission.CanPublishPrograms)
   })
+
+  // The outer gate asks whether the caller can manage any programme at all, while the
+  // filter asks for the publish capability — different permissions since the split. So a
+  // programme manager without publish rights passes the gate and gets an empty list. Say
+  // so: otherwise the page reports nothing at all and the click looks like it did work.
+  if (ids.length > 0 && allowedIds.length === 0) {
+    session.flash('error', m.programs_bulk_not_permitted())
+    return data({ ok: false }, { headers: { 'Set-Cookie': await commitSession(session) } })
+  }
 
   // Phase 2: per-event scoped unrelease. See bulk-release.tsx for the
   // partial-progress rationale.

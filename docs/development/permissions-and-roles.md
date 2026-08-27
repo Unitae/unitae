@@ -6,7 +6,7 @@ For the end-user view of the same system, see the product doc: [Roles and Permis
 
 ## Two layers, distinct concepts
 
-- **Permission** — the unit of access. A finite, code-defined enum (24 entries) declared in `app/shared/types/permission.ts`. New permissions require code + migration changes.
+- **Permission** — the unit of access. A finite, code-defined enum (45 entries) declared in `app/shared/types/permission.ts`. New permissions require code + migration changes.
 - **Role** — a named bundle of permissions. Lives in the database (`Role` table), scoped to a congregation. Roles can be **built-in** (seeded, identity-stable, auto-synced from `Member` flags) or **custom** (created at runtime by a Roles Manager and assigned to a `UserAccount`).
 
 Built-in identity roles attach to **`Member`** via `MemberRoleAssignment`. Custom roles (and the management permissions they grant) attach to **`UserAccount`** via `UserRoleAssignment`. The two tables are siblings: identity ("you are an elder") vs access ("you can manage roles").
@@ -151,11 +151,14 @@ dropped with a warning naming it.
 
 ## Adding a new permission
 
-1. **Enum entry.** Add the new value to `Permission` in `app/shared/types/permission.ts`. Use `kebab-case` for the value (it's the DB key).
+1. **Enum entry.** Add the new value to `Permission` in `app/shared/types/permission.ts`. Use `can-<verb>-<object>` in `kebab-case` for the value (it's the DB key). Permissions are named for what a person can do, not for a job title — the authorisation screen reads as a list of capabilities.
 2. **Migration.** Insert a row into `Permission` for every existing congregation. Optionally pre-attach it to specific built-in roles via `RolePermission`. Use `prisma migrate diff` + a manual SQL file under `app/database/migrations/` (do not run `migrate dev` in CI).
 3. **Display label.** Add a translated label in `app/shared/types/permission-display.ts` (or wherever the display map is referenced from the role-edit UI) and provide messages in `app/i18n/messages/{en,fr}.json` for the role-edit screen.
 4. **Route guard.** In the loader/action that gates the new feature, call `requirePermission(permissions, Permission.X)` after `withScopeFromContext`. For UI gating, use `permissions.has(Permission.X)` to hide buttons/links.
-5. **Tests.** Cover the new guard in unit tests for the route, and add an integration test for the resolver if the permission has any non-trivial assignment path.
+5. **Dependency, if any.** If the screen this unlocks cannot function without another permission, add an entry to `PERMISSION_REQUIRES` in `permission.ts`. The picker then tells the admin; nothing is auto-granted and nothing is blocked. Keep the map short — a long one means the split was wrong.
+6. **Tests.** Cover the new guard in unit tests for the route, and add an integration test for the resolver if the permission has any non-trivial assignment path.
+
+`pnpm test:permission-coverage` enforces steps 3, 4 and 5: it fails when a permission gates nothing, when either message catalogue lacks its description, or when `PERMISSION_REQUIRES` names something that is not a permission. A permission an admin can tick but which enforces nothing promises a restriction the app does not apply.
 
 Audit actions exist for every role/permission mutation already (`RoleCreated`, `RoleUpdated`, `RoleDeleted`, `RolePermissionChanged`, `UserRoleAssignmentChanged`, `UserPermissionsChanged`, `RoleAssignmentsSynced`). New permissions don't need new audit actions unless the user-facing action they gate is itself a new auditable event.
 

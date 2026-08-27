@@ -82,7 +82,7 @@ export async function resolveEffectivePermissions(userId: number, congregationId
 
   // Admin implies every permission. Without this expansion, `permissions.has(Permission.X)`
   // returns false for admins on non-admin features — admins would lose UI access everywhere.
-  if (granted.has(Permission.Admin)) return new Set(Object.values(Permission))
+  if (granted.has(Permission.CanDoAnything)) return new Set(Object.values(Permission))
 
   return granted
 }
@@ -165,10 +165,10 @@ export async function findMembersWithAnyRole(
  * the admin pool.
  *
  * Call this from delete-account, anonymize-account, and any path that may
- * remove `Permission.Admin` from a user (`updateAccount`, custom-role replace).
+ * remove `Permission.CanDoAnything` from a user (`updateAccount`, custom-role replace).
  */
 export async function requireNotLastAdmin(accountId: number, congregationId: number): Promise<void> {
-  const admins = await findAccountsWithPermission(unscopedDb, congregationId, Permission.Admin)
+  const admins = await findAccountsWithPermission(unscopedDb, congregationId, Permission.CanDoAnything)
   const isAdmin = admins.some(a => a.id === accountId)
   if (!isAdmin) return
 

@@ -21,7 +21,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
 
-  if (!permissions.has(Permission.ActivityManager)) {
+  if (!permissions.has(Permission.CanRecordActivity)) {
     logger.warn(
       `Tried to download publisher S-21. User ID: ${currentUser.id}. Does NOT have rights to manage activity.`,
     )

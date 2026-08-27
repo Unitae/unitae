@@ -14,7 +14,7 @@ export function loader({ context }: Route.LoaderArgs) {
 
   // Congregation-wide roster is global-only: a group responsible uses the
   // per-group roster instead.
-  const canView = permissions.has(Permission.EmergencyInfoViewer) || permissions.has(Permission.EmergencyInfoManager)
+  const canView = permissions.has(Permission.CanViewEmergencyInfo) || permissions.has(Permission.CanManageEmergencyInfo)
   if (!canView) throw redirect('/')
 
   return withScopeFromContext(context, async db => {

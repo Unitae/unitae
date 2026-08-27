@@ -42,7 +42,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.BoardValidator)
+  requirePermission(permissions, Permission.CanManageDynamicBoardDocuments)
 
   const dynamicId = requireParamId(params.dynamicId, '/board')
 
@@ -330,7 +330,7 @@ export default function EditDynamicDocumentPage({ loaderData, actionData }: Rout
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.BoardValidator)
+  requirePermission(permissions, Permission.CanManageDynamicBoardDocuments)
 
   const session = await getSession(request.headers.get('Cookie'))
   const submission = parseWithZod(await request.formData(), {

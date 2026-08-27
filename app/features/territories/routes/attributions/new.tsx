@@ -42,7 +42,7 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  requirePermission(permissions, Permission.TerritoriesManager)
+  requirePermission(permissions, Permission.CanManageTerritoryAttributions)
 
   const url = new URL(request.url)
   if (!url.searchParams.has('territory')) {
@@ -199,7 +199,7 @@ export default function CreateAttributionPage({ loaderData, actionData }: Route.
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  requirePermission(permissions, Permission.TerritoriesManager)
+  requirePermission(permissions, Permission.CanManageTerritoryAttributions)
 
   const submission = parseWithZod(await request.formData(), { schema: createAttributionSchema })
   if (submission.status !== 'success') {

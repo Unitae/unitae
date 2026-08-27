@@ -46,25 +46,28 @@ describe('authenticateAndAuthorize', () => {
   })
 
   it('grants only requested roles that the user actually holds', async () => {
-    vi.mocked(resolveEffectivePermissions).mockResolvedValue(new Set([Permission.Admin]))
+    vi.mocked(resolveEffectivePermissions).mockResolvedValue(new Set([Permission.CanDoAnything]))
 
-    const result = await authenticateAndAuthorize(makeRequest(), [Permission.Admin, Permission.BoardUploader])
+    const result = await authenticateAndAuthorize(makeRequest(), [
+      Permission.CanDoAnything,
+      Permission.CanUploadBoardDocuments,
+    ])
 
-    expect(result.can(Permission.Admin)).toBe(true)
-    expect(result.can(Permission.BoardUploader)).toBe(false)
+    expect(result.can(Permission.CanDoAnything)).toBe(true)
+    expect(result.can(Permission.CanUploadBoardDocuments)).toBe(false)
   })
 
   it('returns false for a role that was not requested even when granted', async () => {
-    vi.mocked(resolveEffectivePermissions).mockResolvedValue(new Set([Permission.TerritoriesViewer]))
+    vi.mocked(resolveEffectivePermissions).mockResolvedValue(new Set([Permission.CanViewTerritories]))
 
-    const result = await authenticateAndAuthorize(makeRequest(), [Permission.Admin])
+    const result = await authenticateAndAuthorize(makeRequest(), [Permission.CanDoAnything])
 
-    expect(result.can(Permission.TerritoriesViewer)).toBe(false)
+    expect(result.can(Permission.CanViewTerritories)).toBe(false)
   })
 
   it('works without roles', async () => {
     const result = await authenticateAndAuthorize(makeRequest())
 
-    expect(result.can(Permission.Admin)).toBe(false)
+    expect(result.can(Permission.CanDoAnything)).toBe(false)
   })
 })

@@ -23,8 +23,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
     if (!group) throw redirect('/publishers')
 
     const canView = canViewEmergencyInfo({
-      hasViewer: permissions.has(Permission.EmergencyInfoViewer),
-      hasManager: permissions.has(Permission.EmergencyInfoManager),
+      hasViewer: permissions.has(Permission.CanViewEmergencyInfo),
+      hasManager: permissions.has(Permission.CanManageEmergencyInfo),
       myResponsibleGroupId: currentUser.member?.responsibleFor?.id ?? null,
       myDeputyGroupId: currentUser.member?.deputyFor?.id ?? null,
       targetGroupId: group.id,

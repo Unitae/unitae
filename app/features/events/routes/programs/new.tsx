@@ -56,7 +56,7 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const isProgramManager = permissions.has(Permission.ProgramManager)
+  const isProgramManager = permissions.has(Permission.CanManagePrograms)
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
@@ -168,7 +168,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
   const congregation = context.get(congregationContext)
-  const isProgramManager = permissions.has(Permission.ProgramManager)
+  const isProgramManager = permissions.has(Permission.CanManagePrograms)
   const session = await getSession(request.headers.get('Cookie'))
   const formData = await request.formData()
   const mode = formData.get('mode')

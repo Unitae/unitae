@@ -45,7 +45,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
 
-  requirePermission(permissions, Permission.ProgramViewer)
+  requirePermission(permissions, Permission.CanViewPrograms)
 
   const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
 
@@ -57,11 +57,12 @@ export function loader({ params, context }: Route.LoaderArgs) {
       isTemplateResponsible(db, templateId, currentUser.id, currentUser.congregationId),
       db.event.count({ where: { templateId, congregationId: currentUser.congregationId } }),
     ])
-    const canEdit = permissions.has(Permission.ProgramManager) || responsible != null
+    const canManageTemplates = permissions.has(Permission.CanManageProgramTemplates)
+    const canEdit = canManageTemplates || responsible != null
     const isSystem = isSystemTemplate(template.key)
     // Deleting a whole template is manager-only and never allowed for system
     // rows; responsibles may edit content but not remove the template.
-    const canDelete = permissions.has(Permission.ProgramManager) && !isSystem
+    const canDelete = canManageTemplates && !isSystem
 
     logger.info(`Loading template view. User ID: ${currentUser.id}. Template: ${template.name}.`)
 
@@ -80,15 +81,14 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: handles duplicate + delete intents in a single scoped transaction
   return withScopeFromContext(context, async db => {
     const responsible = await isTemplateResponsible(db, templateId, currentUser.id, currentUser.congregationId)
-    if (!permissions.has(Permission.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')
+    const canManageTemplates = permissions.has(Permission.CanManageProgramTemplates)
+    if (!canManageTemplates && !responsible) throw redirect('/settings/congregation/templates')
 
     const session = await getSession(request.headers.get('Cookie'))
 
     if (intent === 'delete') {
       // Whole-template removal is manager-only; responsibles edit content only.
-      if (!permissions.has(Permission.ProgramManager)) {
-        throw redirect(`/settings/congregation/templates/${templateId}`)
-      }
+      if (!canManageTemplates) throw redirect(`/settings/congregation/templates/${templateId}`)
       const result = await deleteTemplate(db, templateId, currentUser.congregationId)
       if (result.ok) {
         session.flash('success', m.settings_template_view_delete_success({ name: result.name }))

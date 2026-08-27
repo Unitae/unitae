@@ -27,7 +27,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Permission.RolesManager)) throw redirect('/congregation/roles')
+  if (!permissions.has(Permission.CanManageRoles)) throw redirect('/congregation/roles')
   return null
 }
 
@@ -92,7 +92,7 @@ export default function NewRolePage({ actionData }: Route.ComponentProps) {
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  if (!permissions.has(Permission.RolesManager)) throw redirect('/congregation/roles')
+  if (!permissions.has(Permission.CanManageRoles)) throw redirect('/congregation/roles')
 
   const submission = parseWithZod(await request.formData(), { schema: createRoleSchema })
   if (submission.status !== 'success') {

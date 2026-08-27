@@ -45,14 +45,14 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canManageUser = permissions.has(Permission.SettingsUserManager)
-  const isAdmin = permissions.has(Permission.Admin)
+  const canManageUser = permissions.has(Permission.CanManageUsers)
+  const isAdmin = permissions.has(Permission.CanDoAnything)
 
   if (!canManageUser) {
     throw redirect('/')
   }
 
-  const canManageRoles = permissions.has(Permission.RolesManager)
+  const canManageRoles = permissions.has(Permission.CanManageRoles)
 
   return withScopeFromContext(context, async db => {
     const user = await db.userAccount.findUnique({
@@ -432,7 +432,7 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canManageUser = permissions.has(Permission.SettingsUserManager)
+  const canManageUser = permissions.has(Permission.CanManageUsers)
 
   if (!canManageUser) {
     throw redirect('/')

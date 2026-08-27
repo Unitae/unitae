@@ -11,16 +11,16 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const canViewTerritories = permissions.has(Permission.TerritoriesViewer)
-  const canManageTerritories = permissions.has(Permission.TerritoriesManager)
-  const canManageUsers = permissions.has(Permission.SettingsUserManager)
-  const canViewPublishers = permissions.has(Permission.PublisherViewer)
-  const canManageSettings = permissions.has(Permission.Admin)
-  const canViewProspection = permissions.has(Permission.ProspectionViewer)
-  const canViewRoles = permissions.has(Permission.RolesViewer) || permissions.has(Permission.RolesManager)
-  const canManageRoles = permissions.has(Permission.RolesManager)
-  const canManagePermissions = permissions.has(Permission.PermissionsManager)
-  const canManagePioneerGoals = permissions.has(Permission.PioneerGoalManager)
+  const canViewTerritories = permissions.has(Permission.CanViewTerritories)
+  const canManageTerritories = permissions.has(Permission.CanManageTerritories)
+  const canManageUsers = permissions.has(Permission.CanManageUsers)
+  const canViewPublishers = permissions.has(Permission.CanViewPublishers)
+  const canManageSettings = permissions.has(Permission.CanConfigureCongregation)
+  const canViewProspection = permissions.has(Permission.CanViewProspection)
+  const canViewRoles = permissions.has(Permission.CanViewRoles) || permissions.has(Permission.CanManageRoles)
+  const canManageRoles = permissions.has(Permission.CanManageRoles)
+  const canManagePermissions = permissions.has(Permission.CanConfigurePermissions)
+  const canManagePioneerGoals = permissions.has(Permission.CanSetPioneerGoals)
 
   if (!canManageUsers && !canManageSettings && !canManagePermissions && !canManagePioneerGoals) {
     throw redirect('/')

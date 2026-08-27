@@ -49,9 +49,9 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  requirePermission(permissions, Permission.TerritoriesViewer)
+  requirePermission(permissions, Permission.CanViewTerritories)
 
-  const canManageTerritories = permissions.has(Permission.TerritoriesManager)
+  const canManageTerritories = permissions.has(Permission.CanManageTerritories)
 
   const { congregationId } = context.get(currentAccountContext)
 
