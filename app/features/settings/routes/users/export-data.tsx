@@ -15,7 +15,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
   // Seul un admin/gestionnaire peut exporter, ou l'utilisateur lui-meme
   const isSelf = currentUser.id === accountId
-  const canManageUsers = permissions.has(Permission.SettingsUserManager) || permissions.has(Permission.Admin)
+  const canManageUsers = permissions.has(Permission.CanManageUsers) || permissions.has(Permission.CanDoAnything)
 
   if (!isSelf && !canManageUsers) {
     throw redirect('/')

@@ -24,7 +24,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
 
-  requirePermission(permissions, Permission.BoardValidator)
+  requirePermission(permissions, Permission.CanReviewBoardDocuments)
 
   const { congregationId } = currentUser
   const documentId = requireParamId(params.documentId, '/board/documents')

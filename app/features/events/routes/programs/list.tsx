@@ -54,7 +54,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
 
-  if (!permissions.has(Permission.ProgramViewer)) {
+  if (!permissions.has(Permission.CanViewPrograms)) {
     logger.warn(`Try to load programs. User ID: ${currentUser.id}. Does NOT have rights to access programs.`)
     throw redirect('/')
   }
@@ -70,7 +70,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
 
-    const isProgramManager = permissions.has(Permission.ProgramManager)
+    const isProgramManager = permissions.has(Permission.CanManagePrograms)
     const responsibleTemplateIds = isProgramManager
       ? []
       : await getResponsibleTemplateIds(db, currentUser.id, congregationId)
@@ -107,7 +107,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
       roles: {
         canCreatePrograms: isProgramManager || responsibleTemplateIds.length > 0,
         canViewExternalSpeakers:
-          permissions.has(Permission.ExternalSpeakerViewer) || permissions.has(Permission.ExternalSpeakerManager),
+          permissions.has(Permission.CanViewExternalSpeakers) || permissions.has(Permission.CanManageExternalSpeakers),
       },
     }
   })

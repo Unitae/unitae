@@ -13,7 +13,7 @@ function parseOptionalId(raw: string | null): number | null {
 
 export function loader({ request, params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Permission.ProgramViewer)) return Response.json(null, { status: 403 })
+  if (!permissions.has(Permission.CanViewPrograms)) return Response.json(null, { status: 403 })
 
   const eventId = requireParamId(params.eventId, '/programs')
   const url = new URL(request.url)

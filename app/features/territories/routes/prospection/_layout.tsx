@@ -21,9 +21,9 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const canViewProspection = permissions.has(Permission.ProspectionViewer)
-  const canManageProspection = permissions.has(Permission.ProspectionManager)
-  const canManageTerritories = permissions.has(Permission.TerritoriesManager)
+  const canViewProspection = permissions.has(Permission.CanViewProspection)
+  const canManageProspection = permissions.has(Permission.CanRecordProspection)
+  const canManageTerritories = permissions.has(Permission.CanManageBuildings)
 
   if (!canViewProspection) {
     throw redirect('/')

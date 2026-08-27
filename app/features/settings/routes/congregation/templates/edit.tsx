@@ -71,7 +71,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
     if (!template) throw redirect('/settings/congregation/templates')
 
     const responsible = await isTemplateResponsible(db, templateId, currentUser.id, currentUser.congregationId)
-    if (!permissions.has(Permission.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')
+    if (!permissions.has(Permission.CanManageProgramTemplates) && !responsible)
+      throw redirect('/settings/congregation/templates')
 
     const partAllowedRoles = await db.templatePartAllowedRole.findMany({
       where: { partId: { in: template.parts.map(p => p.id) }, congregationId: currentUser.congregationId },
@@ -125,7 +126,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: handles multiple form intents in a single transaction
   return withScopeFromContext(context, async db => {
     const responsible = await isTemplateResponsible(db, templateId, currentUser.id, currentUser.congregationId)
-    if (!permissions.has(Permission.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')
+    if (!permissions.has(Permission.CanManageProgramTemplates) && !responsible)
+      throw redirect('/settings/congregation/templates')
 
     const session = await getSession(request.headers.get('Cookie'))
 

@@ -49,7 +49,11 @@ describe('resolveEffectivePermissions', () => {
   })
 
   it('expands admin to every permission so feature checks pass without explicit grants', async () => {
-    vi.mocked(unscopedDb.rolePermission.findMany).mockResolvedValue([{ permission: { key: 'admin' } }] as never)
+    // The legacy `admin` key is not expanded: the capability migration grants
+    // `can-do-anything` alongside it, so every real admin role carries both.
+    vi.mocked(unscopedDb.rolePermission.findMany).mockResolvedValue([
+      { permission: { key: 'can-do-anything' } },
+    ] as never)
 
     const result = await resolveEffectivePermissions(42, 1)
 
@@ -123,7 +127,7 @@ describe('findAccountsWithPermission', () => {
       { id: 2, email: 'b@b.test', firstname: null, active: false },
     ] as never)
 
-    const result = await findAccountsWithPermission(unscopedDb, 7, Permission.BoardValidator)
+    const result = await findAccountsWithPermission(unscopedDb, 7, Permission.CanReviewBoardDocuments)
 
     expect(result).toEqual([
       { id: 1, email: 'a@a.test', firstname: 'A', active: true },
@@ -134,7 +138,7 @@ describe('findAccountsWithPermission', () => {
   it('queries UserAccount with the three-branch OR fragment scoped to the congregation', async () => {
     vi.mocked(unscopedDb.userAccount.findMany).mockResolvedValue([] as never)
 
-    await findAccountsWithPermission(unscopedDb, 7, Permission.BoardValidator)
+    await findAccountsWithPermission(unscopedDb, 7, Permission.CanReviewBoardDocuments)
 
     expect(unscopedDb.userAccount.findMany).toHaveBeenCalledWith({
       where: {
@@ -142,13 +146,13 @@ describe('findAccountsWithPermission', () => {
         OR: [
           {
             roleAssignments: {
-              some: { role: { permissions: { some: { permission: { key: Permission.BoardValidator } } } } },
+              some: { role: { permissions: { some: { permission: { key: Permission.CanReviewBoardDocuments } } } } },
             },
           },
           {
             member: {
               roleAssignments: {
-                some: { role: { permissions: { some: { permission: { key: Permission.BoardValidator } } } } },
+                some: { role: { permissions: { some: { permission: { key: Permission.CanReviewBoardDocuments } } } } },
               },
             },
           },
@@ -216,7 +220,7 @@ describe('findNotificationRecipientsWithPermission', () => {
   it('composes the permission fan-out with the recipient filter via AND so both must match', async () => {
     vi.mocked(unscopedDb.userAccount.findMany).mockResolvedValue([] as never)
 
-    await findNotificationRecipientsWithPermission(unscopedDb, 7, Permission.BoardValidator)
+    await findNotificationRecipientsWithPermission(unscopedDb, 7, Permission.CanReviewBoardDocuments)
 
     expect(unscopedDb.userAccount.findMany).toHaveBeenCalledWith({
       where: {
@@ -226,13 +230,17 @@ describe('findNotificationRecipientsWithPermission', () => {
             OR: [
               {
                 roleAssignments: {
-                  some: { role: { permissions: { some: { permission: { key: Permission.BoardValidator } } } } },
+                  some: {
+                    role: { permissions: { some: { permission: { key: Permission.CanReviewBoardDocuments } } } },
+                  },
                 },
               },
               {
                 member: {
                   roleAssignments: {
-                    some: { role: { permissions: { some: { permission: { key: Permission.BoardValidator } } } } },
+                    some: {
+                      role: { permissions: { some: { permission: { key: Permission.CanReviewBoardDocuments } } } },
+                    },
                   },
                 },
               },

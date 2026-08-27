@@ -37,7 +37,7 @@ export const meta: Route.MetaFunction = () => {
 export async function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const congregation = context.get(congregationContext)
-  const canManageSettings = permissions.has(Permission.Admin)
+  const canManageSettings = permissions.has(Permission.CanConfigureCongregation)
 
   if (!canManageSettings) {
     throw redirect('/')
@@ -213,7 +213,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const congregation = context.get(congregationContext)
   const { id: actorId } = context.get(currentAccountContext)
-  const canManageSettings = permissions.has(Permission.Admin)
+  const canManageSettings = permissions.has(Permission.CanConfigureCongregation)
 
   if (!canManageSettings) {
     throw redirect('/')

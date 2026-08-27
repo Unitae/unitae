@@ -51,13 +51,13 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canViewPublisher = permissions.has(Permission.PublisherViewer)
-  const canManagePublisher = permissions.has(Permission.PublisherManager)
-  const canManageActivity = permissions.has(Permission.ActivityManager)
-  const canViewActivity = permissions.has(Permission.ActivityViewer)
-  const canViewTerritories = permissions.has(Permission.TerritoriesViewer)
-  const canViewPrograms = permissions.has(Permission.ProgramViewer)
-  const canViewAbsences = permissions.has(Permission.AbsenceViewer)
+  const canViewPublisher = permissions.has(Permission.CanViewPublishers)
+  const canManagePublisher = permissions.has(Permission.CanManagePublishers)
+  const canManageActivity = permissions.has(Permission.CanRecordActivity)
+  const canViewActivity = permissions.has(Permission.CanViewActivity)
+  const canViewTerritories = permissions.has(Permission.CanViewTerritories)
+  const canViewPrograms = permissions.has(Permission.CanViewPrograms)
+  const canViewAbsences = permissions.has(Permission.CanViewAbsences)
 
   if (!canViewPublisher) {
     logger.warn(`Tried to load publisher file. User ID: ${currentUser.id}. Does NOT have rights to view publishers.`)
@@ -92,8 +92,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
     }
 
     const emergencyAccess = {
-      hasViewer: permissions.has(Permission.EmergencyInfoViewer),
-      hasManager: permissions.has(Permission.EmergencyInfoManager),
+      hasViewer: permissions.has(Permission.CanViewEmergencyInfo),
+      hasManager: permissions.has(Permission.CanManageEmergencyInfo),
       myResponsibleGroupId: currentUser.member?.responsibleFor?.id ?? null,
       myDeputyGroupId: currentUser.member?.deputyFor?.id ?? null,
       targetGroupId: publisher.publisherGroupId,

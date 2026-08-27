@@ -44,7 +44,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Permission.TerritoriesManager)) {
+  if (!permissions.has(Permission.CanConfigureTerritorySettings)) {
     throw redirect('/')
   }
   const congregation = context.get(congregationContext)
@@ -62,7 +62,7 @@ export function loader({ context }: Route.LoaderArgs) {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Permission.TerritoriesManager)) {
+  if (!permissions.has(Permission.CanConfigureTerritorySettings)) {
     throw redirect('/')
   }
   const currentUser = context.get(currentAccountContext)

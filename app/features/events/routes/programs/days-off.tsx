@@ -31,10 +31,12 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canViewPrograms = permissions.has(Permission.ProgramViewer)
-  const canViewAbsences = permissions.has(Permission.AbsenceViewer)
+  const canViewPrograms = permissions.has(Permission.CanViewPrograms)
+  const canViewAbsences = permissions.has(Permission.CanViewAbsences)
 
-  if (!canViewPrograms && !canViewAbsences) {
+  // Seeing other people's absences is its own capability. It used to be enough to hold
+  // can-view-programs, which meant the absence permission could never restrict anything.
+  if (!canViewAbsences) {
     logger.warn(`Try to load absences. User ID: ${currentUser.id}. Does NOT have rights to access absences.`)
 
     throw redirect('/')

@@ -26,9 +26,90 @@ beforeEach(() => {
   vi.resetAllMocks()
 })
 
+describe('filterToManageableEventIds — required permission', () => {
+  it('honours the capability it is asked for, not the blanket manage permission', async () => {
+    // bulk-release asks for CanPublishPrograms. Someone holding only CanManagePrograms
+    // must not sail through — the split is meaningless if the bulk routes ignore it.
+    vi.mocked(db.event.findMany).mockResolvedValue([{ id: 1, templateId: null }] as never)
+    vi.mocked(db.templateResponsible.findMany).mockResolvedValue([] as never)
+
+    const allowed = await filterToManageableEventIds(
+      db,
+      allowOnly(Permission.CanManagePrograms),
+      [1],
+      USER_ID,
+      CONGREGATION_ID,
+      Permission.CanPublishPrograms,
+    )
+    expect(allowed).toEqual([])
+  })
+
+  it('passes everything through when the required capability is held', async () => {
+    vi.mocked(db.event.findMany).mockResolvedValue([{ id: 1, templateId: null }] as never)
+
+    const allowed = await filterToManageableEventIds(
+      db,
+      allowOnly(Permission.CanPublishPrograms),
+      [1],
+      USER_ID,
+      CONGREGATION_ID,
+      Permission.CanPublishPrograms,
+    )
+    expect(allowed).toEqual([1])
+  })
+})
+
+describe('canEditEvent — required permission', () => {
+  it('accepts the specific capability when one is asked for', async () => {
+    // Assigning a part and publishing a programme are different jobs, so the routes
+    // ask for the capability they need rather than the blanket manage permission.
+    const result = await canEditEvent(
+      db,
+      allowOnly(Permission.CanAssignProgramParts),
+      USER_ID,
+      null,
+      CONGREGATION_ID,
+      Permission.CanAssignProgramParts,
+    )
+    expect(result).toBe(true)
+  })
+
+  it('refuses the blanket manage permission when a different capability is required', async () => {
+    const result = await canEditEvent(
+      db,
+      allowOnly(Permission.CanManagePrograms),
+      USER_ID,
+      null,
+      CONGREGATION_ID,
+      Permission.CanPublishPrograms,
+    )
+    expect(result).toBe(false)
+  })
+
+  it('still lets the template responsible through when they lack the capability', async () => {
+    // Delegation must survive the split: whoever is responsible for a template keeps
+    // editing its events without being granted a congregation-wide permission.
+    vi.mocked(db.templateResponsible.findFirst).mockResolvedValue({ id: 1 } as never)
+    const result = await canEditEvent(
+      db,
+      allowNone,
+      USER_ID,
+      TEMPLATE_ID_OWNED,
+      CONGREGATION_ID,
+      Permission.CanPublishPrograms,
+    )
+    expect(result).toBe(true)
+  })
+
+  it('defaults to the manage permission when none is given', async () => {
+    const result = await canEditEvent(db, allowOnly(Permission.CanManagePrograms), USER_ID, null, CONGREGATION_ID)
+    expect(result).toBe(true)
+  })
+})
+
 describe('canEditEvent', () => {
   it('returns true for ProgramManager regardless of templateId', async () => {
-    const result = await canEditEvent(db, allowOnly(Permission.ProgramManager), USER_ID, null, CONGREGATION_ID)
+    const result = await canEditEvent(db, allowOnly(Permission.CanManagePrograms), USER_ID, null, CONGREGATION_ID)
     expect(result).toBe(true)
   })
 

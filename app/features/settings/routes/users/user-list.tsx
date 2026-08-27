@@ -19,9 +19,9 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canManageUser = permissions.has(Permission.SettingsUserManager)
-  const canViewPublishers = permissions.has(Permission.PublisherViewer)
-  const canManagePublishers = permissions.has(Permission.PublisherManager)
+  const canManageUser = permissions.has(Permission.CanViewUsers)
+  const canViewPublishers = permissions.has(Permission.CanViewPublishers)
+  const canManagePublishers = permissions.has(Permission.CanManagePublishers)
 
   if (!canManageUser) {
     logger.warn(`Tried to load users. User ID: ${currentUser.id}. Does NOT have rights to manage users.`)

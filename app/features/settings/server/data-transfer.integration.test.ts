@@ -33,8 +33,11 @@ let targetId: number
 let adminPermissionId: number
 
 beforeAll(async () => {
-  const adminPermission = await testDb.permission.findFirst({ where: { key: 'admin' } })
-  if (!adminPermission) throw new Error('Permission "admin" not found — run pnpm prisma db seed first')
+  // The current admin capability, not the legacy `admin` key. The legacy key only
+  // appears inside the pre-#149 archive fixtures below, which is what makes them legacy —
+  // it is no longer a seeded Permission row.
+  const adminPermission = await testDb.permission.findFirst({ where: { key: 'can-do-anything' } })
+  if (!adminPermission) throw new Error('Permission "can-do-anything" not found — run pnpm prisma db seed first')
   adminPermissionId = adminPermission.id
 
   const source = await testDb.congregation.create({
@@ -520,7 +523,7 @@ async function importFromZip(buffer: Buffer, congregationId: number): Promise<vo
     await mod.importMembers(zip, db, idMap, congregationId)
     await mod.importUserAccounts(zip, db, idMap, congregationId)
     await mod.importUserRoleAssignments(zip, db, idMap, congregationId)
-    await mod.importCongregationUserPermissions(zip, db, idMap, permissionKeyToId, congregationId)
+    await mod.importCongregationUserPermissions(zip, db, idMap, congregationId)
     await mod.importPublisherGroups(zip, db, idMap, congregationId)
     await mod.updateMemberPublisherGroups(zip, db, idMap, congregationId)
     await mod.importPublisherActivities(zip, db, idMap, congregationId)
@@ -1003,7 +1006,7 @@ describe('legacy direct-grant archives', () => {
 
       await withScope(congId, async tx => {
         await mod.importUserAccounts(loadedZip, tx, idMap, congId)
-        await mod.importCongregationUserPermissions(loadedZip, tx, idMap, permissionKeyToId, congId)
+        await mod.importCongregationUserPermissions(loadedZip, tx, idMap, congId)
       })
 
       await withScope(congId, async tx => {
@@ -1071,7 +1074,7 @@ describe('legacy direct-grant archives', () => {
 
       await withScope(congId, async tx => {
         await mod.importUserAccounts(loadedZip, tx, idMap, congId)
-        await mod.importCongregationUserPermissions(loadedZip, tx, idMap, permissionKeyToId, congId)
+        await mod.importCongregationUserPermissions(loadedZip, tx, idMap, congId)
       })
 
       await withScope(congId, async tx => {
@@ -1156,7 +1159,7 @@ describe.skip('v1.0 archive backward compatibility', () => {
 
       await withScope(congId, async tx => {
         await mod.importUserAccounts(loadedZip, tx, idMap, congId)
-        await mod.importCongregationUserPermissions(loadedZip, tx, idMap, permissionKeyToId, congId)
+        await mod.importCongregationUserPermissions(loadedZip, tx, idMap, congId)
       })
 
       await withScope(congId, async tx => {

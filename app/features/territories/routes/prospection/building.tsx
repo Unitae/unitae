@@ -32,10 +32,10 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canViewProspection = permissions.has(Permission.ProspectionViewer)
-  const canManageProspection = permissions.has(Permission.ProspectionManager)
-  const canViewTerritories = permissions.has(Permission.TerritoriesViewer)
-  const canManageTerritories = permissions.has(Permission.TerritoriesManager)
+  const canViewProspection = permissions.has(Permission.CanViewProspection)
+  const canManageProspection = permissions.has(Permission.CanRecordProspection)
+  const canViewTerritories = permissions.has(Permission.CanViewTerritories)
+  const canManageTerritories = permissions.has(Permission.CanManageBuildings)
 
   if (!canViewProspection) {
     logger.warn(
@@ -140,7 +140,7 @@ export default function BuildingPage({ loaderData }: Route.ComponentProps) {
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  requirePermission(permissions, Permission.TerritoriesManager)
+  requirePermission(permissions, Permission.CanManageBuildings)
 
   const submission = parseWithZod(await request.formData(), { schema: buildingNotesSchema })
   if (submission.status !== 'success') {

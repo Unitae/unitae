@@ -42,11 +42,11 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canViewTerritories = permissions.has(Permission.TerritoriesViewer)
-  const canManagePublisher = permissions.has(Permission.PublisherManager)
-  const canViewPublisher = permissions.has(Permission.PublisherViewer)
-  const canManageTerritories = permissions.has(Permission.TerritoriesManager)
-  const canViewProspection = permissions.has(Permission.ProspectionViewer)
+  const canViewTerritories = permissions.has(Permission.CanViewTerritoryAttributions)
+  const canManagePublisher = permissions.has(Permission.CanManagePublishers)
+  const canViewPublisher = permissions.has(Permission.CanViewPublishers)
+  const canManageTerritories = permissions.has(Permission.CanManageTerritoryAttributions)
+  const canViewProspection = permissions.has(Permission.CanViewProspection)
 
   if (!canViewTerritories) {
     if (canViewProspection) {

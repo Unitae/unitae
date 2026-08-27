@@ -83,28 +83,28 @@ describe('isAccountInBreachScope', () => {
 
     it('includes an account with a management permission but no appointment', async () => {
       withMemberFlags(null)
-      withPermissions(Permission.PublisherManager)
+      withPermissions(Permission.CanManagePublishers)
 
       expect(await isAccountInBreachScope(db, USER_ID, CONGREGATION_ID)).toBe(true)
     })
 
     it('includes an admin', async () => {
       withMemberFlags(null)
-      withPermissions(Permission.Admin)
+      withPermissions(Permission.CanDoAnything)
 
       expect(await isAccountInBreachScope(db, USER_ID, CONGREGATION_ID)).toBe(true)
     })
 
     it('excludes a plain publisher (no appointment, only viewer access)', async () => {
       withMemberFlags({ isHelder: false, isServant: false })
-      withPermissions(Permission.BoardViewer, Permission.PublisherViewer)
+      withPermissions(Permission.CanViewBoard, Permission.CanViewPublishers)
 
       expect(await isAccountInBreachScope(db, USER_ID, CONGREGATION_ID)).toBe(false)
     })
 
     it('excludes an account with no linked member and no management access', async () => {
       withMemberFlags(null)
-      withPermissions(Permission.BoardViewer)
+      withPermissions(Permission.CanViewBoard)
 
       expect(await isAccountInBreachScope(db, USER_ID, CONGREGATION_ID)).toBe(false)
     })

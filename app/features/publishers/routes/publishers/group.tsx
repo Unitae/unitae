@@ -28,9 +28,9 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canViewPublishers = permissions.has(Permission.PublisherViewer)
-  const canManagePublisher = permissions.has(Permission.PublisherManager)
-  const canManageActivity = permissions.has(Permission.ActivityManager)
+  const canViewPublishers = permissions.has(Permission.CanViewPublishers)
+  const canManagePublisher = permissions.has(Permission.CanManagePublisherGroups)
+  const canManageActivity = permissions.has(Permission.CanRecordActivity)
 
   if (!canViewPublishers) {
     throw redirect('/')
@@ -43,8 +43,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
     }
 
     const canViewEmergency =
-      permissions.has(Permission.EmergencyInfoViewer) ||
-      permissions.has(Permission.EmergencyInfoManager) ||
+      permissions.has(Permission.CanViewEmergencyInfo) ||
+      permissions.has(Permission.CanManageEmergencyInfo) ||
       currentUser.member?.responsibleFor?.id === group.id ||
       currentUser.member?.deputyFor?.id === group.id
 
@@ -229,7 +229,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
   const previousPage = request.headers.get('referer')
-  const canManagePublisher = permissions.has(Permission.PublisherManager)
+  const canManagePublisher = permissions.has(Permission.CanManagePublisherGroups)
 
   if (!canManagePublisher) {
     throw redirect(previousPage ?? '/')

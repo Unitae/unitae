@@ -22,7 +22,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const currentUser = context.get(currentAccountContext)
   const congregationId = currentUser.congregationId
 
-  requirePermission(permissions, Permission.Admin)
+  requirePermission(permissions, Permission.CanAnonymisePeople)
 
   const accountId = requireParamId<AccountId>(params.accountId, '/settings/users')
 

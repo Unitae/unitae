@@ -33,7 +33,9 @@ beforeAll(async () => {
   const customRole = await testDb.role.create({
     data: { key: `custom-validator-${ts}`, isBuiltIn: false, congregationId },
   })
-  const boardValidator = await testDb.permission.findUniqueOrThrow({ where: { key: Permission.BoardValidator } })
+  const boardValidator = await testDb.permission.findUniqueOrThrow({
+    where: { key: Permission.CanReviewBoardDocuments },
+  })
   await testDb.rolePermission.create({
     data: { roleId: customRole.id, permissionId: boardValidator.id, congregationId },
   })
@@ -69,7 +71,7 @@ describe('resolveRecipients (integration)', () => {
     const recipients = await resolveRecipients(
       testDb,
       congregationId,
-      Permission.BoardValidator,
+      Permission.CanReviewBoardDocuments,
       'board.document.created',
     )
 

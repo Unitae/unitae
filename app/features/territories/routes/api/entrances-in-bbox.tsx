@@ -18,7 +18,7 @@ const logger = createLogger('entrances-in-bbox')
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.TerritoriesManager)
+  requirePermission(permissions, Permission.CanManageTerritories)
 
   const url = new URL(request.url)
   const params = parseEntrancesInBboxParams(url.searchParams)

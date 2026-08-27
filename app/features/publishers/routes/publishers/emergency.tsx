@@ -31,8 +31,8 @@ function accessInput(
   targetGroupId: number | null,
 ): EmergencyAccessInput {
   return {
-    hasViewer: permissions.has(Permission.EmergencyInfoViewer),
-    hasManager: permissions.has(Permission.EmergencyInfoManager),
+    hasViewer: permissions.has(Permission.CanViewEmergencyInfo),
+    hasManager: permissions.has(Permission.CanManageEmergencyInfo),
     myResponsibleGroupId: currentUser.member?.responsibleFor?.id ?? null,
     myDeputyGroupId: currentUser.member?.deputyFor?.id ?? null,
     targetGroupId,

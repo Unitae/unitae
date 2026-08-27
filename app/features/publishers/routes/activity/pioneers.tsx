@@ -29,7 +29,7 @@ export function shouldRevalidate({ currentUrl, nextUrl, defaultShouldRevalidate 
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Permission.ActivityViewer)) throw redirect('/')
+  if (!permissions.has(Permission.CanViewActivity)) throw redirect('/')
 
   const congregation = context.get(congregationContext)
   const currentUser = context.get(currentAccountContext)

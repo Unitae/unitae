@@ -33,7 +33,7 @@ export function loader(_args: Route.LoaderArgs) {
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  requirePermission(permissions, Permission.TerritoriesManager)
+  requirePermission(permissions, Permission.CanPlanTerritorySplits)
 
   const submission = parseWithZod(await request.formData(), { schema: splitToolCreateSchema })
   if (submission.status !== 'success') {

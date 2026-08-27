@@ -19,7 +19,7 @@ export function loader(_args: Route.LoaderArgs) {
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.BoardValidator)
+  requirePermission(permissions, Permission.CanOrganiseBoardDocuments)
 
   const session = await getSession(request.headers.get('Cookie'))
 

@@ -358,7 +358,7 @@ export async function setUserCustomRoleAssignments(
       where: {
         roleId: { in: removed },
         congregationId,
-        permission: { key: Permission.Admin },
+        permission: { key: Permission.CanDoAnything },
       },
       select: { roleId: true },
     })

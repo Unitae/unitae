@@ -37,7 +37,7 @@ const POSITIVE_INTEGER = /^\d+$/
 
 export function loader({ params, request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.BoardViewer)
+  requirePermission(permissions, Permission.CanViewBoard)
 
   const currentUser = context.get(currentAccountContext)
 

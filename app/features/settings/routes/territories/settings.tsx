@@ -40,7 +40,7 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canManageTerritories = permissions.has(Permission.TerritoriesManager)
+  const canManageTerritories = permissions.has(Permission.CanConfigureTerritorySettings)
 
   if (!canManageTerritories) {
     throw redirect('/')
@@ -245,7 +245,7 @@ export default function TerritorySettingsPage({ loaderData, actionData }: Route.
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canManageTerritories = permissions.has(Permission.TerritoriesManager)
+  const canManageTerritories = permissions.has(Permission.CanConfigureTerritorySettings)
 
   if (!canManageTerritories) {
     throw redirect('/')

@@ -22,7 +22,7 @@ import type { Route } from './+types/export-pdf-download'
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Permission.ProgramViewer)) throw redirect('/programs')
+  if (!permissions.has(Permission.CanViewPrograms)) throw redirect('/programs')
 
   const currentUser = context.get(currentAccountContext)
   const congregation = context.get(congregationContext)

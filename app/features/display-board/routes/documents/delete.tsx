@@ -19,8 +19,8 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canUploadDocument = permissions.has(Permission.BoardUploader)
-  const canManageBoard = permissions.has(Permission.BoardValidator)
+  const canUploadDocument = permissions.has(Permission.CanUploadBoardDocuments)
+  const canManageBoard = permissions.has(Permission.CanReviewBoardDocuments)
 
   if (!canUploadDocument && !canManageBoard) {
     throw redirect('/')
@@ -62,8 +62,8 @@ export default function DeleteDocumentPage({ loaderData }: Route.ComponentProps)
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canUploadDocument = permissions.has(Permission.BoardUploader)
-  const canManageBoard = permissions.has(Permission.BoardValidator)
+  const canUploadDocument = permissions.has(Permission.CanUploadBoardDocuments)
+  const canManageBoard = permissions.has(Permission.CanReviewBoardDocuments)
 
   if (!canUploadDocument && !canManageBoard) {
     throw redirect('/')

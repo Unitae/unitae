@@ -26,7 +26,7 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canManageBoard = permissions.has(Permission.BoardValidator)
+  const canManageBoard = permissions.has(Permission.CanConfigureBoardSections)
 
   if (!canManageBoard) {
     logger.warn(`Tried to load board sections. User ID: ${currentUser.id}. Does NOT have rights to manage board.`)

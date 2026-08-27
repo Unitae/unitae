@@ -19,7 +19,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
 
-  requirePermission(permissions, Permission.Admin)
+  requirePermission(permissions, Permission.CanDeleteUserAccounts)
 
   const accountId = requireParamId<AccountId>(params.accountId, '/settings/users')
 

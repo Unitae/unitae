@@ -12,17 +12,17 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canViewTerritories = permissions.has(Permission.TerritoriesViewer)
-  const canManageSettings = permissions.has(Permission.SettingsUserManager)
-  const canViewPublishers = permissions.has(Permission.PublisherViewer)
-  const canViewPrograms = permissions.has(Permission.ProgramViewer)
-  const canViewProspection = permissions.has(Permission.ProspectionViewer)
+  const canViewTerritories = permissions.has(Permission.CanViewTerritories)
+  const canManageSettings = permissions.has(Permission.CanManageUsers)
+  const canViewPublishers = permissions.has(Permission.CanViewPublishers)
+  const canViewPrograms = permissions.has(Permission.CanViewPrograms)
+  const canViewProspection = permissions.has(Permission.CanViewProspection)
   // Group responsibles / deputies and emergency-info holders reach the
   // emergency routes here even without a publisher/program permission. Each
   // child route self-gates, so admitting them to the layout is safe.
   const canReachEmergency =
-    permissions.has(Permission.EmergencyInfoViewer) ||
-    permissions.has(Permission.EmergencyInfoManager) ||
+    permissions.has(Permission.CanViewEmergencyInfo) ||
+    permissions.has(Permission.CanManageEmergencyInfo) ||
     currentUser.member?.responsibleFor != null ||
     currentUser.member?.deputyFor != null
 

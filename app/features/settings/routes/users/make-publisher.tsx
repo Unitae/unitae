@@ -19,7 +19,7 @@ export function action({ params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
 
-  if (!permissions.has(Permission.PublisherManager)) {
+  if (!permissions.has(Permission.CanManagePublishers)) {
     throw redirect('/')
   }
 

@@ -27,10 +27,10 @@ export function loader({ context }: Route.LoaderArgs) {
   const congregation = context.get(congregationContext)
 
   const perms = {
-    canManageSettings: permissions.has(Permission.Admin),
-    canManageUsers: permissions.has(Permission.SettingsUserManager),
-    canManagePermissions: permissions.has(Permission.PermissionsManager),
-    canManagePioneerGoals: permissions.has(Permission.PioneerGoalManager),
+    canManageSettings: permissions.has(Permission.CanConfigureCongregation),
+    canManageUsers: permissions.has(Permission.CanManageUsers),
+    canManagePermissions: permissions.has(Permission.CanConfigurePermissions),
+    canManagePioneerGoals: permissions.has(Permission.CanSetPioneerGoals),
   }
 
   const billingUrl = billingEntryUrl({

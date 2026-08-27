@@ -28,7 +28,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
       throw redirect('/territories', { status: 404 })
     }
 
-    const canViewTerritories = permissions.has(Permission.TerritoriesViewer)
+    const canViewTerritories = permissions.has(Permission.CanViewTerritories)
     const isCurrentlyAttributed = territory.attributions.some(
       a => a.endDate == null && a.publisherId === currentUser.id,
     )

@@ -20,7 +20,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.BoardValidator)
+  requirePermission(permissions, Permission.CanManageDynamicBoardDocuments)
 
   const dynamicId = requireParamId(params.dynamicId, '/board')
 
@@ -53,7 +53,7 @@ export default function DeleteDynamicDocumentPage({ loaderData }: Route.Componen
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.BoardValidator)
+  requirePermission(permissions, Permission.CanManageDynamicBoardDocuments)
 
   const session = await getSession(request.headers.get('Cookie'))
   const dynamicId = requireParamId(params.dynamicId, '/board')

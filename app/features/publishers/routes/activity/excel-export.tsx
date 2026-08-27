@@ -17,7 +17,7 @@ export const meta: Route.MetaFunction = () => {
 export async function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canViewActivities = permissions.has(Permission.ActivityViewer)
+  const canViewActivities = permissions.has(Permission.CanViewActivity)
 
   if (!canViewActivities) {
     logger.warn(

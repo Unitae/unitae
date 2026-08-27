@@ -27,7 +27,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const session = await getSession(request.headers.get('Cookie'))
 
-  requirePermission(permissions, Permission.SettingsUserManager)
+  requirePermission(permissions, Permission.CanManageUsers)
 
   const user = await db.userAccount.findUnique({
     where: { id: requireParamId(params.userId, '/settings/users') },

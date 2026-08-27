@@ -16,7 +16,7 @@ export function loader(_args: Route.LoaderArgs) {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.BoardValidator)
+  requirePermission(permissions, Permission.CanConfigureBoardSections)
 
   const { orderedIds } = (await request.json()) as { orderedIds: number[] }
 

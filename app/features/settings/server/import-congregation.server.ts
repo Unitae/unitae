@@ -202,7 +202,7 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
       await importUserRoleAssignments(zip, db, idMap, congregationId)
       await progress()
 
-      await importCongregationUserPermissions(zip, db, idMap, permissionKeyToId, congregationId)
+      await importCongregationUserPermissions(zip, db, idMap, congregationId)
       await progress()
 
       await importPublisherGroups(zip, db, idMap, congregationId)

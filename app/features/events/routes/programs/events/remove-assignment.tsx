@@ -16,7 +16,7 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import type { Permission } from '~/shared/types/permission'
+import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/remove-assignment'
@@ -41,7 +41,16 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
     if (!event) throw redirect('/programs')
 
-    if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
+    if (
+      !(await canEditEvent(
+        db,
+        can,
+        currentUser.id,
+        event.templateId ?? null,
+        congregationId,
+        Permission.CanAssignProgramParts,
+      ))
+    ) {
       throw redirect('/programs')
     }
 

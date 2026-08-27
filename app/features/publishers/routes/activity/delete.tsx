@@ -17,7 +17,7 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canManageActivity = permissions.has(Permission.ActivityManager)
+  const canManageActivity = permissions.has(Permission.CanCorrectActivity)
 
   if (!canManageActivity) {
     throw redirect('/')
@@ -71,7 +71,7 @@ export default function DeleteActivity({ loaderData }: Route.ComponentProps) {
 export function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canManageActivity = permissions.has(Permission.ActivityManager)
+  const canManageActivity = permissions.has(Permission.CanCorrectActivity)
 
   if (!canManageActivity) {
     throw redirect('/')

@@ -18,7 +18,7 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canManagePublisher = permissions.has(Permission.PublisherManager)
+  const canManagePublisher = permissions.has(Permission.CanManagePublisherGroups)
 
   if (!canManagePublisher) {
     throw redirect('/')
@@ -60,7 +60,7 @@ export default function DeleteGroup({ loaderData }: Route.ComponentProps) {
 export function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canManagePublisher = permissions.has(Permission.PublisherManager)
+  const canManagePublisher = permissions.has(Permission.CanManagePublisherGroups)
 
   if (!canManagePublisher) {
     throw redirect('/')

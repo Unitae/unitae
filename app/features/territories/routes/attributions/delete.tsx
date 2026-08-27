@@ -22,7 +22,7 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  requirePermission(permissions, Permission.TerritoriesManager)
+  requirePermission(permissions, Permission.CanManageTerritoryAttributions)
 
   const { congregationId } = context.get(currentAccountContext)
 
@@ -61,7 +61,7 @@ export default function DeleteGroup({ loaderData }: Route.ComponentProps) {
 export function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  requirePermission(permissions, Permission.TerritoriesManager)
+  requirePermission(permissions, Permission.CanManageTerritoryAttributions)
 
   const { congregationId, id: actorId } = context.get(currentAccountContext)
 

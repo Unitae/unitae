@@ -43,8 +43,8 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canUploadDocument = permissions.has(Permission.BoardUploader)
-  const canManageBoard = permissions.has(Permission.BoardValidator)
+  const canUploadDocument = permissions.has(Permission.CanUploadBoardDocuments)
+  const canManageBoard = permissions.has(Permission.CanReviewBoardDocuments)
 
   if (!canUploadDocument) {
     logger.warn(
@@ -177,8 +177,8 @@ export async function action({ request, context }: Route.ActionArgs) {
   const currentUser = context.get(currentAccountContext)
   const congregation = context.get(congregationContext)
   const session = await getSession(request.headers.get('Cookie'))
-  const canUploadDocument = permissions.has(Permission.BoardUploader)
-  const canManageBoard = permissions.has(Permission.BoardValidator)
+  const canUploadDocument = permissions.has(Permission.CanUploadBoardDocuments)
+  const canManageBoard = permissions.has(Permission.CanReviewBoardDocuments)
 
   if (!canUploadDocument) {
     logger.warn(

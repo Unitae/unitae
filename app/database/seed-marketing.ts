@@ -727,10 +727,10 @@ async function main() {
 
   // ── Roles ─────────────────────────────────────────────────────────────
   const terrViewerRole = await prisma.permission.findUnique({
-    where: { key: Permission.TerritoriesViewer },
+    where: { key: Permission.CanViewTerritories },
   })
   const boardValidatorRole = await prisma.permission.findUnique({
-    where: { key: Permission.BoardValidator },
+    where: { key: Permission.CanReviewBoardDocuments },
   })
 
   // First elder = admin with all management roles

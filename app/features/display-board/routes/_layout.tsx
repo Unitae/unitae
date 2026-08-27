@@ -10,12 +10,12 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  const canUploadDocument = permissions.has(Permission.BoardUploader)
-  const canViewTerritories = permissions.has(Permission.TerritoriesViewer)
-  const canManageSettings = permissions.has(Permission.SettingsUserManager)
-  const canViewPublishers = permissions.has(Permission.PublisherViewer)
-  const canManageBoard = permissions.has(Permission.BoardValidator)
-  const canViewProspection = permissions.has(Permission.ProspectionViewer)
+  const canUploadDocument = permissions.has(Permission.CanUploadBoardDocuments)
+  const canViewTerritories = permissions.has(Permission.CanViewTerritories)
+  const canManageSettings = permissions.has(Permission.CanManageUsers)
+  const canViewPublishers = permissions.has(Permission.CanViewPublishers)
+  const canManageBoard = permissions.has(Permission.CanReviewBoardDocuments)
+  const canViewProspection = permissions.has(Permission.CanViewProspection)
 
   return {
     canManageSettings,

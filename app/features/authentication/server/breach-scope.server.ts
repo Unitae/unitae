@@ -7,12 +7,53 @@ import { Permission } from '~/shared/types/permission'
 
 const logger = createLogger('breach-scope')
 
-// Management-tier permissions: Admin plus every "*-manager" grant. Holding any
-// of these means the account can read/manage congregation data, so it is a
-// high-value target worth the extra breach check.
-const MANAGEMENT_PERMISSIONS: Permission[] = Object.values(Permission).filter(
-  permission => permission === Permission.Admin || permission.endsWith('-manager'),
-)
+// Management-tier permissions: holding any of these means the account can read or
+// change congregation data, so it is a high-value target worth the extra breach check.
+//
+// Listed explicitly rather than derived from the key. This used to be
+// `permission === Admin || permission.endsWith('-manager')`, which silently matched
+// nothing the moment permissions were renamed to `can-*` — a security control must not
+// depend on a naming convention holding. The set below is the successor of what that
+// test used to select, so the scope is unchanged.
+const MANAGEMENT_PERMISSIONS: Permission[] = [
+  Permission.CanDoAnything,
+  // was territories-manager / prospection-manager
+  Permission.CanManageTerritories,
+  Permission.CanManageTerritoryAttributions,
+  Permission.CanManageTerritoryCampaigns,
+  Permission.CanPlanTerritorySplits,
+  Permission.CanConfigureTerritorySettings,
+  Permission.CanRecordProspection,
+  Permission.CanManageBuildings,
+  // was publisher-manager
+  Permission.CanManagePublishers,
+  Permission.CanManagePublisherLifecycle,
+  Permission.CanManagePublisherGroups,
+  // was activity-manager
+  Permission.CanRecordActivity,
+  Permission.CanCorrectActivity,
+  // was emergency-info-manager
+  Permission.CanManageEmergencyInfo,
+  // was program-manager
+  Permission.CanManagePrograms,
+  Permission.CanAssignProgramParts,
+  Permission.CanPublishPrograms,
+  Permission.CanManageProgramTemplates,
+  // was external-speaker-manager / pioneer-goal-manager
+  Permission.CanManageExternalSpeakers,
+  Permission.CanSetPioneerGoals,
+  // was settings-user-manager / roles-manager / permissions-manager
+  Permission.CanViewUsers,
+  Permission.CanManageUsers,
+  Permission.CanManageRoles,
+  Permission.CanConfigurePermissions,
+  // split out of admin
+  Permission.CanConfigureCongregation,
+  Permission.CanExportCongregationData,
+  Permission.CanImportCongregationData,
+  Permission.CanDeleteUserAccounts,
+  Permission.CanAnonymisePeople,
+]
 
 /**
  * Whether the given account is in scope for the optional breached-password

@@ -13,11 +13,11 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const canViewTerritories = permissions.has(Permission.TerritoriesViewer)
-  const canManageTerritories = permissions.has(Permission.TerritoriesManager)
-  const canManageSettings = permissions.has(Permission.SettingsUserManager)
-  const canViewPublishers = permissions.has(Permission.PublisherViewer)
-  const canViewProspection = permissions.has(Permission.ProspectionViewer)
+  const canViewTerritories = permissions.has(Permission.CanViewTerritories)
+  const canManageTerritories = permissions.has(Permission.CanManageTerritories)
+  const canManageSettings = permissions.has(Permission.CanManageUsers)
+  const canViewPublishers = permissions.has(Permission.CanViewPublishers)
+  const canViewProspection = permissions.has(Permission.CanViewProspection)
 
   if (!canViewTerritories && !canViewProspection) {
     throw redirect('/')

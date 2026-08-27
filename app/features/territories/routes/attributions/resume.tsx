@@ -21,7 +21,7 @@ export function loader() {
 
 export function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.TerritoriesManager)
+  requirePermission(permissions, Permission.CanManageTerritoryAttributions)
 
   const { id: actorId } = context.get(currentAccountContext)
   const id = requireParamId(params.attributionId, '/territories/attributions')

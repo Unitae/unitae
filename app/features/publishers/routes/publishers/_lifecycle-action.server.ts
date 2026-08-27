@@ -33,7 +33,7 @@ interface LifecycleActionConfig<T> {
  * Shared shell for the four Member lifecycle action routes
  * (mark-as-left, mark-as-returned, make-publisher, make-student). All share:
  *
- *  1. Gate on `Permission.PublisherManager`.
+ *  1. Gate on `Permission.CanManagePublisherLifecycle`.
  *  2. Parse `:publisherId` as a `MemberId` brand.
  *  3. Self-X guard — the actor can't change their own publisher status.
  *  4. Look up the Member to compose a "{firstname lastname}" flash message.
@@ -45,7 +45,7 @@ export function runLifecycleAction<T>(config: LifecycleActionConfig<T>): Promise
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
 
-  if (!permissions.has(Permission.PublisherManager)) {
+  if (!permissions.has(Permission.CanManagePublisherLifecycle)) {
     throw redirect('/')
   }
 

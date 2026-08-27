@@ -48,8 +48,8 @@ export function shouldRevalidate({ currentUrl, nextUrl, defaultShouldRevalidate 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canViewActivities = permissions.has(Permission.ActivityViewer)
-  const canManageActivities = permissions.has(Permission.ActivityManager)
+  const canViewActivities = permissions.has(Permission.CanViewActivity)
+  const canManageActivities = permissions.has(Permission.CanRecordActivity)
 
   if (!canViewActivities) {
     logger.warn(

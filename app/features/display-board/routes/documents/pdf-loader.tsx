@@ -18,7 +18,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.BoardViewer)
+  requirePermission(permissions, Permission.CanViewBoard)
 
   const currentUser = context.get(currentAccountContext)
   logger.info(`Loading document ID: ${params.documentId}. User ID: ${currentUser.id}.`, { currentUser })

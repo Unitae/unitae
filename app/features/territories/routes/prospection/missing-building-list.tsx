@@ -24,11 +24,11 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  requirePermission(permissions, Permission.ProspectionViewer)
+  requirePermission(permissions, Permission.CanViewProspection)
 
-  const canManageProspection = permissions.has(Permission.ProspectionManager)
-  const canManageTerritories = permissions.has(Permission.TerritoriesManager)
-  const canViewProspection = permissions.has(Permission.ProspectionViewer)
+  const canManageProspection = permissions.has(Permission.CanRecordProspection)
+  const canManageTerritories = permissions.has(Permission.CanManageBuildings)
+  const canViewProspection = permissions.has(Permission.CanViewProspection)
   const { congregationId } = context.get(currentAccountContext)
 
   return withScopeFromContext(context, async db => {

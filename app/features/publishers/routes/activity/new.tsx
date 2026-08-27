@@ -33,7 +33,7 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canManagePublisher = permissions.has(Permission.PublisherManager)
+  const canManagePublisher = permissions.has(Permission.CanManagePublishers)
 
   const member = currentUser.member
   const canManageMyGroupActivity =
@@ -320,7 +320,7 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canManagePublisher = permissions.has(Permission.PublisherManager)
+  const canManagePublisher = permissions.has(Permission.CanManagePublishers)
 
   const member = currentUser.member
   const canManageMyGroupActivity =

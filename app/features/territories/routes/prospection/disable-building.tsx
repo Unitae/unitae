@@ -21,7 +21,7 @@ export function loader(_args: Route.LoaderArgs) {
 export function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  requirePermission(permissions, Permission.TerritoriesManager)
+  requirePermission(permissions, Permission.CanManageBuildings)
 
   const { congregationId } = context.get(currentAccountContext)
 

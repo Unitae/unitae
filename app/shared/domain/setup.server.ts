@@ -74,7 +74,7 @@ export async function seedBuiltInRoles(db: any, congregationId: number) {
     select: { id: true },
   })
   const boardViewer = await db.permission.findUnique({
-    where: { key: Permission.BoardViewer },
+    where: { key: Permission.CanViewBoard },
     select: { id: true },
   })
   if (publisherRole != null && boardViewer != null) {
@@ -93,7 +93,7 @@ export async function seedBuiltInRoles(db: any, congregationId: number) {
 }
 
 /**
- * The system role that carries `Permission.Admin`.
+ * The system role that carries `Permission.CanDoAnything`.
  *
  * Was `can-do-anything` while the #149 backfill minted one role per permission. That
  * shape is gone: `admin` is now a system role seeded into every congregation alongside
@@ -118,7 +118,7 @@ export const ADMIN_ROLE_KEY = 'admin'
 // biome-ignore lint/suspicious/noExplicitAny: accepts both PrismaClient and scoped transaction client
 export async function ensureAdminRole(db: any, congregationId: number): Promise<number | null> {
   const adminPermission = await db.permission.findUnique({
-    where: { key: Permission.Admin },
+    where: { key: Permission.CanDoAnything },
     select: { id: true },
   })
   if (adminPermission == null) {

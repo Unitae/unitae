@@ -6,7 +6,7 @@ import { canManageAnyProgram, filterToManageableEventIds } from '~/features/even
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import type { Permission } from '~/shared/types/permission'
+import { Permission } from '~/shared/types/permission'
 import { joinMessages } from '~/shared/utils/join-messages'
 
 import type { Route } from './+types/bulk-unrelease'
@@ -34,7 +34,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const allowedIds = await withScopeFromContext(context, async db => {
     const can = (p: Permission) => permissions.has(p)
     if (!(await canManageAnyProgram(db, can, currentUser.id, congregationId))) throw redirect('/programs')
-    return filterToManageableEventIds(db, can, ids, currentUser.id, congregationId)
+    return filterToManageableEventIds(db, can, ids, currentUser.id, congregationId, Permission.CanPublishPrograms)
   })
 
   // Phase 2: per-event scoped unrelease. See bulk-release.tsx for the

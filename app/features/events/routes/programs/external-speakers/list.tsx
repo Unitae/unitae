@@ -21,8 +21,8 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canManage = permissions.has(Permission.ExternalSpeakerManager)
-  const canView = canManage || permissions.has(Permission.ExternalSpeakerViewer)
+  const canManage = permissions.has(Permission.CanManageExternalSpeakers)
+  const canView = canManage || permissions.has(Permission.CanViewExternalSpeakers)
 
   if (!canView) {
     logger.warn(`Tried to load external speakers. User ID: ${currentUser.id}. Does NOT have rights.`)

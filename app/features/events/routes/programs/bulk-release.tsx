@@ -11,7 +11,7 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import type { Permission } from '~/shared/types/permission'
+import { Permission } from '~/shared/types/permission'
 import { joinMessages } from '~/shared/utils/join-messages'
 
 import type { Route } from './+types/bulk-release'
@@ -42,7 +42,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const allowedIds = await withScopeFromContext(context, async db => {
     const can = (p: Permission) => permissions.has(p)
     if (!(await canManageAnyProgram(db, can, currentUser.id, congregationId))) throw redirect('/programs')
-    return filterToManageableEventIds(db, can, ids, currentUser.id, congregationId)
+    return filterToManageableEventIds(db, can, ids, currentUser.id, congregationId, Permission.CanPublishPrograms)
   })
 
   // Phase 2: per-event scoped release. Each event opens its own withScope

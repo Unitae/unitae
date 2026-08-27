@@ -30,14 +30,14 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.Admin)
+  requirePermission(permissions, Permission.CanManageProgramTemplates)
   return {}
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  requirePermission(permissions, Permission.Admin)
+  requirePermission(permissions, Permission.CanManageProgramTemplates)
 
   const submission = parseWithZod(await request.formData(), { schema: createTemplateSchema })
   if (submission.status !== 'success') {
