@@ -9,6 +9,7 @@ import {
 } from '~/features/display-board/server/dynamic-documents.server'
 import { filterDynamicDataToEvent } from '~/features/display-board/server/event-filter.server'
 import { buildSectionVisibilityFilter } from '~/features/display-board/server/section-visibility.server'
+import { OrganigramView } from '~/features/display-board/ui/dynamic/OrganigramView'
 import { PioneersView } from '~/features/display-board/ui/dynamic/PioneersView'
 import { ProgrammeView } from '~/features/display-board/ui/dynamic/ProgrammeView'
 import { PublisherGroupsView } from '~/features/display-board/ui/dynamic/PublisherGroupsView'
@@ -161,6 +162,7 @@ export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) 
             </p>
           )}
         </div>
+        {data?.type === DynamicType.Organigram && <OrganigramView tree={data.tree} />}
         {data?.type === DynamicType.PublisherGroups && <PublisherGroupsView groups={data.groups} />}
         {data?.type === DynamicType.Pioneers && <PioneersView pioneers={data.pioneers} />}
         {data?.type === DynamicType.Programme && (

@@ -269,6 +269,9 @@ describe('deleteRole', () => {
       isBuiltIn: false,
       _count: { members: 3 },
     } as never)
+    // No organigram children: deleteRole checks before deleting so the admin gets a readable
+    // refusal rather than a raw foreign-key violation.
+    mockDb.role.findMany.mockResolvedValue([] as never)
     mockDb.role.delete.mockResolvedValue({} as never)
 
     await deleteRole(mockDb as never, 7, 10, 1)
@@ -404,5 +407,45 @@ describe('removeUserFromRole', () => {
         metadata: { added: [], removed: ['speaker'] },
       }),
     )
+  })
+})
+
+const NAMES_THE_CHILD = /Secrétaire/
+
+describe('deleteRole — organigram children', () => {
+  it('refuses to delete a role that other roles report to, naming them', async () => {
+    // The self-referencing FK is ON DELETE RESTRICT, so without this check the admin gets a raw
+    // constraint violation and no idea which roles are in the way.
+    mockDb.role.findFirst.mockResolvedValue({
+      id: 1,
+      key: 'comite',
+      name: 'Comité de service',
+      isBuiltIn: false,
+      _count: { members: 0 },
+    })
+    mockDb.role.findMany.mockResolvedValue([
+      { id: 2, key: 'secretaire', name: 'Secrétaire' },
+      { id: 3, key: 'comptes', name: 'Comptes' },
+    ])
+
+    await expect(deleteRole(mockDb as never, 1, 10, 99)).rejects.toBeInstanceOf(ConflictError)
+    await expect(deleteRole(mockDb as never, 1, 10, 99)).rejects.toThrow(NAMES_THE_CHILD)
+    expect(mockDb.role.delete).not.toHaveBeenCalled()
+  })
+
+  it('deletes a role with no children', async () => {
+    mockDb.role.findFirst.mockResolvedValue({
+      id: 4,
+      key: 'sono',
+      name: 'Sono',
+      isBuiltIn: false,
+      _count: { members: 2 },
+    })
+    mockDb.role.findMany.mockResolvedValue([])
+    mockDb.role.delete.mockResolvedValue({})
+
+    await deleteRole(mockDb as never, 4, 10, 99)
+
+    expect(mockDb.role.delete).toHaveBeenCalled()
   })
 })

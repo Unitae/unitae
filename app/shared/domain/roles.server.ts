@@ -303,6 +303,20 @@ export async function deleteRole(
     throw new ForbiddenError('Built-in roles cannot be deleted')
   }
 
+  // The organigram's self-referencing FK is ON DELETE RESTRICT, so deleting a role that others
+  // report to fails in Postgres with a constraint name and nothing an admin can act on. Check
+  // first and say which roles are in the way — the delete page renders this as its impact text.
+  const children = await db.role.findMany({
+    where: { parentRoleId: id, congregationId },
+    select: { key: true, name: true },
+  })
+  if (children.length > 0) {
+    const names = children.map(child => child.name ?? child.key).join(', ')
+    throw new ConflictError(
+      `Ce rôle a des rôles rattachés dans l’organigramme : ${names}. Déplacez-les avant de le supprimer.`,
+    )
+  }
+
   await db.role.delete({ where: { id_congregationId: { id, congregationId } } })
 
   audit({

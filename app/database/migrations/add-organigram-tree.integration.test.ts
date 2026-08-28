@@ -87,12 +87,39 @@ describe('20260828000000_add_organigram_tree', () => {
     expect(columns[0]?.is_nullable).toBe('NO')
     expect(columns[0]?.column_default).toContain('member')
 
-    // The rows that predate the column must read as plain members — a leader is only ever set
-    // deliberately, and a restore that silently promoted everyone would be a security change.
-    const notMember = await testDb.$queryRaw<{ count: bigint }[]>`
-      SELECT count(*) AS count FROM "UserRoleAssignment" WHERE "kind" <> 'member'
-    `
-    expect(Number(notMember[0]?.count ?? 0)).toBe(0)
+    // What actually matters: a row written without a kind — every grant made outside the
+    // organigram, and every row that predates the column — reads as a plain member. Counting
+    // non-member rows across the table was the wrong test; once the feature is in use, leaders
+    // and deputies exist by design.
+    let captured: string | undefined
+    try {
+      await testDb.$transaction(async tx => {
+        const stamp = `kinddef-${process.pid}-${globalThis.performance.now().toString().replace('.', '')}`
+        const congregation = await tx.congregation.create({
+          data: { name: stamp, slug: stamp, active: true },
+        })
+        const role = await tx.role.create({
+          data: { key: `${stamp}-role`, isBuiltIn: false, congregationId: congregation.id },
+        })
+        const account = await tx.userAccount.create({
+          data: { email: `${stamp}@test.com`, password: 'x', congregationId: congregation.id },
+        })
+        // Deliberately no `kind` — this is every non-organigram writer of this table.
+        await tx.$executeRaw`
+          INSERT INTO "UserRoleAssignment" ("userId", "roleId", "congregationId")
+          VALUES (${account.id}, ${role.id}, ${congregation.id})
+        `
+        const [row] = await tx.$queryRaw<{ kind: string }[]>`
+          SELECT "kind" FROM "UserRoleAssignment" WHERE "userId" = ${account.id} AND "roleId" = ${role.id}
+        `
+        captured = row?.kind
+        throw new Rollback()
+      })
+    } catch (error) {
+      if (!(error instanceof Rollback)) throw error
+    }
+
+    expect(captured).toBe('member')
   })
 
   it('refuses a parent in another congregation, at the database', async () => {

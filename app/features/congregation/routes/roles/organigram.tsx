@@ -4,6 +4,7 @@ import { data, Link, redirect, useSearchParams } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { organigramIntentSchema } from '~/features/congregation/schemas/organigram.schema'
 import { OrganigramNodePanel, type PanelNode } from '~/features/congregation/ui/OrganigramNodePanel'
+import { OrganigramRootAdd } from '~/features/congregation/ui/OrganigramRootAdd'
 import { OrganigramTree } from '~/features/congregation/ui/OrganigramTree'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -73,21 +74,21 @@ export function loader({ request, context }: Route.LoaderArgs) {
     const { congregationId } = context.get(currentAccountContext)
     const tree = await getOrganigram(db, congregationId)
 
-    const empty = {
-      tree,
-      canManageRoles,
-      selectedId: null,
-      panel: null,
-      adoptable: [] as { id: number; name: string }[],
-      moveTargets: [] as { id: number; label: string }[],
-      people: [] as { id: number; firstname: string | null; lastname: string | null }[],
-      peopleWithoutAccount: [] as number[],
+    if (!canManageRoles) {
+      return {
+        tree,
+        canManageRoles,
+        selectedId: null,
+        panel: null,
+        adoptable: [] as { id: number; name: string }[],
+        moveTargets: [] as { id: number; label: string }[],
+        people: [] as { id: number; firstname: string | null; lastname: string | null }[],
+        peopleWithoutAccount: [] as number[],
+      }
     }
-    if (!canManageRoles || selectedId == null) return empty
 
     const flat = flatten(tree)
-    const selected = flat.find(entry => entry.id === selectedId)
-    if (!selected) return empty
+    const selected = selectedId == null ? undefined : flat.find(entry => entry.id === selectedId)
 
     const [roles, members] = await Promise.all([
       db.role.findMany({
@@ -105,26 +106,28 @@ export function loader({ request, context }: Route.LoaderArgs) {
     // A role may not become its own descendant's child, so those are not offered at all —
     // refusing the choice after a page reload teaches the same rule far less kindly.
     const links = flat.map(entry => ({ id: entry.id, parentRoleId: entry.parentId }))
-    const forbidden = new Set([selectedId, ...descendantIds(links, selectedId)])
+    const forbidden = selected ? new Set([selected.id, ...descendantIds(links, selected.id)]) : new Set<number>()
 
-    const panel: PanelNode = {
-      id: selected.node.id,
-      name: selected.node.name,
-      isRoster: selected.node.isRoster,
-      parentId: selected.parentId,
-      parentName: selected.parentName,
-      childCount: selected.node.children.length,
-      holders: selected.node.holders.map(holder => ({
-        memberId: holder.memberId,
-        name: `${holder.firstname ?? ''} ${holder.lastname?.toLocaleUpperCase() ?? ''}`.trim() || '—',
-        kind: holder.kind,
-      })),
-    }
+    const panel: PanelNode | null = selected
+      ? {
+          id: selected.node.id,
+          name: selected.node.name,
+          isRoster: selected.node.isRoster,
+          parentId: selected.parentId,
+          parentName: selected.parentName,
+          childCount: selected.node.children.length,
+          holders: selected.node.holders.map(holder => ({
+            memberId: holder.memberId,
+            name: `${holder.firstname ?? ''} ${holder.lastname?.toLocaleUpperCase() ?? ''}`.trim() || '—',
+            kind: holder.kind,
+          })),
+        }
+      : null
 
     return {
       tree,
       canManageRoles,
-      selectedId,
+      selectedId: selected ? selected.id : null,
       panel,
       adoptable: roles
         .filter(role => canShowInOrganigram(role.key))
@@ -190,7 +193,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function OrganigramPage({ loaderData }: Route.ComponentProps) {
-  const { tree, selectedId, panel, people, peopleWithoutAccount, adoptable, moveTargets } = loaderData
+  const { tree, canManageRoles, selectedId, panel, people, peopleWithoutAccount, adoptable, moveTargets } = loaderData
   const [searchParams] = useSearchParams()
 
   const closeParams = new URLSearchParams(searchParams)
@@ -210,11 +213,18 @@ export default function OrganigramPage({ loaderData }: Route.ComponentProps) {
             <EmptyState
               icon={Network}
               title="Aucun rôle dans l’organigramme"
-              description="Ajoutez des rôles existants pour représenter l’organisation des services."
+              description="Ajoutez un rôle existant pour commencer à représenter l’organisation des services."
+              action={canManageRoles ? <OrganigramRootAdd adoptable={adoptable} emphasis="primary" /> : undefined}
             />
           ) : (
             <div className="rounded-xl border p-4">
               <OrganigramTree tree={tree} selectedId={selectedId} />
+            </div>
+          )}
+
+          {canManageRoles && tree.length > 0 && (
+            <div className="pt-4">
+              <OrganigramRootAdd adoptable={adoptable} />
             </div>
           )}
         </div>
@@ -240,7 +250,7 @@ export default function OrganigramPage({ loaderData }: Route.ComponentProps) {
               'max-h-[60vh] overflow-y-auto border-t bg-background p-4 shadow-lg',
               // Switches at md, the same breakpoint where the tab bar disappears, so there is no
               // band where the panel is docked but there is nothing to dock above.
-              'md:sticky md:inset-x-auto md:bottom-auto md:top-6 md:z-auto md:h-fit md:max-h-none',
+              'md:sticky md:inset-x-auto md:top-6 md:bottom-auto md:z-auto md:h-fit md:max-h-none',
               'md:w-[22rem] md:shrink-0 md:rounded-xl md:border md:shadow-none',
             ].join(' ')}
           >
