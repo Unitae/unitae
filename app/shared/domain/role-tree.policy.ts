@@ -28,10 +28,10 @@ export const MAX_ORGANIGRAM_DEPTH = 10
 export const ORGANIGRAM_ROSTER_KEYS: readonly string[] = ['elder', 'assistant-servant']
 
 export const ROLE_TREE_ERRORS = {
-  cycle: 'Ce rôle ne peut pas être placé sous lui-même ou sous l’un de ses sous-rôles.',
+  cycle: 'Un service ne peut pas être rattaché à lui-même ni à l’un des services qui en dépendent.',
   tooDeep: `L’organigramme ne peut pas dépasser ${MAX_ORGANIGRAM_DEPTH} niveaux.`,
   rosterIsRoot: 'Les anciens et les assistants ministériels sont toujours au sommet de l’organigramme.',
-  notAnOrganigramRole: 'Ce rôle ne peut pas figurer dans l’organigramme.',
+  notAnOrganigramRole: 'Cet élément ne peut pas figurer dans l’organigramme.',
 } as const
 
 export interface SetParentInput {

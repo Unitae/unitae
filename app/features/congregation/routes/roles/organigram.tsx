@@ -212,8 +212,8 @@ export default function OrganigramPage({ loaderData }: Route.ComponentProps) {
           {tree.length === 0 ? (
             <EmptyState
               icon={Network}
-              title="Aucun rôle dans l’organigramme"
-              description="Ajoutez un rôle existant pour commencer à représenter l’organisation des services."
+              title="Aucun service dans l’organigramme"
+              description="Ajoutez un service pour commencer à représenter l’organisation de la congrégation."
               action={canManageRoles ? <OrganigramRootAdd adoptable={adoptable} emphasis="primary" /> : undefined}
             />
           ) : (
@@ -240,7 +240,7 @@ export default function OrganigramPage({ loaderData }: Route.ComponentProps) {
         */}
         {panel && (
           <aside
-            aria-label={`Rôle : ${panel.name}`}
+            aria-label={`Service : ${panel.name}`}
             className={[
               // Docked above the bottom tab bar, not over it: the bar is fixed at z-40 with a
               // 56px body, and `FormActions` already establishes this offset for form pages.

@@ -69,7 +69,7 @@ function HolderRow({ holder, nodeId, nodeName }: { holder: PanelHolder; nodeId: 
         <select
           name="kind"
           defaultValue={holder.kind}
-          aria-label={`Rôle de ${holder.name} dans ${nodeName}`}
+          aria-label={`Fonction de ${holder.name} dans ${nodeName}`}
           className="h-11 rounded-md border border-input bg-transparent px-2 text-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
           onChange={event => event.currentTarget.form?.requestSubmit()}
         >
@@ -106,7 +106,8 @@ export function OrganigramNodePanel({ node, people, peopleWithoutAccount, adopta
         <h2 className="font-semibold text-base">{node.name}</h2>
         <p className="text-muted-foreground text-xs">
           {node.parentName ? `Sous ${node.parentName}` : 'Au sommet de l’organigramme'}
-          {node.childCount > 0 && ` · ${node.childCount} rôle${node.childCount > 1 ? 's' : ''} en dessous`}
+          {node.childCount > 0 &&
+            ` · ${node.childCount} service${node.childCount > 1 ? 's' : ''} rattaché${node.childCount > 1 ? 's' : ''}`}
         </p>
         {node.isRoster && (
           <Badge variant="outline" className="w-fit">
@@ -211,13 +212,13 @@ export function OrganigramNodePanel({ node, people, peopleWithoutAccount, adopta
 
       {adoptable.length > 0 && (
         <section className="flex flex-col gap-2">
-          <SectionTitle>Ajouter un rôle ici</SectionTitle>
+          <SectionTitle>Rattacher un service</SectionTitle>
           {/* Node-scoped on purpose: the parent is the node you already selected, so there is no
               second choice to make and no way to pick the wrong one. */}
           <Form method="post" className="flex flex-col gap-2">
             <input type="hidden" name="intent" value="add" />
             <input type="hidden" name="parentRoleId" value={node.id} />
-            <select name="roleId" aria-label="Rôle à ajouter" className={selectClass} required>
+            <select name="roleId" aria-label="Service à rattacher" className={selectClass} required>
               {adoptable.map(role => (
                 <option key={role.id} value={role.id}>
                   {role.name}
@@ -225,7 +226,7 @@ export function OrganigramNodePanel({ node, people, peopleWithoutAccount, adopta
               ))}
             </select>
             <Button type="submit" variant="outline">
-              Ajouter sous « {node.name} »
+              Rattacher à « {node.name} »
             </Button>
           </Form>
         </section>
@@ -239,8 +240,8 @@ export function OrganigramNodePanel({ node, people, peopleWithoutAccount, adopta
             Sortir de l’organigramme
           </Button>
           <p className="pt-1 text-muted-foreground text-xs">
-            Le rôle et ses membres sont conservés.
-            {node.childCount > 0 && ' Les rôles en dessous remontent d’un niveau.'}
+            Le service et ses membres sont conservés.
+            {node.childCount > 0 && ' Les services rattachés remontent d’un niveau.'}
           </p>
         </Form>
       )}

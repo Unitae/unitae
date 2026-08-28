@@ -2,7 +2,10 @@ import { Form } from 'react-router'
 import { Button } from '~/shared/ui/button'
 import { Label } from '~/shared/ui/label'
 
-// Adding a role at the top of the chart.
+// Adding a service at the top of the chart.
+//
+// The page never says "rôle": that is the storage entity, not the congregation's word for what
+// it is looking at. The sheet this replaces is called "Organisation des services".
 //
 // The node panel can only add *under* the node you selected, which leaves a congregation with an
 // empty chart unable to start one: nothing to select, so no panel, so no way in. This is the way
@@ -16,7 +19,7 @@ interface Props {
 
 export function OrganigramRootAdd({ adoptable, emphasis = 'quiet' }: Props) {
   if (adoptable.length === 0) {
-    return <p className="text-muted-foreground text-sm">Tous les rôles sont déjà dans l’organigramme.</p>
+    return <p className="text-muted-foreground text-sm">Tous les services sont déjà dans l’organigramme.</p>
   }
 
   return (
@@ -26,7 +29,7 @@ export function OrganigramRootAdd({ adoptable, emphasis = 'quiet' }: Props) {
 
       <div className="flex-1 space-y-1">
         <Label htmlFor="root-add-role" className="text-muted-foreground text-xs">
-          Ajouter un rôle au sommet de l’organigramme
+          Ajouter un service au sommet de l’organigramme
         </Label>
         <select
           id="root-add-role"

@@ -313,7 +313,7 @@ export async function deleteRole(
   if (children.length > 0) {
     const names = children.map(child => child.name ?? child.key).join(', ')
     throw new ConflictError(
-      `Ce rôle a des rôles rattachés dans l’organigramme : ${names}. Déplacez-les avant de le supprimer.`,
+      `Des services de l’organigramme lui sont rattachés : ${names}. Déplacez-les avant de supprimer ce rôle.`,
     )
   }
 

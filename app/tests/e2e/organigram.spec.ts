@@ -26,7 +26,7 @@ test.describe('organigram', () => {
   })
 
   test('an empty chart still offers a way to start one', async ({ page }) => {
-    const isEmpty = await page.getByText('Aucun rôle dans l’organigramme').isVisible()
+    const isEmpty = await page.getByText('Aucun service dans l’organigramme').isVisible()
     test.skip(!isEmpty, 'this congregation already has a chart')
 
     // Without this the congregation is stuck: no node means no panel, and the panel is the only
