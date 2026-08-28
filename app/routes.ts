@@ -116,6 +116,7 @@ export default [
     ]),
     ...prefix('congregation/roles', [
       index('features/congregation/routes/roles/role-list.tsx'),
+      route('organigram', 'features/congregation/routes/roles/organigram.tsx'),
       route('new', 'features/congregation/routes/roles/new-role.tsx'),
       ...prefix(':roleId', [
         route('edit', 'features/congregation/routes/roles/edit-role.tsx'),

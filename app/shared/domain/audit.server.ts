@@ -27,6 +27,9 @@ export const AuditAction = {
   RoleCreated: 'role.created',
   RoleUpdated: 'role.updated',
   RoleDeleted: 'role.deleted',
+  // Organigram: a role joining/leaving the chart, moving, or being reordered. Seating a person
+  // is a role assignment and stays under UserRoleAssignmentChanged.
+  OrganigramChanged: 'organigram.changed',
   RolePermissionChanged: 'role.permission.changed',
   // Written once per congregation by 20260826000000_drop_direct_user_permissions,
   // not by any service. Declared here so the action string has a code-side home
