@@ -5,7 +5,6 @@ const TEST_EMAIL = process.env.E2E_USER_EMAIL ?? 'admin@unitae.test'
 const TEST_PASSWORD = process.env.E2E_USER_PASSWORD ?? 'Test1234!'
 
 const UNSEAT_BUTTON = /^Retirer /
-const ANY_TEXT = /\S/
 const NODE_IN_URL = /node=\d+/
 
 // These run against whatever the environment was seeded with, so each one skips rather than
@@ -35,7 +34,10 @@ test.describe('organigram', () => {
   })
 
   test('selecting a node opens its panel, and the selection survives a reload', async ({ page }) => {
-    const firstNode = page.getByRole('link').filter({ hasText: ANY_TEXT })
+    // Scoped to the chart's own rows, which link to ?node=<id>. `getByRole('link')` matches
+    // every link on the page — the sidebar's «Accueil» comes first in the DOM, so `.first()`
+    // navigated to the home page and the assertion failed for a reason unrelated to the chart.
+    const firstNode = page.locator('a[href*="node="]')
     test.skip((await firstNode.count()) === 0, 'no chart to select from')
 
     await firstNode.first().click()

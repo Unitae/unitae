@@ -1,7 +1,7 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { Trash2 } from 'lucide-react'
-import { data, Form, redirect } from 'react-router'
+import { data, Form, redirect, useSubmit } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { editRoleSchema } from '~/features/congregation/schemas/role.schema'
 import * as m from '~/i18n/paraglide/messages'
@@ -55,6 +55,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 }
 
 export default function EditRolePage({ loaderData, actionData }: Route.ComponentProps) {
+  const submit = useSubmit()
   const { role } = loaderData
   const { blocker, markDirty } = useUnsavedChanges()
   useFocusError(actionData)
@@ -137,14 +138,20 @@ export default function EditRolePage({ loaderData, actionData }: Route.Component
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-                <Form method="post" action={`/congregation/roles/${role.id}/delete`}>
-                  <AlertDialogAction
-                    type="submit"
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    {m.congregation_role_delete_confirm()}
-                  </AlertDialogAction>
-                </Form>
+                {/*
+                  Submitted programmatically, NOT by wrapping this button in a <Form>.
+
+                  AlertDialogAction closes the dialog on click, which unmounts the dialog's
+                  content — and with it a form living inside it — before the browser gets to the
+                  button's default submit. The request was never sent: the dialog just closed and
+                  the role stayed. Nothing surfaced, because nothing failed.
+                */}
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={() => submit(null, { method: 'post', action: `/congregation/roles/${role.id}/delete` })}
+                >
+                  {m.congregation_role_delete_confirm()}
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
