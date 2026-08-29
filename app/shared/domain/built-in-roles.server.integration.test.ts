@@ -2,7 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { PublisherType } from '~/shared/types/publisher-type'
-import { BUILT_IN_ROLE_KEYS, SYSTEM_ROLE_KEYS } from './built-in-roles.server'
+import { APPOINTED_ROLE_KEYS, BUILT_IN_ROLE_KEYS, SYSTEM_ROLE_KEYS } from './built-in-roles.server'
 
 vi.mock('~/shared/domain/audit.server', () => ({
   audit: vi.fn(),
@@ -100,9 +100,10 @@ afterAll(async () => {
 })
 
 describe('seedBuiltInRoles', () => {
-  // Both kinds of undeletable role, not just the identity ones: `admin` is seeded here
-  // too, and a congregation provisioned without it cannot be administered.
-  const SEEDED_KEYS = [...BUILT_IN_ROLE_KEYS, ...SYSTEM_ROLE_KEYS]
+  // Every kind of undeletable role, not just the identity ones: `admin` is seeded here too,
+  // and a congregation provisioned without it cannot be administered — as are the service
+  // committee and its three posts, which exist in the same shape in every congregation.
+  const SEEDED_KEYS = [...BUILT_IN_ROLE_KEYS, ...SYSTEM_ROLE_KEYS, ...APPOINTED_ROLE_KEYS]
 
   it('creates exactly the configured identity and system roles per congregation', async () => {
     const roles = await testDb.role.findMany({

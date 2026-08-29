@@ -195,7 +195,9 @@ export function OrganigramNodePanel({
             />
           </label>
 
-          <Button type="submit" variant="outline">
+          {/* The label carries the node's name, and «Coordinateur du collège des anciens» is
+              wider than a 22rem column — so the button wraps rather than clipping it. */}
+          <Button type="submit" variant="outline" className="h-auto min-h-11 whitespace-normal py-2 text-center">
             Rattacher à « {node.name} »
           </Button>
         </Form>

@@ -1,16 +1,21 @@
 import { parseWithZod } from '@conform-to/zod'
-import { Network, X } from 'lucide-react'
+import { Network } from 'lucide-react'
 import { data, Link, redirect, useSearchParams } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { organigramIntentSchema } from '~/features/congregation/schemas/organigram.schema'
-import { OrganigramNodePanel, type PanelNode } from '~/features/congregation/ui/OrganigramNodePanel'
+import type { PanelNode } from '~/features/congregation/ui/OrganigramNodePanel'
+import { OrganigramPanelAside } from '~/features/congregation/ui/OrganigramPanelAside'
 import { OrganigramRootAdd } from '~/features/congregation/ui/OrganigramRootAdd'
 import { OrganigramTree } from '~/features/congregation/ui/OrganigramTree'
 
 import { RolesTabs } from '~/features/congregation/ui/RolesTabs'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { isAppointedRoleKey, isServiceCommitteePostKey } from '~/shared/domain/built-in-roles.server'
+import {
+  isAppointedRoleKey,
+  isServiceCommitteePostKey,
+  SERVICE_COMMITTEE_KEY,
+} from '~/shared/domain/built-in-roles.server'
 import { descendantIds, getOrganigram } from '~/shared/domain/organigram.queries'
 import {
   addRoleToOrganigram,
@@ -63,6 +68,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
         people: [] as { id: number; firstname: string | null; lastname: string | null }[],
         peopleWithoutAccount: [] as number[],
         nonElderIds: [] as number[],
+        committeePending: false,
       }
     }
 
@@ -121,12 +127,17 @@ export function loader({ request, context }: Route.LoaderArgs) {
       selectedId: selected ? selected.id : null,
       panel,
       adoptable: roles
-        .filter(role => canShowInOrganigram(role.key))
+        // Appointed posts pass `canShowInOrganigram` but hold a fixed place, so the service
+        // refuses to attach them anywhere — offering them here would be offering an error.
+        .filter(role => canShowInOrganigram(role.key) && !isAppointedRoleKey(role.key))
         .map(role => ({ id: role.id, name: getRoleDisplayName(role) })),
       moveTargets: flat.filter(entry => !forbidden.has(entry.id)).map(({ id, label }) => ({ id, label })),
       people: members.map(member => ({ id: member.id, firstname: member.firstname, lastname: member.lastname })),
       peopleWithoutAccount: members.filter(member => member.account == null).map(member => member.id),
       nonElderIds: members.filter(member => member.roleAssignments.length === 0).map(member => member.id),
+      // The built-in committee exists but has never been placed: this congregation built its
+      // chart before the committee was structure, and is offered the mapping instead.
+      committeePending: roles.some(role => role.key === SERVICE_COMMITTEE_KEY),
     }
   })
 }
@@ -202,8 +213,18 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function OrganigramPage({ loaderData }: Route.ComponentProps) {
-  const { tree, canManageRoles, selectedId, panel, people, peopleWithoutAccount, nonElderIds, adoptable, moveTargets } =
-    loaderData
+  const {
+    tree,
+    canManageRoles,
+    selectedId,
+    panel,
+    people,
+    peopleWithoutAccount,
+    nonElderIds,
+    adoptable,
+    moveTargets,
+    committeePending,
+  } = loaderData
   const [searchParams] = useSearchParams()
 
   const closeParams = new URLSearchParams(searchParams)
@@ -218,6 +239,20 @@ export default function OrganigramPage({ loaderData }: Route.ComponentProps) {
       />
 
       <RolesTabs />
+
+      {canManageRoles && committeePending && (
+        // Shown until the committee is adopted. Deliberately not a silent auto-migration: the
+        // mapping moves people and permissions, and a wrong guess must be visible first.
+        <div className="flex flex-col gap-2 rounded-xl border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm">
+            Votre organigramme n’utilise pas encore le comité de service standard — coordinateur, secrétaire et
+            surveillant du service.
+          </p>
+          <Button asChild className="shrink-0">
+            <Link to="/congregation/roles/organigram/adopt">Reprendre le comité</Link>
+          </Button>
+        </div>
+      )}
 
       <div className="flex gap-6">
         <div className="min-w-0 flex-1">
@@ -241,49 +276,16 @@ export default function OrganigramPage({ loaderData }: Route.ComponentProps) {
           )}
         </div>
 
-        {/*
-          One panel, positioned by CSS rather than by two components.
-
-          Below lg it is pinned to the bottom of the viewport like a sheet; at lg and above it
-          becomes a sticky column beside the chart. Deliberately not a Radix Sheet: that renders
-          an overlay at every width, which covered the desktop layout, and mounting both variants
-          duplicated every heading in the DOM. Plain CSS also means no client state to lose across
-          a form post, and the chart stays readable behind the panel on a phone.
-        */}
         {panel && (
-          <aside
-            aria-label={`Service : ${panel.name}`}
-            className={[
-              // Docked above the bottom tab bar, not over it: the bar is fixed at z-40 with a
-              // 56px body, and `FormActions` already establishes this offset for form pages.
-              // 60vh rather than 80 so a few rows of the chart stay visible behind the panel —
-              // otherwise you lose sight of the node you just selected.
-              'fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20',
-              'max-h-[60vh] overflow-y-auto border-t bg-background p-4 shadow-lg',
-              // Switches at md, the same breakpoint where the tab bar disappears, so there is no
-              // band where the panel is docked but there is nothing to dock above.
-              'md:sticky md:inset-x-auto md:top-6 md:bottom-auto md:z-auto md:h-fit md:max-h-none',
-              'md:w-[22rem] md:shrink-0 md:rounded-xl md:border md:shadow-none',
-            ].join(' ')}
-          >
-            <div className="mx-auto flex max-w-2xl flex-col gap-4 md:max-w-none">
-              <div className="flex justify-end md:hidden">
-                <Button asChild variant="ghost" size="icon" aria-label="Fermer">
-                  <Link to={{ search: closeParams.toString() }} preventScrollReset>
-                    <X className="size-4" />
-                  </Link>
-                </Button>
-              </div>
-              <OrganigramNodePanel
-                node={panel}
-                people={people}
-                peopleWithoutAccount={peopleWithoutAccount}
-                nonElderIds={nonElderIds}
-                adoptable={adoptable}
-                moveTargets={moveTargets}
-              />
-            </div>
-          </aside>
+          <OrganigramPanelAside
+            panel={panel}
+            people={people}
+            peopleWithoutAccount={peopleWithoutAccount}
+            nonElderIds={nonElderIds}
+            adoptable={adoptable}
+            moveTargets={moveTargets}
+            closeSearch={closeParams.toString()}
+          />
         )}
       </div>
 
