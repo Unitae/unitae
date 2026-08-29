@@ -11,9 +11,9 @@ import {
   type LucideIcon,
   Map as MapIcon,
   MapPin,
+  Network,
   PieChart,
   Settings,
-  Shield,
   User,
   UserRoundCog,
   Users,
@@ -147,7 +147,15 @@ export function buildManagementSections(permissions: NavigationPermissions): Nav
     assemblyItems.push({ id: 'activity', label: m.sidebar_activity, icon: BarChart3, to: '/publishers/activity' })
   }
   if (permissions.canViewRoles) {
-    assemblyItems.push({ id: 'roles', label: m.sidebar_assembly_roles, icon: Shield, to: '/congregation/roles' })
+    // The chart, not the role list: it is the view of congregation structure people recognise,
+    // and the eligibility matrix is a tab on it. `match` keeps the item lit on both tabs.
+    assemblyItems.push({
+      id: 'organigram',
+      label: m.sidebar_assembly_organigram,
+      icon: Network,
+      to: '/congregation/roles/organigram',
+      match: { prefix: '/congregation/roles' },
+    })
   }
   if (permissions.canViewPrograms) {
     assemblyItems.push({

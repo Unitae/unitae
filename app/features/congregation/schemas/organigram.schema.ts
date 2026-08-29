@@ -16,6 +16,13 @@ export type SeatKindValue = z.infer<typeof seatKindSchema>
 
 export const organigramIntentSchema = z.discriminatedUnion('intent', [
   z.object({ intent: z.literal('add'), roleId, parentRoleId: optionalParent }),
+  // Create a service and attach it in one submit. `createRole` slugifies the name into a key and
+  // refuses a collision, so the action surfaces that rather than the form guessing at uniqueness.
+  z.object({
+    intent: z.literal('create'),
+    name: z.string().trim().min(1).max(100),
+    parentRoleId: optionalParent,
+  }),
   z.object({ intent: z.literal('remove'), roleId }),
   z.object({ intent: z.literal('set-parent'), roleId, parentRoleId: optionalParent }),
   z.object({ intent: z.literal('move'), roleId, direction: z.enum(['up', 'down']) }),

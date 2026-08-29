@@ -1,6 +1,7 @@
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { ancestorChainIds, type SeatKind, subtreeHeight, type TreeLink } from '~/shared/domain/organigram.queries'
 import { assertCanSetParent, assertCanShowInOrganigram } from '~/shared/domain/role-tree.policy'
+import { createRole } from '~/shared/domain/roles.server'
 import { NotFoundError, ValidationError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -87,6 +88,32 @@ export async function addRoleToOrganigram(
     entityId: roleId,
     metadata: { change: 'added', parentRoleId },
   })
+}
+
+/**
+ * Create a service and put it in the chart, in one step.
+ *
+ * Without this, a congregation whose « Comité de service » does not exist yet has to leave for the
+ * roles page, create it, come back and find it in the picker — roughly fifteen times while
+ * building a first chart.
+ *
+ * `createRole` slugifies the name into the key and throws `ConflictError` on a collision. That is
+ * deliberately not caught here: two services sharing one identity would split the same team's
+ * membership in half, and the caller can say « ce service existe déjà » far better than a silent
+ * rename would.
+ *
+ * The new service carries no permissions. Those are set in settings, never from the chart.
+ */
+export async function createServiceInOrganigram(
+  db: TransactionClient,
+  name: string,
+  parentRoleId: number | null,
+  congregationId: number,
+  actorId: number,
+): Promise<number> {
+  const created = await createRole(db, congregationId, actorId, { name, description: null, permissionKeys: [] })
+  await addRoleToOrganigram(db, created.id, parentRoleId, congregationId, actorId)
+  return created.id
 }
 
 /**

@@ -11,6 +11,7 @@ import {
   Home,
   LayoutGrid,
   MapPin,
+  Network,
   PieChart,
   Search,
   Shield,
@@ -92,11 +93,12 @@ function getNavigationItems(permissions: AppSidebarPermissions): CommandItem[] {
     items.push({ id: 'users', label: m.sidebar_users(), icon: Users, to: '/settings/users' })
   }
   if (permissions.canViewRoles) {
+    // Mirrors the sidebar: the chart is the entry point, the matrix is a tab on it.
     items.push({
-      id: 'congregation-roles',
-      label: m.sidebar_assembly_roles(),
-      icon: Shield,
-      to: '/congregation/roles',
+      id: 'congregation-organigram',
+      label: m.sidebar_assembly_organigram(),
+      icon: Network,
+      to: '/congregation/roles/organigram',
     })
   }
   if (permissions.canManagePermissions) {

@@ -6,11 +6,14 @@ import { organigramIntentSchema } from '~/features/congregation/schemas/organigr
 import { OrganigramNodePanel, type PanelNode } from '~/features/congregation/ui/OrganigramNodePanel'
 import { OrganigramRootAdd } from '~/features/congregation/ui/OrganigramRootAdd'
 import { OrganigramTree } from '~/features/congregation/ui/OrganigramTree'
+import { type FlatEntry, flattenTree } from '~/features/congregation/ui/organigram-layout'
+import { RolesTabs } from '~/features/congregation/ui/RolesTabs'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { descendantIds, getOrganigram, type OrganigramNode } from '~/shared/domain/organigram.queries'
 import {
   addRoleToOrganigram,
+  createServiceInOrganigram,
   moveOrganigramNode,
   removeRoleFromOrganigram,
   seatMember,
@@ -18,7 +21,7 @@ import {
   unseatMember,
 } from '~/shared/domain/organigram.server'
 import { canShowInOrganigram } from '~/shared/domain/role-tree.policy'
-import { AppError } from '~/shared/errors/app-error.server'
+import { AppError, ConflictError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
 import { getRoleDisplayName } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
@@ -29,33 +32,6 @@ import type { Route } from './+types/organigram'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: 'Organigramme — Unitae' }]
-}
-
-interface FlatEntry {
-  id: number
-  label: string
-  node: OrganigramNode
-  parentId: number | null
-  parentName: string | null
-}
-
-/**
- * Flatten to indented labels for the "move under" select.
- *
- * Non-breaking spaces, not ordinary ones: HTML collapses runs of whitespace inside <option>, so
- * plain indentation renders as a flat list however carefully it is built.
- */
-function flatten(tree: OrganigramNode[], depth = 0, parent: OrganigramNode | null = null): FlatEntry[] {
-  return tree.flatMap(node => [
-    {
-      id: node.id,
-      label: `${'  '.repeat(depth)}${node.name}`,
-      node,
-      parentId: parent?.id ?? null,
-      parentName: parent?.name ?? null,
-    },
-    ...flatten(node.children, depth + 1, node),
-  ])
 }
 
 export function loader({ request, context }: Route.LoaderArgs) {
@@ -87,7 +63,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
       }
     }
 
-    const flat = flatten(tree)
+    const flat = flattenTree(tree)
     const selected = selectedId == null ? undefined : flat.find(entry => entry.id === selectedId)
 
     const [roles, members] = await Promise.all([
@@ -149,12 +125,27 @@ export async function action({ request, context }: Route.ActionArgs) {
   const session = await getSession(request.headers.get('Cookie'))
   const { congregationId, id: actorId } = context.get(currentAccountContext)
   const value = submission.value
+  // A newly created service is what the admin wants to look at next, so it becomes the selection.
+  let created: number | null = null
 
   await withScopeFromContext(context, async db => {
     try {
       switch (value.intent) {
         case 'add':
           await addRoleToOrganigram(db, value.roleId, value.parentRoleId, congregationId, actorId)
+          break
+        case 'create':
+          try {
+            created = await createServiceInOrganigram(db, value.name, value.parentRoleId, congregationId, actorId)
+          } catch (error) {
+            // `createRole` reports the key collision in English, for developers. The admin needs
+            // to know a service by that name already exists and that attaching it is what they
+            // almost certainly meant.
+            if (!(error instanceof ConflictError)) throw error
+            throw new ConflictError(
+              `Un service nommé « ${value.name} » existe déjà. Choisissez-le dans la liste pour le rattacher.`,
+            )
+          }
           break
         case 'remove':
           await removeRoleFromOrganigram(db, value.roleId, congregationId, actorId)
@@ -185,9 +176,11 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
   })
 
-  // Return with the same node still selected so the panel the user is working in stays open.
-  // Adding puts the *new* node in focus; removing leaves nothing to return to.
-  const stayOn = value.intent === 'remove' ? null : value.intent === 'add' ? value.roleId : value.roleId
+  // Return with a node selected so the panel the admin is working in stays open. Removing leaves
+  // nothing to return to; creating focuses the service that was just made.
+  let stayOn: number | null = null
+  if (value.intent === 'create') stayOn = created
+  else if (value.intent !== 'remove') stayOn = value.roleId
   const target = stayOn == null ? '/congregation/roles/organigram' : `/congregation/roles/organigram?node=${stayOn}`
   return redirect(target, { headers: { 'Set-Cookie': await commitSession(session) } })
 }
@@ -206,6 +199,8 @@ export default function OrganigramPage({ loaderData }: Route.ComponentProps) {
         subtitle="L’organisation des services de la congrégation"
         breadcrumbs={[{ label: m.sidebar_assembly() }, { label: 'Organigramme' }]}
       />
+
+      <RolesTabs />
 
       <div className="flex gap-6">
         <div className="min-w-0 flex-1">

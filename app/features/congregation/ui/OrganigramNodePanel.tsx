@@ -210,27 +210,57 @@ export function OrganigramNodePanel({ node, people, peopleWithoutAccount, adopta
         </section>
       )}
 
-      {adoptable.length > 0 && (
-        <section className="flex flex-col gap-2">
-          <SectionTitle>Rattacher un service</SectionTitle>
-          {/* Node-scoped on purpose: the parent is the node you already selected, so there is no
-              second choice to make and no way to pick the wrong one. */}
-          <Form method="post" className="flex flex-col gap-2">
-            <input type="hidden" name="intent" value="add" />
-            <input type="hidden" name="parentRoleId" value={node.id} />
-            <select name="roleId" aria-label="Service à rattacher" className={selectClass} required>
-              {adoptable.map(role => (
-                <option key={role.id} value={role.id}>
-                  {role.name}
-                </option>
-              ))}
-            </select>
-            <Button type="submit" variant="outline">
-              Rattacher à « {node.name} »
-            </Button>
-          </Form>
-        </section>
-      )}
+      <section className="flex flex-col gap-2">
+        <SectionTitle>Rattacher un service</SectionTitle>
+
+        {/* Pick an existing service or name a new one, in one submit. Splitting these into two
+            controls — or worse, sending the admin to the roles page to create one — is the
+            two-page bounce that makes building a first chart tedious. */}
+        <Form method="post" className="flex flex-col gap-3">
+          <input type="hidden" name="parentRoleId" value={node.id} />
+
+          {adoptable.length > 0 && (
+            <label className="flex flex-col gap-1">
+              <span className="flex items-center gap-2 text-sm">
+                <input type="radio" name="intent" value="add" defaultChecked className="size-4" />
+                Un service existant
+              </span>
+              <select name="roleId" aria-label="Service à rattacher" className={selectClass}>
+                {adoptable.map(role => (
+                  <option key={role.id} value={role.id}>
+                    {role.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          <label className="flex flex-col gap-1">
+            <span className="flex items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="intent"
+                value="create"
+                defaultChecked={adoptable.length === 0}
+                className="size-4"
+              />
+              Un nouveau service
+            </span>
+            <input
+              type="text"
+              name="name"
+              maxLength={100}
+              placeholder="Nom du service"
+              aria-label="Nom du nouveau service"
+              className={selectClass}
+            />
+          </label>
+
+          <Button type="submit" variant="outline">
+            Rattacher à « {node.name} »
+          </Button>
+        </Form>
+      </section>
 
       {!node.isRoster && (
         <Form method="post" className="border-t pt-4">

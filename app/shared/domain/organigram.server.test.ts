@@ -9,6 +9,7 @@ const mockDb = {
   role: {
     findMany: vi.fn(),
     findFirst: vi.fn(),
+    create: vi.fn(),
     update: vi.fn(),
     updateMany: vi.fn(),
   },
@@ -24,13 +25,16 @@ const mockDb = {
 
 const {
   addRoleToOrganigram,
+  createServiceInOrganigram,
   moveOrganigramNode,
   removeRoleFromOrganigram,
   seatMember,
   setOrganigramParent,
   unseatMember,
 } = await import('./organigram.server')
-const { ForbiddenError, NotFoundError, ValidationError } = await import('~/shared/errors/app-error.server')
+const { ConflictError, ForbiddenError, NotFoundError, ValidationError } = await import(
+  '~/shared/errors/app-error.server'
+)
 
 const CONGREGATION = 10
 const ACTOR = 99
@@ -196,5 +200,37 @@ describe('unseatMember', () => {
     expect(mockDb.userRoleAssignment.deleteMany).toHaveBeenCalledWith({
       where: { userId: 800, roleId: 3, congregationId: CONGREGATION },
     })
+  })
+})
+
+describe('createServiceInOrganigram', () => {
+  it('creates the service and attaches it under the given parent', async () => {
+    mockDb.role.findFirst
+      .mockResolvedValueOnce(null) // createRole: no key collision
+      .mockResolvedValue({ id: 42, key: 'comite-de-service' }) // requireRole, after creation
+    mockDb.role.create.mockResolvedValue({ id: 42, key: 'comite-de-service' })
+    mockDb.role.findMany.mockResolvedValue(treeRows())
+    mockDb.role.update.mockResolvedValue({ id: 42 })
+
+    const created = await createServiceInOrganigram(mockDb as never, 'Comité de service', 1, CONGREGATION, ACTOR)
+
+    expect(created).toBe(42)
+    expect(mockDb.role.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ name: 'Comité de service', isBuiltIn: false }) }),
+    )
+    expect(mockDb.role.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ showInOrganigram: true, parentRoleId: 1 }) }),
+    )
+  })
+
+  it('refuses a name that already exists, so two services never share one identity', async () => {
+    // `createRole` slugifies the name into the key and throws on collision. Surfacing that is what
+    // stops a congregation ending up with two « Sono » that split the same team in half.
+    mockDb.role.findFirst.mockResolvedValue({ id: 9 })
+
+    await expect(createServiceInOrganigram(mockDb as never, 'Sono', null, CONGREGATION, ACTOR)).rejects.toBeInstanceOf(
+      ConflictError,
+    )
+    expect(mockDb.role.update).not.toHaveBeenCalled()
   })
 })

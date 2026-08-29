@@ -11,7 +11,9 @@ export const editRoleSchema = z.object({
 })
 
 export const toggleSchema = z.object({
-  userId: z.coerce.number().int().positive(),
+  // A Member id. Assignments are account-bound, so the action resolves the member's account —
+  // calling this `userId` is what let a Member id reach `userRoleAssignment.create` unnoticed.
+  memberId: z.coerce.number().int().positive(),
   roleId: z.coerce.number().int().positive(),
   intent: z.enum(['add', 'remove']),
 })

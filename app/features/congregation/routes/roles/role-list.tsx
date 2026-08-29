@@ -3,6 +3,7 @@ import { Pencil, Plus, Shield } from 'lucide-react'
 import { data, Form, Link, redirect, useSubmit } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { type BuiltInFilterKey, toggleSchema } from '~/features/congregation/schemas/role.schema'
+import { RolesTabs } from '~/features/congregation/ui/RolesTabs'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { addUserToRole, removeUserFromRole } from '~/shared/domain/roles.server'
@@ -118,6 +119,9 @@ export function loader({ request, context }: Route.LoaderArgs) {
         firstname: member.firstname,
         lastname: member.lastname,
         assignedRoleIds: member.account?.roleAssignments.map(a => a.roleId) ?? [],
+        // Eligibility is granted to the account, so a member without a login cannot hold one.
+        // Show them greyed out with the reason rather than letting the toggle fail.
+        hasAccount: member.account != null,
       })),
       canManageRoles,
       currentSearch: search ?? '',
@@ -136,10 +140,22 @@ export async function action({ request, context }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  const { userId, roleId, intent } = submission.value
+  const { memberId, roleId, intent } = submission.value
   const session = await getSession(request.headers.get('Cookie'))
 
   await withScopeFromContext(context, async db => {
+    // Eligibility groups are granted to the account, but the matrix is a grid of people. Resolve
+    // the account here rather than asking the form to know it.
+    const member = await db.member.findFirst({
+      where: { id: memberId, congregationId: currentUser.congregationId },
+      select: { account: { select: { id: true } } },
+    })
+    if (!member?.account) {
+      session.flash('error', m.congregation_roles_no_account_error())
+      return
+    }
+    const userId = member.account.id
+
     try {
       if (intent === 'add') {
         await addUserToRole(db, userId, roleId, currentUser.congregationId, currentUser.id)
@@ -165,6 +181,7 @@ interface Member {
   firstname: string | null
   lastname: string | null
   assignedRoleIds: number[]
+  hasAccount: boolean
 }
 
 function MatrixRow({
@@ -187,18 +204,19 @@ function MatrixRow({
         return (
           <TableCell key={role.id} className="text-center">
             <Form method="post">
-              <input type="hidden" name="userId" value={member.id} />
+              <input type="hidden" name="memberId" value={member.id} />
               <input type="hidden" name="roleId" value={role.id} />
               <input type="hidden" name="intent" value={isAssigned ? 'remove' : 'add'} />
               <button
                 type="submit"
-                disabled={!canManageRoles}
-                aria-label={isAssigned ? 'Remove' : 'Add'}
+                disabled={!canManageRoles || !member.hasAccount}
+                title={member.hasAccount ? undefined : 'Pas de compte'}
+                aria-label={`${isAssigned ? 'Retirer de' : 'Ajouter à'} ${getRoleDisplayName(role)}`}
                 className={`inline-flex size-5 items-center justify-center rounded-md border transition ${
                   isAssigned
                     ? 'border-primary bg-primary text-primary-foreground'
                     : 'border-border bg-background hover:bg-accent'
-                } ${!canManageRoles ? 'cursor-not-allowed opacity-50' : ''}`}
+                } ${!canManageRoles || !member.hasAccount ? 'cursor-not-allowed opacity-50' : ''}`}
               >
                 {isAssigned ? <span className="text-xs">✓</span> : null}
               </button>
@@ -231,6 +249,8 @@ export default function RoleMatrixPage({ loaderData }: Route.ComponentProps) {
           ) : null
         }
       />
+
+      <RolesTabs />
 
       <Form
         method="get"
