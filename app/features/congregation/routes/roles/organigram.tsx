@@ -6,11 +6,11 @@ import { organigramIntentSchema } from '~/features/congregation/schemas/organigr
 import { OrganigramNodePanel, type PanelNode } from '~/features/congregation/ui/OrganigramNodePanel'
 import { OrganigramRootAdd } from '~/features/congregation/ui/OrganigramRootAdd'
 import { OrganigramTree } from '~/features/congregation/ui/OrganigramTree'
-import { type FlatEntry, flattenTree } from '~/features/congregation/ui/organigram-layout'
+import { flattenTree } from '~/features/congregation/ui/organigram-layout'
 import { RolesTabs } from '~/features/congregation/ui/RolesTabs'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { descendantIds, getOrganigram, type OrganigramNode } from '~/shared/domain/organigram.queries'
+import { descendantIds, getOrganigram } from '~/shared/domain/organigram.queries'
 import {
   addRoleToOrganigram,
   createServiceInOrganigram,
