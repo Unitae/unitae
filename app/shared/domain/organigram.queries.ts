@@ -1,3 +1,4 @@
+import { ORGANIGRAM_ROSTER_KEYS } from '~/shared/domain/role-tree.policy'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { getRoleDisplayName } from '~/shared/types/role'
 
@@ -34,6 +35,7 @@ export interface OrganigramHolder {
 
 export interface OrganigramNode {
   id: number
+  key: string
   name: string
   note: string | null
   /** True for the two auto-synced identity rosters, which read as a list rather than a seat. */
@@ -86,9 +88,13 @@ export function buildOrganigramTree(roles: OrganigramRole[], holders: Organigram
     visited.add(role.id)
     return {
       id: role.id,
+      key: role.key,
       name: getRoleDisplayName(role),
       note: role.organigramNote,
-      isRoster: role.isBuiltIn,
+      // The two auto-synced identity rosters, by key — NOT `isBuiltIn`. The committee posts
+      // are built-in too, and reading the flag here made them render as reconciled lists whose
+      // membership cannot be edited, which is the one thing they exist to let you do.
+      isRoster: ORGANIGRAM_ROSTER_KEYS.includes(role.key),
       holders: (holdersByRole.get(role.id) ?? []).sort(compareHolders),
       children: (byParent.get(role.id) ?? [])
         .filter(child => !visited.has(child.id))

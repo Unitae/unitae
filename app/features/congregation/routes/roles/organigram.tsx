@@ -10,6 +10,7 @@ import { OrganigramTree } from '~/features/congregation/ui/OrganigramTree'
 import { RolesTabs } from '~/features/congregation/ui/RolesTabs'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { isAppointedRoleKey, isServiceCommitteePostKey } from '~/shared/domain/built-in-roles.server'
 import { descendantIds, getOrganigram } from '~/shared/domain/organigram.queries'
 import {
   addRoleToOrganigram,
@@ -61,6 +62,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
         moveTargets: [] as { id: number; label: string }[],
         people: [] as { id: number; firstname: string | null; lastname: string | null }[],
         peopleWithoutAccount: [] as number[],
+        nonElderIds: [] as number[],
       }
     }
 
@@ -75,7 +77,15 @@ export function loader({ request, context }: Route.LoaderArgs) {
       }),
       db.member.findMany({
         where: { congregationId, leftAt: null, anonymizedAt: null },
-        select: { id: true, firstname: true, lastname: true, account: { select: { id: true } } },
+        select: {
+          id: true,
+          firstname: true,
+          lastname: true,
+          account: { select: { id: true } },
+          // Only elders may hold a committee post, so the picker has to know who they are
+          // rather than letting the admin choose and then be refused.
+          roleAssignments: { where: { role: { key: 'elder' } }, select: { roleId: true } },
+        },
         orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
       }),
     ])
@@ -90,6 +100,10 @@ export function loader({ request, context }: Route.LoaderArgs) {
           id: selected.node.id,
           name: selected.node.name,
           isRoster: selected.node.isRoster,
+          // The committee and its posts are placed by provisioning and never move, so the panel
+          // must not offer to move or remove them.
+          isFixed: isAppointedRoleKey(selected.node.key),
+          isPost: isServiceCommitteePostKey(selected.node.key),
           parentId: selected.parentId,
           parentName: selected.parentName,
           childCount: selected.node.children.length,
@@ -112,6 +126,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
       moveTargets: flat.filter(entry => !forbidden.has(entry.id)).map(({ id, label }) => ({ id, label })),
       people: members.map(member => ({ id: member.id, firstname: member.firstname, lastname: member.lastname })),
       peopleWithoutAccount: members.filter(member => member.account == null).map(member => member.id),
+      nonElderIds: members.filter(member => member.roleAssignments.length === 0).map(member => member.id),
     }
   })
 }
@@ -187,7 +202,8 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function OrganigramPage({ loaderData }: Route.ComponentProps) {
-  const { tree, canManageRoles, selectedId, panel, people, peopleWithoutAccount, adoptable, moveTargets } = loaderData
+  const { tree, canManageRoles, selectedId, panel, people, peopleWithoutAccount, nonElderIds, adoptable, moveTargets } =
+    loaderData
   const [searchParams] = useSearchParams()
 
   const closeParams = new URLSearchParams(searchParams)
@@ -262,6 +278,7 @@ export default function OrganigramPage({ loaderData }: Route.ComponentProps) {
                 node={panel}
                 people={people}
                 peopleWithoutAccount={peopleWithoutAccount}
+                nonElderIds={nonElderIds}
                 adoptable={adoptable}
                 moveTargets={moveTargets}
               />

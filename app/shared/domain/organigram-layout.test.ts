@@ -8,7 +8,7 @@ import { toLayout } from './organigram-layout'
 
 let id = 1
 function node(over: Partial<OrganigramNode> = {}): OrganigramNode {
-  return { id: id++, name: `N${id}`, note: null, isRoster: false, holders: [], children: [], ...over }
+  return { id: id++, key: `n${id}`, name: `N${id}`, note: null, isRoster: false, holders: [], children: [], ...over }
 }
 
 describe('toLayout', () => {

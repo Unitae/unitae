@@ -118,6 +118,20 @@ describe('buildOrganigramTree — node content', () => {
     expect(tree[0]?.isRoster).toBe(true)
   })
 
+  it.each([
+    'service-committee',
+    'coordinator',
+    'secretary',
+    'service-overseer',
+  ])('does not treat the built-in %s as an auto-synced roster', key => {
+    // `isRoster` once read `isBuiltIn`, which was true of the rosters alone until the committee
+    // posts arrived. Getting this wrong renders a post as a reconciled list whose membership
+    // cannot be edited — the one thing those posts exist to let you do.
+    const tree = buildOrganigramTree([role({ id: 1, key, name: null, isBuiltIn: true })], [])
+
+    expect(tree[0]?.isRoster).toBe(false)
+  })
+
   it('carries the free-text note through', () => {
     const tree = buildOrganigramTree([role({ id: 1, organigramNote: 'Équipe des préposés' })], [])
     expect(tree[0]?.note).toBe('Équipe des préposés')

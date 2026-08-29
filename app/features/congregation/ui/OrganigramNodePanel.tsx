@@ -1,9 +1,10 @@
-import { ArrowDown, ArrowUp, X } from 'lucide-react'
+import { ArrowDown, ArrowUp } from 'lucide-react'
 import { Form } from 'react-router'
+import { PeopleSection } from '~/features/congregation/ui/OrganigramPeopleSection'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { Label } from '~/shared/ui/label'
-import { PersonDropdown, type PersonOption } from '~/shared/ui/PersonDropdown'
+import type { PersonOption } from '~/shared/ui/PersonDropdown'
 import { cn } from '~/shared/utils/utils'
 
 // Everything that mutates the organigram lives here, scoped to one node.
@@ -12,20 +13,20 @@ import { cn } from '~/shared/utils/utils'
 // re-identifying it in a dropdown that repeats the tree you were already looking at. This is
 // rendered in a sidebar on desktop and a bottom sheet on mobile — same content, same markup.
 
-export interface PanelHolder {
-  memberId: number
-  name: string
-  kind: string
-}
+export type { PanelHolder } from '~/features/congregation/ui/OrganigramPeopleSection'
 
 export interface PanelNode {
   id: number
   name: string
   isRoster: boolean
+  /** The committee and its posts: placed by provisioning, never moved or removed. */
+  isFixed: boolean
+  /** One of the three committee posts: one elder holds it, and seating replaces the incumbent. */
+  isPost: boolean
   parentId: number | null
   parentName: string | null
   childCount: number
-  holders: PanelHolder[]
+  holders: import('~/features/congregation/ui/OrganigramPeopleSection').PanelHolder[]
 }
 
 interface Props {
@@ -33,24 +34,16 @@ interface Props {
   /** Everyone in the congregation; those without a login are disabled with a reason. */
   people: PersonOption[]
   peopleWithoutAccount: number[]
+  /** Members who are not elders — refused on the three committee posts. */
+  nonElderIds: number[]
   /** Roles that exist but are not yet in the chart. */
   adoptable: { id: number; name: string }[]
   /** Every node in the chart except this one and its descendants — legal parents. */
   moveTargets: { id: number; label: string }[]
 }
 
-const KIND_LABEL: Record<string, string> = {
-  leader: 'Responsable',
-  deputy: 'Adjoint',
-  member: 'Membre',
-}
-
 const selectClass =
   'h-11 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50'
-
-/** Secondary controls sit inside a row that already has a primary button; keep them recessive. */
-const quietSelectClass =
-  'h-11 flex-1 rounded-md border border-input bg-muted/40 px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50'
 
 /**
  * Sentence case, not uppercase tracking.
@@ -69,62 +62,14 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h3 className="font-medium text-sm">{children}</h3>
 }
 
-function HolderRow({ holder, nodeId, nodeName }: { holder: PanelHolder; nodeId: number; nodeName: string }) {
-  return (
-    <li className="-mx-2 flex items-center gap-1 rounded-md px-2 py-0.5 hover:bg-muted/50">
-      <span className="min-w-0 flex-1 truncate text-sm">{holder.name}</span>
-
-      {/* Changing someone from membre to responsable is one control, not unseat-then-reseat:
-          the service upserts on (member, role), so re-submitting with a new kind is the change. */}
-      <Form method="post">
-        <input type="hidden" name="intent" value="seat" />
-        <input type="hidden" name="roleId" value={nodeId} />
-        <input type="hidden" name="memberId" value={holder.memberId} />
-        <select
-          name="kind"
-          defaultValue={holder.kind}
-          aria-label={`Fonction de ${holder.name} dans ${nodeName}`}
-          // The seat is set once and then read; a full-strength box on every row turned a list
-          // of six people into six form controls. Borderless until you go near it — still 36px
-          // tall, well past the 24px WCAG 2.2 target minimum.
-          className="h-9 rounded-md border border-transparent bg-transparent px-1 text-muted-foreground text-xs outline-none hover:border-input hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-          onChange={event => event.currentTarget.form?.requestSubmit()}
-        >
-          {Object.entries(KIND_LABEL).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-        {/* Without JavaScript the select cannot self-submit, so keep a real button available. */}
-        <noscript>
-          <Button type="submit" variant="outline" size="sm">
-            OK
-          </Button>
-        </noscript>
-      </Form>
-
-      <Form method="post">
-        <input type="hidden" name="intent" value="unseat" />
-        <input type="hidden" name="roleId" value={nodeId} />
-        <input type="hidden" name="memberId" value={holder.memberId} />
-        {/* Muted rather than hidden-until-hover: on a touch screen there is no hover, and a
-            control that only exists on a pointer device is a control half the users never get. */}
-        <Button
-          type="submit"
-          variant="ghost"
-          size="icon"
-          className="text-muted-foreground hover:text-destructive"
-          aria-label={`Retirer ${holder.name} de ${nodeName}`}
-        >
-          <X className="size-4" />
-        </Button>
-      </Form>
-    </li>
-  )
-}
-
-export function OrganigramNodePanel({ node, people, peopleWithoutAccount, adoptable, moveTargets }: Props) {
+export function OrganigramNodePanel({
+  node,
+  people,
+  peopleWithoutAccount,
+  nonElderIds,
+  adoptable,
+  moveTargets,
+}: Props) {
   return (
     <div className="flex flex-col">
       <header className="flex flex-col gap-1">
@@ -141,55 +86,24 @@ export function OrganigramNodePanel({ node, people, peopleWithoutAccount, adopta
         )}
       </header>
 
-      <Section first>
-        <SectionTitle>Personnes</SectionTitle>
+      <PeopleSection
+        node={node}
+        people={people}
+        peopleWithoutAccount={peopleWithoutAccount}
+        nonElderIds={nonElderIds}
+      />
 
-        {node.holders.length === 0 ? (
-          <p className="text-muted-foreground text-sm">Personne pour l’instant.</p>
-        ) : (
-          <ul className="flex flex-col">
-            {node.holders.map(holder => (
-              <HolderRow key={holder.memberId} holder={holder} nodeId={node.id} nodeName={node.name} />
-            ))}
-          </ul>
-        )}
+      {!node.isRoster && node.isFixed && (
+        <Section>
+          <SectionTitle>Place dans l’organigramme</SectionTitle>
+          <p className="text-muted-foreground text-sm">
+            Le comité de service et ses trois fonctions ont une place fixe : le comité sous le collège des anciens, les
+            trois fonctions dans le comité.
+          </p>
+        </Section>
+      )}
 
-        {/* The rosters are reconciled from Member flags — seating into them by hand would be
-            overwritten on the next sync, so the form is simply not offered. */}
-        {!node.isRoster && (
-          <Form method="post" className="flex flex-col gap-2 pt-2">
-            <input type="hidden" name="intent" value="seat" />
-            <input type="hidden" name="roleId" value={node.id} />
-
-            <Label htmlFor={`add-person-${node.id}`} className="text-muted-foreground text-xs">
-              Ajouter une personne
-            </Label>
-            {/* Searchable rather than a plain select: ~80 candidates is far past the point where
-                scrolling a list is workable, and members with no login must show why. */}
-            <PersonDropdown
-              id={`add-person-${node.id}`}
-              name="memberId"
-              people={people}
-              allowNone={false}
-              placeholder="Chercher une personne…"
-              disabledIds={peopleWithoutAccount}
-              disabledReason={() => 'Pas de compte'}
-            />
-            <div className="flex gap-2">
-              <select name="kind" defaultValue="member" aria-label="En tant que" className={quietSelectClass}>
-                {Object.entries(KIND_LABEL).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-              <Button type="submit">Ajouter</Button>
-            </div>
-          </Form>
-        )}
-      </Section>
-
-      {!node.isRoster && (
+      {!node.isRoster && !node.isFixed && (
         <Section>
           <SectionTitle>Place dans l’organigramme</SectionTitle>
 
@@ -287,7 +201,7 @@ export function OrganigramNodePanel({ node, people, peopleWithoutAccount, adopta
         </Form>
       </Section>
 
-      {!node.isRoster && (
+      {!node.isRoster && !node.isFixed && (
         <Form method="post" className="border-t pt-5">
           <input type="hidden" name="intent" value="remove" />
           <input type="hidden" name="roleId" value={node.id} />

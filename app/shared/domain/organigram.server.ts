@@ -1,4 +1,5 @@
 import { AuditAction, audit } from '~/shared/domain/audit.server'
+import { isServiceCommitteePostKey } from '~/shared/domain/built-in-roles.server'
 import { ancestorChainIds, type SeatKind, subtreeHeight, type TreeLink } from '~/shared/domain/organigram.queries'
 import {
   assertCanLeaveOrganigram,
@@ -18,6 +19,7 @@ const ORDER_STEP = 5
 
 export const ORGANIGRAM_ERRORS = {
   memberHasNoAccount: 'Cette personne n’a pas de compte : elle ne peut pas encore être placée dans l’organigramme.',
+  postRequiresElder: 'Le comité de service est composé de trois anciens : cette personne n’est pas ancien.',
 } as const
 
 async function requireRole(db: TransactionClient, roleId: number, congregationId: number) {
@@ -264,16 +266,37 @@ export async function seatMember(
   const role = await requireRole(db, roleId, congregationId)
   const userId = await requireSeatableAccount(db, memberId, congregationId)
 
+  // The three committee posts are single-person and elder-only. Both rules are checked before
+  // any write, so a refusal never leaves the post vacant.
+  const isPost = isServiceCommitteePostKey(role.key)
+  if (isPost) {
+    const isElder = await db.memberRoleAssignment.findFirst({
+      where: { memberId, congregationId, role: { key: 'elder' } },
+      select: { memberId: true },
+    })
+    if (!isElder) throw new ValidationError('memberId', ORGANIGRAM_ERRORS.postRequiresElder)
+  }
+
+  // A post has no membre/adjoint distinction to make — one person holds it.
+  const seatKind = isPost ? 'leader' : kind
+
   const existing = await db.userRoleAssignment.findFirst({
     where: { userId, roleId, congregationId },
     select: { userId: true, kind: true },
   })
 
   if (existing) {
-    if (existing.kind === kind) return
-    await db.userRoleAssignment.update({ where: { userId_roleId: { userId, roleId } }, data: { kind } })
+    if (existing.kind === seatKind) return
+    await db.userRoleAssignment.update({ where: { userId_roleId: { userId, roleId } }, data: { kind: seatKind } })
   } else {
-    await db.userRoleAssignment.create({ data: { userId, roleId, congregationId, kind } })
+    await db.userRoleAssignment.create({ data: { userId, roleId, congregationId, kind: seatKind } })
+  }
+
+  // Seating a new coordinator *is* the handover: the outgoing holder leaves the post, and with
+  // it the permissions the post carries. That is the behaviour the whole feature was built for,
+  // so it happens here rather than asking the admin to remember to unseat first.
+  if (isPost) {
+    await db.userRoleAssignment.deleteMany({ where: { roleId, congregationId, NOT: { userId } } })
   }
 
   audit({
