@@ -4,6 +4,7 @@ import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { Label } from '~/shared/ui/label'
 import { PersonDropdown, type PersonOption } from '~/shared/ui/PersonDropdown'
+import { cn } from '~/shared/utils/utils'
 
 // Everything that mutates the organigram lives here, scoped to one node.
 //
@@ -51,13 +52,26 @@ const selectClass =
 const quietSelectClass =
   'h-11 flex-1 rounded-md border border-input bg-muted/40 px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50'
 
+/**
+ * Sentence case, not uppercase tracking.
+ *
+ * Four shouty labels down a 22rem column read as four warnings competing with the node's own
+ * name, which is the only thing in the panel that should carry weight. A rule above each section
+ * separates them better than capitals do, and costs no emphasis.
+ */
+function Section({ children, first = false }: { children: React.ReactNode; first?: boolean }) {
+  // Every section carries its own top spacing rather than the column carrying a gap, so the rule
+  // sits at a consistent distance from the section above and below it.
+  return <section className={cn('flex flex-col gap-2 pt-5', !first && 'border-t')}>{children}</section>
+}
+
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h3 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">{children}</h3>
+  return <h3 className="font-medium text-sm">{children}</h3>
 }
 
 function HolderRow({ holder, nodeId, nodeName }: { holder: PanelHolder; nodeId: number; nodeName: string }) {
   return (
-    <li className="flex items-center gap-2 border-b py-1 last:border-b-0">
+    <li className="-mx-2 flex items-center gap-1 rounded-md px-2 py-0.5 hover:bg-muted/50">
       <span className="min-w-0 flex-1 truncate text-sm">{holder.name}</span>
 
       {/* Changing someone from membre to responsable is one control, not unseat-then-reseat:
@@ -70,7 +84,10 @@ function HolderRow({ holder, nodeId, nodeName }: { holder: PanelHolder; nodeId: 
           name="kind"
           defaultValue={holder.kind}
           aria-label={`Fonction de ${holder.name} dans ${nodeName}`}
-          className="h-11 rounded-md border border-input bg-transparent px-2 text-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          // The seat is set once and then read; a full-strength box on every row turned a list
+          // of six people into six form controls. Borderless until you go near it — still 36px
+          // tall, well past the 24px WCAG 2.2 target minimum.
+          className="h-9 rounded-md border border-transparent bg-transparent px-1 text-muted-foreground text-xs outline-none hover:border-input hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
           onChange={event => event.currentTarget.form?.requestSubmit()}
         >
           {Object.entries(KIND_LABEL).map(([value, label]) => (
@@ -91,7 +108,15 @@ function HolderRow({ holder, nodeId, nodeName }: { holder: PanelHolder; nodeId: 
         <input type="hidden" name="intent" value="unseat" />
         <input type="hidden" name="roleId" value={nodeId} />
         <input type="hidden" name="memberId" value={holder.memberId} />
-        <Button type="submit" variant="ghost" size="icon" aria-label={`Retirer ${holder.name} de ${nodeName}`}>
+        {/* Muted rather than hidden-until-hover: on a touch screen there is no hover, and a
+            control that only exists on a pointer device is a control half the users never get. */}
+        <Button
+          type="submit"
+          variant="ghost"
+          size="icon"
+          className="text-muted-foreground hover:text-destructive"
+          aria-label={`Retirer ${holder.name} de ${nodeName}`}
+        >
           <X className="size-4" />
         </Button>
       </Form>
@@ -101,7 +126,7 @@ function HolderRow({ holder, nodeId, nodeName }: { holder: PanelHolder; nodeId: 
 
 export function OrganigramNodePanel({ node, people, peopleWithoutAccount, adoptable, moveTargets }: Props) {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col">
       <header className="flex flex-col gap-1">
         <h2 className="font-semibold text-base">{node.name}</h2>
         <p className="text-muted-foreground text-xs">
@@ -116,7 +141,7 @@ export function OrganigramNodePanel({ node, people, peopleWithoutAccount, adopta
         )}
       </header>
 
-      <section className="flex flex-col gap-2">
+      <Section first>
         <SectionTitle>Personnes</SectionTitle>
 
         {node.holders.length === 0 ? (
@@ -162,10 +187,10 @@ export function OrganigramNodePanel({ node, people, peopleWithoutAccount, adopta
             </div>
           </Form>
         )}
-      </section>
+      </Section>
 
       {!node.isRoster && (
-        <section className="flex flex-col gap-2">
+        <Section>
           <SectionTitle>Place dans l’organigramme</SectionTitle>
 
           <div className="flex gap-2">
@@ -207,10 +232,10 @@ export function OrganigramNodePanel({ node, people, peopleWithoutAccount, adopta
               Déplacer
             </Button>
           </Form>
-        </section>
+        </Section>
       )}
 
-      <section className="flex flex-col gap-2">
+      <Section>
         <SectionTitle>Rattacher un service</SectionTitle>
 
         {/* Pick an existing service or name a new one, in one submit. Splitting these into two
@@ -260,10 +285,10 @@ export function OrganigramNodePanel({ node, people, peopleWithoutAccount, adopta
             Rattacher à « {node.name} »
           </Button>
         </Form>
-      </section>
+      </Section>
 
       {!node.isRoster && (
-        <Form method="post" className="border-t pt-4">
+        <Form method="post" className="border-t pt-5">
           <input type="hidden" name="intent" value="remove" />
           <input type="hidden" name="roleId" value={node.id} />
           <Button type="submit" variant="ghost" className="w-full text-destructive hover:bg-destructive/10">
