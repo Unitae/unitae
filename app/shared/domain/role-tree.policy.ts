@@ -1,4 +1,4 @@
-import { isIdentityRoleKey, SYSTEM_ROLE_KEYS } from '~/shared/domain/built-in-roles.server'
+import { isAppointedRoleKey, isIdentityRoleKey, SYSTEM_ROLE_KEYS } from '~/shared/domain/built-in-roles.server'
 import { ForbiddenError, ValidationError } from '~/shared/errors/app-error.server'
 
 // Invariants for the organigram tree that the database cannot hold.
@@ -32,6 +32,9 @@ export const ROLE_TREE_ERRORS = {
   tooDeep: `L’organigramme ne peut pas dépasser ${MAX_ORGANIGRAM_DEPTH} niveaux.`,
   rosterIsRoot: 'Les anciens et les assistants ministériels sont toujours au sommet de l’organigramme.',
   notAnOrganigramRole: 'Cet élément ne peut pas figurer dans l’organigramme.',
+  fixedPosition:
+    'Le comité de service et ses trois fonctions occupent une place fixe dans l’organigramme : ' +
+    'le comité sous le collège des anciens, les trois fonctions dans le comité.',
 } as const
 
 export interface SetParentInput {
@@ -49,6 +52,13 @@ export interface SetParentInput {
 export function assertCanSetParent({ roleId, roleKey, parentChainIds, subtreeHeight }: SetParentInput): void {
   if (ORGANIGRAM_ROSTER_KEYS.includes(roleKey) && parentChainIds.length > 0) {
     throw new ForbiddenError(ROLE_TREE_ERRORS.rosterIsRoot)
+  }
+
+  // The committee and its posts are placed once, when the congregation is seeded, and never
+  // move: there is one committee, it answers to the body of elders, and the three posts sit
+  // inside it. Offering the move and then refusing it would teach the same rule less kindly.
+  if (isAppointedRoleKey(roleKey)) {
+    throw new ForbiddenError(ROLE_TREE_ERRORS.fixedPosition)
   }
 
   // Covers self-parenting too: the role would appear as the first entry of its own chain.
@@ -80,4 +90,15 @@ export function canShowInOrganigram(roleKey: string): boolean {
  * `canShowInOrganigram` can never offer something the service will refuse. */
 export function assertCanShowInOrganigram(roleKey: string): void {
   if (!canShowInOrganigram(roleKey)) throw new ForbiddenError(ROLE_TREE_ERRORS.notAnOrganigramRole)
+}
+
+/**
+ * Whether a node may be taken out of the chart.
+ *
+ * The rosters may: a congregation is free to leave the elder list off its sheet. The committee
+ * and its three posts may not — a chart without them is not a chart of a congregation, and the
+ * permissions attached to those posts would be left pointing at nothing.
+ */
+export function assertCanLeaveOrganigram(roleKey: string): void {
+  if (isAppointedRoleKey(roleKey)) throw new ForbiddenError(ROLE_TREE_ERRORS.fixedPosition)
 }

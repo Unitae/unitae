@@ -1,5 +1,11 @@
 import type { locales } from '~/i18n/paraglide/runtime'
-import { BUILT_IN_ROLE_KEYS, SYSTEM_ROLE_KEYS } from '~/shared/domain/built-in-roles.server'
+import {
+  APPOINTED_ROLE_KEYS,
+  BUILT_IN_ROLE_KEYS,
+  SERVICE_COMMITTEE_KEY,
+  SERVICE_COMMITTEE_POST_KEYS,
+  SYSTEM_ROLE_KEYS,
+} from '~/shared/domain/built-in-roles.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 
@@ -45,6 +51,7 @@ export async function seedCongregationDefaults(
   await seedTerritoryKinds(db, congregationId)
 
   await seedBuiltInRoles(db, congregationId)
+  await placeDefaultOrganigram(db, congregationId)
 }
 
 /**
@@ -61,7 +68,7 @@ export async function seedBuiltInRoles(db: any, congregationId: number) {
   // Identity roles (synced from Member flags) and system roles (granted by hand) are
   // both undeletable, so both carry isBuiltIn. Only the first group has predicates in
   // built-in-roles.server.ts, which is why the sync there matches on key, not the flag.
-  for (const key of [...BUILT_IN_ROLE_KEYS, ...SYSTEM_ROLE_KEYS]) {
+  for (const key of [...BUILT_IN_ROLE_KEYS, ...SYSTEM_ROLE_KEYS, ...APPOINTED_ROLE_KEYS]) {
     await db.role.upsert({
       where: { key_congregationId: { key, congregationId } },
       update: { isBuiltIn: true },
@@ -89,6 +96,54 @@ export async function seedBuiltInRoles(db: any, congregationId: number) {
         congregationId,
       },
     })
+  }
+}
+
+/** Siblings are spaced 5 apart, matching `organigram.server.ts`, so an insertion rarely renumbers. */
+const ORGANIGRAM_ORDER_STEP = 5
+
+/**
+ * Lay down the chart every congregation starts with: the two rosters as roots, the service
+ * committee under the elders, and its three posts inside the committee.
+ *
+ * Without this a new congregation opens the organigram to a blank page and has to invent the
+ * naming itself — which is how the demo ended up with two of the three posts and no secretary.
+ *
+ * Runs only when the chart is untouched. That guard is what keeps it from resurrecting a
+ * structure an admin has since rearranged, and from duplicating one an existing congregation
+ * adopted by hand — existing congregations get the roles from the migration and place them
+ * through the adoption flow instead.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: accepts both PrismaClient and scoped transaction client
+export async function placeDefaultOrganigram(db: any, congregationId: number) {
+  const alreadyArranged = await db.role.count({ where: { congregationId, showInOrganigram: true } })
+  if (alreadyArranged > 0) return
+
+  const roles = await db.role.findMany({
+    where: { congregationId, key: { in: ['elder', 'assistant-servant', ...APPOINTED_ROLE_KEYS] } },
+    select: { id: true, key: true },
+  })
+  const idFor = new Map<string, number>(roles.map((role: { id: number; key: string }) => [role.key, role.id]))
+
+  const place = (key: string, parentRoleId: number | null, order: number) => {
+    const id = idFor.get(key)
+    if (id == null) return Promise.resolve()
+    return db.role.update({
+      where: { id_congregationId: { id, congregationId } },
+      data: { showInOrganigram: true, parentRoleId, organigramOrder: order },
+    })
+  }
+
+  // Order matters only for the committee, which needs the elder roster's id as its parent.
+  await place('elder', null, ORGANIGRAM_ORDER_STEP)
+  await place('assistant-servant', null, ORGANIGRAM_ORDER_STEP * 2)
+
+  const elderId = idFor.get('elder') ?? null
+  await place(SERVICE_COMMITTEE_KEY, elderId, ORGANIGRAM_ORDER_STEP)
+
+  const committeeId = idFor.get(SERVICE_COMMITTEE_KEY) ?? null
+  for (const [index, key] of SERVICE_COMMITTEE_POST_KEYS.entries()) {
+    await place(key, committeeId, (index + 1) * ORGANIGRAM_ORDER_STEP)
   }
 }
 

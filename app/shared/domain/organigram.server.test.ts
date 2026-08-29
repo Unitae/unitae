@@ -133,6 +133,21 @@ describe('removeRoleFromOrganigram', () => {
       expect.objectContaining({ data: expect.objectContaining({ showInOrganigram: false, parentRoleId: null }) }),
     )
   })
+
+  it.each([
+    'service-committee',
+    'coordinator',
+    'secretary',
+    'service-overseer',
+  ])('refuses to take %s out of the chart', async key => {
+    mockDb.role.findFirst.mockResolvedValue({ id: 2, key, parentRoleId: 1 })
+
+    await expect(removeRoleFromOrganigram(mockDb as never, 2, CONGREGATION, ACTOR)).rejects.toThrow(ForbiddenError)
+    // The refusal must come before any write: a committee stripped of its posts and then
+    // rejected would be worse than either outcome on its own.
+    expect(mockDb.role.updateMany).not.toHaveBeenCalled()
+    expect(mockDb.role.update).not.toHaveBeenCalled()
+  })
 })
 
 describe('moveOrganigramNode', () => {

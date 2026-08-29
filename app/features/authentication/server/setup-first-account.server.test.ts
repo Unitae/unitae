@@ -5,7 +5,8 @@ const scopedDb = {
   eventTemplate: { findFirst: vi.fn(), create: vi.fn() },
   // Seeding the default templates also seeds the part presets they link to.
   partPreset: { findFirst: vi.fn(), create: vi.fn(), findMany: vi.fn() },
-  role: { upsert: vi.fn(), findUnique: vi.fn() },
+  // count + findMany: provisioning also lays down the default chart (placeDefaultOrganigram).
+  role: { upsert: vi.fn(), findUnique: vi.fn(), count: vi.fn(async () => 0), findMany: vi.fn(async () => []) },
   userRoleAssignment: { create: vi.fn() },
   // Setup also seeds the built-in territory kinds.
   territoryKind: { upsert: vi.fn() },
@@ -31,6 +32,9 @@ vi.mock('~/shared/domain/built-in-roles.server', () => ({
   syncBuiltInRoleAssignments: vi.fn(),
   BUILT_IN_ROLE_KEYS: ['male', 'female', 'publisher', 'baptized', 'anointed', 'elder', 'assistant-servant'],
   SYSTEM_ROLE_KEYS: ['admin'],
+  APPOINTED_ROLE_KEYS: ['service-committee', 'coordinator', 'secretary', 'service-overseer'],
+  SERVICE_COMMITTEE_KEY: 'service-committee',
+  SERVICE_COMMITTEE_POST_KEYS: ['coordinator', 'secretary', 'service-overseer'],
 }))
 
 const { setupFirstAccount } = await import('./setup-first-account.server')

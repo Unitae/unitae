@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { APPOINTED_ROLE_KEYS } from '~/shared/domain/built-in-roles.server'
 import {
+  assertCanLeaveOrganigram,
   assertCanSetParent,
   assertCanShowInOrganigram,
   canShowInOrganigram,
@@ -107,7 +109,48 @@ describe('assertCanSetParent — identity rosters are roots', () => {
   })
 })
 
+describe('assertCanSetParent — the service committee holds a fixed place', () => {
+  // Every congregation has one service committee of exactly three elders. Its place is not a
+  // preference: the committee answers to the body of elders and the three posts sit inside it.
+  // Nothing above is a matter of local arrangement, so the chart does not offer to change it.
+  it.each(APPOINTED_ROLE_KEYS)('rejects re-parenting %s', key => {
+    expect(() => assertCanSetParent({ roleId: 7, roleKey: key, parentChainIds: chain(9), subtreeHeight: 0 })).toThrow(
+      ForbiddenError,
+    )
+  })
+
+  it.each(APPOINTED_ROLE_KEYS)('rejects detaching %s to the top of the chart', key => {
+    expect(() => assertCanSetParent({ roleId: 7, roleKey: key, parentChainIds: [], subtreeHeight: 0 })).toThrow(
+      ForbiddenError,
+    )
+  })
+
+  it('leaves ordinary services free to move', () => {
+    expect(() =>
+      assertCanSetParent({ roleId: 7, roleKey: 'sono', parentChainIds: chain(9), subtreeHeight: 0 }),
+    ).not.toThrow()
+  })
+})
+
+describe('assertCanLeaveOrganigram', () => {
+  it.each(APPOINTED_ROLE_KEYS)('refuses to take %s out of the chart', key => {
+    expect(() => assertCanLeaveOrganigram(key)).toThrow(ForbiddenError)
+  })
+
+  it('lets an ordinary service leave', () => {
+    expect(() => assertCanLeaveOrganigram('sono')).not.toThrow()
+  })
+
+  it('lets a roster leave — a congregation may not want the elder list on its chart', () => {
+    expect(() => assertCanLeaveOrganigram('elder')).not.toThrow()
+  })
+})
+
 describe('assertCanShowInOrganigram', () => {
+  it.each(APPOINTED_ROLE_KEYS)('allows the %s post', key => {
+    expect(() => assertCanShowInOrganigram(key)).not.toThrow()
+  })
+
   it.each(['elder', 'assistant-servant'])('allows the %s roster', key => {
     expect(() => assertCanShowInOrganigram(key)).not.toThrow()
   })

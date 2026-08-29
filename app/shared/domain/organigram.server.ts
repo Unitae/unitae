@@ -1,6 +1,10 @@
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { ancestorChainIds, type SeatKind, subtreeHeight, type TreeLink } from '~/shared/domain/organigram.queries'
-import { assertCanSetParent, assertCanShowInOrganigram } from '~/shared/domain/role-tree.policy'
+import {
+  assertCanLeaveOrganigram,
+  assertCanSetParent,
+  assertCanShowInOrganigram,
+} from '~/shared/domain/role-tree.policy'
 import { createRole } from '~/shared/domain/roles.server'
 import { NotFoundError, ValidationError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -131,6 +135,9 @@ export async function removeRoleFromOrganigram(
   actorId: number,
 ): Promise<void> {
   const role = await requireRole(db, roleId, congregationId)
+  // Before any write: a committee stripped of its posts and then refused would be worse than
+  // either outcome alone.
+  assertCanLeaveOrganigram(role.key)
 
   await db.role.updateMany({
     where: { congregationId, parentRoleId: roleId },
