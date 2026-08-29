@@ -104,6 +104,56 @@ export async function proposeCommitteeAdoption(
   }
 }
 
+/**
+ * Move one hand-made role's contents onto the post that replaces it.
+ *
+ * Permissions are copied rather than moved: the old role may still gate part eligibility or be
+ * assigned outside the chart, and moving a permission off it would revoke access that has
+ * nothing to do with the organigram. The role itself survives, off the chart.
+ */
+async function carryOver(
+  db: TransactionClient,
+  sourceId: number,
+  targetId: number,
+  congregationId: number,
+): Promise<void> {
+  const permissions: { permissionId: number }[] = await db.rolePermission.findMany({
+    where: { roleId: sourceId, congregationId },
+    select: { permissionId: true },
+  })
+  if (permissions.length > 0) {
+    await db.rolePermission.createMany({
+      data: permissions.map(permission => ({
+        roleId: targetId,
+        permissionId: permission.permissionId,
+        congregationId,
+      })),
+      skipDuplicates: true,
+    })
+  }
+
+  // A post holds one person. Where the old role had several, the leader moves and the rest stay
+  // behind on it — the role still exists, so nobody loses anything they had.
+  const holders: { userId: number; kind: string }[] = await db.userRoleAssignment.findMany({
+    where: { roleId: sourceId, congregationId },
+    select: { userId: true, kind: true },
+  })
+  const incoming = holders.find(holder => holder.kind === 'leader') ?? holders[0]
+  if (incoming) {
+    await db.userRoleAssignment.create({
+      data: { userId: incoming.userId, roleId: targetId, congregationId, kind: 'leader' },
+    })
+    await db.userRoleAssignment.deleteMany({ where: { userId: incoming.userId, roleId: sourceId, congregationId } })
+  }
+
+  await db.role.updateMany({ where: { congregationId, parentRoleId: sourceId }, data: { parentRoleId: targetId } })
+
+  await db.role.update({
+    where: { id_congregationId: { id: sourceId, congregationId } },
+    data: { showInOrganigram: false, parentRoleId: null, organigramOrder: null },
+  })
+}
+
 export interface AdoptionChoice {
   postKey: string
   fromRoleId: number | null
@@ -155,44 +205,7 @@ export async function adoptServiceCommittee(
     // Mapping one built-in post onto another is meaningless and would move seats between posts.
     if (isAppointedRoleKey(source.key)) throw new ForbiddenError('Cet élément ne peut pas être repris.')
 
-    const permissions: { permissionId: number }[] = await db.rolePermission.findMany({
-      where: { roleId: source.id, congregationId },
-      select: { permissionId: true },
-    })
-    if (permissions.length > 0) {
-      await db.rolePermission.createMany({
-        data: permissions.map(permission => ({
-          roleId: target.id,
-          permissionId: permission.permissionId,
-          congregationId,
-        })),
-        skipDuplicates: true,
-      })
-    }
-
-    // A post holds one person. Where the old role had several, the leader moves and the rest
-    // stay behind on it — the role still exists, so nobody loses anything they had.
-    const holders: { userId: number; kind: string }[] = await db.userRoleAssignment.findMany({
-      where: { roleId: source.id, congregationId },
-      select: { userId: true, kind: true },
-    })
-    const incoming = holders.find(holder => holder.kind === 'leader') ?? holders[0]
-    if (incoming) {
-      await db.userRoleAssignment.create({
-        data: { userId: incoming.userId, roleId: target.id, congregationId, kind: 'leader' },
-      })
-      await db.userRoleAssignment.deleteMany({ where: { userId: incoming.userId, roleId: source.id, congregationId } })
-    }
-
-    await db.role.updateMany({
-      where: { congregationId, parentRoleId: source.id },
-      data: { parentRoleId: target.id },
-    })
-
-    await db.role.update({
-      where: { id_congregationId: { id: source.id, congregationId } },
-      data: { showInOrganigram: false, parentRoleId: null, organigramOrder: null },
-    })
+    await carryOver(db, source.id, target.id, congregationId)
   }
 
   audit({
