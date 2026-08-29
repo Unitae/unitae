@@ -5,6 +5,7 @@ import {
   SERVICE_COMMITTEE_KEY,
   SERVICE_COMMITTEE_POST_KEYS,
 } from '~/shared/domain/built-in-roles.server'
+import { syncServiceCommitteeMembers } from '~/shared/domain/service-committee.server'
 import { ForbiddenError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { getRoleDisplayName } from '~/shared/types/role'
@@ -116,6 +117,7 @@ async function carryOver(
   sourceId: number,
   targetId: number,
   congregationId: number,
+  { moveHolder }: { moveHolder: boolean },
 ): Promise<void> {
   const permissions: { permissionId: number }[] = await db.rolePermission.findMany({
     where: { roleId: sourceId, congregationId },
@@ -134,10 +136,12 @@ async function carryOver(
 
   // A post holds one person. Where the old role had several, the leader moves and the rest stay
   // behind on it — the role still exists, so nobody loses anything they had.
-  const holders: { userId: number; kind: string }[] = await db.userRoleAssignment.findMany({
-    where: { roleId: sourceId, congregationId },
-    select: { userId: true, kind: true },
-  })
+  const holders: { userId: number; kind: string }[] = moveHolder
+    ? await db.userRoleAssignment.findMany({
+        where: { roleId: sourceId, congregationId },
+        select: { userId: true, kind: true },
+      })
+    : []
   const incoming = holders.find(holder => holder.kind === 'leader') ?? holders[0]
   if (incoming) {
     await db.userRoleAssignment.create({
@@ -205,8 +209,13 @@ export async function adoptServiceCommittee(
     // Mapping one built-in post onto another is meaningless and would move seats between posts.
     if (isAppointedRoleKey(source.key)) throw new ForbiddenError('Cet élément ne peut pas être repris.')
 
-    await carryOver(db, source.id, target.id, congregationId)
+    // The committee's own membership is derived from its three posts, so moving a holder onto
+    // it would be reconciled straight back off — a change the admin would watch undo itself.
+    await carryOver(db, source.id, target.id, congregationId, { moveHolder: target.key !== SERVICE_COMMITTEE_KEY })
   }
+
+  // Whatever the mapping filled the three posts with is what the committee is made of.
+  await syncServiceCommitteeMembers(db, congregationId, actorId)
 
   audit({
     action: AuditAction.OrganigramChanged,

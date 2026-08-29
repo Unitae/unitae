@@ -34,11 +34,14 @@ function HolderRow({
   nodeId,
   nodeName,
   isPost = false,
+  readOnly = false,
 }: {
   holder: PanelHolder
   nodeId: number
   nodeName: string
   isPost?: boolean
+  /** A derived membership: showing controls that the next reconcile would undo is worse than none. */
+  readOnly?: boolean
 }) {
   return (
     <li className="-mx-2 flex items-center gap-1 rounded-md px-2 py-0.5 hover:bg-muted/50">
@@ -49,7 +52,7 @@ function HolderRow({
 
       {/* Changing someone from membre to responsable is one control, not unseat-then-reseat:
           the service upserts on (member, role), so re-submitting with a new kind is the change. */}
-      {!isPost && (
+      {!isPost && !readOnly && (
         <Form method="post">
           <input type="hidden" name="intent" value="seat" />
           <input type="hidden" name="roleId" value={nodeId} />
@@ -79,22 +82,24 @@ function HolderRow({
         </Form>
       )}
 
-      <Form method="post">
-        <input type="hidden" name="intent" value="unseat" />
-        <input type="hidden" name="roleId" value={nodeId} />
-        <input type="hidden" name="memberId" value={holder.memberId} />
-        {/* Muted rather than hidden-until-hover: on a touch screen there is no hover, and a
+      {!readOnly && (
+        <Form method="post">
+          <input type="hidden" name="intent" value="unseat" />
+          <input type="hidden" name="roleId" value={nodeId} />
+          <input type="hidden" name="memberId" value={holder.memberId} />
+          {/* Muted rather than hidden-until-hover: on a touch screen there is no hover, and a
             control that only exists on a pointer device is a control half the users never get. */}
-        <Button
-          type="submit"
-          variant="ghost"
-          size="icon"
-          className="text-muted-foreground hover:text-destructive"
-          aria-label={`Retirer ${holder.name} de ${nodeName}`}
-        >
-          <X className="size-4" />
-        </Button>
-      </Form>
+          <Button
+            type="submit"
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-destructive"
+            aria-label={`Retirer ${holder.name} de ${nodeName}`}
+          >
+            <X className="size-4" />
+          </Button>
+        </Form>
+      )}
     </li>
   )
 }
@@ -134,14 +139,23 @@ export function PeopleSection({
               nodeId={node.id}
               nodeName={node.name}
               isPost={node.isPost}
+              readOnly={node.isCommittee}
             />
           ))}
         </ul>
       )}
 
-      {/* The rosters are reconciled from Member flags — seating into them by hand would be
-            overwritten on the next sync, so the form is simply not offered. */}
-      {!node.isRoster && (
+      {node.isCommittee && (
+        <p className="text-muted-foreground text-sm">
+          Le comité est composé du coordinateur, du secrétaire et du surveillant du service. Nommez-les dans leurs
+          fonctions et ils apparaissent ici.
+        </p>
+      )}
+
+      {/* A derived list is not editable by hand: the rosters are reconciled from Member flags,
+          and the committee from whoever holds its three posts. A form whose result the next
+          reconcile would silently undo is worse than no form. */}
+      {!node.isRoster && !node.isCommittee && (
         <Form method="post" className="flex flex-col gap-2 pt-2">
           <input type="hidden" name="intent" value="seat" />
           <input type="hidden" name="roleId" value={node.id} />

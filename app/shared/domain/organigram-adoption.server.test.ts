@@ -11,6 +11,9 @@ const mockDb = {
   userRoleAssignment: { findMany: vi.fn(), create: vi.fn(), deleteMany: vi.fn() },
 }
 
+const syncServiceCommitteeMembers = vi.fn()
+vi.mock('~/shared/domain/service-committee.server', () => ({ syncServiceCommitteeMembers }))
+
 const { adoptServiceCommittee, proposeCommitteeAdoption } = await import('./organigram-adoption.server')
 const { ForbiddenError } = await import('~/shared/errors/app-error.server')
 
@@ -162,6 +165,31 @@ describe('adoptServiceCommittee', () => {
     await expect(
       adoptServiceCommittee(mockDb as never, [{ postKey: 'coordinator', fromRoleId: 4 }], CONGREGATION, ACTOR),
     ).rejects.toBeInstanceOf(ForbiddenError)
+  })
+
+  it('does not seat anyone on the committee itself', async () => {
+    // The committee's membership is derived from its three posts, so a holder moved onto it here
+    // would be reconciled straight back off — a change the admin would watch undo itself.
+    mockDb.userRoleAssignment.findMany.mockResolvedValue([{ userId: 800, roleId: 20, kind: 'leader' }])
+
+    await adoptServiceCommittee(
+      mockDb as never,
+      [{ postKey: 'service-committee', fromRoleId: 20 }],
+      CONGREGATION,
+      ACTOR,
+    )
+
+    expect(mockDb.userRoleAssignment.create).not.toHaveBeenCalled()
+    // Its permissions and its children still come across.
+    expect(mockDb.role.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ parentRoleId: 20 }) }),
+    )
+  })
+
+  it('reconciles the committee once the posts are filled', async () => {
+    await adoptServiceCommittee(mockDb as never, [{ postKey: 'coordinator', fromRoleId: 21 }], CONGREGATION, ACTOR)
+
+    expect(syncServiceCommitteeMembers).toHaveBeenCalledWith(mockDb, CONGREGATION, ACTOR)
   })
 
   it('leaves an unmapped post empty rather than guessing', async () => {

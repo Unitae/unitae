@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+const syncServiceCommitteeMembers = vi.fn()
+vi.mock('~/shared/domain/service-committee.server', () => ({ syncServiceCommitteeMembers }))
+
 vi.mock('~/shared/domain/audit.server', () => ({
   AuditAction: { OrganigramChanged: 'OrganigramChanged', UserRoleAssignmentChanged: 'UserRoleAssignmentChanged' },
   audit: vi.fn(),
@@ -29,9 +32,7 @@ const {
   createServiceInOrganigram,
   moveOrganigramNode,
   removeRoleFromOrganigram,
-  seatMember,
   setOrganigramParent,
-  unseatMember,
 } = await import('./organigram.server')
 const { ConflictError, ForbiddenError, NotFoundError, ValidationError } = await import(
   '~/shared/errors/app-error.server'
@@ -164,118 +165,6 @@ describe('moveOrganigramNode', () => {
 
     const written = mockDb.role.update.mock.calls.map(call => call[0].data.organigramOrder).sort((a, b) => a - b)
     expect(written).toEqual([5, 10])
-  })
-})
-
-describe('seatMember', () => {
-  it('writes the seat against the member’s account', async () => {
-    mockDb.role.findFirst.mockResolvedValue({ id: 3, key: 'secretaire' })
-    mockDb.member.findFirst.mockResolvedValue({ id: 500, account: { id: 800 } })
-    mockDb.userRoleAssignment.findFirst.mockResolvedValue(null)
-    mockDb.userRoleAssignment.create.mockResolvedValue({})
-
-    await seatMember(mockDb as never, { roleId: 3, memberId: 500, kind: 'leader' }, CONGREGATION, ACTOR)
-
-    expect(mockDb.userRoleAssignment.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { userId: 800, roleId: 3, congregationId: CONGREGATION, kind: 'leader' } }),
-    )
-  })
-
-  it('reports a clear error for a member with no login rather than a foreign-key failure', async () => {
-    // Seats are account-bound for now, so a member without a UserAccount cannot hold one. The
-    // picker greys these out; the service still has to refuse in terms the route can show.
-    mockDb.role.findFirst.mockResolvedValue({ id: 3, key: 'secretaire' })
-    mockDb.member.findFirst.mockResolvedValue({ id: 500, account: null })
-
-    await expect(
-      seatMember(mockDb as never, { roleId: 3, memberId: 500, kind: 'member' }, CONGREGATION, ACTOR),
-    ).rejects.toBeInstanceOf(ValidationError)
-    expect(mockDb.userRoleAssignment.create).not.toHaveBeenCalled()
-  })
-
-  it('changes the seat kind when the person is already in the node', async () => {
-    mockDb.role.findFirst.mockResolvedValue({ id: 3, key: 'secretaire' })
-    mockDb.member.findFirst.mockResolvedValue({ id: 500, account: { id: 800 } })
-    mockDb.userRoleAssignment.findFirst.mockResolvedValue({ userId: 800, roleId: 3, kind: 'member' })
-    mockDb.userRoleAssignment.update.mockResolvedValue({})
-
-    await seatMember(mockDb as never, { roleId: 3, memberId: 500, kind: 'leader' }, CONGREGATION, ACTOR)
-
-    expect(mockDb.userRoleAssignment.create).not.toHaveBeenCalled()
-    expect(mockDb.userRoleAssignment.update).toHaveBeenCalledWith(expect.objectContaining({ data: { kind: 'leader' } }))
-  })
-})
-
-describe('seatMember — the three committee posts', () => {
-  function seatOn(key: string) {
-    mockDb.role.findFirst.mockResolvedValue({ id: 3, key })
-    mockDb.member.findFirst.mockResolvedValue({ id: 500, account: { id: 800 } })
-    mockDb.userRoleAssignment.findFirst.mockResolvedValue(null)
-    mockDb.userRoleAssignment.create.mockResolvedValue({})
-    mockDb.userRoleAssignment.deleteMany.mockResolvedValue({ count: 0 })
-  }
-
-  it.each([
-    'coordinator',
-    'secretary',
-    'service-overseer',
-  ])('hands %s over instead of adding a second holder', async key => {
-    // There is exactly one coordinator. Seating a new one is the handover the whole feature
-    // exists for: the outgoing holder loses the post, and with it the permissions it carries.
-    seatOn(key)
-    mockDb.memberRoleAssignment.findFirst.mockResolvedValue({ memberId: 500 })
-
-    await seatMember(mockDb as never, { roleId: 3, memberId: 500, kind: 'leader' }, CONGREGATION, ACTOR)
-
-    expect(mockDb.userRoleAssignment.deleteMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: expect.objectContaining({ roleId: 3, NOT: { userId: 800 } }) }),
-    )
-  })
-
-  it.each(['coordinator', 'secretary', 'service-overseer'])('refuses a %s who is not an elder', async key => {
-    seatOn(key)
-    mockDb.memberRoleAssignment.findFirst.mockResolvedValue(null)
-
-    await expect(
-      seatMember(mockDb as never, { roleId: 3, memberId: 500, kind: 'leader' }, CONGREGATION, ACTOR),
-    ).rejects.toBeInstanceOf(ValidationError)
-    expect(mockDb.userRoleAssignment.create).not.toHaveBeenCalled()
-    expect(mockDb.userRoleAssignment.deleteMany).not.toHaveBeenCalled()
-  })
-
-  it('leaves an ordinary service free to hold several people', async () => {
-    seatOn('sono')
-
-    await seatMember(mockDb as never, { roleId: 3, memberId: 500, kind: 'member' }, CONGREGATION, ACTOR)
-
-    expect(mockDb.userRoleAssignment.deleteMany).not.toHaveBeenCalled()
-    // No elder check either — «Sono» is open to anyone.
-    expect(mockDb.memberRoleAssignment.findFirst).not.toHaveBeenCalled()
-  })
-
-  it('stores a post holder as its leader, whatever kind was submitted', async () => {
-    // A single-person post has no membre/adjoint distinction to make.
-    seatOn('coordinator')
-    mockDb.memberRoleAssignment.findFirst.mockResolvedValue({ memberId: 500 })
-
-    await seatMember(mockDb as never, { roleId: 3, memberId: 500, kind: 'member' }, CONGREGATION, ACTOR)
-
-    expect(mockDb.userRoleAssignment.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ kind: 'leader' }) }),
-    )
-  })
-})
-
-describe('unseatMember', () => {
-  it('removes only that person from only that node', async () => {
-    mockDb.member.findFirst.mockResolvedValue({ id: 500, account: { id: 800 } })
-    mockDb.userRoleAssignment.deleteMany.mockResolvedValue({ count: 1 })
-
-    await unseatMember(mockDb as never, 3, 500, CONGREGATION, ACTOR)
-
-    expect(mockDb.userRoleAssignment.deleteMany).toHaveBeenCalledWith({
-      where: { userId: 800, roleId: 3, congregationId: CONGREGATION },
-    })
   })
 })
 

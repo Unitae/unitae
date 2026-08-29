@@ -1,13 +1,13 @@
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { isServiceCommitteePostKey } from '~/shared/domain/built-in-roles.server'
-import { ancestorChainIds, type SeatKind, subtreeHeight, type TreeLink } from '~/shared/domain/organigram.queries'
+import { ancestorChainIds, subtreeHeight, type TreeLink } from '~/shared/domain/organigram.queries'
 import {
   assertCanLeaveOrganigram,
   assertCanSetParent,
   assertCanShowInOrganigram,
 } from '~/shared/domain/role-tree.policy'
 import { createRole } from '~/shared/domain/roles.server'
-import { NotFoundError, ValidationError } from '~/shared/errors/app-error.server'
+import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 // Write side of the congregation organigram. Structure lives on `Role`, seats live on
@@ -16,11 +16,6 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 
 /** Siblings are spaced 5 apart so a later insertion rarely has to renumber the row. */
 const ORDER_STEP = 5
-
-export const ORGANIGRAM_ERRORS = {
-  memberHasNoAccount: 'Cette personne n’a pas de compte : elle ne peut pas encore être placée dans l’organigramme.',
-  postRequiresElder: 'Le comité de service est composé de trois anciens : cette personne n’est pas ancien.',
-} as const
 
 async function requireRole(db: TransactionClient, roleId: number, congregationId: number) {
   const role = await db.role.findFirst({
@@ -235,98 +230,5 @@ export async function moveOrganigramNode(
     entityType: 'Role',
     entityId: roleId,
     metadata: { change: 'reordered', direction },
-  })
-}
-
-async function requireSeatableAccount(db: TransactionClient, memberId: number, congregationId: number) {
-  const member = await db.member.findFirst({
-    where: { id: memberId, congregationId },
-    select: { id: true, account: { select: { id: true } } },
-  })
-  if (!member) throw new NotFoundError('Member', memberId)
-  // Seats are account-bound until role assignments move onto Member. Say so plainly rather
-  // than letting the insert fail on a foreign key.
-  if (!member.account) throw new ValidationError('memberId', ORGANIGRAM_ERRORS.memberHasNoAccount)
-  return member.account.id
-}
-
-export interface SeatInput {
-  roleId: number
-  memberId: number
-  kind: SeatKind
-}
-
-/** Put someone in a node, or change the seat they already occupy there. */
-export async function seatMember(
-  db: TransactionClient,
-  { roleId, memberId, kind }: SeatInput,
-  congregationId: number,
-  actorId: number,
-): Promise<void> {
-  const role = await requireRole(db, roleId, congregationId)
-  const userId = await requireSeatableAccount(db, memberId, congregationId)
-
-  // The three committee posts are single-person and elder-only. Both rules are checked before
-  // any write, so a refusal never leaves the post vacant.
-  const isPost = isServiceCommitteePostKey(role.key)
-  if (isPost) {
-    const isElder = await db.memberRoleAssignment.findFirst({
-      where: { memberId, congregationId, role: { key: 'elder' } },
-      select: { memberId: true },
-    })
-    if (!isElder) throw new ValidationError('memberId', ORGANIGRAM_ERRORS.postRequiresElder)
-  }
-
-  // A post has no membre/adjoint distinction to make — one person holds it.
-  const seatKind = isPost ? 'leader' : kind
-
-  const existing = await db.userRoleAssignment.findFirst({
-    where: { userId, roleId, congregationId },
-    select: { userId: true, kind: true },
-  })
-
-  if (existing) {
-    if (existing.kind === seatKind) return
-    await db.userRoleAssignment.update({ where: { userId_roleId: { userId, roleId } }, data: { kind: seatKind } })
-  } else {
-    await db.userRoleAssignment.create({ data: { userId, roleId, congregationId, kind: seatKind } })
-  }
-
-  // Seating a new coordinator *is* the handover: the outgoing holder leaves the post, and with
-  // it the permissions the post carries. That is the behaviour the whole feature was built for,
-  // so it happens here rather than asking the admin to remember to unseat first.
-  if (isPost) {
-    await db.userRoleAssignment.deleteMany({ where: { roleId, congregationId, NOT: { userId } } })
-  }
-
-  audit({
-    action: AuditAction.UserRoleAssignmentChanged,
-    congregationId,
-    actorId,
-    entityType: 'User',
-    entityId: userId,
-    metadata: { added: existing ? [] : [role.key], removed: [], kind },
-  })
-}
-
-/** Take someone out of one node, leaving every other seat they hold untouched. */
-export async function unseatMember(
-  db: TransactionClient,
-  roleId: number,
-  memberId: number,
-  congregationId: number,
-  actorId: number,
-): Promise<void> {
-  const userId = await requireSeatableAccount(db, memberId, congregationId)
-
-  await db.userRoleAssignment.deleteMany({ where: { userId, roleId, congregationId } })
-
-  audit({
-    action: AuditAction.UserRoleAssignmentChanged,
-    congregationId,
-    actorId,
-    entityType: 'User',
-    entityId: userId,
-    metadata: { added: [], removed: [String(roleId)] },
   })
 }

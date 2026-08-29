@@ -23,6 +23,8 @@ export interface PanelNode {
   isFixed: boolean
   /** One of the three committee posts: one elder holds it, and seating replaces the incumbent. */
   isPost: boolean
+  /** The committee itself, whose membership is derived from its three posts rather than typed. */
+  isCommittee: boolean
   parentId: number | null
   parentName: string | null
   childCount: number

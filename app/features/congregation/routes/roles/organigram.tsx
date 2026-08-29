@@ -22,11 +22,10 @@ import {
   createServiceInOrganigram,
   moveOrganigramNode,
   removeRoleFromOrganigram,
-  seatMember,
   setOrganigramParent,
-  unseatMember,
 } from '~/shared/domain/organigram.server'
 import { flattenTree } from '~/shared/domain/organigram-layout'
+import { seatMember, unseatMember } from '~/shared/domain/organigram-seats.server'
 import { canShowInOrganigram } from '~/shared/domain/role-tree.policy'
 import { AppError, ConflictError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
@@ -110,6 +109,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
           // must not offer to move or remove them.
           isFixed: isAppointedRoleKey(selected.node.key),
           isPost: isServiceCommitteePostKey(selected.node.key),
+          isCommittee: selected.node.key === SERVICE_COMMITTEE_KEY,
           parentId: selected.parentId,
           parentName: selected.parentName,
           childCount: selected.node.children.length,
