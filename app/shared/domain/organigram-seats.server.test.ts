@@ -21,7 +21,7 @@ const mockDb = {
 }
 
 const { seatMember, unseatMember } = await import('./organigram-seats.server')
-const { NotFoundError, ValidationError } = await import('~/shared/errors/app-error.server')
+const { ValidationError } = await import('~/shared/errors/app-error.server')
 
 const CONGREGATION = 10
 const ACTOR = 99

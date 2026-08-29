@@ -1,5 +1,4 @@
 import { AuditAction, audit } from '~/shared/domain/audit.server'
-import { isServiceCommitteePostKey } from '~/shared/domain/built-in-roles.server'
 import { ancestorChainIds, subtreeHeight, type TreeLink } from '~/shared/domain/organigram.queries'
 import {
   assertCanLeaveOrganigram,
