@@ -6,7 +6,7 @@ import { organigramIntentSchema } from '~/features/congregation/schemas/organigr
 import { OrganigramNodePanel, type PanelNode } from '~/features/congregation/ui/OrganigramNodePanel'
 import { OrganigramRootAdd } from '~/features/congregation/ui/OrganigramRootAdd'
 import { OrganigramTree } from '~/features/congregation/ui/OrganigramTree'
-import { flattenTree } from '~/features/congregation/ui/organigram-layout'
+
 import { RolesTabs } from '~/features/congregation/ui/RolesTabs'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -20,6 +20,7 @@ import {
   setOrganigramParent,
   unseatMember,
 } from '~/shared/domain/organigram.server'
+import { flattenTree } from '~/shared/domain/organigram-layout'
 import { canShowInOrganigram } from '~/shared/domain/role-tree.policy'
 import { AppError, ConflictError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
