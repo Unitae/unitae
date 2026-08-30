@@ -16,10 +16,12 @@ const addUserToRole = vi.fn()
 const removeUserFromRole = vi.fn()
 
 const memberFindFirst = vi.fn()
+const roleFindFirst = vi.fn()
 const fakeDb = {
   member: { findFirst: memberFindFirst, findMany: vi.fn().mockResolvedValue([]) },
-  // `findFirst` feeds the success flash's role name; null just skips the flash.
-  role: { findMany: vi.fn().mockResolvedValue([]), findFirst: vi.fn().mockResolvedValue(null) },
+  // The action resolves the role before writing: it names the success flash, and its absence
+  // refuses the toggle outright instead of letting the service no-op in silence.
+  role: { findMany: vi.fn().mockResolvedValue([]), findFirst: roleFindFirst },
 }
 
 vi.mock('~/shared/domain/roles.server', () => ({ addUserToRole, removeUserFromRole }))
@@ -56,6 +58,7 @@ async function toggle(fields: Record<string, string>) {
 // tests rely on, and resetting would strip them.
 beforeEach(() => {
   vi.clearAllMocks()
+  roleFindFirst.mockResolvedValue({ key: 'compte', name: 'Compte' })
 })
 
 describe('role matrix toggle', () => {
@@ -77,6 +80,17 @@ describe('role matrix toggle', () => {
 
   it('refuses a member with no login instead of failing on a foreign key', async () => {
     memberFindFirst.mockResolvedValue({ id: 500, account: null })
+
+    await toggle({ memberId: '500', roleId: '7', intent: 'add' })
+
+    expect(addUserToRole).not.toHaveBeenCalled()
+  })
+
+  it('refuses a role that no longer exists instead of letting the service no-op in silence', async () => {
+    // A stale tab: the role was deleted after the matrix rendered. The service would return
+    // without writing and the page would reload saying nothing — the click that "did nothing".
+    memberFindFirst.mockResolvedValue({ id: 500, account: { id: 800 } })
+    roleFindFirst.mockResolvedValue(null)
 
     await toggle({ memberId: '500', roleId: '7', intent: 'add' })
 

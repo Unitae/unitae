@@ -2431,6 +2431,7 @@
     "congregation_roles_empty_roles": "Aucun rôle personnalisé. Cliquez sur \"Nouveau rôle\" pour en créer un.",
     "congregation_roles_built_in_assignment_error": "Les rôles intégrés sont gérés automatiquement",
     "congregation_roles_no_account_error": "Cette personne n’a pas encore de compte : elle ne peut pas être ajoutée à un groupe.",
+    "congregation_roles_role_gone_error": "Ce rôle n’existe plus. La page a été rechargée.",
     "congregation_roles_group_others": "Autres services",
     "congregation_roles_group_off_chart": "Hors organigramme",
     "congregation_roles_group_fold": "Replier « {name} »",

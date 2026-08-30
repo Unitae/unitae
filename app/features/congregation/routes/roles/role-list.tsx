@@ -186,6 +186,17 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
     const userId = member.account.id
 
+    // Resolved before the write, not after: the services no-op silently on a role that vanished
+    // under a stale tab, and a page that then says nothing at all is how an admin clicks twice.
+    const role = await db.role.findFirst({
+      where: { id: roleId, congregationId: currentUser.congregationId },
+      select: { key: true, name: true },
+    })
+    if (!role) {
+      session.flash('error', m.congregation_roles_role_gone_error())
+      return
+    }
+
     try {
       if (intent === 'add') {
         await addUserToRole(db, userId, roleId, currentUser.congregationId, currentUser.id)
@@ -194,15 +205,9 @@ export async function action({ request, context }: Route.ActionArgs) {
       }
       // Name the change: a toggle deep in a grid gives no feedback of its own, and « Marc DUPONT
       // fait partie de Sono » is what tells a cautious admin their click did the right thing.
-      const role = await db.role.findFirst({
-        where: { id: roleId, congregationId: currentUser.congregationId },
-        select: { key: true, name: true },
-      })
-      if (role) {
-        const person = `${member.firstname ?? ''} ${member.lastname?.toLocaleUpperCase() ?? ''}`.trim()
-        const flash = intent === 'add' ? m.congregation_roles_added_flash : m.congregation_roles_removed_flash
-        session.flash('success', flash({ person, role: getRoleDisplayName(role) }))
-      }
+      const person = `${member.firstname ?? ''} ${member.lastname?.toLocaleUpperCase() ?? ''}`.trim()
+      const flash = intent === 'add' ? m.congregation_roles_added_flash : m.congregation_roles_removed_flash
+      session.flash('success', flash({ person, role: getRoleDisplayName(role) }))
     } catch (error) {
       if (error instanceof ForbiddenError) {
         session.flash('error', m.congregation_roles_built_in_assignment_error())

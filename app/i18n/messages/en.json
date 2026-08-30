@@ -2426,6 +2426,7 @@
     "congregation_roles_empty_roles": "No custom roles. Click \"New role\" to create one.",
     "congregation_roles_built_in_assignment_error": "Built-in role memberships are managed automatically",
     "congregation_roles_no_account_error": "This person has no account yet, so they cannot be added to a group.",
+    "congregation_roles_role_gone_error": "This role no longer exists. The page has been reloaded.",
     "congregation_roles_group_others": "Other services",
     "congregation_roles_group_off_chart": "Outside the organigram",
     "congregation_roles_group_fold": "Fold “{name}”",
