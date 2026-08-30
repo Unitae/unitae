@@ -69,10 +69,13 @@ export async function seedBuiltInRoles(db: any, congregationId: number) {
   // both undeletable, so both carry isBuiltIn. Only the first group has predicates in
   // built-in-roles.server.ts, which is why the sync there matches on key, not the flag.
   for (const key of [...BUILT_IN_ROLE_KEYS, ...SYSTEM_ROLE_KEYS, ...APPOINTED_ROLE_KEYS]) {
+    // The three committee posts are personal roles: one titular holder, handover on re-seating.
+    // The committee itself stays a group — its membership is derived from the posts.
+    const isSinglePerson = (SERVICE_COMMITTEE_POST_KEYS as readonly string[]).includes(key)
     await db.role.upsert({
       where: { key_congregationId: { key, congregationId } },
-      update: { isBuiltIn: true },
-      create: { key, isBuiltIn: true, congregationId },
+      update: { isBuiltIn: true, isSinglePerson },
+      create: { key, isBuiltIn: true, isSinglePerson, congregationId },
     })
   }
 

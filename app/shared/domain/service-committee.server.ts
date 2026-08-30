@@ -41,8 +41,10 @@ export async function syncServiceCommitteeMembers(
   )
   if (postIds.length === 0) return
 
+  // Titulaires only: a post may carry deputy seats, but the coordinator's adjoint helps the
+  // coordinator — they do not sit on the committee.
   const held: { userId: number }[] = await db.userRoleAssignment.findMany({
-    where: { roleId: { in: postIds }, congregationId },
+    where: { roleId: { in: postIds }, congregationId, kind: 'leader' },
     select: { userId: true },
   })
   const current: { userId: number }[] = await db.userRoleAssignment.findMany({

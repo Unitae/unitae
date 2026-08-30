@@ -20,6 +20,7 @@ const mockDb = {
   memberRoleAssignment: { findFirst: vi.fn() },
   userRoleAssignment: {
     findFirst: vi.fn(),
+    findMany: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     deleteMany: vi.fn(),
@@ -33,6 +34,7 @@ const {
   moveOrganigramNode,
   removeRoleFromOrganigram,
   setOrganigramParent,
+  setRoleSinglePerson,
 } = await import('./organigram.server')
 const { ConflictError, ForbiddenError, NotFoundError, ValidationError } = await import(
   '~/shared/errors/app-error.server'
@@ -57,7 +59,7 @@ beforeEach(() => {
 
 describe('setOrganigramParent', () => {
   it('refuses to move a role under its own descendant', async () => {
-    mockDb.role.findFirst.mockResolvedValue({ id: 2, key: 'comite' })
+    mockDb.role.findFirst.mockResolvedValue({ id: 2, key: 'comite', showInOrganigram: true })
     mockDb.role.findMany.mockResolvedValue(treeRows())
 
     // 3 is a child of 2, so parenting 2 under 3 closes a loop.
@@ -68,15 +70,27 @@ describe('setOrganigramParent', () => {
   })
 
   it('refuses to give an identity roster a parent', async () => {
-    mockDb.role.findFirst.mockResolvedValue({ id: 1, key: 'elder' })
+    mockDb.role.findFirst.mockResolvedValue({ id: 1, key: 'elder', showInOrganigram: true })
     mockDb.role.findMany.mockResolvedValue(treeRows())
 
     await expect(setOrganigramParent(mockDb as never, 1, 4, CONGREGATION, ACTOR)).rejects.toBeInstanceOf(ForbiddenError)
     expect(mockDb.role.update).not.toHaveBeenCalled()
   })
 
+  it('refuses to move a role that is not in the chart', async () => {
+    // The UI only offers chart nodes, but a crafted request could attach an off-chart role —
+    // invisible on the page, yet enough to block deleting its parent later.
+    mockDb.role.findFirst.mockResolvedValue({ id: 4, key: 'nettoyage', showInOrganigram: false })
+    mockDb.role.findMany.mockResolvedValue(treeRows())
+
+    await expect(setOrganigramParent(mockDb as never, 4, 1, CONGREGATION, ACTOR)).rejects.toBeInstanceOf(
+      ValidationError,
+    )
+    expect(mockDb.role.update).not.toHaveBeenCalled()
+  })
+
   it('moves a role under an unrelated parent', async () => {
-    mockDb.role.findFirst.mockResolvedValue({ id: 3, key: 'secretaire' })
+    mockDb.role.findFirst.mockResolvedValue({ id: 3, key: 'secretaire', showInOrganigram: true })
     mockDb.role.findMany.mockResolvedValue(treeRows())
     mockDb.role.update.mockResolvedValue({ id: 3 })
 
@@ -168,7 +182,110 @@ describe('moveOrganigramNode', () => {
   })
 })
 
+describe('setRoleSinglePerson', () => {
+  it('flags a custom chart role as personal', async () => {
+    mockDb.role.findFirst.mockResolvedValue({
+      id: 7,
+      key: 'responsable-audio-video',
+      isBuiltIn: false,
+      isSinglePerson: false,
+      showInOrganigram: true,
+    })
+    mockDb.userRoleAssignment.findMany.mockResolvedValue([])
+    mockDb.role.update.mockResolvedValue({})
+
+    await setRoleSinglePerson(mockDb as never, 7, true, CONGREGATION, ACTOR)
+
+    expect(mockDb.role.update).toHaveBeenCalledWith(expect.objectContaining({ data: { isSinglePerson: true } }))
+  })
+
+  it('refuses while several titulaires are seated', async () => {
+    // Flagging a role that currently shows three «responsables» would make the chart lie about
+    // which of them holds it. The seats are resolved first, then the flag.
+    mockDb.role.findFirst.mockResolvedValue({
+      id: 7,
+      key: 'responsable-audio-video',
+      isBuiltIn: false,
+      isSinglePerson: false,
+      showInOrganigram: true,
+    })
+    mockDb.userRoleAssignment.findMany.mockResolvedValue([{ userId: 800 }, { userId: 801 }])
+
+    await expect(setRoleSinglePerson(mockDb as never, 7, true, CONGREGATION, ACTOR)).rejects.toBeInstanceOf(
+      ConflictError,
+    )
+    expect(mockDb.role.update).not.toHaveBeenCalled()
+  })
+
+  it('refuses built-in roles, whose shape is structure', async () => {
+    // The committee posts are permanently personal, the rosters and `admin` never are —
+    // in both directions the flag is not the congregation's to change.
+    mockDb.role.findFirst.mockResolvedValue({
+      id: 3,
+      key: 'coordinator',
+      isBuiltIn: true,
+      isSinglePerson: true,
+      showInOrganigram: true,
+    })
+
+    await expect(setRoleSinglePerson(mockDb as never, 3, false, CONGREGATION, ACTOR)).rejects.toBeInstanceOf(
+      ForbiddenError,
+    )
+    expect(mockDb.role.update).not.toHaveBeenCalled()
+  })
+
+  it('writes nothing when the flag already has the submitted value', async () => {
+    // The role edit form submits the checkbox on every save; an unchanged value must not
+    // churn the row or fill the audit log with changes nobody made.
+    mockDb.role.findFirst.mockResolvedValue({
+      id: 7,
+      key: 'responsable-audio-video',
+      isBuiltIn: false,
+      isSinglePerson: true,
+      showInOrganigram: true,
+    })
+
+    await setRoleSinglePerson(mockDb as never, 7, true, CONGREGATION, ACTOR)
+
+    expect(mockDb.role.update).not.toHaveBeenCalled()
+  })
+
+  it('turns the flag off without counting seats', async () => {
+    // Loosening cannot make the chart lie, so nothing blocks it.
+    mockDb.role.findFirst.mockResolvedValue({
+      id: 7,
+      key: 'responsable-audio-video',
+      isBuiltIn: false,
+      isSinglePerson: true,
+      showInOrganigram: true,
+    })
+    mockDb.role.update.mockResolvedValue({})
+
+    await setRoleSinglePerson(mockDb as never, 7, false, CONGREGATION, ACTOR)
+
+    expect(mockDb.userRoleAssignment.findMany).not.toHaveBeenCalled()
+    expect(mockDb.role.update).toHaveBeenCalledWith(expect.objectContaining({ data: { isSinglePerson: false } }))
+  })
+})
+
 describe('createServiceInOrganigram', () => {
+  it('creates a personal role when asked to', async () => {
+    mockDb.role.findFirst
+      .mockResolvedValueOnce(null) // createRole: no key collision
+      .mockResolvedValue({ id: 42, key: 'responsable-estrade' })
+    mockDb.role.create.mockResolvedValue({ id: 42, key: 'responsable-estrade' })
+    mockDb.role.findMany.mockResolvedValue(treeRows())
+    mockDb.role.update.mockResolvedValue({ id: 42 })
+
+    await createServiceInOrganigram(mockDb as never, 'Responsable estrade', 1, CONGREGATION, ACTOR, {
+      isSinglePerson: true,
+    })
+
+    expect(mockDb.role.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ isSinglePerson: true }) }),
+    )
+  })
+
   it('creates the service and attaches it under the given parent', async () => {
     mockDb.role.findFirst
       .mockResolvedValueOnce(null) // createRole: no key collision

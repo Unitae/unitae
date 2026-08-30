@@ -6,7 +6,7 @@ import {
   assertCanShowInOrganigram,
 } from '~/shared/domain/role-tree.policy'
 import { createRole } from '~/shared/domain/roles.server'
-import { NotFoundError } from '~/shared/errors/app-error.server'
+import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 // Write side of the congregation organigram. Structure lives on `Role`, seats live on
@@ -19,7 +19,7 @@ const ORDER_STEP = 5
 async function requireRole(db: TransactionClient, roleId: number, congregationId: number) {
   const role = await db.role.findFirst({
     where: { id: roleId, congregationId },
-    select: { id: true, key: true, parentRoleId: true },
+    select: { id: true, key: true, parentRoleId: true, showInOrganigram: true },
   })
   if (!role) throw new NotFoundError('Role', roleId)
   return role
@@ -110,10 +110,72 @@ export async function createServiceInOrganigram(
   parentRoleId: number | null,
   congregationId: number,
   actorId: number,
+  { isSinglePerson = false }: { isSinglePerson?: boolean } = {},
 ): Promise<number> {
-  const created = await createRole(db, congregationId, actorId, { name, description: null, permissionKeys: [] })
+  const created = await createRole(db, congregationId, actorId, {
+    name,
+    description: null,
+    permissionKeys: [],
+    isSinglePerson,
+  })
   await addRoleToOrganigram(db, created.id, parentRoleId, congregationId, actorId)
   return created.id
+}
+
+/**
+ * Flag a node as a personal role — one titulaire, adjoints allowed, no plain members — or back.
+ *
+ * Custom roles only: the committee posts are permanently personal and the rosters never are, so
+ * in both directions a built-in's shape is structure rather than the congregation's choice.
+ *
+ * Tightening is refused while several titulaires are seated: a «rôle personnel» showing three
+ * responsables would make the chart lie about who holds it, and silently demoting two of them
+ * is a decision the admin has to make, not the flag.
+ */
+export async function setRoleSinglePerson(
+  db: TransactionClient,
+  roleId: number,
+  isSinglePerson: boolean,
+  congregationId: number,
+  actorId: number,
+): Promise<void> {
+  const role = await db.role.findFirst({
+    where: { id: roleId, congregationId },
+    select: { id: true, key: true, isBuiltIn: true, isSinglePerson: true },
+  })
+  if (!role) throw new NotFoundError('Role', roleId)
+  if (role.isBuiltIn) {
+    throw new ForbiddenError('Les rôles intégrés gardent leur forme : elle ne se change pas ici.')
+  }
+  // The edit form submits the checkbox on every save; an unchanged value must not churn the
+  // row or fill the audit log with changes nobody made.
+  if (role.isSinglePerson === isSinglePerson) return
+
+  if (isSinglePerson) {
+    const leaders = await db.userRoleAssignment.findMany({
+      where: { roleId, congregationId, kind: 'leader' },
+      select: { userId: true },
+    })
+    if (leaders.length > 1) {
+      throw new ConflictError(
+        'Ce service a plusieurs responsables. Retirez-en pour n’en garder qu’un avant d’en faire un rôle personnel.',
+      )
+    }
+  }
+
+  await db.role.update({
+    where: { id_congregationId: { id: roleId, congregationId } },
+    data: { isSinglePerson },
+  })
+
+  audit({
+    action: AuditAction.OrganigramChanged,
+    congregationId,
+    actorId,
+    entityType: 'Role',
+    entityId: roleId,
+    metadata: { change: 'single-person', isSinglePerson },
+  })
 }
 
 /**
@@ -164,6 +226,12 @@ export async function setOrganigramParent(
   actorId: number,
 ): Promise<void> {
   const role = await requireRole(db, roleId, congregationId)
+  // Only chart nodes move. The UI never offers anything else, but a crafted request could
+  // otherwise attach an off-chart role — invisible on the page, yet enough to block deleting
+  // its parent later. Entering the chart goes through `addRoleToOrganigram`.
+  if (!role.showInOrganigram) {
+    throw new ValidationError('roleId', 'Ce service n’est pas dans l’organigramme.')
+  }
   const links = await treeLinks(db, congregationId)
 
   assertCanSetParent({

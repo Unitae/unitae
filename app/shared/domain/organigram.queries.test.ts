@@ -21,6 +21,7 @@ function role(over: Partial<OrganigramRole> = {}): OrganigramRole {
     parentRoleId: null,
     organigramOrder: null,
     organigramNote: null,
+    isSinglePerson: false,
     ...over,
   }
 }
@@ -130,6 +131,16 @@ describe('buildOrganigramTree — node content', () => {
     const tree = buildOrganigramTree([role({ id: 1, key, name: null, isBuiltIn: true })], [])
 
     expect(tree[0]?.isRoster).toBe(false)
+  })
+
+  it('carries the personal-role flag onto the node', () => {
+    const personal = role({ id: 1, isSinglePerson: true })
+    const group = role({ id: 2 })
+
+    const tree = buildOrganigramTree([personal, group], [])
+
+    expect(tree.find(node => node.id === 1)?.isSinglePerson).toBe(true)
+    expect(tree.find(node => node.id === 2)?.isSinglePerson).toBe(false)
   })
 
   it('carries the free-text note through', () => {

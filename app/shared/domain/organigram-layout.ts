@@ -86,6 +86,26 @@ export function toLayout(tree: OrganigramNode[]): LayoutBlock[] {
   return blocks
 }
 
+const SEAT_LABEL: Record<string, string> = { leader: 'Responsable', deputy: 'Adjoint' }
+
+/**
+ * The label shown beside a holder's name, or null when it would say nothing true.
+ *
+ * On a personal role the titulaire gets no label: « Coordinateur du collège des anciens —
+ * RESPONSABLE Marc DUPONT » makes no sense, because nobody is responsible *of* a one-person
+ * role — the node name is the function and the person simply holds it. Its adjoints keep
+ * theirs, since « adjoint » is exactly what they are.
+ *
+ * The name-prefix check covers group roles named « Responsable de … » that predate the
+ * personal-role flag — eleven redundant labels on a real congregation's chart.
+ */
+export function seatLabel(kind: string, node: Pick<OrganigramNode, 'name' | 'isSinglePerson'>): string | null {
+  const label = SEAT_LABEL[kind]
+  if (!label) return null
+  if (node.isSinglePerson && kind === 'leader') return null
+  return node.name.toLocaleLowerCase().startsWith(label.toLocaleLowerCase()) ? null : label
+}
+
 export interface FlatEntry {
   id: number
   label: string

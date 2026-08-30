@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { OrganigramNode } from '~/shared/domain/organigram.queries'
-import { toLayout } from './organigram-layout'
+import { seatLabel, toLayout } from './organigram-layout'
 
 // The printed "Organisation des services" sheet has no connector lines and no deep indentation.
 // It groups children under band headers — « Sous la responsabilité du secrétaire » — and prints
@@ -8,7 +8,17 @@ import { toLayout } from './organigram-layout'
 
 let id = 1
 function node(over: Partial<OrganigramNode> = {}): OrganigramNode {
-  return { id: id++, key: `n${id}`, name: `N${id}`, note: null, isRoster: false, holders: [], children: [], ...over }
+  return {
+    id: id++,
+    key: `n${id}`,
+    name: `N${id}`,
+    note: null,
+    isRoster: false,
+    isSinglePerson: false,
+    holders: [],
+    children: [],
+    ...over,
+  }
 }
 
 describe('toLayout', () => {
@@ -58,5 +68,37 @@ describe('toLayout', () => {
     // Every band sits at the same level; nesting is expressed by the header, not by margin.
     expect(blocks.filter(b => b.kind === 'band').length).toBeGreaterThanOrEqual(2)
     expect(blocks.every(b => b.kind !== 'band' || typeof b.title === 'string')).toBe(true)
+  })
+})
+
+describe('seatLabel', () => {
+  it('labels the seats of a group role', () => {
+    const group = node({ name: 'Audio/Vidéo' })
+
+    expect(seatLabel('leader', group)).toBe('Responsable')
+    expect(seatLabel('deputy', group)).toBe('Adjoint')
+    expect(seatLabel('member', group)).toBeNull()
+  })
+
+  it('never calls the holder of a personal role its responsable', () => {
+    // « Coordinateur du collège des anciens — RESPONSABLE Marc DUPONT » makes no sense: nobody
+    // is responsible *of* a one-person role. The node name is the function; the person holds it.
+    const personal = node({ name: 'Coordinateur du collège des anciens', isSinglePerson: true })
+
+    expect(seatLabel('leader', personal)).toBeNull()
+  })
+
+  it('still labels a personal role’s adjoint', () => {
+    const personal = node({ name: 'Coordinateur du collège des anciens', isSinglePerson: true })
+
+    expect(seatLabel('deputy', personal)).toBe('Adjoint')
+  })
+
+  it('suppresses a label the group’s own name already carries', () => {
+    // An unflagged « Responsable de l'accueil » must not read « Responsable de l'accueil ·
+    // Responsable » — eleven redundant labels on a real congregation's chart.
+    const named = node({ name: 'Responsable de l’accueil' })
+
+    expect(seatLabel('leader', named)).toBeNull()
   })
 })

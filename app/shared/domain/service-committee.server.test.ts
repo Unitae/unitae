@@ -109,4 +109,15 @@ describe('syncServiceCommitteeMembers', () => {
     const [postsQuery] = mockDb.userRoleAssignment.findMany.mock.calls
     expect(postsQuery?.[0].where.roleId).toEqual({ in: [COORDINATOR, SECRETARY, OVERSEER] })
   })
+
+  it('counts only the titular holders — a post’s adjoint is not on the committee', async () => {
+    // A post may carry deputy seats, but the committee IS its three titulaires: the coordinator's
+    // adjoint helps the coordinator, they do not sit on the committee.
+    assignments([], [])
+
+    await syncServiceCommitteeMembers(mockDb as never, CONGREGATION, ACTOR)
+
+    const [postsQuery] = mockDb.userRoleAssignment.findMany.mock.calls
+    expect(postsQuery?.[0].where.kind).toBe('leader')
+  })
 })

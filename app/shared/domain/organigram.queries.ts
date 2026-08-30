@@ -22,6 +22,7 @@ export interface OrganigramRole {
   parentRoleId: number | null
   organigramOrder: number | null
   organigramNote: string | null
+  isSinglePerson: boolean
 }
 
 export interface OrganigramHolder {
@@ -40,6 +41,8 @@ export interface OrganigramNode {
   note: string | null
   /** True for the two auto-synced identity rosters, which read as a list rather than a seat. */
   isRoster: boolean
+  /** A personal role: one titular `leader` seat plus optional adjoints, never plain members. */
+  isSinglePerson: boolean
   holders: OrganigramHolder[]
   children: OrganigramNode[]
 }
@@ -95,6 +98,7 @@ export function buildOrganigramTree(roles: OrganigramRole[], holders: Organigram
       // are built-in too, and reading the flag here made them render as reconciled lists whose
       // membership cannot be edited, which is the one thing they exist to let you do.
       isRoster: ORGANIGRAM_ROSTER_KEYS.includes(role.key),
+      isSinglePerson: role.isSinglePerson,
       holders: (holdersByRole.get(role.id) ?? []).sort(compareHolders),
       children: (byParent.get(role.id) ?? [])
         .filter(child => !visited.has(child.id))
@@ -193,6 +197,7 @@ const ORGANIGRAM_ROLE_SELECT = {
   parentRoleId: true,
   organigramOrder: true,
   organigramNote: true,
+  isSinglePerson: true,
 } as const
 
 /**

@@ -75,6 +75,7 @@ export interface RoleDetail {
   name: string | null
   description: string | null
   isBuiltIn: boolean
+  isSinglePerson: boolean
   permissionKeys: string[]
   memberCount: number
 }
@@ -96,6 +97,7 @@ export async function getRole(db: TransactionClient, id: number, congregationId:
     name: role.name,
     description: role.description,
     isBuiltIn: role.isBuiltIn,
+    isSinglePerson: role.isSinglePerson,
     permissionKeys: role.permissions.map(rp => rp.permission.key),
     memberCount: role._count.members,
   }
@@ -105,6 +107,8 @@ export interface CreateRoleParams {
   name: string
   description: string | null
   permissionKeys: string[]
+  /** A personal role: one titular holder with a handover, adjoints allowed. Defaults to a group. */
+  isSinglePerson?: boolean
 }
 
 export async function createRole(
@@ -128,6 +132,7 @@ export async function createRole(
       name: trimmedName,
       description: params.description?.trim() || null,
       isBuiltIn: false,
+      isSinglePerson: params.isSinglePerson ?? false,
       congregationId,
     },
     select: { id: true, key: true },
