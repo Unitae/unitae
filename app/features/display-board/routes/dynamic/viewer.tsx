@@ -106,10 +106,10 @@ export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) 
               {m.board_viewer_updated()} <RelativeTime date={contentVersion} />
             </span>
           )}
-          {data?.type === DynamicType.Organigram && (
+          {data?.type === DynamicType.Organigram && data.tree.length > 0 && (
             // Same design as the PDF viewer's download button. A plain anchor, not a Link: the
             // target is a PDF resource whose Content-Disposition triggers the download without
-            // leaving the page.
+            // leaving the page. Hidden while the tree is empty — that PDF is a blank page.
             <Button variant="outline" size="sm" asChild>
               <a href={`/board/dynamic/${settings.id}/pdf`}>
                 <Download className="mr-2 size-4" />

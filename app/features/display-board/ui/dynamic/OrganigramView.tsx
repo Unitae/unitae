@@ -247,7 +247,6 @@ export function OrganigramView({ tree }: { tree: OrganigramNode[] }) {
           <section className="flex flex-col gap-3 border-t pt-4">
             {legacy.map(block => {
               if (block.kind === 'row') return <Line key={block.id} node={block.node} />
-              if (block.kind !== 'band') return null
               if (block.node) return <ServiceWithTeams key={block.id} node={block.node} teams={block.rows} />
               return block.rows.map(row => <Line key={row.id} node={row} />)
             })}

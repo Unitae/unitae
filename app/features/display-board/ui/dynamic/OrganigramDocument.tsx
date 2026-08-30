@@ -246,9 +246,8 @@ export function OrganigramDocument({
           <View style={styles.section}>
             {legacy.map(block => {
               if (block.kind === 'row') return <Line key={block.id} node={block.node} />
-              if (block.kind !== 'band') return null
               if (block.node) return <ServiceWithTeams key={block.id} node={block.node} teams={block.rows} />
-              return <Bands key={block.id} bands={[block]} />
+              return block.rows.map(row => <Line key={row.id} node={row} />)
             })}
           </View>
         )}

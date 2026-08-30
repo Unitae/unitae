@@ -165,7 +165,8 @@ export interface GroupedLayout {
   committee: CommitteeBlock | null
   /** Consecutive bands sharing a responsibility header — `toLayout` emits each branch contiguously. */
   sections: { under: string; bands: BandBlock[] }[]
-  legacy: LayoutBlock[]
+  /** Legacy roots outside the sheet's order: plain rows, and bands no header ever claimed. */
+  legacy: (BandBlock | RowBlock)[]
 }
 
 /** The renderer's view of the sheet — shared by the screen and the printable PDF. */
