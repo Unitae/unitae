@@ -3,11 +3,14 @@ import { toast } from 'sonner'
 import { shareViaDevice } from '~/features/events/model/share-via-device'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
+import { cn } from '~/shared/utils/utils'
 
 type ShareAssignmentButtonProps = {
   /** Finished message, built server-side. See build-share-message.server.ts. */
   text: string
   label: string
+  /** Sizing override — the mobile list needs a finger-sized target, the table a compact one. */
+  className?: string
 }
 
 /**
@@ -21,7 +24,7 @@ type ShareAssignmentButtonProps = {
  * The branching itself lives in model/share-via-device.ts so it can be tested
  * without a browser.
  */
-export function ShareAssignmentButton({ text, label }: ShareAssignmentButtonProps) {
+export function ShareAssignmentButton({ text, label, className }: ShareAssignmentButtonProps) {
   function handleShare() {
     // `void`: intentionally not awaited (see above). shareViaDevice handles its
     // own failures, so there is no rejection to catch here.
@@ -38,7 +41,7 @@ export function ShareAssignmentButton({ text, label }: ShareAssignmentButtonProp
       type="button"
       variant="ghost"
       size="icon"
-      className="size-7"
+      className={cn('size-7', className)}
       onClick={handleShare}
       aria-label={label}
       title={label}
