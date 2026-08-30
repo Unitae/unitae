@@ -29,6 +29,7 @@ interface ActivityRow {
   type: PublisherType
   hours: number | null
   studies: number
+  creditHours: number | null
 }
 
 function absMonth(month: number, year: number): number {
@@ -146,7 +147,13 @@ function classifyPioneerMember(
     const hoursByMonth = new Map(plan.months.map(pm => [pm.month * 10000 + pm.year, pm]))
     const auxMonths: PioneerMonth[] = plan.enrolledMonths.map(mr => {
       const reported = hoursByMonth.get(mr.month * 10000 + mr.year)
-      return { month: mr.month, year: mr.year, hours: reported?.hours ?? null, studies: reported?.studies }
+      return {
+        month: mr.month,
+        year: mr.year,
+        hours: reported?.hours ?? null,
+        studies: reported?.studies,
+        credit: reported?.credit,
+      }
     })
     return {
       kind: 'auxiliary',
@@ -229,7 +236,9 @@ function computeTotals(annual: PioneerAnnualRow[]): PioneerActivitySummary['tota
     if (row.pace.riskBucket === 'green') totals.onTrack++
     else if (row.pace.riskBucket === 'amber') totals.behind++
     else totals.atRisk++
-    totals.actualHours += row.pace.actualToDate
+    // Achieved, not raw field hours: the board's totals answer "are we on pace", and
+    // credits count toward that goal by design.
+    totals.actualHours += row.pace.achievedToDate
     totals.targetHours += row.pace.fullYearTarget
   }
   return totals

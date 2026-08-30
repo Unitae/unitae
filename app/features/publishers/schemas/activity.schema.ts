@@ -25,6 +25,10 @@ export const updateActivitySchema = z.object({
     .string()
     .optional()
     .transform(v => v === 'on'),
+  // Secretary-only hour credit; the action only forwards it for CanCorrectActivity holders.
+  // No default, and '' maps to undefined: an emptied field clears the credit (the action turns
+  // undefined into null for secretaries), while a non-secretary submit leaves it untouched.
+  creditHours: z.preprocess(v => (v === '' || v == null ? undefined : v), z.coerce.number().min(0).optional()),
 })
 
 export type CreateActivityInput = z.infer<typeof createActivitySchema>

@@ -115,3 +115,43 @@ describe('deletePublisherActivity', () => {
     })
   })
 })
+
+describe('updatePublisherActivity — secretary hour credit', () => {
+  const base = {
+    type: PublisherType.PionnierPermanant,
+    isPublisher: true,
+    hours: 30,
+    studies: 1,
+    notes: '',
+  }
+
+  it('persists the credit when one is given', async () => {
+    mockUpdate.mockResolvedValue({ id: 5, publisherId: 1, isPublisher: true, hours: 30 } as never)
+
+    await updatePublisherActivity(db, 5, 10, 99, { ...base, creditHours: 20 })
+
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ creditHours: 20 }) }),
+    )
+  })
+
+  it('clears the credit on an explicit null', async () => {
+    mockUpdate.mockResolvedValue({ id: 5, publisherId: 1, isPublisher: true, hours: 30 } as never)
+
+    await updatePublisherActivity(db, 5, 10, 99, { ...base, creditHours: null })
+
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ creditHours: null }) }),
+    )
+  })
+
+  it('leaves the stored credit untouched when the caller omits it', async () => {
+    // A group responsible saving the report form must never wipe the secretary's credit.
+    mockUpdate.mockResolvedValue({ id: 5, publisherId: 1, isPublisher: true, hours: 30 } as never)
+
+    await updatePublisherActivity(db, 5, 10, 99, base)
+
+    const data = mockUpdate.mock.calls[0]?.[0]?.data
+    expect(data).not.toHaveProperty('creditHours')
+  })
+})

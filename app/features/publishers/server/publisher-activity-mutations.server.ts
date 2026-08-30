@@ -57,6 +57,12 @@ export interface UpdatePublisherActivityParams {
   hours: number
   studies: number
   notes: string
+  /**
+   * Secretary-granted hour credit. `undefined` leaves the stored credit untouched — a group
+   * responsible saving the report form must never wipe it — while an explicit number or null
+   * writes it. The route decides who may pass it (CanCorrectActivity).
+   */
+  creditHours?: number | null
 }
 
 export async function updatePublisherActivity(
@@ -76,6 +82,7 @@ export async function updatePublisherActivity(
       hours: params.hours,
       studies: params.studies,
       notes: params.notes,
+      ...(params.creditHours !== undefined ? { creditHours: params.creditHours } : {}),
     },
   })
 

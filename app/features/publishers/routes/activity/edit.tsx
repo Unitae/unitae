@@ -6,6 +6,7 @@ import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { updateActivitySchema } from '~/features/publishers/schemas/activity.schema'
 import { updatePublisherActivity } from '~/features/publishers/server/publisher-activity-mutations.server'
+import { ActivityCreditField } from '~/features/publishers/ui/ActivityCreditField'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
@@ -66,12 +67,15 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
     return {
       activity,
+      // Secretary-only: group responsibles reach this form through the group bypass and
+      // must not see (or set) the credit — they describe the month in the observations.
+      canGrantCredit: permissions.has(Permission.CanCorrectActivity),
     }
   })
 }
 
 export default function EditActivity({ loaderData, actionData }: Route.ComponentProps) {
-  const { activity } = loaderData
+  const { activity, canGrantCredit } = loaderData
   const [type, setType] = useState<PublisherType>(activity.type)
 
   const { blocker, markDirty } = useUnsavedChanges()
@@ -186,6 +190,11 @@ export default function EditActivity({ loaderData, actionData }: Route.Component
               </div>
             </div>
 
+            {/* Only pioneers count their hours, so only their reports can carry a credit. */}
+            {canGrantCredit && type !== PublisherType.Normal && (
+              <ActivityCreditField name={fields.creditHours.name} defaultValue={activity.creditHours} />
+            )}
+
             <div className="space-y-2">
               <Label htmlFor={fields.observations.id}>{m.activity_new_observations_label()}</Label>
               <textarea
@@ -227,7 +236,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  const { type, hours, studies, observations, preached } = submission.value
+  const { type, hours, studies, observations, preached, creditHours } = submission.value
 
   return withScopeFromContext(context, async db => {
     const activity = await db.publisherActivity.findUnique({
@@ -263,6 +272,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         hours,
         studies,
         notes: observations,
+        // Server-side gate, not just a hidden field: only a CanCorrectActivity holder's
+        // submit touches the credit — undefined leaves it as stored, an emptied field clears.
+        ...(permissions.has(Permission.CanCorrectActivity) ? { creditHours: creditHours ?? null } : {}),
       },
     )
 

@@ -29,6 +29,9 @@ export interface PioneerMonth {
   year: number
   hours: number | null
   studies?: number
+  // Approved hour credit the secretary granted on this month's report. Counts toward the
+  // goal (achievedToDate), never toward the report chase or the recent-average trend.
+  credit?: number | null
 }
 
 export interface PaceInput {
@@ -56,7 +59,9 @@ export interface PioneerPace {
   elapsedEnrolled: number
   reportedMonths: number // of the enrolled months to date, how many have an hours report filed
   targetToDate: number
-  actualToDate: number
+  actualToDate: number // field-service hours only
+  creditToDate: number // secretary-granted credits to date
+  achievedToDate: number // actualToDate + creditToDate — what pace and risk are judged on
   paceDelta: number
   remainingMonths: number
   fullYearTarget: number
@@ -68,13 +73,14 @@ export interface PioneerPace {
   reportingStatus: ReportingStatus
   monthlyHours: (number | null)[] // aligned to serviceYearMonths, null = not enrolled
   monthlyStudies: (number | null)[] // aligned to serviceYearMonths, null = not enrolled
+  monthlyCredits: (number | null)[] // aligned to serviceYearMonths, null = not enrolled
 }
 
 export interface AuxiliarySummary {
   enrolledMonths: number // months planned (enrolled) this year — includes months with no report yet
   reportedMonths: number // of the enrolled months, how many have an hours report filed
-  metMonths: number
-  thisMonth: { hours: number; rate: number; met: boolean; reported: boolean } | null
+  metMonths: number // months where field hours plus secretary credit reached the rate
+  thisMonth: { hours: number; credit: number; rate: number; met: boolean; reported: boolean } | null
 }
 
 export function toServiceYear(month: number, year: number): number {
@@ -209,17 +215,23 @@ export function computePioneerPace(input: PaceInput): PioneerPace {
   })
 
   const actualToDate = reportedToDate.reduce((sum, m) => sum + (m.hours ?? 0), 0)
+  const creditToDate = reportedToDate.reduce((sum, m) => sum + (m.credit ?? 0), 0)
+  // Credits count toward the goal, so everything judged against the target starts here. The
+  // recent average deliberately does not: a credit is a one-off grant, not a trend to project.
+  const achievedToDate = actualToDate + creditToDate
   const targetToDate = monthlyRate * elapsedEnrolled
-  const paceDelta = actualToDate - targetToDate
-  const requiredAvgToFinish = remainingMonths === 0 ? 0 : Math.max(0, (fullYearTarget - actualToDate) / remainingMonths)
+  const paceDelta = achievedToDate - targetToDate
+  const requiredAvgToFinish =
+    remainingMonths === 0 ? 0 : Math.max(0, (fullYearTarget - achievedToDate) / remainingMonths)
 
   const recent = reportedToDate.slice(-RECENT_MONTHS_WINDOW)
   const recentAvg = recent.length === 0 ? 0 : recent.reduce((sum, m) => sum + (m.hours ?? 0), 0) / recent.length
-  const projectedYearEnd = actualToDate + recentAvg * remainingMonths
+  const projectedYearEnd = achievedToDate + recentAvg * remainingMonths
   const outOfReach = requiredAvgToFinish > monthlyRate * OUT_OF_REACH_FACTOR
 
   const byHours = new Map(sorted.map(m => [absMonth(m.month, m.year), m.hours ?? 0]))
   const byStudies = new Map(sorted.map(m => [absMonth(m.month, m.year), m.studies ?? 0]))
+  const byCredits = new Map(sorted.map(m => [absMonth(m.month, m.year), m.credit ?? 0]))
   const align = (source: Map<number, number>) =>
     serviceYearMonths(serviceYear).map(({ month, year }) => {
       const key = absMonth(month, year)
@@ -227,6 +239,7 @@ export function computePioneerPace(input: PaceInput): PioneerPace {
     })
   const monthlyHours = align(byHours)
   const monthlyStudies = align(byStudies)
+  const monthlyCredits = align(byCredits)
 
   // A concluded pioneer has no outstanding report — their service is over, not overdue.
   const reportingStatus = concluded ? 'filed' : reportingStatusFor(input)
@@ -236,6 +249,8 @@ export function computePioneerPace(input: PaceInput): PioneerPace {
     reportedMonths: reportedToDate.length,
     targetToDate,
     actualToDate,
+    creditToDate,
+    achievedToDate,
     paceDelta,
     remainingMonths,
     fullYearTarget,
@@ -247,6 +262,7 @@ export function computePioneerPace(input: PaceInput): PioneerPace {
     reportingStatus,
     monthlyHours,
     monthlyStudies,
+    monthlyCredits,
   }
 }
 
@@ -256,14 +272,15 @@ export function computeAuxiliarySummary(input: PaceInput): AuxiliarySummary {
   // reported (report pending).
   const enrolledMonths = months.length
   const reportedMonths = months.filter(m => m.hours != null).length
-  const metMonths = months.filter(m => (m.hours ?? 0) >= monthlyRate).length
+  const metMonths = months.filter(m => (m.hours ?? 0) + (m.credit ?? 0) >= monthlyRate).length
 
   const current = months.find(m => m.month === input.now.getMonth() && m.year === input.now.getFullYear())
   const thisMonth = current
     ? {
         hours: current.hours ?? 0,
+        credit: current.credit ?? 0,
         rate: monthlyRate,
-        met: (current.hours ?? 0) >= monthlyRate,
+        met: (current.hours ?? 0) + (current.credit ?? 0) >= monthlyRate,
         reported: current.hours != null,
       }
     : null

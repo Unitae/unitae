@@ -541,7 +541,7 @@ describe('computeAuxiliarySummary — informational, no verdict', () => {
       months: [month(0, 2026, 22)],
       now,
     })
-    expect(summary.thisMonth).toEqual({ hours: 22, rate: 30, met: false, reported: true })
+    expect(summary.thisMonth).toEqual({ hours: 22, credit: 0, rate: 30, met: false, reported: true })
   })
 
   it('marks an enrolled month with no report as pending (report pending)', () => {
@@ -554,6 +554,86 @@ describe('computeAuxiliarySummary — informational, no verdict', () => {
     })
     expect(summary.enrolledMonths).toBe(1)
     expect(summary.reportedMonths).toBe(0)
-    expect(summary.thisMonth).toEqual({ hours: 0, rate: 30, met: false, reported: false })
+    expect(summary.thisMonth).toEqual({ hours: 0, credit: 0, rate: 30, met: false, reported: false })
+  })
+})
+
+describe('computePioneerPace — secretary hour credits', () => {
+  const now = new Date(2026, 0, 15) // 15 Jan 2026 → expected month = Dec 2025
+
+  it('counts a credited month toward pace — a pioneer with enough credit is not late', () => {
+    // 10h in the field in December, but a 40h approved credit: achieved = 200/200, on pace.
+    const months = [month(8, 2025, 50), month(9, 2025, 50), month(10, 2025, 50), { ...month(11, 2025, 10), credit: 40 }]
+
+    const pace = computePioneerPace({ serviceYear: SY, monthlyRate: 50, months, now })
+
+    expect(pace.actualToDate).toBe(160)
+    expect(pace.creditToDate).toBe(40)
+    expect(pace.achievedToDate).toBe(200)
+    expect(pace.paceDelta).toBe(0)
+    expect(pace.riskBucket).toBe('green')
+  })
+
+  it('counts the credit of a filed month with no field hours', () => {
+    const months = [{ ...month(8, 2025, null), credit: 30 }]
+
+    const pace = computePioneerPace({ serviceYear: SY, monthlyRate: 50, months, now })
+
+    expect(pace.actualToDate).toBe(0)
+    expect(pace.creditToDate).toBe(30)
+    expect(pace.achievedToDate).toBe(30)
+  })
+
+  it('never lets credit stand in for the report itself — an unfiled month stays overdue', () => {
+    // Credit is granted on filed reports; a missing December is still chased, whatever the credit.
+    const months = [{ ...month(8, 2025, 50), credit: 100 }]
+
+    const pace = computePioneerPace({ serviceYear: SY, monthlyRate: 50, months, now })
+
+    expect(pace.reportingStatus).toBe('overdue')
+  })
+
+  it('keeps credit out of the recent-average projection — credits are one-off, not a trend', () => {
+    const months = [
+      { ...month(8, 2025, 40), credit: 10 },
+      { ...month(9, 2025, 40), credit: 10 },
+      { ...month(10, 2025, 40), credit: 10 },
+      { ...month(11, 2025, 40), credit: 10 },
+    ]
+
+    const pace = computePioneerPace({ serviceYear: SY, monthlyRate: 50, months, now })
+
+    expect(pace.recentAvg).toBe(40)
+    // The projection starts from everything achieved (credits included) but extrapolates
+    // only the field-hours trend.
+    expect(pace.projectedYearEnd).toBe(200 + 40 * pace.remainingMonths)
+  })
+
+  it('aligns monthly credits to the service-year months for display', () => {
+    const months = [month(8, 2025, 50), { ...month(9, 2025, 20), credit: 25 }]
+
+    const pace = computePioneerPace({ serviceYear: SY, monthlyRate: 50, months, now })
+
+    expect(pace.monthlyCredits[0]).toBe(0) // Sept: filed, no credit
+    expect(pace.monthlyCredits[1]).toBe(25) // Oct
+    expect(pace.monthlyCredits[2]).toBeNull() // Nov: no row
+  })
+})
+
+describe('computeAuxiliarySummary — secretary hour credits', () => {
+  it('counts a month as met when field hours plus credit reach the rate', () => {
+    const months = [{ ...month(7, 2026, 10), credit: 5 }]
+
+    const summary = computeAuxiliarySummary({
+      serviceYear: SY,
+      monthlyRate: 15,
+      months,
+      now: new Date(2026, 7, 20),
+    })
+
+    expect(summary.metMonths).toBe(1)
+    expect(summary.thisMonth?.met).toBe(true)
+    expect(summary.thisMonth?.hours).toBe(10)
+    expect(summary.thisMonth?.credit).toBe(5)
   })
 })
