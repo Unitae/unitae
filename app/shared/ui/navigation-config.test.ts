@@ -105,7 +105,7 @@ describe('buildManagementSections', () => {
     )
     expect(sections.map(s => s.id)).toEqual(['board', 'assembly', 'territories', 'settings', 'platform'])
     const assembly = sections.find(s => s.id === 'assembly')
-    expect(assembly?.items.map(i => i.id)).toEqual(['publishers', 'groups', 'activity', 'roles', 'programs'])
+    expect(assembly?.items.map(i => i.id)).toEqual(['publishers', 'groups', 'activity', 'organigram', 'programs'])
     const territories = sections.find(s => s.id === 'territories')
     expect(territories?.items.map(i => i.id)).toEqual(['attributions', 'territories', 'prospection', 'stats'])
   })
@@ -171,5 +171,36 @@ describe('isNavItemActive', () => {
     const home = buildTabBar(permissions())[0]
     expect(isNavItemActive(home, '/anywhere', true)).toBe(true)
     expect(isNavItemActive(home, '/anywhere', false)).toBe(false)
+  })
+})
+
+describe('organigram in the assembly section', () => {
+  it('points a can-view-roles holder at the chart, not the role list', () => {
+    // The organigram is the primary view of congregation structure; the eligibility matrix is a
+    // tab on it. Nothing linked to the chart at all before this, so it was reachable only by URL.
+    const sections = buildManagementSections(permissions({ canViewRoles: true }))
+    const assembly = sections.find(s => s.id === 'assembly')
+    const item = assembly?.items.find(i => i.id === 'organigram')
+
+    expect(item?.to).toBe('/congregation/roles/organigram')
+    expect(assembly?.items.some(i => i.id === 'roles')).toBe(false)
+  })
+
+  it('stays hidden without can-view-roles', () => {
+    const sections = buildManagementSections(permissions({ canViewPublishers: true }))
+    const assembly = sections.find(s => s.id === 'assembly')
+
+    expect(assembly?.items.some(i => i.id === 'organigram')).toBe(false)
+  })
+
+  it('highlights while anywhere under congregation/roles, so the matrix tab keeps it lit', () => {
+    const sections = buildManagementSections(permissions({ canViewRoles: true }))
+    const item = sections.find(s => s.id === 'assembly')?.items.find(i => i.id === 'organigram')
+
+    expect(item).toBeDefined()
+    // Third argument is NavLink's own `isActive`, which is false on the matrix tab because the
+    // item points at the chart. `match.prefix` is what keeps the sidebar lit across both tabs.
+    expect(isNavItemActive(item as never, '/congregation/roles', false)).toBe(true)
+    expect(isNavItemActive(item as never, '/congregation/roles/organigram', true)).toBe(true)
   })
 })

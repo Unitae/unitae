@@ -269,6 +269,9 @@ describe('deleteRole', () => {
       isBuiltIn: false,
       _count: { members: 3 },
     } as never)
+    // No organigram children: deleteRole checks before deleting so the admin gets a readable
+    // refusal rather than a raw foreign-key violation.
+    mockDb.role.findMany.mockResolvedValue([] as never)
     mockDb.role.delete.mockResolvedValue({} as never)
 
     await deleteRole(mockDb as never, 7, 10, 1)
@@ -287,6 +290,25 @@ describe('deleteRole', () => {
 })
 
 describe('setUserCustomRoleAssignments', () => {
+  it('keeps personal roles out of both sides of the diff', async () => {
+    // Same shape as the built-in exclusion: a role the filter excludes is never granted here,
+    // and — because the *existing* set is filtered too — never stripped either. A titulaire
+    // keeps their seat when someone edits their eligibility groups.
+    mockDb.role.findMany.mockResolvedValue([] as never)
+    mockDb.userRoleAssignment.findMany.mockResolvedValue([] as never)
+
+    await setUserCustomRoleAssignments(mockDb as never, 5, 10, 99, [])
+
+    expect(mockDb.role.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ isSinglePerson: false }) }),
+    )
+    expect(mockDb.userRoleAssignment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ role: expect.objectContaining({ isSinglePerson: false }) }),
+      }),
+    )
+  })
+
   it('does not audit when desired set matches current set', async () => {
     mockDb.role.findMany.mockResolvedValue([
       { id: 5, key: 'speaker' },
@@ -316,7 +338,10 @@ describe('setUserCustomRoleAssignments', () => {
     // reconciled from its flags, but `admin` carries isBuiltIn too and must stay
     // grantable here — filtering on the flag alone would make it unassignable.
     const findManyCall = mockDb.userRoleAssignment.findMany.mock.calls[0][0]
-    expect(findManyCall.where.role).toEqual({ OR: [{ isBuiltIn: false }, { key: { in: ['admin'] } }] })
+    expect(findManyCall.where.role).toEqual({
+      isSinglePerson: false,
+      OR: [{ isBuiltIn: false }, { key: { in: ['admin'] } }],
+    })
 
     const createCall = mockDb.userRoleAssignment.createMany.mock.calls[0][0]
     expect(createCall.data).toEqual([{ userId: 1, roleId: 6, congregationId: 10 }])
@@ -336,6 +361,20 @@ describe('addUserToRole', () => {
     mockDb.role.findFirst.mockResolvedValue({ id: 1, key: 'elder', isBuiltIn: true } as never)
 
     await expect(addUserToRole(mockDb as never, 5, 1, 10, 99)).rejects.toBeInstanceOf(ForbiddenError)
+    expect(mockDb.userRoleAssignment.create).not.toHaveBeenCalled()
+  })
+
+  it('rejects personal roles — their one seat is granted from the organigram', async () => {
+    // A blind add would write a plain `member` seat onto a role that has no members, only a
+    // titulaire and adjoints, and would skip the handover seating exists to guarantee.
+    mockDb.role.findFirst.mockResolvedValue({
+      id: 7,
+      key: 'responsable-audio-video',
+      isBuiltIn: false,
+      isSinglePerson: true,
+    } as never)
+
+    await expect(addUserToRole(mockDb as never, 5, 7, 10, 99)).rejects.toBeInstanceOf(ForbiddenError)
     expect(mockDb.userRoleAssignment.create).not.toHaveBeenCalled()
   })
 
@@ -388,6 +427,19 @@ describe('removeUserFromRole', () => {
     expect(vi.mocked(audit)).not.toHaveBeenCalled()
   })
 
+  it.each([
+    'leader',
+    'deputy',
+  ])('refuses to strip a %s seat — leadership changes hands on the organigram', async kind => {
+    // The matrix bulk-edits members; one stray uncheck must not silently unseat a responsable.
+    // Unseating leadership is the organigram's gesture, where the seat is visible as one.
+    mockDb.role.findFirst.mockResolvedValue({ id: 7, key: 'sono', isBuiltIn: false } as never)
+    mockDb.userRoleAssignment.findFirst.mockResolvedValue({ userId: 5, kind } as never)
+
+    await expect(removeUserFromRole(mockDb as never, 5, 7, 10, 99)).rejects.toBeInstanceOf(ForbiddenError)
+    expect(mockDb.userRoleAssignment.deleteMany).not.toHaveBeenCalled()
+  })
+
   it('deletes assignment and audits with role key in removed when membership existed', async () => {
     mockDb.role.findFirst.mockResolvedValue({ id: 7, key: 'speaker', isBuiltIn: false } as never)
     mockDb.userRoleAssignment.findFirst.mockResolvedValue({ userId: 5 } as never)
@@ -404,5 +456,45 @@ describe('removeUserFromRole', () => {
         metadata: { added: [], removed: ['speaker'] },
       }),
     )
+  })
+})
+
+const NAMES_THE_CHILD = /Secrétaire/
+
+describe('deleteRole — organigram children', () => {
+  it('refuses to delete a role that other roles report to, naming them', async () => {
+    // The self-referencing FK is ON DELETE RESTRICT, so without this check the admin gets a raw
+    // constraint violation and no idea which roles are in the way.
+    mockDb.role.findFirst.mockResolvedValue({
+      id: 1,
+      key: 'comite',
+      name: 'Comité de service',
+      isBuiltIn: false,
+      _count: { members: 0 },
+    })
+    mockDb.role.findMany.mockResolvedValue([
+      { id: 2, key: 'secretaire', name: 'Secrétaire' },
+      { id: 3, key: 'comptes', name: 'Comptes' },
+    ])
+
+    await expect(deleteRole(mockDb as never, 1, 10, 99)).rejects.toBeInstanceOf(ConflictError)
+    await expect(deleteRole(mockDb as never, 1, 10, 99)).rejects.toThrow(NAMES_THE_CHILD)
+    expect(mockDb.role.delete).not.toHaveBeenCalled()
+  })
+
+  it('deletes a role with no children', async () => {
+    mockDb.role.findFirst.mockResolvedValue({
+      id: 4,
+      key: 'sono',
+      name: 'Sono',
+      isBuiltIn: false,
+      _count: { members: 2 },
+    })
+    mockDb.role.findMany.mockResolvedValue([])
+    mockDb.role.delete.mockResolvedValue({})
+
+    await deleteRole(mockDb as never, 4, 10, 99)
+
+    expect(mockDb.role.delete).toHaveBeenCalled()
   })
 })

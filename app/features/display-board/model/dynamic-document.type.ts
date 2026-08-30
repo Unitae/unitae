@@ -2,6 +2,7 @@ export const DynamicType = {
   PublisherGroups: 'publisher-groups',
   Pioneers: 'pioneers',
   Programme: 'programme',
+  Organigram: 'organigram',
 } as const
 
 export type DynamicType = (typeof DynamicType)[keyof typeof DynamicType]

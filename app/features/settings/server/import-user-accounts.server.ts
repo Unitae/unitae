@@ -154,14 +154,16 @@ export async function importUserRoleAssignments(
   idMap: EntityIdMap,
   congregationId: number,
 ): Promise<void> {
-  const records = await readNdjsonFile<{ userId: number; roleId: number }>(zip, 'user-role-assignments')
-  const data: { userId: number; roleId: number; congregationId: number }[] = []
+  // `kind` decides who leads a service on the organigram. Absent from archives taken before
+  // seats existed — those rows were all plain members, which is what the default restores.
+  const records = await readNdjsonFile<{ userId: number; roleId: number; kind?: string }>(zip, 'user-role-assignments')
+  const data: { userId: number; roleId: number; congregationId: number; kind: string }[] = []
 
   for (const record of records) {
     const userId = idMap.getOptional('user-accounts', record.userId)
     const roleId = idMap.getOptional('roles', record.roleId)
     if (!userId || !roleId) continue
-    data.push({ userId, roleId, congregationId })
+    data.push({ userId, roleId, congregationId, kind: record.kind ?? 'member' })
   }
 
   if (data.length > 0) {

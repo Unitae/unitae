@@ -70,8 +70,11 @@ export function AppLayout({ permissions, congregationName, sidebarOpen = true }:
             clearance. */}
         <div className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-[radial-gradient(70%_360px_at_50%_0%,color-mix(in_oklab,var(--color-primary)_5%,transparent),transparent)] p-4 max-md:pb-[calc(4.5rem+env(safe-area-inset-bottom))] max-sm:has-[[data-form-actions]]:pb-[calc(8rem+env(safe-area-inset-bottom))] md:p-6">
           {/* Soft cap so pages keep a readable measure when the sidebar is
-              collapsed or on very wide screens. */}
-          <div className="mx-auto w-full max-w-7xl">
+              collapsed or on very wide screens. Full-bleed pages — the two board viewers,
+              which escape the padding with negative margins — opt out via `data-full-bleed`,
+              the same zero-JS has() trick as `data-form-actions`: a capped, centred viewer
+              reads as a floating column with cream gutters on a wide monitor. */}
+          <div className="mx-auto w-full max-w-7xl has-[[data-full-bleed]]:max-w-none">
             <Outlet />
           </div>
         </div>

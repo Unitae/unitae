@@ -18,6 +18,12 @@ const BUILT_IN_NAMES: Record<string, () => string> = {
   elder: () => m.role_name_elder(),
   'assistant-servant': () => m.role_name_assistant_servant(),
   pioneer: () => m.role_name_pioneer(),
+  // The service committee and its three posts. Universal to every congregation, so their names
+  // are resolved per-locale here rather than typed into the database by each one.
+  'service-committee': () => m.role_name_service_committee(),
+  coordinator: () => m.role_name_coordinator(),
+  secretary: () => m.role_name_secretary(),
+  'service-overseer': () => m.role_name_service_overseer(),
 }
 
 const BUILT_IN_DESCRIPTIONS: Record<string, () => string> = {
@@ -32,6 +38,10 @@ const BUILT_IN_DESCRIPTIONS: Record<string, () => string> = {
   elder: () => m.role_desc_elder(),
   'assistant-servant': () => m.role_desc_assistant_servant(),
   pioneer: () => m.role_desc_pioneer(),
+  'service-committee': () => m.role_desc_service_committee(),
+  coordinator: () => m.role_desc_coordinator(),
+  secretary: () => m.role_desc_secretary(),
+  'service-overseer': () => m.role_desc_service_overseer(),
 }
 
 export function getRoleDisplayName(role: RoleDisplay): string {

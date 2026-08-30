@@ -1,4 +1,4 @@
-import { ArrowLeft, Info, Search, X } from 'lucide-react'
+import { ArrowLeft, Download, Info, Search, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Link, redirect } from 'react-router'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
@@ -9,6 +9,7 @@ import {
 } from '~/features/display-board/server/dynamic-documents.server'
 import { filterDynamicDataToEvent } from '~/features/display-board/server/event-filter.server'
 import { buildSectionVisibilityFilter } from '~/features/display-board/server/section-visibility.server'
+import { OrganigramView } from '~/features/display-board/ui/dynamic/OrganigramView'
 import { PioneersView } from '~/features/display-board/ui/dynamic/PioneersView'
 import { ProgrammeView } from '~/features/display-board/ui/dynamic/ProgrammeView'
 import { PublisherGroupsView } from '~/features/display-board/ui/dynamic/PublisherGroupsView'
@@ -88,7 +89,7 @@ export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   return (
-    <div className="-m-4 flex h-[calc(100vh-2rem)] flex-col md:-m-6 md:h-[calc(100vh-3rem)]">
+    <div data-full-bleed="" className="-m-4 flex h-[calc(100vh-2rem)] flex-col md:-m-6 md:h-[calc(100vh-3rem)]">
       <div className="flex items-center justify-between gap-2 border-b bg-background px-4 py-3 md:px-6">
         <div className="flex min-w-0 items-center gap-2">
           <Button variant="ghost" size="icon" asChild>
@@ -104,6 +105,17 @@ export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) 
             <span className="hidden text-muted-foreground text-xs sm:inline">
               {m.board_viewer_updated()} <RelativeTime date={contentVersion} />
             </span>
+          )}
+          {data?.type === DynamicType.Organigram && data.tree.length > 0 && (
+            // Same design as the PDF viewer's download button. A plain anchor, not a Link: the
+            // target is a PDF resource whose Content-Disposition triggers the download without
+            // leaving the page. Hidden while the tree is empty — that PDF is a blank page.
+            <Button variant="outline" size="sm" asChild>
+              <a href={`/board/dynamic/${settings.id}/pdf`}>
+                <Download className="mr-2 size-4" />
+                <span className="max-sm:sr-only">{m.board_viewer_download_pdf()}</span>
+              </a>
+            </Button>
           )}
           {isProgramme && (
             <div className="flex items-center gap-2">
@@ -161,6 +173,7 @@ export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) 
             </p>
           )}
         </div>
+        {data?.type === DynamicType.Organigram && <OrganigramView tree={data.tree} />}
         {data?.type === DynamicType.PublisherGroups && <PublisherGroupsView groups={data.groups} />}
         {data?.type === DynamicType.Pioneers && <PioneersView pioneers={data.pioneers} />}
         {data?.type === DynamicType.Programme && (

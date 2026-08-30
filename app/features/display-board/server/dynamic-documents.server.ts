@@ -4,6 +4,12 @@ import {
   type ProgrammeDynamicConfig,
   parseProgrammeConfig,
 } from '~/features/display-board/model/dynamic-document.type'
+import {
+  fetchOrganigramDocument,
+  getOrganigramPreview,
+  getOrganigramVersion,
+  hasOrganigram,
+} from '~/features/display-board/server/organigram-document.server'
 // Cross-feature import via the events barrel (deep-importing another
 // feature's model directly is forbidden by the boundaries lint rule).
 import { EventStatus } from '~/features/events'
@@ -71,6 +77,15 @@ export async function listAvailableDynamicTypes(
 
   const available: AvailableDynamicType[] = []
 
+  if (await hasOrganigram(db, congregationId)) {
+    available.push({
+      dynamicType: DynamicType.Organigram,
+      dynamicRef: null,
+      defaultTitle: 'Organigramme',
+      alreadyAdded: isAlreadyAdded(DynamicType.Organigram, null),
+    })
+  }
+
   const groupCount = await db.publisherGroup.count({ where: { congregationId } })
   if (groupCount > 0) {
     available.push({
@@ -115,6 +130,10 @@ export async function getContentVersion(
   congregationId: number,
   dynamicConfig?: unknown,
 ): Promise<Date | null> {
+  if (dynamicType === DynamicType.Organigram) {
+    return getOrganigramVersion(db, congregationId)
+  }
+
   if (dynamicType === DynamicType.PublisherGroups) {
     const [group, memberUser] = await Promise.all([
       db.publisherGroup.findFirst({
@@ -255,6 +274,10 @@ export async function getDynamicPreview(
     return null
   }
 
+  if (dynamicType === DynamicType.Organigram) {
+    return getOrganigramPreview(db, congregationId)
+  }
+
   return null
 }
 
@@ -284,6 +307,10 @@ export async function getDynamicDocumentData(
   congregationId: number,
   options: { showServices?: boolean; dynamicConfig?: unknown } = {},
 ) {
+  if (dynamicType === DynamicType.Organigram) {
+    return { type: DynamicType.Organigram, tree: await fetchOrganigramDocument(db, congregationId) } as const
+  }
+
   if (dynamicType === DynamicType.PublisherGroups) {
     return {
       type: DynamicType.PublisherGroups,

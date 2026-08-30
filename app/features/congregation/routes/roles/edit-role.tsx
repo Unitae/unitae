@@ -1,11 +1,12 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { Trash2 } from 'lucide-react'
-import { data, Form, redirect } from 'react-router'
+import { data, Form, redirect, useSubmit } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { editRoleSchema } from '~/features/congregation/schemas/role.schema'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { setRoleSinglePerson } from '~/shared/domain/organigram.server'
 import { getRole, updateRoleIdentity } from '~/shared/domain/roles.server'
 import { ConflictError, ForbiddenError, ValidationError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
@@ -55,6 +56,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 }
 
 export default function EditRolePage({ loaderData, actionData }: Route.ComponentProps) {
+  const submit = useSubmit()
   const { role } = loaderData
   const { blocker, markDirty } = useUnsavedChanges()
   useFocusError(actionData)
@@ -103,6 +105,19 @@ export default function EditRolePage({ loaderData, actionData }: Route.Component
               />
               {fields.description.errors && <p className="text-destructive text-sm">{fields.description.errors}</p>}
             </div>
+            <div className="flex flex-col gap-1">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name={fields.singlePerson.name}
+                  defaultChecked={role.isSinglePerson}
+                  className="size-4"
+                />
+                {m.congregation_role_edit_single_person_label()}
+              </label>
+              <p className="text-muted-foreground text-xs">{m.congregation_role_edit_single_person_hint()}</p>
+              {fields.singlePerson.errors && <p className="text-destructive text-sm">{fields.singlePerson.errors}</p>}
+            </div>
             <FormActions>
               <SubmitButton>{m.congregation_role_edit_submit()}</SubmitButton>
             </FormActions>
@@ -137,14 +152,20 @@ export default function EditRolePage({ loaderData, actionData }: Route.Component
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-                <Form method="post" action={`/congregation/roles/${role.id}/delete`}>
-                  <AlertDialogAction
-                    type="submit"
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    {m.congregation_role_delete_confirm()}
-                  </AlertDialogAction>
-                </Form>
+                {/*
+                  Submitted programmatically, NOT by wrapping this button in a <Form>.
+
+                  AlertDialogAction closes the dialog on click, which unmounts the dialog's
+                  content — and with it a form living inside it — before the browser gets to the
+                  button's default submit. The request was never sent: the dialog just closed and
+                  the role stayed. Nothing surfaced, because nothing failed.
+                */}
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={() => submit(null, { method: 'post', action: `/congregation/roles/${role.id}/delete` })}
+                >
+                  {m.congregation_role_delete_confirm()}
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -173,6 +194,15 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         name: submission.value.name,
         description: submission.value.description || null,
       })
+      try {
+        await setRoleSinglePerson(db, roleId, submission.value.singlePerson, currentUser.congregationId, currentUser.id)
+      } catch (error) {
+        // Its ConflictError — several titulaires already seated — carries its own actionable
+        // message, unlike the duplicate-name one the outer handler phrases. The rename above
+        // still commits: half a save with the reason shown beats losing both edits.
+        if (!(error instanceof ConflictError)) throw error
+        return data(submission.reply({ fieldErrors: { singlePerson: [error.message] } }), { status: 409 })
+      }
       session.flash('success', m.congregation_role_update_success())
       return redirect(`/congregation/roles/${roleId}/edit`, {
         headers: { 'Set-Cookie': await commitSession(session) },

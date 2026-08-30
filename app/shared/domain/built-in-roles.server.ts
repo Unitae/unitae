@@ -33,6 +33,38 @@ export const SYSTEM_ROLE_KEYS = ['admin'] as const
 
 export type SystemRoleKey = (typeof SYSTEM_ROLE_KEYS)[number]
 
+/**
+ * The service committee, which exists in exactly this shape in every congregation.
+ *
+ * Three elders — the coordinator, the secretary and the service overseer — and most services
+ * answer to one of them; the rest answer to the body of elders directly. Because that is
+ * universal rather than a local arrangement, it is structure rather than something each
+ * congregation types in.
+ *
+ * Stored like the identity roles — `isBuiltIn`, `name`/`description` null, display strings
+ * resolved per-locale by `getRoleDisplayName` — but appointed by hand like the system roles,
+ * so assignments live on `UserRoleAssignment`. Keeping the keys stable is what lets a default
+ * permission set ship for "the secretary" and lets a handover revoke the outgoing holder's
+ * permissions the moment the new one is seated.
+ */
+export const SERVICE_COMMITTEE_KEY = 'service-committee'
+export const SERVICE_COMMITTEE_POST_KEYS = ['coordinator', 'secretary', 'service-overseer'] as const
+export const APPOINTED_ROLE_KEYS = [SERVICE_COMMITTEE_KEY, ...SERVICE_COMMITTEE_POST_KEYS] as const
+
+export type AppointedRoleKey = (typeof APPOINTED_ROLE_KEYS)[number]
+
+const APPOINTED_KEY_SET: ReadonlySet<string> = new Set(APPOINTED_ROLE_KEYS)
+
+/** True for the committee and its three posts — the roles whose place in the chart is fixed. */
+export function isAppointedRoleKey(key: string): boolean {
+  return APPOINTED_KEY_SET.has(key)
+}
+
+/** True for the three posts only. The committee itself is a box, never a seat someone holds. */
+export function isServiceCommitteePostKey(key: string): key is (typeof SERVICE_COMMITTEE_POST_KEYS)[number] {
+  return (SERVICE_COMMITTEE_POST_KEYS as readonly string[]).includes(key)
+}
+
 const IDENTITY_ROLE_KEYS: ReadonlySet<string> = new Set(BUILT_IN_ROLE_KEYS)
 
 /**

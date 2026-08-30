@@ -1,5 +1,5 @@
 import { parseWithZod } from '@conform-to/zod'
-import { Calendar, Info, Star, Users } from 'lucide-react'
+import { Calendar, Info, Network, Star, Users } from 'lucide-react'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import type { ProgrammeDynamicConfig } from '~/features/display-board/model/dynamic-document.type'
@@ -46,6 +46,7 @@ function iconFor(type: string) {
   if (type === DynamicType.PublisherGroups) return <Users className="size-5" />
   if (type === DynamicType.Pioneers) return <Star className="size-5" />
   if (type === DynamicType.Programme) return <Calendar className="size-5" />
+  if (type === DynamicType.Organigram) return <Network className="size-5" />
   return null
 }
 

@@ -113,7 +113,20 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
       name: 'roles',
       export: () =>
         db.role.findMany({
-          select: { id: true, key: true, name: true, description: true, isBuiltIn: true },
+          select: {
+            id: true,
+            key: true,
+            name: true,
+            description: true,
+            isBuiltIn: true,
+            // Organigram. `parentRoleId` is a *source* id — the importer translates it through
+            // the id map in a second pass, because target ids are assigned on insert.
+            parentRoleId: true,
+            showInOrganigram: true,
+            organigramOrder: true,
+            organigramNote: true,
+            isSinglePerson: true,
+          },
         }),
     },
     {
@@ -181,7 +194,9 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
       name: 'user-role-assignments',
       export: () =>
         db.userRoleAssignment.findMany({
-          select: { userId: true, roleId: true },
+          // `kind` decides who leads a service. Dropping it on restore would quietly demote
+          // every responsable to a plain member — a change in who may do what.
+          select: { userId: true, roleId: true, kind: true },
         }),
     },
     {

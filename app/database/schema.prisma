@@ -333,6 +333,30 @@ model Role {
   allowedForBoardSections        BoardSectionVisibilityRole[]
   allowedForTerritoryKinds       TerritoryKindAllowedRole[]
 
+  // Organigram: reporting structure, and nothing else.
+  //
+  // `parentRoleId` is NEVER traversed by permission resolution. The chart's root is the
+  // `elder` roster, so inheriting downward would make every seated person an elder, and
+  // inheriting upward would hand every elder every permission in the congregation. A person's
+  // permissions come only from the roles they are actually in — see
+  // `resolveEffectivePermissions` in app/shared/auth/permissions.server.ts.
+  //
+  // The FK is composite so a role cannot be parented into another congregation: that is
+  // enforced by Postgres against @@unique([id, congregationId]) below, not by a service check.
+  // MATCH SIMPLE means a null parent skips the check, so roots need no special case.
+  parentRoleId Int?
+  parentRole   Role?  @relation("roleTree", fields: [parentRoleId, congregationId], references: [id, congregationId], onDelete: Restrict, onUpdate: NoAction)
+  children     Role[] @relation("roleTree")
+
+  showInOrganigram Boolean @default(false)
+  organigramOrder  Int?
+  // Free text for a group named without listing its people, e.g. « Équipe des préposés à l'accueil ».
+  organigramNote   String?
+  // A personal role: one titular `leader` seat, with a handover on re-seating. Deputies are
+  // still allowed — an adjoint is either a deputy seat here or a child personal role. The three
+  // committee posts carry this; congregations set it on their own «Responsable …» roles.
+  isSinglePerson   Boolean @default(false)
+
   congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
   congregationId Int
 
@@ -366,6 +390,11 @@ model UserRoleAssignment {
   roleId         Int
   congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
   congregationId Int
+
+  // Which seat this person occupies in an organigram node: leader | deputy | member.
+  // Defaults to `member`, which is correct for every pre-existing row and for every grant
+  // made outside the organigram — only the seating UI ever writes anything else.
+  kind String @default("member")
 
   @@id([userId, roleId])
   @@index([congregationId])

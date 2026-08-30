@@ -79,6 +79,13 @@ export default function NewRolePage({ actionData }: Route.ComponentProps) {
               />
               {fields.description.errors && <p className="text-destructive text-sm">{fields.description.errors}</p>}
             </div>
+            <div className="flex flex-col gap-1">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name={fields.singlePerson.name} className="size-4" />
+                {m.congregation_role_edit_single_person_label()}
+              </label>
+              <p className="text-muted-foreground text-xs">{m.congregation_role_edit_single_person_hint()}</p>
+            </div>
             <FormActions>
               <SubmitButton>{m.congregation_role_edit_submit()}</SubmitButton>
             </FormActions>
@@ -107,6 +114,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         name: submission.value.name,
         description: submission.value.description || null,
         permissionKeys: [],
+        isSinglePerson: submission.value.singlePerson,
       })
       session.flash('success', m.congregation_role_create_success())
       return redirect('/congregation/roles', {

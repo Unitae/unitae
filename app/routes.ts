@@ -45,6 +45,7 @@ export default [
       ]),
       ...prefix('dynamic', [
         route('/:dynamicId/viewer', 'features/display-board/routes/dynamic/viewer.tsx'),
+        route('/:dynamicId/pdf', 'features/display-board/routes/dynamic/pdf.tsx'),
         route('/:dynamicId/edit', 'features/display-board/routes/dynamic/edit.tsx'),
         route('/:dynamicId/delete', 'features/display-board/routes/dynamic/delete.tsx'),
       ]),
@@ -116,6 +117,8 @@ export default [
     ]),
     ...prefix('congregation/roles', [
       index('features/congregation/routes/roles/role-list.tsx'),
+      route('organigram', 'features/congregation/routes/roles/organigram.tsx'),
+      route('organigram/adopt', 'features/congregation/routes/roles/adopt-committee.tsx'),
       route('new', 'features/congregation/routes/roles/new-role.tsx'),
       ...prefix(':roleId', [
         route('edit', 'features/congregation/routes/roles/edit-role.tsx'),

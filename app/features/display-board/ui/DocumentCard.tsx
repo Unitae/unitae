@@ -1,4 +1,4 @@
-import { Calendar, FileText, Footprints, Users } from 'lucide-react'
+import { Calendar, FileText, Footprints, Network, Users } from 'lucide-react'
 import { Link } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
@@ -31,6 +31,7 @@ function getDynamicIcon(dynamicType: string) {
   if (dynamicType === 'publisher-groups') return Users
   if (dynamicType === 'pioneers') return Footprints
   if (dynamicType === 'programme') return Calendar
+  if (dynamicType === 'organigram') return Network
   return FileText
 }
 
@@ -38,6 +39,7 @@ function getDynamicPreviewBg(dynamicType: string) {
   if (dynamicType === 'publisher-groups') return 'bg-blue-50 dark:bg-blue-950/30'
   if (dynamicType === 'pioneers') return 'bg-emerald-50 dark:bg-emerald-950/30'
   if (dynamicType === 'programme') return 'bg-red-50 dark:bg-red-950/30'
+  if (dynamicType === 'organigram') return 'bg-teal-50 dark:bg-teal-950/30'
   return 'bg-muted'
 }
 
@@ -45,6 +47,7 @@ function getDynamicIconColor(dynamicType: string) {
   if (dynamicType === 'publisher-groups') return 'text-blue-500'
   if (dynamicType === 'pioneers') return 'text-emerald-600'
   if (dynamicType === 'programme') return 'text-red-500'
+  if (dynamicType === 'organigram') return 'text-teal-600'
   return 'text-muted-foreground'
 }
 
