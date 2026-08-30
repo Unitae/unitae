@@ -290,6 +290,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
             canEdit={canEdit}
             canViewPublishers={canViewPublishers}
             onPartClick={openPartAssign}
+            shareTexts={shareTexts}
           />
           <div className="max-md:hidden">
             <Table>

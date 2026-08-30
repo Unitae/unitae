@@ -46,8 +46,29 @@ let snapshotPromise: Promise<Snapshot> | null = null
 
 /** Memoised: every `it` reads one snapshot rather than re-running an expensive transaction. */
 function snapshot(): Promise<Snapshot> {
-  snapshotPromise ??= build()
+  snapshotPromise ??= buildWithRetry()
   return snapshotPromise
+}
+
+/**
+ * The migration's INSERT … SELECT covers every congregation in the database, not just this
+ * file's two. Under the parallel integration run, another worker can delete its own
+ * congregation between that statement's snapshot and its FK check, which fails the replay on
+ * `Role_congregationId_fkey`. That race is a property of the shared test database, not of the
+ * migration — in production it runs alone — so the replay retries instead of failing the suite.
+ */
+async function buildWithRetry(attempts = 3): Promise<Snapshot> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await build()
+    } catch (error) {
+      // The constraint name lands in the message itself (verified against the P2010 error the
+      // pg adapter raises) — matched there rather than via JSON.stringify, which could itself
+      // throw on an unserialisable error and replace the failure being reported.
+      const racy = error instanceof Error && error.message.includes('Role_congregationId_fkey')
+      if (!racy || attempt >= attempts) throw error
+    }
+  }
 }
 
 async function build(): Promise<Snapshot> {
