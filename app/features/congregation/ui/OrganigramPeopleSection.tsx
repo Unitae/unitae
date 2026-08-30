@@ -1,6 +1,6 @@
 import { X } from 'lucide-react'
 import { useState } from 'react'
-import { Form } from 'react-router'
+import { Form, Link as RouterLink } from 'react-router'
 import type { PanelNode } from '~/features/congregation/ui/OrganigramNodePanel'
 import { Button } from '~/shared/ui/button'
 import { Label } from '~/shared/ui/label'
@@ -16,10 +16,12 @@ export interface PanelHolder {
   kind: string
 }
 
+// The organigram names who *leads*: the chart seats responsables and adjoints, and the role
+// matrix (« Groupes d'aptitude ») handles plain members in bulk. Splitting the two gestures is
+// what keeps each page simple — and keeps a stray click here from touching a whole team.
 const KIND_LABEL: Record<string, string> = {
   leader: 'Responsable',
   deputy: 'Adjoint',
-  member: 'Membre',
 }
 
 // On a personal role nobody is «responsable of» it — the node name is the function, and the
@@ -29,9 +31,7 @@ const SINGLE_KIND_LABEL: Record<string, string> = {
   deputy: 'Adjoint',
 }
 
-/** A personal role has no plain «membre» seat: someone is the titulaire or helps them. */
-const SINGLE_KINDS = ['leader', 'deputy'] as const
-const GROUP_KINDS = ['leader', 'deputy', 'member'] as const
+const SEAT_KINDS = ['leader', 'deputy'] as const
 
 /** Secondary controls sit inside a row that already has a primary button; keep them recessive. */
 const quietSelectClass =
@@ -144,12 +144,11 @@ export function PeopleSection({
   nonElderIds: number[]
 }) {
   const single = node.isSinglePerson
-  const kinds = single ? SINGLE_KINDS : GROUP_KINDS
   const labels = single ? SINGLE_KIND_LABEL : KIND_LABEL
-  const titular = single ? node.holders.find(holder => holder.kind === 'leader') : undefined
+  const titular = node.holders.find(holder => holder.kind === 'leader')
   // Controlled: on a post, who the picker may offer depends on which seat is being filled —
   // the titulaire must be an elder, an adjoint need not be.
-  const [kind, setKind] = useState<string>(single ? (titular ? 'deputy' : 'leader') : 'member')
+  const [kind, setKind] = useState<string>(titular ? 'deputy' : 'leader')
   const seatingTitular = single && kind === 'leader'
   const elderOnly = node.isPost && seatingTitular
 
@@ -169,10 +168,12 @@ export function PeopleSection({
               holder={holder}
               nodeId={node.id}
               nodeName={node.name}
-              kinds={kinds}
+              kinds={SEAT_KINDS}
               labels={labels}
               showElderChip={node.isPost && holder.kind === 'leader'}
-              readOnly={node.isCommittee || node.isRoster}
+              // Plain members are the matrix's to edit; this list only *shows* them, so a
+              // stray click while reviewing a team cannot remove half of it.
+              readOnly={node.isCommittee || node.isRoster || holder.kind === 'member'}
             />
           ))}
         </ul>
@@ -195,7 +196,7 @@ export function PeopleSection({
 
           <Label htmlFor={`add-person-${node.id}`} className="text-muted-foreground text-xs">
             {!single
-              ? 'Ajouter une personne'
+              ? 'Nommer un responsable ou un adjoint'
               : titular
                 ? 'Ajouter ou remplacer'
                 : node.isPost
@@ -221,7 +222,7 @@ export function PeopleSection({
               aria-label="En tant que"
               className={quietSelectClass}
             >
-              {kinds.map(value => (
+              {SEAT_KINDS.map(value => (
                 <option key={value} value={value}>
                   {labels[value]}
                 </option>
@@ -233,6 +234,15 @@ export function PeopleSection({
             // The handover is the point, but it must not be a surprise.
             <p className="text-muted-foreground text-xs">
               {titular.name} quittera cette fonction et les permissions qui l’accompagnent.
+            </p>
+          )}
+          {!single && (
+            <p className="text-muted-foreground text-xs">
+              Les membres de l’équipe s’ajoutent depuis les{' '}
+              <RouterLink to="/congregation/roles" className="underline underline-offset-2 hover:text-foreground">
+                groupes d’aptitude
+              </RouterLink>
+              .
             </p>
           )}
         </Form>
