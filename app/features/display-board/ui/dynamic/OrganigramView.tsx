@@ -1,7 +1,7 @@
 import * as m from '~/i18n/paraglide/messages'
 import type { OrganigramNode } from '~/shared/domain/organigram.queries'
-import type { BandBlock, CommitteeBlock, LayoutBlock, RosterBlock } from '~/shared/domain/organigram-layout'
-import { seatLabel, toLayout } from '~/shared/domain/organigram-layout'
+import type { BandBlock, CommitteeBlock, RosterBlock } from '~/shared/domain/organigram-layout'
+import { groupLayout, responsibilityEyebrow, seatLabel, toLayout } from '~/shared/domain/organigram-layout'
 import { cn } from '~/shared/utils/utils'
 
 // The board's rendering of the organigram — a document, not a tool.
@@ -30,13 +30,12 @@ function formatName(person: Holder): string {
 
 function People({ node, membersHidden = false }: { node: OrganigramNode; membersHidden?: boolean }) {
   // The document names who to *ask for* — the responsable, the préposé, the adjoint. A full
-  // team roll call turns a one-page sheet into a directory, so plain members collapse to a
-  // count. The rosters never pass this flag: they ARE the list.
+  // team roll call turns a one-page sheet into a directory, so plain members simply do not
+  // print. The rosters never pass this flag: they ARE the list.
   const shown = membersHidden
     ? node.holders.filter(holder => holder.kind === 'leader' || holder.kind === 'deputy')
     : node.holders
-  const hiddenCount = node.holders.length - shown.length
-  if (shown.length === 0 && hiddenCount === 0) return null
+  if (shown.length === 0) return null
   return (
     <span className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
       {shown.map((holder, index) => {
@@ -53,27 +52,15 @@ function People({ node, membersHidden = false }: { node: OrganigramNode; members
           </span>
         )
       })}
-      {hiddenCount > 0 && (
-        <span className="whitespace-nowrap text-muted-foreground text-xs">
-          {shown.length > 0 && (
-            <span aria-hidden="true" className="pr-1.5 text-muted-foreground/40">
-              ·
-            </span>
-          )}
-          {hiddenCount === 1 ? '1 membre' : `${hiddenCount} membres`}
-        </span>
-      )}
     </span>
   )
 }
 
 /** Two columns: the service on the left, its people on the right, as the sheet prints them. */
-function Line({ node, strong = false }: { node: OrganigramNode; strong?: boolean }) {
+function Line({ node }: { node: OrganigramNode }) {
   return (
     <div className="flex flex-col gap-0.5 py-1.5 sm:flex-row sm:items-baseline sm:gap-6">
-      <span className={cn('text-sm sm:w-56 sm:shrink-0', strong ? 'font-semibold' : 'text-foreground/90')}>
-        {node.name}
-      </span>
+      <span className="text-foreground/90 text-sm sm:w-56 sm:shrink-0">{node.name}</span>
       <span className="flex min-w-0 flex-col gap-0.5 text-sm">
         <People node={node} membersHidden />
         {node.note && <span className="text-muted-foreground text-xs italic">{node.note}</span>}
@@ -106,7 +93,9 @@ function ServiceWithTeams({ node, teams }: { node: OrganigramNode; teams: Organi
 
   return (
     <div className="flex flex-col gap-0.5 py-1.5 sm:flex-row sm:items-baseline sm:gap-6">
-      <span className="font-semibold text-sm sm:w-56 sm:shrink-0">{node.name}</span>
+      {/* Same weight as every other service: bold was the old container-heading style, and once
+          the teams became a text line it read as arbitrary emphasis. ÉQUIPES says "has teams". */}
+      <span className="text-foreground/90 text-sm sm:w-56 sm:shrink-0">{node.name}</span>
       <span className="flex min-w-0 flex-col gap-0.5 text-sm">
         <span className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
           {leaders.map((leader, index) => {
@@ -205,7 +194,9 @@ function BranchSection({ under, bands }: { under: string; bands: BandBlock[] }) 
   return (
     <section className="flex flex-col gap-2">
       <header className="border-b pb-2">
-        <p className="text-[0.65rem] text-muted-foreground uppercase tracking-[0.14em]">Sous la responsabilité</p>
+        <p className="text-[0.65rem] text-muted-foreground uppercase tracking-[0.14em]">
+          {responsibilityEyebrow(under)}
+        </p>
         <h3 className="font-display font-medium text-lg leading-snug">{under}</h3>
       </header>
       <div className="flex flex-col gap-1">
@@ -219,28 +210,6 @@ function BranchSection({ under, bands }: { under: string; bands: BandBlock[] }) 
       </div>
     </section>
   )
-}
-
-interface GroupedLayout {
-  rosters: RosterBlock[]
-  committee: CommitteeBlock | null
-  /** Consecutive bands sharing a responsibility header — `toLayout` emits each branch contiguously. */
-  sections: { under: string; bands: BandBlock[] }[]
-  legacy: LayoutBlock[]
-}
-
-function groupLayout(blocks: LayoutBlock[]): GroupedLayout {
-  const grouped: GroupedLayout = { rosters: [], committee: null, sections: [], legacy: [] }
-  for (const block of blocks) {
-    if (block.kind === 'roster') grouped.rosters.push(block)
-    else if (block.kind === 'committee') grouped.committee = block
-    else if (block.kind === 'band' && block.under != null) {
-      const current = grouped.sections[grouped.sections.length - 1]
-      if (current && current.under === block.under) current.bands.push(block)
-      else grouped.sections.push({ under: block.under, bands: [block] })
-    } else grouped.legacy.push(block)
-  }
-  return grouped
 }
 
 export function OrganigramView({ tree }: { tree: OrganigramNode[] }) {

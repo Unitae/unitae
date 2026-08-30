@@ -112,11 +112,13 @@ export function toLayout(tree: OrganigramNode[]): LayoutBlock[] {
     )
   }
 
-  // 3. The services the rosters keep for themselves close the sheet.
+  // 3. The services the rosters keep for themselves close the sheet. The elder roster's
+  // branch answers to the body, not to a list: « sous la responsabilité du Collège des
+  // anciens », never « des Anciens ».
   for (const roster of rosters) {
     emitBranch(
       roster.children.filter(child => child.key !== COMMITTEE_KEY),
-      roster.name,
+      roster.key === 'elder' ? 'Collège des anciens' : roster.name,
     )
   }
 
@@ -156,6 +158,45 @@ export function seatLabel(
   if (holder.kind !== 'leader' || node.isSinglePerson) return null
   if (LEADER_TITLE_PREFIXES.some(prefix => name.startsWith(prefix))) return null
   return holder.isElder ? 'Responsable' : 'Préposé'
+}
+
+export interface GroupedLayout {
+  rosters: RosterBlock[]
+  committee: CommitteeBlock | null
+  /** Consecutive bands sharing a responsibility header — `toLayout` emits each branch contiguously. */
+  sections: { under: string; bands: BandBlock[] }[]
+  legacy: LayoutBlock[]
+}
+
+/** The renderer's view of the sheet — shared by the screen and the printable PDF. */
+export function groupLayout(blocks: LayoutBlock[]): GroupedLayout {
+  const grouped: GroupedLayout = { rosters: [], committee: null, sections: [], legacy: [] }
+  for (const block of blocks) {
+    if (block.kind === 'roster') grouped.rosters.push(block)
+    else if (block.kind === 'committee') grouped.committee = block
+    else if (block.kind === 'band' && block.under != null) {
+      const current = grouped.sections[grouped.sections.length - 1]
+      if (current && current.under === block.under) current.bands.push(block)
+      else grouped.sections.push({ under: block.under, bands: [block] })
+    } else grouped.legacy.push(block)
+  }
+  return grouped
+}
+
+const FIRST_WORD = /^\S+/
+const STARTS_WITH_VOWEL = /^[aeiouyhàâäéèêëîïôöùûü]/
+
+/**
+ * The eyebrow reads as one phrase with the name beneath it, so it has to contract correctly:
+ * « du » Coordinateur, « des » Anciens, « de l’ » Audio/Vidéo. A heuristic, because a band can
+ * carry any service name — plural first (a first word ending in s), vowels next, « du » as the
+ * default the sheet actually uses for every masculine post.
+ */
+export function responsibilityEyebrow(name: string): string {
+  const first = (name.trim().match(FIRST_WORD)?.[0] ?? '').toLocaleLowerCase()
+  if (first.endsWith('s')) return 'Sous la responsabilité des'
+  if (STARTS_WITH_VOWEL.test(first)) return 'Sous la responsabilité de l’'
+  return 'Sous la responsabilité du'
 }
 
 export interface FlatEntry {

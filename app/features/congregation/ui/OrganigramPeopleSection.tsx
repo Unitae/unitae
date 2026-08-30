@@ -181,8 +181,8 @@ export function PeopleSection({
 
       {node.isCommittee && (
         <p className="text-muted-foreground text-sm">
-          Le comité est composé du coordinateur, du secrétaire et du surveillant du service. Nommez-les dans leurs
-          fonctions et ils apparaissent ici.
+          Le comité est composé du coordinateur, du secrétaire et du responsable de la prédication. Nommez-les dans
+          leurs fonctions et ils apparaissent ici.
         </p>
       )}
 

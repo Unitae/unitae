@@ -57,9 +57,10 @@ describe('toLayout — the sheet order', () => {
     expect(blocks[1]).toMatchObject({ kind: 'roster', id: t.assistants.id })
     expect(blocks[2]).toMatchObject({ kind: 'committee', id: t.committee.id })
 
-    // Then the branches, in post order, and the college's own services close the sheet.
+    // Then the branches, in post order, and the college's own services close the sheet —
+    // « sous la responsabilité du Collège des anciens », not of a roster called « Anciens ».
     const unders = blocks.flatMap(b => (b.kind === 'band' ? [b.under] : []))
-    expect(unders).toEqual(['Coordinateur', 'Secrétaire', 'Anciens'])
+    expect(unders).toEqual(['Coordinateur', 'Secrétaire', 'Collège des anciens'])
   })
 
   it('composes the committee of its posts, in canonical order, never « sous la responsabilité »', () => {

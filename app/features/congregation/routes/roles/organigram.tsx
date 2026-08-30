@@ -228,7 +228,7 @@ export default function OrganigramPage({ loaderData }: Route.ComponentProps) {
         <div className="flex flex-col gap-2 rounded-xl border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm">
             Votre organigramme n’utilise pas encore le comité de service standard — coordinateur, secrétaire et
-            surveillant du service.
+            responsable de la prédication.
           </p>
           <Button asChild className="shrink-0">
             <Link to="/congregation/roles/organigram/adopt">Reprendre le comité</Link>

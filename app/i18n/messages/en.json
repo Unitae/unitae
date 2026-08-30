@@ -455,6 +455,7 @@
     "board_viewer_search_toggle": "Search",
     "board_viewer_services_label": "Services ({count})",
     "board_viewer_updated": "Updated",
+    "board_viewer_download_pdf": "Download as PDF",
     "board_dynamic_badge": "Dynamic",
     "board_add_dynamic_button": "Add dynamic document",
     "board_new_dynamic_meta_title": "Add dynamic document - Unitae",

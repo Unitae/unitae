@@ -34,6 +34,7 @@ const POST_HINTS: Record<string, string[]> = {
   'service-overseer': [
     'surveillant-du-service',
     'surveillant-service',
+    'responsable-de-la-predication',
     'responsable-pour-la-predication',
     'responsable-predication',
     'service-overseer',
