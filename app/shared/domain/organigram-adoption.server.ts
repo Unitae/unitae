@@ -6,7 +6,7 @@ import {
   SERVICE_COMMITTEE_POST_KEYS,
 } from '~/shared/domain/built-in-roles.server'
 import { syncServiceCommitteeMembers } from '~/shared/domain/service-committee.server'
-import { ForbiddenError, NotFoundError } from '~/shared/errors/app-error.server'
+import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { getRoleDisplayName } from '~/shared/types/role'
 
@@ -163,6 +163,12 @@ export interface AdoptionChoice {
   fromRoleId: number | null
 }
 
+export const ADOPTION_ERRORS = {
+  unknownPost: 'Seuls le comité de service et ses trois fonctions peuvent être repris.',
+  duplicatePost: 'Chaque fonction du comité ne peut être reprise qu’une seule fois.',
+  alreadyAdopted: 'Le comité de service est déjà dans l’organigramme.',
+} as const
+
 /**
  * Place the standard committee, carrying across whatever the congregation had built by hand.
  *
@@ -178,6 +184,17 @@ export async function adoptServiceCommittee(
   congregationId: number,
   actorId: number,
 ): Promise<void> {
+  // The route passes the form's strings straight through, so nothing upstream guarantees the
+  // post keys. Refused here, before any read: a crafted `postKey` would otherwise carry a
+  // custom role's permissions onto any role at all, and a duplicate would seat two people on a
+  // single-person post.
+  const seenPosts = new Set<string>()
+  for (const choice of choices) {
+    if (!isAppointedRoleKey(choice.postKey)) throw new ValidationError('postKey', ADOPTION_ERRORS.unknownPost)
+    if (seenPosts.has(choice.postKey)) throw new ValidationError('postKey', ADOPTION_ERRORS.duplicatePost)
+    seenPosts.add(choice.postKey)
+  }
+
   const roles: RoleRow[] = await db.role.findMany({
     where: { congregationId },
     select: { id: true, key: true, name: true, parentRoleId: true, showInOrganigram: true },
@@ -188,6 +205,24 @@ export async function adoptServiceCommittee(
   const elder = byKey.get('elder')
   const committee = byKey.get(SERVICE_COMMITTEE_KEY)
   if (!committee) throw new NotFoundError('Role', 0)
+  // The loader redirects once adoption is done, but a stale tab or a double-submit still posts
+  // — and a second run would map a second time.
+  if (committee.showInOrganigram) throw new ConflictError(ADOPTION_ERRORS.alreadyAdopted)
+
+  // Every mapping is resolved and refused *before* the first write. This whole function runs in
+  // the route's transaction, and the route turns an AppError into a flash message rather than
+  // letting it abort the transaction — so a refusal after `place()` would commit a half-placed
+  // committee.
+  const mappings = choices
+    .filter(choice => choice.fromRoleId != null)
+    .map(choice => {
+      const target = byKey.get(choice.postKey)
+      const source = choice.fromRoleId == null ? undefined : byId.get(choice.fromRoleId)
+      if (!target || !source) throw new NotFoundError('Role', choice.fromRoleId ?? 0)
+      // Mapping one built-in post onto another is meaningless and would move seats between posts.
+      if (isAppointedRoleKey(source.key)) throw new ForbiddenError('Cet élément ne peut pas être repris.')
+      return { target, source }
+    })
 
   const place = (id: number, parentRoleId: number | null, order: number) =>
     db.role.update({
@@ -201,14 +236,7 @@ export async function adoptServiceCommittee(
     if (post) await place(post.id, committee.id, (index + 1) * ORDER_STEP)
   }
 
-  for (const choice of choices) {
-    if (choice.fromRoleId == null) continue
-    const target = byKey.get(choice.postKey)
-    const source = byId.get(choice.fromRoleId)
-    if (!target || !source) throw new NotFoundError('Role', choice.fromRoleId)
-    // Mapping one built-in post onto another is meaningless and would move seats between posts.
-    if (isAppointedRoleKey(source.key)) throw new ForbiddenError('Cet élément ne peut pas être repris.')
-
+  for (const { target, source } of mappings) {
     // The committee's own membership is derived from its three posts, so moving a holder onto
     // it would be reconciled straight back off — a change the admin would watch undo itself.
     await carryOver(db, source.id, target.id, congregationId, { moveHolder: target.key !== SERVICE_COMMITTEE_KEY })

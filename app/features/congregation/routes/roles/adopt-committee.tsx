@@ -1,8 +1,10 @@
 import { Link, redirect } from 'react-router'
+import { commitSession, getSession } from '~/features/authentication/index.server'
 import { RolesTabs } from '~/features/congregation/ui/RolesTabs'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { adoptServiceCommittee, proposeCommitteeAdoption } from '~/shared/domain/organigram-adoption.server'
+import { AppError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -49,10 +51,20 @@ export async function action({ request, context }: Route.ActionArgs) {
     fromRoleId: Number(fromRoleIds[index]) || null,
   }))
 
+  const session = await getSession(request.headers.get('Cookie'))
+
   return withScopeFromContext(context, async db => {
     const { congregationId, id: actorId } = context.get(currentAccountContext)
-    await adoptServiceCommittee(db, choices, congregationId, actorId)
-    return redirect(ORGANIGRAM)
+    try {
+      await adoptServiceCommittee(db, choices, congregationId, actorId)
+    } catch (error) {
+      // Every AppError out of the adoption is a refusal the admin can read — already adopted,
+      // a bad mapping — and the service refuses *before* its first write, so nothing has to be
+      // rolled back here. Anything else is a real failure and stays a 500.
+      if (!(error instanceof AppError)) throw error
+      session.flash('error', error.message)
+    }
+    return redirect(ORGANIGRAM, { headers: { 'Set-Cookie': await commitSession(session) } })
   })
 }
 

@@ -15,7 +15,7 @@ const syncServiceCommitteeMembers = vi.fn()
 vi.mock('~/shared/domain/service-committee.server', () => ({ syncServiceCommitteeMembers }))
 
 const { adoptServiceCommittee, proposeCommitteeAdoption } = await import('./organigram-adoption.server')
-const { ForbiddenError } = await import('~/shared/errors/app-error.server')
+const { ConflictError, ForbiddenError, ValidationError } = await import('~/shared/errors/app-error.server')
 
 const CONGREGATION = 10
 const ACTOR = 99
@@ -159,6 +159,61 @@ describe('adoptServiceCommittee', () => {
       .map(([arg]) => arg)
       .find(arg => arg.where.id_congregationId.id === 21)
     expect(unflagged?.data.showInOrganigram).toBe(false)
+  })
+
+  it('rejects a mapping onto anything but the committee and its three posts', async () => {
+    // The route passes the form's postKey strings through; without this check a crafted request
+    // could carry a custom role's permissions onto any role at all, `elder` included.
+    await expect(
+      adoptServiceCommittee(mockDb as never, [{ postKey: 'elder', fromRoleId: 21 }], CONGREGATION, ACTOR),
+    ).rejects.toBeInstanceOf(ValidationError)
+    expect(mockDb.role.update).not.toHaveBeenCalled()
+    expect(mockDb.rolePermission.createMany).not.toHaveBeenCalled()
+  })
+
+  it('rejects the same post mapped twice in one submission', async () => {
+    // A post holds one person; two mappings would seat two leaders on it.
+    await expect(
+      adoptServiceCommittee(
+        mockDb as never,
+        [
+          { postKey: 'coordinator', fromRoleId: 21 },
+          { postKey: 'coordinator', fromRoleId: 22 },
+        ],
+        CONGREGATION,
+        ACTOR,
+      ),
+    ).rejects.toBeInstanceOf(ValidationError)
+    expect(mockDb.role.update).not.toHaveBeenCalled()
+  })
+
+  it('refuses to run again once the committee is placed', async () => {
+    // The loader redirects when adoption is done, but a stale tab or double-submit still posts.
+    mockDb.role.findMany.mockResolvedValue([
+      { id: 1, key: 'elder', name: null, parentRoleId: null, showInOrganigram: true },
+      { id: 2, key: 'service-committee', name: null, parentRoleId: 1, showInOrganigram: true },
+    ])
+
+    await expect(adoptServiceCommittee(mockDb as never, [], CONGREGATION, ACTOR)).rejects.toBeInstanceOf(ConflictError)
+    expect(mockDb.role.update).not.toHaveBeenCalled()
+  })
+
+  it('validates every mapping before writing anything', async () => {
+    // The refusal of a bad source must not leave the committee half-placed: all checks run
+    // before the first write, so the transaction never commits a partial adoption.
+    await expect(
+      adoptServiceCommittee(
+        mockDb as never,
+        [
+          { postKey: 'coordinator', fromRoleId: 21 },
+          { postKey: 'secretary', fromRoleId: 4 }, // a built-in post as source — refused
+        ],
+        CONGREGATION,
+        ACTOR,
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenError)
+    expect(mockDb.role.update).not.toHaveBeenCalled()
+    expect(mockDb.userRoleAssignment.create).not.toHaveBeenCalled()
   })
 
   it('refuses to map a built-in post onto another', async () => {
