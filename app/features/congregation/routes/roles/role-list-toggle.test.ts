@@ -18,7 +18,8 @@ const removeUserFromRole = vi.fn()
 const memberFindFirst = vi.fn()
 const fakeDb = {
   member: { findFirst: memberFindFirst, findMany: vi.fn().mockResolvedValue([]) },
-  role: { findMany: vi.fn().mockResolvedValue([]) },
+  // `findFirst` feeds the success flash's role name; null just skips the flash.
+  role: { findMany: vi.fn().mockResolvedValue([]), findFirst: vi.fn().mockResolvedValue(null) },
 }
 
 vi.mock('~/shared/domain/roles.server', () => ({ addUserToRole, removeUserFromRole }))

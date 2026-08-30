@@ -1,8 +1,11 @@
 import { parseWithZod } from '@conform-to/zod'
-import { Pencil, Plus, Shield } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { data, Form, Link, redirect, useSubmit } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { type BuiltInFilterKey, toggleSchema } from '~/features/congregation/schemas/role.schema'
+import { buildMatrixGroups } from '~/features/congregation/server/role-matrix.server'
+import { RoleMatrixCards } from '~/features/congregation/ui/RoleMatrixCards'
+import { RoleMatrixTable } from '~/features/congregation/ui/RoleMatrixTable'
 import { RolesTabs } from '~/features/congregation/ui/RolesTabs'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -15,7 +18,6 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import type { Route } from './+types/role-list'
 
 export const meta: Route.MetaFunction = () => {
@@ -74,13 +76,39 @@ export function loader({ request, context }: Route.LoaderArgs) {
   )
     ? (filterParam as BuiltInFilterKey)
     : 'male'
+  const collapsed = new Set((url.searchParams.get('hide') ?? '').split(',').filter(Boolean))
 
   return withScopeFromContext(context, async db => {
-    const customRoles = await db.role.findMany({
-      where: { congregationId: currentUser.congregationId, isBuiltIn: false },
-      orderBy: [{ name: 'asc' }, { key: 'asc' }],
-      select: { id: true, key: true, name: true },
+    // Built-ins come along for structure — the bands are the committee posts' branches of the
+    // organigram — but only custom roles become columns.
+    const roles = await db.role.findMany({
+      where: { congregationId: currentUser.congregationId },
+      select: {
+        id: true,
+        key: true,
+        name: true,
+        isBuiltIn: true,
+        isSinglePerson: true,
+        showInOrganigram: true,
+        parentRoleId: true,
+        organigramOrder: true,
+      },
     })
+    // Holder counts are congregation-wide, not filtered: « Sono : 4 » should stay true while
+    // the rows show only the sisters. Split by seat kind, the same rows also say which roles
+    // still hold plain members — the legacy columns that must stay visible until emptied.
+    const assignmentCounts = await db.userRoleAssignment.groupBy({
+      by: ['roleId', 'kind'],
+      where: { congregationId: currentUser.congregationId, role: { isBuiltIn: false } },
+      _count: { roleId: true },
+    })
+    const counts: Record<number, number> = {}
+    for (const row of assignmentCounts) {
+      counts[row.roleId] = (counts[row.roleId] ?? 0) + row._count.roleId
+    }
+    const rolesWithPlainMembers = new Set(assignmentCounts.filter(row => row.kind === 'member').map(row => row.roleId))
+
+    const groups = buildMatrixGroups(roles, collapsed, rolesWithPlainMembers)
 
     const members = await db.member.findMany({
       where: {
@@ -104,7 +132,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
           include: {
             roleAssignments: {
               where: { role: { isBuiltIn: false } },
-              select: { roleId: true },
+              select: { roleId: true, kind: true },
             },
           },
         },
@@ -113,12 +141,14 @@ export function loader({ request, context }: Route.LoaderArgs) {
     })
 
     return {
-      customRoles,
+      groups,
+      counts,
       members: members.map(member => ({
         id: member.id,
         firstname: member.firstname,
         lastname: member.lastname,
-        assignedRoleIds: member.account?.roleAssignments.map(a => a.roleId) ?? [],
+        // The seat kind rides along so the grid can say R/A, not just "in it".
+        seats: Object.fromEntries((member.account?.roleAssignments ?? []).map(a => [a.roleId, a.kind])),
         // Eligibility is granted to the account, so a member without a login cannot hold one.
         // Show them greyed out with the reason rather than letting the toggle fail.
         hasAccount: member.account != null,
@@ -148,7 +178,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     // the account here rather than asking the form to know it.
     const member = await db.member.findFirst({
       where: { id: memberId, congregationId: currentUser.congregationId },
-      select: { account: { select: { id: true } } },
+      select: { firstname: true, lastname: true, account: { select: { id: true } } },
     })
     if (!member?.account) {
       session.flash('error', m.congregation_roles_no_account_error())
@@ -161,6 +191,17 @@ export async function action({ request, context }: Route.ActionArgs) {
         await addUserToRole(db, userId, roleId, currentUser.congregationId, currentUser.id)
       } else {
         await removeUserFromRole(db, userId, roleId, currentUser.congregationId, currentUser.id)
+      }
+      // Name the change: a toggle deep in a grid gives no feedback of its own, and « Marc DUPONT
+      // fait partie de Sono » is what tells a cautious admin their click did the right thing.
+      const role = await db.role.findFirst({
+        where: { id: roleId, congregationId: currentUser.congregationId },
+        select: { key: true, name: true },
+      })
+      if (role) {
+        const person = `${member.firstname ?? ''} ${member.lastname?.toLocaleUpperCase() ?? ''}`.trim()
+        const flash = intent === 'add' ? m.congregation_roles_added_flash : m.congregation_roles_removed_flash
+        session.flash('success', flash({ person, role: getRoleDisplayName(role) }))
       }
     } catch (error) {
       if (error instanceof ForbiddenError) {
@@ -176,60 +217,8 @@ export async function action({ request, context }: Route.ActionArgs) {
   return redirect(back, { headers: { 'Set-Cookie': await commitSession(session) } })
 }
 
-interface Member {
-  id: number
-  firstname: string | null
-  lastname: string | null
-  assignedRoleIds: number[]
-  hasAccount: boolean
-}
-
-function MatrixRow({
-  member,
-  customRoles,
-  canManageRoles,
-}: {
-  member: Member
-  customRoles: Array<{ id: number; key: string; name: string | null }>
-  canManageRoles: boolean
-}) {
-  const assigned = new Set(member.assignedRoleIds)
-  return (
-    <TableRow>
-      <TableCell className="sticky left-0 whitespace-nowrap bg-background font-medium">
-        {member.firstname} {member.lastname?.toLocaleUpperCase()}
-      </TableCell>
-      {customRoles.map(role => {
-        const isAssigned = assigned.has(role.id)
-        return (
-          <TableCell key={role.id} className="text-center">
-            <Form method="post">
-              <input type="hidden" name="memberId" value={member.id} />
-              <input type="hidden" name="roleId" value={role.id} />
-              <input type="hidden" name="intent" value={isAssigned ? 'remove' : 'add'} />
-              <button
-                type="submit"
-                disabled={!canManageRoles || !member.hasAccount}
-                title={member.hasAccount ? undefined : 'Pas de compte'}
-                aria-label={`${isAssigned ? 'Retirer de' : 'Ajouter à'} ${getRoleDisplayName(role)}`}
-                className={`inline-flex size-5 items-center justify-center rounded-md border transition ${
-                  isAssigned
-                    ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-border bg-background hover:bg-accent'
-                } ${!canManageRoles || !member.hasAccount ? 'cursor-not-allowed opacity-50' : ''}`}
-              >
-                {isAssigned ? <span className="text-xs">✓</span> : null}
-              </button>
-            </Form>
-          </TableCell>
-        )
-      })}
-    </TableRow>
-  )
-}
-
 export default function RoleMatrixPage({ loaderData }: Route.ComponentProps) {
-  const { customRoles, members, canManageRoles, currentSearch, currentFilter } = loaderData
+  const { groups, counts, members, canManageRoles, currentSearch, currentFilter } = loaderData
   const submit = useSubmit()
 
   return (
@@ -282,54 +271,19 @@ export default function RoleMatrixPage({ loaderData }: Route.ComponentProps) {
         </div>
       </Form>
 
-      {customRoles.length === 0 ? (
+      {groups.length === 0 ? (
         <div className="rounded-xl border border-dashed p-6 text-center text-muted-foreground text-sm">
           {m.congregation_roles_empty_roles()}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="sticky left-0 bg-background">{m.congregation_roles_table_member()}</TableHead>
-                {customRoles.map(role => (
-                  <TableHead key={role.id} className="whitespace-nowrap text-center">
-                    {canManageRoles ? (
-                      <Link to={`./${role.id}/edit`} className="inline-flex items-center gap-1 hover:text-primary">
-                        <Shield className="size-3.5" />
-                        <span>{getRoleDisplayName(role)}</span>
-                        <Pencil className="size-3 text-muted-foreground" />
-                      </Link>
-                    ) : (
-                      <span className="inline-flex items-center gap-1">
-                        <Shield className="size-3.5" />
-                        <span>{getRoleDisplayName(role)}</span>
-                      </span>
-                    )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {members.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={customRoles.length + 1} className="text-center text-muted-foreground text-sm">
-                    {m.congregation_roles_empty_members()}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                members.map(member => (
-                  <MatrixRow
-                    key={member.id}
-                    member={member}
-                    customRoles={customRoles}
-                    canManageRoles={canManageRoles}
-                  />
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <>
+          <div className="max-md:hidden">
+            <RoleMatrixTable groups={groups} members={members} counts={counts} canManageRoles={canManageRoles} />
+          </div>
+          <div className="md:hidden">
+            <RoleMatrixCards groups={groups} members={members} canManageRoles={canManageRoles} />
+          </div>
+        </>
       )}
     </div>
   )
