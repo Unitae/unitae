@@ -49,7 +49,17 @@ describe('buildPanelNode', () => {
 
   it('formats holders with the lastname in capitals', () => {
     const service = node({
-      holders: [{ roleId: 1, memberId: 9, firstname: 'Marc', lastname: 'Dupont', anonymizedAt: null, kind: 'leader' }],
+      holders: [
+        {
+          roleId: 1,
+          memberId: 9,
+          firstname: 'Marc',
+          lastname: 'Dupont',
+          anonymizedAt: null,
+          kind: 'leader',
+          isElder: true,
+        },
+      ],
     })
 
     const panel = buildPanelNode(entry({ node: service }))

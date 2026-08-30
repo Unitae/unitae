@@ -23,6 +23,7 @@ interface Holder {
   lastname: string | null
   anonymizedAt: Date | null
   kind: string
+  isElder: boolean
 }
 
 function formatName(person: Holder): string {
@@ -119,7 +120,7 @@ function NodeRow({ node, selectedId }: { node: OrganigramNode; selectedId: numbe
               // asked the reader to parse labels out of a sentence.
               <span className="flex flex-col gap-0.5 text-sm">
                 {node.holders.map(holder => {
-                  const label = seatLabel(holder.kind, node)
+                  const label = seatLabel(holder, node)
                   return (
                     <span key={`${holder.memberId}-${holder.kind}`} className="flex items-baseline gap-1.5">
                       {label && <span className="text-primary/80 text-xs uppercase">{label}</span>}

@@ -21,84 +21,156 @@ function node(over: Partial<OrganigramNode> = {}): OrganigramNode {
   }
 }
 
-describe('toLayout', () => {
-  it('makes a unit with child units a band', () => {
-    const leaf = node({ name: 'Secrétaire' })
-    const parent = node({ name: 'Comité de service', children: [leaf] })
+/** The standard chart, as the sheet expects it. */
+function standardTree() {
+  const accueil = node({ name: 'Service Accueil' })
+  const reunion = node({ name: 'Programme Réunion Publique' })
+  const coordinator = node({
+    name: 'Coordinateur',
+    key: 'coordinator',
+    isSinglePerson: true,
+    children: [accueil, reunion],
+  })
+  const compte = node({ name: 'Compte' })
+  const secretary = node({ name: 'Secrétaire', key: 'secretary', isSinglePerson: true, children: [compte] })
+  const overseer = node({ name: 'Surveillant du service', key: 'service-overseer', isSinglePerson: true })
+  const committee = node({
+    name: 'Comité de service',
+    key: 'service-committee',
+    // Deliberately out of canonical order, to prove the layout reorders them.
+    children: [secretary, coordinator, overseer],
+  })
+  const nettoyage = node({ name: 'Coordinateur Nettoyage', isSinglePerson: true })
+  const elders = node({ name: 'Anciens', key: 'elder', isRoster: true, children: [committee, nettoyage] })
+  const assistants = node({ name: 'Assistants', key: 'assistant-servant', isRoster: true })
+  return { elders, assistants, committee, coordinator, secretary, overseer, accueil, reunion, compte, nettoyage }
+}
 
-    const [block] = toLayout([parent])
+describe('toLayout — the sheet order', () => {
+  it('prints rosters, then the committee, then each post’s branch, then the college’s own services', () => {
+    const t = standardTree()
 
-    expect(block?.kind).toBe('band')
-    expect(block && 'title' in block ? block.title : undefined).toBe('Comité de service')
+    const blocks = toLayout([t.elders, t.assistants])
+
+    // Both rosters lead — the assistants no longer sink below the whole elder branch.
+    expect(blocks[0]).toMatchObject({ kind: 'roster', id: t.elders.id })
+    expect(blocks[1]).toMatchObject({ kind: 'roster', id: t.assistants.id })
+    expect(blocks[2]).toMatchObject({ kind: 'committee', id: t.committee.id })
+
+    // Then the branches, in post order, and the college's own services close the sheet.
+    const unders = blocks.flatMap(b => (b.kind === 'band' ? [b.under] : []))
+    expect(unders).toEqual(['Coordinateur', 'Secrétaire', 'Anciens'])
   })
 
-  it('makes a unit whose only content is people a row', () => {
-    // « Covoiturage | Merk Serge » prints as one line on the sheet, not as a band with one entry.
-    const solo = node({
-      name: 'Covoiturage',
-      holders: [{ roleId: 0, memberId: 1, firstname: 'M', lastname: 'S', anonymizedAt: null, kind: 'leader' }],
-    })
+  it('composes the committee of its posts, in canonical order, never « sous la responsabilité »', () => {
+    const t = standardTree()
 
-    const [block] = toLayout([solo])
+    const blocks = toLayout([t.elders, t.assistants])
 
-    expect(block?.kind).toBe('row')
+    const committee = blocks.find(b => b.kind === 'committee')
+    expect(committee?.kind === 'committee' && committee.posts.map(p => p.id)).toEqual([
+      t.coordinator.id,
+      t.secretary.id,
+      t.overseer.id,
+    ])
+    // The coordinator is part of the committee, not under it: no band ever claims otherwise.
+    expect(blocks.some(b => b.kind === 'band' && b.under === 'Comité de service')).toBe(false)
   })
 
-  it('suppresses the root band header, because the masthead already names it', () => {
-    // « Collège des anciens » is the masthead; repeating it as a band header over everything is
-    // why the standalone services print unbanded at the bottom of the real sheet.
-    const child = node({ name: 'Comité' })
-    const root = node({ name: 'Collège des anciens', isRoster: true, children: [child] })
+  it('groups a post’s direct services under the post, leaves included', () => {
+    const t = standardTree()
 
-    const blocks = toLayout([root])
+    const blocks = toLayout([t.elders, t.assistants])
 
-    expect(blocks.map(b => b.kind)).toContain('roster')
-    const band = blocks.find(b => b.kind === 'band')
-    expect(band && 'title' in band ? band.title : undefined).not.toBe('Collège des anciens')
+    // « Programme Réunion Publique » has no team, but it still belongs visibly to the
+    // coordinator — a bare row would leave it answering to nobody.
+    const collector = blocks.find(b => b.kind === 'band' && b.node == null && b.under === 'Coordinateur')
+    expect(collector?.kind === 'band' && collector.rows.map(r => r.id)).toEqual([t.accueil.id, t.reunion.id])
   })
 
-  it('does not indent past the band — children of a band are rows, whatever their depth', () => {
+  it('keeps a service and its teams as one band', () => {
+    const estrade = node({ name: 'Equipe Estrade' })
+    const audio = node({ name: 'Audio/Vidéo', children: [estrade] })
+    const coordinator = node({ name: 'Coordinateur', key: 'coordinator', isSinglePerson: true, children: [audio] })
+    const committee = node({ name: 'Comité', key: 'service-committee', children: [coordinator] })
+    const elders = node({ name: 'Anciens', key: 'elder', isRoster: true, children: [committee] })
+
+    const blocks = toLayout([elders])
+
+    const band = blocks.find(b => b.kind === 'band' && b.node?.id === audio.id)
+    expect(band?.kind === 'band' && band.rows.map(r => r.id)).toEqual([estrade.id])
+    expect(band?.kind === 'band' && band.under).toBe('Coordinateur')
+  })
+
+  it('does not indent past the band — deeper containers become sibling bands', () => {
     const deep = node({ name: 'Responsable estrade' })
     const mid = node({ name: 'Estrade', children: [deep] })
     const top = node({ name: 'Audio', children: [mid] })
-    const root = node({ name: 'Anciens', isRoster: true, children: [top] })
+    const root = node({ name: 'Anciens', key: 'elder', isRoster: true, children: [top] })
 
     const blocks = toLayout([root])
 
     // Every band sits at the same level; nesting is expressed by the header, not by margin.
-    expect(blocks.filter(b => b.kind === 'band').length).toBeGreaterThanOrEqual(2)
-    expect(blocks.every(b => b.kind !== 'band' || typeof b.title === 'string')).toBe(true)
+    expect(blocks.filter(b => b.kind === 'band' && b.node != null).map(b => b.kind === 'band' && b.node?.name)).toEqual(
+      ['Audio', 'Estrade'],
+    )
+  })
+
+  it('still prints legacy roots that sit outside the rosters', () => {
+    const solo = node({
+      name: 'Covoiturage',
+      holders: [
+        { roleId: 0, memberId: 1, firstname: 'M', lastname: 'S', anonymizedAt: null, kind: 'leader', isElder: false },
+      ],
+    })
+    const orphanTeam = node({ name: 'Equipe' })
+    const orphan = node({ name: 'Hors structure', children: [orphanTeam] })
+
+    const blocks = toLayout([solo, orphan])
+
+    // « Covoiturage | Merk Serge » prints as one line on the sheet, not as a band with one entry.
+    expect(blocks[0]).toMatchObject({ kind: 'row', id: solo.id })
+    expect(blocks[1]).toMatchObject({ kind: 'band', id: orphan.id })
   })
 })
 
 describe('seatLabel', () => {
-  it('labels the seats of a group role', () => {
+  it('titles an elder leading a group « Responsable », a brother « Préposé »', () => {
+    // The vocabulary is the congregation's, not the app's: « responsable » is an elder's title;
+    // a brother who is not an elder leads a service as its préposé.
     const group = node({ name: 'Audio/Vidéo' })
 
-    expect(seatLabel('leader', group)).toBe('Responsable')
-    expect(seatLabel('deputy', group)).toBe('Adjoint')
-    expect(seatLabel('member', group)).toBeNull()
+    expect(seatLabel({ kind: 'leader', isElder: true }, group)).toBe('Responsable')
+    expect(seatLabel({ kind: 'leader', isElder: false }, group)).toBe('Préposé')
+    expect(seatLabel({ kind: 'deputy', isElder: false }, group)).toBe('Adjoint')
+    expect(seatLabel({ kind: 'member', isElder: true }, group)).toBeNull()
   })
 
-  it('never calls the holder of a personal role its responsable', () => {
+  it('never titles the holder of a personal role', () => {
     // « Coordinateur du collège des anciens — RESPONSABLE Marc DUPONT » makes no sense: nobody
     // is responsible *of* a one-person role. The node name is the function; the person holds it.
     const personal = node({ name: 'Coordinateur du collège des anciens', isSinglePerson: true })
 
-    expect(seatLabel('leader', personal)).toBeNull()
+    expect(seatLabel({ kind: 'leader', isElder: true }, personal)).toBeNull()
+    expect(seatLabel({ kind: 'leader', isElder: false }, personal)).toBeNull()
   })
 
   it('still labels a personal role’s adjoint', () => {
     const personal = node({ name: 'Coordinateur du collège des anciens', isSinglePerson: true })
 
-    expect(seatLabel('deputy', personal)).toBe('Adjoint')
+    expect(seatLabel({ kind: 'deputy', isElder: false }, personal)).toBe('Adjoint')
   })
 
-  it('suppresses a label the group’s own name already carries', () => {
+  it('suppresses a title the group’s own name already carries, in either vocabulary', () => {
     // An unflagged « Responsable de l'accueil » must not read « Responsable de l'accueil ·
-    // Responsable » — eleven redundant labels on a real congregation's chart.
+    // Responsable » — and « Préposé aux comptes » must not read « … · Préposé » either.
     const named = node({ name: 'Responsable de l’accueil' })
+    const prepose = node({ name: 'Préposé aux comptes' })
 
-    expect(seatLabel('leader', named)).toBeNull()
+    expect(seatLabel({ kind: 'leader', isElder: true }, named)).toBeNull()
+    expect(seatLabel({ kind: 'leader', isElder: false }, named)).toBeNull()
+    expect(seatLabel({ kind: 'leader', isElder: false }, prepose)).toBeNull()
+    // The adjoint's title is not the one the name carries — it stays.
+    expect(seatLabel({ kind: 'deputy', isElder: false }, named)).toBe('Adjoint')
   })
 })

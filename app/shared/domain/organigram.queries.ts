@@ -32,6 +32,8 @@ export interface OrganigramHolder {
   lastname: string | null
   anonymizedAt: Date | null
   kind: SeatKind | string
+  /** Whether the person is an elder — « Responsable » is an elder's title; a brother leads as « Préposé ». */
+  isElder: boolean
 }
 
 export interface OrganigramNode {
@@ -232,6 +234,9 @@ export async function getOrganigram(db: TransactionClient, congregationId: numbe
       firstname: true,
       lastname: true,
       anonymizedAt: true,
+      // The identity flag the elder roster itself is synced from — what decides whether a
+      // leader is titled « Responsable » or « Préposé ».
+      isHelder: true,
       roleAssignments: { where: { roleId: { in: roleIds } }, select: { roleId: true } },
       account: {
         select: { roleAssignments: { where: { roleId: { in: roleIds } }, select: { roleId: true, kind: true } } },
@@ -246,6 +251,7 @@ export async function getOrganigram(db: TransactionClient, congregationId: numbe
       firstname: member.firstname,
       lastname: member.lastname,
       anonymizedAt: member.anonymizedAt,
+      isElder: member.isHelder,
     }
     // Identity-side rows carry no seat: roster membership is derived, never appointed.
     for (const assignment of member.roleAssignments) {

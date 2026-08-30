@@ -27,7 +27,7 @@ function role(over: Partial<OrganigramRole> = {}): OrganigramRole {
 }
 
 function holder(roleId: number, kind: OrganigramHolder['kind'], lastname: string): OrganigramHolder {
-  return { roleId, memberId: nextId++, firstname: 'X', lastname, anonymizedAt: null, kind }
+  return { roleId, memberId: nextId++, firstname: 'X', lastname, anonymizedAt: null, kind, isElder: false }
 }
 
 describe('buildOrganigramTree — shape', () => {

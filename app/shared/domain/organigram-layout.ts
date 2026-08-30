@@ -3,12 +3,20 @@ import type { OrganigramNode } from '~/shared/domain/organigram.queries'
 // Turning the tree into the layout the printed sheet uses.
 //
 // The real "Organisation des services" has no connector lines and no cumulative indentation. It
-// groups children under italic band headers — « Sous la responsabilité du secrétaire » — and
-// prints everything else as a two-column row. That is what makes an A4 page scannable, and it is
-// what stops depth 6 from being unreadable at 390px.
+// reads in a fixed order: the two rosters as the masthead, the service committee and who
+// composes it, then each committee post's services under an italic « Sous la responsabilité »
+// header, and finally the services the collège des anciens keeps for itself. Everything else is
+// a two-column row. That is what makes an A4 page scannable, and it is what stops depth 6 from
+// being unreadable at 390px.
 //
 // Every rule here is derived from the shape of the tree. None of it is stored, so a congregation
 // never has to decide whether something is "a band" — the chart works it out.
+
+// Mirrors SERVICE_COMMITTEE_KEY / SERVICE_COMMITTEE_POST_KEYS in built-in-roles.server.ts,
+// which this client-bundled file cannot import. The keys are the migration's contract and
+// change together or not at all.
+const COMMITTEE_KEY = 'service-committee'
+const POST_KEYS: readonly string[] = ['coordinator', 'secretary', 'service-overseer']
 
 export interface RosterBlock {
   kind: 'roster'
@@ -17,16 +25,29 @@ export interface RosterBlock {
   node: OrganigramNode
 }
 
+/**
+ * The committee and who composes it. Its own block, never a band: the coordinator is not
+ * « sous la responsabilité » of the committee — he is part of it.
+ */
+export interface CommitteeBlock {
+  kind: 'committee'
+  id: number
+  node: OrganigramNode
+  /** The posts, in canonical order, each carrying its titulaire and adjoints. */
+  posts: OrganigramNode[]
+}
+
 export interface BandBlock {
   kind: 'band'
   id: number
-  title: string
   /**
-   * The band's own node. It is rendered as the first row rather than being reduced to a heading:
-   * « Coordinateur » holds Marc DUPONT, and turning it into a bare header silently dropped him.
+   * The band's own node, rendered as the first row rather than reduced to a heading —
+   * « Audio/Vidéo » holds Philippe MARTIN, and a bare header silently dropped him. Null for a
+   * collector band: a branch's direct leaf services, which share the header but have no
+   * container of their own.
    */
-  node: OrganigramNode
-  /** Whose responsibility this band falls under — «Sous la responsabilité du coordinateur». */
+  node: OrganigramNode | null
+  /** Whose responsibility this band falls under — «Sous la responsabilité : Coordinateur». */
   under: string | null
   /** Rendered beneath, in order. */
   rows: OrganigramNode[]
@@ -38,7 +59,7 @@ export interface RowBlock {
   node: OrganigramNode
 }
 
-export type LayoutBlock = RosterBlock | BandBlock | RowBlock
+export type LayoutBlock = RosterBlock | CommitteeBlock | BandBlock | RowBlock
 
 /** A node earns a band when something below it is itself a container. */
 function hasChildUnits(node: OrganigramNode): boolean {
@@ -48,62 +69,93 @@ function hasChildUnits(node: OrganigramNode): boolean {
 export function toLayout(tree: OrganigramNode[]): LayoutBlock[] {
   const blocks: LayoutBlock[] = []
 
-  const walk = (node: OrganigramNode, isRoot: boolean, under: string | null = null) => {
-    if (node.isRoster) {
-      // The rosters print as the masthead: a name list with a count, not a band over everything
-      // below them. Repeating « Collège des anciens » as a header is exactly why the standalone
-      // services appear unbanded at the bottom of the real sheet.
-      blocks.push({ kind: 'roster', id: node.id, title: node.name, node })
-      // The roster is the masthead, so what hangs off it is not "under" anything worth naming.
-      for (const child of node.children) walk(child, false, null)
+  /** A container and everything below it, as sibling bands — depth costs a header, never margin. */
+  const walkContainer = (node: OrganigramNode, under: string | null) => {
+    if (!hasChildUnits(node)) {
+      // Children are all leaves: the node and its people read as one block.
+      blocks.push({ kind: 'band', id: node.id, node, under, rows: node.children })
       return
     }
-
-    if (node.children.length === 0) {
-      blocks.push({ kind: 'row', id: node.id, node })
-      return
-    }
-
-    if (!hasChildUnits(node) && !isRoot) {
-      // Children are all leaves: the node and its people read as one block rather than a header
-      // with a single line under it.
-      blocks.push({ kind: 'band', id: node.id, title: node.name, node, under, rows: node.children })
-      return
-    }
-
-    blocks.push({
-      kind: 'band',
-      id: node.id,
-      title: node.name,
-      node,
-      under,
-      rows: node.children.filter(c => c.children.length === 0),
-    })
-    for (const child of node.children.filter(c => c.children.length > 0)) walk(child, false, node.name)
+    blocks.push({ kind: 'band', id: node.id, node, under, rows: node.children.filter(c => c.children.length === 0) })
+    for (const child of node.children.filter(c => c.children.length > 0)) walkContainer(child, node.name)
   }
 
-  for (const node of tree) walk(node, true)
+  /** One branch of the sheet: the leaves share a collector band, the containers band themselves. */
+  const emitBranch = (nodes: OrganigramNode[], under: string | null) => {
+    const leaves = nodes.filter(child => child.children.length === 0)
+    if (leaves.length > 0) {
+      if (under == null) {
+        // Nothing to hang a header on: legacy roots print as plain rows, as they always did.
+        for (const leaf of leaves) blocks.push({ kind: 'row', id: leaf.id, node: leaf })
+      } else {
+        blocks.push({ kind: 'band', id: leaves[0]?.id ?? 0, node: null, under, rows: leaves })
+      }
+    }
+    for (const child of nodes.filter(child => child.children.length > 0)) walkContainer(child, under)
+  }
+
+  // 1. The masthead: both rosters lead, so the assistants no longer sink below the elder branch.
+  const rosters = tree.filter(node => node.isRoster)
+  const others = tree.filter(node => !node.isRoster)
+  for (const roster of rosters) blocks.push({ kind: 'roster', id: roster.id, title: roster.name, node: roster })
+
+  // 2. The committee, composed of its posts — then each post's branch, in canonical post order.
+  const committee = rosters.flatMap(roster => roster.children).find(child => child.key === COMMITTEE_KEY)
+  if (committee) {
+    const posts = POST_KEYS.flatMap(key => committee.children.filter(child => child.key === key))
+    blocks.push({ kind: 'committee', id: committee.id, node: committee, posts })
+    for (const post of posts) emitBranch(post.children, post.name)
+    // A service attached to the committee itself rather than to a post — rare, but not lost.
+    emitBranch(
+      committee.children.filter(child => !POST_KEYS.includes(child.key)),
+      committee.name,
+    )
+  }
+
+  // 3. The services the rosters keep for themselves close the sheet.
+  for (const roster of rosters) {
+    emitBranch(
+      roster.children.filter(child => child.key !== COMMITTEE_KEY),
+      roster.name,
+    )
+  }
+
+  // 4. Legacy roots outside the rosters: still printed, exactly as before the sheet had an order.
+  emitBranch(others, null)
+
   return blocks
 }
 
-const SEAT_LABEL: Record<string, string> = { leader: 'Responsable', deputy: 'Adjoint' }
+/** Either leadership title in a role's own name makes the one beside its leader redundant. */
+const LEADER_TITLE_PREFIXES = ['responsable', 'préposé']
 
 /**
- * The label shown beside a holder's name, or null when it would say nothing true.
+ * The title shown beside a holder's name, or null when it would say nothing true.
  *
- * On a personal role the titulaire gets no label: « Coordinateur du collège des anciens —
+ * The vocabulary is the congregation's, not the app's: « responsable » is an elder's title, and
+ * a brother who is not an elder leads a service as its « préposé ».
+ *
+ * On a personal role the titulaire gets no title: « Coordinateur du collège des anciens —
  * RESPONSABLE Marc DUPONT » makes no sense, because nobody is responsible *of* a one-person
  * role — the node name is the function and the person simply holds it. Its adjoints keep
  * theirs, since « adjoint » is exactly what they are.
  *
- * The name-prefix check covers group roles named « Responsable de … » that predate the
- * personal-role flag — eleven redundant labels on a real congregation's chart.
+ * The name-prefix check covers roles named « Responsable de … » or « Préposé aux … » that carry
+ * the title in their own name — eleven redundant labels on a real congregation's chart.
  */
-export function seatLabel(kind: string, node: Pick<OrganigramNode, 'name' | 'isSinglePerson'>): string | null {
-  const label = SEAT_LABEL[kind]
-  if (!label) return null
-  if (node.isSinglePerson && kind === 'leader') return null
-  return node.name.toLocaleLowerCase().startsWith(label.toLocaleLowerCase()) ? null : label
+export function seatLabel(
+  holder: { kind: string; isElder: boolean },
+  node: Pick<OrganigramNode, 'name' | 'isSinglePerson'>,
+): string | null {
+  const name = node.name.toLocaleLowerCase()
+
+  // A deputy stays labelled on « Responsable de l'accueil » — that node name carries the
+  // leader's title, not the adjoint's.
+  if (holder.kind === 'deputy') return name.startsWith('adjoint') ? null : 'Adjoint'
+
+  if (holder.kind !== 'leader' || node.isSinglePerson) return null
+  if (LEADER_TITLE_PREFIXES.some(prefix => name.startsWith(prefix))) return null
+  return holder.isElder ? 'Responsable' : 'Préposé'
 }
 
 export interface FlatEntry {
