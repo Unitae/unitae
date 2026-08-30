@@ -6,6 +6,7 @@ import {
 } from '~/features/display-board/model/dynamic-document.type'
 import {
   fetchOrganigramDocument,
+  getOrganigramPreview,
   getOrganigramVersion,
   hasOrganigram,
 } from '~/features/display-board/server/organigram-document.server'
@@ -271,6 +272,10 @@ export async function getDynamicPreview(
     }
 
     return null
+  }
+
+  if (dynamicType === DynamicType.Organigram) {
+    return getOrganigramPreview(db, congregationId)
   }
 
   return null

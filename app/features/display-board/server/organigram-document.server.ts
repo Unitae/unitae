@@ -22,6 +22,12 @@ export function fetchOrganigramDocument(db: TransactionClient, congregationId: n
   return getOrganigram(db, congregationId)
 }
 
+/** The board card's one-line teaser, sized like the other dynamic documents' counts. */
+export async function getOrganigramPreview(db: TransactionClient, congregationId: number): Promise<string | null> {
+  const count = await db.role.count({ where: { congregationId, showInOrganigram: true } })
+  return count > 0 ? `${count} services` : null
+}
+
 /**
  * When the chart last changed, for the "updated" stamp in the board viewer.
  *
