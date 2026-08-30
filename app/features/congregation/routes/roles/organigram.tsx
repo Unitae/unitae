@@ -107,7 +107,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
       peopleWithoutAccount: members.filter(member => member.account == null).map(member => member.id),
       nonElderIds: members.filter(member => member.roleAssignments.length === 0).map(member => member.id),
       // The built-in committee exists but has never been placed: this congregation built its
-      // chart before the committee was structure, and is offered the mapping instead.
+      // chart before the committee was structured, and is offered the mapping instead.
       committeePending: roles.some(role => role.key === SERVICE_COMMITTEE_KEY),
     }
   })

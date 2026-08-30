@@ -37,11 +37,6 @@ export function buildPanelNode(selected: FlatEntry): PanelNode {
 }
 
 /**
- * Where the selected node may legally be moved: every chart node except itself and its
- * descendants — offering a descendant and then refusing it after a page reload teaches the
- * cycle rule far less kindly.
- */
-/**
  * What each picker on the page may offer, from the off-chart roles.
  *
  * `adoptable` feeds the panel's attach select: plain services only. Appointed posts pass
@@ -68,6 +63,11 @@ export function buildRolePickers(roles: { id: number; key: string; name: string 
   }
 }
 
+/**
+ * Where the selected node may legally be moved: every chart node except itself and its
+ * descendants — offering a descendant and then refusing it after a page reload teaches the
+ * cycle rule far less kindly.
+ */
 export function buildMoveTargets(flat: FlatEntry[], selected: FlatEntry | undefined): { id: number; label: string }[] {
   const links = flat.map(fEntry => ({ id: fEntry.id, parentRoleId: fEntry.parentId }))
   const forbidden = selected ? new Set([selected.id, ...descendantIds(links, selected.id)]) : new Set<number>()
