@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { OrganigramNode } from '~/shared/domain/organigram.queries'
 import type { FlatEntry } from '~/shared/domain/organigram-layout'
-import { buildMoveTargets, buildPanelNode } from './organigram-panel.server'
+import { buildMoveTargets, buildPanelNode, buildRolePickers } from './organigram-panel.server'
 
 // Pure assembly for the organigram page: flat entries in, panel shape and legal move targets
 // out. Extracted from the route loader so the flag wiring is testable without a request.
@@ -55,6 +55,24 @@ describe('buildPanelNode', () => {
     const panel = buildPanelNode(entry({ node: service }))
 
     expect(panel.holders).toEqual([{ memberId: 9, name: 'Marc DUPONT', kind: 'leader' }])
+  })
+})
+
+describe('buildRolePickers', () => {
+  it('splits off-chart roles into panel candidates and roster recovery', () => {
+    const rows = [
+      { id: 1, key: 'sono', name: 'Sono' },
+      { id: 2, key: 'elder', name: null },
+      { id: 3, key: 'coordinator', name: null },
+      { id: 4, key: 'sister', name: null },
+    ]
+
+    const { adoptable, rosters } = buildRolePickers(rows)
+
+    // Only the plain service may be attached under a node; the roster may only return to the
+    // top; the appointed post and the identity population are offered nowhere.
+    expect(adoptable.map(role => role.id)).toEqual([1])
+    expect(rosters.map(role => role.id)).toEqual([2])
   })
 })
 

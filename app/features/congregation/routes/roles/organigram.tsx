@@ -3,7 +3,11 @@ import { Network } from 'lucide-react'
 import { data, Link, redirect, useSearchParams } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { organigramIntentSchema } from '~/features/congregation/schemas/organigram.schema'
-import { buildMoveTargets, buildPanelNode } from '~/features/congregation/server/organigram-panel.server'
+import {
+  buildMoveTargets,
+  buildPanelNode,
+  buildRolePickers,
+} from '~/features/congregation/server/organigram-panel.server'
 import { OrganigramHelp } from '~/features/congregation/ui/OrganigramHelp'
 import { OrganigramPanelAside } from '~/features/congregation/ui/OrganigramPanelAside'
 import { OrganigramRootAdd } from '~/features/congregation/ui/OrganigramRootAdd'
@@ -12,7 +16,7 @@ import { OrganigramTree } from '~/features/congregation/ui/OrganigramTree'
 import { RolesTabs } from '~/features/congregation/ui/RolesTabs'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { isAppointedRoleKey, SERVICE_COMMITTEE_KEY } from '~/shared/domain/built-in-roles.server'
+import { SERVICE_COMMITTEE_KEY } from '~/shared/domain/built-in-roles.server'
 import { getOrganigram } from '~/shared/domain/organigram.queries'
 import {
   addRoleToOrganigram,
@@ -23,10 +27,8 @@ import {
 } from '~/shared/domain/organigram.server'
 import { flattenTree } from '~/shared/domain/organigram-layout'
 import { seatMember, unseatMember } from '~/shared/domain/organigram-seats.server'
-import { canShowInOrganigram, ORGANIGRAM_ROSTER_KEYS } from '~/shared/domain/role-tree.policy'
 import { AppError, ConflictError, ValidationError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
-import { getRoleDisplayName } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -99,22 +101,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
       canManageRoles,
       selectedId: selected ? selected.id : null,
       panel: selected ? buildPanelNode(selected) : null,
-      adoptable: roles
-        // Appointed posts pass `canShowInOrganigram` but hold a fixed place, and the rosters may
-        // only sit at the top — the service refuses to attach either under a node, so offering
-        // them in the panel would be offering an error.
-        .filter(
-          role =>
-            canShowInOrganigram(role.key) &&
-            !isAppointedRoleKey(role.key) &&
-            !ORGANIGRAM_ROSTER_KEYS.includes(role.key),
-        )
-        .map(role => ({ id: role.id, name: getRoleDisplayName(role) })),
-      // An off-chart roster is the one thing that may return to the top — the recovery path for
-      // a congregation that took its list off the sheet or restored a pre-organigram archive.
-      rosters: roles
-        .filter(role => ORGANIGRAM_ROSTER_KEYS.includes(role.key))
-        .map(role => ({ id: role.id, name: getRoleDisplayName(role) })),
+      ...buildRolePickers(roles),
       moveTargets: buildMoveTargets(flat, selected),
       people: members.map(member => ({ id: member.id, firstname: member.firstname, lastname: member.lastname })),
       peopleWithoutAccount: members.filter(member => member.account == null).map(member => member.id),
