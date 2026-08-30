@@ -352,6 +352,10 @@ model Role {
   organigramOrder  Int?
   // Free text for a group named without listing its people, e.g. « Équipe des préposés à l'accueil ».
   organigramNote   String?
+  // A personal role: one titular `leader` seat, with a handover on re-seating. Deputies are
+  // still allowed — an adjoint is either a deputy seat here or a child personal role. The three
+  // committee posts carry this; congregations set it on their own «Responsable …» roles.
+  isSinglePerson   Boolean @default(false)
 
   congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
   congregationId Int
