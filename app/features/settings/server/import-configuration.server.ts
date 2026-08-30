@@ -35,6 +35,7 @@ export async function importRoles(
     showInOrganigram?: boolean
     organigramOrder?: number | null
     organigramNote?: string | null
+    isSinglePerson?: boolean
   }>(zip, 'roles')
 
   for (const record of records) {
@@ -52,6 +53,9 @@ export async function importRoles(
           showInOrganigram: record.showInOrganigram ?? false,
           organigramOrder: record.organigramOrder ?? null,
           organigramNote: record.organigramNote ?? null,
+          // `undefined` leaves the column untouched: an archive from before the flag existed
+          // must not strip it from the pre-seeded committee posts.
+          isSinglePerson: record.isSinglePerson ?? undefined,
         },
       })
       idMap.set('roles', record.id, existing.id)
@@ -66,6 +70,7 @@ export async function importRoles(
           showInOrganigram: record.showInOrganigram ?? false,
           organigramOrder: record.organigramOrder ?? null,
           organigramNote: record.organigramNote ?? null,
+          isSinglePerson: record.isSinglePerson ?? false,
         },
       })
       idMap.set('roles', record.id, created.id)

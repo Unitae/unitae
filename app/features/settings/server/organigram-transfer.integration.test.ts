@@ -69,6 +69,8 @@ beforeAll(async () => {
       showInOrganigram: true,
       organigramOrder: 5,
       parentRoleId: comite.id,
+      // A personal role: the flag must survive the round trip like the rest of the shape.
+      isSinglePerson: true,
     },
   })
   const comptes = await testDb.role.create({
@@ -173,6 +175,7 @@ describe('organigram survives an export/import round trip', () => {
     expect(comptes?.parentRoleId).toBe(sourceRoles.get('secretaire'))
     expect(comptes?.organigramOrder).toBe(10)
     expect(comptes?.organigramNote).toBe('Équipe des préposés')
+    expect(comptes?.isSinglePerson).toBe(false)
 
     const seatsLine = await zip.file('data/user-role-assignments.ndjson')?.async('string')
     const seats = (seatsLine ?? '')
@@ -193,7 +196,14 @@ describe('organigram survives an export/import round trip', () => {
 
     const imported = await testDb.role.findMany({
       where: { congregationId: targetId },
-      select: { key: true, id: true, parentRoleId: true, showInOrganigram: true, organigramOrder: true },
+      select: {
+        key: true,
+        id: true,
+        parentRoleId: true,
+        showInOrganigram: true,
+        organigramOrder: true,
+        isSinglePerson: true,
+      },
     })
     const byKey = new Map(imported.map(role => [role.key, role]))
     expect([...byKey.keys()].sort()).toEqual(['comite', 'comptes', 'hors-chart', 'secretaire'])
@@ -208,5 +218,9 @@ describe('organigram survives an export/import round trip', () => {
     expect(byKey.get('comptes')?.organigramOrder).toBe(10)
     // A role that was not in the chart must not arrive in it.
     expect(byKey.get('hors-chart')?.showInOrganigram).toBe(false)
+
+    // A personal role arrives personal; a group arrives a group.
+    expect(byKey.get('secretaire')?.isSinglePerson).toBe(true)
+    expect(byKey.get('comptes')?.isSinglePerson).toBe(false)
   })
 })
