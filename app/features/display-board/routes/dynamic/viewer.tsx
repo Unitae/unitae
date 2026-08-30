@@ -1,4 +1,4 @@
-import { ArrowLeft, Info, Search, X } from 'lucide-react'
+import { ArrowLeft, Download, Info, Search, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Link, redirect } from 'react-router'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
@@ -105,6 +105,16 @@ export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) 
             <span className="hidden text-muted-foreground text-xs sm:inline">
               {m.board_viewer_updated()} <RelativeTime date={contentVersion} />
             </span>
+          )}
+          {data?.type === DynamicType.Organigram && (
+            // A plain anchor, not a Link: the target is a PDF resource whose
+            // Content-Disposition triggers the download without leaving the page.
+            <Button variant="ghost" size="icon" asChild>
+              <a href={`/board/dynamic/${settings.id}/pdf`} title={m.board_viewer_download_pdf()}>
+                <Download className="size-4" />
+                <span className="sr-only">{m.board_viewer_download_pdf()}</span>
+              </a>
+            </Button>
           )}
           {isProgramme && (
             <div className="flex items-center gap-2">

@@ -45,6 +45,7 @@ export default [
       ]),
       ...prefix('dynamic', [
         route('/:dynamicId/viewer', 'features/display-board/routes/dynamic/viewer.tsx'),
+        route('/:dynamicId/pdf', 'features/display-board/routes/dynamic/pdf.tsx'),
         route('/:dynamicId/edit', 'features/display-board/routes/dynamic/edit.tsx'),
         route('/:dynamicId/delete', 'features/display-board/routes/dynamic/delete.tsx'),
       ]),
