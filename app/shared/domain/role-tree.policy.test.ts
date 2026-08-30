@@ -52,8 +52,12 @@ describe('assertCanSetParent — cycles', () => {
     ).not.toThrow()
   })
 
-  it('accepts detaching to a root', () => {
-    expect(() => assertCanSetParent({ roleId: 7, roleKey: 'sono', parentChainIds: [], subtreeHeight: 0 })).not.toThrow()
+  it('rejects placing a service at the top of the chart', () => {
+    // On the printed sheet everything ultimately answers to the collège des anciens; the only
+    // legitimate roots are the two rosters. A service floating at the top answers to nobody.
+    expect(() => assertCanSetParent({ roleId: 7, roleKey: 'sono', parentChainIds: [], subtreeHeight: 0 })).toThrow(
+      ValidationError,
+    )
   })
 })
 

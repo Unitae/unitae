@@ -31,6 +31,8 @@ export const ROLE_TREE_ERRORS = {
   cycle: 'Un service ne peut pas être rattaché à lui-même ni à l’un des services qui en dépendent.',
   tooDeep: `L’organigramme ne peut pas dépasser ${MAX_ORGANIGRAM_DEPTH} niveaux.`,
   rosterIsRoot: 'Les anciens et les assistants ministériels sont toujours au sommet de l’organigramme.',
+  serviceNeedsParent:
+    'Un service se place sous le collège des anciens ou sous un autre service — jamais au sommet de l’organigramme.',
   notAnOrganigramRole: 'Cet élément ne peut pas figurer dans l’organigramme.',
   fixedPosition:
     'Le comité de service et ses trois fonctions occupent une place fixe dans l’organigramme : ' +
@@ -59,6 +61,12 @@ export function assertCanSetParent({ roleId, roleKey, parentChainIds, subtreeHei
   // inside it. Offering the move and then refusing it would teach the same rule less kindly.
   if (isAppointedRoleKey(roleKey)) {
     throw new ForbiddenError(ROLE_TREE_ERRORS.fixedPosition)
+  }
+
+  // …and only the rosters are roots. On the printed sheet every service ultimately answers to
+  // the collège des anciens; a service floating at the top would answer to nobody.
+  if (!ORGANIGRAM_ROSTER_KEYS.includes(roleKey) && parentChainIds.length === 0) {
+    throw new ValidationError('parentRoleId', ROLE_TREE_ERRORS.serviceNeedsParent)
   }
 
   // Covers self-parenting too: the role would appear as the first entry of its own chain.

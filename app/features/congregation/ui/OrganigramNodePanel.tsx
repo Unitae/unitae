@@ -154,14 +154,21 @@ export function OrganigramNodePanel({
                   Rattacher sous un autre service
                 </Label>
                 {/* Descendants are absent from `moveTargets`, so a cycle cannot be chosen. Refusing a
-                    selection after a page reload is a worse way to teach the same rule. */}
+                    selection after a page reload is a worse way to teach the same rule. No « au
+                    sommet » option either: everything answers to the collège des anciens, so only
+                    the rosters are roots — a parentless legacy node picks its place from here. */}
                 <select
                   id={`move-${node.id}`}
                   name="parentRoleId"
+                  required
                   className={selectClass}
-                  defaultValue={node.parentId == null ? 'none' : String(node.parentId)}
+                  defaultValue={node.parentId == null ? '' : String(node.parentId)}
                 >
-                  <option value="none">— Au sommet de l’organigramme —</option>
+                  {node.parentId == null && (
+                    <option value="" disabled>
+                      — Choisir un service —
+                    </option>
+                  )}
                   {moveTargets.map(target => (
                     <option key={target.id} value={target.id}>
                       {target.label}

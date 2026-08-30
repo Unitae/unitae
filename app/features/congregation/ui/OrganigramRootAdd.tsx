@@ -2,25 +2,23 @@ import { Form } from 'react-router'
 import { Button } from '~/shared/ui/button'
 import { Label } from '~/shared/ui/label'
 
-// Adding a service at the top of the chart.
+// Putting a roster back at the top of the chart.
 //
-// The page never says "rôle": that is the storage entity, not the congregation's word for what
-// it is looking at. The sheet this replaces is called "Organisation des services".
-//
-// The node panel can only add *under* the node you selected, which leaves a congregation with an
-// empty chart unable to start one: nothing to select, so no panel, so no way in. This is the way
-// in — and afterwards it is still how a second root gets added.
+// Services are never roots — everything answers to the collège des anciens — so the old
+// "add a service at the top" form is gone. What can legitimately sit at the top are the two
+// auto-synced rosters, and the only way one is missing is a congregation that took its list
+// off the sheet, or an archive from before the organigram existed. This is the recovery path;
+// in the normal case both rosters are placed and this renders nothing at all.
 
 interface Props {
-  adoptable: { id: number; name: string }[]
+  /** The identity rosters currently absent from the chart. */
+  rosters: { id: number; name: string }[]
   /** Prominent when the chart is empty, quiet once there is something to look at. */
   emphasis?: 'primary' | 'quiet'
 }
 
-export function OrganigramRootAdd({ adoptable, emphasis = 'quiet' }: Props) {
-  if (adoptable.length === 0) {
-    return <p className="text-muted-foreground text-sm">Tous les services sont déjà dans l’organigramme.</p>
-  }
+export function OrganigramRootAdd({ rosters, emphasis = 'quiet' }: Props) {
+  if (rosters.length === 0) return null
 
   return (
     <Form method="post" className="flex flex-col gap-2 sm:flex-row sm:items-end">
@@ -29,7 +27,7 @@ export function OrganigramRootAdd({ adoptable, emphasis = 'quiet' }: Props) {
 
       <div className="flex-1 space-y-1">
         <Label htmlFor="root-add-role" className="text-muted-foreground text-xs">
-          Ajouter un service au sommet de l’organigramme
+          Remettre une liste au sommet de l’organigramme
         </Label>
         <select
           id="root-add-role"
@@ -37,9 +35,9 @@ export function OrganigramRootAdd({ adoptable, emphasis = 'quiet' }: Props) {
           required
           className="h-11 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
-          {adoptable.map(role => (
-            <option key={role.id} value={role.id}>
-              {role.name}
+          {rosters.map(roster => (
+            <option key={roster.id} value={roster.id}>
+              {roster.name}
             </option>
           ))}
         </select>

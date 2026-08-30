@@ -23,7 +23,7 @@ import {
 } from '~/shared/domain/organigram.server'
 import { flattenTree } from '~/shared/domain/organigram-layout'
 import { seatMember, unseatMember } from '~/shared/domain/organigram-seats.server'
-import { canShowInOrganigram } from '~/shared/domain/role-tree.policy'
+import { canShowInOrganigram, ORGANIGRAM_ROSTER_KEYS } from '~/shared/domain/role-tree.policy'
 import { AppError, ConflictError, ValidationError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
 import { getRoleDisplayName } from '~/shared/types/role'
@@ -61,6 +61,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
         selectedId: null,
         panel: null,
         adoptable: [] as { id: number; name: string }[],
+        rosters: [] as { id: number; name: string }[],
         moveTargets: [] as { id: number; label: string }[],
         people: [] as { id: number; firstname: string | null; lastname: string | null }[],
         peopleWithoutAccount: [] as number[],
@@ -99,9 +100,20 @@ export function loader({ request, context }: Route.LoaderArgs) {
       selectedId: selected ? selected.id : null,
       panel: selected ? buildPanelNode(selected) : null,
       adoptable: roles
-        // Appointed posts pass `canShowInOrganigram` but hold a fixed place, so the service
-        // refuses to attach them anywhere — offering them here would be offering an error.
-        .filter(role => canShowInOrganigram(role.key) && !isAppointedRoleKey(role.key))
+        // Appointed posts pass `canShowInOrganigram` but hold a fixed place, and the rosters may
+        // only sit at the top — the service refuses to attach either under a node, so offering
+        // them in the panel would be offering an error.
+        .filter(
+          role =>
+            canShowInOrganigram(role.key) &&
+            !isAppointedRoleKey(role.key) &&
+            !ORGANIGRAM_ROSTER_KEYS.includes(role.key),
+        )
+        .map(role => ({ id: role.id, name: getRoleDisplayName(role) })),
+      // An off-chart roster is the one thing that may return to the top — the recovery path for
+      // a congregation that took its list off the sheet or restored a pre-organigram archive.
+      rosters: roles
+        .filter(role => ORGANIGRAM_ROSTER_KEYS.includes(role.key))
         .map(role => ({ id: role.id, name: getRoleDisplayName(role) })),
       moveTargets: buildMoveTargets(flat, selected),
       people: members.map(member => ({ id: member.id, firstname: member.firstname, lastname: member.lastname })),
@@ -204,6 +216,7 @@ export default function OrganigramPage({ loaderData }: Route.ComponentProps) {
     peopleWithoutAccount,
     nonElderIds,
     adoptable,
+    rosters,
     moveTargets,
     committeePending,
   } = loaderData
@@ -251,8 +264,12 @@ export default function OrganigramPage({ loaderData }: Route.ComponentProps) {
             <EmptyState
               icon={Network}
               title="Aucun service dans l’organigramme"
-              description="Ajoutez un service pour commencer à représenter l’organisation de la congrégation."
-              action={canManageRoles ? <OrganigramRootAdd adoptable={adoptable} emphasis="primary" /> : undefined}
+              description="Remettez le collège des anciens au sommet, puis rattachez vos services en dessous."
+              action={
+                canManageRoles && rosters.length > 0 ? (
+                  <OrganigramRootAdd rosters={rosters} emphasis="primary" />
+                ) : undefined
+              }
             />
           ) : (
             <div className="rounded-xl border p-4">
@@ -260,9 +277,9 @@ export default function OrganigramPage({ loaderData }: Route.ComponentProps) {
             </div>
           )}
 
-          {canManageRoles && tree.length > 0 && (
+          {canManageRoles && tree.length > 0 && rosters.length > 0 && (
             <div className="pt-4">
-              <OrganigramRootAdd adoptable={adoptable} />
+              <OrganigramRootAdd rosters={rosters} />
             </div>
           )}
 
