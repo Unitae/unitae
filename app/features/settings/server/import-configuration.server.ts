@@ -98,7 +98,12 @@ async function resolveOrganigramParents(
     if (record.parentRoleId == null) continue
 
     const target = idMap.get('roles', record.id)
-    if (target == null) continue
+    // Cannot happen when the first pass ran — every record was just inserted or matched — so a
+    // miss here means the map itself is broken, which deserves the same trace as a bad parent.
+    if (target == null) {
+      logger.warn(`Organigram parent pass: no id mapping for role "${record.key}"`, { congregationId })
+      continue
+    }
 
     const parent = idMap.get('roles', record.parentRoleId)
     // A parent missing from the archive leaves the role detached rather than throwing: the

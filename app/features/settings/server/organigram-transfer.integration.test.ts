@@ -37,6 +37,9 @@ function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promi
 const stamp = `orgxfer-${process.pid}-${Date.now()}`
 let sourceId = 0
 let targetId = 0
+let seatsTargetId = 0
+let leadSourceAccountId = 0
+let deputySourceAccountId = 0
 
 /** ids of the source roles, by key, so assertions can name what they mean. */
 const sourceRoles = new Map<string, number>()
@@ -118,10 +121,12 @@ beforeAll(async () => {
       { userId: deputyAccount.id, roleId: comptes.id, congregationId: sourceId, kind: 'deputy' },
     ],
   })
+  leadSourceAccountId = leadAccount.id
+  deputySourceAccountId = deputyAccount.id
 })
 
 afterAll(async () => {
-  for (const id of [sourceId, targetId]) {
+  for (const id of [sourceId, targetId, seatsTargetId]) {
     if (!id) continue
     await testDb.userRoleAssignment.deleteMany({ where: { congregationId: id } })
     await testDb.userAccount.deleteMany({ where: { congregationId: id } })
@@ -222,5 +227,46 @@ describe('organigram survives an export/import round trip', () => {
     // A personal role arrives personal; a group arrives a group.
     expect(byKey.get('secretaire')?.isSinglePerson).toBe(true)
     expect(byKey.get('comptes')?.isSinglePerson).toBe(false)
+  })
+
+  it('restores the seat kinds, not just the seats', async () => {
+    // The export's own comment says it: `kind` decides who leads a service, and dropping it on
+    // restore would quietly demote every responsable and adjoint to a plain member.
+    const importConfig = await import('./import-congregation.server')
+    const importAccounts = await import('./import-user-accounts.server')
+    const zip = await exportRolesAndSeats()
+
+    const seatsStamp = `${stamp}-seats`
+    const target = await testDb.congregation.create({
+      data: { name: seatsStamp, slug: seatsStamp, active: true },
+    })
+    seatsTargetId = target.id
+
+    // The accounts the seats point at travel in their own archive file; here they are created
+    // directly and mapped, the state the assignments import runs in.
+    const [leadTarget, deputyTarget] = await Promise.all([
+      testDb.userAccount.create({
+        data: { email: `${seatsStamp}-lead@test.com`, password: 'x', congregationId: target.id },
+      }),
+      testDb.userAccount.create({
+        data: { email: `${seatsStamp}-dep@test.com`, password: 'x', congregationId: target.id },
+      }),
+    ])
+    const idMap = new EntityIdMap()
+    idMap.set('user-accounts', leadSourceAccountId, leadTarget.id)
+    idMap.set('user-accounts', deputySourceAccountId, deputyTarget.id)
+
+    await withScope(target.id, async db => {
+      await importConfig.importRoles(zip, db as never, idMap, target.id)
+      await importAccounts.importUserRoleAssignments(zip, db as never, idMap, target.id)
+    })
+
+    const seats = await testDb.userRoleAssignment.findMany({
+      where: { congregationId: target.id },
+      select: { userId: true, kind: true },
+    })
+    const kindOf = new Map(seats.map(seat => [seat.userId, seat.kind]))
+    expect(kindOf.get(leadTarget.id)).toBe('leader')
+    expect(kindOf.get(deputyTarget.id)).toBe('deputy')
   })
 })
