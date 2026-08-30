@@ -24,7 +24,11 @@ const BUILT_IN_ORDER = new Map<string, number>([
  * in the existing set — which reads as "no change" and silently refuses the grant.
  */
 function accountAssignableRole() {
-  return { OR: [{ isBuiltIn: false }, { key: { in: [...SYSTEM_ROLE_KEYS] } }] }
+  // Personal roles are excluded like identity roles are: their one seat is granted from the
+  // organigram with a handover, never from a checkbox list. Because the filter is applied to
+  // both sides of the assignment diff, a role it excludes is never stripped either — a
+  // titulaire keeps their seat when someone edits their eligibility groups.
+  return { isSinglePerson: false, OR: [{ isBuiltIn: false }, { key: { in: [...SYSTEM_ROLE_KEYS] } }] }
 }
 
 export interface RoleListItem {
@@ -239,6 +243,11 @@ export async function addUserToRole(
   if (isIdentityRoleKey(role.key)) {
     throw new ForbiddenError('Identity role memberships are managed automatically')
   }
+  // A personal role has one titulaire and adjoints, never plain members — its seat is granted
+  // from the organigram, where seating is a handover rather than an addition.
+  if (role.isSinglePerson) {
+    throw new ForbiddenError('Personal roles are seated from the organigram')
+  }
 
   const existing = await db.userRoleAssignment.findFirst({
     where: { userId, roleId },
@@ -276,9 +285,15 @@ export async function removeUserFromRole(
 
   const existing = await db.userRoleAssignment.findFirst({
     where: { userId, roleId },
-    select: { userId: true },
+    select: { userId: true, kind: true },
   })
   if (!existing) return
+
+  // The matrix bulk-edits members; one stray uncheck must not silently unseat a responsable
+  // or an adjoint. Leadership changes hands on the organigram, where the seat is visible as one.
+  if (existing.kind === 'leader' || existing.kind === 'deputy') {
+    throw new ForbiddenError('Leadership seats are managed from the organigram')
+  }
 
   await db.userRoleAssignment.deleteMany({ where: { userId, roleId } })
 
