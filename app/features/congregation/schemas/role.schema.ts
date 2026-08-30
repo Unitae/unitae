@@ -1,13 +1,17 @@
 import { z } from 'zod'
+import { checkbox } from '~/features/congregation/schemas/organigram.schema'
 
 export const createRoleSchema = z.object({
   name: z.string().trim().min(1).max(100),
   description: z.string().trim().max(500).optional().default(''),
+  // A personal role: one titulaire with a handover, adjoints allowed, no plain members.
+  singlePerson: checkbox,
 })
 
 export const editRoleSchema = z.object({
   name: z.string().trim().min(1).max(100),
   description: z.string().trim().max(500).optional().default(''),
+  singlePerson: checkbox,
 })
 
 export const toggleSchema = z.object({
