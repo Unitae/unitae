@@ -21,7 +21,7 @@ const HELP = [
     title: 'Personnes et autorisations',
     body:
       'L’organigramme nomme les responsables et les adjoints ; les membres des équipes s’ajoutent depuis l’onglet ' +
-      'Groupes d’aptitude. Toutes les personnes d’une même case ont les mêmes autorisations, quelle que soit leur ' +
+      'Rôles. Toutes les personnes d’une même case ont les mêmes autorisations, quelle que soit leur ' +
       'fonction. Si une équipe a besoin d’accès différents, créez-lui une case en dessous avec ses propres ' +
       'autorisations — elles se règlent dans Réglages → Autorisations, jamais depuis l’organigramme. Les listes ' +
       'des anciens et des assistants, ainsi que le comité de service, se remplissent automatiquement.',

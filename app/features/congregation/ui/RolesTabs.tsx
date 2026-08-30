@@ -4,13 +4,13 @@ import { cn } from '~/shared/utils/utils'
 // Two views of the same data, one surface.
 //
 // The organigram answers "who reports to whom"; the matrix answers "who may do this kind of
-// work" — populations like « commerces » or « micros » that hold no place in the chart. They
-// were separate pages nobody linked between, and the sidebar now points at the chart, so the
-// matrix needs a way back.
+// work". The second tab carries the page's own title — it IS the roles page; « Groupes
+// d'aptitude » named the concept but not the place, and a tab that does not match the title
+// above it reads as a different destination.
 
 const TABS = [
   { to: '/congregation/roles/organigram', label: 'Organigramme' },
-  { to: '/congregation/roles', label: 'Groupes d’aptitude' },
+  { to: '/congregation/roles', label: 'Rôles' },
 ] as const
 
 export function RolesTabs() {

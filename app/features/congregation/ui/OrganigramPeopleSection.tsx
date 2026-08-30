@@ -17,7 +17,7 @@ export interface PanelHolder {
 }
 
 // The organigram names who *leads*: the chart seats responsables and adjoints, and the role
-// matrix (« Groupes d'aptitude ») handles plain members in bulk. Splitting the two gestures is
+// matrix (the « Rôles » tab) handles plain members in bulk. Splitting the two gestures is
 // what keeps each page simple — and keeps a stray click here from touching a whole team.
 const KIND_LABEL: Record<string, string> = {
   leader: 'Responsable',
@@ -238,9 +238,9 @@ export function PeopleSection({
           )}
           {!single && (
             <p className="text-muted-foreground text-xs">
-              Les membres de l’équipe s’ajoutent depuis les{' '}
+              Les membres de l’équipe s’ajoutent depuis l’onglet{' '}
               <RouterLink to="/congregation/roles" className="underline underline-offset-2 hover:text-foreground">
-                groupes d’aptitude
+                Rôles
               </RouterLink>
               .
             </p>
