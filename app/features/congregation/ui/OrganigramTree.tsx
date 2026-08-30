@@ -2,6 +2,7 @@ import { Users } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
 import type { OrganigramNode } from '~/shared/domain/organigram.queries'
+import { seatLabel } from '~/shared/domain/organigram-layout'
 import { Badge } from '~/shared/ui/badge'
 import { cn } from '~/shared/utils/utils'
 
@@ -24,34 +25,20 @@ interface Holder {
   kind: string
 }
 
-const SEAT_LABEL: Record<string, string> = { leader: 'Responsable', deputy: 'Adjoint' }
-
 function formatName(person: Holder): string {
   if (person.anonymizedAt != null) return m.board_read_status_anonymized_user()
   const lastname = person.lastname?.toLocaleUpperCase() ?? null
   return [person.firstname, lastname].filter(Boolean).join(' ') || '—'
 }
 
-/**
- * A seat label, suppressed when the node's own name already carries it.
- *
- * Without this, a node called « Responsable de l'accueil » reads "Responsable de l'accueil ·
- * Responsable". On a real congregation's chart that was eleven redundant labels — most of the page.
- */
-function seatLabel(kind: string, nodeName: string): string | null {
-  const label = SEAT_LABEL[kind]
-  if (!label) return null
-  return nodeName.toLocaleLowerCase().startsWith(label.toLocaleLowerCase()) ? null : label
-}
-
 function NodeRow({ node, selectedId }: { node: OrganigramNode; selectedId: number | null }) {
   const [searchParams] = useSearchParams()
   const isSelected = selectedId === node.id
-  // Deliberately NOT called "vacant". Without a leader/unit distinction in the model we cannot
-  // tell a post nobody holds from a group nobody has been added to yet, and an amber warning
-  // badge asserted the former on four nodes that were the latter — including one whose note
-  // describes its team. "— personne" states only what is true.
-  const isEmpty = !node.isRoster && node.holders.length === 0 && node.children.length === 0
+  // "— personne" states only what is true of a group: nobody has been added yet. A personal
+  // role is different — it either has its titulaire or it does not — so there, and only there,
+  // an empty titular seat may honestly be called vacant.
+  const isVacant = node.isSinglePerson && !node.holders.some(holder => holder.kind === 'leader')
+  const isEmpty = !node.isRoster && !node.isSinglePerson && node.holders.length === 0 && node.children.length === 0
 
   const params = new URLSearchParams(searchParams)
   params.set('node', String(node.id))
@@ -71,15 +58,18 @@ function NodeRow({ node, selectedId }: { node: OrganigramNode; selectedId: numbe
         preventScrollReset
         aria-current={isSelected ? 'true' : undefined}
         className={cn(
-          '-mx-2 flex min-h-11 items-start gap-2 rounded-md border-l-2 border-l-transparent px-2 py-1.5',
+          '-mx-2 flex min-h-11 items-start gap-2 rounded-md border-l-2 border-l-transparent px-2 py-2.5',
           'transition-colors hover:bg-accent/60',
           'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
+          // A faint band sets the two rosters apart as headings-with-content, the way the
+          // printed sheet greys its masthead — without costing the row its click affordance.
+          node.isRoster && !isSelected && 'bg-muted/20',
           // The selected row is where every form in the panel applies, so it has to be obvious
           // at a glance — a faint background alone was not enough to find it in 12 rows.
           isSelected && 'border-l-primary bg-accent',
         )}
       >
-        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="flex flex-wrap items-center gap-2">
             {/* The rosters are a different kind of thing — reconciled from Member flags rather
                 than appointed — so they read as a heading rather than as another service. */}
@@ -95,29 +85,50 @@ function NodeRow({ node, selectedId }: { node: OrganigramNode; selectedId: numbe
             </span>
             {node.isRoster && <Badge variant="outline">{node.holders.length}</Badge>}
             {isEmpty && <span className="text-muted-foreground text-xs">— personne</span>}
+            {/* A badge, not a whisper: "who is missing?" is the first question this chart gets
+                asked, and an empty titular seat is the answer. */}
+            {isVacant && (
+              <Badge
+                variant="outline"
+                className="border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400"
+              >
+                Vacant
+              </Badge>
+            )}
           </span>
 
-          {node.holders.length > 0 && (
-            // Several people on one line ran together — "RESPONSABLE Nicolas LAURENT ADJOINT
-            // David LEFÈVRE Julien GIRARD" is unreadable. A separator between people, and the
-            // seat label tied tightly to the name it qualifies.
-            <span className="flex flex-wrap items-baseline gap-x-1 gap-y-0.5 text-muted-foreground text-sm">
-              {node.holders.map((holder, index) => {
-                const label = seatLabel(holder.kind, node.name)
-                return (
+          {node.holders.length > 0 &&
+            (node.isRoster ? (
+              // A roster is a plain list of names — inline and wrapped, or ten elders would eat
+              // ten rows of the page.
+              <span className="flex flex-wrap items-baseline gap-x-1 gap-y-0.5 text-muted-foreground text-sm">
+                {node.holders.map((holder, index) => (
                   <span key={`${holder.memberId}-${holder.kind}`} className="whitespace-nowrap">
                     {index > 0 && (
                       <span aria-hidden="true" className="pr-1 text-muted-foreground/40">
                         ·
                       </span>
                     )}
-                    {label && <span className="text-[0.7rem] uppercase tracking-wide opacity-70">{label} </span>}
                     <span className="text-foreground/80">{formatName(holder)}</span>
                   </span>
-                )
-              })}
-            </span>
-          )}
+                ))}
+              </span>
+            ) : (
+              // One person per line, the seat label tied to the name it qualifies. The old
+              // dot-separated run — "RESPONSABLE Nicolas LAURENT · ADJOINT David LEFÈVRE" —
+              // asked the reader to parse labels out of a sentence.
+              <span className="flex flex-col gap-0.5 text-sm">
+                {node.holders.map(holder => {
+                  const label = seatLabel(holder.kind, node)
+                  return (
+                    <span key={`${holder.memberId}-${holder.kind}`} className="flex items-baseline gap-1.5">
+                      {label && <span className="text-primary/80 text-xs uppercase">{label}</span>}
+                      <span className="text-foreground/80">{formatName(holder)}</span>
+                    </span>
+                  )
+                })}
+              </span>
+            ))}
 
           {node.note && <span className="text-muted-foreground text-xs italic">{node.note}</span>}
         </span>

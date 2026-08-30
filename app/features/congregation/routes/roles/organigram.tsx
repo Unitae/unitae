@@ -3,7 +3,8 @@ import { Network } from 'lucide-react'
 import { data, Link, redirect, useSearchParams } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { organigramIntentSchema } from '~/features/congregation/schemas/organigram.schema'
-import type { PanelNode } from '~/features/congregation/ui/OrganigramNodePanel'
+import { buildMoveTargets, buildPanelNode } from '~/features/congregation/server/organigram-panel.server'
+import { OrganigramHelp } from '~/features/congregation/ui/OrganigramHelp'
 import { OrganigramPanelAside } from '~/features/congregation/ui/OrganigramPanelAside'
 import { OrganigramRootAdd } from '~/features/congregation/ui/OrganigramRootAdd'
 import { OrganigramTree } from '~/features/congregation/ui/OrganigramTree'
@@ -11,12 +12,8 @@ import { OrganigramTree } from '~/features/congregation/ui/OrganigramTree'
 import { RolesTabs } from '~/features/congregation/ui/RolesTabs'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import {
-  isAppointedRoleKey,
-  isServiceCommitteePostKey,
-  SERVICE_COMMITTEE_KEY,
-} from '~/shared/domain/built-in-roles.server'
-import { descendantIds, getOrganigram } from '~/shared/domain/organigram.queries'
+import { isAppointedRoleKey, SERVICE_COMMITTEE_KEY } from '~/shared/domain/built-in-roles.server'
+import { getOrganigram } from '~/shared/domain/organigram.queries'
 import {
   addRoleToOrganigram,
   createServiceInOrganigram,
@@ -27,12 +24,13 @@ import {
 import { flattenTree } from '~/shared/domain/organigram-layout'
 import { seatMember, unseatMember } from '~/shared/domain/organigram-seats.server'
 import { canShowInOrganigram } from '~/shared/domain/role-tree.policy'
-import { AppError, ConflictError } from '~/shared/errors/app-error.server'
+import { AppError, ConflictError, ValidationError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
 import { getRoleDisplayName } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { cn } from '~/shared/utils/utils'
 
 import type { Route } from './+types/organigram'
 
@@ -95,43 +93,17 @@ export function loader({ request, context }: Route.LoaderArgs) {
       }),
     ])
 
-    // A role may not become its own descendant's child, so those are not offered at all —
-    // refusing the choice after a page reload teaches the same rule far less kindly.
-    const links = flat.map(entry => ({ id: entry.id, parentRoleId: entry.parentId }))
-    const forbidden = selected ? new Set([selected.id, ...descendantIds(links, selected.id)]) : new Set<number>()
-
-    const panel: PanelNode | null = selected
-      ? {
-          id: selected.node.id,
-          name: selected.node.name,
-          isRoster: selected.node.isRoster,
-          // The committee and its posts are placed by provisioning and never move, so the panel
-          // must not offer to move or remove them.
-          isFixed: isAppointedRoleKey(selected.node.key),
-          isPost: isServiceCommitteePostKey(selected.node.key),
-          isCommittee: selected.node.key === SERVICE_COMMITTEE_KEY,
-          parentId: selected.parentId,
-          parentName: selected.parentName,
-          childCount: selected.node.children.length,
-          holders: selected.node.holders.map(holder => ({
-            memberId: holder.memberId,
-            name: `${holder.firstname ?? ''} ${holder.lastname?.toLocaleUpperCase() ?? ''}`.trim() || '—',
-            kind: holder.kind,
-          })),
-        }
-      : null
-
     return {
       tree,
       canManageRoles,
       selectedId: selected ? selected.id : null,
-      panel,
+      panel: selected ? buildPanelNode(selected) : null,
       adoptable: roles
         // Appointed posts pass `canShowInOrganigram` but hold a fixed place, so the service
         // refuses to attach them anywhere — offering them here would be offering an error.
         .filter(role => canShowInOrganigram(role.key) && !isAppointedRoleKey(role.key))
         .map(role => ({ id: role.id, name: getRoleDisplayName(role) })),
-      moveTargets: flat.filter(entry => !forbidden.has(entry.id)).map(({ id, label }) => ({ id, label })),
+      moveTargets: buildMoveTargets(flat, selected),
       people: members.map(member => ({ id: member.id, firstname: member.firstname, lastname: member.lastname })),
       peopleWithoutAccount: members.filter(member => member.account == null).map(member => member.id),
       nonElderIds: members.filter(member => member.roleAssignments.length === 0).map(member => member.id),
@@ -161,17 +133,27 @@ export async function action({ request, context }: Route.ActionArgs) {
         case 'add':
           await addRoleToOrganigram(db, value.roleId, value.parentRoleId, congregationId, actorId)
           break
-        case 'create':
-          try {
-            created = await createServiceInOrganigram(db, value.name, value.parentRoleId, congregationId, actorId)
-          } catch (error) {
-            // `createRole` reports the key collision in English, for developers. The admin needs
-            // to know a service by that name already exists and that attaching it is what they
-            // almost certainly meant.
-            if (!(error instanceof ConflictError)) throw error
-            throw new ConflictError(
-              `Un service nommé « ${value.name} » existe déjà. Choisissez-le dans la liste pour le rattacher.`,
-            )
+        case 'attach':
+          // One form, two outcomes: a typed name creates, a picked service attaches. The name
+          // wins when both are filled — typing is the more deliberate gesture.
+          if (value.name) {
+            try {
+              created = await createServiceInOrganigram(db, value.name, value.parentRoleId, congregationId, actorId, {
+                isSinglePerson: value.singlePerson,
+              })
+            } catch (error) {
+              // `createRole` reports the key collision in English, for developers. The admin
+              // needs to know a service by that name already exists and that attaching it is
+              // what they almost certainly meant.
+              if (!(error instanceof ConflictError)) throw error
+              throw new ConflictError(
+                `Un service nommé « ${value.name} » existe déjà. Choisissez-le dans la liste pour le rattacher.`,
+              )
+            }
+          } else if (value.roleId != null) {
+            await addRoleToOrganigram(db, value.roleId, value.parentRoleId, congregationId, actorId)
+          } else {
+            throw new ValidationError('roleId', 'Choisissez un service existant ou saisissez un nom.')
           }
           break
         case 'remove':
@@ -204,9 +186,9 @@ export async function action({ request, context }: Route.ActionArgs) {
   })
 
   // Return with a node selected so the panel the admin is working in stays open. Removing leaves
-  // nothing to return to; creating focuses the service that was just made.
+  // nothing to return to; attaching focuses the service that was just made or adopted.
   let stayOn: number | null = null
-  if (value.intent === 'create') stayOn = created
+  if (value.intent === 'attach') stayOn = created ?? value.roleId
   else if (value.intent !== 'remove') stayOn = value.roleId
   const target = stayOn == null ? '/congregation/roles/organigram' : `/congregation/roles/organigram?node=${stayOn}`
   return redirect(target, { headers: { 'Set-Cookie': await commitSession(session) } })
@@ -255,7 +237,16 @@ export default function OrganigramPage({ loaderData }: Route.ComponentProps) {
       )}
 
       <div className="flex gap-6">
-        <div className="min-w-0 flex-1">
+        {/* With a panel open on desktop, the chart column scrolls inside the viewport instead of
+            growing the page: `sticky` never engages inside the app shell's overflow wrapper, so
+            this is what keeps the panel beside the chart however long the chart is. Reading mode
+            (no panel) keeps the natural full-page scroll. */}
+        <div
+          className={cn(
+            'min-w-0 flex-1',
+            panel && 'md:max-h-[calc(100vh-14rem)] md:overflow-y-auto md:overscroll-contain md:pr-1',
+          )}
+        >
           {tree.length === 0 ? (
             <EmptyState
               icon={Network}
@@ -272,6 +263,12 @@ export default function OrganigramPage({ loaderData }: Route.ComponentProps) {
           {canManageRoles && tree.length > 0 && (
             <div className="pt-4">
               <OrganigramRootAdd adoptable={adoptable} />
+            </div>
+          )}
+
+          {canManageRoles && (
+            <div className="pt-4">
+              <OrganigramHelp defaultOpen={tree.length === 0} />
             </div>
           )}
         </div>

@@ -7,11 +7,17 @@ import type { PersonOption } from '~/shared/ui/PersonDropdown'
 /*
         One panel, positioned by CSS rather than by two components.
 
-        Below lg it is pinned to the bottom of the viewport like a sheet; at lg and above it
-        becomes a sticky column beside the chart. Deliberately not a Radix Sheet: that renders
+        Below md it is pinned to the bottom of the viewport like a sheet; at md and above it
+        becomes a plain column beside the chart — the chart column, not this one, does the
+        scrolling on desktop, because `position: sticky` never engages inside the app shell's
+        overflow-x-hidden content wrapper. Deliberately not a Radix Sheet: that renders
         an overlay at every width, which covered the desktop layout, and mounting both variants
         duplicated every heading in the DOM. Plain CSS also means no client state to lose across
         a form post, and the chart stays readable behind the panel on a phone.
+
+        The sheet is a header row above a scroll area, not one scrolling box: the node's name and
+        the close button stay put — exactly flush with the sheet's top — and content cannot slide
+        behind them, however deep the admin scrolls.
       */
 interface Props {
   panel: PanelNode
@@ -36,35 +42,41 @@ export function OrganigramPanelAside({
   return (
     <aside
       aria-label={`Service : ${panel.name}`}
+      // `data-bottom-sheet` hides the tab bar while the sheet is open (see BottomTabBar):
+      // its action buttons would otherwise sit one thumb-width above five navigation targets.
+      data-bottom-sheet=""
       className={[
-        // Docked above the bottom tab bar, not over it: the bar is fixed at z-40 with a
-        // 56px body, and `FormActions` already establishes this offset for form pages.
+        // Flush with the viewport bottom — the tab bar is hidden while the sheet is open.
         // 60vh rather than 80 so a few rows of the chart stay visible behind the panel —
         // otherwise you lose sight of the node you just selected.
-        'fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20',
-        'max-h-[60vh] overflow-y-auto border-t bg-background p-4 shadow-lg',
+        'fixed inset-x-0 bottom-0 z-20 max-md:pb-[env(safe-area-inset-bottom)]',
+        'flex max-h-[60vh] flex-col border-t bg-background shadow-lg',
         // Switches at md, the same breakpoint where the tab bar disappears, so there is no
         // band where the panel is docked but there is nothing to dock above.
-        'md:sticky md:inset-x-auto md:top-6 md:bottom-auto md:z-auto md:h-fit md:max-h-none',
+        'md:static md:inset-x-auto md:bottom-auto md:z-auto md:h-fit md:max-h-[calc(100vh-14rem)]',
         'md:w-[22rem] md:shrink-0 md:rounded-xl md:border md:shadow-none',
       ].join(' ')}
     >
-      <div className="mx-auto flex max-w-2xl flex-col gap-4 md:max-w-none">
-        <div className="flex justify-end md:hidden">
-          <Button asChild variant="ghost" size="icon" aria-label="Fermer">
-            <Link to={{ search: closeSearch }} preventScrollReset>
-              <X className="size-4" />
-            </Link>
-          </Button>
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b px-4 py-1.5">
+        <h2 className="truncate font-semibold text-base">{panel.name}</h2>
+        <Button asChild variant="ghost" size="icon" aria-label="Fermer">
+          <Link to={{ search: closeSearch }} preventScrollReset>
+            <X className="size-4" />
+          </Link>
+        </Button>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
+        <div className="mx-auto flex max-w-2xl flex-col md:max-w-none">
+          <OrganigramNodePanel
+            node={panel}
+            people={people}
+            peopleWithoutAccount={peopleWithoutAccount}
+            nonElderIds={nonElderIds}
+            adoptable={adoptable}
+            moveTargets={moveTargets}
+          />
         </div>
-        <OrganigramNodePanel
-          node={panel}
-          people={people}
-          peopleWithoutAccount={peopleWithoutAccount}
-          nonElderIds={nonElderIds}
-          adoptable={adoptable}
-          moveTargets={moveTargets}
-        />
       </div>
     </aside>
   )

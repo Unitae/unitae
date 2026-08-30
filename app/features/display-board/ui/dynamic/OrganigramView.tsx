@@ -1,6 +1,6 @@
 import * as m from '~/i18n/paraglide/messages'
 import type { OrganigramNode } from '~/shared/domain/organigram.queries'
-import { toLayout } from '~/shared/domain/organigram-layout'
+import { seatLabel, toLayout } from '~/shared/domain/organigram-layout'
 import { cn } from '~/shared/utils/utils'
 
 // The board's rendering of the organigram — a document, not a tool.
@@ -19,19 +19,10 @@ interface Holder {
   kind: string
 }
 
-const SEAT_LABEL: Record<string, string> = { leader: 'Responsable', deputy: 'Adjoint' }
-
 function formatName(person: Holder): string {
   if (person.anonymizedAt != null) return m.board_read_status_anonymized_user()
   const lastname = person.lastname?.toLocaleUpperCase() ?? null
   return [person.firstname, lastname].filter(Boolean).join(' ') || '—'
-}
-
-/** Suppressed when the node's own name already carries it — «Responsable de l'accueil · Responsable». */
-function seatLabel(kind: string, nodeName: string): string | null {
-  const label = SEAT_LABEL[kind]
-  if (!label) return null
-  return nodeName.toLocaleLowerCase().startsWith(label.toLocaleLowerCase()) ? null : label
 }
 
 function People({ node }: { node: OrganigramNode }) {
@@ -39,7 +30,7 @@ function People({ node }: { node: OrganigramNode }) {
   return (
     <span className="flex flex-wrap items-baseline gap-x-1 gap-y-0.5">
       {node.holders.map((holder, index) => {
-        const label = seatLabel(holder.kind, node.name)
+        const label = seatLabel(holder.kind, node)
         return (
           <span key={`${holder.memberId}-${holder.kind}`} className="whitespace-nowrap">
             {index > 0 && (
