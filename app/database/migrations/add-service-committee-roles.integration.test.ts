@@ -62,7 +62,10 @@ async function buildWithRetry(attempts = 3): Promise<Snapshot> {
     try {
       return await build()
     } catch (error) {
-      const racy = error instanceof Error && JSON.stringify(error).includes('Role_congregationId_fkey')
+      // The constraint name lands in the message itself (verified against the P2010 error the
+      // pg adapter raises) — matched there rather than via JSON.stringify, which could itself
+      // throw on an unserialisable error and replace the failure being reported.
+      const racy = error instanceof Error && error.message.includes('Role_congregationId_fkey')
       if (!racy || attempt >= attempts) throw error
     }
   }
