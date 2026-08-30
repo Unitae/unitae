@@ -107,12 +107,13 @@ export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) 
             </span>
           )}
           {data?.type === DynamicType.Organigram && (
-            // A plain anchor, not a Link: the target is a PDF resource whose
-            // Content-Disposition triggers the download without leaving the page.
-            <Button variant="ghost" size="icon" asChild>
-              <a href={`/board/dynamic/${settings.id}/pdf`} title={m.board_viewer_download_pdf()}>
-                <Download className="size-4" />
-                <span className="sr-only">{m.board_viewer_download_pdf()}</span>
+            // Same design as the PDF viewer's download button. A plain anchor, not a Link: the
+            // target is a PDF resource whose Content-Disposition triggers the download without
+            // leaving the page.
+            <Button variant="outline" size="sm" asChild>
+              <a href={`/board/dynamic/${settings.id}/pdf`}>
+                <Download className="mr-2 size-4" />
+                <span className="max-sm:sr-only">{m.board_viewer_download_pdf()}</span>
               </a>
             </Button>
           )}
