@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { SERVICE_COMMITTEE_KEY, SERVICE_COMMITTEE_POST_KEYS } from '~/shared/domain/built-in-roles.server'
 import type { OrganigramNode } from '~/shared/domain/organigram.queries'
-import { seatLabel, toLayout } from './organigram-layout'
+import { groupLayout, responsibilityEyebrow, seatLabel, toLayout } from './organigram-layout'
 
 // The printed "Organisation des services" sheet has no connector lines and no deep indentation.
 // It groups children under band headers — « Sous la responsabilité du secrétaire » — and prints
@@ -173,5 +174,76 @@ describe('seatLabel', () => {
     expect(seatLabel({ kind: 'leader', isElder: false }, prepose)).toBeNull()
     // The adjoint's title is not the one the name carries — it stays.
     expect(seatLabel({ kind: 'deputy', isElder: false }, named)).toBe('Adjoint')
+  })
+})
+
+describe('the committee keys mirror built-in-roles.server', () => {
+  // COMMITTEE_KEY / POST_KEYS are module-private mirrors of the server constants, which this
+  // client-bundled file cannot import. This proves behaviourally that they have not drifted: a
+  // committee built from the server's own keys must be recognised, and its posts must come out
+  // in the server's canonical order even when the tree holds them reversed.
+  it('recognises a committee built from the server’s own keys, in the server’s post order', () => {
+    const posts = SERVICE_COMMITTEE_POST_KEYS.map(key => node({ key, name: key, isSinglePerson: true }))
+    const committee = node({ key: SERVICE_COMMITTEE_KEY, name: 'Comité', children: [...posts].reverse() })
+    const elders = node({ key: 'elder', name: 'Anciens', isRoster: true, children: [committee] })
+
+    const blocks = toLayout([elders])
+
+    const bench = blocks.find(block => block.kind === 'committee')
+    expect(bench?.posts.map(post => post.key)).toEqual([...SERVICE_COMMITTEE_POST_KEYS])
+  })
+})
+
+describe('groupLayout — the renderer’s view', () => {
+  it('splits the sheet into rosters, committee, header sections, and nothing legacy', () => {
+    const t = standardTree()
+
+    const grouped = groupLayout(toLayout([t.elders, t.assistants]))
+
+    expect(grouped.rosters.map(roster => roster.id)).toEqual([t.elders.id, t.assistants.id])
+    expect(grouped.committee?.id).toBe(t.committee.id)
+    expect(grouped.sections.map(section => section.under)).toEqual([
+      'Coordinateur',
+      'Secrétaire',
+      'Collège des anciens',
+    ])
+    expect(grouped.legacy).toEqual([])
+  })
+
+  it('keeps consecutive bands of one branch in a single section', () => {
+    const t = standardTree()
+    // Give the coordinator's branch a container next to its leaf: two bands, one header.
+    t.accueil.children = [node({ name: 'Équipe Parking' })]
+
+    const grouped = groupLayout(toLayout([t.elders, t.assistants]))
+
+    const coordinator = grouped.sections.find(section => section.under === 'Coordinateur')
+    expect(coordinator?.bands.length).toBe(2)
+    expect(grouped.sections.filter(section => section.under === 'Coordinateur').length).toBe(1)
+  })
+
+  it('sends a root outside the rosters to the legacy pile, as a plain row', () => {
+    const t = standardTree()
+    const orphan = node({ name: 'Ancienne entrée' })
+
+    const grouped = groupLayout(toLayout([t.elders, t.assistants, orphan]))
+
+    expect(grouped.legacy).toEqual([expect.objectContaining({ kind: 'row', id: orphan.id })])
+  })
+})
+
+describe('responsibilityEyebrow — the French contraction', () => {
+  it('contracts « du » for a masculine post', () => {
+    expect(responsibilityEyebrow('Coordinateur')).toBe('Sous la responsabilité du')
+    expect(responsibilityEyebrow('Collège des anciens')).toBe('Sous la responsabilité du')
+  })
+
+  it('contracts « des » when the first word is plural', () => {
+    expect(responsibilityEyebrow('Anciens')).toBe('Sous la responsabilité des')
+  })
+
+  it('elides before a vowel, accented or not', () => {
+    expect(responsibilityEyebrow('Audio/Vidéo')).toBe('Sous la responsabilité de l’')
+    expect(responsibilityEyebrow('Équipe technique')).toBe('Sous la responsabilité de l’')
   })
 })
