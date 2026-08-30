@@ -72,7 +72,10 @@ describe('markDocumentAsViewed', () => {
 })
 
 describe('createDynamicDocument', () => {
-  it('creates a dynamic document settings record', async () => {
+  it('creates a dynamic document settings record, visible from now', async () => {
+    // The board only shows documents whose visibility window has opened. Born with a null
+    // visibleFrom, a freshly added document flashed « ajouté » and then never appeared —
+    // the admin had to guess that the optional date field on the edit page was the reason.
     const data = {
       title: 'Programme',
       dynamicType: 'programme',
@@ -83,10 +86,14 @@ describe('createDynamicDocument', () => {
     const expected = { id: 1, ...data }
     mockDb.boardDynamicDocumentSettings.create.mockResolvedValue(expected)
 
+    const before = new Date()
     const result = await createDynamicDocument(mockDb as never, data)
 
     expect(result).toEqual(expected)
-    expect(mockDb.boardDynamicDocumentSettings.create).toHaveBeenCalledWith({ data })
+    const written = mockDb.boardDynamicDocumentSettings.create.mock.calls[0]?.[0].data
+    expect(written).toMatchObject(data)
+    expect(written.visibleFrom).toBeInstanceOf(Date)
+    expect(written.visibleFrom.getTime()).toBeGreaterThanOrEqual(before.getTime())
   })
 })
 

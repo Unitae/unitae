@@ -272,6 +272,11 @@ export function createDynamicDocument(
     data: {
       ...data,
       dynamicConfig: data.dynamicConfig ?? undefined,
+      // The board only shows documents whose visibility window has opened. Without this, a
+      // freshly added document flashed « ajouté » and then never appeared — invisible until the
+      // admin guessed that the *optional* date field on the edit page was why. Adding a
+      // document means showing it; the edit page is where a different window gets chosen.
+      visibleFrom: new Date(),
     },
   })
 }
