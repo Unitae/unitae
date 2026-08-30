@@ -29,7 +29,11 @@ export function BottomTabBar({ permissions, onMoreClick, moreOpen }: BottomTabBa
   return (
     <nav
       aria-label={m.nav_primary()}
-      className="fixed inset-x-0 bottom-0 z-40 flex border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm md:hidden"
+      // Hidden while a page shows a bottom sheet (`data-bottom-sheet`): the sheet's action
+      // buttons would otherwise sit one thumb-width above five navigation targets, and a
+      // mis-tap there leaves the page mid-edit. Same zero-JS `has()` trick the layout uses
+      // for `data-form-actions`.
+      className="fixed inset-x-0 bottom-0 z-40 flex border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm md:hidden [body:has([data-bottom-sheet])_&]:hidden"
     >
       {tabs.map(tab => (
         <NavLink
