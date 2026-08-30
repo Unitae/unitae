@@ -25,6 +25,7 @@ let noMemberAccountId: number
 let memberOnlyMemberId: number
 let accountOnlyMemberId: number
 let leaverMemberId: number
+let seatAccountIds: Record<'leader' | 'deputy' | 'member', number>
 
 beforeAll(async () => {
   await seedPermissions(testDb)
@@ -146,6 +147,31 @@ beforeAll(async () => {
     },
   })
   noMemberAccountId = noMemberAccount.id
+
+  // One role granting CanViewTerritories, held on the three organigram seat kinds. The seat
+  // (`kind`) says who leads a service on the chart — it must never decide what anyone may do:
+  // an adjoint or member needing a different permission set is modelled as a child role, not as
+  // a seat with different rights.
+  const seatRole = await testDb.role.create({
+    data: { key: `seat-role-${ts}`, isBuiltIn: false, congregationId },
+  })
+  const territoriesViewer = await testDb.permission.findUniqueOrThrow({
+    where: { key: Permission.CanViewTerritories },
+  })
+  await testDb.rolePermission.create({
+    data: { roleId: seatRole.id, permissionId: territoriesViewer.id, congregationId },
+  })
+  const seated: Partial<Record<'leader' | 'deputy' | 'member', number>> = {}
+  for (const kind of ['leader', 'deputy', 'member'] as const) {
+    const account = await testDb.userAccount.create({
+      data: { email: `perms-seat-${kind}-${ts}@test.com`, password: 'h', active: true, congregationId },
+    })
+    await testDb.userRoleAssignment.create({
+      data: { userId: account.id, roleId: seatRole.id, congregationId, kind },
+    })
+    seated[kind] = account.id
+  }
+  seatAccountIds = seated as Record<'leader' | 'deputy' | 'member', number>
 })
 
 afterAll(async () => {
@@ -178,6 +204,23 @@ describe('resolveEffectivePermissions (integration)', () => {
   it('returns an empty set for an account with no grants and no linked Member', async () => {
     const perms = await resolveEffectivePermissions(noMemberAccountId, congregationId)
     expect(perms.size).toBe(0)
+  })
+})
+
+describe('seat kind never changes permissions (integration)', () => {
+  it.each([
+    'leader',
+    'deputy',
+    'member',
+  ] as const)('grants the role’s permissions to its %s like to anyone else on it', async kind => {
+    const perms = await resolveEffectivePermissions(seatAccountIds[kind], congregationId)
+    expect(perms.has(Permission.CanViewTerritories)).toBe(true)
+  })
+
+  it('finds all three holders, whatever seat they occupy', async () => {
+    const accounts = await findAccountsWithPermission(testDb, congregationId, Permission.CanViewTerritories)
+    const ids = accounts.map(account => account.id).sort((a, b) => a - b)
+    expect(ids).toEqual(Object.values(seatAccountIds).sort((a, b) => a - b))
   })
 })
 
