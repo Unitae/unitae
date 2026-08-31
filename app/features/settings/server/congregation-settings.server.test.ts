@@ -32,13 +32,14 @@ beforeEach(() => {
   mockDb.member.findMany.mockResolvedValue([])
 })
 
+// A fixed instant so the asserted close month is the caller's, not whatever today happens to be.
+const NOW = new Date(2026, 2, 15)
+
 describe('updateCongregationSettings', () => {
   it('sets the auxiliary pioneer setting', async () => {
     vi.mocked(setSetting).mockResolvedValue(undefined as never)
 
-    await updateCongregationSettings(mockDb as never, 10, 99, {
-      auxiliaryPioneerProfileActivated: 'true',
-    })
+    await updateCongregationSettings(mockDb as never, 10, 99, { auxiliaryPioneerProfileActivated: 'true' }, NOW)
 
     expect(setSetting).toHaveBeenCalledWith(mockDb, 'auxiliary-pioneer-profile-active', 'true', 10)
     expect(endOngoingEnrolmentsOfType).not.toHaveBeenCalled()
@@ -52,16 +53,15 @@ describe('updateCongregationSettings', () => {
   it('closes ongoing auxiliary enrolments when the profile is deactivated', async () => {
     vi.mocked(setSetting).mockResolvedValue(undefined as never)
 
-    await updateCongregationSettings(mockDb as never, 10, 99, {
-      auxiliaryPioneerProfileActivated: 'false',
-    })
+    await updateCongregationSettings(mockDb as never, 10, 99, { auxiliaryPioneerProfileActivated: 'false' }, NOW)
 
     expect(endOngoingEnrolmentsOfType).toHaveBeenCalledWith(
       mockDb,
       10,
       99,
       PublisherType.PionnierAuxiliaires,
-      expect.objectContaining({ endMonth: expect.any(Number), endYear: expect.any(Number) }),
+      // Derived from the caller's clock, not the server's: March 2026 is month 2, 0-indexed.
+      { endMonth: 2, endYear: 2026 },
     )
   })
 })

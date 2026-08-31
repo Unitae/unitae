@@ -53,7 +53,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
   return withScopeFromContext(context, async db => {
     const [users, groups] = await Promise.all([
-      getPublishersWithGroup(db, currentUser.congregationId, { search, groupIds, type }),
+      getPublishersWithGroup(db, currentUser.congregationId, { search, groupIds, standingType: type }),
       db.publisherGroup.findMany({
         where: { congregationId: currentUser.congregationId },
         select: { id: true, name: true },

@@ -55,9 +55,9 @@ export async function endPioneerEnrolment(
 }
 
 // Edit a stint's period (and optionally its type). No route posts to this yet — the edit UI is a
-// follow-up; it is here because the recompute is what makes such a route safe to add. The period edit is what makes the recompute
-// load-bearing: adding an end date to the member's only ongoing stint has to drop the cache back to
-// Normal, and clearing one has to raise it again.
+// follow-up; it is here because the role re-sync is what makes such a route safe to add. A period
+// edit is what makes that load-bearing: adding an end date to the member's only ongoing stint has to
+// drop their standing status, and clearing one has to restore it.
 export async function updatePioneerEnrolment(
   db: TransactionClient,
   enrolmentId: number,
@@ -95,11 +95,17 @@ export async function endOngoingEnrolmentsOfType(
   actorId: number,
   type: PublisherType,
   end: { endMonth: number; endYear: number },
-): Promise<number> {
-  const ongoing = await db.pioneerEnrolment.findMany({
+): Promise<{ closed: number; skippedFutureDated: number }> {
+  // Starts on or before the end date. A stint dated ahead (the create form offers ±2 years) cannot
+  // be closed at `end` — closeEnrolment rejects an end before the start — and because this runs
+  // congregation-wide, one such stint would throw and take the entire settings save with it rather
+  // than just itself. Those are left open and reported in the return value.
+  const endAbs = end.endYear * 12 + end.endMonth
+  const allOngoing = await db.pioneerEnrolment.findMany({
     where: { congregationId, type, endMonth: null, endYear: null },
-    select: { id: true, memberId: true },
+    select: { id: true, memberId: true, startMonth: true, startYear: true },
   })
+  const ongoing = allOngoing.filter(s => s.startYear * 12 + s.startMonth <= endAbs)
 
   for (const stint of ongoing) {
     await closeEnrolment(db, stint.id, congregationId, actorId, end)
@@ -110,5 +116,5 @@ export async function endOngoingEnrolmentsOfType(
     await _syncMemberRoles(db, memberId, congregationId, actorId)
   }
 
-  return ongoing.length
+  return { closed: ongoing.length, skippedFutureDated: allOngoing.length - ongoing.length }
 }

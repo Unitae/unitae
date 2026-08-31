@@ -1,11 +1,11 @@
 import { Document, Page, Polygon, StyleSheet, Svg, Text, View } from '@react-pdf/renderer'
-import type { Member, PioneerEnrolment, PublisherActivity } from '~/database/generated/client'
-import { standingTypeFromEnrolments } from '~/features/publishers/model/pioneer-enrolment'
+import type { Member, PublisherActivity } from '~/database/generated/client'
+import { type EnrolmentPeriod, standingTypeFromEnrolments } from '~/features/publishers/model/pioneer-enrolment'
 import * as m from '~/i18n/paraglide/messages'
 import { PublisherType } from '~/shared/types/publisher-type'
 
 interface PublisherActivityDocumentProps {
-  publisher: Member & { activities: PublisherActivity[]; pioneerEnrolments: PioneerEnrolment[] }
+  publisher: Member & { activities: PublisherActivity[]; pioneerEnrolments: EnrolmentPeriod[] }
 }
 
 export function PublisherActivityDocument({ publisher }: PublisherActivityDocumentProps) {
