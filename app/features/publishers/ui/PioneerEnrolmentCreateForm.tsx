@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Form } from 'react-router'
 import { auxiliaryGoalOptions, REDUCED_AUXILIARY_GOAL } from '~/features/publishers/model/pioneer-enrolment-form'
+import type { EnrolmentMonthOption } from '~/features/publishers/model/pioneer-enrolment-form.type'
 import * as m from '~/i18n/paraglide/messages'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
@@ -18,14 +19,6 @@ const STANDING_TYPE: Record<Exclude<Mode, 'monthly-aux'>, PublisherType> = {
   permanent: PublisherType.PionnierPermanant,
   special: PublisherType.PionnierSpecial,
   missionary: PublisherType.Missionnaire,
-}
-
-export interface EnrolmentMonthOption {
-  month: number
-  year: number
-  // The congregation's configured auxiliary rate for *this* month's service year — the two
-  // selectable months can straddle the September boundary and resolve differently.
-  auxiliaryGoal: number
 }
 
 interface PioneerEnrolmentCreateFormProps {

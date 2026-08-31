@@ -5,6 +5,7 @@ import { commitSession, getSession } from '~/features/authentication/index.serve
 import { toServiceYear } from '~/features/publishers'
 import { getEnrolmentsForMember, resolvePioneerGoal } from '~/features/publishers/index.server'
 import { enrolmentMonthOptions, findActiveStandingEnrolment } from '~/features/publishers/model/pioneer-enrolment-form'
+import type { EnrolmentMonthOption } from '~/features/publishers/model/pioneer-enrolment-form.type'
 import { updatePublisherSchema } from '~/features/publishers/schemas/edit-publisher.schema'
 import { updateMember } from '~/features/publishers/server/update-member.server'
 import PioneerEnrolmentFields from '~/features/publishers/ui/PioneerEnrolmentFields'
@@ -66,9 +67,9 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
     // The monthly-auxiliary goal is seeded from the congregation's configured auxiliary rate and
     // then frozen onto the enrolment. That rate is per service year and the two selectable months
-    // can straddle the September boundary, so resolve one rate per month option. Sequential — these
-    // share the scoped transaction client, which must not be queried concurrently.
-    const monthOptions = []
+    // can straddle the September boundary, so resolve one rate per month option rather than once
+    // for "now". Two iterations, so the sequential await costs nothing worth parallelising.
+    const monthOptions: EnrolmentMonthOption[] = []
     for (const option of enrolmentMonthOptions(new Date())) {
       const serviceYear = toServiceYear(option.month, option.year)
       const auxiliaryGoal = await resolvePioneerGoal(db, serviceYear, PublisherType.PionnierAuxiliaires)
