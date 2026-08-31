@@ -156,6 +156,10 @@ export async function closeEnrolment(
 }
 
 export interface UpdateEnrolmentParams {
+  // Omitted leaves the stint's type as recorded; supplying it corrects a wrong pick. Callers go
+  // through the workflow, which re-derives Member.type afterwards — a type change on an ongoing
+  // stint moves the member's standing status with it.
+  type?: PublisherType
   startMonth: number
   startYear: number
   endMonth?: number
@@ -189,6 +193,7 @@ export async function updateEnrolment(
     // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
     where: { id_congregationId: { id, congregationId } },
     data: {
+      ...(params.type != null ? { type: params.type } : {}),
       startMonth: params.startMonth,
       startYear: params.startYear,
       endMonth,

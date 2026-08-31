@@ -3,7 +3,7 @@
 // service-year boundaries; end bounds are null together (ongoing) or set together (closed).
 // The service year SY runs Sept(SY)…Aug(SY+1) — see pioneer-pace.ts for the shared calendar math.
 
-import type { PublisherType } from '~/shared/types/publisher-type'
+import { PublisherType } from '~/shared/types/publisher-type'
 import { type MonthRef, serviceYearMonths } from './pioneer-pace'
 
 // A pioneer stint, DB-free and serialisable — mirrors the PioneerEnrolment row's period fields.
@@ -50,6 +50,14 @@ export function coversMonth(period: EnrolmentPeriod, month: number, year: number
 // intersection. Ongoing stints are treated as running through August of the service year.
 export function enrolledMonthsInServiceYear(period: EnrolmentPeriod, serviceYear: number): MonthRef[] {
   return serviceYearMonths(serviceYear).filter(({ month, year }) => coversMonth(period, month, year))
+}
+
+// The member's standing pioneer status, derived from their stints — the single statement of the
+// rule the `Member.type` column caches. An ONGOING stint is a standing status (annual or permanent
+// auxiliary); anything bounded, including a single-month auxiliary, is a transient sign-up and
+// leaves the member Normal. Non-overlap guarantees at most one ongoing stint, so the first wins.
+export function standingTypeFromEnrolments(enrolments: EnrolmentPeriod[]): PublisherType {
+  return enrolments.find(isOngoing)?.type ?? PublisherType.Normal
 }
 
 // The enrolment covering a given month (stints never overlap, so at most one), or null. Used to

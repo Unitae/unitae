@@ -3,7 +3,12 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 import { PublisherType } from '~/shared/types/publisher-type'
-import { endPioneerEnrolment, enrolPioneer, removePioneerEnrolment } from './pioneer-enrolment.workflow'
+import {
+  endPioneerEnrolment,
+  enrolPioneer,
+  removePioneerEnrolment,
+  updatePioneerEnrolment,
+} from './pioneer-enrolment.workflow'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -164,5 +169,76 @@ describe('pioneer-enrolment workflow (integration)', () => {
     const after = await testDb.member.findUniqueOrThrow({ where: { id: memberId } })
     expect(after.type).toBe(PublisherType.Normal)
     expect(await pioneerRoleAttached(memberId)).toBe(false)
+  })
+
+  // A period edit can flip a stint's shape, which is exactly what the Member.type cache keys on.
+  // These three are the cases updateEnrolment could not previously be trusted with.
+  it('adding an end date to the only ongoing stint reverts Member.type and detaches the role', async () => {
+    const memberId = await makePublisher(`UpdateClose-${ts}`)
+    const enrolment = await withScope(congId, tx =>
+      enrolPioneer(tx, memberId, congId, 1, {
+        type: PublisherType.PionnierPermanant,
+        startMonth: 8,
+        startYear: 2025,
+      }),
+    )
+    expect(await pioneerRoleAttached(memberId)).toBe(true)
+
+    await withScope(congId, tx =>
+      updatePioneerEnrolment(tx, enrolment.id, congId, 1, {
+        startMonth: 8,
+        startYear: 2025,
+        endMonth: 10,
+        endYear: 2025,
+      }),
+    )
+
+    const member = await testDb.member.findUniqueOrThrow({ where: { id: memberId } })
+    expect(member.type).toBe(PublisherType.Normal)
+    expect(await pioneerRoleAttached(memberId)).toBe(false)
+  })
+
+  it('clearing the end date reopens the stint and restores Member.type', async () => {
+    const memberId = await makePublisher(`UpdateReopen-${ts}`)
+    const enrolment = await withScope(congId, tx =>
+      enrolPioneer(tx, memberId, congId, 1, {
+        type: PublisherType.PionnierSpecial,
+        startMonth: 8,
+        startYear: 2025,
+        endMonth: 10,
+        endYear: 2025,
+      }),
+    )
+    expect(await pioneerRoleAttached(memberId)).toBe(false)
+
+    await withScope(congId, tx =>
+      updatePioneerEnrolment(tx, enrolment.id, congId, 1, { startMonth: 8, startYear: 2025 }),
+    )
+
+    const member = await testDb.member.findUniqueOrThrow({ where: { id: memberId } })
+    expect(member.type).toBe(PublisherType.PionnierSpecial)
+    expect(await pioneerRoleAttached(memberId)).toBe(true)
+  })
+
+  it('correcting an ongoing stint`s type moves Member.type with it', async () => {
+    const memberId = await makePublisher(`UpdateType-${ts}`)
+    const enrolment = await withScope(congId, tx =>
+      enrolPioneer(tx, memberId, congId, 1, {
+        type: PublisherType.PionnierPermanant,
+        startMonth: 8,
+        startYear: 2025,
+      }),
+    )
+
+    await withScope(congId, tx =>
+      updatePioneerEnrolment(tx, enrolment.id, congId, 1, {
+        type: PublisherType.Missionnaire,
+        startMonth: 8,
+        startYear: 2025,
+      }),
+    )
+
+    const member = await testDb.member.findUniqueOrThrow({ where: { id: memberId } })
+    expect(member.type).toBe(PublisherType.Missionnaire)
   })
 })

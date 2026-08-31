@@ -9,6 +9,7 @@ import {
   isOngoing,
   isSingleMonth,
   resolveEnrolmentGoal,
+  standingTypeFromEnrolments,
 } from './pioneer-enrolment'
 
 // A stint is a plain, DB-free period. September is month 8 (0-indexed); service year SY
@@ -154,5 +155,46 @@ describe('enrolledMonthsInServiceYear', () => {
     ).toEqual([])
     // An ongoing stint that only starts in the *next* service year (Sept 2026 = SY 2026)
     expect(enrolledMonthsInServiceYear(stint({ startMonth: 8, startYear: 2026 }), SY)).toEqual([])
+  })
+})
+
+// The rule the `Member.type` cache encodes, stated once: an ongoing stint is a standing status;
+// a bounded one (including a single-month auxiliary) is not.
+describe('standingTypeFromEnrolments', () => {
+  it('returns Normal when the member has no stints at all', () => {
+    expect(standingTypeFromEnrolments([])).toBe(PublisherType.Normal)
+  })
+
+  it('returns the ongoing stint`s type', () => {
+    expect(standingTypeFromEnrolments([stint({ type: PublisherType.PionnierSpecial })])).toBe(
+      PublisherType.PionnierSpecial,
+    )
+  })
+
+  it('returns Normal when every stint is closed', () => {
+    const closed = stint({ startMonth: 2, startYear: 2024, endMonth: 4, endYear: 2024 })
+    expect(standingTypeFromEnrolments([closed])).toBe(PublisherType.Normal)
+  })
+
+  it('ignores a single-month auxiliary — a transient sign-up is not a standing status', () => {
+    const monthly = stint({
+      type: PublisherType.PionnierAuxiliaires,
+      startMonth: 4,
+      startYear: 2026,
+      endMonth: 4,
+      endYear: 2026,
+    })
+    expect(standingTypeFromEnrolments([monthly])).toBe(PublisherType.Normal)
+  })
+
+  it('treats an ongoing auxiliary (permanent) as a standing status', () => {
+    const permanentAux = stint({ type: PublisherType.PionnierAuxiliaires })
+    expect(standingTypeFromEnrolments([permanentAux])).toBe(PublisherType.PionnierAuxiliaires)
+  })
+
+  it('picks the ongoing stint out of a mixed history', () => {
+    const closed = stint({ startMonth: 2, startYear: 2023, endMonth: 4, endYear: 2023 })
+    const ongoing = stint({ type: PublisherType.Missionnaire, startMonth: 8, startYear: 2025 })
+    expect(standingTypeFromEnrolments([closed, ongoing])).toBe(PublisherType.Missionnaire)
   })
 })
