@@ -42,8 +42,25 @@ function makeDb({
   builtInRoles: Array<{ id: number; key: string }>
   existingAssignments: Array<{ roleId: number }>
 }) {
+  // The sync now derives the standing type from the member's stints rather than reading the
+  // `Member.type` column, so a fixture expressing "a member of type X" becomes a row carrying one
+  // ongoing stint of that type — the same fact in the shape the query actually returns.
+  const row =
+    member == null
+      ? null
+      : (() => {
+          const { type, ...flags } = member
+          return {
+            ...flags,
+            pioneerEnrolments:
+              type === PublisherType.Normal
+                ? []
+                : [{ type, startMonth: 8, startYear: 2025, endMonth: null, endYear: null, monthlyGoal: null }],
+          }
+        })()
+
   return {
-    member: { findUnique: vi.fn().mockResolvedValue(member) },
+    member: { findUnique: vi.fn().mockResolvedValue(row) },
     role: { findMany: vi.fn().mockResolvedValue(builtInRoles) },
     memberRoleAssignment: {
       findMany: vi.fn().mockResolvedValue(existingAssignments),

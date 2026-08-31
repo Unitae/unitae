@@ -188,6 +188,59 @@ describe('syncBuiltInRoleAssignments (integration)', () => {
     expect(vi.mocked(audit).mock.calls.length).toBe(callsAfterIdempotentRun)
   })
 
+  // The pioneer role is derived from the member's enrolment stints, not the Member.type column.
+  // These two pin that: the column is deliberately contradicted in each direction.
+  it('attaches the pioneer role from an ongoing enrolment even when the type column says Normal', async () => {
+    const member = await testDb.member.create({
+      data: {
+        firstname: 'Enrolled',
+        lastname: `Pioneer-${ts}`,
+        isPublisher: true,
+        type: PublisherType.Normal,
+        baptismDate: new Date('2015-01-01'),
+        congregationId: primaryCongId,
+      },
+    })
+    await testDb.pioneerEnrolment.create({
+      data: {
+        memberId: member.id,
+        congregationId: primaryCongId,
+        type: PublisherType.PionnierPermanant,
+        startMonth: 8,
+        startYear: 2025,
+      },
+    })
+
+    await withScope(primaryCongId, tx => syncBuiltInRoleAssignments(tx, member.id, primaryCongId, member.id))
+
+    const assignments = await testDb.memberRoleAssignment.findMany({
+      where: { memberId: member.id, congregationId: primaryCongId },
+      include: { role: true },
+    })
+    expect(assignments.map(a => a.role.key)).toContain('pioneer')
+  })
+
+  it('withholds the pioneer role when only the type column says pioneer and no stint exists', async () => {
+    const member = await testDb.member.create({
+      data: {
+        firstname: 'Stale',
+        lastname: `Cache-${ts}`,
+        isPublisher: true,
+        type: PublisherType.PionnierPermanant,
+        baptismDate: new Date('2015-01-01'),
+        congregationId: primaryCongId,
+      },
+    })
+
+    await withScope(primaryCongId, tx => syncBuiltInRoleAssignments(tx, member.id, primaryCongId, member.id))
+
+    const assignments = await testDb.memberRoleAssignment.findMany({
+      where: { memberId: member.id, congregationId: primaryCongId },
+      include: { role: true },
+    })
+    expect(assignments.map(a => a.role.key)).not.toContain('pioneer')
+  })
+
   it('does not touch assignments in another congregation (RLS isolation)', async () => {
     await withScope(otherCongId, tx => syncBuiltInRoleAssignments(tx, otherMemberId, otherCongId, otherMemberId))
 
