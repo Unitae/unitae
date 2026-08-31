@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { PublisherType } from '~/shared/types/publisher-type'
-import { pioneerEnrolmentSchema } from './pioneer-enrolment.schema'
+import { pioneerEnrolmentSchema, updateEnrolmentGoalSchema } from './pioneer-enrolment.schema'
 
 const base = {
   type: PublisherType.PionnierPermanant,
@@ -70,5 +70,53 @@ describe('pioneerEnrolmentSchema', () => {
   it('rejects an unpaired end bound (one of month/year set, the other missing)', () => {
     expect(pioneerEnrolmentSchema.safeParse({ ...base, endMonth: '10' }).success).toBe(false)
     expect(pioneerEnrolmentSchema.safeParse({ ...base, endYear: '2025' }).success).toBe(false)
+  })
+})
+
+describe('updateEnrolmentGoalSchema', () => {
+  const goalBase = { intent: 'update-goal', enrolmentId: '42' }
+
+  it('accepts a positive goal', () => {
+    const result = updateEnrolmentGoalSchema.safeParse({ ...goalBase, monthlyGoal: '15' })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.enrolmentId).toBe(42)
+      expect(result.data.monthlyGoal).toBe(15)
+    }
+  })
+
+  // An empty field is how the manager clears a goal so the stint falls back to the congregation's
+  // configured rate — it must read as absent, not as 0, or clearing would be rejected as non-positive.
+  it('coerces an empty goal to undefined so the stint falls back to the configured rate', () => {
+    const result = updateEnrolmentGoalSchema.safeParse({ ...goalBase, monthlyGoal: '' })
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.monthlyGoal).toBeUndefined()
+  })
+
+  it('treats an omitted goal the same as an empty one', () => {
+    const result = updateEnrolmentGoalSchema.safeParse(goalBase)
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.monthlyGoal).toBeUndefined()
+  })
+
+  it('rejects a non-positive goal rather than storing it', () => {
+    expect(updateEnrolmentGoalSchema.safeParse({ ...goalBase, monthlyGoal: '0' }).success).toBe(false)
+    expect(updateEnrolmentGoalSchema.safeParse({ ...goalBase, monthlyGoal: '-5' }).success).toBe(false)
+  })
+
+  it('rejects a non-numeric goal', () => {
+    expect(updateEnrolmentGoalSchema.safeParse({ ...goalBase, monthlyGoal: 'abc' }).success).toBe(false)
+  })
+
+  it('rejects a fractional goal', () => {
+    expect(updateEnrolmentGoalSchema.safeParse({ ...goalBase, monthlyGoal: '7.5' }).success).toBe(false)
+  })
+
+  it('rejects a mismatched intent so one schema cannot parse another intent`s payload', () => {
+    expect(updateEnrolmentGoalSchema.safeParse({ ...goalBase, intent: 'remove-enrolment' }).success).toBe(false)
+  })
+
+  it('rejects a non-positive enrolment id', () => {
+    expect(updateEnrolmentGoalSchema.safeParse({ ...goalBase, enrolmentId: '0' }).success).toBe(false)
   })
 })

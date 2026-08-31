@@ -4,7 +4,13 @@ import { PrismaClient } from '~/database/generated/client'
 import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import { PublisherType } from '~/shared/types/publisher-type'
-import { closeEnrolment, deleteEnrolment, openEnrolment, updateEnrolment } from './pioneer-enrolment.aggregate'
+import {
+  closeEnrolment,
+  deleteEnrolment,
+  openEnrolment,
+  setEnrolmentGoal,
+  updateEnrolment,
+} from './pioneer-enrolment.aggregate'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -176,6 +182,53 @@ describe('pioneer-enrolment aggregate (integration)', () => {
         }),
       ),
     ).rejects.toBeInstanceOf(ConflictError)
+  })
+
+  it('setEnrolmentGoal corrects the goal without touching the period', async () => {
+    const mid = await freshMember('Goal')
+    const created = await withScope(congregationId, tx =>
+      openEnrolment(tx, mid, congregationId, 1, {
+        type: PublisherType.PionnierAuxiliaires,
+        startMonth: 4,
+        startYear: 2026,
+        endMonth: 4,
+        endYear: 2026,
+        monthlyGoal: 30,
+      }),
+    )
+
+    const updated = await withScope(congregationId, tx => setEnrolmentGoal(tx, created.id, congregationId, 1, 15))
+
+    expect(updated.monthlyGoal).toBe(15)
+    // The period is the whole point of the narrow mutation — a goal fix must not shift the stint.
+    expect(updated.startMonth).toBe(4)
+    expect(updated.startYear).toBe(2026)
+    expect(updated.endMonth).toBe(4)
+    expect(updated.endYear).toBe(2026)
+  })
+
+  it('setEnrolmentGoal clears the goal so the enrolment falls back to the type rate', async () => {
+    const mid = await freshMember('GoalClear')
+    const created = await withScope(congregationId, tx =>
+      openEnrolment(tx, mid, congregationId, 1, {
+        type: PublisherType.PionnierAuxiliaires,
+        startMonth: 6,
+        startYear: 2026,
+        endMonth: 6,
+        endYear: 2026,
+        monthlyGoal: 30,
+      }),
+    )
+
+    const updated = await withScope(congregationId, tx => setEnrolmentGoal(tx, created.id, congregationId, 1, null))
+
+    expect(updated.monthlyGoal).toBeNull()
+  })
+
+  it('setEnrolmentGoal throws NotFoundError for a missing enrolment', async () => {
+    await expect(
+      withScope(congregationId, tx => setEnrolmentGoal(tx, 999_999, congregationId, 1, 15)),
+    ).rejects.toBeInstanceOf(NotFoundError)
   })
 
   it('deleteEnrolment removes the row', async () => {

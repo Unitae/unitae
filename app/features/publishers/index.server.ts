@@ -11,6 +11,6 @@ export {
 } from './server/pioneer-enrolment.queries'
 export { endPioneerEnrolment, enrolPioneer, removePioneerEnrolment } from './server/pioneer-enrolment.workflow'
 export { backfillCongregationEnrolments } from './server/pioneer-enrolment-backfill.server'
-export { listPioneerGoalsForYear, type PioneerGoalRow } from './server/pioneer-goals.queries'
+export { listPioneerGoalsForYear, type PioneerGoalRow, resolvePioneerGoal } from './server/pioneer-goals.queries'
 export { getPublishers } from './server/publishers.server'
 export { setPioneerGoal } from './server/set-pioneer-goal.server'
