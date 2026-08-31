@@ -6,16 +6,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const currentAccountContext = Symbol('currentAccountContext')
 const permissionsContext = Symbol('permissionsContext')
+const congregationContext = Symbol('congregationContext')
 
 const settingsFindFirst = vi.fn()
 const fakeDb = {
   boardDynamicDocumentSettings: { findFirst: settingsFindFirst },
-  congregation: { findFirst: vi.fn().mockResolvedValue({ name: 'Ma congrégation' }) },
 }
 
 vi.mock('~/shared/auth/route-context.server', () => ({
   currentAccountContext,
   permissionsContext,
+  congregationContext,
   requirePermission: vi.fn(),
   withScopeFromContext: (_context: unknown, fn: (db: unknown) => unknown) => fn(fakeDb),
 }))
@@ -39,7 +40,12 @@ const { DynamicType } = await import('~/features/display-board/model/dynamic-doc
 const { loader } = await import('./pdf')
 
 const context = {
-  get: (key: symbol) => (key === permissionsContext ? new Set() : { id: 1, congregationId: 10 }),
+  get: (key: symbol) => {
+    if (key === permissionsContext) return new Set()
+    // displayName is the resolved public name (displayName ?? name) — what every header shows.
+    if (key === congregationContext) return { displayName: 'Assemblée de Lyon' }
+    return { id: 1, congregationId: 10 }
+  },
 }
 
 function download() {
@@ -52,7 +58,6 @@ function download() {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  fakeDb.congregation.findFirst.mockResolvedValue({ name: 'Ma congrégation' })
   renderPdfResponse.mockReturnValue(new Response('%PDF', { status: 200 }))
 })
 
@@ -80,5 +85,16 @@ describe('the organigram PDF loader', () => {
 
     expect(response.status).toBe(200)
     expect(renderPdfResponse).toHaveBeenCalledWith(expect.anything(), 'organigramme.pdf')
+  })
+
+  it('prints the congregation’s display name, not the raw provisioning name', async () => {
+    // On managed hosting `Congregation.name` is the provisioning-time value; the name the
+    // congregation actually chose lives in displayName, resolved by congregationContext.
+    settingsFindFirst.mockResolvedValue({ id: 5, dynamicType: DynamicType.Organigram, title: 'Organigramme' })
+
+    await download()
+
+    const element = renderPdfResponse.mock.calls[0]?.[0] as { props: { congregationName: string } }
+    expect(element.props.congregationName).toBe('Assemblée de Lyon')
   })
 })

@@ -4,6 +4,7 @@ import { fetchOrganigramDocument } from '~/features/display-board/server/organig
 import { buildSectionVisibilityFilter } from '~/features/display-board/server/section-visibility.server'
 import { OrganigramDocument } from '~/features/display-board/ui/dynamic/OrganigramDocument'
 import {
+  congregationContext,
   currentAccountContext,
   permissionsContext,
   requirePermission,
@@ -23,6 +24,9 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.CanViewBoard)
   const currentUser = context.get(currentAccountContext)
+  // The resolved public name (displayName ?? name) — what every header shows. On managed
+  // hosting the raw `Congregation.name` is the provisioning-time value, not the chosen one.
+  const congregationName = context.get(congregationContext).displayName
   const dynamicId = requireParamId(params.dynamicId, '/board')
 
   return withScopeFromContext(context, async db => {
@@ -36,13 +40,10 @@ export function loader({ params, context }: Route.LoaderArgs) {
     })
     if (!settings || settings.dynamicType !== DynamicType.Organigram) throw redirect('/board')
 
-    const [tree, congregation] = await Promise.all([
-      fetchOrganigramDocument(db, congregationId),
-      db.congregation.findFirst({ where: { id: congregationId }, select: { name: true } }),
-    ])
+    const tree = await fetchOrganigramDocument(db, congregationId)
 
     return renderPdfResponse(
-      <OrganigramDocument tree={tree} title={settings.title} congregationName={congregation?.name ?? ''} />,
+      <OrganigramDocument tree={tree} title={settings.title} congregationName={congregationName} />,
       `${sanitizeFilename(settings.title.toLowerCase()) || 'organigramme'}.pdf`,
     )
   })
