@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { PublisherType } from '~/shared/types/publisher-type'
 
 const mockMemberFindFirst = vi.fn()
 const mockMemberUpdate = vi.fn()
@@ -23,7 +22,6 @@ const { updateMember } = await import('./update-member.server')
 
 const BEFORE_IDENTITY = {
   isPublisher: true,
-  type: 'Normal',
   isMale: false,
   baptismDate: null,
   isAnointed: false,
@@ -49,7 +47,6 @@ describe('updateMember', () => {
     isServant: false,
     isAnointed: false,
     groupId: 5,
-    type: PublisherType.Normal,
     phone: '0612345678',
     address: '12 rue de la Paix',
   }
@@ -78,7 +75,6 @@ describe('updateMember', () => {
         isServant: false,
         isAnointed: false,
         publisherGroupId: 5,
-        type: PublisherType.Normal,
         address: '12 rue de la Paix',
         phone: '0612345678',
         email: 'jean@example.com',

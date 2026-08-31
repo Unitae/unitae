@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { data, Form, redirect, useSearchParams } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { getEnrolmentsForMember, resolveEnrolmentMonthlyGoal } from '~/features/publishers/index.server'
-import { enrolmentForMonth } from '~/features/publishers/model/pioneer-enrolment'
+import { enrolmentForMonth, standingTypeFromEnrolments } from '~/features/publishers/model/pioneer-enrolment'
 import { toServiceYear } from '~/features/publishers/model/pioneer-pace'
 import { createActivitySchema } from '~/features/publishers/schemas/activity.schema'
 import { createPublisherActivity } from '~/features/publishers/server/publisher-activity-mutations.server'
@@ -84,16 +84,20 @@ export function loader({ request, context }: Route.LoaderArgs) {
     }
 
     // Show the enrolled goal as read-only context so the report can be entered against the plan.
+    // `standingType` is the member's current status, derived from their stints — the form uses it to
+    // decide whether to offer the auxiliary-pioneer picker at all.
     let enrolmentGoal: number | null = null
+    let standingType: PublisherType = PublisherType.Normal
     if (publisher != null) {
       const enrolments = await getEnrolmentsForMember(db, publisher.id, currentUser.congregationId)
+      standingType = standingTypeFromEnrolments(enrolments)
       const active = enrolmentForMonth(enrolments, month, year)
       if (active != null) enrolmentGoal = await resolveEnrolmentMonthlyGoal(db, active, toServiceYear(month, year))
     }
 
     return {
       publishers,
-      publisher,
+      publisher: publisher == null ? null : { ...publisher, standingType },
       selectedMonth: { month, year },
       enrolmentGoal,
       previousPage: request.headers.get('referer'),
@@ -105,7 +109,7 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
   const { publishers, publisher, selectedMonth, enrolmentGoal, previousPage } = loaderData
   const [searchParams, setSearchParams] = useSearchParams()
   const [pioneer, setPioneer] = useState<PublisherType | null>(
-    publisher?.type === PublisherType.PionnierAuxiliaires ? PublisherType.PionnierAuxiliaires : null,
+    publisher?.standingType === PublisherType.PionnierAuxiliaires ? PublisherType.PionnierAuxiliaires : null,
   )
   const { blocker, markDirty } = useUnsavedChanges()
 
@@ -240,7 +244,7 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
               </p>
             )}
 
-            {publisher?.type != null && publisher.type === PublisherType.Normal && (
+            {publisher != null && publisher.standingType === PublisherType.Normal && (
               <div className="space-y-2">
                 <Label htmlFor="type">{m.activity_new_pioneer_label()}</Label>
                 <Select
@@ -269,7 +273,7 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
                   PublisherType.PionnierSpecial,
                   PublisherType.Missionnaire,
                 ] as PublisherType[]
-              ).includes(publisher?.type ?? PublisherType.Normal) ||
+              ).includes(publisher?.standingType ?? PublisherType.Normal) ||
               (pioneer != null && ([PublisherType.PionnierAuxiliaires] as PublisherType[]).includes(pioneer)) ? (
                 <div className="space-y-2">
                   <Label htmlFor={fields.hours.id}>{m.activity_new_hours_label()}</Label>
@@ -360,9 +364,10 @@ export async function action({ request, context }: Route.ActionArgs) {
     // (a Normal member reporting an auxiliary month without a formal enrolment).
     const enrolments = await getEnrolmentsForMember(db, publisher.id, currentUser.congregationId)
     const enrolledType = enrolmentForMonth(enrolments, month, year)?.type
+    const standingType = standingTypeFromEnrolments(enrolments)
     const type =
       enrolledType ??
-      (publisher.type === PublisherType.Normal ? (submission.value.type ?? PublisherType.Normal) : publisher.type)
+      (standingType === PublisherType.Normal ? (submission.value.type ?? PublisherType.Normal) : standingType)
     const activity = await createPublisherActivity(db, {
       publisherId: publisher.id,
       month,

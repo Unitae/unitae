@@ -5,7 +5,6 @@ import { LimitService } from '~/shared/domain/limits.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { AccountId } from '~/shared/types/branded'
-import type { PublisherType } from '~/shared/types/publisher-type'
 
 export interface LinkMemberToAccountParams {
   accountId: AccountId
@@ -19,7 +18,6 @@ export interface LinkMemberToAccountParams {
   birthDate: Date | null
   baptismDate: Date | null
   isPublisher: boolean
-  type: PublisherType
   isHelder: boolean
   isServant: boolean
   isAnointed: boolean
@@ -62,7 +60,6 @@ export async function linkMemberToAccount(
     birthDate: params.birthDate,
     baptismDate: params.baptismDate,
     isPublisher: params.isPublisher,
-    type: params.type,
     isHelder: params.isHelder,
     isServant: params.isServant,
     isAnointed: params.isAnointed,

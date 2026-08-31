@@ -99,7 +99,9 @@ describe('getPublishersWithGroup', () => {
     await getPublishersWithGroup(db, 1, { type: PublisherType.PionnierPermanant })
 
     const where = vi.mocked(db.member.findMany).mock.calls[0]?.[0]?.where
-    expect(where).toMatchObject({ type: PublisherType.PionnierPermanant })
+    expect(where).toMatchObject({
+      pioneerEnrolments: { some: { type: PublisherType.PionnierPermanant, endMonth: null } },
+    })
   })
 
   it('combines search, group and type filters', async () => {
@@ -115,7 +117,7 @@ describe('getPublishersWithGroup', () => {
       isPublisher: true,
       leftAt: null,
       publisherGroupId: { in: [42] },
-      type: PublisherType.Normal,
+      pioneerEnrolments: { none: { endMonth: null } },
       OR: [
         { firstname: { contains: 'jean', mode: 'insensitive' } },
         { lastname: { contains: 'jean', mode: 'insensitive' } },

@@ -27,6 +27,26 @@ function migrationStatements(): string[] {
     .filter(statement => statement.length > 0)
 }
 
+// A later migration drops `Member.type`, so by the time this test runs against a migrated database
+// the column this backfill reads is gone. Recreate a minimal stand-in — `IF NOT EXISTS` makes it a
+// no-op on a database where the drop has not been applied, so the test behaves identically in both.
+// The PublisherType enum itself survives — PioneerEnrolment and PublisherActivity still use it —
+// and the stand-in must BE that enum: the migration selects this column straight into
+// PioneerEnrolment.type, which a text column cannot satisfy.
+// Prisma's client speaks the enum NAMES; the database stores the `@map`-ed values. Raw SQL needs
+// the latter, and the mapping is only in schema.prisma, so it is spelled out here.
+const DB_ENUM_VALUE: Record<PublisherType, string> = {
+  [PublisherType.Normal]: 'normal',
+  [PublisherType.PionnierAuxiliaires]: 'pionnier-auxiliaires',
+  [PublisherType.PionnierPermanant]: 'pionnier-permanant',
+  [PublisherType.PionnierSpecial]: 'pionnier-special',
+  [PublisherType.Missionnaire]: 'missionnaire',
+}
+
+const RECREATE_DROPPED_COLUMN = `
+  ALTER TABLE "Member" ADD COLUMN IF NOT EXISTS "type" "PublisherType" NOT NULL DEFAULT 'normal'
+`
+
 /** Thrown to roll the fixture back; every assertion runs on captured values. */
 class Rollback extends Error {}
 
@@ -71,23 +91,32 @@ async function execute(): Promise<Captured> {
     await testDb.$transaction(
       async tx => {
         const stamp = `mig-${process.pid}-${globalThis.performance.now().toString().replace('.', '')}`
+        await tx.$executeRawUnsafe(RECREATE_DROPPED_COLUMN)
         const congregation = await tx.congregation.create({ data: { name: stamp, slug: stamp, active: true } })
         const congregationId = congregation.id
 
         // baptismDate is not optional here: a `member_pioneer_requires_baptism` CHECK constraint
         // means a pioneer-typed row cannot exist without one, which also bounds the population this
         // migration can ever see.
-        const makeMember = (firstname: string, type: PublisherType) =>
-          tx.member.create({
+        // Prisma no longer knows the column a later migration dropped, so the fixture writes it
+        // in raw SQL against the stand-in recreated above.
+        const makeMember = async (firstname: string, type: PublisherType) => {
+          const member = await tx.member.create({
             data: {
               firstname,
               lastname: stamp,
               isPublisher: true,
-              type,
               baptismDate: new Date('2015-01-01'),
               congregationId,
             },
           })
+          await tx.$executeRawUnsafe(
+            'UPDATE "Member" SET "type" = $1::"PublisherType" WHERE "id" = $2',
+            DB_ENUM_VALUE[type],
+            member.id,
+          )
+          return member
+        }
 
         // Has reported activity — the stint should start at their EARLIEST reported month.
         const withActivity = await makeMember('WithActivity', PublisherType.PionnierPermanant)

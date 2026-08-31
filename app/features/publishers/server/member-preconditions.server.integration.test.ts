@@ -2,7 +2,6 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
-import { PublisherType } from '~/shared/types/publisher-type'
 import { _ensureMemberIsNotGroupResponsible, _loadMemberIdentity } from './member-preconditions.server'
 
 const adapter = new PrismaPg({
@@ -36,7 +35,6 @@ beforeAll(async () => {
         firstname: 'Pre',
         lastname: 'Cond',
         isPublisher: true,
-        type: PublisherType.Normal,
         congregationId: congId,
       },
     }),
@@ -57,7 +55,6 @@ describe('_loadMemberIdentity', () => {
   it('returns the identity flags for an existing member', async () => {
     const flags = await withScope(congId, tx => _loadMemberIdentity(tx, memberId, congId))
     expect(flags.isPublisher).toBe(true)
-    expect(flags.type).toBe(PublisherType.Normal)
   })
 
   it('throws NotFoundError for a missing member', async () => {
@@ -79,7 +76,6 @@ describe('_ensureMemberIsNotGroupResponsible', () => {
           firstname: 'Resp',
           lastname: 'Person',
           isPublisher: true,
-          type: PublisherType.Normal,
           congregationId: congId,
         },
       }),

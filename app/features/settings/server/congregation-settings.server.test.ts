@@ -12,13 +12,13 @@ vi.mock('~/shared/domain/settings.server', () => ({
   setSetting: vi.fn(),
 }))
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
-vi.mock('~/shared/domain/built-in-roles.server', () => ({
-  syncBuiltInRoleAssignments: vi.fn(),
+vi.mock('~/features/publishers/index.server', () => ({
+  endOngoingEnrolmentsOfType: vi.fn(),
 }))
 
 const { updateCongregationSettings } = await import('./congregation-settings.server')
 const { setSetting } = await import('~/shared/domain/settings.server')
-const { syncBuiltInRoleAssignments } = await import('~/shared/domain/built-in-roles.server')
+const { endOngoingEnrolmentsOfType } = await import('~/features/publishers/index.server')
 
 const mockDb = {
   member: {
@@ -41,62 +41,27 @@ describe('updateCongregationSettings', () => {
     })
 
     expect(setSetting).toHaveBeenCalledWith(mockDb, 'auxiliary-pioneer-profile-active', 'true', 10)
-    expect(mockDb.member.updateMany).not.toHaveBeenCalled()
-    expect(syncBuiltInRoleAssignments).not.toHaveBeenCalled()
+    expect(endOngoingEnrolmentsOfType).not.toHaveBeenCalled()
   })
 
-  it('resets auxiliary pioneers to normal when feature is deactivated', async () => {
+  // Deactivating the profile means those members stop being permanent auxiliaries. That fact lives
+  // on the stint now, so the setting closes the ongoing ones instead of flipping a cached column.
+  // Re-syncing each affected member's roles is guaranteed inside endOngoingEnrolmentsOfType and
+  // covered by pioneer-enrolment.workflow.integration.test.ts — the regression this file used to
+  // guard (a bulk type flip that skipped the role sync) cannot recur, because there is no bulk flip.
+  it('closes ongoing auxiliary enrolments when the profile is deactivated', async () => {
     vi.mocked(setSetting).mockResolvedValue(undefined as never)
-    mockDb.member.updateMany.mockResolvedValue({ count: 3 })
 
     await updateCongregationSettings(mockDb as never, 10, 99, {
       auxiliaryPioneerProfileActivated: 'false',
     })
 
-    expect(mockDb.member.updateMany).toHaveBeenCalledWith({
-      where: {
-        congregationId: 10,
-        type: PublisherType.PionnierAuxiliaires,
-      },
-      data: {
-        type: PublisherType.Normal,
-      },
-    })
-  })
-
-  // Wave 1 bug 1 — regression test.
-  // The bulk `updateMany` flips Member.type but used to skip
-  // `syncBuiltInRoleAssignments`, leaving stale `pioneer` role assignments
-  // for every member whose type was reset.
-  it('syncs built-in roles for every member whose type was reset', async () => {
-    vi.mocked(setSetting).mockResolvedValue(undefined as never)
-    mockDb.member.findMany.mockResolvedValue([{ id: 100 }, { id: 200 }, { id: 300 }])
-    mockDb.member.updateMany.mockResolvedValue({ count: 3 })
-
-    await updateCongregationSettings(mockDb as never, 10, 99, {
-      auxiliaryPioneerProfileActivated: 'false',
-    })
-
-    expect(mockDb.member.findMany).toHaveBeenCalledWith({
-      where: { congregationId: 10, type: PublisherType.PionnierAuxiliaires },
-      select: { id: true },
-    })
-    expect(syncBuiltInRoleAssignments).toHaveBeenCalledTimes(3)
-    expect(syncBuiltInRoleAssignments).toHaveBeenNthCalledWith(1, mockDb, 100, 10, 99)
-    expect(syncBuiltInRoleAssignments).toHaveBeenNthCalledWith(2, mockDb, 200, 10, 99)
-    expect(syncBuiltInRoleAssignments).toHaveBeenNthCalledWith(3, mockDb, 300, 10, 99)
-  })
-
-  it('does not sync when no auxiliary pioneers exist to reset', async () => {
-    vi.mocked(setSetting).mockResolvedValue(undefined as never)
-    mockDb.member.findMany.mockResolvedValue([])
-    mockDb.member.updateMany.mockResolvedValue({ count: 0 })
-
-    await updateCongregationSettings(mockDb as never, 10, 99, {
-      auxiliaryPioneerProfileActivated: 'false',
-    })
-
-    expect(mockDb.member.updateMany).toHaveBeenCalled()
-    expect(syncBuiltInRoleAssignments).not.toHaveBeenCalled()
+    expect(endOngoingEnrolmentsOfType).toHaveBeenCalledWith(
+      mockDb,
+      10,
+      99,
+      PublisherType.PionnierAuxiliaires,
+      expect.objectContaining({ endMonth: expect.any(Number), endYear: expect.any(Number) }),
+    )
   })
 })

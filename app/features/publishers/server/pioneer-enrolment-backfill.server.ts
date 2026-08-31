@@ -79,7 +79,7 @@ function singleMonthStint(r: ActivityTypeRow): StintDraft {
 // Pure derivation (spec §6.1). `memberType` is the member's standing type — it distinguishes a
 // permanent auxiliary (grouped like an annual stint) from a monthly auxiliary (one single-month
 // stint per reported month).
-export function deriveStintsFromActivity(rows: ActivityTypeRow[], memberType: PublisherType): StintDraft[] {
+export function deriveStintsFromActivity(rows: ActivityTypeRow[]): StintDraft[] {
   const deduped = dedupeLatestPerMonth(rows)
 
   // Concluded here decides whether the member's FINAL run gets a close date: true when their latest
@@ -87,10 +87,8 @@ export function deriveStintsFromActivity(rows: ActivityTypeRow[], memberType: Pu
   // pace query's per-service-year "concluded" (pioneer-enrolment-pace.ts), which asks whether the
   // member is finished pioneering *this year*. The parity test (§14) checks the two produce matching
   // pace, not that the intermediate `concluded` values are identical.
-  const standingType = deduped.at(-1)?.type ?? memberType
+  const standingType = deduped.at(-1)?.type ?? PublisherType.Normal
   const concluded = !isPioneerType(standingType)
-  const isPermanentAux = memberType === PublisherType.PionnierAuxiliaires
-
   const runs = groupRuns(deduped)
   const lastRunIndex = runs.length - 1
 
@@ -98,8 +96,12 @@ export function deriveStintsFromActivity(rows: ActivityTypeRow[], memberType: Pu
   runs.forEach((run, index) => {
     if (!isPioneerType(run.type)) return // a Normal run is a gap, not a stint
 
-    if (isAuxiliaryType(run.type) && !isPermanentAux) {
-      // Monthly auxiliary: never grouped — one single-month stint per reported month.
+    if (isAuxiliaryType(run.type)) {
+      // Every auxiliary run becomes single-month stints. Activity snapshots cannot tell a MONTHLY
+      // auxiliary from a PERMANENT one — that distinction used to come from the `Member.type`
+      // column, which no longer exists — and monthly is both the common case and the safe guess:
+      // a single-month stint grants no standing status, so a wrong guess never hands someone a
+      // pioneer role they should not have. A genuine permanent auxiliary is re-appointed by hand.
       for (const r of run.rows) stints.push(singleMonthStint(r))
       return
     }
@@ -115,7 +117,6 @@ export function deriveStintsFromActivity(rows: ActivityTypeRow[], memberType: Pu
 
 interface BackfillMember {
   id: number
-  type: PublisherType
 }
 
 // Persist one member's derived stints via the aggregate. Idempotent: a member who already has any
@@ -134,7 +135,7 @@ export async function backfillMemberEnrolments(
     select: { id: true, month: true, year: true, type: true },
   })
 
-  const stints = deriveStintsFromActivity(activity, member.type)
+  const stints = deriveStintsFromActivity(activity)
   for (const stint of stints) {
     await openEnrolment(db, member.id, congregationId, actorId, {
       type: stint.type,
@@ -154,7 +155,7 @@ export async function backfillCongregationEnrolments(
 ): Promise<{ members: number; stints: number }> {
   const members = await db.member.findMany({
     where: { congregationId },
-    select: { id: true, type: true },
+    select: { id: true },
   })
   let stints = 0
   for (const member of members) {

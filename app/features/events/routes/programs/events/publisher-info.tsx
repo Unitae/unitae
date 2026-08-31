@@ -2,6 +2,7 @@ import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import type { PartSlot } from '~/features/events/server/cadence-shared.server'
 import { listUserSameEventAssignments } from '~/features/events/server/list-user-same-event-assignments.server'
 import { resolvePublisherCadence } from '~/features/events/server/resolve-publisher-cadence.server'
+import { standingTypeFromEnrolments } from '~/features/publishers'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { formatGroupName } from '~/shared/utils/format-group-name'
@@ -42,7 +43,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
     // Publisher profile
     const user = await db.member.findFirst({
       where: { id: userId, congregationId },
-      include: { publisherGroup: true, account: { select: { id: true } } },
+      include: { publisherGroup: true, account: { select: { id: true } }, pioneerEnrolments: true },
     })
     if (!user) return Response.json(null)
 
@@ -85,7 +86,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
         lastname: user.lastname,
         isHelder: user.isHelder,
         isServant: user.isServant,
-        type: user.type,
+        type: standingTypeFromEnrolments(user.pioneerEnrolments),
         group: user.publisherGroup ? formatGroupName(user.publisherGroup.name) : null,
       },
       daysOff: daysOff.map(d => ({

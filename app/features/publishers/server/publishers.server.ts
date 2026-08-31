@@ -1,7 +1,9 @@
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { CongregationId, MemberId } from '~/shared/types/branded'
-import type { PublisherType } from '~/shared/types/publisher-type'
+import { PublisherType } from '~/shared/types/publisher-type'
 
+// Includes `pioneerEnrolments` because the S-21 export ticks a pioneer box from the member's
+// standing status, which is derived from the stints.
 export function getPublisherById(
   db: TransactionClient,
   publisherId: MemberId,
@@ -15,6 +17,7 @@ export function getPublisherById(
     include: {
       account: { select: { id: true, email: true, active: true } },
       publisherGroup: { include: { responsible: true, deputy: true } },
+      pioneerEnrolments: true,
       activities: {
         where: {
           OR: [
@@ -60,7 +63,14 @@ export async function getPublishersWithGroup(
   const groupFilter =
     options?.groupIds && options.groupIds.length > 0 ? { publisherGroupId: { in: options.groupIds } } : {}
 
-  const typeFilter = options?.type ? { type: options.type } : {}
+  // "Type" is the member's standing status, which lives on their stints: an ONGOING stint of that
+  // type, or — for Normal — no ongoing stint at all. A single-month auxiliary is closed, so it
+  // correctly leaves the member under Normal, exactly as the old `Member.type` column did.
+  const typeFilter = !options?.type
+    ? {}
+    : options.type === PublisherType.Normal
+      ? { pioneerEnrolments: { none: { endMonth: null } } }
+      : { pioneerEnrolments: { some: { type: options.type, endMonth: null } } }
 
   return await db.member.findMany({
     where: { isPublisher: true, leftAt: null, congregationId, ...searchFilter, ...groupFilter, ...typeFilter },

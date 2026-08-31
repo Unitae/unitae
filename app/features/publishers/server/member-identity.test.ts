@@ -1,10 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { PublisherType } from '~/shared/types/publisher-type'
 import { haveIdentityFlagsChanged, type MemberIdentityFlags } from './member-identity'
 
 const BASE: MemberIdentityFlags = {
   isPublisher: true,
-  type: PublisherType.Normal,
   isMale: true,
   baptismDate: new Date('2000-01-15'),
   isAnointed: false,
@@ -20,10 +18,6 @@ describe('haveIdentityFlagsChanged', () => {
 
   it('detects isPublisher flip', () => {
     expect(haveIdentityFlagsChanged(BASE, { ...BASE, isPublisher: false })).toBe(true)
-  })
-
-  it('detects type change', () => {
-    expect(haveIdentityFlagsChanged(BASE, { ...BASE, type: PublisherType.PionnierAuxiliaires })).toBe(true)
   })
 
   it('detects isMale flip', () => {

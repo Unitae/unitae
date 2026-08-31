@@ -1,11 +1,9 @@
-import type { PublisherType } from '~/shared/types/publisher-type'
 import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 
 // The 8 fields whose value drives built-in-role assignment. Any mutation
 // that touches one must re-run syncBuiltInRoleAssignments.
 export type MemberIdentityFlags = {
   isPublisher: boolean
-  type: PublisherType
   isMale: boolean | null
   baptismDate: Date | null
   isAnointed: boolean
@@ -24,7 +22,6 @@ export type CreateDirectParams = {
   birthDate: Date | null
   baptismDate: Date | null
   isPublisher: boolean
-  type: PublisherType
   isHelder: boolean
   isServant: boolean
   isAnointed: boolean
@@ -35,7 +32,6 @@ export type CreateDirectParams = {
 
 export const MEMBER_IDENTITY_SELECT = {
   isPublisher: true,
-  type: true,
   isMale: true,
   baptismDate: true,
   isAnointed: true,
@@ -47,7 +43,6 @@ export const MEMBER_IDENTITY_SELECT = {
 export function haveIdentityFlagsChanged(before: MemberIdentityFlags, after: MemberIdentityFlags): boolean {
   return (
     before.isPublisher !== after.isPublisher ||
-    before.type !== after.type ||
     before.isMale !== after.isMale ||
     (before.baptismDate?.getTime() ?? null) !== (after.baptismDate?.getTime() ?? null) ||
     before.isAnointed !== after.isAnointed ||
@@ -67,7 +62,6 @@ export type MemberFormFields = {
   isServant: boolean
   isAnointed: boolean
   groupId: number | null
-  type: PublisherType
   phone: string
   address: string
   email: string
@@ -86,7 +80,6 @@ export function memberDataFromForm(params: MemberFormFields) {
     isServant: params.isServant,
     isAnointed: params.isAnointed,
     publisherGroupId: Number.isNaN(params.groupId) ? null : params.groupId,
-    type: params.type,
     address: params.address,
     phone: params.phone,
     email: params.email,

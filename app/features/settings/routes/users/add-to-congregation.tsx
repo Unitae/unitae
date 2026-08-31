@@ -15,7 +15,6 @@ import {
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { AccountId } from '~/shared/types/branded'
 import { Permission } from '~/shared/types/permission'
-import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
 import { Input } from '~/shared/ui/input'
@@ -181,7 +180,6 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         birthDate: submission.value.birthDate ? new Date(submission.value.birthDate) : null,
         baptismDate: submission.value.baptismDate ? new Date(submission.value.baptismDate) : null,
         isPublisher: submission.value.isPublisher,
-        type: PublisherType.Normal,
         isHelder: false,
         isServant: false,
         isAnointed: false,

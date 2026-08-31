@@ -1,7 +1,7 @@
 import type { PioneerEnrolment } from '~/database/generated/client'
+import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
-import { standingTypeFromEnrolments } from '../model/pioneer-enrolment'
-import { setPioneerType } from './member.aggregate'
+import type { PublisherType } from '~/shared/types/publisher-type'
 import {
   closeEnrolment,
   deleteEnrolment,
@@ -11,28 +11,23 @@ import {
   updateEnrolment,
 } from './pioneer-enrolment.aggregate'
 
-// Cross-aggregate orchestration for a single manager action: mutating an enrolment while keeping the
-// synced `Member.type` cache in step. The route runs these inside its `withScopeFromContext` tx, so
-// any failure — the mutation, the recompute, or the role sync it triggers — rolls the whole change
-// back rather than leaving the stint and the cache disagreeing.
+// Cross-aggregate orchestration for a single manager action: mutating an enrolment, then bringing
+// the member's identity roles back in line with it. The route runs these inside its
+// `withScopeFromContext` tx, so any failure — the mutation or the role sync — rolls the whole change
+// back rather than leaving the stints and the role assignments disagreeing.
 //
-// Every mutation funnels through `_recomputeStandingType`, which re-derives the cache from the
-// member's surviving stints rather than reasoning about what the individual edit did. That matters
-// because an edit can change a stint's SHAPE — closing an ongoing one, reopening a closed one, or
-// changing an ongoing one's type — and each of those moves the cache in a different direction.
-// Deriving from the end state is the only version that stays correct for all of them.
+// Role assignments are stored rows, not a live view, so every mutation has to re-sync. The sync
+// re-reads the member's stints and derives their standing status itself, which is what makes this
+// correct for an edit that changes a stint's SHAPE — closing an ongoing one, reopening a closed one,
+// or changing an ongoing one's type each move the member's status a different way.
 
-async function _recomputeStandingType(
+function _syncMemberRoles(
   db: TransactionClient,
   memberId: number,
   congregationId: number,
   actorId: number,
 ): Promise<void> {
-  const stints = await db.pioneerEnrolment.findMany({
-    where: { memberId, congregationId },
-    select: { type: true, startMonth: true, startYear: true, endMonth: true, endYear: true, monthlyGoal: true },
-  })
-  await setPioneerType(db, memberId, congregationId, actorId, standingTypeFromEnrolments(stints))
+  return syncBuiltInRoleAssignments(db, memberId, congregationId, actorId)
 }
 
 export async function enrolPioneer(
@@ -43,7 +38,7 @@ export async function enrolPioneer(
   params: OpenEnrolmentParams,
 ): Promise<PioneerEnrolment> {
   const enrolment = await openEnrolment(db, memberId, congregationId, actorId, params)
-  await _recomputeStandingType(db, memberId, congregationId, actorId)
+  await _syncMemberRoles(db, memberId, congregationId, actorId)
   return enrolment
 }
 
@@ -55,7 +50,7 @@ export async function endPioneerEnrolment(
   end: { endMonth: number; endYear: number },
 ): Promise<PioneerEnrolment> {
   const enrolment = await closeEnrolment(db, enrolmentId, congregationId, actorId, end)
-  await _recomputeStandingType(db, enrolment.memberId, congregationId, actorId)
+  await _syncMemberRoles(db, enrolment.memberId, congregationId, actorId)
   return enrolment
 }
 
@@ -71,7 +66,7 @@ export async function updatePioneerEnrolment(
   params: UpdateEnrolmentParams,
 ): Promise<PioneerEnrolment> {
   const enrolment = await updateEnrolment(db, enrolmentId, congregationId, actorId, params)
-  await _recomputeStandingType(db, enrolment.memberId, congregationId, actorId)
+  await _syncMemberRoles(db, enrolment.memberId, congregationId, actorId)
   return enrolment
 }
 
@@ -83,6 +78,37 @@ export async function removePioneerEnrolment(
   actorId: number,
 ): Promise<PioneerEnrolment> {
   const removed = await deleteEnrolment(db, enrolmentId, congregationId, actorId)
-  await _recomputeStandingType(db, removed.memberId, congregationId, actorId)
+  await _syncMemberRoles(db, removed.memberId, congregationId, actorId)
   return removed
+}
+
+// Close every member's ongoing stint of one type, congregation-wide. Used when a congregation turns
+// off the permanent-auxiliary profile: those members stop being permanent auxiliaries, and the stint
+// is where that fact lives now. Only ONGOING stints match — a single-month auxiliary is already
+// closed and re-dating it would rewrite history that actually happened.
+//
+// Replaces member.aggregate's bulkUpdateType, which flipped the cached `Member.type` column and left
+// the stints open, so the two immediately disagreed.
+export async function endOngoingEnrolmentsOfType(
+  db: TransactionClient,
+  congregationId: number,
+  actorId: number,
+  type: PublisherType,
+  end: { endMonth: number; endYear: number },
+): Promise<number> {
+  const ongoing = await db.pioneerEnrolment.findMany({
+    where: { congregationId, type, endMonth: null, endYear: null },
+    select: { id: true, memberId: true },
+  })
+
+  for (const stint of ongoing) {
+    await closeEnrolment(db, stint.id, congregationId, actorId, end)
+  }
+  // Re-sync after all the closes, and once per member: a member cannot hold two ongoing stints, but
+  // syncing inside the loop would still be redundant work for no benefit.
+  for (const memberId of new Set(ongoing.map(s => s.memberId))) {
+    await _syncMemberRoles(db, memberId, congregationId, actorId)
+  }
+
+  return ongoing.length
 }

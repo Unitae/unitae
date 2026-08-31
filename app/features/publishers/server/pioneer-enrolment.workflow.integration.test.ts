@@ -3,7 +3,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 import { PublisherType } from '~/shared/types/publisher-type'
+import { standingTypeFromEnrolments } from '../model/pioneer-enrolment'
 import {
+  endOngoingEnrolmentsOfType,
   endPioneerEnrolment,
   enrolPioneer,
   removePioneerEnrolment,
@@ -58,7 +60,6 @@ async function makePublisher(name: string): Promise<number> {
         firstname: name,
         lastname: 'Test',
         isPublisher: true,
-        type: PublisherType.Normal,
         baptismDate: new Date('2010-01-01'),
         congregationId: congId,
       },
@@ -74,14 +75,19 @@ async function pioneerRoleAttached(memberId: number): Promise<boolean> {
   return assignment !== null
 }
 
+// The member's standing status now lives only in their stints — read it the way production does.
+async function standingTypeOf(memberId: number): Promise<PublisherType> {
+  const stints = await testDb.pioneerEnrolment.findMany({ where: { memberId } })
+  return standingTypeFromEnrolments(stints)
+}
+
 describe('pioneer-enrolment workflow (integration)', () => {
   it('an ongoing ANNUAL enrol sets Member.type and attaches the pioneer role', async () => {
     const memberId = await makePublisher(`Annual-${ts}`)
     await withScope(congId, tx =>
       enrolPioneer(tx, memberId, congId, 1, { type: PublisherType.PionnierPermanant, startMonth: 8, startYear: 2025 }),
     )
-    const after = await testDb.member.findUniqueOrThrow({ where: { id: memberId } })
-    expect(after.type).toBe(PublisherType.PionnierPermanant)
+    expect(await standingTypeOf(memberId)).toBe(PublisherType.PionnierPermanant)
     expect(await pioneerRoleAttached(memberId)).toBe(true)
   })
 
@@ -94,8 +100,7 @@ describe('pioneer-enrolment workflow (integration)', () => {
         startYear: 2025,
       }),
     )
-    const after = await testDb.member.findUniqueOrThrow({ where: { id: memberId } })
-    expect(after.type).toBe(PublisherType.PionnierAuxiliaires)
+    expect(await standingTypeOf(memberId)).toBe(PublisherType.PionnierAuxiliaires)
     expect(await pioneerRoleAttached(memberId)).toBe(true)
   })
 
@@ -111,8 +116,7 @@ describe('pioneer-enrolment workflow (integration)', () => {
         monthlyGoal: 15,
       }),
     )
-    const after = await testDb.member.findUniqueOrThrow({ where: { id: memberId } })
-    expect(after.type).toBe(PublisherType.Normal)
+    expect(await standingTypeOf(memberId)).toBe(PublisherType.Normal)
     expect(await pioneerRoleAttached(memberId)).toBe(false)
     // The enrolment record still exists (status is read from it, not from Member.type).
     const enrolments = await testDb.pioneerEnrolment.findMany({ where: { memberId } })
@@ -125,14 +129,11 @@ describe('pioneer-enrolment workflow (integration)', () => {
     const enrolment = await withScope(congId, tx =>
       enrolPioneer(tx, memberId, congId, 1, { type: PublisherType.PionnierPermanant, startMonth: 8, startYear: 2025 }),
     )
-    expect((await testDb.member.findUniqueOrThrow({ where: { id: memberId } })).type).toBe(
-      PublisherType.PionnierPermanant,
-    )
+    expect(await standingTypeOf(memberId)).toBe(PublisherType.PionnierPermanant)
 
     await withScope(congId, tx => endPioneerEnrolment(tx, enrolment.id, congId, 1, { endMonth: 1, endYear: 2026 }))
 
-    const after = await testDb.member.findUniqueOrThrow({ where: { id: memberId } })
-    expect(after.type).toBe(PublisherType.Normal)
+    expect(await standingTypeOf(memberId)).toBe(PublisherType.Normal)
     expect(await pioneerRoleAttached(memberId)).toBe(false)
   })
 
@@ -152,7 +153,7 @@ describe('pioneer-enrolment workflow (integration)', () => {
     await withScope(congId, tx => removePioneerEnrolment(tx, enrolment.id, congId, 1))
 
     expect(await testDb.pioneerEnrolment.count({ where: { id: enrolment.id } })).toBe(0)
-    expect((await testDb.member.findUniqueOrThrow({ where: { id: memberId } })).type).toBe(PublisherType.Normal)
+    expect(await standingTypeOf(memberId)).toBe(PublisherType.Normal)
   })
 
   it('removing the last ongoing stint reverts Member.type to Normal', async () => {
@@ -160,14 +161,11 @@ describe('pioneer-enrolment workflow (integration)', () => {
     const enrolment = await withScope(congId, tx =>
       enrolPioneer(tx, memberId, congId, 1, { type: PublisherType.PionnierPermanant, startMonth: 8, startYear: 2025 }),
     )
-    expect((await testDb.member.findUniqueOrThrow({ where: { id: memberId } })).type).toBe(
-      PublisherType.PionnierPermanant,
-    )
+    expect(await standingTypeOf(memberId)).toBe(PublisherType.PionnierPermanant)
 
     await withScope(congId, tx => removePioneerEnrolment(tx, enrolment.id, congId, 1))
 
-    const after = await testDb.member.findUniqueOrThrow({ where: { id: memberId } })
-    expect(after.type).toBe(PublisherType.Normal)
+    expect(await standingTypeOf(memberId)).toBe(PublisherType.Normal)
     expect(await pioneerRoleAttached(memberId)).toBe(false)
   })
 
@@ -193,8 +191,7 @@ describe('pioneer-enrolment workflow (integration)', () => {
       }),
     )
 
-    const member = await testDb.member.findUniqueOrThrow({ where: { id: memberId } })
-    expect(member.type).toBe(PublisherType.Normal)
+    expect(await standingTypeOf(memberId)).toBe(PublisherType.Normal)
     expect(await pioneerRoleAttached(memberId)).toBe(false)
   })
 
@@ -215,8 +212,7 @@ describe('pioneer-enrolment workflow (integration)', () => {
       updatePioneerEnrolment(tx, enrolment.id, congId, 1, { startMonth: 8, startYear: 2025 }),
     )
 
-    const member = await testDb.member.findUniqueOrThrow({ where: { id: memberId } })
-    expect(member.type).toBe(PublisherType.PionnierSpecial)
+    expect(await standingTypeOf(memberId)).toBe(PublisherType.PionnierSpecial)
     expect(await pioneerRoleAttached(memberId)).toBe(true)
   })
 
@@ -238,7 +234,73 @@ describe('pioneer-enrolment workflow (integration)', () => {
       }),
     )
 
-    const member = await testDb.member.findUniqueOrThrow({ where: { id: memberId } })
-    expect(member.type).toBe(PublisherType.Missionnaire)
+    expect(await standingTypeOf(memberId)).toBe(PublisherType.Missionnaire)
+  })
+
+  // Replaces the old bulkUpdateType: turning off the permanent-auxiliary profile used to flip the
+  // cached column, which left the ongoing stints open and contradicting it. Closing the stints is
+  // the same intent expressed against the source of truth.
+  it('endOngoingEnrolmentsOfType closes ongoing stints of that type and drops the role', async () => {
+    const memberId = await makePublisher(`BulkAux-${ts}`)
+    await withScope(congId, tx =>
+      enrolPioneer(tx, memberId, congId, 1, {
+        type: PublisherType.PionnierAuxiliaires,
+        startMonth: 8,
+        startYear: 2025,
+      }),
+    )
+    expect(await pioneerRoleAttached(memberId)).toBe(true)
+
+    await withScope(congId, tx =>
+      endOngoingEnrolmentsOfType(tx, congId, 1, PublisherType.PionnierAuxiliaires, { endMonth: 10, endYear: 2025 }),
+    )
+
+    const stints = await testDb.pioneerEnrolment.findMany({ where: { memberId, congregationId: congId } })
+    expect(stints).toHaveLength(1)
+    expect(stints[0].endMonth).toBe(10)
+    expect(stints[0].endYear).toBe(2025)
+    expect(await pioneerRoleAttached(memberId)).toBe(false)
+  })
+
+  it('endOngoingEnrolmentsOfType leaves other pioneer types alone', async () => {
+    const memberId = await makePublisher(`BulkPerm-${ts}`)
+    await withScope(congId, tx =>
+      enrolPioneer(tx, memberId, congId, 1, {
+        type: PublisherType.PionnierPermanant,
+        startMonth: 8,
+        startYear: 2025,
+      }),
+    )
+
+    await withScope(congId, tx =>
+      endOngoingEnrolmentsOfType(tx, congId, 1, PublisherType.PionnierAuxiliaires, { endMonth: 10, endYear: 2025 }),
+    )
+
+    const stints = await testDb.pioneerEnrolment.findMany({ where: { memberId, congregationId: congId } })
+    expect(stints[0].endMonth).toBeNull()
+    expect(await pioneerRoleAttached(memberId)).toBe(true)
+  })
+
+  // A single-month auxiliary is already closed, so it is not "ongoing" and must not be re-dated.
+  it('endOngoingEnrolmentsOfType does not touch an already-closed single-month auxiliary', async () => {
+    const memberId = await makePublisher(`BulkMonthly-${ts}`)
+    await withScope(congId, tx =>
+      enrolPioneer(tx, memberId, congId, 1, {
+        type: PublisherType.PionnierAuxiliaires,
+        startMonth: 3,
+        startYear: 2026,
+        endMonth: 3,
+        endYear: 2026,
+        monthlyGoal: 30,
+      }),
+    )
+
+    await withScope(congId, tx =>
+      endOngoingEnrolmentsOfType(tx, congId, 1, PublisherType.PionnierAuxiliaires, { endMonth: 10, endYear: 2025 }),
+    )
+
+    const stints = await testDb.pioneerEnrolment.findMany({ where: { memberId, congregationId: congId } })
+    expect(stints[0].endMonth).toBe(3)
+    expect(stints[0].endYear).toBe(2026)
   })
 })

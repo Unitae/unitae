@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { PublisherType } from '~/shared/types/publisher-type'
 import { nameSchema } from '~/shared/utils/name'
 import { phoneSchema } from '~/shared/utils/phone'
 
@@ -23,7 +22,6 @@ export const updatePublisherSchema = z.object({
     .optional()
     .transform(v => v === 'on'),
   group: z.coerce.number().optional(),
-  type: z.nativeEnum(PublisherType),
   phone: phoneSchema,
   address: z.string().optional().default(''),
 })

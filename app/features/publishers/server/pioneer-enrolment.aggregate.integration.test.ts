@@ -44,7 +44,6 @@ beforeAll(async () => {
         firstname: 'Enrol',
         lastname: 'Pioneer',
         isPublisher: true,
-        type: PublisherType.PionnierPermanant,
         baptismDate: new Date('2015-01-01'),
         congregationId,
       },
@@ -116,7 +115,7 @@ describe('pioneer-enrolment aggregate (integration)', () => {
   async function freshMember(name: string): Promise<number> {
     const m = await withScope(congregationId, tx =>
       tx.member.create({
-        data: { firstname: name, lastname: 'Agg', isPublisher: true, type: PublisherType.Normal, congregationId },
+        data: { firstname: name, lastname: 'Agg', isPublisher: true, congregationId },
       }),
     )
     return m.id

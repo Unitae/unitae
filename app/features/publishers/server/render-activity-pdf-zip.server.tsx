@@ -1,11 +1,11 @@
 import { pdf } from '@react-pdf/renderer'
 import JsZip from 'jszip'
 import pLimit from 'p-limit'
-import type { Member, PublisherActivity } from '~/database/generated/client'
+import type { Member, PioneerEnrolment, PublisherActivity } from '~/database/generated/client'
 import { PublisherActivityDocument } from '~/features/publishers/ui/PublisherActivityDocument'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
-type PublisherWithActivities = Member & { activities: PublisherActivity[] }
+type PublisherWithActivities = Member & { activities: PublisherActivity[]; pioneerEnrolments: PioneerEnrolment[] }
 
 export interface PublisherScopeOptions {
   groupId?: number
@@ -34,6 +34,9 @@ export async function getPublishersWithYearActivities(
     },
     include: {
       activities: { where: yearFilter },
+      // The S-21 sheet ticks a pioneer box from the member's standing status, which lives on the
+      // stints — without these every sheet would print unticked.
+      pioneerEnrolments: true,
     },
   })
 }

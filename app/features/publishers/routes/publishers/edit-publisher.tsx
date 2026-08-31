@@ -128,12 +128,7 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
       <Form id="edit-publisher-form" method="post" className="flex flex-col gap-6" onChange={markDirty}>
         <PublisherPersonalInformationForm user={user} onGenderChange={setGender} />
         <PublisherNominationForm user={user} gender={gender} />
-        <PublisherFieldServiceForm
-          user={user}
-          groups={groups}
-          hideAuxiliaryPioneer={hideAuxiliaryPioneer}
-          hideTypeSelect
-        />
+        <PublisherFieldServiceForm user={user} groups={groups} />
       </Form>
 
       {/* Pioneer appointments — separate forms, each posting its own enrolment intent (saved on their
@@ -182,7 +177,6 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     isServant,
     isAnointed,
     group,
-    type,
     phone,
     address,
   } = submission.value
@@ -205,7 +199,6 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         isAnointed,
         groupId: group ?? null,
         email: email ?? '',
-        type,
         address,
         phone,
       },
