@@ -2,6 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import type { CongregationId, MemberId } from '~/shared/types/branded'
+import { PublisherType } from '~/shared/types/publisher-type'
 import { createTestCongregation, createTestUser } from '~/tests/factories'
 import { getPublisherById, getPublishersWithGroup } from './publishers.server'
 
@@ -133,5 +134,83 @@ describe('getPublishersWithGroup search filter', () => {
     const result = await withScope(searchCongregationId, tx => getPublishersWithGroup(tx, searchCongregationId))
 
     expect(result).toHaveLength(2)
+  })
+})
+
+// The type filter moved from a Member column to a condition over PioneerEnrolment stints. The unit
+// test asserts the `where` SHAPE, which cannot tell whether Prisma builds SQL that actually selects
+// the right people — and this branch already produced three column reads that typechecked and failed
+// only at runtime. So exercise it against the database.
+describe('getPublishersWithGroup — filtering by standing type (integration)', () => {
+  const ts = Date.now()
+  let congId: number
+  let permanentId: number
+  let monthlyAuxId: number
+  let plainId: number
+
+  beforeAll(async () => {
+    const cong = await createTestCongregation(testDb, { name: `TypeFilter ${ts}`, slug: `type-filter-${ts}` })
+    congId = cong.id
+
+    const permanent = await createTestUser(testDb, congId, { isPublisher: true, firstname: `Perm${ts}` })
+    permanentId = permanent.memberId ?? permanent.id
+    const monthly = await createTestUser(testDb, congId, { isPublisher: true, firstname: `Month${ts}` })
+    monthlyAuxId = monthly.memberId ?? monthly.id
+    const plain = await createTestUser(testDb, congId, { isPublisher: true, firstname: `Plain${ts}` })
+    plainId = plain.memberId ?? plain.id
+
+    await testDb.pioneerEnrolment.createMany({
+      data: [
+        // Ongoing permanent pioneer.
+        {
+          memberId: permanentId,
+          congregationId: congId,
+          type: PublisherType.PionnierPermanant,
+          startMonth: 8,
+          startYear: 2025,
+        },
+        // Single-month auxiliary: closed, so this member is NOT a standing auxiliary.
+        {
+          memberId: monthlyAuxId,
+          congregationId: congId,
+          type: PublisherType.PionnierAuxiliaires,
+          startMonth: 4,
+          startYear: 2026,
+          endMonth: 4,
+          endYear: 2026,
+        },
+      ],
+    })
+  })
+
+  afterAll(async () => {
+    await testDb.pioneerEnrolment.deleteMany({ where: { congregationId: congId } })
+    await testDb.userAccount.deleteMany({ where: { congregationId: congId } })
+    await testDb.member.deleteMany({ where: { congregationId: congId } })
+    await testDb.congregation.deleteMany({ where: { id: congId } })
+  })
+
+  it('returns only the member with an ongoing stint of that type', async () => {
+    const result = await withScope(congId, tx =>
+      getPublishersWithGroup(tx, congId, { standingType: PublisherType.PionnierPermanant }),
+    )
+    expect(result.map(r => r.id)).toEqual([permanentId])
+  })
+
+  it('returns nobody for a type nobody currently holds', async () => {
+    const result = await withScope(congId, tx =>
+      getPublishersWithGroup(tx, congId, { standingType: PublisherType.Missionnaire }),
+    )
+    expect(result).toEqual([])
+  })
+
+  // The behaviour the old column had: a single-month auxiliary is closed, so its holder reads Normal.
+  it('counts a member whose only stint is a closed single-month auxiliary as Normal', async () => {
+    const result = await withScope(congId, tx =>
+      getPublishersWithGroup(tx, congId, { standingType: PublisherType.Normal }),
+    )
+    const ids = result.map(r => r.id).sort((a, b) => a - b)
+    expect(ids).toEqual([monthlyAuxId, plainId].sort((a, b) => a - b))
+    expect(ids).not.toContain(permanentId)
   })
 })

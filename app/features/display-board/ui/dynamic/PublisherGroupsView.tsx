@@ -19,7 +19,7 @@ interface PublisherGroupsViewData {
     adress: string
     responsible: Person
     deputy: (Person & { id: number }) | null
-    members: (Person & { type: string })[]
+    members: Person[]
   }[]
 }
 

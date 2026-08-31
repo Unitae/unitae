@@ -96,6 +96,10 @@ const baseFormParams = {
   address: '',
 }
 
+// setPioneerType and bulkUpdateType are gone with the Member.type column. What bulkUpdateType did
+// for the permanent-auxiliary setting now lives in endOngoingEnrolmentsOfType, covered in
+// pioneer-enrolment.workflow.integration.test.ts; setPioneerType has no successor because nothing
+// caches the status any more.
 describe('member.aggregate — integration', () => {
   it('createMember persists the row and audits PublisherCreated', async () => {
     auditMock.mockClear()
@@ -299,71 +303,5 @@ describe('member.aggregate — integration', () => {
     expect(after.firstname).toBe(`GrpRespB-${ts}`)
 
     await testDb.publisherGroup.delete({ where: { id: group.id } })
-  })
-
-  it('setPioneerType writes the cached column but no longer grants the pioneer role on its own', async () => {
-    const member = await withScope(congId, tx =>
-      memberAggregate.createMember(tx, congregationInfo as never, {
-        ...baseFormParams,
-        firstname: `SetType-${ts}`,
-        type: PublisherType.Normal,
-        congregationId: congId,
-        actorId: 1,
-      }),
-    )
-    const pioneerRole = await testDb.role.findFirstOrThrow({ where: { key: 'pioneer', congregationId: congId } })
-    const before = await testDb.memberRoleAssignment.findFirst({
-      where: { memberId: member.id, roleId: pioneerRole.id },
-    })
-    expect(before).toBeNull()
-
-    auditMock.mockClear()
-    await withScope(congId, tx =>
-      memberAggregate.setPioneerType(tx, member.id, congId, 1, PublisherType.PionnierPermanant),
-    )
-
-    const after = await testDb.member.findUniqueOrThrow({ where: { id: member.id } })
-    expect(after.type).toBe(PublisherType.PionnierPermanant)
-    // The pioneer role is derived from the member's stints now, not from this column, so writing
-    // the column alone grants nothing — this member has no enrolment. Not a weakened assertion: the
-    // role attaching off a real enrolment is covered in pioneer-enrolment.workflow.integration.test,
-    // and setPioneerType is only ever reached through that workflow's recompute.
-    const assignment = await testDb.memberRoleAssignment.findFirst({
-      where: { memberId: member.id, roleId: pioneerRole.id },
-    })
-    expect(assignment).toBeNull()
-    expect(auditMock).toHaveBeenCalledWith(
-      expect.objectContaining({ action: 'publisher.updated', entityId: member.id }),
-    )
-  })
-
-  it('bulkUpdateType flips all matching members and re-syncs each', async () => {
-    const m1 = await withScope(congId, tx =>
-      memberAggregate.createMember(tx, congregationInfo as never, {
-        ...baseFormParams,
-        firstname: `Bulk1-${ts}`,
-        type: PublisherType.PionnierAuxiliaires,
-        congregationId: congId,
-        actorId: 1,
-      }),
-    )
-    const m2 = await withScope(congId, tx =>
-      memberAggregate.createMember(tx, congregationInfo as never, {
-        ...baseFormParams,
-        firstname: `Bulk2-${ts}`,
-        type: PublisherType.PionnierAuxiliaires,
-        congregationId: congId,
-        actorId: 1,
-      }),
-    )
-
-    await withScope(congId, tx =>
-      memberAggregate.bulkUpdateType(tx, congId, 1, PublisherType.PionnierAuxiliaires, PublisherType.Normal),
-    )
-
-    const after1 = await testDb.member.findUniqueOrThrow({ where: { id: m1.id } })
-    const after2 = await testDb.member.findUniqueOrThrow({ where: { id: m2.id } })
-    expect(after1.type).toBe(PublisherType.Normal)
-    expect(after2.type).toBe(PublisherType.Normal)
   })
 })

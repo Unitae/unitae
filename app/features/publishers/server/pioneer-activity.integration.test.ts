@@ -41,7 +41,6 @@ beforeAll(async () => {
         firstname: 'Reg',
         lastname: 'Pioneer',
         isPublisher: true,
-        type: PublisherType.PionnierPermanant,
         baptismDate: new Date('2015-01-01'),
         congregationId,
       },

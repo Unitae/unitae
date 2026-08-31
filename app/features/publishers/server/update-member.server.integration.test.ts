@@ -52,7 +52,6 @@ beforeAll(async () => {
       isMale: true,
       // Elder + brother require baptism per the CHECK
       baptismDate: new Date('2010-01-01'),
-      type: PublisherType.Normal,
       congregationId,
     },
   })

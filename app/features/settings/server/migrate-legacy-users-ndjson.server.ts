@@ -85,7 +85,6 @@ export async function migrateLegacyUsersNdjson(zip: JsZip, manifestVersion: stri
         firstname: row.firstname ?? '',
         lastname: row.lastname ?? '',
         isPublisher: row.isPublisher,
-        type: row.type ?? 'normal',
         isMale: row.isMale ?? null,
         phone: row.phone ?? '',
         address: row.address ?? '',

@@ -35,7 +35,7 @@ function member(id: number, type: PublisherType, activities: ReturnType<typeof a
     type,
     publisherGroup,
     activities,
-    pioneerEnrolments: deriveStintsFromActivity(activities, type),
+    pioneerEnrolments: deriveStintsFromActivity(activities),
   }
 }
 

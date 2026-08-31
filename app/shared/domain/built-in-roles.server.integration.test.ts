@@ -62,7 +62,6 @@ beforeAll(async () => {
       lastname: 'Primary',
       isPublisher: true,
       isMale: false,
-      type: PublisherType.Normal,
       congregationId: primaryCongId,
     },
   })
@@ -77,7 +76,6 @@ beforeAll(async () => {
       isHelder: true,
       // Elder requires baptism
       baptismDate: new Date('2000-01-01'),
-      type: PublisherType.Normal,
       congregationId: otherCongId,
     },
   })
@@ -188,15 +186,14 @@ describe('syncBuiltInRoleAssignments (integration)', () => {
     expect(vi.mocked(audit).mock.calls.length).toBe(callsAfterIdempotentRun)
   })
 
-  // The pioneer role is derived from the member's enrolment stints, not the Member.type column.
-  // These two pin that: the column is deliberately contradicted in each direction.
-  it('attaches the pioneer role from an ongoing enrolment even when the type column says Normal', async () => {
+  // The pioneer role is derived from the member's enrolment stints. These two pin both directions:
+  // a stint grants it, the absence of one withholds it.
+  it('attaches the pioneer role from an ongoing enrolment', async () => {
     const member = await testDb.member.create({
       data: {
         firstname: 'Enrolled',
         lastname: `Pioneer-${ts}`,
         isPublisher: true,
-        type: PublisherType.Normal,
         baptismDate: new Date('2015-01-01'),
         congregationId: primaryCongId,
       },
@@ -220,13 +217,12 @@ describe('syncBuiltInRoleAssignments (integration)', () => {
     expect(assignments.map(a => a.role.key)).toContain('pioneer')
   })
 
-  it('withholds the pioneer role when only the type column says pioneer and no stint exists', async () => {
+  it('withholds the pioneer role from a member with no stint at all', async () => {
     const member = await testDb.member.create({
       data: {
         firstname: 'Stale',
         lastname: `Cache-${ts}`,
         isPublisher: true,
-        type: PublisherType.PionnierPermanant,
         baptismDate: new Date('2015-01-01'),
         congregationId: primaryCongId,
       },

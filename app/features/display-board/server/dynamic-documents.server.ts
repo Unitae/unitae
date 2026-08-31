@@ -367,7 +367,7 @@ function fetchPublisherGroups(db: TransactionClient, congregationId: number) {
       deputy: { select: userSelect },
       members: {
         where: { leftAt: null, isPublisher: true, inactiveAt: null },
-        select: { ...userSelect, type: true },
+        select: userSelect,
         orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
       },
     },

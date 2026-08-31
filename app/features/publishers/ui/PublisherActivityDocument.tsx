@@ -1,13 +1,16 @@
 import { Document, Page, Polygon, StyleSheet, Svg, Text, View } from '@react-pdf/renderer'
 import type { Member, PublisherActivity } from '~/database/generated/client'
+import { type EnrolmentPeriod, standingTypeFromEnrolments } from '~/features/publishers/model/pioneer-enrolment'
 import * as m from '~/i18n/paraglide/messages'
 import { PublisherType } from '~/shared/types/publisher-type'
 
 interface PublisherActivityDocumentProps {
-  publisher: Member & { activities: PublisherActivity[] }
+  publisher: Member & { activities: PublisherActivity[]; pioneerEnrolments: EnrolmentPeriod[] }
 }
 
 export function PublisherActivityDocument({ publisher }: PublisherActivityDocumentProps) {
+  // The pioneer boxes reflect the member's standing status, which is their ongoing stint.
+  const standingType = standingTypeFromEnrolments(publisher.pioneerEnrolments)
   const year = publisher.activities.reduce((acc, activity) => {
     if (activity.year < acc) {
       return activity.year
@@ -108,17 +111,17 @@ export function PublisherActivityDocument({ publisher }: PublisherActivityDocume
             <Text style={styles.label}>{m.activity_pdf_servant()}</Text>
           </View>
           <View style={styles.containerLabel}>
-            <Checkbox checked={publisher.type === PublisherType.PionnierPermanant} />
+            <Checkbox checked={standingType === PublisherType.PionnierPermanant} />
             <Text style={styles.label}>{m.activity_pdf_permanent_pioneer()}</Text>
           </View>
           <View style={styles.containerLabel}>
-            <Checkbox checked={publisher.type === PublisherType.PionnierSpecial} />
+            <Checkbox checked={standingType === PublisherType.PionnierSpecial} />
             <Text style={styles.label}>{m.activity_pdf_special_pioneer()}</Text>
           </View>
         </View>
         <View style={styles.checkboxLine}>
           <View style={styles.containerLabel}>
-            <Checkbox checked={publisher.type === PublisherType.Missionnaire} />
+            <Checkbox checked={standingType === PublisherType.Missionnaire} />
             <Text style={styles.label}>{m.activity_pdf_missionary()}</Text>
           </View>
         </View>

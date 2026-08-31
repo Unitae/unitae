@@ -1,7 +1,7 @@
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 
-import type { EnrolmentPeriod } from '../model/pioneer-enrolment'
+import { type EnrolmentPeriod, standingTypeFromEnrolments } from '../model/pioneer-enrolment'
 import { type EnrolmentActualMonth, planFromEnrolments } from '../model/pioneer-enrolment-pace'
 import { computeAuxiliarySummary, computePioneerPace, type PioneerMonth, type PioneerPace } from '../model/pioneer-pace'
 import type {
@@ -86,9 +86,10 @@ export async function getPioneerActivitySummary(
       leftAt: null,
       inactiveAt: null,
       OR: [
-        { type: { not: PublisherType.Normal } },
-        { activities: { some: { ...serviceYearWhere(serviceYear), type: { not: PublisherType.Normal } } } },
+        // Anyone with a stint is a roster candidate; the enrolment IS the plan now. Reports still
+        // qualify a member because a pre-enrolment report can predate any stint we hold.
         { pioneerEnrolments: { some: {} } },
+        { activities: { some: { ...serviceYearWhere(serviceYear), type: { not: PublisherType.Normal } } } },
       ],
     },
     include: {
@@ -121,7 +122,12 @@ function classifyPioneerMember(
 ): PioneerActivity | null {
   const thisYear = member.activities.filter(r => serviceYearOfRow(r.month, r.year) === serviceYear)
   const rows: EnrolmentActualMonth[] = dedupeLatestPerMonth(thisYear)
-  const plan = planFromEnrolments(member.pioneerEnrolments, rows, serviceYear, member.type)
+  const plan = planFromEnrolments(
+    member.pioneerEnrolments,
+    rows,
+    serviceYear,
+    standingTypeFromEnrolments(member.pioneerEnrolments),
+  )
   if (plan === null) return null
 
   const typeRate = rates.get(plan.rosterType)
@@ -208,7 +214,6 @@ interface MemberWithActivities {
   id: number
   firstname: string
   lastname: string
-  type: PublisherType
   publisherGroup: { name: string } | null
   activities: ActivityRow[]
 }

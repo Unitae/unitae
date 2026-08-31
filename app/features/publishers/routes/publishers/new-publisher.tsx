@@ -14,8 +14,6 @@ import {
   permissionsContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
-import { getBoolSetting } from '~/shared/domain/settings.server'
-import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Permission } from '~/shared/types/permission'
 import { FormActions } from '~/shared/ui/FormActions'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
@@ -41,18 +39,13 @@ export function loader({ context }: Route.LoaderArgs) {
 
   return withScopeFromContext(context, async db => {
     const groups = await db.publisherGroup.findMany({ where: { congregationId: currentUser.congregationId } })
-    const showAuxiliaryPioneer = await getBoolSetting(
-      db,
-      CongregationSettingKey.PermanentAuxiliaryPioneerProfileActivated,
-      currentUser.congregationId,
-    )
 
-    return { groups, hideAuxiliaryPioneer: !showAuxiliaryPioneer }
+    return { groups }
   })
 }
 
 export default function NewPublisher({ loaderData }: Route.ComponentProps) {
-  const { groups, hideAuxiliaryPioneer } = loaderData
+  const { groups } = loaderData
   const { blocker, markDirty } = useUnsavedChanges()
   const [gender, setGender] = useState<'male' | 'female' | null>(null)
 
@@ -69,7 +62,7 @@ export default function NewPublisher({ loaderData }: Route.ComponentProps) {
       <Form method="post" className="flex flex-col gap-6" onChange={markDirty}>
         <PublisherPersonalInformationForm onGenderChange={setGender} />
         <PublisherNominationForm gender={gender} />
-        <PublisherFieldServiceForm groups={groups} hideAuxiliaryPioneer={hideAuxiliaryPioneer} />
+        <PublisherFieldServiceForm groups={groups} />
 
         <FormActions>
           <SubmitButton size="lg">{m.publishers_new_submit()}</SubmitButton>
@@ -99,7 +92,6 @@ export async function action({ request, context }: Route.ActionArgs) {
     isServant,
     isAnointed,
     group,
-    type,
     phone,
     address,
   } = submission.value
@@ -118,7 +110,6 @@ export async function action({ request, context }: Route.ActionArgs) {
         isServant,
         isAnointed,
         groupId: group ?? null,
-        type,
         congregationId: currentUser.congregationId,
         phone: phone ?? '',
         address: address ?? '',

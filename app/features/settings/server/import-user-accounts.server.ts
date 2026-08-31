@@ -3,7 +3,6 @@ import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.serve
 import { ensureAdminRole } from '~/shared/domain/setup.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
-import type { PublisherType } from '~/shared/types/publisher-type'
 import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 import type { EntityIdMap } from './data-transfer.type'
 import { readNdjsonFile } from './ndjson-archive'
@@ -63,7 +62,6 @@ export async function importMembers(
         firstnameNormalized: stripDiacritics(record.firstname),
         lastnameNormalized: stripDiacritics(record.lastname),
         isPublisher: record.isPublisher,
-        type: record.type as PublisherType,
         isMale: record.isMale,
         phone: record.phone,
         address: record.address,

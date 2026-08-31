@@ -36,7 +36,7 @@ beforeAll(async () => {
   congId = cong.id
   await withScope(congId, async tx => {
     const member = await tx.member.create({
-      data: { firstname: 'Back', lastname: 'Fill', isPublisher: true, type: NORMAL, congregationId: congId },
+      data: { firstname: 'Back', lastname: 'Fill', isPublisher: true, congregationId: congId },
     })
     memberId = member.id
     // Representative history: Permanent Sept–Oct 2025, a re-filed Oct (higher id wins, still Permanent),
@@ -77,9 +77,7 @@ afterAll(async () => {
 
 describe('backfillMemberEnrolments', () => {
   it('persists the derived stints through the aggregate', async () => {
-    const written = await withScope(congId, tx =>
-      backfillMemberEnrolments(tx, { id: memberId, type: NORMAL }, congId, 1),
-    )
+    const written = await withScope(congId, tx => backfillMemberEnrolments(tx, { id: memberId }, congId, 1))
     expect(written).toBe(2)
 
     const stints = await testDb.pioneerEnrolment.findMany({
@@ -94,9 +92,7 @@ describe('backfillMemberEnrolments', () => {
   })
 
   it('is idempotent — a re-run writes nothing', async () => {
-    const written = await withScope(congId, tx =>
-      backfillMemberEnrolments(tx, { id: memberId, type: NORMAL }, congId, 1),
-    )
+    const written = await withScope(congId, tx => backfillMemberEnrolments(tx, { id: memberId }, congId, 1))
     expect(written).toBe(0)
     expect(await testDb.pioneerEnrolment.count({ where: { memberId } })).toBe(2)
   })
@@ -106,7 +102,7 @@ describe('backfillMemberEnrolments — no pioneer history', () => {
   it('writes nothing for a member with only Normal activity', async () => {
     const plainId = await withScope(congId, async tx => {
       const plain = await tx.member.create({
-        data: { firstname: 'Plain', lastname: 'Publisher', isPublisher: true, type: NORMAL, congregationId: congId },
+        data: { firstname: 'Plain', lastname: 'Publisher', isPublisher: true, congregationId: congId },
       })
       await tx.publisherActivity.create({
         data: {
@@ -122,9 +118,7 @@ describe('backfillMemberEnrolments — no pioneer history', () => {
       return plain.id
     })
 
-    const written = await withScope(congId, tx =>
-      backfillMemberEnrolments(tx, { id: plainId, type: NORMAL }, congId, 1),
-    )
+    const written = await withScope(congId, tx => backfillMemberEnrolments(tx, { id: plainId }, congId, 1))
     expect(written).toBe(0)
     expect(await testDb.pioneerEnrolment.count({ where: { memberId: plainId } })).toBe(0)
   })

@@ -1,4 +1,4 @@
-import { memberAggregate } from '~/features/publishers/index.server'
+import { endOngoingEnrolmentsOfType } from '~/features/publishers/index.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { setSetting } from '~/shared/domain/settings.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -12,6 +12,9 @@ export async function updateCongregationSettings(
   data: {
     auxiliaryPioneerProfileActivated: string
   },
+  // The congregation's own clock, not the server's. Closing a stint picks a MONTH, so a server an
+  // hour either side of midnight on the 1st would otherwise date it to the wrong one.
+  now: Date,
 ) {
   await setSetting(
     db,
@@ -21,13 +24,13 @@ export async function updateCongregationSettings(
   )
 
   if (data.auxiliaryPioneerProfileActivated === 'false') {
-    await memberAggregate.bulkUpdateType(
-      db,
-      congregationId,
-      actorId,
-      PublisherType.PionnierAuxiliaires,
-      PublisherType.Normal,
-    )
+    // Turning the profile off means these members stop being permanent auxiliaries. That fact lives
+    // on the stint now, so close the ongoing ones at the current month rather than flipping a cached
+    // column — closing keeps the history of what they actually did.
+    await endOngoingEnrolmentsOfType(db, congregationId, actorId, PublisherType.PionnierAuxiliaires, {
+      endMonth: now.getMonth(),
+      endYear: now.getFullYear(),
+    })
   }
 
   audit({

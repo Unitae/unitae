@@ -5,7 +5,6 @@ import { LimitService } from '~/shared/domain/limits.server'
 import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { MemberId } from '~/shared/types/branded'
-import type { PublisherType } from '~/shared/types/publisher-type'
 import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 import { purgeEmergencyContacts } from './emergency-info.aggregate'
 import {
@@ -271,55 +270,4 @@ export async function anonymize(
     },
   })
   audit({ action: AuditAction.UserAnonymized, congregationId, actorId, entityType: 'Member', entityId: memberId })
-}
-
-export async function bulkUpdateType(
-  db: TransactionClient,
-  congregationId: number,
-  actorId: number,
-  from: PublisherType,
-  to: PublisherType,
-): Promise<void> {
-  // aggregate-boundaries-allow: precondition read — capture affected ids so we can re-sync each after the bulk update
-  const affected = await db.member.findMany({
-    where: { congregationId, type: from },
-    select: { id: true },
-  })
-
-  await db.member.updateMany({ where: { congregationId, type: from }, data: { type: to } })
-
-  for (const m of affected) {
-    await syncBuiltInRoleAssignments(db, m.id, congregationId, actorId)
-  }
-}
-
-// Sets a member's standing pioneer type (the synced `Member.type` cache that drives built-in
-// role sync). Called by the pioneer-enrolment workflow when an *ongoing* stint opens/closes —
-// single-month auxiliary enrolments deliberately do NOT touch `Member.type` (see the enrolment
-// workflow and CLAUDE.md). Kept in the aggregate because it writes `Member` + re-syncs roles.
-export async function setPioneerType(
-  db: TransactionClient,
-  memberId: number,
-  congregationId: number,
-  actorId: number,
-  type: PublisherType,
-) {
-  const member = await db.member.update({
-    // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
-    where: { id_congregationId: { id: memberId, congregationId } },
-    data: { type },
-  })
-
-  await syncBuiltInRoleAssignments(db, memberId, congregationId, actorId)
-
-  audit({
-    action: AuditAction.PublisherUpdated,
-    congregationId,
-    actorId,
-    entityType: 'Member',
-    entityId: memberId,
-    metadata: { type },
-  })
-
-  return member
 }

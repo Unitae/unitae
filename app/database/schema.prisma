@@ -174,10 +174,10 @@ model Member {
   dpaCardUpToDate       Boolean @default(false)
   survivalBackpackReady Boolean @default(false)
 
-  // Domain status. `isPublisher = false` means ministry-school student.
-  // `type` is only meaningful when `isPublisher = true`.
+  // Domain status. `isPublisher = false` means ministry-school student. Whether a publisher is a
+  // pioneer is NOT stored here — it is their PioneerEnrolment stints, so that a standing status and
+  // the period it covers cannot disagree.
   isPublisher Boolean       @default(false)
-  type        PublisherType @default(Normal)
   baptismDate DateTime?
   isAnointed  Boolean       @default(false)
   isHelder    Boolean       @default(false)

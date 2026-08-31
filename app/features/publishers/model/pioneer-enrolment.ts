@@ -6,6 +6,17 @@
 import { PublisherType } from '~/shared/types/publisher-type'
 import { type MonthRef, serviceYearMonths } from './pioneer-pace'
 
+// The Prisma `select` that produces an EnrolmentPeriod. Kept beside the type so a schema change
+// cannot leave a caller selecting a shape the helpers no longer accept.
+export const ENROLMENT_PERIOD_SELECT = {
+  type: true,
+  startMonth: true,
+  startYear: true,
+  endMonth: true,
+  endYear: true,
+  monthlyGoal: true,
+} as const
+
 // A pioneer stint, DB-free and serialisable — mirrors the PioneerEnrolment row's period fields.
 export interface EnrolmentPeriod {
   type: PublisherType

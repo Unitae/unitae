@@ -35,7 +35,7 @@ beforeAll(async () => {
   congId = cong.id
   await withScope(congId, async tx => {
     const member = await tx.member.create({
-      data: { firstname: 'Q', lastname: 'Uery', isPublisher: true, type: PublisherType.Normal, congregationId: congId },
+      data: { firstname: 'Q', lastname: 'Uery', isPublisher: true, congregationId: congId },
     })
     memberId = member.id
     // Two stints for this member: an annual one inside SY 2025, and one entirely in a prior SY.

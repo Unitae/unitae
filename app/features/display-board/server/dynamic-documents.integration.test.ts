@@ -59,7 +59,6 @@ beforeAll(async () => {
         lastname: 'Martin',
         baptismDate: new Date('2010-01-01'),
         isPublisher: true,
-        type: PublisherType.PionnierPermanant,
         congregationId,
       },
     })

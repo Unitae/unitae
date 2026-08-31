@@ -6,8 +6,25 @@ const baseInput = {
   firstname: 'Jean',
   lastname: 'Dupont',
   gender: 'male' as const,
-  type: 'Normal',
 }
+
+// The pioneer type is not a member field any more — it is an enrolment, appointed from the pioneer
+// section of the edit page. Both forms must parse without one, and must not smuggle one back in.
+describe.each([
+  ['createPublisherSchema', createPublisherSchema],
+  ['updatePublisherSchema', updatePublisherSchema],
+])('%s — no pioneer type', (_name, schema) => {
+  it('parses without a type field', () => {
+    const result = schema.safeParse(baseInput)
+    expect(result.success).toBe(true)
+  })
+
+  it('does not carry a type through to the parsed value', () => {
+    const result = schema.safeParse({ ...baseInput, type: 'pionnier-permanant' })
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data).not.toHaveProperty('type')
+  })
+})
 
 describe.each([
   ['createPublisherSchema', createPublisherSchema],

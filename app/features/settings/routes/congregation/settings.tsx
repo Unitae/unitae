@@ -22,6 +22,7 @@ import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
+import { zonedNow } from '~/shared/utils/zoned-now'
 import type { Route } from './+types/settings'
 
 export const meta: Route.MetaFunction = () => {
@@ -168,9 +169,13 @@ export async function action({ request, context }: Route.ActionArgs) {
     submission.value
 
   return withScopeFromContext(context, async db => {
-    await updateCongregationSettings(db, congregation.id, actorId, {
-      auxiliaryPioneerProfileActivated,
-    })
+    await updateCongregationSettings(
+      db,
+      congregation.id,
+      actorId,
+      { auxiliaryPioneerProfileActivated },
+      zonedNow(congregation.timezone),
+    )
 
     return redirect('/settings/congregation')
   })
