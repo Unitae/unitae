@@ -81,6 +81,7 @@ export async function importPublisherActivities(
     type: string
     isPublisher: boolean
     notes: string
+    creditHours?: number | null
   }>(zip, 'publisher-activities')
 
   for (const record of records) {
@@ -96,6 +97,8 @@ export async function importPublisherActivities(
         studies: record.studies,
         type: record.type as PublisherType,
         isPublisher: record.isPublisher,
+        // Optional: archives written before credits existed simply restore without one.
+        creditHours: record.creditHours ?? null,
         notes: record.notes,
         congregationId,
       },

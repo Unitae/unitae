@@ -1236,6 +1236,7 @@
     "activity_edit_report_details": "Report details",
     "activity_edit_pioneer_label": "Pioneer service",
     "activity_edit_credit_label": "Credit hours",
+    "activity_edit_success_credit_cleared": "{name}'s activity report was saved — the credit hours ({hours} h) were removed",
     "activity_edit_credit_hint": "Approved credit (school, assignment…) granted by the secretary from the observations. Counts toward the pioneer's goal, never into exports.",
     "activity_edit_pioneer_none": "The publisher did not pioneer this month",
     "activity_edit_pioneer_auxiliary": "The publisher auxiliary pioneered this month",

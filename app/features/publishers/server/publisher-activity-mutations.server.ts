@@ -92,6 +92,9 @@ export async function updatePublisherActivity(
     actorId,
     entityType: 'PublisherActivity',
     entityId: id,
+    // A credit grant or clear must be reconstructable — who gave this pioneer that credit
+    // is a question the audit trail has to answer.
+    metadata: params.creditHours !== undefined ? { creditHours: params.creditHours } : undefined,
   })
 
   await evaluateInactiveStatus(db, {

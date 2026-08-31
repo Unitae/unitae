@@ -1238,6 +1238,7 @@
     "activity_edit_report_details": "Détails du rapport",
     "activity_edit_pioneer_label": "Service de pionnier",
     "activity_edit_credit_label": "Crédit d'heures",
+    "activity_edit_success_credit_cleared": "Le rapport d'activité de {name} a été enregistré — le crédit d'heures ({hours} h) a été retiré",
     "activity_edit_credit_hint": "Crédit approuvé (école, mission…) accordé par le secrétaire d'après les observations. Compte pour l'objectif du pionnier, jamais dans les exports.",
     "activity_edit_pioneer_none": "Le proclamateur n'a pas pris le service ce mois",
     "activity_edit_pioneer_auxiliary": "Le proclamateur a pris le service de Pionnier Auxiliaire ce mois",

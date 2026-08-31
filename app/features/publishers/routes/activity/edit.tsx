@@ -272,15 +272,23 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         hours,
         studies,
         notes: observations,
-        // Server-side gate, not just a hidden field: only a CanCorrectActivity holder's
-        // submit touches the credit — undefined leaves it as stored, an emptied field clears.
+        // Server-side gate, not just a hidden field. A non-secretary's submit omits the
+        // parameter entirely, leaving the stored credit untouched; a secretary's submit
+        // always writes it — the field's value, or null when it was emptied or hidden
+        // (a « Normal » month cannot carry a credit).
         ...(permissions.has(Permission.CanCorrectActivity) ? { creditHours: creditHours ?? null } : {}),
       },
     )
 
+    // A cleared credit is named, never silent — a « Normal » save clears it with the field hidden.
+    const name = `${activity.publisher.firstname} ${activity.publisher.lastname}`
+    const clearedCredit =
+      permissions.has(Permission.CanCorrectActivity) && activity.creditHours != null && creditHours == null
     session.flash(
       'success',
-      m.activity_edit_success({ name: `${activity.publisher.firstname} ${activity.publisher.lastname}` }),
+      clearedCredit
+        ? m.activity_edit_success_credit_cleared({ name, hours: activity.creditHours ?? 0 })
+        : m.activity_edit_success({ name }),
     )
     return redirect(previousPage ?? `/publishers/activity?month=${activity.month}&year=${activity.year}`, {
       headers: {

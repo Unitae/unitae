@@ -20,7 +20,14 @@ beforeEach(() => {
 
 function makeActivity(
   type: PublisherType,
-  { hours = 0, studies = 0, isPublisher = true, notes = '', inactiveAt = null as Date | null } = {},
+  {
+    hours = 0,
+    studies = 0,
+    isPublisher = true,
+    notes = '',
+    inactiveAt = null as Date | null,
+    creditHours = null as number | null,
+  } = {},
 ) {
   return {
     type,
@@ -28,6 +35,7 @@ function makeActivity(
     studies,
     isPublisher,
     notes,
+    creditHours,
     publisher: {
       id: 1,
       firstname: 'Jean',
@@ -113,6 +121,16 @@ describe('buildPublishersYearlyActivityXlsx', () => {
 
   it('shows hours for a permanent pioneer', async () => {
     const workbook = await buildFromActivities([makeActivity(PublisherType.PionnierPermanant, { hours: 50 })])
+    const dataRow = workbook.worksheets[0].getRow(2)
+
+    expect(dataRow.getCell(3).value).toBe('50')
+  })
+
+  it('keeps secretary credits out of the export — field hours only', async () => {
+    // Credits count toward the pioneers board's pace, never into the official record.
+    const workbook = await buildFromActivities([
+      makeActivity(PublisherType.PionnierPermanant, { hours: 50, creditHours: 30 }),
+    ])
     const dataRow = workbook.worksheets[0].getRow(2)
 
     expect(dataRow.getCell(3).value).toBe('50')
