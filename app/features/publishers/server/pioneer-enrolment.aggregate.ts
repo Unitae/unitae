@@ -155,10 +155,16 @@ export async function closeEnrolment(
   return enrolment
 }
 
+// Omission means different things per field, so each is spelled out rather than left to `?`:
+//
+//   type, monthlyGoal — PRESERVED when omitted. Correcting a start month must not disturb either.
+//   endMonth, endYear — CLEARED when omitted, because "no end" is itself the meaning: an ongoing
+//                       stint. Passing neither is how a closed stint is reopened.
+//
+// Callers MUST go through `updatePioneerEnrolment` rather than calling the aggregate directly —
+// nothing enforces that, and a type or period change applied here without the workflow's recompute
+// leaves the member's standing status stale.
 export interface UpdateEnrolmentParams {
-  // Omitted leaves the stint's type as recorded; supplying it corrects a wrong pick. Callers go
-  // through the workflow, which re-derives Member.type afterwards — a type change on an ongoing
-  // stint moves the member's standing status with it.
   type?: PublisherType
   startMonth: number
   startYear: number
@@ -198,7 +204,7 @@ export async function updateEnrolment(
       startYear: params.startYear,
       endMonth,
       endYear,
-      monthlyGoal: params.monthlyGoal ?? null,
+      ...(params.monthlyGoal != null ? { monthlyGoal: params.monthlyGoal } : {}),
     },
   })
 

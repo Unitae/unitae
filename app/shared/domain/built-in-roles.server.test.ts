@@ -14,7 +14,7 @@ const { audit } = await import('~/shared/domain/audit.server')
 interface MemberFlags {
   isMale: boolean | null
   isPublisher: boolean
-  type: string
+  standingType: PublisherType
   baptismDate: Date | null
   isAnointed: boolean
   isHelder: boolean
@@ -25,7 +25,7 @@ interface MemberFlags {
 const BASE: MemberFlags = {
   isMale: null,
   isPublisher: false,
-  type: PublisherType.Normal,
+  standingType: PublisherType.Normal,
   baptismDate: null,
   isAnointed: false,
   isHelder: false,
@@ -49,13 +49,22 @@ function makeDb({
     member == null
       ? null
       : (() => {
-          const { type, ...flags } = member
+          const { standingType, ...flags } = member
           return {
             ...flags,
             pioneerEnrolments:
-              type === PublisherType.Normal
+              standingType === PublisherType.Normal
                 ? []
-                : [{ type, startMonth: 8, startYear: 2025, endMonth: null, endYear: null, monthlyGoal: null }],
+                : [
+                    {
+                      type: standingType,
+                      startMonth: 8,
+                      startYear: 2025,
+                      endMonth: null,
+                      endYear: null,
+                      monthlyGoal: null,
+                    },
+                  ],
           }
         })()
 
@@ -163,7 +172,9 @@ describe('BUILT_IN_ROLE_PREDICATES', () => {
       PublisherType.PionnierSpecial,
       PublisherType.Missionnaire,
     ]) {
-      expect(BUILT_IN_ROLE_PREDICATES.pioneer({ ...BASE, isPublisher: true, baptismDate: baptized, type })).toBe(true)
+      expect(
+        BUILT_IN_ROLE_PREDICATES.pioneer({ ...BASE, isPublisher: true, baptismDate: baptized, standingType: type }),
+      ).toBe(true)
     }
 
     // Normal publisher is not a pioneer
@@ -172,7 +183,7 @@ describe('BUILT_IN_ROLE_PREDICATES', () => {
         ...BASE,
         isPublisher: true,
         baptismDate: baptized,
-        type: PublisherType.Normal,
+        standingType: PublisherType.Normal,
       }),
     ).toBe(false)
   })
@@ -185,7 +196,7 @@ describe('BUILT_IN_ROLE_PREDICATES', () => {
       baptismDate: new Date(),
       isHelder: true,
       isAnointed: true,
-      type: PublisherType.PionnierPermanant,
+      standingType: PublisherType.PionnierPermanant,
       leftAt: new Date(),
     }
     for (const predicate of Object.values(BUILT_IN_ROLE_PREDICATES)) {

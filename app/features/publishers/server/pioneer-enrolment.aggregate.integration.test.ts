@@ -184,6 +184,50 @@ describe('pioneer-enrolment aggregate (integration)', () => {
     ).rejects.toBeInstanceOf(ConflictError)
   })
 
+  // A period edit must not touch the goal. setEnrolmentGoal is the only way a goal changes, so a
+  // caller correcting a start month has no reason to resend it — and silently wiping it would undo
+  // the correction the manager made through the goal dialog.
+  it('updateEnrolment preserves the goal when the caller does not supply one', async () => {
+    const mid = await freshMember('GoalPreserve')
+    const created = await withScope(congregationId, tx =>
+      openEnrolment(tx, mid, congregationId, 1, {
+        type: PublisherType.PionnierAuxiliaires,
+        startMonth: 4,
+        startYear: 2026,
+        endMonth: 4,
+        endYear: 2026,
+        monthlyGoal: 15,
+      }),
+    )
+
+    const updated = await withScope(congregationId, tx =>
+      updateEnrolment(tx, created.id, congregationId, 1, { startMonth: 5, startYear: 2026 }),
+    )
+
+    expect(updated.startMonth).toBe(5)
+    expect(updated.monthlyGoal).toBe(15)
+  })
+
+  it('updateEnrolment still lets a caller change the goal explicitly', async () => {
+    const mid = await freshMember('GoalExplicit')
+    const created = await withScope(congregationId, tx =>
+      openEnrolment(tx, mid, congregationId, 1, {
+        type: PublisherType.PionnierAuxiliaires,
+        startMonth: 6,
+        startYear: 2026,
+        endMonth: 6,
+        endYear: 2026,
+        monthlyGoal: 15,
+      }),
+    )
+
+    const updated = await withScope(congregationId, tx =>
+      updateEnrolment(tx, created.id, congregationId, 1, { startMonth: 6, startYear: 2026, monthlyGoal: 30 }),
+    )
+
+    expect(updated.monthlyGoal).toBe(30)
+  })
+
   it('setEnrolmentGoal corrects the goal without touching the period', async () => {
     const mid = await freshMember('Goal')
     const created = await withScope(congregationId, tx =>

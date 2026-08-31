@@ -43,6 +43,12 @@ LEFT JOIN LATERAL (
   LIMIT 1
 ) AS first_activity ON TRUE
 WHERE m."type" <> 'normal'
+  -- Anonymized members are excluded, and only them. Anonymizing is terminal (the aggregate refuses
+  -- to run twice) and always sets leftAt, so they can never hold the role again under either model.
+  -- Members who merely LEFT are still enrolled: the old predicate was `leftAt IS NULL AND type <>
+  -- normal`, so clearing leftAt restored their pioneer role — skipping them would change behaviour
+  -- on return rather than preserve it.
+  AND m."anonymizedAt" IS NULL
   AND NOT EXISTS (
     SELECT 1 FROM "PioneerEnrolment" e
     WHERE e."memberId" = m."id" AND e."congregationId" = m."congregationId"

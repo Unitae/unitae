@@ -35,7 +35,7 @@ afterAll(async () => {
 })
 
 interface StintShape {
-  type: string
+  type: PublisherType
   startMonth: number
   startYear: number
   endMonth: number | null
@@ -46,6 +46,8 @@ interface Captured {
   withActivity: StintShape[]
   neverReported: StintShape[]
   normalMember: StintShape[]
+  anonymized: StintShape[]
+  departed: StintShape[]
   alreadyEnrolled: StintShape[]
   rowsAfterFirstRun: number
   rowsAfterSecondRun: number
@@ -106,6 +108,21 @@ async function execute(): Promise<Captured> {
         // Nothing to migrate.
         const normalMember = await makeMember('NormalPublisher', PublisherType.Normal)
 
+        // Anonymized members are terminal — memberAggregate.anonymize refuses to run twice and
+        // always sets leftAt, so they can never be a pioneer again under either model. A stint for
+        // them would be pure noise attached to a scrubbed person.
+        const anonymized = await makeMember('Anonymized', PublisherType.PionnierPermanant)
+        await tx.member.update({
+          where: { id: anonymized.id },
+          data: { anonymizedAt: new Date(), leftAt: new Date() },
+        })
+
+        // A member who LEFT but was not anonymized still gets a stint: the old predicate read
+        // `leftAt == null && type !== Normal`, so clearing leftAt restored their pioneer role.
+        // Skipping them here would change behaviour on return, not preserve it.
+        const departed = await makeMember('Departed', PublisherType.PionnierPermanant)
+        await tx.member.update({ where: { id: departed.id }, data: { leftAt: new Date() } })
+
         // Already has a stint — the migration must not add a second, overlapping one.
         const alreadyEnrolled = await makeMember('AlreadyEnrolled', PublisherType.PionnierPermanant)
         await tx.pioneerEnrolment.create({
@@ -118,7 +135,7 @@ async function execute(): Promise<Captured> {
           },
         })
 
-        const pioneerIds = [withActivity.id, neverReported.id, alreadyEnrolled.id]
+        const pioneerIds = [withActivity.id, neverReported.id, alreadyEnrolled.id, departed.id]
         const countRows = async () => tx.pioneerEnrolment.count({ where: { congregationId } })
 
         for (const statement of statements) await tx.$executeRawUnsafe(statement)
@@ -147,6 +164,8 @@ async function execute(): Promise<Captured> {
           withActivity: await stintsFor(withActivity.id),
           neverReported: await stintsFor(neverReported.id),
           normalMember: await stintsFor(normalMember.id),
+          anonymized: await stintsFor(anonymized.id),
+          departed: await stintsFor(departed.id),
           alreadyEnrolled: await stintsFor(alreadyEnrolled.id),
           rowsAfterFirstRun,
           rowsAfterSecondRun,
@@ -189,6 +208,17 @@ describe('backfill standing pioneer enrolments (migration)', () => {
     expect(neverReported[0].startMonth).toBe(8)
   })
 
+  it('skips an anonymized member — they can never be a pioneer again', async () => {
+    const { anonymized } = await runMigrationOverFixture()
+    expect(anonymized).toEqual([])
+  })
+
+  it('still enrols a member who left, because clearing leftAt used to restore their role', async () => {
+    const { departed } = await runMigrationOverFixture()
+    expect(departed).toHaveLength(1)
+    expect(departed[0].endMonth).toBeNull()
+  })
+
   it('leaves a normal publisher with no stint', async () => {
     const { normalMember } = await runMigrationOverFixture()
     expect(normalMember).toEqual([])
@@ -204,7 +234,7 @@ describe('backfill standing pioneer enrolments (migration)', () => {
 
   it('is idempotent — a second run adds nothing', async () => {
     const { rowsAfterFirstRun, rowsAfterSecondRun } = await runMigrationOverFixture()
-    expect(rowsAfterFirstRun).toBe(3)
+    expect(rowsAfterFirstRun).toBe(4)
     expect(rowsAfterSecondRun).toBe(rowsAfterFirstRun)
   })
 
