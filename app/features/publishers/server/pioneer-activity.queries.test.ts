@@ -16,8 +16,14 @@ const SY = 2025
 const NOW = new Date(2026, 0, 15) // 15 Jan 2026
 
 let nextId = 1
-function activity(month: number, year: number, type: PublisherType, hours: number | null) {
-  return { id: nextId++, month, year, type, hours, isPublisher: true }
+function activity(
+  month: number,
+  year: number,
+  type: PublisherType,
+  hours: number | null,
+  creditHours: number | null = null,
+) {
+  return { id: nextId++, month, year, type, hours, isPublisher: true, creditHours }
 }
 // Each member's enrolments are the backfill of their activity — so the enrolment-driven summary is
 // exercised with the same fixtures (and must reach the same expected values) as the old inference.
@@ -180,5 +186,29 @@ describe('getPioneerActivitySummary', () => {
     const row = result.annual.find(r => r.memberId === 1)
     expect(row?.concluded).toBe(true)
     expect(result.totals.onTrack + result.totals.behind + result.totals.atRisk).toBe(0)
+  })
+})
+
+describe('getPioneerActivitySummary — secretary hour credits', () => {
+  it('threads a report’s creditHours into the pace, keeping field hours distinct', async () => {
+    // 40h in the field + a 10h credit each month: achieved meets the 50h rate, on pace.
+    vi.mocked(db.member.findMany).mockResolvedValue([
+      member(1, PublisherType.PionnierPermanant, [
+        activity(8, 2025, PublisherType.PionnierPermanant, 40, 10),
+        activity(9, 2025, PublisherType.PionnierPermanant, 40, 10),
+        activity(10, 2025, PublisherType.PionnierPermanant, 40, 10),
+        activity(11, 2025, PublisherType.PionnierPermanant, 40, 10),
+      ]),
+    ] as never)
+
+    const summary = await getPioneerActivitySummary(db as never, 10, SY, NOW)
+
+    const pace = summary.annual[0]?.pace
+    expect(pace?.actualToDate).toBe(160)
+    expect(pace?.creditToDate).toBe(40)
+    expect(pace?.achievedToDate).toBe(200)
+    expect(pace?.riskBucket).toBe('green')
+    // The board totals answer "are we on pace" — credits count toward that.
+    expect(summary.totals.actualHours).toBe(200)
   })
 })

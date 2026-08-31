@@ -102,9 +102,12 @@ function AnnualDetail({ serviceYear, row }: { serviceYear: number; row: PioneerA
         <Badge variant="outline">{m.pioneers_concluded()}</Badge>
         <PioneerPaceChart serviceYear={serviceYear} monthlyHours={pace.monthlyHours} rate={row.monthlyRate} />
         <div className="grid grid-cols-2 gap-4">
-          <Stat value={`${pace.actualToDate} h`} label={m.pioneers_ytd_label()} />
+          <Stat value={`${pace.achievedToDate} h`} label={m.pioneers_ytd_label()} />
           <Stat value={`${pace.fullYearTarget} h`} label={m.pioneers_concluded_goal_label()} />
         </div>
+        {pace.creditToDate > 0 && (
+          <p className="text-muted-foreground text-xs">{m.pioneers_credit_included({ hours: pace.creditToDate })}</p>
+        )}
         <StudiesRow monthlyStudies={pace.monthlyStudies} muted />
       </>
     )
@@ -118,11 +121,14 @@ function AnnualDetail({ serviceYear, row }: { serviceYear: number; row: PioneerA
       </div>
       <PioneerPaceChart serviceYear={serviceYear} monthlyHours={pace.monthlyHours} rate={row.monthlyRate} />
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Stat value={`${pace.actualToDate} h`} label={m.pioneers_ytd_label()} />
+        <Stat value={`${pace.achievedToDate} h`} label={m.pioneers_ytd_label()} />
         <Stat value={`${pace.fullYearTarget} h`} label={m.pioneers_target_label()} />
         <Stat value={`${Math.round(pace.requiredAvgToFinish)} h`} label={m.pioneers_needs_per_month_label()} />
         <Stat value={`${Math.round(pace.recentAvg)} h`} label={m.pioneers_recent_avg_label()} />
       </div>
+      {pace.creditToDate > 0 && (
+        <p className="text-muted-foreground text-xs">{m.pioneers_credit_included({ hours: pace.creditToDate })}</p>
+      )}
       <StudiesRow monthlyStudies={pace.monthlyStudies} />
       {pace.outOfReach ? (
         <p className="flex items-center gap-2 text-amber-600 text-sm dark:text-amber-400">

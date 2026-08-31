@@ -123,7 +123,12 @@ export function PioneerAnnualSection({ rows }: { rows: PioneerAnnualRow[] }) {
                   <StatusCell row={row} />
                 </TableCell>
                 <TableCell className="whitespace-nowrap tabular-nums">
-                  {row.pace.actualToDate} / {row.pace.fullYearTarget} h
+                  {row.pace.achievedToDate} / {row.pace.fullYearTarget} h
+                  {row.pace.creditToDate > 0 && (
+                    <span className="block text-muted-foreground text-xs">
+                      {m.pioneers_credit_included({ hours: row.pace.creditToDate })}
+                    </span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <Sparkline
@@ -157,7 +162,10 @@ export function PioneerAnnualSection({ rows }: { rows: PioneerAnnualRow[] }) {
             <StatusCell row={row} />
             <div className="flex items-center justify-between text-muted-foreground text-sm">
               <span className="tabular-nums">
-                {row.pace.actualToDate} / {row.pace.fullYearTarget} h
+                {row.pace.achievedToDate} / {row.pace.fullYearTarget} h
+                {row.pace.creditToDate > 0 && (
+                  <span className="block text-xs">{m.pioneers_credit_included({ hours: row.pace.creditToDate })}</span>
+                )}
               </span>
               <Sparkline
                 values={row.pace.monthlyHours}

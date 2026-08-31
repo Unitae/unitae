@@ -154,6 +154,8 @@ beforeAll(async () => {
         publisherId: aliceMember.id,
         hours: 10,
         studies: 1,
+        // A secretary-granted credit must survive a backup/restore like every other column.
+        creditHours: 25,
         congregationId: sourceId,
       },
     })
@@ -796,6 +798,7 @@ describe('Export/Import round-trip', () => {
       const activities = await tx.publisherActivity.findMany({})
       expect(activities).toHaveLength(1)
       expect(activities[0].hours).toBe(10)
+      expect(activities[0].creditHours).toBe(25)
       expect(activities[0].publisherId).toBe(aliceMember.id)
 
       // Programme templates + parts + service roles + responsibles

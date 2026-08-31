@@ -827,6 +827,10 @@ model PublisherActivity {
   type        PublisherType @default(Normal)
   isPublisher Boolean       @default(false)
   notes       String        @default("")
+  // Approved hour credit the secretary grants on top of reported field hours (school
+  // attendance, approved assignments…). Counts toward pioneer pace and goals only —
+  // never into exports, which stay pure field service. Null = no credit.
+  creditHours Int?
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int

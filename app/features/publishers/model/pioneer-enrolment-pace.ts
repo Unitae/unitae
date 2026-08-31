@@ -17,6 +17,7 @@ export interface EnrolmentActualMonth {
   type: PublisherType
   hours: number | null
   studies?: number
+  creditHours?: number | null
 }
 
 export interface EnrolmentPlan {
@@ -111,7 +112,7 @@ export function planFromEnrolments(
 
   const months: PioneerMonth[] = activities
     .filter(a => a.type === rosterType)
-    .map(a => ({ month: a.month, year: a.year, hours: a.hours, studies: a.studies }))
+    .map(a => ({ month: a.month, year: a.year, hours: a.hours, studies: a.studies, credit: a.creditHours }))
 
   return {
     rosterType,
