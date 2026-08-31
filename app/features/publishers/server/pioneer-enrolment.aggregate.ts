@@ -208,6 +208,39 @@ export async function updateEnrolment(
   return enrolment
 }
 
+// Correct the per-person monthly goal on an existing stint, leaving the period untouched. Narrow on
+// purpose: the goal is seeded from the congregation's configured rate at enrolment time and frozen
+// onto the row, so a mistaken pick can only be fixed here — and because nothing about the period
+// changes, none of the overlap or end-bound invariants can be affected. `null` drops the per-person
+// goal so the stint falls back to the resolved type rate.
+export async function setEnrolmentGoal(
+  db: TransactionClient,
+  id: number,
+  congregationId: number,
+  actorId: number,
+  monthlyGoal: number | null,
+): Promise<PioneerEnrolment> {
+  const existing = await db.pioneerEnrolment.findFirst({ where: { id, congregationId }, select: { id: true } })
+  if (!existing) throw new NotFoundError('PioneerEnrolment')
+
+  const enrolment = await db.pioneerEnrolment.update({
+    // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
+    where: { id_congregationId: { id, congregationId } },
+    data: { monthlyGoal },
+  })
+
+  audit({
+    action: AuditAction.PioneerEnrolmentUpdated,
+    congregationId,
+    actorId,
+    entityType: 'PioneerEnrolment',
+    entityId: id,
+    metadata: { monthlyGoal },
+  })
+
+  return enrolment
+}
+
 export async function deleteEnrolment(
   db: TransactionClient,
   id: number,

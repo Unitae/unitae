@@ -6,8 +6,9 @@ import {
   monthlyAuxiliaryEnrolmentSchema,
   removeEnrolmentSchema,
   standingAppointmentSchema,
+  updateEnrolmentGoalSchema,
 } from '~/features/publishers/schemas/pioneer-enrolment.schema'
-import { PIONEER_ENROLMENT_CONFLICT } from '~/features/publishers/server/pioneer-enrolment.aggregate'
+import { PIONEER_ENROLMENT_CONFLICT, setEnrolmentGoal } from '~/features/publishers/server/pioneer-enrolment.aggregate'
 import {
   endPioneerEnrolment,
   enrolPioneer,
@@ -24,7 +25,13 @@ interface RouteContext {
   get<T>(context: RouterContext<T>): T
 }
 
-export const PIONEER_ENROLMENT_INTENTS = ['enrol-standing', 'close-standing', 'enrol-monthly', 'remove-enrolment']
+export const PIONEER_ENROLMENT_INTENTS = [
+  'enrol-standing',
+  'close-standing',
+  'enrol-monthly',
+  'remove-enrolment',
+  'update-goal',
+]
 
 // Handles the three pioneer-enrolment intents posted from the publisher edit page. Each parses its
 // own schema and delegates to the enrolment workflow (which keeps Member.type in sync); a business
@@ -47,15 +54,7 @@ export async function handlePioneerEnrolmentIntent(
 
   try {
     await runIntent(context, formData, memberId, congregationId, actorId)
-    const intent = formData.get('intent')
-    session.flash(
-      'success',
-      intent === 'close-standing'
-        ? m.publishers_enrolment_ended_success()
-        : intent === 'remove-enrolment'
-          ? m.publishers_enrolment_removed_success()
-          : m.publishers_enrolment_enrolled_success(),
-    )
+    session.flash('success', successMessage(formData.get('intent')))
   } catch (error) {
     // Validation failures and business-rule violations (AppError, e.g. overlap) become a flash;
     // anything unexpected propagates. Known business rules get a specific, actionable message.
@@ -69,6 +68,20 @@ export async function handlePioneerEnrolmentIntent(
 }
 
 class EnrolmentValidationError extends Error {}
+
+// The confirmation each intent shows on success. Enrolling (standing or monthly) shares one message.
+function successMessage(intent: FormDataEntryValue | null): string {
+  switch (intent) {
+    case 'close-standing':
+      return m.publishers_enrolment_ended_success()
+    case 'remove-enrolment':
+      return m.publishers_enrolment_removed_success()
+    case 'update-goal':
+      return m.publishers_enrolment_goal_updated_success()
+    default:
+      return m.publishers_enrolment_enrolled_success()
+  }
+}
 
 // Map a caught enrolment error to the message the manager sees. The aggregate's ConflictError
 // carries a rule code as its message; translate the ones a manager can act on, and fall back to the
@@ -113,6 +126,16 @@ function runIntent(
         endYear: year,
         monthlyGoal,
       }),
+    )
+  }
+
+  if (intent === 'update-goal') {
+    const submission = parseWithZod(formData, { schema: updateEnrolmentGoalSchema })
+    if (submission.status !== 'success') throw new EnrolmentValidationError()
+    const { enrolmentId, monthlyGoal } = submission.value
+    // No workflow: the goal has no bearing on Member.type, so this is a plain aggregate mutation.
+    return withScopeFromContext(context, db =>
+      setEnrolmentGoal(db, enrolmentId, congregationId, actorId, monthlyGoal ?? null),
     )
   }
 

@@ -7,34 +7,10 @@ import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Label } from '~/shared/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import { EnrolmentGoalDialog } from './EnrolmentGoalDialog'
 import { EnrolmentRemoveButton } from './EnrolmentRemoveButton'
-
-const MONTH_LABELS = [
-  m.activity_month_january,
-  m.activity_month_february,
-  m.activity_month_march,
-  m.activity_month_april,
-  m.activity_month_may,
-  m.activity_month_june,
-  m.activity_month_july,
-  m.activity_month_august,
-  m.activity_month_september,
-  m.activity_month_october,
-  m.activity_month_november,
-  m.activity_month_december,
-]
-
-// One appointment "mode" per dropdown option. Monthly auxiliary is a single-month enrolment; the
-// rest are ongoing standing appointments. Both auxiliary modes carry the same PublisherType and
-// differ only in shape (single-month vs ongoing).
-type Mode = 'monthly-aux' | 'permanent-aux' | 'permanent' | 'special' | 'missionary'
-
-const STANDING_TYPE: Record<Exclude<Mode, 'monthly-aux'>, PublisherType> = {
-  'permanent-aux': PublisherType.PionnierAuxiliaires,
-  permanent: PublisherType.PionnierPermanant,
-  special: PublisherType.PionnierSpecial,
-  missionary: PublisherType.Missionnaire,
-}
+import { MONTH_LABELS } from './month-labels'
+import PioneerEnrolmentCreateForm, { type EnrolmentMonthOption } from './PioneerEnrolmentCreateForm'
 
 function profileLabel(type: PublisherType): string {
   switch (type) {
@@ -73,7 +49,7 @@ interface EnrolmentRow {
 interface PioneerEnrolmentFieldsProps {
   activeStanding: StandingEnrolment | null
   enrolments: EnrolmentRow[]
-  monthOptions: { month: number; year: number }[]
+  monthOptions: EnrolmentMonthOption[]
   yearOptions: number[]
   // When true the setting is off → the permanent-auxiliary option is hidden (monthly aux stays).
   hidePermanentAuxiliary: boolean
@@ -117,16 +93,8 @@ export default function PioneerEnrolmentFields({
   hidePermanentAuxiliary,
 }: PioneerEnrolmentFieldsProps) {
   const now = monthOptions[0] ?? { month: 0, year: yearOptions[0] }
-  const [mode, setMode] = useState<Mode>('monthly-aux')
-  const [startMonth, setStartMonth] = useState(String(now.month))
-  const [startYear, setStartYear] = useState(String(now.year))
   const [endMonth, setEndMonth] = useState(String(now.month))
   const [endYear, setEndYear] = useState(String(now.year))
-  const [monthIndex, setMonthIndex] = useState('0')
-  const [goal, setGoal] = useState('30')
-
-  const selectedMonth = monthOptions[Number(monthIndex)] ?? now
-  const isMonthly = mode === 'monthly-aux'
 
   // The enrolment covering the current month (a standing appointment or a monthly auxiliary) — the
   // member's real current status. Prevents a second enrolment while already enrolled this month.
@@ -217,122 +185,27 @@ export default function PioneerEnrolmentFields({
                   ` · ${m.publishers_enrolment_goal_suffix({ goal: String(currentEnrolment.monthlyGoal) })}`}
               </p>
             </div>
-            <EnrolmentRemoveButton
-              enrolmentId={currentEnrolment.id}
-              description={describeEnrolment(currentEnrolment)}
-            />
+            <div className="flex shrink-0 items-center gap-1">
+              {/* Offered whether or not a goal is stored: clearing one drops the stint back to the
+                  configured rate, and gating on `monthlyGoal != null` would make that a one-way door. */}
+              <EnrolmentGoalDialog
+                enrolmentId={currentEnrolment.id}
+                monthlyGoal={currentEnrolment.monthlyGoal}
+                description={describeEnrolment(currentEnrolment)}
+              />
+              <EnrolmentRemoveButton
+                enrolmentId={currentEnrolment.id}
+                description={describeEnrolment(currentEnrolment)}
+              />
+            </div>
           </div>
         ) : (
-          // No appointment covering this month — state that plainly, then one create form whose fields
-          // follow the chosen type.
-          <Form method="post" className="flex flex-col gap-3">
-            <input type="hidden" name="intent" value={isMonthly ? 'enrol-monthly' : 'enrol-standing'} />
-            <p className="text-muted-foreground text-sm">{m.publishers_enrolment_current_none()}</p>
-            {!isMonthly && <input type="hidden" name="type" value={STANDING_TYPE[mode]} />}
-            {isMonthly && (
-              <>
-                <input type="hidden" name="month" value={selectedMonth.month} />
-                <input type="hidden" name="year" value={selectedMonth.year} />
-              </>
-            )}
-
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="enrolment-type">{m.publishers_enrolment_standing_type_label()}</Label>
-                <Select value={mode} onValueChange={value => setMode(value as Mode)}>
-                  <SelectTrigger id="enrolment-type" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="monthly-aux">{m.publishers_enrolment_monthly_title()}</SelectItem>
-                    {!hidePermanentAuxiliary && (
-                      <SelectItem value="permanent-aux">
-                        {m.publishers_enrolment_standing_permanent_auxiliary()}
-                      </SelectItem>
-                    )}
-                    <SelectItem value="permanent">{m.publishers_form_profile_permanent_pioneer()}</SelectItem>
-                    <SelectItem value="special">{m.publishers_form_profile_special_pioneer()}</SelectItem>
-                    <SelectItem value="missionary">{m.publishers_form_profile_missionary()}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {isMonthly ? (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="monthly-month">{m.publishers_enrolment_monthly_month_label()}</Label>
-                    <Select key="monthly-month" value={monthIndex} onValueChange={setMonthIndex}>
-                      <SelectTrigger id="monthly-month" className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {monthOptions.map((option, i) => (
-                          <SelectItem key={`${option.month}-${option.year}`} value={String(i)}>
-                            {MONTH_LABELS[option.month]()} {option.year}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="monthly-goal">{m.publishers_enrolment_monthly_goal_label()}</Label>
-                    <input type="hidden" name="monthlyGoal" value={goal} />
-                    {/* Stable key so React never reconciles this Select into the standing-year Select
-                        when `mode` flips — a reused Radix instance whose old value isn't among the new
-                        items fires onValueChange('') and would silently clear the target state. */}
-                    <Select key="monthly-goal" value={goal} onValueChange={setGoal}>
-                      <SelectTrigger id="monthly-goal" className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="15">{m.publishers_enrolment_monthly_goal_15()}</SelectItem>
-                        <SelectItem value="30">{m.publishers_enrolment_monthly_goal_30()}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="standing-month">{m.publishers_enrolment_standing_start_label()}</Label>
-                    <input type="hidden" name="startMonth" value={startMonth} />
-                    <Select key="standing-month" value={startMonth} onValueChange={setStartMonth}>
-                      <SelectTrigger id="standing-month" className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MONTH_LABELS.map((label, i) => (
-                          <SelectItem key={label.toString()} value={String(i)}>
-                            {label()}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="standing-year">&nbsp;</Label>
-                    <input type="hidden" name="startYear" value={startYear} />
-                    <Select key="standing-year" value={startYear} onValueChange={setStartYear}>
-                      <SelectTrigger id="standing-year" className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {yearOptions.map(year => (
-                          <SelectItem key={year} value={String(year)}>
-                            {year}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </>
-              )}
-            </div>
-
-            <Button type="submit" className="self-start">
-              {isMonthly ? m.publishers_enrolment_monthly_submit() : m.publishers_enrolment_standing_submit()}
-            </Button>
-          </Form>
+          // No appointment covering this month — state that plainly, then the create form.
+          <PioneerEnrolmentCreateForm
+            monthOptions={monthOptions}
+            yearOptions={yearOptions}
+            hidePermanentAuxiliary={hidePermanentAuxiliary}
+          />
         )}
 
         {/* Recorded appointments — confirms saved enrolments (esp. monthly auxiliary with its goal). */}
@@ -348,8 +221,17 @@ export default function PioneerEnrolmentFields({
                       <> · {m.publishers_enrolment_goal_suffix({ goal: String(e.monthlyGoal) })}</>
                     )}
                   </span>
-                  {/* A past stint can only be erased, never closed — it is already bounded. */}
-                  <EnrolmentRemoveButton enrolmentId={e.id} description={describeEnrolment(e)} compact />
+                  <span className="flex shrink-0 items-center gap-1">
+                    {/* The create form only reaches the current and next month, so a past stint
+                        cannot be deleted and re-made — its goal has to be correctable in place. */}
+                    <EnrolmentGoalDialog
+                      enrolmentId={e.id}
+                      monthlyGoal={e.monthlyGoal}
+                      description={describeEnrolment(e)}
+                    />
+                    {/* A past stint can only be erased, never closed — it is already bounded. */}
+                    <EnrolmentRemoveButton enrolmentId={e.id} description={describeEnrolment(e)} compact />
+                  </span>
                 </li>
               ))}
             </ul>

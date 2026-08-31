@@ -80,7 +80,17 @@ export const removeEnrolmentSchema = z.object({
   enrolmentId: z.coerce.number().int().positive(),
 })
 
+// Correct the per-person goal on an existing stint. The goal is frozen onto the enrolment when it is
+// created, so this is the only way to fix a wrong pick — an empty field clears it, dropping the stint
+// back to the congregation's configured type rate.
+export const updateEnrolmentGoalSchema = z.object({
+  intent: z.literal('update-goal'),
+  enrolmentId: z.coerce.number().int().positive(),
+  monthlyGoal: z.preprocess(emptyToUndefined, z.coerce.number().int().positive().optional()),
+})
+
 export type StandingAppointmentInput = z.infer<typeof standingAppointmentSchema>
 export type CloseAppointmentInput = z.infer<typeof closeAppointmentSchema>
 export type MonthlyAuxiliaryEnrolmentInput = z.infer<typeof monthlyAuxiliaryEnrolmentSchema>
 export type RemoveEnrolmentInput = z.infer<typeof removeEnrolmentSchema>
+export type UpdateEnrolmentGoalInput = z.infer<typeof updateEnrolmentGoalSchema>

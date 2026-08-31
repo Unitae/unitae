@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { PublisherType } from '~/shared/types/publisher-type'
 import type { EnrolmentPeriod } from './pioneer-enrolment'
-import { enrolmentMonthOptions, findActiveStandingEnrolment } from './pioneer-enrolment-form'
+import { auxiliaryGoalOptions, enrolmentMonthOptions, findActiveStandingEnrolment } from './pioneer-enrolment-form'
 
 function stint(over: Partial<EnrolmentPeriod> = {}): EnrolmentPeriod {
   return {
@@ -30,6 +30,28 @@ describe('enrolmentMonthOptions', () => {
       { month: 2, year: 2026 },
       { month: 3, year: 2026 },
     ])
+  })
+})
+
+describe('auxiliaryGoalOptions', () => {
+  it('offers the configured rate first, then the reduced one', () => {
+    expect(auxiliaryGoalOptions(30)).toEqual([30, 15])
+  })
+
+  it('orders a configured rate below the reduced one correctly', () => {
+    expect(auxiliaryGoalOptions(10)).toEqual([15, 10])
+  })
+
+  it('does not duplicate the reduced option when the congregation configured it', () => {
+    expect(auxiliaryGoalOptions(15)).toEqual([15])
+  })
+
+  it('falls back to the reduced option alone for a non-positive rate', () => {
+    expect(auxiliaryGoalOptions(0)).toEqual([15])
+  })
+
+  it('keeps an arbitrary configured rate', () => {
+    expect(auxiliaryGoalOptions(25)).toEqual([25, 15])
   })
 })
 
