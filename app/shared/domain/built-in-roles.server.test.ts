@@ -14,7 +14,7 @@ const { audit } = await import('~/shared/domain/audit.server')
 interface MemberFlags {
   isMale: boolean | null
   isPublisher: boolean
-  type: string
+  standingType: PublisherType
   baptismDate: Date | null
   isAnointed: boolean
   isHelder: boolean
@@ -25,7 +25,7 @@ interface MemberFlags {
 const BASE: MemberFlags = {
   isMale: null,
   isPublisher: false,
-  type: PublisherType.Normal,
+  standingType: PublisherType.Normal,
   baptismDate: null,
   isAnointed: false,
   isHelder: false,
@@ -42,8 +42,34 @@ function makeDb({
   builtInRoles: Array<{ id: number; key: string }>
   existingAssignments: Array<{ roleId: number }>
 }) {
+  // The sync now derives the standing type from the member's stints rather than reading the
+  // `Member.type` column, so a fixture expressing "a member of type X" becomes a row carrying one
+  // ongoing stint of that type — the same fact in the shape the query actually returns.
+  const row =
+    member == null
+      ? null
+      : (() => {
+          const { standingType, ...flags } = member
+          return {
+            ...flags,
+            pioneerEnrolments:
+              standingType === PublisherType.Normal
+                ? []
+                : [
+                    {
+                      type: standingType,
+                      startMonth: 8,
+                      startYear: 2025,
+                      endMonth: null,
+                      endYear: null,
+                      monthlyGoal: null,
+                    },
+                  ],
+          }
+        })()
+
   return {
-    member: { findUnique: vi.fn().mockResolvedValue(member) },
+    member: { findUnique: vi.fn().mockResolvedValue(row) },
     role: { findMany: vi.fn().mockResolvedValue(builtInRoles) },
     memberRoleAssignment: {
       findMany: vi.fn().mockResolvedValue(existingAssignments),
@@ -146,7 +172,9 @@ describe('BUILT_IN_ROLE_PREDICATES', () => {
       PublisherType.PionnierSpecial,
       PublisherType.Missionnaire,
     ]) {
-      expect(BUILT_IN_ROLE_PREDICATES.pioneer({ ...BASE, isPublisher: true, baptismDate: baptized, type })).toBe(true)
+      expect(
+        BUILT_IN_ROLE_PREDICATES.pioneer({ ...BASE, isPublisher: true, baptismDate: baptized, standingType: type }),
+      ).toBe(true)
     }
 
     // Normal publisher is not a pioneer
@@ -155,7 +183,7 @@ describe('BUILT_IN_ROLE_PREDICATES', () => {
         ...BASE,
         isPublisher: true,
         baptismDate: baptized,
-        type: PublisherType.Normal,
+        standingType: PublisherType.Normal,
       }),
     ).toBe(false)
   })
@@ -168,7 +196,7 @@ describe('BUILT_IN_ROLE_PREDICATES', () => {
       baptismDate: new Date(),
       isHelder: true,
       isAnointed: true,
-      type: PublisherType.PionnierPermanant,
+      standingType: PublisherType.PionnierPermanant,
       leftAt: new Date(),
     }
     for (const predicate of Object.values(BUILT_IN_ROLE_PREDICATES)) {

@@ -188,6 +188,143 @@ describe('syncBuiltInRoleAssignments (integration)', () => {
     expect(vi.mocked(audit).mock.calls.length).toBe(callsAfterIdempotentRun)
   })
 
+  // The pioneer role is derived from the member's enrolment stints, not the Member.type column.
+  // These two pin that: the column is deliberately contradicted in each direction.
+  it('attaches the pioneer role from an ongoing enrolment even when the type column says Normal', async () => {
+    const member = await testDb.member.create({
+      data: {
+        firstname: 'Enrolled',
+        lastname: `Pioneer-${ts}`,
+        isPublisher: true,
+        type: PublisherType.Normal,
+        baptismDate: new Date('2015-01-01'),
+        congregationId: primaryCongId,
+      },
+    })
+    await testDb.pioneerEnrolment.create({
+      data: {
+        memberId: member.id,
+        congregationId: primaryCongId,
+        type: PublisherType.PionnierPermanant,
+        startMonth: 8,
+        startYear: 2025,
+      },
+    })
+
+    await withScope(primaryCongId, tx => syncBuiltInRoleAssignments(tx, member.id, primaryCongId, member.id))
+
+    const assignments = await testDb.memberRoleAssignment.findMany({
+      where: { memberId: member.id, congregationId: primaryCongId },
+      include: { role: true },
+    })
+    expect(assignments.map(a => a.role.key)).toContain('pioneer')
+  })
+
+  it('withholds the pioneer role when only the type column says pioneer and no stint exists', async () => {
+    const member = await testDb.member.create({
+      data: {
+        firstname: 'Stale',
+        lastname: `Cache-${ts}`,
+        isPublisher: true,
+        type: PublisherType.PionnierPermanant,
+        baptismDate: new Date('2015-01-01'),
+        congregationId: primaryCongId,
+      },
+    })
+
+    await withScope(primaryCongId, tx => syncBuiltInRoleAssignments(tx, member.id, primaryCongId, member.id))
+
+    const assignments = await testDb.memberRoleAssignment.findMany({
+      where: { memberId: member.id, congregationId: primaryCongId },
+      include: { role: true },
+    })
+    expect(assignments.map(a => a.role.key)).not.toContain('pioneer')
+  })
+
+  // The nested select returns ALL of a member's stints, so these two exercise it over more than one
+  // row — every other case here has 0 or 1, which would not catch a narrowing or ordering bug.
+  it('picks the ongoing stint out of a mixed history', async () => {
+    const member = await testDb.member.create({
+      data: {
+        firstname: 'Mixed',
+        lastname: `History-${ts}`,
+        isPublisher: true,
+        baptismDate: new Date('2015-01-01'),
+        congregationId: primaryCongId,
+      },
+    })
+    await testDb.pioneerEnrolment.createMany({
+      data: [
+        {
+          memberId: member.id,
+          congregationId: primaryCongId,
+          type: PublisherType.PionnierAuxiliaires,
+          startMonth: 2,
+          startYear: 2023,
+          endMonth: 4,
+          endYear: 2023,
+        },
+        {
+          memberId: member.id,
+          congregationId: primaryCongId,
+          type: PublisherType.Missionnaire,
+          startMonth: 8,
+          startYear: 2025,
+        },
+      ],
+    })
+
+    await withScope(primaryCongId, tx => syncBuiltInRoleAssignments(tx, member.id, primaryCongId, member.id))
+
+    const assignments = await testDb.memberRoleAssignment.findMany({
+      where: { memberId: member.id, congregationId: primaryCongId },
+      include: { role: true },
+    })
+    expect(assignments.map(a => a.role.key)).toContain('pioneer')
+  })
+
+  it('withholds the role when every stint is closed', async () => {
+    const member = await testDb.member.create({
+      data: {
+        firstname: 'AllClosed',
+        lastname: `History-${ts}`,
+        isPublisher: true,
+        baptismDate: new Date('2015-01-01'),
+        congregationId: primaryCongId,
+      },
+    })
+    await testDb.pioneerEnrolment.createMany({
+      data: [
+        {
+          memberId: member.id,
+          congregationId: primaryCongId,
+          type: PublisherType.PionnierPermanant,
+          startMonth: 2,
+          startYear: 2023,
+          endMonth: 4,
+          endYear: 2023,
+        },
+        {
+          memberId: member.id,
+          congregationId: primaryCongId,
+          type: PublisherType.PionnierAuxiliaires,
+          startMonth: 6,
+          startYear: 2024,
+          endMonth: 6,
+          endYear: 2024,
+        },
+      ],
+    })
+
+    await withScope(primaryCongId, tx => syncBuiltInRoleAssignments(tx, member.id, primaryCongId, member.id))
+
+    const assignments = await testDb.memberRoleAssignment.findMany({
+      where: { memberId: member.id, congregationId: primaryCongId },
+      include: { role: true },
+    })
+    expect(assignments.map(a => a.role.key)).not.toContain('pioneer')
+  })
+
   it('does not touch assignments in another congregation (RLS isolation)', async () => {
     await withScope(otherCongId, tx => syncBuiltInRoleAssignments(tx, otherMemberId, otherCongId, otherMemberId))
 

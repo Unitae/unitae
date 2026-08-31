@@ -301,7 +301,7 @@ describe('member.aggregate — integration', () => {
     await testDb.publisherGroup.delete({ where: { id: group.id } })
   })
 
-  it('setPioneerType updates the standing type and attaches the pioneer built-in role', async () => {
+  it('setPioneerType writes the cached column but no longer grants the pioneer role on its own', async () => {
     const member = await withScope(congId, tx =>
       memberAggregate.createMember(tx, congregationInfo as never, {
         ...baseFormParams,
@@ -324,10 +324,14 @@ describe('member.aggregate — integration', () => {
 
     const after = await testDb.member.findUniqueOrThrow({ where: { id: member.id } })
     expect(after.type).toBe(PublisherType.PionnierPermanant)
+    // The pioneer role is derived from the member's stints now, not from this column, so writing
+    // the column alone grants nothing — this member has no enrolment. Not a weakened assertion: the
+    // role attaching off a real enrolment is covered in pioneer-enrolment.workflow.integration.test,
+    // and setPioneerType is only ever reached through that workflow's recompute.
     const assignment = await testDb.memberRoleAssignment.findFirst({
       where: { memberId: member.id, roleId: pioneerRole.id },
     })
-    expect(assignment).not.toBeNull()
+    expect(assignment).toBeNull()
     expect(auditMock).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'publisher.updated', entityId: member.id }),
     )

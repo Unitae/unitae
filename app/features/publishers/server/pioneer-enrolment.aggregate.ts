@@ -155,7 +155,17 @@ export async function closeEnrolment(
   return enrolment
 }
 
+// Omission means different things per field, so each is spelled out rather than left to `?`:
+//
+//   type, monthlyGoal — PRESERVED when omitted. Correcting a start month must not disturb either.
+//   endMonth, endYear — CLEARED when omitted, because "no end" is itself the meaning: an ongoing
+//                       stint. Passing neither is how a closed stint is reopened.
+//
+// Callers MUST go through `updatePioneerEnrolment` rather than calling the aggregate directly —
+// nothing enforces that, and a type or period change applied here without the workflow's recompute
+// leaves the member's standing status stale.
 export interface UpdateEnrolmentParams {
+  type?: PublisherType
   startMonth: number
   startYear: number
   endMonth?: number
@@ -189,11 +199,12 @@ export async function updateEnrolment(
     // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
     where: { id_congregationId: { id, congregationId } },
     data: {
+      ...(params.type != null ? { type: params.type } : {}),
       startMonth: params.startMonth,
       startYear: params.startYear,
       endMonth,
       endYear,
-      monthlyGoal: params.monthlyGoal ?? null,
+      ...(params.monthlyGoal != null ? { monthlyGoal: params.monthlyGoal } : {}),
     },
   })
 

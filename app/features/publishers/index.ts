@@ -7,6 +7,7 @@ export {
   isOngoing,
   isSingleMonth,
   resolveEnrolmentGoal,
+  standingTypeFromEnrolments,
 } from './model/pioneer-enrolment'
 export {
   isEditableServiceYear,

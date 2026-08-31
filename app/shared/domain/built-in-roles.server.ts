@@ -1,3 +1,4 @@
+import { standingTypeFromEnrolments } from '~/features/publishers'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { PublisherType } from '~/shared/types/publisher-type'
@@ -82,7 +83,9 @@ export function isIdentityRoleKey(key: string): boolean {
 interface MemberFlags {
   isMale: boolean | null
   isPublisher: boolean
-  type: string
+  // The member's standing pioneer status, DERIVED from their enrolment stints — deliberately not
+  // the `Member.type` column, which caches the same fact and can disagree with it.
+  standingType: PublisherType
   baptismDate: Date | null
   isAnointed: boolean
   isHelder: boolean
@@ -106,7 +109,7 @@ export const BUILT_IN_ROLE_PREDICATES: Record<BuiltInRoleKey, (m: MemberFlags) =
   // Any pioneer type — permanent, auxiliary, special, or missionary (everything but Normal).
   // Compare against the Prisma enum *names* (what the client returns), not the `@map`-ed DB strings —
   // the raw-string comparison silently stopped matching at the enum-conversion migration.
-  pioneer: m => m.leftAt == null && m.isPublisher && m.baptismDate != null && m.type !== PublisherType.Normal,
+  pioneer: m => m.leftAt == null && m.isPublisher && m.baptismDate != null && m.standingType !== PublisherType.Normal,
 }
 
 function diffBuiltInAssignments(
@@ -141,20 +144,29 @@ export async function syncBuiltInRoleAssignments(
   congregationId: number,
   actorId: number | null,
 ): Promise<void> {
-  const member = await db.member.findUnique({
+  const row = await db.member.findUnique({
     where: { id_congregationId: { id: memberId, congregationId } },
     select: {
       isMale: true,
       isPublisher: true,
-      type: true,
       baptismDate: true,
       isAnointed: true,
       isHelder: true,
       isServant: true,
       leftAt: true,
+      // The pioneer predicate reads the member's stints, not the `Member.type` column. The column
+      // is a cache of the same fact and can be stale — an edit to a stint's period changes whether
+      // it is a standing status, and nothing forces the two to agree. Fetched as a nested select,
+      // so this stays one round trip.
+      pioneerEnrolments: {
+        select: { type: true, startMonth: true, startYear: true, endMonth: true, endYear: true, monthlyGoal: true },
+      },
     },
   })
-  if (!member) return
+  if (!row) return
+
+  const { pioneerEnrolments, ...flags } = row
+  const member: MemberFlags = { ...flags, standingType: standingTypeFromEnrolments(pioneerEnrolments) }
 
   // Scope by congregationId explicitly. Under RLS-scoped callers this is a
   // no-op (rows are already filtered), but callers that bypass RLS — e.g. the
