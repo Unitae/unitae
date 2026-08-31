@@ -7,6 +7,7 @@ import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Label } from '~/shared/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import { EnrolmentRemoveButton } from './EnrolmentRemoveButton'
 
 const MONTH_LABELS = [
   m.activity_month_january,
@@ -97,6 +98,12 @@ function enrolmentTypeLabel(e: EnrolmentRow): string {
   return profileLabel(e.type)
 }
 
+// One-line identification of a stint ("Pionnier permanent · septembre 2025"), shown in the remove
+// confirmation so the manager sees which of several stints they are about to erase.
+function describeEnrolment(e: EnrolmentRow): string {
+  return `${enrolmentTypeLabel(e)} · ${periodLabel(e)}`
+}
+
 // The pioneer-service section of the publisher edit page. It shows the member's current status once —
 // an active standing appointment, a monthly enrolment for this month, or nothing — with the matching
 // action (close, remove, or a create form). The create form is a single type dropdown that reveals
@@ -138,56 +145,66 @@ export default function PioneerEnrolmentFields({
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {activeStanding != null ? (
-          // A standing appointment is active — it *is* the current status; the only action is to close it.
-          <Form method="post" className="flex flex-col gap-3">
-            <input type="hidden" name="intent" value="close-standing" />
-            <input type="hidden" name="enrolmentId" value={activeStanding.id} />
-            <div className="space-y-1">
-              <p className="font-medium">{profileLabel(activeStanding.type)}</p>
-              <p className="text-muted-foreground text-sm">
-                {m.publishers_enrolment_active_since({
-                  period: `${MONTH_LABELS[activeStanding.startMonth]()} ${activeStanding.startYear}`,
-                })}
-              </p>
-            </div>
-            <div className="grid gap-3 border-t pt-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="close-month">{m.publishers_enrolment_standing_end_label()}</Label>
-                <input type="hidden" name="endMonth" value={endMonth} />
-                <Select value={endMonth} onValueChange={setEndMonth}>
-                  <SelectTrigger id="close-month" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MONTH_LABELS.map((label, i) => (
-                      <SelectItem key={label.toString()} value={String(i)}>
-                        {label()}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          // A standing appointment is active — it *is* the current status. Two distinct actions: close
+          // it (it really ended, keep the history) or remove it (it was recorded in error). The remove
+          // control sits outside the close <Form> so it never submits it.
+          <div className="flex flex-col gap-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <p className="font-medium">{profileLabel(activeStanding.type)}</p>
+                <p className="text-muted-foreground text-sm">
+                  {m.publishers_enrolment_active_since({
+                    period: `${MONTH_LABELS[activeStanding.startMonth]()} ${activeStanding.startYear}`,
+                  })}
+                </p>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="close-year">&nbsp;</Label>
-                <input type="hidden" name="endYear" value={endYear} />
-                <Select value={endYear} onValueChange={setEndYear}>
-                  <SelectTrigger id="close-year" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {yearOptions.map(year => (
-                      <SelectItem key={year} value={String(year)}>
-                        {year}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <EnrolmentRemoveButton
+                enrolmentId={activeStanding.id}
+                description={`${profileLabel(activeStanding.type)} · ${MONTH_LABELS[activeStanding.startMonth]()} ${activeStanding.startYear}`}
+              />
             </div>
-            <Button type="submit" variant="secondary" className="self-start">
-              {m.publishers_enrolment_standing_end_submit()}
-            </Button>
-          </Form>
+            <Form method="post" className="flex flex-col gap-3">
+              <input type="hidden" name="intent" value="close-standing" />
+              <input type="hidden" name="enrolmentId" value={activeStanding.id} />
+              <div className="grid gap-3 border-t pt-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="close-month">{m.publishers_enrolment_standing_end_label()}</Label>
+                  <input type="hidden" name="endMonth" value={endMonth} />
+                  <Select value={endMonth} onValueChange={setEndMonth}>
+                    <SelectTrigger id="close-month" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MONTH_LABELS.map((label, i) => (
+                        <SelectItem key={label.toString()} value={String(i)}>
+                          {label()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="close-year">&nbsp;</Label>
+                  <input type="hidden" name="endYear" value={endYear} />
+                  <Select value={endYear} onValueChange={setEndYear}>
+                    <SelectTrigger id="close-year" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {yearOptions.map(year => (
+                        <SelectItem key={year} value={String(year)}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <Button type="submit" variant="secondary" className="self-start">
+                {m.publishers_enrolment_standing_end_submit()}
+              </Button>
+            </Form>
+          </div>
         ) : currentEnrolment != null ? (
           // Enrolled for the current month (a monthly auxiliary) — it *is* the current status; offer undo
           // rather than inviting a duplicate enrolment.
@@ -200,13 +217,10 @@ export default function PioneerEnrolmentFields({
                   ` · ${m.publishers_enrolment_goal_suffix({ goal: String(currentEnrolment.monthlyGoal) })}`}
               </p>
             </div>
-            <Form method="post">
-              <input type="hidden" name="intent" value="remove-enrolment" />
-              <input type="hidden" name="enrolmentId" value={currentEnrolment.id} />
-              <Button type="submit" variant="secondary">
-                {m.publishers_enrolment_remove()}
-              </Button>
-            </Form>
+            <EnrolmentRemoveButton
+              enrolmentId={currentEnrolment.id}
+              description={describeEnrolment(currentEnrolment)}
+            />
           </div>
         ) : (
           // No appointment covering this month — state that plainly, then one create form whose fields
@@ -325,13 +339,17 @@ export default function PioneerEnrolmentFields({
         {history.length > 0 && (
           <div className="space-y-2 border-t pt-4">
             <h3 className="font-semibold text-sm">{m.publishers_enrolment_history_title()}</h3>
-            <ul className="space-y-1 text-sm">
+            <ul className="text-sm">
               {history.map(e => (
-                <li key={e.id} className="text-muted-foreground">
-                  <span className="text-foreground">{enrolmentTypeLabel(e)}</span> · {periodLabel(e)}
-                  {e.monthlyGoal != null && (
-                    <> · {m.publishers_enrolment_goal_suffix({ goal: String(e.monthlyGoal) })}</>
-                  )}
+                <li key={e.id} className="flex items-center justify-between gap-3 text-muted-foreground">
+                  <span>
+                    <span className="text-foreground">{enrolmentTypeLabel(e)}</span> · {periodLabel(e)}
+                    {e.monthlyGoal != null && (
+                      <> · {m.publishers_enrolment_goal_suffix({ goal: String(e.monthlyGoal) })}</>
+                    )}
+                  </span>
+                  {/* A past stint can only be erased, never closed — it is already bounded. */}
+                  <EnrolmentRemoveButton enrolmentId={e.id} description={describeEnrolment(e)} compact />
                 </li>
               ))}
             </ul>
