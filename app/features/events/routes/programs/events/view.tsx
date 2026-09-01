@@ -15,6 +15,7 @@ import { Link, redirect, useFetcher } from 'react-router'
 import { resolveProgrammeLink } from '~/features/display-board/index.server'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { groupProgrammeParts, sectionDurationMin } from '~/features/events/model/programme-grouping'
+import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
 import { buildAssignmentCandidates } from '~/features/events/server/assignment-candidates.server'
 import { buildShareTextsForEvent } from '~/features/events/server/build-share-message.server'
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
@@ -90,9 +91,24 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const event = await getEventProgramme(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
 
-    const canEdit = await canEditEvent(db, can, currentUser.id, event.templateId, congregationId)
+    // Two delegations, two answers. `canEdit` is the whole-event one and still gates
+    // everything it always did; `canEditService` is the narrower one, so a service
+    // responsible gets the sono/estrade/accueil rota and nothing else on this page.
+    const [canEdit, canEditService] = await Promise.all([
+      canEditEvent(db, can, currentUser.id, event.templateId, congregationId),
+      canEditEvent(
+        db,
+        can,
+        currentUser.id,
+        event.templateId,
+        congregationId,
+        Permission.CanManagePrograms,
+        ResponsibilityScope.Service,
+      ),
+    ])
+    const canAssignAnything = canEdit || canEditService
 
-    const users = canEdit
+    const users = canAssignAnything
       ? await db.member.findMany({
           where: { congregationId, leftAt: null },
           orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
@@ -111,9 +127,13 @@ export function loader({ params, context }: Route.LoaderArgs) {
           .map(s => ({ id: s.id, name: s.name }))
       : []
 
-    const { partCandidates, serviceCandidates } = canEdit
+    const candidates = canAssignAnything
       ? await buildAssignmentCandidates(db, event, users, congregationId)
       : { partCandidates: {}, serviceCandidates: {} }
+    // Eligibility lists are per-slot data; hand back only the family the caller
+    // may actually fill.
+    const partCandidates = canEdit ? candidates.partCandidates : {}
+    const serviceCandidates = canEditService ? candidates.serviceCandidates : {}
 
     // Built here rather than on click: navigator.share needs the user's
     // activation, and awaiting anything before it spends that activation.
@@ -127,6 +147,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     return {
       event,
       canEdit,
+      canEditService,
       canViewPublishers: can(Permission.CanViewPublishers),
       users,
       externalSpeakers,
@@ -142,6 +163,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
   const {
     event,
     canEdit,
+    canEditService,
     canViewPublishers,
     users,
     externalSpeakers,
@@ -362,12 +384,13 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
           </CardAction>
         </CardHeader>
         <CardContent>
+          {/* Gated by canEditService, not canEdit: the service-parts delegation stops here. */}
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>{m.programs_view_role_col()}</TableHead>
                 <TableHead>{m.programs_view_publisher_col()}</TableHead>
-                {canEdit && <TableHead className="w-20">{m.common_actions()}</TableHead>}
+                {canEditService && <TableHead className="w-20">{m.common_actions()}</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -375,9 +398,9 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                 <TableRow key={assignment.id}>
                   <TableCell className="font-medium text-sm">{assignment.name}</TableCell>
                   <TableCell
-                    className={canEdit ? 'cursor-pointer hover:bg-muted/50' : ''}
+                    className={canEditService ? 'cursor-pointer hover:bg-muted/50' : ''}
                     onClick={
-                      canEdit
+                      canEditService
                         ? () => {
                             setAssignServiceTarget({
                               id: assignment.id,
@@ -397,7 +420,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                       hasConflict={assignment.hasConflict}
                     />
                   </TableCell>
-                  {canEdit && (
+                  {canEditService && (
                     <TableCell>
                       <div className="flex gap-1">
                         <Button

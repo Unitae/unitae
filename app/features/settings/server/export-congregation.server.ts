@@ -508,7 +508,7 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
       name: 'programme-template-responsibles',
       export: () =>
         db.templateResponsible.findMany({
-          select: { id: true, templateId: true, roleId: true },
+          select: { id: true, templateId: true, roleId: true, scope: true },
         }),
     },
     {

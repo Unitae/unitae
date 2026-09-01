@@ -1,4 +1,5 @@
 import { isSystemTemplate } from '~/features/events/model/event-template.type'
+import { ResponsibilityScope, scopesCovering } from '~/features/events/model/responsibility-scope.type'
 import {
   setTemplatePartAllowedRoles,
   setTemplateServicePartAllowedRoles,
@@ -8,8 +9,12 @@ import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 
+// Both scopes come back on the relation; callers pick with `findResponsible`
+// rather than indexing [0], which stopped meaning "the responsible" once a
+// template could name two.
 const responsibleInclude = {
   include: { role: { select: { id: true, key: true, name: true } } },
+  orderBy: { scope: 'asc' },
 } as const
 
 export function getTemplates(db: TransactionClient, congregationId: number) {
@@ -211,28 +216,42 @@ export async function reorderTemplateParts(
   }
 }
 
+/**
+ * Name the role responsible for one scope of a template's events.
+ *
+ * `scope` defaults to the whole-event delegation so the ~20 existing call sites
+ * and their tests keep meaning what they meant; the service pickers pass
+ * `ResponsibilityScope.Service` explicitly.
+ */
 export function setTemplateResponsible(
   db: TransactionClient,
   templateId: number,
   roleId: number,
   congregationId: number,
+  scope: ResponsibilityScope = ResponsibilityScope.Programme,
 ) {
   return db.templateResponsible.upsert({
     where: {
-      templateId_congregationId: { templateId, congregationId },
+      templateId_scope_congregationId: { templateId, scope, congregationId },
     },
     update: { roleId },
     create: {
       templateId,
       roleId,
+      scope,
       congregationId,
     },
   })
 }
 
-export function removeTemplateResponsible(db: TransactionClient, templateId: number, congregationId: number) {
+export function removeTemplateResponsible(
+  db: TransactionClient,
+  templateId: number,
+  congregationId: number,
+  scope: ResponsibilityScope = ResponsibilityScope.Programme,
+) {
   return db.templateResponsible.deleteMany({
-    where: { templateId, congregationId },
+    where: { templateId, scope, congregationId },
   })
 }
 
@@ -246,18 +265,22 @@ export function removeTemplateResponsible(db: TransactionClient, templateId: num
  *
  * The empty guard is not just an optimisation: `roleId: { in: [] }` matches nothing, so
  * without it a user with no roles would get the right answer for the wrong reason.
+ *
+ * `scope` is what the caller wants to touch, not what the row says: asking about the service
+ * parts also accepts the whole-event delegation. See `scopesCovering`.
  */
 export async function isTemplateResponsible(
   db: TransactionClient,
   templateId: number,
   userId: number,
   congregationId: number,
+  scope: ResponsibilityScope = ResponsibilityScope.Programme,
 ) {
   const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
   if (roleIds.length === 0) return null
 
   return db.templateResponsible.findFirst({
-    where: { templateId, congregationId, roleId: { in: roleIds } },
+    where: { templateId, congregationId, roleId: { in: roleIds }, scope: { in: scopesCovering(scope) } },
   })
 }
 

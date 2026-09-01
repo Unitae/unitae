@@ -1,3 +1,4 @@
+import { ResponsibilityScope, scopesCovering } from '~/features/events/model/responsibility-scope.type'
 import { isTemplateResponsible } from '~/features/events/server/event-templates.server'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -17,6 +18,12 @@ const logger = createLogger('events-auth')
  * The template-responsible path is checked regardless of which capability was asked for:
  * delegating a template to someone must keep working without granting them a
  * congregation-wide permission.
+ *
+ * `scope` says which slice of the event the route is about. It only ever widens who gets
+ * through: the service-parts delegation answers `'service'` and nothing else, while the
+ * whole-event one answers both. Routes that restructure the event — editing it, applying a
+ * template, releasing, deleting — stay on the default and so remain closed to a service
+ * responsible.
  */
 export async function canEditEvent(
   db: TransactionClient,
@@ -25,10 +32,11 @@ export async function canEditEvent(
   templateId: number | null,
   congregationId: number,
   required: Permission = Permission.CanManagePrograms,
+  scope: ResponsibilityScope = ResponsibilityScope.Programme,
 ): Promise<boolean> {
   if (can(required)) return true
   if (templateId == null) return false
-  const responsible = await isTemplateResponsible(db, templateId, userId, congregationId)
+  const responsible = await isTemplateResponsible(db, templateId, userId, congregationId, scope)
   return responsible != null
 }
 
@@ -37,20 +45,26 @@ export async function canEditEvent(
  *
  * The empty guard is deliberate: `roleId: { in: [] }` matches nothing today, but relying on
  * that would make "user holds no roles" correct by accident rather than by intent.
+ *
+ * Scoped to the whole-event delegation by default, and every caller wants that: this list
+ * drives "which programmes may you create, bulk-release, bulk-delete", none of which a
+ * service responsible may do. Pass `ResponsibilityScope.Service` only for a question that is
+ * genuinely about the service parts.
  */
 export async function getResponsibleTemplateIds(
   db: TransactionClient,
   userId: number,
   congregationId: number,
+  scope: ResponsibilityScope = ResponsibilityScope.Programme,
 ): Promise<number[]> {
   const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
   if (roleIds.length === 0) return []
 
   const rows = await db.templateResponsible.findMany({
-    where: { roleId: { in: roleIds }, congregationId },
+    where: { roleId: { in: roleIds }, congregationId, scope: { in: scopesCovering(scope) } },
     select: { templateId: true },
   })
-  return rows.map(r => r.templateId)
+  return [...new Set(rows.map(r => r.templateId))]
 }
 
 export async function canManageAnyProgram(

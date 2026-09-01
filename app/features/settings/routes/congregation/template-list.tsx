@@ -2,10 +2,10 @@ import { ChevronRight, Plus } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { dayLabelShort, isSystemTemplate } from '~/features/events'
 import { getTemplates } from '~/features/events/index.server'
+import { TemplateResponsibleCell } from '~/features/settings/ui/TemplateResponsibleSummary'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
-import { getRoleDisplayName } from '~/shared/types/role'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -84,11 +84,7 @@ export default function TemplateListPage({ loaderData }: Route.ComponentProps) {
                   )}
                 </TableCell>
                 <TableCell className="text-center max-sm:hidden">
-                  {template.responsibles[0] ? (
-                    <span className="text-sm">{getRoleDisplayName(template.responsibles[0].role)}</span>
-                  ) : (
-                    <span className="text-muted-foreground text-sm">—</span>
-                  )}
+                  <TemplateResponsibleCell responsibles={template.responsibles} />
                 </TableCell>
                 <TableCell>
                   <Link to={`./${template.id}`}>

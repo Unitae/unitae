@@ -26,6 +26,12 @@ export {
   type ProgrammeTrackGroup,
   sectionDurationMin,
 } from './model/programme-grouping'
+export {
+  findResponsible,
+  RESPONSIBILITY_SCOPES,
+  ResponsibilityScope,
+  scopesCovering,
+} from './model/responsibility-scope.type'
 export { sectionColor, sectionIcon } from './model/section-style'
 export {
   findUnknownVariables,

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { MANAGED_ROLE_SLOTS_FIELD } from '~/features/events'
+import { NO_RESPONSIBLE_VALUE } from '~/features/settings/ui/ResponsibleRoleField'
 
 const TIME_REGEX = /^\d{2}:\d{2}$/
 
@@ -109,12 +110,18 @@ export const deleteServicePartSchema = z.object({
   roleId: z.coerce.number(),
 })
 
+// The two pickers submit together, and an absent or sentinel value means
+// "nobody" for that scope rather than "leave it alone" — the form always
+// renders both, so a missing field is a cleared field.
+const responsibleRoleField = z
+  .string()
+  .optional()
+  .transform(v => (v != null && v !== '' && v !== NO_RESPONSIBLE_VALUE ? Number(v) : null))
+  .pipe(z.number().nullable())
+
 export const templateResponsibleSchema = z.object({
-  roleId: z
-    .string()
-    .optional()
-    .transform(v => (v != null && v !== '' && v !== 'none' ? Number(v) : null))
-    .pipe(z.number().nullable()),
+  roleId: responsibleRoleField,
+  serviceRoleId: responsibleRoleField,
 })
 
 export type CreateTemplateInput = z.infer<typeof createTemplateSchema>

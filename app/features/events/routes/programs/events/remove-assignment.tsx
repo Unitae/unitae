@@ -1,5 +1,6 @@
 import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
+import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
 import { unassignPart, unassignServicePart } from '~/features/events/server/event-part-assignments.server'
 import { canEditEvent } from '~/features/events/server/events-auth.server'
 import {
@@ -34,6 +35,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const url = new URL(request.url)
   const type = url.searchParams.get('type')
   const assignmentId = Number(url.searchParams.get('id'))
+  // Scoped by what is being unassigned, so the service responsible can clear a
+  // sono slot without also being able to drop the public talk speaker.
+  const scope = type === 'service' ? ResponsibilityScope.Service : ResponsibilityScope.Programme
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
@@ -49,6 +53,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         event.templateId ?? null,
         congregationId,
         Permission.CanAssignProgramParts,
+        scope,
       ))
     ) {
       throw redirect('/programs')

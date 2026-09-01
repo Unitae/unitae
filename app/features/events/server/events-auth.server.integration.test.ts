@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
 import { Permission } from '~/shared/types/permission'
 
 const adapter = new PrismaPg({
@@ -25,11 +26,13 @@ let otherCongId: number
 let managerId: number
 let responsibleId: number
 let plainId: number
+let serviceResponsibleId: number
 let otherCongResponsibleId: number
 let templateOwnedId: number
 let templateOtherId: number
 let templateOtherCongId: number
 let responsibleRoleId: number
+let serviceRoleId: number
 let unrelatedRoleId: number
 
 const allowAll = (_p: Permission) => true
@@ -86,6 +89,19 @@ beforeAll(async () => {
     })
     plainId = plain.id
 
+    // Sam runs the sono/estrade rota on the same template Rose runs the programme of.
+    const serviceResponsible = await tx.userAccount.create({
+      data: {
+        email: `auth-service-${ts}@test.com`,
+        password: 'hashed',
+        firstname: 'Sam',
+        lastname: 'Service',
+        active: true,
+        congregationId: primaryCongId,
+      },
+    })
+    serviceResponsibleId = serviceResponsible.id
+
     const owned = await tx.eventTemplate.create({
       data: { name: 'Owned Template', key: `owned-${ts}`, congregationId: primaryCongId },
     })
@@ -116,8 +132,29 @@ beforeAll(async () => {
       data: { userId: plainId, roleId: unrelatedRoleId, kind: 'member', congregationId: primaryCongId },
     })
 
+    const serviceRole = await tx.role.create({
+      data: { key: `responsable-service-${ts}`, name: 'Responsable des services', congregationId: primaryCongId },
+    })
+    serviceRoleId = serviceRole.id
+
+    await tx.userRoleAssignment.create({
+      data: { userId: serviceResponsibleId, roleId: serviceRoleId, kind: 'leader', congregationId: primaryCongId },
+    })
+
     await tx.templateResponsible.create({
       data: { templateId: templateOwnedId, roleId: responsibleRoleId, congregationId: primaryCongId },
+    })
+
+    // Two rows on one template. That this insert succeeds at all is the unique
+    // index doing its new job — before the 20260901120000 migration the key was
+    // (templateId, congregationId) and this would have collided.
+    await tx.templateResponsible.create({
+      data: {
+        templateId: templateOwnedId,
+        roleId: serviceRoleId,
+        scope: ResponsibilityScope.Service,
+        congregationId: primaryCongId,
+      },
     })
   })
 
@@ -334,5 +371,91 @@ describe('handover through the role (integration)', () => {
       await tx.role.deleteMany({ where: { id: role.id } })
       await tx.userAccount.deleteMany({ where: { id: { in: [outgoing.id, incoming.id] } } })
     })
+  })
+})
+
+describe('responsibility scope (integration)', () => {
+  it('lets the service responsible act on the service parts of their template', async () => {
+    const result = await withScope(primaryCongId, tx =>
+      canEditEvent(
+        tx,
+        allowNone,
+        serviceResponsibleId,
+        templateOwnedId,
+        primaryCongId,
+        Permission.CanAssignProgramParts,
+        ResponsibilityScope.Service,
+      ),
+    )
+    expect(result).toBe(true)
+  })
+
+  // The whole point of the second scope: Sam fills the sono slot and stops there.
+  it('refuses the service responsible on the programme', async () => {
+    const result = await withScope(primaryCongId, tx =>
+      canEditEvent(
+        tx,
+        allowNone,
+        serviceResponsibleId,
+        templateOwnedId,
+        primaryCongId,
+        Permission.CanAssignProgramParts,
+      ),
+    )
+    expect(result).toBe(false)
+  })
+
+  it('keeps the programme responsible in charge of the service parts too', async () => {
+    const result = await withScope(primaryCongId, tx =>
+      canEditEvent(
+        tx,
+        allowNone,
+        responsibleId,
+        templateOwnedId,
+        primaryCongId,
+        Permission.CanAssignProgramParts,
+        ResponsibilityScope.Service,
+      ),
+    )
+    expect(result).toBe(true)
+  })
+
+  it('does not put the service responsible on the list that gates creating programmes', async () => {
+    const programmeScoped = await withScope(primaryCongId, tx =>
+      getResponsibleTemplateIds(tx, serviceResponsibleId, primaryCongId),
+    )
+    const serviceScoped = await withScope(primaryCongId, tx =>
+      getResponsibleTemplateIds(tx, serviceResponsibleId, primaryCongId, ResponsibilityScope.Service),
+    )
+    expect(programmeScoped).toEqual([])
+    expect(serviceScoped).toEqual([templateOwnedId])
+  })
+
+  it('still allows only one role per scope on a template', async () => {
+    await expect(
+      withScope(primaryCongId, tx =>
+        tx.templateResponsible.create({
+          data: {
+            templateId: templateOwnedId,
+            roleId: unrelatedRoleId,
+            scope: ResponsibilityScope.Service,
+            congregationId: primaryCongId,
+          },
+        }),
+      ),
+    ).rejects.toThrow()
+  })
+
+  // The CHECK constraint. An unrecognised scope would match no `scopesCovering`
+  // set and so silently delegate to nobody; it has to fail at the write instead.
+  it('rejects a scope outside the catalogue', async () => {
+    await expect(
+      withScope(primaryCongId, tx =>
+        tx.$executeRawUnsafe(
+          `INSERT INTO "TemplateResponsible" ("templateId", "roleId", "scope", "congregationId")
+           VALUES (${templateOwnedId}, ${unrelatedRoleId}, 'territories', ${primaryCongId})`,
+        ),
+      ),
+    ).rejects.toThrow()
   })
 })
