@@ -7,12 +7,18 @@ vi.mock('~/shared/infra/db.server', () => ({
     templateResponsible: { findFirst: vi.fn(), findMany: vi.fn() },
     role: { findMany: vi.fn() },
     event: { findMany: vi.fn() },
+    eventPart: { findFirst: vi.fn() },
+    eventServicePart: { findFirst: vi.fn() },
   },
 }))
 
-const { canEditEvent, getResponsibleTemplateIds, canManageAnyProgram, filterToManageableEventIds } = await import(
-  './events-auth.server'
-)
+const {
+  assignmentBelongsToEvent,
+  canEditEvent,
+  getResponsibleTemplateIds,
+  canManageAnyProgram,
+  filterToManageableEventIds,
+} = await import('./events-auth.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 const CONGREGATION_ID = 4242
@@ -336,5 +342,53 @@ describe('filterToManageableEventIds', () => {
     const result = await filterToManageableEventIds(db, allowNone, [10], USER_ID, CONGREGATION_ID)
 
     expect(result).toEqual([])
+  })
+})
+
+// canEditEvent authorises an EVENT; the writers look their row up by id alone.
+// This is the pairing check that stops the two drifting apart.
+describe('assignmentBelongsToEvent', () => {
+  const EVENT_ID = 900
+  const ASSIGNMENT_ID = 55
+
+  it('accepts a service assignment that sits on the authorised event', async () => {
+    vi.mocked(db.eventServicePart.findFirst).mockResolvedValue({ id: ASSIGNMENT_ID } as never)
+
+    const result = await assignmentBelongsToEvent(db, 'service', ASSIGNMENT_ID, EVENT_ID, CONGREGATION_ID)
+
+    expect(result).toBe(true)
+    expect(vi.mocked(db.eventServicePart.findFirst).mock.calls[0][0]?.where).toEqual({
+      id: ASSIGNMENT_ID,
+      eventId: EVENT_ID,
+      congregationId: CONGREGATION_ID,
+    })
+  })
+
+  // The exploit this closes: authorised on your own event, posting an assignment
+  // id from someone else's. The row exists, it just is not on this event.
+  it('refuses an assignment that belongs to another event', async () => {
+    vi.mocked(db.eventServicePart.findFirst).mockResolvedValue(null as never)
+
+    const result = await assignmentBelongsToEvent(db, 'service', ASSIGNMENT_ID, EVENT_ID, CONGREGATION_ID)
+
+    expect(result).toBe(false)
+  })
+
+  it('queries the part table for a part assignment', async () => {
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({ id: ASSIGNMENT_ID } as never)
+
+    const result = await assignmentBelongsToEvent(db, 'part', ASSIGNMENT_ID, EVENT_ID, CONGREGATION_ID)
+
+    expect(result).toBe(true)
+    expect(db.eventServicePart.findFirst).not.toHaveBeenCalled()
+  })
+
+  // `Number(url.searchParams.get('id'))` yields NaN on a missing param, which
+  // Prisma rejects at the driver as a 500 rather than a refusal.
+  it('refuses a non-integer assignment id without querying', async () => {
+    const result = await assignmentBelongsToEvent(db, 'part', Number.NaN, EVENT_ID, CONGREGATION_ID)
+
+    expect(result).toBe(false)
+    expect(db.eventPart.findFirst).not.toHaveBeenCalled()
   })
 })

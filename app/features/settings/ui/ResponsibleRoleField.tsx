@@ -1,10 +1,7 @@
+import { NO_RESPONSIBLE_VALUE } from '~/features/settings/schemas/template.schema'
 import * as m from '~/i18n/paraglide/messages'
 import { Label } from '~/shared/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
-
-// Radix's Select forbids an empty-string item value, so "nobody" carries this
-// sentinel; the schema maps it back to null.
-export const NO_RESPONSIBLE_VALUE = 'none'
 
 export type ResponsibleRoleOption = { id: number; label: string }
 

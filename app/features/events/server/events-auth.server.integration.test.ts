@@ -34,12 +34,18 @@ let templateOtherCongId: number
 let responsibleRoleId: number
 let serviceRoleId: number
 let unrelatedRoleId: number
+let ownedEventId: number
+let foreignEventId: number
+let ownedServicePartId: number
+let foreignServicePartId: number
 
 const allowAll = (_p: Permission) => true
 const allowNone = (_p: Permission) => false
 const allowOnly = (allowed: Permission) => (p: Permission) => p === allowed
 
-const { canEditEvent, getResponsibleTemplateIds, canManageAnyProgram } = await import('./events-auth.server')
+const { assignmentBelongsToEvent, canEditEvent, getResponsibleTemplateIds, canManageAnyProgram } = await import(
+  './events-auth.server'
+)
 
 beforeAll(async () => {
   const primary = await testDb.congregation.create({
@@ -156,6 +162,32 @@ beforeAll(async () => {
         congregationId: primaryCongId,
       },
     })
+
+    // One event per template, each with a service part, so the cross-event guard
+    // has a real "other event you are not responsible for" to be pointed at.
+    const eventDefaults = {
+      startDate: new Date('2026-09-08T17:00:00Z'),
+      endDate: new Date('2026-09-08T19:00:00Z'),
+      createdById: managerId,
+      congregationId: primaryCongId,
+    }
+    const ownedEvent = await tx.event.create({
+      data: { name: 'Owned Event', templateId: templateOwnedId, ...eventDefaults },
+    })
+    ownedEventId = ownedEvent.id
+    const foreignEvent = await tx.event.create({
+      data: { name: 'Foreign Event', templateId: templateOtherId, ...eventDefaults },
+    })
+    foreignEventId = foreignEvent.id
+
+    const ownedServicePart = await tx.eventServicePart.create({
+      data: { name: 'Sono', eventId: ownedEventId, congregationId: primaryCongId },
+    })
+    ownedServicePartId = ownedServicePart.id
+    const foreignServicePart = await tx.eventServicePart.create({
+      data: { name: 'Sono', eventId: foreignEventId, congregationId: primaryCongId },
+    })
+    foreignServicePartId = foreignServicePart.id
   })
 
   await withScope(otherCongId, async tx => {
@@ -193,6 +225,8 @@ afterAll(async () => {
   for (const congId of [primaryCongId, otherCongId]) {
     if (!congId) continue
     await withScope(congId, async tx => {
+      await tx.eventServicePart.deleteMany({})
+      await tx.event.deleteMany({})
       await tx.templateResponsible.deleteMany({})
       await tx.eventTemplate.deleteMany({})
       await tx.userRoleAssignment.deleteMany({})
@@ -457,5 +491,46 @@ describe('responsibility scope (integration)', () => {
         ),
       ),
     ).rejects.toThrow()
+  })
+})
+
+// The delegation is per template, but the assignment writers look their row up by
+// (assignmentId, congregationId) alone. Without this pairing check, Sam — authorised on his
+// own event — could post the id of a service part belonging to a template he has nothing to
+// do with, and the write would land.
+describe('assignmentBelongsToEvent (integration)', () => {
+  it('accepts the service part that really sits on the event', async () => {
+    const result = await withScope(primaryCongId, tx =>
+      assignmentBelongsToEvent(tx, 'service', ownedServicePartId, ownedEventId, primaryCongId),
+    )
+    expect(result).toBe(true)
+  })
+
+  it("refuses another event's service part posted against an authorised event", async () => {
+    const authorised = await withScope(primaryCongId, tx =>
+      canEditEvent(
+        tx,
+        allowNone,
+        serviceResponsibleId,
+        templateOwnedId,
+        primaryCongId,
+        Permission.CanAssignProgramParts,
+        ResponsibilityScope.Service,
+      ),
+    )
+    const belongs = await withScope(primaryCongId, tx =>
+      assignmentBelongsToEvent(tx, 'service', foreignServicePartId, ownedEventId, primaryCongId),
+    )
+
+    // Authorised on the event, and still refused on the row — which is the point.
+    expect(authorised).toBe(true)
+    expect(belongs).toBe(false)
+  })
+
+  it('does not accept a service part id when asked about a programme part', async () => {
+    const result = await withScope(primaryCongId, tx =>
+      assignmentBelongsToEvent(tx, 'part', ownedServicePartId, ownedEventId, primaryCongId),
+    )
+    expect(result).toBe(false)
   })
 })

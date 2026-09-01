@@ -3,7 +3,7 @@ import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { assignPartSchema } from '~/features/events/schemas/assign-part.schema'
 import { assignPart } from '~/features/events/server/event-part-assignments.server'
-import { canEditEvent } from '~/features/events/server/events-auth.server'
+import { assignmentBelongsToEvent, canEditEvent } from '~/features/events/server/events-auth.server'
 import {
   buildAssignmentContext,
   dispatchAssignmentDiffs,
@@ -62,6 +62,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         Permission.CanAssignProgramParts,
       ))
     ) {
+      throw redirect('/programs')
+    }
+
+    if (!(await assignmentBelongsToEvent(db, 'part', assignmentId, eventId, congregationId))) {
       throw redirect('/programs')
     }
 

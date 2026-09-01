@@ -11,7 +11,8 @@ import { sanitizeText } from '~/shared/utils/sanitize-text'
 
 // Both scopes come back on the relation; callers pick with `findResponsible`
 // rather than indexing [0], which stopped meaning "the responsible" once a
-// template could name two.
+// template could name two. The ordering only keeps the array stable across
+// reads so rendering and snapshots do not flip on row insertion order.
 const responsibleInclude = {
   include: { role: { select: { id: true, key: true, name: true } } },
   orderBy: { scope: 'asc' },

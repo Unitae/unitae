@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import { MANAGED_ROLE_SLOTS_FIELD } from '~/features/events'
-import { NO_RESPONSIBLE_VALUE } from '~/features/settings/ui/ResponsibleRoleField'
 
 const TIME_REGEX = /^\d{2}:\d{2}$/
 
@@ -109,6 +108,10 @@ export const deleteServicePartSchema = z.object({
   intent: z.literal('delete-service-role'),
   roleId: z.coerce.number(),
 })
+
+// Same Radix constraint as NO_PRESET_VALUE above: an empty-string item value is
+// forbidden, so "nobody" travels as this sentinel.
+export const NO_RESPONSIBLE_VALUE = 'none'
 
 // The two pickers submit together, and an absent or sentinel value means
 // "nobody" for that scope rather than "leave it alone" — the form always

@@ -27,7 +27,12 @@ export const RESPONSIBILITY_SCOPES: ResponsibilityScope[] = [ResponsibilityScope
  * programme accepts only the programme one.
  */
 export function scopesCovering(scope: ResponsibilityScope): ResponsibilityScope[] {
-  return scope === ResponsibilityScope.Service ? RESPONSIBILITY_SCOPES : [ResponsibilityScope.Programme]
+  // A fresh array, never RESPONSIBILITY_SCOPES itself: the result goes straight into a Prisma
+  // `in:` filter, and handing out the module-level catalogue makes it one careless push away
+  // from silently widening every authorisation check in the app.
+  return scope === ResponsibilityScope.Service
+    ? [ResponsibilityScope.Programme, ResponsibilityScope.Service]
+    : [ResponsibilityScope.Programme]
 }
 
 /**

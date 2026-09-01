@@ -67,6 +67,48 @@ export async function getResponsibleTemplateIds(
   return [...new Set(rows.map(r => r.templateId))]
 }
 
+/**
+ * Whether an assignment row actually belongs to the event the caller was authorised on.
+ *
+ * `canEditEvent` answers "may you act on THIS event", keyed off the event id in the URL, while
+ * the writers in event-part-assignments.server.ts look their row up by (assignmentId,
+ * congregationId) alone. Nothing pairs the two, so without this check a caller authorised on
+ * one event can post an assignment id belonging to another event in the same congregation and
+ * the write goes through — which defeats per-template delegation, the service/programme split
+ * included.
+ *
+ * Checked in the routes rather than inside the writers: the event id is a property of the
+ * request, not of the assignment, and threading it through four writers with ~30 call sites
+ * each would say the same thing far less clearly.
+ */
+export async function assignmentBelongsToEvent(
+  db: TransactionClient,
+  kind: 'part' | 'service',
+  assignmentId: number,
+  eventId: number,
+  congregationId: number,
+): Promise<boolean> {
+  // A malformed `id` query param arrives as NaN; Prisma would reject it as an
+  // Int at the driver, so it is refused here as the bad request it is.
+  if (!Number.isInteger(assignmentId)) return false
+
+  const where = { id: assignmentId, eventId, congregationId }
+  const row =
+    kind === 'service'
+      ? await db.eventServicePart.findFirst({ where, select: { id: true } })
+      : await db.eventPart.findFirst({ where, select: { id: true } })
+
+  if (row == null) {
+    logger.warn('assignmentBelongsToEvent: assignment does not belong to the authorised event', {
+      kind,
+      assignmentId,
+      eventId,
+      congregationId,
+    })
+  }
+  return row != null
+}
+
 export async function canManageAnyProgram(
   db: TransactionClient,
   can: (role: Permission) => boolean,
