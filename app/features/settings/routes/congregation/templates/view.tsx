@@ -17,6 +17,7 @@ import {
   getTemplateById,
   isTemplateResponsible,
 } from '~/features/events/index.server'
+import { TemplateResponsibleBadges } from '~/features/settings/ui/TemplateResponsibleSummary'
 import * as m from '~/i18n/paraglide/messages'
 import {
   currentAccountContext,
@@ -26,7 +27,6 @@ import {
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
-import { getRoleDisplayName } from '~/shared/types/role'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -190,12 +190,7 @@ export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
             </Badge>
           )}
           {template.weekDay == null && <Badge variant="secondary">{m.settings_template_view_one_time_event()}</Badge>}
-          {template.responsibles[0] && (
-            <Badge variant="outline">
-              <UserCog className="mr-1 size-3" />
-              {getRoleDisplayName(template.responsibles[0].role)}
-            </Badge>
-          )}
+          <TemplateResponsibleBadges responsibles={template.responsibles} />
         </div>
       )}
 

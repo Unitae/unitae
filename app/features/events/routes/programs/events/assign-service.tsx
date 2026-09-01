@@ -1,9 +1,10 @@
 import { parseWithZod } from '@conform-to/zod'
 import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
+import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
 import { assignServiceSchema } from '~/features/events/schemas/assign-service.schema'
 import { assignServicePart } from '~/features/events/server/event-part-assignments.server'
-import { canEditEvent } from '~/features/events/server/events-auth.server'
+import { assignmentBelongsToEvent, canEditEvent } from '~/features/events/server/events-auth.server'
 import {
   buildAssignmentContext,
   dispatchAssignmentDiffs,
@@ -56,8 +57,13 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         event.templateId ?? null,
         congregationId,
         Permission.CanAssignProgramParts,
+        ResponsibilityScope.Service,
       ))
     ) {
+      throw redirect('/programs')
+    }
+
+    if (!(await assignmentBelongsToEvent(db, 'service', assignmentId, eventId, congregationId))) {
       throw redirect('/programs')
     }
 

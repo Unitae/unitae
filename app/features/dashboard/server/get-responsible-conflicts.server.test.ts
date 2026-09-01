@@ -32,7 +32,7 @@ describe('getResponsibleConflicts', () => {
 
   // Non-manager users only see conflicts on templates they are the
   // responsible for. The join goes through
-  // event.template.responsibles.some.userId.
+  // event.template.responsibles.some.roleId.
   it('scopes the query to templates the user is responsible for (non-manager)', async () => {
     const userId = 100
     await getResponsibleConflicts(db, userId, CONGREGATION_ID, false)
@@ -43,11 +43,14 @@ describe('getResponsibleConflicts', () => {
     expect(partWhere.event).toEqual({
       startDate: { gte: expect.any(Date) },
       status: 'released',
-      template: { responsibles: { some: { roleId: { in: [ROLE_ID] } } } },
+      template: { responsibles: { some: { roleId: { in: [ROLE_ID] }, scope: { in: ['programme'] } } } },
     })
   })
 
-  it('scopes the service-role query with the same template filter (non-manager)', async () => {
+  // The service query is deliberately the wider one: someone delegated only the
+  // service parts is answerable for a sono clash, and the whole-event
+  // responsible is answerable for both.
+  it('accepts either delegation for the service-role query (non-manager)', async () => {
     const userId = 100
     await getResponsibleConflicts(db, userId, CONGREGATION_ID, false)
 
@@ -56,8 +59,22 @@ describe('getResponsibleConflicts', () => {
     expect(serviceWhere.event).toEqual({
       startDate: { gte: expect.any(Date) },
       status: 'released',
-      template: { responsibles: { some: { roleId: { in: [ROLE_ID] } } } },
+      template: {
+        responsibles: { some: { roleId: { in: [ROLE_ID] }, scope: { in: ['programme', 'service'] } } },
+      },
     })
+  })
+
+  // A service-only responsible must not be told about a clash on the public
+  // talk: the programme query never accepts their delegation.
+  it('never lets the service delegation reach the programme query', async () => {
+    await getResponsibleConflicts(db, 100, CONGREGATION_ID, false)
+
+    const partCall = vi.mocked(db.eventPart.findMany).mock.calls[0][0]
+    const partWhere = partCall?.where as Record<string, unknown>
+    const scopes = (partWhere.event as { template: { responsibles: { some: { scope: { in: string[] } } } } }).template
+      .responsibles.some.scope.in
+    expect(scopes).not.toContain('service')
   })
 
   // ProgramManager sees everything — including untemplated events (which

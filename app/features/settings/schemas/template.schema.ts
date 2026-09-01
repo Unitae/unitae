@@ -109,12 +109,22 @@ export const deleteServicePartSchema = z.object({
   roleId: z.coerce.number(),
 })
 
+// Same Radix constraint as NO_PRESET_VALUE above: an empty-string item value is
+// forbidden, so "nobody" travels as this sentinel.
+export const NO_RESPONSIBLE_VALUE = 'none'
+
+// The two pickers submit together, and an absent or sentinel value means
+// "nobody" for that scope rather than "leave it alone" — the form always
+// renders both, so a missing field is a cleared field.
+const responsibleRoleField = z
+  .string()
+  .optional()
+  .transform(v => (v != null && v !== '' && v !== NO_RESPONSIBLE_VALUE ? Number(v) : null))
+  .pipe(z.number().nullable())
+
 export const templateResponsibleSchema = z.object({
-  roleId: z
-    .string()
-    .optional()
-    .transform(v => (v != null && v !== '' && v !== 'none' ? Number(v) : null))
-    .pipe(z.number().nullable()),
+  roleId: responsibleRoleField,
+  serviceRoleId: responsibleRoleField,
 })
 
 export type CreateTemplateInput = z.infer<typeof createTemplateSchema>

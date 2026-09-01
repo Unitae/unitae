@@ -1,4 +1,5 @@
 import type JsZip from 'jszip'
+import { RESPONSIBILITY_SCOPES, ResponsibilityScope } from '~/features/events'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import type { EntityIdMap } from './data-transfer.type'
@@ -132,10 +133,13 @@ export async function importTemplateResponsibles(
   idMap: EntityIdMap,
   congregationId: number,
 ): Promise<void> {
-  const records = await readNdjsonFile<{ id: number; templateId: number; roleId?: number; userId?: number }>(
-    zip,
-    'programme-template-responsibles',
-  )
+  const records = await readNdjsonFile<{
+    id: number
+    templateId: number
+    roleId?: number
+    userId?: number
+    scope?: string
+  }>(zip, 'programme-template-responsibles')
 
   // Pre-2.7 archives name a UserAccount instead of a role. There is no safe mapping back —
   // picking a role that user happens to hold would silently widen the delegation to everyone
@@ -155,8 +159,13 @@ export async function importTemplateResponsibles(
     const roleId = idMap.getOptional('roles', record.roleId)
     if (!roleId) continue
 
+    // Pre-2.8 archives have no scope: their single row is the whole-event
+    // delegation, which is exactly what 'programme' means. An unrecognised value
+    // would fail the CHECK constraint mid-import, so it is normalised here.
+    const scope = RESPONSIBILITY_SCOPES.find(s => s === record.scope) ?? ResponsibilityScope.Programme
+
     await db.templateResponsible.create({
-      data: { templateId, roleId, congregationId },
+      data: { templateId, roleId, scope, congregationId },
     })
   }
 

@@ -2,6 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import JsZip from 'jszip'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
@@ -318,10 +319,31 @@ beforeAll(async () => {
       data: { userId: alice.id, roleId: customRole.id, congregationId: sourceId },
     })
 
+    const serviceRole = await tx.role.create({
+      data: {
+        key: `service-resp-${ts}`,
+        name: 'Responsable des services',
+        isBuiltIn: false,
+        congregationId: sourceId,
+      },
+    })
+
     // Declared here rather than next to the template: the responsible points at `customRole`,
     // which does not exist yet at that point in the fixture.
     await tx.templateResponsible.create({
       data: { templateId: template.id, roleId: customRole.id, congregationId: sourceId },
+    })
+
+    // The second scope. Both rows have to survive the round trip pointing at
+    // their own remapped role — a scope dropped on export would restore as a
+    // duplicate 'programme' row and collide on the unique index.
+    await tx.templateResponsible.create({
+      data: {
+        templateId: template.id,
+        roleId: serviceRole.id,
+        scope: ResponsibilityScope.Service,
+        congregationId: sourceId,
+      },
     })
 
     const externalSpeaker = await tx.externalSpeaker.create({
@@ -601,7 +623,7 @@ describe('Export/Import round-trip', () => {
     expect(entityCounts['congregation-user-permissions']).toBeUndefined()
 
     // v1.1 entities
-    expect(entityCounts.roles).toBe(12) // 10 built-ins + 1 custom + the admin auto-role
+    expect(entityCounts.roles).toBe(13) // 10 built-ins + 2 custom + the admin auto-role
     expect(entityCounts['role-permissions']).toBe(2)
     expect(entityCounts['user-role-assignments']).toBe(2)
     expect(entityCounts['external-speakers']).toBe(1)
@@ -815,12 +837,15 @@ describe('Export/Import round-trip', () => {
       const serviceParts = await tx.templateServicePart.findMany({})
       expect(serviceParts).toHaveLength(1)
       const responsibles = await tx.templateResponsible.findMany({})
-      expect(responsibles).toHaveLength(1)
+      expect(responsibles).toHaveLength(2)
       // Remapped onto the *target's* copy of the custom role, not the source id — the whole
       // job of the id map. Asserting the source id here would pass only by coincidence.
       const restoredCustomRole = await tx.role.findFirst({ where: { key: { startsWith: 'custom-' } } })
       expect(restoredCustomRole).toBeDefined()
-      expect(responsibles[0].roleId).toBe(restoredCustomRole?.id)
+      const restoredServiceRole = await tx.role.findFirst({ where: { key: { startsWith: 'service-resp-' } } })
+      expect(restoredServiceRole).toBeDefined()
+      expect(responsibles.find(r => r.scope === 'programme')?.roleId).toBe(restoredCustomRole?.id)
+      expect(responsibles.find(r => r.scope === 'service')?.roleId).toBe(restoredServiceRole?.id)
 
       // Events + assignments
       const events = await tx.event.findMany({})
@@ -849,9 +874,10 @@ describe('Export/Import round-trip', () => {
       expect(consents).toHaveLength(1)
       expect(consents[0].userId).toBe(alice.id)
 
-      // 10 built-ins (pre-seeded) + 1 custom + the admin auto-role.
+      // 10 built-ins (pre-seeded) + 2 custom (QA reviewer, service responsible)
+      // + the admin auto-role.
       const roles = await tx.role.findMany({})
-      expect(roles).toHaveLength(12)
+      expect(roles).toHaveLength(13)
       const customRoleOnTarget = roles.find(r => r.key.startsWith('custom-'))
       expect(customRoleOnTarget).toBeDefined()
       expect(customRoleOnTarget?.name).toBe('Custom QA Reviewer')
@@ -1462,6 +1488,97 @@ describe('pre-2.7 template responsibles', () => {
       const rows = await withScope(cong.id, tx => tx.templateResponsible.findMany({}))
       expect(rows).toHaveLength(1)
       expect(rows[0].roleId).toBe(role.id)
+      // No scope in the file: a pre-2.8 archive's single row IS the whole-event
+      // delegation, so it must land as 'programme' and not as an empty string
+      // that would fail the CHECK constraint.
+      expect(rows[0].scope).toBe(ResponsibilityScope.Programme)
+    } finally {
+      await withScope(cong.id, async tx => {
+        await tx.templateResponsible.deleteMany({})
+        await tx.eventTemplate.deleteMany({})
+        await tx.role.deleteMany({})
+      })
+      await testDb.congregation.delete({ where: { id: cong.id } })
+    }
+  })
+})
+
+// v2.8 added `scope`. An archive can carry a value this build does not know —
+// hand-edited, or written by a newer version — and it must not reach the CHECK
+// constraint and abort the whole import over one delegation row.
+describe('template responsible scope on import', () => {
+  it('normalises an unrecognised scope to the whole-event delegation', async () => {
+    const { importTemplateResponsibles } = await import('./import-event-templates.server')
+    const cong = await testDb.congregation.create({
+      data: { name: `Scope Resp ${ts}`, slug: `scope-resp-${ts}`, active: true },
+    })
+    try {
+      const template = await withScope(cong.id, tx =>
+        tx.eventTemplate.create({
+          data: { name: 'Scoped Template', key: `scoped-tpl-${ts}`, congregationId: cong.id },
+        }),
+      )
+      const role = await withScope(cong.id, tx =>
+        tx.role.create({ data: { key: `scoped-resp-role-${ts}`, name: 'Responsable', congregationId: cong.id } }),
+      )
+
+      const idMap = new EntityIdMap()
+      idMap.set('programme-templates', 1, template.id)
+      idMap.set('roles', 42, role.id)
+
+      const zip = new JsZip()
+      const dataDir = zip.folder('data')!
+      dataDir.file(
+        'programme-template-responsibles.ndjson',
+        `${JSON.stringify({ id: 1, templateId: 1, roleId: 42, scope: 'territories' })}\n`,
+      )
+
+      await withScope(cong.id, tx => importTemplateResponsibles(zip, tx, idMap, cong.id))
+
+      const rows = await withScope(cong.id, tx => tx.templateResponsible.findMany({}))
+      expect(rows).toHaveLength(1)
+      expect(rows[0].scope).toBe(ResponsibilityScope.Programme)
+    } finally {
+      await withScope(cong.id, async tx => {
+        await tx.templateResponsible.deleteMany({})
+        await tx.eventTemplate.deleteMany({})
+        await tx.role.deleteMany({})
+      })
+      await testDb.congregation.delete({ where: { id: cong.id } })
+    }
+  })
+
+  it('keeps a service scope through the importer', async () => {
+    const { importTemplateResponsibles } = await import('./import-event-templates.server')
+    const cong = await testDb.congregation.create({
+      data: { name: `Svc Resp ${ts}`, slug: `svc-resp-${ts}`, active: true },
+    })
+    try {
+      const template = await withScope(cong.id, tx =>
+        tx.eventTemplate.create({
+          data: { name: 'Svc Template', key: `svc-tpl-${ts}`, congregationId: cong.id },
+        }),
+      )
+      const role = await withScope(cong.id, tx =>
+        tx.role.create({ data: { key: `svc-resp-role-${ts}`, name: 'Responsable', congregationId: cong.id } }),
+      )
+
+      const idMap = new EntityIdMap()
+      idMap.set('programme-templates', 1, template.id)
+      idMap.set('roles', 42, role.id)
+
+      const zip = new JsZip()
+      const dataDir = zip.folder('data')!
+      dataDir.file(
+        'programme-template-responsibles.ndjson',
+        `${JSON.stringify({ id: 1, templateId: 1, roleId: 42, scope: 'service' })}\n`,
+      )
+
+      await withScope(cong.id, tx => importTemplateResponsibles(zip, tx, idMap, cong.id))
+
+      const rows = await withScope(cong.id, tx => tx.templateResponsible.findMany({}))
+      expect(rows).toHaveLength(1)
+      expect(rows[0].scope).toBe(ResponsibilityScope.Service)
     } finally {
       await withScope(cong.id, async tx => {
         await tx.templateResponsible.deleteMany({})

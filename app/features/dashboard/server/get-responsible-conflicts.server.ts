@@ -1,4 +1,5 @@
 import { EventStatus } from '~/features/events/model/event-status.type'
+import { ResponsibilityScope, scopesCovering } from '~/features/events/model/responsibility-scope.type'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { fullName } from '~/shared/utils/display-name'
@@ -21,7 +22,9 @@ const EMPTY: ResponsibleConflictsSummary = { count: 0, absenteeNames: [], totalA
 
 // Scoping:
 //   - non-manager → only events on templates whose responsible role the user holds
-//     (TemplateResponsible.roleId, resolved through resolveEffectiveRoleIds);
+//     (TemplateResponsible.roleId, resolved through resolveEffectiveRoleIds), and only
+//     the half of the event that delegation actually covers: a service responsible is
+//     answerable for the sono/estrade rota, not for the public talk speaker;
 //   - ProgramManager → all events, including untemplated ones which have
 //     no responsible relation at all.
 export async function getResponsibleConflicts(
@@ -39,17 +42,17 @@ export async function getResponsibleConflicts(
 
   // Drafts stay off the dashboard even for managers — the events-list amber
   // badge and the release-blocking error are their surface for those.
-  const eventFilter = isProgramManager
-    ? { startDate: { gte: now }, status: EventStatus.Released }
-    : {
-        startDate: { gte: now },
-        status: EventStatus.Released,
-        template: { responsibles: { some: { roleId: { in: roleIds } } } },
-      }
+  const upcoming = { startDate: { gte: now }, status: EventStatus.Released }
+  const responsibleFor = (scope: ResponsibilityScope) => ({
+    ...upcoming,
+    template: { responsibles: { some: { roleId: { in: roleIds }, scope: { in: scopesCovering(scope) } } } },
+  })
+  const partEventFilter = isProgramManager ? upcoming : responsibleFor(ResponsibilityScope.Programme)
+  const serviceEventFilter = isProgramManager ? upcoming : responsibleFor(ResponsibilityScope.Service)
 
   const [partRows, serviceRows] = await Promise.all([
     db.eventPart.findMany({
-      where: { hasConflict: true, event: eventFilter },
+      where: { hasConflict: true, event: partEventFilter },
       select: {
         eventId: true,
         assigneeId: true,
@@ -59,7 +62,7 @@ export async function getResponsibleConflicts(
       },
     }),
     db.eventServicePart.findMany({
-      where: { hasConflict: true, event: eventFilter },
+      where: { hasConflict: true, event: serviceEventFilter },
       select: {
         eventId: true,
         assigneeId: true,

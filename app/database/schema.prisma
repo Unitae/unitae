@@ -1236,6 +1236,15 @@ model EventServicePartAllowedRole {
   @@index([congregationId])
 }
 
+// Delegation of a template's events to a role, so its holders can run the
+// programme without a congregation-wide permission. Always a Role and never a
+// person: a handover is then one edit on the organigram, not one per template.
+//
+// A template carries at most one row per `scope` — see
+// app/features/events/model/responsibility-scope.type.ts. 'programme' is the
+// whole-event delegation the feature shipped with; 'service' delegates only
+// the service parts, because the sound/attendant rota and the spiritual
+// programme are filled in by different brothers.
 model TemplateResponsible {
   id Int @id @default(autoincrement())
 
@@ -1245,10 +1254,13 @@ model TemplateResponsible {
   role   Role @relation("templateResponsible", fields: [roleId], references: [id], onDelete: Cascade)
   roleId Int
 
+  // 'programme' | 'service'. Constrained in SQL by TemplateResponsible_scope_check.
+  scope String @default("programme")
+
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
 
-  @@unique([templateId, congregationId])
+  @@unique([templateId, scope, congregationId])
   @@unique([id, congregationId])
   @@index([roleId])
 }

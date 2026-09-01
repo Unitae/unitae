@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
 import { Permission } from '~/shared/types/permission'
 
 vi.mock('~/shared/infra/db.server', () => ({
@@ -6,12 +7,18 @@ vi.mock('~/shared/infra/db.server', () => ({
     templateResponsible: { findFirst: vi.fn(), findMany: vi.fn() },
     role: { findMany: vi.fn() },
     event: { findMany: vi.fn() },
+    eventPart: { findFirst: vi.fn() },
+    eventServicePart: { findFirst: vi.fn() },
   },
 }))
 
-const { canEditEvent, getResponsibleTemplateIds, canManageAnyProgram, filterToManageableEventIds } = await import(
-  './events-auth.server'
-)
+const {
+  assignmentBelongsToEvent,
+  canEditEvent,
+  getResponsibleTemplateIds,
+  canManageAnyProgram,
+  filterToManageableEventIds,
+} = await import('./events-auth.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 const CONGREGATION_ID = 4242
@@ -143,6 +150,68 @@ describe('canEditEvent', () => {
   })
 })
 
+describe('canEditEvent — responsibility scope', () => {
+  // The scope reaches the query as a set of acceptable rows, and that set is the
+  // whole mechanism: everything below asserts what got asked for, because a mock
+  // returns whatever it is told regardless of the filter.
+  const scopeAskedFor = () => {
+    const where = vi.mocked(db.templateResponsible.findFirst).mock.calls[0][0]?.where as {
+      scope: { in: string[] }
+    }
+    return where.scope.in
+  }
+
+  it('accepts only the whole-event delegation by default', async () => {
+    vi.mocked(db.templateResponsible.findFirst).mockResolvedValue(null as never)
+
+    await canEditEvent(db, allowNone, USER_ID, TEMPLATE_ID_OWNED, CONGREGATION_ID)
+
+    expect(scopeAskedFor()).toEqual(['programme'])
+  })
+
+  it('accepts either delegation when the route is about the service parts', async () => {
+    vi.mocked(db.templateResponsible.findFirst).mockResolvedValue(null as never)
+
+    await canEditEvent(
+      db,
+      allowNone,
+      USER_ID,
+      TEMPLATE_ID_OWNED,
+      CONGREGATION_ID,
+      Permission.CanAssignProgramParts,
+      ResponsibilityScope.Service,
+    )
+
+    expect(scopeAskedFor()).toEqual(expect.arrayContaining(['programme', 'service']))
+  })
+
+  // The point of the feature: someone who only fills the sono rota must not be
+  // able to reassign the public talk. The narrow row simply is not among the ones
+  // a programme-scoped question accepts.
+  it('never accepts the service delegation for a programme-scoped question', async () => {
+    vi.mocked(db.templateResponsible.findFirst).mockResolvedValue(null as never)
+
+    await canEditEvent(db, allowNone, USER_ID, TEMPLATE_ID_OWNED, CONGREGATION_ID, Permission.CanManagePrograms)
+
+    expect(scopeAskedFor()).not.toContain('service')
+  })
+
+  it('still short-circuits on the permission before looking at any scope', async () => {
+    const result = await canEditEvent(
+      db,
+      allowOnly(Permission.CanAssignProgramParts),
+      USER_ID,
+      TEMPLATE_ID_OWNED,
+      CONGREGATION_ID,
+      Permission.CanAssignProgramParts,
+      ResponsibilityScope.Service,
+    )
+
+    expect(result).toBe(true)
+    expect(db.templateResponsible.findFirst).not.toHaveBeenCalled()
+  })
+})
+
 describe('getResponsibleTemplateIds', () => {
   it('returns an empty array when the user is responsible for nothing', async () => {
     vi.mocked(db.templateResponsible.findMany).mockResolvedValue([] as never)
@@ -171,6 +240,31 @@ describe('getResponsibleTemplateIds', () => {
     const result = await getResponsibleTemplateIds(db, USER_ID, CONGREGATION_ID)
     expect(result).toEqual([])
     expect(db.templateResponsible.findMany).not.toHaveBeenCalled()
+  })
+
+  // This list drives "which programmes may you create, bulk-release, bulk-delete".
+  // A service responsible may do none of those, so the default must stay narrow —
+  // widening it here would silently hand them the bulk routes.
+  it('asks only for the whole-event delegation by default', async () => {
+    vi.mocked(db.templateResponsible.findMany).mockResolvedValue([] as never)
+
+    await getResponsibleTemplateIds(db, USER_ID, CONGREGATION_ID)
+
+    const where = vi.mocked(db.templateResponsible.findMany).mock.calls[0][0]?.where as {
+      scope: { in: string[] }
+    }
+    expect(where.scope.in).toEqual(['programme'])
+  })
+
+  it('de-duplicates a template the caller is responsible for under both scopes', async () => {
+    vi.mocked(db.templateResponsible.findMany).mockResolvedValue([
+      { templateId: TEMPLATE_ID_OWNED },
+      { templateId: TEMPLATE_ID_OWNED },
+    ] as never)
+
+    const result = await getResponsibleTemplateIds(db, USER_ID, CONGREGATION_ID, ResponsibilityScope.Service)
+
+    expect(result).toEqual([TEMPLATE_ID_OWNED])
   })
 })
 
@@ -248,5 +342,53 @@ describe('filterToManageableEventIds', () => {
     const result = await filterToManageableEventIds(db, allowNone, [10], USER_ID, CONGREGATION_ID)
 
     expect(result).toEqual([])
+  })
+})
+
+// canEditEvent authorises an EVENT; the writers look their row up by id alone.
+// This is the pairing check that stops the two drifting apart.
+describe('assignmentBelongsToEvent', () => {
+  const EVENT_ID = 900
+  const ASSIGNMENT_ID = 55
+
+  it('accepts a service assignment that sits on the authorised event', async () => {
+    vi.mocked(db.eventServicePart.findFirst).mockResolvedValue({ id: ASSIGNMENT_ID } as never)
+
+    const result = await assignmentBelongsToEvent(db, 'service', ASSIGNMENT_ID, EVENT_ID, CONGREGATION_ID)
+
+    expect(result).toBe(true)
+    expect(vi.mocked(db.eventServicePart.findFirst).mock.calls[0][0]?.where).toEqual({
+      id: ASSIGNMENT_ID,
+      eventId: EVENT_ID,
+      congregationId: CONGREGATION_ID,
+    })
+  })
+
+  // The exploit this closes: authorised on your own event, posting an assignment
+  // id from someone else's. The row exists, it just is not on this event.
+  it('refuses an assignment that belongs to another event', async () => {
+    vi.mocked(db.eventServicePart.findFirst).mockResolvedValue(null as never)
+
+    const result = await assignmentBelongsToEvent(db, 'service', ASSIGNMENT_ID, EVENT_ID, CONGREGATION_ID)
+
+    expect(result).toBe(false)
+  })
+
+  it('queries the part table for a part assignment', async () => {
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({ id: ASSIGNMENT_ID } as never)
+
+    const result = await assignmentBelongsToEvent(db, 'part', ASSIGNMENT_ID, EVENT_ID, CONGREGATION_ID)
+
+    expect(result).toBe(true)
+    expect(db.eventServicePart.findFirst).not.toHaveBeenCalled()
+  })
+
+  // `Number(url.searchParams.get('id'))` yields NaN on a missing param, which
+  // Prisma rejects at the driver as a 500 rather than a refusal.
+  it('refuses a non-integer assignment id without querying', async () => {
+    const result = await assignmentBelongsToEvent(db, 'part', Number.NaN, EVENT_ID, CONGREGATION_ID)
+
+    expect(result).toBe(false)
+    expect(db.eventPart.findFirst).not.toHaveBeenCalled()
   })
 })

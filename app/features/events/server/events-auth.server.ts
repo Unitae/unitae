@@ -1,3 +1,4 @@
+import { ResponsibilityScope, scopesCovering } from '~/features/events/model/responsibility-scope.type'
 import { isTemplateResponsible } from '~/features/events/server/event-templates.server'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -17,6 +18,12 @@ const logger = createLogger('events-auth')
  * The template-responsible path is checked regardless of which capability was asked for:
  * delegating a template to someone must keep working without granting them a
  * congregation-wide permission.
+ *
+ * `scope` says which slice of the event the route is about. It only ever widens who gets
+ * through: the service-parts delegation answers `'service'` and nothing else, while the
+ * whole-event one answers both. Routes that restructure the event — editing it, applying a
+ * template, releasing, deleting — stay on the default and so remain closed to a service
+ * responsible.
  */
 export async function canEditEvent(
   db: TransactionClient,
@@ -25,10 +32,11 @@ export async function canEditEvent(
   templateId: number | null,
   congregationId: number,
   required: Permission = Permission.CanManagePrograms,
+  scope: ResponsibilityScope = ResponsibilityScope.Programme,
 ): Promise<boolean> {
   if (can(required)) return true
   if (templateId == null) return false
-  const responsible = await isTemplateResponsible(db, templateId, userId, congregationId)
+  const responsible = await isTemplateResponsible(db, templateId, userId, congregationId, scope)
   return responsible != null
 }
 
@@ -37,20 +45,68 @@ export async function canEditEvent(
  *
  * The empty guard is deliberate: `roleId: { in: [] }` matches nothing today, but relying on
  * that would make "user holds no roles" correct by accident rather than by intent.
+ *
+ * Scoped to the whole-event delegation by default, and every caller wants that: this list
+ * drives "which programmes may you create, bulk-release, bulk-delete", none of which a
+ * service responsible may do. Pass `ResponsibilityScope.Service` only for a question that is
+ * genuinely about the service parts.
  */
 export async function getResponsibleTemplateIds(
   db: TransactionClient,
   userId: number,
   congregationId: number,
+  scope: ResponsibilityScope = ResponsibilityScope.Programme,
 ): Promise<number[]> {
   const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
   if (roleIds.length === 0) return []
 
   const rows = await db.templateResponsible.findMany({
-    where: { roleId: { in: roleIds }, congregationId },
+    where: { roleId: { in: roleIds }, congregationId, scope: { in: scopesCovering(scope) } },
     select: { templateId: true },
   })
-  return rows.map(r => r.templateId)
+  return [...new Set(rows.map(r => r.templateId))]
+}
+
+/**
+ * Whether an assignment row actually belongs to the event the caller was authorised on.
+ *
+ * `canEditEvent` answers "may you act on THIS event", keyed off the event id in the URL, while
+ * the writers in event-part-assignments.server.ts look their row up by (assignmentId,
+ * congregationId) alone. Nothing pairs the two, so without this check a caller authorised on
+ * one event can post an assignment id belonging to another event in the same congregation and
+ * the write goes through — which defeats per-template delegation, the service/programme split
+ * included.
+ *
+ * Checked in the routes rather than inside the writers: the event id is a property of the
+ * request, not of the assignment, and threading it through four writers with ~30 call sites
+ * each would say the same thing far less clearly.
+ */
+export async function assignmentBelongsToEvent(
+  db: TransactionClient,
+  kind: 'part' | 'service',
+  assignmentId: number,
+  eventId: number,
+  congregationId: number,
+): Promise<boolean> {
+  // A malformed `id` query param arrives as NaN; Prisma would reject it as an
+  // Int at the driver, so it is refused here as the bad request it is.
+  if (!Number.isInteger(assignmentId)) return false
+
+  const where = { id: assignmentId, eventId, congregationId }
+  const row =
+    kind === 'service'
+      ? await db.eventServicePart.findFirst({ where, select: { id: true } })
+      : await db.eventPart.findFirst({ where, select: { id: true } })
+
+  if (row == null) {
+    logger.warn('assignmentBelongsToEvent: assignment does not belong to the authorised event', {
+      kind,
+      assignmentId,
+      eventId,
+      congregationId,
+    })
+  }
+  return row != null
 }
 
 export async function canManageAnyProgram(

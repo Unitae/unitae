@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
@@ -290,6 +291,28 @@ describe('setTemplateResponsible', () => {
     const result = await setTemplateResponsible(db, 1, 5, 1)
     expect(result).toEqual(responsible)
   })
+
+  it('defaults to the whole-event delegation', async () => {
+    vi.mocked(db.templateResponsible.upsert).mockResolvedValue({} as never)
+
+    await setTemplateResponsible(db, 1, 5, 1)
+
+    const call = vi.mocked(db.templateResponsible.upsert).mock.calls[0][0]
+    expect(call.where.templateId_scope_congregationId).toEqual({ templateId: 1, scope: 'programme', congregationId: 1 })
+    expect(call.create).toMatchObject({ scope: 'programme' })
+  })
+
+  // The compound key is what keeps the two delegations independent: writing the
+  // service one must upsert its own row, not overwrite the programme role.
+  it('keys the upsert on the scope so each delegation owns its own row', async () => {
+    vi.mocked(db.templateResponsible.upsert).mockResolvedValue({} as never)
+
+    await setTemplateResponsible(db, 1, 9, 1, ResponsibilityScope.Service)
+
+    const call = vi.mocked(db.templateResponsible.upsert).mock.calls[0][0]
+    expect(call.where.templateId_scope_congregationId).toEqual({ templateId: 1, scope: 'service', congregationId: 1 })
+    expect(call.create).toMatchObject({ roleId: 9, scope: 'service' })
+  })
 })
 
 describe('removeTemplateResponsible', () => {
@@ -298,6 +321,17 @@ describe('removeTemplateResponsible', () => {
 
     const result = await removeTemplateResponsible(db, 1, 1)
     expect(result).toEqual({ count: 1 })
+  })
+
+  // Clearing one picker on the settings form must not blank the other.
+  it('deletes only the named scope', async () => {
+    vi.mocked(db.templateResponsible.deleteMany).mockResolvedValue({ count: 1 } as never)
+
+    await removeTemplateResponsible(db, 1, 1, ResponsibilityScope.Service)
+
+    expect(db.templateResponsible.deleteMany).toHaveBeenCalledWith({
+      where: { templateId: 1, scope: 'service', congregationId: 1 },
+    })
   })
 })
 
@@ -321,6 +355,30 @@ describe('isTemplateResponsible', () => {
 
     const result = await isTemplateResponsible(db, 1, 99, 1)
     expect(result).toBeNull()
+  })
+
+  it('asks only for the whole-event delegation by default', async () => {
+    vi.mocked(db.role.findMany).mockResolvedValue([{ id: 5 }] as never)
+    vi.mocked(db.templateResponsible.findFirst).mockResolvedValue(null as never)
+
+    await isTemplateResponsible(db, 1, 5, 1)
+
+    const where = vi.mocked(db.templateResponsible.findFirst).mock.calls[0][0]?.where as {
+      scope: { in: string[] }
+    }
+    expect(where.scope.in).toEqual(['programme'])
+  })
+
+  it('accepts either delegation when asked about the service parts', async () => {
+    vi.mocked(db.role.findMany).mockResolvedValue([{ id: 5 }] as never)
+    vi.mocked(db.templateResponsible.findFirst).mockResolvedValue(null as never)
+
+    await isTemplateResponsible(db, 1, 5, 1, ResponsibilityScope.Service)
+
+    const where = vi.mocked(db.templateResponsible.findFirst).mock.calls[0][0]?.where as {
+      scope: { in: string[] }
+    }
+    expect(where.scope.in).toEqual(expect.arrayContaining(['programme', 'service']))
   })
 })
 
