@@ -176,6 +176,26 @@ describe('verifySession', () => {
     expect(response.headers.get('Location')).toBe('/login?redirectTo=%2Fterritories%2F1%3Fx%3D2')
   })
 
+  // Regression: the request that trips the guard is usually a single-fetch one, so the captured
+  // path used to be `/territories/1.data` and signing back in landed the user on the loader
+  // endpoint instead of the page.
+  it('nettoie le suffixe single-fetch du redirectTo', async () => {
+    setSession({})
+
+    const response = await getRedirectResponse(() =>
+      verifySession(makeRequest('http://localhost/territories/1.data?_routes=routes%2Fterritories')),
+    )
+    expect(response.headers.get('Location')).toBe('/login?redirectTo=%2Fterritories%2F1')
+  })
+
+  it('ramène la racine décorée à /', async () => {
+    setSession({})
+
+    const response = await getRedirectResponse(() => verifySession(makeRequest('http://localhost/_.data')))
+    // buildLoginRedirectUrl drops a redirectTo of '/' entirely — nothing to preserve.
+    expect(response.headers.get('Location')).toBe('/login')
+  })
+
   it("redirige vers /login sans redirectTo si le subdomain ne correspond pas à l'assemblée de l'utilisateur", async () => {
     setSession({ userId: '42', sessionEpoch: '0' })
     vi.mocked(db.userAccount.findUnique).mockResolvedValue(fakeUser as never)
