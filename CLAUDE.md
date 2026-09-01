@@ -414,6 +414,7 @@ LOGIN_RATE_LIMIT_GLOBAL_MAX="100"      # Max failed login attempts instance-wide
 | `Cannot find module '~/database/generated/...'` | Run `pnpm prisma generate` |
 | Lint errors after schema changes | Run `pnpm build:format` to auto-fix most; check for new `biome-ignore` needs |
 | Integration tests fail with RLS errors | Ensure `DB_RUNTIME_URL` points to the `unitae_app` role (not superuser) |
+| `Refusing to run integration tests: …must carry a "test" token` | The suite truncates data, so it only runs against a disposable database. Point **both** `DB_URL` and `DB_RUNTIME_URL` at e.g. `unitae_test` — `DB_RUNTIME_URL` is often exported from a shell profile and left on `unitae_dev`. See [Testing](docs/development/testing.md#the-database-these-run-against) |
 | `prisma migrate dev` hangs in terminal | Use `prisma migrate diff --script` + manual migration + `prisma migrate deploy` |
 | Session not persisting in dev | Check `UNITAE_SESSION_SECRET` is set; cookie lifetime is 8h in dev, 1h in prod |
 | Port already in use | `lsof -i :5173` (dev server) or `lsof -i :9090` (worker health) |

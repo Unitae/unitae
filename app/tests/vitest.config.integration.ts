@@ -11,6 +11,9 @@ export default defineConfig({
     globals: false,
     environment: 'node',
     include: ['app/**/*.integration.test.ts'],
+    // Refuses to run against anything but a disposable test database — these suites truncate.
+    // See app/tests/assert-test-database.ts.
+    setupFiles: [resolve(import.meta.dirname, 'integration-setup.ts')],
     testTimeout: 30_000,
     // Integration files share one database, and migration tests execute real migration SQL, which
     // is global by nature — an INSERT referencing Member takes FOR KEY SHARE on the rows it points

@@ -6,6 +6,7 @@ import { resolveCongregation, resolveCongregationFromRequest } from '~/shared/do
 import { unscopedDb } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 import { getSessionSecrets } from '~/shared/utils/env.server'
+import { normalizeRedirectPath } from '~/shared/utils/safe-redirect.server'
 
 type SessionData = {
   userId: string
@@ -78,10 +79,16 @@ async function redirectToLogin(
   })
 }
 
+// Where to send the user back to once they have signed in again.
+//
+// Normalised because the request that trips the guard is very often NOT a document request: a
+// client-side navigation fetches `/programs.data`, and capturing that verbatim sends the user
+// to the loader endpoint after login instead of the page. Cleaned here as well as inside
+// safeRedirectUrl so the `?redirectTo=` the user actually sees in the address bar is a page.
 function extractRedirectTo(request: Request): string {
   try {
     const url = new URL(request.url)
-    return `${url.pathname}${url.search}`
+    return normalizeRedirectPath(`${url.pathname}${url.search}`)
   } catch {
     logger.warn(`verifySession: unable to parse request.url (${request.url})`)
     return '/'
