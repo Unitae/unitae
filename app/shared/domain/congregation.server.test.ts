@@ -12,7 +12,9 @@ vi.mock('react-router', () => ({
   }),
 }))
 
-const { resolveCongregation, resolveCongregationFromRequest, getPlatformName } = await import('./congregation.server')
+const { getBrandingName, resolveCongregation, resolveCongregationFromRequest, getPlatformName } = await import(
+  './congregation.server'
+)
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
@@ -233,5 +235,28 @@ describe('resolveCongregationFromRequest', () => {
 
     const result = await resolveCongregationFromRequest(makeRequest('https://custom-unknown.example.com/'))
     expect(result).toBeNull()
+  })
+})
+
+// Single-tenant mode assumes one congregation, and `findFirst` with no ordering asks Postgres
+// for "any row" — with a second one present (a stale import, a leftover test fixture) it can
+// return either, so the login page ends up branded with whichever one the planner reached
+// first, and the answer can change between requests.
+describe('getBrandingName — deterministic single-tenant pick', () => {
+  const singleTenant = { name: 'La Bonne Assemblée', displayName: null }
+
+  it('asks for a deterministic congregation rather than any row', async () => {
+    vi.mocked(db.congregation.findFirst).mockResolvedValue(singleTenant as never)
+
+    await getBrandingName()
+
+    const call = vi.mocked(db.congregation.findFirst).mock.calls[0][0]
+    expect(call?.orderBy).toEqual({ id: 'asc' })
+  })
+
+  it('still returns the congregation name it found', async () => {
+    vi.mocked(db.congregation.findFirst).mockResolvedValue(singleTenant as never)
+
+    await expect(getBrandingName()).resolves.toBe('La Bonne Assemblée')
   })
 })

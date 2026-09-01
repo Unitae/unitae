@@ -34,10 +34,13 @@ export async function resolveLocaleFromRequest(request: Request): Promise<string
     if (congregation) return congregation.locale ?? DEFAULT_LOCALE
   }
 
-  // 3. Single-tenant fallback: first congregation's locale
+  // 3. Single-tenant fallback: first congregation's locale.
+  // Ordered for the same reason as getBrandingName: with more than one row present this has to
+  // keep resolving to the same congregation instead of alternating between them.
   if (process.env.UNITAE_MULTI_TENANT !== 'true') {
     const first = await unscopedDb.congregation.findFirst({
       select: { locale: true },
+      orderBy: { id: 'asc' },
     })
 
     if (first) return first.locale ?? DEFAULT_LOCALE

@@ -134,8 +134,13 @@ export async function getBrandingName(request?: Request): Promise<string> {
       })
     }
   } else {
+    // Ordered because "the congregation" has to be the same one every time. Single-tenant mode
+    // assumes exactly one row, but a stale import or a leftover test fixture makes that false,
+    // and an unordered findFirst then brands the app with whichever row the planner reached
+    // first — differently from one request to the next.
     congregation = await unscopedDb.congregation.findFirst({
       select: { name: true, displayName: true },
+      orderBy: { id: 'asc' },
     })
   }
 

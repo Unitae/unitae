@@ -128,3 +128,18 @@ describe('resolveLocaleFromRequest', () => {
     expect(result).toBe('fr')
   })
 })
+
+// Same defect as getBrandingName: the single-tenant fallback means "the congregation", and an
+// unordered findFirst can hand back a different one from one request to the next.
+describe('resolveLocaleFromRequest — deterministic single-tenant fallback', () => {
+  it('asks for a deterministic congregation rather than any row', async () => {
+    vi.mocked(getSession).mockResolvedValue({ get: () => undefined } as never)
+    vi.mocked(resolveCongregationFromRequest).mockResolvedValue(null as never)
+    vi.mocked(db.congregation.findFirst).mockResolvedValue({ locale: 'en' } as never)
+
+    await resolveLocaleFromRequest(new Request('http://localhost/'))
+
+    const call = vi.mocked(db.congregation.findFirst).mock.calls[0][0]
+    expect(call?.orderBy).toEqual({ id: 'asc' })
+  })
+})
