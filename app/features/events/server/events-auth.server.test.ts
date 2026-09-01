@@ -4,6 +4,7 @@ import { Permission } from '~/shared/types/permission'
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     templateResponsible: { findFirst: vi.fn(), findMany: vi.fn() },
+    role: { findMany: vi.fn() },
     event: { findMany: vi.fn() },
   },
 }))
@@ -17,6 +18,7 @@ const CONGREGATION_ID = 4242
 const USER_ID = 7777
 const TEMPLATE_ID_OWNED = 1001
 const TEMPLATE_ID_OTHER = 2002
+const ROLE_ID = 5005
 
 const allowAll = (_p: Permission) => true
 const allowNone = (_p: Permission) => false
@@ -24,6 +26,9 @@ const allowOnly = (allowed: Permission) => (p: Permission) => p === allowed
 
 beforeEach(() => {
   vi.resetAllMocks()
+  // The caller holds a role by default, so these cases keep testing what they always did:
+  // whether that role is the template's responsible. The no-roles case is explicit below.
+  vi.mocked(db.role.findMany).mockResolvedValue([{ id: ROLE_ID }] as never)
 })
 
 describe('filterToManageableEventIds — required permission', () => {
@@ -122,7 +127,7 @@ describe('canEditEvent', () => {
     vi.mocked(db.templateResponsible.findFirst).mockResolvedValue({
       id: 1,
       templateId: TEMPLATE_ID_OWNED,
-      userId: USER_ID,
+      roleId: ROLE_ID,
       congregationId: CONGREGATION_ID,
     } as never)
 
@@ -154,6 +159,18 @@ describe('getResponsibleTemplateIds', () => {
 
     const result = await getResponsibleTemplateIds(db, USER_ID, CONGREGATION_ID)
     expect(result).toEqual([TEMPLATE_ID_OWNED, TEMPLATE_ID_OTHER])
+  })
+
+  // Guarded rather than left to `roleId: { in: [] }`, which matches nothing today but would
+  // give the right answer for the wrong reason. Whether the `in:` filter itself selects the
+  // correct rows is pinned in the integration suite — a mock returns what it is told.
+  it('returns an empty array without querying when the user holds no roles at all', async () => {
+    vi.mocked(db.role.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.templateResponsible.findMany).mockResolvedValue([{ templateId: TEMPLATE_ID_OWNED }] as never)
+
+    const result = await getResponsibleTemplateIds(db, USER_ID, CONGREGATION_ID)
+    expect(result).toEqual([])
+    expect(db.templateResponsible.findMany).not.toHaveBeenCalled()
   })
 })
 

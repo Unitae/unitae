@@ -109,7 +109,7 @@ export function loader({ context }: Route.LoaderArgs) {
       memberSafeQuery('dayoff-conflict', mid => getConflictingAssignments(db, mid)),
       canViewPrograms
         ? safeQuery('responsible-conflicts', currentUser.id, () =>
-            getResponsibleConflicts(db, currentUser.id, isProgramManager),
+            getResponsibleConflicts(db, currentUser.id, currentUser.congregationId, isProgramManager),
           )
         : Promise.resolve(null),
       canViewActivity

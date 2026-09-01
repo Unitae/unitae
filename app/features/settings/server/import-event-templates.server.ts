@@ -1,7 +1,10 @@
 import type JsZip from 'jszip'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { createLogger } from '~/shared/infra/logger.server'
 import type { EntityIdMap } from './data-transfer.type'
 import { readNdjsonFile } from './ndjson-archive'
+
+const logger = createLogger('import-event-templates')
 
 export async function importEventTemplates(
   zip: JsZip,
@@ -129,19 +132,38 @@ export async function importTemplateResponsibles(
   idMap: EntityIdMap,
   congregationId: number,
 ): Promise<void> {
-  const records = await readNdjsonFile<{ id: number; templateId: number; userId: number }>(
+  const records = await readNdjsonFile<{ id: number; templateId: number; roleId?: number; userId?: number }>(
     zip,
     'programme-template-responsibles',
   )
 
+  // Pre-2.7 archives name a UserAccount instead of a role. There is no safe mapping back —
+  // picking a role that user happens to hold would silently widen the delegation to everyone
+  // else in it — so those rows are dropped and counted, the same way v2.5 preset-level
+  // eligibility was. The file is still read so its presence never fails the import.
+  let skippedLegacy = 0
+
   for (const record of records) {
     const templateId = idMap.getOptional('programme-templates', record.templateId)
-    const userId = idMap.getOptional('user-accounts', record.userId)
-    if (!templateId || !userId) continue
+    if (!templateId) continue
+
+    if (record.roleId == null) {
+      skippedLegacy += 1
+      continue
+    }
+
+    const roleId = idMap.getOptional('roles', record.roleId)
+    if (!roleId) continue
 
     await db.templateResponsible.create({
-      data: { templateId, userId, congregationId },
+      data: { templateId, roleId, congregationId },
     })
+  }
+
+  if (skippedLegacy > 0) {
+    logger.info(
+      `Skipped ${skippedLegacy} pre-2.7 template responsible row(s): they name a user, not a role. Re-assign them in the template settings.`,
+    )
   }
 }
 

@@ -1,6 +1,11 @@
 import { requireNotLastAdmin } from '~/shared/auth/permissions.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
-import { BUILT_IN_ROLE_KEYS, isIdentityRoleKey, SYSTEM_ROLE_KEYS } from '~/shared/domain/built-in-roles.server'
+import {
+  BUILT_IN_ROLE_KEYS,
+  isIdentityRoleKey,
+  SERVICE_COMMITTEE_KEY,
+  SYSTEM_ROLE_KEYS,
+} from '~/shared/domain/built-in-roles.server'
 import { ConflictError, ForbiddenError, ValidationError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { Permission } from '~/shared/types/permission'
@@ -71,6 +76,44 @@ export async function listRoles(db: TransactionClient, congregationId: number): 
       if (b.isBuiltIn) return 1
       return getRoleDisplayName(a).localeCompare(getRoleDisplayName(b))
     })
+}
+
+/**
+ * Roles that can carry a delegated responsibility — today, an event template's responsible.
+ *
+ * Identity roles are excluded because they are reconciled from Member flags: nobody is ever
+ * granted one deliberately, so «every elder runs the midweek meeting» is a permission, not a
+ * delegation, and belongs on RolePermission. `service-committee` is excluded because it is a
+ * box in the chart whose membership derives from its posts — it is never a seat someone holds,
+ * so pointing a template at it would resolve to nobody.
+ *
+ * Deliberately NOT `accountAssignableRole()`: that filter drops `isSinglePerson` roles because
+ * granting a personal role from a checkbox list is wrong. Pointing a template at one is the
+ * opposite — a «Responsable …» post, seated once in the organigram with automatic handover, is
+ * the best possible answer to "who runs this programme".
+ */
+export async function listDelegatableRoles(db: TransactionClient, congregationId: number): Promise<RoleListItem[]> {
+  const roles = await db.role.findMany({
+    where: {
+      congregationId,
+      key: { notIn: [...BUILT_IN_ROLE_KEYS, SERVICE_COMMITTEE_KEY] },
+    },
+    include: {
+      _count: { select: { permissions: true, members: true } },
+    },
+  })
+
+  return roles
+    .map(role => ({
+      id: role.id,
+      key: role.key,
+      name: role.name,
+      description: role.description,
+      isBuiltIn: role.isBuiltIn,
+      permissionCount: role._count.permissions,
+      memberCount: role._count.members,
+    }))
+    .sort((a, b) => getRoleDisplayName(a).localeCompare(getRoleDisplayName(b)))
 }
 
 export interface RoleDetail {

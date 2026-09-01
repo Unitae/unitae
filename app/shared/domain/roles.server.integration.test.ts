@@ -16,6 +16,9 @@ vi.mock('~/shared/domain/audit.server', () => ({
 }))
 
 const { seedBuiltInRoles, seedPermissions } = await import('~/shared/domain/setup.server')
+const { BUILT_IN_ROLE_KEYS, SERVICE_COMMITTEE_KEY, SERVICE_COMMITTEE_POST_KEYS } = await import(
+  '~/shared/domain/built-in-roles.server'
+)
 const {
   createRole,
   updateRoleIdentity,
@@ -25,6 +28,7 @@ const {
   setUserCustomRoleAssignments,
   addUserToRole,
   removeUserFromRole,
+  listDelegatableRoles,
 } = await import('./roles.server')
 const { resolveEffectivePermissions } = await import('~/shared/auth/permissions.server')
 
@@ -286,5 +290,80 @@ describe('roles.server (integration)', () => {
 
     await withScope(congregationId, tx => deleteRole(tx, customA.id, congregationId, userId))
     await withScope(congregationId, tx => deleteRole(tx, customB.id, congregationId, userId))
+  })
+})
+
+// The eligibility rule is a `where` clause, so it is only meaningfully testable against a
+// real database: the mocked unit test would be asserting on the object handed to a spy, and
+// would pass against a filter that is subtly wrong.
+describe('listDelegatableRoles (integration)', () => {
+  it('returns a custom group role', async () => {
+    const custom = await withScope(congregationId, tx =>
+      createRole(tx, congregationId, userId, { name: `Equipe programme ${ts}`, description: null, permissionKeys: [] }),
+    )
+
+    const roles = await withScope(congregationId, tx => listDelegatableRoles(tx, congregationId))
+    expect(roles.map(r => r.key)).toContain(custom.key)
+
+    await withScope(congregationId, tx => deleteRole(tx, custom.id, congregationId, userId))
+  })
+
+  it('returns a personal (isSinglePerson) role', async () => {
+    // The whole point of the feature: a «Responsable …» post, seated once in the organigram
+    // with automatic handover, is the best answer to "who runs this programme". Reusing
+    // `accountAssignableRole()` here would silently drop exactly these.
+    const personal = await withScope(congregationId, tx =>
+      createRole(tx, congregationId, userId, {
+        name: `Responsable VCM ${ts}`,
+        description: null,
+        permissionKeys: [],
+        isSinglePerson: true,
+      }),
+    )
+
+    const roles = await withScope(congregationId, tx => listDelegatableRoles(tx, congregationId))
+    expect(roles.map(r => r.key)).toContain(personal.key)
+
+    await withScope(congregationId, tx => deleteRole(tx, personal.id, congregationId, userId))
+  })
+
+  it('excludes every identity role', async () => {
+    // Identity roles are reconciled from Member flags, so nobody is granted one deliberately.
+    // «every elder runs the midweek meeting» is a permission, not a delegation.
+    const roles = await withScope(congregationId, tx => listDelegatableRoles(tx, congregationId))
+    const keys = roles.map(r => r.key)
+
+    for (const identityKey of BUILT_IN_ROLE_KEYS) {
+      expect(keys).not.toContain(identityKey)
+    }
+  })
+
+  it('excludes the service committee, which is a box rather than a seat', async () => {
+    const roles = await withScope(congregationId, tx => listDelegatableRoles(tx, congregationId))
+    expect(roles.map(r => r.key)).not.toContain(SERVICE_COMMITTEE_KEY)
+  })
+
+  it('keeps the three committee posts, which are real personal seats', async () => {
+    const roles = await withScope(congregationId, tx => listDelegatableRoles(tx, congregationId))
+    const keys = roles.map(r => r.key)
+
+    for (const postKey of SERVICE_COMMITTEE_POST_KEYS) {
+      expect(keys).toContain(postKey)
+    }
+  })
+
+  it('does not leak roles from another congregation', async () => {
+    const otherCong = await testDb.congregation.create({
+      data: { name: `Roles Other ${ts}`, slug: `roles-other-${ts}`, active: true },
+    })
+    const otherCustom = await withScope(otherCong.id, tx =>
+      createRole(tx, otherCong.id, userId, { name: `Foreign ${ts}`, description: null, permissionKeys: [] }),
+    )
+
+    const roles = await withScope(congregationId, tx => listDelegatableRoles(tx, congregationId))
+    expect(roles.map(r => r.key)).not.toContain(otherCustom.key)
+
+    await testDb.role.deleteMany({ where: { congregationId: otherCong.id } })
+    await testDb.congregation.delete({ where: { id: otherCong.id } })
   })
 })

@@ -4,21 +4,29 @@ vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     eventPart: { findMany: vi.fn() },
     eventServicePart: { findMany: vi.fn() },
+    role: { findMany: vi.fn() },
   },
 }))
 
 const { getResponsibleConflicts } = await import('./get-responsible-conflicts.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
+const CONGREGATION_ID = 4242
+
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(db.eventPart.findMany).mockResolvedValue([] as never)
   vi.mocked(db.eventServicePart.findMany).mockResolvedValue([] as never)
+  // The caller holds a role by default so the non-manager path reaches the conflict queries.
+  // The no-roles short-circuit is asserted explicitly below.
+  vi.mocked(db.role.findMany).mockResolvedValue([{ id: ROLE_ID }] as never)
 })
+
+const ROLE_ID = 7007
 
 describe('getResponsibleConflicts', () => {
   it('returns zero count with no names when no conflicts exist', async () => {
-    const result = await getResponsibleConflicts(db, 42, false)
+    const result = await getResponsibleConflicts(db, 42, CONGREGATION_ID, false)
     expect(result).toEqual({ count: 0, absenteeNames: [], totalAbsenteesCount: 0 })
   })
 
@@ -27,7 +35,7 @@ describe('getResponsibleConflicts', () => {
   // event.template.responsibles.some.userId.
   it('scopes the query to templates the user is responsible for (non-manager)', async () => {
     const userId = 100
-    await getResponsibleConflicts(db, userId, false)
+    await getResponsibleConflicts(db, userId, CONGREGATION_ID, false)
 
     const partCall = vi.mocked(db.eventPart.findMany).mock.calls[0][0]
     const partWhere = partCall?.where as Record<string, unknown>
@@ -35,20 +43,20 @@ describe('getResponsibleConflicts', () => {
     expect(partWhere.event).toEqual({
       startDate: { gte: expect.any(Date) },
       status: 'released',
-      template: { responsibles: { some: { userId } } },
+      template: { responsibles: { some: { roleId: { in: [ROLE_ID] } } } },
     })
   })
 
   it('scopes the service-role query with the same template filter (non-manager)', async () => {
     const userId = 100
-    await getResponsibleConflicts(db, userId, false)
+    await getResponsibleConflicts(db, userId, CONGREGATION_ID, false)
 
     const serviceCall = vi.mocked(db.eventServicePart.findMany).mock.calls[0][0]
     const serviceWhere = serviceCall?.where as Record<string, unknown>
     expect(serviceWhere.event).toEqual({
       startDate: { gte: expect.any(Date) },
       status: 'released',
-      template: { responsibles: { some: { userId } } },
+      template: { responsibles: { some: { roleId: { in: [ROLE_ID] } } } },
     })
   })
 
@@ -57,7 +65,7 @@ describe('getResponsibleConflicts', () => {
   // Draft-event conflicts are not urgent enough for the dashboard; managers
   // see them on the events list amber badge and get blocked at release.
   it('drops the template filter for ProgramManager users but keeps the released filter', async () => {
-    await getResponsibleConflicts(db, 100, true)
+    await getResponsibleConflicts(db, 100, CONGREGATION_ID, true)
 
     const partCall = vi.mocked(db.eventPart.findMany).mock.calls[0][0]
     const partWhere = partCall?.where as Record<string, unknown>
@@ -65,8 +73,20 @@ describe('getResponsibleConflicts', () => {
     expect(partWhere.event).not.toHaveProperty('template')
   })
 
+  // Short-circuits before the two conflict queries: a user with no roles can be responsible
+  // for nothing, so leaning on `roleId: { in: [] }` would be right by accident.
+  it('returns an empty summary without querying when a non-manager holds no roles', async () => {
+    vi.mocked(db.role.findMany).mockResolvedValue([] as never)
+
+    const result = await getResponsibleConflicts(db, 100, CONGREGATION_ID, false)
+
+    expect(result).toEqual({ count: 0, absenteeNames: [], totalAbsenteesCount: 0 })
+    expect(db.eventPart.findMany).not.toHaveBeenCalled()
+    expect(db.eventServicePart.findMany).not.toHaveBeenCalled()
+  })
+
   it('only considers upcoming events (startDate >= now)', async () => {
-    await getResponsibleConflicts(db, 100, true)
+    await getResponsibleConflicts(db, 100, CONGREGATION_ID, true)
 
     const [partCall] = vi.mocked(db.eventPart.findMany).mock.calls[0]
     const event = (partCall as { where: { event: { startDate: { gte: Date } } } }).where.event
@@ -95,7 +115,7 @@ describe('getResponsibleConflicts', () => {
       },
     ] as never)
 
-    const result = await getResponsibleConflicts(db, 999, true)
+    const result = await getResponsibleConflicts(db, 999, CONGREGATION_ID, true)
     expect(result.count).toBe(1)
     expect(result.absenteeNames).toEqual(['Alice Dupont'])
   })
@@ -118,7 +138,7 @@ describe('getResponsibleConflicts', () => {
       },
     ] as never)
 
-    const result = await getResponsibleConflicts(db, 999, true)
+    const result = await getResponsibleConflicts(db, 999, CONGREGATION_ID, true)
     expect(result.count).toBe(2)
     expect(result.absenteeNames).toEqual(['Alice Dupont'])
   })
@@ -137,7 +157,7 @@ describe('getResponsibleConflicts', () => {
       { eventId: 2, assigneeId: 100, assignee: { firstname: 'Alice', lastname: 'Dupont' } },
     ] as never)
 
-    const result = await getResponsibleConflicts(db, 999, true)
+    const result = await getResponsibleConflicts(db, 999, CONGREGATION_ID, true)
     expect(result.absenteeNames).toEqual(['Alice Dupont'])
     expect(result.count).toBe(2)
   })
@@ -181,7 +201,7 @@ describe('getResponsibleConflicts', () => {
       },
     ] as never)
 
-    const result = await getResponsibleConflicts(db, 999, true)
+    const result = await getResponsibleConflicts(db, 999, CONGREGATION_ID, true)
     expect(result.absenteeNames).toEqual(['Alice A', 'Bob B', 'Charlie C'])
     expect(result.count).toBe(5)
     expect(result.totalAbsenteesCount).toBe(5)
@@ -209,7 +229,7 @@ describe('getResponsibleConflicts', () => {
       },
     ] as never)
 
-    const result = await getResponsibleConflicts(db, 999, true)
+    const result = await getResponsibleConflicts(db, 999, CONGREGATION_ID, true)
     expect(result.count).toBe(1)
     expect(result.absenteeNames).toEqual(['Alice Dupont'])
     expect(result.totalAbsenteesCount).toBe(1)
@@ -229,7 +249,7 @@ describe('getResponsibleConflicts', () => {
       },
     ] as never)
 
-    const result = await getResponsibleConflicts(db, 999, true)
+    const result = await getResponsibleConflicts(db, 999, CONGREGATION_ID, true)
     expect(result.absenteeNames.sort()).toEqual(['Reader Two', 'Speaker One'])
   })
 })
