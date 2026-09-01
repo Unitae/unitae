@@ -228,10 +228,6 @@ beforeAll(async () => {
       data: { name: 'Sound', key: `sound-${ts}`, templateId: template.id, congregationId: sourceId },
     })
 
-    await tx.templateResponsible.create({
-      data: { templateId: template.id, userId: alice.id, congregationId: sourceId },
-    })
-
     const event = await tx.event.create({
       data: {
         name: 'Test Event',
@@ -320,6 +316,12 @@ beforeAll(async () => {
 
     await tx.userRoleAssignment.create({
       data: { userId: alice.id, roleId: customRole.id, congregationId: sourceId },
+    })
+
+    // Declared here rather than next to the template: the responsible points at `customRole`,
+    // which does not exist yet at that point in the fixture.
+    await tx.templateResponsible.create({
+      data: { templateId: template.id, roleId: customRole.id, congregationId: sourceId },
     })
 
     const externalSpeaker = await tx.externalSpeaker.create({
@@ -814,7 +816,11 @@ describe('Export/Import round-trip', () => {
       expect(serviceParts).toHaveLength(1)
       const responsibles = await tx.templateResponsible.findMany({})
       expect(responsibles).toHaveLength(1)
-      expect(responsibles[0].userId).toBe(alice.id)
+      // Remapped onto the *target's* copy of the custom role, not the source id — the whole
+      // job of the id map. Asserting the source id here would pass only by coincidence.
+      const restoredCustomRole = await tx.role.findFirst({ where: { key: { startsWith: 'custom-' } } })
+      expect(restoredCustomRole).toBeDefined()
+      expect(responsibles[0].roleId).toBe(restoredCustomRole?.id)
 
       // Events + assignments
       const events = await tx.event.findMany({})
@@ -1382,6 +1388,86 @@ describe('AuditLog importer rewrites legacy entityType strings', () => {
       if (targetActorId > 0) {
         await testDb.userAccount.delete({ where: { id: targetActorId } })
       }
+      await testDb.congregation.delete({ where: { id: cong.id } })
+    }
+  })
+})
+
+// v2.7 moved the template responsible from a UserAccount to a Role. A congregation restoring
+// a backup taken before that must not hit a hard failure over it — the delegation is simply
+// gone and has to be re-picked, which is the same outcome the migration produced in place.
+describe('pre-2.7 template responsibles', () => {
+  it('imports a legacy archive without failing, dropping the user-shaped rows', async () => {
+    const { importTemplateResponsibles } = await import('./import-event-templates.server')
+    const cong = await testDb.congregation.create({
+      data: { name: `Legacy Resp ${ts}`, slug: `legacy-resp-${ts}`, active: true },
+    })
+    try {
+      const template = await withScope(cong.id, tx =>
+        tx.eventTemplate.create({
+          data: { name: 'Legacy Template', key: `legacy-tpl-${ts}`, congregationId: cong.id },
+        }),
+      )
+
+      const idMap = new EntityIdMap()
+      idMap.set('programme-templates', 1, template.id)
+      idMap.set('user-accounts', 7, 7)
+
+      const zip = new JsZip()
+      const dataDir = zip.folder('data')!
+      // The 2.6 shape: `userId`, no `roleId`.
+      dataDir.file('programme-template-responsibles.ndjson', `${JSON.stringify({ id: 1, templateId: 1, userId: 7 })}\n`)
+
+      await withScope(cong.id, tx => importTemplateResponsibles(zip, tx, idMap, cong.id))
+
+      const rows = await withScope(cong.id, tx => tx.templateResponsible.findMany({}))
+      expect(rows).toEqual([])
+    } finally {
+      await withScope(cong.id, async tx => {
+        await tx.templateResponsible.deleteMany({})
+        await tx.eventTemplate.deleteMany({})
+      })
+      await testDb.congregation.delete({ where: { id: cong.id } })
+    }
+  })
+
+  it('imports a 2.7 archive by remapping the roleId', async () => {
+    const { importTemplateResponsibles } = await import('./import-event-templates.server')
+    const cong = await testDb.congregation.create({
+      data: { name: `New Resp ${ts}`, slug: `new-resp-${ts}`, active: true },
+    })
+    try {
+      const template = await withScope(cong.id, tx =>
+        tx.eventTemplate.create({
+          data: { name: 'New Template', key: `new-tpl-${ts}`, congregationId: cong.id },
+        }),
+      )
+      const role = await withScope(cong.id, tx =>
+        tx.role.create({ data: { key: `new-resp-role-${ts}`, name: 'Responsable', congregationId: cong.id } }),
+      )
+
+      const idMap = new EntityIdMap()
+      idMap.set('programme-templates', 1, template.id)
+      idMap.set('roles', 42, role.id)
+
+      const zip = new JsZip()
+      const dataDir = zip.folder('data')!
+      dataDir.file(
+        'programme-template-responsibles.ndjson',
+        `${JSON.stringify({ id: 1, templateId: 1, roleId: 42 })}\n`,
+      )
+
+      await withScope(cong.id, tx => importTemplateResponsibles(zip, tx, idMap, cong.id))
+
+      const rows = await withScope(cong.id, tx => tx.templateResponsible.findMany({}))
+      expect(rows).toHaveLength(1)
+      expect(rows[0].roleId).toBe(role.id)
+    } finally {
+      await withScope(cong.id, async tx => {
+        await tx.templateResponsible.deleteMany({})
+        await tx.eventTemplate.deleteMany({})
+        await tx.role.deleteMany({})
+      })
       await testDb.congregation.delete({ where: { id: cong.id } })
     }
   })

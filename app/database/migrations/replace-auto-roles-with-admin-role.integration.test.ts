@@ -398,7 +398,18 @@ describe('20260826120000_replace_auto_roles_with_admin_role', () => {
     // guards against was introduced by adding eligibility tables over time and updating
     // only some of the subqueries. A new cascading table now fails here immediately.
     const eligibilityTables = c.cascadingRoleTables.filter(
-      t => !['RolePermission', 'UserRoleAssignment', 'MemberRoleAssignment'].includes(t),
+      t =>
+        ![
+          'RolePermission',
+          'UserRoleAssignment',
+          'MemberRoleAssignment',
+          // Cascades from Role only since 20260901000000, which is AFTER this migration. The
+          // catalog is read live, so it reports today's FK graph against a migration that ran
+          // when TemplateResponsible still pointed at a UserAccount and could not cascade from
+          // a role at all. Counting it here would be counting rows this SQL cannot destroy.
+          // A table that starts cascading BEFORE this migration still fails the check.
+          'TemplateResponsible',
+        ].includes(t),
     )
     const sql = readFileSync(MIGRATION_SQL, 'utf8')
     const uncounted = eligibilityTables.filter(t => !sql.includes(`"${t}"`))

@@ -1,4 +1,4 @@
-export const ARCHIVE_VERSION = '2.6'
+export const ARCHIVE_VERSION = '2.7'
 
 // Older archive versions an import will still accept. v1.0 archives miss every
 // post-shipping feature table (custom roles, allowed-roles, external speakers,
@@ -24,10 +24,25 @@ export const ARCHIVE_VERSION = '2.6'
 // own rows import through the part importers — and merges the three seeded
 // midweek talk kinds into 'midweek-talk'; the preset importer folds v2.5
 // archives accordingly and discards their preset-level eligibility with a log
-// line. v1.x archives are listed here so the import path reports
+// line. v2.7 moves a template's responsible from a UserAccount to a Role, so
+// `programme-template-responsibles.ndjson` carries `roleId` instead of `userId`;
+// pre-2.7 rows are skipped on import with a log line rather than guessed at,
+// because no mapping from a person back to "the role they meant" is safe.
+// v1.x archives are listed here so the import path reports
 // them with a warning rather than rejecting outright; a compatibility shim that
 // splits legacy `users.ndjson` is a deferred follow-up.
-export const SUPPORTED_ARCHIVE_VERSIONS = ['1.0', '1.1', '2.0', '2.1', '2.2', '2.3', '2.4', '2.5', '2.6'] as const
+export const SUPPORTED_ARCHIVE_VERSIONS = [
+  '1.0',
+  '1.1',
+  '2.0',
+  '2.1',
+  '2.2',
+  '2.3',
+  '2.4',
+  '2.5',
+  '2.6',
+  '2.7',
+] as const
 
 export interface ManifestJson {
   version: string

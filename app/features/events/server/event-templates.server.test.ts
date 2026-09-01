@@ -7,6 +7,7 @@ vi.mock('~/shared/infra/db.server', () => ({
     templatePart: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
     templateServicePart: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
     templateResponsible: { upsert: vi.fn(), deleteMany: vi.fn(), findFirst: vi.fn() },
+    role: { findMany: vi.fn() },
     templatePartAllowedRole: { createMany: vi.fn() },
     templateServicePartAllowedRole: { createMany: vi.fn() },
   },
@@ -57,14 +58,14 @@ describe('getTemplates', () => {
     expect(result).toEqual(fakeTemplates)
   })
 
-  it("pulls the responsible's linked member name so the list can render it", async () => {
+  it("pulls the responsible's role so the list can render its name", async () => {
     vi.mocked(db.eventTemplate.findMany).mockResolvedValue([] as never)
 
     await getTemplates(db, 1)
 
     const args = vi.mocked(db.eventTemplate.findMany).mock.calls[0][0]
     expect(args?.include?.responsibles).toMatchObject({
-      include: { user: { include: { member: { select: { firstname: true, lastname: true } } } } },
+      include: { role: { select: { id: true, key: true, name: true } } },
     })
   })
 })
@@ -85,14 +86,14 @@ describe('getTemplateById', () => {
     expect(result).toBeNull()
   })
 
-  it("pulls the responsible's linked member name so the view can render it", async () => {
+  it("pulls the responsible's role so the view can render its name", async () => {
     vi.mocked(db.eventTemplate.findFirst).mockResolvedValue(null as never)
 
     await getTemplateById(db, 1, 1)
 
     const args = vi.mocked(db.eventTemplate.findFirst).mock.calls[0][0]
     expect(args?.include?.responsibles).toMatchObject({
-      include: { user: { include: { member: { select: { firstname: true, lastname: true } } } } },
+      include: { role: { select: { id: true, key: true, name: true } } },
     })
   })
 })
@@ -282,8 +283,8 @@ describe('deleteTemplateServicePart', () => {
 })
 
 describe('setTemplateResponsible', () => {
-  it('upserts a responsible user for a template', async () => {
-    const responsible = { id: 1, templateId: 1, userId: 5 }
+  it('upserts a responsible role for a template', async () => {
+    const responsible = { id: 1, templateId: 1, roleId: 5 }
     vi.mocked(db.templateResponsible.upsert).mockResolvedValue(responsible as never)
 
     const result = await setTemplateResponsible(db, 1, 5, 1)
@@ -301,16 +302,22 @@ describe('removeTemplateResponsible', () => {
 })
 
 describe('isTemplateResponsible', () => {
-  it('returns the record when user is responsible', async () => {
-    const record = { id: 1, templateId: 1, userId: 5 }
+  it("returns the record when the user holds the template's responsible role", async () => {
+    const record = { id: 1, templateId: 1, roleId: 5 }
+    vi.mocked(db.role.findMany).mockResolvedValue([{ id: 5 }] as never)
     vi.mocked(db.templateResponsible.findFirst).mockResolvedValue(record as never)
 
     const result = await isTemplateResponsible(db, 1, 5, 1)
     expect(result).toEqual(record)
   })
 
-  it('returns null when user is not responsible', async () => {
-    vi.mocked(db.templateResponsible.findFirst).mockResolvedValue(null as never)
+  // The one branch a mocked test proves outright: it must short-circuit before querying,
+  // because `roleId: { in: [] }` would otherwise match nothing by accident rather than by
+  // intent. Whether the `in:` filter is actually correct is pinned in the integration suite —
+  // here the mock returns whatever it is told regardless of the `where`.
+  it('returns null without querying when the user holds no roles at all', async () => {
+    vi.mocked(db.role.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.templateResponsible.findFirst).mockResolvedValue({ id: 9 } as never)
 
     const result = await isTemplateResponsible(db, 1, 99, 1)
     expect(result).toBeNull()

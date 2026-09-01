@@ -26,13 +26,13 @@ import {
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
+import { getRoleDisplayName } from '~/shared/types/role'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
-import { formatPersonName, resolveAccountName } from '~/shared/utils/format-person-name'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/view'
@@ -193,7 +193,7 @@ export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
           {template.responsibles[0] && (
             <Badge variant="outline">
               <UserCog className="mr-1 size-3" />
-              {formatPersonName(resolveAccountName(template.responsibles[0].user))}
+              {getRoleDisplayName(template.responsibles[0].role)}
             </Badge>
           )}
         </div>

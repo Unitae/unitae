@@ -296,7 +296,6 @@ model UserAccount {
   documentsViewed          BoardDocument[]            @relation("viewedBy")
   documentVersionUploads   BoardDocumentVersion[]     @relation("boardDocumentVersionUploader")
   dynamicDocumentViews     BoardDynamicDocumentView[]
-  templateResponsibilities TemplateResponsible[]      @relation("templateResponsible")
   passwordResetTokens      PasswordResetToken[]
   emailVerificationTokens  EmailVerificationToken[]
   calendarFeedTokens       CalendarFeedToken[]
@@ -332,6 +331,7 @@ model Role {
   allowedForEventServiceParts    EventServicePartAllowedRole[]
   allowedForBoardSections        BoardSectionVisibilityRole[]
   allowedForTerritoryKinds       TerritoryKindAllowedRole[]
+  templateResponsibilities       TemplateResponsible[]           @relation("templateResponsible")
 
   // Organigram: reporting structure, and nothing else.
   //
@@ -1242,14 +1242,15 @@ model TemplateResponsible {
   template   EventTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   templateId Int
 
-  user   UserAccount @relation("templateResponsible", fields: [userId], references: [id], onDelete: Cascade)
-  userId Int
+  role   Role @relation("templateResponsible", fields: [roleId], references: [id], onDelete: Cascade)
+  roleId Int
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
 
   @@unique([templateId, congregationId])
   @@unique([id, congregationId])
+  @@index([roleId])
 }
 
 model PasswordResetToken {

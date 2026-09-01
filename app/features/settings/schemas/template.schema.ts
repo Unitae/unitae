@@ -110,7 +110,7 @@ export const deleteServicePartSchema = z.object({
 })
 
 export const templateResponsibleSchema = z.object({
-  userId: z
+  roleId: z
     .string()
     .optional()
     .transform(v => (v != null && v !== '' && v !== 'none' ? Number(v) : null))

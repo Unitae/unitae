@@ -29,6 +29,8 @@ let otherCongResponsibleId: number
 let templateOwnedId: number
 let templateOtherId: number
 let templateOtherCongId: number
+let responsibleRoleId: number
+let unrelatedRoleId: number
 
 const allowAll = (_p: Permission) => true
 const allowNone = (_p: Permission) => false
@@ -94,8 +96,28 @@ beforeAll(async () => {
     })
     templateOtherId = otherTpl.id
 
+    // The delegation now runs through a role: the template points at «Responsable», and Rose
+    // is seated in it. Pat holds a role too — just not that one — so "refused" cannot pass
+    // for the trivial reason of holding no roles at all.
+    const responsibleRole = await tx.role.create({
+      data: { key: `responsable-owned-${ts}`, name: 'Responsable du modele', congregationId: primaryCongId },
+    })
+    responsibleRoleId = responsibleRole.id
+
+    const unrelatedRole = await tx.role.create({
+      data: { key: `unrelated-${ts}`, name: 'Groupe sans rapport', congregationId: primaryCongId },
+    })
+    unrelatedRoleId = unrelatedRole.id
+
+    await tx.userRoleAssignment.create({
+      data: { userId: responsibleId, roleId: responsibleRoleId, kind: 'leader', congregationId: primaryCongId },
+    })
+    await tx.userRoleAssignment.create({
+      data: { userId: plainId, roleId: unrelatedRoleId, kind: 'member', congregationId: primaryCongId },
+    })
+
     await tx.templateResponsible.create({
-      data: { templateId: templateOwnedId, userId: responsibleId, congregationId: primaryCongId },
+      data: { templateId: templateOwnedId, roleId: responsibleRoleId, congregationId: primaryCongId },
     })
   })
 
@@ -117,8 +139,15 @@ beforeAll(async () => {
     })
     templateOtherCongId = otherCongTemplate.id
 
+    const foreignRole = await tx.role.create({
+      data: { key: `foreign-responsable-${ts}`, name: 'Responsable etranger', congregationId: otherCongId },
+    })
+    await tx.userRoleAssignment.create({
+      data: { userId: otherCongResponsibleId, roleId: foreignRole.id, kind: 'leader', congregationId: otherCongId },
+    })
+
     await tx.templateResponsible.create({
-      data: { templateId: templateOtherCongId, userId: otherCongResponsibleId, congregationId: otherCongId },
+      data: { templateId: templateOtherCongId, roleId: foreignRole.id, congregationId: otherCongId },
     })
   })
 })
@@ -129,6 +158,8 @@ afterAll(async () => {
     await withScope(congId, async tx => {
       await tx.templateResponsible.deleteMany({})
       await tx.eventTemplate.deleteMany({})
+      await tx.userRoleAssignment.deleteMany({})
+      await tx.role.deleteMany({})
       await tx.userAccount.deleteMany({})
     })
   }
@@ -142,7 +173,9 @@ describe('getResponsibleTemplateIds (integration)', () => {
     expect(result).toEqual([templateOwnedId])
   })
 
-  it('returns an empty array for a user with no responsibilities', async () => {
+  // Pat holds `unrelatedRoleId`, so this is a real refusal on the role check rather than the
+  // trivial "holds no roles at all" short-circuit, which the unit test already covers.
+  it("returns an empty array for a user whose roles are not any template's responsible", async () => {
     const result = await withScope(primaryCongId, tx => getResponsibleTemplateIds(tx, plainId, primaryCongId))
     expect(result).toEqual([])
   })
@@ -208,5 +241,98 @@ describe('canManageAnyProgram (integration)', () => {
   it('returns false for a plain non-manager user', async () => {
     const result = await withScope(primaryCongId, tx => canManageAnyProgram(tx, allowNone, plainId, primaryCongId))
     expect(result).toBe(false)
+  })
+})
+
+// The reason the indirection exists. None of this was expressible while the responsible was
+// a direct FK to a UserAccount: a handover meant an UPDATE on every template the outgoing
+// holder was named on.
+describe('handover through the role (integration)', () => {
+  it('moves the delegated access when the role is reseated, without touching the template', async () => {
+    const outgoing = await withScope(primaryCongId, tx =>
+      tx.userAccount.create({
+        data: {
+          email: `auth-outgoing-${ts}@test.com`,
+          password: 'hashed',
+          firstname: 'Otto',
+          lastname: 'Outgoing',
+          active: true,
+          congregationId: primaryCongId,
+        },
+      }),
+    )
+    const incoming = await withScope(primaryCongId, tx =>
+      tx.userAccount.create({
+        data: {
+          email: `auth-incoming-${ts}@test.com`,
+          password: 'hashed',
+          firstname: 'Ida',
+          lastname: 'Incoming',
+          active: true,
+          congregationId: primaryCongId,
+        },
+      }),
+    )
+
+    const role = await withScope(primaryCongId, tx =>
+      tx.role.create({
+        data: {
+          key: `handover-${ts}`,
+          name: 'Responsable handover',
+          isSinglePerson: true,
+          congregationId: primaryCongId,
+        },
+      }),
+    )
+    const template = await withScope(primaryCongId, tx =>
+      tx.eventTemplate.create({
+        data: { name: 'Handover Template', key: `handover-tpl-${ts}`, congregationId: primaryCongId },
+      }),
+    )
+
+    await withScope(primaryCongId, async tx => {
+      await tx.userRoleAssignment.create({
+        data: { userId: outgoing.id, roleId: role.id, kind: 'leader', congregationId: primaryCongId },
+      })
+      await tx.templateResponsible.create({
+        data: { templateId: template.id, roleId: role.id, congregationId: primaryCongId },
+      })
+    })
+
+    expect(
+      await withScope(primaryCongId, tx => canEditEvent(tx, allowNone, outgoing.id, template.id, primaryCongId)),
+    ).toBe(true)
+    expect(
+      await withScope(primaryCongId, tx => canEditEvent(tx, allowNone, incoming.id, template.id, primaryCongId)),
+    ).toBe(false)
+
+    // The handover: one write on the seat. Nothing touches TemplateResponsible.
+    await withScope(primaryCongId, async tx => {
+      await tx.userRoleAssignment.deleteMany({ where: { userId: outgoing.id, roleId: role.id } })
+      await tx.userRoleAssignment.create({
+        data: { userId: incoming.id, roleId: role.id, kind: 'leader', congregationId: primaryCongId },
+      })
+    })
+
+    expect(
+      await withScope(primaryCongId, tx => canEditEvent(tx, allowNone, incoming.id, template.id, primaryCongId)),
+    ).toBe(true)
+    expect(
+      await withScope(primaryCongId, tx => canEditEvent(tx, allowNone, outgoing.id, template.id, primaryCongId)),
+    ).toBe(false)
+
+    // The template row is untouched by the handover — that is the whole claim.
+    const row = await withScope(primaryCongId, tx =>
+      tx.templateResponsible.findFirst({ where: { templateId: template.id } }),
+    )
+    expect(row?.roleId).toBe(role.id)
+
+    await withScope(primaryCongId, async tx => {
+      await tx.templateResponsible.deleteMany({ where: { templateId: template.id } })
+      await tx.eventTemplate.deleteMany({ where: { id: template.id } })
+      await tx.userRoleAssignment.deleteMany({ where: { roleId: role.id } })
+      await tx.role.deleteMany({ where: { id: role.id } })
+      await tx.userAccount.deleteMany({ where: { id: { in: [outgoing.id, incoming.id] } } })
+    })
   })
 })

@@ -1,4 +1,5 @@
 import { isTemplateResponsible } from '~/features/events/server/event-templates.server'
+import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
@@ -31,13 +32,22 @@ export async function canEditEvent(
   return responsible != null
 }
 
+/**
+ * The templates the caller is responsible for, via the roles they hold.
+ *
+ * The empty guard is deliberate: `roleId: { in: [] }` matches nothing today, but relying on
+ * that would make "user holds no roles" correct by accident rather than by intent.
+ */
 export async function getResponsibleTemplateIds(
   db: TransactionClient,
   userId: number,
   congregationId: number,
 ): Promise<number[]> {
+  const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
+  if (roleIds.length === 0) return []
+
   const rows = await db.templateResponsible.findMany({
-    where: { userId, congregationId },
+    where: { roleId: { in: roleIds }, congregationId },
     select: { templateId: true },
   })
   return rows.map(r => r.templateId)

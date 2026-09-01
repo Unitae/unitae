@@ -687,11 +687,18 @@ describe('getConflictingAssignments (integration)', () => {
           congregationId,
         },
       })
-      // Bob is the responsible for this template; Alice is the absentee.
+      // Bob is the responsible for this template; Alice is the absentee. The delegation runs
+      // through a role, so Bob has to be seated in it rather than named on the template.
+      const responsibleRole = await tx.role.create({
+        data: { key: `resp-invariant-role-${ts}`, name: 'Responsable invariant', congregationId },
+      })
+      await tx.userRoleAssignment.create({
+        data: { userId: bobAccountId, roleId: responsibleRole.id, kind: 'leader', congregationId },
+      })
       await tx.templateResponsible.create({
         data: {
           templateId: template.id,
-          userId: bobAccountId,
+          roleId: responsibleRole.id,
           congregationId,
         },
       })
@@ -722,7 +729,9 @@ describe('getConflictingAssignments (integration)', () => {
 
     try {
       // Bob is the responsible; he sees the outstanding conflict on his template.
-      const before = await withScope(congregationId, tx => getResponsibleConflicts(tx, bobAccountId, false))
+      const before = await withScope(congregationId, tx =>
+        getResponsibleConflicts(tx, bobAccountId, congregationId, false),
+      )
       expect(before.count).toBe(1)
       expect(before.absenteeNames).toEqual(['Alice Dupont'])
 
@@ -735,7 +744,9 @@ describe('getConflictingAssignments (integration)', () => {
         }),
       )
 
-      const after = await withScope(congregationId, tx => getResponsibleConflicts(tx, bobAccountId, false))
+      const after = await withScope(congregationId, tx =>
+        getResponsibleConflicts(tx, bobAccountId, congregationId, false),
+      )
       expect(after).toEqual({ count: 0, absenteeNames: [], totalAbsenteesCount: 0 })
     } finally {
       await withScope(congregationId, async tx => {
@@ -744,6 +755,8 @@ describe('getConflictingAssignments (integration)', () => {
         })
         await tx.event.delete({ where: { id_congregationId: { id: setup.eventId, congregationId } } })
         await tx.templateResponsible.deleteMany({ where: { templateId: setup.templateId } })
+        await tx.userRoleAssignment.deleteMany({ where: { userId: bobAccountId } })
+        await tx.role.deleteMany({ where: { key: `resp-invariant-role-${ts}` } })
         await tx.eventTemplate.delete({
           where: { id_congregationId: { id: setup.templateId, congregationId } },
         })
@@ -784,11 +797,15 @@ describe('getConflictingAssignments (integration)', () => {
 
     try {
       // Bob is neither a template responsible nor a manager — must see nothing.
-      const nonManager = await withScope(congregationId, tx => getResponsibleConflicts(tx, bobAccountId, false))
+      const nonManager = await withScope(congregationId, tx =>
+        getResponsibleConflicts(tx, bobAccountId, congregationId, false),
+      )
       expect(nonManager.count).toBe(0)
 
       // ProgramManager path — same query, isProgramManager=true — must include it.
-      const asManager = await withScope(congregationId, tx => getResponsibleConflicts(tx, bobAccountId, true))
+      const asManager = await withScope(congregationId, tx =>
+        getResponsibleConflicts(tx, bobAccountId, congregationId, true),
+      )
       expect(asManager.count).toBe(1)
       expect(asManager.absenteeNames).toEqual(['Alice Dupont'])
     } finally {

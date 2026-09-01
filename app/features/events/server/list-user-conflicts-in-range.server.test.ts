@@ -58,7 +58,15 @@ describe('listUserConflictsInRange', () => {
         event: {
           startDate: new Date(2026, 6, 5),
           template: {
-            responsibles: [{ user: { firstname: 'Jean', lastname: 'Dupont', member: null } }],
+            responsibles: [
+              {
+                role: {
+                  key: 'responsable-vcm',
+                  name: 'Responsable VCM',
+                  members: [{ user: { firstname: 'Jean', lastname: 'Dupont', member: null } }],
+                },
+              },
+            ],
           },
         },
       },
@@ -83,10 +91,18 @@ describe('listUserConflictsInRange', () => {
           template: {
             responsibles: [
               {
-                user: {
-                  firstname: 'account-first',
-                  lastname: 'account-last',
-                  member: { firstname: 'Pierre', lastname: 'Martin' },
+                role: {
+                  key: 'responsable-vcm',
+                  name: 'Responsable VCM',
+                  members: [
+                    {
+                      user: {
+                        firstname: 'account-first',
+                        lastname: 'account-last',
+                        member: { firstname: 'Pierre', lastname: 'Martin' },
+                      },
+                    },
+                  ],
                 },
               },
             ],
@@ -135,10 +151,10 @@ describe('listUserConflictsInRange', () => {
     expect(result[0].responsibleName).toBeNull()
   })
 
-  // A template can carry multiple responsibles; each named person must
-  // surface so the absentee knows who to reach. Sorted alphabetically so
-  // the modal reads the same across renders.
-  it('joins every responsible name when a template has more than one, sorted alphabetically', async () => {
+  // One responsible role, but a role can seat several people — each must surface so the
+  // absentee knows who to reach. Sorted alphabetically so the modal reads the same across
+  // renders.
+  it('joins every holder of the responsible role, sorted alphabetically', async () => {
     vi.mocked(db.eventPart.findMany).mockResolvedValue([
       {
         name: 'Discours public',
@@ -146,8 +162,16 @@ describe('listUserConflictsInRange', () => {
           startDate: new Date(2026, 6, 5),
           template: {
             responsibles: [
-              { user: { firstname: 'Zoé', lastname: 'Petit', member: null } },
-              { user: { firstname: 'Alain', lastname: 'Roux', member: null } },
+              {
+                role: {
+                  key: 'responsable-vcm',
+                  name: 'Responsable VCM',
+                  members: [
+                    { user: { firstname: 'Zoé', lastname: 'Petit', member: null } },
+                    { user: { firstname: 'Alain', lastname: 'Roux', member: null } },
+                  ],
+                },
+              },
             ],
           },
         },
@@ -157,6 +181,27 @@ describe('listUserConflictsInRange', () => {
     const result = await listUserConflictsInRange(db, 5000, new Date(2026, 6, 1), new Date(2026, 6, 10))
 
     expect(result[0].responsibleName).toBe('Alain Roux, Zoé Petit')
+  })
+
+  // A responsible role nobody is seated in. Naming the role still beats the generic
+  // no-responsible line: it tells the absentee which post to chase, and it makes the gap
+  // visible instead of silently reading as "no responsible assigned".
+  it('falls back to the role name when the responsible role has no holders', async () => {
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
+      {
+        name: 'Discours public',
+        event: {
+          startDate: new Date(2026, 6, 5),
+          template: {
+            responsibles: [{ role: { key: 'responsable-vcm', name: 'Responsable VCM', members: [] } }],
+          },
+        },
+      },
+    ] as never)
+
+    const result = await listUserConflictsInRange(db, 5000, new Date(2026, 6, 1), new Date(2026, 6, 10))
+
+    expect(result[0].responsibleName).toBe('Responsable VCM')
   })
 
   it('merges part + service conflicts and sorts by eventDate ascending', async () => {

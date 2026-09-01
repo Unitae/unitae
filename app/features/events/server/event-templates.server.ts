@@ -3,12 +3,13 @@ import {
   setTemplatePartAllowedRoles,
   setTemplateServicePartAllowedRoles,
 } from '~/features/events/server/allowed-roles.server'
+import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 
 const responsibleInclude = {
-  include: { user: { include: { member: { select: { firstname: true, lastname: true } } } } },
+  include: { role: { select: { id: true, key: true, name: true } } },
 } as const
 
 export function getTemplates(db: TransactionClient, congregationId: number) {
@@ -213,17 +214,17 @@ export async function reorderTemplateParts(
 export function setTemplateResponsible(
   db: TransactionClient,
   templateId: number,
-  userId: number,
+  roleId: number,
   congregationId: number,
 ) {
   return db.templateResponsible.upsert({
     where: {
       templateId_congregationId: { templateId, congregationId },
     },
-    update: { userId },
+    update: { roleId },
     create: {
       templateId,
-      userId,
+      roleId,
       congregationId,
     },
   })
@@ -235,14 +236,28 @@ export function removeTemplateResponsible(db: TransactionClient, templateId: num
   })
 }
 
-export function isTemplateResponsible(
+/**
+ * The responsible row for this template, if the caller holds the role it points at.
+ *
+ * Still keyed by `userId` from the caller's side — the question routes ask has not changed —
+ * but the answer now goes through the role. `resolveEffectiveRoleIds` is the canonical
+ * resolver and unions the account-bound and member-bound assignment paths; hand-rolling that
+ * OR is how the two drift apart.
+ *
+ * The empty guard is not just an optimisation: `roleId: { in: [] }` matches nothing, so
+ * without it a user with no roles would get the right answer for the wrong reason.
+ */
+export async function isTemplateResponsible(
   db: TransactionClient,
   templateId: number,
   userId: number,
   congregationId: number,
 ) {
+  const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
+  if (roleIds.length === 0) return null
+
   return db.templateResponsible.findFirst({
-    where: { templateId, userId, congregationId },
+    where: { templateId, congregationId, roleId: { in: roleIds } },
   })
 }
 
