@@ -91,6 +91,26 @@ describe('normalizeRedirectPath', () => {
   it('does not touch a path that merely contains "data"', () => {
     expect(normalizeRedirectPath('/exports/data')).toBe('/exports/data')
   })
+
+  // The four below are the reason this does the least possible: the value flows straight into a
+  // Location header, so anything it rewrites is a URL the user is actually sent to. An earlier
+  // draft split on every '?' and round-tripped the query through URLSearchParams, which
+  // truncated, re-encoded and reshaped destinations that had nothing wrong with them.
+  it('keeps a literal question mark inside a query value', () => {
+    expect(normalizeRedirectPath('/search?q=a?b')).toBe('/search?q=a?b')
+  })
+
+  it('does not re-encode a query string it has no reason to touch', () => {
+    expect(normalizeRedirectPath('/search?q=a%20b')).toBe('/search?q=a%20b')
+  })
+
+  it('leaves a valueless query key alone', () => {
+    expect(normalizeRedirectPath('/search?flag')).toBe('/search?flag')
+  })
+
+  it('does not strip a trailing slash from an undecorated path', () => {
+    expect(normalizeRedirectPath('/programs/')).toBe('/programs/')
+  })
 })
 
 describe('safeRedirectUrl — single-fetch targets', () => {

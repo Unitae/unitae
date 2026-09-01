@@ -18,17 +18,32 @@ const ROOT_DATA_SUFFIX = /_\.data$/
 const DATA_SUFFIX = /\.data$/
 
 export function normalizeRedirectPath(url: string): string {
-  const [rawPath = '', rawSearch] = url.split('?')
+  // Split on the FIRST '?' only. `url.split('?')` discards everything after a second one, and a
+  // literal '?' inside a query value is common enough that browsers pass it through unencoded —
+  // truncating it would silently lose part of the destination.
+  const queryAt = url.indexOf('?')
+  const rawPath = queryAt === -1 ? url : url.slice(0, queryAt)
+  const rawSearch = queryAt === -1 ? null : url.slice(queryAt + 1)
 
-  let pathname = rawPath.endsWith('/_.data') ? rawPath.replace(ROOT_DATA_SUFFIX, '') : rawPath.replace(DATA_SUFFIX, '')
-  // `/_.data` strips to `/`, but a nested `/settings/_.data` strips to `/settings/` — trailing
-  // slashes are not how routes are addressed here, so drop it unless the path IS the root.
-  if (pathname.length > 1 && pathname.endsWith('/')) pathname = pathname.slice(0, -1)
-  if (pathname === '') pathname = '/'
+  // Only a decorated path is rewritten. Touching every path would quietly turn this into a
+  // general URL normaliser and start "fixing" trailing slashes that were never the problem.
+  let pathname = rawPath
+  if (rawPath.endsWith('.data')) {
+    pathname = rawPath.endsWith('/_.data') ? rawPath.replace(ROOT_DATA_SUFFIX, '') : rawPath.replace(DATA_SUFFIX, '')
+    // `/_.data` strips to `/`, but a nested `/settings/_.data` strips to `/settings/` — trailing
+    // slashes are not how routes are addressed here, so drop it unless the path IS the root.
+    if (pathname.length > 1 && pathname.endsWith('/')) pathname = pathname.slice(0, -1)
+    if (pathname === '') pathname = '/'
+  }
 
   if (rawSearch == null) return pathname
 
+  // Rebuild the query string only when there is something to remove. Round-tripping through
+  // URLSearchParams rewrites `%20` as `+` and turns a bare `?flag` into `?flag=` — gratuitous
+  // edits to a URL the user is about to be sent to.
   const params = new URLSearchParams(rawSearch)
+  if (!params.has('_routes')) return `${pathname}?${rawSearch}`
+
   params.delete('_routes')
   const search = params.toString()
   return search ? `${pathname}?${search}` : pathname
