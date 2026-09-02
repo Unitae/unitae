@@ -49,7 +49,13 @@ export interface BandBlock {
   node: OrganigramNode | null
   /** Whose responsibility this band falls under — «Sous la responsabilité : Coordinateur». */
   under: string | null
-  /** Rendered beneath, in order. */
+  /**
+   * Rendered beneath, in order — and deliberately heterogeneous: group roles (the real teams)
+   * sit alongside personal roles (adjoint arrangements). A caller that treats the two alike is
+   * the bug this list has already caused once, naming a post on the « ÉQUIPES » line. Split
+   * with `teamRows` before naming anything a team; a collector band (`node: null`) prints the
+   * list unfiltered, as full lines, where a personal role does belong.
+   */
   rows: OrganigramNode[]
 }
 
