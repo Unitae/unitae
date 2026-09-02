@@ -1,7 +1,14 @@
 import * as m from '~/i18n/paraglide/messages'
 import type { OrganigramNode } from '~/shared/domain/organigram.queries'
 import type { BandBlock, CommitteeBlock, RosterBlock } from '~/shared/domain/organigram-layout'
-import { groupLayout, responsibilityEyebrow, seatLabel, toLayout } from '~/shared/domain/organigram-layout'
+import {
+  bandAdjoints,
+  groupLayout,
+  responsibilityEyebrow,
+  seatLabel,
+  teamRows,
+  toLayout,
+} from '~/shared/domain/organigram-layout'
 import { cn } from '~/shared/utils/utils'
 
 // The board's rendering of the organigram — a document, not a tool.
@@ -79,17 +86,19 @@ const dot = (
  * A service and its teams as one line: « Audio/Vidéo — RESPONSABLE Philippe MARTIN · ADJOINTS
  * Sébastien ROUX, Jérôme MULLER · ÉQUIPES Perches, Estrade, Sono ».
  *
- * The team préposés fold into the service's adjoints — that is what they are to the person
- * reading the sheet: who helps the responsable run this. The teams themselves become names,
- * because who to ask for matters on a noticeboard; the full roster never did.
+ * The leaders of everything beneath fold into the service's adjoints — that is what they are to
+ * the person reading the sheet: who helps the responsable run this. Group roles then become
+ * names on the ÉQUIPES line, because who to ask for matters on a noticeboard; the full roster
+ * never did. A nested personal role is not a team and is not named there — it is already on the
+ * line above, as an adjoint.
  */
-function ServiceWithTeams({ node, teams }: { node: OrganigramNode; teams: OrganigramNode[] }) {
+function ServiceWithTeams({ node, rows }: { node: OrganigramNode; rows: OrganigramNode[] }) {
+  // Only group roles are teams; the personal roles among `rows` are adjoint arrangements and
+  // reach the reader through the ADJOINTS segment instead. Both halves of that rule live in
+  // organigram-layout so this view and the PDF cannot drift apart on it.
+  const teams = teamRows(rows)
   const leaders = node.holders.filter(holder => holder.kind === 'leader')
-  const seen = new Set(leaders.map(leader => leader.memberId))
-  const deputies = [
-    ...node.holders.filter(holder => holder.kind === 'deputy'),
-    ...teams.flatMap(team => team.holders.filter(holder => holder.kind === 'leader')),
-  ].filter(deputy => !seen.has(deputy.memberId) && seen.add(deputy.memberId))
+  const deputies = bandAdjoints(node, rows)
 
   return (
     <div className="flex flex-col gap-0.5 py-1.5 sm:flex-row sm:items-baseline sm:gap-6">
@@ -202,7 +211,7 @@ function BranchSection({ under, bands }: { under: string; bands: BandBlock[] }) 
       <div className="flex flex-col gap-1">
         {bands.map(band =>
           band.node ? (
-            <ServiceWithTeams key={band.id} node={band.node} teams={band.rows} />
+            <ServiceWithTeams key={band.id} node={band.node} rows={band.rows} />
           ) : (
             band.rows.map(row => <Line key={row.id} node={row} />)
           ),
@@ -247,7 +256,7 @@ export function OrganigramView({ tree }: { tree: OrganigramNode[] }) {
           <section className="flex flex-col gap-3 border-t pt-4">
             {legacy.map(block => {
               if (block.kind === 'row') return <Line key={block.id} node={block.node} />
-              if (block.node) return <ServiceWithTeams key={block.id} node={block.node} teams={block.rows} />
+              if (block.node) return <ServiceWithTeams key={block.id} node={block.node} rows={block.rows} />
               return block.rows.map(row => <Line key={row.id} node={row} />)
             })}
           </section>

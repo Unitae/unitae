@@ -2,7 +2,14 @@ import path from 'node:path'
 import { Document, Font, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import type { OrganigramHolder, OrganigramNode } from '~/shared/domain/organigram.queries'
 import type { BandBlock, CommitteeBlock, RosterBlock } from '~/shared/domain/organigram-layout'
-import { groupLayout, responsibilityEyebrow, seatLabel, toLayout } from '~/shared/domain/organigram-layout'
+import {
+  bandAdjoints,
+  groupLayout,
+  responsibilityEyebrow,
+  seatLabel,
+  teamRows,
+  toLayout,
+} from '~/shared/domain/organigram-layout'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 
 // The printable « Organisation des services » — the same sheet the board shows, as the A4 page
@@ -108,13 +115,13 @@ function Line({ node }: { node: OrganigramNode }) {
   )
 }
 
-function ServiceWithTeams({ node, teams }: { node: OrganigramNode; teams: OrganigramNode[] }) {
+function ServiceWithTeams({ node, rows }: { node: OrganigramNode; rows: OrganigramNode[] }) {
+  // Only group roles are teams; the personal roles among `rows` are adjoint arrangements and
+  // reach the reader through the ADJOINTS segment instead. Both halves of that rule live in
+  // organigram-layout so this view and the PDF cannot drift apart on it.
+  const teams = teamRows(rows)
   const leaders = node.holders.filter(holder => holder.kind === 'leader')
-  const seen = new Set(leaders.map(leader => leader.memberId))
-  const deputies = [
-    ...node.holders.filter(holder => holder.kind === 'deputy'),
-    ...teams.flatMap(team => team.holders.filter(holder => holder.kind === 'leader')),
-  ].filter(deputy => !seen.has(deputy.memberId) && seen.add(deputy.memberId))
+  const deputies = bandAdjoints(node, rows)
 
   return (
     <View style={styles.line} wrap={false}>
@@ -196,7 +203,7 @@ function Bands({ bands }: { bands: BandBlock[] }) {
     <>
       {bands.map(band =>
         band.node ? (
-          <ServiceWithTeams key={band.id} node={band.node} teams={band.rows} />
+          <ServiceWithTeams key={band.id} node={band.node} rows={band.rows} />
         ) : (
           band.rows.map(row => <Line key={row.id} node={row} />)
         ),
@@ -246,7 +253,7 @@ export function OrganigramDocument({
           <View style={styles.section}>
             {legacy.map(block => {
               if (block.kind === 'row') return <Line key={block.id} node={block.node} />
-              if (block.node) return <ServiceWithTeams key={block.id} node={block.node} teams={block.rows} />
+              if (block.node) return <ServiceWithTeams key={block.id} node={block.node} rows={block.rows} />
               return block.rows.map(row => <Line key={row.id} node={row} />)
             })}
           </View>
