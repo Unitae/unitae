@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { SERVICE_COMMITTEE_KEY, SERVICE_COMMITTEE_POST_KEYS } from '~/shared/domain/built-in-roles.server'
 import type { OrganigramNode } from '~/shared/domain/organigram.queries'
-import { groupLayout, responsibilityEyebrow, seatLabel, toLayout } from './organigram-layout'
+import { bandAdjoints, groupLayout, responsibilityEyebrow, seatLabel, teamRows, toLayout } from './organigram-layout'
 
 // The printed "Organisation des services" sheet has no connector lines and no deep indentation.
 // It groups children under band headers — « Sous la responsabilité du secrétaire » — and prints
@@ -245,5 +245,97 @@ describe('responsibilityEyebrow — the French contraction', () => {
   it('elides before a vowel, accented or not', () => {
     expect(responsibilityEyebrow('Audio/Vidéo')).toBe('Sous la responsabilité de l’')
     expect(responsibilityEyebrow('Équipe technique')).toBe('Sous la responsabilité de l’')
+  })
+})
+
+// A band's rows are not all teams. A personal role nested under another personal role is an
+// adjoint arrangement — the settled model treats a child personal role as an adjoint, and its
+// titulaire already folds into the parent's ADJOINTS — so naming it on the « ÉQUIPES » line
+// announces a post as if it were a team, which is what the board sheet was doing.
+describe('teamRows', () => {
+  const porte = node({ name: 'Porte' })
+  const auditorium = node({ name: 'Auditorium' })
+  const adjointPost = node({ name: 'Responsable du programme des services', isSinglePerson: true })
+
+  it('keeps group roles', () => {
+    expect(teamRows([porte, auditorium]).map(row => row.name)).toEqual(['Porte', 'Auditorium'])
+  })
+
+  it('drops a personal role, which is an adjoint and not a team', () => {
+    expect(teamRows([adjointPost]).map(row => row.name)).toEqual([])
+  })
+
+  it('keeps the teams and drops the post when a band has both', () => {
+    expect(teamRows([porte, adjointPost, auditorium]).map(row => row.name)).toEqual(['Porte', 'Auditorium'])
+  })
+
+  it('preserves order', () => {
+    expect(teamRows([auditorium, porte]).map(row => row.name)).toEqual(['Auditorium', 'Porte'])
+  })
+
+  it('returns nothing for an empty band', () => {
+    expect(teamRows([])).toEqual([])
+  })
+})
+
+// The other half of the same rule. A band folds the leaders of everything beneath it into its
+// ADJOINTS line — that is how a team's préposé and a nested post's titulaire both reach the
+// reader. Extracted from the two renderers, which carried identical copies: the screen view and
+// the PDF drifting apart is how a fix lands in one and not the other.
+describe('bandAdjoints', () => {
+  const holder = (memberId: number, kind: string) => ({
+    roleId: 0,
+    memberId,
+    firstname: `F${memberId}`,
+    lastname: `L${memberId}`,
+    anonymizedAt: null,
+    kind,
+    isElder: false,
+  })
+
+  it("folds a team's leader in as an adjoint", () => {
+    const service = node({ holders: [holder(1, 'leader')] })
+    const team = node({ holders: [holder(2, 'leader')] })
+
+    expect(bandAdjoints(service, [team]).map(a => a.memberId)).toEqual([2])
+  })
+
+  // The point of the fix: a nested personal role contributes its titulaire here, so removing its
+  // name from the ÉQUIPES line loses nothing — the person is still on the sheet.
+  it("folds a nested post's titulaire in as an adjoint", () => {
+    const post = node({ isSinglePerson: true, holders: [holder(1, 'leader')] })
+    const child = node({ isSinglePerson: true, holders: [holder(2, 'leader')] })
+
+    expect(bandAdjoints(post, [child]).map(a => a.memberId)).toEqual([2])
+    expect(teamRows([child])).toEqual([])
+  })
+
+  it("keeps the band's own deputies, ahead of the folded ones", () => {
+    const service = node({ holders: [holder(1, 'leader'), holder(2, 'deputy')] })
+    const team = node({ holders: [holder(3, 'leader')] })
+
+    expect(bandAdjoints(service, [team]).map(a => a.memberId)).toEqual([2, 3])
+  })
+
+  it('never repeats someone who already leads the band', () => {
+    const service = node({ holders: [holder(1, 'leader')] })
+    const team = node({ holders: [holder(1, 'leader')] })
+
+    expect(bandAdjoints(service, [team])).toEqual([])
+  })
+
+  it('lists someone leading two teams once', () => {
+    const service = node({ holders: [holder(1, 'leader')] })
+    const a = node({ holders: [holder(2, 'leader')] })
+    const b = node({ holders: [holder(2, 'leader')] })
+
+    expect(bandAdjoints(service, [a, b]).map(x => x.memberId)).toEqual([2])
+  })
+
+  it('ignores plain members beneath the band', () => {
+    const service = node({ holders: [holder(1, 'leader')] })
+    const team = node({ holders: [holder(2, 'leader'), holder(3, 'member')] })
+
+    expect(bandAdjoints(service, [team]).map(a => a.memberId)).toEqual([2])
   })
 })

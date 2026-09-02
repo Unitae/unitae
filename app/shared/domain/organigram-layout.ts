@@ -1,4 +1,4 @@
-import type { OrganigramNode } from '~/shared/domain/organigram.queries'
+import type { OrganigramHolder, OrganigramNode } from '~/shared/domain/organigram.queries'
 
 // Turning the tree into the layout the printed sheet uses.
 //
@@ -158,6 +158,38 @@ export function seatLabel(
   if (holder.kind !== 'leader' || node.isSinglePerson) return null
   if (LEADER_TITLE_PREFIXES.some(prefix => name.startsWith(prefix))) return null
   return holder.isElder ? 'Responsable' : 'Préposé'
+}
+
+/**
+ * The rows a band names on its « ÉQUIPES » line.
+ *
+ * A band's rows are not all teams. A personal role nested under another personal role is an
+ * adjoint arrangement — the settled model treats a child personal role as an adjoint, and
+ * ServiceWithTeams already folds its titulaire into the parent's ADJOINTS. Naming it here as
+ * well announced a post as if it were a team: « ÉQUIPE Responsable du programme des services ».
+ *
+ * Filtered at render time rather than in `toLayout`, because a collector band (`node: null`)
+ * prints the same rows as full lines, people and all — there a personal role belongs.
+ */
+export function teamRows(rows: OrganigramNode[]): OrganigramNode[] {
+  return rows.filter(row => !row.isSinglePerson)
+}
+
+/**
+ * The people a band prints as its ADJOINTS.
+ *
+ * Its own deputies first, then the leaders of everything beneath it — a team's préposé and a
+ * nested post's titulaire alike. That fold is why `teamRows` can drop a nested post from the
+ * ÉQUIPES line without losing anybody: the person is already here.
+ *
+ * Anyone already leading the band is skipped, and nobody appears twice.
+ */
+export function bandAdjoints(node: OrganigramNode, rows: OrganigramNode[]): OrganigramHolder[] {
+  const seen = new Set(node.holders.filter(holder => holder.kind === 'leader').map(leader => leader.memberId))
+  return [
+    ...node.holders.filter(holder => holder.kind === 'deputy'),
+    ...rows.flatMap(row => row.holders.filter(holder => holder.kind === 'leader')),
+  ].filter(adjoint => !seen.has(adjoint.memberId) && seen.add(adjoint.memberId))
 }
 
 export interface GroupedLayout {
