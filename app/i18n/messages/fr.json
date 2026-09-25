@@ -1195,6 +1195,7 @@
     "activity_export_dialog_generating": "Génération en cours… cela peut prendre jusqu'à une minute selon le nombre de proclamateurs.",
     "activity_export_dialog_error_scope": "Veuillez choisir un groupe ou au moins un proclamateur.",
     "activity_export_dialog_error_generic": "La génération de l'export a échoué. Veuillez réessayer.",
+    "activity_export_dialog_error_redirected": "Vous n'avez plus accès à cet export, ou votre session a expiré. Rechargez la page.",
     "activity_table_firstname": "Prénom",
     "activity_table_lastname": "Nom",
     "activity_table_group": "Groupe",

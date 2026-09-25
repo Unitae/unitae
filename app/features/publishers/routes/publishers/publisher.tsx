@@ -57,6 +57,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const canViewPublisher = permissions.has(Permission.CanViewPublishers)
   const canManagePublisher = permissions.has(Permission.CanManagePublishers)
   const canManageActivity = permissions.has(Permission.CanRecordActivity)
+  // The S-21 route itself only admits this permission, so the button and its year list follow it.
+  const canDownloadS21 = canManagePublisher && canManageActivity
   const canViewActivity = permissions.has(Permission.CanViewActivity)
   const canViewTerritories = permissions.has(Permission.CanViewTerritories)
   const canViewPrograms = permissions.has(Permission.CanViewPrograms)
@@ -89,7 +91,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
         canViewAbsences
           ? findUpcomingAbsencesForMember(db, publisherId, currentUser.congregationId as CongregationId, now)
           : Promise.resolve(null),
-        canViewActivity
+        canDownloadS21
           ? listTheocraticYearsWithActivity(db, currentUser.congregationId, { publisherId })
           : Promise.resolve([]),
       ])
@@ -123,6 +125,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
         canManagePublisher,
         canViewTerritories,
         canManageEmergency: canManageEmergencyInfo(emergencyAccess),
+        canDownloadS21,
         canManageActivity:
           canManageActivity ||
           publisher.publisherGroup?.responsible.id === currentUser.member?.id ||
@@ -130,6 +133,38 @@ export function loader({ params, context }: Route.LoaderArgs) {
       },
     }
   })
+}
+
+function DownloadS21Button({
+  publisherId,
+  years,
+  defaultYear,
+}: {
+  publisherId: number
+  years: number[]
+  defaultYear: number
+}) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <>
+      <Button
+        variant="outline"
+        size="icon"
+        title={m.publishers_view_download_s21_title()}
+        onClick={() => setOpen(true)}
+      >
+        <Download className="size-4" />
+      </Button>
+      <ExportActivityDialog
+        open={open}
+        onOpenChange={setOpen}
+        availableYears={years}
+        defaultYear={defaultYear}
+        publisherId={publisherId}
+      />
+    </>
+  )
 }
 
 function LifecycleAction({
@@ -299,7 +334,6 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
     emergency,
     roles,
   } = loaderData
-  const [exportOpen, setExportOpen] = useState(false)
 
   return (
     <div className="flex flex-col gap-6">
@@ -320,26 +354,8 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
         actions={
           roles.canManagePublisher && (
             <>
-              {roles.canManageActivity && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    title={m.publishers_view_download_s21_title()}
-                    onClick={() => setExportOpen(true)}
-                  >
-                    <Download className="size-4" />
-                  </Button>
-                  <ExportActivityDialog
-                    open={exportOpen}
-                    onOpenChange={setExportOpen}
-                    availableYears={activityYears}
-                    defaultYear={serviceYear}
-                    publisherGroups={[]}
-                    members={[]}
-                    publisherId={publisher.id}
-                  />
-                </>
+              {roles.canDownloadS21 && (
+                <DownloadS21Button publisherId={publisher.id} years={activityYears} defaultYear={serviceYear} />
               )}
               <Button asChild variant="outline" size="icon" title={m.publishers_view_edit_title()}>
                 <Link to="../edit" relative="path">

@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import { formatGroupName } from '~/shared/utils/format-group-name'
 
 type ExportFormat = 'xlsx' | 'pdfs'
+// What actually gets downloaded: the user's format, or one S-21 PDF in single-publisher mode.
+type DownloadKind = ExportFormat | 'pdf'
 type ExportScope = 'all' | 'group' | 'members'
 
 export interface PublisherGroupOption {
@@ -21,11 +23,13 @@ export interface PublisherGroupOption {
 interface ExportActivityDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  // Newest first, as listTheocraticYearsWithActivity returns them.
   availableYears: number[]
   defaultYear: number
-  publisherGroups: PublisherGroupOption[]
-  members: MemberOption[]
-  // When set, the dialog exports this one publisher's S-21: only the year is asked.
+  publisherGroups?: PublisherGroupOption[]
+  members?: MemberOption[]
+  // When set, the dialog exports this one publisher's S-21: only the year is asked, and
+  // publisherGroups / members are not needed.
   publisherId?: number
 }
 
@@ -34,8 +38,8 @@ export function ExportActivityDialog({
   onOpenChange,
   availableYears,
   defaultYear,
-  publisherGroups,
-  members,
+  publisherGroups = [],
+  members = [],
   publisherId,
 }: ExportActivityDialogProps) {
   const startYear = initialExportYear(availableYears, defaultYear)
@@ -77,11 +81,17 @@ export function ExportActivityDialog({
     setIsGenerating(true)
     try {
       const response = await fetch(url)
-      // A permission redirect lands on the home page with a 200: never save that as a file.
-      if (!response.ok || response.redirected) throw new Error(`Export failed: ${response.status}`)
+      // fetch follows redirects, so a missing-permission or expired-session redirect arrives as an
+      // HTML page with a 200. Never save that as a file, and do not suggest retrying: it cannot help.
+      if (response.redirected) {
+        setError(m.activity_export_dialog_error_redirected())
+        return
+      }
+      if (!response.ok) throw new Error(`Export failed: ${response.status}`)
 
+      const kind: DownloadKind = singlePublisher ? 'pdf' : format
       const disposition = response.headers.get('Content-Disposition') ?? ''
-      const filename = parseFilename(disposition) ?? fallbackFilename(singlePublisher ? 'pdf' : format, year)
+      const filename = parseFilename(disposition) ?? fallbackFilename(kind, year)
       const blob = await response.blob()
       triggerBlobDownload(blob, filename)
       handleClose(false)
@@ -261,8 +271,9 @@ function ScopeField(props: ScopeFieldProps) {
   )
 }
 
-// The select only offers years with reports, so the seed year must be one of them or the
-// trigger renders empty and the export silently targets a year nobody can see.
+// availableYears is newest first. The select offers exactly those years, or just defaultYear when
+// there are none (see yearsForSelect), so the seed must be one of them or the trigger renders
+// empty and the export silently targets a year nobody can see.
 export function initialExportYear(availableYears: number[], defaultYear: number): number {
   if (availableYears.length === 0 || availableYears.includes(defaultYear)) return defaultYear
   return availableYears[0]
@@ -299,9 +310,9 @@ function parseFilename(contentDisposition: string): string | null {
   return match?.[1] ?? null
 }
 
-function fallbackFilename(format: ExportFormat | 'pdf', year: number): string {
-  if (format === 'pdf') return `S-21_F-${year}.pdf`
-  return format === 'xlsx' ? `Activité-Proclamateurs-${year}.xlsx` : `Activité-${year}.zip`
+function fallbackFilename(kind: DownloadKind, year: number): string {
+  if (kind === 'pdf') return `S-21_F-${year}.pdf`
+  return kind === 'xlsx' ? `Activité-Proclamateurs-${year}.xlsx` : `Activité-${year}.zip`
 }
 
 function triggerBlobDownload(blob: Blob, filename: string): void {

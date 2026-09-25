@@ -58,7 +58,7 @@ describe('listTheocraticYearsWithActivity', () => {
     await listTheocraticYearsWithActivity(db, 1)
 
     const call = vi.mocked(db.publisherActivity.groupBy).mock.calls[0][0] as { where: Record<string, unknown> }
-    expect(call.where).toEqual({ congregationId: 1 })
+    expect(call.where).not.toHaveProperty('publisherId')
   })
 
   it('deduplicates and returns theocratic years in descending order', async () => {

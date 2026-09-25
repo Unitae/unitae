@@ -118,12 +118,11 @@ describe('buildActivityPdfZip', () => {
     expect(Object.keys(zip.files).sort()).toEqual(['Alice-Martin.pdf', 'Bob-Durand.pdf', "Claire-O'Connor.pdf"])
   })
 
-  it('renders every sheet for the requested service year rather than inferring it from the reports', async () => {
+  it('passes the requested service year to every document', async () => {
     const { pdf } = await import('@react-pdf/renderer')
-    // Reports that only start in May 2025 must still print on a 2024-2025 sheet.
-    const publishers = [
-      { id: 1, firstname: 'Aubeline', lastname: 'Martin', activities: [{ month: 4, year: 2025, hours: 10 }] },
-    ]
+    // Only the threading is proven here; the sheet layout for a given year is covered by
+    // service-year-activity-rows.test.ts.
+    const publishers = [{ id: 1, firstname: 'Aubeline', lastname: 'Martin', activities: [] }]
 
     await buildActivityPdfZip(publishers as never, 2024)
 

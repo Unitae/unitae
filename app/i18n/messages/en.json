@@ -1193,6 +1193,7 @@
     "activity_export_dialog_generating": "Generating… this may take up to a minute depending on the number of publishers.",
     "activity_export_dialog_error_scope": "Please pick a group or at least one publisher.",
     "activity_export_dialog_error_generic": "Export generation failed. Please try again.",
+    "activity_export_dialog_error_redirected": "You no longer have access to this export, or your session has expired. Reload the page.",
     "activity_table_firstname": "First name",
     "activity_table_lastname": "Last name",
     "activity_table_group": "Group",
