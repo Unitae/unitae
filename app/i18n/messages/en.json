@@ -1173,6 +1173,7 @@
     "activity_export_button_title": "Download exports",
     "activity_export_dialog_title": "Export activity",
     "activity_export_dialog_description": "Choose the format, service year and scope of the export.",
+    "activity_export_dialog_single_description": "Choose the service year of the S-21 to download.",
     "activity_export_dialog_format_label": "Format",
     "activity_export_dialog_format_pdfs": "S-21 (PDF ZIP)",
     "activity_export_dialog_format_pdfs_hint": "Official form, one PDF per publisher.",

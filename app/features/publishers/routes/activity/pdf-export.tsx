@@ -51,7 +51,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     getPublishersWithYearActivities(db, currentUser.congregationId, year, { groupId, publisherIds }),
   )
 
-  const file = await buildActivityPdfZip(publishers)
+  const file = await buildActivityPdfZip(publishers, year)
 
   const today = new Date()
   return new Response(file, {

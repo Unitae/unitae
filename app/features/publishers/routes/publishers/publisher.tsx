@@ -1,12 +1,15 @@
 import { Download, Pencil, RotateCcw, UserCheck, UserMinus, Zap, ZapOff } from 'lucide-react'
+import { useState } from 'react'
 import { Form, Link, redirect, useSubmit } from 'react-router'
 import { findUpcomingAbsencesForMember, findUpcomingAssignmentsForMember } from '~/features/events/index.server'
 import { toServiceYear } from '~/features/publishers'
 import { canManageEmergencyInfo, canViewEmergencyInfo } from '~/features/publishers/model/emergency-access'
 import { getEmergencyInfoForMember } from '~/features/publishers/server/emergency.queries'
+import { listTheocraticYearsWithActivity } from '~/features/publishers/server/list-theocratic-years-with-activity.server'
 import { getPioneerActivityForMember } from '~/features/publishers/server/pioneer-activity.queries'
 import { getPublisherById } from '~/features/publishers/server/publishers.server'
 import EmergencyInfoView, { type EmergencyInfoViewData } from '~/features/publishers/ui/EmergencyInfoView'
+import { ExportActivityDialog } from '~/features/publishers/ui/ExportActivityDialog'
 import { PioneerActivitySection, pioneerProfileLabel } from '~/features/publishers/ui/PioneerActivitySection'
 import { PublisherEngagementCards } from '~/features/publishers/ui/PublisherEngagementCards'
 import { AttributionStatus, TerritoryKindKey } from '~/features/territories'
@@ -73,19 +76,23 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const serviceYear = toServiceYear(now.getMonth(), now.getFullYear())
 
   return withScopeFromContext(context, async db => {
-    const [publisher, attributions, pioneerActivity, upcomingAssignments, upcomingAbsences] = await Promise.all([
-      getPublisherById(db, publisherId, currentUser.congregationId as CongregationId, serviceYear),
-      findActiveAttributionsForPublisher(db, publisherId, currentUser.congregationId),
-      canViewActivity
-        ? getPioneerActivityForMember(db, publisherId, currentUser.congregationId, serviceYear, now)
-        : Promise.resolve(null),
-      canViewPrograms
-        ? findUpcomingAssignmentsForMember(db, publisherId, currentUser.congregationId as CongregationId, now)
-        : Promise.resolve(null),
-      canViewAbsences
-        ? findUpcomingAbsencesForMember(db, publisherId, currentUser.congregationId as CongregationId, now)
-        : Promise.resolve(null),
-    ])
+    const [publisher, attributions, pioneerActivity, upcomingAssignments, upcomingAbsences, activityYears] =
+      await Promise.all([
+        getPublisherById(db, publisherId, currentUser.congregationId as CongregationId, serviceYear),
+        findActiveAttributionsForPublisher(db, publisherId, currentUser.congregationId),
+        canViewActivity
+          ? getPioneerActivityForMember(db, publisherId, currentUser.congregationId, serviceYear, now)
+          : Promise.resolve(null),
+        canViewPrograms
+          ? findUpcomingAssignmentsForMember(db, publisherId, currentUser.congregationId as CongregationId, now)
+          : Promise.resolve(null),
+        canViewAbsences
+          ? findUpcomingAbsencesForMember(db, publisherId, currentUser.congregationId as CongregationId, now)
+          : Promise.resolve(null),
+        canViewActivity
+          ? listTheocraticYearsWithActivity(db, currentUser.congregationId, { publisherId })
+          : Promise.resolve([]),
+      ])
 
     if (!publisher) {
       throw redirect('/publishers')
@@ -109,6 +116,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
       upcomingAssignments,
       upcomingAbsences,
       serviceYear,
+      activityYears,
       emergency,
       roles: {
         canViewPublisher,
@@ -287,9 +295,11 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
     upcomingAssignments,
     upcomingAbsences,
     serviceYear,
+    activityYears,
     emergency,
     roles,
   } = loaderData
+  const [exportOpen, setExportOpen] = useState(false)
 
   return (
     <div className="flex flex-col gap-6">
@@ -311,11 +321,25 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
           roles.canManagePublisher && (
             <>
               {roles.canManageActivity && (
-                <Button asChild variant="outline" size="icon" title={m.publishers_view_download_s21_title()}>
-                  <a href={`/publishers/${publisher.id}/activity/pdf`}>
+                <>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    title={m.publishers_view_download_s21_title()}
+                    onClick={() => setExportOpen(true)}
+                  >
                     <Download className="size-4" />
-                  </a>
-                </Button>
+                  </Button>
+                  <ExportActivityDialog
+                    open={exportOpen}
+                    onOpenChange={setExportOpen}
+                    availableYears={activityYears}
+                    defaultYear={serviceYear}
+                    publisherGroups={[]}
+                    members={[]}
+                    publisherId={publisher.id}
+                  />
+                </>
               )}
               <Button asChild variant="outline" size="icon" title={m.publishers_view_edit_title()}>
                 <Link to="../edit" relative="path">

@@ -99,7 +99,7 @@ describe('buildActivityPdfZip', () => {
       { id: 2, firstname: 'Bob', lastname: 'Durand', activities: [] },
     ]
 
-    const buffer = await buildActivityPdfZip(publishers as never)
+    const buffer = await buildActivityPdfZip(publishers as never, 2025)
 
     expect(buffer).toBeInstanceOf(ArrayBuffer)
     expect(toBuffer).toHaveBeenCalledTimes(2)
@@ -112,14 +112,28 @@ describe('buildActivityPdfZip', () => {
       { id: 3, firstname: 'Claire', lastname: "O'Connor", activities: [] },
     ]
 
-    const buffer = await buildActivityPdfZip(publishers as never)
+    const buffer = await buildActivityPdfZip(publishers as never, 2025)
     const zip = await JsZip.loadAsync(buffer)
 
     expect(Object.keys(zip.files).sort()).toEqual(['Alice-Martin.pdf', 'Bob-Durand.pdf', "Claire-O'Connor.pdf"])
   })
 
+  it('renders every sheet for the requested service year rather than inferring it from the reports', async () => {
+    const { pdf } = await import('@react-pdf/renderer')
+    // Reports that only start in May 2025 must still print on a 2024-2025 sheet.
+    const publishers = [
+      { id: 1, firstname: 'Aubeline', lastname: 'Martin', activities: [{ month: 4, year: 2025, hours: 10 }] },
+    ]
+
+    await buildActivityPdfZip(publishers as never, 2024)
+
+    expect(pdf).toHaveBeenCalledTimes(1)
+    const element = vi.mocked(pdf).mock.calls[0][0] as unknown as { props: Record<string, unknown> }
+    expect(element.props).toMatchObject({ serviceYear: 2024 })
+  })
+
   it('does not query the database', async () => {
-    await buildActivityPdfZip([])
+    await buildActivityPdfZip([], 2025)
 
     expect(db.member.findMany).not.toHaveBeenCalled()
   })
