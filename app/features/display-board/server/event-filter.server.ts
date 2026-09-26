@@ -2,6 +2,17 @@ import { DynamicType } from '~/features/display-board/model/dynamic-document.typ
 
 type DynamicData = { type: string; events?: { id: number }[] } | null
 
+const POSITIVE_INTEGER = /^\d+$/
+
+/**
+ * The deep link's `?eventId=N`, shared by the viewer and its PDF so both narrow the same way.
+ * Non-numeric values are ignored rather than rejected: the link still opens the document.
+ */
+export function readEventIdParam(request: Request): number | null {
+  const raw = new URL(request.url).searchParams.get('eventId')
+  return raw && POSITIVE_INTEGER.test(raw) ? Number(raw) : null
+}
+
 export interface FilteredDynamicData<T extends DynamicData> {
   data: T
   /**

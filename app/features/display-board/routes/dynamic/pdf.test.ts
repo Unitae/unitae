@@ -59,9 +59,9 @@ const context = {
   },
 }
 
-function download() {
+function download(search = '') {
   return loader({
-    request: new Request('http://localhost/board/dynamic/5/pdf'),
+    request: new Request(`http://localhost/board/dynamic/5/pdf${search}`),
     context,
     params: { dynamicId: '5' },
   } as never)
@@ -142,6 +142,41 @@ describe('the dynamic document PDF loader', () => {
     })
     expect((renderedElement().props.configMap as Map<number, unknown>).get(3)).toEqual({ parts: true, services: false })
     expect(renderPdfResponse).toHaveBeenCalledWith(expect.anything(), 'réunions.pdf')
+  })
+
+  it('prints only the deep-linked event when the viewer was opened on one', async () => {
+    // Notification emails open the viewer on a single event; its download button forwards the id
+    // so the file matches what the reader is looking at.
+    const events = [
+      { id: 41, templateId: 3 },
+      { id: 42, templateId: 3 },
+    ]
+    settingsFindFirst.mockResolvedValue(documentSettings(DynamicType.Programme, 'Réunions'))
+    getDynamicDocumentData.mockResolvedValue({ type: DynamicType.Programme, events, showServices: false, config: null })
+
+    await download('?eventId=42')
+
+    expect(renderedElement().props.events).toEqual([{ id: 42, templateId: 3 }])
+  })
+
+  it('prints the whole programme when the deep-linked event is not in it', async () => {
+    const events = [{ id: 41, templateId: 3 }]
+    settingsFindFirst.mockResolvedValue(documentSettings(DynamicType.Programme, 'Réunions'))
+    getDynamicDocumentData.mockResolvedValue({ type: DynamicType.Programme, events, showServices: false, config: null })
+
+    await download('?eventId=99')
+
+    expect(renderedElement().props.events).toEqual(events)
+  })
+
+  it('ignores a malformed event id, like the viewer', async () => {
+    const events = [{ id: 41, templateId: 3 }]
+    settingsFindFirst.mockResolvedValue(documentSettings(DynamicType.Programme, 'Réunions'))
+    getDynamicDocumentData.mockResolvedValue({ type: DynamicType.Programme, events, showServices: false, config: null })
+
+    await download('?eventId=41abc')
+
+    expect(renderedElement().props.events).toEqual(events)
   })
 
   it('keeps services off for a legacy programme that hides them on the board', async () => {
