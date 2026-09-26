@@ -1,11 +1,13 @@
 import { redirect } from 'react-router'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
 import { isPrintableDynamicDocument } from '~/features/display-board/model/printable-document'
+import { programmePdfOptions } from '~/features/display-board/model/programme-pdf-options'
 import { getDynamicDocumentData } from '~/features/display-board/server/dynamic-documents.server'
 import { buildSectionVisibilityFilter } from '~/features/display-board/server/section-visibility.server'
 import { OrganigramDocument } from '~/features/display-board/ui/dynamic/OrganigramDocument'
 import { PioneersDocument } from '~/features/display-board/ui/dynamic/PioneersDocument'
 import { PublisherGroupsDocument } from '~/features/display-board/ui/dynamic/PublisherGroupsDocument'
+import { EventBoardDocument } from '~/features/events/index.server'
 import {
   congregationContext,
   currentAccountContext,
@@ -72,6 +74,19 @@ export function loader({ params, context }: Route.LoaderArgs) {
         filename('pionniers'),
       )
     }
-    throw redirect('/board')
+    // The programme prints on the programmes export sheet, with the board document's own
+    // template choices. Its guard stays the board's, not `CanViewPrograms`: the sheet shows
+    // nothing this account cannot already read on the board screen.
+    const { configMap, groupBy } = programmePdfOptions(data)
+    return renderPdfResponse(
+      <EventBoardDocument
+        events={data.events}
+        configMap={configMap}
+        groupBy={groupBy}
+        title={title}
+        congregationName={congregationName}
+      />,
+      filename('programme'),
+    )
   })
 }

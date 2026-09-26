@@ -16,5 +16,6 @@ export function isPrintableDynamicDocument(data: DynamicDocumentShape): boolean 
   if (data.type === DynamicType.Organigram) return (data.tree?.length ?? 0) > 0
   if (data.type === DynamicType.PublisherGroups) return (data.groups?.length ?? 0) > 0
   if (data.type === DynamicType.Pioneers) return (data.pioneers?.length ?? 0) > 0
+  if (data.type === DynamicType.Programme) return (data.events?.length ?? 0) > 0
   return false
 }

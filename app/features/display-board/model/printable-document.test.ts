@@ -18,7 +18,8 @@ describe('isPrintableDynamicDocument', () => {
     expect(isPrintableDynamicDocument({ type: DynamicType.Pioneers, pioneers: [] })).toBe(false)
   })
 
-  it('does not print a programme yet', () => {
-    expect(isPrintableDynamicDocument({ type: DynamicType.Programme, events: [{}] })).toBe(false)
+  it('prints a programme when it has at least one event', () => {
+    expect(isPrintableDynamicDocument({ type: DynamicType.Programme, events: [{}] })).toBe(true)
+    expect(isPrintableDynamicDocument({ type: DynamicType.Programme, events: [] })).toBe(false)
   })
 })

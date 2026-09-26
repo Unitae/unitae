@@ -31,9 +31,11 @@ vi.mock('~/shared/infra/pdf.server', () => ({
 const OrganigramDocument = vi.fn()
 const PublisherGroupsDocument = vi.fn()
 const PioneersDocument = vi.fn()
+const EventBoardDocument = vi.fn()
 vi.mock('~/features/display-board/ui/dynamic/OrganigramDocument', () => ({ OrganigramDocument }))
 vi.mock('~/features/display-board/ui/dynamic/PublisherGroupsDocument', () => ({ PublisherGroupsDocument }))
 vi.mock('~/features/display-board/ui/dynamic/PioneersDocument', () => ({ PioneersDocument }))
+vi.mock('~/features/events/index.server', () => ({ EventBoardDocument }))
 
 const getDynamicDocumentData = vi.fn()
 vi.mock('~/features/display-board/server/dynamic-documents.server', () => ({ getDynamicDocumentData }))
@@ -88,6 +90,7 @@ describe('the dynamic document PDF loader', () => {
     [DynamicType.Organigram, { type: DynamicType.Organigram, tree: [] }],
     [DynamicType.PublisherGroups, { type: DynamicType.PublisherGroups, groups: [] }],
     [DynamicType.Pioneers, { type: DynamicType.Pioneers, pioneers: [] }],
+    [DynamicType.Programme, { type: DynamicType.Programme, events: [], showServices: false, config: null }],
   ])('refuses an empty %s document rather than printing a blank page', async (dynamicType, data) => {
     settingsFindFirst.mockResolvedValue(documentSettings(dynamicType, 'Document'))
     getDynamicDocumentData.mockResolvedValue(data)
@@ -96,12 +99,39 @@ describe('the dynamic document PDF loader', () => {
     expect(renderPdfResponse).not.toHaveBeenCalled()
   })
 
-  it('refuses a programme, which has no printable sheet yet', async () => {
-    settingsFindFirst.mockResolvedValue(documentSettings(DynamicType.Programme, 'Programme'))
-    getDynamicDocumentData.mockResolvedValue({ type: DynamicType.Programme, events: [{ id: 1 }] })
+  it('prints a configured programme on the programmes export sheet, with the board choices', async () => {
+    const events = [{ id: 1, templateId: 3 }]
+    const config = { templates: [{ templateId: 3, parts: true, services: false }], groupBy: 'template' }
+    settingsFindFirst.mockResolvedValue(documentSettings(DynamicType.Programme, 'Réunions'))
+    getDynamicDocumentData.mockResolvedValue({ type: DynamicType.Programme, events, showServices: false, config })
 
-    await expect(download()).rejects.toMatchObject({ status: 302 })
-    expect(renderPdfResponse).not.toHaveBeenCalled()
+    const response = await download()
+
+    expect(response.status).toBe(200)
+    expect(renderedElement().type).toBe(EventBoardDocument)
+    expect(renderedElement().props).toMatchObject({
+      events,
+      groupBy: 'template',
+      title: 'Réunions',
+      congregationName: 'Assemblée de Lyon',
+    })
+    expect((renderedElement().props.configMap as Map<number, unknown>).get(3)).toEqual({ parts: true, services: false })
+    expect(renderPdfResponse).toHaveBeenCalledWith(expect.anything(), 'réunions.pdf')
+  })
+
+  it('keeps services off for a legacy programme that hides them on the board', async () => {
+    settingsFindFirst.mockResolvedValue(documentSettings(DynamicType.Programme, ''))
+    getDynamicDocumentData.mockResolvedValue({
+      type: DynamicType.Programme,
+      events: [{ id: 1, templateId: 9 }],
+      showServices: false,
+      config: null,
+    })
+
+    await download()
+
+    expect((renderedElement().props.configMap as Map<number, unknown>).get(9)).toEqual({ parts: true, services: false })
+    expect(renderPdfResponse).toHaveBeenCalledWith(expect.anything(), 'programme.pdf')
   })
 
   it('reads the same data the viewer shows', async () => {
