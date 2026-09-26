@@ -1,58 +1,21 @@
 import { Document, Page, Polygon, StyleSheet, Svg, Text, View } from '@react-pdf/renderer'
 import type { Member, PublisherActivity } from '~/database/generated/client'
 import { type EnrolmentPeriod, standingTypeFromEnrolments } from '~/features/publishers/model/pioneer-enrolment'
+import { buildServiceYearActivityRows } from '~/features/publishers/model/service-year-activity-rows'
 import * as m from '~/i18n/paraglide/messages'
 import { PublisherType } from '~/shared/types/publisher-type'
 
 interface PublisherActivityDocumentProps {
   publisher: Member & { activities: PublisherActivity[]; pioneerEnrolments: EnrolmentPeriod[] }
+  // Start year of the service year to print (2024 for 2024-2025). Reports outside it are ignored.
+  serviceYear: number
 }
 
-export function PublisherActivityDocument({ publisher }: PublisherActivityDocumentProps) {
+export function PublisherActivityDocument({ publisher, serviceYear }: PublisherActivityDocumentProps) {
   // The pioneer boxes reflect the member's standing status, which is their ongoing stint.
   const standingType = standingTypeFromEnrolments(publisher.pioneerEnrolments)
-  const year = publisher.activities.reduce((acc, activity) => {
-    if (activity.year < acc) {
-      return activity.year
-    }
-
-    return acc
-  }, new Date().getFullYear())
-
-  const defaultActivity = {
-    hours: null,
-    isPublisher: false,
-    studies: null,
-    type: PublisherType.Normal,
-    notes: null,
-  }
-  const septemberActivity = publisher.activities.find(activity => activity.month === 8 && activity.year === year)
-  const octoberActivity = publisher.activities.find(activity => activity.month === 9 && activity.year === year)
-  const novemberActivity = publisher.activities.find(activity => activity.month === 10 && activity.year === year)
-  const decemberActivity = publisher.activities.find(activity => activity.month === 11 && activity.year === year)
-  const januaryActivity = publisher.activities.find(activity => activity.month === 0 && activity.year === year + 1)
-  const februaryActivity = publisher.activities.find(activity => activity.month === 1 && activity.year === year + 1)
-  const marchActivity = publisher.activities.find(activity => activity.month === 2 && activity.year === year + 1)
-  const aprilActivity = publisher.activities.find(activity => activity.month === 3 && activity.year === year + 1)
-  const mayActivity = publisher.activities.find(activity => activity.month === 4 && activity.year === year + 1)
-  const juneActivity = publisher.activities.find(activity => activity.month === 5 && activity.year === year + 1)
-  const julyActivity = publisher.activities.find(activity => activity.month === 6 && activity.year === year + 1)
-  const augustActivity = publisher.activities.find(activity => activity.month === 7 && activity.year === year + 1)
-  const activities = [
-    septemberActivity ?? { year, month: 8, ...defaultActivity, id: 8 },
-    octoberActivity ?? { year, month: 9, ...defaultActivity, id: 9 },
-    novemberActivity ?? { year, month: 10, ...defaultActivity, id: 10 },
-    decemberActivity ?? { year, month: 11, ...defaultActivity, id: 11 },
-    januaryActivity ?? { year: year + 1, month: 0, ...defaultActivity, id: 0 },
-    februaryActivity ?? { year: year + 1, month: 1, ...defaultActivity, id: 1 },
-    marchActivity ?? { year: year + 1, month: 2, ...defaultActivity, id: 2 },
-    aprilActivity ?? { year: year + 1, month: 3, ...defaultActivity, id: 3 },
-    mayActivity ?? { year: year + 1, month: 4, ...defaultActivity, id: 4 },
-    juneActivity ?? { year: year + 1, month: 5, ...defaultActivity, id: 5 },
-    julyActivity ?? { year: year + 1, month: 6, ...defaultActivity, id: 6 },
-    augustActivity ?? { year: year + 1, month: 7, ...defaultActivity, id: 7 },
-  ]
-  const totalHours = activities.reduce((acc, activity) => acc + (activity?.hours ?? 0), 0)
+  const activities = buildServiceYearActivityRows(publisher.activities, serviceYear)
+  const totalHours = activities.reduce((acc, activity) => acc + (activity.hours ?? 0), 0)
 
   return (
     <Document>
@@ -132,7 +95,7 @@ export function PublisherActivityDocument({ publisher }: PublisherActivityDocume
               <Text style={styles.label}>{m.activity_pdf_service_year()}</Text>
               <Text style={styles.label}>{m.activity_pdf_service_year_of()}</Text>
               <Text style={{ fontSize: 12 }}>
-                {year} - {year + 1}
+                {serviceYear} - {serviceYear + 1}
               </Text>
             </TableHeaderCell>
             <TableHeaderCell width={'15%'}>
@@ -156,13 +119,11 @@ export function PublisherActivityDocument({ publisher }: PublisherActivityDocume
             </TableHeaderCell>
           </TableRow>
 
-          {activities.map((activity, _index) => {
-            if (activity == null) return null
-
+          {activities.map(activity => {
             const month = new Date(activity.year, activity.month).toLocaleDateString('fr', { month: 'long' })
 
             return (
-              <TableRow key={activity.id}>
+              <TableRow key={activity.month}>
                 <TableCell alignLeft={true}>
                   <Text style={{ fontSize: 10 }}>{month}</Text>
                 </TableCell>

@@ -42,6 +42,25 @@ describe('listTheocraticYearsWithActivity', () => {
     expect(result).toEqual([2025])
   })
 
+  it('narrows to one publisher when a publisherId is given', async () => {
+    vi.mocked(db.publisherActivity.groupBy).mockResolvedValue([row(2025, 4)])
+
+    const result = await listTheocraticYearsWithActivity(db, 1, { publisherId: 42 })
+
+    expect(result).toEqual([2024])
+    const call = vi.mocked(db.publisherActivity.groupBy).mock.calls[0][0] as { where: Record<string, unknown> }
+    expect(call.where).toEqual({ congregationId: 1, publisherId: 42 })
+  })
+
+  it('does not constrain the publisher when no scope is given', async () => {
+    vi.mocked(db.publisherActivity.groupBy).mockResolvedValue([])
+
+    await listTheocraticYearsWithActivity(db, 1)
+
+    const call = vi.mocked(db.publisherActivity.groupBy).mock.calls[0][0] as { where: Record<string, unknown> }
+    expect(call.where).not.toHaveProperty('publisherId')
+  })
+
   it('deduplicates and returns theocratic years in descending order', async () => {
     vi.mocked(db.publisherActivity.groupBy).mockResolvedValue([row(2025, 8), row(2026, 3), row(2026, 8), row(2024, 11)])
 

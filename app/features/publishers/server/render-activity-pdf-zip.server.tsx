@@ -42,13 +42,18 @@ export async function getPublishersWithYearActivities(
   })
 }
 
-export async function buildActivityPdfZip(publishers: PublisherWithActivities[]): Promise<ArrayBuffer> {
+export async function buildActivityPdfZip(
+  publishers: PublisherWithActivities[],
+  serviceYear: number,
+): Promise<ArrayBuffer> {
   const zip = new JsZip()
   const limit = pLimit(4)
   await Promise.all(
     publishers.map(publisher =>
       limit(async () => {
-        const buffer = await pdf(<PublisherActivityDocument publisher={publisher} />).toBuffer()
+        const buffer = await pdf(
+          <PublisherActivityDocument publisher={publisher} serviceYear={serviceYear} />,
+        ).toBuffer()
         zip.file(`${publisher.firstname}-${publisher.lastname}.pdf`, buffer)
       }),
     ),

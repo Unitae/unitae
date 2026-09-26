@@ -99,7 +99,7 @@ describe('buildActivityPdfZip', () => {
       { id: 2, firstname: 'Bob', lastname: 'Durand', activities: [] },
     ]
 
-    const buffer = await buildActivityPdfZip(publishers as never)
+    const buffer = await buildActivityPdfZip(publishers as never, 2025)
 
     expect(buffer).toBeInstanceOf(ArrayBuffer)
     expect(toBuffer).toHaveBeenCalledTimes(2)
@@ -112,14 +112,27 @@ describe('buildActivityPdfZip', () => {
       { id: 3, firstname: 'Claire', lastname: "O'Connor", activities: [] },
     ]
 
-    const buffer = await buildActivityPdfZip(publishers as never)
+    const buffer = await buildActivityPdfZip(publishers as never, 2025)
     const zip = await JsZip.loadAsync(buffer)
 
     expect(Object.keys(zip.files).sort()).toEqual(['Alice-Martin.pdf', 'Bob-Durand.pdf', "Claire-O'Connor.pdf"])
   })
 
+  it('passes the requested service year to every document', async () => {
+    const { pdf } = await import('@react-pdf/renderer')
+    // Only the threading is proven here; the sheet layout for a given year is covered by
+    // service-year-activity-rows.test.ts.
+    const publishers = [{ id: 1, firstname: 'Aubeline', lastname: 'Martin', activities: [] }]
+
+    await buildActivityPdfZip(publishers as never, 2024)
+
+    expect(pdf).toHaveBeenCalledTimes(1)
+    const element = vi.mocked(pdf).mock.calls[0][0] as unknown as { props: Record<string, unknown> }
+    expect(element.props).toMatchObject({ serviceYear: 2024 })
+  })
+
   it('does not query the database', async () => {
-    await buildActivityPdfZip([])
+    await buildActivityPdfZip([], 2025)
 
     expect(db.member.findMany).not.toHaveBeenCalled()
   })

@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import { formatGroupName } from '~/shared/utils/format-group-name'
 
 type ExportFormat = 'xlsx' | 'pdfs'
+// What actually gets downloaded: the user's format, or one S-21 PDF in single-publisher mode.
+type DownloadKind = ExportFormat | 'pdf'
 type ExportScope = 'all' | 'group' | 'members'
 
 export interface PublisherGroupOption {
@@ -21,10 +23,14 @@ export interface PublisherGroupOption {
 interface ExportActivityDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  // Newest first, as listTheocraticYearsWithActivity returns them.
   availableYears: number[]
   defaultYear: number
-  publisherGroups: PublisherGroupOption[]
-  members: MemberOption[]
+  publisherGroups?: PublisherGroupOption[]
+  members?: MemberOption[]
+  // When set, the dialog exports this one publisher's S-21: only the year is asked, and
+  // publisherGroups / members are not needed.
+  publisherId?: number
 }
 
 export function ExportActivityDialog({
@@ -32,11 +38,13 @@ export function ExportActivityDialog({
   onOpenChange,
   availableYears,
   defaultYear,
-  publisherGroups,
-  members,
+  publisherGroups = [],
+  members = [],
+  publisherId,
 }: ExportActivityDialogProps) {
+  const startYear = initialExportYear(availableYears, defaultYear)
   const [format, setFormat] = useState<ExportFormat>('pdfs')
-  const [year, setYear] = useState<number>(defaultYear)
+  const [year, setYear] = useState<number>(startYear)
   const [scope, setScope] = useState<ExportScope>('all')
   const [groupId, setGroupId] = useState<number | null>(null)
   const [publisherIds, setPublisherIds] = useState<number[]>([])
@@ -44,11 +52,12 @@ export function ExportActivityDialog({
   const [error, setError] = useState<string | null>(null)
 
   const yearsForSelect = availableYears.length > 0 ? availableYears : [defaultYear]
-  const scopeDisabled = format === 'xlsx'
+  const singlePublisher = publisherId != null
+  const scopeDisabled = singlePublisher || format === 'xlsx'
 
   function reset() {
     setFormat('pdfs')
-    setYear(defaultYear)
+    setYear(startYear)
     setScope('all')
     setGroupId(null)
     setPublisherIds([])
@@ -63,7 +72,7 @@ export function ExportActivityDialog({
 
   async function handleExport() {
     setError(null)
-    const url = buildExportUrl({ format, year, scope, groupId, publisherIds })
+    const url = buildExportUrl({ format, year, scope, groupId, publisherIds, publisherId })
     if (url == null) {
       setError(m.activity_export_dialog_error_scope())
       return
@@ -72,10 +81,17 @@ export function ExportActivityDialog({
     setIsGenerating(true)
     try {
       const response = await fetch(url)
+      // fetch follows redirects, so a missing-permission or expired-session redirect arrives as an
+      // HTML page with a 200. Never save that as a file, and do not suggest retrying: it cannot help.
+      if (response.redirected) {
+        setError(m.activity_export_dialog_error_redirected())
+        return
+      }
       if (!response.ok) throw new Error(`Export failed: ${response.status}`)
 
+      const kind: DownloadKind = singlePublisher ? 'pdf' : format
       const disposition = response.headers.get('Content-Disposition') ?? ''
-      const filename = parseFilename(disposition) ?? fallbackFilename(format, year)
+      const filename = parseFilename(disposition) ?? fallbackFilename(kind, year)
       const blob = await response.blob()
       triggerBlobDownload(blob, filename)
       handleClose(false)
@@ -91,7 +107,9 @@ export function ExportActivityDialog({
       <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>{m.activity_export_dialog_title()}</DialogTitle>
-          <DialogDescription>{m.activity_export_dialog_description()}</DialogDescription>
+          <DialogDescription>
+            {singlePublisher ? m.activity_export_dialog_single_description() : m.activity_export_dialog_description()}
+          </DialogDescription>
         </DialogHeader>
 
         {isGenerating ? (
@@ -101,7 +119,7 @@ export function ExportActivityDialog({
           </div>
         ) : (
           <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto">
-            <FormatField format={format} onFormatChange={setFormat} />
+            {!singlePublisher && <FormatField format={format} onFormatChange={setFormat} />}
             <YearField year={year} years={yearsForSelect} onYearChange={setYear} />
             {!scopeDisabled && (
               <ScopeField
@@ -253,16 +271,26 @@ function ScopeField(props: ScopeFieldProps) {
   )
 }
 
+// availableYears is newest first. The select offers exactly those years, or just defaultYear when
+// there are none (see yearsForSelect), so the seed must be one of them or the trigger renders
+// empty and the export silently targets a year nobody can see.
+export function initialExportYear(availableYears: number[], defaultYear: number): number {
+  if (availableYears.length === 0 || availableYears.includes(defaultYear)) return defaultYear
+  return availableYears[0]
+}
+
 interface BuildExportUrlArgs {
   format: ExportFormat
   year: number
   scope: ExportScope
   groupId: number | null
   publisherIds: number[]
+  publisherId?: number
 }
 
 export function buildExportUrl(args: BuildExportUrlArgs): string | null {
   const params = new URLSearchParams({ year: String(args.year) })
+  if (args.publisherId != null) return `/publishers/${args.publisherId}/activity/pdf?${params.toString()}`
   if (args.format === 'pdfs') {
     if (args.scope === 'group') {
       if (args.groupId == null) return null
@@ -282,8 +310,9 @@ function parseFilename(contentDisposition: string): string | null {
   return match?.[1] ?? null
 }
 
-function fallbackFilename(format: ExportFormat, year: number): string {
-  return format === 'xlsx' ? `Activité-Proclamateurs-${year}.xlsx` : `Activité-${year}.zip`
+function fallbackFilename(kind: DownloadKind, year: number): string {
+  if (kind === 'pdf') return `S-21_F-${year}.pdf`
+  return kind === 'xlsx' ? `Activité-Proclamateurs-${year}.xlsx` : `Activité-${year}.zip`
 }
 
 function triggerBlobDownload(blob: Blob, filename: string): void {

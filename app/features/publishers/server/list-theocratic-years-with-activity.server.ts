@@ -5,10 +5,11 @@ const FIRST_MONTH_OF_THEOCRATIC_YEAR = 8
 export async function listTheocraticYearsWithActivity(
   db: TransactionClient,
   congregationId: number,
+  scope: { publisherId?: number } = {},
 ): Promise<number[]> {
   const rows = await db.publisherActivity.groupBy({
     by: ['year', 'month'],
-    where: { congregationId },
+    where: { congregationId, ...(scope.publisherId != null ? { publisherId: scope.publisherId } : {}) },
   })
 
   const theocraticYears = new Set<number>()

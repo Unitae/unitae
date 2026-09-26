@@ -72,7 +72,7 @@ describe('activity PDF export — transaction lifecycle', () => {
 
     expect(publishers).toHaveLength(publisherIds.length)
 
-    const buffer = await buildActivityPdfZip(publishers)
+    const buffer = await buildActivityPdfZip(publishers, 2025)
 
     expect(buffer).toBeInstanceOf(ArrayBuffer)
     expect(buffer.byteLength).toBeGreaterThan(0)
@@ -85,7 +85,7 @@ describe('activity PDF export — transaction lifecycle', () => {
           await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(congregationId)}'`)
           const publishers = await getPublishersWithYearActivities(tx, congregationId, 2025)
           await new Promise(resolve => setTimeout(resolve, 700))
-          return buildActivityPdfZip(publishers)
+          return buildActivityPdfZip(publishers, 2025)
         },
         { timeout: 500 },
       ),
