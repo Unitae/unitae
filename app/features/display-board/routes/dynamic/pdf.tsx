@@ -15,6 +15,7 @@ import {
   requirePermission,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
 import { renderPdfResponse, sanitizeFilename } from '~/shared/infra/pdf.server'
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
@@ -24,7 +25,7 @@ import type { Route } from './+types/pdf'
 /**
  * The printable sheet of a dynamic document, guarded exactly like the viewer: board permission
  * plus the section's own visibility — a PDF URL must not show anyone a document the board itself
- * would not. It reads the viewer's data, so the sheet and the screen cannot disagree.
+ * would not. It reads the same data as the viewer, so both show the same people and events.
  */
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
@@ -50,8 +51,14 @@ export function loader({ params, context }: Route.LoaderArgs) {
       showServices: settings.showServices,
       dynamicConfig: settings.dynamicConfig,
     })
+    if (!data) {
+      // Not an empty document but an unreadable one: an unknown type, or a stored config that no
+      // longer parses. The viewer shows its empty state too, so leave a trace for whoever looks.
+      logger.warn(`Board PDF refused: no data for dynamic document ${settings.id} (type ${settings.dynamicType}).`)
+      throw redirect('/board')
+    }
     // Same rule as the viewer's download button: an empty document would print a blank page.
-    if (!data || !isPrintableDynamicDocument(data)) throw redirect('/board')
+    if (!isPrintableDynamicDocument(data)) throw redirect('/board')
 
     const { title } = settings
     const filename = (fallback: string) => `${sanitizeFilename(title.toLowerCase()) || fallback}.pdf`
