@@ -1,7 +1,11 @@
 import path from 'node:path'
 import { Document, Font, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
+import type {
+  BoardDocumentEvent,
+  BoardDocumentPart,
+  BoardDocumentTemplateOptions,
+} from '~/features/events/model/board-document-event.type'
 import { groupPartsBySlot } from '~/features/events/model/group-parts-by-slot'
-import type { ExportEvent, TemplateExportConfig } from '~/features/events/server/event-export.server'
 import { formatMemberName, getPartAssigneeDisplay } from '~/features/events/ui/part-display'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 
@@ -39,14 +43,14 @@ function formatDate(date: Date | string): string {
 }
 
 interface EventBoardDocumentProps {
-  events: ExportEvent[]
-  configMap: Map<number, Omit<TemplateExportConfig, 'templateId'>>
+  events: BoardDocumentEvent[]
+  configMap: Map<number, BoardDocumentTemplateOptions>
   groupBy: 'date' | 'template'
   title: string
   congregationName: string
 }
 
-type PartAssignment = ExportEvent['eventParts'][number]
+type PartAssignment = BoardDocumentPart
 
 const styles = StyleSheet.create({
   page: {
@@ -300,7 +304,7 @@ function EventCard({
   showParts,
   showServices,
 }: {
-  event: ExportEvent
+  event: BoardDocumentEvent
   showParts: boolean
   showServices: boolean
 }) {
@@ -325,12 +329,12 @@ function EventCard({
           </View>
         ))}
 
-      {showServices && event.eventServiceParts.length > 0 && (
+      {showServices && event.eventServiceParts && event.eventServiceParts.length > 0 && (
         <View style={showParts ? styles.servicesDivider : styles.servicesNoDivider}>
           <Text style={styles.servicesTitle}>Services</Text>
           <View style={styles.servicesGrid}>
             {event.eventServiceParts.map((role, roleIdx) => {
-              const name = formatMemberName(role.assignee)
+              const name = formatMemberName(role.assignee ?? null)
               return (
                 <View key={roleIdx} style={styles.serviceItem}>
                   <Text style={styles.servicePartName}>{role.name}</Text>

@@ -1,5 +1,9 @@
 // Public server-only surface of the events feature.
 
+export type {
+  BoardDocumentEvent,
+  BoardDocumentTemplateOptions,
+} from './model/board-document-event.type'
 export { getNextDaysOffs } from './server/days-off.server'
 export { duplicateTemplate } from './server/duplicate-template.server'
 export {
@@ -22,3 +26,4 @@ export { getPartPresetById, listPartPresets, listPartPresetsForSettings } from '
 export { createPartPreset, deletePartPreset, updatePartPreset } from './server/part-presets.server'
 export { PART_PRESET_COUNT, seedDefaultPartPresets } from './server/seed-part-presets.server'
 export { seedDefaultTemplates } from './server/seed-templates.server'
+export { EventBoardDocument } from './ui/EventBoardDocument'
