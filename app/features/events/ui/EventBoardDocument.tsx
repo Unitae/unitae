@@ -37,8 +37,7 @@ function sectionColor(section: string): string | null {
   return null
 }
 
-function formatDate(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date
+function formatDate(d: Date): string {
   return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 }
 
@@ -267,8 +266,8 @@ export function EventBoardDocument({ events, configMap, groupBy, title, congrega
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <Text style={styles.congregationName}>{congregationName}</Text>
-        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.congregationName}>{sanitizeText(congregationName)}</Text>
+        <Text style={styles.title}>{sanitizeText(title)}</Text>
 
         {orderedEvents.map((event, idx) => {
           const config = event.templateId ? configMap.get(event.templateId) : null
@@ -284,14 +283,14 @@ export function EventBoardDocument({ events, configMap, groupBy, title, congrega
 
           return (
             <View key={idx}>
-              {templateHeader && <Text style={styles.templateGroupHeader}>{templateHeader}</Text>}
+              {templateHeader && <Text style={styles.templateGroupHeader}>{sanitizeText(templateHeader)}</Text>}
               <EventCard event={event} showParts={showParts} showServices={showServices} />
             </View>
           )
         })}
 
         <View style={styles.footer} fixed>
-          <Text style={styles.footerText}>{congregationName}</Text>
+          <Text style={styles.footerText}>{sanitizeText(congregationName)}</Text>
           <Text style={styles.footerText} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
         </View>
       </Page>
@@ -314,7 +313,7 @@ function EventCard({
     <View style={styles.eventCard}>
       <View style={styles.dateHeader}>
         <Text style={styles.dateText}>{formatDate(event.startDate)}</Text>
-        <Text style={styles.eventName}>{event.name}</Text>
+        <Text style={styles.eventName}>{sanitizeText(event.name)}</Text>
       </View>
 
       {showParts &&
@@ -337,8 +336,12 @@ function EventCard({
               const name = formatMemberName(role.assignee ?? null)
               return (
                 <View key={roleIdx} style={styles.serviceItem}>
-                  <Text style={styles.servicePartName}>{role.name}</Text>
-                  {name ? <Text style={styles.serviceAssignee}>{name}</Text> : <Text style={styles.unassigned}>—</Text>}
+                  <Text style={styles.servicePartName}>{sanitizeText(role.name)}</Text>
+                  {name ? (
+                    <Text style={styles.serviceAssignee}>{sanitizeText(name)}</Text>
+                  ) : (
+                    <Text style={styles.unassigned}>—</Text>
+                  )}
                 </View>
               )
             })}
@@ -368,8 +371,8 @@ const DOT_LEADER = ' .'.repeat(200)
 function formatPartRightText(part: PartAssignment): string | null {
   const { primary, assistant } = getPartAssigneeDisplay(part)
   if (!primary) return null
-  if (assistant) return `${primary} / ${assistant}`
-  return primary
+  if (assistant) return sanitizeText(`${primary} / ${assistant}`)
+  return sanitizeText(primary)
 }
 
 function DotLeader() {
@@ -415,7 +418,7 @@ function MultiTrackPart({ parts }: { parts: PartAssignment[] }) {
         const trackName = part.track || `Salle ${idx + 1}`
         return (
           <View key={idx} style={styles.trackRow}>
-            <Text style={styles.trackLabel}>{trackName}</Text>
+            <Text style={styles.trackLabel}>{sanitizeText(trackName)}</Text>
             <DotLeader />
             {rightText ? (
               <Text style={styles.partRight}>{rightText}</Text>

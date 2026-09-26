@@ -21,8 +21,8 @@ describe('programmePdfOptions', () => {
   })
 
   it('hides services on a legacy programme whose board document hides them', () => {
-    // Legacy documents have no config; without an entry the sheet would default to printing
-    // services the board does not show.
+    // Legacy documents have no config. The sheet defaults to printing services for a template
+    // without an entry; the entry keeps it agreeing with the board even if services were loaded.
     const options = programmePdfOptions({
       events: [{ templateId: 7 }, { templateId: 7 }],
       showServices: false,

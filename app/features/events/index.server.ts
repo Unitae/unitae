@@ -1,9 +1,5 @@
 // Public server-only surface of the events feature.
 
-export type {
-  BoardDocumentEvent,
-  BoardDocumentTemplateOptions,
-} from './model/board-document-event.type'
 export { getNextDaysOffs } from './server/days-off.server'
 export { duplicateTemplate } from './server/duplicate-template.server'
 export {
