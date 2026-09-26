@@ -46,9 +46,12 @@ export function buildGroupRoster<P extends BoardPerson>(group: GroupRosterInput<
   })
 }
 
-/** Sections in the order the query ranked the pioneers, which is the order they are shown. */
-export function groupPioneersByType<P extends { type: string }>(pioneers: P[]): { type: string; pioneers: P[] }[] {
-  const groups = new Map<string, P[]>()
+/**
+ * Sections in the order the pioneers arrive in. `fetchPioneers` already sorts them by type rank
+ * then name, and that order is the one both the board and the sheet show.
+ */
+export function groupPioneersByType<P extends { type: string }>(pioneers: P[]): { type: P['type']; pioneers: P[] }[] {
+  const groups = new Map<P['type'], P[]>()
   for (const pioneer of pioneers) {
     const group = groups.get(pioneer.type)
     if (group) group.push(pioneer)
