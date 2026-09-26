@@ -1,16 +1,13 @@
 import { Users } from 'lucide-react'
+import { type BoardPerson, buildGroupRoster, formatBoardPersonName } from '~/features/display-board/model/board-roster'
+import { BoardPersonName } from '~/features/display-board/ui/dynamic/BoardPersonName'
 import * as m from '~/i18n/paraglide/messages'
 import { Card, CardContent } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { formatGroupName } from '~/shared/utils/format-group-name'
 import { cn } from '~/shared/utils/utils'
 
-interface Person {
-  id: number
-  firstname: string | null
-  lastname: string | null
-  anonymizedAt: Date | null
-}
+type Person = BoardPerson
 
 interface PublisherGroupsViewData {
   groups: {
@@ -18,30 +15,9 @@ interface PublisherGroupsViewData {
     name: string
     adress: string
     responsible: Person
-    deputy: (Person & { id: number }) | null
+    deputy: Person | null
     members: Person[]
   }[]
-}
-
-function formatNamePlain(user: Person): string {
-  if (user.anonymizedAt != null) return m.board_read_status_anonymized_user()
-  const lastname = user.lastname?.toUpperCase() ?? null
-  return [user.firstname, lastname].filter(Boolean).join(' ') || '—'
-}
-
-function NameDisplay({ person }: { person: Person }) {
-  if (person.anonymizedAt != null) {
-    return <span className="text-muted-foreground italic">{m.board_read_status_anonymized_user()}</span>
-  }
-  if (!person.firstname && !person.lastname) {
-    return <span>—</span>
-  }
-  return (
-    <span>
-      {person.firstname && <span className="text-muted-foreground">{person.firstname} </span>}
-      {person.lastname && <span className="font-semibold tracking-wide">{person.lastname.toUpperCase()}</span>}
-    </span>
-  )
 }
 
 function LeaderBlock({ label, person }: { label: string; person: Person }) {
@@ -49,22 +25,10 @@ function LeaderBlock({ label, person }: { label: string; person: Person }) {
     <div className="flex flex-col gap-0.5">
       <span className="text-[10px] text-muted-foreground uppercase tracking-[0.1em]">{label}</span>
       <span className="text-sm">
-        <NameDisplay person={person} />
+        <BoardPersonName person={person} />
       </span>
     </div>
   )
-}
-
-function buildRoster(group: PublisherGroupsViewData['groups'][number]): Person[] {
-  const byId = new Map<number, Person>()
-  byId.set(group.responsible.id, group.responsible)
-  if (group.deputy) byId.set(group.deputy.id, group.deputy)
-  for (const member of group.members) byId.set(member.id, member)
-  return [...byId.values()].sort((a, b) => {
-    const left = (a.lastname ?? '').localeCompare(b.lastname ?? '', undefined, { sensitivity: 'base' })
-    if (left !== 0) return left
-    return (a.firstname ?? '').localeCompare(b.firstname ?? '', undefined, { sensitivity: 'base' })
-  })
 }
 
 export function PublisherGroupsView({ groups }: PublisherGroupsViewData) {
@@ -81,7 +45,7 @@ export function PublisherGroupsView({ groups }: PublisherGroupsViewData) {
   return (
     <div className="mx-auto grid w-full max-w-3xl gap-5 p-4 sm:grid-cols-2 md:gap-6 md:p-6">
       {groups.map(group => {
-        const roster = buildRoster(group)
+        const roster = buildGroupRoster(group)
         return (
           <Card key={group.id} className="overflow-hidden rounded-2xl border-border/60 shadow-none">
             <CardContent className="flex flex-col gap-5 p-6">
@@ -119,8 +83,8 @@ export function PublisherGroupsView({ groups }: PublisherGroupsViewData) {
               {roster.length > 0 && (
                 <ul className="flex flex-col gap-y-1 text-sm tabular-nums">
                   {roster.map(person => (
-                    <li key={person.id} className="min-w-0 truncate" title={formatNamePlain(person)}>
-                      <NameDisplay person={person} />
+                    <li key={person.id} className="min-w-0 truncate" title={formatBoardPersonName(person).plain}>
+                      <BoardPersonName person={person} />
                     </li>
                   ))}
                 </ul>
