@@ -1,8 +1,11 @@
 import { redirect } from 'react-router'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
-import { fetchOrganigramDocument } from '~/features/display-board/server/organigram-document.server'
+import { isPrintableDynamicDocument } from '~/features/display-board/model/printable-document'
+import { getDynamicDocumentData } from '~/features/display-board/server/dynamic-documents.server'
 import { buildSectionVisibilityFilter } from '~/features/display-board/server/section-visibility.server'
 import { OrganigramDocument } from '~/features/display-board/ui/dynamic/OrganigramDocument'
+import { PioneersDocument } from '~/features/display-board/ui/dynamic/PioneersDocument'
+import { PublisherGroupsDocument } from '~/features/display-board/ui/dynamic/PublisherGroupsDocument'
 import {
   congregationContext,
   currentAccountContext,
@@ -10,6 +13,7 @@ import {
   requirePermission,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
 import { renderPdfResponse, sanitizeFilename } from '~/shared/infra/pdf.server'
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
@@ -17,8 +21,9 @@ import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/pdf'
 
 /**
- * The printable sheet, guarded exactly like the viewer: board permission plus the section's
- * own visibility — a PDF URL must not show anyone a document the board itself would not.
+ * The printable sheet of a dynamic document, guarded exactly like the viewer: board permission
+ * plus the section's own visibility — a PDF URL must not show anyone a document the board itself
+ * would not. It reads the same data as the viewer, so both show the same people and events.
  */
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
@@ -38,13 +43,42 @@ export function loader({ params, context }: Route.LoaderArgs) {
         section: await buildSectionVisibilityFilter(db, currentUser.id, congregationId),
       },
     })
-    if (!settings || settings.dynamicType !== DynamicType.Organigram) throw redirect('/board')
+    if (!settings) throw redirect('/board')
 
-    const tree = await fetchOrganigramDocument(db, congregationId)
+    const data = await getDynamicDocumentData(db, settings.dynamicType, settings.dynamicRef, congregationId, {
+      showServices: settings.showServices,
+      dynamicConfig: settings.dynamicConfig,
+    })
+    if (!data) {
+      // Not an empty document but an unreadable one: an unknown type, or a stored config that no
+      // longer parses. The viewer shows its empty state too, so leave a trace for whoever looks.
+      logger.warn(`Board PDF refused: no data for dynamic document ${settings.id} (type ${settings.dynamicType}).`)
+      throw redirect('/board')
+    }
+    // Same rule as the viewer's download button: an empty document would print a blank page.
+    if (!isPrintableDynamicDocument(data)) throw redirect('/board')
 
-    return renderPdfResponse(
-      <OrganigramDocument tree={tree} title={settings.title} congregationName={congregationName} />,
-      `${sanitizeFilename(settings.title.toLowerCase()) || 'organigramme'}.pdf`,
-    )
+    const { title } = settings
+    const filename = (fallback: string) => `${sanitizeFilename(title.toLowerCase()) || fallback}.pdf`
+
+    if (data.type === DynamicType.Organigram) {
+      return renderPdfResponse(
+        <OrganigramDocument tree={data.tree} title={title} congregationName={congregationName} />,
+        filename('organigramme'),
+      )
+    }
+    if (data.type === DynamicType.PublisherGroups) {
+      return renderPdfResponse(
+        <PublisherGroupsDocument groups={data.groups} title={title} congregationName={congregationName} />,
+        filename('groupes'),
+      )
+    }
+    if (data.type === DynamicType.Pioneers) {
+      return renderPdfResponse(
+        <PioneersDocument pioneers={data.pioneers} title={title} congregationName={congregationName} />,
+        filename('pionniers'),
+      )
+    }
+    throw redirect('/board')
   })
 }

@@ -2,6 +2,7 @@ import { ArrowLeft, Download, Info, Search, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Link, redirect } from 'react-router'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
+import { isPrintableDynamicDocument } from '~/features/display-board/model/printable-document'
 import {
   getContentVersion,
   getDynamicDocumentData,
@@ -106,10 +107,11 @@ export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) 
               {m.board_viewer_updated()} <RelativeTime date={contentVersion} />
             </span>
           )}
-          {data?.type === DynamicType.Organigram && data.tree.length > 0 && (
+          {data != null && isPrintableDynamicDocument(data) && (
             // Same design as the PDF viewer's download button. A plain anchor, not a Link: the
             // target is a PDF resource whose Content-Disposition triggers the download without
-            // leaving the page. Hidden while the tree is empty — that PDF is a blank page.
+            // leaving the page. Hidden when the route would refuse it: an empty document prints
+            // a blank page.
             <Button variant="outline" size="sm" asChild>
               <a href={`/board/dynamic/${settings.id}/pdf`}>
                 <Download className="mr-2 size-4" />
