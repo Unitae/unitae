@@ -1,7 +1,11 @@
 import path from 'node:path'
 import { Document, Font, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
+import type {
+  BoardDocumentEvent,
+  BoardDocumentPart,
+  BoardDocumentTemplateOptions,
+} from '~/features/events/model/board-document-event.type'
 import { groupPartsBySlot } from '~/features/events/model/group-parts-by-slot'
-import type { ExportEvent, TemplateExportConfig } from '~/features/events/server/event-export.server'
 import { formatMemberName, getPartAssigneeDisplay } from '~/features/events/ui/part-display'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 
@@ -33,20 +37,19 @@ function sectionColor(section: string): string | null {
   return null
 }
 
-function formatDate(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date
+function formatDate(d: Date): string {
   return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 interface EventBoardDocumentProps {
-  events: ExportEvent[]
-  configMap: Map<number, Omit<TemplateExportConfig, 'templateId'>>
+  events: BoardDocumentEvent[]
+  configMap: Map<number, BoardDocumentTemplateOptions>
   groupBy: 'date' | 'template'
   title: string
   congregationName: string
 }
 
-type PartAssignment = ExportEvent['eventParts'][number]
+type PartAssignment = BoardDocumentPart
 
 const styles = StyleSheet.create({
   page: {
@@ -263,8 +266,8 @@ export function EventBoardDocument({ events, configMap, groupBy, title, congrega
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <Text style={styles.congregationName}>{congregationName}</Text>
-        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.congregationName}>{sanitizeText(congregationName)}</Text>
+        <Text style={styles.title}>{sanitizeText(title)}</Text>
 
         {orderedEvents.map((event, idx) => {
           const config = event.templateId ? configMap.get(event.templateId) : null
@@ -280,14 +283,14 @@ export function EventBoardDocument({ events, configMap, groupBy, title, congrega
 
           return (
             <View key={idx}>
-              {templateHeader && <Text style={styles.templateGroupHeader}>{templateHeader}</Text>}
+              {templateHeader && <Text style={styles.templateGroupHeader}>{sanitizeText(templateHeader)}</Text>}
               <EventCard event={event} showParts={showParts} showServices={showServices} />
             </View>
           )
         })}
 
         <View style={styles.footer} fixed>
-          <Text style={styles.footerText}>{congregationName}</Text>
+          <Text style={styles.footerText}>{sanitizeText(congregationName)}</Text>
           <Text style={styles.footerText} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
         </View>
       </Page>
@@ -300,7 +303,7 @@ function EventCard({
   showParts,
   showServices,
 }: {
-  event: ExportEvent
+  event: BoardDocumentEvent
   showParts: boolean
   showServices: boolean
 }) {
@@ -310,7 +313,7 @@ function EventCard({
     <View style={styles.eventCard}>
       <View style={styles.dateHeader}>
         <Text style={styles.dateText}>{formatDate(event.startDate)}</Text>
-        <Text style={styles.eventName}>{event.name}</Text>
+        <Text style={styles.eventName}>{sanitizeText(event.name)}</Text>
       </View>
 
       {showParts &&
@@ -325,16 +328,20 @@ function EventCard({
           </View>
         ))}
 
-      {showServices && event.eventServiceParts.length > 0 && (
+      {showServices && event.eventServiceParts && event.eventServiceParts.length > 0 && (
         <View style={showParts ? styles.servicesDivider : styles.servicesNoDivider}>
           <Text style={styles.servicesTitle}>Services</Text>
           <View style={styles.servicesGrid}>
             {event.eventServiceParts.map((role, roleIdx) => {
-              const name = formatMemberName(role.assignee)
+              const name = formatMemberName(role.assignee ?? null)
               return (
                 <View key={roleIdx} style={styles.serviceItem}>
-                  <Text style={styles.servicePartName}>{role.name}</Text>
-                  {name ? <Text style={styles.serviceAssignee}>{name}</Text> : <Text style={styles.unassigned}>—</Text>}
+                  <Text style={styles.servicePartName}>{sanitizeText(role.name)}</Text>
+                  {name ? (
+                    <Text style={styles.serviceAssignee}>{sanitizeText(name)}</Text>
+                  ) : (
+                    <Text style={styles.unassigned}>—</Text>
+                  )}
                 </View>
               )
             })}
@@ -364,8 +371,8 @@ const DOT_LEADER = ' .'.repeat(200)
 function formatPartRightText(part: PartAssignment): string | null {
   const { primary, assistant } = getPartAssigneeDisplay(part)
   if (!primary) return null
-  if (assistant) return `${primary} / ${assistant}`
-  return primary
+  if (assistant) return sanitizeText(`${primary} / ${assistant}`)
+  return sanitizeText(primary)
 }
 
 function DotLeader() {
@@ -411,7 +418,7 @@ function MultiTrackPart({ parts }: { parts: PartAssignment[] }) {
         const trackName = part.track || `Salle ${idx + 1}`
         return (
           <View key={idx} style={styles.trackRow}>
-            <Text style={styles.trackLabel}>{trackName}</Text>
+            <Text style={styles.trackLabel}>{sanitizeText(trackName)}</Text>
             <DotLeader />
             {rightText ? (
               <Text style={styles.partRight}>{rightText}</Text>

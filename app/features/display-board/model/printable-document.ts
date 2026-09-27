@@ -20,9 +20,8 @@ export function isPrintableDynamicDocument(data: DynamicDocumentShape): boolean 
       return data.groups.length > 0
     case DynamicType.Pioneers:
       return data.pioneers.length > 0
-    // The programme gets its sheet separately.
     case DynamicType.Programme:
-      return false
+      return data.events.length > 0
     default:
       return false
   }

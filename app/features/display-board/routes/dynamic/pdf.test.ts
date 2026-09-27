@@ -32,9 +32,11 @@ vi.mock('~/shared/infra/pdf.server', () => ({
 const OrganigramDocument = vi.fn()
 const PublisherGroupsDocument = vi.fn()
 const PioneersDocument = vi.fn()
+const EventBoardDocument = vi.fn()
 vi.mock('~/features/display-board/ui/dynamic/OrganigramDocument', () => ({ OrganigramDocument }))
 vi.mock('~/features/display-board/ui/dynamic/PublisherGroupsDocument', () => ({ PublisherGroupsDocument }))
 vi.mock('~/features/display-board/ui/dynamic/PioneersDocument', () => ({ PioneersDocument }))
+vi.mock('~/features/events/index.server', () => ({ EventBoardDocument }))
 
 const getDynamicDocumentData = vi.fn()
 vi.mock('~/features/display-board/server/dynamic-documents.server', () => ({ getDynamicDocumentData }))
@@ -57,9 +59,9 @@ const context = {
   },
 }
 
-function download() {
+function download(search = '') {
   return loader({
-    request: new Request('http://localhost/board/dynamic/5/pdf'),
+    request: new Request(`http://localhost/board/dynamic/5/pdf${search}`),
     context,
     params: { dynamicId: '5' },
   } as never)
@@ -113,6 +115,7 @@ describe('the dynamic document PDF loader', () => {
     [DynamicType.Organigram, { type: DynamicType.Organigram, tree: [] }],
     [DynamicType.PublisherGroups, { type: DynamicType.PublisherGroups, groups: [] }],
     [DynamicType.Pioneers, { type: DynamicType.Pioneers, pioneers: [] }],
+    [DynamicType.Programme, { type: DynamicType.Programme, events: [], showServices: false, config: null }],
   ])('refuses an empty %s document rather than printing a blank page', async (dynamicType, data) => {
     settingsFindFirst.mockResolvedValue(documentSettings(dynamicType, 'Document'))
     getDynamicDocumentData.mockResolvedValue(data)
@@ -121,12 +124,74 @@ describe('the dynamic document PDF loader', () => {
     expect(renderPdfResponse).not.toHaveBeenCalled()
   })
 
-  it('refuses a programme, which has no printable sheet yet', async () => {
-    settingsFindFirst.mockResolvedValue(documentSettings(DynamicType.Programme, 'Programme'))
-    getDynamicDocumentData.mockResolvedValue({ type: DynamicType.Programme, events: [{ id: 1 }] })
+  it('prints a configured programme on the programmes export sheet, with the board choices', async () => {
+    const events = [{ id: 1, templateId: 3 }]
+    const config = { templates: [{ templateId: 3, parts: true, services: false }], groupBy: 'template' }
+    settingsFindFirst.mockResolvedValue(documentSettings(DynamicType.Programme, 'Réunions'))
+    getDynamicDocumentData.mockResolvedValue({ type: DynamicType.Programme, events, showServices: false, config })
 
-    await expect(download()).rejects.toMatchObject({ status: 302 })
-    expect(renderPdfResponse).not.toHaveBeenCalled()
+    const response = await download()
+
+    expect(response.status).toBe(200)
+    expect(renderedElement().type).toBe(EventBoardDocument)
+    expect(renderedElement().props).toMatchObject({
+      events,
+      groupBy: 'template',
+      title: 'Réunions',
+      congregationName: 'Assemblée de Lyon',
+    })
+    expect((renderedElement().props.configMap as Map<number, unknown>).get(3)).toEqual({ parts: true, services: false })
+    expect(renderPdfResponse).toHaveBeenCalledWith(expect.anything(), 'réunions.pdf')
+  })
+
+  it('prints only the deep-linked event when the viewer was opened on one', async () => {
+    // Notification emails open the viewer on a single event; its download button forwards the id
+    // so the file matches what the reader is looking at.
+    const events = [
+      { id: 41, templateId: 3 },
+      { id: 42, templateId: 3 },
+    ]
+    settingsFindFirst.mockResolvedValue(documentSettings(DynamicType.Programme, 'Réunions'))
+    getDynamicDocumentData.mockResolvedValue({ type: DynamicType.Programme, events, showServices: false, config: null })
+
+    await download('?eventId=42')
+
+    expect(renderedElement().props.events).toEqual([{ id: 42, templateId: 3 }])
+  })
+
+  it('prints the whole programme when the deep-linked event is not in it', async () => {
+    const events = [{ id: 41, templateId: 3 }]
+    settingsFindFirst.mockResolvedValue(documentSettings(DynamicType.Programme, 'Réunions'))
+    getDynamicDocumentData.mockResolvedValue({ type: DynamicType.Programme, events, showServices: false, config: null })
+
+    await download('?eventId=99')
+
+    expect(renderedElement().props.events).toEqual(events)
+  })
+
+  it('ignores a malformed event id, like the viewer', async () => {
+    const events = [{ id: 41, templateId: 3 }]
+    settingsFindFirst.mockResolvedValue(documentSettings(DynamicType.Programme, 'Réunions'))
+    getDynamicDocumentData.mockResolvedValue({ type: DynamicType.Programme, events, showServices: false, config: null })
+
+    await download('?eventId=41abc')
+
+    expect(renderedElement().props.events).toEqual(events)
+  })
+
+  it('keeps services off for a legacy programme that hides them on the board', async () => {
+    settingsFindFirst.mockResolvedValue(documentSettings(DynamicType.Programme, ''))
+    getDynamicDocumentData.mockResolvedValue({
+      type: DynamicType.Programme,
+      events: [{ id: 1, templateId: 9 }],
+      showServices: false,
+      config: null,
+    })
+
+    await download()
+
+    expect((renderedElement().props.configMap as Map<number, unknown>).get(9)).toEqual({ parts: true, services: false })
+    expect(renderPdfResponse).toHaveBeenCalledWith(expect.anything(), 'programme.pdf')
   })
 
   it('refuses a document whose data cannot be read, such as an unknown type', async () => {

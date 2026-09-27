@@ -1,11 +1,14 @@
 import { redirect } from 'react-router'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
 import { isPrintableDynamicDocument } from '~/features/display-board/model/printable-document'
+import { programmePdfOptions } from '~/features/display-board/model/programme-pdf-options'
 import { getDynamicDocumentData } from '~/features/display-board/server/dynamic-documents.server'
+import { filterDynamicDataToEvent, readEventIdParam } from '~/features/display-board/server/event-filter.server'
 import { buildSectionVisibilityFilter } from '~/features/display-board/server/section-visibility.server'
 import { OrganigramDocument } from '~/features/display-board/ui/dynamic/OrganigramDocument'
 import { PioneersDocument } from '~/features/display-board/ui/dynamic/PioneersDocument'
 import { PublisherGroupsDocument } from '~/features/display-board/ui/dynamic/PublisherGroupsDocument'
+import { EventBoardDocument } from '~/features/events/index.server'
 import {
   congregationContext,
   currentAccountContext,
@@ -25,7 +28,7 @@ import type { Route } from './+types/pdf'
  * plus the section's own visibility — a PDF URL must not show anyone a document the board itself
  * would not. It reads the same data as the viewer, so both show the same people and events.
  */
-export function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.CanViewBoard)
   const currentUser = context.get(currentAccountContext)
@@ -45,10 +48,12 @@ export function loader({ params, context }: Route.LoaderArgs) {
     })
     if (!settings) throw redirect('/board')
 
-    const data = await getDynamicDocumentData(db, settings.dynamicType, settings.dynamicRef, congregationId, {
+    const rawData = await getDynamicDocumentData(db, settings.dynamicType, settings.dynamicRef, congregationId, {
       showServices: settings.showServices,
       dynamicConfig: settings.dynamicConfig,
     })
+    // A viewer opened on one event (notification deep link) downloads that event, not the month.
+    const { data } = filterDynamicDataToEvent(rawData, readEventIdParam(request))
     if (!data) {
       // Not an empty document but an unreadable one: an unknown type, or a stored config that no
       // longer parses. The viewer shows its empty state too, so leave a trace for whoever looks.
@@ -79,6 +84,24 @@ export function loader({ params, context }: Route.LoaderArgs) {
         filename('pionniers'),
       )
     }
-    throw redirect('/board')
+    if (data.type === DynamicType.Programme) {
+      // The programme prints on the programmes export sheet, with the board document's own
+      // template choices. Its guard stays the board's, not `CanViewPrograms`: the sheet shows
+      // nothing this account cannot already read on the board screen.
+      const { configMap, groupBy } = programmePdfOptions(data)
+      return renderPdfResponse(
+        <EventBoardDocument
+          events={data.events}
+          configMap={configMap}
+          groupBy={groupBy}
+          title={title}
+          congregationName={congregationName}
+        />,
+        filename('programme'),
+      )
+    }
+    // Every dynamic type has a sheet: a new type must get one here before it compiles.
+    const unhandled: never = data
+    return unhandled
   })
 }

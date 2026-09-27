@@ -8,7 +8,7 @@ import {
   getDynamicDocumentData,
   markDynamicDocumentViewed,
 } from '~/features/display-board/server/dynamic-documents.server'
-import { filterDynamicDataToEvent } from '~/features/display-board/server/event-filter.server'
+import { filterDynamicDataToEvent, readEventIdParam } from '~/features/display-board/server/event-filter.server'
 import { buildSectionVisibilityFilter } from '~/features/display-board/server/section-visibility.server'
 import { OrganigramView } from '~/features/display-board/ui/dynamic/OrganigramView'
 import { PioneersView } from '~/features/display-board/ui/dynamic/PioneersView'
@@ -35,8 +35,6 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.board_viewer_meta_title() }]
 }
 
-const POSITIVE_INTEGER = /^\d+$/
-
 export function loader({ params, request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.CanViewBoard)
@@ -48,8 +46,7 @@ export function loader({ params, request, context }: Route.LoaderArgs) {
   // Deep-link support: `?eventId=N` narrows a Programme dynamic doc down to
   // that one event. Used by notification emails so an assignee lands directly
   // on their assignment. Non-numeric values are ignored.
-  const eventIdParam = new URL(request.url).searchParams.get('eventId')
-  const eventIdFilter = eventIdParam && POSITIVE_INTEGER.test(eventIdParam) ? Number(eventIdParam) : null
+  const eventIdFilter = readEventIdParam(request)
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
@@ -76,12 +73,18 @@ export function loader({ params, request, context }: Route.LoaderArgs) {
     ])
     const { data, requestedEventMissing } = filterDynamicDataToEvent(rawData, eventIdFilter)
 
-    return { settings, data, contentVersion, requestedEventMissing }
+    // The download follows the narrowing, so the file matches what the reader sees.
+    const pdfUrl =
+      eventIdFilter != null && !requestedEventMissing
+        ? `/board/dynamic/${settings.id}/pdf?eventId=${eventIdFilter}`
+        : `/board/dynamic/${settings.id}/pdf`
+
+    return { settings, data, contentVersion, requestedEventMissing, pdfUrl }
   })
 }
 
 export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) {
-  const { settings, data, contentVersion, requestedEventMissing } = loaderData
+  const { settings, data, contentVersion, requestedEventMissing, pdfUrl } = loaderData
   const isProgramme = data?.type === DynamicType.Programme
 
   const [searchOpen, setSearchOpen] = useState(false)
@@ -113,7 +116,7 @@ export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) 
             // leaving the page. Hidden when the route would refuse it: an empty document prints
             // a blank page.
             <Button variant="outline" size="sm" asChild>
-              <a href={`/board/dynamic/${settings.id}/pdf`}>
+              <a href={pdfUrl}>
                 <Download className="mr-2 size-4" />
                 <span className="max-sm:sr-only">{m.board_viewer_download_pdf()}</span>
               </a>

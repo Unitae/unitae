@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import * as m from '~/i18n/paraglide/messages'
 import { formatMemberName, getPartAssigneeDisplay } from './part-display'
 
 describe('formatMemberName', () => {
@@ -18,6 +19,16 @@ describe('formatMemberName', () => {
   it('returns null when both parts are empty', () => {
     expect(formatMemberName({ firstname: null, lastname: null })).toBeNull()
     expect(formatMemberName({ firstname: '', lastname: '' })).toBeNull()
+  })
+
+  it('prints the anonymized label, not the placeholder name stored on an anonymized member', () => {
+    const anonymized = { firstname: 'Utilisateur', lastname: 'supprime', anonymizedAt: new Date() }
+
+    expect(formatMemberName(anonymized)).toBe(m.board_read_status_anonymized_user())
+  })
+
+  it('treats a null anonymizedAt as a regular member', () => {
+    expect(formatMemberName({ firstname: 'Jane', lastname: 'Doe', anonymizedAt: null })).toBe('Jane Doe')
   })
 })
 

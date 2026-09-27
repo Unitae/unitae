@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
-import { filterDynamicDataToEvent } from './event-filter.server'
+import { filterDynamicDataToEvent, readEventIdParam } from './event-filter.server'
 
 const PROGRAMME_DATA = {
   type: DynamicType.Programme,
@@ -55,5 +55,17 @@ describe('filterDynamicDataToEvent', () => {
     const result = filterDynamicDataToEvent(null, 100)
     expect(result.data).toBeNull()
     expect(result.requestedEventMissing).toBe(false)
+  })
+})
+
+describe('readEventIdParam', () => {
+  it('reads a positive integer event id', () => {
+    expect(readEventIdParam(new Request('http://localhost/x?eventId=42'))).toBe(42)
+  })
+
+  it('ignores a missing or malformed id', () => {
+    expect(readEventIdParam(new Request('http://localhost/x'))).toBeNull()
+    expect(readEventIdParam(new Request('http://localhost/x?eventId=42abc'))).toBeNull()
+    expect(readEventIdParam(new Request('http://localhost/x?eventId=-1'))).toBeNull()
   })
 })
