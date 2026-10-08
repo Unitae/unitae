@@ -31,13 +31,25 @@ export type CongregationInfo = {
 }
 
 export async function resolveCongregation(congregationId: number): Promise<CongregationInfo> {
-  const congregation = await unscopedDb.congregation.findUnique({
-    where: { id: congregationId },
-  })
+  const congregation = await findCongregation(congregationId)
 
   if (!congregation) {
     throw new Error(`Congregation ${congregationId} not found`)
   }
+
+  return congregation
+}
+
+/**
+ * Like {@link resolveCongregation}, for callers that can outlive the congregation they hold an id
+ * for — a session cookie, mostly: `null` lets them handle a deleted congregation instead of throwing.
+ */
+export async function findCongregation(congregationId: number): Promise<CongregationInfo | null> {
+  const congregation = await unscopedDb.congregation.findUnique({
+    where: { id: congregationId },
+  })
+
+  if (!congregation) return null
 
   const appBaseUrl = process.env.UNITAE_BASE_URL ?? 'https://unitae.app'
 
@@ -77,17 +89,28 @@ export function getPlatformName(): string {
 }
 
 /**
+ * The congregation slug in a `<slug>.<base domain>` hostname. `null` for the base domain itself — it
+ * is the platform, not a congregation — and for any other host, including one that merely ends with
+ * the same letters (`notunitae.app`).
+ */
+function slugFromHostname(hostname: string): string | null {
+  const appBaseUrl = (process.env.UNITAE_BASE_URL ?? 'unitae.app').replace('https://', '').replace('http://', '')
+  const suffix = `.${appBaseUrl}`
+  return hostname.endsWith(suffix) ? hostname.slice(0, -suffix.length) : null
+}
+
+/**
  * Resolves the congregation matching the subdomain or custom domain from the request.
  *
- * - Returns `null` in single-tenant mode or if no slug is extracted from the URL (root domain).
+ * - Returns `null` in single-tenant mode, or for a host that is neither a subdomain of the base domain
+ *   nor a congregation's custom domain (the base domain itself among them).
  * - Redirects to `/congregation-not-found` if a slug is present but doesn't match any congregation.
  */
 export async function resolveCongregationFromRequest(request: Request): Promise<{ id: number; slug: string } | null> {
   if (process.env.UNITAE_MULTI_TENANT !== 'true') return null
 
   const hostname = new URL(request.url).hostname
-  const appBaseUrl = (process.env.UNITAE_BASE_URL ?? 'unitae.app').replace('https://', '').replace('http://', '')
-  const slug = hostname.endsWith(appBaseUrl) ? hostname.replace(`.${appBaseUrl}`, '') : null
+  const slug = slugFromHostname(hostname)
 
   if (slug) {
     const congregation = await unscopedDb.congregation.findUnique({
@@ -118,8 +141,7 @@ export async function getBrandingName(request?: Request): Promise<string> {
 
   if (process.env.UNITAE_MULTI_TENANT === 'true' && request) {
     const hostname = new URL(request.url).hostname
-    const appBaseUrl = (process.env.UNITAE_BASE_URL ?? 'unitae.app').replace('https://', '').replace('http://', '')
-    const slug = hostname.endsWith(appBaseUrl) ? hostname.replace(`.${appBaseUrl}`, '') : null
+    const slug = slugFromHostname(hostname)
 
     if (slug) {
       congregation = await unscopedDb.congregation.findUnique({

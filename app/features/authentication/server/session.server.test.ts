@@ -34,7 +34,7 @@ vi.mock('~/shared/infra/db.server', () => ({
 }))
 
 vi.mock('~/shared/domain/congregation.server', () => ({
-  resolveCongregation: vi.fn(),
+  findCongregation: vi.fn(),
   resolveCongregationFromRequest: vi.fn(),
 }))
 
@@ -47,7 +47,7 @@ vi.mock('./sanitize-account.server', () => ({
 
 const { verifySession, establishAuthenticatedSession } = await import('./session.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
-const { resolveCongregation, resolveCongregationFromRequest } = await import('~/shared/domain/congregation.server')
+const { findCongregation, resolveCongregationFromRequest } = await import('~/shared/domain/congregation.server')
 
 const fakeUser = {
   id: 42,
@@ -94,7 +94,7 @@ describe('verifySession', () => {
     setSession({ userId: '42', sessionEpoch: '0' })
     vi.mocked(db.userAccount.findUnique).mockResolvedValue(fakeUser as never)
     vi.mocked(resolveCongregationFromRequest).mockResolvedValue(null as never)
-    vi.mocked(resolveCongregation).mockResolvedValue(fakeCongregation as never)
+    vi.mocked(findCongregation).mockResolvedValue(fakeCongregation as never)
 
     const result = await verifySession(makeRequest())
 
@@ -127,7 +127,7 @@ describe('verifySession', () => {
     setSession({ userId: '42', sessionEpoch: '3' })
     vi.mocked(db.userAccount.findUnique).mockResolvedValue({ ...fakeUser, sessionEpoch: 3 } as never)
     vi.mocked(resolveCongregationFromRequest).mockResolvedValue(null as never)
-    vi.mocked(resolveCongregation).mockResolvedValue(fakeCongregation as never)
+    vi.mocked(findCongregation).mockResolvedValue(fakeCongregation as never)
 
     const result = await verifySession(makeRequest())
 
@@ -139,7 +139,7 @@ describe('verifySession', () => {
     setSession({ userId: '42' })
     vi.mocked(db.userAccount.findUnique).mockResolvedValue(fakeUser as never)
     vi.mocked(resolveCongregationFromRequest).mockResolvedValue(null as never)
-    vi.mocked(resolveCongregation).mockResolvedValue(fakeCongregation as never)
+    vi.mocked(findCongregation).mockResolvedValue(fakeCongregation as never)
 
     const result = await verifySession(makeRequest())
 
@@ -210,7 +210,7 @@ describe('verifySession', () => {
     setSession({ userId: '42', sessionEpoch: '0' })
     vi.mocked(db.userAccount.findUnique).mockResolvedValue(fakeUser as never)
     vi.mocked(resolveCongregationFromRequest).mockResolvedValue(null as never)
-    vi.mocked(resolveCongregation).mockResolvedValue({
+    vi.mocked(findCongregation).mockResolvedValue({
       ...fakeCongregation,
       suspendedAt: new Date(),
       suspendedReason: null,
@@ -226,7 +226,7 @@ describe('verifySession', () => {
     vi.mocked(resolveCongregationFromRequest).mockResolvedValue(null as never)
     const pastDate = new Date()
     pastDate.setDate(pastDate.getDate() - 1)
-    vi.mocked(resolveCongregation).mockResolvedValue({
+    vi.mocked(findCongregation).mockResolvedValue({
       ...fakeCongregation,
       trialEndsAt: pastDate,
     } as never)
@@ -244,11 +244,24 @@ describe('verifySession', () => {
     expect(response.headers.get('Location')).toBe('/login?redirectTo=%2Fterritories%2F1%3Fx%3D2')
   })
 
+  // Regression: a session outliving its congregation used to throw a plain Error out of the
+  // guard, which every authenticated page answered with a 500.
+  it("redirects to /login and drops the session when the account's congregation no longer exists", async () => {
+    setSession({ userId: '42', sessionEpoch: '0' })
+    vi.mocked(db.userAccount.findUnique).mockResolvedValue(fakeUser as never)
+    vi.mocked(resolveCongregationFromRequest).mockResolvedValue(null as never)
+    vi.mocked(findCongregation).mockResolvedValue(null as never)
+
+    const response = await getRedirectResponse(() => verifySession(makeRequest('http://localhost/territories/1?x=2')))
+    expect(response.headers.get('Location')).toBe('/login')
+    expect(response.headers.get('Set-Cookie')).toBe('destroyed')
+  })
+
   it("redirige vers /verify-email si l'email n'est pas vérifié", async () => {
     setSession({ userId: '42', sessionEpoch: '0' })
     vi.mocked(db.userAccount.findUnique).mockResolvedValue({ ...fakeUser, emailVerifiedAt: null } as never)
     vi.mocked(resolveCongregationFromRequest).mockResolvedValue(null as never)
-    vi.mocked(resolveCongregation).mockResolvedValue(fakeCongregation as never)
+    vi.mocked(findCongregation).mockResolvedValue(fakeCongregation as never)
 
     const response = await getRedirectResponse(() => verifySession(makeRequest()))
     expect(response.headers.get('Location')).toBe('/verify-email')

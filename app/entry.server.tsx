@@ -10,7 +10,7 @@ import { ServerRouter } from 'react-router'
 
 import { baseLocale, isLocale, type Locale, overwriteGetLocale } from '~/i18n/paraglide/runtime'
 import logger from '~/shared/infra/logger.server'
-import { resolveLocaleFromRequest } from '~/shared/utils/locale.server'
+import { resolveDocumentLocale } from '~/shared/utils/locale.server'
 
 const ABORT_DELAY = 5_000
 
@@ -27,8 +27,10 @@ export default async function handleRequest(
   reactRouterContext: EntryContext,
   _loadContext: RouterContextProvider,
 ) {
-  const resolvedLocale = await resolveLocaleFromRequest(request)
-  const locale = isLocale(resolvedLocale) ? resolvedLocale : baseLocale
+  const resolved = await resolveDocumentLocale(request)
+  // A subdomain no congregation owns: send the visitor to the page that says so, as the loaders do.
+  if ('redirect' in resolved) return resolved.redirect
+  const locale = isLocale(resolved.locale) ? resolved.locale : baseLocale
 
   // Set the PARAGLIDE_LOCALE cookie via HTTP header so the client-side
   // cookie strategy can read it during hydration (before any JS executes)

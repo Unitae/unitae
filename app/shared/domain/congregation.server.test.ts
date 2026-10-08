@@ -12,9 +12,8 @@ vi.mock('react-router', () => ({
   }),
 }))
 
-const { getBrandingName, resolveCongregation, resolveCongregationFromRequest, getPlatformName } = await import(
-  './congregation.server'
-)
+const { findCongregation, getBrandingName, resolveCongregation, resolveCongregationFromRequest, getPlatformName } =
+  await import('./congregation.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
@@ -174,6 +173,21 @@ describe('resolveCongregation', () => {
   })
 })
 
+describe('findCongregation', () => {
+  it('returns null for a congregation that does not exist', async () => {
+    vi.mocked(db.congregation.findUnique).mockResolvedValue(null as never)
+
+    await expect(findCongregation(999)).resolves.toBeNull()
+  })
+
+  it('returns the same congregation as resolveCongregation when it exists', async () => {
+    vi.mocked(db.congregation.findUnique).mockResolvedValue(baseCongregation as never)
+
+    const found = await findCongregation(1)
+    expect(found).toEqual(await resolveCongregation(1))
+  })
+})
+
 describe('getPlatformName', () => {
   it('retourne "Unitae"', () => {
     expect(getPlatformName()).toBe('Unitae')
@@ -228,6 +242,28 @@ describe('resolveCongregationFromRequest', () => {
     })
   })
 
+  // Regression: the base domain itself was read as the slug "unitae.app" and redirected to
+  // /congregation-not-found (it serves /setup in production).
+  it('looks up no slug for the base domain itself', async () => {
+    process.env.UNITAE_MULTI_TENANT = 'true'
+    process.env.UNITAE_BASE_URL = 'https://unitae.app'
+    vi.mocked(db.congregation.findFirst).mockResolvedValue(null as never)
+
+    const result = await resolveCongregationFromRequest(makeRequest('https://unitae.app/setup'))
+    expect(result).toBeNull()
+    expect(db.congregation.findUnique).not.toHaveBeenCalled()
+  })
+
+  it('treats a host that only ends with the base domain as a custom domain, not a subdomain', async () => {
+    process.env.UNITAE_MULTI_TENANT = 'true'
+    process.env.UNITAE_BASE_URL = 'unitae.app'
+    vi.mocked(db.congregation.findFirst).mockResolvedValue({ id: 3, slug: 'lyon' } as never)
+
+    const result = await resolveCongregationFromRequest(makeRequest('https://notunitae.app/'))
+    expect(result).toEqual({ id: 3, slug: 'lyon' })
+    expect(db.congregation.findUnique).not.toHaveBeenCalled()
+  })
+
   it('retourne null pour le domaine racine sans slug ni domaine personnalisé', async () => {
     process.env.UNITAE_MULTI_TENANT = 'true'
     process.env.UNITAE_BASE_URL = 'unitae.app'
@@ -258,5 +294,28 @@ describe('getBrandingName — deterministic single-tenant pick', () => {
     vi.mocked(db.congregation.findFirst).mockResolvedValue(singleTenant as never)
 
     await expect(getBrandingName()).resolves.toBe('La Bonne Assemblée')
+  })
+})
+
+describe('getBrandingName — multi-tenant host', () => {
+  it('looks up no slug for the base domain itself', async () => {
+    process.env.UNITAE_MULTI_TENANT = 'true'
+    process.env.UNITAE_BASE_URL = 'unitae.app'
+    vi.mocked(db.congregation.findFirst).mockResolvedValue(null as never)
+
+    await expect(getBrandingName(new Request('https://unitae.app/setup'))).resolves.toBe('Unitae')
+    expect(db.congregation.findUnique).not.toHaveBeenCalled()
+  })
+
+  it("brands a subdomain with its congregation's name", async () => {
+    process.env.UNITAE_MULTI_TENANT = 'true'
+    process.env.UNITAE_BASE_URL = 'unitae.app'
+    vi.mocked(db.congregation.findUnique).mockResolvedValue({ name: 'Lyon Centre', displayName: null } as never)
+
+    await expect(getBrandingName(new Request('https://lyon.unitae.app/login'))).resolves.toBe('Lyon Centre')
+    expect(db.congregation.findUnique).toHaveBeenCalledWith({
+      where: { slug: 'lyon' },
+      select: { name: true, displayName: true },
+    })
   })
 })

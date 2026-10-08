@@ -2,7 +2,7 @@ import { createCookieSessionStorage, redirect, type Session } from 'react-router
 import { buildLoginRedirectUrl } from '~/features/authentication/server/post-login-redirect.server'
 import { sanitizeAccount } from '~/shared/auth/sanitize-account.server'
 import { SESSION_MAX_AGE_SECONDS_DEV, SESSION_MAX_AGE_SECONDS_PROD } from '~/shared/constants/limits'
-import { resolveCongregation, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
+import { findCongregation, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 import { getSessionSecrets } from '~/shared/utils/env.server'
@@ -137,7 +137,12 @@ export async function verifySession(request: Request) {
     return redirectToLogin(session)
   }
 
-  const congregation = await resolveCongregation(user.congregationId)
+  const congregation = await findCongregation(user.congregationId)
+  if (congregation == null) {
+    // The cookie outlived its congregation: drop it and send the visitor to sign in again.
+    logger.warn(`verifySession: congregation ${user.congregationId} of userId ${user.id} no longer exists`)
+    return redirectToLogin(session)
+  }
 
   if (congregation.suspendedAt) {
     throw redirect('/suspended')
