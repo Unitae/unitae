@@ -13,10 +13,23 @@ Checks connectivity to PostgreSQL and Redis.
 
 The check runs `redis.ping()` and `db.userAccount.count()` in parallel. No authentication required.
 
+### `GET /livez`
+
+Checks nothing but the web process itself: it answers as long as the server can serve a request.
+
+- **200 OK** — `text/plain` body `ok`, `Cache-Control: no-store`
+
+Use it for liveness and startup probes, and `/health` for readiness. A liveness probe on `/health`
+restarts every web pod at once when PostgreSQL or Redis is briefly unreachable, which brings neither
+back; readiness only takes the pods out of the load balancer until the dependencies answer again.
+
+Neither endpoint needs to be public: the orchestrator reaches them on the container port.
+
 ### Example Usage
 
 ```bash
 curl -sf http://localhost:8080/health
+curl -sf http://localhost:8080/livez
 ```
 
 ### Docker Compose healthcheck
@@ -36,11 +49,16 @@ services:
 ### Kubernetes probes
 
 ```yaml
+startupProbe:
+  httpGet:
+    path: /livez
+    port: 8080
+  periodSeconds: 5
+  failureThreshold: 12
 livenessProbe:
   httpGet:
-    path: /health
+    path: /livez
     port: 8080
-  initialDelaySeconds: 10
   periodSeconds: 30
 readinessProbe:
   httpGet:
