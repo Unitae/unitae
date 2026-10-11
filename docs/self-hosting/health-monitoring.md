@@ -25,6 +25,12 @@ back; readiness only takes the pods out of the load balancer until the dependenc
 
 Neither endpoint needs to be public: the orchestrator reaches them on the container port.
 
+The web process checks the database itself once, when it starts: outside development it exits if it
+cannot verify that Row-Level Security is enforced (see
+[Row-Level Security](../development/row-level-security.md)). An instance started while PostgreSQL is
+unreachable exits before `/livez` can answer; with a restart policy it comes back once the database
+does.
+
 ### Example Usage
 
 ```bash
