@@ -1,9 +1,11 @@
 import { getSession } from '~/features/authentication/server/session.server'
+import { baseLocale, isLocale, type Locale } from '~/i18n/paraglide/runtime'
 import { findCongregation, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 
 const DEFAULT_LOCALE = 'fr'
+const LOCALE_COOKIE = /(?:^|;\s*)PARAGLIDE_LOCALE=([^;]+)/
 
 export async function resolveLocaleFromRequest(request: Request): Promise<string> {
   // 1. Try session → user → congregation → locale (authenticated users)
@@ -49,7 +51,11 @@ export async function resolveLocaleFromRequest(request: Request): Promise<string
   return DEFAULT_LOCALE
 }
 
-export type DocumentLocale = { locale: string } | { redirect: Response }
+/**
+ * `persist: false` marks a locale nobody chose — the lookup failed, or there is no congregation to
+ * ask: the document renders in it, and the visitor's locale cookie is left as it is.
+ */
+export type DocumentLocale = { locale: Locale; persist: boolean } | { redirect: Response }
 
 /**
  * The locale entry.server renders a document in, or the redirect to answer with instead.
@@ -58,24 +64,40 @@ export type DocumentLocale = { locale: string } | { redirect: Response }
  * response: it re-renders, the lookup throws again, and the visitor gets the last-resort 500. So
  * the redirect resolveCongregationFromRequest throws for a subdomain no congregation owns comes
  * back as a value — except on the page it points to, which renders instead of redirecting to
- * itself. Any other failure falls back to the default locale: the locale only picks a language,
- * and must not take the page down with it.
+ * itself. Any other failure, a thrown Response that is not a redirect included, falls back to the
+ * locale the visitor already has, or the base one: the locale only picks a language, and must not
+ * take the page down with it.
  */
 export async function resolveDocumentLocale(request: Request): Promise<DocumentLocale> {
   try {
-    return { locale: await resolveLocaleFromRequest(request) }
+    const locale = await resolveLocaleFromRequest(request)
+    return { locale: isLocale(locale) ? locale : baseLocale, persist: true }
   } catch (error) {
-    if (error instanceof Response) {
-      return redirectsToItself(request, error) ? { locale: DEFAULT_LOCALE } : { redirect: error }
+    if (!isRedirect(error)) {
+      const { host, pathname } = new URL(request.url)
+      logger.error('resolveDocumentLocale: locale lookup failed, rendering in a fallback locale', {
+        // A Response has no enumerable fields: logged as it is, it would read `{}`.
+        error: error instanceof Response ? `Response ${error.status}` : error,
+        host,
+        path: pathname,
+      })
+    } else if (!redirectsToItself(request, error)) {
+      return { redirect: error }
     }
-    logger.error('resolveDocumentLocale: locale lookup failed, rendering in the default locale', { error })
-    return { locale: DEFAULT_LOCALE }
+    return { locale: localeFromCookie(request) ?? baseLocale, persist: false }
   }
 }
 
-function redirectsToItself(request: Request, response: Response): boolean {
-  const location = response.headers.get('Location')
-  if (location == null) return false
+function isRedirect(error: unknown): error is Response {
+  return error instanceof Response && error.status >= 300 && error.status < 400 && error.headers.has('Location')
+}
+
+function redirectsToItself(request: Request, redirect: Response): boolean {
   const current = new URL(request.url)
-  return new URL(location, current).pathname === current.pathname
+  return new URL(redirect.headers.get('Location') ?? '', current).pathname === current.pathname
+}
+
+function localeFromCookie(request: Request): Locale | null {
+  const value = LOCALE_COOKIE.exec(request.headers.get('Cookie') ?? '')?.[1]
+  return isLocale(value) ? value : null
 }

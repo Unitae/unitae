@@ -17,6 +17,14 @@ vi.mock('~/shared/utils/locale.server', () => ({
   resolveDocumentLocale: vi.fn(),
 }))
 
+// Rendering is React's part: report the shell ready at once, so handleRequest answers.
+vi.mock('react-dom/server', () => ({
+  renderToPipeableStream: (_element: unknown, options: { onShellReady?: () => void; onAllReady?: () => void }) => {
+    queueMicrotask(() => (options.onShellReady ?? options.onAllReady)?.())
+    return { pipe: (body: { end: () => void }) => body.end(), abort: () => {} }
+  },
+}))
+
 const { default: handleRequest } = await import('./entry.server')
 const { resolveDocumentLocale } = await import('~/shared/utils/locale.server')
 
@@ -38,5 +46,34 @@ describe('handleRequest', () => {
 
     expect(response).toBe(redirect)
     expect(responseHeaders.has('Set-Cookie')).toBe(false)
+  })
+
+  it('remembers a resolved locale in the locale cookie', async () => {
+    vi.mocked(resolveDocumentLocale).mockResolvedValue({ locale: 'en', persist: true })
+
+    const response = await handleRequest(
+      new Request('https://lyon.unitae.app/login'),
+      200,
+      new Headers(),
+      {} as never,
+      {} as never,
+    )
+
+    expect(response.headers.get('Set-Cookie')).toContain('PARAGLIDE_LOCALE=en;')
+  })
+
+  // A failed lookup renders in a fallback locale. Writing that one down replaced the visitor's own.
+  it('leaves the locale cookie alone when the locale is a fallback', async () => {
+    vi.mocked(resolveDocumentLocale).mockResolvedValue({ locale: 'fr', persist: false })
+
+    const response = await handleRequest(
+      new Request('https://lyon.unitae.app/login'),
+      200,
+      new Headers(),
+      {} as never,
+      {} as never,
+    )
+
+    expect(response.headers.get('Set-Cookie')).toBeNull()
   })
 })

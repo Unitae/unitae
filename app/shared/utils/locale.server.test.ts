@@ -20,6 +20,11 @@ vi.mock('~/shared/infra/logger.server', () => ({
   default: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
 }))
 
+vi.mock('~/i18n/paraglide/runtime', () => ({
+  baseLocale: 'fr',
+  isLocale: (value: unknown) => value === 'fr' || value === 'en',
+}))
+
 const { resolveDocumentLocale, resolveLocaleFromRequest } = await import('./locale.server')
 const { getSession } = await import('~/features/authentication/server/session.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
@@ -30,8 +35,8 @@ beforeEach(() => {
   delete process.env.UNITAE_MULTI_TENANT
 })
 
-function makeRequest(url = 'http://localhost:5173/board') {
-  return new Request(url)
+function makeRequest(url = 'http://localhost:5173/board', headers: Record<string, string> = {}) {
+  return new Request(url, { headers })
 }
 
 function mockSession(userId: number | typeof NaN) {
@@ -153,12 +158,21 @@ describe("resolveLocaleFromRequest — the session's congregation no longer exis
 describe('resolveDocumentLocale', () => {
   const notFoundRedirect = () => new Response(null, { status: 302, headers: { Location: '/congregation-not-found' } })
 
-  it("returns the request's locale", async () => {
+  it('returns the resolved locale, to be remembered', async () => {
     mockSession(42)
     vi.mocked(db.userAccount.findUnique).mockResolvedValue({ congregationId: 1 } as never)
     vi.mocked(findCongregation).mockResolvedValue({ locale: 'en' } as never)
 
-    await expect(resolveDocumentLocale(makeRequest())).resolves.toEqual({ locale: 'en' })
+    await expect(resolveDocumentLocale(makeRequest())).resolves.toEqual({ locale: 'en', persist: true })
+  })
+
+  // Congregation.locale is a free-text column: what comes out of it is not always a locale the app ships.
+  it('renders in the base locale when the congregation holds a locale the app does not ship', async () => {
+    mockSession(42)
+    vi.mocked(db.userAccount.findUnique).mockResolvedValue({ congregationId: 1 } as never)
+    vi.mocked(findCongregation).mockResolvedValue({ locale: 'de' } as never)
+
+    await expect(resolveDocumentLocale(makeRequest())).resolves.toEqual({ locale: 'fr', persist: true })
   })
 
   // Regression: any page on a subdomain no congregation owns, and any unknown path there, was a 500.
@@ -180,14 +194,44 @@ describe('resolveDocumentLocale', () => {
 
     await expect(
       resolveDocumentLocale(makeRequest('https://inconnu.unitae.app/congregation-not-found')),
-    ).resolves.toEqual({ locale: 'fr' })
+    ).resolves.toEqual({ locale: 'fr', persist: false })
   })
 
-  it('falls back to the default locale when the lookup fails', async () => {
+  it('falls back to the base locale when the lookup fails, without remembering it', async () => {
     mockSession(42)
     vi.mocked(db.userAccount.findUnique).mockRejectedValue(new Error('connection refused'))
 
-    await expect(resolveDocumentLocale(makeRequest())).resolves.toEqual({ locale: 'fr' })
+    await expect(resolveDocumentLocale(makeRequest())).resolves.toEqual({ locale: 'fr', persist: false })
+  })
+
+  // The fallback is nobody's locale. Written to the locale cookie, it switched an English
+  // congregation's member to French until their next full page load.
+  it("keeps the visitor's own locale when the lookup fails", async () => {
+    mockSession(42)
+    vi.mocked(db.userAccount.findUnique).mockRejectedValue(new Error('connection refused'))
+    const request = makeRequest(undefined, { Cookie: 'theme=dark; PARAGLIDE_LOCALE=en' })
+
+    await expect(resolveDocumentLocale(request)).resolves.toEqual({ locale: 'en', persist: false })
+  })
+
+  it('ignores a locale cookie the app does not ship', async () => {
+    mockSession(42)
+    vi.mocked(db.userAccount.findUnique).mockRejectedValue(new Error('connection refused'))
+    const request = makeRequest(undefined, { Cookie: 'PARAGLIDE_LOCALE=de' })
+
+    await expect(resolveDocumentLocale(request)).resolves.toEqual({ locale: 'fr', persist: false })
+  })
+
+  // Only a redirect may be answered as one. Any other Response thrown by the lookup would have
+  // been sent to the visitor as the page.
+  it('falls back instead of answering with a thrown Response that is not a redirect', async () => {
+    mockSession(NaN)
+    vi.mocked(resolveCongregationFromRequest).mockRejectedValue(new Response('forbidden', { status: 403 }))
+
+    await expect(resolveDocumentLocale(makeRequest('https://inconnu.unitae.app/nope'))).resolves.toEqual({
+      locale: 'fr',
+      persist: false,
+    })
   })
 })
 

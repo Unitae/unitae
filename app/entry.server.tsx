@@ -8,7 +8,7 @@ import { renderToPipeableStream } from 'react-dom/server'
 import type { EntryContext, RouterContextProvider } from 'react-router'
 import { ServerRouter } from 'react-router'
 
-import { baseLocale, isLocale, type Locale, overwriteGetLocale } from '~/i18n/paraglide/runtime'
+import { baseLocale, type Locale, overwriteGetLocale } from '~/i18n/paraglide/runtime'
 import logger from '~/shared/infra/logger.server'
 import { resolveDocumentLocale } from '~/shared/utils/locale.server'
 
@@ -30,11 +30,14 @@ export default async function handleRequest(
   const resolved = await resolveDocumentLocale(request)
   // A subdomain no congregation owns: send the visitor to the page that says so, as the loaders do.
   if ('redirect' in resolved) return resolved.redirect
-  const locale = isLocale(resolved.locale) ? resolved.locale : baseLocale
+  const { locale } = resolved
 
   // Set the PARAGLIDE_LOCALE cookie via HTTP header so the client-side
-  // cookie strategy can read it during hydration (before any JS executes)
-  responseHeaders.append('Set-Cookie', `PARAGLIDE_LOCALE=${locale}; Path=/; Max-Age=34560000; SameSite=Lax`)
+  // cookie strategy can read it during hydration (before any JS executes).
+  // A fallback locale is not written: it would replace the one the visitor already has.
+  if (resolved.persist) {
+    responseHeaders.append('Set-Cookie', `PARAGLIDE_LOCALE=${locale}; Path=/; Max-Age=34560000; SameSite=Lax`)
+  }
 
   return localeStore.run(locale, () => {
     return isbot(request.headers.get('user-agent') || '')
