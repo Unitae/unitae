@@ -1,6 +1,7 @@
 import { redirect } from 'react-router'
 
 import { unscopedDb } from '~/shared/infra/db.server'
+import { getBaseDomain } from '~/shared/utils/env.server'
 
 const DEFAULT_PLATFORM_NAME = 'Unitae'
 const DEFAULT_EMAIL_FROM = process.env.UNITAE_EMAIL_FROM ?? 'Unitae <noreply@unitae.app>'
@@ -91,12 +92,11 @@ export function getPlatformName(): string {
 /**
  * The congregation slug in a `<slug>.<base domain>` hostname. `null` for the base domain itself — it
  * is the platform, not a congregation — and for any other host, including one that merely ends with
- * the same letters (`notunitae.app`).
+ * the same letters (`notunitae.app`) or has nothing before the dot.
  */
 function slugFromHostname(hostname: string): string | null {
-  const appBaseUrl = (process.env.UNITAE_BASE_URL ?? 'unitae.app').replace('https://', '').replace('http://', '')
-  const suffix = `.${appBaseUrl}`
-  return hostname.endsWith(suffix) ? hostname.slice(0, -suffix.length) : null
+  const suffix = `.${getBaseDomain()}`
+  return hostname.endsWith(suffix) ? hostname.slice(0, -suffix.length) || null : null
 }
 
 /**

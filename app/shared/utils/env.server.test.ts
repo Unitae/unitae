@@ -4,7 +4,14 @@ vi.mock('~/shared/infra/logger.server', () => ({
   default: { warn: vi.fn(), info: vi.fn(), error: vi.fn() },
 }))
 
-const ENV_KEYS = ['DB_URL', 'UNITAE_SESSION_SECRET', 'DB_RUNTIME_URL', 'UNITAE_CRON_SECRET'] as const
+const ENV_KEYS = [
+  'DB_URL',
+  'UNITAE_SESSION_SECRET',
+  'DB_RUNTIME_URL',
+  'UNITAE_CRON_SECRET',
+  'UNITAE_BASE_URL',
+  'UNITAE_MULTI_TENANT',
+] as const
 
 describe('env.server', () => {
   const original: Record<string, string | undefined> = {}
@@ -165,5 +172,45 @@ describe('env.server', () => {
       const { getSessionSecrets } = await import('./env.server')
       expect(getSessionSecrets()).toEqual([])
     })
+  })
+
+  describe('getBaseDomain', () => {
+    it.each([
+      ['unitae.example.com', 'unitae.example.com'],
+      ['https://unitae.example.com', 'unitae.example.com'],
+      ['http://unitae.example.com', 'unitae.example.com'],
+      ['https://unitae.example.com/', 'unitae.example.com'],
+      ['https://unitae.example.com:8443', 'unitae.example.com'],
+      ['https://Unitae.Example.com', 'unitae.example.com'],
+    ])('reads the hostname out of %s', async (value, hostname) => {
+      const { getBaseDomain } = await import('./env.server')
+      process.env.UNITAE_BASE_URL = value
+      expect(getBaseDomain()).toBe(hostname)
+    })
+
+    it('falls back to unitae.app when the var is unset', async () => {
+      const { getBaseDomain } = await import('./env.server')
+      expect(getBaseDomain()).toBe('unitae.app')
+    })
+
+    it.each(['', 'not a host'])('falls back to unitae.app when the var is %j', async value => {
+      const { getBaseDomain } = await import('./env.server')
+      process.env.UNITAE_BASE_URL = value
+      expect(getBaseDomain()).toBe('unitae.app')
+    })
+  })
+
+  // A value that names no host leaves subdomains resolved against the default domain. Boot reports
+  // it and carries on: an instance that only serves custom domains runs fine without one.
+  it.each([
+    '',
+    'not a host',
+  ])('validateEnv does not refuse a multi-tenant boot when UNITAE_BASE_URL is %j', async value => {
+    const { validateEnv } = await import('./env.server')
+    process.env.DB_URL = 'postgresql://localhost/db'
+    process.env.UNITAE_SESSION_SECRET = 'a-sufficiently-long-test-session-secret-value'
+    process.env.UNITAE_MULTI_TENANT = 'true'
+    process.env.UNITAE_BASE_URL = value
+    expect(() => validateEnv()).not.toThrow()
   })
 })

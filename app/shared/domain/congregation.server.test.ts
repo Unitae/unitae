@@ -263,9 +263,23 @@ describe('resolveCongregationFromRequest', () => {
     'unitae.app',
     'https://unitae.app',
     'http://unitae.app',
+    'https://unitae.app/',
+    'https://unitae.app:8443',
+    'https://Unitae.App',
   ])('resolves a subdomain when UNITAE_BASE_URL is %s', async baseUrl => {
     process.env.UNITAE_MULTI_TENANT = 'true'
     process.env.UNITAE_BASE_URL = baseUrl
+    mockSlugLookup({ 'tenant-alpha': { id: 1, slug: 'tenant-alpha' } })
+
+    const result = await resolveCongregationFromRequest(makeRequest('https://tenant-alpha.unitae.app/'))
+    expect(result).toEqual({ id: 1, slug: 'tenant-alpha' })
+  })
+
+  // Set but left empty, the variable matched no host at all: every subdomain was served as the
+  // platform root, with nothing to say why.
+  it('reads an empty UNITAE_BASE_URL as unset', async () => {
+    process.env.UNITAE_MULTI_TENANT = 'true'
+    process.env.UNITAE_BASE_URL = ''
     mockSlugLookup({ 'tenant-alpha': { id: 1, slug: 'tenant-alpha' } })
 
     const result = await resolveCongregationFromRequest(makeRequest('https://tenant-alpha.unitae.app/'))
@@ -343,6 +357,9 @@ describe('getBrandingName — multi-tenant host', () => {
     'unitae.app',
     'https://unitae.app',
     'http://unitae.app',
+    'https://unitae.app/',
+    'https://unitae.app:8443',
+    'https://Unitae.App',
   ])("brands a subdomain with its congregation's name when UNITAE_BASE_URL is %s", async baseUrl => {
     process.env.UNITAE_MULTI_TENANT = 'true'
     process.env.UNITAE_BASE_URL = baseUrl
