@@ -2,6 +2,7 @@ import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, Link, redirect } from 'react-router'
 import { loginSchema } from '~/features/authentication/schemas/login.schema'
+import { resolveLoginAuditCongregationId } from '~/features/authentication/server/login-audit.server'
 import { needSetupProcess } from '~/features/authentication/server/need-setup-process.server'
 import {
   buildLoginRedirectUrl,
@@ -162,10 +163,11 @@ export async function action({ request }: Route.ActionArgs) {
   const userId = await validateCredentials(username, password, urlCongregation?.id)
 
   if (userId == null) {
-    if (urlCongregation) {
+    const congregationId = await resolveLoginAuditCongregationId(urlCongregation?.id, { email: username })
+    if (congregationId != null) {
       audit({
         action: AuditAction.UserLoginFailed,
-        congregationId: urlCongregation.id,
+        congregationId,
         actorEmail: username,
       })
     }
@@ -194,10 +196,11 @@ export async function action({ request }: Route.ActionArgs) {
 
   await establishAuthenticatedSession(session, userId)
 
-  if (urlCongregation) {
+  const congregationId = await resolveLoginAuditCongregationId(urlCongregation?.id, { id: userId })
+  if (congregationId != null) {
     audit({
       action: AuditAction.UserLogin,
-      congregationId: urlCongregation.id,
+      congregationId,
       actorId: userId,
       actorEmail: username,
       entityType: 'User',
