@@ -19,7 +19,7 @@ export async function resolveLocaleFromRequest(request: Request): Promise<string
       select: { congregationId: true },
     })
 
-    // A congregation deleted under a live session falls through to the request's own.
+    // No account or no congregation behind the session: resolve as for an anonymous request (steps 2 and 3).
     const congregation = user ? await findCongregation(user.congregationId) : null
     if (congregation) return congregation.locale
   }

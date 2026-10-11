@@ -138,8 +138,8 @@ describe('resolveLocaleFromRequest', () => {
   })
 })
 
-// Regression: a session whose congregation was deleted threw out of the locale lookup, which runs
-// for every page, so that visitor got a 500 everywhere instead of the sign-in page.
+// The same race as in verifySession: the account's congregation row is missing. resolveCongregation's
+// Error used to escape the locale lookup, which runs for every document.
 describe("resolveLocaleFromRequest — the session's congregation no longer exists", () => {
   it("falls through to the request's congregation", async () => {
     mockSession(42)
@@ -152,9 +152,7 @@ describe("resolveLocaleFromRequest — the session's congregation no longer exis
   })
 })
 
-// resolveDocumentLocale runs in entry.server's handleRequest, after the loaders: a Response thrown
-// there is not turned into the response, React Router re-renders, the lookup throws again and the
-// visitor gets the last-resort 500. Every outcome has to come back as a value.
+// resolveDocumentLocale must never throw: its JSDoc says what a throw costs in entry.server.
 describe('resolveDocumentLocale', () => {
   const notFoundRedirect = () => new Response(null, { status: 302, headers: { Location: '/congregation-not-found' } })
 

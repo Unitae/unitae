@@ -139,7 +139,9 @@ export async function verifySession(request: Request) {
 
   const congregation = await findCongregation(user.congregationId)
   if (congregation == null) {
-    // The cookie outlived its congregation: drop it and send the visitor to sign in again.
+    // No congregation behind this account. The foreign key forbids that as a lasting state, so a
+    // deletion is racing this request: drop the cookie and send the visitor to sign in, without a
+    // return URL.
     logger.warn(`verifySession: congregation ${user.congregationId} of userId ${user.id} no longer exists`)
     return redirectToLogin(session)
   }

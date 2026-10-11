@@ -42,8 +42,10 @@ export async function resolveCongregation(congregationId: number): Promise<Congr
 }
 
 /**
- * Like {@link resolveCongregation}, for callers that can outlive the congregation they hold an id
- * for — a session cookie, mostly: `null` lets them handle a deleted congregation instead of throwing.
+ * The congregation with this id, or `null` when no row has it. For the request path — the session
+ * guard, the document locale — which has to answer a missing row with a redirect or a fallback
+ * rather than an exception. {@link resolveCongregation} is the throwing variant, for callers where
+ * a missing congregation is a bug.
  */
 export async function findCongregation(congregationId: number): Promise<CongregationInfo | null> {
   const congregation = await unscopedDb.congregation.findUnique({
@@ -102,9 +104,10 @@ function slugFromHostname(hostname: string): string | null {
 /**
  * Resolves the congregation matching the subdomain or custom domain from the request.
  *
- * - Returns `null` in single-tenant mode, or for a host that is neither a subdomain of the base domain
- *   nor a congregation's custom domain (the base domain itself among them).
- * - Redirects to `/congregation-not-found` if a slug is present but doesn't match any congregation.
+ * - Returns `null` in single-tenant mode, and for any host that is neither `<slug>.<base domain>`
+ *   nor a congregation's custom domain. That includes the base domain itself.
+ * - Throws a redirect to `/congregation-not-found` for `<slug>.<base domain>` when no congregation
+ *   has that slug. The custom-domain lookup is not tried in that case.
  */
 export async function resolveCongregationFromRequest(request: Request): Promise<{ id: number; slug: string } | null> {
   if (process.env.UNITAE_MULTI_TENANT !== 'true') return null

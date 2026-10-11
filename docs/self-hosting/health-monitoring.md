@@ -20,8 +20,9 @@ Checks nothing but the web process itself: it answers as long as the server can 
 - **200 OK** — `text/plain` body `ok`, `Cache-Control: no-store`
 
 Use it for liveness and startup probes, and `/health` for readiness. A liveness probe on `/health`
-restarts every web pod at once when PostgreSQL or Redis is briefly unreachable, which brings neither
-back; readiness only takes the pods out of the load balancer until the dependencies answer again.
+restarts every web pod at once when PostgreSQL or Redis stays unreachable for a few probe periods,
+which brings neither back; readiness only takes the pods out of the load balancer until the
+dependencies answer again.
 
 Neither endpoint needs to be public: the orchestrator reaches them on the container port.
 
@@ -39,12 +40,22 @@ services:
   web:
     # ...
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      # The runtime image has no curl: Node's own fetch does the probe.
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:8080/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
       interval: 30s
-      timeout: 5s
+      timeout: 10s
       retries: 3
-      start_period: 10s
 ```
+
+Compose reports this status and uses it to order `depends_on`; it does not restart an unhealthy
+container. If your setup does (Docker Swarm, an autoheal sidecar), probe `/livez` instead, for the
+reason given above.
 
 ### Kubernetes probes
 
@@ -64,7 +75,6 @@ readinessProbe:
   httpGet:
     path: /health
     port: 8080
-  initialDelaySeconds: 5
   periodSeconds: 10
 ```
 

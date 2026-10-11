@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { loader } from './livez'
 
 describe('livez loader', () => {
-  it('answers 200 ok without a cacheable body', async () => {
+  it('answers 200 ok and forbids caching', async () => {
     const response = loader()
 
     expect(response.status).toBe(200)

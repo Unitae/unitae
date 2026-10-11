@@ -28,7 +28,9 @@ export default async function handleRequest(
   _loadContext: RouterContextProvider,
 ) {
   const resolved = await resolveDocumentLocale(request)
-  // A subdomain no congregation owns: send the visitor to the page that says so, as the loaders do.
+  // A subdomain no congregation owns. The sign-in loaders and the session guard send it to
+  // /congregation-not-found themselves; this covers the documents that get here without either
+  // (public shell pages, unmatched paths).
   if ('redirect' in resolved) return resolved.redirect
   const { locale } = resolved
 
