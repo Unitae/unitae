@@ -20,6 +20,13 @@ beforeEach(() => {
   vi.resetAllMocks()
 })
 
+// Answers the slug lookup the way the table would: the row for that slug, or nothing. A test that
+// reads the wrong slug from the host then gets no congregation instead of whatever was mocked.
+function mockSlugLookup(rows: Record<string, object>) {
+  vi.mocked(db.congregation.findUnique).mockImplementation(((args: { where: { slug?: string } }) =>
+    Promise.resolve(rows[args.where.slug ?? ''] ?? null)) as never)
+}
+
 const baseCongregation = {
   id: 1,
   name: 'Congrégation Test',
@@ -180,11 +187,20 @@ describe('findCongregation', () => {
     await expect(findCongregation(999)).resolves.toBeNull()
   })
 
-  it('returns the same congregation as resolveCongregation when it exists', async () => {
-    vi.mocked(db.congregation.findUnique).mockResolvedValue(baseCongregation as never)
+  it('returns the mapped congregation when it exists', async () => {
+    vi.mocked(db.congregation.findUnique).mockResolvedValue({
+      ...baseCongregation,
+      locale: 'en',
+      timezone: 'Europe/London',
+    } as never)
 
-    const found = await findCongregation(1)
-    expect(found).toEqual(await resolveCongregation(1))
+    await expect(findCongregation(1)).resolves.toMatchObject({
+      id: 1,
+      slug: 'test',
+      displayName: 'Congrégation Test',
+      locale: 'en',
+      timezone: 'Europe/London',
+    })
   })
 })
 
@@ -242,26 +258,41 @@ describe('resolveCongregationFromRequest', () => {
     })
   })
 
-  // Regression: the base domain itself was read as the slug "unitae.app" and redirected to
-  // /congregation-not-found (it serves /setup in production).
-  it('looks up no slug for the base domain itself', async () => {
+  // The self-hosting guide writes UNITAE_BASE_URL with its scheme: a subdomain has to resolve either way.
+  it.each([
+    'unitae.app',
+    'https://unitae.app',
+    'http://unitae.app',
+  ])('resolves a subdomain when UNITAE_BASE_URL is %s', async baseUrl => {
+    process.env.UNITAE_MULTI_TENANT = 'true'
+    process.env.UNITAE_BASE_URL = baseUrl
+    mockSlugLookup({ 'tenant-alpha': { id: 1, slug: 'tenant-alpha' } })
+
+    const result = await resolveCongregationFromRequest(makeRequest('https://tenant-alpha.unitae.app/'))
+    expect(result).toEqual({ id: 1, slug: 'tenant-alpha' })
+  })
+
+  // Regression: the base domain itself was read as the slug "unitae.app", so every lookup on it
+  // threw the /congregation-not-found redirect.
+  it('resolves no congregation for the base domain itself', async () => {
     process.env.UNITAE_MULTI_TENANT = 'true'
     process.env.UNITAE_BASE_URL = 'https://unitae.app'
+    // Whatever slug is read from the host would find this row: none may be read.
+    vi.mocked(db.congregation.findUnique).mockResolvedValue({ id: 9, slug: 'any-slug' } as never)
     vi.mocked(db.congregation.findFirst).mockResolvedValue(null as never)
 
-    const result = await resolveCongregationFromRequest(makeRequest('https://unitae.app/setup'))
+    const result = await resolveCongregationFromRequest(makeRequest('https://unitae.app/'))
     expect(result).toBeNull()
-    expect(db.congregation.findUnique).not.toHaveBeenCalled()
   })
 
   it('treats a host that only ends with the base domain as a custom domain, not a subdomain', async () => {
     process.env.UNITAE_MULTI_TENANT = 'true'
     process.env.UNITAE_BASE_URL = 'unitae.app'
+    vi.mocked(db.congregation.findUnique).mockResolvedValue({ id: 9, slug: 'any-slug' } as never)
     vi.mocked(db.congregation.findFirst).mockResolvedValue({ id: 3, slug: 'lyon' } as never)
 
     const result = await resolveCongregationFromRequest(makeRequest('https://notunitae.app/'))
     expect(result).toEqual({ id: 3, slug: 'lyon' })
-    expect(db.congregation.findUnique).not.toHaveBeenCalled()
   })
 
   it('retourne null pour le domaine racine sans slug ni domaine personnalisé', async () => {
@@ -298,24 +329,25 @@ describe('getBrandingName — deterministic single-tenant pick', () => {
 })
 
 describe('getBrandingName — multi-tenant host', () => {
-  it('looks up no slug for the base domain itself', async () => {
+  it('brands the base domain as the platform, not as a congregation', async () => {
     process.env.UNITAE_MULTI_TENANT = 'true'
     process.env.UNITAE_BASE_URL = 'unitae.app'
+    // Whatever slug is read from the host would find this row: none may be read.
+    vi.mocked(db.congregation.findUnique).mockResolvedValue({ name: 'Slug Match', displayName: null } as never)
     vi.mocked(db.congregation.findFirst).mockResolvedValue(null as never)
 
-    await expect(getBrandingName(new Request('https://unitae.app/setup'))).resolves.toBe('Unitae')
-    expect(db.congregation.findUnique).not.toHaveBeenCalled()
+    await expect(getBrandingName(new Request('https://unitae.app/'))).resolves.toBe('Unitae')
   })
 
-  it("brands a subdomain with its congregation's name", async () => {
+  it.each([
+    'unitae.app',
+    'https://unitae.app',
+    'http://unitae.app',
+  ])("brands a subdomain with its congregation's name when UNITAE_BASE_URL is %s", async baseUrl => {
     process.env.UNITAE_MULTI_TENANT = 'true'
-    process.env.UNITAE_BASE_URL = 'unitae.app'
-    vi.mocked(db.congregation.findUnique).mockResolvedValue({ name: 'Lyon Centre', displayName: null } as never)
+    process.env.UNITAE_BASE_URL = baseUrl
+    mockSlugLookup({ lyon: { name: 'Lyon Centre', displayName: null } })
 
     await expect(getBrandingName(new Request('https://lyon.unitae.app/login'))).resolves.toBe('Lyon Centre')
-    expect(db.congregation.findUnique).toHaveBeenCalledWith({
-      where: { slug: 'lyon' },
-      select: { name: true, displayName: true },
-    })
   })
 })
