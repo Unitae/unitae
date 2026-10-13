@@ -176,4 +176,5 @@ export default [
       route('users', 'features/platform-admin/routes/users.tsx'),
     ]),
   ]),
+  route('*', 'shell/not-found.tsx'),
 ] satisfies RouteConfig
