@@ -7,7 +7,9 @@
         "**/pdf-worker.ts",
         "**/pdf-globals-shim.ts",
         "**/pdf-upsert-shim.ts",
-        "**/env.server.ts"
+        "**/env.server.ts",
+        "**/boot.server.ts",
+        "**/worker-locale.server.ts"
     ],
     "type": "module",
     "scripts": {
