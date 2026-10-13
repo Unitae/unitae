@@ -2,6 +2,7 @@ import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
 import { twoFactorCodeSchema } from '~/features/authentication/schemas/login.schema'
+import { resolveLoginAuditCongregationId } from '~/features/authentication/server/login-audit.server'
 import {
   buildTwoFactorChallengeUrl,
   resolvePostLoginRedirect,
@@ -149,11 +150,12 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   const verified = await verifyTwoFactorChallenge(pendingId, submission.value.code)
+  const congregationId = await resolveLoginAuditCongregationId(urlCongregation?.id, { id: pendingId })
   if (!verified) {
-    if (urlCongregation) {
+    if (congregationId != null) {
       audit({
         action: AuditAction.TwoFactorChallengeFailed,
-        congregationId: urlCongregation.id,
+        congregationId,
         actorId: pendingId,
         entityType: 'User',
         entityId: pendingId,
@@ -168,10 +170,10 @@ export async function action({ request }: Route.ActionArgs) {
   session.unset('pending2faUserId')
   await establishAuthenticatedSession(session, pendingId)
 
-  if (urlCongregation) {
+  if (congregationId != null) {
     audit({
       action: AuditAction.UserLogin,
-      congregationId: urlCongregation.id,
+      congregationId,
       actorId: pendingId,
       entityType: 'User',
       entityId: pendingId,
