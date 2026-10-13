@@ -1,6 +1,7 @@
 import { redirect } from 'react-router'
 
 import { unscopedDb } from '~/shared/infra/db.server'
+import { getBaseDomain } from '~/shared/utils/env.server'
 
 const DEFAULT_PLATFORM_NAME = 'Unitae'
 const DEFAULT_EMAIL_FROM = process.env.UNITAE_EMAIL_FROM ?? 'Unitae <noreply@unitae.app>'
@@ -41,8 +42,10 @@ export async function resolveCongregation(congregationId: number): Promise<Congr
 }
 
 /**
- * Like {@link resolveCongregation}, for callers that can outlive the congregation they hold an id
- * for — a session cookie, mostly: `null` lets them handle a deleted congregation instead of throwing.
+ * The congregation with this id, or `null` when no row has it. For the request path — the session
+ * guard, the document locale — which has to answer a missing row with a redirect or a fallback
+ * rather than an exception. {@link resolveCongregation} is the throwing variant, for callers where
+ * a missing congregation is a bug.
  */
 export async function findCongregation(congregationId: number): Promise<CongregationInfo | null> {
   const congregation = await unscopedDb.congregation.findUnique({
@@ -91,20 +94,20 @@ export function getPlatformName(): string {
 /**
  * The congregation slug in a `<slug>.<base domain>` hostname. `null` for the base domain itself — it
  * is the platform, not a congregation — and for any other host, including one that merely ends with
- * the same letters (`notunitae.app`).
+ * the same letters (`notunitae.app`) or has nothing before the dot.
  */
 function slugFromHostname(hostname: string): string | null {
-  const appBaseUrl = (process.env.UNITAE_BASE_URL ?? 'unitae.app').replace('https://', '').replace('http://', '')
-  const suffix = `.${appBaseUrl}`
-  return hostname.endsWith(suffix) ? hostname.slice(0, -suffix.length) : null
+  const suffix = `.${getBaseDomain()}`
+  return hostname.endsWith(suffix) ? hostname.slice(0, -suffix.length) || null : null
 }
 
 /**
  * Resolves the congregation matching the subdomain or custom domain from the request.
  *
- * - Returns `null` in single-tenant mode, or for a host that is neither a subdomain of the base domain
- *   nor a congregation's custom domain (the base domain itself among them).
- * - Redirects to `/congregation-not-found` if a slug is present but doesn't match any congregation.
+ * - Returns `null` in single-tenant mode, and for any host that is neither `<slug>.<base domain>`
+ *   nor a congregation's custom domain. That includes the base domain itself.
+ * - Throws a redirect to `/congregation-not-found` for `<slug>.<base domain>` when no congregation
+ *   has that slug. The custom-domain lookup is not tried in that case.
  */
 export async function resolveCongregationFromRequest(request: Request): Promise<{ id: number; slug: string } | null> {
   if (process.env.UNITAE_MULTI_TENANT !== 'true') return null

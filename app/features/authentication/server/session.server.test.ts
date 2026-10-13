@@ -244,9 +244,9 @@ describe('verifySession', () => {
     expect(response.headers.get('Location')).toBe('/login?redirectTo=%2Fterritories%2F1%3Fx%3D2')
   })
 
-  // Regression: a session outliving its congregation used to throw a plain Error out of the
-  // guard, which every authenticated page answered with a 500.
-  it("redirects to /login and drops the session when the account's congregation no longer exists", async () => {
+  // The account's congregation row is missing: a deletion racing the request. The guard used to let
+  // resolveCongregation's plain Error through, a 500 instead of the sign-in page.
+  it('sends an account whose congregation is gone to /login, without a return URL or its session', async () => {
     setSession({ userId: '42', sessionEpoch: '0' })
     vi.mocked(db.userAccount.findUnique).mockResolvedValue(fakeUser as never)
     vi.mocked(resolveCongregationFromRequest).mockResolvedValue(null as never)
