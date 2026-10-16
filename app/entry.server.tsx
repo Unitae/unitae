@@ -1,15 +1,17 @@
 import '~/shared/infra/boot.server'
+import '~/shared/infra/graceful-exit.server'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { PassThrough } from 'node:stream'
 
 import { createReadableStreamFromReadable } from '@react-router/node'
 import { isbot } from 'isbot'
 import { renderToPipeableStream } from 'react-dom/server'
-import type { EntryContext, RouterContextProvider } from 'react-router'
+import type { EntryContext, HandleErrorFunction, RouterContextProvider } from 'react-router'
 import { ServerRouter } from 'react-router'
 
 import { baseLocale, type Locale, overwriteGetLocale } from '~/i18n/paraglide/runtime'
 import logger from '~/shared/infra/logger.server'
+import { describeRequestError } from '~/shared/infra/request-error.server'
 import { resolveDocumentLocale } from '~/shared/utils/locale.server'
 
 const ABORT_DELAY = 5_000
@@ -19,6 +21,13 @@ const localeStore = new AsyncLocalStorage<Locale>()
 overwriteGetLocale(() => {
   return localeStore.getStore() ?? baseLocale
 })
+
+// React Router hands this every error it catches in a loader, an action or a render. Its default
+// printed a bare stack; this logs the method, host and path with it (see describeRequestError).
+export const handleError: HandleErrorFunction = (error, { request, params }) => {
+  const entry = describeRequestError(error, request, params)
+  if (entry) logger.error(entry.message, entry.meta)
+}
 
 export default async function handleRequest(
   request: Request,

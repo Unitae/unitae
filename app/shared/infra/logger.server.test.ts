@@ -42,6 +42,16 @@ describe('redactValue', () => {
   })
 })
 
+describe('redactValue — Error stack', () => {
+  // The stack's first line repeats the message, so redacting only the message logged the address anyway.
+  it('redacts emails inside an Error stack too', () => {
+    const result = redactValue('error', new Error('No account for marc@example.org')) as Record<string, unknown>
+
+    expect(result.stack).not.toContain('marc@example.org')
+    expect(result.stack).toContain('[email:')
+  })
+})
+
 describe('redactObject', () => {
   it('redacte recursivement les champs PII dans un objet', () => {
     const result = redactObject({

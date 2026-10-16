@@ -9,7 +9,8 @@
         "**/pdf-upsert-shim.ts",
         "**/env.server.ts",
         "**/boot.server.ts",
-        "**/worker-locale.server.ts"
+        "**/worker-locale.server.ts",
+        "**/graceful-exit.server.ts"
     ],
     "type": "module",
     "scripts": {
