@@ -36,7 +36,8 @@ function redactValue(key: string, value: unknown): unknown {
     return {
       name: value.name,
       message: redactValue('message', value.message),
-      stack: value.stack,
+      // The stack's first line repeats the message: redact it the same way.
+      stack: value.stack === undefined ? undefined : redactValue('stack', value.stack),
     }
   }
   if (value != null && typeof value === 'object') {

@@ -1,8 +1,8 @@
 import { isRouteErrorResponse } from 'react-router'
 
-// Route parameters that carry a secret in the URL path: the calendar feed token, the email
-// verification token. Their value is replaced before the path is logged.
-const SECRET_PARAM = /token|secret|code/i
+// Route parameters that carry a secret in the URL path: the calendar feed and email
+// verification tokens, the password reset hash. Their value is replaced before the path is logged.
+const SECRET_PARAM = /token|secret|code|hash/i
 
 interface RequestErrorLog {
   message: string

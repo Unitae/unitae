@@ -35,6 +35,14 @@ describe('describeRequestError', () => {
     expect(entry?.meta.path).toBe('/feed/[redacted]/calendar.ics')
   })
 
+  it('redacts the password reset hash', () => {
+    const entry = describeRequestError(new Error('boom'), request('https://lyon.unitae.app/password/a1b2c3/reset'), {
+      userHash: 'a1b2c3',
+    })
+
+    expect(entry?.meta.path).toBe('/password/[redacted]/reset')
+  })
+
   it('keeps an ordinary route parameter', () => {
     const entry = describeRequestError(new Error('boom'), request('https://lyon.unitae.app/publishers/42/view'), {
       publisherId: '42',
