@@ -1,4 +1,5 @@
 import '~/shared/infra/boot.server'
+import '~/shared/infra/graceful-exit.server'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { PassThrough } from 'node:stream'
 
