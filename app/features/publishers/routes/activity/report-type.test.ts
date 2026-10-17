@@ -5,7 +5,7 @@ import { PublisherType } from '~/shared/types/publisher-type'
 // A report's pioneer type comes from the enrolment covering its month: the form shows that
 // enrolment instead of asking, and the actions save it whatever the request says. Without an
 // enrolment for the month the publisher was not a pioneer that month, even if a stint starts
-// later, so the submitted choice (publisher, or an auxiliary month without an enrolment) stands.
+// later, so the submitted choice stands.
 
 const currentAccountContext = Symbol('currentAccountContext')
 const permissionsContext = Symbol('permissionsContext')
@@ -28,7 +28,7 @@ vi.mock('~/features/authentication/index.server', () => ({
   commitSession: vi.fn().mockResolvedValue('cookie'),
 }))
 
-// The member's stints for the current test; getMonthEnrolment applies the real month rule to them.
+// The stints of the member asked for; getMonthEnrolment applies the real month rule to them.
 vi.mock('~/features/publishers/index.server', async () => {
   const { enrolmentForMonth } = await import('~/features/publishers/model/pioneer-enrolment')
   return {
@@ -84,20 +84,31 @@ const PERMANENT_FROM_OCTOBER = {
   monthlyGoal: null,
 }
 
-function savedType(mock: ReturnType<typeof vi.fn>) {
-  const call = mock.mock.calls[0]
-  const input = call[call.length - 1] as { type: PublisherType }
-  return input.type
+// Member 7 is the report's publisher. Stints are keyed by member so that looking up anyone
+// else's enrolments (the activity id, the signed-in account) finds none and the test fails.
+const PUBLISHER_ID = 7
+
+function givenStints(stints: (typeof AUXILIARY_SEPTEMBER | typeof PERMANENT_FROM_OCTOBER)[]) {
+  getEnrolmentsForMember.mockImplementation(async (memberId: number) => (memberId === PUBLISHER_ID ? stints : []))
+}
+
+function expectCreatedAs(type: PublisherType) {
+  expect(createPublisherActivity).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ type }))
+}
+
+function expectUpdatedAs(type: PublisherType) {
+  expect(updatePublisherActivity).toHaveBeenCalledWith(expect.anything(), 9, 10, 1, expect.objectContaining({ type }))
 }
 
 beforeEach(() => {
   vi.clearAllMocks()
-  memberFindUnique.mockResolvedValue({ id: 7, firstname: 'D', lastname: 'B' })
+  memberFindUnique.mockResolvedValue({ id: PUBLISHER_ID, firstname: 'D', lastname: 'B' })
   activityFindUnique.mockResolvedValue({
     id: 9,
+    publisherId: PUBLISHER_ID,
     month: 8,
     year: 2026,
-    publisher: { id: 7, firstname: 'D', lastname: 'B' },
+    publisher: { id: PUBLISHER_ID, firstname: 'D', lastname: 'B' },
   })
   createPublisherActivity.mockResolvedValue({ id: 9, month: 8, year: 2026 })
   updatePublisherActivity.mockResolvedValue({ id: 9 })
@@ -127,36 +138,36 @@ async function edit(fields: Record<string, string>) {
 
 describe('a new report', () => {
   it('records the enrolled type for an enrolled month, whatever was submitted', async () => {
-    getEnrolmentsForMember.mockResolvedValue([AUXILIARY_SEPTEMBER])
+    givenStints([AUXILIARY_SEPTEMBER])
     await create({ type: PublisherType.Normal })
-    expect(savedType(createPublisherActivity)).toBe(PublisherType.PionnierAuxiliaires)
+    expectCreatedAs(PublisherType.PionnierAuxiliaires)
   })
 
   // Regression: the standing status of a stint starting in October stamped September's report.
   it('does not take the type of a stint that starts after the month', async () => {
-    getEnrolmentsForMember.mockResolvedValue([PERMANENT_FROM_OCTOBER])
+    givenStints([PERMANENT_FROM_OCTOBER])
     await create({})
-    expect(savedType(createPublisherActivity)).toBe(PublisherType.Normal)
+    expectCreatedAs(PublisherType.Normal)
   })
 
   it('records an auxiliary month taken without an enrolment', async () => {
-    getEnrolmentsForMember.mockResolvedValue([])
+    givenStints([])
     await create({ type: PublisherType.PionnierAuxiliaires })
-    expect(savedType(createPublisherActivity)).toBe(PublisherType.PionnierAuxiliaires)
+    expectCreatedAs(PublisherType.PionnierAuxiliaires)
   })
 })
 
 describe('an edited report', () => {
   // Regression: the edit form offered every type and saved the choice, even for an enrolled month.
   it('keeps the enrolled type for an enrolled month, whatever was submitted', async () => {
-    getEnrolmentsForMember.mockResolvedValue([AUXILIARY_SEPTEMBER])
+    givenStints([AUXILIARY_SEPTEMBER])
     await edit({ type: PublisherType.Normal })
-    expect(savedType(updatePublisherActivity)).toBe(PublisherType.PionnierAuxiliaires)
+    expectUpdatedAs(PublisherType.PionnierAuxiliaires)
   })
 
   it('records the submitted type for a month no enrolment covers', async () => {
-    getEnrolmentsForMember.mockResolvedValue([])
+    givenStints([])
     await edit({ type: PublisherType.PionnierSpecial })
-    expect(savedType(updatePublisherActivity)).toBe(PublisherType.PionnierSpecial)
+    expectUpdatedAs(PublisherType.PionnierSpecial)
   })
 })
