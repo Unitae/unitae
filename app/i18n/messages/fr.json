@@ -1252,6 +1252,7 @@
     "activity_edit_pioneer_permanent": "Le proclamateur était Pionnier Permanent ce mois",
     "activity_edit_pioneer_special": "Le proclamateur était Pionnier Spécial ce mois",
     "activity_edit_pioneer_missionary": "Le proclamateur était Missionnaire ce mois",
+    "activity_edit_type_follows_enrolment": "Ce rapport avait été enregistré avec un autre service ; l'enregistrer le mettra en accord avec l'inscription.",
     "activity_edit_success": "Le rapport d'activité de {name} à été enregistré avec succès",
     "activity_delete_confirmation": "Êtes-vous sûr de vouloir supprimer le rapport de {date} pour {name} ? Cette action est irréversible.",
     "activity_delete_button": "Supprimer le rapport",

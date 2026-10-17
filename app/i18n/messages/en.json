@@ -1250,6 +1250,7 @@
     "activity_edit_pioneer_permanent": "The publisher was a regular pioneer this month",
     "activity_edit_pioneer_special": "The publisher was a special pioneer this month",
     "activity_edit_pioneer_missionary": "The publisher was a missionary this month",
+    "activity_edit_type_follows_enrolment": "This report was saved with a different service; saving it brings it in line with the enrolment.",
     "activity_edit_success": "The activity report for {name} has been saved successfully",
     "activity_delete_confirmation": "Are you sure you want to delete the report for {date} for {name}? This action cannot be undone.",
     "activity_delete_button": "Delete report",

@@ -7,6 +7,7 @@ export * as pioneerEnrolmentAggregate from './server/pioneer-enrolment.aggregate
 export {
   getEnrolmentsForMember,
   getEnrolmentsForServiceYear,
+  getMonthEnrolment,
   resolveEnrolmentMonthlyGoal,
 } from './server/pioneer-enrolment.queries'
 export {
