@@ -6,6 +6,7 @@ import type { EnrolmentPeriod } from '../model/pioneer-enrolment'
 import {
   getEnrolmentsForMember,
   getEnrolmentsForServiceYear,
+  getMonthEnrolment,
   resolveEnrolmentMonthlyGoal,
 } from './pioneer-enrolment.queries'
 
@@ -108,5 +109,26 @@ describe('resolveEnrolmentMonthlyGoal', () => {
   it('uses the per-person goal when set', async () => {
     const goal = await withScope(congId, tx => resolveEnrolmentMonthlyGoal(tx, { ...auxOngoing, monthlyGoal: 15 }, SY))
     expect(goal).toBe(15)
+  })
+})
+
+// What the activity forms show and save: the stint covering the reported month, with its goal.
+describe('getMonthEnrolment', () => {
+  it('returns the stint covering the month with its goal, for a month-bounded auxiliary too', async () => {
+    // October 2023 sits inside the closed Sept–Oct 2023 auxiliary stint.
+    const enrolment = await withScope(congId, tx => getMonthEnrolment(tx, memberId, congId, 9, 2023))
+    expect(enrolment).toEqual({ type: PublisherType.PionnierAuxiliaires, goal: 30 })
+  })
+
+  it('returns the annual stint for a month it covers', async () => {
+    const enrolment = await withScope(congId, tx => getMonthEnrolment(tx, memberId, congId, 10, 2025))
+    expect(enrolment?.type).toBe(PublisherType.PionnierPermanant)
+  })
+
+  // August 2025 falls between the two stints. (The routes' regression, an ongoing stint starting
+  // after the reported month, is in routes/activity/report-type.test.ts.)
+  it('returns null for a month before a stint starts', async () => {
+    const enrolment = await withScope(congId, tx => getMonthEnrolment(tx, memberId, congId, 7, 2025))
+    expect(enrolment).toBeNull()
   })
 })

@@ -4,13 +4,16 @@ import { Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
+import { getMonthEnrolment } from '~/features/publishers/index.server'
+import { reportTypeForMonth } from '~/features/publishers/model/activity-report-type'
 import { updateActivitySchema } from '~/features/publishers/schemas/activity.schema'
 import { updatePublisherActivity } from '~/features/publishers/server/publisher-activity-mutations.server'
 import { ActivityCreditField } from '~/features/publishers/ui/ActivityCreditField'
+import { ActivityPioneerField } from '~/features/publishers/ui/ActivityPioneerField'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
-import { PublisherType } from '~/shared/types/publisher-type'
+import { PublisherType, publisherTypeReportsHours } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { FormActions } from '~/shared/ui/FormActions'
@@ -20,7 +23,6 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -65,8 +67,14 @@ export function loader({ params, context }: Route.LoaderArgs) {
       throw redirect('/publishers/activity')
     }
 
+    // As on the new form: the enrolment covering the month decides the type, so the form shows it
+    // read-only instead of offering a choice.
+    const { publisherId, month, year } = activity
+    const monthEnrolment = await getMonthEnrolment(db, publisherId, congregationId, month, year)
+
     return {
       activity,
+      monthEnrolment,
       // Secretary-only: group responsibles reach this form through the group bypass and
       // must not see (or set) the credit — they describe the month in the observations.
       canGrantCredit: permissions.has(Permission.CanCorrectActivity),
@@ -75,8 +83,9 @@ export function loader({ params, context }: Route.LoaderArgs) {
 }
 
 export default function EditActivity({ loaderData, actionData }: Route.ComponentProps) {
-  const { activity, canGrantCredit } = loaderData
-  const [type, setType] = useState<PublisherType>(activity.type)
+  const { activity, monthEnrolment, canGrantCredit } = loaderData
+  const [chosenType, setChosenType] = useState<PublisherType>(activity.type)
+  const type = reportTypeForMonth(monthEnrolment, chosenType)
 
   const { blocker, markDirty } = useUnsavedChanges()
   useFocusError(actionData)
@@ -125,33 +134,16 @@ export default function EditActivity({ loaderData, actionData }: Route.Component
         </CardHeader>
         <CardContent>
           <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={markDirty}>
-            <div className="space-y-2">
-              <Label htmlFor="type">{m.activity_edit_pioneer_label()}</Label>
-              <Select name="type" value={type} onValueChange={value => setType(value as PublisherType)}>
-                <SelectTrigger id="type" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={PublisherType.Normal}>{m.activity_edit_pioneer_none()}</SelectItem>
-                  <SelectItem value={PublisherType.PionnierAuxiliaires}>
-                    {m.activity_edit_pioneer_auxiliary()}
-                  </SelectItem>
-                  <SelectItem value={PublisherType.PionnierPermanant}>{m.activity_edit_pioneer_permanent()}</SelectItem>
-                  <SelectItem value={PublisherType.PionnierSpecial}>{m.activity_edit_pioneer_special()}</SelectItem>
-                  <SelectItem value={PublisherType.Missionnaire}>{m.activity_edit_pioneer_missionary()}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <ActivityPioneerField
+              enrolment={monthEnrolment}
+              options={Object.values(PublisherType)}
+              value={chosenType}
+              onChange={setChosenType}
+              recordedType={activity.type}
+            />
 
             <div className="grid gap-4 sm:grid-cols-2">
-              {(
-                [
-                  PublisherType.PionnierAuxiliaires,
-                  PublisherType.PionnierPermanant,
-                  PublisherType.PionnierSpecial,
-                  PublisherType.Missionnaire,
-                ] as PublisherType[]
-              ).includes(type) ? (
+              {publisherTypeReportsHours(type) ? (
                 <div className="space-y-2">
                   <Label htmlFor={fields.hours.id}>{m.activity_new_hours_label()}</Label>
                   <Input
@@ -261,13 +253,17 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       })
     }
 
+    // The enrolment covering the month decides the type, whatever was submitted.
+    const { publisherId, month, year } = activity
+    const enrolment = await getMonthEnrolment(db, publisherId, currentUser.congregationId, month, year)
+
     await updatePublisherActivity(
       db,
       requireParamId(params.activityId, '/publishers/activity'),
       currentUser.congregationId,
       currentUser.id,
       {
-        type: type,
+        type: reportTypeForMonth(enrolment, type),
         isPublisher: hours > 0 ? true : preached,
         hours,
         studies,
