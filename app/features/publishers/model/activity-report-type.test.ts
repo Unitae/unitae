@@ -3,11 +3,11 @@ import { PublisherType } from '~/shared/types/publisher-type'
 
 import { reportTypeForMonth } from './activity-report-type'
 
+const AUXILIARY_MONTH = { type: PublisherType.PionnierAuxiliaires, goal: 30 }
+
 describe('reportTypeForMonth', () => {
   it('takes the type of the enrolment covering the month, whatever was submitted', () => {
-    expect(reportTypeForMonth(PublisherType.PionnierAuxiliaires, PublisherType.Normal)).toBe(
-      PublisherType.PionnierAuxiliaires,
-    )
+    expect(reportTypeForMonth(AUXILIARY_MONTH, PublisherType.Normal)).toBe(PublisherType.PionnierAuxiliaires)
   })
 
   it('takes the submitted type when no enrolment covers the month', () => {

@@ -1,4 +1,4 @@
-import type { MonthEnrolment } from '~/features/publishers/model/activity-report-type'
+import type { MonthEnrolment } from '~/features/publishers/model/month-enrolment.type'
 import * as m from '~/i18n/paraglide/messages'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Label } from '~/shared/ui/label'
@@ -18,9 +18,11 @@ interface ActivityPioneerFieldProps {
   enrolment: MonthEnrolment | null
   // The types offered when no enrolment covers the month.
   options: PublisherType[]
+  // The chosen type when no enrolment covers the month; ignored otherwise.
   value: PublisherType
   onChange: (type: PublisherType) => void
-  // The type an existing report was saved with, when it may differ from the enrolment.
+  // Edit form only: the type the report was saved with, so the field can say that saving
+  // replaces it with the enrolment's type.
   recordedType?: PublisherType
 }
 

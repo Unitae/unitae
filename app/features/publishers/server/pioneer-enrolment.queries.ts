@@ -1,6 +1,6 @@
 import type { PioneerEnrolment } from '~/database/generated/client'
 import type { TransactionClient } from '~/shared/infra/db.server'
-import type { MonthEnrolment } from '../model/activity-report-type'
+import type { MonthEnrolment } from '../model/month-enrolment.type'
 import {
   type EnrolmentPeriod,
   enrolledMonthsInServiceYear,
@@ -51,9 +51,10 @@ export async function resolveEnrolmentMonthlyGoal(
   return resolveEnrolmentGoal(enrolment, typeRate)
 }
 
-// The stint covering one calendar month, with the goal it sets, or null: what an activity report
-// for that month records. Deliberately not the standing status, which a month-bounded
-// auxiliary stint leaves Normal and which a later stint sets for months before it.
+// The stint covering one calendar month, with its resolved goal, or null: what an activity report
+// for that month records. Deliberately not the standing status (standingTypeFromEnrolments): that
+// is one value per member, taken from the ongoing stint only, so a month-bounded auxiliary stint
+// leaves it Normal and an ongoing stint starting later would apply to the months before it.
 export async function getMonthEnrolment(
   db: TransactionClient,
   memberId: number,

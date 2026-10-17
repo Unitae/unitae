@@ -67,7 +67,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
       throw redirect('/publishers/activity')
     }
 
-    // As on the new form: the enrolment covering the month decides the type, so it is stated.
+    // As on the new form: the enrolment covering the month decides the type, so the form shows it
+    // read-only instead of offering a choice.
     const { publisherId, month, year } = activity
     const monthEnrolment = await getMonthEnrolment(db, publisherId, congregationId, month, year)
 
@@ -84,7 +85,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 export default function EditActivity({ loaderData, actionData }: Route.ComponentProps) {
   const { activity, monthEnrolment, canGrantCredit } = loaderData
   const [chosenType, setChosenType] = useState<PublisherType>(activity.type)
-  const type = monthEnrolment?.type ?? chosenType
+  const type = reportTypeForMonth(monthEnrolment, chosenType)
 
   const { blocker, markDirty } = useUnsavedChanges()
   useFocusError(actionData)
@@ -262,7 +263,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       currentUser.congregationId,
       currentUser.id,
       {
-        type: reportTypeForMonth(enrolment?.type ?? null, type),
+        type: reportTypeForMonth(enrolment, type),
         isPublisher: hours > 0 ? true : preached,
         hours,
         studies,

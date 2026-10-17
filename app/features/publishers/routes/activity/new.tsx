@@ -85,7 +85,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
     // The enrolment covering the reported month decides the report's pioneer type and goal, so the
     // form states it instead of asking. Not the member's standing status: a month-bounded auxiliary
-    // enrolment leaves that Normal, and a stint starting later says nothing about this month.
+    // enrolment leaves that Normal, and an ongoing stint starting later would stamp earlier months.
     const monthEnrolment =
       publisher == null ? null : await getMonthEnrolment(db, publisher.id, currentUser.congregationId, month, year)
 
@@ -102,8 +102,9 @@ export function loader({ request, context }: Route.LoaderArgs) {
 export default function NewActivity({ loaderData, actionData }: Route.ComponentProps) {
   const { publishers, publisher, selectedMonth, monthEnrolment, previousPage } = loaderData
   const [searchParams, setSearchParams] = useSearchParams()
+  // Reset by the publisher, month and year pickers: one person's or month's choice is not another's.
   const [pioneer, setPioneer] = useState<PublisherType>(PublisherType.Normal)
-  const reportType = monthEnrolment?.type ?? pioneer
+  const reportType = reportTypeForMonth(monthEnrolment, pioneer)
   const { blocker, markDirty } = useUnsavedChanges()
 
   useFocusError(actionData)
@@ -147,6 +148,7 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
                 onValueChange={value => {
                   searchParams.set('publisherId', value)
                   setSearchParams(searchParams)
+                  setPioneer(PublisherType.Normal)
                 }}
                 placeholder={m.activity_new_publisher_placeholder()}
                 allowNone={false}
@@ -162,6 +164,7 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
                   onValueChange={value => {
                     searchParams.set('month', value)
                     setSearchParams(searchParams)
+                    setPioneer(PublisherType.Normal)
                   }}
                 >
                   <SelectTrigger id="month" className="w-full">
@@ -215,6 +218,7 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
                   onValueChange={value => {
                     searchParams.set('year', value)
                     setSearchParams(searchParams)
+                    setPioneer(PublisherType.Normal)
                   }}
                 >
                   <SelectTrigger id="year" className="w-full">
@@ -329,7 +333,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     // The enrolment covering the month decides the type, whatever was submitted; without one, the
     // form's choice stands (a publisher, or an auxiliary month taken without an enrolment).
     const enrolment = await getMonthEnrolment(db, publisher.id, currentUser.congregationId, month, year)
-    const type = reportTypeForMonth(enrolment?.type ?? null, submission.value.type)
+    const type = reportTypeForMonth(enrolment, submission.value.type)
     const activity = await createPublisherActivity(db, {
       publisherId: publisher.id,
       month,

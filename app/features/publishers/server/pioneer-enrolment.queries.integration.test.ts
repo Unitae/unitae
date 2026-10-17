@@ -125,7 +125,8 @@ describe('getMonthEnrolment', () => {
     expect(enrolment?.type).toBe(PublisherType.PionnierPermanant)
   })
 
-  // Regression: the forms used the standing status, which a later stint sets for earlier months.
+  // August 2025 falls between the two stints. (The routes' regression, an ongoing stint starting
+  // after the reported month, is in routes/activity/report-type.test.ts.)
   it('returns null for a month before a stint starts', async () => {
     const enrolment = await withScope(congId, tx => getMonthEnrolment(tx, memberId, congId, 7, 2025))
     expect(enrolment).toBeNull()
