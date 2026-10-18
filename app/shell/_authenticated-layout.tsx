@@ -2,8 +2,10 @@ import { useEffect } from 'react'
 import { data } from 'react-router'
 import { toast } from 'sonner'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { requireAuth } from '~/shared/auth/middleware.server'
 import { congregationContext, currentAccountContext, permissionsContext } from '~/shared/auth/route-context.server'
+import { getTrialBanner } from '~/shared/domain/trial-banner.server'
 import { Permission } from '~/shared/types/permission'
 import { AppLayout } from '~/shared/ui/AppLayout'
 import { RouteErrorBoundary } from '~/shared/ui/RouteErrorBoundary'
@@ -74,6 +76,11 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         isPlatformAdmin: currentUser.platformAdmin ?? false,
       },
       congregationName: congregation.displayName ?? congregation.name,
+      trial: getTrialBanner(congregation, {
+        canSubscribe: can(Permission.CanConfigureCongregation),
+        locale: getLocale(),
+        now: new Date(),
+      }),
       messages,
       sidebarOpen,
     },
@@ -86,7 +93,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 }
 
 export default function AuthenticatedLayout({ loaderData }: Route.ComponentProps) {
-  const { permissions, congregationName, messages, sidebarOpen } = loaderData
+  const { permissions, congregationName, trial, messages, sidebarOpen } = loaderData
 
   useEffect(() => {
     if (messages.success) {
@@ -97,7 +104,9 @@ export default function AuthenticatedLayout({ loaderData }: Route.ComponentProps
     }
   }, [messages])
 
-  return <AppLayout permissions={permissions} congregationName={congregationName} sidebarOpen={sidebarOpen} />
+  return (
+    <AppLayout permissions={permissions} congregationName={congregationName} trial={trial} sidebarOpen={sidebarOpen} />
+  )
 }
 
 export { RouteErrorBoundary as ErrorBoundary }
