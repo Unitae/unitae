@@ -29,6 +29,9 @@ vi.mock('~/features/authentication/index.server', () => ({
 
 vi.mock('~/features/publishers/server/publisher-activity-mutations.server', () => ({ updatePublisherActivity }))
 
+// No enrolment covers the month, so the submitted type stands (report-type.test.ts covers the rest).
+vi.mock('~/features/publishers/index.server', () => ({ getMonthEnrolment: vi.fn().mockResolvedValue(null) }))
+
 const { action } = await import('./edit')
 
 type Actor = { permissions: Permission[]; member?: unknown }

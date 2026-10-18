@@ -3,16 +3,16 @@ import { parseWithZod } from '@conform-to/zod'
 import { useState } from 'react'
 import { data, Form, redirect, useSearchParams } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { getEnrolmentsForMember, resolveEnrolmentMonthlyGoal } from '~/features/publishers/index.server'
-import { enrolmentForMonth, standingTypeFromEnrolments } from '~/features/publishers/model/pioneer-enrolment'
-import { toServiceYear } from '~/features/publishers/model/pioneer-pace'
+import { getMonthEnrolment } from '~/features/publishers/index.server'
+import { reportTypeForMonth } from '~/features/publishers/model/activity-report-type'
 import { createActivitySchema } from '~/features/publishers/schemas/activity.schema'
 import { createPublisherActivity } from '~/features/publishers/server/publisher-activity-mutations.server'
 import { getPublishers } from '~/features/publishers/server/publishers.server'
+import { ActivityPioneerField } from '~/features/publishers/ui/ActivityPioneerField'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
-import { PublisherType } from '~/shared/types/publisher-type'
+import { PublisherType, publisherTypeReportsHours } from '~/shared/types/publisher-type'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { FormActions } from '~/shared/ui/FormActions'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
@@ -83,34 +83,28 @@ export function loader({ request, context }: Route.LoaderArgs) {
       })
     }
 
-    // Show the enrolled goal as read-only context so the report can be entered against the plan.
-    // `standingType` is the member's current status, derived from their stints — the form uses it to
-    // decide whether to offer the auxiliary-pioneer picker at all.
-    let enrolmentGoal: number | null = null
-    let standingType: PublisherType = PublisherType.Normal
-    if (publisher != null) {
-      const enrolments = await getEnrolmentsForMember(db, publisher.id, currentUser.congregationId)
-      standingType = standingTypeFromEnrolments(enrolments)
-      const active = enrolmentForMonth(enrolments, month, year)
-      if (active != null) enrolmentGoal = await resolveEnrolmentMonthlyGoal(db, active, toServiceYear(month, year))
-    }
+    // The enrolment covering the reported month decides the report's pioneer type and goal, so the
+    // form states it instead of asking. Not the member's standing status: a month-bounded auxiliary
+    // enrolment leaves that Normal, and an ongoing stint starting later would stamp earlier months.
+    const monthEnrolment =
+      publisher == null ? null : await getMonthEnrolment(db, publisher.id, currentUser.congregationId, month, year)
 
     return {
       publishers,
-      publisher: publisher == null ? null : { ...publisher, standingType },
+      publisher,
       selectedMonth: { month, year },
-      enrolmentGoal,
+      monthEnrolment,
       previousPage: request.headers.get('referer'),
     }
   })
 }
 
 export default function NewActivity({ loaderData, actionData }: Route.ComponentProps) {
-  const { publishers, publisher, selectedMonth, enrolmentGoal, previousPage } = loaderData
+  const { publishers, publisher, selectedMonth, monthEnrolment, previousPage } = loaderData
   const [searchParams, setSearchParams] = useSearchParams()
-  const [pioneer, setPioneer] = useState<PublisherType | null>(
-    publisher?.standingType === PublisherType.PionnierAuxiliaires ? PublisherType.PionnierAuxiliaires : null,
-  )
+  // Reset by the publisher, month and year pickers: one person's or month's choice is not another's.
+  const [pioneer, setPioneer] = useState<PublisherType>(PublisherType.Normal)
+  const reportType = reportTypeForMonth(monthEnrolment, pioneer)
   const { blocker, markDirty } = useUnsavedChanges()
 
   useFocusError(actionData)
@@ -154,6 +148,7 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
                 onValueChange={value => {
                   searchParams.set('publisherId', value)
                   setSearchParams(searchParams)
+                  setPioneer(PublisherType.Normal)
                 }}
                 placeholder={m.activity_new_publisher_placeholder()}
                 allowNone={false}
@@ -169,6 +164,7 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
                   onValueChange={value => {
                     searchParams.set('month', value)
                     setSearchParams(searchParams)
+                    setPioneer(PublisherType.Normal)
                   }}
                 >
                   <SelectTrigger id="month" className="w-full">
@@ -222,6 +218,7 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
                   onValueChange={value => {
                     searchParams.set('year', value)
                     setSearchParams(searchParams)
+                    setPioneer(PublisherType.Normal)
                   }}
                 >
                   <SelectTrigger id="year" className="w-full">
@@ -238,43 +235,17 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
               </div>
             </div>
 
-            {enrolmentGoal != null && (
-              <p className="rounded-md bg-muted px-3 py-2 text-muted-foreground text-sm">
-                {m.activity_new_enrolment_goal({ goal: String(enrolmentGoal) })}
-              </p>
-            )}
-
-            {publisher != null && publisher.standingType === PublisherType.Normal && (
-              <div className="space-y-2">
-                <Label htmlFor="type">{m.activity_new_pioneer_label()}</Label>
-                <Select
-                  name="type"
-                  value={pioneer ?? PublisherType.Normal}
-                  onValueChange={value => setPioneer(value as PublisherType)}
-                >
-                  <SelectTrigger id="type" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={PublisherType.Normal}>{m.activity_new_pioneer_none()}</SelectItem>
-                    <SelectItem value={PublisherType.PionnierAuxiliaires}>
-                      {m.activity_new_pioneer_auxiliary()}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            {publisher != null && (
+              <ActivityPioneerField
+                enrolment={monthEnrolment}
+                options={[PublisherType.Normal, PublisherType.PionnierAuxiliaires]}
+                value={pioneer}
+                onChange={setPioneer}
+              />
             )}
 
             <div className="grid gap-4 sm:grid-cols-2">
-              {(
-                [
-                  PublisherType.PionnierAuxiliaires,
-                  PublisherType.PionnierPermanant,
-                  PublisherType.PionnierSpecial,
-                  PublisherType.Missionnaire,
-                ] as PublisherType[]
-              ).includes(publisher?.standingType ?? PublisherType.Normal) ||
-              (pioneer != null && ([PublisherType.PionnierAuxiliaires] as PublisherType[]).includes(pioneer)) ? (
+              {publisherTypeReportsHours(reportType) ? (
                 <div className="space-y-2">
                   <Label htmlFor={fields.hours.id}>{m.activity_new_hours_label()}</Label>
                   <Input {...getInputProps(fields.hours, { type: 'number' })} key={fields.hours.id} min={0} required />
@@ -359,15 +330,10 @@ export async function action({ request, context }: Route.ActionArgs) {
       })
     }
 
-    // Derive the report's pioneer type from the member's active enrolment for that month (spec §7.2)
-    // so plan and actual can't diverge. Falls back to the standing type, then the ad-hoc dropdown
-    // (a Normal member reporting an auxiliary month without a formal enrolment).
-    const enrolments = await getEnrolmentsForMember(db, publisher.id, currentUser.congregationId)
-    const enrolledType = enrolmentForMonth(enrolments, month, year)?.type
-    const standingType = standingTypeFromEnrolments(enrolments)
-    const type =
-      enrolledType ??
-      (standingType === PublisherType.Normal ? (submission.value.type ?? PublisherType.Normal) : standingType)
+    // The enrolment covering the month decides the type, whatever was submitted; without one, the
+    // form's choice stands (a publisher, or an auxiliary month taken without an enrolment).
+    const enrolment = await getMonthEnrolment(db, publisher.id, currentUser.congregationId, month, year)
+    const type = reportTypeForMonth(enrolment, submission.value.type)
     const activity = await createPublisherActivity(db, {
       publisherId: publisher.id,
       month,

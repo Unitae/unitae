@@ -1,6 +1,13 @@
 import type { PioneerEnrolment } from '~/database/generated/client'
 import type { TransactionClient } from '~/shared/infra/db.server'
-import { type EnrolmentPeriod, enrolledMonthsInServiceYear, resolveEnrolmentGoal } from '../model/pioneer-enrolment'
+import type { MonthEnrolment } from '../model/month-enrolment.type'
+import {
+  type EnrolmentPeriod,
+  enrolledMonthsInServiceYear,
+  enrolmentForMonth,
+  resolveEnrolmentGoal,
+} from '../model/pioneer-enrolment'
+import { toServiceYear } from '../model/pioneer-pace'
 import { resolvePioneerGoal } from './pioneer-goals.queries'
 
 // Read side (CQRS-lite) for pioneer enrolments. No mutations here.
@@ -42,4 +49,20 @@ export async function resolveEnrolmentMonthlyGoal(
 ): Promise<number> {
   const typeRate = await resolvePioneerGoal(db, serviceYear, enrolment.type)
   return resolveEnrolmentGoal(enrolment, typeRate)
+}
+
+// The stint covering one calendar month, with its resolved goal, or null: what an activity report
+// for that month records. Deliberately not the standing status (standingTypeFromEnrolments): that
+// is one value per member, taken from the ongoing stint only, so a month-bounded auxiliary stint
+// leaves it Normal and an ongoing stint starting later would apply to the months before it.
+export async function getMonthEnrolment(
+  db: TransactionClient,
+  memberId: number,
+  congregationId: number,
+  month: number,
+  year: number,
+): Promise<MonthEnrolment | null> {
+  const enrolment = enrolmentForMonth(await getEnrolmentsForMember(db, memberId, congregationId), month, year)
+  if (enrolment == null) return null
+  return { type: enrolment.type, goal: await resolveEnrolmentMonthlyGoal(db, enrolment, toServiceYear(month, year)) }
 }
