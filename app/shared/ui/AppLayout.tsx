@@ -1,6 +1,7 @@
 import { Search } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { Outlet } from 'react-router'
+import type { TrialBannerInfo } from '~/shared/domain/trial-status'
 import { AppSidebar, type AppSidebarPermissions } from '~/shared/ui/AppSidebar'
 import { BottomTabBar } from '~/shared/ui/BottomTabBar'
 import { CommandPalette } from '~/shared/ui/CommandPalette'
@@ -11,10 +12,13 @@ import { hasManagementSections } from '~/shared/ui/navigation-config'
 import { OfflineBanner } from '~/shared/ui/OfflineBanner'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '~/shared/ui/sidebar'
 import { Toaster } from '~/shared/ui/sonner'
+import { TrialBanner } from '~/shared/ui/TrialBanner'
 
 interface AppLayoutProps {
   permissions: AppSidebarPermissions
   congregationName?: string
+  /** The congregation's SaaS trial, when it is in one: shown as a banner above every page. */
+  trial?: TrialBannerInfo | null
   /** Initial sidebar state, read from the persistence cookie by the layout loader. */
   sidebarOpen?: boolean
 }
@@ -25,7 +29,7 @@ interface AppLayoutProps {
  * bottom tab bar (+ "Plus" sheet for responsibility-holders); at md+ the
  * sidebar is the only chrome.
  */
-export function AppLayout({ permissions, congregationName, sidebarOpen = true }: AppLayoutProps) {
+export function AppLayout({ permissions, congregationName, trial = null, sidebarOpen = true }: AppLayoutProps) {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
 
@@ -51,6 +55,7 @@ export function AppLayout({ permissions, congregationName, sidebarOpen = true }:
       <SidebarInset>
         <NavigationProgress />
         <OfflineBanner />
+        <TrialBanner trial={trial} />
         <MobileHeader congregationName={congregationName} onSearchClick={() => setCommandPaletteOpen(true)} />
         <div className="flex items-center gap-1 p-2 max-md:hidden md:group-has-data-[state=expanded]/sidebar-wrapper:hidden">
           <SidebarTrigger className="size-8 rounded-md" />
