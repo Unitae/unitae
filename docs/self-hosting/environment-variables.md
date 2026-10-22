@@ -32,6 +32,7 @@ The first entry signs new cookies; every entry still validates existing cookies 
 | `UNITAE_MULTI_TENANT` | `false` | Enable multi-congregation mode. Set to `true` to allow multiple congregations |
 | `UNITAE_LOG_LEVEL` | `info` | Winston log level (`error`, `warn`, `info`, `debug`) |
 | `UNITAE_WEB_PORT` | — | HTTP server port. Read by `pnpm start`; falls back to `PORT`, then to `3000` if neither is set. The official Docker images set this to `8080`, which is what the rest of this doc assumes |
+| `UNITAE_TRUST_PROXY` | `loopback, linklocal, uniquelocal` | Which reverse proxies the app trusts for `X-Forwarded-Proto` / `X-Forwarded-Host`, in Express [`trust proxy`](https://expressjs.com/en/guide/behind-proxies.html) syntax: `true`, a hop count, or a comma-separated list of addresses, subnets and preset names. The default trusts a proxy on the same machine, Docker network or LAN. Set it only if your proxy reaches the app from another address, e.g. `100.64.0.0/10` for Tailscale. See [Reverse Proxy](getting-started.md#reverse-proxy-tls) |
 | `UNITAE_CRON_SECRET` | — | Bearer token for authenticating cron endpoint requests (`/cron/*`). When unset, all cron endpoints reject with 401 |
 | `UNITAE_WORKER_HEALTH_PORT` | `9090` | HTTP port for the background worker's health check endpoint |
 

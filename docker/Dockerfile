@@ -42,12 +42,12 @@ RUN addgroup -g 1001 -S unitae && \
 RUN mkdir -p /app/content/uploads && chown -R 1001:1001 /app/content
 COPY --from=build --chown=1001:1001 /app/build ./build
 COPY --from=build --chown=1001:1001 /app/public ./public
-COPY --from=build --chown=1001:1001 /app/package.json ./
+COPY --from=build --chown=1001:1001 /app/package.json /app/server.js ./
 COPY --from=prod-deps --chown=1001:1001 /app/node_modules ./node_modules
 USER 1001
 EXPOSE 8080
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["sh", "-c", "PORT=${UNITAE_WEB_PORT:-3000} node_modules/.bin/react-router-serve ./build/server/index.js"]
+CMD ["sh", "-c", "PORT=${UNITAE_WEB_PORT:-3000} node server.js"]
 
 # ── Worker: background job processor ─────────────────────────
 FROM base-worker AS worker
