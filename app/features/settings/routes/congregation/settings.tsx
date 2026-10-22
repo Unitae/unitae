@@ -1,5 +1,5 @@
 import { getFormProps, useForm } from '@conform-to/react'
-import { parseWithZod } from '@conform-to/zod'
+import { parseWithZod } from '@conform-to/zod/v4'
 import { CalendarDays, Tags, Target } from 'lucide-react'
 import { data, Form, redirect } from 'react-router'
 import { congregationSettingsSchema } from '~/features/settings/schemas/congregation-settings.schema'

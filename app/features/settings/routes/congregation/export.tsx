@@ -1,5 +1,5 @@
 import { getFormProps, useForm } from '@conform-to/react'
-import { parseWithZod } from '@conform-to/zod'
+import { parseWithZod } from '@conform-to/zod/v4'
 import { Download } from 'lucide-react'
 import { Form, redirect } from 'react-router'
 import { exportOptionsSchema } from '~/features/settings/schemas/data-transfer.schema'

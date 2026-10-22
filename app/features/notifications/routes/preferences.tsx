@@ -1,4 +1,4 @@
-import { parseWithZod } from '@conform-to/zod'
+import { parseWithZod } from '@conform-to/zod/v4'
 import { data, useFetcher } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'

@@ -1,4 +1,4 @@
-import { parseWithZod } from '@conform-to/zod'
+import { parseWithZod } from '@conform-to/zod/v4'
 import { Plus } from 'lucide-react'
 import { data, Form, Link, redirect, useSubmit } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'

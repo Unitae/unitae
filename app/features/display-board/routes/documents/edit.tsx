@@ -1,4 +1,4 @@
-import { parseWithZod } from '@conform-to/zod'
+import { parseWithZod } from '@conform-to/zod/v4'
 import { type FileUpload, MaxFileSizeExceededError, parseFormData } from '@mjackson/form-data-parser'
 import { History, Trash2 } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'

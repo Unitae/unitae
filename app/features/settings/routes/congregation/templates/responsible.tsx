@@ -1,4 +1,4 @@
-import { parseWithZod } from '@conform-to/zod'
+import { parseWithZod } from '@conform-to/zod/v4'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { findResponsible, ResponsibilityScope } from '~/features/events'

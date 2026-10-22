@@ -1,4 +1,4 @@
-import { parseWithZod } from '@conform-to/zod'
+import { parseWithZod } from '@conform-to/zod/v4'
 import { data, redirect } from 'react-router'
 
 import { splitToolCreateSchema } from '~/features/territories/schemas/building.schema'

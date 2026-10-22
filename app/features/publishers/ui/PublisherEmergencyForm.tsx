@@ -1,5 +1,5 @@
 import { getFormProps, getInputProps, type SubmissionResult, useForm } from '@conform-to/react'
-import { parseWithZod } from '@conform-to/zod'
+import { parseWithZod } from '@conform-to/zod/v4'
 import { Trash2 } from 'lucide-react'
 import { Form } from 'react-router'
 import { updateEmergencyInfoSchema } from '~/features/publishers/schemas/emergency-info.schema'
