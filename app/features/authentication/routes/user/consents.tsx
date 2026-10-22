@@ -1,4 +1,4 @@
-import { parseWithZod } from '@conform-to/zod'
+import { parseWithZod } from '@conform-to/zod/v4'
 import { data, Form, Link, redirect } from 'react-router'
 import { consentSchema } from '~/features/authentication/schemas/login.schema'
 import * as m from '~/i18n/paraglide/messages'

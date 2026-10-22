@@ -63,8 +63,8 @@ export interface NotificationTypeDefinition<T = unknown> {
 // itself as the source of truth and flowing `z.infer<S>` into every T slot on
 // the definition. Runtime is an identity function; the value is entirely in
 // the typing.
-export function defineNotificationType<S extends z.ZodTypeAny>(
-  def: Omit<NotificationTypeDefinition<z.infer<S>>, 'payload'> & { payload: S },
+export function defineNotificationType<S extends z.ZodType>(
+  def: NotificationTypeDefinition<z.infer<S>> & { payload: S },
 ): NotificationTypeDefinition<z.infer<S>> {
   return def
 }

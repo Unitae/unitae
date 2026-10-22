@@ -1,5 +1,5 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
-import { parseWithZod } from '@conform-to/zod'
+import { parseWithZod } from '@conform-to/zod/v4'
 import { data, Form, redirect } from 'react-router'
 import { resetPasswordSchema } from '~/features/authentication/schemas/login.schema'
 import { isAccountInBreachScope } from '~/features/authentication/server/breach-scope.server'

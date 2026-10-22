@@ -1,5 +1,5 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
-import { parseWithZod } from '@conform-to/zod'
+import { parseWithZod } from '@conform-to/zod/v4'
 import { useState } from 'react'
 import { data, Form, redirect, useSearchParams } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'

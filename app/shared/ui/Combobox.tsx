@@ -73,29 +73,30 @@ export function Combobox({
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    const handlers: Record<string, () => void> = {
-      ArrowDown: () => {
+    switch (event.key) {
+      case 'ArrowDown':
         event.preventDefault()
         if (!open) setOpen(true)
         moveActive(1)
-      },
-      ArrowUp: () => {
+        break
+      case 'ArrowUp':
         event.preventDefault()
         moveActive(-1)
-      },
-      Enter: () => {
+        break
+      case 'Enter':
         if (!open || !filtered[activeIndex]) return
         event.preventDefault()
         pickSuggestion(filtered[activeIndex])
-      },
-      Escape: () => {
+        break
+      case 'Escape':
         if (!open) return
         event.preventDefault()
         setOpen(false)
-      },
-      Tab: () => setOpen(false),
+        break
+      case 'Tab':
+        setOpen(false)
+        break
     }
-    handlers[event.key]?.()
   }
 
   const showPopover = open && filtered.length > 0

@@ -1,4 +1,4 @@
-import { parseWithZod } from '@conform-to/zod'
+import { parseWithZod } from '@conform-to/zod/v4'
 import { partAllowedRolesToWrite } from '~/features/events/model/allowed-roles-write'
 import {
   addPartSchema,

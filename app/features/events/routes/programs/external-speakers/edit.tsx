@@ -1,5 +1,5 @@
 import { getFormProps, getInputProps, getTextareaProps, useForm } from '@conform-to/react'
-import { parseWithZod } from '@conform-to/zod'
+import { parseWithZod } from '@conform-to/zod/v4'
 import { Archive, ArchiveRestore, ShieldAlert } from 'lucide-react'
 import { data, Form, redirect } from 'react-router'
 import { z } from 'zod'

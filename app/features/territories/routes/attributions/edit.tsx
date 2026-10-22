@@ -1,5 +1,5 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
-import { parseWithZod } from '@conform-to/zod'
+import { parseWithZod } from '@conform-to/zod/v4'
 import { ArrowDownToLine, X } from 'lucide-react'
 import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'

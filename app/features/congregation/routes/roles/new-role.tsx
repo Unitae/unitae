@@ -1,5 +1,5 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
-import { parseWithZod } from '@conform-to/zod'
+import { parseWithZod } from '@conform-to/zod/v4'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { createRoleSchema } from '~/features/congregation/schemas/role.schema'
