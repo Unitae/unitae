@@ -133,6 +133,24 @@ These features work without configuration but can be enabled for a better experi
 
 Put a reverse proxy (Nginx, Caddy, or Traefik) in front of Unitae to handle TLS certificates. The app listens on port 8080 by default.
 
+The proxy must:
+
+- **send `X-Forwarded-Proto`**, so the app knows the visitor used HTTPS. Without it every form submission, login included, is refused with a 400: the browser's `Origin` says `https://` while the app sees `http://`.
+- **keep the visitor's `Host`** (or set `X-Forwarded-Host` to it, port included if not 443).
+- **reach the app from loopback or a private network** (a container on the same Docker network, the same machine, your LAN). Forwarded headers from other addresses are ignored; if your proxy reaches the app over a public or CGNAT address (Tailscale, `100.64.0.0/10`), set [`UNITAE_TRUST_PROXY`](environment-variables.md#application).
+
+Caddy does all three by default (see `docker/Caddyfile.example`). For Nginx:
+
+```nginx
+location / {
+    proxy_pass http://localhost:8080;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+```
+
 ### File Storage (S3)
 
 By default, uploaded files (board documents, exports) are stored on the local filesystem in `content/uploads/`. To use S3-compatible storage instead, set:

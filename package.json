@@ -61,7 +61,6 @@
         "@react-pdf/renderer": "^4.9.0",
         "@react-router/express": "^8.5.0",
         "@react-router/node": "^8.5.0",
-        "@react-router/serve": "^8.5.0",
         "@vis.gl/react-google-maps": "^1.10.1",
         "@zxcvbn-ts/core": "^4.2.0",
         "@zxcvbn-ts/language-common": "^4.1.3",
