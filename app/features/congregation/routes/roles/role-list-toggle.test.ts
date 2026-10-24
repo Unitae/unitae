@@ -67,7 +67,7 @@ describe('role matrix toggle', () => {
 
     await toggle({ memberId: '500', roleId: '7', intent: 'add' })
 
-    expect(addUserToRole).toHaveBeenCalledWith(expect.anything(), 800, 7, 10, 1)
+    expect(addUserToRole).toHaveBeenCalledWith(expect.anything(), 800, 7, 10, 1, new Set([Permission.CanManageRoles]))
   })
 
   it('removes against the member’s account too', async () => {
@@ -75,7 +75,14 @@ describe('role matrix toggle', () => {
 
     await toggle({ memberId: '500', roleId: '7', intent: 'remove' })
 
-    expect(removeUserFromRole).toHaveBeenCalledWith(expect.anything(), 800, 7, 10, 1)
+    expect(removeUserFromRole).toHaveBeenCalledWith(
+      expect.anything(),
+      800,
+      7,
+      10,
+      1,
+      new Set([Permission.CanManageRoles]),
+    )
   })
 
   it('refuses a member with no login instead of failing on a foreign key', async () => {

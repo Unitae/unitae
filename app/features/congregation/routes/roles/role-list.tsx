@@ -9,6 +9,7 @@ import { RoleMatrixTable } from '~/features/congregation/ui/RoleMatrixTable'
 import { RolesTabs } from '~/features/congregation/ui/RolesTabs'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { GrantBeyondActorError } from '~/shared/domain/role-grant-limits.server'
 import { addUserToRole, removeUserFromRole } from '~/shared/domain/roles.server'
 import { ForbiddenError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
@@ -160,6 +161,13 @@ export function loader({ request, context }: Route.LoaderArgs) {
   })
 }
 
+/** The flash for a refused matrix toggle; anything that is not a refusal is rethrown. */
+function toggleRefusalMessage(error: unknown): string {
+  if (error instanceof GrantBeyondActorError) return m.error_forbidden()
+  if (error instanceof ForbiddenError) return m.congregation_roles_built_in_assignment_error()
+  throw error
+}
+
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
@@ -199,9 +207,9 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     try {
       if (intent === 'add') {
-        await addUserToRole(db, userId, roleId, currentUser.congregationId, currentUser.id)
+        await addUserToRole(db, userId, roleId, currentUser.congregationId, currentUser.id, permissions)
       } else {
-        await removeUserFromRole(db, userId, roleId, currentUser.congregationId, currentUser.id)
+        await removeUserFromRole(db, userId, roleId, currentUser.congregationId, currentUser.id, permissions)
       }
       // Name the change: a toggle deep in a grid gives no feedback of its own, and « Marc DUPONT
       // fait partie de Sono » is what tells a cautious admin their click did the right thing.
@@ -209,11 +217,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       const flash = intent === 'add' ? m.congregation_roles_added_flash : m.congregation_roles_removed_flash
       session.flash('success', flash({ person, role: getRoleDisplayName(role) }))
     } catch (error) {
-      if (error instanceof ForbiddenError) {
-        session.flash('error', m.congregation_roles_built_in_assignment_error())
-      } else {
-        throw error
-      }
+      session.flash('error', toggleRefusalMessage(error))
     }
   })
 

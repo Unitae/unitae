@@ -50,6 +50,9 @@ const {
 const { audit } = await import('~/shared/domain/audit.server')
 const { ConflictError, ForbiddenError } = await import('~/shared/errors/app-error.server')
 
+// The actor's permissions: an admin, so grant limits never interfere with what these tests cover.
+const ADMIN_ACTOR = new Set(['can-do-anything'])
+
 beforeEach(() => {
   vi.resetAllMocks()
 })
@@ -196,7 +199,7 @@ describe('updateRolePermissions', () => {
       permissions: [{ permission: { key: 'program-viewer' } }],
     } as never)
 
-    await updateRolePermissions(mockDb as never, 7, 10, 1, ['program-viewer'])
+    await updateRolePermissions(mockDb as never, 7, 10, 1, ['program-viewer'], ADMIN_ACTOR)
 
     const calls = vi.mocked(audit).mock.calls.map(c => (c[0] as { action: string }).action)
     expect(calls).not.toContain('RolePermissionChanged')
@@ -218,7 +221,7 @@ describe('updateRolePermissions', () => {
     mockDb.rolePermission.createMany.mockResolvedValue({ count: 1 } as never)
     mockDb.rolePermission.deleteMany.mockResolvedValue({ count: 1 } as never)
 
-    await updateRolePermissions(mockDb as never, 7, 10, 1, ['program-viewer', 'program-manager'])
+    await updateRolePermissions(mockDb as never, 7, 10, 1, ['program-viewer', 'program-manager'], ADMIN_ACTOR)
 
     const permissionAudit = vi
       .mocked(audit)
@@ -241,7 +244,7 @@ describe('updateRolePermissions', () => {
     mockDb.permission.findMany.mockResolvedValue([{ id: 100, key: 'board-uploader' }] as never)
     mockDb.rolePermission.createMany.mockResolvedValue({ count: 1 } as never)
 
-    await updateRolePermissions(mockDb as never, 1, 10, 1, ['board-uploader'])
+    await updateRolePermissions(mockDb as never, 1, 10, 1, ['board-uploader'], ADMIN_ACTOR)
 
     expect(mockDb.rolePermission.createMany).toHaveBeenCalled()
   })
@@ -297,7 +300,7 @@ describe('setUserCustomRoleAssignments', () => {
     mockDb.role.findMany.mockResolvedValue([] as never)
     mockDb.userRoleAssignment.findMany.mockResolvedValue([] as never)
 
-    await setUserCustomRoleAssignments(mockDb as never, 5, 10, 99, [])
+    await setUserCustomRoleAssignments(mockDb as never, 5, 10, 99, [], ADMIN_ACTOR)
 
     expect(mockDb.role.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ isSinglePerson: false }) }),
@@ -316,7 +319,7 @@ describe('setUserCustomRoleAssignments', () => {
     ] as never)
     mockDb.userRoleAssignment.findMany.mockResolvedValue([{ roleId: 5 }] as never)
 
-    await setUserCustomRoleAssignments(mockDb as never, 1, 10, 99, [5])
+    await setUserCustomRoleAssignments(mockDb as never, 1, 10, 99, [5], ADMIN_ACTOR)
 
     expect(mockDb.userRoleAssignment.createMany).not.toHaveBeenCalled()
     expect(mockDb.userRoleAssignment.deleteMany).not.toHaveBeenCalled()
@@ -332,7 +335,7 @@ describe('setUserCustomRoleAssignments', () => {
     mockDb.userRoleAssignment.createMany.mockResolvedValue({ count: 1 } as never)
     mockDb.userRoleAssignment.deleteMany.mockResolvedValue({ count: 1 } as never)
 
-    await setUserCustomRoleAssignments(mockDb as never, 1, 10, 99, [6, 999])
+    await setUserCustomRoleAssignments(mockDb as never, 1, 10, 99, [6, 999], ADMIN_ACTOR)
 
     // Custom roles OR system roles: identity roles attach to the Member and are
     // reconciled from its flags, but `admin` carries isBuiltIn too and must stay
@@ -360,7 +363,7 @@ describe('addUserToRole', () => {
   it('rejects built-in roles with ForbiddenError', async () => {
     mockDb.role.findFirst.mockResolvedValue({ id: 1, key: 'elder', isBuiltIn: true } as never)
 
-    await expect(addUserToRole(mockDb as never, 5, 1, 10, 99)).rejects.toBeInstanceOf(ForbiddenError)
+    await expect(addUserToRole(mockDb as never, 5, 1, 10, 99, ADMIN_ACTOR)).rejects.toBeInstanceOf(ForbiddenError)
     expect(mockDb.userRoleAssignment.create).not.toHaveBeenCalled()
   })
 
@@ -374,7 +377,7 @@ describe('addUserToRole', () => {
       isSinglePerson: true,
     } as never)
 
-    await expect(addUserToRole(mockDb as never, 5, 7, 10, 99)).rejects.toBeInstanceOf(ForbiddenError)
+    await expect(addUserToRole(mockDb as never, 5, 7, 10, 99, ADMIN_ACTOR)).rejects.toBeInstanceOf(ForbiddenError)
     expect(mockDb.userRoleAssignment.create).not.toHaveBeenCalled()
   })
 
@@ -382,7 +385,7 @@ describe('addUserToRole', () => {
     mockDb.role.findFirst.mockResolvedValue({ id: 7, key: 'speaker', isBuiltIn: false } as never)
     mockDb.userRoleAssignment.findFirst.mockResolvedValue({ userId: 5 } as never)
 
-    await addUserToRole(mockDb as never, 5, 7, 10, 99)
+    await addUserToRole(mockDb as never, 5, 7, 10, 99, ADMIN_ACTOR)
 
     expect(mockDb.userRoleAssignment.create).not.toHaveBeenCalled()
     expect(vi.mocked(audit)).not.toHaveBeenCalled()
@@ -393,7 +396,7 @@ describe('addUserToRole', () => {
     mockDb.userRoleAssignment.findFirst.mockResolvedValue(null as never)
     mockDb.userRoleAssignment.create.mockResolvedValue({} as never)
 
-    await addUserToRole(mockDb as never, 5, 7, 10, 99)
+    await addUserToRole(mockDb as never, 5, 7, 10, 99, ADMIN_ACTOR)
 
     expect(mockDb.userRoleAssignment.create).toHaveBeenCalledWith({
       data: { userId: 5, roleId: 7, congregationId: 10 },
@@ -413,7 +416,7 @@ describe('removeUserFromRole', () => {
   it('rejects built-in roles with ForbiddenError', async () => {
     mockDb.role.findFirst.mockResolvedValue({ id: 1, key: 'elder', isBuiltIn: true } as never)
 
-    await expect(removeUserFromRole(mockDb as never, 5, 1, 10, 99)).rejects.toBeInstanceOf(ForbiddenError)
+    await expect(removeUserFromRole(mockDb as never, 5, 1, 10, 99, ADMIN_ACTOR)).rejects.toBeInstanceOf(ForbiddenError)
     expect(mockDb.userRoleAssignment.deleteMany).not.toHaveBeenCalled()
   })
 
@@ -421,31 +424,33 @@ describe('removeUserFromRole', () => {
     mockDb.role.findFirst.mockResolvedValue({ id: 7, key: 'speaker', isBuiltIn: false } as never)
     mockDb.userRoleAssignment.findFirst.mockResolvedValue(null as never)
 
-    await removeUserFromRole(mockDb as never, 5, 7, 10, 99)
+    await removeUserFromRole(mockDb as never, 5, 7, 10, 99, ADMIN_ACTOR)
 
     expect(mockDb.userRoleAssignment.deleteMany).not.toHaveBeenCalled()
     expect(vi.mocked(audit)).not.toHaveBeenCalled()
   })
 
-  it.each([
-    'leader',
-    'deputy',
-  ])('refuses to strip a %s seat — leadership changes hands on the organigram', async kind => {
-    // The matrix bulk-edits members; one stray uncheck must not silently unseat a responsable.
-    // Unseating leadership is the organigram's gesture, where the seat is visible as one.
-    mockDb.role.findFirst.mockResolvedValue({ id: 7, key: 'sono', isBuiltIn: false } as never)
-    mockDb.userRoleAssignment.findFirst.mockResolvedValue({ userId: 5, kind } as never)
+  it.each(['leader', 'deputy'])(
+    'refuses to strip a %s seat — leadership changes hands on the organigram',
+    async kind => {
+      // The matrix bulk-edits members; one stray uncheck must not silently unseat a responsable.
+      // Unseating leadership is the organigram's gesture, where the seat is visible as one.
+      mockDb.role.findFirst.mockResolvedValue({ id: 7, key: 'sono', isBuiltIn: false } as never)
+      mockDb.userRoleAssignment.findFirst.mockResolvedValue({ userId: 5, kind } as never)
 
-    await expect(removeUserFromRole(mockDb as never, 5, 7, 10, 99)).rejects.toBeInstanceOf(ForbiddenError)
-    expect(mockDb.userRoleAssignment.deleteMany).not.toHaveBeenCalled()
-  })
+      await expect(removeUserFromRole(mockDb as never, 5, 7, 10, 99, ADMIN_ACTOR)).rejects.toBeInstanceOf(
+        ForbiddenError,
+      )
+      expect(mockDb.userRoleAssignment.deleteMany).not.toHaveBeenCalled()
+    },
+  )
 
   it('deletes assignment and audits with role key in removed when membership existed', async () => {
     mockDb.role.findFirst.mockResolvedValue({ id: 7, key: 'speaker', isBuiltIn: false } as never)
     mockDb.userRoleAssignment.findFirst.mockResolvedValue({ userId: 5 } as never)
     mockDb.userRoleAssignment.deleteMany.mockResolvedValue({ count: 1 } as never)
 
-    await removeUserFromRole(mockDb as never, 5, 7, 10, 99)
+    await removeUserFromRole(mockDb as never, 5, 7, 10, 99, ADMIN_ACTOR)
 
     expect(mockDb.userRoleAssignment.deleteMany).toHaveBeenCalledWith({ where: { userId: 5, roleId: 7 } })
     expect(vi.mocked(audit)).toHaveBeenCalledWith(

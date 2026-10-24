@@ -33,6 +33,9 @@ let adminPermissionId: number
 
 const { updateAccount } = await import('./update-account.server')
 
+// The actor's permissions: an admin, so grant limits never interfere with what these tests cover.
+const ADMIN_ACTOR = new Set(['can-do-anything'])
+
 beforeAll(async () => {
   // The current admin capability. `admin` is no longer a seeded Permission row — it
   // survives only as a legacy row on deployed databases, so a test must not depend on it.
@@ -131,12 +134,19 @@ afterAll(async () => {
 describe('updateAccount (integration)', () => {
   it('updates user personal data', async () => {
     await withScope(primaryCongId, tx =>
-      updateAccount(tx, primaryUserId, primaryCongId, primaryUserId, {
-        firstname: 'Alice',
-        lastname: 'After',
-        email: `update-user-primary-${ts}@test.com`,
-        active: false,
-      }),
+      updateAccount(
+        tx,
+        primaryUserId,
+        primaryCongId,
+        primaryUserId,
+        {
+          firstname: 'Alice',
+          lastname: 'After',
+          email: `update-user-primary-${ts}@test.com`,
+          active: false,
+        },
+        ADMIN_ACTOR,
+      ),
     )
 
     const user = await testDb.userAccount.findUnique({ where: { id: primaryUserId } })
@@ -154,12 +164,19 @@ describe('updateAccount (integration)', () => {
     })
 
     await withScope(primaryCongId, tx =>
-      updateAccount(tx, primaryUserId, primaryCongId, primaryUserId, {
-        firstname: 'Alice',
-        lastname: 'After',
-        email: `update-user-primary-${ts}@test.com`,
-        active: true,
-      }),
+      updateAccount(
+        tx,
+        primaryUserId,
+        primaryCongId,
+        primaryUserId,
+        {
+          firstname: 'Alice',
+          lastname: 'After',
+          email: `update-user-primary-${ts}@test.com`,
+          active: true,
+        },
+        ADMIN_ACTOR,
+      ),
     )
 
     const after = await testDb.userRoleAssignment.findMany({
@@ -177,12 +194,19 @@ describe('updateAccount (integration)', () => {
     expect(otherRolesBefore.length).toBeGreaterThan(0)
 
     await withScope(primaryCongId, tx =>
-      updateAccount(tx, primaryUserId, primaryCongId, primaryUserId, {
-        firstname: 'Alice',
-        lastname: 'After',
-        email: `update-user-primary-${ts}@test.com`,
-        active: true,
-      }),
+      updateAccount(
+        tx,
+        primaryUserId,
+        primaryCongId,
+        primaryUserId,
+        {
+          firstname: 'Alice',
+          lastname: 'After',
+          email: `update-user-primary-${ts}@test.com`,
+          active: true,
+        },
+        ADMIN_ACTOR,
+      ),
     )
 
     const otherRolesAfter = await testDb.userRoleAssignment.findMany({
@@ -193,12 +217,19 @@ describe('updateAccount (integration)', () => {
 
   it('normalises email to lowercase', async () => {
     await withScope(primaryCongId, tx =>
-      updateAccount(tx, primaryUserId, primaryCongId, primaryUserId, {
-        firstname: 'Alice',
-        lastname: 'After',
-        email: `Update-User-PRIMARY-${ts}@TEST.COM`,
-        active: true,
-      }),
+      updateAccount(
+        tx,
+        primaryUserId,
+        primaryCongId,
+        primaryUserId,
+        {
+          firstname: 'Alice',
+          lastname: 'After',
+          email: `Update-User-PRIMARY-${ts}@TEST.COM`,
+          active: true,
+        },
+        ADMIN_ACTOR,
+      ),
     )
 
     const user = await testDb.userAccount.findUnique({ where: { id: primaryUserId } })

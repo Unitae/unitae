@@ -6,6 +6,7 @@ import { editPermissionsSchema } from '~/features/settings/schemas/permissions.s
 import { RolePermissionPicker } from '~/features/settings/ui/RolePermissionPicker'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { GrantBeyondActorError } from '~/shared/domain/role-grant-limits.server'
 import { getRole, updateRolePermissions } from '~/shared/domain/roles.server'
 import { Permission } from '~/shared/types/permission'
 import { getRoleDescription, getRoleDisplayName } from '~/shared/types/role'
@@ -97,11 +98,23 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   const session = await getSession(request.headers.get('Cookie'))
 
-  return withScopeFromContext(context, async db => {
-    await updateRolePermissions(db, roleId, currentUser.congregationId, currentUser.id, submission.value.permissionKeys)
+  try {
+    await withScopeFromContext(context, db =>
+      updateRolePermissions(
+        db,
+        roleId,
+        currentUser.congregationId,
+        currentUser.id,
+        submission.value.permissionKeys,
+        permissions,
+      ),
+    )
     session.flash('success', m.settings_permissions_update_success())
-    return redirect(`/settings/permissions/${roleId}/edit`, {
-      headers: { 'Set-Cookie': await commitSession(session) },
-    })
+  } catch (error) {
+    if (!(error instanceof GrantBeyondActorError)) throw error
+    session.flash('error', m.error_forbidden())
+  }
+  return redirect(`/settings/permissions/${roleId}/edit`, {
+    headers: { 'Set-Cookie': await commitSession(session) },
   })
 }
