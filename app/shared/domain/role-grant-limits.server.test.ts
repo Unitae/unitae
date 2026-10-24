@@ -91,6 +91,7 @@ const { addUserToRole, removeUserFromRole, setUserCustomRoleAssignments, updateR
   './roles.server'
 )
 const { ConflictError, ForbiddenError } = await import('~/shared/errors/app-error.server')
+const { assertActorHolds, isAdminActor } = await import('./role-grant-limits.server')
 
 const ROLE_MANAGER = new Set(['can-manage-roles', 'can-view-programs'])
 const ADMIN = new Set(['can-do-anything'])
@@ -192,6 +193,55 @@ describe('updateRolePermissions', () => {
   it('lets an admin change any role', async () => {
     await expect(
       updateRolePermissions(db as never, ROLES.member.id, 10, 7, ['can-view-board', 'can-view-programs'], ADMIN),
+    ).resolves.toBeUndefined()
+  })
+})
+
+describe('grant limit edge cases (adversarial review)', () => {
+  it('refuses a role whose permissions are a superset of the actor’s', () => {
+    expect(() => assertActorHolds(new Set(['a']), ['a', 'b'])).toThrow(ForbiddenError)
+  })
+
+  it('accepts a subset, an empty role, and duplicate keys', () => {
+    expect(() => assertActorHolds(new Set(['a', 'b']), ['a'])).not.toThrow()
+    expect(() => assertActorHolds(new Set(['a']), [])).not.toThrow()
+    expect(() => assertActorHolds(new Set(['a']), ['a', 'a'])).not.toThrow()
+  })
+
+  it('refuses a key unknown to the actor even when the actor holds many others', () => {
+    expect(() => assertActorHolds(new Set(['a', 'b', 'c']), ['not-a-permission'])).toThrow(ForbiddenError)
+  })
+
+  it('treats can-do-anything in the actor’s resolved set as admin, whichever role it came from', () => {
+    expect(isAdminActor(new Set(['can-manage-roles', 'can-do-anything']))).toBe(true)
+    expect(() => assertActorHolds(new Set(['can-do-anything']), ['anything-at-all'])).not.toThrow()
+  })
+
+  it('does not treat can-do-anything on the role being granted as the actor’s', () => {
+    expect(() => assertActorHolds(new Set(['can-manage-roles']), ['can-do-anything'])).toThrow(ForbiddenError)
+  })
+
+  it('lets an actor add to a role they hold only permissions they already hold', async () => {
+    // The speakers role grants can-view-programs; adding can-manage-users (not held) is refused.
+    await expect(
+      updateRolePermissions(
+        db as never,
+        ROLES.speakers.id,
+        10,
+        7,
+        ['can-view-programs', 'can-manage-users'],
+        ROLE_MANAGER,
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenError)
+    await expect(
+      updateRolePermissions(
+        db as never,
+        ROLES.speakers.id,
+        10,
+        7,
+        ['can-view-programs', 'can-manage-roles'],
+        ROLE_MANAGER,
+      ),
     ).resolves.toBeUndefined()
   })
 })

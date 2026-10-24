@@ -17,6 +17,9 @@ vi.mock('~/shared/domain/service-committee.server', () => ({ syncServiceCommitte
 const { adoptServiceCommittee, proposeCommitteeAdoption } = await import('./organigram-adoption.server')
 const { ConflictError, ForbiddenError, ValidationError } = await import('~/shared/errors/app-error.server')
 
+// The actor's permissions: an admin, so grant limits never interfere with what these tests cover.
+const ADMIN_ACTOR = new Set(['can-do-anything'])
+
 const CONGREGATION = 10
 const ACTOR = 99
 
@@ -95,7 +98,7 @@ describe('proposeCommitteeAdoption', () => {
 
 describe('adoptServiceCommittee', () => {
   it('places the committee under the elders and the posts inside it', async () => {
-    await adoptServiceCommittee(mockDb as never, [], CONGREGATION, ACTOR)
+    await adoptServiceCommittee(mockDb as never, [], CONGREGATION, ACTOR, ADMIN_ACTOR)
 
     const placed = mockDb.role.update.mock.calls.map(([arg]) => ({
       id: arg.where.id_congregationId.id,
@@ -115,7 +118,13 @@ describe('adoptServiceCommittee', () => {
   it('moves the mapped role’s holder onto the post', async () => {
     mockDb.userRoleAssignment.findMany.mockResolvedValue([{ userId: 800, roleId: 21, kind: 'leader' }])
 
-    await adoptServiceCommittee(mockDb as never, [{ postKey: 'coordinator', fromRoleId: 21 }], CONGREGATION, ACTOR)
+    await adoptServiceCommittee(
+      mockDb as never,
+      [{ postKey: 'coordinator', fromRoleId: 21 }],
+      CONGREGATION,
+      ACTOR,
+      ADMIN_ACTOR,
+    )
 
     expect(mockDb.userRoleAssignment.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ userId: 800, roleId: 3, kind: 'leader' }) }),
@@ -130,7 +139,13 @@ describe('adoptServiceCommittee', () => {
     // off it would silently revoke access that has nothing to do with the organigram.
     mockDb.rolePermission.findMany.mockResolvedValue([{ permissionId: 77 }])
 
-    await adoptServiceCommittee(mockDb as never, [{ postKey: 'coordinator', fromRoleId: 21 }], CONGREGATION, ACTOR)
+    await adoptServiceCommittee(
+      mockDb as never,
+      [{ postKey: 'coordinator', fromRoleId: 21 }],
+      CONGREGATION,
+      ACTOR,
+      ADMIN_ACTOR,
+    )
 
     expect(mockDb.rolePermission.createMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -141,7 +156,13 @@ describe('adoptServiceCommittee', () => {
   })
 
   it('re-hangs the services that reported to the mapped role', async () => {
-    await adoptServiceCommittee(mockDb as never, [{ postKey: 'coordinator', fromRoleId: 21 }], CONGREGATION, ACTOR)
+    await adoptServiceCommittee(
+      mockDb as never,
+      [{ postKey: 'coordinator', fromRoleId: 21 }],
+      CONGREGATION,
+      ACTOR,
+      ADMIN_ACTOR,
+    )
 
     // «Sono» reported to the old «Coordinateur»; it must now report to the post.
     expect(mockDb.role.updateMany).toHaveBeenCalledWith(
@@ -153,7 +174,13 @@ describe('adoptServiceCommittee', () => {
   })
 
   it('takes the mapped role out of the chart without deleting it', async () => {
-    await adoptServiceCommittee(mockDb as never, [{ postKey: 'coordinator', fromRoleId: 21 }], CONGREGATION, ACTOR)
+    await adoptServiceCommittee(
+      mockDb as never,
+      [{ postKey: 'coordinator', fromRoleId: 21 }],
+      CONGREGATION,
+      ACTOR,
+      ADMIN_ACTOR,
+    )
 
     const unflagged = mockDb.role.update.mock.calls
       .map(([arg]) => arg)
@@ -165,7 +192,7 @@ describe('adoptServiceCommittee', () => {
     // The route passes the form's postKey strings through; without this check a crafted request
     // could carry a custom role's permissions onto any role at all, `elder` included.
     await expect(
-      adoptServiceCommittee(mockDb as never, [{ postKey: 'elder', fromRoleId: 21 }], CONGREGATION, ACTOR),
+      adoptServiceCommittee(mockDb as never, [{ postKey: 'elder', fromRoleId: 21 }], CONGREGATION, ACTOR, ADMIN_ACTOR),
     ).rejects.toBeInstanceOf(ValidationError)
     expect(mockDb.role.update).not.toHaveBeenCalled()
     expect(mockDb.rolePermission.createMany).not.toHaveBeenCalled()
@@ -182,6 +209,7 @@ describe('adoptServiceCommittee', () => {
         ],
         CONGREGATION,
         ACTOR,
+        ADMIN_ACTOR,
       ),
     ).rejects.toBeInstanceOf(ValidationError)
     expect(mockDb.role.update).not.toHaveBeenCalled()
@@ -194,7 +222,9 @@ describe('adoptServiceCommittee', () => {
       { id: 2, key: 'service-committee', name: null, parentRoleId: 1, showInOrganigram: true },
     ])
 
-    await expect(adoptServiceCommittee(mockDb as never, [], CONGREGATION, ACTOR)).rejects.toBeInstanceOf(ConflictError)
+    await expect(adoptServiceCommittee(mockDb as never, [], CONGREGATION, ACTOR, ADMIN_ACTOR)).rejects.toBeInstanceOf(
+      ConflictError,
+    )
     expect(mockDb.role.update).not.toHaveBeenCalled()
   })
 
@@ -210,6 +240,7 @@ describe('adoptServiceCommittee', () => {
         ],
         CONGREGATION,
         ACTOR,
+        ADMIN_ACTOR,
       ),
     ).rejects.toBeInstanceOf(ForbiddenError)
     expect(mockDb.role.update).not.toHaveBeenCalled()
@@ -218,7 +249,13 @@ describe('adoptServiceCommittee', () => {
 
   it('refuses to map a built-in post onto another', async () => {
     await expect(
-      adoptServiceCommittee(mockDb as never, [{ postKey: 'coordinator', fromRoleId: 4 }], CONGREGATION, ACTOR),
+      adoptServiceCommittee(
+        mockDb as never,
+        [{ postKey: 'coordinator', fromRoleId: 4 }],
+        CONGREGATION,
+        ACTOR,
+        ADMIN_ACTOR,
+      ),
     ).rejects.toBeInstanceOf(ForbiddenError)
   })
 
@@ -232,6 +269,7 @@ describe('adoptServiceCommittee', () => {
       [{ postKey: 'service-committee', fromRoleId: 20 }],
       CONGREGATION,
       ACTOR,
+      ADMIN_ACTOR,
     )
 
     expect(mockDb.userRoleAssignment.create).not.toHaveBeenCalled()
@@ -242,13 +280,25 @@ describe('adoptServiceCommittee', () => {
   })
 
   it('reconciles the committee once the posts are filled', async () => {
-    await adoptServiceCommittee(mockDb as never, [{ postKey: 'coordinator', fromRoleId: 21 }], CONGREGATION, ACTOR)
+    await adoptServiceCommittee(
+      mockDb as never,
+      [{ postKey: 'coordinator', fromRoleId: 21 }],
+      CONGREGATION,
+      ACTOR,
+      ADMIN_ACTOR,
+    )
 
     expect(syncServiceCommitteeMembers).toHaveBeenCalledWith(mockDb, CONGREGATION, ACTOR)
   })
 
   it('leaves an unmapped post empty rather than guessing', async () => {
-    await adoptServiceCommittee(mockDb as never, [{ postKey: 'coordinator', fromRoleId: null }], CONGREGATION, ACTOR)
+    await adoptServiceCommittee(
+      mockDb as never,
+      [{ postKey: 'coordinator', fromRoleId: null }],
+      CONGREGATION,
+      ACTOR,
+      ADMIN_ACTOR,
+    )
 
     expect(mockDb.userRoleAssignment.create).not.toHaveBeenCalled()
     expect(mockDb.rolePermission.createMany).not.toHaveBeenCalled()

@@ -170,10 +170,11 @@ export async function action({ request, context }: Route.ActionArgs) {
             { roleId: value.roleId, memberId: value.memberId, kind: value.kind },
             congregationId,
             actorId,
+            permissions,
           )
           break
         case 'unseat':
-          await unseatMember(db, value.roleId, value.memberId, congregationId, actorId)
+          await unseatMember(db, value.roleId, value.memberId, congregationId, actorId, permissions)
           break
       }
     } catch (error) {
