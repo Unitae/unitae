@@ -68,7 +68,7 @@ beforeEach(() => {
     id: 9,
     month: 6,
     year: 2026,
-    publisher: { firstname: 'D', lastname: 'B' },
+    publisher: { firstname: 'D', lastname: 'B', publisherGroupId: 4 },
   })
   updatePublisherActivity.mockResolvedValue({ id: 9 })
 })
@@ -85,7 +85,12 @@ describe('the credit gate in the edit action', () => {
     )
 
     vi.clearAllMocks()
-    activityFindUnique.mockResolvedValue({ id: 9, month: 6, year: 2026, publisher: { firstname: 'D', lastname: 'B' } })
+    activityFindUnique.mockResolvedValue({
+      id: 9,
+      month: 6,
+      year: 2026,
+      publisher: { firstname: 'D', lastname: 'B', publisherGroupId: 4 },
+    })
     updatePublisherActivity.mockResolvedValue({ id: 9 })
     await submit(SECRETARY, { creditHours: '' })
     expect(updatePublisherActivity).toHaveBeenCalledWith(

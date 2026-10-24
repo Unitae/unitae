@@ -252,6 +252,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         },
       })
     }
+    // A group's responsible or deputy corrects their own group's reports only.
+    if (!canManagePublisher && activity.publisher.publisherGroupId !== member?.publisherGroupId) {
+      throw redirect('/')
+    }
 
     // The enrolment covering the month decides the type, whatever was submitted.
     const { publisherId, month, year } = activity
