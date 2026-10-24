@@ -1,8 +1,8 @@
-import { Outlet, redirect, useLocation } from 'react-router'
+import { Outlet, useLocation } from 'react-router'
 import { getActiveCampaign, getUpcomingCampaign } from '~/features/territories/server/campaign.queries'
 import { type CampaignBannerData, CampaignModeBanner } from '~/features/territories/ui/CampaignModeBanner'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { layoutGate, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 
 import type { Route } from './+types/_layout'
@@ -11,6 +11,12 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.territories_meta_title() }]
 }
 
+export const middleware: Route.MiddlewareFunction[] = [
+  layoutGate(
+    permissions => permissions.has(Permission.CanViewTerritories) || permissions.has(Permission.CanViewProspection),
+  ),
+]
+
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const canViewTerritories = permissions.has(Permission.CanViewTerritories)
@@ -18,10 +24,6 @@ export function loader({ context }: Route.LoaderArgs) {
   const canManageSettings = permissions.has(Permission.CanManageUsers)
   const canViewPublishers = permissions.has(Permission.CanViewPublishers)
   const canViewProspection = permissions.has(Permission.CanViewProspection)
-
-  if (!canViewTerritories && !canViewProspection) {
-    throw redirect('/')
-  }
 
   return withScopeFromContext(context, async (db, congregationId) => {
     const active = await getActiveCampaign(db, congregationId)

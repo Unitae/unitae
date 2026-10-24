@@ -37,3 +37,15 @@ export function withScopeFromContext<T>(
 export function requirePermission(permissions: Set<Permission>, permission: Permission): void {
   if (!permissions.has(permission)) throw redirect('/')
 }
+
+/**
+ * A layout's access gate, as route middleware. Gate layouts with this rather than in their loader:
+ * React Router runs only the leaf route's action on a submission, so a loader check never covers a
+ * child's action, while middleware runs before every child loader, action and resource route.
+ * Child actions still check the specific permission they need when the layout admits several.
+ */
+export function layoutGate(allows: (permissions: Set<Permission>, account: SanitizedAccount) => boolean) {
+  return ({ context }: { context: RouteContext }): void => {
+    if (!allows(context.get(permissionsContext), context.get(currentAccountContext))) throw redirect('/')
+  }
+}

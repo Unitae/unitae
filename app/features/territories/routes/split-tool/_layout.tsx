@@ -4,12 +4,7 @@ import { countAvailableEntrances, getZips } from '~/features/territories/server/
 import { buildTerritoryFilterChips } from '~/features/territories/ui/build-filter-chips'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/i18n/paraglide/messages'
-import {
-  currentAccountContext,
-  permissionsContext,
-  requirePermission,
-  withScopeFromContext,
-} from '~/shared/auth/route-context.server'
+import { currentAccountContext, layoutGate, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
@@ -22,11 +17,11 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.split_tool_meta_title() }]
 }
 
+export const middleware: Route.MiddlewareFunction[] = [
+  layoutGate(permissions => permissions.has(Permission.CanPlanTerritorySplits)),
+]
+
 export function loader({ context }: Route.LoaderArgs) {
-  const permissions = context.get(permissionsContext)
-
-  requirePermission(permissions, Permission.CanPlanTerritorySplits)
-
   const { congregationId } = context.get(currentAccountContext)
 
   return withScopeFromContext(context, async db => {

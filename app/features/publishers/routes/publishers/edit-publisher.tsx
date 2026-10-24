@@ -14,7 +14,12 @@ import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldSe
 import PublisherNominationForm from '~/features/publishers/ui/PublisherNominationForm'
 import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  currentAccountContext,
+  permissionsContext,
+  requirePermission,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Permission } from '~/shared/types/permission'
@@ -151,6 +156,8 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  requirePermission(permissions, Permission.CanManagePublishers)
   const currentUser = context.get(currentAccountContext)
   const formData = await request.formData()
 

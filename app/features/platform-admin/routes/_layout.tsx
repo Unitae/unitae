@@ -4,6 +4,13 @@ import { verifyPlatformAdmin } from '~/features/platform-admin/server/verify-pla
 
 import type { Route } from './+types/_layout'
 
+// Runs before every child loader and action, not only page loads.
+export const middleware: Route.MiddlewareFunction[] = [
+  async ({ request }) => {
+    await verifyPlatformAdmin(request)
+  },
+]
+
 export async function loader({ request }: Route.LoaderArgs) {
   const admin = await verifyPlatformAdmin(request)
   return { admin }

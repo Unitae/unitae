@@ -9,6 +9,7 @@ import {
   congregationContext,
   currentAccountContext,
   permissionsContext,
+  requirePermission,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
@@ -97,6 +98,8 @@ export default function SettingsLayout({ actionData }: Route.ComponentProps) {
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  requirePermission(permissions, Permission.CanManageUsers)
   const currentUser = context.get(currentAccountContext)
   const congregation = context.get(congregationContext)
   const submission = parseWithZod(await request.formData(), { schema: createUserSchema })
