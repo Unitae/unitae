@@ -37,6 +37,8 @@ pre-push:
       run: pnpm test:tenant-scoping
     permission-coverage:
       run: pnpm test:permission-coverage
+    action-permissions:
+      run: pnpm test:action-permissions
     server-barrel-exports:
       run: pnpm test:server-barrel-exports
     service-test-coverage:

@@ -41,6 +41,7 @@
         "test:aggregate-boundaries": "tsx scripts/check-aggregate-boundaries.ts",
         "test:tenant-scoping": "tsx scripts/check-tenant-scoping.ts",
         "test:permission-coverage": "tsx scripts/check-permission-coverage.ts",
+        "test:action-permissions": "tsx scripts/check-action-permissions.ts",
         "test:server-barrel-exports": "tsx scripts/check-server-barrel-exports.ts",
         "test:service-test-coverage": "tsx scripts/check-service-test-coverage.ts",
         "test:dora-metrics": "tsx scripts/dora-metrics.ts"
