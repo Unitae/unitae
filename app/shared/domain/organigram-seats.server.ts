@@ -102,6 +102,19 @@ export async function seatMember(
     congregationId,
     actorPermissions,
   )
+  // A new titulaire unseats the outgoing one (the handover below): that is a revocation, held to
+  // the same limits as unseatMember, and checked before any write.
+  if (isSingle && seatKind === 'leader') {
+    const outgoing: { userId: number }[] = await db.userRoleAssignment.findMany({
+      where: { roleId, congregationId, kind: 'leader', NOT: { userId } },
+      select: { userId: true },
+    })
+    const grantsAdmin = outgoing.length > 0 && (await roleGrantsAdmin(db, roleId, congregationId))
+    for (const holder of outgoing) {
+      await assertMayChangeAccountAccess(holder.userId, congregationId, actorPermissions)
+      if (grantsAdmin) await requireNotLastAdmin(holder.userId, congregationId)
+    }
+  }
 
   // The three committee titulaires are elders. The rule is about who *holds* the post, not who
   // helps them — an adjoint need not be an elder. Checked before any write, so a refusal never

@@ -17,6 +17,7 @@ const mockDb = {
   // Read by the grant limits; empty here, so no seat in these tests carries the admin role.
   rolePermission: { findFirst: vi.fn(), findMany: vi.fn() },
   userRoleAssignment: {
+    findMany: vi.fn(),
     findFirst: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
@@ -35,6 +36,8 @@ const ACTOR = 99
 
 beforeEach(() => {
   vi.resetAllMocks()
+  // No outgoing titulaire unless a test seats one.
+  mockDb.userRoleAssignment.findMany.mockResolvedValue([])
 })
 
 describe('seatMember', () => {

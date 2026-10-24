@@ -28,6 +28,8 @@ const ROLES = [
   { id: 3, key: 'payroll', isSinglePerson: false, parentRoleId: null, permissions: ['can-manage-users'] },
   { id: 4, key: 'secretary', isSinglePerson: true, parentRoleId: 5, permissions: [] as string[] },
   { id: 5, key: 'service-committee', isSinglePerson: false, parentRoleId: null, permissions: ['can-view-activity'] },
+  { id: 6, key: 'audio-lead', isSinglePerson: true, parentRoleId: null, permissions: ['can-view-programs'] },
+  { id: 8, key: 'super-lead', isSinglePerson: true, parentRoleId: null, permissions: ['can-do-anything'] },
 ]
 
 let assignments: { userId: number; roleId: number; kind: string }[] = []
@@ -68,9 +70,20 @@ const db = {
       assignments.push({ userId: data.userId, roleId: data.roleId, kind: data.kind })
     }),
     update: vi.fn(),
-    deleteMany: vi.fn(async ({ where }: { where: { userId: number; roleId: number } }) => {
-      assignments = assignments.filter(a => !(a.userId === where.userId && a.roleId === where.roleId))
-    }),
+    findMany: vi.fn(async ({ where }: { where: { roleId: number; kind: string; NOT: { userId: number } } }) =>
+      assignments
+        .filter(a => a.roleId === where.roleId && a.kind === where.kind && a.userId !== where.NOT.userId)
+        .map(a => ({ userId: a.userId })),
+    ),
+    deleteMany: vi.fn(
+      async ({ where }: { where: { userId?: number; roleId: number; kind?: string; NOT?: { userId: number } } }) => {
+        assignments = assignments.filter(a => {
+          if (a.roleId !== where.roleId) return true
+          if (where.userId != null) return a.userId !== where.userId
+          return !(a.kind === where.kind && a.userId !== where.NOT?.userId)
+        })
+      },
+    ),
   },
 }
 
@@ -200,5 +213,37 @@ describe('adoptServiceCommittee grant limits', () => {
   it('adopts a mapping within the actor’s permissions', async () => {
     await adoptServiceCommittee(adoptionDb as never, [{ postKey: 'coordinator', fromRoleId: 21 }], 10, 7, ROLE_MANAGER)
     expect(writes).toContain('role.update')
+  })
+})
+
+describe('handover grant limits (second review)', () => {
+  it('refuses a handover that unseats an admin, for an actor who is not an admin', async () => {
+    adminIds.add(108)
+    assignments = [{ userId: 108, roleId: 6, kind: 'leader' }]
+    await expect(
+      seatMember(db as never, { roleId: 6, memberId: SELF, kind: 'leader' }, 10, 9, ROLE_MANAGER),
+    ).rejects.toBeInstanceOf(ForbiddenError)
+    expect(assignments).toEqual([{ userId: 108, roleId: 6, kind: 'leader' }])
+  })
+
+  it('refuses a handover that would take an admin-carrying post from the last admin', async () => {
+    adminIds.add(108)
+    assignments = [{ userId: 108, roleId: 8, kind: 'leader' }]
+    await expect(
+      seatMember(db as never, { roleId: 8, memberId: SELF, kind: 'leader' }, 10, 108, ADMIN),
+    ).rejects.toBeInstanceOf(ConflictError)
+    expect(assignments).toEqual([{ userId: 108, roleId: 8, kind: 'leader' }])
+  })
+
+  it('hands over a seat whose outgoing titulaire the actor may manage, keeping the deputies', async () => {
+    assignments = [
+      { userId: 108, roleId: 6, kind: 'leader' },
+      { userId: 109, roleId: 6, kind: 'deputy' },
+    ]
+    await seatMember(db as never, { roleId: 6, memberId: SELF, kind: 'leader' }, 10, 9, ROLE_MANAGER)
+    expect(assignments).toEqual([
+      { userId: 109, roleId: 6, kind: 'deputy' },
+      { userId: 107, roleId: 6, kind: 'leader' },
+    ])
   })
 })
