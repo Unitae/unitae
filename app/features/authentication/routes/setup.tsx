@@ -22,15 +22,21 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: `${m.auth_setup_page_title()} - Unitae` }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
+// Setup creates the first admin of a fresh single-tenant install, so it is open only while no
+// account exists. The action needs this check as much as the loader: React Router does not run the
+// loader before an action.
+async function requireSetupAvailable() {
   if (process.env.UNITAE_MULTI_TENANT === 'true') {
     throw redirect('/register')
   }
 
-  const shouldStartSetup = await needSetupProcess()
-  if (!shouldStartSetup) {
+  if (!(await needSetupProcess())) {
     throw redirect('/login')
   }
+}
+
+export async function loader({ request }: Route.LoaderArgs) {
+  await requireSetupAvailable()
 
   const session = await getSession(request.headers.get('Cookie'))
   if (session.has('userId')) {
@@ -117,6 +123,8 @@ export default function SignupPage({ loaderData, actionData }: Route.ComponentPr
 }
 
 export async function action({ request }: Route.ActionArgs) {
+  await requireSetupAvailable()
+
   const session = await getSession(request.headers.get('Cookie'))
   const submission = parseWithZod(await request.formData(), { schema: setupSchema })
 

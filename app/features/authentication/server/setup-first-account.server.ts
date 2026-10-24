@@ -16,7 +16,10 @@ export async function setupFirstAccount(
   congregationName: string,
   congregationSlug: string,
   locale: Locale,
-) {
+): Promise<number | null> {
+  // The first admin of a fresh install only: once any account exists, refuse whoever the caller is.
+  if ((await db.userAccount.count()) > 0) return null
+
   await seedPermissions(db)
 
   const hashedPassword = await hash(password)
