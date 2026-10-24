@@ -1,3 +1,8 @@
+# The runtime connection: the non-superuser unitae_app role, so PostgreSQL RLS is enforced. In
+# production the app and worker refuse to boot if this role can bypass RLS (superuser/BYPASSRLS).
+# An explicit DB_RUNTIME_URL in .env overrides this default.
+x-runtime-db-url: &runtime-db-url ${DB_RUNTIME_URL:-postgresql://unitae_app:${DB_RUNTIME_PASSWORD:-${DB_PASSWORD}}@postgres:5432/${DB_NAME:-unitae}}
+
 services:
   postgres:
     image: postgres:17-alpine
@@ -52,10 +57,11 @@ services:
     env_file: .env
     environment:
       PORT: ${UNITAE_WEB_PORT:-8080}
-      # Connect as the non-superuser unitae_app role so PostgreSQL RLS is enforced.
-      # In production the app refuses to boot if this role can bypass RLS (superuser/BYPASSRLS).
-      # An explicit DB_RUNTIME_URL in .env overrides this default.
-      DB_RUNTIME_URL: ${DB_RUNTIME_URL:-postgresql://unitae_app:${DB_RUNTIME_PASSWORD:-${DB_PASSWORD}}@postgres:5432/${DB_NAME:-unitae}}
+      DB_RUNTIME_URL: *runtime-db-url
+      # The superuser connection belongs to `migrate` alone, but env_file hands all of .env to every
+      # service: point DB_URL at the runtime role here and drop the superuser password.
+      DB_URL: *runtime-db-url
+      DB_PASSWORD: ''
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -105,10 +111,10 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      # Connect as the non-superuser unitae_app role so PostgreSQL RLS is enforced.
-      # In production the worker refuses to boot if this role can bypass RLS (superuser/BYPASSRLS).
-      # An explicit DB_RUNTIME_URL in .env overrides this default.
-      DB_RUNTIME_URL: ${DB_RUNTIME_URL:-postgresql://unitae_app:${DB_RUNTIME_PASSWORD:-${DB_PASSWORD}}@postgres:5432/${DB_NAME:-unitae}}
+      DB_RUNTIME_URL: *runtime-db-url
+      # Same as web: no superuser credentials outside `migrate`.
+      DB_URL: *runtime-db-url
+      DB_PASSWORD: ''
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -116,6 +122,10 @@ services:
         condition: service_healthy
     networks:
       - app
+    # Thumbnails and congregation import/export run in the worker and read or write the same files
+    # as web when storage is local (no S3_ENDPOINT).
+    volumes:
+      - unitae_content:/app/content:rw
     healthcheck:
       # Same missing-`curl` caveat as the web service above.
       test:

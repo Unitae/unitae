@@ -29,6 +29,9 @@ Edit `.env` and set the required values:
 ```ini
 # Required
 DB_PASSWORD=your-strong-database-password
+# Password of the unitae_app role the app and worker connect as. Use a different value from
+# DB_PASSWORD: then the web and worker containers never hold the superuser password.
+DB_RUNTIME_PASSWORD=another-strong-database-password
 REDIS_PASSWORD=your-strong-redis-password
 # Min 32 chars. To rotate later, comma-separate new-then-old: "new-secret,old-secret"
 UNITAE_SESSION_SECRET=your-secret-key-at-least-32-characters
@@ -39,8 +42,8 @@ RESEND_API_KEY=re_your-resend-api-key
 UNITAE_BASE_URL=https://unitae.your-domain.com
 
 # RLS enforcement (required in production) — uses the non-superuser role created by init-db.
-# Compose defaults this to the unitae_app role, so you only need to set it to override the password/host.
-DB_RUNTIME_URL=postgresql://unitae_app:your-strong-database-password@postgres:5432/unitae
+# Compose builds it from DB_RUNTIME_PASSWORD, so set it only to override the host or database.
+# DB_RUNTIME_URL=postgresql://unitae_app:another-strong-database-password@postgres:5432/unitae
 
 # Redis (Docker Compose service name)
 REDIS_HOST=redis
@@ -50,7 +53,22 @@ REDIS_PORT=6379
 UNITAE_CRON_SECRET=your-cron-secret-at-least-32-characters
 ```
 
-`DB_RUNTIME_URL` connects as the `unitae_app` role (created by the `docker/init-db/01-create-app-role.sh` init script), which is bound by Row-Level Security policies. `DB_URL` connects as the superuser and is used only for migrations and one-time setup. Make sure both connection strings carry the right password for their respective role. **In production the app refuses to boot** if `DB_RUNTIME_URL` is unset or points at a superuser / `BYPASSRLS` role, because such a runtime has no database-level tenant isolation — see [Row-Level Security](../development/row-level-security.md).
+`DB_RUNTIME_URL` connects as the `unitae_app` role (created by the `docker/init-db/01-create-app-role.sh` init script), which is bound by Row-Level Security policies. `DB_URL` connects as the superuser and is used only for migrations and one-time setup. Make sure both connection strings carry the right password for their respective role.
+
+With the example Compose file, only the one-shot `migrate` service receives the superuser connection: `web` and `worker` connect as `unitae_app`, and their `DB_URL` points at that role too. Set `DB_RUNTIME_PASSWORD` to a different value from `DB_PASSWORD`, otherwise the `unitae_app` role shares the superuser's password.
+
+> **Upgrade note (existing installations):** the `unitae_app` password is set by the init script only when the database is first created. To give it its own password on an existing installation, change it in PostgreSQL first, then add `DB_RUNTIME_PASSWORD` to `.env` and restart:
+>
+> ```bash
+> docker compose exec postgres psql -U "${DB_USER:-unitae}" -d "${DB_NAME:-unitae}" \
+>   -c "ALTER ROLE unitae_app PASSWORD 'another-strong-database-password';"
+> # add DB_RUNTIME_PASSWORD=another-strong-database-password to .env, then:
+> docker compose up -d
+> ```
+>
+> The Compose file also mounts the `unitae_content` volume on `worker` now: thumbnails and congregation import/export run there and need the same files as `web` when storage is local. If you use your own Compose file, add `- unitae_content:/app/content:rw` to its worker service.
+
+**In production the app refuses to boot** if `DB_RUNTIME_URL` is unset or points at a superuser / `BYPASSRLS` role, because such a runtime has no database-level tenant isolation — see [Row-Level Security](../development/row-level-security.md).
 
 ### 3. Start the Services
 

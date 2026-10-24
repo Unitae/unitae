@@ -127,7 +127,7 @@ These variables are used by `docker-compose.yml` for the PostgreSQL and Redis co
 | `DB_USER` | `unitae` | PostgreSQL superuser (aliased to `POSTGRES_USER` in the container) |
 | `DB_PASSWORD` | — | PostgreSQL password (required, aliased to `POSTGRES_PASSWORD`) |
 | `DB_NAME` | `unitae` | PostgreSQL database name (aliased to `POSTGRES_DB`) |
-| `DB_RUNTIME_PASSWORD` | Value of `DB_PASSWORD` | Password for the `unitae_app` non-superuser role used for RLS enforcement. See [Row-Level Security](../development/row-level-security.md) |
+| `DB_RUNTIME_PASSWORD` | Value of `DB_PASSWORD` | Password for the `unitae_app` non-superuser role the app and worker connect as (RLS enforcement). **Set a different value from `DB_PASSWORD`**, so the web and worker containers never hold the superuser password. It is applied when the database is first created; on an existing database, change it with `ALTER ROLE unitae_app PASSWORD '…'` first (see [Getting Started](getting-started.md)). See [Row-Level Security](../development/row-level-security.md) |
 | `REDIS_PASSWORD` | — | Redis password (required) |
 | `UNITAE_WEB_IMAGE` | `ghcr.io/unitae/unitae:latest` | Docker image for the web service |
 | `UNITAE_WORKER_IMAGE` | `ghcr.io/unitae/unitae/worker:latest` | Docker image for the background worker service |
