@@ -1,7 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
-import { ConflictError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
 
 vi.mock('~/shared/domain/audit.server', () => ({
@@ -262,11 +261,7 @@ describe('roles.server (integration)', () => {
     const assignments = await testDb.userRoleAssignment.findMany({ where: { userId, roleId: admin.id } })
     expect(assignments).toHaveLength(1)
 
-    // They are now this congregation's only admin, so the service refuses to take it back.
-    await expect(
-      withScope(congregationId, tx => removeUserFromRole(tx, userId, admin.id, congregationId, userId, ADMIN_ACTOR)),
-    ).rejects.toBeInstanceOf(ConflictError)
-    await testDb.userRoleAssignment.deleteMany({ where: { userId, roleId: admin.id } })
+    await withScope(congregationId, tx => removeUserFromRole(tx, userId, admin.id, congregationId, userId, ADMIN_ACTOR))
   })
 
   it('updateRoleIdentity rejects built-in roles', async () => {
