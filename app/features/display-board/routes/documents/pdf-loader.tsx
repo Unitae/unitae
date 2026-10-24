@@ -21,7 +21,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
   requirePermission(permissions, Permission.CanViewBoard)
 
   const currentUser = context.get(currentAccountContext)
-  logger.info(`Loading document ID: ${params.documentId}. User ID: ${currentUser.id}.`, { currentUser })
+  logger.info('Loading board document', { documentId: params.documentId, userId: currentUser.id })
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
@@ -36,7 +36,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     })
 
     if (!document) {
-      logger.warn(`Document ID: ${params.documentId} does not exist. User ID: ${currentUser.id}.`, { currentUser })
+      logger.warn('Board document not found or not visible', { documentId: params.documentId, userId: currentUser.id })
       throw redirect('/board')
     }
 

@@ -203,7 +203,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       return uploadedFile
     }
 
-    logger.warn(`Issue on file creation. User ID: ${currentUser.id}. Bad field name.`, { currentUser, fileUpload })
+    logger.warn('Board upload: unexpected file field', { userId: currentUser.id, fieldName: fileUpload.fieldName })
   }
 
   let form: FormData
@@ -231,7 +231,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   if (file == null) {
     logger.warn(`Document creation failed. User ID: ${currentUser.id}. File is empty.`, {
-      currentUser,
+      userId: currentUser.id,
       form: { name, sectionId, file },
     })
     session.flash('error', m.common_empty_fields_error())
@@ -272,7 +272,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       if (document == null) {
         session.flash('error', m.common_generic_error())
         logger.warn(`Document creation failed. User ID: ${currentUser.id}. Database entity not created.`, {
-          currentUser,
+          userId: currentUser.id,
           form: { name, sectionId, file },
           document,
         })
@@ -287,7 +287,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       logger.info(
         `Document created. User ID: ${currentUser.id}. Document ID: ${document.id}. File key: ${storageKey}.`,
         {
-          currentUser,
+          userId: currentUser.id,
           document,
         },
       )
@@ -317,7 +317,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     } catch (error) {
       if (error instanceof FileValidationError) {
         logger.warn(`Document creation failed. User ID: ${currentUser.id}. File validation: ${error.messageKey}.`, {
-          currentUser,
+          userId: currentUser.id,
           fileName: file.name,
           fileType: file.type,
           fileSize: file.size,

@@ -1,6 +1,8 @@
 import { createHash } from 'node:crypto'
+import { PassThrough } from 'node:stream'
 import { describe, expect, it } from 'vitest'
-import { redactObject, redactValue } from './logger.server'
+import { transports } from 'winston'
+import { createLogger, redactObject, redactValue } from './logger.server'
 
 function expectedHash(value: string): string {
   return createHash('sha256').update(value).digest('hex').slice(0, 12)
@@ -75,5 +77,75 @@ describe('redactObject', () => {
     expect(error.message).toBe('kaboom')
     expect(error.name).toBe('Error')
     expect(result.status).toBe(500)
+  })
+})
+
+// What reaches the log output, end to end: a logger whose only transport is an in-memory stream.
+async function logOutput(meta: Record<string, unknown>): Promise<string> {
+  const stream = new PassThrough()
+  const chunks: Buffer[] = []
+  stream.on('data', chunk => chunks.push(Buffer.from(chunk)))
+  const log = createLogger('test')
+  log.clear().add(new transports.Stream({ stream }))
+  log.info('snapshot', meta)
+  await new Promise(resolve => setImmediate(resolve))
+  return Buffer.concat(chunks).toString('utf8')
+}
+
+describe('log output of a full account snapshot', () => {
+  // A route once logged `{ currentUser }`: the whole session account, linked member included.
+  // Whatever a caller passes, secrets and personal fields must not reach the output in clear.
+  const account = {
+    id: 7,
+    congregationId: 3,
+    email: 'jeanne.martin@example.com',
+    firstname: 'Jeanne',
+    lastname: 'Martin',
+    password: 'salt.scrypt-hash-value',
+    twoFactorSecret: 'iv.ciphertext.tag-value',
+    member: {
+      id: 11,
+      firstname: 'Jeanne',
+      lastname: 'Martin',
+      firstnameNormalized: 'jeanne',
+      lastnameNormalized: 'martin',
+      phone: '0611223344',
+      address: '12 rue des Lilas, Lyon',
+      notes: 'Visite le mardi',
+    },
+  }
+
+  it('leaks none of its secrets or personal fields', async () => {
+    const output = await logOutput({ currentUser: account, query: '12 rue des Lilas', ipAddress: '203.0.113.9' })
+
+    for (const value of [
+      'jeanne.martin@example.com',
+      'Jeanne',
+      'Martin',
+      'jeanne',
+      'martin',
+      'salt.scrypt-hash-value',
+      'iv.ciphertext.tag-value',
+      '0611223344',
+      'rue des Lilas',
+      'Visite le mardi',
+      '203.0.113.9',
+    ]) {
+      expect(output).not.toContain(value)
+    }
+  })
+
+  it('keeps identifiers, so the entry stays useful', async () => {
+    const output = JSON.parse(await logOutput({ currentUser: account }))
+
+    expect(output.currentUser.id).toBe(7)
+    expect(output.currentUser.member.id).toBe(11)
+  })
+
+  it('drops secrets entirely rather than hashing them', async () => {
+    const output = JSON.parse(await logOutput({ currentUser: account }))
+
+    expect(output.currentUser.password).toBe('[redacted]')
+    expect(output.currentUser.twoFactorSecret).toBe('[redacted]')
   })
 })

@@ -30,7 +30,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   if (!Number.isFinite(year)) throw redirect('/publishers/activity')
 
   logger.info(`Generating publishers' activities XLSX report Year: ${year}. User ID: ${currentUser.id}.`, {
-    currentUser,
+    userId: currentUser.id,
   })
 
   const months = await withScopeFromContext(context, db =>

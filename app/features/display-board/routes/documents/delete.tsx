@@ -94,7 +94,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
     session.flash('success', m.board_documents_delete_success({ name: document.title }))
     logger.info(`Document removed. User ID: ${currentUser.id}. Document ID: ${document.id}.`, {
-      currentUser,
+      userId: currentUser.id,
       document,
     })
     return redirect('/board/documents', {
