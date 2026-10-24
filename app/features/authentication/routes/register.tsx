@@ -24,10 +24,16 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: `${m.auth_register_page_title()} - Unitae` }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
+// Self-registration exists only in multi-tenant mode. The action needs this check as much as the
+// loader: React Router does not run the loader before an action.
+function requireMultiTenant() {
   if (process.env.UNITAE_MULTI_TENANT !== 'true') {
     throw redirect('/login')
   }
+}
+
+export async function loader({ request }: Route.LoaderArgs) {
+  requireMultiTenant()
 
   const session = await getSession(request.headers.get('Cookie'))
 
@@ -140,6 +146,8 @@ export default function RegisterPage({ loaderData, actionData }: Route.Component
 }
 
 export async function action({ request }: Route.ActionArgs) {
+  requireMultiTenant()
+
   const session = await getSession(request.headers.get('Cookie'))
   const submission = parseWithZod(await request.formData(), { schema: registerSchema })
 
