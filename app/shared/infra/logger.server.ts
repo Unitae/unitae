@@ -22,6 +22,7 @@ const PII_KEYS = new Set([
   'notes',
   'note',
   'query',
+  'ip',
   'ipAddress',
 ])
 

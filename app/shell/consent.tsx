@@ -5,7 +5,7 @@ import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { ConsentPurpose, hasDataProcessingConsent, recordConsentUnscoped } from '~/shared/domain/consent.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
-
+import { getClientIp } from '~/shared/utils/get-client-ip'
 import type { Route } from './+types/consent'
 
 export const meta: Route.MetaFunction = () => {
@@ -34,7 +34,7 @@ export async function action({ request }: Route.ActionArgs) {
     return { error: m.consent_must_accept_error() }
   }
 
-  const ip = request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? undefined
+  const ip = getClientIp(request)
   await recordConsentUnscoped(currentUser.id, currentUser.congregationId, ConsentPurpose.DataProcessing, ip)
   audit({
     action: AuditAction.ConsentGranted,

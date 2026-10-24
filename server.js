@@ -43,6 +43,19 @@ app.use(express.static(assetsDirectory))
 app.use(express.static('public', { maxAge: '1h' }))
 app.use('/.well-known', express.static(path.join(assetsDirectory, '.well-known')))
 app.use(morgan('tiny'))
+
+// The client address, as resolved by `trust proxy` above: X-Forwarded-For walked from the right,
+// past trusted proxies. The leftmost entry is whatever the client sent, so the app must not key
+// rate limits on it. Pass the resolved address on in a header of our own, overwriting any value
+// the client sent under that name. Read by app/shared/utils/get-client-ip.ts.
+const CLIENT_IP_HEADER = 'x-unitae-client-ip'
+const IPV4_MAPPED_PREFIX = '::ffff:'
+app.use((req, _res, next) => {
+  delete req.headers[CLIENT_IP_HEADER]
+  const ip = req.ip?.startsWith(IPV4_MAPPED_PREFIX) ? req.ip.slice(IPV4_MAPPED_PREFIX.length) : req.ip
+  if (ip) req.headers[CLIENT_IP_HEADER] = ip
+  next()
+})
 app.all('/{*splat}', createRequestHandler({ build, mode: process.env.NODE_ENV }))
 
 // Express 5 hands a bind failure (port taken, no permission) to this callback instead of throwing:
