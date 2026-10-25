@@ -6,6 +6,15 @@ import {
   SERVICE_COMMITTEE_KEY,
   SYSTEM_ROLE_KEYS,
 } from '~/shared/domain/built-in-roles.server'
+import {
+  type ActorPermissions,
+  assertActorHolds,
+  assertActorHoldsRolePermissions,
+  assertMayChangeAccountAccess,
+  GrantBeyondActorError,
+  isAdminActor,
+  roleGrantsAdmin,
+} from '~/shared/domain/role-grant-limits.server'
 import { ConflictError, ForbiddenError, ValidationError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { Permission } from '~/shared/types/permission'
@@ -260,6 +269,7 @@ export async function updateRolePermissions(
   congregationId: number,
   actorId: number,
   permissionKeys: string[],
+  actorPermissions: ActorPermissions,
 ): Promise<void> {
   const role = await db.role.findFirst({
     where: { id, congregationId },
@@ -268,6 +278,16 @@ export async function updateRolePermissions(
   if (!role) return
 
   const previousKeys = role.permissions.map(rp => rp.permission.key)
+  const previous = new Set(previousKeys)
+  const desired = new Set(permissionKeys)
+  const changed = [...desired].filter(k => !previous.has(k)).concat([...previous].filter(k => !desired.has(k)))
+  if (changed.length > 0) {
+    // Built-in roles (identity and system) shape everyone's access: an admin's call alone.
+    if (role.isBuiltIn && !isAdminActor(actorPermissions)) {
+      throw new GrantBeyondActorError("Only an admin can change a built-in role's permissions")
+    }
+    assertActorHolds(actorPermissions, changed)
+  }
   await syncRolePermissions(db, id, congregationId, previousKeys, permissionKeys, actorId)
 }
 
@@ -277,6 +297,7 @@ export async function addUserToRole(
   roleId: number,
   congregationId: number,
   actorId: number,
+  actorPermissions: ActorPermissions,
 ): Promise<void> {
   const role = await db.role.findFirst({ where: { id: roleId, congregationId } })
   if (!role) return
@@ -298,6 +319,9 @@ export async function addUserToRole(
   })
   if (existing) return
 
+  await assertMayChangeAccountAccess(userId, congregationId, actorPermissions)
+  await assertActorHoldsRolePermissions(db, [roleId], congregationId, actorPermissions)
+
   await db.userRoleAssignment.create({ data: { userId, roleId, congregationId } })
 
   audit({
@@ -316,6 +340,7 @@ export async function removeUserFromRole(
   roleId: number,
   congregationId: number,
   actorId: number,
+  actorPermissions: ActorPermissions,
 ): Promise<void> {
   const role = await db.role.findFirst({ where: { id: roleId, congregationId } })
   if (!role) return
@@ -336,6 +361,12 @@ export async function removeUserFromRole(
   // or an adjoint. Leadership changes hands on the organigram, where the seat is visible as one.
   if (existing.kind === 'leader' || existing.kind === 'deputy') {
     throw new ForbiddenError('Leadership seats are managed from the organigram')
+  }
+
+  await assertMayChangeAccountAccess(userId, congregationId, actorPermissions)
+  await assertActorHoldsRolePermissions(db, [roleId], congregationId, actorPermissions)
+  if (await roleGrantsAdmin(db, roleId, congregationId)) {
+    await requireNotLastAdmin(userId, congregationId)
   }
 
   await db.userRoleAssignment.deleteMany({ where: { userId, roleId } })
@@ -398,6 +429,7 @@ export async function setUserCustomRoleAssignments(
   congregationId: number,
   actorId: number,
   customRoleIds: number[],
+  actorPermissions: ActorPermissions,
 ): Promise<void> {
   // Account-assignable = custom roles plus system roles such as `admin`. Identity
   // roles are excluded: they live on the Member and are reconciled from its flags by
@@ -427,6 +459,9 @@ export async function setUserCustomRoleAssignments(
   }
 
   if (added.length === 0 && removed.length === 0) return
+
+  await assertMayChangeAccountAccess(userId, congregationId, actorPermissions)
+  await assertActorHoldsRolePermissions(db, [...added, ...removed], congregationId, actorPermissions)
 
   // If any removed role granted Admin, this update could strip the user's
   // admin power. Guard against leaving the congregation without an admin.

@@ -52,7 +52,7 @@ const WHITESPACE_RE = /\s/
 // `filterToManageableEventIds` narrows a bulk selection to the permitted rows instead.
 // Deliberately an explicit list: "any function taking a Permission" would count the
 // display helpers too, and this check exists to be strict.
-const AUTH_HELPERS = ['canEditEvent', 'canManageAnyProgram', 'filterToManageableEventIds']
+const AUTH_HELPERS = ['canEditEvent', 'canManageAnyProgram', 'filterToManageableEventIds', 'layoutGate']
 const AUTH_HELPER_RE = new RegExp(`\\b(?:${AUTH_HELPERS.join('|')})\\s*\\(([^)]*(?:\\([^)]*\\)[^)]*)*)\\)`, 'g')
 
 /**
@@ -79,7 +79,7 @@ const QUOTES = new Set(['"', "'", '`'])
 
 /** Index just past the bracket matching the one at `open`, or -1 if unbalanced. */
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: linear bracket-depth scan; splitting hurts readability
-function matchBalanced(src: string, open: number): number {
+export function matchBalanced(src: string, open: number): number {
   const stack: string[] = []
   let quote: string | null = null
 

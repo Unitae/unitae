@@ -12,6 +12,7 @@ import {
   congregationContext,
   currentAccountContext,
   permissionsContext,
+  requirePermission,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
@@ -73,6 +74,8 @@ export default function NewPublisher({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  requirePermission(permissions, Permission.CanManagePublishers)
   const congregation = context.get(congregationContext)
   const currentUser = context.get(currentAccountContext)
   const submission = parseWithZod(await request.formData(), { schema: createPublisherSchema })

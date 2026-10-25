@@ -1,11 +1,16 @@
 import { Map as MapIcon, RefreshCw } from 'lucide-react'
-import { Form, Link, NavLink, Outlet, redirect, useSearchParams } from 'react-router'
+import { Form, Link, NavLink, Outlet, useSearchParams } from 'react-router'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { getZips } from '~/features/territories/server/buildings.server'
 import { buildTerritoryFilterChips } from '~/features/territories/ui/build-filter-chips'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  currentAccountContext,
+  layoutGate,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import { getSetting } from '~/shared/domain/settings.server'
 import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
@@ -19,15 +24,14 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.prospection_meta_title() }]
 }
 
+export const middleware: Route.MiddlewareFunction[] = [
+  layoutGate(permissions => permissions.has(Permission.CanViewProspection)),
+]
+
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const canViewProspection = permissions.has(Permission.CanViewProspection)
   const canManageProspection = permissions.has(Permission.CanRecordProspection)
   const canManageTerritories = permissions.has(Permission.CanManageBuildings)
-
-  if (!canViewProspection) {
-    throw redirect('/')
-  }
 
   const { congregationId } = context.get(currentAccountContext)
 

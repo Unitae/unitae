@@ -32,6 +32,9 @@ const {
 } = await import('./roles.server')
 const { resolveEffectivePermissions } = await import('~/shared/auth/permissions.server')
 
+// The actor's permissions: an admin, so grant limits never interfere with what these tests cover.
+const ADMIN_ACTOR = new Set(['can-do-anything'])
+
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
   max: 5,
@@ -128,7 +131,7 @@ describe('roles.server (integration)', () => {
     expect(beforeGrant.has(Permission.CanManageExternalSpeakers)).toBe(false)
 
     await withScope(congregationId, tx =>
-      updateRolePermissions(tx, role.id, congregationId, userId, [Permission.CanManageExternalSpeakers]),
+      updateRolePermissions(tx, role.id, congregationId, userId, [Permission.CanManageExternalSpeakers], ADMIN_ACTOR),
     )
 
     const afterGrant = await resolveEffectivePermissions(userId, congregationId)
@@ -186,7 +189,7 @@ describe('roles.server (integration)', () => {
     )
 
     await withScope(congregationId, tx =>
-      setUserCustomRoleAssignments(tx, userId, congregationId, userId, [customRole.id]),
+      setUserCustomRoleAssignments(tx, userId, congregationId, userId, [customRole.id], ADMIN_ACTOR),
     )
 
     const assignments = await testDb.userRoleAssignment.findMany({
@@ -197,7 +200,9 @@ describe('roles.server (integration)', () => {
     expect(keys).toContain('elder')
     expect(keys).toContain(customRole.key)
 
-    await withScope(congregationId, tx => setUserCustomRoleAssignments(tx, userId, congregationId, userId, []))
+    await withScope(congregationId, tx =>
+      setUserCustomRoleAssignments(tx, userId, congregationId, userId, [], ADMIN_ACTOR),
+    )
 
     const after = await testDb.userRoleAssignment.findMany({
       where: { userId },
@@ -215,14 +220,14 @@ describe('roles.server (integration)', () => {
       createRole(tx, congregationId, userId, { name: `Toggle ${ts}`, description: null, permissionKeys: [] }),
     )
 
-    await withScope(congregationId, tx => addUserToRole(tx, userId, role.id, congregationId, userId))
-    await withScope(congregationId, tx => addUserToRole(tx, userId, role.id, congregationId, userId))
+    await withScope(congregationId, tx => addUserToRole(tx, userId, role.id, congregationId, userId, ADMIN_ACTOR))
+    await withScope(congregationId, tx => addUserToRole(tx, userId, role.id, congregationId, userId, ADMIN_ACTOR))
 
     const afterAdd = await testDb.userRoleAssignment.findMany({ where: { userId, roleId: role.id } })
     expect(afterAdd).toHaveLength(1)
 
-    await withScope(congregationId, tx => removeUserFromRole(tx, userId, role.id, congregationId, userId))
-    await withScope(congregationId, tx => removeUserFromRole(tx, userId, role.id, congregationId, userId))
+    await withScope(congregationId, tx => removeUserFromRole(tx, userId, role.id, congregationId, userId, ADMIN_ACTOR))
+    await withScope(congregationId, tx => removeUserFromRole(tx, userId, role.id, congregationId, userId, ADMIN_ACTOR))
 
     const afterRemove = await testDb.userRoleAssignment.findMany({ where: { userId, roleId: role.id } })
     expect(afterRemove).toHaveLength(0)
@@ -236,7 +241,7 @@ describe('roles.server (integration)', () => {
 
     let caught: unknown = null
     try {
-      await withScope(congregationId, tx => addUserToRole(tx, userId, elder.id, congregationId, userId))
+      await withScope(congregationId, tx => addUserToRole(tx, userId, elder.id, congregationId, userId, ADMIN_ACTOR))
     } catch (error) {
       caught = error
     }
@@ -251,12 +256,12 @@ describe('roles.server (integration)', () => {
     const admin = await testDb.role.findFirst({ where: { congregationId, key: 'admin' } })
     if (!admin) throw new Error('admin role not seeded')
 
-    await withScope(congregationId, tx => addUserToRole(tx, userId, admin.id, congregationId, userId))
+    await withScope(congregationId, tx => addUserToRole(tx, userId, admin.id, congregationId, userId, ADMIN_ACTOR))
 
     const assignments = await testDb.userRoleAssignment.findMany({ where: { userId, roleId: admin.id } })
     expect(assignments).toHaveLength(1)
 
-    await withScope(congregationId, tx => removeUserFromRole(tx, userId, admin.id, congregationId, userId))
+    await withScope(congregationId, tx => removeUserFromRole(tx, userId, admin.id, congregationId, userId, ADMIN_ACTOR))
   })
 
   it('updateRoleIdentity rejects built-in roles', async () => {

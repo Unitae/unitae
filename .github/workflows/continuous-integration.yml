@@ -43,6 +43,9 @@ jobs:
       - name: Check permission coverage (no permission gates nothing)
         run: pnpm test:permission-coverage
 
+      - name: Check action permissions (every route action enforces one)
+        run: pnpm test:action-permissions
+
       - name: Check server barrel exports (client/server split)
         run: pnpm test:server-barrel-exports
 

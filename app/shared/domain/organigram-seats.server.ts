@@ -1,6 +1,17 @@
+import { requireNotLastAdmin } from '~/shared/auth/permissions.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
-import { isIdentityRoleKey, isServiceCommitteePostKey } from '~/shared/domain/built-in-roles.server'
+import {
+  isIdentityRoleKey,
+  isServiceCommitteePostKey,
+  SERVICE_COMMITTEE_KEY,
+} from '~/shared/domain/built-in-roles.server'
 import type { SeatKind } from '~/shared/domain/organigram.queries'
+import {
+  type ActorPermissions,
+  assertActorHoldsRolePermissions,
+  assertMayChangeAccountAccess,
+  roleGrantsAdmin,
+} from '~/shared/domain/role-grant-limits.server'
 import { syncServiceCommitteeMembers } from '~/shared/domain/service-committee.server'
 import { ForbiddenError, NotFoundError, ValidationError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -37,6 +48,24 @@ async function requireSeatableAccount(db: TransactionClient, memberId: number, c
   return member.account.id
 }
 
+/**
+ * The roles a seat grants: the node itself, plus the service committee for a post's titulaire,
+ * since the committee's membership is derived from its posts.
+ */
+async function rolesGrantedBySeat(
+  db: TransactionClient,
+  role: { id: number; key: string },
+  seatKind: SeatKind,
+  congregationId: number,
+): Promise<number[]> {
+  if (!isServiceCommitteePostKey(role.key) || seatKind !== 'leader') return [role.id]
+  const committee = await db.role.findFirst({
+    where: { congregationId, key: SERVICE_COMMITTEE_KEY },
+    select: { id: true },
+  })
+  return committee ? [role.id, committee.id] : [role.id]
+}
+
 export interface SeatInput {
   roleId: number
   memberId: number
@@ -49,6 +78,7 @@ export async function seatMember(
   { roleId, memberId, kind }: SeatInput,
   congregationId: number,
   actorId: number,
+  actorPermissions: ActorPermissions,
 ): Promise<void> {
   const role = await requireRole(db, roleId, congregationId)
   // Identity memberships are synced from Member flags, never granted: a hand-written
@@ -63,6 +93,28 @@ export async function seatMember(
   const isPost = isServiceCommitteePostKey(role.key)
   const isSingle = role.isSinglePerson || isPost
   const seatKind = isSingle && kind !== 'deputy' ? 'leader' : kind
+
+  // A seat grants the role's permissions: the same limits as the role matrix.
+  await assertMayChangeAccountAccess(userId, congregationId, actorPermissions)
+  await assertActorHoldsRolePermissions(
+    db,
+    await rolesGrantedBySeat(db, role, seatKind, congregationId),
+    congregationId,
+    actorPermissions,
+  )
+  // A new titulaire unseats the outgoing one (the handover below): that is a revocation, held to
+  // the same limits as unseatMember, and checked before any write.
+  if (isSingle && seatKind === 'leader') {
+    const outgoing: { userId: number }[] = await db.userRoleAssignment.findMany({
+      where: { roleId, congregationId, kind: 'leader', NOT: { userId } },
+      select: { userId: true },
+    })
+    const grantsAdmin = outgoing.length > 0 && (await roleGrantsAdmin(db, roleId, congregationId))
+    for (const holder of outgoing) {
+      await assertMayChangeAccountAccess(holder.userId, congregationId, actorPermissions)
+      if (grantsAdmin) await requireNotLastAdmin(holder.userId, congregationId)
+    }
+  }
 
   // The three committee titulaires are elders. The rule is about who *holds* the post, not who
   // helps them — an adjoint need not be an elder. Checked before any write, so a refusal never
@@ -120,9 +172,22 @@ export async function unseatMember(
   memberId: number,
   congregationId: number,
   actorId: number,
+  actorPermissions: ActorPermissions,
 ): Promise<void> {
   const role = await requireRole(db, roleId, congregationId)
   const userId = await requireSeatableAccount(db, memberId, congregationId)
+
+  // Unseating revokes what the seat granted: the same limits as the role matrix.
+  await assertMayChangeAccountAccess(userId, congregationId, actorPermissions)
+  await assertActorHoldsRolePermissions(
+    db,
+    await rolesGrantedBySeat(db, role, 'leader', congregationId),
+    congregationId,
+    actorPermissions,
+  )
+  if (await roleGrantsAdmin(db, roleId, congregationId)) {
+    await requireNotLastAdmin(userId, congregationId)
+  }
 
   await db.userRoleAssignment.deleteMany({ where: { userId, roleId, congregationId } })
 

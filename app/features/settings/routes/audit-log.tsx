@@ -1,7 +1,8 @@
 import { Form as RouterForm, useSearchParams } from 'react-router'
 import { findAuditLogsPaginated } from '~/features/settings/server/audit-log.server'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, requirePermission } from '~/shared/auth/route-context.server'
+import { Permission } from '~/shared/types/permission'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -26,6 +27,9 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
+  // The settings layout admits several permissions; the audit log is congregation administration.
+  const permissions = context.get(permissionsContext)
+  requirePermission(permissions, Permission.CanConfigureCongregation)
   const currentUser = context.get(currentAccountContext)
   const congregationId = currentUser.congregationId
 

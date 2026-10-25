@@ -7,6 +7,7 @@ import { updateAccount } from '~/features/settings/server/update-account.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { isIdentityRoleKey } from '~/shared/domain/built-in-roles.server'
+import { GrantBeyondActorError } from '~/shared/domain/role-grant-limits.server'
 import { setUserCustomRoleAssignments } from '~/shared/domain/roles.server'
 import { ConflictError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
@@ -447,23 +448,35 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   const { firstname, lastname, email, active, customRoleIds } = submission.value
 
-  return withScopeFromContext(context, async db => {
-    try {
-      await updateAccount(db, accountId, currentUser.congregationId, currentUser.id, {
-        firstname,
-        lastname,
-        email,
-        active,
-      })
-
-      await setUserCustomRoleAssignments(db, accountId, currentUser.congregationId, currentUser.id, customRoleIds)
-    } catch (error) {
-      if (error instanceof ConflictError) {
-        return data(submission.reply({ formErrors: [error.message] }), { status: 409 })
-      }
-      throw error
+  // Caught outside the transaction so a refused role change also rolls back the account edit.
+  try {
+    await withScopeFromContext(context, async db => {
+      await updateAccount(
+        db,
+        accountId,
+        currentUser.congregationId,
+        currentUser.id,
+        { firstname, lastname, email, active },
+        permissions,
+      )
+      await setUserCustomRoleAssignments(
+        db,
+        accountId,
+        currentUser.congregationId,
+        currentUser.id,
+        customRoleIds,
+        permissions,
+      )
+    })
+  } catch (error) {
+    if (error instanceof ConflictError) {
+      return data(submission.reply({ formErrors: [error.message] }), { status: 409 })
     }
+    if (error instanceof GrantBeyondActorError) {
+      return data(submission.reply({ formErrors: [m.error_forbidden()] }), { status: 403 })
+    }
+    throw error
+  }
 
-    return redirect('/settings/users')
-  })
+  return redirect('/settings/users')
 }

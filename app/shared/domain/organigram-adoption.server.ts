@@ -5,6 +5,7 @@ import {
   SERVICE_COMMITTEE_KEY,
   SERVICE_COMMITTEE_POST_KEYS,
 } from '~/shared/domain/built-in-roles.server'
+import { type ActorPermissions, assertActorHoldsRolePermissions } from '~/shared/domain/role-grant-limits.server'
 import { syncServiceCommitteeMembers } from '~/shared/domain/service-committee.server'
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -184,6 +185,7 @@ export async function adoptServiceCommittee(
   choices: AdoptionChoice[],
   congregationId: number,
   actorId: number,
+  actorPermissions: ActorPermissions,
 ): Promise<void> {
   // The route passes the form's strings straight through, so nothing upstream guarantees the
   // post keys. Refused here, before any read: a crafted `postKey` would otherwise carry a
@@ -224,6 +226,13 @@ export async function adoptServiceCommittee(
       if (isAppointedRoleKey(source.key)) throw new ForbiddenError('Cet élément ne peut pas être repris.')
       return { target, source }
     })
+
+  // A mapping copies the source role's permissions onto a post and moves its holders there, and a
+  // post's titulaire sits on the committee: the actor must hold every permission involved.
+  if (mappings.length > 0) {
+    const involved = mappings.flatMap(({ target, source }) => [target.id, source.id]).concat(committee.id)
+    await assertActorHoldsRolePermissions(db, [...new Set(involved)], congregationId, actorPermissions)
+  }
 
   const place = (id: number, parentRoleId: number | null, order: number) =>
     db.role.update({

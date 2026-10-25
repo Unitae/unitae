@@ -29,8 +29,14 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   requirePermission(permissions, Permission.CanManageUsers)
 
+  // Within the caller's congregation only: this route runs outside RLS scope.
   const user = await db.userAccount.findUnique({
-    where: { id: requireParamId(params.userId, '/settings/users') },
+    where: {
+      id_congregationId: {
+        id: requireParamId(params.userId, '/settings/users'),
+        congregationId: currentUser.congregationId,
+      },
+    },
     include: { member: { select: { firstname: true } } },
   })
 

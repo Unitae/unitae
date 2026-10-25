@@ -329,6 +329,10 @@ export async function action({ request, context }: Route.ActionArgs) {
         },
       })
     }
+    // A group's responsible or deputy reports for their own group only, whatever the form submitted.
+    if (!canManagePublisher && publisher.publisherGroupId !== member?.publisherGroupId) {
+      throw redirect('/')
+    }
 
     // The enrolment covering the month decides the type, whatever was submitted; without one, the
     // form's choice stands (a publisher, or an auxiliary month taken without an enrolment).

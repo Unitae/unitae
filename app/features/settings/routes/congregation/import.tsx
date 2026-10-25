@@ -27,6 +27,8 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.CanImportCongregationData)
+  // An import restores roles, permissions, accounts and assignments, so it can grant anything: admin only.
+  requirePermission(permissions, Permission.CanDoAnything)
   return null
 }
 
@@ -67,6 +69,8 @@ export default function ImportPage() {
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.CanImportCongregationData)
+  // An import restores roles, permissions, accounts and assignments, so it can grant anything: admin only.
+  requirePermission(permissions, Permission.CanDoAnything)
 
   const currentUser = context.get(currentAccountContext)
   const session = await getSession(request.headers.get('Cookie'))

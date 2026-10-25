@@ -56,7 +56,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   return withScopeFromContext(context, async db => {
     const { congregationId, id: actorId } = context.get(currentAccountContext)
     try {
-      await adoptServiceCommittee(db, choices, congregationId, actorId)
+      await adoptServiceCommittee(db, choices, congregationId, actorId, permissions)
     } catch (error) {
       // Every AppError out of the adoption is a refusal the admin can read — already adopted,
       // a bad mapping — and the service refuses *before* its first write, so nothing has to be

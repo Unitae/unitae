@@ -167,6 +167,12 @@ export async function findMembersWithAnyRole(
  * Call this from delete-account, anonymize-account, and any path that may
  * remove `Permission.CanDoAnything` from a user (`updateAccount`, custom-role replace).
  */
+/** Whether the account holds can-do-anything in the congregation, through any of its roles. */
+export async function isAccountAdmin(accountId: number, congregationId: number): Promise<boolean> {
+  const admins = await findAccountsWithPermission(unscopedDb, congregationId, Permission.CanDoAnything)
+  return admins.some(a => a.id === accountId)
+}
+
 export async function requireNotLastAdmin(accountId: number, congregationId: number): Promise<void> {
   const admins = await findAccountsWithPermission(unscopedDb, congregationId, Permission.CanDoAnything)
   const isAdmin = admins.some(a => a.id === accountId)
