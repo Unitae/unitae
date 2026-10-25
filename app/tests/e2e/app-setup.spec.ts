@@ -1,14 +1,15 @@
 import { expect, test } from '@playwright/test'
+import { E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD } from './helpers/auth'
 
 const LOGIN_URL_RE = /\/login/
 
 test('ensure app is initialised', async ({ page }) => {
-  const email = process.env.E2E_USER_EMAIL ?? 'admin@unitae.test'
+  const email = E2E_ADMIN_EMAIL
   // This account is created here and logged into by every other spec, so the
   // default MUST match theirs. It must also clear the unified password policy
   // (min length + zxcvbn strength) now enforced on the setup flow — a trivial
   // value like "password" is rejected.
-  const password = process.env.E2E_USER_PASSWORD ?? 'Str0ng-E2E-Passphrase-42'
+  const password = E2E_ADMIN_PASSWORD
 
   await page.goto('/login')
   await page.waitForLoadState('networkidle')

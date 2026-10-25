@@ -6,6 +6,17 @@ function requestWithHeaders(headers: Record<string, string>): Request {
 }
 
 describe('getClientIp', () => {
+  // server.js resolves the client address with Express `trust proxy` (walking X-Forwarded-For from
+  // the right, past trusted proxies) and passes it on in this header, overwriting any sent value.
+  it('prefers the address server.js resolved over the raw forwarding headers', () => {
+    const request = requestWithHeaders({
+      'x-unitae-client-ip': '198.51.100.20',
+      'x-forwarded-for': '203.0.113.99, 198.51.100.20',
+      'x-real-ip': '203.0.113.98',
+    })
+    expect(getClientIp(request)).toBe('198.51.100.20')
+  })
+
   it('returns the x-forwarded-for value when it is a single address', () => {
     const request = requestWithHeaders({ 'x-forwarded-for': '203.0.113.7' })
     expect(getClientIp(request)).toBe('203.0.113.7')

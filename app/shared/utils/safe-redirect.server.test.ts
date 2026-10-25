@@ -47,6 +47,41 @@ describe('safeRedirectUrl', () => {
   })
 })
 
+// Browsers resolve a Location header the way `new URL` does: a backslash counts as a slash, and
+// tabs and newlines are dropped. A target is safe only if what the browser resolves stays on-site.
+const SITE = 'https://unitae.example.test'
+const LEADING_SLASHES = /^\/\//
+
+function resolvesOnSite(target: string): boolean {
+  return new URL(target, SITE).origin === SITE && !LEADING_SLASHES.test(target)
+}
+
+describe('safeRedirectUrl — targets a browser would resolve off-site', () => {
+  it.each([
+    '/\\evil.example',
+    '/\\/evil.example',
+    '/\t/evil.example',
+    '/\n/evil.example',
+    '/\r\n/evil.example',
+    '\\/evil.example',
+    '/.//evil.example',
+    '/./\\evil.example',
+  ])('refuses %j', target => {
+    expect(safeRedirectUrl(target, '/fallback')).toBe('/fallback')
+  })
+
+  it.each(['/%5Cevil.example', '/%09/evil.example', '/%2F%2Fevil.example', '/javascript:alert(1)'])(
+    'keeps %j on-site',
+    target => {
+      expect(resolvesOnSite(safeRedirectUrl(target, '/fallback'))).toBe(true)
+    },
+  )
+
+  it('keeps a fragment and a query string', () => {
+    expect(safeRedirectUrl('/programs?week=2#today', '/')).toBe('/programs?week=2#today')
+  })
+})
+
 // Regression: a client-side navigation fetches `/programs.data`, not `/programs`. The session
 // guard captured that pathname verbatim, so signing in again dropped the user on the loader
 // endpoint — a raw payload or a 404 — instead of the page they were on.

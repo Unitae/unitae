@@ -325,3 +325,12 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+      # Traces and screenshots of failed attempts, which the report links to.
+      - name: Upload Playwright traces
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-test-results
+          path: test-results/
+          retention-days: 7

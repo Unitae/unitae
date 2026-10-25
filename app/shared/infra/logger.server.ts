@@ -4,22 +4,38 @@ import { createLogger as createWinstonLogger, format, transports } from 'winston
 const { combine, json, errors, timestamp } = format
 
 const EMAIL_PATTERN = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
+// Personal fields: replaced by a short hash, so entries about the same person still correlate.
+// Keys match at any depth, so a whole account or member object logged by mistake is covered.
 const PII_KEYS = new Set([
   'email',
   'userEmail',
+  'actorEmail',
   'phone',
   'address',
   'firstname',
   'lastname',
+  'firstnameNormalized',
+  'lastnameNormalized',
+  'name',
   'birthDate',
   'baptismDate',
+  'notes',
+  'note',
+  'query',
+  'ip',
+  'ipAddress',
 ])
+
+// Secrets: dropped entirely, whatever their type. A hash of a secret is still worth nothing in a log.
+const SECRET_KEYS = new Set(['password', 'twoFactorSecret', 'token', 'tokenHash', 'secret'])
+const SECRET_PLACEHOLDER = '[redacted]'
 
 function hashValue(value: string): string {
   return createHash('sha256').update(value).digest('hex').slice(0, 12)
 }
 
 function redactValue(key: string, value: unknown): unknown {
+  if (SECRET_KEYS.has(key) && value != null) return SECRET_PLACEHOLDER
   if (typeof value === 'string') {
     if (PII_KEYS.has(key)) {
       return `[redacted:${hashValue(value)}]`

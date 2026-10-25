@@ -1,5 +1,10 @@
 import type { Page } from '@playwright/test'
 
+// The admin account app-setup.spec.ts creates on the CI database (override both for another
+// environment). One source, so a spec cannot drift to a password that was never set.
+export const E2E_ADMIN_EMAIL = process.env.E2E_USER_EMAIL ?? 'admin@unitae.test'
+export const E2E_ADMIN_PASSWORD = process.env.E2E_USER_PASSWORD ?? 'Str0ng-E2E-Passphrase-42'
+
 const EMAIL_RE = /email/i
 const PASSWORD_RE = /mot de passe/i
 const LOGIN_RE = /connexion/i

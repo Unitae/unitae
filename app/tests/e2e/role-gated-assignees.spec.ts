@@ -1,8 +1,8 @@
 import { expect, type Page, test } from '@playwright/test'
-import { login } from './helpers/auth'
+import { E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, login } from './helpers/auth'
 
-const ADMIN_EMAIL = process.env.E2E_USER_EMAIL ?? 'admin@unitae.test'
-const ADMIN_PASSWORD = process.env.E2E_USER_PASSWORD ?? 'Str0ng-E2E-Passphrase-42'
+const ADMIN_EMAIL = E2E_ADMIN_EMAIL
+const ADMIN_PASSWORD = E2E_ADMIN_PASSWORD
 
 const TEMPLATES_URL_RE = /\/settings\/congregation\/templates/
 const TEMPLATE_EDIT_URL_RE = /\/settings\/congregation\/templates\/\d+\/edit/

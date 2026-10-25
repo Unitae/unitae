@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
+import { E2E_ADMIN_EMAIL } from './helpers/auth'
 
 const FORGOT_URL_RE = /\/password\/forgot/
 const SUBMIT_BUTTON_RE = /envoyer/i
@@ -7,7 +8,7 @@ const SUBMIT_BUTTON_RE = /envoyer/i
 const UNIFORM_SUCCESS_RE = /Si votre adresse correspond à un compte utilisateur/i
 
 // A real seeded account — the app-setup fixture guarantees it exists.
-const KNOWN_EMAIL = process.env.E2E_USER_EMAIL ?? 'admin@unitae.test'
+const KNOWN_EMAIL = E2E_ADMIN_EMAIL
 
 // Submits the forgot-password form for `email` and returns the exact confirmation text
 // rendered on the reloaded page. Skips only when the app isn't initialised (setup /

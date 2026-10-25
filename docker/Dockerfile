@@ -57,6 +57,9 @@ LABEL org.opencontainers.image.title="unitae-worker" \
 ENV NODE_ENV=production
 RUN addgroup -g 1001 -S unitae && \
     adduser -u 1001 -S unitae -G unitae -s /sbin/nologin -H
+# Local file storage, shared with web through the unitae_content volume. A fresh named volume takes
+# this directory's ownership, so the worker can write thumbnails and export archives.
+RUN mkdir -p /app/content/uploads && chown -R 1001:1001 /app/content
 COPY --from=build --chown=1001:1001 /app/app ./app
 COPY --from=build --chown=1001:1001 /app/package.json ./
 COPY --from=build --chown=1001:1001 /app/tsconfig.json ./

@@ -71,13 +71,13 @@ export async function geocode(rawQuery: string): Promise<GeocodeResult | null> {
         return JSON.parse(cached) as GeocodeResult
       } catch (parseError) {
         logger.warn('Geocoder cache value malformed; ignoring', {
-          query,
+          queryLength: query.length,
           error: (parseError as Error).message,
         })
       }
     }
   } catch (error) {
-    logger.warn('Geocoder cache read failed', { query, error: (error as Error).message })
+    logger.warn('Geocoder cache read failed', { queryLength: query.length, error: (error as Error).message })
   }
 
   let result: GeocodeResult | null = null
@@ -107,13 +107,13 @@ export async function geocode(rawQuery: string): Promise<GeocodeResult | null> {
       shouldCache = true
     } else {
       logger.error('Geocoder non-OK status; skipping cache', {
-        query,
+        queryLength: query.length,
         status,
         errorMessage: response.data.error_message,
       })
     }
   } catch (error) {
-    logger.warn('Geocoder call failed', { query, error: (error as Error).message })
+    logger.warn('Geocoder call failed', { queryLength: query.length, error: (error as Error).message })
     return null
   }
 
@@ -121,7 +121,7 @@ export async function geocode(rawQuery: string): Promise<GeocodeResult | null> {
     try {
       await redis.set(cacheRedisKey, result == null ? '' : JSON.stringify(result), 'EX', GEOCODER_CACHE_TTL_SECONDS)
     } catch (error) {
-      logger.error('Geocoder cache write failed', { query, error: (error as Error).message })
+      logger.error('Geocoder cache write failed', { queryLength: query.length, error: (error as Error).message })
     }
   }
 

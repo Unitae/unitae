@@ -1,9 +1,9 @@
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
-import { login } from './helpers/auth'
+import { E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, login } from './helpers/auth'
 
-const TEST_EMAIL = process.env.E2E_USER_EMAIL ?? 'admin@unitae.test'
-const TEST_PASSWORD = process.env.E2E_USER_PASSWORD ?? 'Str0ng-E2E-Passphrase-42'
+const TEST_EMAIL = E2E_ADMIN_EMAIL
+const TEST_PASSWORD = E2E_ADMIN_PASSWORD
 const EDIT_URL_RE = /\/territories\/territory\/\d+\/edit/
 const EDIT_URL_ID_RE = /\/territories\/territory\/(\d+)\/edit/
 const RAIL_HEADING_RE = /modifications? en attente|pending changes/i

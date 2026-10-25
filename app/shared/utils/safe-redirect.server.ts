@@ -49,6 +49,30 @@ export function normalizeRedirectPath(url: string): string {
   return search ? `${pathname}?${search}` : pathname
 }
 
+// A redirect target is resolved the way a browser resolves a Location header, against a base
+// origin no real request has. It is safe only if it stays on that origin: `new URL` treats a
+// backslash as a slash and drops tabs and newlines, exactly as browsers do, so `/\\evil.example`
+// or `/<tab>/evil.example` resolve to another host even though they start with a single slash.
+const SENTINEL_ORIGIN = 'https://redirect-target.invalid'
+const PROTOCOL_RELATIVE = /^\/\//
+
+function resolveOnSitePath(url: string | null): string | null {
+  if (!url?.startsWith('/')) return null
+
+  let resolved: URL
+  try {
+    resolved = new URL(url, SENTINEL_ORIGIN)
+  } catch {
+    return null
+  }
+  if (resolved.origin !== SENTINEL_ORIGIN) return null
+
+  // Send back the resolved form, not the input, so the browser has nothing left to reinterpret.
+  // A path that resolves to `//host` (from `/.//host`) would read as protocol-relative.
+  const target = `${resolved.pathname}${resolved.search}${resolved.hash}`
+  return PROTOCOL_RELATIVE.test(target) ? null : target
+}
+
 /**
  * Validates that a redirect URL is a safe relative path.
  * Prevents open redirect attacks via attacker-controlled URLs (e.g., Referer header).
@@ -59,9 +83,10 @@ export function normalizeRedirectPath(url: string): string {
  * so a stale bookmark or a hand-edited `?redirectTo=` cannot reintroduce the `.data` landing.
  */
 export function safeRedirectUrl(url: string | null, fallback: string): string {
-  if (url?.startsWith('/') && !url.startsWith('//')) return normalizeRedirectPath(url)
+  const target = resolveOnSitePath(url)
+  if (target != null) return normalizeRedirectPath(target)
   if (url != null && url.length > 0) {
-    logger.warn(`safeRedirectUrl: rejected potentially unsafe redirect target (${url})`)
+    logger.warn('safeRedirectUrl: rejected potentially unsafe redirect target', { target: JSON.stringify(url) })
   }
   return fallback
 }

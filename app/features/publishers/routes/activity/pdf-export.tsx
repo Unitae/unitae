@@ -42,7 +42,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       : undefined
 
   logger.info(`Generating publishers' activities PDF report Year: ${year}. User ID: ${currentUser.id}.`, {
-    currentUser,
+    userId: currentUser.id,
     groupId,
     publisherCount: publisherIds?.length,
   })

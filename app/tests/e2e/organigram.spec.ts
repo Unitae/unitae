@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test'
-import { login } from './helpers/auth'
+import { E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, login } from './helpers/auth'
 
-const TEST_EMAIL = process.env.E2E_USER_EMAIL ?? 'admin@unitae.test'
-const TEST_PASSWORD = process.env.E2E_USER_PASSWORD ?? 'Test1234!'
+const TEST_EMAIL = E2E_ADMIN_EMAIL
+const TEST_PASSWORD = E2E_ADMIN_PASSWORD
 
 const UNSEAT_BUTTON = /^Retirer /
 const NODE_IN_URL = /node=\d+/

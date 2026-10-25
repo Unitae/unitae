@@ -24,7 +24,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
   }
 
   logger.info(`Generating S-13 XLSX report Year: ${params.year}. User ID: ${currentUser.id}.`, {
-    currentUser,
+    userId: currentUser.id,
   })
 
   const { congregationId } = currentUser
