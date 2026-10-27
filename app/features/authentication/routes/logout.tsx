@@ -1,5 +1,6 @@
 import { redirect, redirectDocument } from 'react-router'
 
+import { revokeAccountSessions } from '~/features/authentication/server/revoke-account-sessions.server'
 import { destroySession, getSession } from '~/features/authentication/server/session.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { unscopedDb } from '~/shared/infra/db.server'
@@ -18,6 +19,10 @@ export async function action({ request }: Route.ActionArgs) {
   if (rawUserId && !Number.isNaN(userId) && userId > 0) {
     const user = await unscopedDb.userAccount.findUnique({ where: { id: userId }, select: { congregationId: true } })
     if (user) {
+      // End the session server-side: the cookie is signed but stateless, so clearing it in this
+      // browser would leave any copy of it valid. Bumping the epoch invalidates every session of
+      // the account, on every device.
+      await revokeAccountSessions(userId)
       audit({
         action: AuditAction.UserLogout,
         congregationId: user.congregationId,
