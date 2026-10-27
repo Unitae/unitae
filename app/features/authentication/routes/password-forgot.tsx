@@ -82,16 +82,21 @@ export async function action({ request }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  // Flash the same success message for every email — unknown, rate-limited, or real —
-  // so the happy path can't be used to enumerate accounts. The only deliberate
-  // deviation is the send-failure error below, which is reachable solely for a real
-  // account and is not attacker-controllable per address.
-  session.flash('success', m.auth_password_forgot_success_message())
-
   const result = await requestPasswordReset(submission.value.email, getClientIp(request))
 
-  if (result.status === 'processed' && !result.emailDelivered) {
-    session.flash('error', m.auth_email_send_error())
+  if (result.status === 'unavailable') {
+    // The limiter could not be reached, so nothing was sent. This is decided before any account
+    // lookup and is the same for every address, so saying so reveals nothing.
+    session.flash('error', m.auth_password_forgot_unavailable_error())
+  } else {
+    // Flash the same success message for every email — unknown, rate-limited, or real —
+    // so the happy path can't be used to enumerate accounts. The only deliberate
+    // deviation is the send-failure error below, which is reachable solely for a real
+    // account and is not attacker-controllable per address.
+    session.flash('success', m.auth_password_forgot_success_message())
+    if (result.status === 'processed' && !result.emailDelivered) {
+      session.flash('error', m.auth_email_send_error())
+    }
   }
 
   return redirect('/password/forgot', {

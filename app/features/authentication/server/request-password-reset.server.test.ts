@@ -70,12 +70,23 @@ describe('requestPasswordReset', () => {
   })
 
   it('ne cherche pas le compte quand le rate-limit est atteint', async () => {
-    vi.mocked(guardPasswordResetRequest).mockResolvedValue({ limited: true })
+    vi.mocked(guardPasswordResetRequest).mockResolvedValue({ limited: true, reason: 'rate-limited' })
 
     const result = await requestPasswordReset('test@example.com', '203.0.113.7')
 
     expect(db.userAccount.findFirst).not.toHaveBeenCalled()
     expect(result).toEqual({ status: 'rate-limited' })
+  })
+
+  // An outage is reported as such (before any lookup, so it reveals nothing about the address),
+  // instead of pretending an email went out.
+  it('reports the service as unavailable when the limiter cannot be reached', async () => {
+    vi.mocked(guardPasswordResetRequest).mockResolvedValue({ limited: true, reason: 'unavailable' })
+
+    const result = await requestPasswordReset('test@example.com', '203.0.113.7')
+
+    expect(result).toEqual({ status: 'unavailable' })
+    expect(db.userAccount.findFirst).not.toHaveBeenCalled()
   })
 
   it('normalise l’email en minuscules pour le rate-limit et la recherche', async () => {

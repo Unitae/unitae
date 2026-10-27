@@ -10,6 +10,7 @@ import { sendResetAccountPasswordEmail } from './send-reset-account-password-ema
 
 export type RequestPasswordResetResult =
   | { status: 'rate-limited' }
+  | { status: 'unavailable' }
   | { status: 'no-user' }
   | { status: 'processed'; emailDelivered: boolean }
 
@@ -29,8 +30,10 @@ export async function requestPasswordReset(
 ): Promise<RequestPasswordResetResult> {
   const emailStr = email.toLowerCase()
 
-  if ((await guardPasswordResetRequest(emailStr, clientIp)).limited) {
-    return { status: 'rate-limited' }
+  const guard = await guardPasswordResetRequest(emailStr, clientIp)
+  if (guard.limited) {
+    // An outage is decided before any lookup, so reporting it reveals nothing about the address.
+    return { status: guard.reason }
   }
 
   const user = await db.userAccount.findFirst({

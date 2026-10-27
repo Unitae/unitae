@@ -4,12 +4,13 @@ import { redisRateLimit as redis } from '~/shared/infra/redis.server'
 const WINDOW_SECONDS = 15 * 60 // 15 minutes
 const DAY_SECONDS = 24 * 60 * 60
 
-// Password-reset requests send an email to the address typed in, so they are capped per address
-// (in a window and per day, so one inbox cannot be flooded) and per client (so one client cannot
-// spray many addresses). The daily cap means a burst of requests can hold back a real user's
-// self-service reset for a day; an admin can still send one from the user settings.
+// Password-reset requests send an email to the address typed in, so they are capped per client (so
+// one client cannot spray many addresses) and per address: 3 per 15 minutes is the flood guard, and
+// a daily cap of 20 bounds what one inbox can receive. Worst case: anyone can spend an address's
+// 20 daily requests, holding back its self-service reset until the window ends (at most 24 hours);
+// an admin can still send a link from the user settings.
 const PASSWORD_RESET_EMAIL_WINDOW_MAX = 3
-const PASSWORD_RESET_EMAIL_DAY_MAX = 5
+const PASSWORD_RESET_EMAIL_DAY_MAX = 20
 const PASSWORD_RESET_IP_WINDOW_MAX = 10
 
 // Login limits are keyed on the client IP and on a global counter — never on the
@@ -129,24 +130,30 @@ export async function releaseTwoFactorAttempts(userId: number): Promise<void> {
  * account). Counts the request per client, then per address in a window, then per address per day.
  * Fails CLOSED like `guardLoginAttempt`; the caller shows the same message either way.
  */
-export async function guardPasswordResetRequest(email: string, ip: string | undefined): Promise<{ limited: boolean }> {
+export type PasswordResetGuard = { limited: false } | { limited: true; reason: 'rate-limited' | 'unavailable' }
+
+export async function guardPasswordResetRequest(email: string, ip: string | undefined): Promise<PasswordResetGuard> {
   const address = email.toLowerCase()
+  if (ip == null) {
+    // Every such request shares one per-client bucket, so the proxy setup needs attention.
+    logger.error('Password reset request without a resolved client address; counted under "unknown"')
+  }
   try {
     if ((await incrementAndCount(`password_reset:window:ip:${ip ?? 'unknown'}`)) > PASSWORD_RESET_IP_WINDOW_MAX) {
       logger.warn('Password reset blocked: per-client rate limit exceeded', { ip })
-      return { limited: true }
+      return { limited: true, reason: 'rate-limited' }
     }
     if ((await incrementAndCount(`password_reset:window:email:${address}`)) > PASSWORD_RESET_EMAIL_WINDOW_MAX) {
       logger.warn('Password reset blocked: per-address rate limit exceeded')
-      return { limited: true }
+      return { limited: true, reason: 'rate-limited' }
     }
     if ((await incrementAndCount(`password_reset:day:email:${address}`, DAY_SECONDS)) > PASSWORD_RESET_EMAIL_DAY_MAX) {
       logger.warn('Password reset blocked: per-address daily limit exceeded')
-      return { limited: true }
+      return { limited: true, reason: 'rate-limited' }
     }
     return { limited: false }
   } catch (error) {
     logger.error('Password reset rate limit check failed, denying request (fail-closed)', { error })
-    return { limited: true }
+    return { limited: true, reason: 'unavailable' }
   }
 }
