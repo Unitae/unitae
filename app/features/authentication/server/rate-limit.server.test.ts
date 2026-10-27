@@ -14,9 +14,13 @@ vi.mock('~/shared/infra/logger.server', () => ({
   },
 }))
 
-const { guardLoginAttempt, releaseLoginAttempt, guardTwoFactorAttempt, releaseTwoFactorAttempts } = await import(
-  './rate-limit.server'
-)
+const {
+  guardLoginAttempt,
+  releaseLoginAttempt,
+  guardTwoFactorAttempt,
+  releaseTwoFactorAttempts,
+  guardPasswordResetRequest,
+} = await import('./rate-limit.server')
 const { redisRateLimit: redis } = await import('~/shared/infra/redis.server')
 
 beforeEach(() => {
@@ -162,5 +166,87 @@ describe('releaseTwoFactorAttempts', () => {
     vi.mocked(redis.del).mockRejectedValue(new Error('Redis down'))
 
     await expect(releaseTwoFactorAttempts(42)).resolves.toBeUndefined()
+  })
+})
+
+// In-memory Redis counters that honour their TTL against a fake clock, so these tests assert on
+// whether a request is allowed as time passes, not on calls to Redis.
+describe('guardPasswordResetRequest', () => {
+  let counters: Map<string, { count: number; expiresAt: number }>
+  let now: number
+  const advanceMinutes = (minutes: number) => {
+    now += minutes * 60_000
+  }
+
+  async function allowed(email: string, ip: string) {
+    return !(await guardPasswordResetRequest(email, ip)).limited
+  }
+
+  beforeEach(() => {
+    counters = new Map()
+    now = 0
+    vi.mocked(redis.eval).mockImplementation(((_script: string, _keys: number, key: string, ttlSeconds: number) => {
+      const current = counters.get(key)
+      const entry =
+        current && current.expiresAt > now
+          ? { ...current, count: current.count + 1 }
+          : { count: 1, expiresAt: now + ttlSeconds * 1000 }
+      counters.set(key, entry)
+      return Promise.resolve(entry.count)
+    }) as never)
+  })
+
+  it('allows three requests for one address in 15 minutes, then limits it as rate-limited', async () => {
+    for (let i = 0; i < 3; i++) expect(await allowed('Victim@Example.com', '203.0.113.7')).toBe(true)
+
+    expect(await guardPasswordResetRequest('victim@example.com', '203.0.113.7')).toEqual({
+      limited: true,
+      reason: 'rate-limited',
+    })
+  })
+
+  it('counts an address the same whatever its case', async () => {
+    for (let i = 0; i < 3; i++) await guardPasswordResetRequest('victim@example.com', '203.0.113.7')
+
+    expect(await allowed('VICTIM@example.com', '203.0.113.8')).toBe(false)
+  })
+
+  it('allows the address again once the 15-minute window has passed', async () => {
+    for (let i = 0; i < 3; i++) await guardPasswordResetRequest('victim@example.com', '203.0.113.7')
+    advanceMinutes(16)
+
+    // Requests 4 and 5 of the day: the daily cap must not bite this early.
+    expect(await allowed('victim@example.com', '198.51.100.9')).toBe(true)
+    expect(await allowed('victim@example.com', '198.51.100.9')).toBe(true)
+  })
+
+  it('caps one address at twenty requests a day, then frees it the next day', async () => {
+    let granted = 0
+    for (let window = 0; window < 8; window++) {
+      for (let i = 0; i < 3; i++) if (await allowed('victim@example.com', `192.0.2.${window}`)) granted++
+      advanceMinutes(16)
+    }
+    expect(granted).toBe(20)
+
+    advanceMinutes(24 * 60)
+    expect(await allowed('victim@example.com', '192.0.2.200')).toBe(true)
+  })
+
+  it('caps one client at ten requests in 15 minutes, whatever the addresses', async () => {
+    const results: boolean[] = []
+    for (let i = 0; i < 11; i++) results.push(await allowed(`person${i}@example.com`, '203.0.113.7'))
+
+    expect(results.slice(0, 10).every(Boolean)).toBe(true)
+    expect(results[10]).toBe(false)
+    expect(await allowed('someone@example.com', '198.51.100.9')).toBe(true)
+  })
+
+  it('fails closed and says the service is unavailable when Redis is down', async () => {
+    vi.mocked(redis.eval).mockRejectedValue(new Error('connection refused'))
+
+    expect(await guardPasswordResetRequest('victim@example.com', '203.0.113.7')).toEqual({
+      limited: true,
+      reason: 'unavailable',
+    })
   })
 })

@@ -8,9 +8,10 @@ import * as m from '~/i18n/paraglide/messages'
 import { getBrandingName, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Button } from '~/shared/ui/button'
-import { Card, CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
+import { CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
+import { getClientIp } from '~/shared/utils/get-client-ip'
 import type { Route } from './+types/password-forgot'
 
 export const meta: Route.MetaFunction = () => {
@@ -81,16 +82,21 @@ export async function action({ request }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  // Flash the same success message for every email — unknown, rate-limited, or real —
-  // so the happy path can't be used to enumerate accounts. The only deliberate
-  // deviation is the send-failure error below, which is reachable solely for a real
-  // account and is not attacker-controllable per address.
-  session.flash('success', m.auth_password_forgot_success_message())
+  const result = await requestPasswordReset(submission.value.email, getClientIp(request))
 
-  const result = await requestPasswordReset(submission.value.email)
-
-  if (result.status === 'processed' && !result.emailDelivered) {
-    session.flash('error', m.auth_email_send_error())
+  if (result.status === 'unavailable') {
+    // The limiter could not be reached, so nothing was sent. This is decided before any account
+    // lookup and is the same for every address, so saying so reveals nothing.
+    session.flash('error', m.auth_password_forgot_unavailable_error())
+  } else {
+    // Flash the same success message for every email — unknown, rate-limited, or real —
+    // so the happy path can't be used to enumerate accounts. The only deliberate
+    // deviation is the send-failure error below, which is reachable solely for a real
+    // account and is not attacker-controllable per address.
+    session.flash('success', m.auth_password_forgot_success_message())
+    if (result.status === 'processed' && !result.emailDelivered) {
+      session.flash('error', m.auth_email_send_error())
+    }
   }
 
   return redirect('/password/forgot', {

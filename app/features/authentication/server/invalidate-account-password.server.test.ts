@@ -14,9 +14,7 @@ vi.mock('~/shared/infra/db.server', () => ({
   },
 }))
 
-const { createPasswordResetToken, verifyPasswordResetToken, consumePasswordResetToken } = await import(
-  './invalidate-account-password.server'
-)
+const { createPasswordResetToken, verifyPasswordResetToken } = await import('./invalidate-account-password.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
@@ -108,24 +106,65 @@ describe('verifyPasswordResetToken', () => {
   })
 })
 
-describe('consumePasswordResetToken', () => {
-  it("ne lance pas d'erreur pour un token existant", async () => {
-    vi.mocked(db.passwordResetToken.findUnique).mockResolvedValue({
-      id: 1,
-      token: 'to-consume',
-      userId: 42,
-      expiresAt: new Date(),
-    } as never)
-    vi.mocked(db.passwordResetToken.delete).mockResolvedValue({} as never)
+// In-memory token table, so these tests assert on which links still work rather than on spies.
+describe('pending reset links', () => {
+  type Row = { id: number; token: string; userId: number; expiresAt: Date }
+  let rows: Row[] = []
+  let nextId = 1
+  const matches = (row: Row, where: { userId?: number; expiresAt?: { lt: Date } }) =>
+    (where.userId === undefined || row.userId === where.userId) &&
+    (where.expiresAt === undefined || row.expiresAt < where.expiresAt.lt)
 
-    await expect(consumePasswordResetToken('to-consume')).resolves.toBeUndefined()
-    expect(db.passwordResetToken.findUnique).toHaveBeenCalledWith({ where: { token: sha256('to-consume') } })
-    expect(db.passwordResetToken.delete).toHaveBeenCalledWith({ where: { id: 1 } })
+  beforeEach(() => {
+    rows = []
+    nextId = 1
+    vi.mocked(db.passwordResetToken.create).mockImplementation((({ data }: { data: Omit<Row, 'id'> }) => {
+      const row = { id: nextId++, ...data }
+      rows.push(row)
+      return Promise.resolve(row)
+    }) as never)
+    vi.mocked(db.passwordResetToken.deleteMany).mockImplementation((({
+      where,
+    }: {
+      where: Parameters<typeof matches>[1]
+    }) => {
+      const before = rows.length
+      rows = rows.filter(row => !matches(row, where))
+      return Promise.resolve({ count: before - rows.length })
+    }) as never)
+    vi.mocked(db.passwordResetToken.findUnique).mockImplementation((({ where }: { where: { token: string } }) => {
+      const row = rows.find(r => r.token === where.token)
+      return Promise.resolve(row ? { ...row, user: { id: row.userId } } : null)
+    }) as never)
+    vi.mocked(db.passwordResetToken.delete).mockImplementation((({ where }: { where: { id: number } }) => {
+      rows = rows.filter(r => r.id !== where.id)
+      return Promise.resolve({})
+    }) as never)
   })
 
-  it("ne lance pas d'erreur pour un token inexistant", async () => {
-    vi.mocked(db.passwordResetToken.findUnique).mockResolvedValue(null as never)
+  // A new self-service request must not cancel the link the user is already waiting for.
+  it('keeps a pending link working when another one is requested', async () => {
+    const first = await createPasswordResetToken(42, undefined, { keepPending: true })
+    const second = await createPasswordResetToken(42, undefined, { keepPending: true })
 
-    await expect(consumePasswordResetToken('inexistant')).resolves.toBeUndefined()
+    expect(await verifyPasswordResetToken(first)).toEqual({ id: 42 })
+    expect(await verifyPasswordResetToken(second)).toEqual({ id: 42 })
+  })
+
+  it('still replaces pending links by default (invitations, forced resets)', async () => {
+    const first = await createPasswordResetToken(42)
+    const second = await createPasswordResetToken(42)
+
+    expect(await verifyPasswordResetToken(first)).toBeNull()
+    expect(await verifyPasswordResetToken(second)).toEqual({ id: 42 })
+  })
+
+  it('drops expired links when keeping pending ones', async () => {
+    await createPasswordResetToken(42, undefined, { keepPending: true })
+    vi.setSystemTime(new Date(2025, 3, 10, 12, 0, 0)) // two days later: the first link has expired
+
+    await createPasswordResetToken(42, undefined, { keepPending: true })
+
+    expect(rows).toHaveLength(1)
   })
 })

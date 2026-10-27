@@ -12,16 +12,25 @@ const TOKEN_EXPIRY_HOURS = 24
  * `withScope` transaction — the UserAccount FK isn't visible on a separate
  * connection until the transaction commits, so a default `unscopedDb` write
  * would fail the `PasswordResetToken_userId_fkey` constraint).
+ *
+ * By default the account's other links are replaced: an invitation or a forced reset supersedes
+ * whatever was sent before. A self-service request passes `keepPending`, so asking for a new link
+ * does not cancel the one the user may already be opening; only expired links are dropped, and
+ * changing the password invalidates them all (`resetAccountPassword`).
  */
 export async function createPasswordResetToken(
   userId: number,
   client: TransactionClient = unscopedDb,
+  { keepPending = false }: { keepPending?: boolean } = {},
 ): Promise<string> {
   const token = crypto.randomBytes(32).toString('base64url')
-  const expiresAt = new Date()
+  const now = new Date()
+  const expiresAt = new Date(now)
   expiresAt.setHours(expiresAt.getHours() + TOKEN_EXPIRY_HOURS)
 
-  await client.passwordResetToken.deleteMany({ where: { userId } })
+  await client.passwordResetToken.deleteMany({
+    where: keepPending ? { userId, expiresAt: { lt: now } } : { userId },
+  })
 
   await client.passwordResetToken.create({
     // Store only the hash — a DB read exposure must not yield a usable reset token.
@@ -45,11 +54,4 @@ export async function verifyPasswordResetToken(token: string) {
   }
 
   return resetToken.user
-}
-
-export async function consumePasswordResetToken(token: string) {
-  const resetToken = await unscopedDb.passwordResetToken.findUnique({ where: { token: hashToken(token) } })
-  if (resetToken != null) {
-    await unscopedDb.passwordResetToken.delete({ where: { id: resetToken.id } })
-  }
 }

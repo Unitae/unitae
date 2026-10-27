@@ -31,9 +31,8 @@ const ts = Date.now()
 let congregationId: number
 let userId: number
 
-const { createPasswordResetToken, verifyPasswordResetToken, consumePasswordResetToken } = await import(
-  './invalidate-account-password.server'
-)
+const { createPasswordResetToken, verifyPasswordResetToken } = await import('./invalidate-account-password.server')
+const { resetAccountPassword } = await import('./reset-account-password.server')
 
 beforeAll(async () => {
   const congregation = await testDb.congregation.create({
@@ -83,12 +82,16 @@ describe('password reset token hashing (integration)', () => {
     expect(account).toBeNull()
   })
 
-  it('consuming the raw token deletes the stored hash (single-use)', async () => {
-    const rawToken = await createPasswordResetToken(userId)
+  // Two links are pending; the user resets the password through one. The other must stop working,
+  // and the change and the cleanup land together.
+  it('resetting the password through one link invalidates every pending link', async () => {
+    const first = await createPasswordResetToken(userId, undefined, { keepPending: true })
+    const second = await createPasswordResetToken(userId, undefined, { keepPending: true })
+    expect(await verifyPasswordResetToken(second)).not.toBeNull()
 
-    await consumePasswordResetToken(rawToken)
+    await resetAccountPassword(userId, 'a-new-passphrase-for-the-test')
 
-    const stored = await testDb.passwordResetToken.findFirst({ where: { userId } })
-    expect(stored).toBeNull()
+    expect(await verifyPasswordResetToken(first)).toBeNull()
+    expect(await verifyPasswordResetToken(second)).toBeNull()
   })
 })

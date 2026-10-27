@@ -5,11 +5,12 @@ import { resolveCongregation } from '~/shared/domain/congregation.server'
 import { unscopedDb as db } from '~/shared/infra/db.server'
 import { displayFirstname } from '~/shared/utils/display-name'
 import { createPasswordResetToken } from './invalidate-account-password.server'
-import { checkPasswordResetRateLimit, recordPasswordResetAttempt } from './rate-limit.server'
+import { guardPasswordResetRequest } from './rate-limit.server'
 import { sendResetAccountPasswordEmail } from './send-reset-account-password-email.server'
 
 export type RequestPasswordResetResult =
   | { status: 'rate-limited' }
+  | { status: 'unavailable' }
   | { status: 'no-user' }
   | { status: 'processed'; emailDelivered: boolean }
 
@@ -19,20 +20,21 @@ export type RequestPasswordResetResult =
  * one. Only `processed` + `emailDelivered: false` (a real account whose email failed to
  * send) is allowed to diverge; the caller decides how to surface that.
  *
- * To keep the happy path non-enumerable, the attempt is recorded BEFORE the
+ * To keep the happy path non-enumerable, the attempt is counted BEFORE the
  * user-existence check, so unknown emails also consume the reset budget (otherwise the
  * presence/absence of rate-limiting itself leaks which emails belong to real accounts).
  */
-export async function requestPasswordReset(email: string): Promise<RequestPasswordResetResult> {
+export async function requestPasswordReset(
+  email: string,
+  clientIp: string | undefined,
+): Promise<RequestPasswordResetResult> {
   const emailStr = email.toLowerCase()
 
-  if (!(await checkPasswordResetRateLimit(emailStr))) {
-    return { status: 'rate-limited' }
+  const guard = await guardPasswordResetRequest(emailStr, clientIp)
+  if (guard.limited) {
+    // An outage is decided before any lookup, so reporting it reveals nothing about the address.
+    return { status: guard.reason }
   }
-
-  // Count every probed email, even unknown ones — otherwise the presence/absence of
-  // rate-limiting leaks which emails belong to real accounts.
-  await recordPasswordResetAttempt(emailStr)
 
   const user = await db.userAccount.findFirst({
     where: { email: emailStr },
@@ -43,7 +45,8 @@ export async function requestPasswordReset(email: string): Promise<RequestPasswo
     return { status: 'no-user' }
   }
 
-  const token = await createPasswordResetToken(user.id)
+  // Keep any link already sent: a new request must not cancel the one the user may be opening.
+  const token = await createPasswordResetToken(user.id, undefined, { keepPending: true })
   const congregation = await resolveCongregation(user.congregationId)
   const emailDelivered = await sendResetAccountPasswordEmail(
     user.id,

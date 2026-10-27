@@ -3,10 +3,7 @@ import { parseWithZod } from '@conform-to/zod/v4'
 import { data, Form, redirect } from 'react-router'
 import { resetPasswordSchema } from '~/features/authentication/schemas/login.schema'
 import { isAccountInBreachScope } from '~/features/authentication/server/breach-scope.server'
-import {
-  consumePasswordResetToken,
-  verifyPasswordResetToken,
-} from '~/features/authentication/server/invalidate-account-password.server'
+import { verifyPasswordResetToken } from '~/features/authentication/server/invalidate-account-password.server'
 import { checkNewPasswordPolicy } from '~/features/authentication/server/password-policy.server'
 import { resetAccountPassword } from '~/features/authentication/server/reset-account-password.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
@@ -15,7 +12,7 @@ import * as m from '~/i18n/paraglide/messages'
 import { getBrandingName, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
 import { withScope } from '~/shared/infra/db.server'
 import { Button } from '~/shared/ui/button'
-import { Card, CardContent, CardHeader } from '~/shared/ui/card'
+import { CardContent, CardHeader } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import type { Route } from './+types/password-reset'
@@ -126,8 +123,8 @@ export async function action({ request, params }: Route.ActionArgs) {
     return data(submission.reply({ fieldErrors: { password: [policyError] } }), { status: 400 })
   }
 
+  // Also ends every pending reset link of the account, in the same transaction.
   await resetAccountPassword(user.id, password)
-  await consumePasswordResetToken(params.userHash ?? '')
 
   session.flash('success', m.auth_password_reset_success_message())
   return redirect('/', {

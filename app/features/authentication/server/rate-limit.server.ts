@@ -1,8 +1,17 @@
 import logger from '~/shared/infra/logger.server'
 import { redisRateLimit as redis } from '~/shared/infra/redis.server'
 
-const MAX_PASSWORD_RESET_ATTEMPTS = 3
 const WINDOW_SECONDS = 15 * 60 // 15 minutes
+const DAY_SECONDS = 24 * 60 * 60
+
+// Password-reset requests send an email to the address typed in, so they are capped per client (so
+// one client cannot spray many addresses) and per address: 3 per 15 minutes is the flood guard, and
+// a daily cap of 20 bounds what one inbox can receive. Worst case: anyone can spend an address's
+// 20 daily requests, holding back its self-service reset until the window ends (at most 24 hours);
+// an admin can still send a link from the user settings.
+const PASSWORD_RESET_EMAIL_WINDOW_MAX = 3
+const PASSWORD_RESET_EMAIL_DAY_MAX = 20
+const PASSWORD_RESET_IP_WINDOW_MAX = 10
 
 // Login limits are keyed on the client IP and on a global counter — never on the
 // target email, so no one can lock a specific victim out by burning their budget.
@@ -44,8 +53,8 @@ const DECREMENT_SCRIPT = `
   return count
 `
 
-async function incrementAndCount(key: string): Promise<number> {
-  return Number(await redis.eval(INCREMENT_SCRIPT, 1, key, WINDOW_SECONDS))
+async function incrementAndCount(key: string, ttlSeconds = WINDOW_SECONDS): Promise<number> {
+  return Number(await redis.eval(INCREMENT_SCRIPT, 1, key, ttlSeconds))
 }
 
 /**
@@ -115,27 +124,36 @@ export async function releaseTwoFactorAttempts(userId: number): Promise<void> {
   }
 }
 
-export async function checkPasswordResetRateLimit(email: string): Promise<boolean> {
-  const key = `password_reset_attempts:${email.toLowerCase()}`
+/**
+ * Gate a password-reset request BEFORE looking the address up, so unknown addresses consume the
+ * same budget as real ones (otherwise the limit itself would reveal which addresses have an
+ * account). Counts the request per client, then per address in a window, then per address per day.
+ * Fails CLOSED like `guardLoginAttempt`; the caller shows the same message either way.
+ */
+export type PasswordResetGuard = { limited: false } | { limited: true; reason: 'rate-limited' | 'unavailable' }
 
-  try {
-    const attempts = await redis.get(key)
-    return Number(attempts ?? 0) < MAX_PASSWORD_RESET_ATTEMPTS
-  } catch (error) {
-    logger.warn('Password reset rate limit check failed, allowing request', { error })
-    return true
+export async function guardPasswordResetRequest(email: string, ip: string | undefined): Promise<PasswordResetGuard> {
+  const address = email.toLowerCase()
+  if (ip == null) {
+    // Every such request shares one per-client bucket, so the proxy setup needs attention.
+    logger.error('Password reset request without a resolved client address; counted under "unknown"')
   }
-}
-
-export async function recordPasswordResetAttempt(email: string): Promise<void> {
-  const key = `password_reset_attempts:${email.toLowerCase()}`
-
   try {
-    const current = await redis.incr(key)
-    if (current === 1) {
-      await redis.expire(key, WINDOW_SECONDS)
+    if ((await incrementAndCount(`password_reset:window:ip:${ip ?? 'unknown'}`)) > PASSWORD_RESET_IP_WINDOW_MAX) {
+      logger.warn('Password reset blocked: per-client rate limit exceeded', { ip })
+      return { limited: true, reason: 'rate-limited' }
     }
+    if ((await incrementAndCount(`password_reset:window:email:${address}`)) > PASSWORD_RESET_EMAIL_WINDOW_MAX) {
+      logger.warn('Password reset blocked: per-address rate limit exceeded')
+      return { limited: true, reason: 'rate-limited' }
+    }
+    if ((await incrementAndCount(`password_reset:day:email:${address}`, DAY_SECONDS)) > PASSWORD_RESET_EMAIL_DAY_MAX) {
+      logger.warn('Password reset blocked: per-address daily limit exceeded')
+      return { limited: true, reason: 'rate-limited' }
+    }
+    return { limited: false }
   } catch (error) {
-    logger.warn('Failed to record password reset attempt', { error })
+    logger.error('Password reset rate limit check failed, denying request (fail-closed)', { error })
+    return { limited: true, reason: 'unavailable' }
   }
 }

@@ -7,8 +7,7 @@ vi.mock('~/shared/infra/db.server', () => ({
 }))
 
 vi.mock('./rate-limit.server', () => ({
-  checkPasswordResetRateLimit: vi.fn(),
-  recordPasswordResetAttempt: vi.fn(),
+  guardPasswordResetRequest: vi.fn(),
 }))
 
 vi.mock('./invalidate-account-password.server', () => ({
@@ -34,7 +33,7 @@ vi.mock('~/features/authentication/emails/reset-password', () => ({
 
 const { requestPasswordReset } = await import('./request-password-reset.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
-const { checkPasswordResetRateLimit, recordPasswordResetAttempt } = await import('./rate-limit.server')
+const { guardPasswordResetRequest } = await import('./rate-limit.server')
 const { createPasswordResetToken } = await import('./invalidate-account-password.server')
 const { sendResetAccountPasswordEmail } = await import('./send-reset-account-password-email.server')
 const { resolveCongregation } = await import('~/shared/domain/congregation.server')
@@ -56,54 +55,63 @@ const fakeCongregation = { baseUrl: 'https://cong.test', displayName: 'Ma Congr�
 
 describe('requestPasswordReset', () => {
   it('enregistre la tentative de rate-limit même pour un email inconnu', async () => {
-    vi.mocked(checkPasswordResetRateLimit).mockResolvedValue(true)
+    vi.mocked(guardPasswordResetRequest).mockResolvedValue({ limited: false })
     vi.mocked(db.userAccount.findFirst).mockResolvedValue(null as never)
 
-    const result = await requestPasswordReset('inconnu@example.com')
+    const result = await requestPasswordReset('inconnu@example.com', '203.0.113.7')
 
     // La tentative DOIT être comptée même sans compte, sinon la présence/absence
     // de rate-limiting devient un oracle d'énumération.
-    expect(recordPasswordResetAttempt).toHaveBeenCalledWith('inconnu@example.com')
+    expect(guardPasswordResetRequest).toHaveBeenCalledWith('inconnu@example.com', '203.0.113.7')
     // Aucun travail spécifique à un compte réel ne doit avoir lieu.
     expect(createPasswordResetToken).not.toHaveBeenCalled()
     expect(sendResetAccountPasswordEmail).not.toHaveBeenCalled()
     expect(result).toEqual({ status: 'no-user' })
   })
 
-  it("n'enregistre pas la tentative quand le rate-limit est déjà atteint", async () => {
-    vi.mocked(checkPasswordResetRateLimit).mockResolvedValue(false)
+  it('ne cherche pas le compte quand le rate-limit est atteint', async () => {
+    vi.mocked(guardPasswordResetRequest).mockResolvedValue({ limited: true, reason: 'rate-limited' })
 
-    const result = await requestPasswordReset('test@example.com')
+    const result = await requestPasswordReset('test@example.com', '203.0.113.7')
 
-    expect(recordPasswordResetAttempt).not.toHaveBeenCalled()
     expect(db.userAccount.findFirst).not.toHaveBeenCalled()
     expect(result).toEqual({ status: 'rate-limited' })
   })
 
-  it('normalise l’email en minuscules pour le check, le record et la recherche', async () => {
-    vi.mocked(checkPasswordResetRateLimit).mockResolvedValue(true)
+  // An outage is reported as such (before any lookup, so it reveals nothing about the address),
+  // instead of pretending an email went out.
+  it('reports the service as unavailable when the limiter cannot be reached', async () => {
+    vi.mocked(guardPasswordResetRequest).mockResolvedValue({ limited: true, reason: 'unavailable' })
+
+    const result = await requestPasswordReset('test@example.com', '203.0.113.7')
+
+    expect(result).toEqual({ status: 'unavailable' })
+    expect(db.userAccount.findFirst).not.toHaveBeenCalled()
+  })
+
+  it('normalise l’email en minuscules pour le rate-limit et la recherche', async () => {
+    vi.mocked(guardPasswordResetRequest).mockResolvedValue({ limited: false })
     vi.mocked(db.userAccount.findFirst).mockResolvedValue(null as never)
 
-    await requestPasswordReset('INCONNU@EXAMPLE.COM')
+    await requestPasswordReset('INCONNU@EXAMPLE.COM', '203.0.113.7')
 
-    expect(checkPasswordResetRateLimit).toHaveBeenCalledWith('inconnu@example.com')
-    expect(recordPasswordResetAttempt).toHaveBeenCalledWith('inconnu@example.com')
+    expect(guardPasswordResetRequest).toHaveBeenCalledWith('inconnu@example.com', '203.0.113.7')
     expect(db.userAccount.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ email: 'inconnu@example.com' }) }),
     )
   })
 
   it('crée un token, envoie l’email et audite pour un utilisateur réel', async () => {
-    vi.mocked(checkPasswordResetRateLimit).mockResolvedValue(true)
+    vi.mocked(guardPasswordResetRequest).mockResolvedValue({ limited: false })
     vi.mocked(db.userAccount.findFirst).mockResolvedValue(fakeUser as never)
     vi.mocked(createPasswordResetToken).mockResolvedValue('reset-token')
     vi.mocked(resolveCongregation).mockResolvedValue(fakeCongregation as never)
     vi.mocked(sendResetAccountPasswordEmail).mockResolvedValue(true)
 
-    const result = await requestPasswordReset('test@example.com')
+    const result = await requestPasswordReset('test@example.com', '203.0.113.7')
 
-    expect(recordPasswordResetAttempt).toHaveBeenCalledWith('test@example.com')
-    expect(createPasswordResetToken).toHaveBeenCalledWith(42)
+    // A self-service request keeps any link the user is already waiting for.
+    expect(createPasswordResetToken).toHaveBeenCalledWith(42, undefined, { keepPending: true })
     expect(sendResetAccountPasswordEmail).toHaveBeenCalledWith(42, expect.anything())
     expect(audit).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'password.reset.requested', congregationId: 7, actorId: 42, entityId: 42 }),
@@ -112,13 +120,13 @@ describe('requestPasswordReset', () => {
   })
 
   it('remonte l’échec d’envoi de l’email sans changer le statut', async () => {
-    vi.mocked(checkPasswordResetRateLimit).mockResolvedValue(true)
+    vi.mocked(guardPasswordResetRequest).mockResolvedValue({ limited: false })
     vi.mocked(db.userAccount.findFirst).mockResolvedValue(fakeUser as never)
     vi.mocked(createPasswordResetToken).mockResolvedValue('reset-token')
     vi.mocked(resolveCongregation).mockResolvedValue(fakeCongregation as never)
     vi.mocked(sendResetAccountPasswordEmail).mockResolvedValue(false)
 
-    const result = await requestPasswordReset('test@example.com')
+    const result = await requestPasswordReset('test@example.com', '203.0.113.7')
 
     expect(result).toEqual({ status: 'processed', emailDelivered: false })
   })
