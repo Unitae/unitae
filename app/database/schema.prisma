@@ -638,6 +638,13 @@ model Attribution {
   @@unique([id, congregationId])
   @@index([campaignId])
   @@index([pausedByCampaignId])
+  // Foreign keys Postgres does not index on its own: every territory or publisher listing joins
+  // through them, and deleting a territory checks them.
+  @@index([territoryId])
+  @@index([publisherId])
+  // Current attributions across a congregation (dashboard counts, group overview): under RLS
+  // every query carries congregationId, so without this they scan every tenant's rows.
+  @@index([congregationId, endDate])
 }
 
 model Campaign {
@@ -837,6 +844,8 @@ model PublisherActivity {
 
   @@unique([id, congregationId])
   @@index([publisherId, month, year], name: "activityId")
+  // Monthly reports read a congregation's activity for a given year and month.
+  @@index([congregationId, year, month])
 }
 
 // Per-service-year hour goal for a pioneer type. A missing row falls back to the
@@ -915,6 +924,8 @@ model Event {
   congregationId Int
 
   @@unique([id, congregationId])
+  // Programme and calendar views select a congregation's events by date range.
+  @@index([congregationId, startDate])
 }
 
 model EventTemplate {
