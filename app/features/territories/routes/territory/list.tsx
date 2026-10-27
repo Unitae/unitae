@@ -1,7 +1,7 @@
 import { Download, Map as MapIcon, Pencil, Trash2 } from 'lucide-react'
 import React from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
-import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
+import { territoryTypeLabels } from '~/features/territories/model/territory-kind.type'
 import { getZips } from '~/features/territories/server/buildings.server'
 import { classifySearch } from '~/features/territories/server/search-intent.server'
 import { findTerritoriesWithDetailsPaginated } from '~/features/territories/server/territories.server'
@@ -11,6 +11,7 @@ import { computeFilters } from '~/features/territories/server/territory-filters.
 import { buildTerritoryFilterChips } from '~/features/territories/ui/build-filter-chips'
 import GeocodeNotice, { type GeocodeNoticeData } from '~/features/territories/ui/GeocodeNotice'
 import { NoCoordinatesDivider, NoCoordinatesPageBanner } from '~/features/territories/ui/NoCoordinatesNotice'
+import { PmrStatusBadge } from '~/features/territories/ui/PmrStatusBadge'
 import ProximityBanner from '~/features/territories/ui/ProximityBanner'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/i18n/paraglide/messages'
@@ -21,8 +22,10 @@ import {
   requirePermission,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import { getBoolSetting } from '~/shared/domain/settings.server'
 import { type GeocodeResult, geocode } from '~/shared/infra/geocoder.server'
 import { Permission } from '~/shared/types/permission'
+import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { FilterChipBar } from '~/shared/ui/filters/FilterChipBar'
@@ -33,14 +36,6 @@ import { formatDistance } from '~/shared/utils/distance'
 import { sortFromUrl } from '~/shared/utils/pagination.server'
 
 import type { Route } from './+types/list'
-
-const territoryTypeLabels: Record<string, string> = {
-  [TerritoryKindKey.Classical]: m.territories_type_classical(),
-  [TerritoryKindKey.Commerces]: m.territories_type_commerces(),
-  [TerritoryKindKey.Phone]: m.territories_type_phone(),
-  [TerritoryKindKey.Hotel]: m.territories_type_hotel(),
-  [TerritoryKindKey.Univ]: m.territories_type_university(),
-}
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.territories_list_meta_title() }]
@@ -57,6 +52,10 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
   return withScopeFromContext(context, async db => {
     const url = new URL(request.url)
+    const [pmrActive, zips] = await Promise.all([
+      getBoolSetting(db, TerritorySettingKey.PmrActive, congregationId).then(v => v ?? false),
+      getZips(db, congregationId),
+    ])
     const selectors = computeFilters(url.searchParams)
     const search = url.searchParams.get('search') ?? ''
     const intent = classifySearch(search)
@@ -79,8 +78,6 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
     const result = await findTerritoriesWithDetailsPaginated(db, selectors, url, congregationId, proximityArgs)
 
-    const zips = await getZips(db, congregationId)
-
     const locale = getLocale()
     const distancesByTerritoryId: Record<number, string | null> = {}
     if (proximityActive && 'distances' in result && result.distances != null) {
@@ -102,6 +99,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
     return {
       zips,
+      pmrActive,
       stats: { total: result.pagination.total },
       territories: result.territories,
       pagination: result.pagination,
@@ -125,6 +123,7 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
     territories,
     canManageTerritories,
     zips,
+    pmrActive,
     geocodeResult,
     proximityActive,
     geocodeNotice,
@@ -138,7 +137,8 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
   const fromQuery = searchParams.toString()
   const viewSuffix = fromQuery.length > 0 ? `?from=${encodeURIComponent(fromQuery)}` : ''
   const chips = buildTerritoryFilterChips(searchParams)
-  const colSpan = proximityActive ? 6 : 5
+  const baseCol = 5
+  const colSpan = baseCol + (proximityActive ? 1 : 0) + (pmrActive ? 1 : 0)
   // Index of the first item in this page that falls in the "without coords"
   // partition, so we can insert a divider row before it. -1 when the whole
   // page is on one side of the partition.
@@ -166,7 +166,7 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
 
         <FilterChipBar chips={chips} />
         <GeocodeNotice notice={geocodeNotice} />
-        <TerritoryFilters zips={zips} showAccess showSearch showType showZip />
+        <TerritoryFilters zips={zips} showAccess showSearch showType showZip showPmr={pmrActive} />
 
         <EmptyState
           icon={MapIcon}
@@ -201,6 +201,7 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
         showSearch
         showType
         showZip
+        showPmr={pmrActive}
         showSort
         sortValue={sort}
         sortOptions={proximityActive ? ['number', 'proximity'] : ['number']}
@@ -218,6 +219,7 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
                 )}
                 <TableHead className="text-center max-sm:hidden">{m.territories_table_type()}</TableHead>
                 <TableHead className="text-center max-sm:hidden">{m.territories_table_content()}</TableHead>
+                {pmrActive && <TableHead className="text-center max-sm:hidden">{m.territories_table_pmr()}</TableHead>}
                 <TableHead>{m.territories_table_assigned_to()}</TableHead>
                 <TableHead className="w-0">
                   <span className="sr-only">Actions</span>
@@ -261,11 +263,16 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
                         </TableCell>
                       )}
                       <TableCell className="text-center max-sm:hidden">
-                        {territoryTypeLabels[territory.type] ?? territory.type}
+                        {territoryTypeLabels()[territory.type]}
                       </TableCell>
                       <TableCell className="text-center max-sm:hidden">
                         {territoryContentLabel(territory.type, territory.entrances)}
                       </TableCell>
+                      {pmrActive && (
+                        <TableCell className="text-center max-sm:hidden">
+                          <PmrStatusBadge type={territory.type} entrances={territory.entrances} />
+                        </TableCell>
+                      )}
                       <TableCell>
                         {attribution ? (
                           <span className={attribution.lateDate < new Date() ? 'text-destructive' : ''}>

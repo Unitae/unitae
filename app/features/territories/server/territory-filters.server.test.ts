@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { computeFilters } from './territory-filters.server'
 
@@ -121,5 +122,52 @@ describe('computeFilters', () => {
     const result = computeFilters(new URLSearchParams({ search: 'Test' }))
     const or = result.OR as unknown[]
     expect(or.length).toBe(3)
+  })
+})
+
+describe('computeFilters — pmr', () => {
+  const notPmr = { kind: EntranceKind.Residential, OR: [{ isPMR: false }, { isPMR: null }] }
+
+  it('restricts full to door-to-door territories whose residential entrances are all PMR', () => {
+    const result = computeFilters(new URLSearchParams({ pmr: 'full' }))
+    expect(result.AND).toEqual([
+      { type: TerritoryKindKey.Classical },
+      { entrances: { some: { kind: EntranceKind.Residential } } },
+      { entrances: { none: notPmr } },
+    ])
+  })
+
+  it('restricts partial to territories with both a PMR and a non-PMR residential entrance', () => {
+    const result = computeFilters(new URLSearchParams({ pmr: 'partial' }))
+    expect(result.AND).toEqual([
+      { type: TerritoryKindKey.Classical },
+      { entrances: { some: { kind: EntranceKind.Residential, isPMR: true } } },
+      { entrances: { some: notPmr } },
+    ])
+  })
+
+  it('restricts not to territories with residential entrances, none of them PMR', () => {
+    const result = computeFilters(new URLSearchParams({ pmr: 'not' }))
+    expect(result.AND).toEqual([
+      { type: TerritoryKindKey.Classical },
+      { entrances: { some: { kind: EntranceKind.Residential } } },
+      { entrances: { none: { kind: EntranceKind.Residential, isPMR: true } } },
+    ])
+  })
+
+  it('ignores an unknown or "none" pmr value', () => {
+    expect(computeFilters(new URLSearchParams({ pmr: 'none' }))).toEqual({})
+    expect(computeFilters(new URLSearchParams({ pmr: 'mystery' }))).toEqual({})
+  })
+
+  it('keeps zip, access and type on their own keys next to the pmr clauses', () => {
+    const result = computeFilters(
+      new URLSearchParams({ pmr: 'full', zip: '75001', access: '2', type: TerritoryKindKey.Classical }),
+    )
+    expect(result).toMatchObject({
+      type: { equals: TerritoryKindKey.Classical },
+      entrances: { some: { access: { equals: 2 }, buildings: { some: { zip: { equals: '75001' } } } } },
+    })
+    expect(result.AND).toHaveLength(3)
   })
 })

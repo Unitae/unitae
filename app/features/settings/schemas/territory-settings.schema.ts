@@ -38,6 +38,10 @@ export const territorySettingsSchema = z.object({
     .string()
     .optional()
     .transform(v => v === 'on' || v === 'true'),
+  'pmr-active': z
+    .string()
+    .optional()
+    .transform(v => v === 'on' || v === 'true'),
   'attribution-default-duration': z.string().default('120'),
   'attribution-phone-duration': z.string().default('14'),
   'attribution-commerce-duration': z.string().default('120'),

@@ -33,3 +33,13 @@ describe('territorySettingsSchema — per-kind role fields', () => {
     expect(result[`${KIND_ROLES_FIELD_PREFIX}${TerritoryKindKey.Phone}`]).toEqual([7, 9])
   })
 })
+
+describe('territorySettingsSchema — pmr-active', () => {
+  it('reads a ticked checkbox as on', () => {
+    expect(territorySettingsSchema.parse({ 'pmr-active': 'on' })['pmr-active']).toBe(true)
+  })
+
+  it('reads an unticked (absent) checkbox as off', () => {
+    expect(territorySettingsSchema.parse({})['pmr-active']).toBe(false)
+  })
+})

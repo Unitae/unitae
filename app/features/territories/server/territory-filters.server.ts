@@ -1,5 +1,7 @@
 import type { Prisma } from '~/database/generated/client'
-import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
+import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
+import { isPmrStatus, type PmrStatus } from '~/features/territories/model/pmr-status'
+import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 import { addressRegex, proximityPrefix } from './address-regex'
 
@@ -10,6 +12,7 @@ export function computeFilters(params: URLSearchParams): Prisma.TerritoryWhereIn
   filters = applyTypeFilter(filters, params)
   filters = applyAccessFilter(filters, params)
   filters = applySearchFilter(filters, params)
+  filters = applyPmrFilter(filters, params)
 
   return filters
 }
@@ -63,6 +66,38 @@ function applyAccessFilter(filters: Prisma.TerritoryWhereInput, params: URLSearc
   }
 
   return filters
+}
+
+// Spelled out because Prisma compiles `isPMR: { not: true }` to `<> true`, and
+// SQL's `NULL <> true` is unknown: never-checked (null) entrances would drop out.
+const notPmrResidential: Prisma.BuildingEntranceWhereInput = {
+  kind: EntranceKind.Residential,
+  OR: [{ isPMR: false }, { isPMR: null }],
+}
+
+const hasResidential: Prisma.TerritoryWhereInput = { entrances: { some: { kind: EntranceKind.Residential } } }
+
+// Mirrors getTerritoryPmrStatus — keep the two in step. A territory without a
+// residential entrance has no status, so it matches none of the three.
+const pmrClauses: Record<PmrStatus, Prisma.TerritoryWhereInput[]> = {
+  full: [hasResidential, { entrances: { none: notPmrResidential } }],
+  partial: [
+    { entrances: { some: { kind: EntranceKind.Residential, isPMR: true } } },
+    { entrances: { some: notPmrResidential } },
+  ],
+  not: [hasResidential, { entrances: { none: { kind: EntranceKind.Residential, isPMR: true } } }],
+}
+
+// Separate `AND` entries. Merged into the zip/access `entrances.some`, the PMR
+// condition would have to hold on that same entrance; written to `type`, it
+// would replace the user's type choice. `type: Classical` because only
+// door-to-door territories have a PMR status.
+function applyPmrFilter(filters: Prisma.TerritoryWhereInput, params: URLSearchParams): Prisma.TerritoryWhereInput {
+  const status = params.get('pmr')
+  if (!isPmrStatus(status)) return filters
+
+  // No earlier step sets `AND`.
+  return { ...filters, AND: [{ type: TerritoryKindKey.Classical }, ...pmrClauses[status]] }
 }
 
 function applySearchFilter(filters: Prisma.TerritoryWhereInput, params: URLSearchParams): Prisma.TerritoryWhereInput {

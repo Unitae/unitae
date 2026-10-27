@@ -1,3 +1,4 @@
+import { isPmrStatus, pmrStatusLabels } from '~/features/territories/model/pmr-status'
 import { ShopKind } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
@@ -9,7 +10,7 @@ import { formatGroupName } from '~/shared/utils/format-group-name'
 // URL query parameter a chip's X clears. Constrained to the parameters the
 // filter forms actually parse so a typo (`'zipcode'`) can't silently produce
 // a chip whose X clears nothing.
-export type TerritoryFilterKey = 'search' | 'zip' | 'type' | 'access' | 'shops' | 'group' | 'status'
+export type TerritoryFilterKey = 'search' | 'zip' | 'type' | 'access' | 'shops' | 'pmr' | 'group' | 'status'
 
 export interface ActiveTerritoryFilterChip extends FilterChip {
   key: TerritoryFilterKey
@@ -105,6 +106,10 @@ function attributionStatusChipValue(raw: string): string | null {
   }
 }
 
+function pmrChipValue(raw: string): string | null {
+  return isPmrStatus(raw) ? pmrStatusLabels()[raw] : null
+}
+
 function searchChipValue(raw: string): string {
   return raw.trim()
 }
@@ -135,6 +140,7 @@ export function buildTerritoryFilterChips(params: URLSearchParams): ActiveTerrit
   appendChip(chips, params, 'type', m.territories_filter_chip_type(), typeChipValue)
   appendChip(chips, params, 'access', m.territories_filter_chip_access(), accessChipValue)
   appendChip(chips, params, 'shops', m.territories_filter_chip_shops(), shopChipValue)
+  appendChip(chips, params, 'pmr', m.territories_filter_chip_pmr(), pmrChipValue)
   return chips
 }
 

@@ -9,4 +9,5 @@ export enum TerritorySettingKey {
   AttributionPhoneDurationDays = 'attribution-phone-duration-days',
   AttributionCommerceDurationDays = 'attribution-commerce-duration-days',
   MapTabActive = 'map-tab-active',
+  PmrActive = 'pmr-active',
 }

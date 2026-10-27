@@ -77,6 +77,7 @@ export function loader({ context }: Route.LoaderArgs) {
       prospectionValidity: Number(settings[TerritorySettingKey.ProspectionValidity] ?? '24'),
       phoneTypeActivated: settings[TerritorySettingKey.TerritoryTypePhoneActive] === 'true',
       mapTabActivated: settings[TerritorySettingKey.MapTabActive] === 'true',
+      pmrActivated: settings[TerritorySettingKey.PmrActive] === 'true',
       attributionDefaultDuration,
       attributionPhoneDuration: Number(settings[TerritorySettingKey.AttributionPhoneDurationDays] ?? '14'),
       attributionCommerceDuration: Number(settings[TerritorySettingKey.AttributionCommerceDurationDays] ?? '120'),
@@ -91,6 +92,7 @@ export default function TerritorySettingsPage({ loaderData, actionData }: Route.
     prospectionValidity,
     phoneTypeActivated,
     mapTabActivated,
+    pmrActivated,
     attributionDefaultDuration,
     attributionPhoneDuration,
     attributionCommerceDuration,
@@ -231,6 +233,18 @@ export default function TerritorySettingsPage({ loaderData, actionData }: Route.
                 {m.settings_territories_map_tab_after()}
               </Label>
             </div>
+
+            <Separator />
+
+            <p className="font-medium text-sm">{m.settings_territories_pmr_title()}</p>
+            <div className="flex items-center gap-2">
+              <Checkbox id="pmr-active" name="pmr-active" value="on" defaultChecked={pmrActivated} />
+              <Label htmlFor="pmr-active" className="font-normal">
+                {m.settings_territories_pmr_before()}
+                <span className="font-bold text-primary">{m.settings_territories_pmr_highlight()}</span>
+                {m.settings_territories_pmr_after()}
+              </Label>
+            </div>
           </CardContent>
         </Card>
 
@@ -270,6 +284,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const prospectionValidity = submission.value['prospection-validity']
   const phoneTypeActivated = String(submission.value['phone-territory-active'])
   const mapTabActivated = String(submission.value['map-tab-active'])
+  const pmrActivated = String(submission.value['pmr-active'])
   const attributionDefaultDuration = submission.value['attribution-default-duration']
   const attributionPhoneDuration = submission.value['attribution-phone-duration']
   const attributionCommerceDuration = submission.value['attribution-commerce-duration']
@@ -280,6 +295,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     await setSetting(db, TerritorySettingKey.ProspectionValidity, prospectionValidity, currentUser.congregationId)
     await setSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, phoneTypeActivated, currentUser.congregationId)
     await setSetting(db, TerritorySettingKey.MapTabActive, mapTabActivated, currentUser.congregationId)
+    await setSetting(db, TerritorySettingKey.PmrActive, pmrActivated, currentUser.congregationId)
     await setSetting(
       db,
       TerritorySettingKey.AttributionDefaultDurationDays,
