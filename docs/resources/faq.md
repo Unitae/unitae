@@ -26,7 +26,7 @@ No. Unitae requires PostgreSQL 17 or higher. The application uses PostgreSQL-spe
 
 ### How do I update Unitae?
 
-- **Docker**: Pull the latest image (`docker compose pull`) and restart (`docker compose up -d`). Run migrations after updating: `docker compose exec web pnpm prisma migrate deploy`.
+- **Docker**: From the repository root, run `git pull`, `docker compose pull`, then `docker compose up -d`. Migrations run automatically: the `migrate` service applies them before `web` and `worker` restart. To run them on their own, use `docker compose run --rm migrate`.
 - **PM2**: Pull the latest code (`git pull`), install dependencies (`pnpm install`), regenerate the Prisma client (`pnpm prisma generate`), apply migrations (`pnpm prisma migrate deploy`), rebuild (`pnpm build`), and restart (`pm2 restart all`).
 
 ### Can I manage multiple congregations?

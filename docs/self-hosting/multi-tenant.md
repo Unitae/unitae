@@ -37,7 +37,7 @@ UNITAE_COOKIE_DOMAIN=unitae.example.com
 
 ## Docker Compose Setup
 
-Use the same `docker-compose.yml` as the [self-hosted deployment](getting-started.md). The only difference is the extra environment variables above.
+Use the same `compose.yaml` as the [self-hosted deployment](getting-started.md). The only difference is the extra environment variables above.
 
 ```bash
 docker compose up -d

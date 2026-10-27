@@ -72,11 +72,25 @@ With the example Compose file, only the one-shot `migrate` service receives the 
 
 ### 3. Start the Services
 
+From the repository root, where `compose.yaml` and your `.env` live:
+
 ```bash
 docker compose up -d
 ```
 
 This starts PostgreSQL, Redis, runs database migrations automatically, then starts the web application (port 8080) and background worker. The `migrate` service applies pending migrations and exits before `web` and `worker` start.
+
+> The Compose file used to live only at `docker/docker-compose.yml`. That path still works (`docker compose -f docker/docker-compose.yml …`) and now reads the same root `.env`.
+
+### Updating
+
+```bash
+git pull               # picks up Compose file changes
+docker compose pull    # newer images
+docker compose up -d   # the migrate service applies pending migrations before web and worker restart
+```
+
+Back up the database before updating (see [Backups](#backups)).
 
 ### 4. Access the Setup Wizard
 

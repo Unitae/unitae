@@ -19,3 +19,5 @@ docs
 LICENSE
 docker-compose*.yml
 CLAUDE.md
+
+compose.yaml

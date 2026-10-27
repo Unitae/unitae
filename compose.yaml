@@ -14,7 +14,7 @@ services:
       POSTGRES_DB: ${DB_NAME:-unitae}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-db:/docker-entrypoint-initdb.d
+      - ./docker/init-db:/docker-entrypoint-initdb.d
     networks:
       - app
     healthcheck:
@@ -97,7 +97,7 @@ services:
   #     - '80:80'
   #     - '443:443'
   #   volumes:
-  #     - ./Caddyfile:/etc/caddy/Caddyfile:ro
+  #     - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
   #     - caddy_data:/data
   #     - caddy_config:/config
   #   depends_on:

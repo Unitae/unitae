@@ -1,0 +1,8 @@
+# The self-hosting Compose file lives at the repository root (compose.yaml), next to the .env it
+# reads: from a clone, `docker compose up -d` is all it takes. This file keeps
+# `docker compose -f docker/docker-compose.yml …` and `cd docker && docker compose …` working, with
+# paths and .env resolved from the repository root.
+include:
+  - path: ../compose.yaml
+    project_directory: ..
+    env_file: ../.env
