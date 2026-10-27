@@ -120,7 +120,7 @@ The application sets security response headers (CSP, `X-Frame-Options`, `Referre
 
 ## Docker Compose
 
-These variables are used by `docker-compose.yml` for the PostgreSQL and Redis containers:
+These variables are used by `compose.yaml` for the PostgreSQL and Redis containers:
 
 | Variable | Default | Description |
 |----------|---------|-------------|

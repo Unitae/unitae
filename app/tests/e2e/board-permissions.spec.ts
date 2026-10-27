@@ -22,7 +22,10 @@ const PHANTOM_ID = 99999999
 
 test.describe('Board permissions — BoardUploader (upload-only)', () => {
   test.beforeEach(async ({ page }) => {
-    if (!UPLOADER_EMAIL || !UPLOADER_PASSWORD) test.skip()
+    test.skip(
+      !UPLOADER_EMAIL || !UPLOADER_PASSWORD,
+      'needs E2E_BOARD_UPLOADER_EMAIL/PASSWORD (role account not seeded in CI yet)',
+    )
     const loggedIn = await login(page, UPLOADER_EMAIL ?? '', UPLOADER_PASSWORD ?? '')
     if (!loggedIn) test.skip()
   })

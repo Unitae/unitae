@@ -1,0 +1,152 @@
+# The runtime connection: the non-superuser unitae_app role, so PostgreSQL RLS is enforced. In
+# production the app and worker refuse to boot if this role can bypass RLS (superuser/BYPASSRLS).
+# An explicit DB_RUNTIME_URL in .env overrides this default.
+x-runtime-db-url: &runtime-db-url ${DB_RUNTIME_URL:-postgresql://unitae_app:${DB_RUNTIME_PASSWORD:-${DB_PASSWORD}}@postgres:5432/${DB_NAME:-unitae}}
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${DB_USER:-unitae}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      POSTGRES_DB: ${DB_NAME:-unitae}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-db:/docker-entrypoint-initdb.d
+    networks:
+      - app
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-unitae} -d ${DB_NAME:-unitae}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    env_file: .env
+    command: redis-server --requirepass ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
+    volumes:
+      - redis_data:/data
+    networks:
+      - app
+    healthcheck:
+      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    image: ${UNITAE_MIGRATE_IMAGE:-ghcr.io/unitae/unitae/migrate:latest}
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app
+
+  web:
+    image: ${UNITAE_WEB_IMAGE:-ghcr.io/unitae/unitae:latest}
+    restart: unless-stopped
+    # When fronting the app with the `caddy` service below, remove this public port
+    # mapping so the app is only reachable through the TLS-terminating proxy.
+    ports:
+      - '${UNITAE_WEB_PORT:-8080}:8080'
+    env_file: .env
+    environment:
+      PORT: ${UNITAE_WEB_PORT:-8080}
+      DB_RUNTIME_URL: *runtime-db-url
+      # The superuser connection belongs to `migrate` alone, but env_file hands all of .env to every
+      # service: point DB_URL at the runtime role here and drop the superuser password.
+      DB_URL: *runtime-db-url
+      DB_PASSWORD: ''
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks:
+      - app
+    volumes:
+      - unitae_content:/app/content:rw
+    healthcheck:
+      # `curl` is not present in the node:22-alpine runtime image, and a missing
+      # binary makes every probe fail — the container reports `unhealthy` forever
+      # while serving traffic fine. Use Node's global fetch instead of adding a
+      # package purely for the probe.
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:8080/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Optional hardened reverse proxy: automatic HTTPS + TLS termination for self-hosters.
+  # See docker/Caddyfile.example for setup. Uncomment this block (and copy the example
+  # to docker/Caddyfile) to serve Unitae over HTTPS with the app's security headers.
+  # caddy:
+  #   image: caddy:2-alpine
+  #   restart: unless-stopped
+  #   ports:
+  #     - '80:80'
+  #     - '443:443'
+  #   volumes:
+  #     - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+  #     - caddy_data:/data
+  #     - caddy_config:/config
+  #   depends_on:
+  #     web:
+  #       condition: service_healthy
+  #   networks:
+  #     - app
+
+  worker:
+    image: ${UNITAE_WORKER_IMAGE:-ghcr.io/unitae/unitae/worker:latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_RUNTIME_URL: *runtime-db-url
+      # Same as web: no superuser credentials outside `migrate`.
+      DB_URL: *runtime-db-url
+      DB_PASSWORD: ''
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks:
+      - app
+    # Thumbnails and congregation import/export run in the worker and read or write the same files
+    # as web when storage is local (no S3_ENDPOINT).
+    volumes:
+      - unitae_content:/app/content:rw
+    healthcheck:
+      # Same missing-`curl` caveat as the web service above. Readiness (/health): compose only
+      # reports health, it does not restart, so this shows when the daily schedulers are missing.
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:9090/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  app:
+
+volumes:
+  postgres_data:
+  redis_data:
+  unitae_content:
+  # Uncomment alongside the `caddy` service above.
+  # caddy_data:
+  # caddy_config:
