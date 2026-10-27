@@ -15,7 +15,10 @@ const NO_TEMPLATE_OPTION_RE = /Aucun modèle/i
 
 test.describe('Program permissions — ProgramManager', () => {
   test.beforeEach(async ({ page }) => {
-    if (!MANAGER_EMAIL || !MANAGER_PASSWORD) test.skip()
+    test.skip(
+      !MANAGER_EMAIL || !MANAGER_PASSWORD,
+      'needs E2E_PROGRAM_MANAGER_EMAIL/PASSWORD (role account not seeded in CI yet)',
+    )
     const loggedIn = await login(page, MANAGER_EMAIL ?? '', MANAGER_PASSWORD ?? '')
     if (!loggedIn) test.skip()
   })
@@ -36,7 +39,10 @@ test.describe('Program permissions — ProgramManager', () => {
 
 test.describe('Program permissions — Responsible (non-manager)', () => {
   test.beforeEach(async ({ page }) => {
-    if (!RESPONSIBLE_EMAIL || !RESPONSIBLE_PASSWORD) test.skip()
+    test.skip(
+      !RESPONSIBLE_EMAIL || !RESPONSIBLE_PASSWORD,
+      'needs E2E_PROGRAM_RESPONSIBLE_EMAIL/PASSWORD (role account not seeded in CI yet)',
+    )
     const loggedIn = await login(page, RESPONSIBLE_EMAIL ?? '', RESPONSIBLE_PASSWORD ?? '')
     if (!loggedIn) test.skip()
   })
@@ -75,7 +81,10 @@ test.describe('Program permissions — Responsible (non-manager)', () => {
 
 test.describe('Program permissions — ProgramViewer (read-only)', () => {
   test.beforeEach(async ({ page }) => {
-    if (!VIEWER_EMAIL || !VIEWER_PASSWORD) test.skip()
+    test.skip(
+      !VIEWER_EMAIL || !VIEWER_PASSWORD,
+      'needs E2E_PROGRAM_VIEWER_EMAIL/PASSWORD (role account not seeded in CI yet)',
+    )
     const loggedIn = await login(page, VIEWER_EMAIL ?? '', VIEWER_PASSWORD ?? '')
     if (!loggedIn) test.skip()
   })

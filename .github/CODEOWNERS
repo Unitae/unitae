@@ -1,0 +1,12 @@
+# Changes to these paths need a review from a maintainer. They ship to every self-hosted
+# instance (CI/CD, images, Compose, migrations) or guard authentication and tenant isolation.
+
+/.github/                         @mindsers
+/docker/                          @mindsers
+/compose.yaml                     @mindsers
+/server.js                        @mindsers
+/app/database/migrations/         @mindsers
+/app/database/schema.prisma       @mindsers
+/app/shared/auth/                 @mindsers
+/app/shared/middleware/           @mindsers
+/app/features/authentication/     @mindsers

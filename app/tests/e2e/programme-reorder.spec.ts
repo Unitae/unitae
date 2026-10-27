@@ -14,7 +14,10 @@ const TEMPLATE_EDIT_LINK_RE = /modifier|edit/i
 
 test.describe('Programme parts drag-drop reorder (regression: #134)', () => {
   test.beforeEach(async ({ page }) => {
-    if (!MANAGER_EMAIL || !MANAGER_PASSWORD) test.skip()
+    test.skip(
+      !MANAGER_EMAIL || !MANAGER_PASSWORD,
+      'needs E2E_PROGRAM_MANAGER_EMAIL/PASSWORD (role account not seeded in CI yet)',
+    )
     const loggedIn = await login(page, MANAGER_EMAIL ?? '', MANAGER_PASSWORD ?? '')
     if (!loggedIn) test.skip()
   })
@@ -52,7 +55,7 @@ test.describe('Programme parts drag-drop reorder (regression: #134)', () => {
   })
 
   test('event edit POSTs to reorder-parts (no 404)', async ({ page }) => {
-    if (!REORDER_EVENT_ID) test.skip()
+    test.skip(!REORDER_EVENT_ID, 'needs E2E_REORDER_EVENT_ID (event not seeded in CI yet)')
     await page.goto(`/programs/events/${REORDER_EVENT_ID}/edit`)
     await page.waitForLoadState('networkidle')
 
