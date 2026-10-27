@@ -15,15 +15,31 @@ import { CAMPAIGN_CRON_HOUR_UTC, RETENTION_CRON_HOUR_UTC } from '~/shared/consta
 import { createLogger } from '~/shared/infra/logger.server'
 import { QUEUE_NAMES } from '~/shared/infra/queues.server'
 import { getBullMQConnection } from '~/shared/infra/redis.server'
+import { createWorkerReadiness, registerWithRetry, SCHEDULER_RETRY_DELAYS_MS } from './worker-readiness.server'
 
 const logger = createLogger('worker')
 const HEALTH_PORT = Number(process.env.UNITAE_WORKER_HEALTH_PORT ?? '9090')
 
-const readyWorkers = new Set<string>()
+const workerNames = [
+  QUEUE_NAMES.sync,
+  QUEUE_NAMES.email,
+  QUEUE_NAMES.thumbnail,
+  QUEUE_NAMES.dataTransfer,
+  QUEUE_NAMES.retention,
+  QUEUE_NAMES.campaign,
+]
+const RETENTION_SCHEDULER = 'retention-daily'
+const CAMPAIGN_SCHEDULER = 'campaign-lifecycle-daily'
+
+// Healthy only once every worker is connected and both daily schedulers are registered. Note that
+// BullMQ emits a worker's 'ready' once, not again after a Redis reconnect, so a later Redis loss
+// does not flip this back; the workers reconnect on their own.
+const readiness = createWorkerReadiness({ workers: workerNames, schedulers: [RETENTION_SCHEDULER, CAMPAIGN_SCHEDULER] })
+let stopping = false
 
 function setupWorkerEvents(worker: Worker, name: string) {
   worker.on('ready', () => {
-    readyWorkers.add(name)
+    readiness.workerReady(name)
     logger.info(`[${name}] Worker is ready and waiting for jobs`)
   })
 
@@ -86,26 +102,46 @@ const campaignWorker = new Worker(QUEUE_NAMES.campaign, handleCampaignLifecycleW
   removeOnFail: { count: 30 },
 })
 
+const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms).unref())
+
+// Registers a daily scheduler, retrying with backoff until it succeeds: a failed registration
+// keeps the health endpoint at 503 and is logged at error level on every attempt, instead of
+// leaving a healthy-looking worker whose sweep never runs.
+function registerScheduler(name: string, register: () => Promise<unknown>) {
+  void registerWithRetry(register, {
+    delaysMs: SCHEDULER_RETRY_DELAYS_MS,
+    sleep,
+    shouldStop: () => stopping,
+    onFailure: (error, attempt) =>
+      logger.error(`Failed to register the ${name} scheduler, retrying`, {
+        error: error instanceof Error ? error.message : String(error),
+        attempt,
+      }),
+  }).then(registered => {
+    if (registered) readiness.schedulerRegistered(name)
+  })
+}
+
 // Daily retention cron — enqueue a repeating job at 03:00 UTC. BullMQ's
 // `upsertJobScheduler` is idempotent, so the schedule survives restarts
 // without piling up duplicate entries.
-retentionQueue
-  .upsertJobScheduler(
-    'retention-daily',
+registerScheduler(RETENTION_SCHEDULER, () =>
+  retentionQueue.upsertJobScheduler(
+    RETENTION_SCHEDULER,
     { pattern: `0 ${RETENTION_CRON_HOUR_UTC} * * *`, tz: 'UTC' },
     { name: 'retention-sweep', data: { triggeredAt: new Date().toISOString() } },
-  )
-  .catch(err => logger.error('Failed to register retention scheduler', { error: err.message }))
+  ),
+)
 
 // Daily campaign lifecycle cron — 02:00 UTC, deliberately before the 03:00
 // retention sweep so campaign transitions land first.
-campaignQueue
-  .upsertJobScheduler(
-    'campaign-lifecycle-daily',
+registerScheduler(CAMPAIGN_SCHEDULER, () =>
+  campaignQueue.upsertJobScheduler(
+    CAMPAIGN_SCHEDULER,
     { pattern: `0 ${CAMPAIGN_CRON_HOUR_UTC} * * *`, tz: 'UTC' },
     { name: 'campaign-lifecycle-sweep', data: { triggeredAt: new Date().toISOString() } },
-  )
-  .catch(err => logger.error('Failed to register campaign lifecycle scheduler', { error: err.message }))
+  ),
+)
 
 // Catch-up pass on boot: a worker that was down over a campaign's start or end
 // date converges immediately instead of waiting for the next 02:00 slot.
@@ -114,14 +150,6 @@ campaignQueue
   .catch(err => logger.error('Failed to enqueue campaign lifecycle catch-up', { error: err.message }))
 
 const workers = [syncWorker, emailWorker, thumbnailWorker, dataTransferWorker, retentionWorker, campaignWorker]
-const workerNames = [
-  QUEUE_NAMES.sync,
-  QUEUE_NAMES.email,
-  QUEUE_NAMES.thumbnail,
-  QUEUE_NAMES.dataTransfer,
-  QUEUE_NAMES.retention,
-  QUEUE_NAMES.campaign,
-]
 
 for (let i = 0; i < workers.length; i++) {
   setupWorkerEvents(workers[i], workerNames[i])
@@ -129,10 +157,9 @@ for (let i = 0; i < workers.length; i++) {
 
 // Health check HTTP server for K8s probes
 const healthServer = http.createServer((_req, res) => {
-  const allReady = readyWorkers.size === workers.length
   const noneClosing = workers.every(w => !w.closing)
 
-  if (allReady && noneClosing) {
+  if (readiness.isReady() && noneClosing) {
     res.writeHead(200, { 'Content-Type': 'text/plain' })
     res.end('OK')
   } else {
@@ -148,6 +175,7 @@ healthServer.listen(HEALTH_PORT, () => {
 // Graceful shutdown
 const shutdown = async (signal: string) => {
   logger.info(`Received ${signal}, shutting down workers...`)
+  stopping = true
   try {
     healthServer.close()
     await Promise.allSettled(workers.map(w => w.close()))
