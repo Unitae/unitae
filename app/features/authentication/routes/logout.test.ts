@@ -13,7 +13,7 @@ const { account, db, errors } = vi.hoisted(() => {
       emailVerifiedAt: new Date(0),
       sessionEpoch: 0,
     },
-    db: { failing: false },
+    db: { failing: false, lookupFailing: false },
     errors: [] as string[],
   }
 })
@@ -21,9 +21,10 @@ const { account, db, errors } = vi.hoisted(() => {
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     userAccount: {
-      findUnique: vi.fn(({ where }: { where: { id: number } }) =>
-        Promise.resolve(where.id === account.id ? { ...account, member: null } : null),
-      ),
+      findUnique: vi.fn(({ where }: { where: { id: number } }) => {
+        if (db.lookupFailing) return Promise.reject(new Error('lookup failed'))
+        return Promise.resolve(where.id === account.id ? { ...account, member: null } : null)
+      }),
       updateMany: vi.fn(({ where }: { where: Record<string, unknown> }) => {
         if (db.failing) return Promise.reject(new Error('database unavailable'))
         const matches = Object.entries(where).every(([key, value]) => account[key as keyof typeof account] === value)
@@ -82,6 +83,7 @@ beforeEach(() => {
   account.active = true
   account.anonymizedAt = null
   db.failing = false
+  db.lookupFailing = false
   errors.length = 0
 })
 
@@ -163,5 +165,18 @@ describe('logout action, stale or failing sessions', () => {
 
     expect(() => loader({} as Parameters<typeof loader>[0])).toThrow()
     expect(account.sessionEpoch).toBe(0)
+  })
+
+  // Recording the logout is secondary: if that lookup fails, the sessions were still ended and the
+  // log must not claim otherwise.
+  it('still ends the sessions when recording the logout fails, and says what failed', async () => {
+    const cookie = await signedInCookie()
+    db.lookupFailing = true
+
+    await logout(cookie)
+
+    expect(account.sessionEpoch).toBe(1)
+    expect(errors.some(message => message.includes('audit'))).toBe(true)
+    expect(errors.some(message => message.includes('Could not end'))).toBe(false)
   })
 })

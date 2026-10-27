@@ -17,7 +17,6 @@ vi.mock('~/shared/infra/db.server', () => {
   return {
     unscopedDb: {
       ...client,
-      // biome-ignore lint/style/useNamingConvention: Prisma client method
       $transaction: vi.fn((run: (tx: typeof client) => Promise<unknown>) => run(client)),
     },
   }

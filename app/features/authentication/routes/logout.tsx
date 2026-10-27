@@ -21,8 +21,20 @@ export async function action({ request }: Route.ActionArgs) {
     // End the session server-side: the cookie is signed but stateless, so clearing it in this
     // browser would leave any copy of it valid. Bumping the epoch invalidates every session of the
     // account, on every device, but only when this cookie is itself still a valid session.
+    let ended = false
     try {
-      if (await endCurrentSessions(userId, Number(session.get('sessionEpoch') ?? 0))) {
+      ended = await endCurrentSessions(userId, Number(session.get('sessionEpoch') ?? 0))
+    } catch (error) {
+      // The user asked to leave this device: clear the cookie anyway, but make the failure visible,
+      // since copies of the cookie stay valid until the sessions are ended.
+      logger.error('Could not end the sessions server-side on logout; the cookie is cleared anyway', {
+        userId,
+        error,
+      })
+    }
+
+    if (ended) {
+      try {
         const user = await unscopedDb.userAccount.findUnique({
           where: { id: userId },
           select: { congregationId: true },
@@ -36,14 +48,9 @@ export async function action({ request }: Route.ActionArgs) {
             entityId: userId,
           })
         }
+      } catch (error) {
+        logger.error('Could not record the logout in the audit log; the sessions were ended', { userId, error })
       }
-    } catch (error) {
-      // The user asked to leave this device: clear the cookie anyway, but make the failure visible,
-      // since copies of the cookie stay valid until the sessions are ended.
-      logger.error('Could not end the sessions server-side on logout; the cookie is cleared anyway', {
-        userId,
-        error: error instanceof Error ? error.message : String(error),
-      })
     }
   }
 
