@@ -50,3 +50,14 @@ export async function registerWithRetry(register: () => Promise<unknown>, option
     }
   }
 }
+
+// HTTP status of the worker's health server. `/livez` is liveness: the process is up and not
+// shutting down, nothing more, so an orchestrator never restarts a worker that still processes
+// its queues just because a daily scheduler could not register. Every other path (`/health`, `/`)
+// is readiness: all queue workers connected and both daily schedulers registered.
+export function workerHealthStatus(url: string, state: { ready: boolean; closing: boolean }): 200 | 503 {
+  if (state.closing) return 503
+  const pathname = url.split('?')[0]
+  if (pathname === '/livez') return 200
+  return state.ready ? 200 : 503
+}

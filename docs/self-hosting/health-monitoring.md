@@ -88,39 +88,52 @@ readinessProbe:
 
 The worker process runs its own HTTP health server, separate from the web application.
 
-### `GET /` (port 9090)
-
-- **200 OK** — All queue workers have fired `ready` and none are in a closing state
-- **503 Not Ready** — At least one worker is not ready or is shutting down
-
 The port is configurable via `UNITAE_WORKER_HEALTH_PORT` (default `9090`).
 
+### `GET /livez` (port 9090) — liveness
+
+- **200 OK** — The process is up and not shutting down
+- **503** — The worker is shutting down
+
+Use it for liveness probes. It deliberately ignores Redis and the schedulers, so a restart loop never stops a worker that is still processing its queues.
+
+### `GET /health` (port 9090) — readiness
+
+- **200 OK** — Every queue worker has connected, and both daily schedulers (retention and campaign lifecycle) are registered
+- **503 Not Ready** — A worker is not connected yet, a scheduler is not registered yet (registration retries with backoff and logs each failure), or the worker is shutting down
+
+`GET /` answers the same as `/health`.
+
 ### Docker Compose healthcheck
+
+Compose only reports health, it does not restart unhealthy containers, so check readiness. The image has no `curl`; use Node:
 
 ```yaml
 services:
   worker:
     # ...
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:9090"]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:9090/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 30s
-      timeout: 5s
+      timeout: 10s
       retries: 3
       start_period: 15s
 ```
+
+A worker that stays unhealthy while its logs repeat `Failed to register the … scheduler` is processing jobs, but its daily sweeps (including data retention) are not scheduled. Check Redis.
 
 ### Kubernetes probes
 
 ```yaml
 livenessProbe:
   httpGet:
-    path: /
+    path: /livez
     port: 9090
   initialDelaySeconds: 15
   periodSeconds: 30
 readinessProbe:
   httpGet:
-    path: /
+    path: /health
     port: 9090
   initialDelaySeconds: 10
   periodSeconds: 10

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createWorkerReadiness, registerWithRetry } from './worker-readiness.server'
+import { createWorkerReadiness, registerWithRetry, workerHealthStatus } from './worker-readiness.server'
 
 describe('createWorkerReadiness', () => {
   it('is ready only once every worker and every scheduler is up', () => {
@@ -117,5 +117,35 @@ describe('registerWithRetry', () => {
     })
 
     expect(registered).toBe(true)
+  })
+})
+
+describe('workerHealthStatus', () => {
+  const up = { ready: true, closing: false }
+
+  it('answers readiness (/health and /) from workers and schedulers', () => {
+    expect(workerHealthStatus('/health', up)).toBe(200)
+    expect(workerHealthStatus('/', up)).toBe(200)
+    expect(workerHealthStatus('/health', { ready: false, closing: false })).toBe(503)
+  })
+
+  // A scheduler that keeps failing to register must take the worker out of readiness, but must
+  // not make the liveness probe kill it: the queues still process email, sync and thumbnails.
+  it('keeps /livez at 200 while a scheduler keeps failing to register', () => {
+    const schedulerFailing = { ready: false, closing: false }
+
+    expect(workerHealthStatus('/health', schedulerFailing)).toBe(503)
+    expect(workerHealthStatus('/livez', schedulerFailing)).toBe(200)
+  })
+
+  it('reports 503 on every endpoint while shutting down', () => {
+    const closing = { ready: true, closing: true }
+
+    expect(workerHealthStatus('/health', closing)).toBe(503)
+    expect(workerHealthStatus('/livez', closing)).toBe(503)
+  })
+
+  it('ignores the query string', () => {
+    expect(workerHealthStatus('/livez?probe=1', { ready: false, closing: false })).toBe(200)
   })
 })

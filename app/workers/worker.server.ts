@@ -15,7 +15,12 @@ import { CAMPAIGN_CRON_HOUR_UTC, RETENTION_CRON_HOUR_UTC } from '~/shared/consta
 import { createLogger } from '~/shared/infra/logger.server'
 import { QUEUE_NAMES } from '~/shared/infra/queues.server'
 import { getBullMQConnection } from '~/shared/infra/redis.server'
-import { createWorkerReadiness, registerWithRetry, SCHEDULER_RETRY_DELAYS_MS } from './worker-readiness.server'
+import {
+  createWorkerReadiness,
+  registerWithRetry,
+  SCHEDULER_RETRY_DELAYS_MS,
+  workerHealthStatus,
+} from './worker-readiness.server'
 
 const logger = createLogger('worker')
 const HEALTH_PORT = Number(process.env.UNITAE_WORKER_HEALTH_PORT ?? '9090')
@@ -117,9 +122,11 @@ function registerScheduler(name: string, register: () => Promise<unknown>) {
         error: error instanceof Error ? error.message : String(error),
         attempt,
       }),
-  }).then(registered => {
-    if (registered) readiness.schedulerRegistered(name)
   })
+    .then(registered => {
+      if (registered) readiness.schedulerRegistered(name)
+    })
+    .catch(error => logger.error(`Registration loop for the ${name} scheduler stopped`, { error }))
 }
 
 // Daily retention cron — enqueue a repeating job at 03:00 UTC. BullMQ's
@@ -156,16 +163,13 @@ for (let i = 0; i < workers.length; i++) {
 }
 
 // Health check HTTP server for K8s probes
-const healthServer = http.createServer((_req, res) => {
-  const noneClosing = workers.every(w => !w.closing)
-
-  if (readiness.isReady() && noneClosing) {
-    res.writeHead(200, { 'Content-Type': 'text/plain' })
-    res.end('OK')
-  } else {
-    res.writeHead(503, { 'Content-Type': 'text/plain' })
-    res.end('Not Ready')
-  }
+const healthServer = http.createServer((req, res) => {
+  const status = workerHealthStatus(req.url ?? '/', {
+    ready: readiness.isReady(),
+    closing: workers.some(w => w.closing),
+  })
+  res.writeHead(status, { 'Content-Type': 'text/plain' })
+  res.end(status === 200 ? 'OK' : 'Not Ready')
 })
 
 healthServer.listen(HEALTH_PORT, () => {
