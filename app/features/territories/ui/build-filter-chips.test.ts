@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { pmrStatusLabels } from '~/features/territories/model/pmr-status'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { buildAttributionFilterChips, buildTerritoryFilterChips } from './build-filter-chips'
@@ -35,6 +36,16 @@ describe('buildTerritoryFilterChips', () => {
 
   it('drops an access chip when the access value is unknown', () => {
     expect(buildTerritoryFilterChips(new URLSearchParams({ access: '99' }))).toEqual([])
+  })
+
+  it('maps a known pmr status to its label', () => {
+    const chips = buildTerritoryFilterChips(new URLSearchParams({ pmr: 'partial' }))
+    expect(chips).toHaveLength(1)
+    expect(chips[0]).toMatchObject({ key: 'pmr', value: pmrStatusLabels().partial })
+  })
+
+  it('drops a pmr chip when the status is unknown', () => {
+    expect(buildTerritoryFilterChips(new URLSearchParams({ pmr: 'mystery' }))).toEqual([])
   })
 })
 

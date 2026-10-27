@@ -2,6 +2,7 @@ import { ArrowUpDown, ChevronDown, Search, SlidersHorizontal } from 'lucide-reac
 import { useState } from 'react'
 import { Form, useSearchParams } from 'react-router'
 import type { Prisma } from '~/database/generated/client'
+import { pmrStatusLabels } from '~/features/territories/model/pmr-status'
 import { ShopKind } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
@@ -20,6 +21,7 @@ interface TerritoryFiltersProps {
   showSearch?: boolean
   showZip?: boolean
   showShops?: boolean
+  showPmr?: boolean
   showSort?: boolean
   sortValue?: SortMode
   sortOptions?: SortMode[]
@@ -33,6 +35,7 @@ export default function TerritoryFilters({
   showType = false,
   showShops = false,
   showZip = false,
+  showPmr = false,
   showSort = false,
   sortValue,
   sortOptions = ['number'],
@@ -82,6 +85,21 @@ export default function TerritoryFilters({
             <SelectItem value={String(TerritoryAccess.Code)}>{m.territories_filter_access_digicode()}</SelectItem>
             <SelectItem value={String(TerritoryAccess.Doorbell)}>{m.territories_filter_access_doorbell()}</SelectItem>
             <SelectItem value={String(TerritoryAccess.Intercom)}>{m.territories_filter_access_intercom()}</SelectItem>
+          </SelectContent>
+        </Select>
+      )}
+      {showPmr && (
+        <Select name="pmr" defaultValue={params.get('pmr') ?? 'none'}>
+          <SelectTrigger className="max-sm:flex-1">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">{m.territories_filter_pmr()}</SelectItem>
+            {Object.entries(pmrStatusLabels()).map(([status, label]) => (
+              <SelectItem key={status} value={status}>
+                {label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       )}

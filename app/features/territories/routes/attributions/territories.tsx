@@ -1,40 +1,28 @@
-import { ExternalLink, Send } from 'lucide-react'
-import React from 'react'
-import { Link, redirect, useSearchParams } from 'react-router'
-import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
+import { redirect, useSearchParams } from 'react-router'
 import { getZips } from '~/features/territories/server/buildings.server'
 import { getActiveCampaign } from '~/features/territories/server/campaign.queries'
 import { classifySearch } from '~/features/territories/server/search-intent.server'
 import { findAvailableTerritoriesPaginated } from '~/features/territories/server/territories.server'
-import { territoryContentLabel } from '~/features/territories/server/territory-content-label'
 import { computeFilters } from '~/features/territories/server/territory-filters.server'
+import { AvailableTerritoriesTable } from '~/features/territories/ui/AvailableTerritoriesTable'
 import { buildTerritoryFilterChips } from '~/features/territories/ui/build-filter-chips'
 import GeocodeNotice, { type GeocodeNoticeData } from '~/features/territories/ui/GeocodeNotice'
-import { NoCoordinatesDivider, NoCoordinatesPageBanner } from '~/features/territories/ui/NoCoordinatesNotice'
+import { NoCoordinatesPageBanner } from '~/features/territories/ui/NoCoordinatesNotice'
 import ProximityBanner from '~/features/territories/ui/ProximityBanner'
-import { checkAvailabilityStatus, TerritoryAvaibilityStatus } from '~/features/territories/ui/TerritoryAvaibilityStatus'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { getBoolSetting } from '~/shared/domain/settings.server'
 import { type GeocodeResult, geocode } from '~/shared/infra/geocoder.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
-import { Button } from '~/shared/ui/button'
+import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { FilterChipBar } from '~/shared/ui/filters/FilterChipBar'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import { formatDistance } from '~/shared/utils/distance'
 import { sortFromUrl } from '~/shared/utils/pagination.server'
-
-const territoryTypeLabels: Record<string, string> = {
-  [TerritoryKindKey.Classical]: m.territories_type_classical(),
-  [TerritoryKindKey.Commerces]: m.territories_type_commerces(),
-  [TerritoryKindKey.Phone]: m.territories_type_phone(),
-  [TerritoryKindKey.Hotel]: m.territories_type_hotel(),
-  [TerritoryKindKey.Univ]: m.territories_type_university(),
-}
 
 import type { Route } from './+types/territories'
 
@@ -60,6 +48,10 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
   return withScopeFromContext(context, async db => {
     const url = new URL(request.url)
+    const [pmrActive, zips] = await Promise.all([
+      getBoolSetting(db, TerritorySettingKey.PmrActive, congregationId).then(v => v ?? false),
+      getZips(db, congregationId),
+    ])
     const selectors = computeFilters(url.searchParams)
     // While a campaign is active a territory is assignable (into the
     // campaign) only when nobody actively works it: any open, unpaused
@@ -89,8 +81,6 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
     const result = await findAvailableTerritoriesPaginated(db, selectors, url, congregationId, proximityArgs)
 
-    const zips = await getZips(db, congregationId)
-
     const locale = getLocale()
     const distancesByTerritoryId: Record<number, string | null> = {}
     if (proximityActive && 'distances' in result && result.distances != null) {
@@ -109,6 +99,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
     return {
       zips,
+      pmrActive,
       activeCampaignName: activeCampaign?.name ?? null,
       stats: { total: result.pagination.total },
       territories: result.territories,
@@ -139,6 +130,7 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
     pagination,
     territories,
     zips,
+    pmrActive,
     activeCampaignName,
     geocodeResult,
     proximityActive,
@@ -150,9 +142,6 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
   } = loaderData
   const [searchParams] = useSearchParams()
   const chips = buildTerritoryFilterChips(searchParams)
-  const dividerIndex = proximityActive ? territories.findIndex(t => distances[t.id] == null) : -1
-  const baseCol = 5
-  const colSpan = proximityActive ? baseCol + 1 : baseCol
   const wholePageWithoutCoords = proximityActive && pagination.offset >= withCoordsCount && territories.length > 0
 
   if (territories.length < 1) {
@@ -170,7 +159,7 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
         <CampaignModeNotice name={activeCampaignName} />
         <FilterChipBar chips={chips} />
         <GeocodeNotice notice={geocodeNotice} />
-        <TerritoryFilters zips={zips} showAccess showSearch showType showZip />
+        <TerritoryFilters zips={zips} showAccess showSearch showType showZip showPmr={pmrActive} />
 
         <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
           <p>{m.attributions_available_empty_title()}</p>
@@ -201,6 +190,7 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
         showAccess
         showSearch
         showType
+        showPmr={pmrActive}
         showSort
         sortValue={sort}
         sortOptions={proximityActive ? ['number', 'proximity'] : ['number']}
@@ -208,81 +198,14 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
 
       <div className="flex grow flex-col gap-3">
         {wholePageWithoutCoords && <NoCoordinatesPageBanner count={withoutCoordsCount} />}
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[150px]">{m.territories_table_number()}</TableHead>
-              {proximityActive && (
-                <TableHead className="w-[120px] text-right">{m.territories_filter_distance_header()}</TableHead>
-              )}
-              <TableHead className="w-[150px] text-center max-sm:hidden">{m.territories_table_type()}</TableHead>
-              <TableHead className="w-[150px] text-center max-sm:hidden">{m.territories_table_content()}</TableHead>
-              <TableHead className="w-[150px] text-center">{m.attributions_available_table_status()}</TableHead>
-              <TableHead className="w-[150px] text-center" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {territories.map((territory, index) => {
-              const distance = distances[territory.id]
-              const showDivider = proximityActive && dividerIndex === index && index > 0
-              return (
-                <React.Fragment key={territory.id}>
-                  {showDivider && <NoCoordinatesDivider count={withoutCoordsCount} colSpan={colSpan} />}
-                  <TableRow>
-                    <TableCell>{territory.number}</TableCell>
-                    {proximityActive && (
-                      <TableCell className="text-right tabular-nums text-foreground/80">
-                        <span title={distance == null ? m.territories_filter_distance_unknown_tooltip() : undefined}>
-                          {distance ?? '—'}
-                        </span>
-                      </TableCell>
-                    )}
-                    <TableCell className="text-center max-sm:hidden">
-                      {territoryTypeLabels[territory.type] ?? territory.type}
-                    </TableCell>
-                    <TableCell className="text-center max-sm:hidden">
-                      {territoryContentLabel(territory.type, territory.entrances)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <TerritoryAvaibilityStatus
-                        attribution={[...territory.attributions].shift()}
-                        campaignMode={activeCampaignName != null}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon" asChild>
-                          <Link
-                            to={`/territories/territory/${territory.id}/view`}
-                            title={m.attributions_available_view_title()}
-                          >
-                            <ExternalLink className="size-4" />
-                          </Link>
-                        </Button>
-                        {checkAvailabilityStatus([...territory.attributions].shift(), activeCampaignName != null) ? (
-                          <Button variant="ghost" size="sm" asChild className="gap-1.5 text-primary">
-                            <Link
-                              to={`/territories/attributions/new?territory=${territory.id}`}
-                              title={m.attributions_available_assign_title()}
-                            >
-                              <span className="max-sm:hidden">{m.attributions_available_assign_button()}</span>
-                              <Send className="size-4 -rotate-12" />
-                            </Link>
-                          </Button>
-                        ) : (
-                          <Button variant="ghost" size="sm" disabled className="gap-1.5">
-                            <span className="max-sm:hidden">{m.attributions_available_assign_button()}</span>
-                            <Send className="size-4 -rotate-12" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                </React.Fragment>
-              )
-            })}
-          </TableBody>
-        </Table>
+        <AvailableTerritoriesTable
+          territories={territories}
+          campaignMode={activeCampaignName != null}
+          proximityActive={proximityActive}
+          distances={distances}
+          withoutCoordsCount={withoutCoordsCount}
+          pmrActive={pmrActive}
+        />
 
         <Pagination pages={pagination.pages} page={pagination.page} size={pagination.size} total={pagination.total} />
       </div>

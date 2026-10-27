@@ -6,6 +6,7 @@ const TERRITORY_SETTING_KEYS = [
   TerritorySettingKey.ProspectionValidity,
   TerritorySettingKey.TerritoryTypePhoneActive,
   TerritorySettingKey.MapTabActive,
+  TerritorySettingKey.PmrActive,
   TerritorySettingKey.AttributionDefaultDurationDays,
   TerritorySettingKey.AttributionPhoneDurationDays,
   TerritorySettingKey.AttributionCommerceDurationDays,
