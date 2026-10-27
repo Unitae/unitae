@@ -4,7 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 // the caller's congregation: accounts are looked up within it, never by bare id. Sessions revoked and
 // emails sent are recorded in memory, so the tests assert on what happened to each account.
 
-const { revoked, emailed } = vi.hoisted(() => ({ revoked: [] as number[], emailed: [] as number[] }))
+const { revoked, emailed, links } = vi.hoisted(() => ({
+  revoked: [] as number[],
+  emailed: [] as number[],
+  // Pending reset links per account, honouring the keepPending option like the real service.
+  links: new Map<number, string[]>(),
+}))
 
 const ACCOUNTS = [
   { id: 20, congregationId: 1, email: 'same@example.com', member: null },
@@ -33,7 +38,11 @@ vi.mock('~/features/authentication/server/revoke-account-sessions.server', () =>
   }),
 }))
 vi.mock('~/features/authentication/server/invalidate-account-password.server', () => ({
-  createPasswordResetToken: vi.fn(async () => 'token'),
+  createPasswordResetToken: vi.fn((userId: number, _client?: unknown, options?: { keepPending?: boolean }) => {
+    const token = `token-${(links.get(userId)?.length ?? 0) + 1}`
+    links.set(userId, [...(options?.keepPending ? (links.get(userId) ?? []) : []), token])
+    return Promise.resolve(token)
+  }),
 }))
 vi.mock('~/features/authentication/server/send-reset-account-password-email.server', () => ({
   sendResetAccountPasswordEmail: vi.fn(async (id: number) => {
@@ -68,6 +77,7 @@ function invalidate(userId: number) {
 beforeEach(() => {
   revoked.length = 0
   emailed.length = 0
+  links.clear()
 })
 
 describe('password-invalidation action', () => {
@@ -82,5 +92,14 @@ describe('password-invalidation action', () => {
     expect(response.headers.get('Location')).toBe('/settings/users')
     expect(revoked).toEqual([])
     expect(emailed).toEqual([])
+  })
+
+  // A forced reset answers a possibly compromised account: any link sent earlier must stop working.
+  it('replaces the reset links sent earlier to the account', async () => {
+    links.set(20, ['earlier-link'])
+
+    await invalidate(20)
+
+    expect(links.get(20)).toEqual(['token-2'])
   })
 })

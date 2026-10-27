@@ -16,7 +16,7 @@ const TOKEN_EXPIRY_HOURS = 24
  * By default the account's other links are replaced: an invitation or a forced reset supersedes
  * whatever was sent before. A self-service request passes `keepPending`, so asking for a new link
  * does not cancel the one the user may already be opening; only expired links are dropped, and
- * using any link invalidates the rest (`consumePasswordResetToken`).
+ * changing the password invalidates them all (`resetAccountPassword`).
  */
 export async function createPasswordResetToken(
   userId: number,
@@ -54,13 +54,4 @@ export async function verifyPasswordResetToken(token: string) {
   }
 
   return resetToken.user
-}
-
-// Using a link ends every pending link of the account: once the password has changed, an older
-// email must not reset it again.
-export async function consumePasswordResetToken(token: string) {
-  const resetToken = await unscopedDb.passwordResetToken.findUnique({ where: { token: hashToken(token) } })
-  if (resetToken != null) {
-    await unscopedDb.passwordResetToken.deleteMany({ where: { userId: resetToken.userId } })
-  }
 }

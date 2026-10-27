@@ -14,9 +14,7 @@ vi.mock('~/shared/infra/db.server', () => ({
   },
 }))
 
-const { createPasswordResetToken, verifyPasswordResetToken, consumePasswordResetToken } = await import(
-  './invalidate-account-password.server'
-)
+const { createPasswordResetToken, verifyPasswordResetToken } = await import('./invalidate-account-password.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
@@ -108,27 +106,6 @@ describe('verifyPasswordResetToken', () => {
   })
 })
 
-describe('consumePasswordResetToken', () => {
-  it("ne lance pas d'erreur pour un token existant", async () => {
-    vi.mocked(db.passwordResetToken.findUnique).mockResolvedValue({
-      id: 1,
-      token: 'to-consume',
-      userId: 42,
-      expiresAt: new Date(),
-    } as never)
-    vi.mocked(db.passwordResetToken.deleteMany).mockResolvedValue({ count: 1 } as never)
-
-    await expect(consumePasswordResetToken('to-consume')).resolves.toBeUndefined()
-    expect(db.passwordResetToken.findUnique).toHaveBeenCalledWith({ where: { token: sha256('to-consume') } })
-  })
-
-  it("ne lance pas d'erreur pour un token inexistant", async () => {
-    vi.mocked(db.passwordResetToken.findUnique).mockResolvedValue(null as never)
-
-    await expect(consumePasswordResetToken('inexistant')).resolves.toBeUndefined()
-  })
-})
-
 // In-memory token table, so these tests assert on which links still work rather than on spies.
 describe('pending reset links', () => {
   type Row = { id: number; token: string; userId: number; expiresAt: Date }
@@ -189,16 +166,5 @@ describe('pending reset links', () => {
     await createPasswordResetToken(42, undefined, { keepPending: true })
 
     expect(rows).toHaveLength(1)
-  })
-
-  it('invalidates every pending link of the account once one is used', async () => {
-    const first = await createPasswordResetToken(42, undefined, { keepPending: true })
-    const second = await createPasswordResetToken(42, undefined, { keepPending: true })
-    const otherAccount = await createPasswordResetToken(7, undefined, { keepPending: true })
-
-    await consumePasswordResetToken(first)
-
-    expect(await verifyPasswordResetToken(second)).toBeNull()
-    expect(await verifyPasswordResetToken(otherAccount)).toEqual({ id: 7 })
   })
 })
