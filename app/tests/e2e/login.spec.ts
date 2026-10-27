@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, login } from './helpers/auth'
+import { E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, login, skipUnlessInitialised } from './helpers/auth'
 
 const TEST_EMAIL = E2E_ADMIN_EMAIL
 const TEST_PASSWORD = E2E_ADMIN_PASSWORD
@@ -30,17 +30,14 @@ test.describe('Authentication', () => {
   test('logging in from a preserved redirectTo returns to the intended URL', async ({ page }) => {
     await page.goto('/publishers')
 
-    // If no users exist yet, the app redirects to /setup or /register — skip.
-    if (page.url().includes('/setup') || page.url().includes('/register')) {
-      test.skip()
-      return
-    }
+    // If no users exist yet, the app redirects to /setup or /register.
+    skipUnlessInitialised(page)
 
     const emailField = page.getByLabel(EMAIL_FIELD_RE)
-    if (!(await emailField.isVisible({ timeout: 3000 }).catch(() => false))) {
-      test.skip()
-      return
-    }
+    // Locally the form may be missing (uninitialised instance); in CI it must be there.
+    const formShown = await emailField.isVisible({ timeout: 3000 }).catch(() => false)
+    test.skip(!formShown && !process.env.CI, 'login form not available')
+    await expect(emailField).toBeVisible()
 
     await emailField.fill(TEST_EMAIL)
     await page.getByLabel(PASSWORD_FIELD_RE).fill(TEST_PASSWORD)
@@ -62,16 +59,13 @@ test.describe('Authentication', () => {
   test('login with invalid credentials shows an error and stays on login page', async ({ page }) => {
     await page.goto('/login')
 
-    if (page.url().includes('/setup') || page.url().includes('/register')) {
-      test.skip()
-      return
-    }
+    skipUnlessInitialised(page)
 
     const emailField = page.getByLabel(EMAIL_FIELD_RE)
-    if (!(await emailField.isVisible({ timeout: 3000 }).catch(() => false))) {
-      test.skip()
-      return
-    }
+    // Locally the form may be missing (uninitialised instance); in CI it must be there.
+    const formShown = await emailField.isVisible({ timeout: 3000 }).catch(() => false)
+    test.skip(!formShown && !process.env.CI, 'login form not available')
+    await expect(emailField).toBeVisible()
 
     await emailField.fill('wrong@example.com')
     await page.getByLabel(PASSWORD_FIELD_RE).fill('wrongpassword')

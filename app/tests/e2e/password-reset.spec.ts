@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
-import { E2E_ADMIN_EMAIL } from './helpers/auth'
+import { E2E_ADMIN_EMAIL, skipUnlessInitialised } from './helpers/auth'
 
 const FORGOT_URL_RE = /\/password\/forgot/
 const SUBMIT_BUTTON_RE = /envoyer/i
@@ -16,9 +16,7 @@ const KNOWN_EMAIL = E2E_ADMIN_EMAIL
 // form fails loudly rather than green-washing via test.skip().
 async function submitForgotPassword(page: Page, email: string): Promise<string> {
   await page.goto('/password/forgot')
-  if (page.url().includes('/setup') || page.url().includes('/register')) {
-    test.skip()
-  }
+  skipUnlessInitialised(page)
 
   const emailInput = page.locator('input[type="email"], input[name="email"]')
   await expect(emailInput).toBeVisible()
