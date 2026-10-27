@@ -14,9 +14,13 @@ vi.mock('~/shared/infra/logger.server', () => ({
   },
 }))
 
-const { guardLoginAttempt, releaseLoginAttempt, guardTwoFactorAttempt, releaseTwoFactorAttempts } = await import(
-  './rate-limit.server'
-)
+const {
+  guardLoginAttempt,
+  releaseLoginAttempt,
+  guardTwoFactorAttempt,
+  releaseTwoFactorAttempts,
+  guardPasswordResetRequest,
+} = await import('./rate-limit.server')
 const { redisRateLimit: redis } = await import('~/shared/infra/redis.server')
 
 beforeEach(() => {
@@ -162,5 +166,68 @@ describe('releaseTwoFactorAttempts', () => {
     vi.mocked(redis.del).mockRejectedValue(new Error('Redis down'))
 
     await expect(releaseTwoFactorAttempts(42)).resolves.toBeUndefined()
+  })
+})
+
+// In-memory Redis counters: each key counts the requests made in its window, so these tests assert
+// on whether a request is allowed rather than on calls to Redis.
+describe('guardPasswordResetRequest', () => {
+  let counters: Map<string, number>
+
+  // Ends every counter whose key contains `fragment`, as if its window had elapsed.
+  function elapse(fragment: string) {
+    for (const key of [...counters.keys()]) if (key.includes(fragment)) counters.delete(key)
+  }
+
+  async function requestTimes(times: number, email: string, ip: string) {
+    const results: boolean[] = []
+    for (let i = 0; i < times; i++) results.push((await guardPasswordResetRequest(email, ip)).limited)
+    return results
+  }
+
+  beforeEach(() => {
+    counters = new Map()
+    vi.mocked(redis.eval).mockImplementation(((_script: string, _keys: number, key: string) => {
+      const count = (counters.get(key) ?? 0) + 1
+      counters.set(key, count)
+      return Promise.resolve(count)
+    }) as never)
+  })
+
+  it('allows three requests for one address in a window, then limits it', async () => {
+    expect(await requestTimes(4, 'Victim@Example.com', '203.0.113.7')).toEqual([false, false, false, true])
+  })
+
+  it('counts an address the same whatever its case', async () => {
+    await requestTimes(3, 'victim@example.com', '203.0.113.7')
+
+    expect((await guardPasswordResetRequest('VICTIM@example.com', '203.0.113.8')).limited).toBe(true)
+  })
+
+  it('caps one address at five requests a day, across windows and IPs', async () => {
+    await requestTimes(3, 'victim@example.com', '203.0.113.7')
+    elapse(':window:')
+    await requestTimes(2, 'victim@example.com', '198.51.100.9')
+    elapse(':window:')
+
+    expect((await guardPasswordResetRequest('victim@example.com', '192.0.2.4')).limited).toBe(true)
+  })
+
+  it('caps one client at ten requests a window, whatever the addresses', async () => {
+    const results: boolean[] = []
+    for (let i = 0; i < 11; i++) {
+      results.push((await guardPasswordResetRequest(`person${i}@example.com`, '203.0.113.7')).limited)
+    }
+
+    expect(results.slice(0, 10).every(limited => !limited)).toBe(true)
+    expect(results[10]).toBe(true)
+    // Another client is unaffected.
+    expect((await guardPasswordResetRequest('someone@example.com', '198.51.100.9')).limited).toBe(false)
+  })
+
+  it('fails closed when Redis is unavailable', async () => {
+    vi.mocked(redis.eval).mockRejectedValue(new Error('connection refused'))
+
+    expect(await guardPasswordResetRequest('victim@example.com', '203.0.113.7')).toEqual({ limited: true })
   })
 })

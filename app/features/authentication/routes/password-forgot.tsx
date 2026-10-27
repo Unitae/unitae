@@ -8,9 +8,10 @@ import * as m from '~/i18n/paraglide/messages'
 import { getBrandingName, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Button } from '~/shared/ui/button'
-import { Card, CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
+import { CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
+import { getClientIp } from '~/shared/utils/get-client-ip'
 import type { Route } from './+types/password-forgot'
 
 export const meta: Route.MetaFunction = () => {
@@ -87,7 +88,7 @@ export async function action({ request }: Route.ActionArgs) {
   // account and is not attacker-controllable per address.
   session.flash('success', m.auth_password_forgot_success_message())
 
-  const result = await requestPasswordReset(submission.value.email)
+  const result = await requestPasswordReset(submission.value.email, getClientIp(request))
 
   if (result.status === 'processed' && !result.emailDelivered) {
     session.flash('error', m.auth_email_send_error())
