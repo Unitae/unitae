@@ -1,4 +1,6 @@
+import type { TextRun } from '~/features/display-board/model/sheet-text'
 import * as m from '~/i18n/paraglide/messages'
+import { sanitizeText } from '~/shared/utils/sanitize-text'
 
 // Name and roster rules shared by the board screens and their PDF sheets, so the two cannot
 // drift apart: same order, same anonymized label, same « Prénom NOM » convention.
@@ -25,6 +27,16 @@ export function formatBoardPersonName(person: Omit<BoardPerson, 'id'>): BoardPer
     lastname,
     plain: [person.firstname, lastname].filter(Boolean).join(' '),
   }
+}
+
+/** « Prénom NOM » as a sheet prints it — regular first name, bold last name — for measuring. */
+export function boardPersonNameRuns(person: Omit<BoardPerson, 'id'>): TextRun[] {
+  const name = formatBoardPersonName(person)
+  if (name.kind !== 'named') return [{ text: sanitizeText(name.plain), weight: 'regular' }]
+  return [
+    ...(name.firstname ? [{ text: sanitizeText(name.firstname), weight: 'regular' as const }] : []),
+    ...(name.lastname ? [{ text: sanitizeText(name.lastname), weight: 'bold' as const }] : []),
+  ]
 }
 
 interface GroupRosterInput<P extends BoardPerson> {

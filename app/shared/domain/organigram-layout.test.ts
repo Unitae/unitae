@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { SERVICE_COMMITTEE_KEY, SERVICE_COMMITTEE_POST_KEYS } from '~/shared/domain/built-in-roles.server'
 import type { OrganigramNode } from '~/shared/domain/organigram.queries'
-import { bandAdjoints, groupLayout, responsibilityEyebrow, seatLabel, teamRows, toLayout } from './organigram-layout'
+import {
+  bandAdjoints,
+  bandEntries,
+  groupLayout,
+  responsibilityEyebrow,
+  seatLabel,
+  serviceParts,
+  teamRows,
+  toLayout,
+} from './organigram-layout'
 
 // The printed "Organisation des services" sheet has no connector lines and no deep indentation.
 // It groups children under band headers — « Sous la responsabilité du secrétaire » — and prints
@@ -337,5 +346,59 @@ describe('bandAdjoints', () => {
     const team = node({ holders: [holder(2, 'leader'), holder(3, 'member')] })
 
     expect(bandAdjoints(service, [team]).map(a => a.memberId)).toEqual([2])
+  })
+})
+
+describe('serviceParts', () => {
+  const holder = (memberId: number, kind: string) => ({
+    roleId: 0,
+    memberId,
+    firstname: `F${memberId}`,
+    lastname: `L${memberId}`,
+    anonymizedAt: null,
+    kind,
+    isElder: true,
+  })
+
+  it('prints a plain row’s leaders and deputies, never its members', () => {
+    const row = node({ holders: [holder(1, 'leader'), holder(2, 'deputy'), holder(3, 'member')] })
+
+    expect(serviceParts(row, null).holders.map(h => h.memberId)).toEqual([1, 2])
+    expect(serviceParts(row, null).teams).toEqual([])
+  })
+
+  it('folds what sits beneath a band in as adjoints, and names only its group roles as teams', () => {
+    const team = node({ name: 'Équipe Nettoyage', holders: [holder(2, 'leader')] })
+    const post = node({ name: 'Adjoint programme', isSinglePerson: true, holders: [holder(3, 'leader')] })
+    const band = node({ holders: [holder(1, 'leader')] })
+
+    const parts = serviceParts(band, [team, post])
+
+    expect(parts.holders.map(h => [h.memberId, h.kind])).toEqual([
+      [1, 'leader'],
+      [2, 'deputy'],
+      [3, 'deputy'],
+    ])
+    expect(parts.teams).toEqual([team])
+  })
+})
+
+describe('bandEntries', () => {
+  it('prints a band’s own node with its rows, and a collector band’s rows one by one', () => {
+    const own = node({ name: 'Audio/Vidéo' })
+    const sono = node({ name: 'Sonorisation' })
+    const accueil = node({ name: 'Accueil' })
+    const compte = node({ name: 'Compte' })
+
+    const entries = bandEntries([
+      { kind: 'band', id: 1, node: own, under: 'Coordinateur', rows: [sono] },
+      { kind: 'band', id: 2, node: null, under: 'Coordinateur', rows: [accueil, compte] },
+    ])
+
+    expect(entries.map(entry => [entry.node.name, entry.rows?.map(row => row.name) ?? null])).toEqual([
+      ['Audio/Vidéo', ['Sonorisation']],
+      ['Accueil', null],
+      ['Compte', null],
+    ])
   })
 })
