@@ -61,6 +61,7 @@ export const AuditAction = {
   BoardDocumentCreated: 'board.document.created',
   BoardDocumentUpdated: 'board.document.updated',
   BoardDocumentDeleted: 'board.document.deleted',
+  BoardDynamicDocumentUpdated: 'board.dynamic_document.updated',
   BoardSectionCreated: 'board.section.created',
   BoardSectionUpdated: 'board.section.updated',
   BoardSectionVisibilityChanged: 'board.section.visibility.changed',

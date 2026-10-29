@@ -1,8 +1,8 @@
 import { redirect } from 'react-router'
-import { defaultAppearance } from '~/features/display-board/model/board-appearance'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
 import { isPrintableDynamicDocument } from '~/features/display-board/model/printable-document'
 import { sheetDataFor } from '~/features/display-board/model/programme-sheet-window'
+import { parseAppearance } from '~/features/display-board/schemas/appearance.schema'
 import { getDynamicDocumentData } from '~/features/display-board/server/dynamic-documents.server'
 import { filterDynamicDataToEvent, readEventIdParam } from '~/features/display-board/server/event-filter.server'
 import { buildSectionVisibilityFilter } from '~/features/display-board/server/section-visibility.server'
@@ -79,7 +79,12 @@ export function loader({ params, request, context }: Route.LoaderArgs) {
     const { title } = settings
     // The programme's guard stays the board's, not `CanViewPrograms`: the sheet shows nothing this
     // account cannot already read on the board screen.
-    const sheet = await buildBoardSheet(data, defaultAppearance(data.type), { title, congregationName, asOf, timezone })
+    const sheet = await buildBoardSheet(data, parseAppearance(data.type, settings.appearance), {
+      title,
+      congregationName,
+      asOf,
+      timezone,
+    })
     return renderPdfResponse(sheet, `${sanitizeFilename(title.toLowerCase()) || FALLBACK_FILENAMES[data.type]}.pdf`)
   })
 }

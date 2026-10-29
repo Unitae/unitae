@@ -289,6 +289,30 @@ describe('the dynamic document PDF loader', () => {
     expect(renderPdfResponse).toHaveBeenCalledWith(expect.anything(), expected)
   })
 
+  it('prints the sheet in the look and layout chosen for the document', async () => {
+    settingsFindFirst.mockResolvedValue({
+      ...documentSettings(DynamicType.PublisherGroups, 'Groupes'),
+      appearance: { typeface: 'serif', accent: 'wine', layout: 'bands' },
+    })
+    getDynamicDocumentData.mockResolvedValue({ type: DynamicType.PublisherGroups, groups: [{ id: 1 }] })
+
+    await download()
+
+    expect(builtSheet().appearance).toEqual({ typeface: 'serif', accent: 'wine', layout: 'bands' })
+  })
+
+  it('prints a document never given a look in the defaults', async () => {
+    settingsFindFirst.mockResolvedValue({
+      ...documentSettings(DynamicType.Organigram, 'Organigramme'),
+      appearance: null,
+    })
+    getDynamicDocumentData.mockResolvedValue({ type: DynamicType.Organigram, tree: [{ id: 1 }] })
+
+    await download()
+
+    expect(builtSheet().appearance).toEqual({ typeface: 'fira', accent: 'teal', layout: 'leader' })
+  })
+
   it('prints the congregation’s display name, not the raw provisioning name', async () => {
     // On managed hosting `Congregation.name` is the provisioning-time value; the name the
     // congregation actually chose lives in displayName, resolved by congregationContext.

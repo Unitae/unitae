@@ -1,17 +1,17 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod/v4'
 import { Trash2 } from 'lucide-react'
-import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
+import type { Prisma } from '~/database/generated/client'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import {
-  DynamicType,
-  type ProgrammeDynamicConfig,
-  parseProgrammeConfig,
-} from '~/features/display-board/model/dynamic-document.type'
+import { DynamicType, isDynamicType } from '~/features/display-board/model/dynamic-document.type'
+import { parseAppearance } from '~/features/display-board/schemas/appearance.schema'
 import { updateDynamicDocumentSchema } from '~/features/display-board/schemas/board-document.schema'
-import { updateDynamicDocument } from '~/features/display-board/server/board-document.server'
 import { validateVisibilityDates } from '~/features/display-board/server/file-validation.server'
+import { updateDynamicDocument } from '~/features/display-board/server/update-dynamic-document.server'
+import { AppearanceFields } from '~/features/display-board/ui/dynamic/AppearanceFields'
+import { BOARD_WEB_FONTS_HREF } from '~/features/display-board/ui/dynamic/board-web-fonts'
+import { ProgrammeConfigFields } from '~/features/display-board/ui/dynamic/ProgrammeConfigFields'
 import { getTemplates } from '~/features/events/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -23,7 +23,6 @@ import {
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
-import { Checkbox } from '~/shared/ui/checkbox'
 import { FormActions } from '~/shared/ui/FormActions'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
@@ -39,6 +38,9 @@ import type { Route } from './+types/edit'
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.board_dynamic_edit_meta_title() }]
 }
+
+// The typeface samples of the appearance card are set in the faces themselves.
+export const links: Route.LinksFunction = () => [{ rel: 'stylesheet', href: BOARD_WEB_FONTS_HREF }]
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
@@ -64,18 +66,16 @@ export function loader({ params, context }: Route.LoaderArgs) {
     // Load templates for programme config grid
     const templates = settings.dynamicType === DynamicType.Programme ? await getTemplates(db, congregationId) : []
 
-    return { settings, sections, templates }
+    const appearance = isDynamicType(settings.dynamicType)
+      ? { type: settings.dynamicType, ...parseAppearance(settings.dynamicType, settings.appearance) }
+      : null
+
+    return { settings, sections, templates, appearance }
   })
 }
 
-interface TemplateConfig {
-  selected: boolean
-  parts: boolean
-  services: boolean
-}
-
 export default function EditDynamicDocumentPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { settings, sections, templates } = loaderData
+  const { settings, sections, templates, appearance } = loaderData
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -84,55 +84,6 @@ export default function EditDynamicDocumentPage({ loaderData, actionData }: Rout
   })
 
   const { blocker, markDirty } = useUnsavedChanges()
-
-  // Parse existing config for programme documents
-  const existingConfig = parseProgrammeConfig(settings.dynamicConfig)
-
-  // Initialize template config state from existing config or defaults
-  const [templateConfigs, setTemplateConfigs] = useState<Record<number, TemplateConfig>>(() => {
-    if (existingConfig) {
-      const configMap = new Map(existingConfig.templates.map(t => [t.templateId, t]))
-      return Object.fromEntries(
-        templates.map(t => {
-          const existing = configMap.get(t.id)
-          return [
-            t.id,
-            {
-              selected: !!existing,
-              parts: existing?.parts ?? true,
-              services: existing?.services ?? true,
-            },
-          ]
-        }),
-      )
-    }
-    // Default: all templates selected with parts + services
-    return Object.fromEntries(templates.map(t => [t.id, { selected: true, parts: true, services: true }]))
-  })
-
-  const [groupBy, setGroupBy] = useState<'date' | 'template'>(existingConfig?.groupBy ?? 'date')
-
-  function updateTemplateConfig(templateId: number, patch: Partial<TemplateConfig>) {
-    setTemplateConfigs(prev => ({
-      ...prev,
-      [templateId]: { ...prev[templateId], ...patch },
-    }))
-    markDirty()
-  }
-
-  // Build dynamicConfig JSON from state
-  const selectedTemplates = Object.entries(templateConfigs)
-    .filter(([_, c]) => c.selected && (c.parts || c.services))
-    .map(([id, c]) => ({
-      templateId: Number(id),
-      parts: c.parts,
-      services: c.services,
-    }))
-
-  const dynamicConfigJson: ProgrammeDynamicConfig = {
-    templates: selectedTemplates,
-    groupBy,
-  }
 
   let formattedVisibleFrom = ''
   if (settings.visibleFrom !== null) {
@@ -239,86 +190,10 @@ export default function EditDynamicDocumentPage({ loaderData, actionData }: Rout
         </Card>
 
         {settings.dynamicType === DynamicType.Programme && templates.length > 0 && (
-          <Card>
-            <CardContent className="flex flex-col gap-4">
-              <h3 className="font-semibold text-sm">{m.board_dynamic_display_options_title()}</h3>
-
-              {/* Per-template content selection */}
-              <div className="flex flex-col gap-2">
-                <Label>{m.programs_export_templates_label()}</Label>
-                <div className="rounded-md border">
-                  <div className="flex items-center gap-3 border-b bg-muted/50 px-3 py-2 font-medium text-muted-foreground text-xs">
-                    <div className="w-5" />
-                    <div className="flex-1">{m.programs_export_meeting_type_label()}</div>
-                    <div className="w-20 text-center">{m.programs_export_col_parts()}</div>
-                    <div className="w-20 text-center">{m.programs_export_col_services()}</div>
-                  </div>
-                  {templates.map(template => {
-                    const config = templateConfigs[template.id]
-                    return (
-                      <div key={template.id} className="flex items-center gap-3 border-b px-3 py-2.5 last:border-b-0">
-                        <Checkbox
-                          checked={config.selected}
-                          onCheckedChange={checked =>
-                            updateTemplateConfig(template.id, {
-                              selected: checked === true,
-                            })
-                          }
-                        />
-                        <div className="flex-1 text-sm">{template.name}</div>
-                        <div className="flex w-20 justify-center">
-                          <Checkbox
-                            checked={config.parts}
-                            disabled={!config.selected}
-                            onCheckedChange={checked =>
-                              updateTemplateConfig(template.id, {
-                                parts: checked === true,
-                              })
-                            }
-                          />
-                        </div>
-                        <div className="flex w-20 justify-center">
-                          <Checkbox
-                            checked={config.services}
-                            disabled={!config.selected}
-                            onCheckedChange={checked =>
-                              updateTemplateConfig(template.id, {
-                                services: checked === true,
-                              })
-                            }
-                          />
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Grouping */}
-              <div className="flex flex-col gap-2">
-                <Label>{m.programs_export_group_by_label()}</Label>
-                <Select
-                  value={groupBy}
-                  onValueChange={v => {
-                    setGroupBy(v as 'date' | 'template')
-                    markDirty()
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="date">{m.programs_export_group_by_date()}</SelectItem>
-                    <SelectItem value="template">{m.programs_export_group_by_template()}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Hidden field to submit dynamicConfig as JSON */}
-              <input type="hidden" name="dynamicConfig" value={JSON.stringify(dynamicConfigJson)} />
-            </CardContent>
-          </Card>
+          <ProgrammeConfigFields templates={templates} storedConfig={settings.dynamicConfig} onChange={markDirty} />
         )}
+
+        {appearance && <AppearanceFields dynamicType={appearance.type} appearance={appearance} onChange={markDirty} />}
 
         <FormActions>
           <SubmitButton>{m.board_documents_edit_submit()}</SubmitButton>
@@ -340,14 +215,14 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  const { title, sectionId } = submission.value
+  const { title, sectionId, appearance } = submission.value
   const visibleFrom = new Date(submission.value['visible-from'])
   const visibleUntil = new Date(submission.value['visible-until'])
   const isHighlighted = submission.value.hightlighted === 'on'
   const showServices = submission.value.showServices === 'on'
 
   // Parse dynamicConfig from form if provided
-  let dynamicConfig: Record<string, unknown> | undefined
+  let dynamicConfig: Prisma.InputJsonValue | undefined
   if (submission.value.dynamicConfig) {
     try {
       dynamicConfig = JSON.parse(submission.value.dynamicConfig)
@@ -367,10 +242,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     })
   }
 
-  const { congregationId } = context.get(currentAccountContext)
+  const { congregationId, id: actorId } = context.get(currentAccountContext)
 
   return withScopeFromContext(context, async db => {
-    const settings = await updateDynamicDocument(db, dynamicId, congregationId, {
+    const settings = await updateDynamicDocument(db, dynamicId, congregationId, actorId, {
       title,
       sectionId,
       visibleFrom: parsedFrom,
@@ -378,7 +253,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       isHighlighted,
       showServices,
       dynamicConfig,
+      appearance,
     })
+    if (!settings) throw redirect('/board/documents')
 
     session.flash('success', m.board_dynamic_edit_success({ name: settings.title }))
 

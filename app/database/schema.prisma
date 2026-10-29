@@ -494,6 +494,8 @@ model BoardDynamicDocumentSettings {
   dynamicType   String
   dynamicRef    String?
   dynamicConfig Json?
+  /// Typeface, accent and layout, validated by the app; null means the defaults.
+  appearance    Json?
   section       BoardSection               @relation(fields: [sectionId], references: [id])
   sectionId     Int
   order         Int?

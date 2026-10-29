@@ -279,6 +279,16 @@ beforeAll(async () => {
       },
     })
 
+    await tx.boardDynamicDocumentSettings.create({
+      data: {
+        title: 'Groupes de prédication',
+        dynamicType: 'publisher-groups',
+        sectionId: section.id,
+        appearance: { typeface: 'serif', accent: 'wine', layout: 'bands' },
+        congregationId: sourceId,
+      },
+    })
+
     await tx.consentRecord.create({
       data: {
         purpose: 'DATA_PROCESSING',
@@ -868,6 +878,10 @@ describe('Export/Import round-trip', () => {
       const documents = await tx.boardDocument.findMany({})
       expect(documents).toHaveLength(1)
       expect(documents[0].sectionId).toBe(sections[0].id)
+      const dynamicDocuments = await tx.boardDynamicDocumentSettings.findMany({})
+      expect(dynamicDocuments).toHaveLength(1)
+      expect(dynamicDocuments[0].sectionId).toBe(sections[0].id)
+      expect(dynamicDocuments[0].appearance).toEqual({ typeface: 'serif', accent: 'wine', layout: 'bands' })
 
       // Consent
       const consents = await tx.consentRecord.findMany({})
