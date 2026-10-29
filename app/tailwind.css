@@ -184,6 +184,25 @@
   }
 }
 
+/* A board document on screen, in the typeface and accent chosen for it: the viewer sets
+   `--board-accent` and the font family on the sheet's root. Display type inside follows the
+   document's typeface rather than the app's, as on its printed sheet. */
+@utility board-accent {
+  color: var(--board-accent, var(--color-primary));
+  .dark & {
+    /* The vetted accents are dark, for paper; on a dark screen they lighten toward white. */
+    color: color-mix(
+      in oklab,
+      var(--board-accent, var(--color-primary)) 45%,
+      white
+    );
+  }
+}
+
+[data-board-sheet] .font-display {
+  font-family: inherit;
+}
+
 /* Respect prefers-reduced-motion. The `both` fill on our keyframes still
    settles elements on their final (visible) state. */
 @media (prefers-reduced-motion: reduce) {

@@ -281,28 +281,6 @@ export function createDynamicDocument(
   })
 }
 
-export function updateDynamicDocument(
-  db: TransactionClient,
-  id: number,
-  congregationId: number,
-  data: {
-    title: string
-    sectionId: number
-    visibleFrom: Date | null
-    visibleUntil: Date | null
-    isHighlighted: boolean
-    showServices: boolean
-    dynamicConfig?: JsonValue
-  },
-) {
-  return db.boardDynamicDocumentSettings.update({
-    where: {
-      id_congregationId: { id, congregationId },
-    },
-    data,
-  })
-}
-
 export function deleteDynamicDocument(db: TransactionClient, id: number, congregationId: number) {
   return db.boardDynamicDocumentSettings.delete({
     where: {

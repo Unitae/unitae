@@ -72,7 +72,7 @@ See [Publishers](publishers.md) for details.
 Manage congregation meeting programmes, event scheduling, and publisher assignments.
 
 - **Programme templates** — Define meeting structures (parts + service roles) with recurring weekdays. Ships with midweek, weekend, and memorial defaults
-- **Parallel parts (tracks)** — Mark template parts to run simultaneously in different rooms/groups (e.g., "Main hall" vs "Children"). Parts with the same order and different tracks render side-by-side in the board viewer and PDF export
+- **Parallel parts (tracks)** — Mark template parts to run simultaneously in different rooms/groups (e.g., "Main hall" vs "Children"). Parts with the same order and different tracks render side-by-side in the board viewer and its PDF
 - **Event generation** — Auto-generate events from templates, or create one-time events from templates or freeform. Events are listed from the start of the current month onward
 - **Draft and released events** — New events start as drafts so programme organizers can build the schedule privately. Drafts stay off the display board, calendar feeds, and dashboards; releasing publishes the event and sends assignment emails (with a 30-minute safety net for accidental releases). Un-releasing hides the event again and cancels not-yet-sent emails
 - **Publisher assignments** — Assign speakers, readers, and service roles with a dynamic info card showing availability, conflicts, and rotation history

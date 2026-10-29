@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { appearanceInputSchema } from '~/features/display-board/schemas/appearance.schema'
 
 export const createDocumentSchema = z.object({
   name: z.string().min(1),
@@ -33,6 +34,7 @@ export const updateDynamicDocumentSchema = z.object({
   hightlighted: z.string().optional(),
   showServices: z.string().optional(),
   dynamicConfig: z.string().optional(),
+  appearance: appearanceInputSchema.optional(),
 })
 
 export const restoreVersionSchema = z.object({

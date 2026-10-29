@@ -1,14 +1,12 @@
 import { redirect } from 'react-router'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
 import { isPrintableDynamicDocument } from '~/features/display-board/model/printable-document'
-import { programmePdfOptions } from '~/features/display-board/model/programme-pdf-options'
+import { sheetDataFor } from '~/features/display-board/model/programme-sheet-window'
+import { parseAppearance } from '~/features/display-board/schemas/appearance.schema'
 import { getDynamicDocumentData } from '~/features/display-board/server/dynamic-documents.server'
 import { filterDynamicDataToEvent, readEventIdParam } from '~/features/display-board/server/event-filter.server'
 import { buildSectionVisibilityFilter } from '~/features/display-board/server/section-visibility.server'
-import { OrganigramDocument } from '~/features/display-board/ui/dynamic/OrganigramDocument'
-import { PioneersDocument } from '~/features/display-board/ui/dynamic/PioneersDocument'
-import { PublisherGroupsDocument } from '~/features/display-board/ui/dynamic/PublisherGroupsDocument'
-import { EventBoardDocument } from '~/features/events/index.server'
+import { buildBoardSheet } from '~/features/display-board/ui/dynamic/pdf/board-sheet'
 import {
   congregationContext,
   currentAccountContext,
@@ -23,10 +21,18 @@ import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/pdf'
 
+const FALLBACK_FILENAMES: Record<DynamicType, string> = {
+  [DynamicType.Organigram]: 'organigramme',
+  [DynamicType.PublisherGroups]: 'groupes',
+  [DynamicType.Pioneers]: 'pionniers',
+  [DynamicType.Programme]: 'programme',
+}
+
 /**
  * The printable sheet of a dynamic document, guarded exactly like the viewer: board permission
  * plus the section's own visibility — a PDF URL must not show anyone a document the board itself
- * would not. It reads the same data as the viewer, so both show the same people and events.
+ * would not. It reads the same data as the viewer, so both show the same people and events; the
+ * programme prints this month and the next.
  */
 export function loader({ params, request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
@@ -34,7 +40,7 @@ export function loader({ params, request, context }: Route.LoaderArgs) {
   const currentUser = context.get(currentAccountContext)
   // The resolved public name (displayName ?? name) — what every header shows. On managed
   // hosting the raw `Congregation.name` is the provisioning-time value, not the chosen one.
-  const congregationName = context.get(congregationContext).displayName
+  const { displayName: congregationName, timezone } = context.get(congregationContext)
   const dynamicId = requireParamId(params.dynamicId, '/board')
 
   return withScopeFromContext(context, async db => {
@@ -53,55 +59,32 @@ export function loader({ params, request, context }: Route.LoaderArgs) {
       dynamicConfig: settings.dynamicConfig,
     })
     // A viewer opened on one event (notification deep link) downloads that event, not the month.
-    const { data } = filterDynamicDataToEvent(rawData, readEventIdParam(request))
-    if (!data) {
+    const eventId = readEventIdParam(request)
+    const { data: filtered, requestedEventMissing } = filterDynamicDataToEvent(rawData, eventId)
+    if (!filtered) {
       // Not an empty document but an unreadable one: an unknown type, or a stored config that no
       // longer parses. The viewer shows its empty state too, so leave a trace for whoever looks.
       logger.warn(`Board PDF refused: no data for dynamic document ${settings.id} (type ${settings.dynamicType}).`)
       throw redirect('/board')
     }
+    const asOf = new Date()
+    const data = sheetDataFor(filtered, {
+      now: asOf,
+      timezone,
+      narrowedToEvent: eventId != null && !requestedEventMissing,
+    })
     // Same rule as the viewer's download button: an empty document would print a blank page.
     if (!isPrintableDynamicDocument(data)) throw redirect('/board')
 
     const { title } = settings
-    const filename = (fallback: string) => `${sanitizeFilename(title.toLowerCase()) || fallback}.pdf`
-
-    if (data.type === DynamicType.Organigram) {
-      return renderPdfResponse(
-        <OrganigramDocument tree={data.tree} title={title} congregationName={congregationName} />,
-        filename('organigramme'),
-      )
-    }
-    if (data.type === DynamicType.PublisherGroups) {
-      return renderPdfResponse(
-        <PublisherGroupsDocument groups={data.groups} title={title} congregationName={congregationName} />,
-        filename('groupes'),
-      )
-    }
-    if (data.type === DynamicType.Pioneers) {
-      return renderPdfResponse(
-        <PioneersDocument pioneers={data.pioneers} title={title} congregationName={congregationName} />,
-        filename('pionniers'),
-      )
-    }
-    if (data.type === DynamicType.Programme) {
-      // The programme prints on the programmes export sheet, with the board document's own
-      // template choices. Its guard stays the board's, not `CanViewPrograms`: the sheet shows
-      // nothing this account cannot already read on the board screen.
-      const { configMap, groupBy } = programmePdfOptions(data)
-      return renderPdfResponse(
-        <EventBoardDocument
-          events={data.events}
-          configMap={configMap}
-          groupBy={groupBy}
-          title={title}
-          congregationName={congregationName}
-        />,
-        filename('programme'),
-      )
-    }
-    // Every dynamic type has a sheet: a new type must get one here before it compiles.
-    const unhandled: never = data
-    return unhandled
+    // The programme's guard stays the board's, not `CanViewPrograms`: the sheet shows nothing this
+    // account cannot already read on the board screen.
+    const sheet = await buildBoardSheet(data, parseAppearance(data.type, settings.appearance), {
+      title,
+      congregationName,
+      asOf,
+      timezone,
+    })
+    return renderPdfResponse(sheet, `${sanitizeFilename(title.toLowerCase()) || FALLBACK_FILENAMES[data.type]}.pdf`)
   })
 }

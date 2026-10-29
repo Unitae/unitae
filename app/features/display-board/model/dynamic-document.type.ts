@@ -7,6 +7,10 @@ export const DynamicType = {
 
 export type DynamicType = (typeof DynamicType)[keyof typeof DynamicType]
 
+export function isDynamicType(value: string): value is DynamicType {
+  return (Object.values(DynamicType) as string[]).includes(value)
+}
+
 export interface AvailableDynamicType {
   dynamicType: DynamicType
   dynamicRef: string | null

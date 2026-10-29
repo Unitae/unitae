@@ -8,7 +8,6 @@ import {
   deleteDynamicDocument,
   markDocumentAsViewed,
   updateBoardDocument,
-  updateDynamicDocument,
 } from './board-document.server'
 
 const mockDb = {
@@ -94,29 +93,6 @@ describe('createDynamicDocument', () => {
     expect(written).toMatchObject(data)
     expect(written.visibleFrom).toBeInstanceOf(Date)
     expect(written.visibleFrom.getTime()).toBeGreaterThanOrEqual(before.getTime())
-  })
-})
-
-describe('updateDynamicDocument', () => {
-  it('updates a dynamic document using compound key', async () => {
-    const data = {
-      title: 'Updated',
-      sectionId: 3,
-      visibleFrom: null,
-      visibleUntil: null,
-      isHighlighted: false,
-      showServices: true,
-    }
-    const expected = { id: 5, ...data }
-    mockDb.boardDynamicDocumentSettings.update.mockResolvedValue(expected)
-
-    const result = await updateDynamicDocument(mockDb as never, 5, 10, data)
-
-    expect(result).toEqual(expected)
-    expect(mockDb.boardDynamicDocumentSettings.update).toHaveBeenCalledWith({
-      where: { id_congregationId: { id: 5, congregationId: 10 } },
-      data,
-    })
   })
 })
 

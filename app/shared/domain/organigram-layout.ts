@@ -198,6 +198,39 @@ export function bandAdjoints(node: OrganigramNode, rows: OrganigramNode[]): Orga
   ].filter(adjoint => !seen.has(adjoint.memberId) && seen.add(adjoint.memberId))
 }
 
+/**
+ * What one service line prints: its seats — the leaders, then its adjoints — and the teams it
+ * names. A plain row (`rows` null) prints its own leaders and deputies. A band folds the leaders
+ * of what sits beneath it in as adjoints and names only its group roles as teams; both halves of
+ * that rule are `bandAdjoints` and `teamRows`, so every rendering applies them alike.
+ */
+export function serviceParts(
+  node: OrganigramNode,
+  rows: OrganigramNode[] | null,
+): { holders: OrganigramHolder[]; teams: OrganigramNode[] } {
+  if (rows == null) {
+    return { holders: node.holders.filter(holder => holder.kind === 'leader' || holder.kind === 'deputy'), teams: [] }
+  }
+  const leaders = node.holders.filter(holder => holder.kind === 'leader')
+  const deputies = bandAdjoints(node, rows).map(deputy => ({ ...deputy, kind: 'deputy' }))
+  return { holders: [...leaders, ...deputies], teams: teamRows(rows) }
+}
+
+export interface ServiceEntry {
+  node: OrganigramNode
+  rows: OrganigramNode[] | null
+}
+
+/**
+ * A section's services in reading order, one line each: a band's own node with the rows beneath
+ * it, or — for a collector band, which has no node of its own — each of its rows as a line.
+ */
+export function bandEntries(bands: BandBlock[]): ServiceEntry[] {
+  return bands.flatMap((band): ServiceEntry[] =>
+    band.node ? [{ node: band.node, rows: band.rows }] : band.rows.map(row => ({ node: row, rows: null })),
+  )
+}
+
 export interface GroupedLayout {
   rosters: RosterBlock[]
   committee: CommitteeBlock | null

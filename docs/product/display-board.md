@@ -132,6 +132,28 @@ Available types (appear only when the related feature has data):
 
 Dynamic documents support the same visibility, highlighting, ordering, and section placement controls as PDF documents. They appear alongside PDFs in the same sections on the board. On the board view, each dynamic document card shows a **preview summary** (group count, pioneer count, or next event date) to provide context at a glance.
 
+### Appearance
+
+Each dynamic document has its own look, chosen on its edit page and applied both on the board screen and in its PDF:
+
+- **Typeface** — Fira Sans, Atkinson Hyperlegible (designed for readers with low vision) or Source Serif.
+- **Accent colour** — one of nine colours for the labels (responsable, adjoint, posts). Each reads at 4.5:1 or better on white and prints as a mid grey in black and white.
+- **Layout** — from the document's own list:
+  - Field service groups: *directory* (two columns of groups), *columns* (one column per group, landscape) or *bands* (one band per group, its people across three columns). The responsable and the adjoint appear in the group's head only, never again in its list.
+  - Organigram: *by overseer* (the committee, then each post's services) or *posts in columns* (the committee's three posts side by side, their services beneath).
+  - Pioneers: *sections* (one per pioneer type) or *columns* (the types side by side).
+  - Programmes have a single layout.
+
+The choices are curated so every combination stays legible pinned up and printed: there is no free colour, size or font. A document never given a look uses Fira Sans, teal and its first layout.
+
+### Printable sheets
+
+Every dynamic document can be downloaded as an A4 PDF from its viewer ("Télécharger en PDF"), ready to pin on the physical board. Each sheet opens on a masthead with the congregation, the title and the day it was printed (« À jour au … »).
+
+- **Groups and pioneers** set their names in the largest size, from 12pt down to 9pt, that keeps the sheet on the fewest pages with every name inside its column. Six groups of 25 people fit on one page in every typeface and layout. A group taller than a page continues on the next one rather than lose names.
+- **Organigram** prints at 10.5pt, a little smaller only when a name is too long for its column.
+- **Programmes** print this month and the next, in the congregation's timezone. A download from a notification's link prints that meeting, wherever it falls.
+
 ### Unread Detection
 
 For PDFs, the unread badge disappears once a member opens the document. For dynamic documents, the badge **reappears when the underlying data changes** — e.g., when a new publisher is added to a group or a programme assignment is updated. This ensures members are notified of fresh content.

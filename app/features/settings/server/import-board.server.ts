@@ -1,4 +1,6 @@
 import type JsZip from 'jszip'
+import { Prisma } from '~/database/generated/client'
+import { isDynamicType, parseAppearance } from '~/features/display-board/index.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { buildStorageKey, uploadFile } from '~/shared/infra/file-storage.server'
 import type { EntityIdMap } from './data-transfer.type'
@@ -150,6 +152,16 @@ export async function importBoardFile(zip: JsZip, originalUri: string, congregat
   return newKey
 }
 
+/**
+ * A dynamic document's appearance as the archive carried it, read as its own type reads it: a
+ * choice that no longer reads falls back to its default. None at all (a pre-2.9 archive) means the
+ * defaults, stored as no appearance.
+ */
+function importedAppearance(dynamicType: string, appearance: unknown) {
+  if (appearance == null || !isDynamicType(dynamicType)) return Prisma.DbNull
+  return { ...parseAppearance(dynamicType, appearance) }
+}
+
 export async function importBoardDynamicDocumentSettings(
   zip: JsZip,
   db: TransactionClient,
@@ -167,6 +179,8 @@ export async function importBoardDynamicDocumentSettings(
     visibleUntil: string | null
     isHighlighted: boolean
     showServices: boolean
+    // Since v2.9.
+    appearance?: unknown
   }>(zip, 'board-dynamic-document-settings')
 
   for (const record of records) {
@@ -186,6 +200,7 @@ export async function importBoardDynamicDocumentSettings(
       visibleUntil: record.visibleUntil ? new Date(record.visibleUntil) : null,
       isHighlighted: record.isHighlighted,
       showServices: record.showServices,
+      appearance: importedAppearance(record.dynamicType, record.appearance),
     }
 
     if (existing) {

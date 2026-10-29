@@ -1,8 +1,8 @@
 import type { ProgrammeDynamicConfig } from '~/features/display-board/model/dynamic-document.type'
-import type { BoardDocumentTemplateOptions } from '~/features/events'
+import type { ProgrammeSheetTemplateOptions } from '~/features/display-board/model/programme-sheet.type'
 
-// How the board's programme maps onto the programmes export sheet: which templates print their
-// parts and their services, and how events are grouped. Same choices as the board screen.
+// How the board's programme maps onto its printable sheet: which templates print their parts and
+// their services, and how events are grouped. Same choices as the board screen.
 
 interface ProgrammeInput {
   events: { templateId?: number | null }[]
@@ -11,7 +11,7 @@ interface ProgrammeInput {
 }
 
 export function programmePdfOptions(programme: ProgrammeInput): {
-  configMap: Map<number, BoardDocumentTemplateOptions>
+  configMap: Map<number, ProgrammeSheetTemplateOptions>
   groupBy: 'date' | 'template'
 } {
   if (programme.config) {
@@ -26,7 +26,7 @@ export function programmePdfOptions(programme: ProgrammeInput): {
   // Today the legacy query already leaves services out when the switch is off, so this keeps the
   // two layers agreeing rather than being the only guard. Events without a template (not
   // produced by the legacy query, which joins on the template key) get no entry.
-  const configMap = new Map<number, BoardDocumentTemplateOptions>()
+  const configMap = new Map<number, ProgrammeSheetTemplateOptions>()
   for (const event of programme.events) {
     if (event.templateId != null) configMap.set(event.templateId, { parts: true, services: programme.showServices })
   }
