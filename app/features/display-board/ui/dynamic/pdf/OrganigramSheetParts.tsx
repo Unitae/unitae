@@ -1,4 +1,9 @@
 import { StyleSheet, Text, View } from '@react-pdf/renderer'
+import {
+  ORGANIGRAM_CHART_GAP,
+  ORGANIGRAM_NAME_GAP,
+  ORGANIGRAM_ROSTER_GAP,
+} from '~/features/display-board/model/organigram-sheet'
 import type { OrganigramHolder, OrganigramNode } from '~/shared/domain/organigram.queries'
 import { type RosterBlock, seatLabel, serviceParts } from '~/shared/domain/organigram-layout'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
@@ -16,18 +21,16 @@ import {
 // The pieces the printable organigram is built from: the rosters, a committee post, and a service
 // with its people — on a line across the page, or stacked in a chart column.
 
-export const ORGANIGRAM_SIZE = 10.5
-
 export function makeOrganigramStyles(s: number) {
   return StyleSheet.create({
     text: { fontSize: s, lineHeight: 1.3 },
     muted: { fontSize: s, lineHeight: 1.3, color: BOARD_PDF_MUTED },
-    rosters: { flexDirection: 'row', gap: 22, marginBottom: 14 },
+    rosters: { flexDirection: 'row', gap: ORGANIGRAM_ROSTER_GAP, marginBottom: 14 },
     roster: { flex: 1 },
     heading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 },
     headingText: { fontSize: 1.25 * s, fontWeight: 'bold' },
     count: { fontSize: s, color: BOARD_PDF_MUTED },
-    names: { flexDirection: 'row', gap: 10 },
+    names: { flexDirection: 'row', gap: ORGANIGRAM_NAME_GAP },
     nameColumn: { flex: 1 },
 
     committee: { marginBottom: 14 },
@@ -45,7 +48,7 @@ export function makeOrganigramStyles(s: number) {
     note: { fontSize: 0.95 * s, color: BOARD_PDF_MUTED, fontStyle: 'italic', marginTop: 1 },
 
     // Chart: a column per committee post; a service's name over its people.
-    chart: { flexDirection: 'row', gap: 18, marginBottom: 14 },
+    chart: { flexDirection: 'row', gap: ORGANIGRAM_CHART_GAP, marginBottom: 14 },
     chartColumn: { flex: 1 },
     chartHead: { paddingBottom: 6, marginBottom: 2, borderBottomWidth: 1, borderBottomColor: BOARD_PDF_INK },
     chartService: { paddingVertical: 5, borderBottomWidth: 0.5, borderBottomColor: BOARD_PDF_RULE },

@@ -12,15 +12,7 @@ import {
 } from '~/shared/domain/organigram-layout'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 import { BoardPdfMasthead, BoardPdfPage, boardPdfStyles, SheetText } from './board-pdf'
-import {
-  ChartService,
-  Line,
-  makeOrganigramStyles,
-  ORGANIGRAM_SIZE,
-  type OrganigramStyles,
-  Post,
-  Roster,
-} from './OrganigramSheetParts'
+import { ChartService, Line, makeOrganigramStyles, type OrganigramStyles, Post, Roster } from './OrganigramSheetParts'
 
 // The printable « Organisation des services », in one of two layouts. Both open on the two
 // rosters and keep the board's vocabulary and reading order.
@@ -105,16 +97,19 @@ export function OrganigramDocument({
   asOf,
   typeface,
   accentColor,
+  size,
 }: {
   tree: OrganigramNode[]
   layout: OrganigramLayout
+  /** The text size, from `organigramSheetSize`. */
+  size: number
   title: string
   congregationName: string
   asOf: string
   typeface: BoardTypeface
   accentColor: string
 }) {
-  const styles = makeOrganigramStyles(ORGANIGRAM_SIZE)
+  const styles = makeOrganigramStyles(size)
   const { rosters, committee, sections, legacy } = groupLayout(toLayout(tree))
   // In the chart, the posts' own branches sit in their columns; every other section follows.
   const postNames = new Set(layout === 'chart' && committee ? committee.posts.map(post => post.name) : [])

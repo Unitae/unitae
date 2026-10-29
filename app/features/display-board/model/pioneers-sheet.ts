@@ -14,7 +14,7 @@ import {
   SAFE_FILL,
   sheetContentBox,
 } from '~/features/display-board/model/sheet-page'
-import { lineCount, type TextMeasurer } from '~/features/display-board/model/sheet-text'
+import { lineCount, type TextMeasurer, widestWord } from '~/features/display-board/model/sheet-text'
 
 // How the printable « Pionniers » lays itself out, before react-pdf draws it:
 //   sections  one section per pioneer type down the page, its names read down three columns;
@@ -76,6 +76,11 @@ function columnWidth(total: number): number {
   return (contentWidth() - PIONEERS_GAP * (total - 1)) / total
 }
 
+/** Every name fits its column at this size: no word runs into the next column or off the page. */
+function namesFit(pioneers: SheetPioneer[], measurer: TextMeasurer, s: number, width: number): boolean {
+  return pioneers.every(person => widestWord(boardPersonNameRuns(person), measurer, s) <= width)
+}
+
 function headingLines(label: string, measurer: TextMeasurer, s: number, width: number): number {
   // The count sits at the heading's right; the title keeps clear of it.
   return lineCount([{ text: label, weight: 'bold' }], measurer, PIONEERS_HEADING_SCALE * s, width * 0.82)
@@ -99,7 +104,13 @@ function planSections(groups: { type: string; pioneers: SheetPioneer[] }[], meas
       SECTION_GAP,
     0,
   )
-  return { sections, headingHeight: 0, columnWidth: width, total }
+  const fits = namesFit(
+    groups.flatMap(group => group.pioneers),
+    measurer,
+    s,
+    width,
+  )
+  return { sections, headingHeight: 0, columnWidth: width, total, fits }
 }
 
 /** Columns: one per type, then a second for whichever type runs longest, while the page has room. */
@@ -130,16 +141,24 @@ function planColumns(groups: { type: string; pioneers: SheetPioneer[] }[], measu
       columnWidth: width,
       lists,
       total: ENTRY_RULE_HEIGHT + headingHeight + HEADING_GAP + Math.max(...lists),
+      fits: namesFit(pioneers, measurer, s, width),
     }
   }
+  const pioneers = groups.flatMap(group => group.pioneers)
   let current = layoutAt()
+  // A column is only added while every name still fits the narrower columns it makes.
   while (
     current.total > capacity() &&
     counts.reduce((sum, count) => sum + count, 0) < Math.max(MAX_COLUMNS, groups.length)
   ) {
     const longest = current.lists.indexOf(Math.max(...current.lists))
     counts[longest] += 1
-    current = layoutAt()
+    const next = layoutAt()
+    if (!next.fits) {
+      counts[longest] -= 1
+      break
+    }
+    current = next
   }
   return current
 }
@@ -156,6 +175,9 @@ export function fitPioneersSheet(
     const { sections, headingHeight, columnWidth } = planAt(size)
     return { size, sections, headingHeight, columnWidth, fitsOnePage }
   }
-  const size = AUTO_FIT_SIZES.find(candidate => planAt(candidate).total <= capacity())
+  const size = AUTO_FIT_SIZES.find(candidate => {
+    const plan = planAt(candidate)
+    return plan.fits && plan.total <= capacity()
+  })
   return size !== undefined ? result(size, true) : result(AUTO_FIT_SIZES[AUTO_FIT_SIZES.length - 1], false)
 }
