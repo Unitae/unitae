@@ -23,6 +23,20 @@ function isLayoutFont(data: unknown): data is LayoutFont {
 
 const warmed = new WeakSet<object>()
 
+// A glyph several characters share is cached with the first one laid out, and a PDF reader reads
+// it back as that one: Source Serif draws ’ and ʼ alike. The ranges text is written in come first
+// — Basic Latin, Latin-1 and Extended-A, then general punctuation — so « aujourd’hui » stays so.
+const COMMON_RANGES = [
+  [0x20, 0x7e],
+  [0xa0, 0x17f],
+  [0x2000, 0x206f],
+]
+
+function commonness(codePoint: number): number {
+  const index = COMMON_RANGES.findIndex(([from, to]) => codePoint >= from && codePoint <= to)
+  return index === -1 ? COMMON_RANGES.length : index
+}
+
 /**
  * Every PDF the server renders shares one font object per registered face, and that object
  * caches each glyph the first time it meets it. A glyph met while laying out text keeps the
@@ -41,7 +55,8 @@ async function warmRegisteredFonts() {
       if (family.resolve(descriptor) !== source) continue
       await source.load()
       if (isLayoutFont(source.data)) {
-        source.data.layout(source.data.characterSet.map(codePoint => String.fromCodePoint(codePoint)).join(' '))
+        const characters = [...source.data.characterSet].sort((a, b) => commonness(a) - commonness(b) || a - b)
+        source.data.layout(characters.map(codePoint => String.fromCodePoint(codePoint)).join(' '))
       }
     }
   }
