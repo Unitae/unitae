@@ -1,9 +1,13 @@
 import { Star } from 'lucide-react'
 import { groupPioneersByType, pioneerTypeLabel } from '~/features/display-board/model/board-roster'
+import type { PioneersLayout } from '~/features/display-board/model/pioneers-sheet'
 import { BoardPersonName } from '~/features/display-board/ui/dynamic/BoardPersonName'
 import * as m from '~/i18n/paraglide/messages'
-import { Card, CardContent } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
+import { cn } from '~/shared/utils/utils'
+
+// The pioneers on the board screen, in the layout chosen for the document: a section per type
+// with its names across columns, or the types side by side. Both reflow to one column on a phone.
 
 interface Pioneer {
   id: number
@@ -15,9 +19,10 @@ interface Pioneer {
 
 interface PioneersViewData {
   pioneers: Pioneer[]
+  layout: PioneersLayout
 }
 
-export function PioneersView({ pioneers }: PioneersViewData) {
+export function PioneersView({ pioneers, layout }: PioneersViewData) {
   if (pioneers.length === 0) {
     return (
       <EmptyState
@@ -28,24 +33,30 @@ export function PioneersView({ pioneers }: PioneersViewData) {
     )
   }
 
+  const sections = groupPioneersByType(pioneers)
+  const columns = layout === 'columns'
+
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 p-4 md:gap-6 md:p-6">
-      {groupPioneersByType(pioneers).map(({ type, pioneers: members }) => (
-        <Card key={type} className="overflow-hidden rounded-2xl border-border/60 shadow-none">
-          <CardContent className="flex flex-col gap-5 p-6">
-            <h2 className="font-display font-semibold text-xl leading-tight tracking-tight">
-              {pioneerTypeLabel(type)}
-              <span className="font-normal text-muted-foreground text-sm tabular-nums"> · {members.length}</span>
-            </h2>
-            <ul className="grid grid-cols-1 gap-x-4 gap-y-1 text-sm tabular-nums sm:grid-cols-2">
-              {members.map(pioneer => (
-                <li key={pioneer.id} className="min-w-0 truncate">
-                  <BoardPersonName person={pioneer} />
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+    <div
+      className={cn(
+        'mx-auto w-full max-w-4xl p-4 md:p-6',
+        columns ? 'grid gap-x-8 gap-y-8 sm:grid-cols-[repeat(auto-fit,minmax(12rem,1fr))]' : 'flex flex-col gap-8',
+      )}
+    >
+      {sections.map(({ type, pioneers: members }) => (
+        <section key={type} className="border-foreground flex flex-col gap-3 border-t pt-3">
+          <h2 className="flex items-baseline justify-between gap-3 text-xl leading-tight font-bold">
+            {pioneerTypeLabel(type)}
+            <span className="text-muted-foreground text-base font-normal tabular-nums">{members.length}</span>
+          </h2>
+          <ul className={cn('gap-x-6 text-sm', !columns && 'columns-1 sm:columns-2 md:columns-3')}>
+            {members.map(pioneer => (
+              <li key={pioneer.id} className="break-inside-avoid">
+                <BoardPersonName person={pioneer} />
+              </li>
+            ))}
+          </ul>
+        </section>
       ))}
     </div>
   )

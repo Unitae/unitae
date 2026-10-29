@@ -17,8 +17,8 @@ import { cn } from '~/shared/utils/utils'
 // masthead, the committee as a bench of three nameplates — the page's one framed element,
 // because the committee IS its three posts — then each post's branch as a titled section.
 // Depth costs a header, never margin, which is what keeps an A4 page scannable and a 390px
-// screen readable. The display face and the teal accent are the app's own; the sheet's only
-// indulgence is the bench.
+// screen readable. The display face is the document's typeface; the sheet's only
+// indulgence is the bench. Its labels take the accent chosen for the document.
 
 interface Holder {
   memberId: number
@@ -29,7 +29,7 @@ interface Holder {
   isElder: boolean
 }
 
-function formatName(person: Holder): string {
+export function formatName(person: Holder): string {
   if (person.anonymizedAt != null) return m.board_read_status_anonymized_user()
   const lastname = person.lastname?.toLocaleUpperCase() ?? null
   return [person.firstname, lastname].filter(Boolean).join(' ') || '—'
@@ -54,7 +54,7 @@ function People({ node, membersHidden = false }: { node: OrganigramNode; members
                 ·
               </span>
             )}
-            {label && <span className="text-[0.7rem] text-primary uppercase tracking-wide">{label} </span>}
+            {label && <span className="text-[0.7rem] board-accent uppercase tracking-wide">{label} </span>}
             <span className="text-foreground/85">{formatName(holder)}</span>
           </span>
         )
@@ -64,7 +64,7 @@ function People({ node, membersHidden = false }: { node: OrganigramNode; members
 }
 
 /** Two columns: the service on the left, its people on the right, as the sheet prints them. */
-function Line({ node }: { node: OrganigramNode }) {
+export function Line({ node }: { node: OrganigramNode }) {
   return (
     <div className="flex flex-col gap-0.5 py-1.5 sm:flex-row sm:items-baseline sm:gap-6">
       <span className="text-foreground/90 text-sm sm:w-56 sm:shrink-0">{node.name}</span>
@@ -92,7 +92,7 @@ const dot = (
  * never did. A nested personal role is not a team and is not named there — it is already on the
  * line above, as an adjoint.
  */
-function ServiceWithTeams({ node, rows }: { node: OrganigramNode; rows: OrganigramNode[] }) {
+export function ServiceWithTeams({ node, rows }: { node: OrganigramNode; rows: OrganigramNode[] }) {
   // Only group roles are teams; the personal roles among `rows` are adjoint arrangements and
   // reach the reader through the ADJOINTS segment instead. Both halves of that rule live in
   // organigram-layout so this view and the PDF cannot drift apart on it.
@@ -112,7 +112,7 @@ function ServiceWithTeams({ node, rows }: { node: OrganigramNode; rows: Organigr
             return (
               <span key={leader.memberId} className="whitespace-nowrap">
                 {index > 0 && dot}
-                {label && <span className="text-[0.7rem] text-primary uppercase tracking-wide">{label} </span>}
+                {label && <span className="text-[0.7rem] board-accent uppercase tracking-wide">{label} </span>}
                 <span className="text-foreground/85">{formatName(leader)}</span>
               </span>
             )
@@ -121,7 +121,7 @@ function ServiceWithTeams({ node, rows }: { node: OrganigramNode; rows: Organigr
             // No dot before a labelled segment: the small-caps label separates it, and a dot
             // dragged to the front of a wrapped line reads as a smudge.
             <span className="whitespace-nowrap">
-              <span className="text-[0.7rem] text-primary uppercase tracking-wide">
+              <span className="text-[0.7rem] board-accent uppercase tracking-wide">
                 {deputies.length === 1 ? 'Adjoint' : 'Adjoints'}{' '}
               </span>
               <span className="text-foreground/85">{deputies.map(deputy => formatName(deputy)).join(', ')}</span>
@@ -144,7 +144,7 @@ function ServiceWithTeams({ node, rows }: { node: OrganigramNode; rows: Organigr
   )
 }
 
-function Roster({ block }: { block: RosterBlock }) {
+export function Roster({ block }: { block: RosterBlock }) {
   return (
     <section className="border-foreground/30 border-t-2 pt-2">
       <h3 className="flex items-baseline gap-2 pb-1.5">
@@ -186,7 +186,7 @@ function CommitteeBench({ block }: { block: CommitteeBlock }) {
               </span>
               {deputies.length > 0 && (
                 <span className="text-muted-foreground text-xs">
-                  <span className="text-[0.7rem] text-primary uppercase tracking-wide">Adjoint </span>
+                  <span className="text-[0.7rem] board-accent uppercase tracking-wide">Adjoint </span>
                   {deputies.map(deputy => formatName(deputy)).join(' · ')}
                 </span>
               )}
@@ -199,7 +199,7 @@ function CommitteeBench({ block }: { block: CommitteeBlock }) {
 }
 
 /** One responsibility branch: an eyebrow, the name in the display face, then its bands. */
-function BranchSection({ under, bands }: { under: string; bands: BandBlock[] }) {
+export function BranchSection({ under, bands }: { under: string; bands: BandBlock[] }) {
   return (
     <section className="flex flex-col gap-2">
       <header className="border-b pb-2">

@@ -8,7 +8,7 @@ export function BoardPersonName({ person }: { person: Omit<BoardPerson, 'id'> })
   return (
     <span>
       {name.firstname && <span className="text-muted-foreground">{name.firstname} </span>}
-      {name.lastname && <span className="font-semibold tracking-wide">{name.lastname}</span>}
+      {name.lastname && <span className="font-bold">{name.lastname}</span>}
     </span>
   )
 }

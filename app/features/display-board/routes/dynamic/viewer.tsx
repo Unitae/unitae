@@ -1,9 +1,11 @@
 import { ArrowLeft, Download, Info, Search, X } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { type CSSProperties, useRef, useState } from 'react'
 import { Link, redirect } from 'react-router'
+import { BOARD_ACCENT_COLOR } from '~/features/display-board/model/board-appearance'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
 import { isPrintableDynamicDocument } from '~/features/display-board/model/printable-document'
 import { sheetDataFor } from '~/features/display-board/model/programme-sheet-window'
+import { parseAppearance } from '~/features/display-board/schemas/appearance.schema'
 import {
   getContentVersion,
   getDynamicDocumentData,
@@ -11,10 +13,9 @@ import {
 } from '~/features/display-board/server/dynamic-documents.server'
 import { filterDynamicDataToEvent, readEventIdParam } from '~/features/display-board/server/event-filter.server'
 import { buildSectionVisibilityFilter } from '~/features/display-board/server/section-visibility.server'
-import { OrganigramView } from '~/features/display-board/ui/dynamic/OrganigramView'
-import { PioneersView } from '~/features/display-board/ui/dynamic/PioneersView'
-import { ProgrammeView } from '~/features/display-board/ui/dynamic/ProgrammeView'
-import { PublisherGroupsView } from '~/features/display-board/ui/dynamic/PublisherGroupsView'
+import { BoardMasthead } from '~/features/display-board/ui/dynamic/BoardMasthead'
+import { BOARD_WEB_FONT_STACK, BOARD_WEB_FONTS_HREF } from '~/features/display-board/ui/dynamic/board-web-fonts'
+import { DynamicDocumentView } from '~/features/display-board/ui/dynamic/DynamicDocumentView'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -37,12 +38,22 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.board_viewer_meta_title() }]
 }
 
+/** The width each view reads best at; the masthead takes the same, so it lines up with the page. */
+function viewWidth(type: DynamicType | undefined, layout: string | undefined): string {
+  if (type === DynamicType.PublisherGroups && layout === 'columns') return 'max-w-7xl'
+  if (type === DynamicType.Organigram) return layout === 'chart' ? 'max-w-5xl' : 'max-w-3xl'
+  return 'max-w-4xl'
+}
+
+// The document is shown in its own typeface; a browser only downloads the face it uses.
+export const links: Route.LinksFunction = () => [{ rel: 'stylesheet', href: BOARD_WEB_FONTS_HREF }]
+
 export function loader({ params, request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.CanViewBoard)
 
   const currentUser = context.get(currentAccountContext)
-  const { timezone } = context.get(congregationContext)
+  const { timezone, displayName: congregationName } = context.get(congregationContext)
 
   const dynamicId = requireParamId(params.dynamicId, '/board')
 
@@ -85,12 +96,15 @@ export function loader({ params, request, context }: Route.LoaderArgs) {
     const printable =
       data != null && isPrintableDynamicDocument(sheetDataFor(data, { now: new Date(), timezone, narrowedToEvent }))
 
-    return { settings, data, contentVersion, requestedEventMissing, pdfUrl, printable }
+    const appearance = data ? parseAppearance(data.type, settings.appearance) : null
+
+    return { settings, data, contentVersion, requestedEventMissing, pdfUrl, printable, appearance, congregationName }
   })
 }
 
 export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) {
-  const { settings, data, contentVersion, requestedEventMissing, pdfUrl, printable } = loaderData
+  const { settings, data, contentVersion, requestedEventMissing, pdfUrl, printable, appearance, congregationName } =
+    loaderData
   const isProgramme = data?.type === DynamicType.Programme
 
   const [searchOpen, setSearchOpen] = useState(false)
@@ -169,11 +183,27 @@ export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) 
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto" ref={scrollContainerRef}>
-        <div className="mx-auto flex w-full max-w-3xl flex-col gap-2 px-4 pt-6 md:px-6">
-          <h2 className="font-display font-semibold text-3xl leading-tight tracking-[-0.02em] md:text-4xl">
-            {settings.title}
-          </h2>
+      <div
+        className="flex-1 overflow-auto"
+        ref={scrollContainerRef}
+        data-board-sheet=""
+        data-layout={appearance?.layout}
+        style={
+          appearance
+            ? ({
+                fontFamily: BOARD_WEB_FONT_STACK[appearance.typeface],
+                '--board-accent': BOARD_ACCENT_COLOR[appearance.accent],
+              } as CSSProperties)
+            : undefined
+        }
+      >
+        <div
+          className={cn(
+            'mx-auto flex w-full flex-col gap-2 px-4 pt-6 md:px-6',
+            viewWidth(data?.type, appearance?.layout),
+          )}
+        >
+          <BoardMasthead congregationName={congregationName} title={settings.title} />
           {/* The deep link named an event this document does not hold. Saying
               so beats rendering the whole programme as though it were the one
               that was asked for. */}
@@ -184,14 +214,10 @@ export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) 
             </p>
           )}
         </div>
-        {data?.type === DynamicType.Organigram && <OrganigramView tree={data.tree} />}
-        {data?.type === DynamicType.PublisherGroups && <PublisherGroupsView groups={data.groups} />}
-        {data?.type === DynamicType.Pioneers && <PioneersView pioneers={data.pioneers} />}
-        {data?.type === DynamicType.Programme && (
-          <ProgrammeView
-            events={data.events}
-            showServices={data.showServices}
-            config={data.config}
+        {data && (
+          <DynamicDocumentView
+            data={data}
+            layout={appearance?.layout}
             highlightQuery={debouncedSearch}
             scrollContainerRef={scrollContainerRef}
           />
