@@ -5,7 +5,6 @@ export {
   type PartRoleSlot,
   partAllowedRolesToWrite,
 } from './model/allowed-roles-write'
-export type { BoardDocumentEvent, BoardDocumentTemplateOptions } from './model/board-document-event.type'
 export { dayLabel, dayLabelShort } from './model/day-label'
 export { EventStatus } from './model/event-status.type'
 export { EventTemplateKey, isSystemTemplate } from './model/event-template.type'

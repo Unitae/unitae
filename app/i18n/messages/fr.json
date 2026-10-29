@@ -462,6 +462,7 @@
     "board_viewer_services_label": "Services ({count})",
     "board_viewer_updated": "Mis à jour",
     "board_viewer_download_pdf": "Télécharger en PDF",
+    "board_pdf_as_of": "À jour au {date}",
     "board_dynamic_badge": "Dynamique",
     "board_add_dynamic_button": "Ajouter un document dynamique",
     "board_new_dynamic_meta_title": "Ajouter un document dynamique - Unitae",

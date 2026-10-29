@@ -1,3 +1,4 @@
+import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
 import { combineLocalDateTime } from '~/shared/utils/event-time'
 import { zonedNow } from '~/shared/utils/zoned-now'
 
@@ -39,4 +40,17 @@ export function eventsForSheet<E extends { startDate: Date | string }>(
     const time = new Date(event.startDate).getTime()
     return time >= window.start.getTime() && time < window.end.getTime()
   })
+}
+
+/**
+ * What a document's sheet prints: a programme kept to its window, any other document as it is.
+ * One rule for the download route and the viewer's button, so the button never offers a sheet the
+ * route would refuse as empty.
+ */
+export function sheetDataFor<D extends { type: string; events?: { startDate: Date | string }[] }>(
+  data: D,
+  { now, timezone, narrowedToEvent }: { now: Date; timezone: string; narrowedToEvent: boolean },
+): D {
+  if (data.type !== DynamicType.Programme || !data.events) return data
+  return { ...data, events: eventsForSheet(data.events, programmeSheetWindow(now, timezone), narrowedToEvent) }
 }

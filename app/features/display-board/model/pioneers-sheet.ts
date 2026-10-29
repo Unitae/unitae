@@ -49,6 +49,8 @@ export interface PioneersSheetPlan {
   sections: PioneersSection[]
   /** Columns layout: the height every heading takes, so all the lists start on one line. */
   headingHeight: number
+  /** The width of one column of names; a type's block spans its columns and the gaps between. */
+  columnWidth: number
   /** Whether the sheet holds on one page; when it doesn't, it flows rather than drop names. */
   fitsOnePage: boolean
 }
@@ -97,7 +99,7 @@ function planSections(groups: { type: string; pioneers: SheetPioneer[] }[], meas
       SECTION_GAP,
     0,
   )
-  return { sections, headingHeight: 0, total }
+  return { sections, headingHeight: 0, columnWidth: width, total }
 }
 
 /** Columns: one per type, then a second for whichever type runs longest, while the page has room. */
@@ -125,6 +127,7 @@ function planColumns(groups: { type: string; pioneers: SheetPioneer[] }[], measu
     return {
       sections,
       headingHeight,
+      columnWidth: width,
       lists,
       total: ENTRY_RULE_HEIGHT + headingHeight + HEADING_GAP + Math.max(...lists),
     }
@@ -149,12 +152,10 @@ export function fitPioneersSheet(
   const groups = groupPioneersByType(pioneers)
   const planAt = (s: number) =>
     layout === 'columns' ? planColumns(groups, measurer, s) : planSections(groups, measurer, s)
-  for (const size of AUTO_FIT_SIZES) {
-    const plan = planAt(size)
-    if (plan.total <= capacity())
-      return { size, sections: plan.sections, headingHeight: plan.headingHeight, fitsOnePage: true }
+  const result = (size: number, fitsOnePage: boolean) => {
+    const { sections, headingHeight, columnWidth } = planAt(size)
+    return { size, sections, headingHeight, columnWidth, fitsOnePage }
   }
-  const smallest = AUTO_FIT_SIZES[AUTO_FIT_SIZES.length - 1]
-  const plan = planAt(smallest)
-  return { size: smallest, sections: plan.sections, headingHeight: plan.headingHeight, fitsOnePage: false }
+  const size = AUTO_FIT_SIZES.find(candidate => planAt(candidate).total <= capacity())
+  return size !== undefined ? result(size, true) : result(AUTO_FIT_SIZES[AUTO_FIT_SIZES.length - 1], false)
 }

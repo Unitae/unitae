@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { Link, redirect } from 'react-router'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
 import { isPrintableDynamicDocument } from '~/features/display-board/model/printable-document'
+import { sheetDataFor } from '~/features/display-board/model/programme-sheet-window'
 import {
   getContentVersion,
   getDynamicDocumentData,
@@ -16,6 +17,7 @@ import { ProgrammeView } from '~/features/display-board/ui/dynamic/ProgrammeView
 import { PublisherGroupsView } from '~/features/display-board/ui/dynamic/PublisherGroupsView'
 import * as m from '~/i18n/paraglide/messages'
 import {
+  congregationContext,
   currentAccountContext,
   permissionsContext,
   requirePermission,
@@ -40,6 +42,7 @@ export function loader({ params, request, context }: Route.LoaderArgs) {
   requirePermission(permissions, Permission.CanViewBoard)
 
   const currentUser = context.get(currentAccountContext)
+  const { timezone } = context.get(congregationContext)
 
   const dynamicId = requireParamId(params.dynamicId, '/board')
 
@@ -74,17 +77,20 @@ export function loader({ params, request, context }: Route.LoaderArgs) {
     const { data, requestedEventMissing } = filterDynamicDataToEvent(rawData, eventIdFilter)
 
     // The download follows the narrowing, so the file matches what the reader sees.
-    const pdfUrl =
-      eventIdFilter != null && !requestedEventMissing
-        ? `/board/dynamic/${settings.id}/pdf?eventId=${eventIdFilter}`
-        : `/board/dynamic/${settings.id}/pdf`
+    const narrowedToEvent = eventIdFilter != null && !requestedEventMissing
+    const pdfUrl = narrowedToEvent
+      ? `/board/dynamic/${settings.id}/pdf?eventId=${eventIdFilter}`
+      : `/board/dynamic/${settings.id}/pdf`
+    // The download route's own rule, programme window included: never offer a sheet it would refuse.
+    const printable =
+      data != null && isPrintableDynamicDocument(sheetDataFor(data, { now: new Date(), timezone, narrowedToEvent }))
 
-    return { settings, data, contentVersion, requestedEventMissing, pdfUrl }
+    return { settings, data, contentVersion, requestedEventMissing, pdfUrl, printable }
   })
 }
 
 export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) {
-  const { settings, data, contentVersion, requestedEventMissing, pdfUrl } = loaderData
+  const { settings, data, contentVersion, requestedEventMissing, pdfUrl, printable } = loaderData
   const isProgramme = data?.type === DynamicType.Programme
 
   const [searchOpen, setSearchOpen] = useState(false)
@@ -110,7 +116,7 @@ export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) 
               {m.board_viewer_updated()} <RelativeTime date={contentVersion} />
             </span>
           )}
-          {data != null && isPrintableDynamicDocument(data) && (
+          {printable && (
             // Same design as the PDF viewer's download button. A plain anchor, not a Link: the
             // target is a PDF resource whose Content-Disposition triggers the download without
             // leaving the page. Hidden when the route would refuse it: an empty document prints

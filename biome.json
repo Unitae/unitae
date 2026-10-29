@@ -101,7 +101,7 @@
         },
         {
             "includes": [
-                "app/features/events/ui/EventBoardDocument.tsx",
+                "app/features/display-board/ui/dynamic/pdf/*.tsx",
                 "app/features/territories/ui/TerritoryAttributionDocument.tsx"
             ],
             "linter": {

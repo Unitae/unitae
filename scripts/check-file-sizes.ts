@@ -86,9 +86,8 @@ const EXEMPT_FILES = new Set<string>([
   'app/features/territories/routes/territory/list.tsx', //                 331
   'app/features/territories/routes/territory/view.tsx', //                 440
 
-  // UI components >400L (4) — remaining after Wave 4.
+  // UI components >400L (3) — remaining after Wave 4.
   'app/features/display-board/ui/dynamic/ProgrammeView.tsx', //            536
-  'app/features/events/ui/EventBoardDocument.tsx', //                      432
   'app/features/territories/ui/BuildingEntranceMapEditor.tsx', //          412
   'app/features/territories/ui/TerritoryAttributionDocument.tsx', //       409
 ])

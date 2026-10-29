@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // The PDF URL is guessable, so the loader must be guarded exactly like the viewer: board
 // permission plus the section visibility filter in the query. It reads the same data as the viewer, and refuses a document
@@ -28,15 +28,10 @@ vi.mock('~/shared/infra/pdf.server', () => ({
   sanitizeFilename: (name: string) => name,
 }))
 
-// The documents pull in @react-pdf/renderer and font files — irrelevant to the guards.
-const OrganigramDocument = vi.fn()
-const PublisherGroupsDocument = vi.fn()
-const PioneersDocument = vi.fn()
-const EventBoardDocument = vi.fn()
-vi.mock('~/features/display-board/ui/dynamic/OrganigramDocument', () => ({ OrganigramDocument }))
-vi.mock('~/features/display-board/ui/dynamic/PublisherGroupsDocument', () => ({ PublisherGroupsDocument }))
-vi.mock('~/features/display-board/ui/dynamic/PioneersDocument', () => ({ PioneersDocument }))
-vi.mock('~/features/events/index.server', () => ({ EventBoardDocument }))
+// The sheets pull in @react-pdf/renderer and font files — irrelevant to the guards.
+const SHEET = { sheet: 'built' }
+const buildBoardSheet = vi.fn()
+vi.mock('~/features/display-board/ui/dynamic/pdf/board-sheet', () => ({ buildBoardSheet }))
 
 const getDynamicDocumentData = vi.fn()
 vi.mock('~/features/display-board/server/dynamic-documents.server', () => ({ getDynamicDocumentData }))
@@ -54,7 +49,7 @@ const context = {
   get: (key: symbol) => {
     if (key === permissionsContext) return new Set()
     // displayName is the resolved public name (displayName ?? name) — what every header shows.
-    if (key === congregationContext) return { displayName: 'Assemblée de Lyon' }
+    if (key === congregationContext) return { displayName: 'Assemblée de Lyon', timezone: 'Pacific/Noumea' }
     return { id: 1, congregationId: 10 }
   },
 }
@@ -71,14 +66,26 @@ function documentSettings(dynamicType: string, title: string) {
   return { id: 5, dynamicType, dynamicRef: null, title, showServices: false, dynamicConfig: null }
 }
 
-function renderedElement(): { type: unknown; props: Record<string, unknown> } {
-  return renderPdfResponse.mock.calls[0]?.[0]
+/** What the sheet was built from: its data, its appearance and its options. */
+function builtSheet(): { data: Record<string, unknown>; appearance: unknown; options: Record<string, unknown> } {
+  const [data, appearance, options] = buildBoardSheet.mock.calls[0] ?? []
+  return { data, appearance, options }
 }
+
+// « Now » is mid-October in Nouméa: the programme sheet prints October and November.
+const NOW = new Date('2026-10-15T01:00:00Z')
+const meeting = (id: number, day: string) => ({ id, templateId: 3, startDate: new Date(`${day}T08:00:00Z`) })
 
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.useFakeTimers({ now: NOW, toFake: ['Date'] })
   renderPdfResponse.mockReturnValue(new Response('%PDF', { status: 200 }))
+  buildBoardSheet.mockResolvedValue(SHEET)
   buildSectionVisibilityFilter.mockResolvedValue(VISIBLE_SECTIONS)
+})
+
+afterEach(() => {
+  vi.useRealTimers()
 })
 
 describe('the dynamic document PDF loader', () => {
@@ -124,8 +131,8 @@ describe('the dynamic document PDF loader', () => {
     expect(renderPdfResponse).not.toHaveBeenCalled()
   })
 
-  it('prints a configured programme on the programmes export sheet, with the board choices', async () => {
-    const events = [{ id: 1, templateId: 3 }]
+  it('prints a configured programme with the board choices', async () => {
+    const events = [meeting(1, '2026-10-18')]
     const config = { templates: [{ templateId: 3, parts: true, services: false }], groupBy: 'template' }
     settingsFindFirst.mockResolvedValue(documentSettings(DynamicType.Programme, 'Réunions'))
     getDynamicDocumentData.mockResolvedValue({ type: DynamicType.Programme, events, showServices: false, config })
@@ -133,65 +140,98 @@ describe('the dynamic document PDF loader', () => {
     const response = await download()
 
     expect(response.status).toBe(200)
-    expect(renderedElement().type).toBe(EventBoardDocument)
-    expect(renderedElement().props).toMatchObject({
-      events,
-      groupBy: 'template',
-      title: 'Réunions',
-      congregationName: 'Assemblée de Lyon',
+    expect(builtSheet().data).toMatchObject({ type: DynamicType.Programme, events, config })
+    expect(builtSheet().options).toMatchObject({ title: 'Réunions', congregationName: 'Assemblée de Lyon' })
+    expect(renderPdfResponse).toHaveBeenCalledWith(SHEET, 'réunions.pdf')
+  })
+
+  it('prints this month and the next of the programme, on the congregation’s clock', async () => {
+    // 30 November 20:00 UTC is already 1 December in Nouméa (UTC+11): past the window.
+    const events = [
+      meeting(1, '2026-10-01'),
+      meeting(2, '2026-11-29'),
+      { ...meeting(3, '2026-11-30'), startDate: new Date('2026-11-30T20:00:00Z') },
+    ]
+    settingsFindFirst.mockResolvedValue(documentSettings(DynamicType.Programme, 'Réunions'))
+    getDynamicDocumentData.mockResolvedValue({ type: DynamicType.Programme, events, showServices: false, config: null })
+
+    await download()
+
+    expect((builtSheet().data.events as { id: number }[]).map(event => event.id)).toEqual([1, 2])
+    expect(builtSheet().options).toMatchObject({ timezone: 'Pacific/Noumea', asOf: NOW })
+  })
+
+  it('refuses a programme with nothing this month or the next rather than print a blank page', async () => {
+    settingsFindFirst.mockResolvedValue(documentSettings(DynamicType.Programme, 'Réunions'))
+    getDynamicDocumentData.mockResolvedValue({
+      type: DynamicType.Programme,
+      events: [meeting(1, '2027-02-10')],
+      showServices: false,
+      config: null,
     })
-    expect((renderedElement().props.configMap as Map<number, unknown>).get(3)).toEqual({ parts: true, services: false })
-    expect(renderPdfResponse).toHaveBeenCalledWith(expect.anything(), 'réunions.pdf')
+
+    await expect(download()).rejects.toMatchObject({ status: 302 })
+    expect(renderPdfResponse).not.toHaveBeenCalled()
+  })
+
+  it('prints a deep-linked meeting even past the window', async () => {
+    settingsFindFirst.mockResolvedValue(documentSettings(DynamicType.Programme, 'Réunions'))
+    getDynamicDocumentData.mockResolvedValue({
+      type: DynamicType.Programme,
+      events: [meeting(41, '2026-10-20'), meeting(42, '2027-02-10')],
+      showServices: false,
+      config: null,
+    })
+
+    await download('?eventId=42')
+
+    expect((builtSheet().data.events as { id: number }[]).map(event => event.id)).toEqual([42])
   })
 
   it('prints only the deep-linked event when the viewer was opened on one', async () => {
     // Notification emails open the viewer on a single event; its download button forwards the id
     // so the file matches what the reader is looking at.
-    const events = [
-      { id: 41, templateId: 3 },
-      { id: 42, templateId: 3 },
-    ]
+    const events = [meeting(41, '2026-10-18'), meeting(42, '2026-10-21')]
     settingsFindFirst.mockResolvedValue(documentSettings(DynamicType.Programme, 'Réunions'))
     getDynamicDocumentData.mockResolvedValue({ type: DynamicType.Programme, events, showServices: false, config: null })
 
     await download('?eventId=42')
 
-    expect(renderedElement().props.events).toEqual([{ id: 42, templateId: 3 }])
+    expect(builtSheet().data.events).toEqual([events[1]])
   })
 
   it('prints the whole programme when the deep-linked event is not in it', async () => {
-    const events = [{ id: 41, templateId: 3 }]
+    const events = [meeting(41, '2026-10-18')]
     settingsFindFirst.mockResolvedValue(documentSettings(DynamicType.Programme, 'Réunions'))
     getDynamicDocumentData.mockResolvedValue({ type: DynamicType.Programme, events, showServices: false, config: null })
 
     await download('?eventId=99')
 
-    expect(renderedElement().props.events).toEqual(events)
+    expect(builtSheet().data.events).toEqual(events)
   })
 
   it('ignores a malformed event id, like the viewer', async () => {
-    const events = [{ id: 41, templateId: 3 }]
+    const events = [meeting(41, '2026-10-18')]
     settingsFindFirst.mockResolvedValue(documentSettings(DynamicType.Programme, 'Réunions'))
     getDynamicDocumentData.mockResolvedValue({ type: DynamicType.Programme, events, showServices: false, config: null })
 
     await download('?eventId=41abc')
 
-    expect(renderedElement().props.events).toEqual(events)
+    expect(builtSheet().data.events).toEqual(events)
   })
 
-  it('keeps services off for a legacy programme that hides them on the board', async () => {
+  it('names an untitled programme’s file after its type', async () => {
     settingsFindFirst.mockResolvedValue(documentSettings(DynamicType.Programme, ''))
     getDynamicDocumentData.mockResolvedValue({
       type: DynamicType.Programme,
-      events: [{ id: 1, templateId: 9 }],
+      events: [meeting(1, '2026-10-18')],
       showServices: false,
       config: null,
     })
 
     await download()
 
-    expect((renderedElement().props.configMap as Map<number, unknown>).get(9)).toEqual({ parts: true, services: false })
-    expect(renderPdfResponse).toHaveBeenCalledWith(expect.anything(), 'programme.pdf')
+    expect(renderPdfResponse).toHaveBeenCalledWith(SHEET, 'programme.pdf')
   })
 
   it('refuses a document whose data cannot be read, such as an unknown type', async () => {
@@ -220,27 +260,20 @@ describe('the dynamic document PDF loader', () => {
   })
 
   it.each([
-    [DynamicType.Organigram, { type: DynamicType.Organigram, tree: [{ id: 1 }] }, OrganigramDocument, 'tree'],
-    [
-      DynamicType.PublisherGroups,
-      { type: DynamicType.PublisherGroups, groups: [{ id: 1 }] },
-      PublisherGroupsDocument,
-      'groups',
-    ],
-    [DynamicType.Pioneers, { type: DynamicType.Pioneers, pioneers: [{ id: 1 }] }, PioneersDocument, 'pioneers'],
-  ])('renders the %s sheet with its data, title and filename', async (dynamicType, data, component, dataKey) => {
+    [DynamicType.Organigram, { type: DynamicType.Organigram, tree: [{ id: 1 }] }],
+    [DynamicType.PublisherGroups, { type: DynamicType.PublisherGroups, groups: [{ id: 1 }] }],
+    [DynamicType.Pioneers, { type: DynamicType.Pioneers, pioneers: [{ id: 1 }] }],
+  ])('renders the %s sheet with its data, title and filename', async (dynamicType, data) => {
     settingsFindFirst.mockResolvedValue(documentSettings(dynamicType, 'Mon Document'))
     getDynamicDocumentData.mockResolvedValue(data)
 
     const response = await download()
 
     expect(response.status).toBe(200)
-    expect(renderedElement().type).toBe(component)
-    expect(renderedElement().props).toMatchObject({
-      [dataKey]: data[dataKey as keyof typeof data],
-      title: 'Mon Document',
-    })
-    expect(renderPdfResponse).toHaveBeenCalledWith(expect.anything(), 'mon document.pdf')
+    expect(builtSheet().data).toEqual(data)
+    expect(builtSheet().appearance).toEqual({ typeface: 'fira', accent: 'teal', layout: expect.any(String) })
+    expect(builtSheet().options).toMatchObject({ title: 'Mon Document' })
+    expect(renderPdfResponse).toHaveBeenCalledWith(SHEET, 'mon document.pdf')
   })
 
   it.each([
@@ -264,6 +297,6 @@ describe('the dynamic document PDF loader', () => {
 
     await download()
 
-    expect(renderedElement().props.congregationName).toBe('Assemblée de Lyon')
+    expect(builtSheet().options.congregationName).toBe('Assemblée de Lyon')
   })
 })

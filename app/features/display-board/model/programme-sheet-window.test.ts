@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { eventsForSheet, programmeSheetWindow } from './programme-sheet-window'
+import { eventsForSheet, programmeSheetWindow, sheetDataFor } from './programme-sheet-window'
 
 describe('programmeSheetWindow', () => {
   it('covers this month and the next, from midnight in the congregation’s timezone', () => {
@@ -39,5 +39,24 @@ describe('eventsForSheet', () => {
     const later = [at('2027-02-10T18:00:00Z')]
 
     expect(eventsForSheet(later, window, true)).toEqual(later)
+  })
+})
+
+describe('sheetDataFor', () => {
+  const options = { now: new Date('2026-10-29T10:00:00Z'), timezone: 'Europe/Paris', narrowedToEvent: false }
+
+  it('keeps a programme to its window', () => {
+    const programme = {
+      type: 'programme',
+      events: [{ startDate: new Date('2026-10-04T08:00:00Z') }, { startDate: new Date('2027-01-10T08:00:00Z') }],
+    }
+
+    expect(sheetDataFor(programme, options).events).toEqual([programme.events[0]])
+  })
+
+  it('leaves any other document as it is', () => {
+    const groups = { type: 'publisher-groups', groups: [{ id: 1 }] }
+
+    expect(sheetDataFor(groups, options)).toBe(groups)
   })
 })
