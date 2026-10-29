@@ -331,7 +331,6 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 | `GET /territories/territory/:id/pdf` | `territories/routes/territory/pdf-download.tsx` | Individual territory card — accessible to anyone with `Permission.TerritoriesViewer` or the attributed publisher |
 | `GET /publishers/:id/activity/pdf` | `publishers/routes/publishers/activity-pdf.tsx` | Publisher S-21 activity report |
 | `GET /territories/attributions/export/:year/pdf` | `territories/routes/attributions/pdf-export.tsx` | S-13 annual attribution report |
-| `GET /programs/export-pdf/download` | `events/routes/programs/export-pdf-download.tsx` | Programme PDF export |
 
 ### Business rules
 

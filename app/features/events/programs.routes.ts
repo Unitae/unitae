@@ -8,8 +8,6 @@ export const programsRoutes = [
     route('bulk-release', 'features/events/routes/programs/bulk-release.tsx'),
     route('bulk-unrelease', 'features/events/routes/programs/bulk-unrelease.tsx'),
     route('days-off', 'features/events/routes/programs/days-off.tsx'),
-    route('export-pdf', 'features/events/routes/programs/export-pdf.tsx'),
-    route('export-pdf/download', 'features/events/routes/programs/export-pdf-download.tsx'),
     ...prefix('events/:eventId', [
       index('features/events/routes/programs/events/view.tsx'),
       route('edit', 'features/events/routes/programs/events/edit.tsx'),

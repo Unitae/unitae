@@ -2,7 +2,6 @@ import {
   AlertTriangle,
   CalendarOff,
   ChevronRight,
-  FileDown,
   FileText,
   Loader2,
   MoreHorizontal,
@@ -383,12 +382,6 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
                 <Link to="./new">{m.programs_new_event_button()}</Link>
               </Button>
             )}
-            <Button variant="outline" asChild>
-              <Link to="./export-pdf">
-                <FileDown className="size-4" />
-                {m.programs_export_pdf_button()}
-              </Link>
-            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" aria-label={m.common_more_actions()}>

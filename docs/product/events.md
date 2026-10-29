@@ -92,10 +92,6 @@ Kinds can be assigned to events in two ways:
 
 Event kinds are managed by admins at **Settings > Congregation settings > Event types**.
 
-## PDF Export
-
-Events can be exported to PDF from the programme list. The export form provides per-template content selection: each template row has checkboxes for parts and services, allowing mixed exports (e.g., midweek parts + weekend services only). Additional options include an editable document title, a date range filter, and grouping by date (chronological) or by template type. The PDF uses a workbook-inspired single-column layout with colored section bars, dot leaders between part names and assignees, and the topic replacing the part name when available. Parallel parts (same order, different tracks) render as sub-rows with track labels.
-
 ## Assignments
 
 Programme managers assign publishers to parts and service roles for each event.
