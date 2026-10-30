@@ -1,7 +1,7 @@
 import type { RouterContext } from 'react-router'
 
 import logger from '~/shared/infra/logger.server'
-import { isSecureRequest } from '~/shared/middleware/security-headers.server'
+import { CSP_REPORT_PATH, isSecureRequest } from '~/shared/middleware/security-headers.server'
 
 /**
  * Defence-in-depth CSRF guard: rejects a state-changing request whose `Origin`
@@ -93,7 +93,10 @@ interface MiddlewareArgs {
  */
 export function originCheck() {
   return async ({ request }: MiddlewareArgs, next: () => Promise<Response>) => {
-    if (isMutatingMethod(request.method)) {
+    // CSP violation reports are exempt: the collector only writes a log line and reads no session,
+    // so a cross-site POST to it forges nothing, and a browser that sends `Origin: null` on a report
+    // must still be heard.
+    if (isMutatingMethod(request.method) && new URL(request.url).pathname !== CSP_REPORT_PATH) {
       if (getExpectedHost(request) == null) {
         // No Host/X-Forwarded-Host on a mutating request means the origin check can't run —
         // a proxy misconfiguration that silently disables this control. Surface it.

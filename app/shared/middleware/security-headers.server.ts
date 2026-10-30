@@ -5,9 +5,10 @@ import { createContext, type RouterContext } from 'react-router'
 import logger from '~/shared/infra/logger.server'
 
 /**
- * Per-request CSP nonce, produced by {@link securityHeaders} and consumed by the
- * root loader so the inline scripts we control (`<Scripts>`, `<ScrollRestoration>`,
- * the dark-mode boot script) carry the same nonce the CSP header advertises. While the
+ * Per-request CSP nonce, produced by {@link securityHeaders}. The root loader hands it to the
+ * inline scripts we render (`<Scripts>`, `<ScrollRestoration>`, the dark-mode boot script) and
+ * entry.server.tsx to the ones React Router and React inject while streaming (the loader data,
+ * Suspense boundaries), so all of them carry the nonce the CSP header advertises. While the
  * CSP is Report-Only nothing is actually blocked; the nonce is what will keep those
  * scripts allow-listed once the policy is switched to enforcement.
  */
@@ -44,6 +45,9 @@ export function getStrictTransportSecurity(): string {
   return DEFAULT_STRICT_TRANSPORT_SECURITY
 }
 
+// Where browsers POST the violations of the policy below, collected by `csp-report.server.ts`.
+export const CSP_REPORT_PATH = '/csp-report'
+
 /**
  * Builds the Content-Security-Policy value. Allow-lists the external origins the app
  * depends on (Google Maps SDK, Google Fonts) and locks down framing, base-uri, and
@@ -54,7 +58,8 @@ export function getStrictTransportSecurity(): string {
 export function buildContentSecurityPolicy(nonce: string): string {
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' https://maps.googleapis.com https://maps.gstatic.com`,
+    // 'report-sample' puts the first characters of blocked inline code in the report.
+    `script-src 'self' 'nonce-${nonce}' 'report-sample' https://maps.googleapis.com https://maps.gstatic.com`,
     // Tailwind + the maps SDK inject inline styles; fonts.googleapis.com serves the font CSS.
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: blob: https://*.googleapis.com https://*.gstatic.com https://*.ggpht.com",
@@ -66,6 +71,9 @@ export function buildContentSecurityPolicy(nonce: string): string {
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
+    // `report-uri` only, on purpose: every current browser still honours it, and a browser that
+    // supports `report-to` ignores `report-uri` whenever both are present (CSP Level 3).
+    `report-uri ${CSP_REPORT_PATH}`,
   ].join('; ')
 }
 

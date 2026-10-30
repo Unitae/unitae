@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   applySecurityHeaders,
   buildContentSecurityPolicy,
+  CSP_REPORT_PATH,
   generateNonce,
   getStrictTransportSecurity,
   isSecureRequest,
@@ -61,6 +62,21 @@ describe('buildContentSecurityPolicy', () => {
     expect(directives.get('form-action')).toBe("'self'")
     // Maps vector rendering spawns blob: web workers.
     expect(directives.get('worker-src')).toBe("'self' blob:")
+  })
+
+  it("asks for a sample of the blocked inline code with 'report-sample'", () => {
+    const scriptSrc = buildContentSecurityPolicy('abc123')
+      .split('; ')
+      .find(directive => directive.startsWith('script-src '))
+
+    expect(scriptSrc).toContain("'report-sample'")
+  })
+
+  it('sends violation reports to the collector with report-uri, not report-to', () => {
+    const directives = buildContentSecurityPolicy('abc123').split('; ')
+
+    expect(directives).toContain(`report-uri ${CSP_REPORT_PATH}`)
+    expect(directives.some(directive => directive.startsWith('report-to'))).toBe(false)
   })
 })
 

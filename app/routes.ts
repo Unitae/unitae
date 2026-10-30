@@ -8,6 +8,7 @@ import { territoryManagementRoutes } from './features/territories/territory-mana
 export default [
   route('health', 'shell/health.tsx'),
   route('livez', 'shell/livez.tsx'),
+  route('csp-report', 'shell/csp-report.tsx'),
   route('suspended', 'shell/suspended.tsx'),
   route('trial-expired', 'shell/trial-expired.tsx'),
   route('congregation-not-found', 'shell/congregation-not-found.tsx'),

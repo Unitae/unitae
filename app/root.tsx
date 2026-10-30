@@ -53,6 +53,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const darkModeScript =
     "(function(){var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}})()"
 
+  // Zod tries `new Function('')` the first time an object schema is defined, to see whether it may
+  // compile faster parsers. The CSP has no 'unsafe-eval', so that probe sends a violation report on
+  // every page (Zod catches the error and falls back). Zod reads this global when it loads, which is
+  // after this script and before any route module defines a schema. The server keeps the compiled parsers.
+  const zodConfigScript =
+    'globalThis.__zod_globalConfig=Object.assign(globalThis.__zod_globalConfig||{},{jitless:true})'
+
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>
@@ -74,6 +81,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
           nonce={nonce}
           // biome-ignore lint/security/noDangerouslySetInnerHtml: static string constant, no user input
           dangerouslySetInnerHTML={{ __html: darkModeScript }}
+        />
+        <script
+          nonce={nonce}
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: static string constant, no user input
+          dangerouslySetInnerHTML={{ __html: zodConfigScript }}
         />
       </head>
       <body>
