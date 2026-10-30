@@ -114,6 +114,8 @@ When `GOOGLE_MAPS_API_KEY` is not set, on-screen interactive maps are hidden, th
 
 The application sets security response headers (CSP, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, …) on every response — no reverse proxy required. `Strict-Transport-Security` (HSTS) is emitted only over HTTPS (detected via the `X-Forwarded-Proto` header a TLS-terminating proxy sets, or an `https://` request URL).
 
+The Content-Security-Policy is sent as `Content-Security-Policy-Report-Only`: it blocks nothing yet, and browsers POST what it would block to `/csp-report`. Each report becomes one `warn` log line with `"service":"csp-report"` and `"message":"CSP violation"` (directive, blocked URI, page, source file; query strings removed). Those lines are informational. A browser extension can cause them too; those reports are ignored.
+
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `UNITAE_HSTS_HEADER` | `max-age=63072000` | Full `Strict-Transport-Security` header value. The default omits `includeSubDomains`/`preload` because the app can't know your subdomain topology and those directives are near-irreversible for the `max-age` window. Set the complete value (e.g. `max-age=63072000; includeSubDomains; preload`) when you control **every** subdomain of your registrable domain |

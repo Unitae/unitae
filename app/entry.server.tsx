@@ -33,8 +33,9 @@ export const handleError: HandleErrorFunction = (error, { request, params }) => 
 /**
  * The nonce `securityHeaders()` put in this response's CSP header. React Router's streaming scripts
  * (they carry the loader data) and React's inline runtime need it too, or an enforced policy blocks
- * them and the page never hydrates. A context without one renders as before, without a nonce; the
- * CSP report then names the scripts it would block.
+ * them and the page never hydrates. securityHeaders() sets the nonce and the CSP header together,
+ * so a context without a nonce belongs to a response without a policy, and rendering without one
+ * blocks nothing.
  */
 function documentNonce(loadContext: RouterContextProvider): string | undefined {
   try {
