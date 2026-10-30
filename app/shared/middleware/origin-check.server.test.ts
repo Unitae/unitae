@@ -205,6 +205,30 @@ describe('originCheck middleware', () => {
     expect(response.status).toBe(403)
   })
 
+  it('lets a CSP violation report through whatever its Origin', async () => {
+    const request = new Request('https://unitae.app/csp-report', {
+      method: 'POST',
+      headers: { host: 'unitae.app', origin: 'null' },
+    })
+
+    const { response, reached } = await run(request)
+
+    expect(reached).toBe(true)
+    expect(response.status).toBe(200)
+  })
+
+  it('still blocks a cross-origin mutation to a path that only starts like the report endpoint', async () => {
+    const request = new Request('https://unitae.app/csp-report-other', {
+      method: 'POST',
+      headers: { host: 'unitae.app', origin: 'https://evil.test' },
+    })
+
+    const { response, reached } = await run(request)
+
+    expect(reached).toBe(false)
+    expect(response.status).toBe(403)
+  })
+
   it('allows a mutation with neither Origin nor Referer (cron / non-browser)', async () => {
     const request = new Request('https://unitae.app/cron/retention', {
       method: 'POST',
