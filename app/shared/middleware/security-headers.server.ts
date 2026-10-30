@@ -5,9 +5,10 @@ import { createContext, type RouterContext } from 'react-router'
 import logger from '~/shared/infra/logger.server'
 
 /**
- * Per-request CSP nonce, produced by {@link securityHeaders} and consumed by the
- * root loader so the inline scripts we control (`<Scripts>`, `<ScrollRestoration>`,
- * the dark-mode boot script) carry the same nonce the CSP header advertises. While the
+ * Per-request CSP nonce, produced by {@link securityHeaders}. The root loader hands it to the
+ * inline scripts we render (`<Scripts>`, `<ScrollRestoration>`, the dark-mode boot script) and
+ * entry.server.tsx to the ones React Router and React inject while streaming (the loader data,
+ * Suspense boundaries), so all of them carry the nonce the CSP header advertises. While the
  * CSP is Report-Only nothing is actually blocked; the nonce is what will keep those
  * scripts allow-listed once the policy is switched to enforcement.
  */

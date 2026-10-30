@@ -1,3 +1,4 @@
+import { RouterContextProvider } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 
 // boot.server probes the database when it is evaluated; handleRequest only needs it to have run.
@@ -17,9 +18,20 @@ vi.mock('~/shared/utils/locale.server', () => ({
   resolveDocumentLocale: vi.fn(),
 }))
 
+interface RenderOptions {
+  nonce?: string
+  onShellReady?: () => void
+  onAllReady?: () => void
+}
+
+// What handleRequest handed React on its last render: the <ServerRouter> element and the options.
+const lastRender: { element?: { props: { nonce?: string } }; options?: RenderOptions } = {}
+
 // Rendering is React's part: report the shell ready at once, so handleRequest answers.
 vi.mock('react-dom/server', () => ({
-  renderToPipeableStream: (_element: unknown, options: { onShellReady?: () => void; onAllReady?: () => void }) => {
+  renderToPipeableStream: (element: { props: { nonce?: string } }, options: RenderOptions) => {
+    lastRender.element = element
+    lastRender.options = options
     queueMicrotask(() => (options.onShellReady ?? options.onAllReady)?.())
     return { pipe: (body: { end: () => void }) => body.end(), abort: () => {} }
   },
@@ -27,6 +39,13 @@ vi.mock('react-dom/server', () => ({
 
 const { default: handleRequest } = await import('./entry.server')
 const { resolveDocumentLocale } = await import('~/shared/utils/locale.server')
+const { nonceContext } = await import('~/shared/middleware/security-headers.server')
+
+function contextWithNonce(nonce: string) {
+  const context = new RouterContextProvider()
+  context.set(nonceContext, nonce)
+  return context
+}
 
 describe('handleRequest', () => {
   // Regression: a subdomain no congregation owns was a 500 on every unknown path, because the
@@ -56,7 +75,7 @@ describe('handleRequest', () => {
       200,
       new Headers(),
       {} as never,
-      {} as never,
+      contextWithNonce('n0nce'),
     )
 
     expect(response.headers.get('Set-Cookie')).toContain('PARAGLIDE_LOCALE=en;')
@@ -71,9 +90,30 @@ describe('handleRequest', () => {
       200,
       new Headers(),
       {} as never,
-      {} as never,
+      contextWithNonce('n0nce'),
     )
 
     expect(response.headers.get('Set-Cookie')).toBeNull()
+  })
+
+  // The nonce is the one securityHeaders() advertises in the CSP. React Router's streaming scripts
+  // (the loader data) and React's inline runtime carry it only if both are handed it here; without
+  // it an enforced policy blocks them and the page never hydrates.
+  it.each([
+    ['a browser', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/141.0 Safari/537.36'],
+    ['a bot', 'Googlebot/2.1 (+http://www.google.com/bot.html)'],
+  ])('hands the CSP nonce to React Router and to React for %s', async (_label, userAgent) => {
+    vi.mocked(resolveDocumentLocale).mockResolvedValue({ locale: 'fr', persist: false })
+
+    await handleRequest(
+      new Request('https://lyon.unitae.app/login', { headers: { 'user-agent': userAgent } }),
+      200,
+      new Headers(),
+      {} as never,
+      contextWithNonce('n0nce'),
+    )
+
+    expect(lastRender.element?.props.nonce).toBe('n0nce')
+    expect(lastRender.options?.nonce).toBe('n0nce')
   })
 })

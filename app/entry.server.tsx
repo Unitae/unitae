@@ -12,6 +12,7 @@ import { ServerRouter } from 'react-router'
 import { baseLocale, type Locale, overwriteGetLocale } from '~/i18n/paraglide/runtime'
 import logger from '~/shared/infra/logger.server'
 import { describeRequestError } from '~/shared/infra/request-error.server'
+import { nonceContext } from '~/shared/middleware/security-headers.server'
 import { resolveDocumentLocale } from '~/shared/utils/locale.server'
 
 const ABORT_DELAY = 5_000
@@ -29,12 +30,26 @@ export const handleError: HandleErrorFunction = (error, { request, params }) => 
   if (entry) logger.error(entry.message, entry.meta)
 }
 
+/**
+ * The nonce `securityHeaders()` put in this response's CSP header. React Router's streaming scripts
+ * (they carry the loader data) and React's inline runtime need it too, or an enforced policy blocks
+ * them and the page never hydrates. A context without one renders as before, without a nonce; the
+ * CSP report then names the scripts it would block.
+ */
+function documentNonce(loadContext: RouterContextProvider): string | undefined {
+  try {
+    return loadContext.get(nonceContext)
+  } catch {
+    return undefined
+  }
+}
+
 export default async function handleRequest(
   request: Request,
   responseStatusCode: number,
   responseHeaders: Headers,
   reactRouterContext: EntryContext,
-  _loadContext: RouterContextProvider,
+  loadContext: RouterContextProvider,
 ) {
   const resolved = await resolveDocumentLocale(request)
   // A subdomain no congregation owns. The sign-in loaders and the session guard send it to
@@ -50,10 +65,11 @@ export default async function handleRequest(
     responseHeaders.append('Set-Cookie', `PARAGLIDE_LOCALE=${locale}; Path=/; Max-Age=34560000; SameSite=Lax`)
   }
 
+  const nonce = documentNonce(loadContext)
   return localeStore.run(locale, () => {
     return isbot(request.headers.get('user-agent') || '')
-      ? handleBotRequest(request, responseStatusCode, responseHeaders, reactRouterContext)
-      : handleBrowserRequest(request, responseStatusCode, responseHeaders, reactRouterContext)
+      ? handleBotRequest(request, responseStatusCode, responseHeaders, reactRouterContext, nonce)
+      : handleBrowserRequest(request, responseStatusCode, responseHeaders, reactRouterContext, nonce)
   })
 }
 
@@ -62,36 +78,41 @@ function handleBotRequest(
   responseStatusCode: number,
   responseHeaders: Headers,
   reactRouterContext: EntryContext,
+  nonce: string | undefined,
 ) {
   return new Promise<Response>((resolve, reject) => {
     let shellRendered = false
-    const { pipe, abort } = renderToPipeableStream(<ServerRouter context={reactRouterContext} url={request.url} />, {
-      onAllReady() {
-        shellRendered = true
-        const body = new PassThrough()
-        const stream = createReadableStreamFromReadable(body)
+    const { pipe, abort } = renderToPipeableStream(
+      <ServerRouter context={reactRouterContext} url={request.url} nonce={nonce} />,
+      {
+        nonce,
+        onAllReady() {
+          shellRendered = true
+          const body = new PassThrough()
+          const stream = createReadableStreamFromReadable(body)
 
-        responseHeaders.set('Content-Type', 'text/html')
+          responseHeaders.set('Content-Type', 'text/html')
 
-        resolve(
-          new Response(stream, {
-            headers: responseHeaders,
-            status: responseStatusCode,
-          }),
-        )
+          resolve(
+            new Response(stream, {
+              headers: responseHeaders,
+              status: responseStatusCode,
+            }),
+          )
 
-        pipe(body)
+          pipe(body)
+        },
+        onShellError(error: unknown) {
+          reject(error)
+        },
+        onError(error: unknown) {
+          responseStatusCode = 500
+          if (shellRendered) {
+            logger.error(error)
+          }
+        },
       },
-      onShellError(error: unknown) {
-        reject(error)
-      },
-      onError(error: unknown) {
-        responseStatusCode = 500
-        if (shellRendered) {
-          logger.error(error)
-        }
-      },
-    })
+    )
 
     setTimeout(abort, ABORT_DELAY)
   })
@@ -102,36 +123,41 @@ function handleBrowserRequest(
   responseStatusCode: number,
   responseHeaders: Headers,
   reactRouterContext: EntryContext,
+  nonce: string | undefined,
 ) {
   return new Promise<Response>((resolve, reject) => {
     let shellRendered = false
-    const { pipe, abort } = renderToPipeableStream(<ServerRouter context={reactRouterContext} url={request.url} />, {
-      onShellReady() {
-        shellRendered = true
-        const body = new PassThrough()
-        const stream = createReadableStreamFromReadable(body)
+    const { pipe, abort } = renderToPipeableStream(
+      <ServerRouter context={reactRouterContext} url={request.url} nonce={nonce} />,
+      {
+        nonce,
+        onShellReady() {
+          shellRendered = true
+          const body = new PassThrough()
+          const stream = createReadableStreamFromReadable(body)
 
-        responseHeaders.set('Content-Type', 'text/html')
+          responseHeaders.set('Content-Type', 'text/html')
 
-        resolve(
-          new Response(stream, {
-            headers: responseHeaders,
-            status: responseStatusCode,
-          }),
-        )
+          resolve(
+            new Response(stream, {
+              headers: responseHeaders,
+              status: responseStatusCode,
+            }),
+          )
 
-        pipe(body)
+          pipe(body)
+        },
+        onShellError(error: unknown) {
+          reject(error)
+        },
+        onError(error: unknown) {
+          responseStatusCode = 500
+          if (shellRendered) {
+            logger.error(error)
+          }
+        },
       },
-      onShellError(error: unknown) {
-        reject(error)
-      },
-      onError(error: unknown) {
-        responseStatusCode = 500
-        if (shellRendered) {
-          logger.error(error)
-        }
-      },
-    })
+    )
 
     setTimeout(abort, ABORT_DELAY)
   })
