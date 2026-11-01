@@ -4,6 +4,7 @@ import { resolveCongregation } from '~/shared/domain/congregation.server'
 import { unscopedDb as db } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 import { sendEmail } from '~/shared/infra/mailer.server'
+import { accountLocale, runWithLocale } from '~/shared/utils/locale-scope.server'
 
 export async function sendResetAccountPasswordEmail(userId: number, email: ReactNode): Promise<boolean> {
   const user = await db.userAccount.findFirst({ where: { id: userId } })
@@ -12,16 +13,20 @@ export async function sendResetAccountPasswordEmail(userId: number, email: React
 
   const congregation = await resolveCongregation(user.congregationId)
 
-  try {
-    await sendEmail({
-      to: user.email,
-      from: congregation.emailFrom,
-      subject: m.email_password_reset_subject(),
-      react: email,
-    })
-    return true
-  } catch (error) {
-    logger.error('Failed to send password reset email', { userId, error })
-    return false
-  }
+  // Addressed to this account alone: in its language, not in that of whoever set it off. Resend
+  // renders `email` inside sendEmail, so the body follows too.
+  return runWithLocale(accountLocale(user, congregation.locale), async () => {
+    try {
+      await sendEmail({
+        to: user.email,
+        from: congregation.emailFrom,
+        subject: m.email_password_reset_subject(),
+        react: email,
+      })
+      return true
+    } catch (error) {
+      logger.error('Failed to send password reset email', { userId, error })
+      return false
+    }
+  })
 }

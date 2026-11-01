@@ -70,6 +70,7 @@ export const ALLOWLIST: Record<string, string> = {
   'app/features/authentication/routes/user/consents.tsx': "manages the caller's own consents",
   'app/features/authentication/routes/user/calendar-feed-regenerate.tsx': "rotates the caller's own calendar feed",
   'app/features/authentication/routes/user/calendar-feed-revoke.tsx': "revokes the caller's own calendar feed",
+  'app/features/authentication/routes/user/language.tsx': "sets the caller's own interface language",
   'app/features/notifications/routes/preferences.tsx': "edits the caller's own notification preferences",
   'app/features/events/routes/days-off/new.tsx': "records the caller's own absence",
   'app/features/events/routes/days-off/delete.tsx': "deletes the caller's own absence (ownership checked)",

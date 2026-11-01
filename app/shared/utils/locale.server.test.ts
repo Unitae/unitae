@@ -64,6 +64,31 @@ describe('resolveLocaleFromRequest', () => {
     expect(result).toBe('fr')
   })
 
+  it("returns the account's own locale over its congregation's", async () => {
+    mockSession(42)
+    vi.mocked(db.userAccount.findUnique).mockResolvedValue({ congregationId: 1, locale: 'en' } as never)
+    vi.mocked(findCongregation).mockResolvedValue({ locale: 'fr' } as never)
+
+    await expect(resolveLocaleFromRequest(makeRequest())).resolves.toBe('en')
+  })
+
+  it('follows the congregation when the account has no locale of its own', async () => {
+    mockSession(42)
+    vi.mocked(db.userAccount.findUnique).mockResolvedValue({ congregationId: 1, locale: null } as never)
+    vi.mocked(findCongregation).mockResolvedValue({ locale: 'en' } as never)
+
+    await expect(resolveLocaleFromRequest(makeRequest())).resolves.toBe('en')
+  })
+
+  // UserAccount.locale is free text, like Congregation.locale.
+  it('follows the congregation when the account holds a locale the app does not ship', async () => {
+    mockSession(42)
+    vi.mocked(db.userAccount.findUnique).mockResolvedValue({ congregationId: 1, locale: 'de' } as never)
+    vi.mocked(findCongregation).mockResolvedValue({ locale: 'en' } as never)
+
+    await expect(resolveLocaleFromRequest(makeRequest())).resolves.toBe('en')
+  })
+
   it('falls through when session has no valid userId', async () => {
     mockSession(NaN)
     vi.mocked(resolveCongregationFromRequest).mockResolvedValue(null as never)

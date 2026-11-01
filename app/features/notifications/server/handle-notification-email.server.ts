@@ -5,10 +5,11 @@ import type { EmailJobData } from '~/shared/infra/email-queue.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { sendEmail } from '~/shared/infra/mailer.server'
 import { displayFirstname } from '~/shared/utils/display-name'
+import { accountLocale, runWithLocale } from '~/shared/utils/locale-scope.server'
 import { runInWorkerContext } from '~/shared/utils/worker-locale.server'
 import { NOTIFICATION_TYPES } from './notification-types.server'
 import { renderNotificationEmail } from './render-notification-email.server'
-import { isNotificationDisabledForUser, resolveRecipients } from './resolve-recipients.server'
+import { isNotificationDisabledForUser, type ResolvedRecipient, resolveRecipients } from './resolve-recipients.server'
 
 const logger = createLogger('notification-email')
 
@@ -152,7 +153,7 @@ async function sendInstantToUser(
 ): Promise<void> {
   const user = await unscopedDb.userAccount.findFirst({
     where: { id: recipientId, congregationId: data.congregationId, ...notificationRecipientFilter },
-    select: { id: true, email: true, firstname: true, member: { select: { firstname: true } } },
+    select: { id: true, email: true, firstname: true, locale: true, member: { select: { firstname: true } } },
   })
 
   if (!user) {
@@ -182,7 +183,7 @@ async function sendInstantToUser(
   await sendNotificationToUser(
     data.notificationType,
     data.payload,
-    { userId: user.id, email: user.email, firstname: displayFirstname(user) },
+    { userId: user.id, email: user.email, firstname: displayFirstname(user), locale: user.locale },
     congregation,
   )
 }
@@ -230,7 +231,7 @@ async function sendEventEmail(
 
   const user = await unscopedDb.userAccount.findFirst({
     where: { id: recipientId, congregationId, ...notificationRecipientFilter },
-    select: { id: true, email: true, firstname: true, member: { select: { firstname: true } } },
+    select: { id: true, email: true, firstname: true, locale: true, member: { select: { firstname: true } } },
   })
 
   if (!user) {
@@ -258,15 +259,28 @@ async function sendEventEmail(
   return await sendNotificationToUser(
     event.type,
     event.payload,
-    { userId: user.id, email: user.email, firstname: displayFirstname(user) },
+    { userId: user.id, email: user.email, firstname: displayFirstname(user), locale: user.locale },
     congregation,
   )
 }
 
-async function sendNotificationToUser(
+// Each recipient is written to in their own language (the congregation's unless they chose one); the
+// enclosing worker context keeps the congregation's timezone.
+function sendNotificationToUser(
   notificationType: string,
   payloadJson: string,
-  recipient: { userId: number; email: string; firstname: string | null },
+  recipient: ResolvedRecipient,
+  congregation: CongregationInfo,
+): Promise<EventSendResult> {
+  return runWithLocale(accountLocale(recipient, congregation.locale), () =>
+    renderAndSend(notificationType, payloadJson, recipient, congregation),
+  )
+}
+
+async function renderAndSend(
+  notificationType: string,
+  payloadJson: string,
+  recipient: ResolvedRecipient,
   congregation: CongregationInfo,
 ): Promise<EventSendResult> {
   // Parse-and-render is the "permanent" surface: bad JSON, unregistered type,

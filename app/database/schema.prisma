@@ -290,6 +290,11 @@ model UserAccount {
   twoFactorSecret    String?
   twoFactorEnabledAt DateTime?
 
+  // The interface language this account chose for itself (a Paraglide locale). Null = its
+  // congregation's (Congregation.locale), which stays the language of anything not addressed
+  // to this account alone.
+  locale String?
+
   // Account-bound relations
   roleAssignments          UserRoleAssignment[] // management/access roles
   eventsCreated            Event[]                    @relation("createdBy")

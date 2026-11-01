@@ -40,7 +40,7 @@ Users with a notification type disabled are skipped — no email is sent.
 
 ## Email Delivery
 
-Notifications are delivered by email. Emails are rendered in the congregation's language and sent from the congregation's configured sender address. Self-hosters configure the email provider during setup; managed-hosting users do not need to configure anything.
+Notifications are delivered by email. Each email is rendered in its recipient's language (the one they chose in their profile, otherwise the congregation's) and sent from the congregation's configured sender address. Self-hosters configure the email provider during setup; managed-hosting users do not need to configure anything.
 
 ## Self-hosting requirements
 

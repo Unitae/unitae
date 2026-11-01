@@ -41,6 +41,8 @@ The project is open to community contributions — see [CONTRIBUTING.md](../../C
 
 The user interface is available in **French** and **English**, reflecting the primary user base. Documentation is written in English. Support for additional languages is on the roadmap.
 
+Each congregation sets its default language in **Settings › General**. Each member can choose their own in **My profile**, without changing it for anyone else; the emails addressed to them follow the same choice.
+
 ## Next Steps
 
 - [Feature Overview](feature-overview.md) — See what Unitae can do in detail

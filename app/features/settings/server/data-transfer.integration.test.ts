@@ -62,6 +62,8 @@ beforeAll(async () => {
         email: `alice-${ts}@test.com`,
         password: 'hashed-password',
         active: true,
+        // Alice chose her own interface language; Bob follows the congregation's.
+        locale: 'en',
         memberId: aliceMember.id,
         congregationId: sourceId,
       },
@@ -775,8 +777,9 @@ describe('Export/Import round-trip', () => {
       const bob = accounts.find(a => a.member?.firstname === 'Bob')!
       expect(alice.password).toBe('$IMPORTED$')
       expect(alice.platformAdmin).toBe(false)
-      // Bob exists; suppress unused-let by referencing
-      expect(bob).toBeDefined()
+      // A restore must not reset the language each member chose for themselves.
+      expect(alice.locale).toBe('en')
+      expect(bob.locale).toBeNull()
       expect(bobMember).toBeDefined()
 
       // Permissions — carried by roles now, so the round trip has to preserve the

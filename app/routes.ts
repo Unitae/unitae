@@ -31,6 +31,7 @@ export default [
       route('territories/:territoryId', 'features/territories/routes/my-territories/view.tsx'),
       route('calendar-feed/regenerate', 'features/authentication/routes/user/calendar-feed-regenerate.tsx'),
       route('calendar-feed/revoke', 'features/authentication/routes/user/calendar-feed-revoke.tsx'),
+      route('language', 'features/authentication/routes/user/language.tsx'),
       ...daysOffRoutes,
     ]),
     route('board', 'features/display-board/routes/_layout.tsx', [

@@ -22,6 +22,7 @@ vi.mock('react', () => {
       capturedDeps.push(deps)
     }),
     useCallback: vi.fn((fn: unknown) => fn),
+    useRef: vi.fn((initial: unknown) => ({ current: initial })),
   }
 })
 
@@ -186,6 +187,50 @@ describe('useUnsavedChanges', () => {
 
       const beforeUnloadDeps = capturedDeps[1]
       expect(beforeUnloadDeps).toEqual([false])
+    })
+
+    // The handler the effect registered for `type` on window.
+    function registered(type: string) {
+      const call = vi.mocked(window.addEventListener).mock.calls.find(([name]) => name === type)
+      return call?.[1] as (event?: unknown) => void
+    }
+
+    function unloadIsWarned() {
+      const event = { preventDefault: vi.fn() }
+      registered('beforeunload')(event)
+      return event.preventDefault.mock.calls.length > 0
+    }
+
+    it('warns on unload while there are unsaved changes', () => {
+      const { markDirty } = simulateHook(true)
+      capturedEffects[1]()
+      markDirty()
+
+      expect(unloadIsWarned()).toBe(true)
+    })
+
+    // Regression: React Router commits the 'submitting' state in a transition. An action answering
+    // with redirectDocument unloaded the page before that commit, and the browser asked whether to
+    // leave a form that had just been saved.
+    it('stops warning as soon as the form is submitted', () => {
+      const { markDirty } = simulateHook(true)
+      capturedEffects[1]()
+      markDirty()
+
+      registered('submit')()
+
+      expect(unloadIsWarned()).toBe(false)
+    })
+
+    it('warns again after a change made since the submission', () => {
+      const { markDirty } = simulateHook(true)
+      capturedEffects[1]()
+      markDirty()
+      registered('submit')()
+
+      markDirty()
+
+      expect(unloadIsWarned()).toBe(true)
     })
   })
 

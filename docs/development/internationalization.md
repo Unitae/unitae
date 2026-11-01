@@ -4,9 +4,9 @@
 
 Unitae uses **Paraglide JS** (from the Inlang ecosystem) for internationalization. Translations are compiled at build time into tree-shakeable message functions — no runtime dictionary lookup.
 
-- **Base locale**: `en`
-- **Supported locales**: `en`, `fr`
-- **French is the primary UI language** — `fr.json` is the most complete translation file
+- **Base locale**: `fr` (`sourceLanguageTag` in `project.inlang/settings.json`)
+- **Supported locales**: `fr`, `en`
+- **French is the primary UI language** — both files carry the same keys
 
 ## File Structure
 
@@ -14,8 +14,8 @@ Unitae uses **Paraglide JS** (from the Inlang ecosystem) for internationalizatio
 app/
 └── i18n/
     ├── messages/
-    │   ├── en.json          # English translations (base locale)
-    │   └── fr.json          # French translations (primary UI language)
+    │   ├── en.json          # English translations
+    │   └── fr.json          # French translations (base locale)
     ├── paraglide/           # Auto-generated (gitignored)
     │   ├── messages.js      # Main export — import * as m from '~/i18n/paraglide/messages'
     │   ├── messages/        # Individual message modules (tree-shakeable)
@@ -62,12 +62,51 @@ Messages use the Inlang message format in JSON:
 
 ## Adding or Modifying Translations
 
-1. Add or edit the key in `app/i18n/messages/en.json` (base locale)
-2. Add the corresponding translation in `app/i18n/messages/fr.json`
+1. Add or edit the key in `app/i18n/messages/fr.json` (base locale)
+2. Add the corresponding translation in `app/i18n/messages/en.json`
 3. The Paraglide Vite plugin recompiles automatically during `pnpm start:dev`
 4. Import and use: `m.your_new_key()`
 
-If a key is missing in `fr.json`, Paraglide falls back to the `en.json` value.
+If a key is missing in `en.json`, Paraglide falls back to the `fr.json` value.
+
+## Which Language Applies
+
+Paraglide's `getLocale()` is overridden once for the whole process, web server and worker alike, by
+`app/shared/utils/locale-scope.server.ts`: it returns the locale of the enclosing
+`runWithLocale(locale, fn)`, or the base locale outside of one. Every `m.*()` call without an
+explicit `{ locale }` follows it. Never call `overwriteGetLocale()` anywhere else: the runtime keeps
+a single override, and a second one would replace the first, whichever module loaded last.
+
+### In a request
+
+The root middleware `requestLocale()` (`app/shared/middleware/locale.server.ts`) resolves the
+locale before any loader, action or resource route runs, and runs the rest of the request inside
+`runWithLocale`. The order (`resolveLocaleFromRequest` in `app/shared/utils/locale.server.ts`):
+
+1. The signed-in account's own language, `UserAccount.locale`, chosen in **My profile**
+2. That account's congregation's language, `Congregation.locale`, set in **Settings › General**
+3. The congregation the request's subdomain or custom domain belongs to
+4. Single-tenant: the first congregation
+5. `fr`
+
+Both columns are free text: a value the app does not ship is skipped. `entry.server.tsx` reuses
+what the middleware resolved, and resolves the locale itself only for a path no route matches,
+since React Router skips middleware for those (404, 405).
+
+The client translates with the `PARAGLIDE_LOCALE` cookie (Paraglide's `cookie` strategy). The
+middleware writes it on every response, documents and data requests alike, whenever it differs
+from what the request carried. Components already on screen do not re-render when it changes, so
+a new language only shows on a full page load: the actions that change one (the general settings
+and `/me/language`) answer with `redirectDocument`.
+
+### In an email
+
+An email addressed to one account goes out in that account's language, whoever triggered it:
+wrap the send in `runWithLocale(accountLocale(account, congregation.locale), ...)`. The password
+reset and verification senders and the notification emails do. Resend renders the React body
+inside `sendEmail`, so the body follows the locale active there. Messages meant for the
+congregation at large stay in its language, passed explicitly (the assignment messages of
+`features/events` take `cong.locale`).
 
 ## Worker and Background Job Locale
 
@@ -85,7 +124,7 @@ await runInWorkerContext(congregation.locale, congregation.timezone, async () =>
 })
 ```
 
-This module is imported at the top of `workers/worker.server.ts` before any handler imports, ensuring `overwriteGetLocale()` is called once at startup.
+`runInWorkerContext` sets the locale through `runWithLocale` (see [Which Language Applies](#which-language-applies)) and keeps the timezone in its own store, read with `getWorkerTimezone()`. Inside it, the notification emails switch to each recipient's language per message.
 
 ## Vite Plugin Configuration
 

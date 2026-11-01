@@ -52,6 +52,7 @@ const { resolveCongregation } = await import('~/shared/domain/congregation.serve
 const { sendEmail } = await import('~/shared/infra/mailer.server')
 const { resolveRecipients } = await import('./resolve-recipients.server')
 const { runInWorkerContext } = await import('~/shared/utils/worker-locale.server')
+const { getLocale } = await import('~/i18n/paraglide/runtime')
 
 const CONGREGATION = {
   id: 42,
@@ -226,6 +227,64 @@ describe('handleInstantEmail — recipientRole branch (targets everyone with a p
     })
 
     expect(sendEmail).not.toHaveBeenCalled()
+  })
+})
+
+// Each email goes out in its recipient's language: the one they chose, else the congregation's
+// (CONGREGATION.locale is 'en' here). Resend renders the body inside sendEmail, so the locale
+// active there is the one the whole email is written in.
+describe('handleInstantEmail — one language per recipient', () => {
+  function recordLocalesSentIn() {
+    const locales: string[] = []
+    vi.mocked(sendEmail).mockImplementation(() => {
+      locales.push(getLocale())
+      return Promise.resolve(null)
+    })
+    return locales
+  }
+
+  it("writes each role recipient's email in that recipient's language", async () => {
+    vi.mocked(resolveRecipients).mockResolvedValue([
+      { userId: 1, email: 'a@test.org', firstname: 'Alice', locale: 'fr' },
+      { userId: 2, email: 'b@test.org', firstname: null, locale: null },
+    ])
+    const locales = recordLocalesSentIn()
+
+    await handleInstantEmail({
+      type: 'notification-instant',
+      congregationId: 42,
+      notificationType: 'board.document.deleted',
+      recipientId: null,
+      recipientRole: 'board-validator',
+      payload: JSON.stringify({ title: 'Removed doc' }),
+    })
+
+    expect(locales).toEqual(['fr', 'en'])
+  })
+
+  it("writes a targeted recipient's email in the language they chose", async () => {
+    vi.mocked(unscopedDb.userAccount.findFirst).mockResolvedValue({
+      id: 7,
+      email: 'user@test.org',
+      firstname: 'AccountName',
+      locale: 'fr',
+      member: null,
+    } as never)
+    const locales = recordLocalesSentIn()
+
+    await handleInstantEmail({
+      type: 'notification-instant',
+      congregationId: 42,
+      notificationType: 'territory.sync.completed',
+      recipientId: 7,
+      recipientRole: null,
+      payload: '{}',
+    })
+
+    expect(unscopedDb.userAccount.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ select: expect.objectContaining({ locale: true }) }),
+    )
+    expect(locales).toEqual(['fr'])
   })
 })
 

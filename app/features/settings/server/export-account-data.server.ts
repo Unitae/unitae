@@ -36,6 +36,7 @@ export async function exportAccountData(
       active: true,
       platformAdmin: true,
       anonymizedAt: true,
+      locale: true,
       memberId: true,
       member: {
         select: {

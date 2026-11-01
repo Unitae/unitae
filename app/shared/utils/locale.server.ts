@@ -3,26 +3,36 @@ import { baseLocale, isLocale, type Locale } from '~/i18n/paraglide/runtime'
 import { findCongregation, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
+import { localeFromCookie } from '~/shared/utils/locale-cookie'
 
 const DEFAULT_LOCALE = 'fr'
-const LOCALE_COOKIE = /(?:^|;\s*)PARAGLIDE_LOCALE=([^;]+)/
 
-export async function resolveLocaleFromRequest(request: Request): Promise<string> {
-  // 1. Try session → user → congregation → locale (authenticated users)
+/**
+ * The locale of the account behind the session: the one it chose for itself, else its
+ * congregation's. Null without an account or a congregation behind the session.
+ */
+async function sessionAccountLocale(request: Request): Promise<string | null> {
   const session = await getSession(request.headers.get('Cookie'))
   const rawUserId = session.get('userId')
   const userId = Number(rawUserId)
+  if (!rawUserId || Number.isNaN(userId) || userId <= 0) return null
 
-  if (rawUserId && !Number.isNaN(userId) && userId > 0) {
-    const user = await unscopedDb.userAccount.findUnique({
-      where: { id: userId },
-      select: { congregationId: true },
-    })
+  const user = await unscopedDb.userAccount.findUnique({
+    where: { id: userId },
+    select: { congregationId: true, locale: true },
+  })
+  if (!user) return null
+  if (isLocale(user.locale)) return user.locale
 
-    // No account or no congregation behind the session: resolve as for an anonymous request (steps 2 and 3).
-    const congregation = user ? await findCongregation(user.congregationId) : null
-    if (congregation) return congregation.locale
-  }
+  const congregation = await findCongregation(user.congregationId)
+  return congregation?.locale ?? null
+}
+
+export async function resolveLocaleFromRequest(request: Request): Promise<string> {
+  // 1. Try session → user → its own locale, then its congregation's (authenticated users).
+  // No account or no congregation behind the session: resolve as for an anonymous request (steps 2 and 3).
+  const accountLocale = await sessionAccountLocale(request)
+  if (accountLocale) return accountLocale
 
   // 2. Try subdomain/domain → congregation → locale (unauthenticated, multi-tenant)
   const urlCongregation = await resolveCongregationFromRequest(request)
@@ -95,9 +105,4 @@ function isRedirect(error: unknown): error is Response {
 function redirectsToItself(request: Request, redirect: Response): boolean {
   const current = new URL(request.url)
   return new URL(redirect.headers.get('Location') ?? '', current).pathname === current.pathname
-}
-
-function localeFromCookie(request: Request): Locale | null {
-  const value = LOCALE_COOKIE.exec(request.headers.get('Cookie') ?? '')?.[1]
-  return isLocale(value) ? value : null
 }
