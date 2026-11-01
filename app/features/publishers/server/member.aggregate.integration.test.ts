@@ -426,19 +426,37 @@ describe('pastoral dates — integration', () => {
     expect(saved.arrivedAt?.toISOString().slice(0, 10)).toBe('2026-09-15')
   })
 
-  // Back after more than a year away: welcomed like a new arrival, from the return date.
-  it('records a return after more than a year away as an arrival', async () => {
+  // Back after more than a year away: welcomed like a new arrival, from the return day, stored as
+  // a calendar day like the arrival date the publisher form saves.
+  it('records a return after more than a year away as an arrival, on the return day', async () => {
     const member = await create('ReturnedLate')
     await testDb.member.update({ where: { id: member.id }, data: { leftAt: new Date('2025-01-10T00:00:00Z') } })
-    const returnedOn = new Date('2026-11-01T09:00:00Z')
 
     await withScope(congId, tx =>
-      memberAggregate.setLifecycle(tx, member.id as MemberId, congId, 1, 'returned', undefined, returnedOn),
+      memberAggregate.setLifecycle(
+        tx,
+        member.id as MemberId,
+        congId,
+        1,
+        'returned',
+        undefined,
+        new Date('2026-11-01T09:00:00Z'),
+      ),
     )
 
     const saved = await testDb.member.findUniqueOrThrow({ where: { id: member.id } })
     expect(saved.leftAt).toBeNull()
-    expect(saved.arrivedAt).toEqual(returnedOn)
+    expect(saved.arrivedAt).toEqual(new Date('2026-11-01T00:00:00Z'))
+  })
+
+  it('replaces an earlier arrival date with the return day, today when none is given', async () => {
+    const member = await create('ReturnedAgain', { arrivedAt: '2020-01-01' })
+    await testDb.member.update({ where: { id: member.id }, data: { leftAt: new Date('2024-01-10T00:00:00Z') } })
+
+    await withScope(congId, tx => memberAggregate.setLifecycle(tx, member.id as MemberId, congId, 1, 'returned'))
+
+    const saved = await testDb.member.findUniqueOrThrow({ where: { id: member.id } })
+    expect(saved.arrivedAt?.toISOString()).toBe(`${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`)
   })
 
   it('leaves the arrival date alone for a return within the year', async () => {

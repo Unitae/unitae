@@ -74,7 +74,7 @@ export default function PublisherPersonalInformationForm({
               id="arrivedAt"
               name="arrivedAt"
               type="date"
-              defaultValue={user ? (user.arrivedAt?.toLocaleDateString('en-CA') ?? '') : (arrivalDefault ?? '')}
+              defaultValue={user ? (user.arrivedAt?.toISOString().slice(0, 10) ?? '') : (arrivalDefault ?? '')}
               aria-describedby="arrivedAt-hint"
             />
             <p id="arrivedAt-hint" className="text-muted-foreground text-xs">

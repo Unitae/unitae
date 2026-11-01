@@ -127,3 +127,18 @@ describe.each([
     expect(result.success).toBe(true)
   })
 })
+
+describe.each([
+  ['createPublisherSchema', createPublisherSchema],
+  ['updatePublisherSchema', updatePublisherSchema],
+])('%s — arrival date', (_name, schema) => {
+  it('accepts a date from the date input, or none', () => {
+    expect(schema.safeParse({ ...baseInput, arrivedAt: '2026-09-15' }).success).toBe(true)
+    expect(schema.safeParse({ ...baseInput, arrivedAt: '' }).success).toBe(true)
+  })
+
+  // Only a crafted request sends these: the date input cannot.
+  it.each(['2026-02-30', '15/09/2026', 'soon'])('refuses %s', arrivedAt => {
+    expect(schema.safeParse({ ...baseInput, arrivedAt }).success).toBe(false)
+  })
+})
