@@ -40,10 +40,7 @@ export function PastoralFollowUpCard({
       </CardHeader>
       <CardContent className="flex flex-col gap-2 text-sm">
         {arrivedAt && (
-          <p className="text-muted-foreground">
-            {m.publishers_form_arrived_at()} :{' '}
-            <span className="font-medium text-foreground">{formatDay(arrivedAt, locale)}</span>
-          </p>
+          <p className="text-muted-foreground">{m.publishers_visit_arrived({ date: formatDay(arrivedAt, locale) })}</p>
         )}
         <p>
           {lastPastoralVisitAt
