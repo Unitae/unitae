@@ -46,6 +46,10 @@ export const DELEGATES: Record<string, { file: string; enforces: RegExp }> = {
   canManageAnyProgram: { file: 'app/features/events/server/events-auth.server.ts', enforces: ENFORCES_PERMISSION },
   // Pure policy: the route feeds it booleans derived from permissions and group membership.
   canManageEmergencyInfo: { file: 'app/features/publishers/model/emergency-access.ts', enforces: /hasManager/ },
+  canRecordPastoralVisit: {
+    file: 'app/features/publishers/model/pastoral-visit-access.ts',
+    enforces: /hasPublisherManager/,
+  },
   // Name the permissions that let a caller record, or correct, anyone's activity.
   canRecordAnyActivity: {
     file: 'app/features/publishers/model/group-activity-access.ts',

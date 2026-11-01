@@ -97,6 +97,8 @@ export const AuditAction = {
   PublisherGroupUpdated: 'publisher.group.updated',
   // A member put in a field service group, moved to another, or taken out of every group.
   PublisherGroupMembershipChanged: 'publisher.group.membership_changed',
+  // The last pastoral visit date recorded, changed or cleared (only the latest date is kept).
+  PastoralVisitRecorded: 'publisher.pastoral_visit.recorded',
   PublisherGroupDeleted: 'publisher.group.deleted',
   PublisherActivityCreated: 'publisher.activity.created',
   PublisherActivityUpdated: 'publisher.activity.updated',

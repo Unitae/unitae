@@ -21,6 +21,7 @@ import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
+import { formatDateForInput } from '~/shared/utils/event-time'
 import { handleAppError } from '~/shared/utils/handle-app-error.server'
 
 import type { Route } from './+types/new-publisher'
@@ -41,12 +42,13 @@ export function loader({ context }: Route.LoaderArgs) {
   return withScopeFromContext(context, async db => {
     const groups = await db.publisherGroup.findMany({ where: { congregationId: currentUser.congregationId } })
 
-    return { groups }
+    // A new record is usually a new arrival: the date starts at today, on the congregation's calendar.
+    return { groups, arrivalDefault: formatDateForInput(new Date(), context.get(congregationContext).timezone) }
   })
 }
 
 export default function NewPublisher({ loaderData }: Route.ComponentProps) {
-  const { groups } = loaderData
+  const { groups, arrivalDefault } = loaderData
   const { blocker, markDirty } = useUnsavedChanges()
   const [gender, setGender] = useState<'male' | 'female' | null>(null)
 
@@ -61,7 +63,7 @@ export default function NewPublisher({ loaderData }: Route.ComponentProps) {
       />
 
       <Form method="post" className="flex flex-col gap-6" onChange={markDirty}>
-        <PublisherPersonalInformationForm onGenderChange={setGender} />
+        <PublisherPersonalInformationForm arrivalDefault={arrivalDefault} onGenderChange={setGender} />
         <PublisherNominationForm gender={gender} />
         <PublisherFieldServiceForm groups={groups} />
 
@@ -91,6 +93,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     gender,
     birthDate,
     baptismDate,
+    arrivedAt,
     isHelder,
     isServant,
     isAnointed,
@@ -109,6 +112,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         gender,
         birthDate: birthDate || null,
         baptismDate: baptismDate || null,
+        arrivedAt: arrivedAt || null,
         isHelder,
         isServant,
         isAnointed,

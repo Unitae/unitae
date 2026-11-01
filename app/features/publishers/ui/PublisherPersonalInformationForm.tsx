@@ -6,11 +6,18 @@ import { Label } from '~/shared/ui/label'
 
 export default function PublisherPersonalInformationForm({
   user,
+  arrivalDefault,
   onGenderChange,
 }: {
   user?: UserInput
+  /**
+   * The arrival date a new publisher starts with (today, on the congregation's calendar); an
+   * existing one shows the date it has, or none.
+   */
+  arrivalDefault?: string
   onGenderChange?: (gender: 'male' | 'female') => void
 }) {
+  const arrivedAt = user ? user.arrivedAt?.toISOString().slice(0, 10) : arrivalDefault
   return (
     <Card>
       <CardHeader>
@@ -59,6 +66,21 @@ export default function PublisherPersonalInformationForm({
               type="date"
               defaultValue={user?.baptismDate?.toLocaleDateString('en-CA') ?? ''}
             />
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="arrivedAt">{m.publishers_form_arrived_at()}</Label>
+            <Input
+              id="arrivedAt"
+              name="arrivedAt"
+              type="date"
+              defaultValue={arrivedAt ?? ''}
+              aria-describedby="arrivedAt-hint"
+            />
+            <p id="arrivedAt-hint" className="text-muted-foreground text-xs">
+              {m.publishers_form_arrived_at_hint()}
+            </p>
           </div>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">

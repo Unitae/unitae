@@ -58,7 +58,12 @@ const removeMember = await import('./group-member-remove')
 
 type ViewData = {
   group: typeof GROUP
-  roles: { canViewPublishers: boolean; canEditPublishers: boolean; canCorrectReports: boolean }
+  roles: {
+    canViewPublishers: boolean
+    canEditPublishers: boolean
+    canCorrectReports: boolean
+    canRecordVisits: boolean
+  }
 }
 type ViewMember = (typeof GROUP)['members'][number]
 
@@ -124,6 +129,19 @@ describe('group view loader', () => {
     expect(recorder.roles.canCorrectReports).toBe(false)
     expect(corrector.roles.canCorrectReports).toBe(true)
     expect(overseer.roles.canCorrectReports).toBe(true)
+  })
+
+  // The publisher manager and the group's own overseer and assistant record pastoral visits.
+  it('offers to record a pastoral visit only to those who may', async () => {
+    const viewer = (await view('4', [Permission.CanViewPublishers])) as ViewData
+    const manager = (await view('4', [Permission.CanViewPublishers, Permission.CanManagePublishers])) as ViewData
+    const overseer = (await view('4', [], { member: { id: 10, responsibleFor: { id: 4 } } })) as ViewData
+    const assistant = (await view('4', [], { member: { id: 12, deputyFor: { id: 4 } } })) as ViewData
+
+    expect(viewer.roles.canRecordVisits).toBe(false)
+    expect(manager.roles.canRecordVisits).toBe(true)
+    expect(overseer.roles.canRecordVisits).toBe(true)
+    expect(assistant.roles.canRecordVisits).toBe(true)
   })
 
   it('shows the missing emergency information only to those who may see it', async () => {

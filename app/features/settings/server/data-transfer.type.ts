@@ -1,4 +1,4 @@
-export const ARCHIVE_VERSION = '2.10'
+export const ARCHIVE_VERSION = '2.11'
 
 // Older archive versions an import will still accept. v1.0 archives miss every
 // post-shipping feature table (custom roles, allowed-roles, external speakers,
@@ -38,6 +38,9 @@ export const ARCHIVE_VERSION = '2.10'
 // v2.10 adds `locale` to `user-accounts.ndjson`: the interface language an account
 // chose for itself. Pre-2.10 rows have none: new accounts follow the congregation's
 // language, and accounts that already exist keep theirs.
+// v2.11 adds `arrivedAt` and `lastPastoralVisitAt` to `members.ndjson`: when the person
+// arrived in the congregation and their last pastoral visit. Pre-2.11 rows have neither,
+// which is how members recorded before these dates already were.
 // v1.x archives are listed here so the import path reports
 // them with a warning rather than rejecting outright; a compatibility shim that
 // splits legacy `users.ndjson` is a deferred follow-up.
@@ -55,6 +58,7 @@ export const SUPPORTED_ARCHIVE_VERSIONS = [
   '2.8',
   '2.9',
   '2.10',
+  '2.11',
 ] as const
 
 export interface ManifestJson {

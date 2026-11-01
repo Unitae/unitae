@@ -9,6 +9,7 @@ export const updatePublisherSchema = z.object({
   gender: z.string(),
   birthDate: z.string().optional().or(z.literal('')),
   baptismDate: z.string().optional().or(z.literal('')),
+  arrivedAt: z.iso.date().optional().or(z.literal('')),
   isHelder: z
     .string()
     .optional()

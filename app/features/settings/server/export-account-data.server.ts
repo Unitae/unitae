@@ -57,6 +57,8 @@ export async function exportAccountData(
           leftAt: true,
           inactiveAt: true,
           anonymizedAt: true,
+          arrivedAt: true,
+          lastPastoralVisitAt: true,
         },
       },
     },

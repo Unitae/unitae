@@ -39,7 +39,7 @@ const MAY = { month: 4, year: 2026 }
 
 // The member fields getGroup reads to compute its labels and must never return.
 const RAW_MEMBER_FIELDS =
-  /inactiveAt|baptismDate|createdAt|dpaCardUpToDate|survivalBackpackReady|isAnointed|hours|notes/
+  /inactiveAt|baptismDate|createdAt|arrivedAt|lastPastoralVisitAt|dpaCardUpToDate|survivalBackpackReady|isAnointed|hours|notes/
 
 beforeAll(async () => {
   const [congA, congB] = await Promise.all([
@@ -75,6 +75,8 @@ beforeAll(async () => {
         email: 'sensitive@example.test',
         dpaCardUpToDate: true,
         survivalBackpackReady: true,
+        arrivedAt: new Date('2026-04-20T08:00:00Z'),
+        lastPastoralVisitAt: new Date('2026-05-10T08:00:00Z'),
         publisherGroupId: g.id,
         congregationId: congAId,
       },
@@ -189,6 +191,8 @@ describe('getGroup (integration)', () => {
     ])
     expect(member?.reports.at(-1)).toEqual({ ...MAY, status: 'filed', id: expect.any(Number) })
     expect(member?.emergencyGaps).toEqual(['contact'])
+    // Arrived 20 April, eight weeks before the moment read: a welcome visit to plan.
+    expect(member?.signals).toEqual([{ kind: 'new-arrival' }, { kind: 'last-visit', on: MAY }])
   })
 
   it('says since when an inactive publisher is inactive', async () => {

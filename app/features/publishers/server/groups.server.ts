@@ -101,6 +101,8 @@ export async function getGroup(
           email: true,
           inactiveAt: true,
           baptismDate: true,
+          arrivedAt: true,
+          lastPastoralVisitAt: true,
           createdAt: true,
           dpaCardUpToDate: true,
           survivalBackpackReady: true,
@@ -119,7 +121,12 @@ export async function getGroup(
     return null
   }
 
+  // Timestamps (inactive since, added on) read on the congregation's calendar. Date-only fields
+  // (baptism, arrival, visit) are stored at UTC midnight: they read as that calendar day, which a
+  // timezone conversion would move to the day before west of Greenwich.
   const local = (date: Date | null) => (date ? zonedNow(timezone, date) : null)
+  const day = (date: Date | null) =>
+    date ? new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) : null
   const rows = group.members.map(member => {
     const added = zonedNow(timezone, member.createdAt)
     const expectedFrom = { month: added.getMonth(), year: added.getFullYear() }
@@ -136,7 +143,9 @@ export async function getGroup(
         }),
         signals: pastoralSignals(today, {
           inactiveAt: local(member.inactiveAt),
-          baptismDate: local(member.baptismDate),
+          baptismDate: day(member.baptismDate),
+          arrivedAt: day(member.arrivedAt),
+          lastPastoralVisitAt: day(member.lastPastoralVisitAt),
         }),
         emergencyGaps: emergencyGaps({
           dpaCardUpToDate: member.dpaCardUpToDate,

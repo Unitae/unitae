@@ -54,6 +54,8 @@ beforeAll(async () => {
         isPublisher: true,
         email: 'alice.contact@example.com',
         inactiveAt: new Date('2026-03-15T00:00:00Z'),
+        arrivedAt: new Date('2025-09-01T00:00:00Z'),
+        lastPastoralVisitAt: new Date('2026-02-20T00:00:00Z'),
         congregationId: sourceId,
       },
     })
@@ -779,6 +781,9 @@ describe('Export/Import round-trip', () => {
       expect(alice.platformAdmin).toBe(false)
       // A restore must not reset the language each member chose for themselves.
       expect(alice.locale).toBe('en')
+      // Nor the pastoral follow-up dates.
+      expect(alice.member?.arrivedAt?.toISOString().slice(0, 10)).toBe('2025-09-01')
+      expect(alice.member?.lastPastoralVisitAt?.toISOString().slice(0, 10)).toBe('2026-02-20')
       expect(bob.locale).toBeNull()
       expect(bobMember).toBeDefined()
 

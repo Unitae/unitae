@@ -42,6 +42,8 @@ function memberRow(overrides: Record<string, unknown> = {}) {
     email: '',
     inactiveAt: null,
     baptismDate: null,
+    arrivedAt: null,
+    lastPastoralVisitAt: null,
     createdAt: new Date('2020-01-01T00:00:00Z'),
     dpaCardUpToDate: true,
     survivalBackpackReady: true,
@@ -122,6 +124,47 @@ describe('getGroup', () => {
 
     expect(result?.members[0].emergencyGaps).toEqual(['card', 'contact'])
     expect(result?.members[0].signals).toEqual([{ kind: 'baptism-anniversary' }])
+  })
+
+  it('flags a recent arrival and names the month of the last pastoral visit', async () => {
+    mockDb.publisherGroup.findUnique.mockResolvedValue(
+      groupRow([
+        memberRow({
+          arrivedAt: new Date('2026-06-01T00:00:00Z'),
+          lastPastoralVisitAt: new Date('2026-04-01T00:00:00Z'),
+        }),
+      ]),
+    )
+
+    const result = await getGroup(dbCast, 7, 42, { timezone: 'America/New_York', now: AS_OF.now })
+
+    // Date-only fields are stored at UTC midnight: they read as that calendar day, wherever the
+    // congregation is. Converted to New York time, 1 April would become 31 March.
+    expect(result?.members[0].signals).toEqual([
+      { kind: 'new-arrival' },
+      { kind: 'last-visit', on: { month: 3, year: 2026 } },
+    ])
+  })
+
+  // On 14 July in New York, an arrival on 15 April is still within its three months, and a baptism
+  // on 15 August 2025 is not yet eleven months old. Converted to New York time, both dates would
+  // move to the day before and flip both labels.
+  it('reads arrival and baptism dates as their calendar day, west of Greenwich', async () => {
+    mockDb.publisherGroup.findUnique.mockResolvedValue(
+      groupRow([
+        memberRow({
+          arrivedAt: new Date('2026-04-15T00:00:00Z'),
+          baptismDate: new Date('2025-08-15T00:00:00Z'),
+        }),
+      ]),
+    )
+
+    const result = await getGroup(dbCast, 7, 42, {
+      timezone: 'America/New_York',
+      now: new Date('2026-07-14T10:00:00Z'),
+    })
+
+    expect(result?.members[0].signals).toEqual([{ kind: 'new-arrival' }])
   })
 
   it('puts the inactive publishers in a list of their own', async () => {
