@@ -21,6 +21,7 @@ vi.mock('~/shared/domain/audit.server', () => ({
     MemberReturned: 'member.returned',
     UserAnonymized: 'user.anonymized',
     PublisherGroupMembershipChanged: 'publisher.group.membership_changed',
+    PastoralVisitRecorded: 'publisher.pastoral_visit.recorded',
   },
 }))
 
@@ -53,7 +54,7 @@ let congId: number
 const congregationInfo = { id: 0, maxMembers: null, maxTerritories: null }
 
 const memberAggregate = await import('./member.aggregate')
-const { ConflictError } = await import('~/shared/errors/app-error.server')
+const { ConflictError, NotFoundError } = await import('~/shared/errors/app-error.server')
 const { seedBuiltInRoles } = await import('~/shared/domain/setup.server')
 
 beforeAll(async () => {
@@ -98,6 +99,7 @@ const baseFormParams = {
   type: PublisherType.Normal,
   phone: '',
   address: '',
+  arrivedAt: null as string | null,
 }
 
 // setPioneerType and bulkUpdateType are gone with the Member.type column. What bulkUpdateType did
@@ -228,10 +230,12 @@ describe('member.aggregate — integration', () => {
         phone: '0612345678',
         email: 'contact@example.com',
         isServant: true,
+        arrivedAt: '2025-09-01',
         congregationId: congId,
         actorId: 1,
       }),
     )
+    await testDb.member.update({ where: { id: member.id }, data: { lastPastoralVisitAt: new Date('2026-02-20') } })
 
     auditMock.mockClear()
     await withScope(congId, tx => memberAggregate.anonymize(tx, member.id as MemberId, congId, 1))
@@ -244,6 +248,9 @@ describe('member.aggregate — integration', () => {
     expect(after.anonymizedAt).not.toBeNull()
     expect(after.leftAt).not.toBeNull()
     expect(after.isServant).toBe(false)
+    // Regression: the pastoral follow-up dates survived the scrub.
+    expect(after.arrivedAt).toBeNull()
+    expect(after.lastPastoralVisitAt).toBeNull()
     const rolesAfter = await testDb.memberRoleAssignment.count({ where: { memberId: member.id } })
     expect(rolesAfter).toBe(0)
     const deletion = await testDb.dataDeletionRecord.findFirst({
@@ -397,5 +404,95 @@ describe('memberAggregate.setGroup — integration', () => {
     await withScope(congId, tx => memberAggregate.setGroup(tx, member.id, congId, group.id, 7))
 
     expect(auditMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('pastoral dates — integration', () => {
+  function create(firstname: string, extra: Partial<typeof baseFormParams> = {}) {
+    return withScope(congId, tx =>
+      memberAggregate.createMember(tx, congregationInfo as never, {
+        ...baseFormParams,
+        ...extra,
+        firstname: `${firstname}-${ts}`,
+        congregationId: congId,
+        actorId: 1,
+      }),
+    )
+  }
+
+  it('stores the arrival date given on the publisher form', async () => {
+    const member = await create('Arrived', { arrivedAt: '2026-09-15' })
+    const saved = await testDb.member.findUniqueOrThrow({ where: { id: member.id } })
+    expect(saved.arrivedAt?.toISOString().slice(0, 10)).toBe('2026-09-15')
+  })
+
+  // Back after more than a year away: welcomed like a new arrival, from the return date.
+  it('records a return after more than a year away as an arrival', async () => {
+    const member = await create('ReturnedLate')
+    await testDb.member.update({ where: { id: member.id }, data: { leftAt: new Date('2025-01-10T00:00:00Z') } })
+    const returnedOn = new Date('2026-11-01T09:00:00Z')
+
+    await withScope(congId, tx =>
+      memberAggregate.setLifecycle(tx, member.id as MemberId, congId, 1, 'returned', undefined, returnedOn),
+    )
+
+    const saved = await testDb.member.findUniqueOrThrow({ where: { id: member.id } })
+    expect(saved.leftAt).toBeNull()
+    expect(saved.arrivedAt).toEqual(returnedOn)
+  })
+
+  it('leaves the arrival date alone for a return within the year', async () => {
+    const member = await create('ReturnedSoon', { arrivedAt: '2024-03-01' })
+    await testDb.member.update({ where: { id: member.id }, data: { leftAt: new Date('2026-06-10T00:00:00Z') } })
+
+    await withScope(congId, tx =>
+      memberAggregate.setLifecycle(
+        tx,
+        member.id as MemberId,
+        congId,
+        1,
+        'returned',
+        undefined,
+        new Date('2026-11-01T09:00:00Z'),
+      ),
+    )
+
+    const saved = await testDb.member.findUniqueOrThrow({ where: { id: member.id } })
+    expect(saved.arrivedAt?.toISOString().slice(0, 10)).toBe('2024-03-01')
+  })
+
+  it('records the last pastoral visit, and who recorded it', async () => {
+    const member = await create('Visited')
+    auditMock.mockClear()
+
+    await withScope(congId, tx =>
+      memberAggregate.setLastPastoralVisit(tx, member.id, congId, new Date('2026-10-20T00:00:00Z'), 7),
+    )
+
+    const saved = await testDb.member.findUniqueOrThrow({ where: { id: member.id } })
+    expect(saved.lastPastoralVisitAt?.toISOString().slice(0, 10)).toBe('2026-10-20')
+    expect(auditMock).toHaveBeenCalledWith({
+      action: 'publisher.pastoral_visit.recorded',
+      congregationId: congId,
+      actorId: 7,
+      entityType: 'Member',
+      entityId: member.id,
+    })
+  })
+
+  it('clears the last pastoral visit with null', async () => {
+    const member = await create('VisitCleared')
+    await testDb.member.update({ where: { id: member.id }, data: { lastPastoralVisitAt: new Date() } })
+
+    await withScope(congId, tx => memberAggregate.setLastPastoralVisit(tx, member.id, congId, null, 7))
+
+    const saved = await testDb.member.findUniqueOrThrow({ where: { id: member.id } })
+    expect(saved.lastPastoralVisitAt).toBeNull()
+  })
+
+  it('refuses a member of another congregation', async () => {
+    await expect(
+      withScope(congId, tx => memberAggregate.setLastPastoralVisit(tx, 999_999_999, congId, new Date(), 7)),
+    ).rejects.toBeInstanceOf(NotFoundError)
   })
 })

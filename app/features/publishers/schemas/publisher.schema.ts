@@ -9,6 +9,7 @@ export const createPublisherSchema = z.object({
   gender: z.enum(['male', 'female']),
   birthDate: z.string().optional().or(z.literal('')),
   baptismDate: z.string().optional().or(z.literal('')),
+  arrivedAt: z.string().optional().or(z.literal('')),
   isHelder: z
     .string()
     .optional()

@@ -20,6 +20,9 @@ const LEGACY_ADMIN_PERMISSION_KEY = 'admin'
 // Password that can never match any valid scrypt hash
 const IMPORTED_PASSWORD_PLACEHOLDER = '$IMPORTED$'
 
+// An archived date, absent or null when there was none.
+const dateOrNull = (value: string | null | undefined) => (value ? new Date(value) : null)
+
 export async function importMembers(
   zip: JsZip,
   db: TransactionClient,
@@ -48,6 +51,9 @@ export async function importMembers(
     leftAt: string | null
     inactiveAt: string | null
     anonymizedAt: string | null
+    // Optional: absent in pre-2.11 archives.
+    arrivedAt?: string | null
+    lastPastoralVisitAt?: string | null
     publisherGroupId: number | null
     createdAt: string
     updatedAt: string
@@ -66,16 +72,18 @@ export async function importMembers(
         phone: record.phone,
         address: record.address,
         email: record.email ?? '',
-        birthDate: record.birthDate ? new Date(record.birthDate) : null,
-        baptismDate: record.baptismDate ? new Date(record.baptismDate) : null,
+        birthDate: dateOrNull(record.birthDate),
+        baptismDate: dateOrNull(record.baptismDate),
         isHelder: record.isHelder,
         isServant: record.isServant,
         isAnointed: record.isAnointed,
         dpaCardUpToDate: record.dpaCardUpToDate ?? false,
         survivalBackpackReady: record.survivalBackpackReady ?? false,
-        leftAt: record.leftAt ? new Date(record.leftAt) : null,
-        inactiveAt: record.inactiveAt ? new Date(record.inactiveAt) : null,
-        anonymizedAt: record.anonymizedAt ? new Date(record.anonymizedAt) : null,
+        arrivedAt: dateOrNull(record.arrivedAt),
+        lastPastoralVisitAt: dateOrNull(record.lastPastoralVisitAt),
+        leftAt: dateOrNull(record.leftAt),
+        inactiveAt: dateOrNull(record.inactiveAt),
+        anonymizedAt: dateOrNull(record.anonymizedAt),
         congregationId,
       },
     })

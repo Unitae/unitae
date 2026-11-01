@@ -1,4 +1,4 @@
-import { Eye, Mail, Pencil } from 'lucide-react'
+import { Eye, HeartHandshake, Mail, Pencil } from 'lucide-react'
 import { Link } from 'react-router'
 import { type ActivityMonth, formatActivityMonth } from '~/features/publishers/model/activity-months'
 import type { EmergencyGap, PastoralSignal } from '~/features/publishers/model/member-signals'
@@ -42,20 +42,41 @@ function MemberLabels({ member, locale }: { member: GroupMemberRow; locale: stri
   if (member.signals.length === 0 && member.emergencyGaps.length === 0) return null
   return (
     <div className="mt-1 flex flex-wrap gap-1">
-      {member.signals.map(signal =>
-        signal.kind === 'inactive' ? (
-          <Badge key={signal.kind} variant="secondary" className={LABEL_CLASS}>
-            {m.groups_signal_inactive_since({ date: formatActivityMonth(signal.since, locale, 'long') })}
-          </Badge>
-        ) : (
-          <Badge key={signal.kind} variant="info" className={LABEL_CLASS}>
-            {m.groups_signal_baptism_anniversary()}
-          </Badge>
-        ),
-      )}
+      {member.signals.map(signal => (
+        <SignalLabel key={signal.kind} signal={signal} locale={locale} />
+      ))}
       {member.emergencyGaps.length > 0 && <EmergencyLabel gaps={member.emergencyGaps} />}
     </div>
   )
+}
+
+function SignalLabel({ signal, locale }: { signal: PastoralSignal; locale: string }) {
+  switch (signal.kind) {
+    case 'inactive':
+      return (
+        <Badge variant="secondary" className={LABEL_CLASS}>
+          {m.groups_signal_inactive_since({ date: formatActivityMonth(signal.since, locale, 'long') })}
+        </Badge>
+      )
+    case 'new-arrival':
+      return (
+        <Badge variant="success" className={LABEL_CLASS}>
+          {m.groups_signal_new_arrival()}
+        </Badge>
+      )
+    case 'baptism-anniversary':
+      return (
+        <Badge variant="info" className={LABEL_CLASS}>
+          {m.groups_signal_baptism_anniversary()}
+        </Badge>
+      )
+    case 'last-visit':
+      return (
+        <Badge variant="outline" className={LABEL_CLASS}>
+          {m.groups_signal_last_visit({ date: formatActivityMonth(signal.on, locale, 'long') })}
+        </Badge>
+      )
+  }
 }
 
 function EmergencyLabel({ gaps }: { gaps: EmergencyGap[] }) {
@@ -79,6 +100,7 @@ export function GroupMembersTable({
   reportWindow,
   canManageActivity,
   canCorrectReports,
+  canRecordVisits,
   canEditPublishers,
   canViewPublishers,
 }: {
@@ -87,6 +109,8 @@ export function GroupMembersTable({
   canManageActivity: boolean
   /** Whether a filed report may be opened for correction; otherwise it shows without a link. */
   canCorrectReports: boolean
+  /** Whether the actions column offers to record a pastoral visit (desktop only, like the column). */
+  canRecordVisits: boolean
   canEditPublishers: boolean
   canViewPublishers: boolean
 }) {
@@ -109,7 +133,7 @@ export function GroupMembersTable({
             </>
           )}
           <TableHead className="w-20 text-center max-sm:hidden">{m.publishers_table_contact()}</TableHead>
-          <TableHead className="w-24 max-sm:hidden">
+          <TableHead className="w-32 max-sm:hidden">
             <span className="sr-only">{m.common_actions()}</span>
           </TableHead>
         </TableRow>
@@ -156,6 +180,17 @@ export function GroupMembersTable({
               </TableCell>
               <TableCell className="max-sm:hidden">
                 <div className="flex justify-end gap-1">
+                  {canRecordVisits && (
+                    <Button asChild variant="ghost" size="icon">
+                      <Link
+                        to={`/publishers/${member.id}/pastoral-visit`}
+                        aria-label={m.groups_member_visit_aria({ name })}
+                        title={m.groups_member_visit_aria({ name })}
+                      >
+                        <HeartHandshake className="size-4" />
+                      </Link>
+                    </Button>
+                  )}
                   {canViewPublishers && (
                     <Button asChild variant="ghost" size="icon">
                       <Link to={record} aria-label={m.groups_member_view_aria({ name })}>

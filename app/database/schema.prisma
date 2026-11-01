@@ -189,6 +189,14 @@ model Member {
   responsibleFor   PublisherGroup? @relation("groupResponsible")
   deputyFor        PublisherGroup? @relation("groupDeputy")
 
+  // Pastoral follow-up, for the group overseer. `arrivedAt` = when the person arrived in the
+  // congregation (the group page flags a welcome visit for three months); null for members who
+  // were there before it was recorded. `lastPastoralVisitAt` = the latest pastoral visit only, no
+  // history and no notes; visible to publisher viewers and to the member's group overseer and
+  // assistant.
+  arrivedAt           DateTime?
+  lastPastoralVisitAt DateTime?
+
   // Lifecycle. Three orthogonal dimensions:
   //   leftAt        — soft-leave; reversible. Hides Member from publisher-facing lists.
   //   inactiveAt    — publisher hasn't preached for 6 consecutive monthly reports. Hides them

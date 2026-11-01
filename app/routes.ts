@@ -138,6 +138,7 @@ export default [
         route('view', 'features/publishers/routes/publishers/publisher.tsx'),
         route('edit', 'features/publishers/routes/publishers/edit-publisher.tsx'),
         route('emergency', 'features/publishers/routes/publishers/emergency.tsx'),
+        route('pastoral-visit', 'features/publishers/routes/publishers/pastoral-visit.tsx'),
         route('activity/pdf', 'features/publishers/routes/publishers/activity-pdf.tsx'),
         route('link-login', 'features/publishers/routes/publishers/link-login.tsx'),
         route('unlink-login', 'features/publishers/routes/publishers/unlink-login.tsx'),

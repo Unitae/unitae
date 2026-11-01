@@ -81,6 +81,14 @@ describe('exportAccountData', () => {
     expect(mockDb.userAccount.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id_congregationId: { id: 1, congregationId: 42 } } }),
     )
+    // The pastoral follow-up dates are part of what the app holds about the person.
+    expect(mockDb.userAccount.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          member: { select: expect.objectContaining({ arrivedAt: true, lastPastoralVisitAt: true }) },
+        }),
+      }),
+    )
     // The language the person chose for themselves is part of what the app holds about them.
     expect(mockDb.userAccount.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({ select: expect.objectContaining({ locale: true }) }),

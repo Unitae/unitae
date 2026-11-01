@@ -65,6 +65,8 @@ export type MemberFormFields = {
   phone: string
   address: string
   email: string
+  /** When the person arrived in the congregation; left out, the stored date is kept. */
+  arrivedAt?: string | null
 }
 
 export function memberDataFromForm(params: MemberFormFields) {
@@ -83,5 +85,6 @@ export function memberDataFromForm(params: MemberFormFields) {
     address: params.address,
     phone: params.phone,
     email: params.email,
+    ...(params.arrivedAt !== undefined && { arrivedAt: params.arrivedAt ? new Date(params.arrivedAt) : null }),
   }
 }

@@ -2,6 +2,7 @@ import { Pencil, Siren, UsersRound } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { canViewEmergencyInfo } from '~/features/publishers/model/emergency-access'
 import { canCorrectAnyActivity, canManageGroupActivity } from '~/features/publishers/model/group-activity-access'
+import { canRecordPastoralVisit } from '~/features/publishers/model/pastoral-visit-access'
 import { getGroup } from '~/features/publishers/server/groups.server'
 import { type GroupMemberRow, GroupMembersTable } from '~/features/publishers/ui/GroupMembersTable'
 import { ReportLegend } from '~/features/publishers/ui/GroupReportCells'
@@ -90,6 +91,14 @@ export function loader({ params, context }: Route.LoaderArgs) {
         canViewEmergency,
         canManageActivity: canManageGroupReports,
         canCorrectReports,
+        // Every member listed is in this group, so its leaders may record their visits.
+        canRecordVisits: canRecordPastoralVisit({
+          hasPublisherViewer: canViewPublishers,
+          hasPublisherManager: canEditPublishers,
+          myResponsibleGroupId: currentUser.member?.responsibleFor?.id ?? null,
+          myDeputyGroupId: currentUser.member?.deputyFor?.id ?? null,
+          targetGroupId: group.id,
+        }),
       },
     }
   })
@@ -121,6 +130,7 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
         reportWindow={group.reportWindow}
         canManageActivity={roles.canManageActivity}
         canCorrectReports={roles.canCorrectReports}
+        canRecordVisits={roles.canRecordVisits}
         canEditPublishers={roles.canEditPublishers}
         canViewPublishers={roles.canViewPublishers}
       />

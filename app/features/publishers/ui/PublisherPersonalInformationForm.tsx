@@ -4,11 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 
+/**
+ * @param arrivalDefault the arrival date a new publisher starts with (today, on the congregation's
+ *   calendar); an existing one shows the date it has, or none.
+ */
 export default function PublisherPersonalInformationForm({
   user,
+  arrivalDefault,
   onGenderChange,
 }: {
   user?: UserInput
+  arrivalDefault?: string
   onGenderChange?: (gender: 'male' | 'female') => void
 }) {
   return (
@@ -59,6 +65,21 @@ export default function PublisherPersonalInformationForm({
               type="date"
               defaultValue={user?.baptismDate?.toLocaleDateString('en-CA') ?? ''}
             />
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="arrivedAt">{m.publishers_form_arrived_at()}</Label>
+            <Input
+              id="arrivedAt"
+              name="arrivedAt"
+              type="date"
+              defaultValue={user ? (user.arrivedAt?.toLocaleDateString('en-CA') ?? '') : (arrivalDefault ?? '')}
+              aria-describedby="arrivedAt-hint"
+            />
+            <p id="arrivedAt-hint" className="text-muted-foreground text-xs">
+              {m.publishers_form_arrived_at_hint()}
+            </p>
           </div>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">

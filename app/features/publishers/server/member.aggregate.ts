@@ -8,6 +8,7 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 import type { MemberId } from '~/shared/types/branded'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 import { stripDiacritics } from '~/shared/utils/strip-diacritics'
+import { arrivalOnReturn } from '../model/arrival'
 import { purgeEmergencyContacts } from './emergency-info.aggregate'
 import {
   type CreateDirectParams,
@@ -152,6 +153,12 @@ const LIFECYCLE_MUTATION: Record<
   active: { field: 'inactiveAt', setNull: true, action: AuditAction.PublisherReactivated, syncsRoles: false },
 }
 
+// Back after more than a year away: welcomed like a new arrival, from the return date.
+function arrivalUpdate(state: LifecycleState, leftAt: Date | null, at: Date | undefined) {
+  const arrivedAt = state === 'returned' ? arrivalOnReturn(leftAt, at ?? new Date()) : null
+  return arrivedAt ? { arrivedAt } : {}
+}
+
 export async function setLifecycle(
   db: TransactionClient,
   memberId: MemberId,
@@ -177,7 +184,7 @@ export async function setLifecycle(
   const updated = await db.member.update({
     // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
     where: { id_congregationId: { id: memberId, congregationId } },
-    data: { [spec.field]: spec.setNull ? null : (at ?? new Date()) },
+    data: { [spec.field]: spec.setNull ? null : (at ?? new Date()), ...arrivalUpdate(state, current.leftAt, at) },
   })
 
   if (spec.syncsRoles) await syncBuiltInRoleAssignments(db, memberId, congregationId, actorId)
@@ -259,6 +266,28 @@ export async function setGroup(
   })
 }
 
+/** Records the latest pastoral visit, or clears it with `null`. Throws NotFoundError outside the congregation. */
+export async function setLastPastoralVisit(
+  db: TransactionClient,
+  memberId: number,
+  congregationId: number,
+  visitedOn: Date | null,
+  actorId: number,
+): Promise<void> {
+  const found = await db.member.findFirst({ where: { id: memberId, congregationId }, select: { id: true } })
+  if (!found) throw new NotFoundError('Member')
+  // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
+  const where = { id_congregationId: { id: memberId, congregationId } }
+  await db.member.update({ where, data: { lastPastoralVisitAt: visitedOn } })
+  audit({
+    action: AuditAction.PastoralVisitRecorded,
+    congregationId,
+    actorId,
+    entityType: 'Member',
+    entityId: memberId,
+  })
+}
+
 export async function anonymize(
   db: TransactionClient,
   memberId: MemberId,
@@ -286,6 +315,8 @@ export async function anonymize(
       email: '',
       birthDate: null,
       baptismDate: null,
+      arrivedAt: null,
+      lastPastoralVisitAt: null,
       isMale: null,
       isHelder: false,
       isServant: false,

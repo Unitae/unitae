@@ -4,12 +4,14 @@ import { Form, Link, redirect, useSubmit } from 'react-router'
 import { findUpcomingAbsencesForMember, findUpcomingAssignmentsForMember } from '~/features/events/index.server'
 import { toServiceYear } from '~/features/publishers'
 import { canManageEmergencyInfo, canViewEmergencyInfo } from '~/features/publishers/model/emergency-access'
+import { canRecordPastoralVisit } from '~/features/publishers/model/pastoral-visit-access'
 import { getEmergencyInfoForMember } from '~/features/publishers/server/emergency.queries'
 import { listTheocraticYearsWithActivity } from '~/features/publishers/server/list-theocratic-years-with-activity.server'
 import { getPioneerActivityForMember } from '~/features/publishers/server/pioneer-activity.queries'
 import { getPublisherById } from '~/features/publishers/server/publishers.server'
 import EmergencyInfoView, { type EmergencyInfoViewData } from '~/features/publishers/ui/EmergencyInfoView'
 import { ExportActivityDialog } from '~/features/publishers/ui/ExportActivityDialog'
+import { PastoralFollowUpCard } from '~/features/publishers/ui/PastoralFollowUpCard'
 import { PioneerActivitySection, pioneerProfileLabel } from '~/features/publishers/ui/PioneerActivitySection'
 import { PublisherEngagementCards } from '~/features/publishers/ui/PublisherEngagementCards'
 import { AttributionStatus, TerritoryKindKey } from '~/features/territories'
@@ -125,6 +127,13 @@ export function loader({ params, context }: Route.LoaderArgs) {
         canManagePublisher,
         canViewTerritories,
         canManageEmergency: canManageEmergencyInfo(emergencyAccess),
+        canRecordVisit: canRecordPastoralVisit({
+          hasPublisherViewer: canViewPublisher,
+          hasPublisherManager: canManagePublisher,
+          myResponsibleGroupId: emergencyAccess.myResponsibleGroupId,
+          myDeputyGroupId: emergencyAccess.myDeputyGroupId,
+          targetGroupId: publisher.publisherGroupId,
+        }),
         canDownloadS21,
         canManageActivity:
           canManageActivity ||
@@ -525,6 +534,13 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
       </Card>
 
       <PublisherEngagementCards assignments={upcomingAssignments} absences={upcomingAbsences} />
+
+      <PastoralFollowUpCard
+        publisherId={publisher.id}
+        arrivedAt={publisher.arrivedAt}
+        lastPastoralVisitAt={publisher.lastPastoralVisitAt}
+        canRecord={roles.canRecordVisit}
+      />
 
       {emergency && <EmergencyCard info={emergency} canManage={roles.canManageEmergency} publisherId={publisher.id} />}
     </div>
