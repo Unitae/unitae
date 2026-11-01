@@ -76,6 +76,11 @@ function SignalLabel({ signal, locale }: { signal: PastoralSignal; locale: strin
           {m.groups_signal_last_visit({ date: formatActivityMonth(signal.on, locale, 'long') })}
         </Badge>
       )
+    default: {
+      // Every signal has a label: a new kind must get one here before it compiles.
+      const unhandled: never = signal
+      return unhandled
+    }
   }
 }
 
