@@ -1,6 +1,6 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod/v4'
-import { data, Form, redirect } from 'react-router'
+import { data, Form, redirect, redirectDocument } from 'react-router'
 import { generalPageSchema } from '~/features/settings/schemas/general-settings.schema'
 import { updateGeneralSettings } from '~/features/settings/server/general-settings.server'
 import {
@@ -236,5 +236,6 @@ export async function action({ request, context }: Route.ActionArgs) {
     updatePasswordSecurityScope(db, congregationId, actorId, breachedPasswordCheckScope),
   )
 
-  return redirect('/settings/general')
+  // The client translates with what the page loaded with: a new language shows on a full load only.
+  return general.locale === congregation.locale ? redirect('/settings/general') : redirectDocument('/settings/general')
 }

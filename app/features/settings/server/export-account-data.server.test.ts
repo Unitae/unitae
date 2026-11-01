@@ -81,6 +81,10 @@ describe('exportAccountData', () => {
     expect(mockDb.userAccount.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id_congregationId: { id: 1, congregationId: 42 } } }),
     )
+    // The language the person chose for themselves is part of what the app holds about them.
+    expect(mockDb.userAccount.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ select: expect.objectContaining({ locale: true }) }),
+    )
     expect(result.user).toEqual(fakeAccount)
     expect(result.permissions).toEqual([{ key: 'Admin' }])
     expect(result.publisherActivities).toHaveLength(1)

@@ -163,6 +163,7 @@ describe('findAccountsWithPermission', () => {
         email: true,
         firstname: true,
         active: true,
+        locale: true,
         member: { select: { firstname: true } },
       },
     })
@@ -254,6 +255,7 @@ describe('findNotificationRecipientsWithPermission', () => {
         email: true,
         firstname: true,
         active: true,
+        locale: true,
         member: { select: { firstname: true } },
       },
     })

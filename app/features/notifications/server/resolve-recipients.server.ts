@@ -10,6 +10,8 @@ export interface ResolvedRecipient {
   userId: number
   email: string
   firstname: string | null
+  // The language the account chose for itself; null = its congregation's.
+  locale: string | null
 }
 
 // Resolves a recipientRole to actual users, filtering out those who opted out.
@@ -41,7 +43,7 @@ export async function resolveRecipients(
 
   const eligible = users
     .filter(u => !disabledUserIds.has(u.id))
-    .map(u => ({ userId: u.id, email: u.email, firstname: displayFirstname(u) }))
+    .map(u => ({ userId: u.id, email: u.email, firstname: displayFirstname(u), locale: u.locale }))
 
   if (disabledUserIds.size > 0) {
     logger.info('Filtered out users by notification preferences', {

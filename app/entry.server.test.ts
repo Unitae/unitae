@@ -1,5 +1,6 @@
 import { RouterContextProvider } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
+import type { DocumentLocale } from '~/shared/utils/locale.server'
 
 // boot.server probes the database when it is evaluated; handleRequest only needs it to have run.
 vi.mock('~/shared/infra/boot.server', () => ({}))
@@ -8,10 +9,15 @@ vi.mock('~/shared/infra/logger.server', () => ({
   default: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
 }))
 
+// Keeps the getLocale override the way the generated runtime does, so a render can report its locale.
+const runtime = vi.hoisted(() => ({ getLocale: (): string => 'fr' }))
+
 vi.mock('~/i18n/paraglide/runtime', () => ({
   baseLocale: 'fr',
   isLocale: (value: unknown) => value === 'fr' || value === 'en',
-  overwriteGetLocale: vi.fn(),
+  overwriteGetLocale: (fn: () => string) => {
+    runtime.getLocale = fn
+  },
 }))
 
 vi.mock('~/shared/utils/locale.server', () => ({
@@ -24,14 +30,16 @@ interface RenderOptions {
   onAllReady?: () => void
 }
 
-// What handleRequest handed React on its last render: the <ServerRouter> element and the options.
-const lastRender: { element?: { props: { nonce?: string } }; options?: RenderOptions } = {}
+// What handleRequest handed React on its last render: the <ServerRouter> element, the options, and
+// the locale the messages rendered in.
+const lastRender: { element?: { props: { nonce?: string } }; options?: RenderOptions; locale?: string } = {}
 
 // Rendering is React's part: report the shell ready at once, so handleRequest answers.
 vi.mock('react-dom/server', () => ({
   renderToPipeableStream: (element: { props: { nonce?: string } }, options: RenderOptions) => {
     lastRender.element = element
     lastRender.options = options
+    lastRender.locale = runtime.getLocale()
     queueMicrotask(() => (options.onShellReady ?? options.onAllReady)?.())
     return { pipe: (body: { end: () => void }) => body.end(), abort: () => {} }
   },
@@ -40,10 +48,18 @@ vi.mock('react-dom/server', () => ({
 const { default: handleRequest } = await import('./entry.server')
 const { resolveDocumentLocale } = await import('~/shared/utils/locale.server')
 const { nonceContext } = await import('~/shared/middleware/security-headers.server')
+const { documentLocaleContext } = await import('~/shared/middleware/locale.server')
 
 function contextWithNonce(nonce: string) {
   const context = new RouterContextProvider()
   context.set(nonceContext, nonce)
+  return context
+}
+
+// The context requestLocale() leaves behind once it has resolved the request's locale.
+function contextWithLocale(resolved: DocumentLocale) {
+  const context = contextWithNonce('n0nce')
+  context.set(documentLocaleContext, resolved)
   return context
 }
 
@@ -60,11 +76,70 @@ describe('handleRequest', () => {
       404,
       responseHeaders,
       {} as never,
-      {} as never,
+      new RouterContextProvider(),
     )
 
     expect(response).toBe(redirect)
     expect(responseHeaders.has('Set-Cookie')).toBe(false)
+  })
+
+  // React Router runs middleware for every matched path, so this is where the redirect for a
+  // subdomain no congregation owns comes from on most documents.
+  it('answers with the redirect the middleware resolved', async () => {
+    const redirect = new Response(null, { status: 302, headers: { Location: '/congregation-not-found' } })
+    vi.mocked(resolveDocumentLocale).mockResolvedValue({ locale: 'fr', persist: true })
+
+    const response = await handleRequest(
+      new Request('https://inconnu.unitae.app/board'),
+      200,
+      new Headers(),
+      {} as never,
+      contextWithLocale({ redirect }),
+    )
+
+    expect(response).toBe(redirect)
+  })
+
+  it('renders in the locale the middleware resolved', async () => {
+    vi.mocked(resolveDocumentLocale).mockResolvedValue({ locale: 'fr', persist: true })
+
+    await handleRequest(
+      new Request('https://lyon.unitae.app/board'),
+      200,
+      new Headers(),
+      {} as never,
+      contextWithLocale({ locale: 'en', persist: true }),
+    )
+
+    expect(lastRender.locale).toBe('en')
+  })
+
+  // The middleware writes the cookie on the response on its way out; a second header would repeat it.
+  it('leaves the locale cookie to the middleware when the middleware resolved the locale', async () => {
+    const response = await handleRequest(
+      new Request('https://lyon.unitae.app/board'),
+      200,
+      new Headers(),
+      {} as never,
+      contextWithLocale({ locale: 'en', persist: true }),
+    )
+
+    expect(response.headers.get('Set-Cookie')).toBeNull()
+  })
+
+  // React Router skips middleware for a path no route matches: the 404 page is resolved here.
+  it('renders in the locale it resolves itself when the middleware did not run', async () => {
+    vi.mocked(resolveDocumentLocale).mockResolvedValue({ locale: 'en', persist: true })
+
+    await handleRequest(
+      new Request('https://lyon.unitae.app/nope'),
+      404,
+      new Headers(),
+      {} as never,
+      contextWithNonce('n0nce'),
+    )
+
+    expect(lastRender.locale).toBe('en')
   })
 
   it('remembers a resolved locale in the locale cookie', async () => {

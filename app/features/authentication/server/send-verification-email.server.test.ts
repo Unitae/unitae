@@ -5,6 +5,22 @@ const mockResolveCongregation = vi.fn()
 const mockSend = vi.fn()
 const mockLoggerError = vi.fn()
 
+// The generated runtime keeps the getLocale override in module state; this stand-in does the same,
+// so a test can read the locale the email was written in.
+const runtime = vi.hoisted(() => ({ getLocale: (): string => 'fr' }))
+
+vi.mock('~/i18n/paraglide/runtime', () => ({
+  baseLocale: 'fr',
+  isLocale: (value: unknown) => value === 'fr' || value === 'en',
+  overwriteGetLocale: (fn: () => string) => {
+    runtime.getLocale = fn
+  },
+}))
+
+vi.mock('~/i18n/paraglide/messages', () => ({
+  email_verify_subject: () => `subject (${runtime.getLocale()})`,
+}))
+
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: { userAccount: { findFirst: mockFindFirst } },
 }))
@@ -18,6 +34,7 @@ vi.mock('~/shared/infra/logger.server', () => ({
   default: { error: mockLoggerError, info: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }))
 
+const { runWithLocale } = await import('~/shared/utils/locale-scope.server')
 const { sendVerificationEmail } = await import('./send-verification-email.server')
 
 beforeEach(() => {
@@ -73,5 +90,32 @@ describe('sendVerificationEmail', () => {
       'Failed to send verification email',
       expect.objectContaining({ userId: 1 }),
     )
+  })
+})
+
+// An email addressed to one account goes out in that account's language, whoever set it off: an
+// admin who chose English inviting a member who follows a French congregation writes in French.
+describe('sendVerificationEmail — language', () => {
+  async function sendFromSessionIn(sessionLocale: 'fr' | 'en', recipientLocale: string | null) {
+    mockFindFirst.mockResolvedValue({ id: 1, email: 'test@example.com', congregationId: 5, locale: recipientLocale })
+    mockResolveCongregation.mockResolvedValue({ emailFrom: 'x@test.org', locale: 'fr' })
+    let bodyLocale: string | undefined
+    mockSend.mockImplementation(() => {
+      // Resend renders the React body inside this call.
+      bodyLocale = runtime.getLocale()
+      return Promise.resolve(null)
+    })
+
+    await runWithLocale(sessionLocale, () => sendVerificationEmail(1, 'email-template' as never))
+
+    return { subject: mockSend.mock.calls[0][0].subject, bodyLocale }
+  }
+
+  it("writes in the congregation's language when the recipient follows it", async () => {
+    await expect(sendFromSessionIn('en', null)).resolves.toEqual({ subject: 'subject (fr)', bodyLocale: 'fr' })
+  })
+
+  it("writes in the recipient's own language when it chose one", async () => {
+    await expect(sendFromSessionIn('fr', 'en')).resolves.toEqual({ subject: 'subject (en)', bodyLocale: 'en' })
   })
 })

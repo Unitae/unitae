@@ -22,6 +22,8 @@ export const AuditAction = {
   UserPermissionsChanged: 'user.permissions.changed',
   RoleAssignmentsSynced: 'role.assignments.synced',
   UserRoleAssignmentChanged: 'user.role_assignment.changed',
+  // An account choosing its own interface language, or going back to its congregation's.
+  UserLocaleChanged: 'user.locale.changed',
 
   // Roles
   RoleCreated: 'role.created',

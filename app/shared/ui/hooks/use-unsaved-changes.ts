@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useBlocker, useNavigation } from 'react-router'
 
 /**
@@ -8,6 +8,10 @@ import { useBlocker, useNavigation } from 'react-router'
  */
 export function useUnsavedChanges() {
   const [isDirty, setIsDirty] = useState(false)
+  // What the tab-close warning reads. A submission clears it at once: React Router commits the
+  // 'submitting' state in a transition, and an action answering with redirectDocument can unload
+  // the page before that commit, which warned about a form that had just been saved.
+  const hasUnsavedChanges = useRef(false)
   const navigation = useNavigation()
 
   useEffect(() => {
@@ -25,14 +29,26 @@ export function useUnsavedChanges() {
     if (!isDirty) return
 
     function handleBeforeUnload(e: BeforeUnloadEvent) {
-      e.preventDefault()
+      if (hasUnsavedChanges.current) e.preventDefault()
+    }
+
+    function handleSubmit() {
+      hasUnsavedChanges.current = false
     }
 
     window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+    // Capture phase: a form that stops the event's propagation still counts as submitted.
+    window.addEventListener('submit', handleSubmit, true)
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      window.removeEventListener('submit', handleSubmit, true)
+    }
   }, [isDirty])
 
-  const markDirty = useCallback(() => setIsDirty(true), [])
+  const markDirty = useCallback(() => {
+    hasUnsavedChanges.current = true
+    setIsDirty(true)
+  }, [])
 
   return { blocker, markDirty }
 }

@@ -129,7 +129,7 @@ campaign attributions, resume).
 
 ## Worker Locale Support
 
-Background emails must render in the congregation's language. The worker uses `AsyncLocalStorage` via `app/shared/utils/worker-locale.server.ts`:
+Background emails must render in the right language: the congregation's, or for an email addressed to one account, that account's own choice when it made one. The worker uses `AsyncLocalStorage` via `app/shared/utils/worker-locale.server.ts`:
 
 ```typescript
 import { runInWorkerContext } from '~/shared/utils/worker-locale.server'
@@ -141,7 +141,7 @@ await runInWorkerContext(congregation.locale, congregation.timezone, async () =>
 })
 ```
 
-This module is imported at the top of `workers/worker.server.ts` before any handler imports, ensuring `overwriteGetLocale()` is called once at startup.
+`runInWorkerContext` sets the locale through `runWithLocale` from `app/shared/utils/locale-scope.server.ts`, the one `getLocale()` override shared with the web server, and keeps the timezone for `getWorkerTimezone()`. Inside it, wrap a send addressed to one account in `runWithLocale(accountLocale(account, congregation.locale), ...)`, as the notification emails do per recipient. See [Internationalization](internationalization.md#which-language-applies).
 
 ## Worker Health & Lifecycle
 

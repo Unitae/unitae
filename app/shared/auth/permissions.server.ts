@@ -100,6 +100,8 @@ export interface AccountWithPermission {
   email: string
   firstname: string | null
   active: boolean
+  // The language the account chose for itself (null = its congregation's): what it is emailed in.
+  locale: string | null
   member: { firstname: string | null } | null
 }
 
@@ -115,6 +117,7 @@ export async function findAccountsWithPermission(
       email: true,
       firstname: true,
       active: true,
+      locale: true,
       member: { select: { firstname: true } },
     },
   })
@@ -140,6 +143,7 @@ export function findNotificationRecipientsWithPermission(
       email: true,
       firstname: true,
       active: true,
+      locale: true,
       member: { select: { firstname: true } },
     },
   })

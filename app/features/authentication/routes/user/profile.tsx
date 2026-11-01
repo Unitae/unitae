@@ -12,7 +12,9 @@ import {
   getSession,
 } from '~/features/authentication/server/session.server'
 import { CalendarFeedCard } from '~/features/authentication/ui/CalendarFeedCard'
+import { LanguagePreferenceCard } from '~/features/authentication/ui/LanguagePreferenceCard'
 import * as m from '~/i18n/paraglide/messages'
+import { baseLocale, isLocale } from '~/i18n/paraglide/runtime'
 import { congregationContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import logger from '~/shared/infra/logger.server'
@@ -54,13 +56,16 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       isPublisher: currentUser.member?.isPublisher ?? false,
     },
     congregationName: congregation.displayName ?? congregation.name,
+    // Both columns are free text: a locale the app does not ship reads as none.
+    locale: isLocale(currentUser.locale) ? currentUser.locale : null,
+    congregationLocale: isLocale(congregation.locale) ? congregation.locale : baseLocale,
     calendar,
     error: session.get('error'),
   }
 }
 
 export default function ProfilePage({ loaderData, actionData }: Route.ComponentProps) {
-  const { user, error, congregationName, calendar } = loaderData
+  const { user, error, congregationName, locale, congregationLocale, calendar } = loaderData
   const { blocker, markDirty } = useUnsavedChanges()
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -104,6 +109,8 @@ export default function ProfilePage({ loaderData, actionData }: Route.ComponentP
           <p className="mt-2 text-muted-foreground text-xs italic">{m.user_profile_contact_group_leader()}</p>
         </CardContent>
       </Card>
+
+      <LanguagePreferenceCard locale={locale} congregationLocale={congregationLocale} />
 
       <Card>
         <CardHeader>

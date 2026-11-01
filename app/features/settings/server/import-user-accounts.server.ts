@@ -101,6 +101,8 @@ export async function importUserAccounts(
     emailVerifiedAt: string | null
     platformAdmin: boolean
     anonymizedAt: string | null
+    // Optional: absent in archives from before accounts could choose their own language.
+    locale?: string | null
     createdAt: string
     updatedAt: string
   }
@@ -119,6 +121,8 @@ export async function importUserAccounts(
             lastname: record.lastname,
             active: record.active,
             memberId: newMemberId,
+            // An older archive says nothing about it: keep what the account has.
+            ...(record.locale !== undefined && { locale: record.locale }),
           },
         })
         idMap.set('user-accounts', record.id, existing.id)
@@ -137,6 +141,7 @@ export async function importUserAccounts(
           emailVerifiedAt: record.emailVerifiedAt ? new Date(record.emailVerifiedAt) : null,
           platformAdmin: false,
           anonymizedAt: record.anonymizedAt ? new Date(record.anonymizedAt) : null,
+          locale: record.locale ?? null,
           memberId: newMemberId,
           congregationId,
         },
