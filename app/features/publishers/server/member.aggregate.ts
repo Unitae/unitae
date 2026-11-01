@@ -285,6 +285,7 @@ export async function setLastPastoralVisit(
     actorId,
     entityType: 'Member',
     entityId: memberId,
+    metadata: { cleared: visitedOn === null },
   })
 }
 

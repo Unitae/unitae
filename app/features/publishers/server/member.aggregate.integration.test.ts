@@ -495,17 +495,23 @@ describe('pastoral dates — integration', () => {
       actorId: 7,
       entityType: 'Member',
       entityId: member.id,
+      metadata: { cleared: false },
     })
   })
 
-  it('clears the last pastoral visit with null', async () => {
+  // Only the latest date is kept: the audit log still tells a clear from a visit, without the date.
+  it('clears the last pastoral visit with null, and says so in the audit log', async () => {
     const member = await create('VisitCleared')
     await testDb.member.update({ where: { id: member.id }, data: { lastPastoralVisitAt: new Date() } })
+    auditMock.mockClear()
 
     await withScope(congId, tx => memberAggregate.setLastPastoralVisit(tx, member.id, congId, null, 7))
 
     const saved = await testDb.member.findUniqueOrThrow({ where: { id: member.id } })
     expect(saved.lastPastoralVisitAt).toBeNull()
+    expect(auditMock).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'publisher.pastoral_visit.recorded', metadata: { cleared: true } }),
+    )
   })
 
   it('refuses a member of another congregation', async () => {
