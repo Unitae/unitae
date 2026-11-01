@@ -25,7 +25,9 @@ export function OnboardingChecklist({ publisherCount, territoryCount, documentCo
       done: publisherCount > 0,
       label: m.onboarding_add_publishers(),
       icon: Users,
-      to: '/settings/users',
+      // Counted from publisher Members, so it leads where they are created —
+      // not to /settings/users, which manages logins.
+      to: '/publishers',
     },
     {
       done: territoryCount > 0,
