@@ -183,7 +183,7 @@ export function GroupMembersTable({
                   {canRecordVisits && (
                     <Button asChild variant="ghost" size="icon">
                       <Link
-                        to={`/publishers/${member.id}/pastoral-visit`}
+                        to={`/publishers/${member.id}/pastoral-visit?from=group`}
                         aria-label={m.groups_member_visit_aria({ name })}
                         title={m.groups_member_visit_aria({ name })}
                       >

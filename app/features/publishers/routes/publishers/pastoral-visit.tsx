@@ -50,14 +50,20 @@ function accessInput(
   }
 }
 
-// Back to the publisher's record for those who may open it; a group's overseer, who may not, back
-// to the group page he came from.
-function backTo(permissions: Set<Permission>, member: { id: number; publisherGroupId: number | null }) {
-  if (permissions.has(Permission.CanViewPublishers)) return `/publishers/${member.id}/view`
-  return member.publisherGroupId != null ? `/groups/${member.publisherGroupId}/view` : '/'
+// Back to the group page when the visit icon there opened this page (`?from=group`), or for a
+// group's overseer who may not open publisher records; otherwise back to the publisher's record.
+function backTo(
+  request: Request,
+  permissions: Set<Permission>,
+  member: { id: number; publisherGroupId: number | null },
+) {
+  const fromGroup = new URL(request.url).searchParams.get('from') === 'group'
+  const group = member.publisherGroupId != null ? `/groups/${member.publisherGroupId}/view` : null
+  if (group && (fromGroup || !permissions.has(Permission.CanViewPublishers))) return group
+  return permissions.has(Permission.CanViewPublishers) ? `/publishers/${member.id}/view` : '/'
 }
 
-export function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ request, params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
   const publisherId = requireParamId(params.publisherId, '/publishers')
@@ -76,7 +82,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
       visitedOn: member.lastPastoralVisitAt?.toISOString().slice(0, 10) ?? null,
       today: formatDateForInput(new Date(), timezone),
       canRecord: canRecordPastoralVisit(access),
-      backTo: backTo(permissions, member),
+      backTo: backTo(request, permissions, member),
     }
   })
 }
@@ -174,6 +180,6 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const session = await getSession(request.headers.get('Cookie'))
     const name = formatPersonName(member)
     session.flash('success', visitedOn ? m.publishers_visit_saved({ name }) : m.publishers_visit_cleared({ name }))
-    return redirect(backTo(permissions, member), { headers: { 'Set-Cookie': await commitSession(session) } })
+    return redirect(backTo(request, permissions, member), { headers: { 'Set-Cookie': await commitSession(session) } })
   })
 }
