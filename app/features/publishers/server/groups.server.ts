@@ -1,5 +1,7 @@
-import type { ActivityMonth, ActivityMonths } from '~/features/publishers/model/activity-months'
+import { reportWindow } from '~/features/publishers/model/activity-months'
+import { emergencyGaps, pastoralSignals, reportStatus } from '~/features/publishers/model/member-signals'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { zonedNow } from '~/shared/utils/zoned-now'
 
 import { GROUP_LEADER_WHERE } from './group-leaders.server'
 
@@ -62,13 +64,27 @@ export function findGroupLeaderCandidates(db: TransactionClient, congregationId:
   })
 }
 
+export interface GroupAsOf {
+  timezone: string
+  now?: Date
+}
+
 /**
- * A group with its publishers and, for each, the report filed for `months.current` and
- * `months.previous`, by id only: the page links to a report, it never shows one. Inactive
- * publishers come in `inactiveMembers`: the board's field service groups document leaves them out
- * (it lists `inactiveAt: null` only), so the page shows them apart.
+ * A group with its publishers and, for each one, what the group page shows: the report status of
+ * each month of the window (`reportWindow`, the six ended months), the pastoral signals and the
+ * missing emergency information. The dates and flags these are computed from stay here: the page
+ * gets the result, never a birth or baptism date. Inactive publishers come in `inactiveMembers`:
+ * the board's field service groups document leaves them out (it lists `inactiveAt: null` only), so
+ * the page shows them apart. Months and dates follow the congregation's calendar (`timezone`).
  */
-export async function getGroup(db: TransactionClient, groupId: number, congregationId: number, months: ActivityMonths) {
+export async function getGroup(
+  db: TransactionClient,
+  groupId: number,
+  congregationId: number,
+  { timezone, now = new Date() }: GroupAsOf,
+) {
+  const today = zonedNow(timezone, now)
+  const window = reportWindow(today)
   const group = await db.publisherGroup.findUnique({
     where: { id_congregationId: { id: groupId, congregationId } },
     select: {
@@ -84,9 +100,14 @@ export async function getGroup(db: TransactionClient, groupId: number, congregat
           ...PERSON_NAME,
           email: true,
           inactiveAt: true,
+          baptismDate: true,
+          createdAt: true,
+          dpaCardUpToDate: true,
+          survivalBackpackReady: true,
+          _count: { select: { emergencyContacts: true } },
           activities: {
-            where: { OR: [months.previous, months.current] },
-            select: { id: true, month: true, year: true },
+            where: { OR: window },
+            select: { id: true, month: true, year: true, isPublisher: true },
             orderBy: { id: 'desc' },
           },
         },
@@ -98,19 +119,33 @@ export async function getGroup(db: TransactionClient, groupId: number, congregat
     return null
   }
 
-  const reportFor = (activities: { id: number; month: number; year: number }[], target: ActivityMonth) => {
-    const report = activities.find(each => each.year === target.year && each.month === target.month)
-    return report ? { id: report.id } : undefined
-  }
-
-  const rows = group.members.map(({ activities, inactiveAt, ...member }) => ({
-    member: {
-      ...member,
-      currentActivity: reportFor(activities, months.current),
-      previousActivity: reportFor(activities, months.previous),
-    },
-    inactive: inactiveAt != null,
-  }))
+  const local = (date: Date | null) => (date ? zonedNow(timezone, date) : null)
+  const rows = group.members.map(member => {
+    const added = zonedNow(timezone, member.createdAt)
+    const expectedFrom = { month: added.getMonth(), year: added.getFullYear() }
+    return {
+      inactive: member.inactiveAt != null,
+      member: {
+        id: member.id,
+        firstname: member.firstname,
+        lastname: member.lastname,
+        email: member.email,
+        reports: window.map(target => {
+          const report = member.activities.find(each => each.year === target.year && each.month === target.month)
+          return { ...target, status: reportStatus(report, target, expectedFrom), id: report?.id ?? null }
+        }),
+        signals: pastoralSignals(today, {
+          inactiveAt: local(member.inactiveAt),
+          baptismDate: local(member.baptismDate),
+        }),
+        emergencyGaps: emergencyGaps({
+          dpaCardUpToDate: member.dpaCardUpToDate,
+          survivalBackpackReady: member.survivalBackpackReady,
+          emergencyContactCount: member._count.emergencyContacts,
+        }),
+      },
+    }
+  })
 
   return {
     id: group.id,
@@ -118,6 +153,7 @@ export async function getGroup(db: TransactionClient, groupId: number, congregat
     address: group.adress,
     responsible: group.responsible,
     deputy: group.deputy,
+    reportWindow: window,
     members: rows.filter(row => !row.inactive).map(row => row.member),
     inactiveMembers: rows.filter(row => row.inactive).map(row => row.member),
   }

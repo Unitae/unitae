@@ -6,6 +6,7 @@ import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { getMonthEnrolment } from '~/features/publishers/index.server'
 import { reportTypeForMonth } from '~/features/publishers/model/activity-report-type'
+import { canCorrectAnyActivity } from '~/features/publishers/model/group-activity-access'
 import { updateActivitySchema } from '~/features/publishers/schemas/activity.schema'
 import { updatePublisherActivity } from '~/features/publishers/server/publisher-activity-mutations.server'
 import { ActivityCreditField } from '~/features/publishers/ui/ActivityCreditField'
@@ -35,14 +36,12 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canManagePublisher = permissions.has(Permission.CanManagePublishers)
-
   const member = currentUser.member
   const canManageMyGroupActivity =
     member != null &&
     (member.responsibleFor?.id === member.publisherGroupId || member.deputyFor?.id === member.publisherGroupId)
 
-  if (!canManagePublisher && !canManageMyGroupActivity) {
+  if (!canCorrectAnyActivity(permissions) && !canManageMyGroupActivity) {
     throw redirect('/')
   }
 
@@ -212,14 +211,14 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const previousPage = request.headers.get('referer')
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canManagePublisher = permissions.has(Permission.CanManagePublishers)
+  const canCorrectAny = canCorrectAnyActivity(permissions)
 
   const member = currentUser.member
   const canManageMyGroupActivity =
     member != null &&
     (member.responsibleFor?.id === member.publisherGroupId || member.deputyFor?.id === member.publisherGroupId)
 
-  if (!canManagePublisher && !canManageMyGroupActivity) {
+  if (!canCorrectAny && !canManageMyGroupActivity) {
     throw redirect('/')
   }
 
@@ -253,7 +252,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       })
     }
     // A group's responsible or deputy corrects their own group's reports only.
-    if (!canManagePublisher && activity.publisher.publisherGroupId !== member?.publisherGroupId) {
+    if (!canCorrectAny && activity.publisher.publisherGroupId !== member?.publisherGroupId) {
       throw redirect('/')
     }
 

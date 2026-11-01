@@ -32,8 +32,14 @@ let congBId: number
 let groupAId: number
 let groupBId: number
 
-// The months getGroup reads activity for. Fixed, so the activity row below always falls in them.
-const MONTHS = { current: { month: 4, year: 2026 }, previous: { month: 3, year: 2026 } }
+// The moment getGroup reads the reports as of: its window runs from December 2025 to May 2026, so
+// the May report below always falls in it.
+const AS_OF = { timezone: 'Europe/Paris', now: new Date('2026-06-15T10:00:00Z') }
+const MAY = { month: 4, year: 2026 }
+
+// The member fields getGroup reads to compute its labels and must never return.
+const RAW_MEMBER_FIELDS =
+  /inactiveAt|baptismDate|createdAt|dpaCardUpToDate|survivalBackpackReady|isAnointed|hours|notes/
 
 beforeAll(async () => {
   const [congA, congB] = await Promise.all([
@@ -87,8 +93,9 @@ beforeAll(async () => {
     await tx.publisherActivity.create({
       data: {
         publisherId: sensitive.id,
-        month: MONTHS.current.month,
-        year: MONTHS.current.year,
+        month: MAY.month,
+        year: MAY.year,
+        isPublisher: true,
         hours: 12,
         studies: 2,
         notes: 'private note',
@@ -135,39 +142,65 @@ describe('getGroups (integration)', () => {
 
 describe('getGroup (integration)', () => {
   it('returns the group when queried inside its congregation scope', async () => {
-    const group = await withScope(congAId, tx => getGroup(tx, groupAId, congAId, MONTHS))
+    const group = await withScope(congAId, tx => getGroup(tx, groupAId, congAId, AS_OF))
     expect(group?.id).toBe(groupAId)
     expect(group?.name).toBe('A-Group')
   })
 
   it('returns null when the group belongs to another congregation (RLS hides it)', async () => {
-    const group = await withScope(congAId, tx => getGroup(tx, groupBId, congBId, MONTHS))
+    const group = await withScope(congAId, tx => getGroup(tx, groupBId, congBId, AS_OF))
     expect(group).toBeNull()
   })
 
   // Regression: whole Member and PublisherActivity rows went to the browser, so anyone who could
   // open the page received birth dates, emergency flags and every member's hours.
   it('returns only what the page displays about each person', async () => {
-    const group = await withScope(congAId, tx => getGroup(tx, groupAId, congAId, MONTHS))
+    const group = await withScope(congAId, tx => getGroup(tx, groupAId, congAId, AS_OF))
     const member = group?.members.find(each => each.firstname === 'Sensitive')
 
     expect(Object.keys(group?.responsible ?? {}).sort()).toEqual(['firstname', 'id', 'lastname'])
     expect(Object.keys(member ?? {}).sort()).toEqual([
-      'currentActivity',
       'email',
+      'emergencyGaps',
       'firstname',
       'id',
       'lastname',
-      'previousActivity',
+      'reports',
+      'signals',
     ])
-    expect(member?.currentActivity).toEqual({ id: expect.any(Number) })
-    expect(member?.previousActivity).toBeUndefined()
+    // The dates and flags the labels are computed from stay on the server.
+    expect(JSON.stringify(group)).not.toMatch(RAW_MEMBER_FIELDS)
+  })
+
+  // Reported in May only, and added after the window (the test creates it today): the other months
+  // expected no report.
+  it("reads each month of the window as the publisher's report status", async () => {
+    const group = await withScope(congAId, tx => getGroup(tx, groupAId, congAId, AS_OF))
+    const member = group?.members.find(each => each.firstname === 'Sensitive')
+
+    expect(group?.reportWindow.at(-1)).toEqual(MAY)
+    expect(member?.reports.map(report => report.status)).toEqual([
+      'not-expected',
+      'not-expected',
+      'not-expected',
+      'not-expected',
+      'not-expected',
+      'filed',
+    ])
+    expect(member?.reports.at(-1)).toEqual({ ...MAY, status: 'filed', id: expect.any(Number) })
+    expect(member?.emergencyGaps).toEqual(['contact'])
+  })
+
+  it('says since when an inactive publisher is inactive', async () => {
+    const group = await withScope(congAId, tx => getGroup(tx, groupAId, congAId, AS_OF))
+
+    expect(group?.inactiveMembers[0].signals).toEqual([{ kind: 'inactive', since: { month: 0, year: 2026 } }])
   })
 
   // The board's field service groups document leaves inactive publishers out: the group page lists
   // them apart, so whoever reads it can tell who the board does not show.
   it('lists the inactive publishers apart from the others, with the same fields', async () => {
-    const group = await withScope(congAId, tx => getGroup(tx, groupAId, congAId, MONTHS))
+    const group = await withScope(congAId, tx => getGroup(tx, groupAId, congAId, AS_OF))
 
     expect(group?.members.map(each => each.firstname)).toEqual(['Sensitive'])
     expect(group?.inactiveMembers.map(each => each.firstname)).toEqual(['Inactive'])

@@ -1,10 +1,10 @@
 import { Pencil, Siren, UsersRound } from 'lucide-react'
 import { Link, redirect } from 'react-router'
-import { activityMonths } from '~/features/publishers/model/activity-months'
 import { canViewEmergencyInfo } from '~/features/publishers/model/emergency-access'
-import { canManageGroupActivity } from '~/features/publishers/model/group-activity-access'
+import { canCorrectAnyActivity, canManageGroupActivity } from '~/features/publishers/model/group-activity-access'
 import { getGroup } from '~/features/publishers/server/groups.server'
 import { type GroupMemberRow, GroupMembersTable } from '~/features/publishers/ui/GroupMembersTable'
+import { ReportLegend } from '~/features/publishers/ui/GroupReportCells'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -21,7 +21,6 @@ import { Separator } from '~/shared/ui/separator'
 import { formatGroupName } from '~/shared/utils/format-group-name'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 import { requireParamId } from '~/shared/utils/params.server'
-import { zonedNow } from '~/shared/utils/zoned-now'
 
 import type { Route } from './+types/group'
 
@@ -47,12 +46,10 @@ export function loader({ params, context }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  // The two report months, on the congregation's calendar: computed here once, so the data and the
-  // column headings and links the page builds from them always agree.
-  const months = activityMonths(zonedNow(context.get(congregationContext).timezone))
+  const { timezone } = context.get(congregationContext)
 
   return withScopeFromContext(context, async (db, congregationId) => {
-    const group = await getGroup(db, groupId, congregationId, months)
+    const group = await getGroup(db, groupId, congregationId, { timezone })
     if (group == null) {
       throw redirect(canViewPublishers ? '/groups' : '/')
     }
@@ -65,20 +62,34 @@ export function loader({ params, context }: Route.LoaderArgs) {
       targetGroupId: group.id,
     })
 
+    const leaders = {
+      responsibleId: group.responsible.id,
+      deputyId: group.deputy?.id ?? null,
+      myMemberId: currentUser.member?.id ?? null,
+    }
+    const canManageGroupReports = canManageGroupActivity({ hasActivityManager: canManageActivity, ...leaders })
+    // A filed report opens for correction only for those the edit form lets in.
+    const canCorrectReports = canManageGroupActivity({
+      hasActivityManager: canCorrectAnyActivity(permissions),
+      ...leaders,
+    })
+    // Whether someone preached is a pastoral fact, kept to those who record the group's reports; the
+    // missing emergency information, to those who may see emergency information.
+    const visible = (member: (typeof group.members)[number]) => ({
+      ...member,
+      reports: canManageGroupReports ? member.reports : [],
+      emergencyGaps: canViewEmergency ? member.emergencyGaps : [],
+    })
+
     return {
-      group,
-      months,
+      group: { ...group, members: group.members.map(visible), inactiveMembers: group.inactiveMembers.map(visible) },
       roles: {
         canManagePublisher,
         canEditPublishers,
         canViewPublishers,
         canViewEmergency,
-        canManageActivity: canManageGroupActivity({
-          hasActivityManager: canManageActivity,
-          responsibleId: group.responsible.id,
-          deputyId: group.deputy?.id ?? null,
-          myMemberId: currentUser.member?.id ?? null,
-        }),
+        canManageActivity: canManageGroupReports,
+        canCorrectReports,
       },
     }
   })
@@ -102,13 +113,14 @@ function PersonName({
 }
 
 export default function ViewGroup({ loaderData }: Route.ComponentProps) {
-  const { group, months, roles } = loaderData
+  const { group, roles } = loaderData
   const membersTable = (members: GroupMemberRow[]) => (
     <div className="overflow-hidden rounded-2xl border">
       <GroupMembersTable
         members={members}
-        months={months}
+        reportWindow={group.reportWindow}
         canManageActivity={roles.canManageActivity}
+        canCorrectReports={roles.canCorrectReports}
         canEditPublishers={roles.canEditPublishers}
         canViewPublishers={roles.canViewPublishers}
       />
@@ -188,6 +200,7 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
       <section className="flex flex-col gap-4">
         <h2 className="font-bold font-display text-2xl tracking-tight">{m.groups_view_members_title()}</h2>
         <p className="text-muted-foreground text-sm">{m.groups_view_members_subtitle()}</p>
+        {roles.canManageActivity && <ReportLegend />}
 
         {group.members.length > 0 ? (
           membersTable(group.members)

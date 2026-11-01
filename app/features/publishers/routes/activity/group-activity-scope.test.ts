@@ -21,6 +21,8 @@ const fakeDb = {
     ),
   },
   publisherActivity: {
+    // The loaders' first read: a test makes it throw to see that the permission check let it through.
+    findFirst: vi.fn(),
     findUnique: vi.fn(async ({ where }: { where: { id_congregationId: { id: number } } }) => {
       const row = activities.get(where.id_congregationId.id)
       if (!row) return null
@@ -59,13 +61,14 @@ vi.mock('~/features/publishers/server/publisher-activity-mutations.server', () =
 }))
 
 const { formRequest, respond, routeContext } = await import('~/tests/helpers/route-action')
+const { Permission } = await import('~/shared/types/permission')
 const newActivity = await import('./new')
 const editActivity = await import('./edit')
 
 // The responsible of group 9, holding no publisher permission.
 const RESPONSIBLE = { member: { id: 3, publisherGroupId: 9, responsibleFor: { id: 9 }, deputyFor: null } }
 
-function create(publisherId: number) {
+function create(publisherId: number, caller: Parameters<typeof routeContext> = [[], RESPONSIBLE]) {
   return respond(() =>
     newActivity.action({
       request: formRequest('https://unitae.example.test/publishers/activity/new', {
@@ -75,12 +78,12 @@ function create(publisherId: number) {
         hours: '12',
       }),
       params: {},
-      context: routeContext([], RESPONSIBLE),
+      context: routeContext(...caller),
     } as never),
   )
 }
 
-function edit(activityId: number) {
+function edit(activityId: number, caller: Parameters<typeof routeContext> = [[], RESPONSIBLE]) {
   return respond(() =>
     editActivity.action({
       request: formRequest(`https://unitae.example.test/publishers/activity/${activityId}/edit`, {
@@ -88,7 +91,7 @@ function edit(activityId: number) {
         hours: '99',
       }),
       params: { activityId: String(activityId) },
-      context: routeContext([], RESPONSIBLE),
+      context: routeContext(...caller),
     } as never),
   )
 }
@@ -122,3 +125,82 @@ describe('activity entry by a group responsible', () => {
     expect(activities.get(2)?.hours).toBe(5)
   })
 })
+
+// Regression: « Peut enregistrer l'activité mensuelle » showed the report links on the activity list,
+// the publisher page and the group page, but the forms only accepted CanManagePublishers, so a
+// holder of the activity permission alone landed back on the home page.
+describe('activity entry by a holder of the activity permission', () => {
+  const RECORDER: Parameters<typeof routeContext> = [[Permission.CanRecordActivity]]
+  const PAST_THE_GATE = new Error('past the permission check')
+
+  it('opens the new report form', async () => {
+    fakeDb.publisherActivity.findFirst.mockRejectedValueOnce(PAST_THE_GATE)
+
+    const result = respondOrData(() =>
+      newActivity.loader({
+        request: new Request('https://unitae.example.test/publishers/activity/new?publisherId=42&month=5&year=2026'),
+        params: {},
+        context: routeContext(...RECORDER),
+      } as never),
+    )
+
+    await expect(result).rejects.toBe(PAST_THE_GATE)
+  })
+
+  it("records any publisher's activity", async () => {
+    await create(42, RECORDER)
+    expect([...activities.values()]).toContainEqual({ publisherId: 42, hours: 12 })
+  })
+
+  // Changing a filed report takes « Peut modifier et supprimer l'activité enregistrée ».
+  it('refuses to open a filed report for correction', async () => {
+    const result = await respondOrData(() =>
+      editActivity.loader({
+        request: new Request('https://unitae.example.test/publishers/activity/2/edit'),
+        params: { activityId: '2' },
+        context: routeContext(...RECORDER),
+      } as never),
+    )
+    expect((result as Response).headers.get('Location')).toBe('/')
+  })
+
+  it('refuses to correct a filed report', async () => {
+    const response = await edit(2, RECORDER)
+    expect(response.headers.get('Location')).toBe('/')
+    expect(activities.get(2)?.hours).toBe(5)
+  })
+})
+
+describe('activity correction by a holder of the correction permission', () => {
+  const CORRECTOR: Parameters<typeof routeContext> = [[Permission.CanCorrectActivity]]
+  const PAST_THE_GATE = new Error('past the permission check')
+
+  it('opens a report to correct it', async () => {
+    fakeDb.publisherActivity.findFirst.mockRejectedValueOnce(PAST_THE_GATE)
+
+    const result = respondOrData(() =>
+      editActivity.loader({
+        request: new Request('https://unitae.example.test/publishers/activity/2/edit'),
+        params: { activityId: '2' },
+        context: routeContext(...CORRECTOR),
+      } as never),
+    )
+
+    await expect(result).rejects.toBe(PAST_THE_GATE)
+  })
+
+  it("corrects any publisher's activity", async () => {
+    await edit(2, CORRECTOR)
+    expect(activities.get(2)?.hours).toBe(99)
+  })
+})
+
+// A loader resolves to its data and redirects by throwing.
+async function respondOrData(run: () => unknown): Promise<unknown> {
+  try {
+    return await run()
+  } catch (thrown) {
+    if (thrown instanceof Response) return thrown
+    throw thrown
+  }
+}

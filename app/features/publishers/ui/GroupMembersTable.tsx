@@ -1,9 +1,16 @@
 import { Eye, Mail, Pencil } from 'lucide-react'
 import { Link } from 'react-router'
-import { type ActivityMonths, formatActivityMonth } from '~/features/publishers/model/activity-months'
-import { GroupMemberActivityCell } from '~/features/publishers/ui/GroupMemberActivityCell'
+import { type ActivityMonth, formatActivityMonth } from '~/features/publishers/model/activity-months'
+import type { EmergencyGap, PastoralSignal } from '~/features/publishers/model/member-signals'
+import {
+  type ReportCell,
+  ReportColumnHeading,
+  ReportDots,
+  ReportStatusLink,
+} from '~/features/publishers/ui/GroupReportCells'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
+import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import { formatPersonName } from '~/shared/utils/format-person-name'
@@ -13,30 +20,78 @@ export interface GroupMemberRow {
   firstname: string
   lastname: string
   email: string
-  currentActivity?: { id: number }
-  previousActivity?: { id: number }
+  /** The window's months, oldest first; empty for a viewer who does not record the group's reports. */
+  reports: ReportCell[]
+  signals: PastoralSignal[]
+  /** Empty for a viewer who may not see emergency information. */
+  emergencyGaps: EmergencyGap[]
+}
+
+// Short words on the label, so it fits under a name on a phone; the full ones in its tooltip.
+const EMERGENCY_GAP_LABEL: Record<EmergencyGap, { short: () => string; full: () => string }> = {
+  card: { short: m.groups_signal_emergency_card_short, full: m.groups_signal_emergency_card },
+  backpack: { short: m.groups_signal_emergency_backpack_short, full: m.groups_signal_emergency_backpack },
+  contact: { short: m.groups_signal_emergency_contact_short, full: m.groups_signal_emergency_contact },
+}
+
+// Labels wrap inside the name cell rather than run into the next column.
+const LABEL_CLASS = 'whitespace-normal text-left'
+
+// Only what needs attention: most rows show no label at all.
+function MemberLabels({ member, locale }: { member: GroupMemberRow; locale: string }) {
+  if (member.signals.length === 0 && member.emergencyGaps.length === 0) return null
+  return (
+    <div className="mt-1 flex flex-wrap gap-1">
+      {member.signals.map(signal =>
+        signal.kind === 'inactive' ? (
+          <Badge key={signal.kind} variant="secondary" className={LABEL_CLASS}>
+            {m.groups_signal_inactive_since({ date: formatActivityMonth(signal.since, locale, 'long') })}
+          </Badge>
+        ) : (
+          <Badge key={signal.kind} variant="info" className={LABEL_CLASS}>
+            {m.groups_signal_baptism_anniversary()}
+          </Badge>
+        ),
+      )}
+      {member.emergencyGaps.length > 0 && <EmergencyLabel gaps={member.emergencyGaps} />}
+    </div>
+  )
+}
+
+function EmergencyLabel({ gaps }: { gaps: EmergencyGap[] }) {
+  const items = (length: 'short' | 'full') => gaps.map(gap => EMERGENCY_GAP_LABEL[gap][length]()).join(' · ')
+  const full = m.groups_signal_emergency({ items: items('full') })
+  return (
+    <Badge variant="warning" className={LABEL_CLASS} title={full} aria-label={full}>
+      {m.groups_signal_emergency({ items: items('short') })}
+    </Badge>
+  )
 }
 
 /**
- * A group's publishers. With `canManageActivity`, two columns link to each one's report for the
- * previous and the current month (`months`), or to a new report pre-filled for that month.
- * Without `canViewPublishers` (an overseer on his own group), names do not link to records he
- * cannot open.
+ * A group's publishers: each name with the labels that need attention and, with
+ * `canManageActivity`, a dot per month of `reportWindow` and the status of the month being
+ * reported, each a link to the report form. On a phone, only those three columns show. Without
+ * `canViewPublishers` (an overseer on his own group), names do not link to records he cannot open.
  */
 export function GroupMembersTable({
   members,
-  months,
+  reportWindow,
   canManageActivity,
+  canCorrectReports,
   canEditPublishers,
   canViewPublishers,
 }: {
   members: GroupMemberRow[]
-  months: ActivityMonths
+  reportWindow: ActivityMonth[]
   canManageActivity: boolean
+  /** Whether a filed report may be opened for correction; otherwise it shows without a link. */
+  canCorrectReports: boolean
   canEditPublishers: boolean
   canViewPublishers: boolean
 }) {
   const locale = getLocale()
+  const reported = reportWindow.at(-1)
 
   return (
     // Fixed layout: the page stacks two of these (active, then inactive publishers) and their
@@ -44,20 +99,17 @@ export function GroupMembersTable({
     <Table className="table-fixed">
       <TableHeader>
         <TableRow>
-          <TableHead className="text-center max-sm:text-left">{m.publishers_table_firstname()}</TableHead>
-          <TableHead className="text-center">{m.publishers_table_lastname()}</TableHead>
-          <TableHead className="text-center max-sm:hidden">{m.publishers_table_contact()}</TableHead>
-          {canManageActivity && (
+          <TableHead>{m.groups_view_name_column()}</TableHead>
+          {canManageActivity && reported && (
             <>
-              <TableHead className="text-center">
-                {m.groups_view_activity_column({ date: formatActivityMonth(months.previous, locale) })}
-              </TableHead>
-              <TableHead className="text-center max-sm:hidden">
-                {m.groups_view_activity_column({ date: formatActivityMonth(months.current, locale) })}
+              <TableHead className="w-36 text-center sm:w-44">{m.groups_view_reports_column()}</TableHead>
+              <TableHead className="w-14 text-center sm:w-36">
+                <ReportColumnHeading month={reported} />
               </TableHead>
             </>
           )}
-          <TableHead className="w-24">
+          <TableHead className="w-20 text-center max-sm:hidden">{m.publishers_table_contact()}</TableHead>
+          <TableHead className="w-24 max-sm:hidden">
             <span className="sr-only">{m.common_actions()}</span>
           </TableHead>
         </TableRow>
@@ -66,26 +118,31 @@ export function GroupMembersTable({
         {members.map(member => {
           const name = formatPersonName(member)
           const record = `/publishers/${member.id}/view`
+          const current = member.reports.at(-1)
           return (
             <TableRow key={member.id}>
-              <TableCell className="text-center max-sm:text-left">
+              <TableCell className="whitespace-normal">
                 {canViewPublishers ? (
-                  <Link className="hover:text-primary" to={record}>
-                    {member.firstname}
+                  <Link className="font-medium hover:text-primary" to={record}>
+                    {name}
                   </Link>
                 ) : (
-                  member.firstname
+                  <span className="font-medium">{name}</span>
                 )}
+                <MemberLabels member={member} locale={locale} />
               </TableCell>
-              <TableCell className="text-center">
-                {canViewPublishers ? (
-                  <Link className="hover:text-primary" to={record}>
-                    {member.lastname?.toLocaleUpperCase()}
-                  </Link>
-                ) : (
-                  member.lastname?.toLocaleUpperCase()
-                )}
-              </TableCell>
+              {canManageActivity && reported && (
+                <>
+                  <TableCell className="px-0">
+                    <ReportDots memberId={member.id} reports={member.reports} canCorrect={canCorrectReports} />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {current && (
+                      <ReportStatusLink memberId={member.id} report={current} canCorrect={canCorrectReports} />
+                    )}
+                  </TableCell>
+                </>
+              )}
               <TableCell className="text-center max-sm:hidden">
                 {member.email && (
                   <Link
@@ -97,24 +154,7 @@ export function GroupMembersTable({
                   </Link>
                 )}
               </TableCell>
-              {canManageActivity && (
-                <>
-                  <GroupMemberActivityCell
-                    memberId={member.id}
-                    activity={member.previousActivity ?? null}
-                    month={months.previous.month}
-                    year={months.previous.year}
-                  />
-                  <GroupMemberActivityCell
-                    memberId={member.id}
-                    activity={member.currentActivity ?? null}
-                    month={months.current.month}
-                    year={months.current.year}
-                    className="text-center max-sm:hidden"
-                  />
-                </>
-              )}
-              <TableCell>
+              <TableCell className="max-sm:hidden">
                 <div className="flex justify-end gap-1">
                   {canViewPublishers && (
                     <Button asChild variant="ghost" size="icon">
