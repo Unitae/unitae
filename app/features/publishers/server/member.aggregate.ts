@@ -1,10 +1,12 @@
+import * as m from '~/i18n/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
 import { LimitService } from '~/shared/domain/limits.server'
-import { NotFoundError } from '~/shared/errors/app-error.server'
+import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { MemberId } from '~/shared/types/branded'
+import { formatPersonName } from '~/shared/utils/format-person-name'
 import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 import { purgeEmergencyContacts } from './emergency-info.aggregate'
 import {
@@ -13,7 +15,11 @@ import {
   type MemberFormFields,
   memberDataFromForm,
 } from './member-identity'
-import { _ensureMemberIsNotGroupResponsible, _loadMemberIdentity } from './member-preconditions.server'
+import {
+  _ensureMemberIsNotGroupResponsible,
+  _loadGroupMembership,
+  _loadMemberIdentity,
+} from './member-preconditions.server'
 
 export type { CreateDirectParams }
 
@@ -215,6 +221,42 @@ export async function updateAccountName(
   await syncBuiltInRoleAssignments(db, memberId, congregationId, actorId)
 
   return member
+}
+
+/**
+ * Puts a member in a field service group, or in none with `null`. A group's overseer and deputy
+ * belong to the group they lead, so this refuses to take them out of it: their group's leaders have
+ * to change first. Throws a ConflictError whose message says so.
+ */
+export async function setGroup(
+  db: TransactionClient,
+  memberId: number,
+  congregationId: number,
+  groupId: number | null,
+  actorId: number,
+): Promise<void> {
+  const member = await _loadGroupMembership(db, memberId, congregationId)
+  if (member.publisherGroupId === groupId) return
+
+  const led = member.responsibleFor ?? member.deputyFor
+  if (led && led.id !== groupId) {
+    throw new ConflictError(m.groups_members_error_leads_group({ person: formatPersonName(member), name: led.name }))
+  }
+
+  await db.member.update({
+    // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
+    where: { id_congregationId: { id: memberId, congregationId } },
+    data: { publisherGroupId: groupId },
+  })
+
+  audit({
+    action: AuditAction.PublisherGroupMembershipChanged,
+    congregationId,
+    actorId,
+    entityType: 'Member',
+    entityId: memberId,
+    metadata: { from: member.publisherGroupId, to: groupId },
+  })
 }
 
 export async function anonymize(

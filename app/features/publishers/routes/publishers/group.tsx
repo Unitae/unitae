@@ -1,57 +1,76 @@
-import { parseWithZod } from '@conform-to/zod/v4'
-import { Eye, Mail, Pencil, Siren } from 'lucide-react'
-import { data, Link, redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/index.server'
+import { Pencil, Siren, UsersRound } from 'lucide-react'
+import { Link, redirect } from 'react-router'
+import { activityMonths } from '~/features/publishers/model/activity-months'
+import { canViewEmergencyInfo } from '~/features/publishers/model/emergency-access'
 import { canManageGroupActivity } from '~/features/publishers/model/group-activity-access'
-import { updateGroupSchema } from '~/features/publishers/schemas/group.schema'
 import { getGroup } from '~/features/publishers/server/groups.server'
-import { updateGroup } from '~/features/publishers/server/update-group.server'
-import { GroupMemberActivityCell } from '~/features/publishers/ui/GroupMemberActivityCell'
+import { GroupMembersTable } from '~/features/publishers/ui/GroupMembersTable'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Separator } from '~/shared/ui/separator'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import { formatGroupName } from '~/shared/utils/format-group-name'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 import { requireParamId } from '~/shared/utils/params.server'
+import { zonedNow } from '~/shared/utils/zoned-now'
 
 import type { Route } from './+types/group'
 
 export const meta: Route.MetaFunction = ({ loaderData }) => {
-  return [{ title: loaderData?.group ? `${formatGroupName(loaderData.group.name)} — Unitae` : 'Groupe — Unitae' }]
+  const group = loaderData?.group
+  return [{ title: group ? m.groups_view_meta_title({ name: formatGroupName(group.name) }) : m.groups_meta_title() }]
 }
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
+  const groupId = requireParamId(params.groupId, '/groups')
   const canViewPublishers = permissions.has(Permission.CanViewPublishers)
+  // An overseer or deputy opens the group he leads without the publisher permission.
+  const leadsThisGroup =
+    currentUser.member?.responsibleFor?.id === groupId || currentUser.member?.deputyFor?.id === groupId
   const canManagePublisher = permissions.has(Permission.CanManagePublisherGroups)
+  // The member pencil opens the publisher form, which asks for this one, not the group permission.
+  const canEditPublishers = permissions.has(Permission.CanManagePublishers)
   const canManageActivity = permissions.has(Permission.CanRecordActivity)
 
-  if (!canViewPublishers) {
+  if (!canViewPublishers && !leadsThisGroup) {
     throw redirect('/')
   }
 
+  // The two report months, on the congregation's calendar: computed here once, so the data and the
+  // column headings and links the page builds from them always agree.
+  const months = activityMonths(zonedNow(context.get(congregationContext).timezone))
+
   return withScopeFromContext(context, async (db, congregationId) => {
-    const group = await getGroup(db, requireParamId(params.groupId, '/groups'), congregationId)
+    const group = await getGroup(db, groupId, congregationId, months)
     if (group == null) {
-      throw redirect('/groups/')
+      throw redirect(canViewPublishers ? '/groups' : '/')
     }
 
-    const canViewEmergency =
-      permissions.has(Permission.CanViewEmergencyInfo) ||
-      permissions.has(Permission.CanManageEmergencyInfo) ||
-      currentUser.member?.responsibleFor?.id === group.id ||
-      currentUser.member?.deputyFor?.id === group.id
+    const canViewEmergency = canViewEmergencyInfo({
+      hasViewer: permissions.has(Permission.CanViewEmergencyInfo),
+      hasManager: permissions.has(Permission.CanManageEmergencyInfo),
+      myResponsibleGroupId: currentUser.member?.responsibleFor?.id ?? null,
+      myDeputyGroupId: currentUser.member?.deputyFor?.id ?? null,
+      targetGroupId: group.id,
+    })
 
     return {
       group,
+      months,
       roles: {
         canManagePublisher,
+        canEditPublishers,
         canViewPublishers,
         canViewEmergency,
         canManageActivity: canManageGroupActivity({
@@ -65,31 +84,58 @@ export function loader({ params, context }: Route.LoaderArgs) {
   })
 }
 
-export default function ViewGroup({ loaderData }: Route.ComponentProps) {
-  const { group, roles } = loaderData
+// A leader's name links to his publisher record for those who may open it, and reads as text otherwise.
+function PersonName({
+  person,
+  linked,
+}: {
+  person: { id: number; firstname: string | null; lastname: string | null }
+  linked: boolean
+}) {
+  return linked ? (
+    <Link to={`/publishers/${person.id}/view`} className="font-medium text-primary hover:underline">
+      {formatPersonName(person)}
+    </Link>
+  ) : (
+    <span className="font-medium text-foreground">{formatPersonName(person)}</span>
+  )
+}
 
-  const today = new Date()
-  const lastMonth = new Date()
-  lastMonth.setMonth(today.getMonth() - 1)
+export default function ViewGroup({ loaderData }: Route.ComponentProps) {
+  const { group, months, roles } = loaderData
+  // Without the publisher permission (an overseer on his own group), the groups list is out of reach.
+  const groupsCrumb = roles.canViewPublishers ? [{ label: m.sidebar_publisher_groups(), to: '/groups' }] : []
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title={formatGroupName(group.name)}
         subtitle={m.groups_view_subtitle()}
-        breadcrumbs={[{ label: m.sidebar_publisher_groups(), to: '/groups' }, { label: formatGroupName(group.name) }]}
-        backTo="/groups"
+        breadcrumbs={[...groupsCrumb, { label: formatGroupName(group.name) }]}
+        backTo={roles.canViewPublishers ? '/groups' : undefined}
         actions={
           <>
             {roles.canManagePublisher && (
-              <Button asChild variant="outline" size="icon" title={m.groups_view_edit_title()}>
-                <Link to={'../edit'} relative="path">
+              <Button
+                asChild
+                variant="outline"
+                size="icon"
+                title={m.groups_view_edit_title()}
+                aria-label={m.groups_view_edit_title()}
+              >
+                <Link to={`/groups/${group.id}/edit`}>
                   <Pencil className="size-4" />
                 </Link>
               </Button>
             )}
             {roles.canViewEmergency && (
-              <Button asChild variant="outline" size="icon" title={m.publishers_emergency_roster_link()}>
+              <Button
+                asChild
+                variant="outline"
+                size="icon"
+                title={m.publishers_emergency_roster_link()}
+                aria-label={m.publishers_emergency_roster_link()}
+              >
                 <a href={`/publishers/emergency-roster/${group.id}`}>
                   <Siren className="size-4" />
                 </a>
@@ -105,25 +151,12 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <p className="text-muted-foreground text-sm">
-            {m.groups_view_responsible()} :{' '}
-            <Link
-              to={`../../../publishers/${group.responsible.id}/view`}
-              relative="path"
-              className="font-medium text-primary hover:underline"
-            >
-              {formatPersonName(group.responsible)}
-            </Link>
+            {m.groups_view_responsible()} : <PersonName person={group.responsible} linked={roles.canViewPublishers} />
           </p>
           <p className="text-muted-foreground text-sm">
             {m.groups_view_deputy()} :{' '}
             {group.deputy ? (
-              <Link
-                to={`../../../publishers/${group.deputy.id}/view`}
-                relative="path"
-                className="font-medium text-primary hover:underline"
-              >
-                {formatPersonName(group.deputy)}
-              </Link>
+              <PersonName person={group.deputy} linked={roles.canViewPublishers} />
             ) : (
               <span className="font-medium text-foreground">{m.groups_view_no_deputy()}</span>
             )}
@@ -131,8 +164,13 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
           <p className="text-muted-foreground text-sm">
             {m.groups_view_address()} : <span className="font-medium text-foreground">{group.address}</span>
           </p>
-          <Separator className="my-2" />
-          <p className="text-muted-foreground text-xs italic">{m.groups_view_contact_notice()}</p>
+          {/* Whoever can edit the group fixes it himself; the others are pointed to the secretary. */}
+          {!roles.canManagePublisher && (
+            <>
+              <Separator className="my-2" />
+              <p className="text-muted-foreground text-xs italic">{m.groups_view_contact_notice()}</p>
+            </>
+          )}
         </CardContent>
       </Card>
 
@@ -140,131 +178,20 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
         <h2 className="font-bold font-display text-2xl tracking-tight">{m.groups_view_members_title()}</h2>
         <p className="text-muted-foreground text-sm">{m.groups_view_members_subtitle()}</p>
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-center max-sm:text-left">{m.publishers_table_firstname()}</TableHead>
-              <TableHead className="text-center">{m.publishers_table_lastname()}</TableHead>
-              <TableHead className="text-center max-sm:hidden">{m.publishers_table_contact()}</TableHead>
-              {roles.canManageActivity === true && (
-                <>
-                  <TableHead className="text-center">
-                    {m.groups_view_activity_column({
-                      date: lastMonth.toLocaleDateString('fr', { month: 'short', year: 'numeric' }),
-                    })}
-                  </TableHead>
-                  <TableHead className="text-center max-sm:hidden">
-                    {m.groups_view_activity_column({
-                      date: today.toLocaleDateString('fr', { month: 'short', year: 'numeric' }),
-                    })}
-                  </TableHead>
-                </>
-              )}
-              {roles.canManagePublisher && <TableHead />}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {group.members.map(member => (
-              <TableRow key={member.id}>
-                <TableCell className="text-center max-sm:text-left">
-                  <Link className="hover:text-primary" to={`../../../publishers/${member.id}/view`} relative="path">
-                    {member.firstname}
-                  </Link>
-                </TableCell>
-                <TableCell className="text-center">
-                  <Link className="hover:text-primary" to={`../../../publishers/${member.id}/view`} relative="path">
-                    {member.lastname?.toLocaleUpperCase()}
-                  </Link>
-                </TableCell>
-                <TableCell className="text-center max-sm:hidden">
-                  {member.email && (
-                    <Link to={`mailto:${member.email}`} className="hover:text-primary">
-                      <Mail className="inline size-4" />
-                    </Link>
-                  )}
-                </TableCell>
-                {roles.canManageActivity === true && (
-                  <>
-                    <GroupMemberActivityCell
-                      memberId={member.id}
-                      activity={member.previousActivity ?? null}
-                      month={lastMonth.getMonth()}
-                      year={lastMonth.getFullYear()}
-                    />
-                    <GroupMemberActivityCell
-                      memberId={member.id}
-                      activity={member.currentActivity ?? null}
-                      month={today.getMonth()}
-                      year={today.getFullYear()}
-                      className="text-center max-sm:hidden"
-                    />
-                  </>
-                )}
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    <Button asChild variant="ghost" size="icon">
-                      <Link to={`../../../publishers/${member.id}/view`} relative="path">
-                        <Eye className="size-4" />
-                      </Link>
-                    </Button>
-                    {roles.canManagePublisher && (
-                      <Button asChild variant="ghost" size="icon">
-                        <Link to={`../../../publishers/${member.id}/edit`} relative="path">
-                          <Pencil className="size-4" />
-                        </Link>
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        {group.members.length === 0 ? (
+          <EmptyState icon={UsersRound} title={m.groups_view_members_empty()} />
+        ) : (
+          <div className="overflow-hidden rounded-2xl border">
+            <GroupMembersTable
+              members={group.members}
+              months={months}
+              canManageActivity={roles.canManageActivity}
+              canEditPublishers={roles.canEditPublishers}
+              canViewPublishers={roles.canViewPublishers}
+            />
+          </div>
+        )}
       </div>
     </div>
   )
-}
-
-export async function action({ request, params, context }: Route.ActionArgs) {
-  const permissions = context.get(permissionsContext)
-  const currentUser = context.get(currentAccountContext)
-  const previousPage = request.headers.get('referer')
-  const canManagePublisher = permissions.has(Permission.CanManagePublisherGroups)
-
-  if (!canManagePublisher) {
-    throw redirect(previousPage ?? '/')
-  }
-
-  const submission = parseWithZod(await request.formData(), { schema: updateGroupSchema })
-  if (submission.status !== 'success') {
-    return data(submission.reply(), { status: 400 })
-  }
-
-  const { name, address, responsible: responsibleId, deputy: deputyId } = submission.value
-
-  const session = await getSession(request.headers.get('Cookie'))
-  if (deputyId != null && responsibleId === deputyId) {
-    session.flash('error', m.groups_form_error_same_person())
-    throw redirect(previousPage ?? '/groups', {
-      headers: {
-        'Set-Cookie': await commitSession(session),
-      },
-    })
-  }
-
-  return withScopeFromContext(context, async db => {
-    const group = await updateGroup(db, requireParamId(params.groupId, '/groups'), currentUser.congregationId, {
-      name,
-      address,
-      responsibleId,
-      deputyId: deputyId ?? null,
-    })
-
-    session.flash('success', m.groups_edit_success({ name: formatGroupName(group.name) }))
-    return redirect('/groups', {
-      headers: {
-        'Set-Cookie': await commitSession(session),
-      },
-    })
-  })
 }

@@ -37,6 +37,22 @@ interface CommandItem {
   to: string
 }
 
+// The publishers and the groups list, or, for a group leader without them, the group he leads.
+function publisherItems(permissions: AppSidebarPermissions): CommandItem[] {
+  if (permissions.canViewPublishers) {
+    return [
+      { id: 'publishers', label: m.sidebar_publishers(), icon: Users, to: '/publishers' },
+      { id: 'groups', label: m.sidebar_publisher_groups(), icon: UsersRound, to: '/groups' },
+    ]
+  }
+  if (permissions.ledGroupId != null) {
+    return [
+      { id: 'my-group', label: m.sidebar_my_group(), icon: UsersRound, to: `/groups/${permissions.ledGroupId}/view` },
+    ]
+  }
+  return []
+}
+
 function getNavigationItems(permissions: AppSidebarPermissions): CommandItem[] {
   const items: CommandItem[] = [
     { id: 'home', label: m.sidebar_home(), icon: Home, to: '/' },
@@ -52,10 +68,7 @@ function getNavigationItems(permissions: AppSidebarPermissions): CommandItem[] {
   if (permissions.canUploadDocument || permissions.canManageBoard) {
     items.push({ id: 'documents', label: m.sidebar_documents(), icon: FileText, to: '/board/documents' })
   }
-  if (permissions.canViewPublishers) {
-    items.push({ id: 'publishers', label: m.sidebar_publishers(), icon: Users, to: '/publishers' })
-    items.push({ id: 'groups', label: m.sidebar_publisher_groups(), icon: UsersRound, to: '/groups' })
-  }
+  items.push(...publisherItems(permissions))
   if (permissions.canViewActivity) {
     items.push({ id: 'activity', label: m.sidebar_activity(), icon: BarChart3, to: '/publishers/activity' })
     items.push({ id: 'pioneers', label: m.pioneers_title(), icon: TrendingUp, to: '/publishers/activity/pioneers' })

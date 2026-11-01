@@ -42,6 +42,8 @@ export interface NavigationPermissions {
   canManageRoles: boolean
   canManagePermissions: boolean
   isPlatformAdmin: boolean
+  /** The group the member oversees or assists, which he may open without `canViewPublishers`. */
+  ledGroupId: number | null
 }
 
 export interface NavItem {
@@ -142,6 +144,13 @@ export function buildManagementSections(permissions: NavigationPermissions): Nav
       },
       { id: 'groups', label: m.sidebar_publisher_groups, icon: UsersRound, to: '/groups' },
     )
+  } else if (permissions.ledGroupId != null) {
+    assemblyItems.push({
+      id: 'my-group',
+      label: m.sidebar_my_group,
+      icon: UsersRound,
+      to: `/groups/${permissions.ledGroupId}/view`,
+    })
   }
   if (permissions.canViewActivity) {
     assemblyItems.push({ id: 'activity', label: m.sidebar_activity, icon: BarChart3, to: '/publishers/activity' })

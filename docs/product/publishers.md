@@ -75,6 +75,11 @@ Publishers are organized into **groups** (field service groups). Each group has:
 
 Groups help organize field service and track activity at the group level.
 
+- **Choosing the leaders** — The responsible and the deputy are chosen among the brothers still in the congregation who are elders or ministerial servants, and who do not already lead another group. Choosing someone moves them into the group they lead: a leader always belongs to their own group.
+- **Managing members** — A group manager adds and removes publishers from the group's edit page. A publisher who is added leaves the group they were in. The responsible and the deputy cannot be removed from the group they lead; change the group's leaders first.
+- **Overseers' own group** — The responsible and the deputy can open their own group's page, with its members and their monthly activity, even without permission to view publishers. It appears as **My group** in their menu.
+- **Deleting a group** — The confirmation says how many publishers will be left without a group.
+
 ## Lifecycle: present, inactive, left, anonymized
 
 Publishers (and ministry-school students) have four independent lifecycle states:
