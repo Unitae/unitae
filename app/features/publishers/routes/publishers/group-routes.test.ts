@@ -22,7 +22,18 @@ const GROUP = {
   address: '1 rue',
   responsible: { id: 10, firstname: 'Paul', lastname: 'Martin' },
   deputy: null,
-  members: [],
+  reportWindow: [{ month: 9, year: 2026 }],
+  members: [
+    {
+      id: 11,
+      firstname: 'Ana',
+      lastname: 'Lima',
+      email: '',
+      reports: [{ month: 9, year: 2026, status: 'irregular', id: 5 }],
+      signals: [{ kind: 'baptism-anniversary' }],
+      emergencyGaps: ['contact'],
+    },
+  ],
   inactiveMembers: [],
 }
 
@@ -46,6 +57,7 @@ const addMember = await import('./group-member-add')
 const removeMember = await import('./group-member-remove')
 
 type ViewData = { group: typeof GROUP; roles: { canViewPublishers: boolean; canEditPublishers: boolean } }
+type ViewMember = (typeof GROUP)['members'][number]
 
 function view(groupId: string, ...args: Parameters<typeof routeContext>) {
   return respondOrData(() => viewGroup.loader({ params: { groupId }, context: routeContext(...args) } as never))
@@ -83,6 +95,33 @@ describe('group view loader', () => {
 
     expect(result.group.id).toBe(4)
     expect(result.roles.canViewPublishers).toBe(false)
+  })
+
+  // Whether someone preached is a pastoral fact: only those who record the group's reports see it.
+  it('shows the report statuses only to those who record the group activity', async () => {
+    const viewer = (await view('4', [Permission.CanViewPublishers])) as ViewData
+    const recorder = (await view('4', [Permission.CanViewPublishers, Permission.CanRecordActivity])) as ViewData
+    const overseer = (await view('4', [], { member: { id: 10, responsibleFor: { id: 4 } } })) as ViewData
+
+    expect((viewer.group.members[0] as ViewMember).reports).toEqual([])
+    expect((recorder.group.members[0] as ViewMember).reports).toHaveLength(1)
+    expect((overseer.group.members[0] as ViewMember).reports).toHaveLength(1)
+  })
+
+  it('shows the missing emergency information only to those who may see it', async () => {
+    const viewer = (await view('4', [Permission.CanViewPublishers])) as ViewData
+    const emergency = (await view('4', [Permission.CanViewPublishers, Permission.CanViewEmergencyInfo])) as ViewData
+    const overseer = (await view('4', [], { member: { id: 10, responsibleFor: { id: 4 } } })) as ViewData
+
+    expect((viewer.group.members[0] as ViewMember).emergencyGaps).toEqual([])
+    expect((emergency.group.members[0] as ViewMember).emergencyGaps).toEqual(['contact'])
+    expect((overseer.group.members[0] as ViewMember).emergencyGaps).toEqual(['contact'])
+  })
+
+  it('shows the pastoral signals to everyone who may open the page', async () => {
+    const viewer = (await view('4', [Permission.CanViewPublishers])) as ViewData
+
+    expect((viewer.group.members[0] as ViewMember).signals).toEqual([{ kind: 'baptism-anniversary' }])
   })
 
   it('refuses another group to an overseer without the publisher permission', async () => {

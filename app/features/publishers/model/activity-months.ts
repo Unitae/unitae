@@ -4,28 +4,33 @@ export interface ActivityMonth {
   year: number
 }
 
-/** The two report months a group page shows: the current one and the one before. */
-export interface ActivityMonths {
-  current: ActivityMonth
-  previous: ActivityMonth
-}
+/** How many months the group page's report strip shows. */
+export const REPORT_WINDOW_LENGTH = 6
 
 /**
- * The current and previous report months as of `now`, read from its local fields: pass
- * `zonedNow(congregation.timezone)` so they follow the congregation's calendar, not the server's.
- * The previous month is counted on the month number, never with `setMonth`, which keeps the day
- * and rolls a 31st over into the current month when the one before has 30 days.
+ * The last ended months as of `now`, oldest first: the last one is the month whose reports are
+ * being collected. Read from `now`'s local fields: pass `zonedNow(congregation.timezone)` so they
+ * follow the congregation's calendar, not the server's. Counted on month numbers, never with
+ * `setMonth`, which keeps the day and rolls a 31st over into the next month.
  */
-export function activityMonths(now: Date): ActivityMonths {
-  const month = now.getMonth()
-  const year = now.getFullYear()
-  return {
-    current: { month, year },
-    previous: month === 0 ? { month: 11, year: year - 1 } : { month: month - 1, year },
-  }
+export function reportWindow(now: Date, length = REPORT_WINDOW_LENGTH): ActivityMonth[] {
+  const current = now.getFullYear() * 12 + now.getMonth()
+  return Array.from({ length }, (_, index) => {
+    const absolute = current - length + index
+    return { month: absolute % 12, year: Math.floor(absolute / 12) }
+  })
 }
 
-/** The month and year as a short label (« oct. 2026 », "Oct 2026"). */
-export function formatActivityMonth({ month, year }: ActivityMonth, locale: string): string {
-  return new Date(year, month, 1).toLocaleDateString(locale, { month: 'short', year: 'numeric' })
+/** The month and year as a label: short (« oct. 2026 ») or long (« octobre 2026 »). */
+export function formatActivityMonth(
+  { month, year }: ActivityMonth,
+  locale: string,
+  monthStyle: 'short' | 'long' = 'short',
+): string {
+  return new Date(year, month, 1).toLocaleDateString(locale, { month: monthStyle, year: 'numeric' })
+}
+
+/** The month alone, abbreviated (« oct. »): a column heading where the year does not fit. */
+export function formatShortMonth({ month, year }: ActivityMonth, locale: string): string {
+  return new Date(year, month, 1).toLocaleDateString(locale, { month: 'short' })
 }

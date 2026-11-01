@@ -31,108 +31,119 @@ describe('getGroups', () => {
   })
 })
 
-// The months the caller resolved in the congregation's timezone (see activityMonths).
-const MONTHS = { current: { month: 6, year: 2026 }, previous: { month: 5, year: 2026 } }
+// As of 15 July 2026 in Paris: the window runs from January to June 2026.
+const AS_OF = { timezone: 'Europe/Paris', now: new Date('2026-07-15T10:00:00Z') }
+
+function memberRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 10,
+    firstname: 'A',
+    lastname: 'B',
+    email: '',
+    inactiveAt: null,
+    baptismDate: null,
+    createdAt: new Date('2020-01-01T00:00:00Z'),
+    dpaCardUpToDate: true,
+    survivalBackpackReady: true,
+    _count: { emergencyContacts: 1 },
+    activities: [],
+    ...overrides,
+  }
+}
+
+function groupRow(members: unknown[], overrides: Record<string, unknown> = {}) {
+  return { id: 7, name: 'Group A', adress: '', responsible: null, deputy: null, members, ...overrides }
+}
 
 describe('getGroup', () => {
   it('returns null when the group is missing', async () => {
     mockDb.publisherGroup.findUnique.mockResolvedValue(null)
-    const result = await getGroup(dbCast, 99, 42, MONTHS)
+    const result = await getGroup(dbCast, 99, 42, AS_OF)
     expect(result).toBeNull()
   })
 
   it('scopes the findUnique by the id_congregationId compound key', async () => {
     mockDb.publisherGroup.findUnique.mockResolvedValue(null)
-    await getGroup(dbCast, 99, 42, MONTHS)
+    await getGroup(dbCast, 99, 42, AS_OF)
     expect(mockDb.publisherGroup.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id_congregationId: { id: 99, congregationId: 42 } } }),
     )
   })
 
-  it('reshapes members with distinct currentActivity and previousActivity', async () => {
-    const member = {
-      id: 10,
-      firstname: 'A',
-      lastname: 'B',
-      email: '',
-      activities: [
-        { id: 2, year: 2026, month: 6 }, // July 2026 — current month
-        { id: 1, year: 2026, month: 5 }, // June 2026 — previous month
-      ],
-    }
-    mockDb.publisherGroup.findUnique.mockResolvedValue({
-      id: 7,
-      name: 'Group A',
-      adress: '',
-      responsible: null,
-      deputy: null,
-      members: [member],
-    })
+  it('reads the reports of the six ended months, on the congregation calendar', async () => {
+    mockDb.publisherGroup.findUnique.mockResolvedValue(null)
+    await getGroup(dbCast, 7, 42, AS_OF)
 
-    const result = await getGroup(dbCast, 7, 42, MONTHS)
-
-    expect(result?.members[0].currentActivity).toEqual({ id: 2 })
-    expect(result?.members[0].previousActivity).toEqual({ id: 1 })
-    expect(result?.members[0]).not.toHaveProperty('activities')
+    const query = mockDb.publisherGroup.findUnique.mock.calls[0][0]
+    expect(query.select.members.select.activities.where.OR).toEqual([
+      { month: 0, year: 2026 },
+      { month: 1, year: 2026 },
+      { month: 2, year: 2026 },
+      { month: 3, year: 2026 },
+      { month: 4, year: 2026 },
+      { month: 5, year: 2026 },
+    ])
   })
 
-  it('puts the inactive publishers in a list of their own, without their inactive date', async () => {
-    const row = (id: number, inactiveAt: Date | null) => ({
-      id,
-      firstname: `M${id}`,
-      lastname: 'B',
-      email: '',
-      inactiveAt,
-      activities: [],
-    })
-    mockDb.publisherGroup.findUnique.mockResolvedValue({
-      id: 7,
-      name: 'Group A',
-      adress: '',
-      responsible: null,
-      deputy: null,
-      members: [row(1, null), row(2, new Date('2026-01-15')), row(3, null)],
-    })
+  it('gives each month of the window its report status and, when filed, the report id', async () => {
+    mockDb.publisherGroup.findUnique.mockResolvedValue(
+      groupRow([
+        memberRow({
+          activities: [
+            { id: 3, month: 5, year: 2026, isPublisher: true },
+            { id: 2, month: 4, year: 2026, isPublisher: false },
+          ],
+        }),
+      ]),
+    )
 
-    const result = await getGroup(dbCast, 7, 42, MONTHS)
+    const result = await getGroup(dbCast, 7, 42, AS_OF)
+
+    expect(result?.reportWindow.at(-1)).toEqual({ month: 5, year: 2026 })
+    expect(result?.members[0].reports.slice(-3)).toEqual([
+      { month: 3, year: 2026, status: 'not-filed', id: null },
+      { month: 4, year: 2026, status: 'irregular', id: 2 },
+      { month: 5, year: 2026, status: 'filed', id: 3 },
+    ])
+  })
+
+  it('lists the missing emergency information and the pastoral signals', async () => {
+    mockDb.publisherGroup.findUnique.mockResolvedValue(
+      groupRow([
+        memberRow({
+          dpaCardUpToDate: false,
+          _count: { emergencyContacts: 0 },
+          baptismDate: new Date('2025-07-10T08:00:00Z'),
+        }),
+      ]),
+    )
+
+    const result = await getGroup(dbCast, 7, 42, AS_OF)
+
+    expect(result?.members[0].emergencyGaps).toEqual(['card', 'contact'])
+    expect(result?.members[0].signals).toEqual([{ kind: 'baptism-anniversary' }])
+  })
+
+  it('puts the inactive publishers in a list of their own', async () => {
+    mockDb.publisherGroup.findUnique.mockResolvedValue(
+      groupRow([
+        memberRow({ id: 1 }),
+        memberRow({ id: 2, inactiveAt: new Date('2026-01-31T23:00:00Z') }),
+        memberRow({ id: 3 }),
+      ]),
+    )
+
+    const result = await getGroup(dbCast, 7, 42, AS_OF)
 
     expect(result?.members.map(each => each.id)).toEqual([1, 3])
     expect(result?.inactiveMembers.map(each => each.id)).toEqual([2])
-    expect(result?.inactiveMembers[0]).not.toHaveProperty('inactiveAt')
-  })
-
-  it('reads activity for the months it is given, not for the server clock', async () => {
-    mockDb.publisherGroup.findUnique.mockResolvedValue(null)
-    await getGroup(dbCast, 7, 42, MONTHS)
-
-    const query = mockDb.publisherGroup.findUnique.mock.calls[0][0]
-    expect(query.select.members.select.activities.where).toEqual({ OR: [MONTHS.previous, MONTHS.current] })
-  })
-
-  it('leaves currentActivity / previousActivity undefined when no rows match', async () => {
-    mockDb.publisherGroup.findUnique.mockResolvedValue({
-      id: 7,
-      name: 'Group A',
-      adress: '',
-      responsible: null,
-      deputy: null,
-      members: [{ id: 10, firstname: 'A', lastname: 'B', email: '', activities: [] }],
-    })
-    const result = await getGroup(dbCast, 7, 42, MONTHS)
-    expect(result?.members[0].currentActivity).toBeUndefined()
-    expect(result?.members[0].previousActivity).toBeUndefined()
+    // 31 January 23:00 UTC is 1 February in Paris: the congregation's calendar decides.
+    expect(result?.inactiveMembers[0].signals).toEqual([{ kind: 'inactive', since: { month: 1, year: 2026 } }])
   })
 
   it('exposes `address` (typo-fixing rename of the Prisma `adress` column)', async () => {
-    mockDb.publisherGroup.findUnique.mockResolvedValue({
-      id: 7,
-      name: 'Group A',
-      adress: '10 rue de la Paix',
-      responsible: null,
-      deputy: null,
-      members: [],
-    })
-    const result = await getGroup(dbCast, 7, 42, MONTHS)
+    mockDb.publisherGroup.findUnique.mockResolvedValue(groupRow([], { adress: '10 rue de la Paix' }))
+    const result = await getGroup(dbCast, 7, 42, AS_OF)
     expect(result?.address).toBe('10 rue de la Paix')
   })
 })
