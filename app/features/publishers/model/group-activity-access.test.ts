@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Permission } from '~/shared/types/permission'
-import { canManageGroupActivity, canRecordAnyActivity } from './group-activity-access'
+import { canCorrectAnyActivity, canManageGroupActivity, canRecordAnyActivity } from './group-activity-access'
 
 const base = {
   hasActivityManager: false,
@@ -46,5 +46,20 @@ describe('canRecordAnyActivity', () => {
 
   it('denies a mere viewer', () => {
     expect(canRecordAnyActivity(new Set([Permission.CanViewActivity, Permission.CanViewPublishers]))).toBe(false)
+  })
+})
+
+// « Peut modifier et supprimer l'activité enregistrée »: changing a filed report is its own right.
+describe('canCorrectAnyActivity', () => {
+  it('grants the correction permission', () => {
+    expect(canCorrectAnyActivity(new Set([Permission.CanCorrectActivity]))).toBe(true)
+  })
+
+  it('still grants the publisher manager', () => {
+    expect(canCorrectAnyActivity(new Set([Permission.CanManagePublishers]))).toBe(true)
+  })
+
+  it('denies the permission to record new reports only', () => {
+    expect(canCorrectAnyActivity(new Set([Permission.CanRecordActivity]))).toBe(false)
   })
 })

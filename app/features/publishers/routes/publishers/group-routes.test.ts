@@ -56,7 +56,10 @@ const editGroup = await import('./edit-group')
 const addMember = await import('./group-member-add')
 const removeMember = await import('./group-member-remove')
 
-type ViewData = { group: typeof GROUP; roles: { canViewPublishers: boolean; canEditPublishers: boolean } }
+type ViewData = {
+  group: typeof GROUP
+  roles: { canViewPublishers: boolean; canEditPublishers: boolean; canCorrectReports: boolean }
+}
 type ViewMember = (typeof GROUP)['members'][number]
 
 function view(groupId: string, ...args: Parameters<typeof routeContext>) {
@@ -106,6 +109,21 @@ describe('group view loader', () => {
     expect((viewer.group.members[0] as ViewMember).reports).toEqual([])
     expect((recorder.group.members[0] as ViewMember).reports).toHaveLength(1)
     expect((overseer.group.members[0] as ViewMember).reports).toHaveLength(1)
+  })
+
+  // A filed report opens for correction only for those who may correct it: no dead-end link.
+  it('lets filed reports open for correction only for those who may correct them', async () => {
+    const recorder = (await view('4', [Permission.CanViewPublishers, Permission.CanRecordActivity])) as ViewData
+    const corrector = (await view('4', [
+      Permission.CanViewPublishers,
+      Permission.CanRecordActivity,
+      Permission.CanCorrectActivity,
+    ])) as ViewData
+    const overseer = (await view('4', [], { member: { id: 10, responsibleFor: { id: 4 } } })) as ViewData
+
+    expect(recorder.roles.canCorrectReports).toBe(false)
+    expect(corrector.roles.canCorrectReports).toBe(true)
+    expect(overseer.roles.canCorrectReports).toBe(true)
   })
 
   it('shows the missing emergency information only to those who may see it', async () => {

@@ -24,3 +24,12 @@ export function canManageGroupActivity(input: GroupActivityAccessInput): boolean
 export function canRecordAnyActivity(permissions: ReadonlySet<Permission>): boolean {
   return permissions.has(Permission.CanRecordActivity) || permissions.has(Permission.CanManagePublishers)
 }
+
+/**
+ * Whether the caller may change or delete anyone's filed report, not only his own group's: the
+ * correction permission, or managing publishers. Recording a new report is a separate right
+ * (canRecordAnyActivity).
+ */
+export function canCorrectAnyActivity(permissions: ReadonlySet<Permission>): boolean {
+  return permissions.has(Permission.CanCorrectActivity) || permissions.has(Permission.CanManagePublishers)
+}

@@ -78,12 +78,15 @@ export function GroupMembersTable({
   members,
   reportWindow,
   canManageActivity,
+  canCorrectReports,
   canEditPublishers,
   canViewPublishers,
 }: {
   members: GroupMemberRow[]
   reportWindow: ActivityMonth[]
   canManageActivity: boolean
+  /** Whether a filed report may be opened for correction; otherwise it shows without a link. */
+  canCorrectReports: boolean
   canEditPublishers: boolean
   canViewPublishers: boolean
 }) {
@@ -131,10 +134,12 @@ export function GroupMembersTable({
               {canManageActivity && reported && (
                 <>
                   <TableCell className="px-0">
-                    <ReportDots memberId={member.id} reports={member.reports} />
+                    <ReportDots memberId={member.id} reports={member.reports} canCorrect={canCorrectReports} />
                   </TableCell>
                   <TableCell className="text-center">
-                    {current && <ReportStatusLink memberId={member.id} report={current} />}
+                    {current && (
+                      <ReportStatusLink memberId={member.id} report={current} canCorrect={canCorrectReports} />
+                    )}
                   </TableCell>
                 </>
               )}

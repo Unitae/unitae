@@ -147,6 +147,34 @@ describe('activity entry by a holder of the activity permission', () => {
     await expect(result).rejects.toBe(PAST_THE_GATE)
   })
 
+  it("records any publisher's activity", async () => {
+    await create(42, RECORDER)
+    expect([...activities.values()]).toContainEqual({ publisherId: 42, hours: 12 })
+  })
+
+  // Changing a filed report takes « Peut modifier et supprimer l'activité enregistrée ».
+  it('refuses to open a filed report for correction', async () => {
+    const result = await respondOrData(() =>
+      editActivity.loader({
+        request: new Request('https://unitae.example.test/publishers/activity/2/edit'),
+        params: { activityId: '2' },
+        context: routeContext(...RECORDER),
+      } as never),
+    )
+    expect((result as Response).headers.get('Location')).toBe('/')
+  })
+
+  it('refuses to correct a filed report', async () => {
+    const response = await edit(2, RECORDER)
+    expect(response.headers.get('Location')).toBe('/')
+    expect(activities.get(2)?.hours).toBe(5)
+  })
+})
+
+describe('activity correction by a holder of the correction permission', () => {
+  const CORRECTOR: Parameters<typeof routeContext> = [[Permission.CanCorrectActivity]]
+  const PAST_THE_GATE = new Error('past the permission check')
+
   it('opens a report to correct it', async () => {
     fakeDb.publisherActivity.findFirst.mockRejectedValueOnce(PAST_THE_GATE)
 
@@ -154,20 +182,15 @@ describe('activity entry by a holder of the activity permission', () => {
       editActivity.loader({
         request: new Request('https://unitae.example.test/publishers/activity/2/edit'),
         params: { activityId: '2' },
-        context: routeContext(...RECORDER),
+        context: routeContext(...CORRECTOR),
       } as never),
     )
 
     await expect(result).rejects.toBe(PAST_THE_GATE)
   })
 
-  it("records any publisher's activity", async () => {
-    await create(42, RECORDER)
-    expect([...activities.values()]).toContainEqual({ publisherId: 42, hours: 12 })
-  })
-
   it("corrects any publisher's activity", async () => {
-    await edit(2, RECORDER)
+    await edit(2, CORRECTOR)
     expect(activities.get(2)?.hours).toBe(99)
   })
 })

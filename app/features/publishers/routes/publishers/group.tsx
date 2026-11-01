@@ -1,7 +1,7 @@
 import { Pencil, Siren, UsersRound } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { canViewEmergencyInfo } from '~/features/publishers/model/emergency-access'
-import { canManageGroupActivity } from '~/features/publishers/model/group-activity-access'
+import { canCorrectAnyActivity, canManageGroupActivity } from '~/features/publishers/model/group-activity-access'
 import { getGroup } from '~/features/publishers/server/groups.server'
 import { type GroupMemberRow, GroupMembersTable } from '~/features/publishers/ui/GroupMembersTable'
 import { ReportLegend } from '~/features/publishers/ui/GroupReportCells'
@@ -62,11 +62,16 @@ export function loader({ params, context }: Route.LoaderArgs) {
       targetGroupId: group.id,
     })
 
-    const canManageGroupReports = canManageGroupActivity({
-      hasActivityManager: canManageActivity,
+    const leaders = {
       responsibleId: group.responsible.id,
       deputyId: group.deputy?.id ?? null,
       myMemberId: currentUser.member?.id ?? null,
+    }
+    const canManageGroupReports = canManageGroupActivity({ hasActivityManager: canManageActivity, ...leaders })
+    // A filed report opens for correction only for those the edit form lets in.
+    const canCorrectReports = canManageGroupActivity({
+      hasActivityManager: canCorrectAnyActivity(permissions),
+      ...leaders,
     })
     // Whether someone preached is a pastoral fact, kept to those who record the group's reports; the
     // missing emergency information, to those who may see emergency information.
@@ -84,6 +89,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
         canViewPublishers,
         canViewEmergency,
         canManageActivity: canManageGroupReports,
+        canCorrectReports,
       },
     }
   })
@@ -114,6 +120,7 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
         members={members}
         reportWindow={group.reportWindow}
         canManageActivity={roles.canManageActivity}
+        canCorrectReports={roles.canCorrectReports}
         canEditPublishers={roles.canEditPublishers}
         canViewPublishers={roles.canViewPublishers}
       />

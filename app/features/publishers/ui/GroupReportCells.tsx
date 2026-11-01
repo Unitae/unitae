@@ -34,8 +34,19 @@ function reportLink(memberId: number, report: ReportCell): string {
     : `/publishers/activity/new?publisherId=${memberId}&month=${report.month}&year=${report.year}`
 }
 
-/** One dot per month of the window, oldest first; each opens that month's report. */
-export function ReportDots({ memberId, reports }: { memberId: number; reports: ReportCell[] }) {
+/**
+ * One dot per month of the window, oldest first; each opens that month's report, or a new one. A
+ * filed report links only when `canCorrect`: the edit form turns away anyone else.
+ */
+export function ReportDots({
+  memberId,
+  reports,
+  canCorrect,
+}: {
+  memberId: number
+  reports: ReportCell[]
+  canCorrect: boolean
+}) {
   const locale = getLocale()
   return (
     <div className="flex items-center justify-center">
@@ -44,6 +55,20 @@ export function ReportDots({ memberId, reports }: { memberId: number; reports: R
           date: formatActivityMonth(report, locale, 'long'),
           status: STATUS_LABEL[report.status](),
         })
+        const dot = <span className={cn('size-2.5 rounded-full', DOT_STYLE[report.status])} />
+        if (report.id != null && !canCorrect) {
+          return (
+            <span
+              key={`${report.year}-${report.month}`}
+              role="img"
+              aria-label={label}
+              title={label}
+              className="flex size-6 items-center justify-center"
+            >
+              {dot}
+            </span>
+          )
+        }
         return (
           // The dot is small; the link around it is a comfortable target on a phone.
           <Link
@@ -53,7 +78,7 @@ export function ReportDots({ memberId, reports }: { memberId: number; reports: R
             title={label}
             className="flex size-6 items-center justify-center rounded-full hover:bg-accent"
           >
-            <span className={cn('size-2.5 rounded-full', DOT_STYLE[report.status])} />
+            {dot}
           </Link>
         )
       })}
@@ -69,25 +94,38 @@ const STATUS_ICON: Record<ReportStatus, typeof Check> = {
 }
 
 /**
- * The month being reported: its status, as a link to the report or to a new one. On a phone only
- * the icon shows (each status has its own); the label stays for screen readers.
+ * The month being reported: its status, as a link to the report or to a new one (a filed report
+ * links only when `canCorrect`). On a phone only the icon shows (each status has its own); the
+ * label stays for screen readers.
  */
-export function ReportStatusLink({ memberId, report }: { memberId: number; report: ReportCell }) {
+export function ReportStatusLink({
+  memberId,
+  report,
+  canCorrect,
+}: {
+  memberId: number
+  report: ReportCell
+  canCorrect: boolean
+}) {
   const filed = report.status === 'filed' || report.status === 'irregular'
   const Icon = STATUS_ICON[report.status]
-  return (
-    <Link
-      to={reportLink(memberId, report)}
-      className={cn(
-        'inline-flex items-center gap-1 rounded-md px-2 py-1 font-medium text-xs hover:bg-accent',
-        report.status === 'filed' && 'text-primary',
-        report.status === 'irregular' && 'text-amber-700 dark:text-amber-400',
-        report.status === 'not-filed' && 'text-foreground',
-        report.status === 'not-expected' && 'text-muted-foreground',
-      )}
-    >
+  const className = cn(
+    'inline-flex items-center gap-1 rounded-md px-2 py-1 font-medium text-xs',
+    report.status === 'filed' && 'text-primary',
+    report.status === 'irregular' && 'text-amber-700 dark:text-amber-400',
+    report.status === 'not-filed' && 'text-foreground',
+    report.status === 'not-expected' && 'text-muted-foreground',
+  )
+  const content = (
+    <>
       <Icon className="size-3.5" />
       <span className="max-sm:sr-only">{filed ? STATUS_LABEL[report.status]() : m.groups_report_add()}</span>
+    </>
+  )
+  if (filed && !canCorrect) return <span className={className}>{content}</span>
+  return (
+    <Link to={reportLink(memberId, report)} className={cn(className, 'hover:bg-accent')}>
+      {content}
     </Link>
   )
 }
