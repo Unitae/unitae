@@ -5,13 +5,13 @@ import { data, Form, redirect, useSearchParams } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { getMonthEnrolment } from '~/features/publishers/index.server'
 import { reportTypeForMonth } from '~/features/publishers/model/activity-report-type'
+import { canRecordAnyActivity } from '~/features/publishers/model/group-activity-access'
 import { createActivitySchema } from '~/features/publishers/schemas/activity.schema'
 import { createPublisherActivity } from '~/features/publishers/server/publisher-activity-mutations.server'
 import { getPublishers } from '~/features/publishers/server/publishers.server'
 import { ActivityPioneerField } from '~/features/publishers/ui/ActivityPioneerField'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { Permission } from '~/shared/types/permission'
 import { PublisherType, publisherTypeReportsHours } from '~/shared/types/publisher-type'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { FormActions } from '~/shared/ui/FormActions'
@@ -33,19 +33,18 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canManagePublisher = permissions.has(Permission.CanManagePublishers)
+  const canRecordAny = canRecordAnyActivity(permissions)
 
   const member = currentUser.member
   const canManageMyGroupActivity =
     member != null &&
     (member.responsibleFor?.id === member.publisherGroupId || member.deputyFor?.id === member.publisherGroupId)
 
-  if (!canManagePublisher && !canManageMyGroupActivity) {
+  if (!canRecordAny && !canManageMyGroupActivity) {
     throw redirect('/')
   }
 
-  const groupFilter =
-    canManageMyGroupActivity && !canManagePublisher ? (member?.publisherGroupId ?? undefined) : undefined
+  const groupFilter = canManageMyGroupActivity && !canRecordAny ? (member?.publisherGroupId ?? undefined) : undefined
 
   const timeRange = new Date()
   const searchParams = new URL(request.url).searchParams
@@ -295,14 +294,14 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canManagePublisher = permissions.has(Permission.CanManagePublishers)
+  const canRecordAny = canRecordAnyActivity(permissions)
 
   const member = currentUser.member
   const canManageMyGroupActivity =
     member != null &&
     (member.responsibleFor?.id === member.publisherGroupId || member.deputyFor?.id === member.publisherGroupId)
 
-  if (!canManagePublisher && !canManageMyGroupActivity) {
+  if (!canRecordAny && !canManageMyGroupActivity) {
     throw redirect('/')
   }
 
@@ -330,7 +329,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       })
     }
     // A group's responsible or deputy reports for their own group only, whatever the form submitted.
-    if (!canManagePublisher && publisher.publisherGroupId !== member?.publisherGroupId) {
+    if (!canRecordAny && publisher.publisherGroupId !== member?.publisherGroupId) {
       throw redirect('/')
     }
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { canManageGroupActivity } from './group-activity-access'
+import { Permission } from '~/shared/types/permission'
+import { canManageGroupActivity, canRecordAnyActivity } from './group-activity-access'
 
 const base = {
   hasActivityManager: false,
@@ -29,5 +30,21 @@ describe('canManageGroupActivity', () => {
     // Regression guard: the check must run on the Member id, not a UserAccount
     // id — a user without a linked Member can never be the responsible/deputy.
     expect(canManageGroupActivity({ ...base, responsibleId: 5, myMemberId: null })).toBe(false)
+  })
+})
+
+describe('canRecordAnyActivity', () => {
+  // Regression: the activity forms accepted CanManagePublishers only, while the activity permission
+  // showed the links to them.
+  it('grants the activity permission', () => {
+    expect(canRecordAnyActivity(new Set([Permission.CanRecordActivity]))).toBe(true)
+  })
+
+  it('still grants the publisher manager', () => {
+    expect(canRecordAnyActivity(new Set([Permission.CanManagePublishers]))).toBe(true)
+  })
+
+  it('denies a mere viewer', () => {
+    expect(canRecordAnyActivity(new Set([Permission.CanViewActivity, Permission.CanViewPublishers]))).toBe(false)
   })
 })

@@ -46,6 +46,11 @@ export const DELEGATES: Record<string, { file: string; enforces: RegExp }> = {
   canManageAnyProgram: { file: 'app/features/events/server/events-auth.server.ts', enforces: ENFORCES_PERMISSION },
   // Pure policy: the route feeds it booleans derived from permissions and group membership.
   canManageEmergencyInfo: { file: 'app/features/publishers/model/emergency-access.ts', enforces: /hasManager/ },
+  // Names the permissions that let a caller record anyone's activity (the activity forms).
+  canRecordAnyActivity: {
+    file: 'app/features/publishers/model/group-activity-access.ts',
+    enforces: ENFORCES_PERMISSION,
+  },
   // Platform administration is gated by the account's platformAdmin flag, not a congregation permission.
   verifyPlatformAdmin: {
     file: 'app/features/platform-admin/server/verify-platform-admin.server.ts',
