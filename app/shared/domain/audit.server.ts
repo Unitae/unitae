@@ -94,6 +94,9 @@ export const AuditAction = {
   PublisherUpdated: 'publisher.updated',
   PublisherStatusChanged: 'publisher.status.changed',
   PublisherGroupCreated: 'publisher.group.created',
+  PublisherGroupUpdated: 'publisher.group.updated',
+  // A member put in a field service group, moved to another, or taken out of every group.
+  PublisherGroupMembershipChanged: 'publisher.group.membership_changed',
   PublisherGroupDeleted: 'publisher.group.deleted',
   PublisherActivityCreated: 'publisher.activity.created',
   PublisherActivityUpdated: 'publisher.activity.updated',

@@ -1,6 +1,9 @@
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
+import { assertGroupLeaders } from './group-leaders.server'
+import { joinLedGroup } from './update-group.server'
+
 export interface CreatePublisherGroupParams {
   name: string
   address: string
@@ -10,9 +13,12 @@ export interface CreatePublisherGroupParams {
   actorId: number
 }
 
+/** Throws a ValidationError on the field at fault when the chosen leaders cannot lead a group. */
 export async function createPublisherGroup(db: TransactionClient, params: CreatePublisherGroupParams) {
-  const membersToConnect = [{ id: params.responsibleId }]
-  if (params.deputyId != null) membersToConnect.push({ id: params.deputyId })
+  await assertGroupLeaders(db, params.congregationId, {
+    responsibleId: params.responsibleId,
+    deputyId: params.deputyId,
+  })
 
   const group = await db.publisherGroup.create({
     data: {
@@ -20,10 +26,11 @@ export async function createPublisherGroup(db: TransactionClient, params: Create
       adress: params.address,
       deputyId: params.deputyId,
       responsibleId: params.responsibleId,
-      members: { connect: membersToConnect },
       congregationId: params.congregationId,
     },
   })
+
+  await joinLedGroup(db, group.id, params.congregationId, params.actorId, params)
 
   audit({
     action: AuditAction.PublisherGroupCreated,

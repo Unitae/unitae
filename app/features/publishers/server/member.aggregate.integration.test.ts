@@ -20,6 +20,7 @@ vi.mock('~/shared/domain/audit.server', () => ({
     MemberLeft: 'member.left',
     MemberReturned: 'member.returned',
     UserAnonymized: 'user.anonymized',
+    PublisherGroupMembershipChanged: 'publisher.group.membership_changed',
   },
 }))
 
@@ -52,6 +53,7 @@ let congId: number
 const congregationInfo = { id: 0, maxMembers: null, maxTerritories: null }
 
 const memberAggregate = await import('./member.aggregate')
+const { ConflictError } = await import('~/shared/errors/app-error.server')
 const { seedBuiltInRoles } = await import('~/shared/domain/setup.server')
 
 beforeAll(async () => {
@@ -71,6 +73,8 @@ afterAll(async () => {
     await tx.rolePermission.deleteMany({})
     await tx.role.deleteMany({})
     await tx.userAccount.deleteMany({})
+    await tx.member.updateMany({ data: { publisherGroupId: null } })
+    await tx.publisherGroup.deleteMany({})
     await tx.member.deleteMany({})
     await tx.dataDeletionRecord.deleteMany({})
   })
@@ -303,5 +307,95 @@ describe('member.aggregate — integration', () => {
     expect(after.firstname).toBe(`GrpRespB-${ts}`)
 
     await testDb.publisherGroup.delete({ where: { id: group.id } })
+  })
+})
+
+describe('memberAggregate.setGroup — integration', () => {
+  function person(firstname: string, groupId: number | null = null) {
+    return testDb.member.create({
+      data: { firstname: `${firstname}-${ts}`, lastname: 'Set', congregationId: congId, publisherGroupId: groupId },
+    })
+  }
+
+  function groupLedBy(responsibleId: number, name: string, deputyId: number | null = null) {
+    return testDb.publisherGroup.create({
+      data: { name: `${name}-${ts}`, adress: '', responsibleId, deputyId, congregationId: congId },
+    })
+  }
+
+  async function groupOf(memberId: number) {
+    return (await testDb.member.findUniqueOrThrow({ where: { id: memberId } })).publisherGroupId
+  }
+
+  it('moves a member into a group and records the move', async () => {
+    const overseer = await person('SetResp1')
+    const group = await groupLedBy(overseer.id, 'SetG1')
+    const member = await person('SetMember1')
+    auditMock.mockClear()
+
+    await withScope(congId, tx => memberAggregate.setGroup(tx, member.id, congId, group.id, 7))
+
+    expect(await groupOf(member.id)).toBe(group.id)
+    expect(auditMock).toHaveBeenCalledWith({
+      action: 'publisher.group.membership_changed',
+      congregationId: congId,
+      actorId: 7,
+      entityType: 'Member',
+      entityId: member.id,
+      metadata: { from: null, to: group.id },
+    })
+  })
+
+  it('takes a member out of their group with null', async () => {
+    const overseer = await person('SetResp2')
+    const group = await groupLedBy(overseer.id, 'SetG2')
+    const member = await person('SetMember2', group.id)
+
+    await withScope(congId, tx => memberAggregate.setGroup(tx, member.id, congId, null, 7))
+
+    expect(await groupOf(member.id)).toBeNull()
+  })
+
+  it("lets a group's overseer join the group he leads", async () => {
+    const overseer = await person('SetResp3')
+    const group = await groupLedBy(overseer.id, 'SetG3')
+
+    await withScope(congId, tx => memberAggregate.setGroup(tx, overseer.id, congId, group.id, 7))
+
+    expect(await groupOf(overseer.id)).toBe(group.id)
+  })
+
+  it("refuses to take a group's overseer out of the group he leads", async () => {
+    const overseer = await person('SetResp4')
+    const group = await groupLedBy(overseer.id, 'SetG4')
+    await testDb.member.update({ where: { id: overseer.id }, data: { publisherGroupId: group.id } })
+
+    await expect(
+      withScope(congId, tx => memberAggregate.setGroup(tx, overseer.id, congId, null, 7)),
+    ).rejects.toBeInstanceOf(ConflictError)
+    expect(await groupOf(overseer.id)).toBe(group.id)
+  })
+
+  it("refuses to move a group's deputy into another group", async () => {
+    const deputy = await person('SetDep5')
+    const led = await groupLedBy((await person('SetResp5')).id, 'SetG5', deputy.id)
+    const other = await groupLedBy((await person('SetResp5b')).id, 'SetG5b')
+    await testDb.member.update({ where: { id: deputy.id }, data: { publisherGroupId: led.id } })
+
+    await expect(
+      withScope(congId, tx => memberAggregate.setGroup(tx, deputy.id, congId, other.id, 7)),
+    ).rejects.toBeInstanceOf(ConflictError)
+    expect(await groupOf(deputy.id)).toBe(led.id)
+  })
+
+  it('writes nothing when the member is already in the group', async () => {
+    const overseer = await person('SetResp6')
+    const group = await groupLedBy(overseer.id, 'SetG6')
+    const member = await person('SetMember6', group.id)
+    auditMock.mockClear()
+
+    await withScope(congId, tx => memberAggregate.setGroup(tx, member.id, congId, group.id, 7))
+
+    expect(auditMock).not.toHaveBeenCalled()
   })
 })

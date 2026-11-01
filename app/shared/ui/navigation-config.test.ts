@@ -30,6 +30,7 @@ function permissions(overrides: Partial<NavigationPermissions> = {}): Navigation
     canManageRoles: false,
     canManagePermissions: false,
     isPlatformAdmin: false,
+    ledGroupId: null,
     ...overrides,
   }
 }
@@ -75,6 +76,23 @@ describe('buildManagementSections', () => {
   it('adds section management for a board manager', () => {
     const sections = buildManagementSections(permissions({ canManageBoard: true }))
     expect(sections[0].items.map(i => i.id)).toEqual(['board-view', 'board-sections', 'board-documents'])
+  })
+
+  // A group overseer or deputy may open his own group without the publisher permission: the
+  // sidebar is how he finds it.
+  it('links a group leader without the publisher list to his own group', () => {
+    const sections = buildManagementSections(permissions({ ledGroupId: 12 }))
+    const items = sections.flatMap(section => section.items)
+
+    expect(items.map(item => [item.id, item.to])).toEqual([['my-group', '/groups/12/view']])
+  })
+
+  it('shows the groups list instead to a leader who can view publishers', () => {
+    const items = buildManagementSections(permissions({ ledGroupId: 12, canViewPublishers: true })).flatMap(
+      section => section.items,
+    )
+
+    expect(items.map(item => item.id)).toEqual(['publishers', 'groups'])
   })
 
   it('falls back to the absences item when programs are not visible', () => {

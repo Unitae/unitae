@@ -167,6 +167,8 @@ export default [
         route('view', 'features/publishers/routes/publishers/group.tsx'),
         route('edit', 'features/publishers/routes/publishers/edit-group.tsx'),
         route('delete', 'features/publishers/routes/publishers/delete-group.tsx'),
+        route('members/add', 'features/publishers/routes/publishers/group-member-add.tsx'),
+        route('members/:memberId/remove', 'features/publishers/routes/publishers/group-member-remove.tsx'),
       ]),
     ]),
     ...programsRoutes,

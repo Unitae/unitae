@@ -1,7 +1,14 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
-import { getGroup, getGroups } from './groups.server'
+import {
+  findGroupLeaderCandidates,
+  findGroupMemberCandidates,
+  getGroup,
+  getGroups,
+  listGroupMembers,
+  listGroups,
+} from './groups.server'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -25,6 +32,9 @@ let congBId: number
 let groupAId: number
 let groupBId: number
 
+// The months getGroup reads activity for. Fixed, so the activity row below always falls in them.
+const MONTHS = { current: { month: 4, year: 2026 }, previous: { month: 3, year: 2026 } }
+
 beforeAll(async () => {
   const [congA, congB] = await Promise.all([
     testDb.congregation.create({ data: { name: `Groups A ${ts}`, slug: `groups-a-${ts}`, active: true } }),
@@ -41,6 +51,50 @@ beforeAll(async () => {
       data: { name: 'A-Group', adress: '', responsibleId: responsible.id, congregationId: congAId },
     })
     groupAId = g.id
+
+    // An elder in the group with every kind of data the group pages must not hand to the browser:
+    // personal dates, the medical-directive and backpack flags, contact details, and a report.
+    const sensitive = await tx.member.create({
+      data: {
+        firstname: 'Sensitive',
+        lastname: `A ${ts}`,
+        isPublisher: true,
+        isMale: true,
+        isHelder: true,
+        isAnointed: true,
+        birthDate: new Date('1980-02-03'),
+        baptismDate: new Date('1999-04-05'),
+        phone: '0600000000',
+        address: '1 rue Privée',
+        email: 'sensitive@example.test',
+        dpaCardUpToDate: true,
+        survivalBackpackReady: true,
+        publisherGroupId: g.id,
+        congregationId: congAId,
+      },
+    })
+    // Inactive: still in the group, but left off the board's field service groups document.
+    await tx.member.create({
+      data: {
+        firstname: 'Inactive',
+        lastname: `A ${ts}`,
+        isPublisher: true,
+        inactiveAt: new Date('2026-01-15'),
+        publisherGroupId: g.id,
+        congregationId: congAId,
+      },
+    })
+    await tx.publisherActivity.create({
+      data: {
+        publisherId: sensitive.id,
+        month: MONTHS.current.month,
+        year: MONTHS.current.year,
+        hours: 12,
+        studies: 2,
+        notes: 'private note',
+        congregationId: congAId,
+      },
+    })
   })
 
   await withScope(congBId, async tx => {
@@ -55,6 +109,7 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
+  await testDb.publisherActivity.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })
   await testDb.publisherGroup.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })
   await testDb.member.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })
   await testDb.congregation.deleteMany({ where: { id: { in: [congAId, congBId] } } })
@@ -80,13 +135,79 @@ describe('getGroups (integration)', () => {
 
 describe('getGroup (integration)', () => {
   it('returns the group when queried inside its congregation scope', async () => {
-    const group = await withScope(congAId, tx => getGroup(tx, groupAId, congAId))
+    const group = await withScope(congAId, tx => getGroup(tx, groupAId, congAId, MONTHS))
     expect(group?.id).toBe(groupAId)
     expect(group?.name).toBe('A-Group')
   })
 
   it('returns null when the group belongs to another congregation (RLS hides it)', async () => {
-    const group = await withScope(congAId, tx => getGroup(tx, groupBId, congBId))
+    const group = await withScope(congAId, tx => getGroup(tx, groupBId, congBId, MONTHS))
     expect(group).toBeNull()
+  })
+
+  // Regression: whole Member and PublisherActivity rows went to the browser, so anyone who could
+  // open the page received birth dates, emergency flags and every member's hours.
+  it('returns only what the page displays about each person', async () => {
+    const group = await withScope(congAId, tx => getGroup(tx, groupAId, congAId, MONTHS))
+    const member = group?.members.find(each => each.firstname === 'Sensitive')
+
+    expect(Object.keys(group?.responsible ?? {}).sort()).toEqual(['firstname', 'id', 'lastname'])
+    expect(Object.keys(member ?? {}).sort()).toEqual([
+      'currentActivity',
+      'email',
+      'firstname',
+      'id',
+      'lastname',
+      'previousActivity',
+    ])
+    expect(member?.currentActivity).toEqual({ id: expect.any(Number) })
+    expect(member?.previousActivity).toBeUndefined()
+  })
+
+  // The board's field service groups document leaves inactive publishers out: the group page lists
+  // them apart, so whoever reads it can tell who the board does not show.
+  it('lists the inactive publishers apart from the others, with the same fields', async () => {
+    const group = await withScope(congAId, tx => getGroup(tx, groupAId, congAId, MONTHS))
+
+    expect(group?.members.map(each => each.firstname)).toEqual(['Sensitive'])
+    expect(group?.inactiveMembers.map(each => each.firstname)).toEqual(['Inactive'])
+    expect(Object.keys(group?.inactiveMembers[0] ?? {}).sort()).toEqual(Object.keys(group?.members[0] ?? {}).sort())
+  })
+})
+
+describe('listGroups (integration)', () => {
+  it("returns each group's leaders by name only, with its publisher count", async () => {
+    const [group] = await withScope(congAId, tx => listGroups(tx, congAId))
+
+    expect(Object.keys(group).sort()).toEqual(['address', 'deputy', 'id', 'name', 'publisherCount', 'responsible'])
+    expect(Object.keys(group.responsible).sort()).toEqual(['firstname', 'id', 'lastname'])
+    expect(group.publisherCount).toBe(2)
+  })
+})
+
+describe('findGroupLeaderCandidates (integration)', () => {
+  it('returns the eligible brothers by name, with the group each already leads', async () => {
+    const candidates = await withScope(congAId, tx => findGroupLeaderCandidates(tx, congAId))
+
+    expect(candidates.map(each => each.firstname)).toEqual(['Sensitive'])
+    expect(Object.keys(candidates[0]).sort()).toEqual(['deputyFor', 'firstname', 'id', 'lastname', 'responsibleFor'])
+  })
+})
+
+describe('group membership queries (integration)', () => {
+  it("lists the group's publishers by name", async () => {
+    const members = await withScope(congAId, tx => listGroupMembers(tx, groupAId, congAId))
+
+    expect(members.map(each => each.firstname)).toEqual(['Inactive', 'Sensitive'])
+    expect(Object.keys(members[0]).sort()).toEqual(['firstname', 'id', 'lastname'])
+  })
+
+  // The overseer was created in no group: a NOT on the group id would drop him, as SQL's NOT
+  // never matches a null.
+  it('offers the publishers outside the group, those in no group included', async () => {
+    const candidates = await withScope(congAId, tx => findGroupMemberCandidates(tx, congAId, groupAId))
+
+    expect(candidates.map(each => each.firstname)).toEqual(['Resp'])
+    expect(Object.keys(candidates[0]).sort()).toEqual(['deputyFor', 'firstname', 'id', 'lastname', 'responsibleFor'])
   })
 })

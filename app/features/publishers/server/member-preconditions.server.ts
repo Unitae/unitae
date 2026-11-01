@@ -18,6 +18,22 @@ export async function _loadMemberIdentity(
   return member
 }
 
+/** A member's group, and the group they oversee or assist if any. */
+export async function _loadGroupMembership(db: TransactionClient, memberId: number, congregationId: number) {
+  const member = await db.member.findFirst({
+    where: { id: memberId, congregationId },
+    select: {
+      firstname: true,
+      lastname: true,
+      publisherGroupId: true,
+      responsibleFor: { select: { id: true, name: true } },
+      deputyFor: { select: { id: true, name: true } },
+    },
+  })
+  if (!member) throw new NotFoundError('Member')
+  return member
+}
+
 // PublisherGroup.responsibleId is a required unique FK — we cannot null it. The admin must
 // reassign the group's responsibility BEFORE anonymize, otherwise the group would retain an
 // inbound pointer to the scrubbed row.
