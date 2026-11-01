@@ -146,6 +146,27 @@ describe('getGroup', () => {
     ])
   })
 
+  // On 14 July in New York, an arrival on 15 April is still within its three months, and a baptism
+  // on 15 August 2025 is not yet eleven months old. Converted to New York time, both dates would
+  // move to the day before and flip both labels.
+  it('reads arrival and baptism dates as their calendar day, west of Greenwich', async () => {
+    mockDb.publisherGroup.findUnique.mockResolvedValue(
+      groupRow([
+        memberRow({
+          arrivedAt: new Date('2026-04-15T00:00:00Z'),
+          baptismDate: new Date('2025-08-15T00:00:00Z'),
+        }),
+      ]),
+    )
+
+    const result = await getGroup(dbCast, 7, 42, {
+      timezone: 'America/New_York',
+      now: new Date('2026-07-14T10:00:00Z'),
+    })
+
+    expect(result?.members[0].signals).toEqual([{ kind: 'new-arrival' }])
+  })
+
   it('puts the inactive publishers in a list of their own', async () => {
     mockDb.publisherGroup.findUnique.mockResolvedValue(
       groupRow([

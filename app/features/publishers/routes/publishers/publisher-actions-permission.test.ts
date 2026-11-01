@@ -4,7 +4,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 // React Router runs only the leaf action on a submission, so the page's loader check never applies.
 // Members are kept in an in-memory store, so the tests assert on whether one was written.
 
-const { members } = vi.hoisted(() => ({ members: new Map<number, { firstname: string; lastname: string }>() }))
+const { members, arrivals } = vi.hoisted(() => ({
+  members: new Map<number, { firstname: string; lastname: string }>(),
+  // The arrival date each write was given: left out (undefined), cleared (null), or a day.
+  arrivals: new Map<number, string | null | undefined>(),
+}))
+
+type MemberInput = { firstname: string; lastname: string; arrivedAt?: string | null }
 
 vi.mock('~/shared/auth/route-context.server', async importOriginal => ({
   ...(await importOriginal<typeof import('~/shared/auth/route-context.server')>()),
@@ -17,20 +23,20 @@ vi.mock('~/features/authentication/index.server', () => ({
 }))
 
 vi.mock('~/features/publishers/server/create-member.server', () => ({
-  createMember: vi.fn(async (_db: unknown, _congregation: unknown, input: { firstname: string; lastname: string }) => {
+  createMember: vi.fn((_db: unknown, _congregation: unknown, input: MemberInput) => {
     const id = members.size + 100
     members.set(id, { firstname: input.firstname, lastname: input.lastname })
-    return { id, firstname: input.firstname }
+    arrivals.set(id, input.arrivedAt)
+    return Promise.resolve({ id, firstname: input.firstname })
   }),
 }))
 
 vi.mock('~/features/publishers/server/update-member.server', () => ({
-  updateMember: vi.fn(
-    async (_db: unknown, id: number, _c: number, _a: number, input: { firstname: string; lastname: string }) => {
-      members.set(id, { firstname: input.firstname, lastname: input.lastname })
-      return { id, firstname: input.firstname }
-    },
-  ),
+  updateMember: vi.fn((_db: unknown, id: number, _c: number, _a: number, input: MemberInput) => {
+    members.set(id, { firstname: input.firstname, lastname: input.lastname })
+    arrivals.set(id, input.arrivedAt)
+    return Promise.resolve({ id, firstname: input.firstname })
+  }),
 }))
 
 const { Permission } = await import('~/shared/types/permission')
@@ -42,6 +48,7 @@ const PUBLISHER_FORM = { firstname: 'Mallory', lastname: 'Intruder', gender: 'ma
 
 beforeEach(() => {
   members.clear()
+  arrivals.clear()
   members.set(42, { firstname: 'Jean', lastname: 'Dupont' })
 })
 
@@ -97,5 +104,38 @@ describe('edit-publisher action', () => {
 
     expect(response.headers.get('Location')).toBe('/')
     expect(members.get(42)).toEqual({ firstname: 'Jean', lastname: 'Dupont' })
+  })
+})
+
+// The arrival date drives the group page's welcome label: both forms must hand it to the service.
+describe('arrival date', () => {
+  it('reaches the new member', async () => {
+    await respond(() =>
+      newPublisher.action({
+        request: formRequest('https://unitae.example.test/publishers/new', {
+          ...PUBLISHER_FORM,
+          arrivedAt: '2026-09-15',
+        }),
+        params: {},
+        context: routeContext([Permission.CanManagePublishers]),
+      } as never),
+    )
+
+    expect([...arrivals.values()]).toEqual(['2026-09-15'])
+  })
+
+  it.each([
+    ['2026-09-15', '2026-09-15'],
+    ['', null],
+  ])('reaches the edited member: %j is stored as %j', async (arrivedAt, stored) => {
+    await respond(() =>
+      editPublisher.action({
+        request: formRequest('https://unitae.example.test/publishers/42/edit', { ...PUBLISHER_FORM, arrivedAt }),
+        params: { publisherId: '42' },
+        context: routeContext([Permission.CanManagePublishers]),
+      } as never),
+    )
+
+    expect(arrivals.get(42)).toBe(stored)
   })
 })

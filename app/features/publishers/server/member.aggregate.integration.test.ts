@@ -426,6 +426,29 @@ describe('pastoral dates — integration', () => {
     expect(saved.arrivedAt?.toISOString().slice(0, 10)).toBe('2026-09-15')
   })
 
+  // The edit form always sends the field; a caller that leaves it out keeps the stored date.
+  it('updates the arrival date from the form, and keeps it when the form leaves it out', async () => {
+    const member = await create('ArrivalEdited', { arrivedAt: '2024-03-01' })
+    const { arrivedAt: _left, ...withoutArrival } = baseFormParams
+    const update = (fields: { arrivedAt?: string | null }) =>
+      withScope(congId, tx =>
+        memberAggregate.updateIdentity(tx, member.id, congId, 1, {
+          ...withoutArrival,
+          firstname: `ArrivalEdited-${ts}`,
+          ...fields,
+        }),
+      )
+    const arrival = async () =>
+      (await testDb.member.findUniqueOrThrow({ where: { id: member.id } })).arrivedAt?.toISOString().slice(0, 10)
+
+    await update({ arrivedAt: '2025-01-15' })
+    expect(await arrival()).toBe('2025-01-15')
+    await update({})
+    expect(await arrival()).toBe('2025-01-15')
+    await update({ arrivedAt: null })
+    expect(await arrival()).toBeUndefined()
+  })
+
   // Back after more than a year away: welcomed like a new arrival, from the return day, stored as
   // a calendar day like the arrival date the publisher form saves.
   it('records a return after more than a year away as an arrival, on the return day', async () => {
