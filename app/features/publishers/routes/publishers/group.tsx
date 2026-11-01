@@ -4,7 +4,7 @@ import { activityMonths } from '~/features/publishers/model/activity-months'
 import { canViewEmergencyInfo } from '~/features/publishers/model/emergency-access'
 import { canManageGroupActivity } from '~/features/publishers/model/group-activity-access'
 import { getGroup } from '~/features/publishers/server/groups.server'
-import { GroupMembersTable } from '~/features/publishers/ui/GroupMembersTable'
+import { type GroupMemberRow, GroupMembersTable } from '~/features/publishers/ui/GroupMembersTable'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -103,6 +103,17 @@ function PersonName({
 
 export default function ViewGroup({ loaderData }: Route.ComponentProps) {
   const { group, months, roles } = loaderData
+  const membersTable = (members: GroupMemberRow[]) => (
+    <div className="overflow-hidden rounded-2xl border">
+      <GroupMembersTable
+        members={members}
+        months={months}
+        canManageActivity={roles.canManageActivity}
+        canEditPublishers={roles.canEditPublishers}
+        canViewPublishers={roles.canViewPublishers}
+      />
+    </div>
+  )
   // Without the publisher permission (an overseer on his own group), the groups list is out of reach.
   const groupsCrumb = roles.canViewPublishers ? [{ label: m.sidebar_publisher_groups(), to: '/groups' }] : []
 
@@ -174,24 +185,30 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
         </CardContent>
       </Card>
 
-      <div className="flex flex-col gap-4">
+      <section className="flex flex-col gap-4">
         <h2 className="font-bold font-display text-2xl tracking-tight">{m.groups_view_members_title()}</h2>
         <p className="text-muted-foreground text-sm">{m.groups_view_members_subtitle()}</p>
 
-        {group.members.length === 0 ? (
-          <EmptyState icon={UsersRound} title={m.groups_view_members_empty()} />
+        {group.members.length > 0 ? (
+          membersTable(group.members)
         ) : (
-          <div className="overflow-hidden rounded-2xl border">
-            <GroupMembersTable
-              members={group.members}
-              months={months}
-              canManageActivity={roles.canManageActivity}
-              canEditPublishers={roles.canEditPublishers}
-              canViewPublishers={roles.canViewPublishers}
-            />
-          </div>
+          <EmptyState
+            icon={UsersRound}
+            title={
+              group.inactiveMembers.length > 0 ? m.groups_view_active_members_empty() : m.groups_view_members_empty()
+            }
+          />
         )}
-      </div>
+      </section>
+
+      {/* Left off the board's field service groups document, so listed apart. */}
+      {group.inactiveMembers.length > 0 && (
+        <section className="flex flex-col gap-4">
+          <h2 className="font-bold font-display text-2xl tracking-tight">{m.groups_view_inactive_title()}</h2>
+          <p className="text-muted-foreground text-sm">{m.groups_view_inactive_subtitle()}</p>
+          {membersTable(group.inactiveMembers)}
+        </section>
+      )}
     </div>
   )
 }

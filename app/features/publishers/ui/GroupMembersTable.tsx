@@ -39,7 +39,9 @@ export function GroupMembersTable({
   const locale = getLocale()
 
   return (
-    <Table>
+    // Fixed layout: the page stacks two of these (active, then inactive publishers) and their
+    // columns line up only if neither sizes them from its own content.
+    <Table className="table-fixed">
       <TableHeader>
         <TableRow>
           <TableHead className="text-center max-sm:text-left">{m.publishers_table_firstname()}</TableHead>
@@ -55,7 +57,7 @@ export function GroupMembersTable({
               </TableHead>
             </>
           )}
-          <TableHead className="w-0">
+          <TableHead className="w-24">
             <span className="sr-only">{m.common_actions()}</span>
           </TableHead>
         </TableRow>

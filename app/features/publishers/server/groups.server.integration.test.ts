@@ -73,6 +73,17 @@ beforeAll(async () => {
         congregationId: congAId,
       },
     })
+    // Inactive: still in the group, but left off the board's field service groups document.
+    await tx.member.create({
+      data: {
+        firstname: 'Inactive',
+        lastname: `A ${ts}`,
+        isPublisher: true,
+        inactiveAt: new Date('2026-01-15'),
+        publisherGroupId: g.id,
+        congregationId: congAId,
+      },
+    })
     await tx.publisherActivity.create({
       data: {
         publisherId: sensitive.id,
@@ -152,6 +163,16 @@ describe('getGroup (integration)', () => {
     expect(member?.currentActivity).toEqual({ id: expect.any(Number) })
     expect(member?.previousActivity).toBeUndefined()
   })
+
+  // The board's field service groups document leaves inactive publishers out: the group page lists
+  // them apart, so whoever reads it can tell who the board does not show.
+  it('lists the inactive publishers apart from the others, with the same fields', async () => {
+    const group = await withScope(congAId, tx => getGroup(tx, groupAId, congAId, MONTHS))
+
+    expect(group?.members.map(each => each.firstname)).toEqual(['Sensitive'])
+    expect(group?.inactiveMembers.map(each => each.firstname)).toEqual(['Inactive'])
+    expect(Object.keys(group?.inactiveMembers[0] ?? {}).sort()).toEqual(Object.keys(group?.members[0] ?? {}).sort())
+  })
 })
 
 describe('listGroups (integration)', () => {
@@ -160,7 +181,7 @@ describe('listGroups (integration)', () => {
 
     expect(Object.keys(group).sort()).toEqual(['address', 'deputy', 'id', 'name', 'publisherCount', 'responsible'])
     expect(Object.keys(group.responsible).sort()).toEqual(['firstname', 'id', 'lastname'])
-    expect(group.publisherCount).toBe(1)
+    expect(group.publisherCount).toBe(2)
   })
 })
 
@@ -177,7 +198,7 @@ describe('group membership queries (integration)', () => {
   it("lists the group's publishers by name", async () => {
     const members = await withScope(congAId, tx => listGroupMembers(tx, groupAId, congAId))
 
-    expect(members.map(each => each.firstname)).toEqual(['Sensitive'])
+    expect(members.map(each => each.firstname)).toEqual(['Inactive', 'Sensitive'])
     expect(Object.keys(members[0]).sort()).toEqual(['firstname', 'id', 'lastname'])
   })
 

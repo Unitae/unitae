@@ -63,8 +63,10 @@ export function findGroupLeaderCandidates(db: TransactionClient, congregationId:
 }
 
 /**
- * A group with its active publishers and, for each, the report filed for `months.current` and
- * `months.previous`, by id only: the page links to a report, it never shows one.
+ * A group with its publishers and, for each, the report filed for `months.current` and
+ * `months.previous`, by id only: the page links to a report, it never shows one. Inactive
+ * publishers come in `inactiveMembers`: the board's field service groups document leaves them out
+ * (it lists `inactiveAt: null` only), so the page shows them apart.
  */
 export async function getGroup(db: TransactionClient, groupId: number, congregationId: number, months: ActivityMonths) {
   const group = await db.publisherGroup.findUnique({
@@ -81,6 +83,7 @@ export async function getGroup(db: TransactionClient, groupId: number, congregat
         select: {
           ...PERSON_NAME,
           email: true,
+          inactiveAt: true,
           activities: {
             where: { OR: [months.previous, months.current] },
             select: { id: true, month: true, year: true },
@@ -100,17 +103,23 @@ export async function getGroup(db: TransactionClient, groupId: number, congregat
     return report ? { id: report.id } : undefined
   }
 
+  const rows = group.members.map(({ activities, inactiveAt, ...member }) => ({
+    member: {
+      ...member,
+      currentActivity: reportFor(activities, months.current),
+      previousActivity: reportFor(activities, months.previous),
+    },
+    inactive: inactiveAt != null,
+  }))
+
   return {
     id: group.id,
     name: group.name,
     address: group.adress,
     responsible: group.responsible,
     deputy: group.deputy,
-    members: group.members.map(({ activities, ...member }) => ({
-      ...member,
-      currentActivity: reportFor(activities, months.current),
-      previousActivity: reportFor(activities, months.previous),
-    })),
+    members: rows.filter(row => !row.inactive).map(row => row.member),
+    inactiveMembers: rows.filter(row => row.inactive).map(row => row.member),
   }
 }
 

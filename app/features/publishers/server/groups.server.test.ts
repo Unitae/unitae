@@ -76,6 +76,31 @@ describe('getGroup', () => {
     expect(result?.members[0]).not.toHaveProperty('activities')
   })
 
+  it('puts the inactive publishers in a list of their own, without their inactive date', async () => {
+    const row = (id: number, inactiveAt: Date | null) => ({
+      id,
+      firstname: `M${id}`,
+      lastname: 'B',
+      email: '',
+      inactiveAt,
+      activities: [],
+    })
+    mockDb.publisherGroup.findUnique.mockResolvedValue({
+      id: 7,
+      name: 'Group A',
+      adress: '',
+      responsible: null,
+      deputy: null,
+      members: [row(1, null), row(2, new Date('2026-01-15')), row(3, null)],
+    })
+
+    const result = await getGroup(dbCast, 7, 42, MONTHS)
+
+    expect(result?.members.map(each => each.id)).toEqual([1, 3])
+    expect(result?.inactiveMembers.map(each => each.id)).toEqual([2])
+    expect(result?.inactiveMembers[0]).not.toHaveProperty('inactiveAt')
+  })
+
   it('reads activity for the months it is given, not for the server clock', async () => {
     mockDb.publisherGroup.findUnique.mockResolvedValue(null)
     await getGroup(dbCast, 7, 42, MONTHS)

@@ -23,6 +23,7 @@ const GROUP = {
   responsible: { id: 10, firstname: 'Paul', lastname: 'Martin' },
   deputy: null,
   members: [],
+  inactiveMembers: [],
 }
 
 vi.mock('~/features/publishers/server/groups.server', () => ({
