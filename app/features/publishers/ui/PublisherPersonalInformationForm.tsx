@@ -4,19 +4,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 
-/**
- * @param arrivalDefault the arrival date a new publisher starts with (today, on the congregation's
- *   calendar); an existing one shows the date it has, or none.
- */
 export default function PublisherPersonalInformationForm({
   user,
   arrivalDefault,
   onGenderChange,
 }: {
   user?: UserInput
+  /**
+   * The arrival date a new publisher starts with (today, on the congregation's calendar); an
+   * existing one shows the date it has, or none.
+   */
   arrivalDefault?: string
   onGenderChange?: (gender: 'male' | 'female') => void
 }) {
+  const arrivedAt = user ? user.arrivedAt?.toISOString().slice(0, 10) : arrivalDefault
   return (
     <Card>
       <CardHeader>
@@ -74,7 +75,7 @@ export default function PublisherPersonalInformationForm({
               id="arrivedAt"
               name="arrivedAt"
               type="date"
-              defaultValue={user ? (user.arrivedAt?.toISOString().slice(0, 10) ?? '') : (arrivalDefault ?? '')}
+              defaultValue={arrivedAt ?? ''}
               aria-describedby="arrivedAt-hint"
             />
             <p id="arrivedAt-hint" className="text-muted-foreground text-xs">

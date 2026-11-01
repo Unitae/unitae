@@ -3,6 +3,7 @@ import { parseWithZod } from '@conform-to/zod/v4'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { memberAggregate } from '~/features/publishers/index.server'
+import { formatCalendarDay } from '~/features/publishers/model/calendar-day'
 import {
   canRecordPastoralVisit,
   canViewPastoralVisit,
@@ -52,15 +53,17 @@ function accessInput(
 
 // Back to the group page when the visit icon there opened this page (`?from=group`), or for a
 // group's overseer who may not open publisher records; otherwise back to the publisher's record.
-function backTo(
+function backPath(
   request: Request,
   permissions: Set<Permission>,
   member: { id: number; publisherGroupId: number | null },
-) {
+): string {
+  const canViewRecord = permissions.has(Permission.CanViewPublishers)
   const fromGroup = new URL(request.url).searchParams.get('from') === 'group'
-  const group = member.publisherGroupId != null ? `/groups/${member.publisherGroupId}/view` : null
-  if (group && (fromGroup || !permissions.has(Permission.CanViewPublishers))) return group
-  return permissions.has(Permission.CanViewPublishers) ? `/publishers/${member.id}/view` : '/'
+  const groupId = member.publisherGroupId
+  if (groupId != null && (fromGroup || !canViewRecord)) return `/groups/${groupId}/view`
+  if (canViewRecord) return `/publishers/${member.id}/view`
+  return '/'
 }
 
 export function loader({ request, params, context }: Route.LoaderArgs) {
@@ -82,19 +85,13 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       visitedOn: member.lastPastoralVisitAt?.toISOString().slice(0, 10) ?? null,
       today: formatDateForInput(new Date(), timezone),
       canRecord: canRecordPastoralVisit(access),
-      backTo: backTo(request, permissions, member),
+      backTo: backPath(request, permissions, member),
     }
   })
 }
 
-function formatVisitDate(visitedOn: string, locale: string) {
-  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
-    new Date(`${visitedOn}T00:00:00Z`),
-  )
-}
-
 export default function PastoralVisitPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { name, visitedOn, today, canRecord, backTo: back } = loaderData
+  const { name, visitedOn, today, canRecord, backTo } = loaderData
   const [form, fields] = useForm({
     lastResult: actionData,
     defaultValue: { visitedOn: today },
@@ -108,8 +105,8 @@ export default function PastoralVisitPage({ loaderData, actionData }: Route.Comp
       <PageHeader
         title={m.publishers_visit_title()}
         subtitle={m.publishers_visit_subtitle()}
-        breadcrumbs={[{ label: name, to: back }, { label: m.publishers_visit_title() }]}
-        backTo={back}
+        breadcrumbs={[{ label: name, to: backTo }, { label: m.publishers_visit_title() }]}
+        backTo={backTo}
       />
 
       <Card>
@@ -119,7 +116,7 @@ export default function PastoralVisitPage({ loaderData, actionData }: Route.Comp
         <CardContent className="flex flex-col gap-4">
           <p className="text-sm">
             {visitedOn
-              ? m.publishers_visit_last({ date: formatVisitDate(visitedOn, getLocale()) })
+              ? m.publishers_visit_last({ date: formatCalendarDay(new Date(`${visitedOn}T00:00:00Z`), getLocale()) })
               : m.publishers_visit_none()}
           </p>
 
@@ -180,6 +177,6 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const session = await getSession(request.headers.get('Cookie'))
     const name = formatPersonName(member)
     session.flash('success', visitedOn ? m.publishers_visit_saved({ name }) : m.publishers_visit_cleared({ name }))
-    return redirect(backTo(request, permissions, member), { headers: { 'Set-Cookie': await commitSession(session) } })
+    return redirect(backPath(request, permissions, member), { headers: { 'Set-Cookie': await commitSession(session) } })
   })
 }

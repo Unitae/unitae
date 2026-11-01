@@ -1,15 +1,9 @@
 import { Link } from 'react-router'
+import { formatCalendarDay } from '~/features/publishers/model/calendar-day'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
-
-// Date-only values stored at UTC midnight: shown as that calendar day.
-function formatDay(date: Date, locale: string) {
-  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
-    date,
-  )
-}
 
 /**
  * On a publisher's record: when they arrived in the congregation and their last pastoral visit,
@@ -40,11 +34,13 @@ export function PastoralFollowUpCard({
       </CardHeader>
       <CardContent className="flex flex-col gap-2 text-sm">
         {arrivedAt && (
-          <p className="text-muted-foreground">{m.publishers_visit_arrived({ date: formatDay(arrivedAt, locale) })}</p>
+          <p className="text-muted-foreground">
+            {m.publishers_visit_arrived({ date: formatCalendarDay(arrivedAt, locale) })}
+          </p>
         )}
         <p>
           {lastPastoralVisitAt
-            ? m.publishers_visit_last({ date: formatDay(lastPastoralVisitAt, locale) })
+            ? m.publishers_visit_last({ date: formatCalendarDay(lastPastoralVisitAt, locale) })
             : m.publishers_visit_none()}
         </p>
       </CardContent>
