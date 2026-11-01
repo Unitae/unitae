@@ -248,7 +248,7 @@ describe('member.aggregate — integration', () => {
     expect(after.anonymizedAt).not.toBeNull()
     expect(after.leftAt).not.toBeNull()
     expect(after.isServant).toBe(false)
-    // Regression: the pastoral follow-up dates survived the scrub.
+    // The pastoral follow-up dates are personal data too.
     expect(after.arrivedAt).toBeNull()
     expect(after.lastPastoralVisitAt).toBeNull()
     const rolesAfter = await testDb.memberRoleAssignment.count({ where: { memberId: member.id } })

@@ -32,8 +32,10 @@ const monthsAfter = (date: Date, months: number) =>
   new Date(date.getFullYear(), date.getMonth() + months, date.getDate())
 
 /**
- * The pastoral signals for a publisher as of `now`. Dates are read from their local fields: pass
- * them through `zonedNow(timezone, date)` so they follow the congregation's calendar.
+ * The pastoral signals for a publisher as of `now`. Dates are read from their local fields, as the
+ * congregation's calendar: pass `now` and timestamps (inactive since) through
+ * `zonedNow(timezone, date)`, and date-only fields (baptism, arrival, visit), stored at UTC
+ * midnight, as their UTC calendar day.
  * - inactive: since the month the flag was set;
  * - new arrival: for three months after arriving in the congregation (the welcome visit);
  * - baptism anniversary: from 11 to 13 months after the baptism, around the first anniversary;
