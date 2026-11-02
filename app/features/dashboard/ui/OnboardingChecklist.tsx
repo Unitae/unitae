@@ -1,47 +1,57 @@
-import { CheckCircle2, Circle, FileText, MapPin, Users, X } from 'lucide-react'
-import { Link } from 'react-router'
+import { CheckCircle2, Circle, KeyRound, MapPin, User, Users, UsersRound, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Link, useFetcher } from 'react-router'
 
+import type { OnboardingSteps } from '~/features/dashboard/server/get-onboarding-progress.server'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
-import { usePersistedState } from '~/shared/ui/hooks/use-persisted-state'
+import { Progress } from '~/shared/ui/progress'
+
+// The checklist used to be dismissed per browser, under this key. Removable once the carry-over
+// below has been live long enough for returning admins to have loaded the dashboard once.
+const LEGACY_DISMISSED_KEY = 'unitae:onboarding-dismissed'
 
 interface OnboardingChecklistProps {
-  publisherCount: number
-  territoryCount: number
-  documentCount: number
+  steps: OnboardingSteps
+  accountId: number
 }
 
-export function OnboardingChecklist({ publisherCount, territoryCount, documentCount }: OnboardingChecklistProps) {
-  const [dismissed, setDismissed] = usePersistedState('unitae:onboarding-dismissed', false)
+export function OnboardingChecklist({ steps, accountId }: OnboardingChecklistProps) {
+  const fetcher = useFetcher()
+  const { submit } = fetcher
+  const [legacyDismissed, setLegacyDismissed] = useState(false)
 
-  if (dismissed) return null
+  // A browser that still holds the old per-browser flag closes the checklist for the account,
+  // once, so admins who already dismissed it don't see it come back.
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(LEGACY_DISMISSED_KEY) !== 'true') return
+      localStorage.removeItem(LEGACY_DISMISSED_KEY)
+    } catch {
+      return
+    }
+    setLegacyDismissed(true)
+    submit(null, { method: 'post', action: '/onboarding/dismiss' })
+  }, [submit])
 
-  const allDone = publisherCount > 0 && territoryCount > 0 && documentCount > 0
-  if (allDone) return null
+  // Hidden as soon as the close is posted; the loader stops returning it once that lands.
+  if (legacyDismissed || fetcher.state !== 'idle' || fetcher.data != null) return null
 
-  const steps = [
+  const items = [
     {
-      done: publisherCount > 0,
-      label: m.onboarding_add_publishers(),
-      icon: Users,
-      // Counted from publisher Members, so it leads where they are created —
-      // not to /settings/users, which manages logins.
-      to: '/publishers',
+      done: steps.ownRecord,
+      label: m.onboarding_create_own_record(),
+      icon: User,
+      // Once linked, the creation form would only bounce: lead to the profile instead.
+      to: steps.ownRecord ? '/me/profile' : `/settings/users/${accountId}/add-to-congregation?returnTo=/`,
     },
-    {
-      done: territoryCount > 0,
-      label: m.onboarding_add_territories(),
-      icon: MapPin,
-      to: '/territories',
-    },
-    {
-      done: documentCount > 0,
-      label: m.onboarding_upload_document(),
-      icon: FileText,
-      to: '/board/documents/new',
-    },
+    { done: steps.publishers, label: m.onboarding_add_publishers(), icon: Users, to: '/publishers' },
+    { done: steps.groups, label: m.onboarding_create_groups(), icon: UsersRound, to: '/groups' },
+    { done: steps.logins, label: m.onboarding_give_access(), icon: KeyRound, to: '/settings/users' },
+    { done: steps.territories, label: m.onboarding_add_territories(), icon: MapPin, to: '/territories' },
   ]
+  const doneCount = items.filter(item => item.done).length
 
   return (
     <Card className="animate-fade-in-up border-primary/20 bg-primary/5">
@@ -51,28 +61,36 @@ export function OnboardingChecklist({ publisherCount, territoryCount, documentCo
           <p className="mt-0.5 text-muted-foreground text-sm">{m.onboarding_description()}</p>
         </div>
         <CardAction>
-          <Button variant="ghost" size="icon-xs" onClick={() => setDismissed(true)}>
-            <X className="size-3.5" />
-            <span className="sr-only">{m.onboarding_dismiss()}</span>
-          </Button>
+          <fetcher.Form method="post" action="/onboarding/dismiss">
+            <Button type="submit" variant="ghost" size="icon-xs">
+              <X className="size-3.5" />
+              <span className="sr-only">{m.onboarding_dismiss()}</span>
+            </Button>
+          </fetcher.Form>
         </CardAction>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-col gap-4">
+        <div className="flex items-center gap-3">
+          <Progress value={(doneCount / items.length) * 100} aria-label={m.onboarding_title()} className="max-w-xs" />
+          <span className="text-muted-foreground text-xs tabular-nums">
+            {m.onboarding_progress({ done: String(doneCount), total: String(items.length) })}
+          </span>
+        </div>
         <div className="flex flex-col gap-2">
-          {steps.map(step => (
+          {items.map(item => (
             <Link
-              key={step.to}
-              to={step.to}
+              key={item.label}
+              to={item.to}
               className="flex items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-primary/10"
             >
-              {step.done ? (
+              {item.done ? (
                 <CheckCircle2 className="size-4 shrink-0 text-green-600 dark:text-green-400" />
               ) : (
                 <Circle className="size-4 shrink-0 text-muted-foreground" />
               )}
-              <step.icon className="size-4 shrink-0 text-muted-foreground" />
-              <span className={`text-sm ${step.done ? 'text-muted-foreground line-through' : 'font-medium'}`}>
-                {step.label}
+              <item.icon className="size-4 shrink-0 text-muted-foreground" />
+              <span className={`text-sm ${item.done ? 'text-muted-foreground line-through' : 'font-medium'}`}>
+                {item.label}
               </span>
             </Link>
           ))}

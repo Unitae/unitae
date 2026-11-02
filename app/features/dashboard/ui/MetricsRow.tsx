@@ -11,6 +11,14 @@ interface MetricsRowProps {
 }
 
 /**
+ * Whether the row has anything to say: on a congregation still being set up, a row of zeros only
+ * repeats the "Premiers pas" checklist. One non-zero counter is enough to show them all.
+ */
+export function hasMetricsToShow({ territories, publishers }: ManagementMetrics): boolean {
+  return (territories != null && territories.total > 0) || (publishers != null && publishers.total > 0)
+}
+
+/**
  * Compact congregation-wide counters for responsibility-holders, each tile
  * deep-linking into the feature where the number can be acted on.
  */

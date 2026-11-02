@@ -21,6 +21,7 @@ export default [
   ...authenticationRoutes,
   route('', 'shell/_authenticated-layout.tsx', [
     index('features/dashboard/routes/index.tsx'),
+    route('onboarding/dismiss', 'features/dashboard/routes/dismiss-onboarding.tsx'),
     route('password/:userId/invalidate', 'features/authentication/routes/password-invalidation.tsx'),
     route('me', 'features/authentication/routes/user/_layout.tsx', [
       route('profile', 'features/authentication/routes/user/profile.tsx'),

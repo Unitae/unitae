@@ -24,6 +24,8 @@ export const AuditAction = {
   UserRoleAssignmentChanged: 'user.role_assignment.changed',
   // An account choosing its own interface language, or going back to its congregation's.
   UserLocaleChanged: 'user.locale.changed',
+  // An account closing the dashboard's "Premiers pas" checklist for good.
+  OnboardingDismissed: 'user.onboarding.dismissed',
 
   // Roles
   RoleCreated: 'role.created',

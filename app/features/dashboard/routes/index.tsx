@@ -12,13 +12,14 @@ import {
 } from '~/features/dashboard/server/dashboard.server'
 import { type AtRiskPioneers, getAtRiskPioneers } from '~/features/dashboard/server/get-at-risk-pioneers.server'
 import { getManagementMetrics } from '~/features/dashboard/server/get-management-metrics.server'
+import { getOnboardingProgress } from '~/features/dashboard/server/get-onboarding-progress.server'
 import { getResponsibleConflicts } from '~/features/dashboard/server/get-responsible-conflicts.server'
 import {
   getUpcomingAssignments,
   type UpcomingAssignment,
 } from '~/features/dashboard/server/get-upcoming-assignments.server'
 import { buildUrgentItems } from '~/features/dashboard/ui/build-urgent-items'
-import { MetricsRow } from '~/features/dashboard/ui/MetricsRow'
+import { hasMetricsToShow, MetricsRow } from '~/features/dashboard/ui/MetricsRow'
 import { OnboardingChecklist } from '~/features/dashboard/ui/OnboardingChecklist'
 import { QuickActions } from '~/features/dashboard/ui/QuickActions'
 import { partReaderLabel, partSpeakerLabel } from '~/features/events/model/part-labels'
@@ -129,22 +130,18 @@ export function loader({ context }: Route.LoaderArgs) {
       }),
     )
 
-    // Onboarding: count entities for admin checklist
-    let onboarding = null
-    if (isAdmin) {
-      const [publisherCount, territoryCount, documentCount] = await Promise.all([
-        safeQuery('onboarding-publishers', currentUser.id, () =>
-          db.member.count({ where: { isPublisher: true, leftAt: null } }),
-        ),
-        safeQuery('onboarding-territories', currentUser.id, () => db.territory.count()),
-        safeQuery('onboarding-documents', currentUser.id, () => db.boardDocument.count()),
-      ])
-      // Only show onboarding if all counts loaded successfully — avoid showing
-      // misleading "incomplete setup" when the database query failed
-      if (publisherCount != null && territoryCount != null && documentCount != null) {
-        onboarding = { publisherCount, territoryCount, documentCount }
-      }
-    }
+    // Admin setup checklist, until the account closes it or the congregation is set up. A failed
+    // query hides it rather than show a misleading "incomplete setup".
+    const onboarding =
+      isAdmin && currentUser.onboardingDismissedAt == null
+        ? await safeQuery('onboarding', currentUser.id, () =>
+            getOnboardingProgress(db, {
+              accountId: currentUser.id,
+              memberId,
+              congregationId: currentUser.congregationId,
+            }),
+          )
+        : null
 
     return {
       // `||`, not `??`: an account can carry an empty-string name.
@@ -159,7 +156,8 @@ export function loader({ context }: Route.LoaderArgs) {
       dayoffConflict,
       responsibleConflicts,
       atRiskPioneers,
-      onboarding,
+      // Not sent once every congregation step is done: the checklist has nothing left to ask.
+      onboarding: onboarding?.complete === false ? { steps: onboarding.steps, accountId: currentUser.id } : null,
       metrics,
       isAdmin,
       isTerritoriesManager,
@@ -256,7 +254,11 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <p className="mt-2 text-muted-foreground">{today}</p>
         </div>
         <QuickActions
-          canAssignTerritory={isAdmin || isTerritoriesManager}
+          // Hidden while there is nothing to assign or no one to assign it to. A count the viewer
+          // can't see (`null`) or that failed to load leaves the shortcut in place.
+          canAssignTerritory={
+            (isAdmin || isTerritoriesManager) && metrics?.territories?.total !== 0 && metrics?.publishers?.total !== 0
+          }
           canCreatePublisher={canCreatePublisher}
           canUploadDocument={canUploadDocument}
           canCreateProgram={isProgramManager}
@@ -264,13 +266,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
       </div>
 
       {/* Onboarding checklist (admin only) */}
-      {onboarding && (
-        <OnboardingChecklist
-          publisherCount={onboarding.publisherCount}
-          territoryCount={onboarding.territoryCount}
-          documentCount={onboarding.documentCount}
-        />
-      )}
+      {onboarding && <OnboardingChecklist steps={onboarding.steps} accountId={onboarding.accountId} />}
 
       {/* Urgent strip */}
       {urgentItems.length > 0 && (
@@ -300,7 +296,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
       )}
 
       {/* Management metrics */}
-      {metrics && (metrics.territories || metrics.publishers) && (
+      {metrics && hasMetricsToShow(metrics) && (
         <div className="animate-fade-in-up" style={{ animationDelay: '125ms' }}>
           <MetricsRow metrics={metrics} />
         </div>
