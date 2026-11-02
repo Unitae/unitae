@@ -303,6 +303,10 @@ model UserAccount {
   // to this account alone.
   locale String?
 
+  // When this account closed the dashboard's "Premiers pas" checklist. Null = still shown
+  // while the congregation's setup is incomplete.
+  onboardingDismissedAt DateTime?
+
   // Account-bound relations
   roleAssignments          UserRoleAssignment[] // management/access roles
   eventsCreated            Event[]                    @relation("createdBy")

@@ -22,6 +22,7 @@ import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { requireParamId } from '~/shared/utils/params.server'
+import { safeRedirectUrl } from '~/shared/utils/safe-redirect.server'
 
 import type { Route } from './+types/add-to-congregation'
 
@@ -41,7 +42,19 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_user_add_to_congregation_meta_title() }]
 }
 
-export function loader({ params, context }: Route.LoaderArgs) {
+// Where to go once the record is created, or on "back": the dashboard's setup checklist sends an
+// admin here for their own record and wants them back, other callers land on the account's page.
+function returnTarget(request: Request, accountId: number): string {
+  return safeRedirectUrl(new URL(request.url).searchParams.get('returnTo'), `/settings/users/${accountId}/edit`)
+}
+
+function successMessage(isSelf: boolean, email: string): string {
+  return isSelf
+    ? m.settings_user_add_to_congregation_self_success()
+    : m.settings_user_add_to_congregation_success({ email })
+}
+
+export function loader({ request, params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
 
@@ -58,12 +71,13 @@ export function loader({ params, context }: Route.LoaderArgs) {
     if (!account) throw redirect('/settings/users')
     if (account.memberId != null) throw redirect(`/settings/users/${accountId}/edit`)
 
-    return { account }
+    return { account, isSelf: account.id === currentUser.id, returnTo: returnTarget(request, accountId) }
   })
 }
 
 export default function AddToCongregationPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { account } = loaderData
+  const { account, isSelf, returnTo } = loaderData
+  const title = isSelf ? m.settings_user_add_to_congregation_self_title() : m.settings_user_add_to_congregation_title()
   useFocusError(actionData)
 
   const [form, fields] = useForm({
@@ -76,13 +90,12 @@ export default function AddToCongregationPage({ loaderData, actionData }: Route.
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={m.settings_user_add_to_congregation_title()}
-        subtitle={m.settings_user_add_to_congregation_subtitle()}
-        breadcrumbs={[
-          { label: m.sidebar_users(), to: '/settings/users' },
-          { label: m.settings_user_add_to_congregation_title() },
-        ]}
-        backTo={`/settings/users/${account.id}/edit`}
+        title={title}
+        subtitle={
+          isSelf ? m.settings_user_add_to_congregation_self_subtitle() : m.settings_user_add_to_congregation_subtitle()
+        }
+        breadcrumbs={[{ label: m.sidebar_users(), to: '/settings/users' }, { label: title }]}
+        backTo={returnTo}
       />
 
       <Form method="post" {...getFormProps(form)} className="flex max-w-xl flex-col gap-4">
@@ -138,7 +151,7 @@ export default function AddToCongregationPage({ loaderData, actionData }: Route.
         </label>
 
         <Button type="submit" size="lg" className="self-start">
-          {m.settings_user_add_to_congregation_submit()}
+          {isSelf ? m.settings_user_add_to_congregation_self_title() : m.settings_user_add_to_congregation_submit()}
         </Button>
       </Form>
     </div>
@@ -198,8 +211,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       throw error
     }
 
-    session.flash('success', m.settings_user_add_to_congregation_success({ email: account.email }))
-    return redirect(`/settings/users/${accountId}/edit`, {
+    session.flash('success', successMessage(accountId === currentUser.id, account.email))
+    return redirect(returnTarget(request, accountId), {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
   })
