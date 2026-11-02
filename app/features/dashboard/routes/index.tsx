@@ -74,6 +74,9 @@ export function loader({ context }: Route.LoaderArgs) {
 
   // Member-bound queries (territories, programme assignments) need the linked
   // Member id; account-bound queries (documents/views) use the UserAccount id.
+  // An account with no linked Member (the admin created at sign-up, a circuit
+  // overseer) can hold neither, so its member-bound cards are hidden: `null`
+  // on those widgets stays reserved for a query that actually failed.
   const memberId = currentUser.member?.id ?? null
   return withScopeFromContext(context, async db => {
     const memberSafeQuery = <T,>(label: string, run: (mid: number) => Promise<T>): Promise<T | null> => {
@@ -144,7 +147,9 @@ export function loader({ context }: Route.LoaderArgs) {
     }
 
     return {
-      currentUser: { firstname: currentUser.member?.firstname ?? currentUser.firstname },
+      // `||`, not `??`: an account can carry an empty-string name.
+      currentUser: { firstname: currentUser.member?.firstname || currentUser.firstname || null },
+      hasMember: memberId != null,
       territories,
       recentDocuments,
       unreadDocumentCount,
@@ -188,6 +193,7 @@ function formatDateShort(date: Date | string): string {
 export default function Dashboard({ loaderData }: Route.ComponentProps) {
   const {
     currentUser,
+    hasMember,
     territories,
     recentDocuments,
     unreadDocumentCount,
@@ -227,16 +233,26 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
       {/* Hero greeting */}
       <div className="flex animate-fade-in-up flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          {/* sr-only greeting in the <h1> so the page heading reads
-              "Bonjour, {name}" rather than a bare first name; the visible
-              "Bonjour," line is decorative. */}
-          <p aria-hidden className="font-display text-lg text-muted-foreground tracking-tight sm:text-xl">
-            {m.dashboard_greeting_hello()}
-          </p>
-          <h1 className="font-display font-semibold text-4xl tracking-tight md:text-5xl">
-            <span className="sr-only">{m.dashboard_greeting_hello()} </span>
-            {currentUser.firstname ?? ''}
-          </h1>
+          {currentUser.firstname ? (
+            <>
+              {/* sr-only greeting in the <h1> so the page heading reads
+                  "Bonjour, {name}" rather than a bare first name; the visible
+                  "Bonjour," line is decorative. */}
+              <p aria-hidden className="font-display text-lg text-muted-foreground tracking-tight sm:text-xl">
+                {m.dashboard_greeting_hello()}
+              </p>
+              <h1 className="font-display font-semibold text-4xl tracking-tight md:text-5xl">
+                <span className="sr-only">{m.dashboard_greeting_hello()} </span>
+                {currentUser.firstname}
+              </h1>
+            </>
+          ) : (
+            // Sign-up asks for no name, so a fresh admin account has none —
+            // greet without one rather than leave "Bonjour," above an empty heading.
+            <h1 className="font-display font-semibold text-4xl tracking-tight md:text-5xl">
+              {m.dashboard_greeting_hello_standalone()}
+            </h1>
+          )}
           <p className="mt-2 text-muted-foreground">{today}</p>
         </div>
         <QuickActions
@@ -292,12 +308,16 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
 
       {/* Widget grid */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
-          <TerritoriesCard territories={territories} />
-        </div>
-        <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-          <UpcomingAssignmentsCard assignments={upcomingAssignments} />
-        </div>
+        {hasMember && (
+          <>
+            <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+              <TerritoriesCard territories={territories} />
+            </div>
+            <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+              <UpcomingAssignmentsCard assignments={upcomingAssignments} />
+            </div>
+          </>
+        )}
         {/* Promoted above the general-state cards so an overseer sees behind-pace
             pioneers without scrolling. Full-width so toggling it doesn't reshuffle
             which column the absences/documents cards land in. */}

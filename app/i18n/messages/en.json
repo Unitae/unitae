@@ -2678,6 +2678,7 @@
     "dashboard_absence_nudge": "Remember to fill in your absences for the next 2 months.",
     "dashboard_widget_error": "Unable to load this information.",
     "dashboard_greeting_hello": "Hello,",
+    "dashboard_greeting_hello_standalone": "Hello",
     "dashboard_urgent_section_title": "Needs attention",
     "dashboard_urgent_territory_overdue": "Territory {number} — overdue",
     "dashboard_urgent_territory_due_soon": "Territory {number} — return soon",
