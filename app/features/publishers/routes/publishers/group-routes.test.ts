@@ -34,7 +34,17 @@ const GROUP = {
       emergencyGaps: ['contact'],
     },
   ],
-  inactiveMembers: [],
+  inactiveMembers: [
+    {
+      id: 12,
+      firstname: 'Rui',
+      lastname: 'Costa',
+      email: '',
+      reports: [],
+      signals: [{ kind: 'inactive', since: { month: 3, year: 2026 } }],
+      emergencyGaps: ['card', 'backpack'],
+    },
+  ],
 }
 
 vi.mock('~/features/publishers/server/groups.server', () => ({
@@ -152,6 +162,14 @@ describe('group view loader', () => {
     expect((viewer.group.members[0] as ViewMember).emergencyGaps).toEqual([])
     expect((emergency.group.members[0] as ViewMember).emergencyGaps).toEqual(['contact'])
     expect((overseer.group.members[0] as ViewMember).emergencyGaps).toEqual(['contact'])
+  })
+
+  it('applies the same emergency rule to the inactive publishers', async () => {
+    const viewer = (await view('4', [Permission.CanViewPublishers])) as ViewData
+    const emergency = (await view('4', [Permission.CanViewPublishers, Permission.CanViewEmergencyInfo])) as ViewData
+
+    expect((viewer.group.inactiveMembers[0] as ViewMember).emergencyGaps).toEqual([])
+    expect((emergency.group.inactiveMembers[0] as ViewMember).emergencyGaps).toEqual(['card', 'backpack'])
   })
 
   it('shows the pastoral signals to everyone who may open the page', async () => {
