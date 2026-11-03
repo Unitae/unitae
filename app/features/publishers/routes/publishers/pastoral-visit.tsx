@@ -31,6 +31,7 @@ import { formatDateForInput } from '~/shared/utils/event-time'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 import { requireParamId } from '~/shared/utils/params.server'
 
+import { memberBackPath } from './_member-back-path.server'
 import type { Route } from './+types/pastoral-visit'
 
 export const meta: Route.MetaFunction = () => {
@@ -49,21 +50,6 @@ function accessInput(
     myDeputyGroupId: currentUser.member?.deputyFor?.id ?? null,
     targetGroupId,
   }
-}
-
-// Back to the group page when the visit icon there opened this page (`?from=group`), or for a
-// group's overseer who may not open publisher records; otherwise back to the publisher's record.
-function backPath(
-  request: Request,
-  permissions: Set<Permission>,
-  member: { id: number; publisherGroupId: number | null },
-): string {
-  const canViewRecord = permissions.has(Permission.CanViewPublishers)
-  const fromGroup = new URL(request.url).searchParams.get('from') === 'group'
-  const groupId = member.publisherGroupId
-  if (groupId != null && (fromGroup || !canViewRecord)) return `/groups/${groupId}/view`
-  if (canViewRecord) return `/publishers/${member.id}/view`
-  return '/'
 }
 
 export function loader({ request, params, context }: Route.LoaderArgs) {
@@ -85,7 +71,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       visitedOn: member.lastPastoralVisitAt?.toISOString().slice(0, 10) ?? null,
       today: formatDateForInput(new Date(), timezone),
       canRecord: canRecordPastoralVisit(access),
-      backTo: backPath(request, permissions, member),
+      backTo: memberBackPath(request, permissions, member),
     }
   })
 }
@@ -177,6 +163,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const session = await getSession(request.headers.get('Cookie'))
     const name = formatPersonName(member)
     session.flash('success', visitedOn ? m.publishers_visit_saved({ name }) : m.publishers_visit_cleared({ name }))
-    return redirect(backPath(request, permissions, member), { headers: { 'Set-Cookie': await commitSession(session) } })
+    return redirect(memberBackPath(request, permissions, member), {
+      headers: { 'Set-Cookie': await commitSession(session) },
+    })
   })
 }

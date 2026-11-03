@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { requireParamId } from '~/shared/utils/params.server'
 
+import { memberBackPath } from './_member-back-path.server'
 import type { Route } from './+types/emergency'
 
 export const meta: Route.MetaFunction = () => {
@@ -39,7 +40,7 @@ function accessInput(
   }
 }
 
-export function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ request, params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
   const publisherId = requireParamId(params.publisherId, '/publishers')
@@ -51,12 +52,12 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const access = accessInput(permissions, currentUser, info.publisherGroupId)
     if (!canViewEmergencyInfo(access)) throw redirect('/')
 
-    return { info, canManage: canManageEmergencyInfo(access) }
+    return { info, canManage: canManageEmergencyInfo(access), backTo: memberBackPath(request, permissions, info) }
   })
 }
 
 export default function EmergencyPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { info, canManage } = loaderData
+  const { info, canManage, backTo } = loaderData
 
   return (
     <div className="flex flex-col gap-6">
@@ -64,11 +65,10 @@ export default function EmergencyPage({ loaderData, actionData }: Route.Componen
         title={m.publishers_emergency_title()}
         subtitle={m.publishers_emergency_subtitle()}
         breadcrumbs={[
-          { label: m.sidebar_publishers(), to: '/publishers' },
-          { label: `${info.firstname} ${info.lastname}`, to: `/publishers/${info.id}/view` },
+          { label: `${info.firstname} ${info.lastname}`, to: backTo },
           { label: m.publishers_emergency_title() },
         ]}
-        backTo={`/publishers/${info.id}/view`}
+        backTo={backTo}
       />
 
       <Card>
@@ -108,7 +108,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
     const session = await getSession(request.headers.get('Cookie'))
     session.flash('success', m.publishers_emergency_success())
-    return redirect(`/publishers/${publisherId}/emergency`, {
+    // Same page, same query: `?from=group` keeps its back link on the group page.
+    return redirect(`/publishers/${publisherId}/emergency${new URL(request.url).search}`, {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
   })

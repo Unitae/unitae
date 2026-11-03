@@ -95,8 +95,8 @@ const STATUS_ICON: Record<ReportStatus, typeof Check> = {
 
 /**
  * The month being reported: its status, as a link to the report or to a new one (a filed report
- * links only when `canCorrect`). On a phone only the icon shows (each status has its own); the
- * label stays for screen readers.
+ * links only when `canCorrect`). In a narrow table only the icon shows (the two statuses with nothing
+ * filed share one); the label stays for screen readers.
  */
 export function ReportStatusLink({
   memberId,
@@ -119,7 +119,7 @@ export function ReportStatusLink({
   const content = (
     <>
       <Icon className="size-3.5" />
-      <span className="max-sm:sr-only">{filed ? STATUS_LABEL[report.status]() : m.groups_report_add()}</span>
+      <span className="@max-2xl:sr-only">{filed ? STATUS_LABEL[report.status]() : m.groups_report_add()}</span>
     </>
   )
   if (filed && !canCorrect) return <span className={className}>{content}</span>
@@ -130,13 +130,15 @@ export function ReportStatusLink({
   )
 }
 
-/** The heading of the reported month's column: the month alone on a phone. */
+/** The heading of the reported month's column: the month alone in a narrow table. */
 export function ReportColumnHeading({ month }: { month: ActivityMonth }) {
   const locale = getLocale()
   return (
     <>
-      <span className="sm:hidden">{formatShortMonth(month, locale)}</span>
-      <span className="max-sm:hidden">{m.groups_view_report_column({ date: formatActivityMonth(month, locale) })}</span>
+      <span className="@2xl:hidden">{formatShortMonth(month, locale)}</span>
+      <span className="@max-2xl:hidden">
+        {m.groups_view_report_column({ date: formatActivityMonth(month, locale) })}
+      </span>
     </>
   )
 }
