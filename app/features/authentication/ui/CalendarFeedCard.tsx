@@ -33,7 +33,8 @@ export function CalendarFeedCard({ calendar }: { calendar: CalendarFeed | null }
   }
 
   return (
-    <Card>
+    // Anchored so the dashboard's calendar prompt lands here.
+    <Card id="calendar-feed" className="scroll-mt-20">
       <CardHeader>
         <CardTitle>{m.user_profile_calendar_section()}</CardTitle>
       </CardHeader>

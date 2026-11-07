@@ -4,6 +4,7 @@ import { type ReactNode, useId } from 'react'
 import { Link } from 'react-router'
 
 import * as m from '~/i18n/paraglide/messages'
+import { Button } from '~/shared/ui/button'
 import { cn } from '~/shared/utils/utils'
 
 interface DashboardSectionProps {
@@ -78,6 +79,49 @@ export function PanelEmpty({ icon: Icon, title, description, action }: PanelEmpt
       <p className="font-medium text-sm">{title}</p>
       {description && <p className="max-w-xs text-muted-foreground text-sm">{description}</p>}
       {action && <div className="mt-1">{action}</div>}
+    </div>
+  )
+}
+
+/** The one action a block offers (Attribuer, Saisir…), on its heading line. */
+export function SectionAction({ to, icon: Icon, label }: { to: string; icon: LucideIcon; label: string }) {
+  return (
+    <Button variant="outline" size="xs" asChild>
+      <Link to={to}>
+        <Icon aria-hidden="true" />
+        {label}
+      </Link>
+    </Button>
+  )
+}
+
+/** A responsibility's figures, side by side with hairlines, inside its panel. */
+export function PanelFigures({ children }: { children: ReactNode }) {
+  return (
+    <div className="grid border-border border-b last:border-b-0 [grid-template-columns:repeat(auto-fit,minmax(8.5rem,1fr))] [&>*+*]:border-border [&>*+*]:border-l">
+      {children}
+    </div>
+  )
+}
+
+interface PanelFactProps {
+  label: ReactNode
+  value?: ReactNode
+  /** A quieter second line: who is missing, since when. */
+  detail?: ReactNode
+  action?: ReactNode
+}
+
+/** One thing to know or do in a responsibility block: label, value, optional action. */
+export function PanelFact({ label, value, detail, action }: PanelFactProps) {
+  return (
+    <div className="flex min-h-10 items-center gap-3 border-border border-b px-3.5 py-2 last:border-b-0">
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="text-sm">{label}</span>
+        {detail != null && <span className="truncate text-faint text-xs">{detail}</span>}
+      </span>
+      {value != null && <span className="shrink-0 font-medium text-sm tabular-nums">{value}</span>}
+      {action}
     </div>
   )
 }

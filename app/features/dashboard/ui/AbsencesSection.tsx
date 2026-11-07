@@ -1,11 +1,16 @@
-import { CalendarOff, Info, Plus } from 'lucide-react'
+import { CalendarOff, CalendarPlus, Info } from 'lucide-react'
 import { Link } from 'react-router'
 
 import type { getUpcomingAbsences } from '~/features/dashboard/server/dashboard.server'
-import { DashboardSection, PanelEmpty, PanelError, panelLinkRowClass } from '~/features/dashboard/ui/DashboardSection'
+import {
+  DashboardSection,
+  PanelEmpty,
+  PanelError,
+  panelLinkRowClass,
+  SectionAction,
+} from '~/features/dashboard/ui/DashboardSection'
 import { formatShortDate } from '~/features/dashboard/ui/dashboard-format'
 import * as m from '~/i18n/paraglide/messages'
-import { Button } from '~/shared/ui/button'
 
 type Absences = Awaited<ReturnType<typeof getUpcomingAbsences>>['upcoming']
 
@@ -24,14 +29,8 @@ export function AbsencesSection({
     <DashboardSection
       title={m.dashboard_my_absences()}
       link={hasItems ? { to: '/me/days-off', label: m.dashboard_absences_link() } : undefined}
-      actions={
-        <Button variant="ghost" size="icon-xs" asChild>
-          <Link to="/me/days-off/new">
-            <Plus className="size-4" />
-            <span className="sr-only">{m.dashboard_plan_absence()}</span>
-          </Link>
-        </Button>
-      }
+      // The one way to plan an absence on the page.
+      actions={<SectionAction to="/me/days-off/new" icon={CalendarPlus} label={m.dashboard_absences_plan()} />}
     >
       {absences == null ? (
         <PanelError />
@@ -44,17 +43,7 @@ export function AbsencesSection({
             </p>
           )}
           {absences.length === 0
-            ? !shouldNudge && (
-                <PanelEmpty
-                  icon={CalendarOff}
-                  title={m.dashboard_no_absences()}
-                  action={
-                    <Button variant="outline" size="sm" asChild>
-                      <Link to="/me/days-off/new">{m.dashboard_plan_absence()}</Link>
-                    </Button>
-                  }
-                />
-              )
+            ? !shouldNudge && <PanelEmpty icon={CalendarOff} title={m.dashboard_no_absences()} />
             : absences.map(a => (
                 <Link key={a.id} to="/me/days-off" className={panelLinkRowClass}>
                   <CalendarOff aria-hidden="true" className="size-4 shrink-0 text-faint" />
