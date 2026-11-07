@@ -2935,7 +2935,7 @@
     "dashboard_urgent_empty": "Nothing to handle right now",
     "dashboard_meeting_minutes": "{count} min",
     "dashboard_meeting_part_open": "Unassigned",
-    "dashboard_meeting_part_conflict": "Absence conflict",
+    "dashboard_meeting_part_conflict": "Absent",
     "dashboard_meeting_no_parts": "No parts on the programme",
     "dashboard_summary_none": "Nothing to handle",
     "dashboard_summary_one": "1 thing to handle",

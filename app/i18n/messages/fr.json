@@ -2935,7 +2935,7 @@
     "dashboard_urgent_empty": "Rien à traiter pour le moment",
     "dashboard_meeting_minutes": "{count} min",
     "dashboard_meeting_part_open": "À pourvoir",
-    "dashboard_meeting_part_conflict": "Conflit d'absence",
+    "dashboard_meeting_part_conflict": "Absent",
     "dashboard_meeting_no_parts": "Aucune partie au programme",
     "dashboard_summary_none": "Rien à traiter",
     "dashboard_summary_one": "1 chose à traiter",
