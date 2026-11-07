@@ -18,7 +18,7 @@ export function RollSection({ roll }: { roll: { data: RollChanges | null } }) {
         <PanelError />
       ) : (
         <PanelFigures>
-          <StatTile label={m.dashboard_roll_total()} value={data.total} />
+          <StatTile label={m.dashboard_roll_active()} value={data.total} />
           <StatTile label={m.dashboard_roll_arrived()} value={data.arrived} />
           <StatTile label={m.dashboard_roll_left()} value={data.left} />
         </PanelFigures>

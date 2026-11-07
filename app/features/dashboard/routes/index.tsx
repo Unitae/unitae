@@ -87,7 +87,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         </h1>
         <p className="text-muted-foreground text-sm">
           {summary(urgentItems.length)}
-          {meeting && ` · ${meeting.meeting.name} ${formatMeetingWhen(meeting.meeting.startDate, timezone)}`}
+          {meeting && ` — ${meeting.meeting.name} ${formatMeetingWhen(meeting.meeting.startDate, timezone)}`}
         </p>
       </div>
 

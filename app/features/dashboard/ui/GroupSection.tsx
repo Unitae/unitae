@@ -37,7 +37,11 @@ export function GroupSection({ group }: { group: GroupBlock }) {
   return (
     <DashboardSection
       title={formatGroupName(data.name)}
-      meta={m.dashboard_group_members({ count: String(data.memberCount) })}
+      meta={
+        data.memberCount === 1
+          ? m.dashboard_group_member_one()
+          : m.dashboard_group_members({ count: String(data.memberCount) })
+      }
       link={{ to: `/groups/${data.id}/view`, label: m.dashboard_group_link() }}
       actions={
         data.canRecord && month != null && missing.length > 0 ? (

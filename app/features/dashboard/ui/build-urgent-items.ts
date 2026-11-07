@@ -187,16 +187,19 @@ export function urgentOpenSlotItems(openSlots: OpenSlots[] | null, now: number =
     }))
 }
 
+function groupReportsLabel(count: number, month: string): string {
+  return count === 1
+    ? m.dashboard_urgent_group_report_one({ month })
+    : m.dashboard_urgent_group_reports({ count: String(count), month })
+}
+
 // Reports still missing in the overseer's group for the month being collected.
 export function urgentGroupReportsItem(group: GroupSummary | null): UrgentItem[] {
   if (!group || group.month == null || group.reports.missing.length === 0) return []
   return [
     {
       key: `group-reports-${group.id}`,
-      label: m.dashboard_urgent_group_reports({
-        count: String(group.reports.missing.length),
-        month: formatActivityMonth(group.month, getLocale(), 'long'),
-      }),
+      label: groupReportsLabel(group.reports.missing.length, formatActivityMonth(group.month, getLocale(), 'long')),
       to: `/groups/${group.id}/view`,
       icon: ClipboardList,
       tone: 'warning',

@@ -17,6 +17,7 @@ vi.mock('~/i18n/paraglide/messages', () => ({
   dashboard_urgent_open_slots: ({ count, eventName }: { count: string; eventName: string }) =>
     `${count} open — ${eventName}`,
   dashboard_urgent_group_reports: ({ count, month }: { count: string; month: string }) => `${count} missing — ${month}`,
+  dashboard_urgent_group_report_one: ({ month }: { month: string }) => `1 missing report — ${month}`,
   dashboard_origin_you: () => 'For you',
   dashboard_origin_programmes: () => 'Programmes',
 }))
@@ -569,6 +570,14 @@ describe('urgentGroupReportsItem', () => {
     const [item] = urgentGroupReportsItem(group)
     expect(item.label).toBe('2 missing — octobre 2026')
     expect(item.to).toBe('/groups/7/view')
+  })
+
+  it('reads one missing report in the singular', () => {
+    const [item] = urgentGroupReportsItem({
+      ...group,
+      reports: { expected: 4, received: 3, missing: [{ id: 3, firstname: 'A', lastname: 'B' }] },
+    })
+    expect(item.label).toBe('1 missing report — octobre 2026')
   })
 
   it('stays silent once every report is in', () => {
