@@ -9,13 +9,15 @@ import type { ResponsibleConflictsSummary } from '~/features/dashboard/server/ge
 import * as m from '~/i18n/paraglide/messages'
 import { THREE_DAYS_MS } from '~/shared/constants/limits'
 
+export type UrgentTone = 'danger' | 'warning' | 'info'
+
 export type UrgentItem = {
   key: string
   label: string
   to: string
   icon: typeof MapPin
-  borderClass: string
-  iconClass: string
+  /** How pressing the item is; the list colours its icon accordingly. */
+  tone: UrgentTone
   relativeDate?: Date | string
   priority: number
 }
@@ -33,8 +35,7 @@ export function urgentTerritoriesItems(territories: Territories): UrgentItem[] {
         label: m.dashboard_urgent_territory_overdue({ number: t.territory.number }),
         to: `/me/territories/${t.territory.id}`,
         icon: MapPin,
-        borderClass: 'border-l-destructive bg-destructive/5',
-        iconClass: 'text-destructive',
+        tone: 'danger',
         relativeDate: t.lateDate,
         priority: 1,
       }
@@ -45,8 +46,7 @@ export function urgentTerritoriesItems(territories: Territories): UrgentItem[] {
         label: m.dashboard_urgent_territory_due_soon({ number: t.territory.number }),
         to: `/me/territories/${t.territory.id}`,
         icon: MapPin,
-        borderClass: 'border-l-amber-500 bg-amber-500/5',
-        iconClass: 'text-amber-600 dark:text-amber-400',
+        tone: 'warning',
         relativeDate: t.lateDate,
         priority: 4,
       }
@@ -69,8 +69,7 @@ export function urgentPartAssignmentItems(nextMeeting: NextMeeting): UrgentItem[
       // Deep-link to the meeting's programme viewer rather than a generic /board.
       to: nextMeeting.link,
       icon: Mic,
-      borderClass: 'border-l-primary bg-primary/5',
-      iconClass: 'text-primary',
+      tone: 'info',
       relativeDate: nextMeeting.startDate,
       priority: 0,
     },
@@ -90,8 +89,7 @@ export function urgentServicePartItems(nextMeeting: NextMeeting): UrgentItem[] {
       label: m.dashboard_urgent_service_role_soon({ name: userRole.name, eventName: nextMeeting.name }),
       to: nextMeeting.link,
       icon: Mic,
-      borderClass: 'border-l-primary bg-primary/5',
-      iconClass: 'text-primary',
+      tone: 'info',
       relativeDate: nextMeeting.startDate,
       priority: 3,
     },
@@ -111,8 +109,7 @@ export function urgentDayoffConflictItems(conflict: DayoffConflict): UrgentItem[
       label: m.dashboard_urgent_dayoff_conflict({ name: conflict.name }),
       to: '/me/days-off',
       icon: CalendarOff,
-      borderClass: 'border-l-destructive bg-destructive/5',
-      iconClass: 'text-destructive',
+      tone: 'danger',
       relativeDate: conflict.eventStartDate,
       priority: 1,
     },
@@ -128,8 +125,7 @@ export function urgentDocumentsItem(unreadCount: number | null): UrgentItem[] {
       label: m.dashboard_urgent_unread_documents({ count: String(unreadCount) }),
       to: '/board',
       icon: FileText,
-      borderClass: 'border-l-primary bg-primary/5',
-      iconClass: 'text-primary',
+      tone: 'info',
       priority: 5,
     },
   ]
@@ -152,8 +148,7 @@ export function urgentResponsibleConflictItems(summary: ResponsibleConflictsSumm
       label,
       to: '/programs?hasConflicts=true',
       icon: AlertTriangle,
-      borderClass: 'border-l-amber-500 bg-amber-500/5',
-      iconClass: 'text-amber-600 dark:text-amber-400',
+      tone: 'warning',
       // One tier below the user's own dayoff conflict — a manager scheduled
       // on a part they cannot attend sees their personal clash first.
       priority: 2,

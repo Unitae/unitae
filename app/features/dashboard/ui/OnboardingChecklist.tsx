@@ -84,7 +84,7 @@ export function OnboardingChecklist({ steps, accountId }: OnboardingChecklistPro
               className="flex items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-primary/10"
             >
               {item.done ? (
-                <CheckCircle2 className="size-4 shrink-0 text-green-600 dark:text-green-400" />
+                <CheckCircle2 className="size-4 shrink-0 text-success-text" />
               ) : (
                 <Circle className="size-4 shrink-0 text-muted-foreground" />
               )}

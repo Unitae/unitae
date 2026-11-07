@@ -159,6 +159,7 @@ beforeAll(async () => {
         section: 'main',
         order: 1,
         topic: 'Love',
+        durationMin: 10,
         congregationId,
       },
     })
@@ -170,6 +171,20 @@ beforeAll(async () => {
         name: 'Reading',
         section: 'main',
         order: 2,
+        congregationId,
+      },
+    })
+
+    // A visiting speaker holds this part instead of a member.
+    const visitor = await tx.externalSpeaker.create({ data: { name: 'Paul Visiteur', congregationId } })
+    await tx.eventPart.create({
+      data: {
+        eventId: futureEvent.id,
+        externalSpeakerId: visitor.id,
+        allowExternalSpeaker: true,
+        name: 'Public talk',
+        section: 'main',
+        order: 3,
         congregationId,
       },
     })
@@ -202,6 +217,7 @@ afterAll(async () => {
   await withScope(congregationId, async tx => {
     await tx.eventServicePart.deleteMany({ where: { congregationId } })
     await tx.eventPart.deleteMany({ where: { congregationId } })
+    await tx.externalSpeaker.deleteMany({ where: { congregationId } })
     await tx.event.deleteMany({ where: { congregationId } })
     await tx.eventTemplate.deleteMany({ where: { congregationId } })
     await tx.boardDocument.deleteMany({ where: { congregationId } })
@@ -270,6 +286,18 @@ describe('getNextMeeting (integration)', () => {
     expect(result?.name).toContain('Future Meeting')
     expect(result?.eventParts.length).toBeGreaterThanOrEqual(2)
     expect(result?.eventServiceParts.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('carries what the programme overview shows: duration, track and conflict flag', async () => {
+    const result = await withScope(congregationId, tx => getNextMeeting(tx, aliceId, congregationId))
+    const talk = result?.eventParts.find(p => p.name === 'Talk')
+    expect(talk).toMatchObject({ durationMin: 10, track: '', trackOrder: null, hasConflict: false })
+  })
+
+  it('names the visiting speaker of a part no member holds', async () => {
+    const result = await withScope(congregationId, tx => getNextMeeting(tx, aliceId, congregationId))
+    const talk = result?.eventParts.find(p => p.name === 'Public talk')
+    expect(talk).toMatchObject({ assignee: null, externalSpeaker: { name: 'Paul Visiteur' } })
   })
 
   it('identifies parts assigned to the user (as assignee)', async () => {

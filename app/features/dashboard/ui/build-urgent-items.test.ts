@@ -55,6 +55,12 @@ type PartAssignment = {
   assignee: Person | null
   assistant: Person | null
   viewerRole: 'speaker' | 'reader' | null
+  // Programme-overview fields the urgent strip ignores; makeNextMeeting fills them in.
+  track?: string
+  trackOrder?: number | null
+  durationMin?: number | null
+  hasConflict?: boolean
+  externalSpeaker?: { name: string } | null
 }
 type ServicePartAssignment = { id: number; name: string; assignee: Person | null }
 
@@ -75,7 +81,14 @@ function makeNextMeeting(
     startDate,
     endDate: new Date(startDate.getTime() + 2 * 60 * 60 * 1000), // +2h
     template: { name: 'Midweek', color: '#000' } as { name: string; color: string } | null,
-    eventParts,
+    eventParts: eventParts.map(part => ({
+      track: '',
+      trackOrder: null,
+      durationMin: null,
+      hasConflict: false,
+      externalSpeaker: null,
+      ...part,
+    })),
     eventServiceParts,
     userPartIds,
     userServicePartIds,
@@ -256,14 +269,13 @@ describe('urgentDayoffConflictItems', () => {
   // the event name — the event name is generic and repeats every week
   // ("Réunion de semaine"), whereas the assignment name uniquely identifies
   // which part/role is clashing with the user's absence.
-  it('returns conflict item with priority 1 and destructive styling for a part assignment', () => {
+  it('returns conflict item with priority 1 and danger tone for a part assignment', () => {
     const eventStart = new Date(2026, 3, 25, 19, 0)
     const conflict = makeConflict(7, 'Discours public', eventStart, 'part')
     const items = urgentDayoffConflictItems(conflict)
     expect(items).toHaveLength(1)
     expect(items[0].priority).toBe(1)
-    expect(items[0].borderClass).toContain('destructive')
-    expect(items[0].iconClass).toContain('destructive')
+    expect(items[0].tone).toBe('danger')
     expect(items[0].to).toBe('/me/days-off')
     expect(items[0].label).toContain('Discours public')
     expect(items[0].key).toBe('dayoff-conflict-part-7')
@@ -309,7 +321,7 @@ describe('urgentResponsibleConflictItems', () => {
     })
     expect(items).toHaveLength(1)
     expect(items[0].priority).toBe(2)
-    expect(items[0].borderClass).toContain('amber')
+    expect(items[0].tone).toBe('warning')
     expect(items[0].to).toBe('/programs?hasConflicts=true')
     expect(items[0].key).toBe('responsible-conflicts')
   })

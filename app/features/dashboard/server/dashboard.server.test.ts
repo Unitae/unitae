@@ -34,6 +34,7 @@ const {
   getNextMeeting,
   getUpcomingAbsences,
   getConflictingAssignments,
+  keepViewerParts,
 } = await import('./dashboard.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const { getNextDaysOffs } = await import('~/features/events/server/days-off.server')
@@ -151,6 +152,51 @@ describe('getRecentDocuments', () => {
 
     const result = await getRecentDocuments(db, 1, 1)
     expect(result).toHaveLength(5)
+  })
+})
+
+// --- keepViewerParts ---
+
+describe('keepViewerParts', () => {
+  it("keeps only the viewer's own parts for someone who may not open the programmes", async () => {
+    vi.mocked(db.event.findFirst).mockResolvedValue({
+      id: 1,
+      templateId: null,
+      name: 'Midweek',
+      startDate: new Date(2026, 3, 25),
+      endDate: new Date(2026, 3, 25),
+      template: null,
+      eventParts: [
+        {
+          id: 10,
+          name: 'Talk',
+          section: 'main',
+          assignee: { id: 42, firstname: 'John', lastname: 'Doe' },
+          assistant: null,
+        },
+        {
+          id: 11,
+          name: 'Study',
+          section: 'main',
+          hasConflict: true,
+          assignee: { id: 99, firstname: 'Jane', lastname: 'Smith' },
+          assistant: null,
+        },
+      ],
+      eventServiceParts: [
+        { id: 20, name: 'Sound', assignee: { id: 42, firstname: 'John', lastname: 'Doe' } },
+        { id: 21, name: 'Stage', assignee: { id: 50, firstname: 'Bob', lastname: 'Brown' } },
+      ],
+    } as never)
+    const meeting = await getNextMeeting(db, 42, CONGREGATION_ID)
+    if (meeting == null) throw new Error('expected a meeting')
+
+    const restricted = keepViewerParts(meeting)
+
+    expect(restricted.eventParts.map(p => p.id)).toEqual([10])
+    expect(restricted.eventServiceParts.map(r => r.id)).toEqual([20])
+    expect(restricted.userPartIds).toEqual([10])
+    expect(restricted.userServicePartIds).toEqual([20])
   })
 })
 
