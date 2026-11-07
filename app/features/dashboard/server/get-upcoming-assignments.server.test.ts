@@ -77,6 +77,38 @@ describe('getUpcomingAssignments', () => {
     })
   })
 
+  // A demonstration is prepared with someone: the speaker needs to know the assistant, and the
+  // assistant who leads it.
+  it('names the partner on a part held by two people', async () => {
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
+      partRow({
+        id: 8,
+        assigneeId: 100,
+        assistantId: 200,
+        assignee: { firstname: 'Élodie', lastname: 'Martin' },
+        assistant: { firstname: 'Léa', lastname: 'Garnier' },
+      }),
+    ] as never)
+
+    const asSpeaker = await getUpcomingAssignments(db, 100, CONGREGATION_ID, NOW)
+    expect(asSpeaker[0].partner).toEqual({ firstname: 'Léa', lastname: 'Garnier' })
+
+    const asAssistant = await getUpcomingAssignments(db, 200, CONGREGATION_ID, NOW)
+    expect(asAssistant[0].partner).toEqual({ firstname: 'Élodie', lastname: 'Martin' })
+  })
+
+  it('names no partner on a part held alone or on a service role', async () => {
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
+      partRow({ assignee: { firstname: 'Élodie', lastname: 'Martin' }, assistant: null }),
+    ] as never)
+    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([
+      { id: 3, name: 'Sono', event: partRow().event },
+    ] as never)
+
+    const result = await getUpcomingAssignments(db, 100, CONGREGATION_ID, NOW)
+    expect(result.map(a => a.partner)).toEqual([null, null])
+  })
+
   it('maps a part where I am the assignee to a speaker role', async () => {
     vi.mocked(db.eventPart.findMany).mockResolvedValue([partRow()] as never)
     vi.mocked(resolveProgrammeLink).mockResolvedValue('/board/dynamic/5/viewer?eventId=1')
@@ -91,6 +123,7 @@ describe('getUpcomingAssignments', () => {
       readerLabel: null,
       eventName: 'Réunion du week-end',
       eventStartDate: new Date('2026-04-22T18:00:00.000Z'),
+      partner: null,
       link: '/board/dynamic/5/viewer?eventId=1',
     })
   })
@@ -133,6 +166,7 @@ describe('getUpcomingAssignments', () => {
       readerLabel: null,
       eventName: 'Réunion de semaine',
       eventStartDate: new Date('2026-04-23T18:00:00.000Z'),
+      partner: null,
       link: '/board',
     })
   })

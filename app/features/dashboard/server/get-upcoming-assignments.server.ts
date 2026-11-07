@@ -14,6 +14,8 @@ export interface UpcomingAssignment {
   readerLabel: string | null
   eventName: string
   eventStartDate: Date
+  /** Who holds the part with the viewer (assistant or speaker), to prepare it together. */
+  partner: { firstname: string | null; lastname: string | null } | null
   link: string
 }
 
@@ -77,6 +79,8 @@ export async function getUpcomingAssignments(
         preset: { select: { key: true, speakerLabel: true, readerLabel: true } },
         assigneeId: true,
         assistantId: true,
+        assignee: { select: { firstname: true, lastname: true } },
+        assistant: { select: { firstname: true, lastname: true } },
         event: eventSelect,
       },
       orderBy: { event: { startDate: 'asc' } },
@@ -95,6 +99,7 @@ export async function getUpcomingAssignments(
         // A member listed as the part's assignee is the speaker; otherwise the
         // OR filter guarantees they are the assistant (reader).
         role: part.assigneeId === userId ? 'speaker' : 'reader',
+        partner: (part.assigneeId === userId ? part.assistant : part.assignee) ?? null,
         name: part.name,
         topic: part.topic || null,
         ...slotLabels(part),
@@ -108,6 +113,7 @@ export async function getUpcomingAssignments(
       (role): RawAssignment => ({
         key: `service-${role.id}`,
         role: 'service',
+        partner: null,
         name: role.name,
         topic: null,
         speakerLabel: null,
