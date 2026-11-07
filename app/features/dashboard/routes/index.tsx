@@ -1,3 +1,4 @@
+import { meetingForViewer } from '~/features/dashboard/model/meeting-visibility'
 import {
   getConflictingAssignments,
   getNextMeeting,
@@ -5,7 +6,6 @@ import {
   getUnreadDocumentCount,
   getUpcomingAbsences,
   getUserTerritories,
-  keepViewerParts,
 } from '~/features/dashboard/server/dashboard.server'
 import { getAtRiskPioneers } from '~/features/dashboard/server/get-at-risk-pioneers.server'
 import { getManagementMetrics } from '~/features/dashboard/server/get-management-metrics.server'
@@ -52,7 +52,7 @@ async function safeQuery<T>(label: string, userId: number, fn: () => Promise<T>)
 
 // The whole programme only for those who may open it; everyone else gets their own parts.
 function visibleMeeting(meeting: Awaited<ReturnType<typeof getNextMeeting>>, canViewPrograms: boolean) {
-  return meeting != null && !canViewPrograms ? keepViewerParts(meeting) : meeting
+  return meeting != null ? meetingForViewer(meeting, { schedule: canViewPrograms, conflicts: canViewPrograms }) : null
 }
 
 export function loader({ context }: Route.LoaderArgs) {
