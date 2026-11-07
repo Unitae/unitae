@@ -91,6 +91,9 @@ importers:
       '@unitae/tokens':
         specifier: ^0.1.0
         version: 0.1.0(@fontsource/ibm-plex-sans@5.3.0)
+      '@unitae/ui':
+        specifier: ^0.1.0
+        version: 0.1.0(@unitae/tokens@0.1.0(@fontsource/ibm-plex-sans@5.3.0))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(recharts@3.10.1(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react-is@18.3.1)(react@19.3.1)(redux@5.0.1))
       '@vis.gl/react-google-maps':
         specifier: ^1.10.1
         version: 1.10.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -2837,6 +2840,18 @@ packages:
       '@fontsource/ibm-plex-sans': ^5.0.0
     peerDependenciesMeta:
       '@fontsource/ibm-plex-sans':
+        optional: true
+
+  '@unitae/ui@0.1.0':
+    resolution: {integrity: sha512-g3klR/jsmcFaicsJIIc90LfooJ+dyc5p9xoHS03NfTWHwP1Ub7Rk55Ny5Z7Qlg/ppTqVNDB+7qeGOG2ywT29cw==}
+    engines: {node: '>=22.22.0'}
+    peerDependencies:
+      '@unitae/tokens': ^0.1.0
+      react: ^19.0.0
+      react-dom: ^19.0.0
+      recharts: ^3.0.0
+    peerDependenciesMeta:
+      recharts:
         optional: true
 
   '@unrs/resolver-binding-android-arm-eabi@1.12.2':
@@ -9393,6 +9408,17 @@ snapshots:
   '@unitae/tokens@0.1.0(@fontsource/ibm-plex-sans@5.3.0)':
     optionalDependencies:
       '@fontsource/ibm-plex-sans': 5.3.0
+
+  '@unitae/ui@0.1.0(@unitae/tokens@0.1.0(@fontsource/ibm-plex-sans@5.3.0))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(recharts@3.10.1(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react-is@18.3.1)(react@19.3.1)(redux@5.0.1))':
+    dependencies:
+      '@unitae/tokens': 0.1.0(@fontsource/ibm-plex-sans@5.3.0)
+      class-variance-authority: 0.7.1
+      clsx: 2.1.1
+      react: 19.3.1
+      react-dom: 19.3.1(react@19.3.1)
+      tailwind-merge: 3.7.0
+    optionalDependencies:
+      recharts: 3.10.1(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react-is@18.3.1)(react@19.3.1)(redux@5.0.1)
 
   '@unrs/resolver-binding-android-arm-eabi@1.12.2':
     optional: true

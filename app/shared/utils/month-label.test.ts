@@ -4,7 +4,7 @@ vi.mock('~/i18n/paraglide/runtime', () => ({
   getLocale: vi.fn(() => 'fr'),
 }))
 
-const { formatMonthLabel } = await import('./month-label')
+const { formatMonthLabel, formatMonthLong } = await import('./month-label')
 const { getLocale } = await import('~/i18n/paraglide/runtime')
 
 describe('formatMonthLabel', () => {
@@ -28,5 +28,17 @@ describe('formatMonthLabel', () => {
   it('handles January correctly (zero-indexed month math)', () => {
     vi.mocked(getLocale).mockReturnValue('en')
     expect(formatMonthLabel('2025-01')).toBe('Jan')
+  })
+})
+
+describe('formatMonthLong', () => {
+  it('returns the full month and year, for tooltips and table views (fr)', () => {
+    vi.mocked(getLocale).mockReturnValue('fr')
+    expect(formatMonthLong('2025-09')).toBe('septembre 2025')
+  })
+
+  it('follows the active locale (en)', () => {
+    vi.mocked(getLocale).mockReturnValue('en')
+    expect(formatMonthLong('2026-01')).toBe('January 2026')
   })
 })

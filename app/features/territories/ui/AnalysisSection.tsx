@@ -42,7 +42,7 @@ export default function AnalysisSection({
   theocraticYear,
 }: AnalysisSectionProps) {
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col gap-4">
       <ZoneHeading eyebrow={m.stats_scope_filtered()} title={m.stats_analysis_heading()} />
       <StatsFilterChipBar theocraticYear={theocraticYear} groups={groups} />
       <AnalysisProgressionGroup

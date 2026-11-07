@@ -1,4 +1,5 @@
 import { TrendingDown, TrendingUp } from 'lucide-react'
+import { formatDelta, formatNumber, formatPercent } from '~/features/territories/ui/stats-format'
 import * as m from '~/i18n/paraglide/messages'
 
 interface YearMetrics {
@@ -25,46 +26,45 @@ interface MetricRow {
   invertedBetter?: boolean // true si une baisse est positive (ex: taux de retard)
 }
 
-function formatDelta(delta: number, unit: string): string {
-  const sign = delta > 0 ? '+' : ''
-  return `${sign}${delta.toFixed(1)}${unit}`
+function formatSignedDelta(delta: number, unit: string): string {
+  return `${formatDelta(delta)}${unit}`
 }
 
 export default function YearOverYearTable({ current, previous, currentLabel, previousLabel }: YearOverYearTableProps) {
   const rows: MetricRow[] = [
     {
       label: m.stats_yoy_coverage(),
-      currentValue: `${current.coverage.toFixed(1)} %`,
-      previousValue: `${previous.coverage.toFixed(1)} %`,
+      currentValue: formatPercent(current.coverage),
+      previousValue: formatPercent(previous.coverage),
       delta: current.coverage - previous.coverage,
-      unit: ' %',
+      unit: '\u202f%',
     },
     {
       label: m.stats_yoy_total_coverage(),
-      currentValue: `${current.totalCoverage.toFixed(1)} %`,
-      previousValue: `${previous.totalCoverage.toFixed(1)} %`,
+      currentValue: formatPercent(current.totalCoverage),
+      previousValue: formatPercent(previous.totalCoverage),
       delta: current.totalCoverage - previous.totalCoverage,
-      unit: ' %',
+      unit: '\u202f%',
     },
     {
       label: m.stats_yoy_avg_duration(),
-      currentValue: `${current.averageDurationDays} j`,
-      previousValue: `${previous.averageDurationDays} j`,
+      currentValue: `${formatNumber(current.averageDurationDays)}\u00a0j`,
+      previousValue: `${formatNumber(previous.averageDurationDays)}\u00a0j`,
       delta: current.averageDurationDays - previous.averageDurationDays,
-      unit: ' j',
+      unit: '\u00a0j',
     },
     {
       label: m.stats_yoy_overdue_rate(),
-      currentValue: `${current.overdueRate.toFixed(1)} %`,
-      previousValue: `${previous.overdueRate.toFixed(1)} %`,
+      currentValue: formatPercent(current.overdueRate),
+      previousValue: formatPercent(previous.overdueRate),
       delta: current.overdueRate - previous.overdueRate,
-      unit: ' %',
+      unit: '\u202f%',
       invertedBetter: true,
     },
     {
       label: m.stats_yoy_attribution_count(),
-      currentValue: String(current.attributionCount),
-      previousValue: String(previous.attributionCount),
+      currentValue: formatNumber(current.attributionCount),
+      previousValue: formatNumber(previous.attributionCount),
       delta: current.attributionCount - previous.attributionCount,
       unit: '',
     },
@@ -99,7 +99,7 @@ export default function YearOverYearTable({ current, previous, currentLabel, pre
                   >
                     {!isNeutral &&
                       (isPositive ? <TrendingUp className="size-3.5" /> : <TrendingDown className="size-3.5" />)}
-                    {formatDelta(row.delta, row.unit)}
+                    {formatSignedDelta(row.delta, row.unit)}
                   </span>
                 </td>
               </tr>

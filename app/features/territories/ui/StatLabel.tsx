@@ -8,12 +8,12 @@ export interface StatLabelProps {
 
 export function StatLabel({ label, help }: StatLabelProps) {
   return (
-    <span className="inline-flex items-center gap-1 text-muted-foreground text-sm">
+    <span className="text-muted-foreground text-sm">
       {label}
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Info className="size-3.5 cursor-help text-muted-foreground/60" />
+            <Info className="ml-1 inline size-3.5 cursor-help align-[-2px] text-muted-foreground/60" />
           </TooltipTrigger>
           <TooltipContent side="bottom" className="max-w-64">
             {help}
