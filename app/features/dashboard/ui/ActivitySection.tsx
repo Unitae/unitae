@@ -47,11 +47,7 @@ export function ActivitySection({ activity, rights }: ActivitySectionProps) {
         <PanelFact
           label={m.dashboard_reports_label({ month: formatActivityMonth(progress.month, getLocale(), 'long') })}
           value={`${progress.received} / ${progress.expected}`}
-          detail={
-            progress.incompleteGroups > 0
-              ? m.dashboard_activity_incomplete_groups({ count: String(progress.incompleteGroups) })
-              : undefined
-          }
+          detail={reportsDetail(progress)}
         />
       )}
       {pioneers != null && pioneers.count > 0 && (
@@ -99,4 +95,26 @@ export function ActivitySection({ activity, rights }: ActivitySectionProps) {
       )}
     </DashboardSection>
   )
+}
+
+/**
+ * What is still missing, then last month for comparison. Text only, no curve: the month being
+ * collected fills up as reports arrive, so it would read as a drop at the start of every month.
+ */
+function reportsDetail(progress: ReportProgress): string | undefined {
+  const parts: string[] = []
+  if (progress.incompleteGroups > 0) {
+    parts.push(m.dashboard_activity_incomplete_groups({ count: String(progress.incompleteGroups) }))
+  }
+  const previous = progress.previous
+  if (previous.expected > 0) {
+    parts.push(
+      m.dashboard_reports_previous({
+        received: String(previous.received),
+        expected: String(previous.expected),
+        month: formatActivityMonth(previous.month, getLocale(), 'long'),
+      }),
+    )
+  }
+  return parts.length > 0 ? parts.join(' · ') : undefined
 }

@@ -37,4 +37,23 @@ describe('getReportProgress', () => {
     const progress = await getReportProgress(db, 1, PARIS, new Date(Date.UTC(2026, 9, 31, 23, 30)))
     expect(progress.month).toEqual(OCTOBER)
   })
+
+  it('sets the month before beside it, counted the same way', async () => {
+    const report = (month: number) => ({ month, year: 2026, isPublisher: true })
+    vi.mocked(db.member.findMany).mockResolvedValue([
+      { createdAt: added(0), inactiveAt: null, publisherGroupId: 1, activities: [report(8), report(9)] },
+      { createdAt: added(0), inactiveAt: null, publisherGroupId: 1, activities: [report(8)] },
+      { createdAt: added(0), inactiveAt: null, publisherGroupId: 2, activities: [] },
+      // Added in October: owed an October report, not a September one.
+      { createdAt: added(9), inactiveAt: null, publisherGroupId: 2, activities: [report(9)] },
+    ] as never)
+    const progress = await getReportProgress(db, 1, PARIS, new Date(Date.UTC(2026, 10, 7, 12)))
+    expect(progress).toEqual({
+      month: OCTOBER,
+      expected: 4,
+      received: 2,
+      incompleteGroups: 2,
+      previous: { month: { month: 8, year: 2026 }, expected: 3, received: 2, incompleteGroups: 1 },
+    })
+  })
 })
