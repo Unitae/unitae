@@ -63,7 +63,8 @@ export function buildContentSecurityPolicy(nonce: string): string {
     // Tailwind + the maps SDK inject inline styles; fonts.googleapis.com serves the font CSS.
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: blob: https://*.googleapis.com https://*.gstatic.com https://*.ggpht.com",
-    'font-src https://fonts.gstatic.com',
+    // The UI typeface is self-hosted ('self'); Google Fonts still serves the board documents' typefaces.
+    "font-src 'self' https://fonts.gstatic.com",
     "connect-src 'self' https://maps.googleapis.com https://maps.gstatic.com",
     // Maps vector/WebGL rendering spawns blob: web workers.
     "worker-src 'self' blob:",

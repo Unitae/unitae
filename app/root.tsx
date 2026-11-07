@@ -1,5 +1,4 @@
 import { AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react'
-import type { LinksFunction } from 'react-router'
 import {
   isRouteErrorResponse,
   Link,
@@ -29,19 +28,6 @@ import './tailwind.css'
 // after originCheck: a request originCheck rejects never pays for the locale lookup.
 export const middleware: Route.MiddlewareFunction[] = [securityHeaders(), originCheck(), requestLocale()]
 
-export const links: LinksFunction = () => [
-  { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-  {
-    rel: 'preconnect',
-    href: 'https://fonts.gstatic.com',
-    crossOrigin: 'anonymous',
-  },
-  {
-    rel: 'stylesheet',
-    href: 'https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&display=swap',
-  },
-]
-
 export function loader({ context }: Route.LoaderArgs) {
   return { locale: getLocale(), nonce: context.get(nonceContext) }
 }
@@ -70,8 +56,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
             and every safe-area padding (tab bar, sheets, docked form bars) is inert. */}
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="apple-mobile-web-app-title" content="Unitae" />
-        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fafaf9" />
-        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1c1917" />
+        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f9fafb" />
+        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d0e11" />
         <link rel="icon" type="image/png" href="/icon.png" sizes="96x96" />
         <link rel="icon" type="image/svg+xml" href="/icon.svg" />
         <link rel="shortcut icon" href="/favicon.ico" />
