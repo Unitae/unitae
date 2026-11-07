@@ -2,6 +2,8 @@
 /* Unitae design tokens: colours (light + dark), type, radius, shadows, motion, chart palettes. */
 @import "@unitae/tokens/fonts.css";
 @import "@unitae/tokens/theme.css";
+/* Unitae components ship Tailwind classes: let Tailwind see them. */
+@source "../node_modules/@unitae/ui/dist";
 
 @custom-variant dark (&:is(.dark *));
 

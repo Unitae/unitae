@@ -29,7 +29,7 @@ export default function YearComparisonSection({ yearOverYear, theocraticYear }: 
         <Card>
           <CollapsibleTrigger asChild>
             <CardHeader className="group flex cursor-pointer flex-row items-center justify-between gap-3">
-              <CardTitle className="font-display text-lg">
+              <CardTitle className="font-semibold text-base">
                 {m.stats_year_comparison_title({ current: currentLabel, previous: previousLabel })}
               </CardTitle>
               <ChevronDown className="size-4 shrink-0 transition-transform group-data-[state=closed]:-rotate-90" />
