@@ -62,6 +62,8 @@ describe('buildContentSecurityPolicy', () => {
     expect(directives.get('form-action')).toBe("'self'")
     // Maps vector rendering spawns blob: web workers.
     expect(directives.get('worker-src')).toBe("'self' blob:")
+    // The UI typeface is self-hosted; Google Fonts still serves the board documents' typefaces.
+    expect(directives.get('font-src')).toBe("'self' https://fonts.gstatic.com")
   })
 
   it("asks for a sample of the blocked inline code with 'report-sample'", () => {
