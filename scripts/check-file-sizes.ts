@@ -56,17 +56,15 @@ const EXEMPT_PATTERNS: RegExp[] = [
 // grandfathered — they must respect the budgets at creation time.
 // Remove an entry when its file has been split below the hard limit.
 const EXEMPT_FILES = new Set<string>([
-  // Service files >350L (6) — remaining after Wave 4.
-  'app/features/dashboard/server/dashboard.server.ts', //                  351
+  // Service files >350L (5) — remaining after Wave 4.
   'app/features/display-board/server/dynamic-documents.server.ts', //      375
   'app/features/events/server/event-parts.server.ts', //                   358
   'app/features/settings/server/export-congregation.server.ts', //         657
   'app/features/territories/server/buildings.server.ts', //                366
   'app/shared/domain/roles.server.ts', //                                  421
 
-  // Route components >300L (20) — remaining after Wave 4.
+  // Route components >300L (19) — remaining after Wave 4.
   'app/features/congregation/routes/roles/role-list.tsx', //               316
-  'app/features/dashboard/routes/index.tsx', //                            474
   'app/features/display-board/routes/documents/edit.tsx', //               330
   'app/features/display-board/routes/documents/list.tsx', //               528
   'app/features/display-board/routes/documents/new.tsx', //                330
