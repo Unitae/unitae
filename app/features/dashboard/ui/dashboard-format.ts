@@ -39,6 +39,12 @@ export function formatShare(part: number, whole: number): string {
   return `${new Intl.NumberFormat(getLocale()).format(percent)} %`
 }
 
+// A change as « +3 » or « −2 », with a true minus sign (U+2212) rather than a hyphen.
+export function formatDelta(delta: number): string {
+  const magnitude = new Intl.NumberFormat(getLocale()).format(Math.abs(delta))
+  return `${delta < 0 ? '−' : '+'}${magnitude}`
+}
+
 // How far through its loan period an attribution is, 0–100, rounded to whole days.
 export function elapsedPercent(start: Date | string, due: Date | string, now: Date = new Date()): number {
   const total = Math.round((new Date(due).getTime() - new Date(start).getTime()) / DAY_MS)

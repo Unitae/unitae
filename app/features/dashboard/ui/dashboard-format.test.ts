@@ -4,9 +4,8 @@ vi.mock('~/i18n/paraglide/runtime', () => ({
   getLocale: vi.fn(() => 'fr'),
 }))
 
-const { dateChip, elapsedPercent, formatMeetingWhen, formatShare, formatShortDate, formatTodayLabel } = await import(
-  './dashboard-format'
-)
+const { dateChip, elapsedPercent, formatDelta, formatMeetingWhen, formatShare, formatShortDate, formatTodayLabel } =
+  await import('./dashboard-format')
 
 // Instants are built in UTC and read in the congregation's zone, so the runner's own zone never
 // leaks into the result.
@@ -48,6 +47,17 @@ describe('formatShare', () => {
 
   it('reads zero when there is no whole', () => {
     expect(formatShare(0, 0)).toBe('0 %')
+  })
+})
+
+describe('formatDelta', () => {
+  it('signs a rise with a plus and a fall with a true minus sign', () => {
+    expect(formatDelta(3)).toBe('+3')
+    expect(formatDelta(-2)).toBe('\u22122')
+  })
+
+  it('groups thousands the local way', () => {
+    expect(formatDelta(1200)).toBe('+1\u202f200')
   })
 })
 

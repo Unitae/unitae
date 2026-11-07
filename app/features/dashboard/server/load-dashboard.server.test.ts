@@ -19,6 +19,7 @@ vi.mock('./next-meeting-for-viewer.server', () => ({ nextMeetingForViewer: vi.fn
 vi.mock('./get-open-parts.server', () => ({ getOpenParts: vi.fn() }))
 vi.mock('./get-report-progress.server', () => ({ getReportProgress: vi.fn() }))
 vi.mock('./get-roll-changes.server', () => ({ getRollChanges: vi.fn() }))
+vi.mock('./get-territory-trend.server', () => ({ getTerritoryTrend: vi.fn() }))
 vi.mock('./has-held-territory.server', () => ({ hasHeldTerritory: vi.fn() }))
 vi.mock('./has-calendar-feed.server', () => ({ hasCalendarFeed: vi.fn() }))
 vi.mock('~/features/publishers/server/groups.server', () => ({ getGroup: vi.fn() }))
@@ -33,6 +34,7 @@ const { nextMeetingForViewer } = await import('./next-meeting-for-viewer.server'
 const { getOpenParts } = await import('./get-open-parts.server')
 const { getReportProgress } = await import('./get-report-progress.server')
 const { getRollChanges } = await import('./get-roll-changes.server')
+const { getTerritoryTrend } = await import('./get-territory-trend.server')
 const { hasHeldTerritory } = await import('./has-held-territory.server')
 const { hasCalendarFeed } = await import('./has-calendar-feed.server')
 const { getGroup } = await import('~/features/publishers/server/groups.server')
@@ -126,23 +128,35 @@ describe('loadDashboard', () => {
       territories: { total: 20, assigned: 15, late: 3 },
       publishers: null,
     })
+    const trend = { out: [14, 15], late: [4, 3], monthAgo: { out: 14, late: 4 } }
+    vi.mocked(getTerritoryTrend).mockResolvedValue(trend)
     const data = await load([Permission.CanViewTerritories, Permission.CanViewTerritoryAttributions])
-    expect(data.territories).toEqual({ data: { total: 20, assigned: 15, late: 3 } })
+    expect(data.territories).toEqual({ data: { total: 20, assigned: 15, late: 3, trend } })
     expect(data.roll).toBeNull()
   })
 
+  it('keeps the territory figures when only their trend fails', async () => {
+    vi.mocked(getManagementMetrics).mockResolvedValue({
+      territories: { total: 20, assigned: 15, late: 3 },
+      publishers: null,
+    })
+    vi.mocked(getTerritoryTrend).mockRejectedValue(new Error('boom'))
+    const data = await load([Permission.CanViewTerritories, Permission.CanViewTerritoryAttributions])
+    expect(data.territories).toEqual({ data: { total: 20, assigned: 15, late: 3, trend: null } })
+  })
+
   it('gives the secretary the report progress and the roll keeper the roll', async () => {
-    vi.mocked(getReportProgress).mockResolvedValue({
+    const progress = {
       month: { month: 9, year: 2026 },
       expected: 45,
       received: 38,
       incompleteGroups: 2,
-    })
+      previous: { month: { month: 8, year: 2026 }, expected: 45, received: 44, incompleteGroups: 1 },
+    }
+    vi.mocked(getReportProgress).mockResolvedValue(progress)
     vi.mocked(getRollChanges).mockResolvedValue({ total: 45, arrived: 2, left: 1 })
     const data = await load([Permission.CanViewActivity, Permission.CanViewPublishers, Permission.CanManagePublishers])
-    expect(data.activity?.progress).toEqual({
-      data: { month: { month: 9, year: 2026 }, expected: 45, received: 38, incompleteGroups: 2 },
-    })
+    expect(data.activity?.progress).toEqual({ data: progress })
     expect(data.roll).toEqual({ data: { total: 45, arrived: 2, left: 1 } })
   })
 

@@ -14,6 +14,7 @@ import { getOpenParts } from '~/features/dashboard/server/get-open-parts.server'
 import { getReportProgress } from '~/features/dashboard/server/get-report-progress.server'
 import { getResponsibleConflicts } from '~/features/dashboard/server/get-responsible-conflicts.server'
 import { getRollChanges } from '~/features/dashboard/server/get-roll-changes.server'
+import { getTerritoryTrend } from '~/features/dashboard/server/get-territory-trend.server'
 import { getUpcomingAssignments } from '~/features/dashboard/server/get-upcoming-assignments.server'
 import { hasCalendarFeed } from '~/features/dashboard/server/has-calendar-feed.server'
 import { hasHeldTerritory } from '~/features/dashboard/server/has-held-territory.server'
@@ -119,8 +120,12 @@ export async function loadDashboard(db: TransactionClient, context: DashboardCon
     when(visibility.documents, 'unread-count', () => getUnreadDocumentCount(db, account.id, congregationId)),
     loadOpenParts(),
     block(visibility.territories, 'territory-figures', async () => {
-      const metrics = await getManagementMetrics(db, local, { includeTerritories: true, includePublishers: false })
-      return metrics.territories
+      // The trend is extra: if it fails, the figures still show, without their curve.
+      const [metrics, trend] = await Promise.all([
+        getManagementMetrics(db, now, { includeTerritories: true, includePublishers: false }),
+        safe('territory-trend', () => getTerritoryTrend(db, congregationId, congregation.timezone, now)),
+      ])
+      return metrics.territories == null ? null : { ...metrics.territories, trend }
     }),
     block(visibility.activity, 'report-progress', () =>
       getReportProgress(db, congregationId, congregation.timezone, now),

@@ -2,8 +2,8 @@ import { type ActivityMonth, reportWindow } from '~/features/publishers'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { zonedNow } from '~/shared/utils/zoned-now'
 
-/** Where the congregation stands on the month whose reports are being collected. */
-export interface ReportProgress {
+/** Where the congregation stands on one month's reports. */
+export interface MonthReports {
   month: ActivityMonth
   /** Active publishers a report is expected from: added on or before that month. */
   expected: number
@@ -11,6 +11,11 @@ export interface ReportProgress {
   received: number
   /** Groups still missing at least one report. */
   incompleteGroups: number
+}
+
+/** The month whose reports are being collected, and the month before it for comparison. */
+export interface ReportProgress extends MonthReports {
+  previous: MonthReports
 }
 
 interface ReportingMember {
@@ -31,7 +36,7 @@ export function summarizeReportProgress(
   members: ReportingMember[],
   month: ActivityMonth,
   timezone: string,
-): ReportProgress {
+): MonthReports {
   let expected = 0
   let received = 0
   const incomplete = new Set<number>()
@@ -52,15 +57,28 @@ export async function getReportProgress(
   timezone: string,
   now: Date = new Date(),
 ): Promise<ReportProgress> {
-  const month = reportWindow(zonedNow(timezone, now)).at(-1) as ActivityMonth
+  const [previous, month] = reportWindow(zonedNow(timezone, now)).slice(-2) as [ActivityMonth, ActivityMonth]
   const members = await db.member.findMany({
     where: { congregationId, isPublisher: true, leftAt: null, inactiveAt: null },
     select: {
       createdAt: true,
       inactiveAt: true,
       publisherGroupId: true,
-      activities: { where: { month: month.month, year: month.year }, select: { isPublisher: true }, take: 1 },
+      activities: {
+        where: { OR: [month, previous].map(m => ({ month: m.month, year: m.year })) },
+        select: { month: true, year: true, isPublisher: true },
+      },
     },
   })
-  return summarizeReportProgress(members, month, timezone)
+  const reportsFor = (target: ActivityMonth) =>
+    members.map(member => ({
+      ...member,
+      activities: member.activities.filter(report => sameMonth(report, target)),
+    }))
+  return {
+    ...summarizeReportProgress(reportsFor(month), month, timezone),
+    previous: summarizeReportProgress(reportsFor(previous), previous, timezone),
+  }
 }
+
+const sameMonth = (a: ActivityMonth, b: ActivityMonth) => a.month === b.month && a.year === b.year

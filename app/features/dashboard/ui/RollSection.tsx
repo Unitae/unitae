@@ -5,7 +5,10 @@ import type { RollChanges } from '~/features/dashboard/server/get-roll-changes.s
 import { DashboardSection, PanelError, PanelFigures, SectionAction } from '~/features/dashboard/ui/DashboardSection'
 import * as m from '~/i18n/paraglide/messages'
 
-/** « Proclamateurs », for whoever keeps the roll: its size, and who joined or left this month. */
+/**
+ * « Proclamateurs », for whoever keeps the roll: its size, and who joined or left since the service
+ * year began in September.
+ */
 export function RollSection({ roll }: { roll: { data: RollChanges | null } }) {
   const data = roll.data
   return (
