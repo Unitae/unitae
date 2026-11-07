@@ -223,6 +223,21 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
   return candidates.at(0) ?? null
 }
 
+type NextMeeting = NonNullable<Awaited<ReturnType<typeof getNextMeeting>>>
+
+/**
+ * The next meeting as someone who may not open the programmes may see it: only the parts and
+ * service roles they hold. The full programme names everyone and flags who is away, so it stays
+ * on the server for them; their own parts are all the urgent strip needs.
+ */
+export function keepViewerParts(meeting: NextMeeting): NextMeeting {
+  return {
+    ...meeting,
+    eventParts: meeting.eventParts.filter(p => meeting.userPartIds.includes(p.id)),
+    eventServiceParts: meeting.eventServiceParts.filter(r => meeting.userServicePartIds.includes(r.id)),
+  }
+}
+
 export async function getNextMeeting(db: TransactionClient, userId: number, congregationId: number) {
   const now = new Date()
 

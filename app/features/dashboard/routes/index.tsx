@@ -5,6 +5,7 @@ import {
   getUnreadDocumentCount,
   getUpcomingAbsences,
   getUserTerritories,
+  keepViewerParts,
 } from '~/features/dashboard/server/dashboard.server'
 import { getAtRiskPioneers } from '~/features/dashboard/server/get-at-risk-pioneers.server'
 import { getManagementMetrics } from '~/features/dashboard/server/get-management-metrics.server'
@@ -47,6 +48,11 @@ async function safeQuery<T>(label: string, userId: number, fn: () => Promise<T>)
     logger.error(`Dashboard widget "${label}" failed for user ${userId}`, error)
     return null
   }
+}
+
+// The whole programme only for those who may open it; everyone else gets their own parts.
+function visibleMeeting(meeting: Awaited<ReturnType<typeof getNextMeeting>>, canViewPrograms: boolean) {
+  return meeting != null && !canViewPrograms ? keepViewerParts(meeting) : meeting
 }
 
 export function loader({ context }: Route.LoaderArgs) {
@@ -143,7 +149,7 @@ export function loader({ context }: Route.LoaderArgs) {
       territories,
       recentDocuments,
       unreadDocumentCount,
-      nextMeeting,
+      nextMeeting: visibleMeeting(nextMeeting, canViewPrograms),
       upcomingAssignments,
       absences,
       dayoffConflict,
