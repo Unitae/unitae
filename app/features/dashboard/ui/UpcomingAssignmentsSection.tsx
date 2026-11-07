@@ -1,4 +1,4 @@
-import { CalendarClock } from 'lucide-react'
+import { CalendarClock, CalendarPlus } from 'lucide-react'
 import { Link } from 'react-router'
 
 import type { UpcomingAssignment } from '~/features/dashboard/server/get-upcoming-assignments.server'
@@ -6,6 +6,7 @@ import { DashboardSection, PanelEmpty, PanelError, panelLinkRowClass } from '~/f
 import { dateChip, formatMeetingWhen } from '~/features/dashboard/ui/dashboard-format'
 import { partReaderLabel, partSpeakerLabel } from '~/features/events/model/part-labels'
 import * as m from '~/i18n/paraglide/messages'
+import { formatPersonName } from '~/shared/utils/format-person-name'
 import { cn } from '~/shared/utils/utils'
 
 function roleLabel(assignment: UpcomingAssignment): string {
@@ -18,9 +19,12 @@ function roleLabel(assignment: UpcomingAssignment): string {
 export function UpcomingAssignmentsSection({
   assignments,
   timeZone,
+  needsCalendar,
 }: {
   assignments: UpcomingAssignment[] | null
   timeZone: string
+  /** No calendar subscription yet: offer it, once, here where it helps. */
+  needsCalendar: boolean
 }) {
   const hasItems = assignments != null && assignments.length > 0
   return (
@@ -54,6 +58,11 @@ export function UpcomingAssignmentsSection({
                       {assignment.name}
                       <span className="font-normal text-faint"> · {roleLabel(assignment)}</span>
                     </span>
+                    {assignment.partner != null && (
+                      <span className="truncate text-muted-foreground text-xs">
+                        {m.dashboard_assignment_partner({ name: formatPersonName(assignment.partner) })}
+                      </span>
+                    )}
                     <span className="truncate text-faint text-xs">
                       {assignment.eventName} · {formatMeetingWhen(assignment.eventStartDate, timeZone)}
                     </span>
@@ -64,6 +73,13 @@ export function UpcomingAssignmentsSection({
             )
           })}
         </ul>
+      )}
+      {needsCalendar && (
+        <Link to="/me/profile#calendar-feed" className={cn(panelLinkRowClass, 'border-t text-sm')}>
+          <CalendarPlus aria-hidden="true" className="size-4 shrink-0 text-brand-text" />
+          <span className="min-w-0 flex-1">{m.dashboard_calendar_prompt()}</span>
+          <span className="shrink-0 font-medium text-brand-text text-xs">{m.dashboard_calendar_prompt_action()}</span>
+        </Link>
       )}
     </DashboardSection>
   )

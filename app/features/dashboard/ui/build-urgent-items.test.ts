@@ -14,7 +14,14 @@ vi.mock('~/i18n/paraglide/messages', () => ({
   dashboard_urgent_responsible_conflict_plural: ({ count, names }: { count: string; names: string }) =>
     `${count} responsible conflicts: ${names}`,
   dashboard_urgent_responsible_conflict_extras: ({ count }: { count: string }) => ` (+${count} more)`,
+  dashboard_urgent_open_slots: ({ count, eventName }: { count: string; eventName: string }) =>
+    `${count} open — ${eventName}`,
+  dashboard_urgent_group_reports: ({ count, month }: { count: string; month: string }) => `${count} missing — ${month}`,
+  dashboard_urgent_group_report_one: ({ month }: { month: string }) => `1 missing report — ${month}`,
+  dashboard_origin_you: () => 'For you',
+  dashboard_origin_programmes: () => 'Programmes',
 }))
+vi.mock('~/i18n/paraglide/runtime', () => ({ getLocale: () => 'fr' }))
 
 const {
   buildUrgentItems,
@@ -24,6 +31,8 @@ const {
   urgentDayoffConflictItems,
   urgentResponsibleConflictItems,
   urgentDocumentsItem,
+  urgentGroupReportsItem,
+  urgentOpenSlotItems,
 } = await import('./build-urgent-items')
 
 beforeEach(() => {
@@ -378,16 +387,30 @@ describe('urgentDocumentsItem', () => {
 
 describe('buildUrgentItems', () => {
   it('returns empty array when all inputs are null/empty', () => {
-    expect(buildUrgentItems(null, null, null, null, null)).toEqual([])
+    expect(
+      buildUrgentItems({
+        territories: null,
+        unreadDocumentCount: null,
+        nextMeeting: null,
+        dayoffConflict: null,
+        responsibleConflicts: null,
+      }),
+    ).toEqual([])
   })
 
   it('returns items sorted by priority', () => {
     const territories = [makeTerritory(1, 'T-1', 'overdue', new Date(2026, 3, 20))]
-    const items = buildUrgentItems(territories, 5, null, null, null)
+    const items = buildUrgentItems({
+      territories: territories,
+      unreadDocumentCount: 5,
+      nextMeeting: null,
+      dayoffConflict: null,
+      responsibleConflicts: null,
+    })
     expect(items[0].priority).toBeLessThan(items[1].priority)
   })
 
-  it('caps at 5 items maximum', () => {
+  it('keeps every item: the list folds the extras behind a button', () => {
     const territories = [
       makeTerritory(1, 'T-1', 'overdue', new Date(2026, 3, 20)),
       makeTerritory(2, 'T-2', 'overdue', new Date(2026, 3, 19)),
@@ -396,8 +419,14 @@ describe('buildUrgentItems', () => {
       makeTerritory(5, 'T-5', 'due-soon', new Date(2026, 4, 2)),
       makeTerritory(6, 'T-6', 'due-soon', new Date(2026, 4, 3)),
     ]
-    const items = buildUrgentItems(territories, 10, null, null, null)
-    expect(items).toHaveLength(5)
+    const items = buildUrgentItems({
+      territories: territories,
+      unreadDocumentCount: 10,
+      nextMeeting: null,
+      dayoffConflict: null,
+      responsibleConflicts: null,
+    })
+    expect(items).toHaveLength(7)
   })
 
   it('prioritizes part assignment (0) over overdue territory (1)', () => {
@@ -419,7 +448,13 @@ describe('buildUrgentItems', () => {
         },
       ],
     })
-    const items = buildUrgentItems(territories, null, meeting, null, null)
+    const items = buildUrgentItems({
+      territories: territories,
+      unreadDocumentCount: null,
+      nextMeeting: meeting,
+      dayoffConflict: null,
+      responsibleConflicts: null,
+    })
     expect(items[0].key).toContain('part-')
     expect(items[1].key).toContain('territory-overdue-')
   })
@@ -446,16 +481,28 @@ describe('buildUrgentItems', () => {
       eventServiceParts: [{ id: 5, name: 'Son', assignee: null }],
     })
     const conflict = makeConflict(7, 'Discours public', meetingDate)
-    const items = buildUrgentItems(null, null, meeting, conflict, null)
+    const items = buildUrgentItems({
+      territories: null,
+      unreadDocumentCount: null,
+      nextMeeting: meeting,
+      dayoffConflict: conflict,
+      responsibleConflicts: null,
+    })
     const priorities = items.map(i => i.priority)
     expect(priorities).toEqual([0, 1, 3])
   })
 
   it('includes the responsible-conflict card at priority 2 when the summary has conflicts', () => {
-    const items = buildUrgentItems(null, null, null, null, {
-      count: 3,
-      absenteeNames: ['Marie D.', 'Jean P.'],
-      totalAbsenteesCount: 2,
+    const items = buildUrgentItems({
+      territories: null,
+      unreadDocumentCount: null,
+      nextMeeting: null,
+      dayoffConflict: null,
+      responsibleConflicts: {
+        count: 3,
+        absenteeNames: ['Marie D.', 'Jean P.'],
+        totalAbsenteesCount: 2,
+      },
     })
     expect(items).toHaveLength(1)
     expect(items[0].priority).toBe(2)
@@ -468,13 +515,89 @@ describe('buildUrgentItems', () => {
   it('shows my dayoff conflict before the responsible-conflict card when both exist', () => {
     const meetingDate = new Date(2026, 3, 25, 19, 0)
     const myConflict = makeConflict(7, 'Discours public', meetingDate)
-    const items = buildUrgentItems(null, null, null, myConflict, {
-      count: 2,
-      absenteeNames: ['Marie D.', 'Jean P.'],
-      totalAbsenteesCount: 2,
+    const items = buildUrgentItems({
+      territories: null,
+      unreadDocumentCount: null,
+      nextMeeting: null,
+      dayoffConflict: myConflict,
+      responsibleConflicts: {
+        count: 2,
+        absenteeNames: ['Marie D.', 'Jean P.'],
+        totalAbsenteesCount: 2,
+      },
     })
     expect(items).toHaveLength(2)
     expect(items[0].key).toBe('dayoff-conflict-part-7')
     expect(items[1].key).toBe('responsible-conflicts')
+  })
+})
+
+describe('urgentOpenSlotItems', () => {
+  it('raises meetings within the week that still have empty slots', () => {
+    const now = new Date(2026, 3, 20).getTime()
+    const items = urgentOpenSlotItems(
+      [
+        { eventId: 1, name: 'Midweek', startDate: new Date(2026, 3, 23), isDraft: false, count: 2 },
+        { eventId: 2, name: 'Weekend', startDate: new Date(2026, 4, 10), isDraft: true, count: 1 },
+      ],
+      now,
+    )
+    expect(items.map(i => [i.key, i.label, i.to])).toEqual([['open-slots-1', '2 open — Midweek', '/programs/events/1']])
+  })
+})
+
+describe('urgentGroupReportsItem', () => {
+  const group = {
+    id: 7,
+    name: 'Nord',
+    memberCount: 5,
+    month: { month: 9, year: 2026 },
+    reports: {
+      expected: 4,
+      received: 2,
+      missing: [
+        { id: 3, firstname: 'A', lastname: 'B' },
+        { id: 4, firstname: 'C', lastname: 'D' },
+      ],
+    },
+    newArrivals: 0,
+    anniversaries: 0,
+    inactive: { count: 0, since: null },
+    incompleteEmergency: 0,
+  }
+
+  it("raises the reports still missing in the overseer's group", () => {
+    const [item] = urgentGroupReportsItem(group)
+    expect(item.label).toBe('2 missing — octobre 2026')
+    expect(item.to).toBe('/groups/7/view')
+  })
+
+  it('reads one missing report in the singular', () => {
+    const [item] = urgentGroupReportsItem({
+      ...group,
+      reports: { expected: 4, received: 3, missing: [{ id: 3, firstname: 'A', lastname: 'B' }] },
+    })
+    expect(item.label).toBe('1 missing report — octobre 2026')
+  })
+
+  it('stays silent once every report is in', () => {
+    expect(urgentGroupReportsItem({ ...group, reports: { expected: 4, received: 4, missing: [] } })).toEqual([])
+  })
+})
+
+describe('buildUrgentItems ordering', () => {
+  it("puts the viewer's own items before those of their responsibilities, whatever the priority", () => {
+    const items = buildUrgentItems({
+      territories: [makeTerritory(1, 'T-1', 'due-soon', new Date(2026, 4, 1))],
+      unreadDocumentCount: 3,
+      nextMeeting: null,
+      dayoffConflict: null,
+      responsibleConflicts: { count: 1, absenteeNames: ['Marie D.'], totalAbsenteesCount: 1 },
+    })
+    expect(items.map(i => [i.origin, i.personal])).toEqual([
+      ['For you', true],
+      ['For you', true],
+      ['Programmes', false],
+    ])
   })
 })

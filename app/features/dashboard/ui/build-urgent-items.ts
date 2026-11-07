@@ -1,13 +1,20 @@
-import { AlertTriangle, CalendarOff, FileText, MapPin, Mic } from 'lucide-react'
+import { AlertTriangle, CalendarClock, CalendarOff, ClipboardList, FileText, MapPin, Mic } from 'lucide-react'
 
+import type { GroupSummary } from '~/features/dashboard/model/group-summary'
 import type {
   getConflictingAssignments,
   getNextMeeting,
   getUserTerritories,
 } from '~/features/dashboard/server/dashboard.server'
+import type { OpenSlots } from '~/features/dashboard/server/get-open-parts.server'
 import type { ResponsibleConflictsSummary } from '~/features/dashboard/server/get-responsible-conflicts.server'
+import { formatActivityMonth } from '~/features/publishers'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { THREE_DAYS_MS } from '~/shared/constants/limits'
+import { formatGroupName } from '~/shared/utils/format-group-name'
+
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 
 export type UrgentTone = 'danger' | 'warning' | 'info'
 
@@ -20,6 +27,14 @@ export type UrgentItem = {
   tone: UrgentTone
   relativeDate?: Date | string
   priority: number
+}
+
+/** An item as the list shows it: tagged with where it comes from. */
+export type RankedUrgentItem = UrgentItem & {
+  /** « Pour vous », the group's name, « Programmes ». */
+  origin: string
+  /** The viewer's own items always come before those of their responsibilities. */
+  personal: boolean
 }
 
 type Territories = Awaited<ReturnType<typeof getUserTerritories>> | null
@@ -156,21 +171,82 @@ export function urgentResponsibleConflictItems(summary: ResponsibleConflictsSumm
   ]
 }
 
-export function buildUrgentItems(
-  territories: Territories,
-  unreadDocumentCount: number | null,
-  nextMeeting: NextMeeting,
-  dayoffConflict: DayoffConflict,
-  responsibleConflicts: ResponsibleConflictsSummary | null,
-): UrgentItem[] {
-  const items = [
-    ...urgentTerritoriesItems(territories),
-    ...urgentPartAssignmentItems(nextMeeting),
-    ...urgentServicePartItems(nextMeeting),
-    ...urgentDayoffConflictItems(dayoffConflict),
-    ...urgentResponsibleConflictItems(responsibleConflicts),
-    ...urgentDocumentsItem(unreadDocumentCount),
+// Empty slots on a meeting within the week, for those who fill them: one item per meeting.
+export function urgentOpenSlotItems(openSlots: OpenSlots[] | null, now: number = Date.now()): UrgentItem[] {
+  if (!openSlots) return []
+  return openSlots
+    .filter(slot => new Date(slot.startDate).getTime() - now <= SEVEN_DAYS_MS)
+    .map(slot => ({
+      key: `open-slots-${slot.eventId}`,
+      label: m.dashboard_urgent_open_slots({ count: String(slot.count), eventName: slot.name }),
+      to: `/programs/events/${slot.eventId}`,
+      icon: CalendarClock,
+      tone: 'warning',
+      relativeDate: slot.startDate,
+      priority: 2,
+    }))
+}
+
+function groupReportsLabel(count: number, month: string): string {
+  return count === 1
+    ? m.dashboard_urgent_group_report_one({ month })
+    : m.dashboard_urgent_group_reports({ count: String(count), month })
+}
+
+// Reports still missing in the overseer's group for the month being collected.
+export function urgentGroupReportsItem(group: GroupSummary | null): UrgentItem[] {
+  if (!group || group.month == null || group.reports.missing.length === 0) return []
+  return [
+    {
+      key: `group-reports-${group.id}`,
+      label: groupReportsLabel(group.reports.missing.length, formatActivityMonth(group.month, getLocale(), 'long')),
+      to: `/groups/${group.id}/view`,
+      icon: ClipboardList,
+      tone: 'warning',
+      priority: 3,
+    },
   ]
-  items.sort((a, b) => a.priority - b.priority)
-  return items.slice(0, 5)
+}
+
+export interface UrgentSources {
+  territories: Territories
+  unreadDocumentCount: number | null
+  nextMeeting: NextMeeting
+  dayoffConflict: DayoffConflict
+  responsibleConflicts: ResponsibleConflictsSummary | null
+  openSlots?: OpenSlots[] | null
+  group?: GroupSummary | null
+}
+
+const byPriority = (a: UrgentItem, b: UrgentItem) => a.priority - b.priority
+
+/**
+ * Everything waiting on the viewer: their own items first, then those of the responsibilities
+ * they hold, each tagged with its origin. Nothing is dropped here; the list shows the first few
+ * and folds the rest behind a button.
+ */
+export function buildUrgentItems(sources: UrgentSources): RankedUrgentItem[] {
+  const you = m.dashboard_origin_you()
+  const programmes = m.dashboard_origin_programmes()
+  const tag = (origin: string, personal: boolean) => (item: UrgentItem) => ({ ...item, origin, personal })
+
+  const personal = [
+    ...urgentTerritoriesItems(sources.territories),
+    ...urgentPartAssignmentItems(sources.nextMeeting),
+    ...urgentServicePartItems(sources.nextMeeting),
+    ...urgentDayoffConflictItems(sources.dayoffConflict),
+    ...urgentDocumentsItem(sources.unreadDocumentCount),
+  ]
+    .sort(byPriority)
+    .map(tag(you, true))
+
+  const responsibilities = [
+    ...urgentResponsibleConflictItems(sources.responsibleConflicts).map(tag(programmes, false)),
+    ...urgentOpenSlotItems(sources.openSlots ?? null).map(tag(programmes, false)),
+    ...urgentGroupReportsItem(sources.group ?? null).map(
+      tag(sources.group ? formatGroupName(sources.group.name) : '', false),
+    ),
+  ].sort(byPriority)
+
+  return [...personal, ...responsibilities]
 }

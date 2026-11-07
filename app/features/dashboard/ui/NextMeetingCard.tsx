@@ -1,6 +1,8 @@
 import { Status, type StatusTone, Tag } from '@unitae/ui'
 
-import type { getNextMeeting } from '~/features/dashboard/server/dashboard.server'
+import { Link } from 'react-router'
+
+import type { MeetingForViewer } from '~/features/dashboard/server/next-meeting-for-viewer.server'
 import { DashboardSection, PanelEmpty, panelRowClass } from '~/features/dashboard/ui/DashboardSection'
 import { formatMeetingWhen } from '~/features/dashboard/ui/dashboard-format'
 import { groupProgrammeParts, sectionColor, sectionDurationMin } from '~/features/events'
@@ -8,24 +10,25 @@ import * as m from '~/i18n/paraglide/messages'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 import { cn } from '~/shared/utils/utils'
 
-type NextMeeting = NonNullable<Awaited<ReturnType<typeof getNextMeeting>>>
-type MeetingPart = NextMeeting['eventParts'][number]
+type MeetingPart = MeetingForViewer['meeting']['eventParts'][number]
 type Person = NonNullable<MeetingPart['assignee']>
 
 /**
  * The next released meeting at a glance: its parts by section, who holds each one, and the two
  * states that need someone to act (an empty slot, an assignee who is away). The viewer's own
- * parts are tinted. Clock times are not
+ * parts are tinted. Read-only for everyone; absence conflicts arrive only for, and the assign link
+ * shows only to, those who may fill this meeting (decided on the server). Clock times are not
  * computed: songs and prayers are not parts, so summed durations would drift.
  */
-export function NextMeetingCard({ meeting, timeZone }: { meeting: NextMeeting; timeZone: string }) {
+export function NextMeetingCard({ view, timeZone }: { view: MeetingForViewer; timeZone: string }) {
+  const { meeting, canAct, link } = view
   const sections = groupProgrammeParts(meeting.eventParts)
 
   return (
     <DashboardSection
       title={meeting.name}
       meta={formatMeetingWhen(meeting.startDate, timeZone)}
-      link={{ to: meeting.link, label: m.dashboard_assignments_link() }}
+      link={{ to: link, label: m.dashboard_assignments_link() }}
     >
       {meeting.eventParts.length === 0 ? (
         <PanelEmpty title={m.dashboard_meeting_no_parts()} />
@@ -57,7 +60,7 @@ export function NextMeetingCard({ meeting, timeZone }: { meeting: NextMeeting; t
                   )}
                   <ul>
                     {track.parts.map(part => (
-                      <PartRow key={part.id} part={part} />
+                      <PartRow key={part.id} part={part} assignTo={canAct ? link : null} />
                     ))}
                   </ul>
                 </div>
@@ -77,8 +80,10 @@ function partStatus(part: MeetingPart): { tone: StatusTone; label: string } | nu
   return null
 }
 
-function PartRow({ part }: { part: MeetingPart }) {
+// `assignTo`: the editor, for those who may fill the slot; nobody else gets a way to act.
+function PartRow({ part, assignTo }: { part: MeetingPart; assignTo: string | null }) {
   const status = partStatus(part)
+  const isOpen = part.assignee == null && part.externalSpeaker == null
   const isViewer = part.viewerRole != null
 
   return (
@@ -113,8 +118,13 @@ function PartRow({ part }: { part: MeetingPart }) {
           <span className="text-faint">—</span>
         )}
       </span>
-      <span className="flex shrink-0 justify-end sm:w-36 sm:justify-start">
+      <span className="flex shrink-0 items-center justify-end gap-2 sm:w-40 sm:justify-start">
         {status && <Status tone={status.tone}>{status.label}</Status>}
+        {isOpen && assignTo != null && (
+          <Link to={assignTo} className="font-medium text-brand-text text-xs underline-offset-4 hover:underline">
+            {m.dashboard_meeting_assign()}
+          </Link>
+        )}
       </span>
     </li>
   )

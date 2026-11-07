@@ -1,5 +1,9 @@
 // Public client-safe surface of the publishers feature.
 
+export { type ActivityMonth, formatActivityMonth, reportWindow } from './model/activity-months'
+export { canEnterPublishersArea } from './model/area-access'
+export { canRecordAnyActivity } from './model/group-activity-access'
+
 export {
   coversMonth,
   type EnrolmentPeriod,
