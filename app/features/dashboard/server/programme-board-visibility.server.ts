@@ -17,12 +17,13 @@ export async function isProgrammeOnBoardFor(
 ): Promise<boolean> {
   const match = DYNAMIC_DOCUMENT_LINK.exec(programmeLink)
   if (match == null) return false
+  const section = await buildSectionVisibilityFilter(db, userId, congregationId)
   const document = await db.boardDynamicDocumentSettings.findFirst({
     where: {
       id: Number(match[1]),
       congregationId,
-      section: await buildSectionVisibilityFilter(db, userId, congregationId),
-      // Same window as the board's document list.
+      section,
+      // Same display window as the board document list.
       OR: [
         { visibleFrom: { lte: now }, visibleUntil: { gte: now } },
         { visibleFrom: { lte: now }, visibleUntil: null },
