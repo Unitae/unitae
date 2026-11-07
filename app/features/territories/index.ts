@@ -1,6 +1,7 @@
 // Public client-safe surface of the territories feature.
 
 export { default as BuildingSyncDoneEmail } from './emails/buildings-sync-done'
+export { canEnterTerritoriesArea } from './model/area-access'
 export {
   buildGeoJsonExport,
   type CardOverlay,

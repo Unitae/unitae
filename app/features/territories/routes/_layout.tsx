@@ -1,4 +1,5 @@
 import { Outlet, useLocation } from 'react-router'
+import { canEnterTerritoriesArea } from '~/features/territories/model/area-access'
 import { getActiveCampaign, getUpcomingCampaign } from '~/features/territories/server/campaign.queries'
 import { type CampaignBannerData, CampaignModeBanner } from '~/features/territories/ui/CampaignModeBanner'
 import * as m from '~/i18n/paraglide/messages'
@@ -11,11 +12,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.territories_meta_title() }]
 }
 
-export const middleware: Route.MiddlewareFunction[] = [
-  layoutGate(
-    permissions => permissions.has(Permission.CanViewTerritories) || permissions.has(Permission.CanViewProspection),
-  ),
-]
+export const middleware: Route.MiddlewareFunction[] = [layoutGate(permissions => canEnterTerritoriesArea(permissions))]
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
