@@ -85,7 +85,7 @@ export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
         title={m.board_documents_edit_title()}
         subtitle={m.board_documents_edit_subtitle()}
         breadcrumbs={[
-          { label: m.sidebar_documents(), to: '/board/documents' },
+          { label: m.sidebar_board_manage(), to: '/board/documents' },
           { label: m.board_documents_edit_title() },
         ]}
         backTo="/board/documents"

@@ -79,7 +79,7 @@ export default function NewDocumentPage({ loaderData }: Route.ComponentProps) {
         title={m.board_documents_new_title()}
         subtitle={m.board_documents_new_subtitle()}
         breadcrumbs={[
-          { label: m.sidebar_documents(), to: '/board/documents' },
+          { label: m.sidebar_board_manage(), to: '/board/documents' },
           { label: m.board_documents_new_title() },
         ]}
         backTo="/board/documents"

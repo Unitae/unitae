@@ -31,7 +31,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     })
 
     if (section == null) {
-      throw redirect('/board/sections')
+      throw redirect('/board/documents')
     }
 
     return { section }
@@ -65,7 +65,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
     session.flash('success', m.board_sections_delete_success({ name: section.name }))
 
-    return redirect('/board/sections', {
+    return redirect('/board/documents', {
       headers: {
         'Set-Cookie': await commitSession(session),
       },

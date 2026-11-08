@@ -78,7 +78,7 @@ export default function VersionsPage({ loaderData }: Route.ComponentProps) {
         title={m.board_versions_title({ name: document.title })}
         subtitle={m.board_versions_subtitle({ count: versions.length })}
         breadcrumbs={[
-          { label: m.sidebar_documents(), to: '/board/documents' },
+          { label: m.sidebar_board_manage(), to: '/board/documents' },
           { label: m.board_versions_title({ name: document.title }) },
         ]}
         backTo="/board/documents"

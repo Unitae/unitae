@@ -50,7 +50,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
       },
     })
 
-    if (section == null) throw redirect('/board/sections')
+    if (section == null) throw redirect('/board/documents')
 
     const [roles, visibilityRoleIds, viewerRoleIds] = await Promise.all([
       db.role.findMany({
@@ -85,7 +85,10 @@ export default function EditSectionPage({ loaderData, actionData }: Route.Compon
       <PageHeader
         title={m.board_sections_edit_title()}
         subtitle={m.board_sections_edit_subtitle()}
-        breadcrumbs={[{ label: m.sidebar_sections(), to: '/board/sections' }, { label: m.board_sections_edit_title() }]}
+        breadcrumbs={[
+          { label: m.sidebar_board_manage(), to: '/board/documents' },
+          { label: m.board_sections_edit_title() },
+        ]}
         backTo="/board/sections"
         actions={
           <Button variant="destructive" size="icon" asChild>

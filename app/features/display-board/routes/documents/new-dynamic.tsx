@@ -58,7 +58,10 @@ export default function NewDynamicDocumentPage({ loaderData }: Route.ComponentPr
       <PageHeader
         title={m.board_new_dynamic_title()}
         subtitle={m.board_new_dynamic_subtitle()}
-        breadcrumbs={[{ label: m.sidebar_documents(), to: '/board/documents' }, { label: m.board_new_dynamic_title() }]}
+        breadcrumbs={[
+          { label: m.sidebar_board_manage(), to: '/board/documents' },
+          { label: m.board_new_dynamic_title() },
+        ]}
         backTo="/board/documents"
       />
 

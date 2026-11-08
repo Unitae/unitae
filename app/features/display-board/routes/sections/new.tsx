@@ -70,7 +70,10 @@ export default function NewSectionPage({ loaderData, actionData }: Route.Compone
       <PageHeader
         title={m.board_sections_new_title()}
         subtitle={m.board_sections_new_subtitle()}
-        breadcrumbs={[{ label: m.sidebar_sections(), to: '/board/sections' }, { label: m.board_sections_new_title() }]}
+        breadcrumbs={[
+          { label: m.sidebar_board_manage(), to: '/board/documents' },
+          { label: m.board_sections_new_title() },
+        ]}
         backTo="/board/sections"
       />
 

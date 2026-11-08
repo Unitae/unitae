@@ -5,7 +5,6 @@ import {
   CalendarDays,
   CalendarOff,
   FileText,
-  FolderOpen,
   Home,
   LayoutGrid,
   type LucideIcon,
@@ -29,6 +28,8 @@ export interface NavigationPermissions {
   canManageBoard: boolean
   /** The right the sections page checks; reviewing documents does not grant it. */
   canConfigureBoardSections: boolean
+  canOrganiseBoardDocuments: boolean
+  canManageDynamicBoardDocuments: boolean
   canViewPublishers: boolean
   canViewTerritories: boolean
   canViewProspection: boolean
@@ -126,18 +127,23 @@ export function buildTabBar(permissions: NavigationPermissions): NavItem[] {
 export function buildManagementSections(permissions: NavigationPermissions): NavSection[] {
   const sections: NavSection[] = []
 
-  // Each entry behind the right its page checks: documents need to upload or review them,
-  // sections need to configure them.
-  const managesDocuments = permissions.canUploadDocument || permissions.canManageBoard
-  if (managesDocuments || permissions.canConfigureBoardSections) {
-    const items: NavItem[] = [{ id: 'board-view', label: m.sidebar_board, icon: LayoutGrid, to: '/board', end: true }]
-    if (permissions.canConfigureBoardSections) {
-      items.push({ id: 'board-sections', label: m.sidebar_sections, icon: FolderOpen, to: '/board/sections' })
-    }
-    if (managesDocuments) {
-      items.push({ id: 'board-documents', label: m.sidebar_documents, icon: FileText, to: '/board/documents' })
-    }
-    sections.push({ id: 'board', label: m.sidebar_board, items })
+  // One page manages the board, documents and sections alike; it opens to whoever holds any of
+  // the rights its actions check, and shows each action only with its own.
+  const managesBoard =
+    permissions.canUploadDocument ||
+    permissions.canManageBoard ||
+    permissions.canOrganiseBoardDocuments ||
+    permissions.canConfigureBoardSections ||
+    permissions.canManageDynamicBoardDocuments
+  if (managesBoard) {
+    sections.push({
+      id: 'board',
+      label: m.sidebar_board,
+      items: [
+        { id: 'board-view', label: m.sidebar_board, icon: LayoutGrid, to: '/board', end: true },
+        { id: 'board-manage', label: m.sidebar_board_manage, icon: FileText, to: '/board/documents' },
+      ],
+    })
   }
 
   const assemblyItems: NavItem[] = []
@@ -283,6 +289,8 @@ const EVERY_PERMISSION: NavigationPermissions = {
   canUploadDocument: true,
   canManageBoard: true,
   canConfigureBoardSections: true,
+  canOrganiseBoardDocuments: true,
+  canManageDynamicBoardDocuments: true,
   canViewPublishers: true,
   canViewTerritories: true,
   canViewProspection: true,
