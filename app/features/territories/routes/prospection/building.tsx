@@ -6,6 +6,7 @@ import { buildingNotesSchema } from '~/features/territories/schemas/building.sch
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import { setBuildingNotes } from '~/features/territories/server/set-building-notes.server'
 import ArchiveBuildingToggleButton from '~/features/territories/ui/ArchiveBuildingToggleButton'
+import { BuildingTerritories } from '~/features/territories/ui/BuildingMeta'
 import BuildingProspectionInfo from '~/features/territories/ui/BuildingProspectionInfo'
 import BuildingTerritoryInfo from '~/features/territories/ui/BuildingTerritoryInfo'
 import * as m from '~/i18n/paraglide/messages'
@@ -78,6 +79,7 @@ export default function BuildingPage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={`${building.number} ${building.street}, ${building.zip}`}
         subtitle={m.prospection_building_subtitle()}
+        meta={<BuildingTerritories building={building} canViewTerritories={roles.canViewTerritories} />}
         breadcrumbs={[
           { label: m.sidebar_prospection(), to: '/territories/buildings' },
           { label: `${building.number} ${building.street}, ${building.zip}` },

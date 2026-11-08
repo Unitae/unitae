@@ -1,22 +1,23 @@
-import { getFormProps, getInputProps, useForm } from '@conform-to/react'
+import { getFormProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod/v4'
-import { Trash2 } from 'lucide-react'
+import { Building2, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { updateBuildingSchema } from '~/features/territories/schemas/building.schema'
 import { editBuilding } from '~/features/territories/server/edit-building.server'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
+import { BuildingAddressSections } from '~/features/territories/ui/BuildingAddressSections'
+import { BuildingMeta } from '~/features/territories/ui/BuildingMeta'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, requirePermission, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
-import { Card, CardContent } from '~/shared/ui/card'
-import { FormActions } from '~/shared/ui/FormActions'
+import { FormSaveBar } from '~/shared/ui/FormSaveBar'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
+import { useFormChanges } from '~/shared/ui/hooks/use-form-changes'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
-import { Input } from '~/shared/ui/input'
-import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
@@ -37,6 +38,10 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
   requirePermission(permissions, Permission.CanManageBuildings)
+  const rights = {
+    canViewProspection: permissions.has(Permission.CanViewProspection),
+    canViewTerritories: permissions.has(Permission.CanViewTerritories),
+  }
 
   return withScopeFromContext(context, async (db, congregationId) => {
     const building = await getBuildingDetails(
@@ -48,13 +53,58 @@ export function loader({ params, context }: Route.LoaderArgs) {
       throw redirect('/territories/buildings', { status: 404 })
     }
 
-    return { building }
+    return { building, rights }
   })
 }
 
 export default function EditBuildingPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { building } = loaderData
-  const { blocker, markDirty } = useUnsavedChanges()
+  const { building, rights } = loaderData
+  const { blocker, setDirty } = useUnsavedChanges()
+  const [version, setVersion] = useState(0)
+  const address = `${building.number} ${building.street}`
+
+  return (
+    <div className="flex flex-col">
+      <UnsavedChangesDialog blocker={blocker} />
+      <PageHeader
+        icon={Building2}
+        title={`${address}, ${building.zip}`}
+        meta={<BuildingMeta building={building} canViewTerritories={rights.canViewTerritories} />}
+        breadcrumbs={[
+          { label: m.sidebar_prospection(), to: rights.canViewProspection ? '/territories/buildings' : undefined },
+          { label: address, to: rights.canViewProspection ? `/territories/building/${building.id}/view` : undefined },
+          { label: m.building_address_crumb() },
+        ]}
+        actions={
+          <Button asChild variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+            <Link to={`/territories/building/${building.id}/delete`}>
+              <Trash2 />
+              {m.building_delete_button()}
+            </Link>
+          </Button>
+        }
+      />
+      <AddressForm
+        key={`${version}-${String(building.updatedAt)}`}
+        building={building}
+        actionData={actionData}
+        onDirtyChange={setDirty}
+        onCancel={() => setVersion(current => current + 1)}
+      />
+    </div>
+  )
+}
+
+interface AddressFormProps {
+  building: Route.ComponentProps['loaderData']['building']
+  actionData: Route.ComponentProps['actionData']
+  onDirtyChange: (dirty: boolean) => void
+  onCancel: () => void
+}
+
+function AddressForm({ building, actionData, onDirtyChange, onCancel }: AddressFormProps) {
+  const { ref, changes } = useFormChanges()
+  useEffect(() => onDirtyChange(changes > 0), [changes, onDirtyChange])
   useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -64,84 +114,17 @@ export default function EditBuildingPage({ loaderData, actionData }: Route.Compo
   })
 
   return (
-    <div className="flex flex-col gap-6">
-      <UnsavedChangesDialog blocker={blocker} />
-      <PageHeader
-        title={`Modification du ${building.number} ${building.street}, ${building.zip}`}
-        subtitle={m.prospection_edit_building_subtitle()}
-        breadcrumbs={[
-          { label: m.sidebar_prospection(), to: '/territories/buildings' },
-          { label: m.prospection_building_edit_title() },
-        ]}
-        backTo="/territories/buildings"
-        actions={
-          <Button variant="destructive" size="icon" asChild>
-            <Link to={`/territories/building/${building.id}/delete`} title={m.prospection_edit_building_delete_title()}>
-              <Trash2 className="size-4" />
-            </Link>
+    <Form method="post" {...getFormProps(form)} ref={ref} className="flex flex-col pb-24">
+      <BuildingAddressSections fields={fields} defaults={building} />
+      {changes > 0 && (
+        <FormSaveBar changes={changes}>
+          <Button type="button" variant="ghost" onClick={onCancel}>
+            {m.common_cancel()}
           </Button>
-        }
-      />
-
-      <Card>
-        <CardContent className="pt-6">
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={markDirty}>
-            <h2 className="font-semibold text-lg">{m.prospection_building_identification()}</h2>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor={fields.number.id}>{m.territories_form_number()}</Label>
-              <Input
-                {...getInputProps(fields.number, { type: 'text' })}
-                placeholder={m.prospection_new_building_number_placeholder()}
-                defaultValue={building.number}
-              />
-              {fields.number.errors && <p className="text-destructive text-sm">{fields.number.errors}</p>}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor={fields.street.id}>{m.prospection_new_building_street_label()}</Label>
-              <Input
-                {...getInputProps(fields.street, { type: 'text' })}
-                placeholder={m.prospection_new_building_street_placeholder()}
-                defaultValue={building.street}
-              />
-              {fields.street.errors && <p className="text-destructive text-sm">{fields.street.errors}</p>}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor={fields.zip.id}>{m.prospection_new_building_zip_label()}</Label>
-              <Input
-                {...getInputProps(fields.zip, { type: 'text' })}
-                placeholder={m.prospection_new_building_zip_placeholder()}
-                defaultValue={building.zip}
-              />
-              {fields.zip.errors && <p className="text-destructive text-sm">{fields.zip.errors}</p>}
-            </div>
-            <div className="flex gap-3">
-              <div className="flex flex-1 flex-col gap-1.5">
-                <Label htmlFor={fields.latitude.id}>{m.prospection_table_latitude()}</Label>
-                <Input
-                  {...getInputProps(fields.latitude, { type: 'number' })}
-                  defaultValue={building.latitude ?? ''}
-                  step={0.0000001}
-                />
-                {fields.latitude.errors && <p className="text-destructive text-sm">{fields.latitude.errors}</p>}
-              </div>
-              <div className="flex flex-1 flex-col gap-1.5">
-                <Label htmlFor={fields.longitude.id}>{m.prospection_table_longitude()}</Label>
-                <Input
-                  {...getInputProps(fields.longitude, { type: 'number' })}
-                  defaultValue={building.longitude ?? ''}
-                  step={0.0000001}
-                />
-                {fields.longitude.errors && <p className="text-destructive text-sm">{fields.longitude.errors}</p>}
-              </div>
-            </div>
-
-            <FormActions>
-              <SubmitButton>{m.prospection_edit_building_submit()}</SubmitButton>
-            </FormActions>
-          </Form>
-        </CardContent>
-      </Card>
-    </div>
+          <SubmitButton>{m.prospection_edit_building_submit()}</SubmitButton>
+        </FormSaveBar>
+      )}
+    </Form>
   )
 }
 

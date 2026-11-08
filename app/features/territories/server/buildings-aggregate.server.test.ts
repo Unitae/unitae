@@ -2,11 +2,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
+    building: { findMany: vi.fn() },
     buildingEntrance: { findUnique: vi.fn(), update: vi.fn(), create: vi.fn(), deleteMany: vi.fn() },
     buildingResidentialData: { aggregate: vi.fn() },
     buildingAccess: { create: vi.fn() },
     buildingResidentialData_unused: undefined,
   },
+}))
+
+vi.mock('~/shared/domain/audit.server', () => ({
+  AuditAction: { BuildingEntranceSharingChanged: 'building.entrance_sharing.changed' },
+  audit: vi.fn(),
 }))
 
 vi.mock('~/shared/infra/logger.server', () => ({
@@ -22,6 +28,7 @@ const mockDb = db as typeof db & {
 
 beforeEach(() => {
   vi.resetAllMocks()
+  vi.mocked(db.building.findMany).mockResolvedValue([] as never)
   vi.mocked(db.buildingEntrance.update).mockResolvedValue({} as never)
   vi.mocked(db.buildingEntrance.deleteMany).mockResolvedValue({ count: 0 } as never)
 })
@@ -42,7 +49,7 @@ describe('aggregate recalculation', () => {
       _sum: { homes: 12, phones: 3, liberals: 1 },
     } as never)
 
-    await updateBuildingsInEntrance(db as never, 1, [10], 5)
+    await updateBuildingsInEntrance(db as never, 1, [10], 5, 1)
 
     const updateCalls = vi.mocked(db.buildingEntrance.update).mock.calls
     const aggregateUpdateCall = updateCalls.find(call => call[0].data && 'homes' in call[0].data)
@@ -65,7 +72,7 @@ describe('aggregate recalculation', () => {
       _sum: { homes: null, phones: null, liberals: null },
     } as never)
 
-    await updateBuildingsInEntrance(db as never, 2, [20], 5)
+    await updateBuildingsInEntrance(db as never, 2, [20], 5, 1)
 
     const updateCalls = vi.mocked(db.buildingEntrance.update).mock.calls
     const aggregateUpdateCall = updateCalls.find(call => call[0].data && 'homes' in call[0].data)
@@ -88,7 +95,7 @@ describe('aggregate recalculation', () => {
       _sum: { homes: 0, phones: 45, liberals: 7 },
     } as never)
 
-    await updateBuildingsInEntrance(db as never, 3, [30], 5)
+    await updateBuildingsInEntrance(db as never, 3, [30], 5, 1)
 
     const updateCalls = vi.mocked(db.buildingEntrance.update).mock.calls
     const aggregateUpdateCall = updateCalls.find(call => call[0].data && 'homes' in call[0].data)
