@@ -1,9 +1,8 @@
 import { type DashboardVisibility, dashboardVisibility } from '~/features/dashboard/model/dashboard-visibility'
 import { type GroupSummary, summarizeGroup } from '~/features/dashboard/model/group-summary'
 import {
+  getBoardDocuments,
   getConflictingAssignments,
-  getRecentDocuments,
-  getUnreadDocumentCount,
   getUpcomingAbsences,
   getUserTerritories,
 } from '~/features/dashboard/server/dashboard.server'
@@ -88,8 +87,7 @@ export async function loadDashboard(db: TransactionClient, context: DashboardCon
     absences,
     meeting,
     responsibleConflicts,
-    recentDocuments,
-    unreadDocuments,
+    boardDocuments,
     programmes,
     territoryFigures,
     reportProgress,
@@ -116,8 +114,7 @@ export async function loadDashboard(db: TransactionClient, context: DashboardCon
     when(visibility.responsibleConflicts, 'responsible-conflicts', () =>
       getResponsibleConflicts(db, account.id, congregationId, permissions.has(Permission.CanManagePrograms)),
     ),
-    when(visibility.documents, 'documents', () => getRecentDocuments(db, account.id, congregationId)),
-    when(visibility.documents, 'unread-count', () => getUnreadDocumentCount(db, account.id, congregationId)),
+    when(visibility.documents, 'documents', () => getBoardDocuments(db, account.id, congregationId)),
     loadOpenParts(),
     block(visibility.territories, 'territory-figures', async () => {
       // The trend is extra: if it fails, the figures still show, without their curve.
@@ -174,7 +171,7 @@ export async function loadDashboard(db: TransactionClient, context: DashboardCon
     absences,
     meeting,
     responsibleConflicts,
-    documents: visibility.documents ? { data: documentsData(recentDocuments, unreadDocuments) } : null,
+    documents: visibility.documents ? { data: boardDocuments } : null,
     programmes,
     territories: territoryFigures,
     activity: reportProgress == null ? null : { progress: reportProgress, pioneers },
@@ -205,10 +202,6 @@ function personalBlocks<T, A, D>(found: {
     needsCalendar: found.calendarFeed === false,
     dayoffConflict: found.dayoffConflict,
   }
-}
-
-function documentsData<T>(recent: T | null, unread: number | null) {
-  return recent == null ? null : { recent, unread: unread ?? 0 }
 }
 
 // « Premiers pas » lists only what is still to do, and closes for good once dismissed or done.

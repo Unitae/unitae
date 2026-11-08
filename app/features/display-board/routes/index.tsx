@@ -1,19 +1,18 @@
-import { FileText, FolderOpen, Megaphone } from 'lucide-react'
-import { Link } from 'react-router'
-import { getContentVersion, getDynamicPreview } from '~/features/display-board/server/dynamic-documents.server'
-import { buildSectionVisibilityFilter } from '~/features/display-board/server/section-visibility.server'
+import { SectionHeading, SegmentedControl } from '@unitae/ui'
+import { CheckCheck, FileText } from 'lucide-react'
+import { Link, useSearchParams } from 'react-router'
+import { type BoardCard as BoardCardData, loadBoardHome } from '~/features/display-board/server/board-home.queries'
+import { BoardCard } from '~/features/display-board/ui/BoardCard'
 import { BoardSection } from '~/features/display-board/ui/BoardSection'
-import { DocumentCard, type DocumentCardItem } from '~/features/display-board/ui/DocumentCard'
 import * as m from '~/i18n/paraglide/messages'
 import {
+  congregationContext,
   currentAccountContext,
   permissionsContext,
   requirePermission,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
-import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
-import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { usePersistedState } from '~/shared/ui/hooks/use-persisted-state'
@@ -25,275 +24,130 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: `Tableau d'affichage - Unitae` }]
 }
 
-const visibleNow = () => {
-  const now = new Date()
-  return {
-    OR: [
-      { visibleFrom: { lte: now }, visibleUntil: { gte: now } },
-      { visibleFrom: { lte: now }, visibleUntil: null },
-    ],
-  }
-}
-
-export function loader({ context }: Route.LoaderArgs) {
+export async function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.CanViewBoard)
-
   const currentUser = context.get(currentAccountContext)
-  const canUploadDocument = permissions.has(Permission.CanUploadBoardDocuments)
-  const canManageBoard = permissions.has(Permission.CanReviewBoardDocuments)
+  const { timezone } = context.get(congregationContext)
 
-  return withScopeFromContext(context, async db => {
-    const congregationId = currentUser.congregationId
+  const home = await withScopeFromContext(context, db =>
+    loadBoardHome(db, { userId: currentUser.id, congregationId: currentUser.congregationId, now: new Date() }),
+  )
 
-    const sectionVisibility = await buildSectionVisibilityFilter(db, currentUser.id, congregationId)
-
-    const folders = await db.boardSection.findMany({
-      where: { congregationId, ...sectionVisibility },
-      include: {
-        documents: {
-          orderBy: { order: 'asc' },
-          where: {
-            congregationId,
-            ...visibleNow(),
-          },
-          include: {
-            viewedBy: {
-              where: { id: { equals: currentUser.id } },
-            },
-            _count: { select: { versions: true } },
-          },
-        },
-      },
-      orderBy: { order: 'asc' },
-    })
-
-    const dynamicDocuments = await db.boardDynamicDocumentSettings.findMany({
-      where: {
-        congregationId,
-        ...visibleNow(),
-        section: sectionVisibility,
-      },
-      include: {
-        views: {
-          where: { userId: currentUser.id },
-        },
-      },
-      orderBy: { order: 'asc' },
-    })
-
-    const hightlightedDocuments = await db.boardDocument.findMany({
-      where: {
-        congregationId,
-        isHighlighted: true,
-        ...visibleNow(),
-        section: sectionVisibility,
-      },
-      orderBy: { order: 'asc' },
-      include: {
-        viewedBy: {
-          where: { id: { equals: currentUser.id } },
-        },
-        _count: { select: { versions: true } },
-      },
-    })
-
-    const highlightedDynamicDocuments = await db.boardDynamicDocumentSettings.findMany({
-      where: {
-        congregationId,
-        isHighlighted: true,
-        ...visibleNow(),
-        section: sectionVisibility,
-      },
-      include: {
-        views: {
-          where: { userId: currentUser.id },
-        },
-      },
-      orderBy: { order: 'asc' },
-    })
-
-    // Build dynamic doc card items with unread computation and previews
-    const allDynamicDocs = [...dynamicDocuments, ...highlightedDynamicDocuments]
-    const uniqueDynamicDocs = allDynamicDocs.filter((d, i, arr) => arr.findIndex(x => x.id === d.id) === i)
-    const [contentVersionEntries, previewEntries] = await Promise.all([
-      Promise.all(
-        uniqueDynamicDocs.map(
-          async d =>
-            [d.id, await getContentVersion(db, d.dynamicType, d.dynamicRef, congregationId, d.dynamicConfig)] as const,
-        ),
-      ),
-      Promise.all(
-        uniqueDynamicDocs.map(
-          async d =>
-            [d.id, await getDynamicPreview(db, d.dynamicType, d.dynamicRef, congregationId, d.dynamicConfig)] as const,
-        ),
-      ),
-    ])
-    const contentVersions = new Map(contentVersionEntries)
-    const dynamicPreviews = new Map(previewEntries)
-
-    const buildDynamicCard = (d: (typeof dynamicDocuments)[number]): DocumentCardItem => ({
-      kind: 'dynamic',
-      id: d.id,
-      title: d.title,
-      createdAt: d.createdAt,
-      dynamicType: d.dynamicType,
-      preview: dynamicPreviews.get(d.id) ?? null,
-    })
-
-    const isDynamicAlreadyViewed = (d: (typeof dynamicDocuments)[number]): boolean => {
-      const viewedAt = d.views[0]?.viewedAt ?? null
-      if (viewedAt == null) return false
-      const contentVersion = contentVersions.get(d.id) ?? null
-      if (contentVersion == null) return true
-      return viewedAt >= contentVersion
-    }
-
-    logger.info(
-      `Loading board. User ID: ${currentUser.id}. ${canUploadDocument ? 'Has' : 'Does NOT have'} rights to update the board.`,
-    )
-
-    return {
-      folders: folders.map(folder => {
-        const pdfItems = folder.documents.map(d => ({
-          kind: 'pdf' as const,
-          id: d.id,
-          title: d.title,
-          createdAt: d.createdAt,
-          thumbnailUri: d.thumbnailUri,
-          order: d.order,
-          alreadyViewed: d.viewedBy.length > 0,
-          hasUpdate: d._count.versions > 0,
-        }))
-        const dynItems = dynamicDocuments
-          .filter(d => d.sectionId === folder.id)
-          .map(d => ({
-            ...buildDynamicCard(d),
-            order: d.order,
-            alreadyViewed: isDynamicAlreadyViewed(d),
-          }))
-        const items = [...pdfItems, ...dynItems].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-        return {
-          id: folder.id,
-          name: folder.name,
-          order: folder.order,
-          items,
-        }
-      }),
-      highlighted: [
-        ...hightlightedDocuments.map(d => ({
-          kind: 'pdf' as const,
-          id: d.id,
-          title: d.title,
-          createdAt: d.createdAt,
-          thumbnailUri: d.thumbnailUri,
-          alreadyViewed: d.viewedBy.length > 0,
-          hasUpdate: d._count.versions > 0,
-        })),
-        ...highlightedDynamicDocuments.map(d => ({
-          ...buildDynamicCard(d),
-          alreadyViewed: isDynamicAlreadyViewed(d),
-        })),
-      ],
-      canUploadDocument,
-      canManageBoard,
-    }
-  })
+  return {
+    ...home,
+    timeZone: timezone,
+    // Each link behind the right its page checks.
+    canManageDocuments:
+      permissions.has(Permission.CanUploadBoardDocuments) || permissions.has(Permission.CanReviewBoardDocuments),
+    canConfigureSections: permissions.has(Permission.CanConfigureBoardSections),
+  }
 }
 
-export default function BoardLayout({ loaderData }: Route.ComponentProps) {
-  const { folders, highlighted, canUploadDocument, canManageBoard } = loaderData
+type Filter = 'all' | 'unread'
+
+export default function BoardPage({ loaderData }: Route.ComponentProps) {
+  const { highlighted, sections, unreadCount, timeZone, canManageDocuments, canConfigureSections } = loaderData
+  const [searchParams, setSearchParams] = useSearchParams()
   const [collapsed, setCollapsed] = usePersistedState<Record<number, boolean>>('board-collapsed', {})
+  const filter: Filter = searchParams.get('vue') === 'non-lus' ? 'unread' : 'all'
 
-  const visibleFolders = folders.filter(f => f.items.length > 0)
-
-  const toggleCollapse = (folderId: number) => {
-    setCollapsed({ ...collapsed, [folderId]: !collapsed[folderId] })
-  }
-
-  if (visibleFolders.length === 0 && highlighted.length === 0) {
-    return (
-      <div className="flex flex-col gap-6">
-        {canManageBoard ? (
-          <EmptyState
-            icon={FileText}
-            title={m.board_empty_manager_title()}
-            description={m.board_empty_manager_description()}
-            action={
-              <Button asChild>
-                <Link to="./sections">{m.board_empty_manager_action()}</Link>
-              </Button>
-            }
-          />
-        ) : (
-          <EmptyState icon={FileText} title={m.board_empty_title()} description={m.board_empty_description()} />
-        )}
-      </div>
-    )
-  }
+  const keep = (cards: BoardCardData[]) => (filter === 'unread' ? cards.filter(card => card.unread) : cards)
+  const shownHighlighted = keep(highlighted)
+  const shownSections = sections
+    .map(section => ({ ...section, cards: keep(section.cards) }))
+    .filter(section => section.cards.length > 0)
+  const isEmpty = highlighted.length === 0 && sections.length === 0
 
   return (
-    <div className="flex flex-col gap-6">
+    <>
       <PageHeader
         title={m.board_page_title()}
+        controls={
+          isEmpty ? undefined : (
+            <SegmentedControl
+              aria-label={m.board_filter_label()}
+              size="sm"
+              value={filter}
+              onValueChange={value =>
+                setSearchParams(value === 'unread' ? { vue: 'non-lus' } : {}, {
+                  replace: true,
+                  preventScrollReset: true,
+                })
+              }
+              options={[
+                { value: 'all', label: m.board_filter_all() },
+                { value: 'unread', label: m.board_filter_unread({ count: unreadCount }) },
+              ]}
+            />
+          )
+        }
         actions={
-          canUploadDocument || canManageBoard ? (
-            <>
-              {canManageBoard && (
-                <Button variant="outline" size="sm" asChild>
-                  <Link to="./sections">
-                    <FolderOpen className="size-4" />
-                    {m.board_manage_sections()}
-                  </Link>
-                </Button>
-              )}
-              <Button variant="outline" size="sm" asChild>
-                <Link to="./documents">
-                  <FileText className="size-4" />
+          <>
+            {/* On a phone both live in the « Plus » sheet. */}
+            {canConfigureSections && (
+              <Button variant="ghost" size="sm" asChild className="max-md:hidden">
+                <Link to="/board/sections">{m.board_manage_sections()}</Link>
+              </Button>
+            )}
+            {canManageDocuments && (
+              <Button variant="outline" size="sm" asChild className="max-md:hidden">
+                <Link to="/board/documents">
+                  <FileText className="size-4" aria-hidden="true" />
                   {m.board_manage_documents()}
                 </Link>
               </Button>
-            </>
-          ) : undefined
+            )}
+          </>
         }
       />
 
-      {highlighted.length > 0 && (
-        <section
-          className="animate-fade-in-up rounded-xl border border-primary/20 bg-primary/5 p-4"
-          style={{ animationDelay: '100ms' }}
-        >
-          <div className="mb-3 flex items-center gap-2">
-            <Megaphone className="size-5 text-primary" />
-            <h2 className="font-bold font-display text-lg tracking-tight">{m.board_highlighted_heading()}</h2>
-            <Badge variant="outline" className="text-xs">
-              {highlighted.length}
-            </Badge>
-          </div>
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-3 max-sm:grid-cols-1">
-            {highlighted.map(file => (
-              <DocumentCard key={`${file.kind}-${file.id}`} file={file} alreadyViewed={file.alreadyViewed} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {visibleFolders.map((folder, index) => (
-        <div
-          key={folder.id}
-          className="animate-fade-in-up"
-          style={{ animationDelay: `${(index + (highlighted.length > 0 ? 2 : 1)) * 100}ms` }}
-        >
-          <BoardSection
-            name={folder.name}
-            items={folder.items}
-            isCollapsed={collapsed[folder.id] ?? false}
-            onToggleCollapse={() => toggleCollapse(folder.id)}
-            canManageBoard={canManageBoard}
-          />
+      {isEmpty ? (
+        <EmptyBoard canConfigureSections={canConfigureSections} />
+      ) : shownHighlighted.length === 0 && shownSections.length === 0 ? (
+        <EmptyState icon={CheckCheck} title={m.board_all_read_title()} description={m.board_all_read_description()} />
+      ) : (
+        <div className="flex flex-col gap-9">
+          {shownHighlighted.length > 0 && (
+            <section>
+              <SectionHeading title={m.board_highlighted_heading()} meta={shownHighlighted.length} className="mb-3" />
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,22rem),1fr))] gap-4 max-sm:gap-2">
+                {shownHighlighted.map(card => (
+                  <BoardCard key={`${card.kind}-${card.id}`} card={card} timeZone={timeZone} featured />
+                ))}
+              </div>
+            </section>
+          )}
+          {shownSections.map(section => (
+            <BoardSection
+              key={section.id}
+              name={section.name}
+              cards={section.cards}
+              collapsed={collapsed[section.id] ?? false}
+              onToggle={() => setCollapsed({ ...collapsed, [section.id]: !collapsed[section.id] })}
+              timeZone={timeZone}
+            />
+          ))}
         </div>
-      ))}
-    </div>
+      )}
+    </>
+  )
+}
+
+function EmptyBoard({ canConfigureSections }: { canConfigureSections: boolean }) {
+  if (!canConfigureSections) {
+    return <EmptyState icon={FileText} title={m.board_empty_title()} description={m.board_empty_description()} />
+  }
+  return (
+    <EmptyState
+      icon={FileText}
+      title={m.board_empty_manager_title()}
+      description={m.board_empty_manager_description()}
+      action={
+        <Button asChild>
+          <Link to="/board/sections">{m.board_empty_manager_action()}</Link>
+        </Button>
+      }
+    />
   )
 }

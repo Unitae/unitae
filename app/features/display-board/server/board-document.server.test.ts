@@ -3,12 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 vi.mock('~/shared/infra/db.server', () => ({ unscopedDb: { auditLog: { create: vi.fn() } } }))
 
-import {
-  createDynamicDocument,
-  deleteDynamicDocument,
-  markDocumentAsViewed,
-  updateBoardDocument,
-} from './board-document.server'
+import { createDynamicDocument, deleteDynamicDocument, updateBoardDocument } from './board-document.server'
 
 const mockDb = {
   boardDocument: {
@@ -50,22 +45,6 @@ describe('updateBoardDocument', () => {
         visibleUntil,
         isHighlighted: true,
       },
-    })
-  })
-})
-
-describe('markDocumentAsViewed', () => {
-  it('connects the user to the viewedBy relation and selects id and title', async () => {
-    const expected = { id: 7, title: 'Programme' }
-    mockDb.boardDocument.update.mockResolvedValue(expected)
-
-    const result = await markDocumentAsViewed(mockDb as never, 7, 42, 10)
-
-    expect(result).toEqual(expected)
-    expect(mockDb.boardDocument.update).toHaveBeenCalledWith({
-      where: { id_congregationId: { id: 7, congregationId: 10 } },
-      data: { viewedBy: { connect: { id: 42 } } },
-      select: { id: true, title: true },
     })
   })
 })

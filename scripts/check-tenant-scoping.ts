@@ -56,6 +56,7 @@ export const TENANT_MODELS = [
   'boardSectionVisibilityRole',
   'boardDocument',
   'boardDocumentVersion',
+  'boardDocumentView',
   'boardDynamicDocumentSettings',
   'territory',
   'territoryPerimeter',

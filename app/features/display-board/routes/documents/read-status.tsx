@@ -45,15 +45,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
       select: {
         id: true,
         title: true,
-        viewedBy: {
-          select: {
-            id: true,
-            firstname: true,
-            lastname: true,
-            anonymizedAt: true,
-            member: { select: { firstname: true, lastname: true, anonymizedAt: true } },
-          },
-        },
+        views: { select: { userId: true } },
       },
     })
 
@@ -78,7 +70,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
       anonymizedAt: u.member?.anonymizedAt ?? u.anonymizedAt,
     })
 
-    const viewedIds = new Set(document.viewedBy.map(u => u.id))
+    const viewedIds = new Set(document.views.map(v => v.userId))
     const readUsers = allUsers.filter(u => viewedIds.has(u.id)).map(flatten)
     const unreadUsers = allUsers.filter(u => !viewedIds.has(u.id)).map(flatten)
 

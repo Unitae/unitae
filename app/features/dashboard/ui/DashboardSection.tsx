@@ -1,4 +1,4 @@
-import { StatusIcon } from '@unitae/ui'
+import { SectionHeading, StatusIcon } from '@unitae/ui'
 import type { LucideIcon } from 'lucide-react'
 import { type ReactNode, useId } from 'react'
 import { Link } from 'react-router'
@@ -24,22 +24,26 @@ export function DashboardSection({ title, meta, link, actions, children, classNa
   const headingId = useId()
   return (
     <section aria-labelledby={headingId} className={cn('flex min-w-0 flex-col gap-2.5', className)}>
-      <div className="flex min-h-7 flex-wrap items-center gap-x-2.5 gap-y-1">
-        <h2 id={headingId} className="font-semibold text-[15px] leading-snug">
-          {title}
-        </h2>
-        {meta != null && <span className="text-faint text-sm tabular-nums">{meta}</span>}
-        <span className="flex-1" />
-        {actions}
-        {link && (
-          <Link
-            to={link.to}
-            className="rounded-sm font-medium text-brand-text text-sm underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none"
-          >
-            {link.label}
-          </Link>
-        )}
-      </div>
+      <SectionHeading
+        id={headingId}
+        title={title}
+        meta={meta}
+        actions={
+          actions != null || link ? (
+            <>
+              {actions}
+              {link && (
+                <Link
+                  to={link.to}
+                  className="rounded-sm font-medium text-brand-text text-sm underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none"
+                >
+                  {link.label}
+                </Link>
+              )}
+            </>
+          ) : undefined
+        }
+      />
       <div className="overflow-hidden rounded-lg border border-border bg-card">{children}</div>
     </section>
   )

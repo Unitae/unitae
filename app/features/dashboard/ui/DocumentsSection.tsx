@@ -1,7 +1,7 @@
 import { FilePlus2, FileText } from 'lucide-react'
 import { Link } from 'react-router'
 
-import type { getRecentDocuments } from '~/features/dashboard/server/dashboard.server'
+import type { getBoardDocuments } from '~/features/dashboard/server/dashboard.server'
 import {
   DashboardSection,
   PanelEmpty,
@@ -13,7 +13,7 @@ import * as m from '~/i18n/paraglide/messages'
 import { RelativeTime } from '~/shared/ui/RelativeTime'
 import { cn } from '~/shared/utils/utils'
 
-type Documents = Awaited<ReturnType<typeof getRecentDocuments>>
+type Documents = Awaited<ReturnType<typeof getBoardDocuments>>['recent']
 
 /** The latest board documents; unread ones carry a dot and stay in full weight. */
 export function DocumentsSection({ documents, canUpload }: { documents: Documents | null; canUpload: boolean }) {

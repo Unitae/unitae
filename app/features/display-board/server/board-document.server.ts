@@ -240,21 +240,30 @@ export async function updateBoardDocument(
   return document
 }
 
-export function markDocumentAsViewed(
+/**
+ * Records that this person opened the document, when, and returns it; null when it is not this
+ * congregation's. Opening it again moves the date forward, so a later replacement of the file makes
+ * it unread again.
+ */
+export async function markDocumentAsViewed(
   db: TransactionClient,
   documentId: number,
   userId: number,
   congregationId: number,
+  now: Date = new Date(),
 ) {
-  return db.boardDocument.update({
-    where: {
-      id_congregationId: { id: documentId, congregationId },
-    },
-    data: {
-      viewedBy: { connect: { id: userId } },
-    },
+  const document = await db.boardDocument.findUnique({
+    where: { id_congregationId: { id: documentId, congregationId } },
     select: { id: true, title: true },
   })
+  if (!document) return null
+
+  await db.boardDocumentView.upsert({
+    where: { documentId_userId: { documentId, userId } },
+    create: { documentId, userId, congregationId, viewedAt: now },
+    update: { viewedAt: now },
+  })
+  return document
 }
 
 export function createDynamicDocument(

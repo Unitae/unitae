@@ -1,6 +1,6 @@
-import { ArrowLeft, Download, Info, Search, X } from 'lucide-react'
+import { Download, Info, Search, X } from 'lucide-react'
 import { type CSSProperties, useRef, useState } from 'react'
-import { Link, redirect } from 'react-router'
+import { redirect } from 'react-router'
 import { BOARD_ACCENT_COLOR } from '~/features/display-board/model/board-appearance'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
 import { isPrintableDynamicDocument } from '~/features/display-board/model/printable-document'
@@ -13,6 +13,7 @@ import {
 } from '~/features/display-board/server/dynamic-documents.server'
 import { filterDynamicDataToEvent, readEventIdParam } from '~/features/display-board/server/event-filter.server'
 import { buildSectionVisibilityFilter } from '~/features/display-board/server/section-visibility.server'
+import { BoardViewerHeader, formatViewerDate } from '~/features/display-board/ui/BoardViewerHeader'
 import { BoardMasthead } from '~/features/display-board/ui/dynamic/BoardMasthead'
 import { BOARD_WEB_FONT_STACK, BOARD_WEB_FONTS_HREF } from '~/features/display-board/ui/dynamic/board-web-fonts'
 import { DynamicDocumentView } from '~/features/display-board/ui/dynamic/DynamicDocumentView'
@@ -72,6 +73,7 @@ export function loader({ params, request, context }: Route.LoaderArgs) {
         congregationId,
         section: await buildSectionVisibilityFilter(db, currentUser.id, congregationId),
       },
+      include: { section: { select: { name: true } } },
     })
 
     if (!settings) throw redirect('/board')
@@ -98,13 +100,32 @@ export function loader({ params, request, context }: Route.LoaderArgs) {
 
     const appearance = data ? parseAppearance(data.type, settings.appearance) : null
 
-    return { settings, data, contentVersion, requestedEventMissing, pdfUrl, printable, appearance, congregationName }
+    return {
+      settings,
+      data,
+      contentVersion,
+      requestedEventMissing,
+      pdfUrl,
+      printable,
+      appearance,
+      congregationName,
+      timeZone: timezone,
+    }
   })
 }
 
 export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) {
-  const { settings, data, contentVersion, requestedEventMissing, pdfUrl, printable, appearance, congregationName } =
-    loaderData
+  const {
+    settings,
+    data,
+    contentVersion,
+    requestedEventMissing,
+    pdfUrl,
+    printable,
+    appearance,
+    congregationName,
+    timeZone,
+  } = loaderData
   const isProgramme = data?.type === DynamicType.Programme
 
   const [searchOpen, setSearchOpen] = useState(false)
@@ -114,74 +135,45 @@ export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) 
 
   return (
     <div data-full-bleed="" className="-m-4 flex h-[calc(100vh-2rem)] flex-col md:-m-6 md:h-[calc(100vh-3rem)]">
-      <div className="flex items-center justify-between gap-2 border-b bg-background px-4 py-3 md:px-6">
-        <div className="flex min-w-0 items-center gap-2">
-          <Button variant="ghost" size="icon" asChild>
-            <Link to="/board" title={m.board_viewer_back()}>
-              <ArrowLeft className="size-4" />
-            </Link>
-          </Button>
-          <h1 className="truncate font-semibold text-sm">{settings.title}</h1>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {contentVersion != null && (
-            <span className="hidden text-muted-foreground text-xs sm:inline">
-              {m.board_viewer_updated()} <RelativeTime date={contentVersion} />
-            </span>
-          )}
-          {printable && (
-            // Same design as the PDF viewer's download button. A plain anchor, not a Link: the
-            // target is a PDF resource whose Content-Disposition triggers the download without
-            // leaving the page. Hidden when the route would refuse it: an empty document prints
-            // a blank page.
-            <Button variant="outline" size="sm" asChild>
-              <a href={pdfUrl}>
-                <Download className="mr-2 size-4" />
-                <span className="max-sm:sr-only">{m.board_viewer_download_pdf()}</span>
-              </a>
-            </Button>
-          )}
-          {isProgramme && (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden"
-                onClick={() => {
-                  setSearchOpen(prev => !prev)
-                  if (searchOpen) setSearchValue('')
-                }}
-                aria-label={m.board_viewer_search_toggle()}
-              >
-                {searchOpen ? <X className="size-4" /> : <Search className="size-4" />}
+      <BoardViewerHeader
+        sectionName={settings.section.name}
+        title={settings.title}
+        facts={[
+          ...(contentVersion != null
+            ? [
+                <>
+                  {m.board_viewer_updated()} <RelativeTime date={contentVersion} />
+                </>,
+              ]
+            : []),
+          ...(settings.visibleUntil
+            ? [m.board_viewer_shown_until({ date: formatViewerDate(settings.visibleUntil, timeZone) })]
+            : []),
+        ]}
+        actions={
+          <>
+            {isProgramme && (
+              <ProgrammeSearch
+                open={searchOpen}
+                value={searchValue}
+                onOpenChange={setSearchOpen}
+                onValueChange={setSearchValue}
+              />
+            )}
+            {printable && (
+              // A plain anchor, not a Link: the target is a PDF resource whose Content-Disposition
+              // triggers the download without leaving the page. Hidden when the route would refuse
+              // it: an empty document prints a blank page.
+              <Button variant="outline" size="sm" asChild>
+                <a href={pdfUrl}>
+                  <Download className="size-4" aria-hidden="true" />
+                  {m.board_viewer_download_pdf()}
+                </a>
               </Button>
-              <div className={cn('relative hidden md:block', searchOpen && '!block')}>
-                <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  type="search"
-                  value={searchValue}
-                  onChange={e => setSearchValue(e.target.value)}
-                  placeholder={m.board_viewer_search_placeholder()}
-                  className="w-48 pr-9 pl-9 md:w-56"
-                  aria-label={m.board_viewer_search_toggle()}
-                />
-                {searchValue.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    className="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground"
-                    onClick={() => setSearchValue('')}
-                  >
-                    <X className="size-3.5" />
-                    <span className="sr-only">{m.common_clear()}</span>
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+            )}
+          </>
+        }
+      />
 
       <div
         className="flex-1 overflow-auto"
@@ -208,7 +200,7 @@ export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) 
               so beats rendering the whole programme as though it were the one
               that was asked for. */}
           {requestedEventMissing && (
-            <p className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-amber-900 text-sm dark:text-amber-200">
+            <p className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning-soft px-3 py-2 text-sm text-warning-text">
               <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
               {m.board_viewer_event_not_here()}
             </p>
@@ -221,6 +213,55 @@ export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) 
             highlightQuery={debouncedSearch}
             scrollContainerRef={scrollContainerRef}
           />
+        )}
+      </div>
+    </div>
+  )
+}
+
+interface ProgrammeSearchProps {
+  open: boolean
+  value: string
+  onOpenChange: (open: boolean) => void
+  onValueChange: (value: string) => void
+}
+
+/** Finding a name in a programme: always open from md up, behind a button on a phone. */
+function ProgrammeSearch({ open, value, onOpenChange, onValueChange }: ProgrammeSearchProps) {
+  return (
+    <div className="flex items-center gap-2">
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        className="md:hidden"
+        onClick={() => {
+          onOpenChange(!open)
+          if (open) onValueChange('')
+        }}
+        aria-label={m.board_viewer_search_toggle()}
+      >
+        {open ? <X className="size-4" /> : <Search className="size-4" />}
+      </Button>
+      <div className={cn('relative hidden md:block', open && '!block')}>
+        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          type="search"
+          value={value}
+          onChange={e => onValueChange(e.target.value)}
+          placeholder={m.board_viewer_search_placeholder()}
+          className="h-8 w-48 pr-9 pl-9 md:w-56"
+          aria-label={m.board_viewer_search_toggle()}
+        />
+        {value.length > 0 && (
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            className="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground"
+            onClick={() => onValueChange('')}
+          >
+            <X className="size-3.5" />
+            <span className="sr-only">{m.common_clear()}</span>
+          </Button>
         )}
       </div>
     </div>

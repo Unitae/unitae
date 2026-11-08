@@ -62,7 +62,7 @@ function getNavigationItems(permissions: AppSidebarPermissions): CommandItem[] {
   if (permissions.canViewBoard) {
     items.push({ id: 'board', label: m.sidebar_board(), icon: LayoutGrid, to: '/board' })
   }
-  if (permissions.canManageBoard) {
+  if (permissions.canConfigureBoardSections) {
     items.push({ id: 'sections', label: m.sidebar_sections(), icon: FolderOpen, to: '/board/sections' })
   }
   if (permissions.canUploadDocument || permissions.canManageBoard) {

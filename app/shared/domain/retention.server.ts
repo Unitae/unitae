@@ -40,51 +40,33 @@ export async function cleanupOldWithdrawnConsents(): Promise<number> {
 }
 
 /**
- * Supprime les entrees de suivi de lecture (viewedBy) pour les documents
- * dont la visibilite a expire depuis plus d'un an.
+ * Supprime le suivi de lecture des documents dont la visibilite a expire depuis plus d'un an.
  * Evite de conserver indefiniment des donnees comportementales.
  */
 export async function cleanupExpiredDocumentViewTracking(): Promise<number> {
   const oneYearAgo = new Date()
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
+  const expired = { visibleUntil: { not: null, lt: oneYearAgo } }
 
-  // Find documents that expired more than 1 year ago, pulling their viewer ids in the
-  // same round trip. Selecting only `id` here used to force a second `findUnique` per
-  // document just to count the viewers — an N+1 that grew with the expired-document
-  // backlog. The viewer ids are needed anyway (for the cleared-entry tally), so they
-  // belong in this query.
-  const expiredDocuments = await unscopedDb.boardDocument.findMany({
-    where: {
-      visibleUntil: { not: null, lt: oneYearAgo },
-    },
-    select: { id: true, viewedBy: { select: { id: true } } },
+  const { count } = await unscopedDb.boardDocumentView.deleteMany({ where: { document: expired } })
+
+  // The implicit `viewedBy` join still holds a copy of the reads made before their date was kept,
+  // until a later migration drops it. Clear it for the same documents, so an expired read leaves
+  // both tables. Prisma cannot clear an implicit relation across rows in one `updateMany`, so the
+  // writes stay per document, and only for documents that still hold reads there.
+  const legacy = await unscopedDb.boardDocument.findMany({
+    where: { ...expired, viewedBy: { some: {} } },
+    select: { id: true },
   })
-
-  if (expiredDocuments.length === 0) return 0
-
-  // Disconnect all viewedBy entries for these documents. The writes stay per-document:
-  // `viewedBy` is an implicit many-to-many, and Prisma cannot clear a relation across
-  // rows in a single `updateMany`. Documents nobody read are skipped entirely.
-  let cleaned = 0
-  for (const document of expiredDocuments) {
-    if (document.viewedBy.length === 0) continue
-
-    await unscopedDb.boardDocument.update({
-      where: { id: document.id },
-      data: {
-        viewedBy: {
-          set: [],
-        },
-      },
-    })
-    cleaned += document.viewedBy.length
+  for (const document of legacy) {
+    await unscopedDb.boardDocument.update({ where: { id: document.id }, data: { viewedBy: { set: [] } } })
   }
 
-  if (cleaned > 0) {
-    logger.info(`Cleaned up ${cleaned} view tracking entries for ${expiredDocuments.length} expired documents`)
+  if (count > 0) {
+    logger.info(`Cleaned up ${count} view tracking entries for documents expired over a year ago`)
   }
 
-  return cleaned
+  return count
 }
 
 /**

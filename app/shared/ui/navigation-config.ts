@@ -27,6 +27,8 @@ export interface NavigationPermissions {
   canViewBoard: boolean
   canUploadDocument: boolean
   canManageBoard: boolean
+  /** The right the sections page checks; reviewing documents does not grant it. */
+  canConfigureBoardSections: boolean
   canViewPublishers: boolean
   canViewTerritories: boolean
   canViewProspection: boolean
@@ -124,12 +126,17 @@ export function buildTabBar(permissions: NavigationPermissions): NavItem[] {
 export function buildManagementSections(permissions: NavigationPermissions): NavSection[] {
   const sections: NavSection[] = []
 
-  if (permissions.canUploadDocument || permissions.canManageBoard) {
+  // Each entry behind the right its page checks: documents need to upload or review them,
+  // sections need to configure them.
+  const managesDocuments = permissions.canUploadDocument || permissions.canManageBoard
+  if (managesDocuments || permissions.canConfigureBoardSections) {
     const items: NavItem[] = [{ id: 'board-view', label: m.sidebar_board, icon: LayoutGrid, to: '/board', end: true }]
-    if (permissions.canManageBoard) {
+    if (permissions.canConfigureBoardSections) {
       items.push({ id: 'board-sections', label: m.sidebar_sections, icon: FolderOpen, to: '/board/sections' })
     }
-    items.push({ id: 'board-documents', label: m.sidebar_documents, icon: FileText, to: '/board/documents' })
+    if (managesDocuments) {
+      items.push({ id: 'board-documents', label: m.sidebar_documents, icon: FileText, to: '/board/documents' })
+    }
     sections.push({ id: 'board', label: m.sidebar_board, items })
   }
 
@@ -275,6 +282,7 @@ const EVERY_PERMISSION: NavigationPermissions = {
   canViewBoard: true,
   canUploadDocument: true,
   canManageBoard: true,
+  canConfigureBoardSections: true,
   canViewPublishers: true,
   canViewTerritories: true,
   canViewProspection: true,

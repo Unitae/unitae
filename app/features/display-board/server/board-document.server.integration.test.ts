@@ -38,8 +38,14 @@ let secondDocId: number
 let otherDocId: number
 let dynamicDocId: number
 
-const { bulkDeleteBoardItems, bulkMoveBoardItems, createBoardDocument, isDocumentOwnedByUploader, reorderBoardItems } =
-  await import('./board-document.server')
+const {
+  bulkDeleteBoardItems,
+  bulkMoveBoardItems,
+  createBoardDocument,
+  isDocumentOwnedByUploader,
+  markDocumentAsViewed,
+  reorderBoardItems,
+} = await import('./board-document.server')
 
 beforeAll(async () => {
   const primaryCong = await testDb.congregation.create({
@@ -304,5 +310,66 @@ describe('isDocumentOwnedByUploader (integration)', () => {
 
     const owned = await withScope(primaryCongId, tx => isDocumentOwnedByUploader(tx, docId, 1))
     expect(owned).toBe(false)
+  })
+})
+
+describe('markDocumentAsViewed (integration)', () => {
+  let readerId: number
+  let readDocId: number
+
+  beforeAll(async () => {
+    await withScope(primaryCongId, async tx => {
+      const reader = await tx.userAccount.create({
+        data: {
+          email: `board-doc-reader-${ts}@test.com`,
+          password: 'hashed',
+          active: true,
+          congregationId: primaryCongId,
+        },
+      })
+      readerId = reader.id
+      const section = await tx.boardSection.create({
+        data: { name: `Read Section ${ts}`, congregationId: primaryCongId },
+      })
+      const document = await tx.boardDocument.create({
+        data: { title: 'Read Doc', type: 'pdf', sectionId: section.id, congregationId: primaryCongId },
+      })
+      readDocId = document.id
+    })
+  })
+
+  afterAll(async () => {
+    await withScope(primaryCongId, tx => tx.userAccount.deleteMany({ where: { id: readerId } }))
+  })
+
+  const viewsOf = (documentId: number) =>
+    withScope(primaryCongId, tx =>
+      tx.boardDocumentView.findMany({ where: { documentId, userId: readerId }, select: { viewedAt: true } }),
+    )
+
+  it('records when the person opened the document', async () => {
+    const openedAt = new Date('2026-11-08T09:00:00Z')
+    const document = await withScope(primaryCongId, tx =>
+      markDocumentAsViewed(tx as never, readDocId, readerId, primaryCongId, openedAt),
+    )
+
+    expect(document?.title).toBe('Read Doc')
+    expect(await viewsOf(readDocId)).toEqual([{ viewedAt: openedAt }])
+  })
+
+  it('moves the date forward when the person opens it again', async () => {
+    const laterAt = new Date('2026-11-08T18:30:00Z')
+    await withScope(primaryCongId, tx => markDocumentAsViewed(tx as never, readDocId, readerId, primaryCongId, laterAt))
+
+    expect(await viewsOf(readDocId)).toEqual([{ viewedAt: laterAt }])
+  })
+
+  it("returns nothing and records nothing for another congregation's document", async () => {
+    const document = await withScope(primaryCongId, tx =>
+      markDocumentAsViewed(tx as never, otherDocId, readerId, primaryCongId, new Date()),
+    )
+
+    expect(document).toBeNull()
+    expect(await viewsOf(otherDocId)).toEqual([])
   })
 })
