@@ -1,4 +1,4 @@
-import { SegmentedControl } from '@unitae/ui'
+import { SectionHeading, SegmentedControl } from '@unitae/ui'
 import { CheckCheck, FileText } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router'
 import { type BoardCard as BoardCardData, loadBoardHome } from '~/features/display-board/server/board-home.queries'
@@ -110,10 +110,7 @@ export default function BoardPage({ loaderData }: Route.ComponentProps) {
         <div className="flex flex-col gap-9">
           {shownHighlighted.length > 0 && (
             <section>
-              <h2 className="mb-3 flex items-baseline gap-2.5 font-semibold text-[15px]">
-                {m.board_highlighted_heading()}
-                <span className="font-normal text-faint text-sm tabular-nums">{shownHighlighted.length}</span>
-              </h2>
+              <SectionHeading title={m.board_highlighted_heading()} meta={shownHighlighted.length} className="mb-3" />
               <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,22rem),1fr))] gap-4 max-sm:gap-2">
                 {shownHighlighted.map(card => (
                   <BoardCard key={`${card.kind}-${card.id}`} card={card} timeZone={timeZone} featured />
