@@ -793,6 +793,7 @@
     "settings_template_edit_part_updated": "Part updated.",
     "settings_template_edit_part_added": "Part added.",
     "settings_template_edit_part_deleted": "Part deleted.",
+    "settings_template_item_not_in_template": "This item does not belong to this template.",
     "settings_template_edit_service_role_updated": "Service role updated.",
     "settings_template_edit_service_role_added": "Service role added.",
     "settings_template_edit_service_role_deleted": "Service role deleted.",

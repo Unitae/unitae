@@ -129,6 +129,37 @@ export async function assignmentBelongsToEvent(
   return row != null
 }
 
+/**
+ * Whether a template's part or service really belongs to the template the caller was authorised on — the template
+ * editor's counterpart of assignmentBelongsToEvent. A template's responsible may edit it, while the writers find a
+ * part or a service by (id, congregationId) alone.
+ */
+export async function templateItemBelongsToTemplate(
+  db: TransactionClient,
+  kind: 'part' | 'service',
+  id: number,
+  templateId: number,
+  congregationId: number,
+): Promise<boolean> {
+  if (!Number.isInteger(id)) return false
+
+  const where = { id, templateId, congregationId }
+  const row =
+    kind === 'service'
+      ? await db.templateServicePart.findFirst({ where, select: { id: true } })
+      : await db.templatePart.findFirst({ where, select: { id: true } })
+
+  if (row == null) {
+    logger.warn('templateItemBelongsToTemplate: item does not belong to the authorised template', {
+      kind,
+      id,
+      templateId,
+      congregationId,
+    })
+  }
+  return row != null
+}
+
 export async function canManageAnyProgram(
   db: TransactionClient,
   can: (role: Permission) => boolean,

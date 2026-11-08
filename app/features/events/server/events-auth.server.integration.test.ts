@@ -49,6 +49,7 @@ const {
   getResponsibleTemplateIds,
   canManageAnyProgram,
   listApplicableTemplates,
+  templateItemBelongsToTemplate,
 } = await import('./events-auth.server')
 
 beforeAll(async () => {
@@ -562,6 +563,55 @@ describe('assignmentBelongsToEvent (integration)', () => {
   it('does not accept a service part id when asked about a programme part', async () => {
     const result = await withScope(primaryCongId, tx =>
       assignmentBelongsToEvent(tx, 'part', ownedServicePartId, ownedEventId, primaryCongId),
+    )
+    expect(result).toBe(false)
+  })
+})
+
+// Same pairing for the template editor: a template's responsible may edit it, and the writers look a part or a
+// service up by (id, congregationId) alone. A posted id from another template must not ride on that check.
+describe('templateItemBelongsToTemplate (integration)', () => {
+  let ownedPartId: number
+  let otherPartId: number
+  let ownedServiceId: number
+  let otherServiceId: number
+
+  beforeAll(async () => {
+    await withScope(primaryCongId, async tx => {
+      const part = { order: 0, congregationId: primaryCongId }
+      ownedPartId = (await tx.templatePart.create({ data: { name: 'Lecture', templateId: templateOwnedId, ...part } }))
+        .id
+      otherPartId = (await tx.templatePart.create({ data: { name: 'Lecture', templateId: templateOtherId, ...part } }))
+        .id
+      const service = { name: 'Sono', key: `sono-${ts}`, congregationId: primaryCongId }
+      ownedServiceId = (await tx.templateServicePart.create({ data: { templateId: templateOwnedId, ...service } })).id
+      otherServiceId = (await tx.templateServicePart.create({ data: { templateId: templateOtherId, ...service } })).id
+    })
+  })
+
+  it('accepts a part and a service of the template', async () => {
+    const part = await withScope(primaryCongId, tx =>
+      templateItemBelongsToTemplate(tx, 'part', ownedPartId, templateOwnedId, primaryCongId),
+    )
+    const service = await withScope(primaryCongId, tx =>
+      templateItemBelongsToTemplate(tx, 'service', ownedServiceId, templateOwnedId, primaryCongId),
+    )
+    expect([part, service]).toEqual([true, true])
+  })
+
+  it('refuses a part and a service of another template', async () => {
+    const part = await withScope(primaryCongId, tx =>
+      templateItemBelongsToTemplate(tx, 'part', otherPartId, templateOwnedId, primaryCongId),
+    )
+    const service = await withScope(primaryCongId, tx =>
+      templateItemBelongsToTemplate(tx, 'service', otherServiceId, templateOwnedId, primaryCongId),
+    )
+    expect([part, service]).toEqual([false, false])
+  })
+
+  it('refuses a malformed id', async () => {
+    const result = await withScope(primaryCongId, tx =>
+      templateItemBelongsToTemplate(tx, 'part', Number.NaN, templateOwnedId, primaryCongId),
     )
     expect(result).toBe(false)
   })

@@ -795,6 +795,7 @@
     "settings_template_edit_part_updated": "Partie mise à jour.",
     "settings_template_edit_part_added": "Partie ajoutée.",
     "settings_template_edit_part_deleted": "Partie supprimée.",
+    "settings_template_item_not_in_template": "Cet élément n'appartient pas à ce modèle.",
     "settings_template_edit_service_role_updated": "Rôle de service mis à jour.",
     "settings_template_edit_service_role_added": "Rôle de service ajouté.",
     "settings_template_edit_service_role_deleted": "Rôle de service supprimé.",
