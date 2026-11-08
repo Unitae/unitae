@@ -1,10 +1,12 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import type { PublisherListFilters } from '~/features/publishers/model/publisher-list-filters'
 import type { CongregationId, MemberId } from '~/shared/types/branded'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { createTestCongregation, createTestUser } from '~/tests/factories'
-import { getPublisherById, getPublishersWithGroup } from './publishers.server'
+import { listPublishers } from './list-publishers.server'
+import { getPublisherById } from './publishers.server'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -67,7 +69,9 @@ describe('getPublisherById', () => {
   })
 })
 
-describe('getPublishersWithGroup search filter', () => {
+const ACTIVE: PublisherListFilters = { search: '', groupIds: [], privilege: null, status: 'active' }
+
+describe('listPublishers search filter', () => {
   let searchCongregationId: number
   const searchSuffix = Date.now()
   const expectedFirstname = `SearchableFirst-${searchSuffix}`
@@ -97,7 +101,7 @@ describe('getPublishersWithGroup search filter', () => {
 
   it('returns only publishers whose firstname matches', async () => {
     const result = await withScope(searchCongregationId, tx =>
-      getPublishersWithGroup(tx, searchCongregationId, { search: expectedFirstname }),
+      listPublishers(tx, searchCongregationId, { ...ACTIVE, search: expectedFirstname }, { includeAbsences: false }),
     )
 
     expect(result).toHaveLength(1)
@@ -106,7 +110,7 @@ describe('getPublishersWithGroup search filter', () => {
 
   it('returns only publishers whose lastname matches', async () => {
     const result = await withScope(searchCongregationId, tx =>
-      getPublishersWithGroup(tx, searchCongregationId, { search: expectedLastname }),
+      listPublishers(tx, searchCongregationId, { ...ACTIVE, search: expectedLastname }, { includeAbsences: false }),
     )
 
     expect(result).toHaveLength(1)
@@ -115,7 +119,12 @@ describe('getPublishersWithGroup search filter', () => {
 
   it('matches case-insensitively', async () => {
     const result = await withScope(searchCongregationId, tx =>
-      getPublishersWithGroup(tx, searchCongregationId, { search: expectedLastname.toLowerCase() }),
+      listPublishers(
+        tx,
+        searchCongregationId,
+        { ...ACTIVE, search: expectedLastname.toLowerCase() },
+        { includeAbsences: false },
+      ),
     )
 
     expect(result).toHaveLength(1)
@@ -124,24 +133,31 @@ describe('getPublishersWithGroup search filter', () => {
 
   it('returns an empty array when no publisher matches (bug #133)', async () => {
     const result = await withScope(searchCongregationId, tx =>
-      getPublishersWithGroup(tx, searchCongregationId, { search: `zzz-no-match-${searchSuffix}` }),
+      listPublishers(
+        tx,
+        searchCongregationId,
+        { ...ACTIVE, search: `zzz-no-match-${searchSuffix}` },
+        { includeAbsences: false },
+      ),
     )
 
     expect(result).toEqual([])
   })
 
   it('returns all publishers when search is absent', async () => {
-    const result = await withScope(searchCongregationId, tx => getPublishersWithGroup(tx, searchCongregationId))
+    const result = await withScope(searchCongregationId, tx =>
+      listPublishers(tx, searchCongregationId, ACTIVE, { includeAbsences: false }),
+    )
 
     expect(result).toHaveLength(2)
   })
 })
 
-// The type filter moved from a Member column to a condition over PioneerEnrolment stints. The unit
+// The pioneer filter is a condition over PioneerEnrolment stints. The unit
 // test asserts the `where` SHAPE, which cannot tell whether Prisma builds SQL that actually selects
 // the right people — and this branch already produced three column reads that typechecked and failed
 // only at runtime. So exercise it against the database.
-describe('getPublishersWithGroup — filtering by standing type (integration)', () => {
+describe('listPublishers — filtering by pioneer privilege (integration)', () => {
   const ts = Date.now()
   let congId: number
   let permanentId: number
@@ -192,25 +208,29 @@ describe('getPublishersWithGroup — filtering by standing type (integration)', 
 
   it('returns only the member with an ongoing stint of that type', async () => {
     const result = await withScope(congId, tx =>
-      getPublishersWithGroup(tx, congId, { standingType: PublisherType.PionnierPermanant }),
+      listPublishers(tx, congId, { ...ACTIVE, privilege: 'regular-pioneer' }, { includeAbsences: false }),
     )
     expect(result.map(r => r.id)).toEqual([permanentId])
   })
 
   it('returns nobody for a type nobody currently holds', async () => {
     const result = await withScope(congId, tx =>
-      getPublishersWithGroup(tx, congId, { standingType: PublisherType.Missionnaire }),
+      listPublishers(tx, congId, { ...ACTIVE, privilege: 'missionary' }, { includeAbsences: false }),
     )
     expect(result).toEqual([])
   })
 
-  // The behaviour the old column had: a single-month auxiliary is closed, so its holder reads Normal.
-  it('counts a member whose only stint is a closed single-month auxiliary as Normal', async () => {
+  // A single-month auxiliary is closed, so its holder is not a standing auxiliary pioneer.
+  it('does not count a closed single-month auxiliary as an auxiliary pioneer', async () => {
     const result = await withScope(congId, tx =>
-      getPublishersWithGroup(tx, congId, { standingType: PublisherType.Normal }),
+      listPublishers(tx, congId, { ...ACTIVE, privilege: 'auxiliary-pioneer' }, { includeAbsences: false }),
     )
-    const ids = result.map(r => r.id).sort((a, b) => a - b)
-    expect(ids).toEqual([monthlyAuxId, plainId].sort((a, b) => a - b))
-    expect(ids).not.toContain(permanentId)
+    expect(result).toEqual([])
+  })
+
+  it('tags each publisher with their ongoing pioneer service only', async () => {
+    const result = await withScope(congId, tx => listPublishers(tx, congId, ACTIVE, { includeAbsences: false }))
+    const privileges = Object.fromEntries(result.map(r => [r.id, r.privileges]))
+    expect(privileges).toEqual({ [permanentId]: ['regular-pioneer'], [monthlyAuxId]: [], [plainId]: [] })
   })
 })

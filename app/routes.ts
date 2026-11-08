@@ -132,6 +132,7 @@ export default [
     route('publishers', 'features/publishers/routes/_layout.tsx', [
       index('features/publishers/routes/publishers/publisher-list.tsx'),
       route('former', 'features/publishers/routes/publishers/former-list.tsx'),
+      route('move-to-group', 'features/publishers/routes/publishers/move-to-group.tsx'),
       route('new', 'features/publishers/routes/publishers/new-publisher.tsx'),
       route('emergency-roster', 'features/publishers/routes/publishers/emergency-roster.tsx'),
       route('emergency-roster/:groupId', 'features/publishers/routes/publishers/emergency-roster-group.tsx'),

@@ -1,4 +1,4 @@
-import { NotFoundError } from '~/shared/errors/app-error.server'
+import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 import * as memberAggregate from './member.aggregate'
@@ -50,4 +50,50 @@ export async function removeGroupMember(
 
   await memberAggregate.setGroup(db, memberId, congregationId, null, actorId)
   return { firstname: member.firstname, lastname: member.lastname }
+}
+
+export interface GroupMove {
+  /** The destination, or null when they were taken out of every group. */
+  group: { name: string } | null
+  moved: number
+  /** Why some could not move: each is the leader of another group. */
+  refused: string[]
+}
+
+/**
+ * Moves several active publishers at once, from the publishers list: into the group, or out of
+ * every group when `groupId` is null. The leader of another group stays where they are and is
+ * reported instead of failing the rest. Throws a NotFoundError for a group outside the congregation.
+ */
+export async function moveMembersToGroup(
+  db: TransactionClient,
+  groupId: number | null,
+  congregationId: number,
+  memberIds: number[],
+  actorId: number,
+): Promise<GroupMove> {
+  const [group, members] = await Promise.all([
+    groupId == null
+      ? Promise.resolve(null)
+      : db.publisherGroup.findFirst({ where: { id: groupId, congregationId }, select: { name: true } }),
+    db.member.findMany({
+      where: { id: { in: memberIds }, congregationId, isPublisher: true, leftAt: null, anonymizedAt: null },
+      select: { id: true },
+    }),
+  ])
+  if (groupId != null && group == null) throw new NotFoundError('PublisherGroup', groupId)
+
+  let moved = 0
+  const refused: string[] = []
+  for (const member of members) {
+    try {
+      await memberAggregate.setGroup(db, member.id, congregationId, groupId, actorId)
+      moved++
+    } catch (error) {
+      // Raised before any write, so the rest of the move goes on.
+      if (!(error instanceof ConflictError)) throw error
+      refused.push(error.message)
+    }
+  }
+  return { group: group == null ? null : { name: group.name }, moved, refused }
 }
