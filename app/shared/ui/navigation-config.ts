@@ -16,7 +16,6 @@ import {
   Settings,
   User,
   UserCog,
-  UserRoundCog,
   Users,
   UsersRound,
 } from 'lucide-react'
@@ -44,7 +43,6 @@ export interface NavigationPermissions {
   canViewRoles: boolean
   canManageRoles: boolean
   canManagePermissions: boolean
-  isPlatformAdmin: boolean
   /** The group the member oversees or assists, which he may open without `canViewPublishers`. */
   ledGroupId: number | null
 }
@@ -252,14 +250,6 @@ export function buildManagementSections(permissions: NavigationPermissions): Nav
     })
   }
 
-  if (permissions.isPlatformAdmin) {
-    sections.push({
-      id: 'platform',
-      label: m.sidebar_platform,
-      items: [{ id: 'platform-admin', label: m.sidebar_administration, icon: UserRoundCog, to: '/platform-admin' }],
-    })
-  }
-
   return sections
 }
 
@@ -298,7 +288,6 @@ const EVERY_PERMISSION: NavigationPermissions = {
   canViewRoles: true,
   canManageRoles: true,
   canManagePermissions: true,
-  isPlatformAdmin: true,
   ledGroupId: null,
 }
 

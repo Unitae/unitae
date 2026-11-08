@@ -18,7 +18,6 @@ import {
   TrendingUp,
   User,
   UserCog,
-  UserRoundCog,
   Users,
   UsersRound,
 } from 'lucide-react'
@@ -136,9 +135,6 @@ function getNavigationItems(permissions: AppSidebarPermissions): CommandItem[] {
       to: '/settings/congregation',
     })
     items.push({ id: 'audit-log', label: m.sidebar_audit_log(), icon: ClipboardList, to: '/settings/audit-log' })
-  }
-  if (permissions.isPlatformAdmin) {
-    items.push({ id: 'admin', label: m.sidebar_administration(), icon: UserRoundCog, to: '/platform-admin' })
   }
 
   items.push({ id: 'profile', label: m.sidebar_my_profile(), icon: User, to: '/me/profile' })

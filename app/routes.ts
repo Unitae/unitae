@@ -176,12 +176,6 @@ export default [
     ]),
     ...programsRoutes,
     ...territoryManagementRoutes,
-    route('platform-admin', 'features/platform-admin/routes/_layout.tsx', [
-      index('features/platform-admin/routes/index.tsx'),
-      route('congregations', 'features/platform-admin/routes/congregations.tsx'),
-      route('congregations/:congregationId/edit', 'features/platform-admin/routes/edit-congregation.tsx'),
-      route('users', 'features/platform-admin/routes/users.tsx'),
-    ]),
   ]),
   route('*', 'shell/not-found.tsx'),
 ] satisfies RouteConfig

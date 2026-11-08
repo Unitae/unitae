@@ -31,7 +31,6 @@ function permissions(overrides: Partial<NavigationPermissions> = {}): Navigation
     canViewRoles: false,
     canManageRoles: false,
     canManagePermissions: false,
-    isPlatformAdmin: false,
     ledGroupId: null,
     ...overrides,
   }
@@ -63,7 +62,6 @@ describe('buildTabBar', () => {
       canManageTerritories: true,
       canManageSettings: true,
       canViewPrograms: true,
-      isPlatformAdmin: true,
     })
     expect(buildTabBar(everything).map(t => t.id)).toEqual(['home', 'board', 'my-territories', 'my-absences'])
   })
@@ -146,10 +144,9 @@ describe('buildManagementSections', () => {
         canViewProspection: true,
         canManageTerritories: true,
         canManageSettings: true,
-        isPlatformAdmin: true,
       }),
     )
-    expect(sections.map(s => s.id)).toEqual(['board', 'assembly', 'programs', 'territories', 'settings', 'platform'])
+    expect(sections.map(s => s.id)).toEqual(['board', 'assembly', 'programs', 'territories', 'settings'])
     const assembly = sections.find(s => s.id === 'assembly')
     expect(assembly?.items.map(i => i.id)).toEqual(['publishers', 'groups', 'activity', 'organigram'])
     const programs = sections.find(s => s.id === 'programs')
@@ -281,7 +278,6 @@ describe('navGroupFor', () => {
 
   it('names no group that holds a single page, whose label would repeat the page’s', () => {
     expect(navGroupFor('/settings/users')).toBeNull()
-    expect(navGroupFor('/platform-admin/congregations')).toBeNull()
   })
 
   it('does not take a sibling path that merely shares the prefix', () => {

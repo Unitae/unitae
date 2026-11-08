@@ -59,11 +59,6 @@ export const DELEGATES: Record<string, { file: string; enforces: RegExp }> = {
     file: 'app/features/publishers/model/group-activity-access.ts',
     enforces: ENFORCES_PERMISSION,
   },
-  // Platform administration is gated by the account's platformAdmin flag, not a congregation permission.
-  verifyPlatformAdmin: {
-    file: 'app/features/platform-admin/server/verify-platform-admin.server.ts',
-    enforces: /platformAdmin/,
-  },
 }
 
 // Route actions that are intentionally open to any signed-in user, or to anonymous visitors.

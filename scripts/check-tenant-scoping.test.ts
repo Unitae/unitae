@@ -89,11 +89,6 @@ describe('analyzeSource — tenant-scoping', () => {
     expect(analyzeSource('app/features/authentication/server/session.server.ts', src)).toHaveLength(0)
   })
 
-  it('exempts platform-admin files', () => {
-    const src = 'await db.userAccount.findUnique({ where: { id: userId } })'
-    expect(analyzeSource('app/features/platform-admin/server/x.server.ts', src)).toHaveLength(0)
-  })
-
   it('exempts test files and the seed directory', () => {
     const src = 'await db.building.delete({ where: { id } })'
     expect(analyzeSource('app/features/territories/server/x.server.test.ts', src)).toHaveLength(0)
