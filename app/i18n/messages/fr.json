@@ -1653,6 +1653,7 @@
     "programs_edit_service_deleted": "Service supprimé.",
     "programs_edit_template_applied": "Modèle « {name} » appliqué.",
     "programs_edit_template_not_allowed": "Vous ne pouvez pas appliquer ce modèle.",
+    "programs_edit_not_in_event": "Cet élément n'appartient pas à cet évènement.",
     "programs_edit_view_event": "Voir l'évènement",
     "programs_edit_crumb": "Modifier",
     "programs_edit_parts_one": "1 partie",

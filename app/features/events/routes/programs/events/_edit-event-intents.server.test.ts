@@ -20,14 +20,23 @@ const CONGREGATION_ID = 4242
 const USER_ID = 7777
 const OWNED_TEMPLATE_ID = 1001
 const FOREIGN_TEMPLATE_ID = 2002
+// Parts and services: the first id belongs to the event in the URL, the second to another event.
+const OWN_ID = 11
+const FOREIGN_ID = 22
+
+const checks = {
+  mayApplyTemplate: async (templateId: number) => templateId === OWNED_TEMPLATE_ID,
+  belongsToEvent: async (_kind: 'part' | 'service', id: number) => id === OWN_ID,
+}
+
+function post(fields: Record<string, string>) {
+  const formData = new FormData()
+  for (const [name, value] of Object.entries(fields)) formData.set(name, value)
+  return handleEditIntent(fields.intent, formData, db, EVENT_ID, CONGREGATION_ID, USER_ID, 'Europe/Paris', checks)
+}
 
 function applyTemplate(templateId: number) {
-  const formData = new FormData()
-  formData.set('intent', 'apply-template')
-  formData.set('templateId', String(templateId))
-  return handleEditIntent('apply-template', formData, db, EVENT_ID, CONGREGATION_ID, USER_ID, 'Europe/Paris', {
-    mayApplyTemplate: async templateId => templateId === OWNED_TEMPLATE_ID,
-  })
+  return post({ intent: 'apply-template', templateId: String(templateId) })
 }
 
 beforeEach(() => {
@@ -46,5 +55,26 @@ describe('handleEditIntent — apply-template', () => {
   it('refuses a template whose events the caller may not edit', async () => {
     const result = await applyTemplate(FOREIGN_TEMPLATE_ID)
     expect(result != null && 'reply' in result).toBe(true)
+  })
+})
+
+// The action checked that the caller may edit the event in the URL. The writers find a part or a service by its id
+// alone, so an id from another event of the congregation must not ride on that check.
+const INTENTS: [string, (id: number) => Record<string, string>][] = [
+  ['update-part', id => ({ partAssignmentId: String(id), partName: 'Lecture de la Bible' })],
+  ['delete-part', id => ({ partAssignmentId: String(id) })],
+  ['update-service', id => ({ serviceAssignmentId: String(id), serviceName: 'Sono' })],
+  ['delete-service', id => ({ serviceAssignmentId: String(id) })],
+]
+
+describe('handleEditIntent — parts and services', () => {
+  it.each(INTENTS)('%s refuses a part or service of another event', async (intent, fields) => {
+    const result = await post({ intent, ...fields(FOREIGN_ID) })
+    expect(result != null && 'reply' in result).toBe(true)
+  })
+
+  it.each(INTENTS)('%s goes through for a part or service of this event', async (intent, fields) => {
+    const result = await post({ intent, ...fields(OWN_ID) })
+    expect(result != null && 'message' in result).toBe(true)
   })
 })

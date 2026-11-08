@@ -200,12 +200,19 @@ export function deleteTemplateServicePart(db: TransactionClient, roleId: number,
   })
 }
 
+/**
+ * Puts a template's parts in the given order. Writes nothing and answers false when an id is not a part of this
+ * template: the caller was authorised on this template, not on whichever template a posted id belongs to.
+ */
 export async function reorderTemplateParts(
   db: TransactionClient,
   congregationId: number,
+  templateId: number,
   orderedIds: number[],
-): Promise<void> {
+): Promise<boolean> {
   await db.$executeRawUnsafe('SELECT pg_advisory_xact_lock($1, $2)', 1_000_005, congregationId)
+  const owned = await db.templatePart.count({ where: { id: { in: orderedIds }, templateId, congregationId } })
+  if (owned !== orderedIds.length || new Set(orderedIds).size !== orderedIds.length) return false
 
   for (let i = 0; i < orderedIds.length; i++) {
     await db.templatePart.update({
@@ -215,6 +222,7 @@ export async function reorderTemplateParts(
       data: { order: i * 5 },
     })
   }
+  return true
 }
 
 /**

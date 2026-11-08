@@ -280,12 +280,19 @@ export function deleteServicePartAssignment(db: TransactionClient, id: number, c
   })
 }
 
+/**
+ * Puts an event's parts in the given order. Writes nothing and answers false when an id is not a part of this event:
+ * the caller was authorised on this event, not on whichever event a posted id belongs to.
+ */
 export async function reorderPartAssignments(
   db: TransactionClient,
   congregationId: number,
+  eventId: number,
   orderedIds: number[],
-): Promise<void> {
+): Promise<boolean> {
   await db.$executeRawUnsafe('SELECT pg_advisory_xact_lock($1, $2)', 1_000_003, congregationId)
+  const owned = await db.eventPart.count({ where: { id: { in: orderedIds }, eventId, congregationId } })
+  if (owned !== orderedIds.length || new Set(orderedIds).size !== orderedIds.length) return false
 
   for (let i = 0; i < orderedIds.length; i++) {
     await db.eventPart.update({
@@ -295,6 +302,7 @@ export async function reorderPartAssignments(
       data: { order: i * 5 },
     })
   }
+  return true
 }
 
 export async function applyTemplateToEvent(

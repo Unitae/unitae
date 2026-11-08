@@ -41,7 +41,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       throw redirect('/programs')
     }
 
-    await reorderPartAssignments(db, congregationId, orderedIds)
-    return { ok: true }
+    const done = await reorderPartAssignments(db, congregationId, eventId, orderedIds)
+    return { ok: done }
   })
 }

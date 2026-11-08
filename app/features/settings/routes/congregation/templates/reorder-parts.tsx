@@ -42,7 +42,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       return { ok: false }
     }
 
-    await reorderTemplateParts(db, congregationId, orderedIds)
-    return { ok: true }
+    const done = await reorderTemplateParts(db, congregationId, templateId, orderedIds)
+    return { ok: done }
   })
 }
