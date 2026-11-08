@@ -5,10 +5,16 @@ vi.mock('react', () => ({
   useContext: vi.fn(() => null),
 }))
 
-const { useSidebar } = await import('./sidebar-context')
+const { useOptionalSidebar, useSidebar } = await import('./sidebar-context')
 
 describe('useSidebar', () => {
   it('throws when used outside SidebarProvider', () => {
     expect(() => useSidebar()).toThrow('must be used within a SidebarProvider')
+  })
+})
+
+describe('useOptionalSidebar', () => {
+  it('returns null outside SidebarProvider, for chrome that may render without the shell', () => {
+    expect(useOptionalSidebar()).toBeNull()
   })
 })

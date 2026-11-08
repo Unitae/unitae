@@ -15,6 +15,7 @@ import {
   PieChart,
   Settings,
   User,
+  UserCog,
   UserRoundCog,
   Users,
   UsersRound,
@@ -108,7 +109,8 @@ export function buildTabBar(permissions: NavigationPermissions): NavItem[] {
   }
   tabs.push(
     { id: 'my-territories', label: m.sidebar_my_territories, icon: MapPin, to: '/me/territories' },
-    { id: 'profile', label: m.nav_tab_profile, icon: User, to: '/me/profile' },
+    // The profile lives in the phone header's account menu, next to signing out.
+    { id: 'my-absences', label: m.sidebar_my_absences, icon: CalendarOff, to: '/me/days-off' },
   )
   return tabs
 }
@@ -166,20 +168,36 @@ export function buildManagementSections(permissions: NavigationPermissions): Nav
       match: { prefix: '/congregation/roles' },
     })
   }
+  if (assemblyItems.length > 0) {
+    sections.push({ id: 'assembly', label: m.sidebar_assembly, items: assemblyItems })
+  }
+
+  // What preparing the programme needs, each entry behind the right its page checks: seeing
+  // the programmes does not grant seeing other people's absences.
+  const programItems: NavItem[] = []
   if (permissions.canViewPrograms) {
-    assemblyItems.push({
+    programItems.push({
       id: 'programs',
       label: m.sidebar_programs,
       icon: CalendarDays,
       to: '/programs',
       end: true,
-      match: { prefix: '/programs' },
+      match: { prefix: '/programs', exclude: ['/programs/days-off', '/programs/external-speakers'] },
     })
-  } else if (permissions.canViewAbsences) {
-    assemblyItems.push({ id: 'absences', label: m.sidebar_absences, icon: CalendarOff, to: '/programs/days-off' })
   }
-  if (assemblyItems.length > 0) {
-    sections.push({ id: 'assembly', label: m.sidebar_assembly, items: assemblyItems })
+  if (permissions.canViewAbsences) {
+    programItems.push({ id: 'absences', label: m.sidebar_absences, icon: CalendarOff, to: '/programs/days-off' })
+  }
+  if (permissions.canViewExternalSpeakers) {
+    programItems.push({
+      id: 'external-speakers',
+      label: m.sidebar_external_speakers,
+      icon: UserCog,
+      to: '/programs/external-speakers',
+    })
+  }
+  if (programItems.length > 0) {
+    sections.push({ id: 'programs', label: m.sidebar_programs, items: programItems })
   }
 
   const territoryItems: NavItem[] = []
@@ -250,4 +268,46 @@ export function buildPersonalItems(): NavItem[] {
 /** Whether the mobile chrome should show the "Plus" overflow tab at all. */
 export function hasManagementSections(permissions: NavigationPermissions): boolean {
   return buildManagementSections(permissions).length > 0
+}
+
+/** Every section and item, whatever the viewer may open: naming where a page sits needs no permission. */
+const EVERY_PERMISSION: NavigationPermissions = {
+  canViewBoard: true,
+  canUploadDocument: true,
+  canManageBoard: true,
+  canViewPublishers: true,
+  canViewTerritories: true,
+  canViewProspection: true,
+  canManageTerritories: true,
+  canManageSettings: true,
+  canManageUsers: true,
+  canManagePioneerGoals: true,
+  canViewPrograms: true,
+  canViewAbsences: true,
+  canViewActivity: true,
+  canViewExternalSpeakers: true,
+  canManageExternalSpeakers: true,
+  canViewRoles: true,
+  canManageRoles: true,
+  canManagePermissions: true,
+  isPlatformAdmin: true,
+  ledGroupId: null,
+}
+
+function itemCovers(item: NavItem, pathname: string): boolean {
+  if (item.match) return isNavItemActive(item, pathname, false)
+  return item.end ? pathname === item.to : pathIsWithin(pathname, item.to)
+}
+
+/**
+ * The sidebar group a page belongs to, for the start of its trail: « Assemblée › Proclamateurs ». None for pages
+ * outside the groups (home, the personal pages), nor for a group holding a single page (Réglages, Administration),
+ * whose label would only repeat the page's.
+ */
+export function navGroupFor(pathname: string): string | null {
+  for (const section of buildManagementSections(EVERY_PERMISSION)) {
+    if (section.items.length < 2) continue
+    if (section.items.some(item => itemCovers(item, pathname))) return section.label()
+  }
+  return null
 }

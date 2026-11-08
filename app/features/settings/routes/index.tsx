@@ -13,6 +13,7 @@ import * as m from '~/i18n/paraglide/messages'
 import { congregationContext, permissionsContext } from '~/shared/auth/route-context.server'
 import { billingEntryUrl } from '~/shared/domain/billing-link.server'
 import { Permission } from '~/shared/types/permission'
+import { PageHeader } from '~/shared/ui/PageHeader'
 import {
   buildSettingsSections,
   type SettingsCard,
@@ -84,11 +85,10 @@ export default function SettingsHub({ loaderData }: Route.ComponentProps) {
   const { sections } = loaderData
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 md:px-6">
-      <h1 className="font-bold font-display text-2xl text-foreground">{m.settings_hub_title()}</h1>
-      <p className="mt-1 text-muted-foreground">{m.settings_hub_subtitle()}</p>
+    <div className="mx-auto max-w-5xl">
+      <PageHeader title={m.settings_hub_title()} subtitle={m.settings_hub_subtitle()} />
 
-      <div className="mt-8 space-y-8">
+      <div className="space-y-8">
         {sections.map(section => (
           <section key={section.key}>
             <h2 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">

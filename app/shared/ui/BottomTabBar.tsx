@@ -1,4 +1,4 @@
-import { Ellipsis } from 'lucide-react'
+import { Ellipsis, type LucideIcon } from 'lucide-react'
 import { NavLink, useLocation } from 'react-router'
 
 import * as m from '~/i18n/paraglide/messages'
@@ -33,57 +33,41 @@ export function BottomTabBar({ permissions, onMoreClick, moreOpen }: BottomTabBa
       // buttons would otherwise sit one thumb-width above five navigation targets, and a
       // mis-tap there leaves the page mid-edit. Same zero-JS `has()` trick the layout uses
       // for `data-form-actions`.
-      className="fixed inset-x-0 bottom-0 z-40 flex border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm md:hidden [body:has([data-bottom-sheet])_&]:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 flex border-t bg-surface/95 px-1 pt-1 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm md:hidden [body:has([data-bottom-sheet])_&]:hidden"
     >
       {tabs.map(tab => (
-        <NavLink
-          key={tab.id}
-          to={tab.to}
-          end={tab.end}
-          viewTransition
-          className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-muted-foreground transition-colors"
-        >
-          {({ isActive }) => {
-            const active = isNavItemActive(tab, pathname, isActive)
-            return (
-              <>
-                <span
-                  className={cn(
-                    'flex items-center justify-center rounded-full px-4 py-0.5 transition-colors',
-                    active && 'bg-primary/10',
-                  )}
-                >
-                  <tab.icon className={cn('size-5', active && 'text-primary')} aria-hidden="true" />
-                </span>
-                <span className={cn('whitespace-nowrap text-[11px] leading-tight', active && 'text-primary')}>
-                  {tab.label()}
-                </span>
-              </>
-            )
-          }}
+        <NavLink key={tab.id} to={tab.to} end={tab.end} viewTransition className={TAB}>
+          {({ isActive }) => (
+            <TabContent icon={tab.icon} label={tab.label()} active={isNavItemActive(tab, pathname, isActive)} />
+          )}
         </NavLink>
       ))}
 
       {showMore && (
-        <button
-          type="button"
-          onClick={onMoreClick}
-          aria-expanded={moreOpen}
-          className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-muted-foreground transition-colors"
-        >
-          <span
-            className={cn(
-              'flex items-center justify-center rounded-full px-4 py-0.5 transition-colors',
-              moreOpen && 'bg-primary/10',
-            )}
-          >
-            <Ellipsis className={cn('size-5', moreOpen && 'text-primary')} aria-hidden="true" />
-          </span>
-          <span className={cn('whitespace-nowrap text-[11px] leading-tight', moreOpen && 'text-primary')}>
-            {m.nav_more()}
-          </span>
+        <button type="button" onClick={onMoreClick} aria-expanded={moreOpen} className={TAB}>
+          <TabContent icon={Ellipsis} label={m.nav_more()} active={moreOpen} />
         </button>
       )}
     </nav>
+  )
+}
+
+// Labels at 10px, as in iOS tab bars. Tabs take their label's width plus an equal share of what is
+// left, so « Mes territoires » and « Mes absences » keep the same gap as the short ones instead of
+// nearly touching in equal cells. A label wraps rather than touch its neighbour on the narrowest
+// phones, and the icons stay aligned because each tab starts at the top. 44px keeps « Plus » tappable.
+const TAB =
+  'group/tab flex min-h-[52px] min-w-11 flex-auto flex-col items-center justify-start gap-[3px] rounded-md px-1 pt-[7px] font-medium text-[10px] text-faint leading-[1.2] transition-colors'
+
+/** A tab: the current one in ink with its icon in the accent, the others faint. No pill. */
+function TabContent({ icon: Icon, label, active }: { icon: LucideIcon; label: string; active: boolean }) {
+  return (
+    <>
+      <Icon
+        className={cn('size-[22px] transition-transform group-active/tab:scale-[0.86]', active && 'text-brand')}
+        aria-hidden="true"
+      />
+      <span className={cn('max-w-full text-balance text-center', active && 'text-foreground')}>{label}</span>
+    </>
   )
 }

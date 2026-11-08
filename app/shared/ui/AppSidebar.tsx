@@ -1,8 +1,8 @@
-import { ChevronDown, Home, LayoutGrid, LogOut, Search } from 'lucide-react'
-import { Form, NavLink, useLocation } from 'react-router'
+import { Kbd } from '@unitae/ui'
+import { Home, LayoutGrid, Search } from 'lucide-react'
+import { NavLink, useLocation } from 'react-router'
 
 import * as m from '~/i18n/paraglide/messages'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/shared/ui/collapsible'
 import {
   buildManagementSections,
   buildPersonalItems,
@@ -11,6 +11,7 @@ import {
   type NavigationPermissions,
   type NavSection,
 } from '~/shared/ui/navigation-config'
+import { UserMenu, WorkspaceMenu } from '~/shared/ui/ShellMenus'
 import {
   Sidebar,
   SidebarContent,
@@ -22,115 +23,96 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
   useSidebar,
 } from '~/shared/ui/sidebar'
-import { ThemeToggle } from '~/shared/ui/ThemeToggle'
 
 export type AppSidebarPermissions = NavigationPermissions
 
 interface AppSidebarProps {
   permissions: AppSidebarPermissions
   congregationName?: string
+  userName: string
   onSearchClick?: () => void
 }
 
-export function AppSidebar({ permissions, congregationName, onSearchClick }: AppSidebarProps) {
+/** Sections that live in the footer, as single entries, rather than among the groups. */
+const FOOTER_SECTIONS = new Set(['settings', 'platform'])
+
+export function AppSidebar({ permissions, congregationName, userName, onSearchClick }: AppSidebarProps) {
   const sections = buildManagementSections(permissions)
   // Members without board management see the board as a simple top-level item;
   // managers get it inside the board section instead.
   const showSimpleBoardItem = permissions.canViewBoard && !sections.some(section => section.id === 'board')
+  // Mon profil lives in the user menu at the foot.
+  const personalItems = buildPersonalItems().filter(item => item.id !== 'profile')
+  const footerItems = sections.filter(section => FOOTER_SECTIONS.has(section.id)).flatMap(section => section.items)
 
   return (
     <Sidebar>
-      <SidebarHeader>
-        <div className="flex items-center justify-between gap-2 border-sidebar-border border-b px-3 py-4">
-          <span className="truncate font-bold font-display text-foreground text-lg">
-            {congregationName || 'Unitae'}
-          </span>
-          <div className="flex items-center gap-1">
-            <ThemeToggle />
-            <SidebarTrigger className="size-7 rounded-md" />
-          </div>
-        </div>
+      <SidebarHeader className="gap-3 px-2.5 pt-3 pb-1">
+        <WorkspaceMenu name={congregationName || 'Unitae'} />
         <button
           type="button"
           onClick={onSearchClick}
-          className="mx-2 mt-3 mb-1 flex items-center gap-2 rounded-md border border-sidebar-border px-2 py-1 text-muted-foreground text-xs hover:bg-sidebar-accent"
+          className="flex h-8 items-center gap-2 rounded-md border border-input bg-surface pr-1.5 pl-2.5 text-faint text-sm transition-colors hover:border-faint"
         >
-          <Search className="size-3.5 shrink-0" />
+          <Search className="size-4 shrink-0" aria-hidden="true" />
           <span className="flex-1 truncate text-left">{m.sidebar_search()}</span>
-          <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">⌘K</kbd>
+          <Kbd>⌘K</Kbd>
         </button>
       </SidebarHeader>
 
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarNavItem item={{ id: 'home', label: m.sidebar_home, icon: Home, to: '/', end: true }} />
-              {showSimpleBoardItem && (
-                <SidebarNavItem item={{ id: 'board', label: m.sidebar_board, icon: LayoutGrid, to: '/board' }} />
-              )}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+      <SidebarContent className="px-1 [scrollbar-width:thin]">
+        <nav aria-label={m.nav_primary()} className="flex flex-col gap-1.5">
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarNavItem item={{ id: 'home', label: m.sidebar_home, icon: Home, to: '/', end: true }} />
+                {showSimpleBoardItem && (
+                  <SidebarNavItem item={{ id: 'board', label: m.sidebar_board, icon: LayoutGrid, to: '/board' }} />
+                )}
+                {personalItems.map(item => (
+                  <SidebarNavItem key={item.id} item={item} />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
 
-        {sections.map(section =>
-          section.items.length === 1 ? (
-            <SidebarGroup key={section.id}>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarNavItem item={section.items[0]} />
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          ) : (
-            <SidebarNavSection key={section.id} section={section} />
-          ),
-        )}
+          {sections
+            .filter(section => !FOOTER_SECTIONS.has(section.id))
+            .map(section => (
+              <SidebarNavSection key={section.id} section={section} />
+            ))}
+        </nav>
       </SidebarContent>
 
-      <SidebarFooter className="border-sidebar-border border-t">
-        <SidebarMenu>
-          {buildPersonalItems().map(item => (
-            <SidebarNavItem key={item.id} item={item} />
-          ))}
-          <SidebarMenuItem>
-            <Form action="/logout" method="post">
-              <SidebarMenuButton type="submit" className="text-muted-foreground hover:text-destructive">
-                <LogOut className="size-4" />
-                <span>{m.sidebar_logout()}</span>
-              </SidebarMenuButton>
-            </Form>
-          </SidebarMenuItem>
-        </SidebarMenu>
+      <SidebarFooter className="gap-0.5 px-2.5 pt-1 pb-3">
+        {footerItems.length > 0 && (
+          <SidebarMenu>
+            {footerItems.map(item => (
+              <SidebarNavItem key={item.id} item={item} />
+            ))}
+          </SidebarMenu>
+        )}
+        <UserMenu name={userName} />
       </SidebarFooter>
     </Sidebar>
   )
 }
 
+/** A group of the sidebar, labelled in sentence case. A group of one is just its entry. */
 function SidebarNavSection({ section }: { section: NavSection }) {
   return (
-    <Collapsible defaultOpen className="group/collapsible">
-      <SidebarGroup>
-        <SidebarGroupLabel asChild>
-          <CollapsibleTrigger>
-            {section.label()}
-            <ChevronDown className="ml-auto size-3 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
-          </CollapsibleTrigger>
-        </SidebarGroupLabel>
-        <CollapsibleContent>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {section.items.map(item => (
-                <SidebarNavItem key={item.id} item={item} />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </CollapsibleContent>
-      </SidebarGroup>
-    </Collapsible>
+    <SidebarGroup>
+      {section.items.length > 1 && <SidebarGroupLabel>{section.label()}</SidebarGroupLabel>}
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {section.items.map(item => (
+            <SidebarNavItem key={item.id} item={item} />
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
   )
 }
 
@@ -153,7 +135,7 @@ function SidebarNavItem({ item }: { item: NavItem }) {
             if (isMobile) setOpenMobile(false)
           }}
         >
-          <Icon className="size-4" />
+          <Icon />
           <span>{item.label()}</span>
         </NavLink>
       </SidebarMenuButton>

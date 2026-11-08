@@ -76,7 +76,7 @@ function getNavigationItems(permissions: AppSidebarPermissions): CommandItem[] {
   if (permissions.canViewPrograms) {
     items.push({ id: 'programs', label: m.sidebar_programs(), icon: CalendarDays, to: '/programs' })
   }
-  if (permissions.canViewPrograms || permissions.canViewAbsences) {
+  if (permissions.canViewAbsences) {
     items.push({ id: 'absences', label: m.sidebar_absences(), icon: CalendarOff, to: '/programs/days-off' })
   }
   if (permissions.canViewExternalSpeakers) {

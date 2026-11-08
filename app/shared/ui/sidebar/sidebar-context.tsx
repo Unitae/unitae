@@ -7,7 +7,7 @@ import { cn } from '~/shared/utils/utils'
 
 const SIDEBAR_COOKIE_NAME = 'sidebar_state'
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-const SIDEBAR_WIDTH = '16rem'
+const SIDEBAR_WIDTH = '15rem'
 const SIDEBAR_WIDTH_ICON = '3rem'
 const SIDEBAR_KEYBOARD_SHORTCUT = 'b'
 
@@ -30,6 +30,11 @@ function useSidebar() {
   }
 
   return context
+}
+
+/** The sidebar, or null when rendered outside the shell (a page header in a test, a public page). */
+function useOptionalSidebar() {
+  return React.useContext(SidebarContext)
 }
 
 function SidebarProvider({
@@ -124,4 +129,4 @@ function SidebarProvider({
   )
 }
 
-export { SidebarProvider, useSidebar }
+export { SidebarProvider, useOptionalSidebar, useSidebar }
