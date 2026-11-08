@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { useFetcher } from 'react-router'
-import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
+import { PersonFacts } from '~/features/events/ui/PersonFacts'
+import { useCandidateFacts } from '~/features/events/ui/use-candidate-facts'
 import * as m from '~/i18n/paraglide/messages'
 import { Label } from '~/shared/ui/label'
 import { PersonDropdown } from '~/shared/ui/PersonDropdown'
@@ -14,6 +15,10 @@ export interface AssignServiceEditorProps {
   candidates: PersonOption[]
   eventId: number
   fetcher: ReturnType<typeof useFetcher>
+  /** The congregation's time zone, for the dates in the facts. */
+  timeZone: string
+  /** The event's year: dates in it go without theirs. */
+  referenceYear: number
   /** Receives the form element, e.g. to count its changes. */
   formRef?: (form: HTMLFormElement | null) => void
   className?: string
@@ -28,10 +33,18 @@ export function AssignServiceEditor({
   candidates,
   eventId,
   fetcher,
+  timeZone,
+  referenceYear,
   formRef,
   className,
 }: AssignServiceEditorProps) {
   const [assignee, setAssignee] = useState(service.assigneeId?.toString() ?? '')
+  const describe = useCandidateFacts({
+    eventId,
+    timeZone,
+    referenceYear,
+    slot: { kind: 'service', assignmentId: service.id },
+  })
 
   return (
     <fetcher.Form
@@ -39,7 +52,7 @@ export function AssignServiceEditor({
       ref={formRef}
       method="post"
       action={`/programs/events/${eventId}/assign-service`}
-      className={cn('flex flex-col gap-4', className)}
+      className={cn('flex flex-col gap-2.5', className)}
     >
       <input type="hidden" name="assignmentId" value={service.id} />
       <div className="flex flex-col gap-1.5">
@@ -52,9 +65,16 @@ export function AssignServiceEditor({
           onValueChange={setAssignee}
           placeholder={m.programs_assign_service_select_publisher()}
           noneLabel={m.programs_assign_service_none()}
+          describePerson={describe}
         />
       </div>
-      <PublisherInfoCard eventId={eventId} userId={assignee || null} excludeServiceAssignmentId={service.id} />
+      <PersonFacts
+        eventId={eventId}
+        userId={assignee || null}
+        excludeServiceAssignmentId={service.id}
+        timeZone={timeZone}
+        referenceYear={referenceYear}
+      />
     </fetcher.Form>
   )
 }

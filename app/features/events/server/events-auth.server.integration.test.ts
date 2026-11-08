@@ -49,6 +49,7 @@ const {
   getResponsibleTemplateIds,
   canManageAnyProgram,
   listApplicableTemplates,
+  mayReadSlotFacts,
   templateItemBelongsToTemplate,
 } = await import('./events-auth.server')
 
@@ -614,5 +615,67 @@ describe('templateItemBelongsToTemplate (integration)', () => {
       templateItemBelongsToTemplate(tx, 'part', Number.NaN, templateOwnedId, primaryCongId),
     )
     expect(result).toBe(false)
+  })
+})
+
+// The facts shown while assigning (absences, rotation, other duties) are for whoever may assign that slot, on the
+// event they were authorised on — not for anyone who can read programmes.
+describe('mayReadSlotFacts (integration)', () => {
+  const owned = () => ({ id: ownedEventId, templateId: templateOwnedId })
+
+  it('lets the programme responsible read the facts of a slot of their event', async () => {
+    const result = await withScope(primaryCongId, tx =>
+      mayReadSlotFacts(tx, allowNone, responsibleId, owned(), primaryCongId, {
+        kind: 'service',
+        assignmentId: ownedServicePartId,
+      }),
+    )
+    expect(result).toBe(true)
+  })
+
+  it('refuses a slot that belongs to another event', async () => {
+    const result = await withScope(primaryCongId, tx =>
+      mayReadSlotFacts(tx, allowNone, responsibleId, owned(), primaryCongId, {
+        kind: 'service',
+        assignmentId: foreignServicePartId,
+      }),
+    )
+    expect(result).toBe(false)
+  })
+
+  it('lets the services responsible read a service slot, but not a part', async () => {
+    const service = await withScope(primaryCongId, tx =>
+      mayReadSlotFacts(tx, allowNone, serviceResponsibleId, owned(), primaryCongId, {
+        kind: 'service',
+        assignmentId: ownedServicePartId,
+      }),
+    )
+    const part = await withScope(primaryCongId, tx =>
+      mayReadSlotFacts(tx, allowNone, serviceResponsibleId, owned(), primaryCongId, {
+        kind: 'part',
+        assignmentId: null,
+      }),
+    )
+    expect([service, part]).toEqual([true, false])
+  })
+
+  it('refuses someone who may only read programmes', async () => {
+    const result = await withScope(primaryCongId, tx =>
+      mayReadSlotFacts(tx, allowOnly(Permission.CanViewPrograms), plainId, owned(), primaryCongId, {
+        kind: 'part',
+        assignmentId: null,
+      }),
+    )
+    expect(result).toBe(false)
+  })
+
+  it('lets anyone allowed to assign parts read them', async () => {
+    const result = await withScope(primaryCongId, tx =>
+      mayReadSlotFacts(tx, allowOnly(Permission.CanAssignProgramParts), plainId, owned(), primaryCongId, {
+        kind: 'part',
+        assignmentId: null,
+      }),
+    )
+    expect(result).toBe(true)
   })
 })

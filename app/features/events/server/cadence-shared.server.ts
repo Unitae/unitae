@@ -12,7 +12,14 @@ export const EMPTY_CADENCE: CadencePayload = {
   past: [],
   future: [],
   hasHistory: false,
+  lastAssignedAt: null,
   savedMatchesSelection: false,
+}
+
+/** The latest of some event dates, as an ISO string, or null when there are none. */
+export function latestDate(dates: Date[]): string | null {
+  if (dates.length === 0) return null
+  return new Date(Math.max(...dates.map(date => date.getTime()))).toISOString()
 }
 
 // Same-slot comparison is diacritic-insensitive and tolerant of case /

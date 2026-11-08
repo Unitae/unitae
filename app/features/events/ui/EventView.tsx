@@ -86,7 +86,12 @@ export function EventView({
   const userById = new Map(users.map(user => [user.id, user]))
   const people = (ids: number[] | undefined) =>
     (ids ?? []).map(id => userById.get(id)).filter((user): user is PersonOption => user != null)
+  const referenceYear = Number(
+    new Intl.DateTimeFormat('fr-FR', { timeZone: timezone, year: 'numeric' }).format(new Date(event.startDate)),
+  )
   const partEditor = {
+    timeZone: timezone,
+    referenceYear,
     speakerCandidates: people(part ? partCandidates[part.id]?.speakerIds : []),
     readerCandidates: people(part ? partCandidates[part.id]?.readerIds : []),
     externalSpeakers,
@@ -94,6 +99,8 @@ export function EventView({
     fetcher: partFetcher,
   }
   const serviceEditor = {
+    timeZone: timezone,
+    referenceYear,
     candidates: people(service ? serviceCandidates[service.id] : []),
     eventId: event.id,
     fetcher: serviceFetcher,

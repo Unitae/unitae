@@ -1,5 +1,6 @@
+import { Avatar, StatusIcon } from '@unitae/ui'
 import { ChevronDownIcon, Search } from 'lucide-react'
-import { type KeyboardEvent, type ReactNode, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { Fragment, type KeyboardEvent, type ReactNode, useEffect, useId, useMemo, useRef, useState } from 'react'
 
 import * as m from '~/i18n/paraglide/messages'
 import { Input } from '~/shared/ui/input'
@@ -15,6 +16,18 @@ export type PersonOption = {
   lastname: string | null
 }
 
+/** How one person reads in the list, when the caller knows something about them. */
+export interface PersonDescription {
+  /** One line of facts under the name. */
+  facts?: string
+  /** Something worth a look, or a reason not to pick the person. */
+  tone?: 'warning' | 'danger'
+  /** People with a label go to the end of the list, under it. */
+  setAside?: string
+  /** Orders the people, smaller first, before their name does. */
+  rank?: number
+}
+
 type PersonDropdownProps = {
   name: string
   people: PersonOption[]
@@ -27,6 +40,11 @@ type PersonDropdownProps = {
   disabled?: boolean
   disabledIds?: number[]
   disabledReason?: (id: number) => string | undefined
+  /**
+   * Facts about each person, to compare before choosing: a line under the name, an order and a group set aside at
+   * the end. With it, people also show their initials. Without it the list is plain and sorted by name.
+   */
+  describePerson?: (id: number) => PersonDescription | undefined
   emptyState?: ReactNode
   id?: string
   'aria-invalid'?: boolean
@@ -53,6 +71,7 @@ export function PersonDropdown({
   disabled = false,
   disabledIds,
   disabledReason,
+  describePerson,
   emptyState,
   id,
   'aria-invalid': ariaInvalid,
@@ -72,7 +91,18 @@ export function PersonDropdown({
   const listRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const sortedPeople = useMemo(() => [...people].sort(comparePersonName), [people])
+  const sortedPeople = useMemo(() => {
+    if (!describePerson) return [...people].sort(comparePersonName)
+    const order = (person: PersonOption) => {
+      const description = describePerson(person.id)
+      return { aside: description?.setAside ? 1 : 0, rank: description?.rank ?? Number.POSITIVE_INFINITY }
+    }
+    return [...people].sort((a, b) => {
+      const left = order(a)
+      const right = order(b)
+      return left.aside - right.aside || left.rank - right.rank || comparePersonName(a, b)
+    })
+  }, [people, describePerson])
 
   const disabledSet = useMemo(() => new Set(disabledIds), [disabledIds])
 
@@ -89,15 +119,23 @@ export function PersonDropdown({
       label: formatPersonName(person),
       disabled: disabledSet.has(person.id),
       reason: disabledSet.has(person.id) ? disabledReason?.(person.id) : undefined,
+      description: describePerson?.(person.id),
     }))
     if (allowNone && !query) {
       return [
-        { kind: 'none' as const, id: -1, label: noneLabel ?? m.common_none(), disabled: false, reason: undefined },
+        {
+          kind: 'none' as const,
+          id: -1,
+          label: noneLabel ?? m.common_none(),
+          disabled: false,
+          reason: undefined,
+          description: undefined,
+        },
         ...list,
       ]
     }
     return list
-  }, [filteredPeople, allowNone, query, noneLabel, disabledSet, disabledReason])
+  }, [filteredPeople, allowNone, query, noneLabel, disabledSet, disabledReason, describePerson])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset highlight when query changes or popover opens
   useEffect(() => {
@@ -175,7 +213,10 @@ export function PersonDropdown({
             'flex h-9 w-full items-center justify-between gap-2 whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-[placeholder]:text-muted-foreground dark:bg-input/30 dark:aria-invalid:ring-destructive/40 dark:hover:bg-input/50',
           )}
         >
-          <span className="line-clamp-1 text-left">{triggerLabel}</span>
+          <span className="flex min-w-0 items-center gap-2">
+            {describePerson && !isPlaceholder && <Avatar name={triggerLabel} size="sm" />}
+            <span className="line-clamp-1 text-left">{triggerLabel}</span>
+          </span>
           <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground opacity-50" />
         </PopoverTrigger>
         <PopoverContent
@@ -221,33 +262,63 @@ export function PersonDropdown({
                 const isActive = index === activeIndex
                 const isSelected =
                   item.kind === 'none' ? currentValue === NONE_VALUE : currentValue === item.id.toString()
+                const aside = item.description?.setAside
+                // A label between options, outside the items the keyboard walks: each set-aside person says why
+                // in their own facts line, so the label is only for the eye.
+                const opensGroup = aside != null && items[index - 1]?.description?.setAside !== aside
                 return (
-                  <button
-                    key={`${item.kind}-${item.id}`}
-                    id={`${listboxId}-${item.kind}-${item.id}`}
-                    type="button"
-                    role="option"
-                    aria-selected={isSelected}
-                    aria-disabled={item.disabled}
-                    disabled={item.disabled}
-                    title={item.reason}
-                    data-active={isActive}
-                    data-selected={isSelected}
-                    onClick={() => selectIndex(index)}
-                    onMouseEnter={() => {
-                      if (!item.disabled) setActiveIndex(index)
-                    }}
-                    className={cn(
-                      'flex w-full items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-left text-sm transition-colors',
-                      'data-[active=true]:bg-accent data-[active=true]:text-accent-foreground',
-                      'data-[selected=true]:font-medium',
-                      'disabled:cursor-not-allowed disabled:opacity-50',
-                      item.kind === 'none' && 'text-muted-foreground italic',
+                  <Fragment key={`${item.kind}-${item.id}`}>
+                    {opensGroup && (
+                      <div aria-hidden="true" className="mt-1 border-border border-t px-2 pt-2 pb-1 text-faint text-xs">
+                        {aside}
+                      </div>
                     )}
-                  >
-                    <span className="line-clamp-1">{item.label}</span>
-                    {item.reason && <span className="ml-2 shrink-0 text-muted-foreground text-xs">{item.reason}</span>}
-                  </button>
+                    <button
+                      id={`${listboxId}-${item.kind}-${item.id}`}
+                      type="button"
+                      role="option"
+                      aria-selected={isSelected}
+                      aria-disabled={item.disabled}
+                      disabled={item.disabled}
+                      title={item.reason}
+                      data-active={isActive}
+                      data-selected={isSelected}
+                      onClick={() => selectIndex(index)}
+                      onMouseEnter={() => {
+                        if (!item.disabled) setActiveIndex(index)
+                      }}
+                      className={cn(
+                        'flex w-full items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-left text-sm transition-colors',
+                        'data-[active=true]:bg-accent data-[active=true]:text-accent-foreground',
+                        'data-[selected=true]:font-medium',
+                        'disabled:cursor-not-allowed disabled:opacity-50',
+                        item.kind === 'none' && 'text-muted-foreground italic',
+                        aside != null && 'opacity-70',
+                      )}
+                    >
+                      {describePerson && item.kind === 'person' ? (
+                        <span className="flex min-w-0 flex-1 items-center gap-2.5">
+                          <Avatar name={item.label} size="sm" />
+                          <span className="flex min-w-0 flex-col">
+                            <span className="line-clamp-1">{item.label}</span>
+                            {item.description?.facts && (
+                              <span className="flex items-center gap-1.5 font-normal text-faint text-xs">
+                                {item.description.tone && (
+                                  <StatusIcon tone={item.description.tone} className="size-2.5 flex-none" />
+                                )}
+                                <span className="line-clamp-1">{item.description.facts}</span>
+                              </span>
+                            )}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="line-clamp-1">{item.label}</span>
+                      )}
+                      {item.reason && (
+                        <span className="ml-2 shrink-0 text-muted-foreground text-xs">{item.reason}</span>
+                      )}
+                    </button>
+                  </Fragment>
                 )
               })
             )}

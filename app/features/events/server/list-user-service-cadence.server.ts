@@ -1,6 +1,7 @@
 import {
   type CadenceEntry,
   type CadenceHelperResult,
+  latestDate,
   normalize,
   toCadenceStatus,
 } from '~/features/events/server/cadence-shared.server'
@@ -32,7 +33,7 @@ export async function listUserServiceCadence(
   db: TransactionClient,
   { userId, event, congregationId, servicePartName, pastCount, futureCount }: Options,
 ): Promise<CadenceHelperResult> {
-  if (event.templateId == null) return { past: [], future: [], hasHistory: false }
+  if (event.templateId == null) return { past: [], future: [], hasHistory: false, lastAssignedAt: null }
 
   const servicesSelect = {
     select: {
@@ -63,7 +64,7 @@ export async function listUserServiceCadence(
     }),
     db.eventServicePart.findMany({
       where: { event: { ...commonWhere, startDate: { lt: event.startDate } }, assigneeId: userId },
-      select: { name: true },
+      select: { name: true, event: { select: { startDate: true } } },
     }),
   ])
 
@@ -81,12 +82,13 @@ export async function listUserServiceCadence(
     }
   }
 
-  const hasHistory = historicalAssignments.some(a => normalize(a.name) === targetName)
+  const history = historicalAssignments.filter(a => normalize(a.name) === targetName)
 
   return {
     // Prisma returned newest-first for past; reverse so the strip renders oldest → newest.
     past: pastRows.map(toEntry).reverse(),
     future: futureRows.map(toEntry),
-    hasHistory,
+    hasHistory: history.length > 0,
+    lastAssignedAt: latestDate(history.map(a => a.event.startDate)),
   }
 }

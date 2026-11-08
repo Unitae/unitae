@@ -1,10 +1,11 @@
 import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import type { PartSlot } from '~/features/events/server/cadence-shared.server'
+import { mayReadSlotFacts } from '~/features/events/server/events-auth.server'
 import { listUserSameEventAssignments } from '~/features/events/server/list-user-same-event-assignments.server'
 import { resolvePublisherCadence } from '~/features/events/server/resolve-publisher-cadence.server'
 import { standingTypeFromEnrolments } from '~/features/publishers'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { Permission } from '~/shared/types/permission'
+import type { Permission } from '~/shared/types/permission'
 import { formatGroupName } from '~/shared/utils/format-group-name'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -24,7 +25,6 @@ function parsePartSlot(raw: string | null): PartSlot {
 
 export function loader({ request, params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Permission.CanViewPrograms)) return Response.json(null, { status: 403 })
 
   const eventId = requireParamId(params.eventId, '/programs')
   const url = new URL(request.url)
@@ -36,9 +36,19 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
   if (!userId || Number.isNaN(userId)) return Response.json(null)
 
   return withScopeFromContext(context, async db => {
-    const { congregationId } = context.get(currentAccountContext)
+    const currentUser = context.get(currentAccountContext)
+    const { congregationId } = currentUser
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
     if (!event) return Response.json(null)
+    // Absences and rotation are for whoever may assign this slot of this event.
+    const slot =
+      excludeServiceAssignmentId != null
+        ? { kind: 'service' as const, assignmentId: excludeServiceAssignmentId }
+        : { kind: 'part' as const, assignmentId: excludePartAssignmentId }
+    const can = (role: Permission) => permissions.has(role)
+    if (!(await mayReadSlotFacts(db, can, currentUser.id, event, congregationId, slot))) {
+      return Response.json(null, { status: 403 })
+    }
 
     // Publisher profile
     const user = await db.member.findFirst({
