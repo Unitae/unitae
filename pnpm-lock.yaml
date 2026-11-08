@@ -92,8 +92,8 @@ importers:
         specifier: ^0.1.0
         version: 0.1.0(@fontsource/ibm-plex-sans@5.3.0)
       '@unitae/ui':
-        specifier: ^0.2.0
-        version: 0.2.0(@unitae/tokens@0.1.0(@fontsource/ibm-plex-sans@5.3.0))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(recharts@3.10.1(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react-is@18.3.1)(react@19.3.1)(redux@5.0.1))
+        specifier: ^0.3.0
+        version: 0.3.0(@unitae/tokens@0.1.0(@fontsource/ibm-plex-sans@5.3.0))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(recharts@3.10.1(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react-is@18.3.1)(react@19.3.1)(redux@5.0.1))
       '@vis.gl/react-google-maps':
         specifier: ^1.10.1
         version: 1.10.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -2842,8 +2842,8 @@ packages:
       '@fontsource/ibm-plex-sans':
         optional: true
 
-  '@unitae/ui@0.2.0':
-    resolution: {integrity: sha512-hBjud6Ic2nVPkK4a09kRprfDmIxGHK6t/IATrz9xVv7SzmQSzHsLnCbGyk1Kv6Gk9IJUwAH9bKF1Rs3T3pZCYw==}
+  '@unitae/ui@0.3.0':
+    resolution: {integrity: sha512-NSb0MNaUCbtHOOvZEqFD51vZ4RsPB3sE1TQW3HN+p5tRd6P35or8IFauKDoIAEMPndVXYMCaQft4OcEgk6zfFQ==}
     engines: {node: '>=22.22.0'}
     peerDependencies:
       '@unitae/tokens': ^0.1.0
@@ -9409,7 +9409,7 @@ snapshots:
     optionalDependencies:
       '@fontsource/ibm-plex-sans': 5.3.0
 
-  '@unitae/ui@0.2.0(@unitae/tokens@0.1.0(@fontsource/ibm-plex-sans@5.3.0))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(recharts@3.10.1(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react-is@18.3.1)(react@19.3.1)(redux@5.0.1))':
+  '@unitae/ui@0.3.0(@unitae/tokens@0.1.0(@fontsource/ibm-plex-sans@5.3.0))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(recharts@3.10.1(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react-is@18.3.1)(react@19.3.1)(redux@5.0.1))':
     dependencies:
       '@unitae/tokens': 0.1.0(@fontsource/ibm-plex-sans@5.3.0)
       class-variance-authority: 0.7.1

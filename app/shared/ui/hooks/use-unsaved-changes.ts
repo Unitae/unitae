@@ -3,7 +3,8 @@ import { useBlocker, useNavigation } from 'react-router'
 
 /**
  * Blocks navigation and tab close when the form has unsaved changes.
- * Returns the blocker state and a markDirty callback for form onChange.
+ * Returns the blocker state and a markDirty callback for form onChange, or setDirty for a form that
+ * knows when it is back to what it loaded.
  * Automatically resets dirty state when a form submission starts.
  */
 export function useUnsavedChanges() {
@@ -50,5 +51,11 @@ export function useUnsavedChanges() {
     setIsDirty(true)
   }, [])
 
-  return { blocker, markDirty }
+  // For forms that count their changes: back to zero once every edit is undone.
+  const setDirty = useCallback((dirty: boolean) => {
+    hasUnsavedChanges.current = dirty
+    setIsDirty(dirty)
+  }, [])
+
+  return { blocker, markDirty, setDirty }
 }

@@ -1,9 +1,11 @@
-import { getFormProps, getInputProps, useForm } from '@conform-to/react'
+import { getFormProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod/v4'
-import { data, Form, redirect } from 'react-router'
+import { Building2 } from 'lucide-react'
+import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { createBuildingSchema } from '~/features/territories/schemas/building.schema'
 import { createBuilding } from '~/features/territories/server/create-building.server'
+import { BuildingAddressSections } from '~/features/territories/ui/BuildingAddressSections'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -12,11 +14,9 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
-import { Card, CardContent } from '~/shared/ui/card'
-import { FormActions } from '~/shared/ui/FormActions'
+import { Button } from '~/shared/ui/button'
+import { FormSaveBar } from '~/shared/ui/FormSaveBar'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
-import { Input } from '~/shared/ui/input'
-import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 
@@ -31,10 +31,11 @@ export function loader({ context }: Route.LoaderArgs) {
 
   requirePermission(permissions, Permission.CanManageBuildings)
 
-  return null
+  return { canViewProspection: permissions.has(Permission.CanViewProspection) }
 }
 
-export default function CreateBuildingPage({ actionData }: Route.ComponentProps) {
+export default function CreateBuildingPage({ loaderData, actionData }: Route.ComponentProps) {
+  const { canViewProspection } = loaderData
   useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -44,62 +45,28 @@ export default function CreateBuildingPage({ actionData }: Route.ComponentProps)
   })
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col">
       <PageHeader
+        icon={Building2}
         title={m.prospection_new_building_title()}
         subtitle={m.prospection_new_building_subtitle()}
         breadcrumbs={[
-          { label: m.sidebar_prospection(), to: '/territories/buildings' },
+          { label: m.sidebar_prospection(), to: canViewProspection ? '/territories/buildings' : undefined },
           { label: m.prospection_new_building_title() },
         ]}
-        backTo="/territories/buildings"
       />
-
-      <Card>
-        <CardContent className="pt-6">
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor={fields.number.id}>{m.territories_form_number()}</Label>
-              <Input
-                {...getInputProps(fields.number, { type: 'text' })}
-                placeholder={m.prospection_new_building_number_placeholder()}
-              />
-              {fields.number.errors && <p className="text-destructive text-sm">{fields.number.errors}</p>}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor={fields.street.id}>{m.prospection_new_building_street_label()}</Label>
-              <Input
-                {...getInputProps(fields.street, { type: 'text' })}
-                placeholder={m.prospection_new_building_street_placeholder()}
-              />
-              {fields.street.errors && <p className="text-destructive text-sm">{fields.street.errors}</p>}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor={fields.zip.id}>{m.prospection_new_building_zip_label()}</Label>
-              <Input
-                {...getInputProps(fields.zip, { type: 'text' })}
-                placeholder={m.prospection_new_building_zip_placeholder()}
-              />
-              {fields.zip.errors && <p className="text-destructive text-sm">{fields.zip.errors}</p>}
-            </div>
-            <div className="flex gap-3">
-              <div className="flex flex-1 flex-col gap-1.5">
-                <Label htmlFor={fields.latitude.id}>{m.prospection_table_latitude()}</Label>
-                <Input {...getInputProps(fields.latitude, { type: 'number' })} step={0.0000001} />
-                {fields.latitude.errors && <p className="text-destructive text-sm">{fields.latitude.errors}</p>}
-              </div>
-              <div className="flex flex-1 flex-col gap-1.5">
-                <Label htmlFor={fields.longitude.id}>{m.prospection_table_longitude()}</Label>
-                <Input {...getInputProps(fields.longitude, { type: 'number' })} step={0.0000001} />
-                {fields.longitude.errors && <p className="text-destructive text-sm">{fields.longitude.errors}</p>}
-              </div>
-            </div>
-            <FormActions>
-              <SubmitButton>{m.prospection_new_building_submit()}</SubmitButton>
-            </FormActions>
-          </Form>
-        </CardContent>
-      </Card>
+      <Form method="post" {...getFormProps(form)} className="flex flex-col pb-24">
+        <BuildingAddressSections fields={fields} />
+        {/* Nothing exists yet to compare with: the bar stays, without a count. */}
+        <FormSaveBar changes={null}>
+          {canViewProspection && (
+            <Button asChild variant="ghost">
+              <Link to="/territories/buildings">{m.common_cancel()}</Link>
+            </Button>
+          )}
+          <SubmitButton>{m.prospection_new_building_submit()}</SubmitButton>
+        </FormSaveBar>
+      </Form>
     </div>
   )
 }

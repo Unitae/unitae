@@ -2,6 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
+import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -26,6 +27,11 @@ let primaryBuildingId: number
 let otherBuildingId: number
 
 const { setBuildingProspectionData } = await import('./set-building-prospection-data.server')
+
+const ACTOR_ID = 1
+type Input = Parameters<typeof setBuildingProspectionData>[3]
+const save = (tx: Tx, buildingId: number, congregationId: number, input: Input) =>
+  setBuildingProspectionData(tx, buildingId, congregationId, input, ACTOR_ID)
 
 function emptyInput(overrides: Partial<Parameters<typeof setBuildingProspectionData>[3]> = {}) {
   return {
@@ -85,6 +91,8 @@ afterAll(async () => {
       await tx.building.deleteMany({})
     })
   }
+  await flushPendingAuditWrites()
+  await testDb.auditLog.deleteMany({ where: { congregationId: { in: [primaryCongId, otherCongId] } } })
   await testDb.congregation.deleteMany({ where: { id: { in: [primaryCongId, otherCongId] } } })
   await testDb.$disconnect()
 })
@@ -92,12 +100,7 @@ afterAll(async () => {
 describe('setBuildingProspectionData (integration)', () => {
   it('creates a residential entrance when has-residential is checked', async () => {
     await withScope(primaryCongId, tx =>
-      setBuildingProspectionData(
-        tx,
-        primaryBuildingId,
-        primaryCongId,
-        emptyInput({ 'has-residential': 'on', homes: '3' }),
-      ),
+      save(tx, primaryBuildingId, primaryCongId, emptyInput({ 'has-residential': 'on', homes: '3' })),
     )
 
     const entrances = await withScope(primaryCongId, tx =>
@@ -114,16 +117,11 @@ describe('setBuildingProspectionData (integration)', () => {
   it('removes the residential entrance when has-residential is unchecked', async () => {
     // First ensure one exists
     await withScope(primaryCongId, tx =>
-      setBuildingProspectionData(
-        tx,
-        primaryBuildingId,
-        primaryCongId,
-        emptyInput({ 'has-residential': 'on', homes: '2' }),
-      ),
+      save(tx, primaryBuildingId, primaryCongId, emptyInput({ 'has-residential': 'on', homes: '2' })),
     )
 
     // Now uncheck
-    await withScope(primaryCongId, tx => setBuildingProspectionData(tx, primaryBuildingId, primaryCongId, emptyInput()))
+    await withScope(primaryCongId, tx => save(tx, primaryBuildingId, primaryCongId, emptyInput()))
 
     const residentialData = await testDb.buildingResidentialData.findFirst({
       where: { buildingId: primaryBuildingId },
@@ -133,7 +131,7 @@ describe('setBuildingProspectionData (integration)', () => {
 
   it('creates commerce entrances for each shopkind provided', async () => {
     await withScope(primaryCongId, tx =>
-      setBuildingProspectionData(
+      save(
         tx,
         primaryBuildingId,
         primaryCongId,
@@ -150,13 +148,31 @@ describe('setBuildingProspectionData (integration)', () => {
     expect(kinds).toContain('pharmacy')
 
     // Cleanup
-    await withScope(primaryCongId, tx => setBuildingProspectionData(tx, primaryBuildingId, primaryCongId, emptyInput()))
+    await withScope(primaryCongId, tx => save(tx, primaryBuildingId, primaryCongId, emptyInput()))
+  })
+
+  it("keeps each shop's notes with it when a shop without a category is left out", async () => {
+    await withScope(primaryCongId, tx =>
+      save(
+        tx,
+        primaryBuildingId,
+        primaryCongId,
+        emptyInput({ shopkinds: ['', 'pharmacy'], 'commerce-notes': ['first', 'second'] }),
+      ),
+    )
+
+    const shops = await withScope(primaryCongId, tx =>
+      tx.buildingEntrance.findMany({ where: { kind: EntranceKind.Commerce } }),
+    )
+    expect(shops.map(({ shopKind, notes }) => ({ shopKind, notes }))).toEqual([
+      { shopKind: 'pharmacy', notes: 'second' },
+    ])
+
+    await withScope(primaryCongId, tx => save(tx, primaryBuildingId, primaryCongId, emptyInput()))
   })
 
   it('creates hotel entrance when hotel flag is set', async () => {
-    await withScope(primaryCongId, tx =>
-      setBuildingProspectionData(tx, primaryBuildingId, primaryCongId, emptyInput({ hotel: 'on' })),
-    )
+    await withScope(primaryCongId, tx => save(tx, primaryBuildingId, primaryCongId, emptyInput({ hotel: 'on' })))
 
     const hotel = await withScope(primaryCongId, tx =>
       tx.buildingEntrance.findFirst({ where: { kind: EntranceKind.Hotel } }),
@@ -164,33 +180,23 @@ describe('setBuildingProspectionData (integration)', () => {
     expect(hotel).not.toBeNull()
 
     // Cleanup
-    await withScope(primaryCongId, tx => setBuildingProspectionData(tx, primaryBuildingId, primaryCongId, emptyInput()))
+    await withScope(primaryCongId, tx => save(tx, primaryBuildingId, primaryCongId, emptyInput()))
   })
 
   it('upsert of residential data does not touch another congregation building with same buildingId sequence — RLS isolation', async () => {
     // Create residential data for primary building
     await withScope(primaryCongId, tx =>
-      setBuildingProspectionData(
-        tx,
-        primaryBuildingId,
-        primaryCongId,
-        emptyInput({ 'has-residential': 'on', homes: '5' }),
-      ),
+      save(tx, primaryBuildingId, primaryCongId, emptyInput({ 'has-residential': 'on', homes: '5' })),
     )
 
     // Create residential data for other congregation building
     await withScope(otherCongId, tx =>
-      setBuildingProspectionData(tx, otherBuildingId, otherCongId, emptyInput({ 'has-residential': 'on', homes: '8' })),
+      save(tx, otherBuildingId, otherCongId, emptyInput({ 'has-residential': 'on', homes: '8' })),
     )
 
     // Update primary building
     await withScope(primaryCongId, tx =>
-      setBuildingProspectionData(
-        tx,
-        primaryBuildingId,
-        primaryCongId,
-        emptyInput({ 'has-residential': 'on', homes: '10' }),
-      ),
+      save(tx, primaryBuildingId, primaryCongId, emptyInput({ 'has-residential': 'on', homes: '10' })),
     )
 
     const primaryData = await testDb.buildingResidentialData.findFirst({
@@ -205,10 +211,96 @@ describe('setBuildingProspectionData (integration)', () => {
     expect(otherData?.homes).toBe(8)
   })
 
+  it('takes only this building out of a shared entrance when its residential entrance is removed', async () => {
+    const { entranceId, leavingId, stayingId } = await withScope(primaryCongId, async tx => {
+      const [leaving, staying] = await Promise.all(
+        ['1', '3'].map(number =>
+          tx.building.create({
+            data: { number, street: `Rue Partagée ${ts}`, zip: '69100', congregationId: primaryCongId },
+          }),
+        ),
+      )
+      const entrance = await tx.buildingEntrance.create({
+        data: {
+          kind: EntranceKind.Residential,
+          homes: 10,
+          buildings: { connect: [{ id: leaving.id }, { id: staying.id }] },
+          congregationId: primaryCongId,
+        },
+      })
+      for (const [building, homes] of [
+        [leaving, 4],
+        [staying, 6],
+      ] as const) {
+        await tx.buildingResidentialData.create({
+          data: { buildingId: building.id, entranceId: entrance.id, homes, congregationId: primaryCongId },
+        })
+      }
+      return { entranceId: entrance.id, leavingId: leaving.id, stayingId: staying.id }
+    })
+
+    await withScope(primaryCongId, tx => save(tx, leavingId, primaryCongId, emptyInput()))
+
+    const shared = await withScope(primaryCongId, tx =>
+      tx.buildingEntrance.findFirst({ where: { id: entranceId }, include: { buildings: true } }),
+    )
+    expect(shared?.buildings.map(({ id }) => id)).toEqual([stayingId])
+    expect(shared?.homes).toBe(6)
+    expect(await testDb.buildingResidentialData.findFirst({ where: { buildingId: stayingId } })).toMatchObject({
+      homes: 6,
+      entranceId,
+    })
+    expect(await testDb.buildingResidentialData.findFirst({ where: { buildingId: leavingId } })).toBeNull()
+  })
+
+  it("brings figures recorded on another entrance back to the building's residential entrance", async () => {
+    const { ownId, buildingId, formerId } = await withScope(primaryCongId, async tx => {
+      const [building, neighbour] = await Promise.all(
+        ['5', '7'].map(number =>
+          tx.building.create({
+            data: { number, street: `Rue Ancienne ${ts}`, zip: '69100', congregationId: primaryCongId },
+          }),
+        ),
+      )
+      const own = await tx.buildingEntrance.create({
+        data: {
+          kind: EntranceKind.Residential,
+          homes: 3,
+          buildings: { connect: { id: building.id } },
+          congregationId: primaryCongId,
+        },
+      })
+      const former = await tx.buildingEntrance.create({
+        data: {
+          kind: EntranceKind.Residential,
+          homes: 11,
+          buildings: { connect: { id: neighbour.id } },
+          congregationId: primaryCongId,
+        },
+      })
+      await tx.buildingResidentialData.create({
+        data: { buildingId: building.id, entranceId: former.id, homes: 3, congregationId: primaryCongId },
+      })
+      await tx.buildingResidentialData.create({
+        data: { buildingId: neighbour.id, entranceId: former.id, homes: 8, congregationId: primaryCongId },
+      })
+      return { ownId: own.id, buildingId: building.id, formerId: former.id }
+    })
+
+    await withScope(primaryCongId, tx =>
+      save(tx, buildingId, primaryCongId, emptyInput({ 'has-residential': 'on', homes: '5' })),
+    )
+
+    const figures = await testDb.buildingResidentialData.findFirst({ where: { buildingId } })
+    expect(figures).toMatchObject({ entranceId: ownId, homes: 5 })
+    expect((await testDb.buildingEntrance.findUnique({ where: { id: ownId } }))?.homes).toBe(5)
+    expect((await testDb.buildingEntrance.findUnique({ where: { id: formerId } }))?.homes).toBe(8)
+  })
+
   it('sets prospection date on the building', async () => {
     const date = '2024-06-15'
     await withScope(primaryCongId, tx =>
-      setBuildingProspectionData(tx, primaryBuildingId, primaryCongId, emptyInput({ 'prospection-date': date })),
+      save(tx, primaryBuildingId, primaryCongId, emptyInput({ 'prospection-date': date })),
     )
 
     const building = await testDb.building.findUnique({ where: { id: primaryBuildingId } })

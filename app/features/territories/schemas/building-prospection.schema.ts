@@ -15,8 +15,10 @@ export const buildingProspectionSchema = z.object({
   campus: z.string().optional(),
   landromat: z.string().optional(),
   'shared-entrance-buildings': z.string().default(''),
-  shopkinds: z.array(z.string()).default([]),
-  'commerce-notes': z.array(z.string()).default([]),
+  // One value per shop, in order. Conform reads an empty field among several as undefined: kept as '' so the
+  // shops' categories and notes stay paired.
+  shopkinds: z.array(z.string().default('')).default([]),
+  'commerce-notes': z.array(z.string().default('')).default([]),
 })
 
 export type BuildingProspectionInput = z.infer<typeof buildingProspectionSchema>

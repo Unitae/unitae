@@ -2,6 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
+import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -70,6 +71,8 @@ afterAll(async () => {
     await tx.buildingEntrance.deleteMany({})
     await tx.building.deleteMany({})
   })
+  await flushPendingAuditWrites()
+  await testDb.auditLog.deleteMany({ where: { congregationId: congId } })
   await testDb.congregation.deleteMany({ where: { id: congId } })
   await testDb.$disconnect()
 })
@@ -77,7 +80,7 @@ afterAll(async () => {
 describe('entrance centroid maintenance (integration)', () => {
   it('recomputes the entrance centroid when a building is connected', async () => {
     await withScope(congId, tx =>
-      updateBuildingsInEntrance(tx, entranceId, [buildingAId, buildingBId, buildingCId], congId),
+      updateBuildingsInEntrance(tx, entranceId, [buildingAId, buildingBId, buildingCId], congId, 1),
     )
 
     const entrance = await testDb.buildingEntrance.findUnique({ where: { id: entranceId } })
@@ -86,7 +89,7 @@ describe('entrance centroid maintenance (integration)', () => {
   })
 
   it('recomputes the entrance centroid when a building is disconnected', async () => {
-    await withScope(congId, tx => updateBuildingsInEntrance(tx, entranceId, [buildingAId, buildingBId], congId))
+    await withScope(congId, tx => updateBuildingsInEntrance(tx, entranceId, [buildingAId, buildingBId], congId, 1))
 
     const entrance = await testDb.buildingEntrance.findUnique({ where: { id: entranceId } })
     expect(entrance?.latitude).toBeCloseTo(48.1, 6)
@@ -94,7 +97,7 @@ describe('entrance centroid maintenance (integration)', () => {
   })
 
   it('sets the centroid on the new entrance created for a split building', async () => {
-    await withScope(congId, tx => updateBuildingsInEntrance(tx, entranceId, [buildingAId], congId))
+    await withScope(congId, tx => updateBuildingsInEntrance(tx, entranceId, [buildingAId], congId, 1))
 
     const newEntrance = await testDb.buildingEntrance.findFirst({
       where: { id: { not: entranceId }, congregationId: congId, buildings: { some: { id: buildingBId } } },
@@ -103,7 +106,7 @@ describe('entrance centroid maintenance (integration)', () => {
     expect(newEntrance?.longitude).toBeCloseTo(2.2, 6)
 
     // Reset for subsequent tests
-    await withScope(congId, tx => updateBuildingsInEntrance(tx, entranceId, [buildingAId, buildingBId], congId))
+    await withScope(congId, tx => updateBuildingsInEntrance(tx, entranceId, [buildingAId, buildingBId], congId, 1))
   })
 
   it('propagates a building coordinate change to its linked entrances via editBuilding', async () => {

@@ -1,8 +1,11 @@
+import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 import { computeEntranceCentroid } from './compute-entrance-centroid'
 
-async function recalculateEntranceAggregates(db: TransactionClient, entranceId: number, congregationId: number) {
+/** The entrance's household, phone and liberal totals: the sum of each of its buildings' own figures. */
+export async function recalculateEntranceAggregates(db: TransactionClient, entranceId: number, congregationId: number) {
   const aggregates = await db.buildingResidentialData.aggregate({
     where: { entranceId, congregationId },
     _sum: { homes: true, phones: true, liberals: true },
@@ -32,97 +35,106 @@ export async function recalculateEntranceCentroid(db: TransactionClient, entranc
   })
 }
 
+/**
+ * Sets which buildings share a residential entrance. A building can only have one residential entrance: one that
+ * joins leaves its own, taking its figures along; one that leaves gets an entrance of its own, a copy of the shared
+ * one (access, notes, territories) holding its figures. Totals and positions follow on every entrance touched.
+ * Errors propagate, so the caller's transaction rolls the whole change back.
+ */
 export async function updateBuildingsInEntrance(
   db: TransactionClient,
   entranceId: number,
   buildingIds: number[],
   congregationId: number,
+  actorId: number,
 ) {
   const entrance = await db.buildingEntrance.findUnique({
     where: { id_congregationId: { id: entranceId, congregationId } },
-    include: { buildings: true, accesses: { orderBy: { position: 'asc' } } },
+    include: { buildings: true, territories: true, accesses: { orderBy: { position: 'asc' } } },
   })
 
   if (entrance == null) {
     return
   }
 
-  logger.info(`Trying to update entrance ${entranceId} with buildings ${buildingIds.join(', ')}.`)
-
-  const newBuildingIds = buildingIds.filter(
-    buildingId => !entrance.buildings.some(building => building.id === buildingId),
-  )
-  if (newBuildingIds.length > 0) {
-    logger.info(`Buildings ${newBuildingIds.join(', ')} will be added to entrance ${entranceId}`)
-  }
-
-  const disconnectBuildingIds = entrance.buildings
+  const joining = buildingIds.filter(buildingId => !entrance.buildings.some(building => building.id === buildingId))
+  const leaving = entrance.buildings
     .map(building => building.id)
     .filter(buildingId => !buildingIds.includes(buildingId))
-  if (disconnectBuildingIds.length > 0) {
-    logger.info(`Buildings ${disconnectBuildingIds.join(', ')} will be removed from entrance ${entranceId}`)
+  logger.info(`Entrance ${entranceId}: buildings ${joining.join(', ')} join, ${leaving.join(', ')} leave.`)
+
+  const formerEntranceIds = new Set<number>()
+  for (const buildingId of joining) {
+    const formerEntrances = await db.buildingEntrance.findMany({
+      where: {
+        congregationId,
+        kind: EntranceKind.Residential,
+        id: { not: entranceId },
+        buildings: { some: { id: buildingId } },
+      },
+      select: { id: true },
+    })
+    for (const former of formerEntrances) {
+      formerEntranceIds.add(former.id)
+      await db.buildingEntrance.update({
+        where: { id_congregationId: { id: former.id, congregationId } },
+        data: { buildings: { disconnect: { id: buildingId } } },
+      })
+    }
+    // Moved before any former entrance is removed: deleting an entrance cascades to the figures it holds.
+    await db.buildingResidentialData.updateMany({ where: { buildingId, congregationId }, data: { entranceId } })
   }
 
-  try {
-    // Update current entrance.
-    await db.buildingEntrance.update({
-      where: { id_congregationId: { id: entrance.id, congregationId } },
+  await db.buildingEntrance.update({
+    where: { id_congregationId: { id: entrance.id, congregationId } },
+    data: {
+      buildings: {
+        connect: joining.map(buildingId => ({ id: buildingId })),
+        disconnect: leaving.map(buildingId => ({ id: buildingId })),
+      },
+    },
+  })
+
+  for (const buildingId of leaving) {
+    const own = await db.buildingEntrance.create({
       data: {
-        buildings: {
-          connect: newBuildingIds.map(buildingId => ({ id: buildingId })),
-          disconnect: disconnectBuildingIds.map(buildingId => ({ id: buildingId })),
-        },
+        kind: entrance.kind,
+        access: entrance.access,
+        isMailboxOpen: entrance.isMailboxOpen,
+        isPMR: entrance.isPMR,
+        isOpenEarly: entrance.isOpenEarly,
+        notes: entrance.notes,
+        buildings: { connect: { id: buildingId } },
+        territories: { connect: entrance.territories.map(territory => ({ id: territory.id })) },
+        congregationId,
       },
     })
-
-    // Create new entrance for each disconnected building.
-    for (const disconnectBuildingId of disconnectBuildingIds) {
-      const newEntrance = await db.buildingEntrance.create({
-        data: {
-          kind: entrance.kind,
-          access: entrance.access,
-          isMailboxOpen: entrance.isMailboxOpen,
-          isPMR: entrance.isPMR,
-          isOpenEarly: entrance.isOpenEarly,
-          buildings: { connect: { id: disconnectBuildingId } },
-          congregationId,
-        },
+    for (const access of entrance.accesses) {
+      await db.buildingAccess.create({
+        data: { entranceId: own.id, type: access.type, position: access.position, congregationId },
       })
-
-      // Clone BuildingAccess rows for the new entrance
-      for (const access of entrance.accesses) {
-        await db.buildingAccess.create({
-          data: {
-            entrance: { connect: { id: newEntrance.id } },
-            type: access.type,
-            position: access.position,
-            congregation: { connect: { id: congregationId } },
-          },
-        })
-      }
-
-      // Reassign BuildingResidentialData to the new entrance
-      await db.buildingResidentialData.updateMany({
-        where: { buildingId: disconnectBuildingId, congregationId },
-        data: { entranceId: newEntrance.id },
-      })
-
-      // Recalculate aggregates and centroid on the new entrance
-      await recalculateEntranceAggregates(db, newEntrance.id, congregationId)
-      await recalculateEntranceCentroid(db, newEntrance.id, congregationId)
     }
+    await db.buildingResidentialData.updateMany({ where: { buildingId, congregationId }, data: { entranceId: own.id } })
+    await recalculateEntranceAggregates(db, own.id, congregationId)
+    await recalculateEntranceCentroid(db, own.id, congregationId)
+  }
 
-    // Recalculate aggregates and centroid on the original entrance
-    await recalculateEntranceAggregates(db, entranceId, congregationId)
-    await recalculateEntranceCentroid(db, entranceId, congregationId)
-
-    logger.info(`Update of entrance ${entranceId} with buildings ${buildingIds.join(', ')} succeed.`)
-  } catch (error) {
-    logger.error(error)
+  for (const id of [entranceId, ...formerEntranceIds]) {
+    await recalculateEntranceAggregates(db, id, congregationId)
+    await recalculateEntranceCentroid(db, id, congregationId)
   }
 
   // Remove empty entrances.
   await db.buildingEntrance.deleteMany({
     where: { congregationId, buildings: { none: {} } },
+  })
+
+  audit({
+    action: AuditAction.BuildingEntranceSharingChanged,
+    congregationId,
+    actorId,
+    entityType: 'BuildingEntrance',
+    entityId: entranceId,
+    metadata: { joined: joining, left: leaving },
   })
 }

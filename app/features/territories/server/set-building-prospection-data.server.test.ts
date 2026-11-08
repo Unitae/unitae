@@ -1,15 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { BuildingProspectionInput } from '~/features/territories/schemas/building-prospection.schema'
 
-const SENTINEL_ENTRANCE = { id: 42, kind: 'residential' }
+const SENTINEL_ENTRANCE = { id: 42, kind: 'residential', buildings: [{ id: 1 }] }
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     building: { update: vi.fn() },
     buildingEntrance: { update: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn(), delete: vi.fn() },
-    buildingResidentialData: { upsert: vi.fn(), aggregate: vi.fn(), deleteMany: vi.fn() },
+    buildingResidentialData: { upsert: vi.fn(), aggregate: vi.fn(), deleteMany: vi.fn(), findUnique: vi.fn() },
     buildingAccess: { deleteMany: vi.fn(), create: vi.fn() },
   },
+}))
+
+vi.mock('~/shared/domain/audit.server', () => ({
+  AuditAction: { BuildingProspectionUpdated: 'building.prospection.updated' },
+  audit: vi.fn(),
 }))
 
 const { setBuildingProspectionData } = await import('./set-building-prospection-data.server')
@@ -45,7 +50,7 @@ describe('setBuildingProspectionData', () => {
       'prospection-date': '2025-04-08',
     }
 
-    await setBuildingProspectionData(db, 1, 7, input)
+    await setBuildingProspectionData(db, 1, 7, input, 3)
 
     const callArgs = vi.mocked(db.building.update).mock.calls[0][0]
     expect(callArgs.data.prospectionDate).toBeInstanceOf(Date)
@@ -58,7 +63,7 @@ describe('setBuildingProspectionData', () => {
       'has-residential': 'on',
     }
 
-    await setBuildingProspectionData(db, 1, 7, input)
+    await setBuildingProspectionData(db, 1, 7, input, 3)
 
     const callArgs = vi.mocked(db.building.update).mock.calls[0][0]
     expect(callArgs.data.prospectionDate).toBeNull()
@@ -74,7 +79,7 @@ describe('setBuildingProspectionData', () => {
       mailboxes: 'on',
     }
 
-    await setBuildingProspectionData(db, 1, 7, input)
+    await setBuildingProspectionData(db, 1, 7, input, 3)
 
     const callArgs = vi.mocked(db.buildingEntrance.update).mock.calls[0][0]
     expect(callArgs.data.access).toBe(3)
@@ -92,7 +97,7 @@ describe('setBuildingProspectionData', () => {
       liberals: '2',
     }
 
-    await setBuildingProspectionData(db, 1, 7, input)
+    await setBuildingProspectionData(db, 1, 7, input, 3)
 
     const callArgs = vi.mocked(db.buildingResidentialData.upsert).mock.calls[0][0]
     expect(callArgs.update.homes).toBe(15)
@@ -106,7 +111,7 @@ describe('setBuildingProspectionData', () => {
       'has-residential': 'on',
     }
 
-    await setBuildingProspectionData(db, 1, 7, input)
+    await setBuildingProspectionData(db, 1, 7, input, 3)
 
     const callArgs = vi.mocked(db.buildingResidentialData.upsert).mock.calls[0][0]
     expect(callArgs.update.homes).toBeNull()
@@ -120,7 +125,7 @@ describe('setBuildingProspectionData', () => {
       shopkinds: ['alimentaire', 'coiffure-cosmetiques'],
     }
 
-    await setBuildingProspectionData(db, 1, 7, input)
+    await setBuildingProspectionData(db, 1, 7, input, 3)
 
     expect(vi.mocked(db.buildingEntrance.create)).toHaveBeenCalledTimes(2)
   })

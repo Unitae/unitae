@@ -76,6 +76,9 @@ export const AuditAction = {
   TerritoryDeleted: 'territory.deleted',
   TerritoryKindAllowedRolesChanged: 'territory_kind.allowed_roles.changed',
   EntranceReassigned: 'entrance.reassigned',
+  // Buildings joined or left a shared residential entrance.
+  BuildingEntranceSharingChanged: 'building.entrance_sharing.changed',
+  BuildingProspectionUpdated: 'building.prospection.updated',
 
   // Attributions
   AttributionCreated: 'attribution.created',

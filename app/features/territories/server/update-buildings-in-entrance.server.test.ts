@@ -1,14 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+// The joining, leaving and totals behaviour runs against a real database in
+// update-buildings-in-entrance.server.integration.test.ts; these cover scoping and failures.
+
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
+    building: { findMany: vi.fn() },
+    buildingResidentialData: { aggregate: vi.fn() },
     buildingEntrance: {
       findUnique: vi.fn(),
       update: vi.fn(),
-      createMany: vi.fn(),
       deleteMany: vi.fn(),
     },
   },
+}))
+
+vi.mock('~/shared/domain/audit.server', () => ({
+  AuditAction: { BuildingEntranceSharingChanged: 'building.entrance_sharing.changed' },
+  audit: vi.fn(),
 }))
 
 vi.mock('~/shared/infra/logger.server', () => ({
@@ -21,10 +30,23 @@ vi.mock('~/shared/infra/logger.server', () => ({
 const { updateBuildingsInEntrance } = await import('./update-buildings-in-entrance.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
+const unchangedEntrance = {
+  id: 10,
+  access: 1,
+  isMailboxOpen: false,
+  isPMR: false,
+  isOpenEarly: false,
+  notes: '',
+  buildings: [{ id: 1 }],
+  territories: [],
+  accesses: [],
+}
+
 beforeEach(() => {
   vi.resetAllMocks()
+  vi.mocked(db.building.findMany).mockResolvedValue([] as never)
+  vi.mocked(db.buildingResidentialData.aggregate).mockResolvedValue({ _sum: {} } as never)
   vi.mocked(db.buildingEntrance.update).mockResolvedValue({} as never)
-  vi.mocked(db.buildingEntrance.createMany).mockResolvedValue({} as never)
   vi.mocked(db.buildingEntrance.deleteMany).mockResolvedValue({ count: 0 } as never)
 })
 
@@ -34,69 +56,28 @@ describe('updateBuildingsInEntrance', () => {
 
     const sentinel = Symbol('sentinel')
     let result: unknown = sentinel
-    result = await updateBuildingsInEntrance(db as never, 999, [1, 2], 1)
+    result = await updateBuildingsInEntrance(db as never, 999, [1, 2], 1, 3)
     expect(result).toBeUndefined()
     expect(result).not.toBe(sentinel)
   })
 
-  it('connecte et déconnecte les bâtiments directement', async () => {
-    vi.mocked(db.buildingEntrance.findUnique).mockResolvedValue({
-      id: 10,
-      access: 1,
-      isMailboxOpen: false,
-      isPMR: false,
-      isOpenEarly: false,
-      buildings: [{ id: 1 }, { id: 2 }, { id: 3 }],
-    } as never)
+  it('lit et nettoie les entrées de la seule congrégation (#281)', async () => {
+    vi.mocked(db.buildingEntrance.findUnique).mockResolvedValue(unchangedEntrance as never)
 
-    // buildingIds [1, 4] → ajouter 4, déconnecter 2 et 3
-    await updateBuildingsInEntrance(db as never, 10, [1, 4], 7)
+    await updateBuildingsInEntrance(db as never, 10, [1], 7, 3)
 
-    // update a été appelé pour connecter/déconnecter
-    expect(vi.mocked(db.buildingEntrance.update).mock.calls).toHaveLength(1)
-
-    // La lecture et l'écriture sont scopées par congregationId (#281)
     expect(db.buildingEntrance.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id_congregationId: { id: 10, congregationId: 7 } } }),
     )
-    expect(vi.mocked(db.buildingEntrance.update).mock.calls[0][0].where).toEqual({
-      id_congregationId: { id: 10, congregationId: 7 },
-    })
-  })
-
-  it('nettoie les entrées vides après la mise à jour', async () => {
-    vi.mocked(db.buildingEntrance.findUnique).mockResolvedValue({
-      id: 10,
-      access: 1,
-      isMailboxOpen: false,
-      isPMR: false,
-      isOpenEarly: false,
-      buildings: [{ id: 1 }],
-    } as never)
-
-    await updateBuildingsInEntrance(db as never, 10, [1], 7)
-
-    // deleteMany est toujours appelé pour nettoyer les entrées vides,
-    // scopé par congregationId pour ne pas purger celles d'autres congrégations (#281)
-    expect(vi.mocked(db.buildingEntrance.deleteMany).mock.calls).toHaveLength(1)
     expect(db.buildingEntrance.deleteMany).toHaveBeenCalledWith({
       where: { congregationId: 7, buildings: { none: {} } },
     })
   })
 
-  it('gère les erreurs sans planter', async () => {
-    vi.mocked(db.buildingEntrance.findUnique).mockResolvedValue({
-      id: 10,
-      access: 1,
-      isMailboxOpen: false,
-      isPMR: false,
-      isOpenEarly: false,
-      buildings: [{ id: 1 }],
-    } as never)
-
+  it('propage les erreurs pour que la transaction annule tout', async () => {
+    vi.mocked(db.buildingEntrance.findUnique).mockResolvedValue(unchangedEntrance as never)
     vi.mocked(db.buildingEntrance.update).mockRejectedValue(new Error('Update failed'))
 
-    // Ne doit pas lancer d'erreur
-    await expect(updateBuildingsInEntrance(db as never, 10, [1, 2], 1)).resolves.toBeUndefined()
+    await expect(updateBuildingsInEntrance(db as never, 10, [1], 1, 3)).rejects.toThrow('Update failed')
   })
 })
