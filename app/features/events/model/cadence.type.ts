@@ -1,4 +1,4 @@
-// One entry per instance of the recurring event in the CadenceStrip. Client
+// One entry per instance of the recurring event in the rotation strip. Client
 // and server files share this shape; keeping it here avoids drift between
 // the loader payload and the strip / warnings components.
 export type CadenceEntry = {
@@ -23,7 +23,7 @@ export type CadenceEntry = {
 export type PartSlot = 'assignee' | 'assistant'
 
 // The full cadence payload that the loader wires from server helpers to the
-// CadencePanel component. Kept as one named type so the wire shape stays in
+// rotation panel. Kept as one named type so the wire shape stays in
 // sync across every card that consumes it — adding a field only changes here.
 export type CadencePayload = {
   // False when there is no template to anchor on (freeform event) or the
@@ -37,6 +37,10 @@ export type CadencePayload = {
   // the same template, ignoring the visible-window cap. Distinguishes a
   // first-timer from a candidate that dropped out of rotation.
   hasHistory: boolean
+  // When the person was last on the anchor slot, across every past event of
+  // the template (ISO date), or null if never. What hasHistory only answers
+  // yes or no to: « pas sur cette partie depuis le 18 août 2025 ».
+  lastAssignedAt: string | null
   // True when the picker has selected the person already saved on the slot
   // being edited — a no-op confirmation the marker surfaces visually.
   savedMatchesSelection: boolean
@@ -45,4 +49,4 @@ export type CadencePayload = {
 // The server helpers do NOT compute the two loader-only fields (`anchored`
 // and `savedMatchesSelection`) — they need the URL's slot-target context to
 // resolve. The resolver wraps the helper output and appends those two.
-export type CadenceHelperResult = Pick<CadencePayload, 'past' | 'future' | 'hasHistory'>
+export type CadenceHelperResult = Pick<CadencePayload, 'past' | 'future' | 'hasHistory' | 'lastAssignedAt'>

@@ -34,6 +34,7 @@ describe('EMPTY_CADENCE', () => {
       past: [],
       future: [],
       hasHistory: false,
+      lastAssignedAt: null,
       savedMatchesSelection: false,
     })
   })

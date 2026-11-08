@@ -32,7 +32,7 @@ describe('listUserCadence', () => {
   it('short-circuits with empty arrays when templateId is null (freeform event)', async () => {
     const result = await listUserCadence(db, { ...DEFAULT_ARGS, event: { ...DEFAULT_ARGS.event, templateId: null } })
 
-    expect(result).toEqual({ past: [], future: [], hasHistory: false })
+    expect(result).toEqual({ past: [], future: [], hasHistory: false, lastAssignedAt: null })
     expect(db.event.findMany).not.toHaveBeenCalled()
   })
 
@@ -336,6 +336,7 @@ describe('listUserCadence', () => {
         { date: new Date('2026-08-01').toISOString(), assigned: false, personName: 'Marie CURIE', status: 'released' },
       ],
       hasHistory: false,
+      lastAssignedAt: null,
     })
   })
 
@@ -408,11 +409,26 @@ describe('listUserCadence', () => {
   })
 
   it('returns hasHistory=true when the person appears on the matching slot in a historical row (any age)', async () => {
-    vi.mocked(db.eventPart.findMany).mockResolvedValue([{ name: 'Bible Reading', section: 'Ministry' }] as never)
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
+      { name: 'Bible Reading', section: 'Ministry', event: { startDate: new Date('2024-03-01') } },
+    ] as never)
 
     const result = await listUserCadence(db, DEFAULT_ARGS)
 
     expect(result.hasHistory).toBe(true)
+  })
+
+  // Beyond the visible window: « pas sur cette partie depuis le … » needs the date, not just that there was one.
+  it('reports when the person was last on the slot, across all past instances', async () => {
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
+      { name: 'Bible Reading', section: 'Ministry', event: { startDate: new Date('2024-03-01') } },
+      { name: 'bible reading ', section: 'Ministry', event: { startDate: new Date('2025-08-18') } },
+      { name: 'Song', section: 'Ministry', event: { startDate: new Date('2026-06-01') } },
+    ] as never)
+
+    const result = await listUserCadence(db, DEFAULT_ARGS)
+
+    expect(result.lastAssignedAt).toBe(new Date('2025-08-18').toISOString())
   })
 
   it('hasHistory ignores rows whose normalized name/section do not match the anchor', async () => {

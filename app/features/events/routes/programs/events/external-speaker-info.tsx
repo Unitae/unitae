@@ -1,6 +1,7 @@
+import { mayReadSlotFacts } from '~/features/events/server/events-auth.server'
 import { resolveExternalSpeakerCadence } from '~/features/events/server/resolve-external-speaker-cadence.server'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { Permission } from '~/shared/types/permission'
+import type { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/external-speaker-info'
@@ -13,7 +14,6 @@ function parseOptionalId(raw: string | null): number | null {
 
 export function loader({ request, params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Permission.CanViewPrograms)) return Response.json(null, { status: 403 })
 
   const eventId = requireParamId(params.eventId, '/programs')
   const url = new URL(request.url)
@@ -23,9 +23,16 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
   if (!externalSpeakerId || Number.isNaN(externalSpeakerId)) return Response.json(null)
 
   return withScopeFromContext(context, async db => {
-    const { congregationId } = context.get(currentAccountContext)
+    const currentUser = context.get(currentAccountContext)
+    const { congregationId } = currentUser
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
     if (!event) return Response.json(null)
+    // A speaker's contact details and visits are for whoever may assign this part of this event.
+    const can = (role: Permission) => permissions.has(role)
+    const slot = { kind: 'part' as const, assignmentId: excludePartAssignmentId }
+    if (!(await mayReadSlotFacts(db, can, currentUser.id, event, congregationId, slot))) {
+      return Response.json(null, { status: 403 })
+    }
 
     const speaker = await db.externalSpeaker.findFirst({
       where: { id: externalSpeakerId, congregationId },

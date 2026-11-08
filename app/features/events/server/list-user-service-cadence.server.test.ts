@@ -33,7 +33,7 @@ describe('listUserServiceCadence', () => {
       event: { ...DEFAULT_ARGS.event, templateId: null },
     })
 
-    expect(result).toEqual({ past: [], future: [], hasHistory: false })
+    expect(result).toEqual({ past: [], future: [], hasHistory: false, lastAssignedAt: null })
     expect(db.event.findMany).not.toHaveBeenCalled()
   })
 
@@ -245,6 +245,7 @@ describe('listUserServiceCadence', () => {
         { date: new Date('2026-08-01').toISOString(), assigned: false, personName: 'Marie CURIE', status: 'released' },
       ],
       hasHistory: false,
+      lastAssignedAt: null,
     })
   })
 
@@ -335,11 +336,25 @@ describe('listUserServiceCadence', () => {
   })
 
   it('returns hasHistory=true when the person appears on the matching service role (any age)', async () => {
-    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([{ name: 'Sono' }] as never)
+    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([
+      { name: 'Sono', event: { startDate: new Date('2024-03-01') } },
+    ] as never)
 
     const result = await listUserServiceCadence(db, DEFAULT_ARGS)
 
     expect(result.hasHistory).toBe(true)
+  })
+
+  it('reports when the person last held the service, across all past instances', async () => {
+    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([
+      { name: 'Sono', event: { startDate: new Date('2024-03-01') } },
+      { name: ' sono', event: { startDate: new Date('2025-08-18') } },
+      { name: 'Accueil', event: { startDate: new Date('2026-06-01') } },
+    ] as never)
+
+    const result = await listUserServiceCadence(db, DEFAULT_ARGS)
+
+    expect(result.lastAssignedAt).toBe(new Date('2025-08-18').toISOString())
   })
 
   it('hasHistory ignores rows whose normalized name does not match the anchor', async () => {

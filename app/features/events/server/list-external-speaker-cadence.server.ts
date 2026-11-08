@@ -1,6 +1,7 @@
 import {
   type CadenceEntry,
   type CadenceHelperResult,
+  latestDate,
   normalize,
   toCadenceStatus,
 } from '~/features/events/server/cadence-shared.server'
@@ -28,7 +29,7 @@ export async function listExternalSpeakerCadence(
   db: TransactionClient,
   { externalSpeakerId, event, congregationId, partName, partSection, pastCount, futureCount }: Options,
 ): Promise<CadenceHelperResult> {
-  if (event.templateId == null) return { past: [], future: [], hasHistory: false }
+  if (event.templateId == null) return { past: [], future: [], hasHistory: false, lastAssignedAt: null }
 
   const partsSelect = {
     select: {
@@ -62,7 +63,7 @@ export async function listExternalSpeakerCadence(
         event: { ...commonWhere, startDate: { lt: event.startDate } },
         externalSpeakerId,
       },
-      select: { name: true, section: true },
+      select: { name: true, section: true, event: { select: { startDate: true } } },
     }),
   ])
 
@@ -90,13 +91,14 @@ export async function listExternalSpeakerCadence(
     }
   }
 
-  const hasHistory = historicalAssignments.some(
+  const history = historicalAssignments.filter(
     a => normalize(a.name) === targetName && normalize(a.section) === targetSection,
   )
 
   return {
     past: pastRows.map(toEntry).reverse(),
     future: futureRows.map(toEntry),
-    hasHistory,
+    hasHistory: history.length > 0,
+    lastAssignedAt: latestDate(history.map(a => a.event.startDate)),
   }
 }

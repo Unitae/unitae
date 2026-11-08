@@ -67,7 +67,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
             if (aTime === bTime) return a.name.localeCompare(b.name, 'fr')
             return aTime - bTime
           })
-          .map(s => ({ id: s.id, name: s.name }))
+          .map(s => ({ id: s.id, name: s.name, congregationName: s.congregationName }))
       : []
 
     const candidates = canAssignAnything

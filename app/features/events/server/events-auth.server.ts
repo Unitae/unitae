@@ -160,6 +160,34 @@ export async function templateItemBelongsToTemplate(
   return row != null
 }
 
+/**
+ * Whether the caller may read the facts shown while assigning a slot — absences, rotation, other duties at the
+ * event. They serve whoever may assign that slot, so this follows the assign routes: the assign right or the
+ * template's delegation (the services one reaching services only), and a posted slot must belong to the event.
+ */
+export async function mayReadSlotFacts(
+  db: TransactionClient,
+  can: (role: Permission) => boolean,
+  userId: number,
+  event: { id: number; templateId: number | null },
+  congregationId: number,
+  slot: { kind: 'part' | 'service'; assignmentId: number | null },
+): Promise<boolean> {
+  const scope = slot.kind === 'service' ? ResponsibilityScope.Service : ResponsibilityScope.Programme
+  const allowed = await canEditEvent(
+    db,
+    can,
+    userId,
+    event.templateId,
+    congregationId,
+    Permission.CanAssignProgramParts,
+    scope,
+  )
+  if (!allowed) return false
+  if (slot.assignmentId == null) return true
+  return assignmentBelongsToEvent(db, slot.kind, slot.assignmentId, event.id, congregationId)
+}
+
 export async function canManageAnyProgram(
   db: TransactionClient,
   can: (role: Permission) => boolean,

@@ -34,7 +34,7 @@ describe('listExternalSpeakerCadence — event window queries', () => {
       event: { ...DEFAULT_ARGS.event, templateId: null },
     })
 
-    expect(result).toEqual({ past: [], future: [], hasHistory: false })
+    expect(result).toEqual({ past: [], future: [], hasHistory: false, lastAssignedAt: null })
     expect(db.event.findMany).not.toHaveBeenCalled()
   })
 
@@ -291,11 +291,24 @@ describe('listExternalSpeakerCadence — anchor matching + hasHistory', () => {
   })
 
   it('returns hasHistory=true when the speaker held the same-name-and-section slot at some point in the past', async () => {
-    vi.mocked(db.eventPart.findMany).mockResolvedValue([{ name: 'Discours public', section: 'Culte' }] as never)
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
+      { name: 'Discours public', section: 'Culte', event: { startDate: new Date('2024-03-01') } },
+    ] as never)
 
     const result = await listExternalSpeakerCadence(db, DEFAULT_ARGS)
 
     expect(result.hasHistory).toBe(true)
+  })
+
+  it('reports when the speaker last held the slot, across all past instances', async () => {
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
+      { name: 'Discours public', section: 'Culte', event: { startDate: new Date('2025-03-14') } },
+      { name: 'Discours public', section: 'Culte', event: { startDate: new Date('2024-01-07') } },
+    ] as never)
+
+    const result = await listExternalSpeakerCadence(db, DEFAULT_ARGS)
+
+    expect(result.lastAssignedAt).toBe(new Date('2025-03-14').toISOString())
   })
 
   it('hasHistory ignores rows whose normalized name/section do not match', async () => {
