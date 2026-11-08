@@ -1,6 +1,5 @@
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { CongregationId, MemberId } from '~/shared/types/branded'
-import { PublisherType } from '~/shared/types/publisher-type'
 import { ENROLMENT_PERIOD_SELECT } from '../model/pioneer-enrolment'
 
 // Includes `pioneerEnrolments` because the S-21 export ticks a pioneer box from the member's
@@ -43,39 +42,6 @@ export async function getPublishers(
       congregationId,
       ...(options?.groupId != null ? { publisherGroupId: options.groupId } : {}),
     },
-    orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
-  })
-}
-
-export async function getPublishersWithGroup(
-  db: TransactionClient,
-  congregationId: number,
-  options?: { search?: string; groupIds?: number[]; standingType?: PublisherType },
-) {
-  const searchFilter = options?.search
-    ? {
-        OR: [
-          { firstname: { contains: options.search, mode: 'insensitive' as const } },
-          { lastname: { contains: options.search, mode: 'insensitive' as const } },
-        ],
-      }
-    : {}
-
-  const groupFilter =
-    options?.groupIds && options.groupIds.length > 0 ? { publisherGroupId: { in: options.groupIds } } : {}
-
-  // "Type" is the member's standing status, which lives on their stints: an ONGOING stint of that
-  // type, or — for Normal — no ongoing stint at all. A single-month auxiliary is closed, so it
-  // correctly leaves the member under Normal, exactly as the old `Member.type` column did.
-  const typeFilter = !options?.standingType
-    ? {}
-    : options.standingType === PublisherType.Normal
-      ? { pioneerEnrolments: { none: { endMonth: null } } }
-      : { pioneerEnrolments: { some: { type: options.standingType, endMonth: null } } }
-
-  return await db.member.findMany({
-    where: { isPublisher: true, leftAt: null, congregationId, ...searchFilter, ...groupFilter, ...typeFilter },
-    include: { publisherGroup: true, account: { select: { email: true } } },
     orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
   })
 }

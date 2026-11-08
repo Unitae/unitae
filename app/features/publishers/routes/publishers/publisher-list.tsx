@@ -1,17 +1,29 @@
-import { BarChart3, Eye, Mail, Pencil, Siren, UserMinus, Users } from 'lucide-react'
+import { SelectionBar } from '@unitae/ui'
+import { Download, UserMinus, Users, UsersRound } from 'lucide-react'
+import { useState } from 'react'
 import { Link, redirect } from 'react-router'
-import { getPublishersWithGroup } from '~/features/publishers/server/publishers.server'
-import { PublisherListFilters } from '~/features/publishers/ui/PublisherListFilters'
+import {
+  hasNarrowingFilters,
+  type PublisherListFilters,
+  parsePublisherListParams,
+} from '~/features/publishers/model/publisher-list-filters'
+import { getGroups } from '~/features/publishers/server/groups.server'
+import { listPublishers } from '~/features/publishers/server/list-publishers.server'
+import { MoveToGroupItems, useMoveToGroup } from '~/features/publishers/ui/move-to-group'
+import { PublisherListToolbar } from '~/features/publishers/ui/PublisherListToolbar'
+import { PublisherTable } from '~/features/publishers/ui/PublisherTable'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import logger from '~/shared/infra/logger.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
-import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
-import { formatGroupName } from '~/shared/utils/format-group-name'
 
 import type { Route } from './+types/publisher-list'
 
@@ -19,133 +31,72 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.publishers_list_meta_title() }]
 }
 
-const PUBLISHER_TYPE_VALUES: readonly string[] = Object.values(PublisherType)
-
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
+  if (!permissions.has(Permission.CanViewPublishers)) throw redirect('/')
+
   const currentUser = context.get(currentAccountContext)
-  const canViewPublishers = permissions.has(Permission.CanViewPublishers)
-  const canManagePublisher = permissions.has(Permission.CanManagePublishers)
-  const canViewActivities = permissions.has(Permission.CanViewActivity)
-  const canViewEmergency =
-    permissions.has(Permission.CanViewEmergencyInfo) || permissions.has(Permission.CanManageEmergencyInfo)
-
-  if (!canViewPublishers) {
-    logger.warn(
-      `Try to load publishers. User ID: ${currentUser.id}. Does NOT have rights to access groups and publishers.`,
-    )
-
-    throw redirect('/')
+  const { timezone } = context.get(congregationContext)
+  const filters = parsePublisherListParams(new URL(request.url).searchParams)
+  const rights = {
+    canEdit: permissions.has(Permission.CanManagePublishers),
+    // The group page's own right: moving people between groups is a group change.
+    canMove: permissions.has(Permission.CanManagePublisherGroups),
+    canViewAbsences: permissions.has(Permission.CanViewAbsences),
   }
 
-  logger.info(
-    `Loading publishers. User ID: ${currentUser.id}. ${canManagePublisher ? 'Has' : 'Does NOT have'} rights to manage groups and publishers.`,
-  )
-
-  const url = new URL(request.url)
-  const search = url.searchParams.get('q') ?? undefined
-  const groupIds = url.searchParams
-    .getAll('group')
-    .map(raw => Number(raw))
-    .filter(id => Number.isInteger(id))
-  const typeRaw = url.searchParams.get('type')
-  const type = typeRaw != null && PUBLISHER_TYPE_VALUES.includes(typeRaw) ? (typeRaw as PublisherType) : undefined
-
   return withScopeFromContext(context, async db => {
-    const [users, groups] = await Promise.all([
-      getPublishersWithGroup(db, currentUser.congregationId, { search, groupIds, standingType: type }),
-      db.publisherGroup.findMany({
-        where: { congregationId: currentUser.congregationId },
-        select: { id: true, name: true },
-        orderBy: { name: 'asc' },
-      }),
+    const [rows, groups] = await Promise.all([
+      listPublishers(db, currentUser.congregationId, filters, { includeAbsences: rights.canViewAbsences }),
+      getGroups(db, currentUser.congregationId),
     ])
-
     return {
-      users: users.map(user => ({
-        email: user.email || null,
-        id: user.id,
-        firstname: user.firstname,
-        lastname: user.lastname,
-        isPublisher: user.isPublisher,
-        publisherGroup: user.publisherGroup,
-      })),
-      groups,
-      canManagePublisher,
-      canViewActivities,
-      canViewEmergency,
-      searchQuery: search ?? '',
-      selectedGroupIds: groupIds,
-      selectedType: type ?? ('all' as const),
-      hasActiveFilters: (search ?? '') !== '' || groupIds.length > 0 || type != null,
+      rows,
+      groups: groups
+        .map(({ id, name }) => ({ id, name }))
+        .sort((a, b) => a.name.localeCompare(b.name, 'fr', { numeric: true })),
+      filters,
+      timezone,
+      rights,
+      canViewEmergency:
+        permissions.has(Permission.CanViewEmergencyInfo) || permissions.has(Permission.CanManageEmergencyInfo),
     }
   })
 }
 
 export default function PublisherListPage({ loaderData }: Route.ComponentProps) {
-  const {
-    users,
-    groups,
-    canManagePublisher,
-    canViewActivities,
-    canViewEmergency,
-    searchQuery,
-    selectedGroupIds,
-    selectedType,
-    hasActiveFilters,
-  } = loaderData
+  const { rows, groups, filters, timezone, rights, canViewEmergency } = loaderData
+  const [picked, setPicked] = useState<ReadonlySet<number>>(new Set())
+  const move = useMoveToGroup()
 
-  if (users.length < 1 && !hasActiveFilters) {
-    return (
-      <div className="flex flex-col gap-6">
-        <PageHeader
-          title={m.publishers_list_title()}
-          subtitle={m.publishers_list_subtitle()}
-          breadcrumbs={[{ label: m.sidebar_publishers() }]}
-          actions={
-            canManagePublisher && (
-              <Button asChild>
-                <Link to="./new">{m.publishers_create_button()}</Link>
-              </Button>
-            )
-          }
-        />
-
-        <EmptyState icon={Users} title={m.publishers_empty_title()} description={m.publishers_empty_description()} />
-      </div>
-    )
+  // Only rows still on screen stay selected once the filters change.
+  const selected = new Set(rows.filter(row => picked.has(row.id)).map(row => row.id))
+  const toggle = (id: number) => {
+    const next = new Set(selected)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    setPicked(next)
   }
+  const toggleAll = () => setPicked(selected.size === rows.length ? new Set() : new Set(rows.map(row => row.id)))
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <PageHeader
         title={m.publishers_list_title()}
-        subtitle={m.publishers_list_subtitle()}
+        titleBadge={<span className="text-faint text-lg tabular-nums">{rows.length}</span>}
         breadcrumbs={[{ label: m.sidebar_publishers() }]}
         actions={
           <>
-            {canViewActivities && (
-              <Button asChild variant="outline" size="icon" title={m.publishers_view_activity_title()}>
-                <Link to="./activity">
-                  <BarChart3 className="size-4" />
-                </Link>
-              </Button>
-            )}
             {canViewEmergency && (
-              <Button asChild variant="outline" size="icon" title={m.publishers_emergency_roster_link()}>
-                <a href="/publishers/emergency-roster">
-                  <Siren className="size-4" />
+              <Button asChild variant="outline">
+                <a href="/publishers/emergency-roster" download title={m.publishers_emergency_roster_button()}>
+                  <Download />
+                  {/* Icon only on phones, so both actions fit beside each other. */}
+                  <span className="max-sm:sr-only">{m.publishers_emergency_roster_button()}</span>
                 </a>
               </Button>
             )}
-            {canManagePublisher && (
-              <Button asChild variant="outline" size="icon" title={m.publishers_view_former_link_title()}>
-                <Link to="./former">
-                  <UserMinus className="size-4" />
-                </Link>
-              </Button>
-            )}
-            {canManagePublisher && (
+            {rights.canEdit && (
               <Button asChild>
                 <Link to="./new">{m.publishers_create_button()}</Link>
               </Button>
@@ -154,85 +105,91 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
         }
       />
 
-      <PublisherListFilters groups={groups} selectedGroupIds={selectedGroupIds} selectedType={selectedType} />
+      <PublisherListToolbar groups={groups} filters={filters} />
 
-      {users.length < 1 ? (
-        <EmptyState
-          icon={Users}
-          title={
-            searchQuery !== '' && selectedGroupIds.length === 0 && selectedType === 'all'
-              ? m.publishers_empty_no_match_title()
-              : m.activity_filters_no_results_title()
-          }
-          description={
-            searchQuery !== '' && selectedGroupIds.length === 0 && selectedType === 'all'
-              ? m.publishers_empty_no_match_description({ query: searchQuery })
-              : m.activity_filters_no_results_description()
-          }
-        />
+      {rows.length === 0 ? (
+        <ListEmpty filters={filters} />
       ) : (
-        <div className="overflow-hidden rounded-2xl border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-center max-sm:text-left">{m.publishers_table_firstname()}</TableHead>
-                <TableHead className="text-center">{m.publishers_table_lastname()}</TableHead>
-                <TableHead className="text-center">{m.publishers_table_group()}</TableHead>
-                <TableHead className="text-center max-sm:hidden">{m.publishers_table_contact()}</TableHead>
-                <TableHead className="w-0">
-                  <span className="sr-only">{m.settings_users_table_actions_sr()}</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map(user => (
-                <TableRow key={user.id}>
-                  <TableCell className="text-center max-sm:text-left">
-                    <Link to={`/publishers/${user.id}/view`} className="hover:text-primary">
-                      {user.firstname}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Link to={`/publishers/${user.id}/view`} className="hover:text-primary">
-                      {user.lastname?.toLocaleUpperCase()}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {user.publisherGroup != null && (
-                      <Link to={`/groups/${user.publisherGroup.id}/edit`} className="hover:text-primary">
-                        {formatGroupName(user.publisherGroup.name)}
-                      </Link>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center max-sm:hidden">
-                    {user.email && (
-                      <Link to={`mailto:${user.email}`} className="hover:text-primary">
-                        <Mail className="inline size-4" />
-                      </Link>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button asChild variant="ghost" size="icon">
-                        <Link to={`/publishers/${user.id}/view`}>
-                          <Eye className="size-4" />
-                        </Link>
-                      </Button>
-                      {canManagePublisher && (
-                        <Button asChild variant="ghost" size="icon">
-                          <Link to={`./${user.id}/edit`}>
-                            <Pencil className="size-4" />
-                          </Link>
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <PublisherTable
+          rows={rows}
+          status={filters.status}
+          groups={groups}
+          timeZone={timezone}
+          rights={rights}
+          selected={selected}
+          onToggle={toggle}
+          onToggleAll={toggleAll}
+        />
+      )}
+
+      {selected.size > 0 && (
+        <SelectionBar
+          aria-label={m.publishers_selection_toolbar()}
+          label={
+            selected.size === 1
+              ? m.publishers_selection_one()
+              : m.publishers_selection_many({ count: String(selected.size) })
+          }
+          clearLabel={m.publishers_selection_clear()}
+          onClear={() => setPicked(new Set())}
+          className="max-md:hidden"
+        >
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <UsersRound />
+                {m.publishers_move_to_group()}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center" side="top">
+              <MoveToGroupItems
+                groups={groups}
+                onPick={groupId => {
+                  move([...selected], groupId)
+                  setPicked(new Set())
+                }}
+              />
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </SelectionBar>
       )}
     </div>
   )
+}
+
+/** Nobody yet, nobody matching, or an empty status list: each says so in its own words. */
+function ListEmpty({ filters }: { filters: PublisherListFilters }) {
+  if (hasNarrowingFilters(filters)) {
+    const searchOnly = filters.search !== '' && filters.groupIds.length === 0 && filters.privilege == null
+    return (
+      <EmptyState
+        icon={Users}
+        title={searchOnly ? m.publishers_empty_no_match_title() : m.activity_filters_no_results_title()}
+        description={
+          searchOnly
+            ? m.publishers_empty_no_match_description({ query: filters.search })
+            : m.activity_filters_no_results_description()
+        }
+      />
+    )
+  }
+  if (filters.status === 'left') {
+    return (
+      <EmptyState
+        icon={UserMinus}
+        title={m.publishers_former_empty_title()}
+        description={m.publishers_former_empty_description()}
+      />
+    )
+  }
+  if (filters.status === 'inactive') {
+    return (
+      <EmptyState
+        icon={Users}
+        title={m.publishers_status_empty_inactive_title()}
+        description={m.publishers_status_empty_inactive_description()}
+      />
+    )
+  }
+  return <EmptyState icon={Users} title={m.publishers_empty_title()} description={m.publishers_empty_description()} />
 }
