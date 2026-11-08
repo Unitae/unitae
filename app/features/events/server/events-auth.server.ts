@@ -68,6 +68,26 @@ export async function getResponsibleTemplateIds(
 }
 
 /**
+ * The templates the caller may apply to an event: all of them for a programme manager, otherwise the ones they run
+ * the programme of. Applying moves the event onto the template, and who may edit an event follows its template, so
+ * offering any other template would let a responsible hand their event to someone else's delegation.
+ */
+export async function listApplicableTemplates(
+  db: TransactionClient,
+  can: (role: Permission) => boolean,
+  userId: number,
+  congregationId: number,
+): Promise<{ id: number; name: string }[]> {
+  let where: { congregationId: number; id?: { in: number[] } } = { congregationId }
+  if (!can(Permission.CanManagePrograms)) {
+    const ids = await getResponsibleTemplateIds(db, userId, congregationId)
+    if (ids.length === 0) return []
+    where = { congregationId, id: { in: ids } }
+  }
+  return db.eventTemplate.findMany({ where, select: { id: true, name: true }, orderBy: { name: 'asc' } })
+}
+
+/**
  * Whether an assignment row actually belongs to the event the caller was authorised on.
  *
  * `canEditEvent` answers "may you act on THIS event", keyed off the event id in the URL, while
@@ -103,6 +123,37 @@ export async function assignmentBelongsToEvent(
       kind,
       assignmentId,
       eventId,
+      congregationId,
+    })
+  }
+  return row != null
+}
+
+/**
+ * Whether a template's part or service really belongs to the template the caller was authorised on — the template
+ * editor's counterpart of assignmentBelongsToEvent. A template's responsible may edit it, while the writers find a
+ * part or a service by (id, congregationId) alone.
+ */
+export async function templateItemBelongsToTemplate(
+  db: TransactionClient,
+  kind: 'part' | 'service',
+  id: number,
+  templateId: number,
+  congregationId: number,
+): Promise<boolean> {
+  if (!Number.isInteger(id)) return false
+
+  const where = { id, templateId, congregationId }
+  const row =
+    kind === 'service'
+      ? await db.templateServicePart.findFirst({ where, select: { id: true } })
+      : await db.templatePart.findFirst({ where, select: { id: true } })
+
+  if (row == null) {
+    logger.warn('templateItemBelongsToTemplate: item does not belong to the authorised template', {
+      kind,
+      id,
+      templateId,
       congregationId,
     })
   }

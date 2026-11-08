@@ -8,6 +8,8 @@ const TEMPLATES_URL_RE = /\/settings\/congregation\/templates/
 const TEMPLATE_EDIT_URL_RE = /\/settings\/congregation\/templates\/\d+\/edit/
 const SECOND_SPEAKER_LABEL_RE = /Deuxième orateur/i
 const PUBLISHER_DEFAULT_RE = /Proclamateur \(par défaut\)/i
+const ALLOWED_SPEAKER_RE = /Rôles autorisés comme orateur/i
+const ADD_ROLE_RE = /Ajouter un rôle/i
 const TEMPLATE_LINK_RE = /Réunion|Mémorial|Memorial|Midweek|Weekend/i
 const EDIT_BUTTON_RE = /^Modifier$/i
 const ORATEUR_RE = /Orateur/i
@@ -84,7 +86,7 @@ test.describe('Role-gated assignees — UI surface', () => {
     await expect(page.getByRole('button', { name: SAVE_BUTTON_RE }).last()).toBeVisible()
   })
 
-  test('clicking a role chip toggles its selected state and hides the publisher default', async ({ page }) => {
+  test('adding a role from the menu replaces the publisher default', async ({ page }) => {
     const reached = await openFirstTemplateEditPage(page)
     if (!reached) {
       test.skip(true, 'Could not reach a template edit page')
@@ -96,15 +98,27 @@ test.describe('Role-gated assignees — UI surface', () => {
       return
     }
 
-    const chipLabel = page.locator('label[data-builtin="true"]').first()
-    if (!(await chipLabel.isVisible({ timeout: 3000 }).catch(() => false))) {
-      test.skip(true, 'No built-in role chips visible')
+    const speakerRoles = page.getByRole('group', { name: ALLOWED_SPEAKER_RE })
+    if (
+      !(await speakerRoles
+        .getByText(PUBLISHER_DEFAULT_RE)
+        .first()
+        .isVisible({ timeout: 3000 })
+        .catch(() => false))
+    ) {
+      test.skip(true, 'This part already restricts its speakers')
       return
     }
-    await chipLabel.click()
 
-    await expect(page.getByText(PUBLISHER_DEFAULT_RE).first()).toHaveCount(0)
-    await expect(chipLabel).toHaveAttribute('data-selected', 'true')
+    await speakerRoles.getByRole('button', { name: ADD_ROLE_RE }).click()
+    const option = page.getByRole('option').first()
+    const roleName = (await option.textContent())?.trim() ?? ''
+    await option.click()
+    // The menu stays open for the next role; Escape closes it and leaves the sheet open.
+    await page.keyboard.press('Escape')
+
+    await expect(speakerRoles.getByRole('button', { name: `Retirer ${roleName}` })).toBeVisible()
+    await expect(speakerRoles.getByText(PUBLISHER_DEFAULT_RE)).toHaveCount(0)
   })
 
   test('event view column header reads "Deuxième orateur"', async ({ page }) => {

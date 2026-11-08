@@ -4,6 +4,7 @@ import { countChangedFields } from '~/shared/utils/form-changes'
 type CountChanges = (before: FormData, after: FormData) => number
 
 const EVENTS = ['input', 'change'] as const
+const INTERACTIONS = ['pointerdown', 'keydown'] as const
 
 /**
  * How many changes a form holds against what it showed when it mounted, kept current as the person edits. Pass
@@ -16,7 +17,11 @@ export function useFormChanges(count: CountChanges = countChangedFields) {
 
   useEffect(() => {
     if (form == null) return
-    const initial = new FormData(form)
+    let initial = new FormData(form)
+    // Until the person edits a field, presses a key or a pointer, whatever React or a library still writes into the
+    // form — a select's hidden native field filling in after mount — is part of what the form showed: the starting
+    // point follows it instead of counting it as a change.
+    let interacted = false
     setChanges(0)
 
     // Typing fires input events. Everything else React or Radix writes into the form — hidden inputs, entries
@@ -25,15 +30,28 @@ export function useFormChanges(count: CountChanges = countChangedFields) {
     let timer: ReturnType<typeof setTimeout> | undefined
     const later = () => {
       clearTimeout(timer)
-      timer = setTimeout(() => setChanges(count(initial, new FormData(form))), 0)
+      timer = setTimeout(() => {
+        if (interacted) setChanges(count(initial, new FormData(form)))
+        else initial = new FormData(form)
+      }, 0)
     }
-    for (const type of EVENTS) form.addEventListener(type, later)
+    const interact = () => {
+      interacted = true
+    }
+    // An input or change event on a field is the person's doing (a key, a paste, autofill), never a render.
+    const onEdit = () => {
+      interact()
+      later()
+    }
+    for (const type of EVENTS) form.addEventListener(type, onEdit)
+    for (const type of INTERACTIONS) document.addEventListener(type, interact, true)
     const observer = new MutationObserver(later)
     observer.observe(form, { subtree: true, childList: true, attributes: true, characterData: true })
     return () => {
       clearTimeout(timer)
       observer.disconnect()
-      for (const type of EVENTS) form.removeEventListener(type, later)
+      for (const type of EVENTS) form.removeEventListener(type, onEdit)
+      for (const type of INTERACTIONS) document.removeEventListener(type, interact, true)
     }
   }, [form, count])
 

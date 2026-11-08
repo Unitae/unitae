@@ -6,6 +6,14 @@ interface RoleDisplay {
   description?: string | null
 }
 
+/** A role offered in a role field (chips, picker). */
+export interface RoleOption {
+  id: number
+  key: string
+  name: string | null
+  isBuiltIn: boolean
+}
+
 const BUILT_IN_NAMES: Record<string, () => string> = {
   admin: () => m.role_name_admin(),
   member: () => m.role_name_member(),

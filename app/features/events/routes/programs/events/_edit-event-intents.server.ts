@@ -27,6 +27,22 @@ import { combineLocalDateTime } from '~/shared/utils/event-time'
 
 export type IntentResult = { message: string | null } | { reply: () => unknown }
 
+/** The decisions that depend on who is asking, made by the route. */
+export interface IntentChecks {
+  /** Whether the caller may edit events of this template: applying one moves the event onto it. */
+  mayApplyTemplate: (templateId: number) => Promise<boolean>
+  /**
+   * Whether a posted part or service belongs to the event the caller was authorised on. The writers find it by its
+   * id alone, so an id from another event of the congregation would otherwise ride on this event's check.
+   */
+  belongsToEvent: (kind: 'part' | 'service', id: number) => Promise<boolean>
+}
+
+/** The reply refusing a part or service of another event. */
+function notInEvent(submission: { reply: (options: { formErrors: string[] }) => unknown }): IntentResult {
+  return { reply: () => submission.reply({ formErrors: [m.programs_edit_not_in_event()] }) }
+}
+
 export function handleEditIntent(
   intent: FormDataEntryValue | null,
   formData: FormData,
@@ -35,16 +51,17 @@ export function handleEditIntent(
   congregationId: number,
   userId: number,
   timezone: string,
+  checks: IntentChecks,
 ): Promise<IntentResult | null> {
   const handlers: Partial<Record<string, () => Promise<IntentResult | null>>> = {
     'update-event': () => handleUpdateEvent(formData, db, eventId, congregationId, userId, timezone),
     'add-part': () => handleAddPart(formData, db, eventId, congregationId, userId),
-    'update-part': () => handleUpdatePart(formData, db, congregationId, userId),
-    'delete-part': () => handleDeletePart(formData, db, congregationId),
+    'update-part': () => handleUpdatePart(formData, db, congregationId, userId, checks),
+    'delete-part': () => handleDeletePart(formData, db, congregationId, checks),
     'add-service': () => handleAddService(formData, db, eventId, congregationId, userId),
-    'update-service': () => handleUpdateService(formData, db, congregationId, userId),
-    'delete-service': () => handleDeleteService(formData, db, congregationId),
-    'apply-template': () => handleApplyTemplate(formData, db, eventId, congregationId, userId),
+    'update-service': () => handleUpdateService(formData, db, congregationId, userId, checks),
+    'delete-service': () => handleDeleteService(formData, db, congregationId, checks),
+    'apply-template': () => handleApplyTemplate(formData, db, eventId, congregationId, userId, checks),
   }
   return handlers[String(intent)]?.() ?? Promise.resolve(null)
 }
@@ -128,9 +145,11 @@ async function handleUpdatePart(
   db: TransactionClient,
   congregationId: number,
   actorId: number,
+  checks: IntentChecks,
 ): Promise<IntentResult> {
   const submission = parseWithZod(formData, { schema: updatePartSchema })
   if (submission.status !== 'success') return submission
+  if (!(await checks.belongsToEvent('part', submission.value.partAssignmentId))) return notInEvent(submission)
 
   const {
     partAssignmentId,
@@ -174,9 +193,11 @@ async function handleDeletePart(
   formData: FormData,
   db: TransactionClient,
   congregationId: number,
+  checks: IntentChecks,
 ): Promise<IntentResult> {
   const submission = parseWithZod(formData, { schema: deletePartSchema })
   if (submission.status !== 'success') return submission
+  if (!(await checks.belongsToEvent('part', submission.value.partAssignmentId))) return notInEvent(submission)
 
   await deletePartAssignment(db, submission.value.partAssignmentId, congregationId)
   return { message: m.programs_edit_part_deleted() }
@@ -210,9 +231,11 @@ async function handleUpdateService(
   db: TransactionClient,
   congregationId: number,
   actorId: number,
+  checks: IntentChecks,
 ): Promise<IntentResult> {
   const submission = parseWithZod(formData, { schema: updateServiceSchema })
   if (submission.status !== 'success') return submission
+  if (!(await checks.belongsToEvent('service', submission.value.serviceAssignmentId))) return notInEvent(submission)
 
   await updateServicePartAssignment(
     db,
@@ -228,9 +251,11 @@ async function handleDeleteService(
   formData: FormData,
   db: TransactionClient,
   congregationId: number,
+  checks: IntentChecks,
 ): Promise<IntentResult> {
   const submission = parseWithZod(formData, { schema: deleteServiceSchema })
   if (submission.status !== 'success') return submission
+  if (!(await checks.belongsToEvent('service', submission.value.serviceAssignmentId))) return notInEvent(submission)
 
   await deleteServicePartAssignment(db, submission.value.serviceAssignmentId, congregationId)
   return { message: m.programs_edit_service_deleted() }
@@ -242,9 +267,13 @@ async function handleApplyTemplate(
   eventId: number,
   congregationId: number,
   userId: number,
+  checks: IntentChecks,
 ): Promise<IntentResult> {
   const submission = parseWithZod(formData, { schema: applyTemplateSchema })
   if (submission.status !== 'success') return submission
+  if (!(await checks.mayApplyTemplate(submission.value.templateId))) {
+    return { reply: () => submission.reply({ formErrors: [m.programs_edit_template_not_allowed()] }) }
+  }
 
   const template = await applyTemplateToEvent(db, eventId, submission.value.templateId, congregationId, userId)
   if (!template) return { message: null }

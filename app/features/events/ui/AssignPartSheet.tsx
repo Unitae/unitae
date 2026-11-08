@@ -1,248 +1,38 @@
-import { useEffect, useRef, useState } from 'react'
-import { Link, useFetcher } from 'react-router'
-import { resolvePartCapability } from '~/features/events/model/part-capability'
-import { partReaderLabel, partSpeakerLabel } from '~/features/events/model/part-labels'
-import { ExternalSpeakerInfoCard } from '~/features/events/ui/ExternalSpeakerInfoCard'
-import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
 import * as m from '~/i18n/paraglide/messages'
-import { Input } from '~/shared/ui/input'
-import { Label } from '~/shared/ui/label'
-import { PersonDropdown } from '~/shared/ui/PersonDropdown'
-import { RadioGroup, RadioGroupItem } from '~/shared/ui/radio-group'
+import { Button } from '~/shared/ui/button'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '~/shared/ui/sheet'
+import { ASSIGN_PART_FORM_ID, AssignPartEditor, type AssignPartEditorProps, assignPartCopy } from './AssignPartEditor'
+import { useCloseOnSave } from './use-close-on-save'
 
-type PartAssignment = {
-  id: number
-  name: string
-  section: string
-  track: string
-  topic: string
-  durationMin: number | null
-  assigneeId: number | null
-  assistantId: number | null
-  allowExternalSpeaker: boolean
-  externalSpeakerId: number | null
-  speakerLabel: string | null
-  readerLabel: string | null
-  // The kind this part is, when it has one. It decides the slot labels, whether
-  // there is a second slot, and whether an external speaker may be assigned —
-  // the part's own columns apply only in its absence.
-  preset: {
-    speakerLabel: string | null
-    readerLabel: string | null
-    hasReaderSlot: boolean
-    allowExternalSpeaker: boolean
-  } | null
-}
-
-type ExternalSpeakerOption = { id: number; name: string }
-
-type PersonOption = { id: number; firstname: string | null; lastname: string | null }
-
-type AssignPartSheetProps = {
+interface AssignPartSheetProps extends Omit<AssignPartEditorProps, 'formRef' | 'className' | 'part'> {
   open: boolean
   onOpenChange: (open: boolean) => void
-  assignment: PartAssignment | null
-  speakerCandidates: PersonOption[]
-  readerCandidates: PersonOption[]
-  externalSpeakers: ExternalSpeakerOption[]
-  eventId: number
+  part: AssignPartEditorProps['part'] | null
 }
 
-export function AssignPartSheet({
-  open,
-  onOpenChange,
-  assignment,
-  speakerCandidates,
-  readerCandidates,
-  externalSpeakers,
-  eventId,
-}: AssignPartSheetProps) {
-  const fetcher = useFetcher<{ ok: boolean }>()
-  const prevState = useRef(fetcher.state)
-  // The sheet renders with no assignment while closed; the fallback keeps the
-  // hook order stable and is never shown.
-  const capability = resolvePartCapability(
-    assignment ?? { speakerLabel: null, readerLabel: null, allowExternalSpeaker: false },
-    assignment?.preset ?? null,
-  )
-  const [selectedAssignee, setSelectedAssignee] = useState('')
-  const [selectedAssistant, setSelectedAssistant] = useState('')
-  const [selectedExternalSpeaker, setSelectedExternalSpeaker] = useState('none')
-  const [speakerType, setSpeakerType] = useState<'internal' | 'external'>('internal')
-
-  useEffect(() => {
-    if (assignment) {
-      setSelectedAssignee(assignment.assigneeId?.toString() ?? '')
-      setSelectedAssistant(assignment.assistantId?.toString() ?? '')
-      setSelectedExternalSpeaker(assignment.externalSpeakerId?.toString() ?? 'none')
-      setSpeakerType(assignment.externalSpeakerId ? 'external' : 'internal')
-    }
-  }, [assignment])
-
-  useEffect(() => {
-    if (prevState.current === 'submitting' && fetcher.state === 'idle' && fetcher.data?.ok) {
-      onOpenChange(false)
-    }
-    prevState.current = fetcher.state
-  }, [fetcher.state, fetcher.data, onOpenChange])
-
-  const hasRegistry = externalSpeakers.length > 0
-
-  if (!assignment) return null
+/** The part assignment in a sheet over the page, on screens too narrow to dock it beside the programme. */
+export function AssignPartSheet({ open, onOpenChange, part, ...editor }: AssignPartSheetProps) {
+  useCloseOnSave(editor.fetcher, () => onOpenChange(false))
+  if (part == null) return null
+  const { title, description } = assignPartCopy(part)
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto sm:max-w-md">
+      <SheetContent className="sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>{assignment.name}</SheetTitle>
-          <SheetDescription>{assignment.section}</SheetDescription>
+          <SheetTitle>{title}</SheetTitle>
+          {description && <SheetDescription>{description}</SheetDescription>}
         </SheetHeader>
-        <fetcher.Form
-          method="post"
-          action={`/programs/events/${eventId}/assign-part`}
-          className="flex flex-col gap-4 px-4"
-        >
-          <input type="hidden" name="assignmentId" value={assignment.id} />
-
-          <div className="grid gap-4 sm:grid-cols-[1fr_8rem]">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="topic">{m.programs_assign_part_topic_label()}</Label>
-              <Input id="topic" name="topic" defaultValue={assignment.topic ?? ''} />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="sheetDurationMin">{m.programs_edit_part_duration_label()}</Label>
-              <Input
-                id="sheetDurationMin"
-                name="durationMin"
-                type="number"
-                min={0}
-                defaultValue={assignment.durationMin ?? ''}
-              />
-            </div>
-          </div>
-
-          {capability.allowExternalSpeaker && (
-            <div className="flex flex-col gap-2">
-              <Label>{m.programs_assign_part_speaker_type_label()}</Label>
-              <RadioGroup
-                name="speakerType"
-                value={speakerType}
-                onValueChange={v => setSpeakerType(v as 'internal' | 'external')}
-                className="flex gap-4"
-              >
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="internal" id="sheetSpeakerInternal" />
-                  <Label htmlFor="sheetSpeakerInternal">{m.programs_assign_part_speaker_type_internal()}</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="external" id="sheetSpeakerExternal" />
-                  <Label htmlFor="sheetSpeakerExternal">{m.programs_assign_part_speaker_type_external()}</Label>
-                </div>
-              </RadioGroup>
-            </div>
-          )}
-
-          {speakerType === 'external' ? (
-            <>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="externalSpeakerId">{m.programs_assign_part_speaker_label()}</Label>
-                <Select
-                  name="externalSpeakerId"
-                  value={selectedExternalSpeaker}
-                  onValueChange={setSelectedExternalSpeaker}
-                  disabled={!hasRegistry}
-                >
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={
-                        hasRegistry
-                          ? m.programs_assign_part_external_select_placeholder()
-                          : m.programs_assign_part_external_empty()
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">{m.programs_assign_part_none()}</SelectItem>
-                    {externalSpeakers.map(speaker => (
-                      <SelectItem key={speaker.id} value={speaker.id.toString()}>
-                        {speaker.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {!hasRegistry && (
-                  <Link to="/programs/external-speakers/new" className="text-primary text-sm hover:underline">
-                    {m.programs_assign_part_external_manage_link()}
-                  </Link>
-                )}
-              </div>
-
-              <ExternalSpeakerInfoCard
-                eventId={eventId}
-                externalSpeakerId={selectedExternalSpeaker}
-                excludePartAssignmentId={assignment.id}
-              />
-            </>
-          ) : (
-            <>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="assigneeId">{partSpeakerLabel(capability)}</Label>
-                <PersonDropdown
-                  id="assigneeId"
-                  name="assigneeId"
-                  people={speakerCandidates}
-                  value={selectedAssignee}
-                  onValueChange={setSelectedAssignee}
-                  placeholder={m.programs_assign_part_select_publisher()}
-                  noneLabel={m.programs_assign_part_none()}
-                />
-              </div>
-
-              <PublisherInfoCard
-                eventId={eventId}
-                userId={selectedAssignee}
-                excludePartAssignmentId={assignment.id}
-                partSlot="assignee"
-              />
-
-              {/* A kind done by one person has no second slot, so offering
-                  one invites an assignment nobody can fill. It stays visible
-                  when somebody is already in it: hiding the control on a part
-                  whose kind changed later would strand them there with no way
-                  to take them out. */}
-              {(capability.hasReaderSlot || assignment.assistantId != null) && (
-                <>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="assistantId">{partReaderLabel(capability)}</Label>
-                    <PersonDropdown
-                      id="assistantId"
-                      name="assistantId"
-                      people={readerCandidates}
-                      value={selectedAssistant}
-                      onValueChange={setSelectedAssistant}
-                      placeholder={m.programs_assign_part_no_reader()}
-                      noneLabel={m.programs_assign_part_none()}
-                    />
-                  </div>
-
-                  <PublisherInfoCard
-                    eventId={eventId}
-                    userId={selectedAssistant}
-                    excludePartAssignmentId={assignment.id}
-                    partSlot="assistant"
-                  />
-                </>
-              )}
-            </>
-          )}
-
-          <SheetFooter>
-            <SubmitButton>{m.common_save()}</SubmitButton>
-          </SheetFooter>
-        </fetcher.Form>
+        <AssignPartEditor key={part.id} part={part} {...editor} className="flex-1 overflow-y-auto px-4 pb-4" />
+        <SheetFooter className="flex-row justify-end border-border border-t">
+          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+            {m.common_cancel()}
+          </Button>
+          <SubmitButton form={ASSIGN_PART_FORM_ID} disabled={editor.fetcher.state !== 'idle'}>
+            {m.common_save()}
+          </SubmitButton>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   )

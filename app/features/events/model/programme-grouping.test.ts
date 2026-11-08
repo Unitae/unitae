@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { groupProgrammeParts, sectionDurationMin } from './programme-grouping'
+import { groupProgrammeParts, sectionDurationMin, summarizeDurations } from './programme-grouping'
 
 interface TestPart {
   id: number
@@ -97,5 +97,19 @@ describe('sectionDurationMin', () => {
   it('returns null when no part carries a duration', () => {
     const groups = groupProgrammeParts([part(1, 'A'), part(2, 'A')])
     expect(sectionDurationMin(groups[0])).toBeNull()
+  })
+})
+
+describe('summarizeDurations', () => {
+  it('adds up the known durations and counts the parts without one', () => {
+    expect(summarizeDurations([{ durationMin: 10 }, { durationMin: null }, { durationMin: 4 }, {}])).toEqual({
+      minutes: 14,
+      missing: 2,
+    })
+  })
+
+  it('reports nothing known when no part has a duration', () => {
+    expect(summarizeDurations([{ durationMin: null }])).toEqual({ minutes: 0, missing: 1 })
+    expect(summarizeDurations([])).toEqual({ minutes: 0, missing: 0 })
   })
 })

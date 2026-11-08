@@ -1,13 +1,8 @@
 import { useState } from 'react'
-import { getRoleDisplayName } from '~/shared/types/role'
+import { getRoleDisplayName, type RoleOption } from '~/shared/types/role'
 import { cn } from '~/shared/utils/utils'
 
-export interface RoleOption {
-  id: number
-  key: string
-  name: string | null
-  isBuiltIn: boolean
-}
+export type { RoleOption }
 
 interface RolePickerProps {
   roles: RoleOption[]

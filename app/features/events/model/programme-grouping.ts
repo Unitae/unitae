@@ -77,3 +77,17 @@ export function sectionDurationMin<T extends ProgrammePartLike>(group: Programme
   }
   return total
 }
+
+/**
+ * The planned minutes of some parts, and how many of them have no duration. Shown together, so a total that leaves
+ * parts out never reads as the length of the programme.
+ */
+export function summarizeDurations(parts: { durationMin?: number | null }[]): { minutes: number; missing: number } {
+  let minutes = 0
+  let missing = 0
+  for (const partItem of parts) {
+    if (partItem.durationMin == null) missing++
+    else minutes += partItem.durationMin
+  }
+  return { minutes, missing }
+}

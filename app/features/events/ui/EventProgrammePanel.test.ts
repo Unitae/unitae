@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { reorderPartIds } from './EventPartsCard'
+import { reorderPartIds } from './EventProgrammePanel'
 
 describe('reorderPartIds', () => {
   it('returns the same order when moving an id onto itself', () => {

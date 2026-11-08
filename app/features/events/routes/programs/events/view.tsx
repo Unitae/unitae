@@ -1,32 +1,12 @@
-import {
-  AlertTriangle,
-  Clock,
-  FileText,
-  Loader2,
-  MoreHorizontal,
-  Pencil,
-  Send,
-  Trash2,
-  UserPlus,
-  X,
-} from 'lucide-react'
-import React, { useState } from 'react'
-import { Link, redirect, useFetcher } from 'react-router'
+import { redirect } from 'react-router'
 import { resolveProgrammeLink } from '~/features/display-board/index.server'
-import { EventStatus } from '~/features/events/model/event-status.type'
-import { groupProgrammeParts, sectionDurationMin } from '~/features/events/model/programme-grouping'
 import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
 import { buildAssignmentCandidates } from '~/features/events/server/assignment-candidates.server'
 import { buildShareTextsForEvent } from '~/features/events/server/build-share-message.server'
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
 import { canEditEvent } from '~/features/events/server/events-auth.server'
 import { listExternalSpeakers } from '~/features/events/server/external-speakers.server'
-import { AssignPartSheet } from '~/features/events/ui/AssignPartSheet'
-import { AssignServiceSheet } from '~/features/events/ui/AssignServiceSheet'
-import { MobilePartsList } from '~/features/events/ui/MobilePartsList'
-import { SectionHeading, TrackHeading } from '~/features/events/ui/ProgrammeHeadings'
-import { ShareAssignmentButton } from '~/features/events/ui/ShareAssignmentButton'
-import { UnassignConfirmDialog } from '~/features/events/ui/UnassignConfirmDialog'
+import { EventView } from '~/features/events/ui/EventView'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -37,41 +17,9 @@ import {
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
-import { Badge } from '~/shared/ui/badge'
-import { Button } from '~/shared/ui/button'
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
-import { PageHeader } from '~/shared/ui/PageHeader'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
-import { formatEventDate, formatEventTime } from '~/shared/utils/event-time'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/view'
-
-type PartRowAssignment = {
-  id: number
-  name: string
-  topic: string
-  section: string
-  track: string
-  durationMin: number | null
-  assigneeId: number | null
-  assistantId: number | null
-  allowExternalSpeaker: boolean
-  externalSpeakerId: number | null
-  externalSpeaker: { name: string } | null
-  hasConflict: boolean
-  speakerLabel: string | null
-  readerLabel: string | null
-  preset: {
-    speakerLabel: string | null
-    readerLabel: string | null
-    hasReaderSlot: boolean
-    allowExternalSpeaker: boolean
-  } | null
-  assignee: { firstname: string | null; lastname: string | null } | null
-  assistant: { firstname: string | null; lastname: string | null } | null
-}
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.programs_view_meta_title() }]
@@ -91,22 +39,17 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const event = await getEventProgramme(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
 
-    // Two delegations, two answers. `canEdit` is the whole-event one and still gates
-    // everything it always did; `canEditService` is the narrower one, so a service
-    // responsible gets the sono/estrade/accueil rota and nothing else on this page.
-    const [canEdit, canEditService] = await Promise.all([
-      canEditEvent(db, can, currentUser.id, event.templateId, congregationId),
-      canEditEvent(
-        db,
-        can,
-        currentUser.id,
-        event.templateId,
-        congregationId,
-        Permission.CanManagePrograms,
-        ResponsibilityScope.Service,
-      ),
+    // Each action on the page follows the right its route checks: editing and deleting the event, publishing it,
+    // assigning the parts, and assigning the services — the narrower delegation a service responsible holds.
+    const check = (required: Permission, scope?: ResponsibilityScope) =>
+      canEditEvent(db, can, currentUser.id, event.templateId, congregationId, required, scope)
+    const [canEdit, canPublish, canAssign, canAssignService] = await Promise.all([
+      check(Permission.CanManagePrograms),
+      check(Permission.CanPublishPrograms),
+      check(Permission.CanAssignProgramParts),
+      check(Permission.CanAssignProgramParts, ResponsibilityScope.Service),
     ])
-    const canAssignAnything = canEdit || canEditService
+    const canAssignAnything = canAssign || canAssignService
 
     const users = canAssignAnything
       ? await db.member.findMany({
@@ -115,7 +58,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
         })
       : []
 
-    const externalSpeakers = canEdit
+    const externalSpeakers = canAssign
       ? (await listExternalSpeakers(db, congregationId, { includeArchived: false }))
           .slice()
           .sort((a, b) => {
@@ -132,13 +75,13 @@ export function loader({ params, context }: Route.LoaderArgs) {
       : { partCandidates: {}, serviceCandidates: {} }
     // Eligibility lists are per-slot data; hand back only the family the caller
     // may actually fill.
-    const partCandidates = canEdit ? candidates.partCandidates : {}
-    const serviceCandidates = canEditService ? candidates.serviceCandidates : {}
+    const partCandidates = canAssign ? candidates.partCandidates : {}
+    const serviceCandidates = canAssignService ? candidates.serviceCandidates : {}
 
     // Built here rather than on click: navigator.share needs the user's
     // activation, and awaiting anything before it spends that activation.
     const congregation = context.get(congregationContext)
-    const shareTexts = canEdit
+    const shareTexts = canAssign
       ? await buildShareTextsForEvent(event, congregation, target => resolveProgrammeLink(db, target, congregationId))
       : {}
 
@@ -147,9 +90,11 @@ export function loader({ params, context }: Route.LoaderArgs) {
     return {
       event,
       canEdit,
-      canEditService,
+      canPublish,
+      canAssign,
+      canAssignService,
       canViewPublishers: can(Permission.CanViewPublishers),
-      users,
+      users: users.map(({ id, firstname, lastname }) => ({ id, firstname, lastname })),
       externalSpeakers,
       partCandidates,
       serviceCandidates,
@@ -160,533 +105,5 @@ export function loader({ params, context }: Route.LoaderArgs) {
 }
 
 export default function EventViewPage({ loaderData }: Route.ComponentProps) {
-  const {
-    event,
-    canEdit,
-    canEditService,
-    canViewPublishers,
-    users,
-    externalSpeakers,
-    partCandidates,
-    serviceCandidates,
-    shareTexts,
-    timezone,
-  } = loaderData
-
-  const userById = new Map(users.map(u => [u.id, u]))
-
-  const [assignPartTarget, setAssignPartTarget] = useState<{
-    id: number
-    name: string
-    section: string
-    track: string
-    topic: string
-    durationMin: number | null
-    assigneeId: number | null
-    assistantId: number | null
-    allowExternalSpeaker: boolean
-    externalSpeakerId: number | null
-    speakerLabel: string | null
-    readerLabel: string | null
-    preset: {
-      speakerLabel: string | null
-      readerLabel: string | null
-      hasReaderSlot: boolean
-      allowExternalSpeaker: boolean
-    } | null
-  } | null>(null)
-  const [assignPartOpen, setAssignPartOpen] = useState(false)
-
-  const [assignServiceTarget, setAssignServiceTarget] = useState<{
-    id: number
-    name: string
-    assigneeId: number | null
-  } | null>(null)
-  const [assignServiceOpen, setAssignServiceOpen] = useState(false)
-
-  const [unassignTarget, setUnassignTarget] = useState<{
-    type: 'part' | 'service'
-    id: number
-    name: string
-    assigneeName: string
-  } | null>(null)
-
-  // Derived values
-  const hasAnyTopic = event.eventParts.some(a => a.topic)
-  const partAssignedCount = event.eventParts.filter(a => a.assigneeId ?? a.externalSpeakerId).length
-  const serviceAssignedCount = event.eventServiceParts.filter(a => a.assigneeId).length
-
-  const partsBySection = groupProgrammeParts(event.eventParts)
-
-  const colCount = 4 + (hasAnyTopic ? 1 : 0) + (canEdit ? 1 : 0)
-
-  const startTime = formatEventTime(event.startDate, timezone)
-  const endTime = formatEventTime(event.endDate, timezone)
-  const dateStr = formatEventDate(event.startDate, timezone, 'fr-FR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
-
-  function openPartAssign(assignment: PartRowAssignment) {
-    setAssignPartTarget({
-      id: assignment.id,
-      name: assignment.name,
-      section: assignment.section,
-      track: assignment.track,
-      topic: assignment.topic,
-      durationMin: assignment.durationMin,
-      assigneeId: assignment.assigneeId,
-      assistantId: assignment.assistantId,
-      allowExternalSpeaker: assignment.allowExternalSpeaker,
-      externalSpeakerId: assignment.externalSpeakerId,
-      speakerLabel: assignment.speakerLabel,
-      readerLabel: assignment.readerLabel,
-      preset: assignment.preset,
-    })
-    setAssignPartOpen(true)
-  }
-
-  return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        title={event.name}
-        titleBadge={
-          event.status === EventStatus.Draft && (
-            <Badge variant="secondary" className="gap-1 text-xs">
-              <FileText className="size-3" />
-              {m.programs_event_draft_badge()}
-            </Badge>
-          )
-        }
-        subtitle={`${dateStr} — ${startTime} - ${endTime}`}
-        breadcrumbs={[{ label: m.sidebar_programs(), to: '/programs' }, { label: event.name }]}
-        backTo="/programs"
-        actions={
-          canEdit && (
-            <div className="flex gap-2">
-              <ReleaseToggleButton status={event.status} eventId={event.id} />
-              <Button variant="outline" size="sm" asChild>
-                <Link to="./edit">
-                  <Pencil className="size-4" />
-                  {m.common_edit()}
-                </Link>
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="size-8">
-                    <MoreHorizontal className="size-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild className="text-destructive focus:text-destructive">
-                    <Link to="./delete">
-                      <Trash2 className="size-4" />
-                      {m.common_delete()}
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          )
-        }
-      />
-
-      {/* Spiritual program */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{m.programs_view_spiritual_program()}</CardTitle>
-          <CardAction>
-            <Badge variant="outline">
-              {m.programs_view_assigned_count({
-                count: String(partAssignedCount),
-                total: String(event.eventParts.length),
-              })}
-            </Badge>
-          </CardAction>
-        </CardHeader>
-        <CardContent>
-          <MobilePartsList
-            groups={partsBySection}
-            canEdit={canEdit}
-            canViewPublishers={canViewPublishers}
-            onPartClick={openPartAssign}
-            shareTexts={shareTexts}
-          />
-          <div className="max-md:hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{m.programs_view_part_col()}</TableHead>
-                  {hasAnyTopic && <TableHead>{m.programs_view_topic_col()}</TableHead>}
-                  <TableHead className="w-24">{m.programs_view_duration_col()}</TableHead>
-                  <TableHead>{m.programs_view_speaker_col()}</TableHead>
-                  <TableHead>{m.programs_view_reader_col()}</TableHead>
-                  {canEdit && <TableHead className="w-20">{m.common_actions()}</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {partsBySection.map(group => {
-                  const hasMultipleTracks = group.tracks.length > 1 || group.tracks[0]?.track !== ''
-                  return (
-                    <React.Fragment key={group.tracks[0]?.parts[0]?.id ?? group.section}>
-                      {group.section && (
-                        <TableRow key={`section-${group.section}`} className="bg-muted/50">
-                          <TableCell colSpan={colCount} className="py-1.5">
-                            <SectionHeading section={group.section} durationMin={sectionDurationMin(group)} />
-                          </TableCell>
-                        </TableRow>
-                      )}
-                      {group.tracks.map(trackGroup => (
-                        <React.Fragment key={trackGroup.parts[0]?.id ?? trackGroup.track}>
-                          {hasMultipleTracks && trackGroup.track && (
-                            <TableRow key={`track-${group.section}-${trackGroup.track}`} className="bg-muted/30">
-                              <TableCell colSpan={colCount} className="py-1 pl-4">
-                                <TrackHeading track={trackGroup.track} count={trackGroup.parts.length} />
-                              </TableCell>
-                            </TableRow>
-                          )}
-                          {trackGroup.parts.map(assignment => (
-                            <PartRow
-                              key={assignment.id}
-                              assignment={assignment}
-                              canEdit={canEdit}
-                              canViewPublishers={canViewPublishers}
-                              hasAnyTopic={hasAnyTopic}
-                              shareText={shareTexts[assignment.id]}
-                              openPartAssign={openPartAssign}
-                              setUnassignTarget={setUnassignTarget}
-                            />
-                          ))}
-                        </React.Fragment>
-                      ))}
-                    </React.Fragment>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Services */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{m.programs_view_services()}</CardTitle>
-          <CardAction>
-            <Badge variant="outline">
-              {m.programs_view_assigned_count({
-                count: String(serviceAssignedCount),
-                total: String(event.eventServiceParts.length),
-              })}
-            </Badge>
-          </CardAction>
-        </CardHeader>
-        <CardContent>
-          {/* Gated by canEditService, not canEdit: the service-parts delegation stops here. */}
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{m.programs_view_role_col()}</TableHead>
-                <TableHead>{m.programs_view_publisher_col()}</TableHead>
-                {canEditService && <TableHead className="w-20">{m.common_actions()}</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {event.eventServiceParts.map(assignment => (
-                <TableRow key={assignment.id}>
-                  <TableCell className="font-medium text-sm">{assignment.name}</TableCell>
-                  <TableCell
-                    className={canEditService ? 'cursor-pointer hover:bg-muted/50' : ''}
-                    onClick={
-                      canEditService
-                        ? () => {
-                            setAssignServiceTarget({
-                              id: assignment.id,
-                              name: assignment.name,
-                              assigneeId: assignment.assigneeId,
-                            })
-                            setAssignServiceOpen(true)
-                          }
-                        : undefined
-                    }
-                  >
-                    <AssigneeCell
-                      assignee={assignment.assignee}
-                      assigneeId={assignment.assigneeId}
-                      linkToPublisher={canViewPublishers}
-                      externalSpeaker={null}
-                      hasConflict={assignment.hasConflict}
-                    />
-                  </TableCell>
-                  {canEditService && (
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-7"
-                          onClick={() => {
-                            setAssignServiceTarget({
-                              id: assignment.id,
-                              name: assignment.name,
-                              assigneeId: assignment.assigneeId,
-                            })
-                            setAssignServiceOpen(true)
-                          }}
-                        >
-                          <UserPlus className="size-3" />
-                        </Button>
-                        {assignment.assigneeId && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-7 text-destructive hover:text-destructive"
-                            onClick={() =>
-                              setUnassignTarget({
-                                type: 'service',
-                                id: assignment.id,
-                                name: assignment.name,
-                                assigneeName:
-                                  `${assignment.assignee?.firstname ?? ''} ${assignment.assignee?.lastname ?? ''}`.trim(),
-                              })
-                            }
-                          >
-                            <X className="size-3" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Assignment Sheets */}
-      <AssignPartSheet
-        open={assignPartOpen}
-        onOpenChange={setAssignPartOpen}
-        assignment={assignPartTarget}
-        speakerCandidates={
-          assignPartTarget
-            ? (partCandidates[assignPartTarget.id]?.speakerIds ?? [])
-                .map(id => userById.get(id))
-                .filter((u): u is (typeof users)[number] => u != null)
-            : []
-        }
-        readerCandidates={
-          assignPartTarget
-            ? (partCandidates[assignPartTarget.id]?.readerIds ?? [])
-                .map(id => userById.get(id))
-                .filter((u): u is (typeof users)[number] => u != null)
-            : []
-        }
-        externalSpeakers={externalSpeakers}
-        eventId={event.id}
-      />
-
-      <AssignServiceSheet
-        open={assignServiceOpen}
-        onOpenChange={setAssignServiceOpen}
-        assignment={assignServiceTarget}
-        assigneeCandidates={
-          assignServiceTarget
-            ? (serviceCandidates[assignServiceTarget.id] ?? [])
-                .map(id => userById.get(id))
-                .filter((u): u is (typeof users)[number] => u != null)
-            : []
-        }
-        eventId={event.id}
-      />
-
-      {/* Unassign confirmation */}
-      <UnassignConfirmDialog
-        open={unassignTarget != null}
-        onOpenChange={open => {
-          if (!open) setUnassignTarget(null)
-        }}
-        target={unassignTarget}
-        eventId={event.id}
-      />
-    </div>
-  )
-}
-
-function PartRow({
-  assignment,
-  canEdit,
-  canViewPublishers,
-  hasAnyTopic,
-  shareText,
-  openPartAssign,
-  setUnassignTarget,
-}: {
-  assignment: PartRowAssignment
-  canEdit: boolean
-  canViewPublishers: boolean
-  hasAnyTopic: boolean
-  /** Absent when there is nothing to send — see buildAssignmentShareText. */
-  shareText?: string
-  openPartAssign: (assignment: PartRowAssignment) => void
-  setUnassignTarget: (
-    target: { type: 'part' | 'service'; id: number; name: string; assigneeName: string } | null,
-  ) => void
-}) {
-  return (
-    <TableRow>
-      <TableCell>
-        <span className="font-medium text-sm">{assignment.name}</span>
-      </TableCell>
-      {hasAnyTopic && <TableCell className="text-sm">{assignment.topic || '—'}</TableCell>}
-      <TableCell>
-        {assignment.durationMin ? (
-          <span className="flex items-center gap-1 text-muted-foreground text-sm">
-            <Clock className="size-3" />
-            {assignment.durationMin} min
-          </span>
-        ) : (
-          <span className="text-muted-foreground text-sm">—</span>
-        )}
-      </TableCell>
-      <TableCell
-        className={canEdit ? 'cursor-pointer hover:bg-muted/50' : ''}
-        onClick={canEdit ? () => openPartAssign(assignment) : undefined}
-      >
-        <AssigneeCell
-          assignee={assignment.assignee}
-          assigneeId={assignment.assigneeId}
-          linkToPublisher={canViewPublishers}
-          externalSpeaker={assignment.externalSpeaker}
-          hasConflict={assignment.hasConflict}
-        />
-      </TableCell>
-      <TableCell
-        className={canEdit ? 'cursor-pointer hover:bg-muted/50' : ''}
-        onClick={canEdit ? () => openPartAssign(assignment) : undefined}
-      >
-        {assignment.assistant ? (
-          <span className="text-sm">
-            {assignment.assistant.firstname} {assignment.assistant.lastname}
-          </span>
-        ) : (
-          <span className="text-muted-foreground text-sm">—</span>
-        )}
-      </TableCell>
-      {canEdit && (
-        <TableCell>
-          <div className="flex gap-1">
-            {shareText && (
-              <ShareAssignmentButton
-                text={shareText}
-                label={m.programs_share_button_label({
-                  name:
-                    assignment.externalSpeaker?.name ??
-                    `${assignment.assignee?.firstname ?? ''} ${assignment.assignee?.lastname ?? ''}`.trim(),
-                })}
-              />
-            )}
-            <Button variant="ghost" size="icon" className="size-7" onClick={() => openPartAssign(assignment)}>
-              <UserPlus className="size-3" />
-            </Button>
-            {(assignment.assigneeId ?? assignment.externalSpeakerId) && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-7 text-destructive hover:text-destructive"
-                onClick={() =>
-                  setUnassignTarget({
-                    type: 'part',
-                    id: assignment.id,
-                    name: assignment.name,
-                    assigneeName:
-                      assignment.externalSpeaker?.name ??
-                      `${assignment.assignee?.firstname ?? ''} ${assignment.assignee?.lastname ?? ''}`.trim(),
-                  })
-                }
-              >
-                <X className="size-3" />
-              </Button>
-            )}
-          </div>
-        </TableCell>
-      )}
-    </TableRow>
-  )
-}
-
-function ReleaseToggleButton({ status, eventId }: { status: string; eventId: number }) {
-  const fetcher = useFetcher<{ ok: boolean }>()
-  const isDraft = status === EventStatus.Draft
-  const action = isDraft ? `/programs/events/${eventId}/release` : `/programs/events/${eventId}/unrelease`
-  const label = isDraft ? m.programs_event_release_button() : m.programs_event_unrelease_button()
-  const Icon = isDraft ? Send : FileText
-  const inFlight = fetcher.state !== 'idle'
-
-  function submit() {
-    fetcher.submit({}, { method: 'POST', action })
-  }
-
-  return (
-    <Button variant={isDraft ? 'default' : 'outline'} size="sm" onClick={submit} disabled={inFlight}>
-      {inFlight ? <Loader2 className="size-4 animate-spin" /> : <Icon className="size-4" />}
-      {label}
-    </Button>
-  )
-}
-
-function AssigneeCell({
-  assignee,
-  assigneeId,
-  linkToPublisher = false,
-  externalSpeaker,
-  hasConflict,
-}: {
-  assignee: { firstname: string | null; lastname: string | null } | null
-  assigneeId?: number | null
-  linkToPublisher?: boolean
-  externalSpeaker: { name: string } | null
-  hasConflict: boolean
-}) {
-  if (externalSpeaker) {
-    return (
-      <div className="flex items-center gap-2">
-        <span className="text-sm">{externalSpeaker.name}</span>
-        <Badge variant="secondary" className="text-xs">
-          {m.programs_view_external_badge()}
-        </Badge>
-      </div>
-    )
-  }
-
-  if (!assignee) {
-    return <span className="text-muted-foreground text-sm italic">{m.programs_view_unassigned()}</span>
-  }
-
-  return (
-    <div className="flex items-center gap-2">
-      {linkToPublisher && assigneeId != null ? (
-        <Link
-          to={`/publishers/${assigneeId}/view`}
-          className="text-sm hover:text-primary hover:underline"
-          onClick={e => e.stopPropagation()}
-        >
-          {assignee.firstname} {assignee.lastname}
-        </Link>
-      ) : (
-        <span className="text-sm">
-          {assignee.firstname} {assignee.lastname}
-        </span>
-      )}
-      {hasConflict && (
-        <Badge variant="destructive" className="gap-1 text-xs">
-          <AlertTriangle className="size-3" />
-          {m.programs_view_absence_badge()}
-        </Badge>
-      )}
-    </div>
-  )
+  return <EventView {...loaderData} />
 }

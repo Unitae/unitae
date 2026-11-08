@@ -23,6 +23,7 @@ import {
   getTemplateById,
   isTemplateResponsible,
   listPartPresets,
+  templateItemBelongsToTemplate,
   updateTemplate,
   upsertTemplatePart,
   upsertTemplateServicePart,
@@ -200,6 +201,14 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
 type IntentResult = { message: string | null } | { reply: () => unknown }
 
+/**
+ * The reply refusing a part or a service of another template. A template's responsible may edit it, while the
+ * writers find a part or a service by its id alone: a posted id from another template must not ride on that check.
+ */
+function notInTemplate(submission: { reply: (options: { formErrors: string[] }) => unknown }): IntentResult {
+  return { reply: () => submission.reply({ formErrors: [m.settings_template_item_not_in_template()] }) }
+}
+
 async function handlePartIntent(
   intent: FormDataEntryValue | null,
   formData: FormData,
@@ -228,6 +237,9 @@ async function handlePartIntent(
       allowedReaderRoleIds,
       managedRoleSlots,
     } = submission.value
+    if (partId != null && !(await templateItemBelongsToTemplate(db, 'part', partId, templateId, congregationId))) {
+      return notInTemplate(submission)
+    }
     await upsertTemplatePart(
       db,
       templateId,
@@ -253,6 +265,9 @@ async function handlePartIntent(
   if (intent === 'delete-part') {
     const submission = parseWithZod(formData, { schema: deletePartSchema })
     if (submission.status !== 'success') return submission
+    if (!(await templateItemBelongsToTemplate(db, 'part', submission.value.partId, templateId, congregationId))) {
+      return notInTemplate(submission)
+    }
 
     await deleteTemplatePart(db, submission.value.partId, congregationId)
     return { message: m.settings_template_edit_part_deleted() }
@@ -273,6 +288,9 @@ async function handleServicePartIntent(
     if (submission.status !== 'success') return submission
 
     const { roleId, roleName, roleKey, allowedRoleIds } = submission.value
+    if (roleId != null && !(await templateItemBelongsToTemplate(db, 'service', roleId, templateId, congregationId))) {
+      return notInTemplate(submission)
+    }
     const key =
       roleKey ||
       roleName
@@ -293,6 +311,9 @@ async function handleServicePartIntent(
   if (intent === 'delete-service-role') {
     const submission = parseWithZod(formData, { schema: deleteServicePartSchema })
     if (submission.status !== 'success') return submission
+    if (!(await templateItemBelongsToTemplate(db, 'service', submission.value.roleId, templateId, congregationId))) {
+      return notInTemplate(submission)
+    }
 
     await deleteTemplateServicePart(db, submission.value.roleId, congregationId)
     return { message: m.settings_template_edit_service_role_deleted() }
