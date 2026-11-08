@@ -52,8 +52,12 @@ export function BottomTabBar({ permissions, onMoreClick, moreOpen }: BottomTabBa
   )
 }
 
+// Labels at 10px, as in iOS tab bars. Tabs take their label's width plus an equal share of what is
+// left, so « Mes territoires » and « Mes absences » keep the same gap as the short ones instead of
+// nearly touching in equal cells. A label wraps rather than touch its neighbour on the narrowest
+// phones, and the icons stay aligned because each tab starts at the top. 44px keeps « Plus » tappable.
 const TAB =
-  'group/tab flex min-h-[52px] flex-1 flex-col items-center justify-center gap-[3px] rounded-md font-medium text-[11px] text-faint leading-tight transition-colors'
+  'group/tab flex min-h-[52px] min-w-11 flex-auto flex-col items-center justify-start gap-[3px] rounded-md px-1 pt-[7px] font-medium text-[10px] text-faint leading-[1.2] transition-colors'
 
 /** A tab: the current one in ink with its icon in the accent, the others faint. No pill. */
 function TabContent({ icon: Icon, label, active }: { icon: LucideIcon; label: string; active: boolean }) {
@@ -63,7 +67,7 @@ function TabContent({ icon: Icon, label, active }: { icon: LucideIcon; label: st
         className={cn('size-[22px] transition-transform group-active/tab:scale-[0.86]', active && 'text-brand')}
         aria-hidden="true"
       />
-      <span className={cn('whitespace-nowrap', active && 'text-foreground')}>{label}</span>
+      <span className={cn('max-w-full text-balance text-center', active && 'text-foreground')}>{label}</span>
     </>
   )
 }
