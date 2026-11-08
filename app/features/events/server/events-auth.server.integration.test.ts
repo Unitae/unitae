@@ -43,9 +43,13 @@ const allowAll = (_p: Permission) => true
 const allowNone = (_p: Permission) => false
 const allowOnly = (allowed: Permission) => (p: Permission) => p === allowed
 
-const { assignmentBelongsToEvent, canEditEvent, getResponsibleTemplateIds, canManageAnyProgram } = await import(
-  './events-auth.server'
-)
+const {
+  assignmentBelongsToEvent,
+  canEditEvent,
+  getResponsibleTemplateIds,
+  canManageAnyProgram,
+  listApplicableTemplates,
+} = await import('./events-auth.server')
 
 beforeAll(async () => {
   const primary = await testDb.congregation.create({
@@ -293,6 +297,34 @@ describe('canEditEvent (integration)', () => {
     expect(owned).toBe(false)
     expect(other).toBe(false)
     expect(freeform).toBe(false)
+  })
+})
+
+describe('listApplicableTemplates (integration)', () => {
+  // Applying a template moves the event onto it, and who may edit an event follows its template: the list offers
+  // only the templates whose events the caller may edit, so applying one never hands the event to someone else.
+  it('lists every template of the congregation for a programme manager, by name', async () => {
+    const result = await withScope(primaryCongId, tx =>
+      listApplicableTemplates(tx, allowOnly(Permission.CanManagePrograms), managerId, primaryCongId),
+    )
+    expect(result).toEqual([
+      { id: templateOtherId, name: 'Other Template' },
+      { id: templateOwnedId, name: 'Owned Template' },
+    ])
+  })
+
+  it('lists only the templates a responsible runs the programme of', async () => {
+    const result = await withScope(primaryCongId, tx =>
+      listApplicableTemplates(tx, allowNone, responsibleId, primaryCongId),
+    )
+    expect(result).toEqual([{ id: templateOwnedId, name: 'Owned Template' }])
+  })
+
+  it('lists none for a service responsible, who may not restructure the event', async () => {
+    const result = await withScope(primaryCongId, tx =>
+      listApplicableTemplates(tx, allowNone, serviceResponsibleId, primaryCongId),
+    )
+    expect(result).toEqual([])
   })
 })
 

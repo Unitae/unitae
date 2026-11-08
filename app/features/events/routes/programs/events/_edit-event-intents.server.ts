@@ -27,6 +27,12 @@ import { combineLocalDateTime } from '~/shared/utils/event-time'
 
 export type IntentResult = { message: string | null } | { reply: () => unknown }
 
+/** The decisions that depend on who is asking, made by the route. */
+export interface IntentChecks {
+  /** Whether the caller may edit events of this template: applying one moves the event onto it. */
+  mayApplyTemplate: (templateId: number) => Promise<boolean>
+}
+
 export function handleEditIntent(
   intent: FormDataEntryValue | null,
   formData: FormData,
@@ -35,6 +41,7 @@ export function handleEditIntent(
   congregationId: number,
   userId: number,
   timezone: string,
+  checks: IntentChecks,
 ): Promise<IntentResult | null> {
   const handlers: Partial<Record<string, () => Promise<IntentResult | null>>> = {
     'update-event': () => handleUpdateEvent(formData, db, eventId, congregationId, userId, timezone),
@@ -44,7 +51,7 @@ export function handleEditIntent(
     'add-service': () => handleAddService(formData, db, eventId, congregationId, userId),
     'update-service': () => handleUpdateService(formData, db, congregationId, userId),
     'delete-service': () => handleDeleteService(formData, db, congregationId),
-    'apply-template': () => handleApplyTemplate(formData, db, eventId, congregationId, userId),
+    'apply-template': () => handleApplyTemplate(formData, db, eventId, congregationId, userId, checks),
   }
   return handlers[String(intent)]?.() ?? Promise.resolve(null)
 }
@@ -242,9 +249,13 @@ async function handleApplyTemplate(
   eventId: number,
   congregationId: number,
   userId: number,
+  checks: IntentChecks,
 ): Promise<IntentResult> {
   const submission = parseWithZod(formData, { schema: applyTemplateSchema })
   if (submission.status !== 'success') return submission
+  if (!(await checks.mayApplyTemplate(submission.value.templateId))) {
+    return { reply: () => submission.reply({ formErrors: [m.programs_edit_template_not_allowed()] }) }
+  }
 
   const template = await applyTemplateToEvent(db, eventId, submission.value.templateId, congregationId, userId)
   if (!template) return { message: null }
