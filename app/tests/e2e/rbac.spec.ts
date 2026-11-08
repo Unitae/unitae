@@ -6,7 +6,6 @@ const TEST_PASSWORD = E2E_ADMIN_PASSWORD
 
 const LOGIN_URL_RE = /\/login/
 const SETTINGS_URL_RE = /\/settings/
-const PLATFORM_ADMIN_PATH = '/platform-admin'
 
 test.describe('Access control', () => {
   test('unauthenticated request to any protected route redirects to login', async ({ page }) => {
@@ -32,18 +31,6 @@ test.describe('Access control', () => {
     // Admin should not be redirected away from settings
     await expect(page).toHaveURL(SETTINGS_URL_RE)
     await expect(page).not.toHaveURL(LOGIN_URL_RE)
-  })
-
-  test('platform admin route is not accessible to regular users', async ({ page }) => {
-    const loggedIn = await login(page, TEST_EMAIL, TEST_PASSWORD)
-    if (!loggedIn) test.skip()
-
-    const response = await page.goto(PLATFORM_ADMIN_PATH)
-    await page.waitForLoadState('networkidle')
-    // Regular users must not reach the platform admin page
-    const status = response?.status() ?? 200
-    const isRedirectedOrForbidden = status === 403 || status === 404 || !page.url().includes(PLATFORM_ADMIN_PATH)
-    expect(isRedirectedOrForbidden).toBe(true)
   })
 
   test('health endpoint is publicly accessible', async ({ page }) => {

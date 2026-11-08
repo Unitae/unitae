@@ -117,7 +117,6 @@ Some operations need to see all rows across congregations. These run **outside**
 - **Login** — must find the user by email regardless of congregation
 - **Setup / onboarding** — no congregation exists yet
 - **Health check** — system-level, no tenant context
-- **Platform admin** — cross-congregation management
 - **Password reset** — token lookup is global
 
 In these cases, use `db` or `unscopedDb` directly (they are the same instance). Since `app.congregation_id` is not set, the RLS policy allows all rows.

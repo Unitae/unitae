@@ -26,11 +26,11 @@
 //
 // Only the `db.` receiver is checked — the conventional name for the scoped
 // `TransactionClient` handed to service helpers by `withScope`. `unscopedDb.`
-// (login/health/platform-admin) and worker `tx` from `unscopedDb.$transaction`
+// (login/health) and worker `tx` from `unscopedDb.$transaction`
 // (e.g. the global notification flush) are intentionally cross-tenant and are
 // NOT matched.
 //
-// Exemptions: authentication/** and platform-admin/** (pre-/cross-scope),
+// Exemptions: authentication/** (pre-scope),
 // retention + locale helpers (unscopedDb), tests, and `app/database/**` seeds.
 // A single legitimate call can be waived with `// tenant-scoping-allow: <reason>`
 // on the preceding line.
@@ -128,7 +128,6 @@ const CLOSE_BRACKET_RE = /[})\]]/
 // not production query sites.
 const EXEMPT_PATH_RES = [
   /^app\/features\/authentication\//,
-  /^app\/features\/platform-admin\//,
   /^app\/shared\/domain\/retention\.server\.ts$/,
   /^app\/shared\/utils\/locale\.server\.ts$/,
   /^app\/database\//,

@@ -10,7 +10,7 @@ const adapter = new PrismaPg({
 })
 const db = new PrismaClient({ adapter })
 
-// Unscoped = same client, no SET LOCAL → RLS allows all rows (for login, setup, health, platform admin)
+// Unscoped = same client, no SET LOCAL → RLS allows all rows (for login, setup, health)
 const unscopedDb = db
 
 type TransactionOptions = Parameters<typeof db.$transaction>[1]

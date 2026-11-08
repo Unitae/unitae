@@ -157,10 +157,6 @@ export const AuditAction = {
   EventUnreleased: 'event.unreleased',
   EventDeleted: 'event.deleted',
   EventUpdated: 'event.updated',
-
-  // Platform admin
-  PlatformCongregationUpdated: 'platform.congregation.updated',
-  PlatformUsersListed: 'platform.users.listed',
 } as const
 
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction]

@@ -74,7 +74,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         canViewRoles: can(Permission.CanViewRoles) || can(Permission.CanManageRoles),
         canManageRoles: can(Permission.CanManageRoles),
         canManagePermissions: can(Permission.CanConfigurePermissions),
-        isPlatformAdmin: currentUser.platformAdmin ?? false,
         ledGroupId: currentUser.member?.responsibleFor?.id ?? currentUser.member?.deputyFor?.id ?? null,
       },
       congregationName: congregation.displayName ?? congregation.name,

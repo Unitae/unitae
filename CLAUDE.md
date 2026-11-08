@@ -79,7 +79,6 @@ app/
 │   ├── display-board/        # Document management, PDF upload, dynamic docs
 │   ├── events/               # Days off, meeting events, programme assignments
 │   ├── notifications/        # Notification events, preferences, flush worker
-│   ├── platform-admin/       # Cross-congregation management (SaaS only)
 │   ├── publishers/           # Publisher CRUD, groups, activity reports
 │   ├── settings/             # User management, congregation config, data transfer
 │   └── territories/          # Buildings, entrances, attributions, PDF, maps

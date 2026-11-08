@@ -125,7 +125,6 @@ When to use each:
 | Authenticated routes | `withScope(congregationId, async db => { ... })` | Territory list, publisher creation |
 | Login, setup, health | `unscopedDb` directly | Password validation, health check |
 | Background workers | `withScope(congregationId, ...)` or `unscopedDb` | Sync jobs use `withScope`, email jobs use `unscopedDb` with explicit `where` |
-| Platform admin | `unscopedDb` | Cross-congregation queries |
 
 **Scoped models** (all carry `congregationId` and are isolated by RLS):
 - **Identity**: Member (person currently in the congregation), UserAccount (login), MemberRoleAssignment (identity-role memberships)
@@ -401,7 +400,6 @@ The full list lives in the `AuditAction` map in `app/shared/domain/audit.server.
 | External speakers | Created, updated, archived, unarchived |
 | Congregation settings | Updated |
 | Data transfer | Export, import |
-| Platform admin | All cross-congregation operations |
 
 ## Testing
 

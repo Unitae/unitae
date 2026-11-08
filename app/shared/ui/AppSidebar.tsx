@@ -36,7 +36,7 @@ interface AppSidebarProps {
 }
 
 /** Sections that live in the footer, as single entries, rather than among the groups. */
-const FOOTER_SECTIONS = new Set(['settings', 'platform'])
+const FOOTER_SECTIONS = new Set(['settings'])
 
 export function AppSidebar({ permissions, congregationName, userName, onSearchClick }: AppSidebarProps) {
   const sections = buildManagementSections(permissions)
