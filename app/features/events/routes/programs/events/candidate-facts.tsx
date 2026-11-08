@@ -25,6 +25,8 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
   const serviceAssignmentId = parseOptionalId(url.searchParams.get('serviceAssignmentId'))
   const slot = url.searchParams.get('slot') === 'assistant' ? 'assistant' : 'assignee'
 
+  // One slot per request: the check and the data must be about the same one.
+  if (partAssignmentId != null && serviceAssignmentId != null) return Response.json(null, { status: 400 })
   const kind = serviceAssignmentId != null ? 'service' : 'part'
   const assignmentId = serviceAssignmentId ?? partAssignmentId
   if (assignmentId == null) return Response.json(null, { status: 400 })

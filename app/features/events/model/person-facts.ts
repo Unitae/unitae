@@ -82,6 +82,39 @@ export function describeCandidate(facts: CandidateFacts, { kind, timeZone, refer
   } satisfies PersonDescription
 }
 
+interface SpeakerFacts {
+  /** Empty while the record is incomplete (an imported speaker). */
+  congregationName: string
+  lastAssignedAt?: string
+  elsewhere?: string[]
+}
+
+/**
+ * One external speaker in the list for a part: their congregation, or that their record is to complete, then the
+ * same history and order as a publisher — never given first, then the longest since their last time.
+ */
+export function describeExternalCandidate(
+  facts: SpeakerFacts,
+  { timeZone, referenceYear }: { timeZone: string; referenceYear: number },
+): PersonDescription {
+  const incomplete = facts.congregationName === ''
+  const busy = facts.elsewhere != null && facts.elsewhere.length > 0
+  const history = facts.lastAssignedAt
+    ? m.person_facts_list_last({ date: formatFactDate(facts.lastAssignedAt, timeZone, referenceYear) })
+    : m.person_facts_list_never_part()
+  return {
+    facts: [
+      incomplete ? m.person_facts_incomplete() : facts.congregationName,
+      busy ? m.person_facts_list_elsewhere() : null,
+      history,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+    tone: busy || incomplete ? 'warning' : undefined,
+    rank: facts.lastAssignedAt ? Date.parse(facts.lastAssignedAt) : Number.NEGATIVE_INFINITY,
+  }
+}
+
 interface RotationInput {
   past: CadenceEntry[]
   future: CadenceEntry[]

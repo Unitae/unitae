@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { describeCandidate, formatAbsenceRange, formatFactDate, rotationSentence } from './person-facts'
+import {
+  describeCandidate,
+  describeExternalCandidate,
+  formatAbsenceRange,
+  formatFactDate,
+  rotationSentence,
+} from './person-facts'
 
 const TZ = 'Europe/Paris'
 const entry = (date: string, assigned: boolean) => ({
@@ -122,5 +128,42 @@ describe('rotationSentence', () => {
     expect(
       rotationSentence({ past: [], future: [entry('2026-12-10T17:00:00Z', true)], lastAssignedAt: null }, options),
     ).toBe('prévu le 10 décembre')
+  })
+})
+
+describe('describeExternalCandidate', () => {
+  const options = { timeZone: TZ, referenceYear: 2026 }
+
+  it('gives the congregation, then the last time on the part', () => {
+    const speaker = describeExternalCandidate(
+      { congregationName: 'Assemblée de Montreuil-Est', lastAssignedAt: '2026-03-14T17:00:00Z' },
+      options,
+    )
+    expect(speaker).toMatchObject({ facts: 'Assemblée de Montreuil-Est · La dernière le 14 mars', tone: undefined })
+  })
+
+  it('warns about a record to complete', () => {
+    expect(describeExternalCandidate({ congregationName: '' }, options)).toMatchObject({
+      facts: 'Fiche à compléter · Jamais sur cette partie',
+      tone: 'warning',
+    })
+  })
+
+  it('warns about a speaker already giving another part at the event', () => {
+    expect(
+      describeExternalCandidate({ congregationName: 'Assemblée de Bagnolet', elsewhere: ['Discours public'] }, options),
+    ).toMatchObject({
+      facts: 'Assemblée de Bagnolet · Déjà sur cet évènement · Jamais sur cette partie',
+      tone: 'warning',
+    })
+  })
+
+  it('ranks the speakers the same way as publishers', () => {
+    const never = describeExternalCandidate({ congregationName: 'A' }, options)
+    const visited = describeExternalCandidate(
+      { congregationName: 'A', lastAssignedAt: '2026-03-14T17:00:00Z' },
+      options,
+    )
+    expect((never.rank ?? 0) < (visited.rank ?? 0)).toBe(true)
   })
 })

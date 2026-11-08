@@ -14,6 +14,15 @@ export type PersonOption = {
   id: number
   firstname: string | null
   lastname: string | null
+  /** A name kept as written, for people known by one name only (an external speaker): shown and sorted as is. */
+  name?: string
+}
+
+const labelOf = (person: PersonOption, fallback?: string) => person.name ?? formatPersonName(person, fallback)
+
+function compareOptions(a: PersonOption, b: PersonOption): number {
+  if (a.name == null && b.name == null) return comparePersonName(a, b)
+  return labelOf(a, '').localeCompare(labelOf(b, ''), 'fr', { sensitivity: 'base' })
 }
 
 /** How one person reads in the list, when the caller knows something about them. */
@@ -92,7 +101,7 @@ export function PersonDropdown({
   const inputRef = useRef<HTMLInputElement>(null)
 
   const sortedPeople = useMemo(() => {
-    if (!describePerson) return [...people].sort(comparePersonName)
+    if (!describePerson) return [...people].sort(compareOptions)
     const order = (person: PersonOption) => {
       const description = describePerson(person.id)
       return { aside: description?.setAside ? 1 : 0, rank: description?.rank ?? Number.POSITIVE_INFINITY }
@@ -100,7 +109,7 @@ export function PersonDropdown({
     return [...people].sort((a, b) => {
       const left = order(a)
       const right = order(b)
-      return left.aside - right.aside || left.rank - right.rank || comparePersonName(a, b)
+      return left.aside - right.aside || left.rank - right.rank || compareOptions(a, b)
     })
   }, [people, describePerson])
 
@@ -109,14 +118,14 @@ export function PersonDropdown({
   const filteredPeople = useMemo(() => {
     const q = normalize(query)
     if (!q) return sortedPeople
-    return sortedPeople.filter(person => normalize(formatPersonName(person, '')).includes(q))
+    return sortedPeople.filter(person => normalize(labelOf(person, '')).includes(q))
   }, [sortedPeople, query])
 
   const items = useMemo(() => {
     const list = filteredPeople.map(person => ({
       kind: 'person' as const,
       id: person.id,
-      label: formatPersonName(person),
+      label: labelOf(person),
       disabled: disabledSet.has(person.id),
       reason: disabledSet.has(person.id) ? disabledReason?.(person.id) : undefined,
       description: describePerson?.(person.id),
@@ -146,7 +155,7 @@ export function PersonDropdown({
     if (currentValue === NONE_VALUE) return placeholder ?? m.person_dropdown_placeholder()
     const selected = people.find(p => p.id.toString() === currentValue)
     if (!selected) return placeholder ?? m.person_dropdown_placeholder()
-    return formatPersonName(selected)
+    return labelOf(selected)
   }, [currentValue, people, placeholder])
 
   const isPlaceholder = currentValue === NONE_VALUE || !people.find(p => p.id.toString() === currentValue)

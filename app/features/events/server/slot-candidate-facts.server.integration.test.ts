@@ -27,6 +27,9 @@ let event: { id: number; templateId: number | null; startDate: Date; endDate: Da
 let freeform: { id: number; templateId: number | null; startDate: Date; endDate: Date }
 let editedPartId: number
 let editedServiceId: number
+// visitor: an external speaker who gave this part in the spring. guest: an external speaker on another part.
+let visitorId: number
+let guestId: number
 // regular: did the part twice. never: never did it. away: declared an absence over the event. busy: holds
 // another part of the event. elsewhere: did the same part on another template. reader: was the second speaker.
 const members: Record<'regular' | 'never' | 'away' | 'busy' | 'elsewhere' | 'reader' | 'sono', number> = {
@@ -97,6 +100,28 @@ beforeAll(async () => {
     // A future time does not make it « the last time ».
     await part(later.id, 'Lecture de la Bible', members.never)
 
+    visitorId = (await tx.externalSpeaker.create({ data: { name: 'Thomas Girard', congregationId } })).id
+    guestId = (await tx.externalSpeaker.create({ data: { name: 'Paul Martin', congregationId } })).id
+    const spring = await at('2026-03-14', meeting.id)
+    await tx.eventPart.create({
+      data: {
+        name: 'Lecture de la Bible',
+        section: 'Joyaux',
+        eventId: spring.id,
+        externalSpeakerId: visitorId,
+        congregationId,
+      },
+    })
+    await tx.eventPart.create({
+      data: {
+        name: 'Discours public',
+        section: 'Joyaux',
+        eventId: event.id,
+        externalSpeakerId: guestId,
+        congregationId,
+      },
+    })
+
     editedServiceId = (await tx.eventServicePart.create({ data: { name: 'Sono', eventId: event.id, congregationId } }))
       .id
     await tx.eventServicePart.create({
@@ -122,6 +147,7 @@ afterAll(async () => {
       await tx.eventServicePart.deleteMany({})
       await tx.eventPart.deleteMany({})
       await tx.event.deleteMany({})
+      await tx.externalSpeaker.deleteMany({})
       await tx.eventTemplate.deleteMany({})
       await tx.userAccount.deleteMany({})
       await tx.member.deleteMany({})
@@ -183,6 +209,24 @@ describe('listSlotCandidateFacts', () => {
     )
     expect(facts.lastAssignedAt).toEqual({ [members.sono]: new Date('2025-08-18T17:00:00Z').toISOString() })
     expect(facts.elsewhere).toEqual({ [members.never]: ['Lecture de la Bible'], [members.busy]: ['Discours'] })
+  })
+
+  // External speakers take the main slot only: their own history, and what else they give at the event.
+  it('gives external speakers their last time on the slot and their other parts at the event', async () => {
+    const facts = await withScope(congregationId, tx =>
+      listSlotCandidateFacts(tx, { event, congregationId, target: partTarget('assignee') }),
+    )
+    expect(facts.speakers).toEqual({
+      lastAssignedAt: { [visitorId]: new Date('2026-03-14T17:00:00Z').toISOString() },
+      elsewhere: { [guestId]: ['Discours public'] },
+    })
+  })
+
+  it('says nothing of external speakers for a slot they cannot take', async () => {
+    const reader = await withScope(congregationId, tx =>
+      listSlotCandidateFacts(tx, { event, congregationId, target: partTarget('assistant') }),
+    )
+    expect(reader.speakers).toEqual({ lastAssignedAt: {}, elsewhere: {} })
   })
 
   it('has no history to give on an event without a template', async () => {

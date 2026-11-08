@@ -34,6 +34,8 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
   const partSlot = parsePartSlot(url.searchParams.get('partSlot'))
 
   if (!userId || Number.isNaN(userId)) return Response.json(null)
+  // One slot per request: the check and the data must be about the same one.
+  if (excludePartAssignmentId != null && excludeServiceAssignmentId != null) return Response.json(null, { status: 400 })
 
   return withScopeFromContext(context, async db => {
     const currentUser = context.get(currentAccountContext)

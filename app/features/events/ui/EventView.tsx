@@ -41,7 +41,7 @@ interface EventViewProps {
   users: PersonOption[]
   partCandidates: Record<number, { speakerIds: number[]; readerIds: number[] }>
   serviceCandidates: Record<number, number[]>
-  externalSpeakers: { id: number; name: string }[]
+  externalSpeakers: { id: number; name: string; congregationName: string }[]
   shareTexts: Record<number, string>
   timezone: string
 }

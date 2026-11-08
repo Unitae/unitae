@@ -39,7 +39,7 @@ export function AssignServiceEditor({
   className,
 }: AssignServiceEditorProps) {
   const [assignee, setAssignee] = useState(service.assigneeId?.toString() ?? '')
-  const describe = useCandidateFacts({
+  const { describeMember } = useCandidateFacts({
     eventId,
     timeZone,
     referenceYear,
@@ -65,7 +65,7 @@ export function AssignServiceEditor({
           onValueChange={setAssignee}
           placeholder={m.programs_assign_service_select_publisher()}
           noneLabel={m.programs_assign_service_none()}
-          describePerson={describe}
+          describePerson={describeMember}
         />
       </div>
       <PersonFacts

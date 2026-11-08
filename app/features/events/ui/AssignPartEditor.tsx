@@ -10,7 +10,6 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PersonDropdown } from '~/shared/ui/PersonDropdown'
 import { RadioGroup, RadioGroupItem } from '~/shared/ui/radio-group'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { cn } from '~/shared/utils/utils'
 
 export type AssignablePart = {
@@ -43,7 +42,8 @@ export interface AssignPartEditorProps {
   part: AssignablePart
   speakerCandidates: PersonOption[]
   readerCandidates: PersonOption[]
-  externalSpeakers: { id: number; name: string }[]
+  /** Speakers from other congregations; an empty congregation means their record is to complete. */
+  externalSpeakers: { id: number; name: string; congregationName: string }[]
   eventId: number
   fetcher: ReturnType<typeof useFetcher>
   /** The congregation's time zone, for the dates in the facts. */
@@ -84,18 +84,19 @@ export function AssignPartEditor({
   // visible when somebody is already in it: hiding it on a part whose kind changed later would strand them there.
   const hasSecondSlot = capability.hasReaderSlot || part.assistantId != null
   const facts = { eventId, timeZone, referenceYear }
-  const describeSpeaker = useCandidateFacts({
+  const { describeMember: describeSpeaker, describeSpeaker: describeExternal } = useCandidateFacts({
     ...facts,
     slot: { kind: 'part', assignmentId: part.id, partSlot: 'assignee' },
+    speakers: externalSpeakers,
   })
-  const describeReader = useCandidateFacts({
+  const { describeMember: describeReader } = useCandidateFacts({
     ...facts,
     slot: { kind: 'part', assignmentId: part.id, partSlot: 'assistant' },
     enabled: hasSecondSlot,
   })
   const [assignee, setAssignee] = useState(part.assigneeId?.toString() ?? '')
   const [assistant, setAssistant] = useState(part.assistantId?.toString() ?? '')
-  const [externalSpeaker, setExternalSpeaker] = useState(part.externalSpeakerId?.toString() ?? 'none')
+  const [externalSpeaker, setExternalSpeaker] = useState(part.externalSpeakerId?.toString() ?? '')
   const [speakerType, setSpeakerType] = useState<'internal' | 'external'>(
     part.externalSpeakerId ? 'external' : 'internal',
   )
@@ -157,30 +158,26 @@ export function AssignPartEditor({
         <div className="flex flex-col gap-2.5">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="externalSpeakerId">{m.programs_assign_part_speaker_label()}</Label>
-            <Select
+            <PersonDropdown
+              id="externalSpeakerId"
               name="externalSpeakerId"
+              people={externalSpeakers.map(speaker => ({
+                id: speaker.id,
+                firstname: null,
+                lastname: null,
+                name: speaker.name,
+              }))}
               value={externalSpeaker}
               onValueChange={setExternalSpeaker}
               disabled={!hasRegistry}
-            >
-              <SelectTrigger id="externalSpeakerId" className="w-full">
-                <SelectValue
-                  placeholder={
-                    hasRegistry
-                      ? m.programs_assign_part_external_select_placeholder()
-                      : m.programs_assign_part_external_empty()
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">{m.programs_assign_part_none()}</SelectItem>
-                {externalSpeakers.map(speaker => (
-                  <SelectItem key={speaker.id} value={speaker.id.toString()}>
-                    {speaker.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder={
+                hasRegistry
+                  ? m.programs_assign_part_external_select_placeholder()
+                  : m.programs_assign_part_external_empty()
+              }
+              noneLabel={m.programs_assign_part_none()}
+              describePerson={describeExternal}
+            />
             {!hasRegistry && (
               <Link to="/programs/external-speakers/new" className="text-primary text-sm hover:underline">
                 {m.programs_assign_part_external_manage_link()}

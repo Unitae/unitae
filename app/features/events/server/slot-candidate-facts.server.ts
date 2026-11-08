@@ -18,6 +18,8 @@ export interface SlotCandidateFacts {
   absences: Record<number, { startDate: string; endDate: string }>
   /** What each member already does at this event, the slot being edited left out. */
   elsewhere: Record<number, string[]>
+  /** The same for external speakers, by speaker id. Empty for a slot they cannot take (a second speaker, a service). */
+  speakers: { lastAssignedAt: Record<number, string>; elsewhere: Record<number, string[]> }
 }
 
 interface Options {
@@ -35,12 +37,13 @@ export async function listSlotCandidateFacts(
   db: TransactionClient,
   { event, congregationId, target }: Options,
 ): Promise<SlotCandidateFacts> {
-  const [lastAssignedAt, absences, elsewhere] = await Promise.all([
+  const [lastAssignedAt, absences, elsewhere, speakers] = await Promise.all([
     lastTimeOnSlot(db, event, congregationId, target),
     absencesOverEvent(db, event, congregationId),
     alreadyAtEvent(db, event, congregationId, target),
+    speakerFacts(db, event, congregationId, target),
   ])
-  return { lastAssignedAt, absences, elsewhere }
+  return { lastAssignedAt, absences, elsewhere, speakers }
 }
 
 async function lastTimeOnSlot(
@@ -166,4 +169,49 @@ async function alreadyAtEvent(
   }
   for (const service of services) add(service.assigneeId, service.name)
   return elsewhere
+}
+
+/** External speakers on the main slot of a part: when each last gave it, and what else each gives at the event. */
+async function speakerFacts(
+  db: TransactionClient,
+  event: Options['event'],
+  congregationId: number,
+  target: SlotTarget,
+): Promise<SlotCandidateFacts['speakers']> {
+  const none = { lastAssignedAt: {}, elsewhere: {} }
+  if (target.kind !== 'part' || target.slot !== 'assignee') return none
+
+  const [past, current] = await Promise.all([
+    event.templateId == null
+      ? []
+      : db.eventPart.findMany({
+          where: {
+            congregationId,
+            externalSpeakerId: { not: null },
+            event: { templateId: event.templateId, congregationId, startDate: { lt: event.startDate } },
+          },
+          select: { name: true, section: true, externalSpeakerId: true, event: { select: { startDate: true } } },
+        }),
+    db.eventPart.findMany({
+      where: { eventId: event.id, congregationId, externalSpeakerId: { not: null }, id: { not: target.assignmentId } },
+      orderBy: { order: 'asc' },
+      select: { name: true, externalSpeakerId: true },
+    }),
+  ])
+
+  const name = normalize(target.partName)
+  const section = normalize(target.partSection)
+  const lastAssignedAt: Record<number, string> = {}
+  for (const row of past) {
+    if (row.externalSpeakerId == null || normalize(row.name) !== name || normalize(row.section) !== section) continue
+    const iso = row.event.startDate.toISOString()
+    const known = lastAssignedAt[row.externalSpeakerId]
+    if (known == null || known < iso) lastAssignedAt[row.externalSpeakerId] = iso
+  }
+  const elsewhere: Record<number, string[]> = {}
+  for (const row of current) {
+    if (row.externalSpeakerId != null)
+      elsewhere[row.externalSpeakerId] = [...(elsewhere[row.externalSpeakerId] ?? []), row.name]
+  }
+  return { lastAssignedAt, elsewhere }
 }

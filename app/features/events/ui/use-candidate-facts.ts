@@ -1,12 +1,13 @@
 import { useCallback, useEffect } from 'react'
 import { useFetcher } from 'react-router'
-import { describeCandidate } from '~/features/events/model/person-facts'
+import { describeCandidate, describeExternalCandidate } from '~/features/events/model/person-facts'
 import type { PersonDescription } from '~/shared/ui/PersonDropdown'
 
 interface SlotCandidateFacts {
   lastAssignedAt: Record<number, string>
   absences: Record<number, { startDate: string; endDate: string }>
   elsewhere: Record<number, string[]>
+  speakers: { lastAssignedAt: Record<number, string>; elsewhere: Record<number, string[]> }
 }
 
 interface Options {
@@ -19,14 +20,16 @@ interface Options {
   referenceYear: number
   /** Off when the slot is not shown: nothing is loaded. */
   enabled?: boolean
+  /** The external speakers who may take the slot, with their congregation (empty while their record is incomplete). */
+  speakers?: { id: number; congregationName: string }[]
 }
 
 /**
- * The facts of every person for one slot, loaded once when the editor opens, as the `describe` of the person
- * list: who last held it and when, who is away, who already does something else at the event. Until they arrive
- * the list stays plain.
+ * The facts of every person for one slot, loaded once when the editor opens, as the `describePerson` of the person
+ * lists: who last held it and when, who is away, who already does something else at the event — for publishers,
+ * and for external speakers on a part's main slot. Until they arrive the lists show names only.
  */
-export function useCandidateFacts({ eventId, slot, timeZone, referenceYear, enabled = true }: Options) {
+export function useCandidateFacts({ eventId, slot, timeZone, referenceYear, enabled = true, speakers }: Options) {
   const fetcher = useFetcher<SlotCandidateFacts | null>()
   const query =
     slot.kind === 'part'
@@ -39,7 +42,7 @@ export function useCandidateFacts({ eventId, slot, timeZone, referenceYear, enab
   }, [eventId, query, enabled])
 
   const facts = fetcher.data
-  return useCallback(
+  const describeMember = useCallback(
     (id: number): PersonDescription | undefined => {
       if (facts == null) return undefined
       return describeCandidate(
@@ -49,4 +52,20 @@ export function useCandidateFacts({ eventId, slot, timeZone, referenceYear, enab
     },
     [facts, slot.kind, timeZone, referenceYear],
   )
+  const describeSpeaker = useCallback(
+    (id: number): PersonDescription | undefined => {
+      const speaker = speakers?.find(candidate => candidate.id === id)
+      if (facts == null || speaker == null) return undefined
+      return describeExternalCandidate(
+        {
+          congregationName: speaker.congregationName,
+          lastAssignedAt: facts.speakers.lastAssignedAt[id],
+          elsewhere: facts.speakers.elsewhere[id],
+        },
+        { timeZone, referenceYear },
+      )
+    },
+    [facts, speakers, timeZone, referenceYear],
+  )
+  return { describeMember, describeSpeaker }
 }
