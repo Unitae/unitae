@@ -97,19 +97,41 @@ export function WorkspaceMenu({
   )
 }
 
-/** The signed-in person at the foot of the sidebar: their profile, and signing out. */
-export function UserMenu({ name }: { name: string }) {
+/**
+ * The signed-in person: their profile, and signing out. A row at the foot of the
+ * sidebar; on a phone, just their initials in the header.
+ */
+export function UserMenu({ name, compact = false }: { name: string; compact?: boolean }) {
   const submit = useSubmit()
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        className={cn(TRIGGER, 'gap-2.5 px-2 font-medium text-muted-foreground hover:text-foreground')}
+      {compact ? (
+        <DropdownMenuTrigger
+          aria-label={name}
+          className="grid size-8 shrink-0 place-content-center rounded-md outline-hidden transition-colors hover:bg-hover focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:bg-hover"
+        >
+          <Avatar name={name} size="md" />
+        </DropdownMenuTrigger>
+      ) : (
+        <DropdownMenuTrigger
+          className={cn(TRIGGER, 'gap-2.5 px-2 font-medium text-muted-foreground hover:text-foreground')}
+        >
+          <Avatar name={name} />
+          <span className="min-w-0 flex-1 truncate">{name}</span>
+        </DropdownMenuTrigger>
+      )}
+      <DropdownMenuContent
+        side={compact ? 'bottom' : 'top'}
+        align={compact ? 'end' : 'start'}
+        className={cn('min-w-48', !compact && 'w-(--radix-dropdown-menu-trigger-width)')}
       >
-        <Avatar name={name} />
-        <span className="min-w-0 flex-1 truncate">{name}</span>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent side="top" align="start" className="w-(--radix-dropdown-menu-trigger-width) min-w-48">
+        {compact && (
+          <>
+            <DropdownMenuLabel className="truncate font-medium text-sm">{name}</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem asChild>
           <Link to="/me/profile">
             <User className="size-4 text-faint" aria-hidden="true" />

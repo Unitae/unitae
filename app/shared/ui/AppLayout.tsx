@@ -68,7 +68,7 @@ export function AppLayout({
         <NavigationProgress />
         <OfflineBanner />
         <TrialBanner trial={trial} />
-        <MobileHeader congregationName={congregationName} onSearchClick={shell.openSearch} />
+        <MobileHeader congregationName={congregationName} userName={userName} onSearchClick={shell.openSearch} />
         {/* Brings a collapsed sidebar back on pages without a top bar; a page's
             PageTopbar carries these controls itself. */}
         <div className="flex items-center gap-1 p-2 max-md:hidden group-has-[[data-page-topbar]]/inset:hidden md:group-has-data-[state=expanded]/sidebar-wrapper:hidden">

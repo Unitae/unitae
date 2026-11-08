@@ -1,5 +1,5 @@
-import { CalendarOff, LogOut, type LucideIcon } from 'lucide-react'
-import { Form, NavLink } from 'react-router'
+import type { LucideIcon } from 'lucide-react'
+import { NavLink } from 'react-router'
 
 import * as m from '~/i18n/paraglide/messages'
 import { buildManagementSections, type NavigationPermissions } from '~/shared/ui/navigation-config'
@@ -14,8 +14,9 @@ interface MoreMenuSheetProps {
 
 /**
  * Bottom sheet behind the mobile "Plus" tab: management sections as rows,
- * grouped like the desktop sidebar, plus the personal absences entry
- * and logout. Only rendered for members with at least one management section.
+ * grouped like the desktop sidebar. Personal pages are tabs, and the profile and
+ * signing out sit in the header's account menu. Only rendered for members with at
+ * least one management section.
  */
 export function MoreMenuSheet({ permissions, open, onOpenChange }: MoreMenuSheetProps) {
   const sections = buildManagementSections(permissions)
@@ -46,18 +47,6 @@ export function MoreMenuSheet({ permissions, open, onOpenChange }: MoreMenuSheet
               </ul>
             </section>
           ))}
-
-          <div className="flex flex-col gap-px border-t pt-3">
-            <SheetLink to="/me/days-off" icon={CalendarOff} onNavigate={close}>
-              {m.sidebar_my_absences()}
-            </SheetLink>
-            <Form action="/logout" method="post">
-              <button type="submit" className={cn(ROW, 'w-full')}>
-                <LogOut className="size-4 text-faint" aria-hidden="true" />
-                {m.sidebar_logout()}
-              </button>
-            </Form>
-          </div>
         </div>
       </SheetContent>
     </Sheet>

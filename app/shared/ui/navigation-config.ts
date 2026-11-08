@@ -109,7 +109,8 @@ export function buildTabBar(permissions: NavigationPermissions): NavItem[] {
   }
   tabs.push(
     { id: 'my-territories', label: m.sidebar_my_territories, icon: MapPin, to: '/me/territories' },
-    { id: 'profile', label: m.nav_tab_profile, icon: User, to: '/me/profile' },
+    // The profile lives in the phone header's account menu, next to signing out.
+    { id: 'my-absences', label: m.sidebar_my_absences, icon: CalendarOff, to: '/me/days-off' },
   )
   return tabs
 }

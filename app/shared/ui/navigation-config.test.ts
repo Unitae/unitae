@@ -39,12 +39,18 @@ function permissions(overrides: Partial<NavigationPermissions> = {}): Navigation
 describe('buildTabBar', () => {
   it('gives a no-responsibility publisher the personal tabs without the board', () => {
     const tabs = buildTabBar(permissions())
-    expect(tabs.map(t => t.id)).toEqual(['home', 'my-territories', 'profile'])
+    expect(tabs.map(t => t.id)).toEqual(['home', 'my-territories', 'my-absences'])
   })
 
   it('includes the board tab when the member can view the board', () => {
     const tabs = buildTabBar(permissions({ canViewBoard: true }))
-    expect(tabs.map(t => t.id)).toEqual(['home', 'board', 'my-territories', 'profile'])
+    expect(tabs.map(t => t.id)).toEqual(['home', 'board', 'my-territories', 'my-absences'])
+  })
+
+  it('keeps my absences one tap away, with the profile in the header’s account menu', () => {
+    const absences = buildTabBar(permissions()).find(t => t.id === 'my-absences')
+    expect(absences?.to).toBe('/me/days-off')
+    expect(isNavItemActive(absences!, '/me/days-off/new', true)).toBe(true)
   })
 
   it('keeps the same personal tabs for a full administrator', () => {
@@ -58,7 +64,7 @@ describe('buildTabBar', () => {
       canViewPrograms: true,
       isPlatformAdmin: true,
     })
-    expect(buildTabBar(everything).map(t => t.id)).toEqual(['home', 'board', 'my-territories', 'profile'])
+    expect(buildTabBar(everything).map(t => t.id)).toEqual(['home', 'board', 'my-territories', 'my-absences'])
   })
 })
 
