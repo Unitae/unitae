@@ -15,6 +15,7 @@ function permissions(overrides: Partial<NavigationPermissions> = {}): Navigation
     canViewBoard: false,
     canUploadDocument: false,
     canManageBoard: false,
+    canConfigureBoardSections: false,
     canViewPublishers: false,
     canViewTerritories: false,
     canViewProspection: false,
@@ -80,9 +81,17 @@ describe('buildManagementSections', () => {
     expect(sections[0].items.map(i => i.id)).toEqual(['board-view', 'board-documents'])
   })
 
-  it('adds section management for a board manager', () => {
-    const sections = buildManagementSections(permissions({ canManageBoard: true }))
-    expect(sections[0].items.map(i => i.id)).toEqual(['board-view', 'board-sections', 'board-documents'])
+  it('adds section management only with the right the sections page checks', () => {
+    const reviewer = buildManagementSections(permissions({ canManageBoard: true }))
+    expect(reviewer[0].items.map(i => i.id)).toEqual(['board-view', 'board-documents'])
+
+    const configurer = buildManagementSections(permissions({ canManageBoard: true, canConfigureBoardSections: true }))
+    expect(configurer[0].items.map(i => i.id)).toEqual(['board-view', 'board-sections', 'board-documents'])
+  })
+
+  it('gives someone who only configures sections the board and its sections, not the documents', () => {
+    const sections = buildManagementSections(permissions({ canConfigureBoardSections: true }))
+    expect(sections[0].items.map(i => i.id)).toEqual(['board-view', 'board-sections'])
   })
 
   // A group overseer or deputy may open his own group without the publisher permission: the
@@ -126,6 +135,7 @@ describe('buildManagementSections', () => {
         canViewBoard: true,
         canManageBoard: true,
         canUploadDocument: true,
+        canConfigureBoardSections: true,
         canViewPublishers: true,
         canViewActivity: true,
         canViewRoles: true,

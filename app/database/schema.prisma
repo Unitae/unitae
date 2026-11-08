@@ -99,6 +99,7 @@ model Congregation {
   boardDocuments               BoardDocument[]
   boardDocumentVersions        BoardDocumentVersion[]
   boardDynamicDocumentSettings BoardDynamicDocumentSettings[]
+  boardDocumentViews           BoardDocumentView[]
   events                       Event[]
   settings                     Setting[]
   roles                        Role[]
@@ -177,11 +178,11 @@ model Member {
   // Domain status. `isPublisher = false` means ministry-school student. Whether a publisher is a
   // pioneer is NOT stored here — it is their PioneerEnrolment stints, so that a standing status and
   // the period it covers cannot disagree.
-  isPublisher Boolean       @default(false)
+  isPublisher Boolean   @default(false)
   baptismDate DateTime?
-  isAnointed  Boolean       @default(false)
-  isHelder    Boolean       @default(false)
-  isServant   Boolean       @default(false)
+  isAnointed  Boolean   @default(false)
+  isHelder    Boolean   @default(false)
+  isServant   Boolean   @default(false)
 
   // Group
   publisherGroupId Int?
@@ -308,16 +309,18 @@ model UserAccount {
   onboardingDismissedAt DateTime?
 
   // Account-bound relations
-  roleAssignments          UserRoleAssignment[] // management/access roles
-  eventsCreated            Event[]                    @relation("createdBy")
-  documentsViewed          BoardDocument[]            @relation("viewedBy")
-  documentVersionUploads   BoardDocumentVersion[]     @relation("boardDocumentVersionUploader")
-  dynamicDocumentViews     BoardDynamicDocumentView[]
-  passwordResetTokens      PasswordResetToken[]
-  emailVerificationTokens  EmailVerificationToken[]
-  calendarFeedTokens       CalendarFeedToken[]
-  consentRecords           ConsentRecord[]
-  notificationPreferences  NotificationPreference[]
+  roleAssignments         UserRoleAssignment[] // management/access roles
+  eventsCreated           Event[]                    @relation("createdBy")
+  /// Deprecated: replaced by boardDocumentViews, which keeps when each read happened. Dropped in a later release.
+  documentsViewed         BoardDocument[]            @relation("viewedBy")
+  boardDocumentViews      BoardDocumentView[]
+  documentVersionUploads  BoardDocumentVersion[]     @relation("boardDocumentVersionUploader")
+  dynamicDocumentViews    BoardDynamicDocumentView[]
+  passwordResetTokens     PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
+  calendarFeedTokens      CalendarFeedToken[]
+  consentRecords          ConsentRecord[]
+  notificationPreferences NotificationPreference[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -348,7 +351,7 @@ model Role {
   allowedForEventServiceParts    EventServicePartAllowedRole[]
   allowedForBoardSections        BoardSectionVisibilityRole[]
   allowedForTerritoryKinds       TerritoryKindAllowedRole[]
-  templateResponsibilities       TemplateResponsible[]           @relation("templateResponsible")
+  templateResponsibilities       TemplateResponsible[]            @relation("templateResponsible")
 
   // Organigram: reporting structure, and nothing else.
   //
@@ -475,7 +478,9 @@ model BoardDocument {
   type          String?
   visibleFrom   DateTime?
   visibleUntil  DateTime?
+  /// Deprecated: replaced by views, which keeps when each read happened. Dropped in a later release.
   viewedBy      UserAccount[]          @relation("viewedBy")
+  views         BoardDocumentView[]
   isHighlighted Boolean                @default(false)
   createdAt     DateTime               @default(now())
   versions      BoardDocumentVersion[]
@@ -503,6 +508,23 @@ model BoardDocumentVersion {
 
   @@unique([id, congregationId])
   @@index([documentId])
+}
+
+/// When each person last opened a board PDF. A replaced file is unread again for whoever read it before.
+model BoardDocumentView {
+  id             Int           @id @default(autoincrement())
+  document       BoardDocument @relation(fields: [documentId, congregationId], references: [id, congregationId], onDelete: Cascade)
+  documentId     Int
+  user           UserAccount   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         Int
+  /// Null for reads recorded before their date was kept: they count as having read the current file.
+  viewedAt       DateTime?
+  congregation   Congregation  @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
+  @@unique([documentId, userId])
+  @@index([userId])
+  @@index([congregationId])
 }
 
 model BoardDynamicDocumentSettings {

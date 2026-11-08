@@ -17,26 +17,48 @@ interface PageHeaderProps {
   icon?: LucideIcon
   /** A line of facts under the subtitle, e.g. « Territoire 14 · 14 foyers · 3 entrées ». */
   meta?: React.ReactNode
+  /** Controls over what the page shows (a filter, a period), on the title's row. Actions go in the top bar. */
+  controls?: React.ReactNode
 }
 
-export function PageHeader({ actions, title, titleBadge, subtitle, breadcrumbs, icon: Icon, meta }: PageHeaderProps) {
+export function PageHeader({
+  actions,
+  title,
+  titleBadge,
+  subtitle,
+  breadcrumbs,
+  icon: Icon,
+  meta,
+  controls,
+}: PageHeaderProps) {
+  const heading = (
+    <div className={cn('flex animate-fade-in-up', Icon ? 'items-start gap-4' : 'items-center gap-3')}>
+      {Icon && (
+        <span className="grid size-11 shrink-0 place-content-center rounded-lg border border-border bg-sidebar">
+          <Icon className="size-5 text-faint" aria-hidden="true" />
+        </span>
+      )}
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-baseline gap-2">
+          <h1 className="font-display font-semibold text-3xl tracking-tight max-sm:text-2xl">{title}</h1>
+          {titleBadge}
+        </div>
+        {subtitle && <p className="mt-0.5 text-muted-foreground text-sm">{subtitle}</p>}
+        {meta && <div className="mt-1.5 flex flex-wrap gap-x-3.5 gap-y-1 text-muted-foreground text-sm">{meta}</div>}
+      </div>
+    </div>
+  )
+
   return (
     <PageTopbar trail={breadcrumbs?.length ? breadcrumbs : [{ label: title }]} actions={actions}>
-      <div className={cn('flex animate-fade-in-up', Icon ? 'items-start gap-4' : 'items-center gap-3')}>
-        {Icon && (
-          <span className="grid size-11 shrink-0 place-content-center rounded-lg border border-border bg-sidebar">
-            <Icon className="size-5 text-faint" aria-hidden="true" />
-          </span>
-        )}
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-baseline gap-2">
-            <h1 className="font-display font-semibold text-3xl tracking-tight max-sm:text-2xl">{title}</h1>
-            {titleBadge}
-          </div>
-          {subtitle && <p className="mt-0.5 text-muted-foreground text-sm">{subtitle}</p>}
-          {meta && <div className="mt-1.5 flex flex-wrap gap-x-3.5 gap-y-1 text-muted-foreground text-sm">{meta}</div>}
+      {controls ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {heading}
+          <div className="flex shrink-0 items-center gap-2">{controls}</div>
         </div>
-      </div>
+      ) : (
+        heading
+      )}
     </PageTopbar>
   )
 }

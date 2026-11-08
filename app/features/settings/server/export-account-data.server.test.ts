@@ -7,7 +7,7 @@ const mockDb = {
   attribution: { findMany: vi.fn() },
   publisherGroup: { findFirst: vi.fn() },
   event: { findMany: vi.fn() },
-  boardDocument: { findMany: vi.fn() },
+  boardDocumentView: { findMany: vi.fn() },
   boardDocumentVersion: { findMany: vi.fn() },
   consentRecord: { findMany: vi.fn() },
 }
@@ -72,11 +72,21 @@ describe('exportAccountData', () => {
       deputyId: null,
     } as never)
     mockDb.event.findMany.mockResolvedValue([] as never)
-    mockDb.boardDocument.findMany.mockResolvedValue([] as never)
+    const readAt = new Date('2026-11-08T09:00:00Z')
+    mockDb.boardDocumentView.findMany.mockResolvedValue([
+      { viewedAt: readAt, document: { title: 'Lettre', type: 'pdf', createdAt: new Date('2026-11-01') } },
+      { viewedAt: null, document: { title: 'Ancien', type: 'pdf', createdAt: new Date('2026-01-01') } },
+    ] as never)
     mockDb.boardDocumentVersion.findMany.mockResolvedValue([] as never)
     mockDb.consentRecord.findMany.mockResolvedValue([] as never)
 
     const result = await exportAccountData(mockDb as never, 1, 42)
+
+    // Each board document the person opened, with when, where that is known.
+    expect(result.boardDocumentsViewed).toEqual([
+      { title: 'Lettre', type: 'pdf', createdAt: new Date('2026-11-01'), viewedAt: readAt },
+      { title: 'Ancien', type: 'pdf', createdAt: new Date('2026-01-01'), viewedAt: null },
+    ])
 
     expect(mockDb.userAccount.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id_congregationId: { id: 1, congregationId: 42 } } }),

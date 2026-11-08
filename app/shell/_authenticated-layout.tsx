@@ -59,6 +59,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         canViewBoard: can(Permission.CanViewBoard),
         canUploadDocument: can(Permission.CanUploadBoardDocuments),
         canManageBoard: can(Permission.CanReviewBoardDocuments),
+        canConfigureBoardSections: can(Permission.CanConfigureBoardSections),
         canViewPublishers: can(Permission.CanViewPublishers),
         canViewTerritories: can(Permission.CanViewTerritories),
         canViewProspection: can(Permission.CanViewProspection),

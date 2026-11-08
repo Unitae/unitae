@@ -126,11 +126,8 @@ beforeAll(async () => {
     })
 
     // Mark doc as read by Alice
-    await tx.boardDocument.update({
-      where: {
-        id_congregationId: { id: readDoc.id, congregationId },
-      },
-      data: { viewedBy: { connect: { id: aliceAccountId } } },
+    await tx.boardDocumentView.create({
+      data: { documentId: readDoc.id, userId: aliceAccountId, viewedAt: new Date(), congregationId },
     })
 
     // Future event with programme assignments
@@ -233,8 +230,9 @@ afterAll(async () => {
 
 // --- Import the module under test ---
 
-const { getUserTerritories, getRecentDocuments, getUnreadDocumentCount, getNextMeeting, getConflictingAssignments } =
-  await import('./dashboard.server')
+const { getUserTerritories, getBoardDocuments, getNextMeeting, getConflictingAssignments } = await import(
+  './dashboard.server'
+)
 const { getResponsibleConflicts } = await import('./get-responsible-conflicts.server')
 const { refreshConflictFlags } = await import('~/features/events/server/refresh-conflict-flags.server')
 
@@ -254,28 +252,21 @@ describe('getUserTerritories (integration)', () => {
   })
 })
 
-describe('getUnreadDocumentCount (integration)', () => {
-  it('counts only unread visible documents for the user', async () => {
-    const result = await withScope(congregationId, tx => getUnreadDocumentCount(tx, aliceAccountId, congregationId))
+describe('getBoardDocuments (integration)', () => {
+  it('counts only unread visible documents for the user, and marks which ones they read', async () => {
+    const { recent, unread } = await withScope(congregationId, tx =>
+      getBoardDocuments(tx, aliceAccountId, congregationId),
+    )
     // 1 unread PDF (the other was marked as read)
-    expect(result).toBe(1)
+    expect(unread).toBe(1)
+    expect(recent.find(d => d.title.includes('Read PDF'))?.alreadyViewed).toBe(true)
+    expect(recent.find(d => d.title.includes('Unread PDF'))?.alreadyViewed).toBe(false)
   })
 
   it('counts all documents as unread for a user who read nothing', async () => {
-    const result = await withScope(congregationId, tx => getUnreadDocumentCount(tx, bobAccountId, congregationId))
+    const { unread } = await withScope(congregationId, tx => getBoardDocuments(tx, bobAccountId, congregationId))
     // Bob has read nothing — both PDFs are unread
-    expect(result).toBe(2)
-  })
-})
-
-describe('getRecentDocuments (integration)', () => {
-  it('returns documents with correct alreadyViewed flag', async () => {
-    const result = await withScope(congregationId, tx => getRecentDocuments(tx, aliceAccountId, congregationId))
-    expect(result.length).toBeGreaterThanOrEqual(1)
-    const readDoc = result.find(d => d.title.includes('Read PDF'))
-    const unreadDoc = result.find(d => d.title.includes('Unread PDF'))
-    expect(readDoc?.alreadyViewed).toBe(true)
-    expect(unreadDoc?.alreadyViewed).toBe(false)
+    expect(unread).toBe(2)
   })
 })
 

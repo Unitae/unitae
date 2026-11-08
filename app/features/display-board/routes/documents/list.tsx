@@ -58,7 +58,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
       },
       include: {
         section: true,
-        viewedBy: { select: { id: true } },
+        _count: { select: { views: true } },
         // v1 anchors original-uploader attribution; missing on legacy docs.
         versions: { where: { versionNumber: 1 }, select: { uploadedById: true }, take: 1 },
       },
@@ -122,7 +122,7 @@ function mergeAndSort(
       visibleFrom: d.visibleFrom,
       visibleUntil: d.visibleUntil,
       isHighlighted: d.isHighlighted,
-      viewsCount: d.viewedBy.length,
+      viewsCount: d._count.views,
       ownedByUser: d.versions[0]?.uploadedById === currentUserId,
     })),
     ...dyns.map<UnifiedItem>(d => ({

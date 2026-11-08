@@ -1,15 +1,10 @@
 // Intentional cross-feature import: dashboard aggregates data from events and the board for the overview
-import { buildSectionVisibilityFilter, resolveProgrammeLink } from '~/features/display-board/index.server'
+import { listBoardItems, resolveProgrammeLink } from '~/features/display-board/index.server'
 import { EventStatus, EventTemplateKey } from '~/features/events'
 import { getNextDaysOffs } from '~/features/events/index.server'
 import { TWO_WEEKS_MS } from '~/shared/constants/limits'
 import { DASHBOARD_RECENT_ITEMS_LIMIT } from '~/shared/constants/pagination'
 import type { TransactionClient } from '~/shared/infra/db.server'
-
-// The board owns this rule; keeping a second copy here is how the two drift.
-async function sectionVisibilityWhere(db: TransactionClient, userId: number, congregationId: number) {
-  return { section: await buildSectionVisibilityFilter(db, userId, congregationId) }
-}
 
 export type TerritoryStatus = 'on-time' | 'due-soon' | 'overdue'
 
@@ -50,107 +45,23 @@ export async function getUserTerritories(db: TransactionClient, userId: number) 
   }))
 }
 
-export async function getRecentDocuments(db: TransactionClient, userId: number, congregationId: number) {
-  const now = new Date()
-  const visibleNow = {
-    OR: [
-      { visibleFrom: { lte: now }, visibleUntil: { gte: now } },
-      { visibleFrom: { lte: now }, visibleUntil: null },
-    ],
-  }
-  const sectionVisibility = await sectionVisibilityWhere(db, userId, congregationId)
-
-  const [recentPdfs, recentDynamic] = await Promise.all([
-    db.boardDocument.findMany({
-      where: {
-        congregationId,
-        ...visibleNow,
-        ...sectionVisibility,
-      },
-      select: {
-        id: true,
-        title: true,
-        createdAt: true,
-        viewedBy: {
-          where: { id: { equals: userId } },
-          select: { id: true },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: DASHBOARD_RECENT_ITEMS_LIMIT,
-    }),
-    db.boardDynamicDocumentSettings.findMany({
-      where: {
-        congregationId,
-        ...visibleNow,
-        ...sectionVisibility,
-      },
-      select: {
-        id: true,
-        title: true,
-        createdAt: true,
-        dynamicType: true,
-        views: {
-          where: { userId },
-          select: { viewedAt: true },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: DASHBOARD_RECENT_ITEMS_LIMIT,
-    }),
-  ])
-
-  const documents = [
-    ...recentPdfs.map(d => ({
-      kind: 'pdf' as const,
-      id: d.id,
-      title: d.title,
-      createdAt: d.createdAt,
-      alreadyViewed: d.viewedBy.length > 0,
-    })),
-    ...recentDynamic.map(d => ({
-      kind: 'dynamic' as const,
-      id: d.id,
-      title: d.title,
-      createdAt: d.createdAt,
-      alreadyViewed: d.views.length > 0,
-    })),
-  ]
-
-  documents.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-  return documents.slice(0, 5)
-}
-
-export async function getUnreadDocumentCount(db: TransactionClient, userId: number, congregationId: number) {
-  const now = new Date()
-  const visibleNow = {
-    OR: [
-      { visibleFrom: { lte: now }, visibleUntil: { gte: now } },
-      { visibleFrom: { lte: now }, visibleUntil: null },
-    ],
-  }
-  const sectionVisibility = await sectionVisibilityWhere(db, userId, congregationId)
-
-  const [unreadPdfCount, unreadDynamicCount] = await Promise.all([
-    db.boardDocument.count({
-      where: {
-        congregationId,
-        ...visibleNow,
-        ...sectionVisibility,
-        viewedBy: { none: { id: userId } },
-      },
-    }),
-    db.boardDynamicDocumentSettings.count({
-      where: {
-        congregationId,
-        ...visibleNow,
-        ...sectionVisibility,
-        views: { none: { userId } },
-      },
-    }),
-  ])
-
-  return unreadPdfCount + unreadDynamicCount
+/**
+ * The board's five latest documents and how many are unread, counted exactly as the board counts
+ * them: a replaced PDF or a dynamic document whose data changed since the last read is unread again.
+ */
+export async function getBoardDocuments(db: TransactionClient, userId: number, congregationId: number) {
+  const { items, unreadCount } = await listBoardItems(db, { userId, congregationId, now: new Date() })
+  const recent = [...items]
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .slice(0, DASHBOARD_RECENT_ITEMS_LIMIT)
+    .map(item => ({
+      kind: item.kind,
+      id: item.id,
+      title: item.title,
+      createdAt: item.createdAt,
+      alreadyViewed: !item.unread,
+    }))
+  return { recent, unread: unreadCount }
 }
 
 export async function getUpcomingAbsences(db: TransactionClient, userId: number, congregationId: number) {

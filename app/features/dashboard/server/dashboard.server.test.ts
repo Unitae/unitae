@@ -25,19 +25,15 @@ vi.mock('~/features/display-board/index.server', () => ({
   buildSectionVisibilityFilter: vi.fn(async () => ({
     OR: [{ visibilityRoles: { none: {} } }, { visibilityRoles: { some: { roleId: { in: [] } } } }],
   })),
+  // The board decides what is visible and unread; the dashboard only orders and counts its list.
+  listBoardItems: vi.fn(),
 }))
 
-const {
-  getUserTerritories,
-  getRecentDocuments,
-  getUnreadDocumentCount,
-  getNextMeeting,
-  getUpcomingAbsences,
-  getConflictingAssignments,
-} = await import('./dashboard.server')
+const { getUserTerritories, getBoardDocuments, getNextMeeting, getUpcomingAbsences, getConflictingAssignments } =
+  await import('./dashboard.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const { getNextDaysOffs } = await import('~/features/events/server/days-off.server')
-const { resolveProgrammeLink } = await import('~/features/display-board/index.server')
+const { listBoardItems, resolveProgrammeLink } = await import('~/features/display-board/index.server')
 
 const CONGREGATION_ID = 7
 
@@ -85,72 +81,41 @@ describe('getUserTerritories', () => {
   })
 })
 
-// --- getUnreadDocumentCount ---
+// --- getBoardDocuments ---
 
-describe('getUnreadDocumentCount', () => {
-  it('sums unread PDFs and dynamic documents', async () => {
-    vi.mocked(db.boardDocument.count).mockResolvedValue(3 as never)
-    vi.mocked(db.boardDynamicDocumentSettings.count).mockResolvedValue(2 as never)
+describe('getBoardDocuments', () => {
+  const item = (kind: 'pdf' | 'dynamic', id: number, title: string, createdAt: Date, unread: boolean) =>
+    ({ kind, id, title, createdAt, unread }) as never
 
-    const result = await getUnreadDocumentCount(db, 1, 1)
-    expect(result).toBe(5)
+  it('shows the latest documents first, read or not, with the board’s unread count', async () => {
+    vi.mocked(listBoardItems).mockResolvedValue({
+      sections: [],
+      items: [
+        item('pdf', 1, 'PDF doc', new Date(2026, 3, 20), true),
+        item('pdf', 2, 'PDF doc 2', new Date(2026, 3, 24), false),
+        item('dynamic', 10, 'Dynamic doc', new Date(2026, 3, 22), true),
+      ],
+      unreadCount: 2,
+    })
+
+    const { recent, unread } = await getBoardDocuments(db, 1, 1)
+
+    expect(recent.map(d => [d.title, d.alreadyViewed])).toEqual([
+      ['PDF doc 2', true],
+      ['Dynamic doc', false],
+      ['PDF doc', false],
+    ])
+    expect(unread).toBe(2)
   })
 
-  it('returns 0 when all documents are read', async () => {
-    vi.mocked(db.boardDocument.count).mockResolvedValue(0 as never)
-    vi.mocked(db.boardDynamicDocumentSettings.count).mockResolvedValue(0 as never)
+  it('caps the list at 5 documents', async () => {
+    vi.mocked(listBoardItems).mockResolvedValue({
+      sections: [],
+      items: Array.from({ length: 8 }, (_, i) => item('pdf', i, `PDF ${i}`, new Date(2026, 3, 10 + i), false)),
+      unreadCount: 0,
+    })
 
-    const result = await getUnreadDocumentCount(db, 1, 1)
-    expect(result).toBe(0)
-  })
-})
-
-// --- getRecentDocuments ---
-
-describe('getRecentDocuments', () => {
-  it('merges and sorts PDF and dynamic documents by date', async () => {
-    const older = new Date(2026, 3, 20)
-    const newer = new Date(2026, 3, 22)
-    const newest = new Date(2026, 3, 24)
-
-    vi.mocked(db.boardDocument.findMany).mockResolvedValue([
-      { id: 1, title: 'PDF doc', createdAt: older, viewedBy: [] },
-      { id: 2, title: 'PDF doc 2', createdAt: newest, viewedBy: [{ id: 1 }] },
-    ] as never)
-    vi.mocked(db.boardDynamicDocumentSettings.findMany).mockResolvedValue([
-      { id: 10, title: 'Dynamic doc', createdAt: newer, dynamicType: 'programme', views: [] },
-    ] as never)
-
-    const result = await getRecentDocuments(db, 1, 1)
-    expect(result).toHaveLength(3)
-    expect(result[0].title).toBe('PDF doc 2')
-    expect(result[0].alreadyViewed).toBe(true)
-    expect(result[1].title).toBe('Dynamic doc')
-    expect(result[1].alreadyViewed).toBe(false)
-    expect(result[2].title).toBe('PDF doc')
-  })
-
-  it('caps at 5 documents', async () => {
-    vi.mocked(db.boardDocument.findMany).mockResolvedValue(
-      Array.from({ length: 5 }, (_, i) => ({
-        id: i,
-        title: `PDF ${i}`,
-        createdAt: new Date(2026, 3, 20 + i),
-        viewedBy: [],
-      })) as never,
-    )
-    vi.mocked(db.boardDynamicDocumentSettings.findMany).mockResolvedValue(
-      Array.from({ length: 3 }, (_, i) => ({
-        id: 100 + i,
-        title: `Dynamic ${i}`,
-        createdAt: new Date(2026, 3, 10 + i),
-        dynamicType: 'programme',
-        views: [],
-      })) as never,
-    )
-
-    const result = await getRecentDocuments(db, 1, 1)
-    expect(result).toHaveLength(5)
+    expect((await getBoardDocuments(db, 1, 1)).recent).toHaveLength(5)
   })
 })
 

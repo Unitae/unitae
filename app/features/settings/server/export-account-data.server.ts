@@ -97,15 +97,14 @@ export async function exportAccountData(
       },
       orderBy: { startDate: 'desc' },
     }),
-    db.boardDocument.findMany({
-      where: { viewedBy: { some: { id: userId } } },
-      select: {
-        title: true,
-        type: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    }),
+    // When each read happened, where it is known: reads recorded before dates were kept carry none.
+    db.boardDocumentView
+      .findMany({
+        where: { userId },
+        select: { viewedAt: true, document: { select: { title: true, type: true, createdAt: true } } },
+        orderBy: { document: { createdAt: 'desc' } },
+      })
+      .then(views => views.map(view => ({ ...view.document, viewedAt: view.viewedAt }))),
     db.boardDocumentVersion.findMany({
       where: { uploadedById: userId },
       select: {

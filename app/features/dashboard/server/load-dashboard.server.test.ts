@@ -5,8 +5,7 @@ import { Permission } from '~/shared/types/permission'
 vi.mock('~/shared/infra/logger.server', () => ({ default: { error: vi.fn() } }))
 vi.mock('./dashboard.server', () => ({
   getUserTerritories: vi.fn(),
-  getRecentDocuments: vi.fn(),
-  getUnreadDocumentCount: vi.fn(),
+  getBoardDocuments: vi.fn(),
   getUpcomingAbsences: vi.fn(),
   getConflictingAssignments: vi.fn(),
 }))
@@ -72,8 +71,7 @@ function load(permissions: Permission[], acc = account()) {
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(dashboard.getUserTerritories).mockResolvedValue([] as never)
-  vi.mocked(dashboard.getRecentDocuments).mockResolvedValue([] as never)
-  vi.mocked(dashboard.getUnreadDocumentCount).mockResolvedValue(0)
+  vi.mocked(dashboard.getBoardDocuments).mockResolvedValue({ recent: [], unread: 0 })
   vi.mocked(dashboard.getUpcomingAbsences).mockResolvedValue({ upcoming: [], shouldNudge: false } as never)
   vi.mocked(dashboard.getConflictingAssignments).mockResolvedValue(null as never)
   vi.mocked(getUpcomingAssignments).mockResolvedValue([])
