@@ -10,7 +10,7 @@ import {
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Tag } from '@unitae/ui'
 import { MoreHorizontal, Pencil } from 'lucide-react'
-import { Form, Link } from 'react-router'
+import { Link, useSubmit } from 'react-router'
 import type { ManagedItem } from '~/features/display-board/server/board-management.queries'
 import { itemKey, ManagedItemRow, type ManageRights } from '~/features/display-board/ui/manage/ManagedItemRow'
 import * as m from '~/i18n/paraglide/messages'
@@ -34,6 +34,7 @@ export interface ManageSection {
 const headClass = 'h-10 whitespace-nowrap border-border border-b px-3.5 text-left font-medium text-faint text-sm'
 
 function SectionActions({ section, isFirst, isLast }: { section: ManageSection; isFirst: boolean; isLast: boolean }) {
+  const submit = useSubmit()
   return (
     <span className="ml-auto flex items-center gap-0.5">
       <Button variant="ghost" size="sm" asChild className="max-md:hidden">
@@ -52,23 +53,20 @@ function SectionActions({ section, isFirst, isLast }: { section: ManageSection; 
           <DropdownMenuItem asChild className="md:hidden">
             <Link to={`/board/sections/${section.id}/edit`}>{m.board_manage_edit_section()}</Link>
           </DropdownMenuItem>
+          {/* Submitted from onSelect: the menu closes before a form inside it could submit. */}
           {!isFirst && (
-            <Form method="post" action={`/board/sections/${section.id}/move-up`}>
-              <DropdownMenuItem asChild>
-                <button type="submit" className="w-full">
-                  {m.board_manage_move_up()}
-                </button>
-              </DropdownMenuItem>
-            </Form>
+            <DropdownMenuItem
+              onSelect={() => submit(null, { method: 'post', action: `/board/sections/${section.id}/move-up` })}
+            >
+              {m.board_manage_move_up()}
+            </DropdownMenuItem>
           )}
           {!isLast && (
-            <Form method="post" action={`/board/sections/${section.id}/move-down`}>
-              <DropdownMenuItem asChild>
-                <button type="submit" className="w-full">
-                  {m.board_manage_move_down()}
-                </button>
-              </DropdownMenuItem>
-            </Form>
+            <DropdownMenuItem
+              onSelect={() => submit(null, { method: 'post', action: `/board/sections/${section.id}/move-down` })}
+            >
+              {m.board_manage_move_down()}
+            </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild className="text-destructive">
