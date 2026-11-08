@@ -1,5 +1,5 @@
 import { Search } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Outlet } from 'react-router'
 import type { TrialBannerInfo } from '~/shared/domain/trial-status'
 import { AppSidebar, type AppSidebarPermissions } from '~/shared/ui/AppSidebar'
@@ -10,6 +10,7 @@ import { MoreMenuSheet } from '~/shared/ui/MoreMenuSheet'
 import { NavigationProgress } from '~/shared/ui/NavigationProgress'
 import { hasManagementSections } from '~/shared/ui/navigation-config'
 import { OfflineBanner } from '~/shared/ui/OfflineBanner'
+import { ShellProvider } from '~/shared/ui/shell-context'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '~/shared/ui/sidebar'
 import { Toaster } from '~/shared/ui/sonner'
 import { TrialBanner } from '~/shared/ui/TrialBanner'
@@ -17,6 +18,8 @@ import { TrialBanner } from '~/shared/ui/TrialBanner'
 interface AppLayoutProps {
   permissions: AppSidebarPermissions
   congregationName?: string
+  /** The signed-in person's name, at the foot of the sidebar. */
+  userName: string
   /** The congregation's SaaS trial, when it is in one: shown as a banner above every page. */
   trial?: TrialBannerInfo | null
   /** Initial sidebar state, read from the persistence cookie by the layout loader. */
@@ -29,7 +32,13 @@ interface AppLayoutProps {
  * bottom tab bar (+ "Plus" sheet for responsibility-holders); at md+ the
  * sidebar is the only chrome.
  */
-export function AppLayout({ permissions, congregationName, trial = null, sidebarOpen = true }: AppLayoutProps) {
+export function AppLayout({
+  permissions,
+  congregationName,
+  userName,
+  trial = null,
+  sidebarOpen = true,
+}: AppLayoutProps) {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
 
@@ -45,19 +54,24 @@ export function AppLayout({ permissions, congregationName, trial = null, sidebar
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [handleKeyDown])
 
+  const shell = useMemo(() => ({ openSearch: () => setCommandPaletteOpen(true) }), [])
+
   return (
     <SidebarProvider defaultOpen={sidebarOpen}>
       <AppSidebar
         permissions={permissions}
         congregationName={congregationName}
-        onSearchClick={() => setCommandPaletteOpen(true)}
+        userName={userName}
+        onSearchClick={shell.openSearch}
       />
-      <SidebarInset>
+      <SidebarInset className="group/inset">
         <NavigationProgress />
         <OfflineBanner />
         <TrialBanner trial={trial} />
-        <MobileHeader congregationName={congregationName} onSearchClick={() => setCommandPaletteOpen(true)} />
-        <div className="flex items-center gap-1 p-2 max-md:hidden md:group-has-data-[state=expanded]/sidebar-wrapper:hidden">
+        <MobileHeader congregationName={congregationName} onSearchClick={shell.openSearch} />
+        {/* Brings a collapsed sidebar back on pages without a top bar; a page's
+            PageTopbar carries these controls itself. */}
+        <div className="flex items-center gap-1 p-2 max-md:hidden group-has-[[data-page-topbar]]/inset:hidden md:group-has-data-[state=expanded]/sidebar-wrapper:hidden">
           <SidebarTrigger className="size-8 rounded-md" />
           <button
             type="button"
@@ -75,15 +89,18 @@ export function AppLayout({ permissions, congregationName, trial = null, sidebar
             clearance. A page carrying data-sticky-content needs position:
             sticky: the document scrolls, never this wrapper, yet its overflow
             makes it the sticky containment root. Clipping instead still keeps
-            wide content from widening the page. */}
-        <div className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden has-[[data-sticky-content]]:overflow-x-clip has-[[data-sticky-content]]:overflow-y-visible bg-[radial-gradient(70%_360px_at_50%_0%,color-mix(in_oklab,var(--color-primary)_5%,transparent),transparent)] p-4 max-md:pb-[calc(4.5rem+env(safe-area-inset-bottom))] max-sm:has-[[data-form-actions]]:pb-[calc(8rem+env(safe-area-inset-bottom))] md:p-6">
+            wide content from widening the page. It is also what a page's
+            PageTopbar is positioned against, to span the whole content area. */}
+        <div className="relative min-w-0 flex-1 overflow-y-auto overflow-x-hidden has-[[data-sticky-content]]:overflow-x-clip has-[[data-sticky-content]]:overflow-y-visible p-4 max-md:pb-[calc(4.5rem+env(safe-area-inset-bottom))] max-sm:has-[[data-form-actions]]:pb-[calc(8rem+env(safe-area-inset-bottom))] md:p-6">
           {/* Soft cap so pages keep a readable measure when the sidebar is
               collapsed or on very wide screens. Full-bleed pages — the two board viewers,
               which escape the padding with negative margins — opt out via `data-full-bleed`,
               the same zero-JS has() trick as `data-form-actions`: a capped, centred viewer
               reads as a floating column with cream gutters on a wide monitor. */}
           <div className="mx-auto w-full max-w-7xl has-[[data-full-bleed]]:max-w-none">
-            <Outlet />
+            <ShellProvider value={shell}>
+              <Outlet />
+            </ShellProvider>
           </div>
         </div>
       </SidebarInset>

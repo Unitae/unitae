@@ -1,6 +1,6 @@
 export { Sidebar } from './sidebar'
 export { SidebarContent } from './sidebar-content'
-export { SidebarProvider, useSidebar } from './sidebar-context'
+export { SidebarProvider, useOptionalSidebar, useSidebar } from './sidebar-context'
 export { SidebarFooter } from './sidebar-footer'
 export { SidebarGroup } from './sidebar-group'
 export { SidebarGroupAction } from './sidebar-group-action'

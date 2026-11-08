@@ -10,6 +10,7 @@ import { Permission } from '~/shared/types/permission'
 import { AppLayout } from '~/shared/ui/AppLayout'
 import { RouteErrorBoundary } from '~/shared/ui/RouteErrorBoundary'
 import { readSidebarOpenFromCookie } from '~/shared/ui/sidebar/sidebar-cookie'
+import { formatPersonName, resolveAccountName } from '~/shared/utils/format-person-name'
 
 import type { Route } from './+types/_authenticated-layout'
 
@@ -77,6 +78,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         ledGroupId: currentUser.member?.responsibleFor?.id ?? currentUser.member?.deputyFor?.id ?? null,
       },
       congregationName: congregation.displayName ?? congregation.name,
+      userName: formatPersonName(resolveAccountName(currentUser), currentUser.email ?? ''),
       trial: getTrialBanner(congregation, {
         canSubscribe: can(Permission.CanConfigureCongregation),
         locale: getLocale(),
@@ -94,7 +96,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 }
 
 export default function AuthenticatedLayout({ loaderData }: Route.ComponentProps) {
-  const { permissions, congregationName, trial, messages, sidebarOpen } = loaderData
+  const { permissions, congregationName, userName, trial, messages, sidebarOpen } = loaderData
 
   useEffect(() => {
     if (messages.success) {
@@ -106,7 +108,13 @@ export default function AuthenticatedLayout({ loaderData }: Route.ComponentProps
   }, [messages])
 
   return (
-    <AppLayout permissions={permissions} congregationName={congregationName} trial={trial} sidebarOpen={sidebarOpen} />
+    <AppLayout
+      permissions={permissions}
+      congregationName={congregationName}
+      userName={userName}
+      trial={trial}
+      sidebarOpen={sidebarOpen}
+    />
   )
 }
 

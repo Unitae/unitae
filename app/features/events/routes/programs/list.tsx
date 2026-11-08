@@ -1,14 +1,4 @@
-import {
-  AlertTriangle,
-  CalendarOff,
-  ChevronRight,
-  FileText,
-  Loader2,
-  MoreHorizontal,
-  Send,
-  Trash2,
-  UserCog,
-} from 'lucide-react'
+import { AlertTriangle, CalendarOff, ChevronRight, FileText, Loader2, Send, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, redirect, useFetcher } from 'react-router'
 import { toast } from 'sonner'
@@ -38,7 +28,6 @@ import {
 } from '~/shared/ui/alert-dialog'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { formatEventDate, formatEventTime } from '~/shared/utils/event-time'
@@ -105,8 +94,6 @@ export function loader({ request, context }: Route.LoaderArgs) {
       timezone: context.get(congregationContext).timezone,
       roles: {
         canCreatePrograms: isProgramManager || responsibleTemplateIds.length > 0,
-        canViewExternalSpeakers:
-          permissions.has(Permission.CanViewExternalSpeakers) || permissions.has(Permission.CanManageExternalSpeakers),
       },
     }
   })
@@ -376,36 +363,11 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
         subtitle={m.programs_page_subtitle()}
         breadcrumbs={[{ label: m.sidebar_programs() }]}
         actions={
-          <div className="flex gap-2">
-            {roles.canCreatePrograms && (
-              <Button asChild>
-                <Link to="./new">{m.programs_new_event_button()}</Link>
-              </Button>
-            )}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" aria-label={m.common_more_actions()}>
-                  <MoreHorizontal className="size-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {roles.canViewExternalSpeakers && (
-                  <DropdownMenuItem asChild>
-                    <Link to="./external-speakers">
-                      <UserCog className="size-4" />
-                      {m.sidebar_external_speakers()}
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem asChild>
-                  <Link to="./days-off">
-                    <CalendarOff className="size-4" />
-                    {m.programs_days_off_button()}
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          roles.canCreatePrograms && (
+            <Button asChild>
+              <Link to="./new">{m.programs_new_event_button()}</Link>
+            </Button>
+          )
         }
       />
 

@@ -14,6 +14,7 @@ import {
   permissionsContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import { PageTopbar } from '~/shared/ui/PageTopbar'
 
 import type { Route } from './+types/index'
 
@@ -77,19 +78,21 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-7">
-      <div className="flex animate-fade-in-up flex-col gap-1">
-        <p className="font-medium text-faint text-xs">{formatTodayLabel(new Date(), timezone)}</p>
-        <h1 className="font-semibold text-2xl tracking-tight">
-          {data.firstname
-            ? `${m.dashboard_greeting_hello()} ${data.firstname}`
-            : // Sign-up asks for no name, so a fresh admin account has none.
-              m.dashboard_greeting_hello_standalone()}
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          {summary(urgentItems.length)}
-          {meeting && ` — ${meeting.meeting.name} ${formatMeetingWhen(meeting.meeting.startDate, timezone)}`}
-        </p>
-      </div>
+      <PageTopbar trail={[{ label: m.sidebar_home() }]} className="mb-0">
+        <div className="flex animate-fade-in-up flex-col gap-1">
+          <p className="font-medium text-faint text-xs">{formatTodayLabel(new Date(), timezone)}</p>
+          <h1 className="font-semibold text-2xl tracking-tight">
+            {data.firstname
+              ? `${m.dashboard_greeting_hello()} ${data.firstname}`
+              : // Sign-up asks for no name, so a fresh admin account has none.
+                m.dashboard_greeting_hello_standalone()}
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            {summary(urgentItems.length)}
+            {meeting && ` — ${meeting.meeting.name} ${formatMeetingWhen(meeting.meeting.startDate, timezone)}`}
+          </p>
+        </div>
+      </PageTopbar>
 
       {data.setup && (
         <div className="animate-fade-in-up" style={{ animationDelay: '60ms' }}>

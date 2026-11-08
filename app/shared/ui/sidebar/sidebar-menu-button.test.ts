@@ -4,7 +4,7 @@ import { sidebarMenuButtonVariants } from './sidebar-menu-button'
 describe('sidebarMenuButtonVariants', () => {
   it('returns default classes when called without variants', () => {
     const result = sidebarMenuButtonVariants({})
-    expect(result).toContain('hover:bg-sidebar-accent')
+    expect(result).toContain('hover:bg-hover')
     expect(result).toContain('h-8')
     expect(result).toContain('text-sm')
   })

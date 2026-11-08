@@ -1,4 +1,4 @@
-import { CalendarOff, LogOut } from 'lucide-react'
+import { CalendarOff, LogOut, type LucideIcon } from 'lucide-react'
 import { Form, NavLink } from 'react-router'
 
 import * as m from '~/i18n/paraglide/messages'
@@ -13,8 +13,8 @@ interface MoreMenuSheetProps {
 }
 
 /**
- * Bottom sheet behind the mobile "Plus" tab: management sections as tappable
- * tiles, grouped like the desktop sidebar, plus the personal absences entry
+ * Bottom sheet behind the mobile "Plus" tab: management sections as rows,
+ * grouped like the desktop sidebar, plus the personal absences entry
  * and logout. Only rendered for members with at least one management section.
  */
 export function MoreMenuSheet({ permissions, open, onOpenChange }: MoreMenuSheetProps) {
@@ -31,56 +31,29 @@ export function MoreMenuSheet({ permissions, open, onOpenChange }: MoreMenuSheet
           <SheetTitle>{m.nav_more()}</SheetTitle>
         </SheetHeader>
 
-        <div className="flex flex-col gap-5 px-4">
+        <div className="flex flex-col gap-4 px-2">
           {sections.map(section => (
             <section key={section.id} aria-label={section.label()}>
-              <h3 className="mb-2 font-medium text-muted-foreground text-xs uppercase tracking-wider">
-                {section.label()}
-              </h3>
-              <div className="grid grid-cols-3 gap-2">
+              <h3 className="px-3 pb-1 font-medium text-faint text-xs">{section.label()}</h3>
+              <ul className="flex flex-col gap-px">
                 {section.items.map(item => (
-                  <NavLink
-                    key={`${section.id}-${item.id}`}
-                    to={item.to}
-                    end={item.end}
-                    viewTransition
-                    onClick={close}
-                    className={({ isActive }) =>
-                      cn(
-                        'flex min-h-[64px] flex-col items-center justify-center gap-1.5 rounded-xl bg-muted/50 px-2 py-3 text-center transition-colors hover:bg-muted active:scale-[0.97]',
-                        isActive && 'bg-primary/10 text-primary',
-                      )
-                    }
-                  >
-                    <item.icon className="size-5" aria-hidden="true" />
-                    <span className="text-xs leading-tight">{item.label()}</span>
-                  </NavLink>
+                  <li key={`${section.id}-${item.id}`}>
+                    <SheetLink to={item.to} end={item.end} icon={item.icon} onNavigate={close}>
+                      {item.label()}
+                    </SheetLink>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </section>
           ))}
 
-          <div className="flex flex-col gap-1 border-t pt-3">
-            <NavLink
-              to="/me/days-off"
-              viewTransition
-              onClick={close}
-              className={({ isActive }) =>
-                cn(
-                  'flex min-h-[44px] items-center gap-3 rounded-lg px-3 text-sm transition-colors hover:bg-muted',
-                  isActive && 'text-primary',
-                )
-              }
-            >
-              <CalendarOff className="size-4" aria-hidden="true" />
+          <div className="flex flex-col gap-px border-t pt-3">
+            <SheetLink to="/me/days-off" icon={CalendarOff} onNavigate={close}>
               {m.sidebar_my_absences()}
-            </NavLink>
+            </SheetLink>
             <Form action="/logout" method="post">
-              <button
-                type="submit"
-                className="flex min-h-[44px] w-full items-center gap-3 rounded-lg px-3 text-muted-foreground text-sm transition-colors hover:bg-muted hover:text-destructive"
-              >
-                <LogOut className="size-4" aria-hidden="true" />
+              <button type="submit" className={cn(ROW, 'w-full')}>
+                <LogOut className="size-4 text-faint" aria-hidden="true" />
                 {m.sidebar_logout()}
               </button>
             </Form>
@@ -88,5 +61,39 @@ export function MoreMenuSheet({ permissions, open, onOpenChange }: MoreMenuSheet
         </div>
       </SheetContent>
     </Sheet>
+  )
+}
+
+const ROW =
+  'flex min-h-[44px] items-center gap-3 rounded-md px-3 font-medium text-muted-foreground text-sm transition-colors hover:bg-hover hover:text-foreground'
+
+function SheetLink({
+  to,
+  end,
+  icon: Icon,
+  onNavigate,
+  children,
+}: {
+  to: string
+  end?: boolean
+  icon: LucideIcon
+  onNavigate: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <NavLink
+      to={to}
+      end={end}
+      viewTransition
+      onClick={onNavigate}
+      className={({ isActive }) => cn(ROW, isActive && 'bg-selected text-foreground')}
+    >
+      {({ isActive }) => (
+        <>
+          <Icon className={cn('size-4 text-faint', isActive && 'text-brand')} aria-hidden="true" />
+          {children}
+        </>
+      )}
+    </NavLink>
   )
 }

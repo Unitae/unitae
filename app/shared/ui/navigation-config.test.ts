@@ -7,6 +7,7 @@ import {
   hasManagementSections,
   isNavItemActive,
   type NavigationPermissions,
+  navGroupFor,
 } from './navigation-config'
 
 function permissions(overrides: Partial<NavigationPermissions> = {}): NavigationPermissions {
@@ -95,13 +96,22 @@ describe('buildManagementSections', () => {
     expect(items.map(item => item.id)).toEqual(['publishers', 'groups'])
   })
 
-  it('falls back to the absences item when programs are not visible', () => {
-    const sections = buildManagementSections(permissions({ canViewAbsences: true }))
-    expect(sections.map(s => s.id)).toEqual(['assembly'])
-    expect(sections[0].items.map(i => i.id)).toEqual(['absences'])
+  it('gathers programmes, absences and external speakers in their own section, each behind its own right', () => {
+    const programsOf = (granted: Partial<NavigationPermissions>) =>
+      buildManagementSections(permissions(granted))
+        .find(section => section.id === 'programs')
+        ?.items.map(item => item.id)
 
-    const withPrograms = buildManagementSections(permissions({ canViewAbsences: true, canViewPrograms: true }))
-    expect(withPrograms[0].items.map(i => i.id)).toEqual(['programs'])
+    expect(programsOf({ canViewPrograms: true, canViewAbsences: true, canViewExternalSpeakers: true })).toEqual([
+      'programs',
+      'absences',
+      'external-speakers',
+    ])
+    expect(programsOf({ canViewAbsences: true })).toEqual(['absences'])
+    expect(programsOf({ canViewExternalSpeakers: true })).toEqual(['external-speakers'])
+    // Viewing programmes does not grant seeing other people's absences: the page would turn them away.
+    expect(programsOf({ canViewPrograms: true })).toEqual(['programs'])
+    expect(programsOf({})).toBeUndefined()
   })
 
   it('assembles every section for a full administrator, in stable order', () => {
@@ -114,6 +124,8 @@ describe('buildManagementSections', () => {
         canViewActivity: true,
         canViewRoles: true,
         canViewPrograms: true,
+        canViewAbsences: true,
+        canViewExternalSpeakers: true,
         canViewTerritories: true,
         canViewProspection: true,
         canManageTerritories: true,
@@ -121,9 +133,11 @@ describe('buildManagementSections', () => {
         isPlatformAdmin: true,
       }),
     )
-    expect(sections.map(s => s.id)).toEqual(['board', 'assembly', 'territories', 'settings', 'platform'])
+    expect(sections.map(s => s.id)).toEqual(['board', 'assembly', 'programs', 'territories', 'settings', 'platform'])
     const assembly = sections.find(s => s.id === 'assembly')
-    expect(assembly?.items.map(i => i.id)).toEqual(['publishers', 'groups', 'activity', 'organigram', 'programs'])
+    expect(assembly?.items.map(i => i.id)).toEqual(['publishers', 'groups', 'activity', 'organigram'])
+    const programs = sections.find(s => s.id === 'programs')
+    expect(programs?.items.map(i => i.id)).toEqual(['programs', 'absences', 'external-speakers'])
     const territories = sections.find(s => s.id === 'territories')
     expect(territories?.items.map(i => i.id)).toEqual(['attributions', 'territories', 'prospection', 'stats'])
   })
@@ -149,12 +163,19 @@ describe('buildPersonalItems', () => {
 
 describe('isNavItemActive', () => {
   const sections = buildManagementSections(
-    permissions({ canViewPublishers: true, canViewActivity: true, canViewTerritories: true, canViewPrograms: true }),
+    permissions({
+      canViewPublishers: true,
+      canViewActivity: true,
+      canViewTerritories: true,
+      canViewPrograms: true,
+      canViewAbsences: true,
+      canViewExternalSpeakers: true,
+    }),
   )
   const assembly = sections.find(s => s.id === 'assembly')
   const territories = sections.find(s => s.id === 'territories')
   const publishersItem = assembly?.items.find(i => i.id === 'publishers')
-  const programsItem = assembly?.items.find(i => i.id === 'programs')
+  const programsItem = sections.find(s => s.id === 'programs')?.items.find(i => i.id === 'programs')
   const territoriesItem = territories?.items.find(i => i.id === 'territories')
 
   it('keeps the publishers entry lit on a publisher record page', () => {
@@ -172,9 +193,12 @@ describe('isNavItemActive', () => {
     expect(isNavItemActive(territoriesItem!, '/territories/buildings', false)).toBe(false)
   })
 
-  it('lights the programmes entry across events, speakers and days off', () => {
+  it('keeps the programmes entry lit on an event but yields absences and speakers their own entries', () => {
     expect(isNavItemActive(programsItem!, '/programs/events/421/view', false)).toBe(true)
-    expect(isNavItemActive(programsItem!, '/programs/external-speakers', false)).toBe(true)
+    expect(isNavItemActive(programsItem!, '/programs/new', false)).toBe(true)
+    expect(isNavItemActive(programsItem!, '/programs/external-speakers', false)).toBe(false)
+    expect(isNavItemActive(programsItem!, '/programs/external-speakers/3/edit', false)).toBe(false)
+    expect(isNavItemActive(programsItem!, '/programs/days-off', false)).toBe(false)
   })
 
   it('does not match sibling paths that merely share the prefix string', () => {
@@ -220,5 +244,31 @@ describe('organigram in the assembly section', () => {
     // item points at the chart. `match.prefix` is what keeps the sidebar lit across both tabs.
     expect(isNavItemActive(item as never, '/congregation/roles', false)).toBe(true)
     expect(isNavItemActive(item as never, '/congregation/roles/organigram', true)).toBe(true)
+  })
+})
+
+describe('navGroupFor', () => {
+  it('names the group a page belongs to, for the start of its trail', () => {
+    expect(navGroupFor('/publishers')).toBe('Assemblée')
+    expect(navGroupFor('/publishers/12/view')).toBe('Assemblée')
+    expect(navGroupFor('/programs/events/421')).toBe('Programmes')
+    expect(navGroupFor('/programs/external-speakers/3/edit')).toBe('Programmes')
+    expect(navGroupFor('/programs/days-off')).toBe('Programmes')
+    expect(navGroupFor('/territories/buildings/8/view')).toBe('Territoires')
+    expect(navGroupFor('/board/documents')).toBe("Tableau d'affichage")
+  })
+
+  it('names no group for pages outside the groups', () => {
+    expect(navGroupFor('/')).toBeNull()
+    expect(navGroupFor('/me/profile')).toBeNull()
+  })
+
+  it('names no group that holds a single page, whose label would repeat the page’s', () => {
+    expect(navGroupFor('/settings/users')).toBeNull()
+    expect(navGroupFor('/platform-admin/congregations')).toBeNull()
+  })
+
+  it('does not take a sibling path that merely shares the prefix', () => {
+    expect(navGroupFor('/publishersAudit')).toBeNull()
   })
 })
