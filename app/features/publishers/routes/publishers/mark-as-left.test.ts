@@ -63,4 +63,16 @@ describe('marking a publisher as left', () => {
     expect(calls).toEqual([])
     expect(flashes).toEqual([['error', expect.stringContaining('futur')]])
   })
+
+  it('refuses a departure dated more than a month back, which would hasten the anonymisation', async () => {
+    await leave({ leftOn: '2027-02-12' })
+    expect(calls).toEqual([])
+    expect(flashes).toEqual([['error', expect.stringContaining('mois')]])
+  })
+
+  it('refuses a day that is not on the calendar', async () => {
+    await leave({ leftOn: '2027-02-30' })
+    expect(calls).toEqual([])
+    expect(flashes[0]?.[0]).toBe('error')
+  })
 })

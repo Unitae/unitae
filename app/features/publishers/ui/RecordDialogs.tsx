@@ -74,11 +74,12 @@ interface LeftDialogProps {
   record: PublisherRecord
   action: string
   today: string
+  earliest: string
   retentionMonths: number
 }
 
 /** « A quitté l'assemblée » : what it changes, and the day it happened, today unless said otherwise. */
-export function LeftDialog({ open, onClose, record, action, today, retentionMonths }: LeftDialogProps) {
+export function LeftDialog({ open, onClose, record, action, today, earliest, retentionMonths }: LeftDialogProps) {
   const [day, setDay] = useState(today)
   const name = formatPersonName(record)
   const anonymised = anonymisationDay(day, retentionMonths)
@@ -107,6 +108,7 @@ export function LeftDialog({ open, onClose, record, action, today, retentionMont
               id="left-on"
               name="leftOn"
               type="date"
+              min={earliest}
               max={today}
               required
               value={day}

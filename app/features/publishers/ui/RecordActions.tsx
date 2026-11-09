@@ -32,6 +32,8 @@ interface RecordActionsProps {
   s21: { years: number[]; defaultYear: number }
   /** Today in the congregation's zone, the latest a departure can be dated. */
   today: string
+  /** The earliest a departure can be dated. */
+  earliestDeparture: string
   retentionMonths: number
 }
 
@@ -39,7 +41,7 @@ interface RecordActionsProps {
  * The record's actions in the top bar, in words: the S-21, « Modifier », and « … » for the person's status and login.
  * Someone who left, or is not yet a publisher, gets their way back as the main button instead.
  */
-export function RecordActions({ record, rights, s21, today, retentionMonths }: RecordActionsProps) {
+export function RecordActions({ record, rights, s21, today, earliestDeparture, retentionMonths }: RecordActionsProps) {
   const [dialog, setDialog] = useState<DialogKind | null>(null)
   const [exportOpen, setExportOpen] = useState(false)
   const submit = useSubmit()
@@ -141,6 +143,7 @@ export function RecordActions({ record, rights, s21, today, retentionMonths }: R
         record={record}
         action={`${base}/mark-as-left`}
         today={today}
+        earliest={earliestDeparture}
         retentionMonths={retentionMonths}
       />
       <LinkLoginDialog

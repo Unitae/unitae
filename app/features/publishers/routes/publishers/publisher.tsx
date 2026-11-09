@@ -1,6 +1,7 @@
 import { redirect } from 'react-router'
 import { findUpcomingAbsencesForMember, findUpcomingAssignmentsForMember } from '~/features/events/index.server'
 import { toServiceYear } from '~/features/publishers'
+import { earliestDeparture } from '~/features/publishers/model/departure-date'
 import { ageOn, anonymisationDate, toRecordEnrolments } from '~/features/publishers/model/publisher-record'
 import { type PublisherRecordRights, publisherRecordRights } from '~/features/publishers/model/publisher-record-access'
 import { withAbsences } from '~/features/publishers/model/record-engagements'
@@ -79,6 +80,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       timeZone,
       now: clock,
       today,
+      earliestDeparture: earliestDeparture(today),
       serviceYear,
       pioneerYear,
       ...blocks,
@@ -155,6 +157,7 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
             rights={rights}
             s21={{ years: loaderData.s21Years, defaultYear: loaderData.serviceYear }}
             today={loaderData.today}
+            earliestDeparture={loaderData.earliestDeparture}
             retentionMonths={DEFAULT_RETENTION_MONTHS}
           />
         }

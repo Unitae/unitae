@@ -3279,6 +3279,7 @@
     "publishers_view_upcoming_absences": "Upcoming absences",
     "publishers_view_no_upcoming_absences": "No planned absence.",
     "publishers_left_error_future": "The departure date cannot be in the future.",
+    "publishers_left_error_too_old": "The departure date can go back one month at most.",
     "publishers_edit_page_subtitle": "Edit their record. Their status, login and pioneer service are managed from the record.",
     "publishers_form_identity": "Identity",
     "publishers_form_identity_hint": "As they are known in the congregation.",

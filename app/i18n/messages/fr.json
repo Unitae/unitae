@@ -3279,6 +3279,7 @@
     "publishers_view_upcoming_absences": "Absences à venir",
     "publishers_view_no_upcoming_absences": "Aucune absence prévue.",
     "publishers_left_error_future": "La date du départ ne peut pas être dans le futur.",
+    "publishers_left_error_too_old": "La date du départ peut remonter d’un mois au plus.",
     "publishers_edit_page_subtitle": "Modifier sa fiche. Son statut, son identifiant de connexion et son service de pionnier se gèrent depuis la fiche.",
     "publishers_form_identity": "Identité",
     "publishers_form_identity_hint": "Comme la personne se présente à l’assemblée.",
