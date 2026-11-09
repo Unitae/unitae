@@ -75,27 +75,6 @@ describe('computeFilters', () => {
     expect(result.endDate).toEqual({ gte: new Date(2025, 3, 8) })
   })
 
-  it('filters by publisher when param is provided', () => {
-    const params = new URLSearchParams({ publisher: '42' })
-    const result = computeFilters(params)
-
-    expect(result.createdById).toBe(42)
-  })
-
-  it('does not filter by publisher when param is none', () => {
-    const params = new URLSearchParams({ publisher: 'none' })
-    const result = computeFilters(params)
-
-    expect(result.createdById).toBeUndefined()
-  })
-
-  it('does not filter by publisher when param is absent', () => {
-    const params = new URLSearchParams()
-    const result = computeFilters(params)
-
-    expect(result.createdById).toBeUndefined()
-  })
-
   it('filters by hasConflicts when param is true', () => {
     const params = new URLSearchParams({ hasConflicts: 'true' })
     const result = computeFilters(params)
@@ -148,21 +127,19 @@ describe('computeFilters', () => {
     expect(result.status).toBeUndefined()
   })
 
-  // Combined-param pin: hasConflicts must compose cleanly with date + publisher
-  // filters. A regression that spread over `startDate` / `endDate` (or drops
-  // `createdById`) would slip through the single-param tests above.
-  it('preserves date and publisher filters when hasConflicts is applied', () => {
+  // Combined-param pin: hasConflicts must compose cleanly with the date filters.
+  // A regression that spread over `startDate` / `endDate` would slip through the
+  // single-param tests above.
+  it('preserves date filters when hasConflicts is applied', () => {
     const params = new URLSearchParams({
       from: '2025-06-01',
       to: '2025-06-30',
-      publisher: '42',
       hasConflicts: 'true',
     })
     const result = computeFilters(params)
 
     expect(result.startDate).toEqual({ lte: new Date('2025-06-30') })
     expect(result.endDate).toEqual({ gte: new Date('2025-06-01') })
-    expect(result.createdById).toBe(42)
     expect(result.AND).toEqual([
       {
         OR: [{ eventParts: { some: { hasConflict: true } } }, { eventServiceParts: { some: { hasConflict: true } } }],

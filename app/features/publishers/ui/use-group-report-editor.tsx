@@ -1,11 +1,12 @@
 import { type ActivityMonth, monthKey, parseMonthKey } from '~/features/publishers/model/activity-months'
 import * as m from '~/i18n/paraglide/messages'
+import { useOpenParam } from '~/shared/ui/hooks/use-open-param'
 import { useSideEditor } from '~/shared/ui/hooks/use-side-editor'
 import { DiscardChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { EmergencyPanel } from './EmergencyPanel'
 import type { GroupMemberRow } from './GroupMembersTable'
 import { ReportPanel } from './ReportPanel'
-import { useOpenFromLink, useOpenParam } from './use-open-from-link'
+import { useOpenFromLink } from './use-open-from-link'
 import { useReportQueue } from './use-report-queue'
 
 // The emergency panel shares the side editor with the reports, under a kind of its own.

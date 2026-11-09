@@ -4,15 +4,13 @@ import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
-import { PersonDropdown } from '~/shared/ui/PersonDropdown'
 
 interface EventFiltersProps {
   action?: string
   defaults: { from: string; to: string }
-  publishers?: Array<{ id: number; firstname: string | null; lastname: string | null }>
 }
 
-export default function EventFilters({ action, defaults, publishers }: EventFiltersProps) {
+export default function EventFilters({ action, defaults }: EventFiltersProps) {
   const [params] = useSearchParams()
 
   return (
@@ -43,19 +41,6 @@ export default function EventFilters({ action, defaults, publishers }: EventFilt
             defaultValue={params.get('to') ?? defaults.to}
           />
         </div>
-        {publishers && (
-          <PersonDropdown
-            name="publisher"
-            people={publishers}
-            defaultValue={
-              params.get('publisher') != null && params.get('publisher') !== 'none'
-                ? (params.get('publisher') ?? '')
-                : ''
-            }
-            placeholder={m.events_filters_publisher_all()}
-            noneLabel={m.events_filters_publisher_all()}
-          />
-        )}
         <Button type="submit" variant="outline" size="sm">
           <SlidersHorizontal className="size-4" />
           {m.events_filters_submit()}

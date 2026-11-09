@@ -1,13 +1,12 @@
 import { type ActivityMonth, monthKey, parseMonthKey } from '~/features/publishers/model/activity-months'
 import type { EnrolmentOptions, RecordEnrolment } from '~/features/publishers/model/publisher-record.type'
 import * as m from '~/i18n/paraglide/messages'
+import { useOpenParam } from '~/shared/ui/hooks/use-open-param'
 import { useSideEditor } from '~/shared/ui/hooks/use-side-editor'
 import { DiscardChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
-
 import { EmergencyPanel } from './EmergencyPanel'
 import { EnrolmentPanel } from './EnrolmentPanel'
 import { ReportPanel } from './ReportPanel'
-import { useOpenParam } from './use-open-from-link'
 
 const EMERGENCY = 'emergency'
 // A new enrolment is `enrol`; correcting one is `enrol-<its id>`, so two stints are two items to switch between.
