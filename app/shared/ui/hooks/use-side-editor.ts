@@ -44,6 +44,8 @@ export function useSideEditor<K extends string>(exists: (target: SideEditorTarge
     /** Give it to the docked editor's form, to count its changes. */
     formRef: form.ref,
     request,
+    /** Opens another item without asking: after the open one was saved, its changes are not lost. */
+    open: setTarget,
     close,
     /** Props for the dialog asking before unsaved changes are dropped. */
     discard: {

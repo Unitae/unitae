@@ -1,9 +1,9 @@
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
+import { useCloseOnSave } from '~/shared/ui/hooks/use-close-on-save'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '~/shared/ui/sheet'
 import { SERVICE_FORM_ID, ServiceEditor, type ServiceEditorProps, serviceEditorCopy } from './ServiceEditor'
-import { useCloseOnSave } from './use-close-on-save'
 
 interface ServiceEditSheetProps extends Omit<ServiceEditorProps, 'formRef' | 'className'> {
   open: boolean

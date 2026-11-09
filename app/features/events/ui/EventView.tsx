@@ -7,6 +7,8 @@ import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
+import { useCloseOnSave } from '~/shared/ui/hooks/use-close-on-save'
+import { useSideEditor } from '~/shared/ui/hooks/use-side-editor'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
@@ -19,8 +21,6 @@ import { AssignServiceSheet } from './AssignServiceSheet'
 import { type AssignedPart, EventAssignmentsPanel, type UnassignTarget } from './EventAssignmentsPanel'
 import { type AssignedService, EventServiceAssignmentsPanel } from './EventServiceAssignmentsPanel'
 import { UnassignConfirmDialog } from './UnassignConfirmDialog'
-import { useCloseOnSave } from './use-close-on-save'
-import { useSideEditor } from './use-side-editor'
 
 interface EventViewProps {
   event: {

@@ -155,3 +155,37 @@ describe('updatePublisherActivity — secretary hour credit', () => {
     expect(data).not.toHaveProperty('creditHours')
   })
 })
+
+describe('createPublisherActivity — secretary hour credit', () => {
+  const base = {
+    publisherId: 1,
+    month: 9,
+    year: 2026,
+    type: PublisherType.PionnierPermanant,
+    isPublisher: true,
+    hours: 42,
+    studies: 1,
+    notes: 'Chantier de la Salle du Royaume',
+    congregationId: 10,
+    actorId: 99,
+  }
+
+  it('records the credit the secretary grants with a new report', async () => {
+    mockCreate.mockResolvedValue({ id: 7, ...base, creditHours: 8 } as never)
+
+    await createPublisherActivity(db, { ...base, creditHours: 8 })
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ creditHours: 8 }) }),
+    )
+  })
+
+  it('writes no credit when none is given', async () => {
+    mockCreate.mockResolvedValue({ id: 7, ...base } as never)
+
+    await createPublisherActivity(db, base)
+
+    const data = mockCreate.mock.calls[0]?.[0]?.data
+    expect(data).not.toHaveProperty('creditHours')
+  })
+})

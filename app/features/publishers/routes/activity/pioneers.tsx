@@ -1,8 +1,9 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { PeriodStepper } from '@unitae/ui'
 import { Link, redirect, type ShouldRevalidateFunctionArgs } from 'react-router'
 
 import { toServiceYear } from '~/features/publishers'
 import { getPioneerActivitySummary } from '~/features/publishers/index.server'
+import { ActivityViewSwitch } from '~/features/publishers/ui/ActivityViewSwitch'
 import { PioneerRoster } from '~/features/publishers/ui/PioneerRoster'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -12,7 +13,6 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
-import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { zonedNow } from '~/shared/utils/zoned-now'
 
@@ -51,24 +51,19 @@ export default function PioneersRoster({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={m.pioneers_title()}
-        subtitle={m.pioneers_subtitle()}
-        actions={
-          <div className="flex items-center gap-2">
-            <Button asChild variant="outline" size="icon" aria-label={m.pioneers_previous_year()}>
-              <Link to={`?sy=${serviceYear - 1}`}>
-                <ChevronLeft className="size-4" />
-              </Link>
-            </Button>
-            <span className="whitespace-nowrap font-medium text-sm">
-              {m.pioneers_service_year({ start: String(serviceYear), end: String(serviceYear + 1) })}
-            </span>
-            <Button asChild variant="outline" size="icon" aria-label={m.pioneers_next_year()}>
-              <Link to={`?sy=${serviceYear + 1}`}>
-                <ChevronRight className="size-4" />
-              </Link>
-            </Button>
-          </div>
+        title={m.activity_page_title()}
+        breadcrumbs={[{ label: m.activity_page_title() }]}
+        controls={
+          <>
+            <ActivityViewSwitch value="pioneers" />
+            <PeriodStepper
+              label={m.pioneers_service_year({ start: String(serviceYear), end: String(serviceYear + 1) })}
+              previous={{ label: m.pioneers_previous_year(), href: `?sy=${serviceYear - 1}` }}
+              next={{ label: m.pioneers_next_year(), href: `?sy=${serviceYear + 1}` }}
+              renderLink={({ href, ...props }) => <Link to={href} {...props} />}
+              labelWidth={150}
+            />
+          </>
         }
       />
       <PioneerRoster summary={summary} />

@@ -12,6 +12,8 @@ export interface CreatePublisherActivityParams {
   hours: number
   studies: number
   notes: string
+  /** Secretary-granted hour credit; the route decides who may pass it (CanCorrectActivity). */
+  creditHours?: number | null
   congregationId: number
   actorId: number
 }
@@ -27,6 +29,7 @@ export async function createPublisherActivity(db: TransactionClient, params: Cre
       hours: params.hours,
       studies: params.studies,
       notes: params.notes,
+      ...(params.creditHours != null ? { creditHours: params.creditHours } : {}),
       congregationId: params.congregationId,
     },
   })
@@ -37,7 +40,13 @@ export async function createPublisherActivity(db: TransactionClient, params: Cre
     actorId: params.actorId,
     entityType: 'PublisherActivity',
     entityId: activity.id,
-    metadata: { publisherId: params.publisherId, month: params.month, year: params.year },
+    // As on an update: who gave this pioneer a credit is a question the audit trail has to answer.
+    metadata: {
+      publisherId: params.publisherId,
+      month: params.month,
+      year: params.year,
+      ...(params.creditHours != null ? { creditHours: params.creditHours } : {}),
+    },
   })
 
   await evaluateInactiveStatus(db, {
