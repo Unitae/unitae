@@ -1,3 +1,4 @@
+import { EventStatus } from '~/features/events/model/event-status.type'
 import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import type { AssignKind } from '~/features/events/model/reassign'
 import {
@@ -69,6 +70,8 @@ export interface AbsenceAssignment {
   eventDate: Date
   /** Who may reassign it follows the event's template. */
   templateId: number | null
+  /** Its programme is published: people already rely on it. */
+  published: boolean
 }
 
 export interface CongregationAbsence {
@@ -128,7 +131,7 @@ export async function listCongregationAbsences(
     startDate: { lte: new Date(Math.max(...absences.map(absence => absence.endDate.getTime()))) },
     endDate: { gte: new Date(Math.min(...absences.map(absence => absence.startDate.getTime()))) },
   }
-  const event = { select: { id: true, startDate: true, endDate: true, templateId: true } }
+  const event = { select: { id: true, startDate: true, endDate: true, templateId: true, status: true } }
   const [parts, services] = await Promise.all([
     db.eventPart.findMany({
       where: {
@@ -162,6 +165,7 @@ export async function listCongregationAbsences(
         eventId: slot.event.id,
         eventDate: slot.event.startDate,
         templateId: slot.event.templateId,
+        published: slot.event.status === EventStatus.Released,
       }))
       .sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime()),
   }))

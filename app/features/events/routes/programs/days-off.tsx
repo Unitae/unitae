@@ -81,6 +81,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
             eventDate: conflict.eventDate,
             href: reassignHref(conflict, action),
             action,
+            published: conflict.published,
           }
         }),
       })),

@@ -52,10 +52,8 @@ export function AbsenceWeekList({ weeks, showEmptyWeeks, currentWeek, timeZone, 
         }
 
         const open = !folded[week.monday]
-        const review = week.items.reduce(
-          (total, row) => total + conflictsInWeek(row.item.conflicts, week.monday, timeZone).length,
-          0,
-        )
+        const weekConflicts = week.items.flatMap(row => conflictsInWeek(row.item.conflicts, week.monday, timeZone))
+        const review = weekConflicts.length
         const listId = `absences-${week.monday}`
         return (
           <section key={week.monday} aria-label={label} className="border-border border-b last:border-b-0">
@@ -87,7 +85,7 @@ export function AbsenceWeekList({ weeks, showEmptyWeeks, currentWeek, timeZone, 
               </span>
               <span className="flex-1" />
               {review > 0 && (
-                <Status tone="warning">
+                <Status tone={weekConflicts.some(conflict => conflict.published) ? 'danger' : 'warning'}>
                   {review > 1
                     ? m.programs_absences_week_review_other({ count: review })
                     : m.programs_absences_week_review_one({ count: review })}

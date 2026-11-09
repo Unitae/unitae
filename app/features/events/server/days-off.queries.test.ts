@@ -93,11 +93,12 @@ describe('listCongregationAbsences', () => {
     lastname: `${lastname} (compte)`,
     member: memberId == null ? null : { id: memberId, firstname, lastname },
   })
-  const meeting = (id: number, startDate: string, templateId: number | null = 4) => ({
+  const meeting = (id: number, startDate: string, templateId: number | null = 4, status = 'released') => ({
     id,
     startDate: new Date(startDate),
     endDate: new Date(new Date(startDate).getTime() + 2 * 60 * 60 * 1000),
     templateId,
+    status,
   })
   // Élodie (member 5) is away 10–13 Nov; Paul (member 7) 21 Dec – 3 Jan.
   const elodie = { ...current, createdAt: declared, createdBy: account(5, 'Élodie', 'Martin') }
@@ -115,6 +116,7 @@ describe('listCongregationAbsences', () => {
     expect(absence).toMatchObject({ id: 1, memberId: 5, firstname: 'Élodie', lastname: 'Martin', declaredAt: declared })
   })
 
+  // Whether its programme is published already: red once people rely on it, orange while it is a draft.
   it('gives each absence the flagged assignments of its own person that fall during it', async () => {
     vi.mocked(db.event.findMany).mockResolvedValue([elodie, paul] as never)
     vi.mocked(db.eventPart.findMany).mockResolvedValue([
@@ -133,7 +135,7 @@ describe('listCongregationAbsences', () => {
         name: 'Démonstration',
         assigneeId: 9,
         assistantId: 7,
-        event: meeting(40, '2026-12-27T09:00:00Z', null),
+        event: meeting(40, '2026-12-27T09:00:00Z', null, 'draft'),
       },
     ] as never)
     vi.mocked(db.eventServicePart.findMany).mockResolvedValue([
@@ -153,6 +155,7 @@ describe('listCongregationAbsences', () => {
             eventId: 31,
             eventDate: new Date('2026-11-12T18:00:00Z'),
             templateId: 4,
+            published: true,
           },
         ],
       ],
@@ -166,6 +169,7 @@ describe('listCongregationAbsences', () => {
             eventId: 39,
             eventDate: new Date('2026-12-24T18:00:00Z'),
             templateId: 4,
+            published: true,
           },
           {
             kind: 'part',
@@ -174,6 +178,7 @@ describe('listCongregationAbsences', () => {
             eventId: 40,
             eventDate: new Date('2026-12-27T09:00:00Z'),
             templateId: null,
+            published: false,
           },
         ],
       ],
