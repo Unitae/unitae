@@ -1,156 +1,117 @@
 import { parseWithZod } from '@conform-to/zod/v4'
+import { FormSection } from '@unitae/ui'
 import { useState } from 'react'
-import { data, Form, redirect } from 'react-router'
+import { data, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { toServiceYear } from '~/features/publishers'
-import { getEnrolmentsForMember, resolvePioneerGoal } from '~/features/publishers/index.server'
-import { enrolmentMonthOptions, findActiveStandingEnrolment } from '~/features/publishers/model/pioneer-enrolment-form'
-import type { EnrolmentMonthOption } from '~/features/publishers/model/pioneer-enrolment-form.type'
-import { updatePublisherSchema } from '~/features/publishers/schemas/edit-publisher.schema'
+import { getEnrolmentsForMember } from '~/features/publishers/index.server'
+import { toRecordEnrolments } from '~/features/publishers/model/publisher-record'
+import { publisherFormSchema } from '~/features/publishers/schemas/publisher.schema'
+import { getPublisherRecord } from '~/features/publishers/server/publisher-record.queries'
 import { updateMember } from '~/features/publishers/server/update-member.server'
-import PioneerEnrolmentFields from '~/features/publishers/ui/PioneerEnrolmentFields'
-import PublisherEditActions from '~/features/publishers/ui/PublisherEditActions'
-import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldServiceForm'
-import PublisherNominationForm from '~/features/publishers/ui/PublisherNominationForm'
-import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
+import { periodLabel, serviceLabel } from '~/features/publishers/ui/enrolment-labels'
+import { PublisherForm } from '~/features/publishers/ui/PublisherForm'
 import * as m from '~/i18n/paraglide/messages'
 import {
+  congregationContext,
   currentAccountContext,
   permissionsContext,
   requirePermission,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
-import { getBoolSetting } from '~/shared/domain/settings.server'
-import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Permission } from '~/shared/types/permission'
-import { PublisherType } from '~/shared/types/publisher-type'
-import { FormActions } from '~/shared/ui/FormActions'
+import { Button } from '~/shared/ui/button'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
+import { formatPersonName } from '~/shared/utils/format-person-name'
 import { requireParamId } from '~/shared/utils/params.server'
-import { handlePioneerEnrolmentIntent, PIONEER_ENROLMENT_INTENTS } from './_pioneer-enrolment-action.server'
+import { zonedNow } from '~/shared/utils/zoned-now'
+
 import type { Route } from './+types/edit-publisher'
 
-const YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i)
+export const meta: Route.MetaFunction = ({ loaderData }) => [
+  {
+    title: loaderData ? `${m.publishers_record_edit()} · ${formatPersonName(loaderData.publisher)} - Unitae` : 'Unitae',
+  },
+]
 
-export const meta: Route.MetaFunction = () => {
-  return [{ title: m.publishers_edit_meta_title() }]
-}
-
+// The publisher's edit page: who they are, how to reach them, their group and their baptism, saved together. Their
+// status, login and pioneer service are changed from the record, each on its own.
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(currentAccountContext)
-  const canManagePublisher = permissions.has(Permission.CanManagePublishers)
+  requirePermission(permissions, Permission.CanManagePublishers)
+  const now = zonedNow(context.get(congregationContext).timezone)
 
-  if (!canManagePublisher) {
-    throw redirect('/')
-  }
-
-  return withScopeFromContext(context, async db => {
-    const result = await db.member.findUnique({
-      where: {
-        id_congregationId: {
-          id: requireParamId(params.publisherId, '/publishers'),
-          congregationId: currentUser.congregationId,
-        },
-      },
-      include: { account: { select: { email: true } } },
-    })
-
-    if (result == null) throw redirect('/publishers')
-
-    const showAuxiliaryPioneer = await getBoolSetting(
-      db,
-      CongregationSettingKey.PermanentAuxiliaryPioneerProfileActivated,
-      currentUser.congregationId,
+  return withScopeFromContext(context, async (db, congregationId) => {
+    const memberId = requireParamId(params.publisherId, '/publishers')
+    const publisher = await getPublisherRecord(db, memberId, congregationId, { withLogin: true })
+    if (publisher == null) throw redirect('/publishers')
+    const [groups, enrolments] = await Promise.all([
+      db.publisherGroup.findMany({
+        where: { congregationId },
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' },
+      }),
+      getEnrolmentsForMember(db, memberId, congregationId),
+    ])
+    const current = toRecordEnrolments(enrolments, { month: now.getMonth(), year: now.getFullYear() }).find(
+      enrolment => enrolment.current,
     )
-    const groups = await db.publisherGroup.findMany({ where: { congregationId: currentUser.congregationId } })
-    const enrolments = await getEnrolmentsForMember(db, result.id, currentUser.congregationId)
-    const activeStanding = findActiveStandingEnrolment(enrolments)
-
-    // The monthly-auxiliary goal is seeded from the congregation's configured auxiliary rate and
-    // then frozen onto the enrolment. That rate is per service year and the two selectable months
-    // can straddle the September boundary, so resolve one rate per month option rather than once
-    // for "now". Two iterations, so the sequential await costs nothing worth parallelising.
-    const monthOptions: EnrolmentMonthOption[] = []
-    for (const option of enrolmentMonthOptions(new Date())) {
-      const serviceYear = toServiceYear(option.month, option.year)
-      const auxiliaryGoal = await resolvePioneerGoal(db, serviceYear, PublisherType.PionnierAuxiliaires)
-      monthOptions.push({ ...option, auxiliaryGoal })
-    }
-    const { account, ...member } = result
-    return {
-      user: {
-        ...member,
-        hasLogin: account != null,
-      },
-      groups,
-      hideAuxiliaryPioneer: !showAuxiliaryPioneer,
-      activeStanding: activeStanding
-        ? {
-            id: activeStanding.id,
-            type: activeStanding.type,
-            startMonth: activeStanding.startMonth,
-            startYear: activeStanding.startYear,
-          }
-        : null,
-      enrolments: enrolments.map(e => ({
-        id: e.id,
-        type: e.type,
-        startMonth: e.startMonth,
-        startYear: e.startYear,
-        endMonth: e.endMonth,
-        endYear: e.endYear,
-        monthlyGoal: e.monthlyGoal,
-      })),
-      monthOptions,
-      yearOptions: YEAR_OPTIONS,
-    }
+    return { publisher, groups, current: current ?? null }
   })
 }
 
-export default function EditPublisher({ loaderData }: Route.ComponentProps) {
-  const { user, groups, hideAuxiliaryPioneer, activeStanding, enrolments, monthOptions, yearOptions } = loaderData
-  const { blocker, markDirty } = useUnsavedChanges()
-  const [gender, setGender] = useState<'male' | 'female' | null>(user.isMale ? 'male' : 'female')
+export default function EditPublisher({ loaderData, actionData }: Route.ComponentProps) {
+  const { publisher, groups, current } = loaderData
+  const { blocker, setDirty } = useUnsavedChanges()
+  const [version, setVersion] = useState(0)
+  const name = formatPersonName(publisher)
+  const record = `/publishers/${publisher.id}/view`
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col">
       <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
-        title={m.publishers_edit_title()}
-        subtitle={m.publishers_edit_subtitle()}
-        breadcrumbs={[{ label: m.sidebar_publishers(), to: '/publishers' }, { label: m.publishers_edit_title() }]}
-        backTo="/publishers"
-        actions={<PublisherEditActions user={user} />}
+        title={name}
+        subtitle={m.publishers_edit_page_subtitle()}
+        breadcrumbs={[
+          { label: m.sidebar_publishers(), to: '/publishers' },
+          { label: name, to: record },
+          { label: m.publishers_record_edit() },
+        ]}
       />
-
-      {/* Member identity + group — the pioneer type is managed by the enrolment forms below, so the
-          field-service form submits it as a read-only hidden value. Its submit button lives at the
-          bottom (via the form id) so the pioneer card isn't orphaned under a terminal button. */}
-      <Form id="edit-publisher-form" method="post" className="flex flex-col gap-6" onChange={markDirty}>
-        <PublisherPersonalInformationForm user={user} onGenderChange={setGender} />
-        <PublisherNominationForm user={user} gender={gender} />
-        <PublisherFieldServiceForm user={user} groups={groups} />
-      </Form>
-
-      {/* Pioneer appointments — separate forms, each posting its own enrolment intent (saved on their
-          own buttons, independently of the identity form below). */}
-      <PioneerEnrolmentFields
-        activeStanding={activeStanding}
-        enrolments={enrolments}
-        monthOptions={monthOptions}
-        yearOptions={yearOptions}
-        hidePermanentAuxiliary={hideAuxiliaryPioneer}
+      <PublisherForm
+        key={version}
+        values={{ ...publisher, publisherGroupId: publisher.group?.id ?? null }}
+        groups={groups}
+        loginEmail={publisher.login?.email}
+        actionData={actionData}
+        onDirtyChange={setDirty}
+        after={
+          <FormSection title={m.pioneers_detail_title()} description={m.publishers_form_pioneer_hint()}>
+            <div className="col-span-full flex flex-col gap-1.5 rounded-md bg-sidebar px-3.5 py-3 text-sm">
+              <span className="font-medium">
+                {current
+                  ? `${serviceLabel(current.mode)} · ${periodLabel(current)}`
+                  : m.publishers_record_enrolment_none()}
+              </span>
+              <p className="text-muted-foreground">{m.publishers_form_pioneer_where()}</p>
+              <Link to={`${record}#activity`} className="self-start text-brand-text hover:underline">
+                {m.publishers_form_pioneer_open()}
+              </Link>
+            </div>
+          </FormSection>
+        }
+        actions={
+          <>
+            <Button type="button" variant="ghost" onClick={() => setVersion(value => value + 1)}>
+              {m.common_cancel()}
+            </Button>
+            <SubmitButton>{m.common_save()}</SubmitButton>
+          </>
+        }
       />
-
-      <FormActions>
-        <SubmitButton form="edit-publisher-form" size="lg">
-          {m.publishers_edit_submit()}
-        </SubmitButton>
-      </FormActions>
     </div>
   )
 }
@@ -159,37 +120,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.CanManagePublishers)
   const currentUser = context.get(currentAccountContext)
-  const formData = await request.formData()
+  const submission = parseWithZod(await request.formData(), { schema: publisherFormSchema })
+  if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
 
-  // Pioneer appointment forms post a dedicated intent; everything else is a member update.
-  const intent = formData.get('intent')
-  if (typeof intent === 'string' && PIONEER_ENROLMENT_INTENTS.includes(intent)) {
-    return handlePioneerEnrolmentIntent(request, params, context, formData)
-  }
-
-  const submission = parseWithZod(formData, { schema: updatePublisherSchema })
-
-  if (submission.status !== 'success') {
-    return data(submission.reply(), { status: 400 })
-  }
-
-  const {
-    firstname,
-    lastname,
-    email,
-    gender,
-    birthDate,
-    baptismDate,
-    arrivedAt,
-    isHelder,
-    isServant,
-    isAnointed,
-    group,
-    phone,
-    address,
-  } = submission.value
-  const previousPage = request.headers.get('referer')
-
+  const { birthDate, baptismDate, arrivedAt, group, email, ...fields } = submission.value
   return withScopeFromContext(context, async db => {
     const user = await updateMember(
       db,
@@ -197,27 +131,17 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       currentUser.congregationId,
       currentUser.id,
       {
-        firstname,
-        lastname,
-        gender,
-        baptismDate: baptismDate || null,
+        ...fields,
         birthDate: birthDate || null,
+        baptismDate: baptismDate || null,
         arrivedAt: arrivedAt || null,
-        isHelder,
-        isServant,
-        isAnointed,
         groupId: group ?? null,
         email: email ?? '',
-        address,
-        phone,
       },
     )
     const session = await getSession(request.headers.get('Cookie'))
-    session.flash('success', m.publishers_edit_success({ name: user.firstname ?? '' }))
-    return redirect(previousPage ?? `/publishers/${user.id}`, {
-      headers: {
-        'Set-Cookie': await commitSession(session),
-      },
-    })
+    session.flash('success', m.publishers_edit_success({ name: formatPersonName(user) }))
+    // Back to the record the edit started from: the save is done, and the page to read it on is there.
+    return redirect(`/publishers/${user.id}/view`, { headers: { 'Set-Cookie': await commitSession(session) } })
   })
 }

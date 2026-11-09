@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { ENROLMENT_MODES } from '~/features/publishers/model/pioneer-enrolment-form'
 import { PublisherType } from '~/shared/types/publisher-type'
 
 // Empty form fields arrive as '' — coerce those to undefined before the numeric coercion so an
@@ -42,55 +43,49 @@ export const pioneerEnrolmentSchema = z
 
 export type PioneerEnrolmentInput = z.infer<typeof pioneerEnrolmentSchema>
 
-// ── Edit-page form schemas (one per intent) ────────────────────────────────────────────────
-// The publisher edit page dispatches these on a hidden `intent` field. Standing appointments are
-// ongoing stints (no end in the create form — a separate close intent bounds them); monthly
-// auxiliary is a single-month stint carrying a per-person goal.
+// ── The record's enrolment dialogs ──────────────────────────────────────────────────────────
+// One action, dispatched on `intent`: enrol, correct a stint (the same fields as enrolling, plus its end),
+// stop the ongoing one at a month, or remove one recorded in error. The service is the dialog's choice
+// (ENROLMENT_MODES); the route maps it to the stored type.
 
-// Standing appointment: permanent / special / missionary / permanent-auxiliary — never Normal and
-// never monthly auxiliary (that has its own form).
-export const standingAppointmentSchema = z.object({
-  intent: z.literal('enrol-standing'),
-  type: z
-    .nativeEnum(PublisherType)
-    .refine(t => t !== PublisherType.Normal, 'A standing appointment requires a pioneer type'),
-  startMonth: z.coerce.number().int().min(0).max(11),
-  startYear: z.coerce.number().int().min(2022),
-})
+const month = z.coerce.number().int().min(0).max(11)
+const year = z.coerce.number().int().min(2022)
+const enrolmentId = z.coerce.number().int().positive()
+const mode = z.enum(ENROLMENT_MODES)
+const optionalGoal = z.preprocess(emptyToUndefined, z.coerce.number().int().positive().max(200).optional())
+const optionalMonth = z.preprocess(emptyToUndefined, month.optional())
+const optionalYear = z.preprocess(emptyToUndefined, year.optional())
 
-// Close the active standing appointment at a chosen month.
-export const closeAppointmentSchema = z.object({
-  intent: z.literal('close-standing'),
-  enrolmentId: z.coerce.number().int().positive(),
-  endMonth: z.coerce.number().int().min(0).max(11),
-  endYear: z.coerce.number().int().min(2022),
-})
+export const enrolmentActionSchema = z
+  .discriminatedUnion('intent', [
+    z.object({ intent: z.literal('create'), mode, startMonth: month, startYear: year, monthlyGoal: optionalGoal }),
+    z.object({
+      intent: z.literal('correct'),
+      enrolmentId,
+      mode,
+      startMonth: month,
+      startYear: year,
+      endMonth: optionalMonth,
+      endYear: optionalYear,
+      monthlyGoal: optionalGoal,
+    }),
+    z.object({ intent: z.literal('stop'), enrolmentId, endMonth: month, endYear: year }),
+    z.object({ intent: z.literal('remove'), enrolmentId }),
+  ])
+  .superRefine((value, ctx) => {
+    // A one-month auxiliary is enrolled at a goal the dialog always offers: the congregation's rate or the reduced one.
+    if (value.intent === 'create' && value.mode === 'monthly-aux' && value.monthlyGoal == null) {
+      ctx.addIssue({ code: 'custom', path: ['monthlyGoal'], message: 'A one-month auxiliary needs a goal' })
+    }
+    if (value.intent !== 'correct' || value.mode === 'monthly-aux') return
+    if ((value.endMonth == null) !== (value.endYear == null)) {
+      ctx.addIssue({ code: 'custom', path: ['endMonth'], message: 'End month and end year must be set together' })
+    }
+    if (value.endMonth != null && value.endYear != null) {
+      if (value.endYear * 12 + value.endMonth < value.startYear * 12 + value.startMonth) {
+        ctx.addIssue({ code: 'custom', path: ['endMonth'], message: 'End must be on or after the start' })
+      }
+    }
+  })
 
-// Monthly auxiliary enrolment for a single month, at a per-person goal (typically 15 or 30 h).
-export const monthlyAuxiliaryEnrolmentSchema = z.object({
-  intent: z.literal('enrol-monthly'),
-  month: z.coerce.number().int().min(0).max(11),
-  year: z.coerce.number().int().min(2022),
-  monthlyGoal: z.coerce.number().int().positive(),
-})
-
-// Remove an enrolment outright (used to undo a monthly auxiliary added in error).
-export const removeEnrolmentSchema = z.object({
-  intent: z.literal('remove-enrolment'),
-  enrolmentId: z.coerce.number().int().positive(),
-})
-
-// Correct the per-person goal on an existing stint. The goal is frozen onto the enrolment when it is
-// created, so this is the only way to fix a wrong pick — an empty field clears it, dropping the stint
-// back to the congregation's configured type rate.
-export const updateEnrolmentGoalSchema = z.object({
-  intent: z.literal('update-goal'),
-  enrolmentId: z.coerce.number().int().positive(),
-  monthlyGoal: z.preprocess(emptyToUndefined, z.coerce.number().int().positive().optional()),
-})
-
-export type StandingAppointmentInput = z.infer<typeof standingAppointmentSchema>
-export type CloseAppointmentInput = z.infer<typeof closeAppointmentSchema>
-export type MonthlyAuxiliaryEnrolmentInput = z.infer<typeof monthlyAuxiliaryEnrolmentSchema>
-export type RemoveEnrolmentInput = z.infer<typeof removeEnrolmentSchema>
-export type UpdateEnrolmentGoalInput = z.infer<typeof updateEnrolmentGoalSchema>
+export type EnrolmentActionInput = z.infer<typeof enrolmentActionSchema>

@@ -1,12 +1,9 @@
 import { parseWithZod } from '@conform-to/zod/v4'
-import { useState } from 'react'
-import { data, Form, redirect } from 'react-router'
+import { data, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { createPublisherSchema } from '~/features/publishers/schemas/publisher.schema'
+import { publisherFormSchema } from '~/features/publishers/schemas/publisher.schema'
 import { createMember } from '~/features/publishers/server/create-member.server'
-import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldServiceForm'
-import PublisherNominationForm from '~/features/publishers/ui/PublisherNominationForm'
-import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
+import { PublisherForm } from '~/features/publishers/ui/PublisherForm'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -16,61 +13,59 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
-import { FormActions } from '~/shared/ui/FormActions'
+import { Button } from '~/shared/ui/button'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { formatDateForInput } from '~/shared/utils/event-time'
+import { formatPersonName } from '~/shared/utils/format-person-name'
 import { handleAppError } from '~/shared/utils/handle-app-error.server'
 
 import type { Route } from './+types/new-publisher'
 
-export const meta: Route.MetaFunction = () => {
-  return [{ title: m.publishers_new_meta_title() }]
-}
+export const meta: Route.MetaFunction = () => [{ title: `${m.publishers_new_title()} - Unitae` }]
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(currentAccountContext)
-  const canManagePublisher = permissions.has(Permission.CanManagePublishers)
+  requirePermission(permissions, Permission.CanManagePublishers)
 
-  if (!canManagePublisher) {
-    throw redirect('/')
-  }
-
-  return withScopeFromContext(context, async db => {
-    const groups = await db.publisherGroup.findMany({ where: { congregationId: currentUser.congregationId } })
-
+  return withScopeFromContext(context, async (db, congregationId) => {
+    const groups = await db.publisherGroup.findMany({
+      where: { congregationId },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    })
     // A new record is usually a new arrival: the date starts at today, on the congregation's calendar.
     return { groups, arrivalDefault: formatDateForInput(new Date(), context.get(congregationContext).timezone) }
   })
 }
 
-export default function NewPublisher({ loaderData }: Route.ComponentProps) {
-  const { groups, arrivalDefault } = loaderData
-  const { blocker, markDirty } = useUnsavedChanges()
-  const [gender, setGender] = useState<'male' | 'female' | null>(null)
+export default function NewPublisher({ loaderData, actionData }: Route.ComponentProps) {
+  const { blocker, setDirty } = useUnsavedChanges()
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col">
       <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.publishers_new_title()}
         subtitle={m.publishers_new_subtitle()}
         breadcrumbs={[{ label: m.sidebar_publishers(), to: '/publishers' }, { label: m.publishers_new_title() }]}
-        backTo="/publishers"
       />
-
-      <Form method="post" className="flex flex-col gap-6" onChange={markDirty}>
-        <PublisherPersonalInformationForm arrivalDefault={arrivalDefault} onGenderChange={setGender} />
-        <PublisherNominationForm gender={gender} />
-        <PublisherFieldServiceForm groups={groups} />
-
-        <FormActions>
-          <SubmitButton size="lg">{m.publishers_new_submit()}</SubmitButton>
-        </FormActions>
-      </Form>
+      <PublisherForm
+        groups={loaderData.groups}
+        arrivalDefault={loaderData.arrivalDefault}
+        actionData={actionData}
+        onDirtyChange={setDirty}
+        actions={
+          <>
+            <Button asChild variant="ghost">
+              <Link to="/publishers">{m.common_cancel()}</Link>
+            </Button>
+            <SubmitButton>{m.publishers_new_submit()}</SubmitButton>
+          </>
+        }
+      />
     </div>
   )
 }
@@ -80,7 +75,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   requirePermission(permissions, Permission.CanManagePublishers)
   const congregation = context.get(congregationContext)
   const currentUser = context.get(currentAccountContext)
-  const submission = parseWithZod(await request.formData(), { schema: createPublisherSchema })
+  const submission = parseWithZod(await request.formData(), { schema: publisherFormSchema })
 
   if (submission.status !== 'success') {
     return data(submission.reply(), { status: 400 })
@@ -123,8 +118,8 @@ export async function action({ request, context }: Route.ActionArgs) {
         actorId: currentUser.id,
       })
 
-      session.flash('success', m.publishers_new_success({ name: user.firstname ?? '' }))
-      return redirect(`/publishers/${user.id}/edit`, {
+      session.flash('success', m.publishers_new_success({ name: formatPersonName(user) }))
+      return redirect(`/publishers/${user.id}/view`, {
         headers: {
           'Set-Cookie': await commitSession(session),
         },

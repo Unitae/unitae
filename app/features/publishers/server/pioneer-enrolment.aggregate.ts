@@ -158,6 +158,8 @@ export async function closeEnrolment(
 // Omission means different things per field, so each is spelled out rather than left to `?`:
 //
 //   type, monthlyGoal — PRESERVED when omitted. Correcting a start month must not disturb either.
+//                       A `null` goal is not an omission: it drops the per-person goal, so the stint
+//                       falls back to the type's configured rate.
 //   endMonth, endYear — CLEARED when omitted, because "no end" is itself the meaning: an ongoing
 //                       stint. Passing neither is how a closed stint is reopened.
 //
@@ -170,7 +172,7 @@ export interface UpdateEnrolmentParams {
   startYear: number
   endMonth?: number
   endYear?: number
-  monthlyGoal?: number
+  monthlyGoal?: number | null
 }
 
 export async function updateEnrolment(
@@ -204,7 +206,7 @@ export async function updateEnrolment(
       startYear: params.startYear,
       endMonth,
       endYear,
-      ...(params.monthlyGoal != null ? { monthlyGoal: params.monthlyGoal } : {}),
+      ...(params.monthlyGoal !== undefined ? { monthlyGoal: params.monthlyGoal } : {}),
     },
   })
 

@@ -227,6 +227,25 @@ describe('pioneer-enrolment aggregate (integration)', () => {
     expect(updated.monthlyGoal).toBe(30)
   })
 
+  it('updateEnrolment clears the goal on an explicit null, so the stint falls back to the type rate', async () => {
+    const mid = await freshMember('GoalCleared')
+    const created = await withScope(congregationId, tx =>
+      openEnrolment(tx, mid, congregationId, 1, {
+        type: PublisherType.PionnierPermanant,
+        startMonth: 8,
+        startYear: 2025,
+        monthlyGoal: 40,
+      }),
+    )
+
+    const updated = await withScope(congregationId, tx =>
+      updateEnrolment(tx, created.id, congregationId, 1, { startMonth: 8, startYear: 2025, monthlyGoal: null }),
+    )
+
+    expect(updated.monthlyGoal).toBeNull()
+    expect(updated.type).toBe(PublisherType.PionnierPermanant)
+  })
+
   it('setEnrolmentGoal corrects the goal without touching the period', async () => {
     const mid = await freshMember('Goal')
     const created = await withScope(congregationId, tx =>

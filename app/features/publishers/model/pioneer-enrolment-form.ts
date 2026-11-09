@@ -1,7 +1,46 @@
 // Pure helpers for the pioneer-enrolment edit-page forms. Client-safe (no DB, no `.server`).
 
-import { type EnrolmentPeriod, isOngoing } from './pioneer-enrolment'
+import { PublisherType } from '~/shared/types/publisher-type'
+import type { EnrolmentPeriod } from './pioneer-enrolment'
 import type { MonthRef } from './pioneer-pace'
+
+/**
+ * The service a pioneer enrolment records, as the enrolment dialogs offer it. Auxiliary service has two shapes under
+ * one stored type: a single month (« un mois ») and an open-ended stint (« sans interruption »).
+ */
+export const ENROLMENT_MODES = ['monthly-aux', 'permanent-aux', 'permanent', 'special', 'missionary'] as const
+export type EnrolmentMode = (typeof ENROLMENT_MODES)[number]
+
+const MODE_TYPE: Record<EnrolmentMode, PublisherType> = {
+  'monthly-aux': PublisherType.PionnierAuxiliaires,
+  'permanent-aux': PublisherType.PionnierAuxiliaires,
+  permanent: PublisherType.PionnierPermanant,
+  special: PublisherType.PionnierSpecial,
+  missionary: PublisherType.Missionnaire,
+}
+
+/** The type an enrolment is stored under for a service. */
+export function enrolmentTypeOf(mode: EnrolmentMode): PublisherType {
+  return MODE_TYPE[mode]
+}
+
+/** The service a stored enrolment records: a one-month auxiliary stint is monthly, a longer or open one permanent. */
+export function enrolmentModeOf(
+  enrolment: Pick<EnrolmentPeriod, 'type' | 'startMonth' | 'startYear' | 'endMonth' | 'endYear'>,
+): EnrolmentMode {
+  switch (enrolment.type) {
+    case PublisherType.PionnierAuxiliaires:
+      return enrolment.endMonth === enrolment.startMonth && enrolment.endYear === enrolment.startYear
+        ? 'monthly-aux'
+        : 'permanent-aux'
+    case PublisherType.PionnierSpecial:
+      return 'special'
+    case PublisherType.Missionnaire:
+      return 'missionary'
+    default:
+      return 'permanent'
+  }
+}
 
 // The months a monthly-auxiliary enrolment can target from the edit page: the current month and the
 // next one (a manager enrols a publisher at the start of the month, occasionally a month ahead).
@@ -22,11 +61,4 @@ export const REDUCED_AUXILIARY_GOAL = 15
 export function auxiliaryGoalOptions(configuredRate: number): number[] {
   const options = new Set([configuredRate, REDUCED_AUXILIARY_GOAL].filter(hours => hours > 0))
   return [...options].sort((a, b) => b - a)
-}
-
-// The member's active standing appointment (an ongoing stint), or null. Drives the read-only current
-// type and the "end appointment" control. A member never has more than one ongoing stint (the
-// aggregate's non-overlap invariant guarantees it).
-export function findActiveStandingEnrolment<T extends EnrolmentPeriod>(enrolments: T[]): T | null {
-  return enrolments.find(isOngoing) ?? null
 }
