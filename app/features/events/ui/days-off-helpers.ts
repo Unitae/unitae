@@ -1,3 +1,5 @@
+import { addDays, dayOf, mondayOf } from '~/shared/utils/calendar-day'
+
 export interface ConflictingEvent {
   eventId: number
   eventName: string
@@ -9,51 +11,32 @@ interface EventWithDates {
   endDate: Date | string
 }
 
-export function getMonday(date: Date): Date {
-  const d = new Date(date)
-  const day = d.getDay()
-  const diff = day === 0 ? 6 : day - 1
-  d.setDate(d.getDate() - diff)
-  d.setHours(0, 0, 0, 0)
-  return d
+/** The Monday, as `YYYY-MM-DD`, of the week an instant falls in, in the congregation's zone. */
+export function weekOf(date: Date | string, timeZone: string): string {
+  return mondayOf(dayOf(date, timeZone))
 }
 
-export function groupEventsByWeek<T extends EventWithDates>(events: T[]): Map<string, T[]> {
+/** Absences under every week they touch, keyed by the week's Monday, weeks read in the congregation's zone. */
+export function groupEventsByWeek<T extends EventWithDates>(events: T[], timeZone: string): Map<string, T[]> {
   const groups = new Map<string, T[]>()
 
   for (const event of events) {
-    const startMonday = getMonday(new Date(event.startDate))
-    const endMonday = getMonday(new Date(event.endDate))
-
-    const current = new Date(startMonday)
-    while (current <= endMonday) {
-      const key = current.toISOString().split('T')[0]
-
-      const group = groups.get(key)
-      if (group) {
-        group.push(event)
-      } else {
-        groups.set(key, [event])
-      }
-
-      current.setDate(current.getDate() + 7)
+    const lastWeek = weekOf(event.endDate, timeZone)
+    for (let week = weekOf(event.startDate, timeZone); week <= lastWeek; week = addDays(week, 7)) {
+      const group = groups.get(week)
+      if (group) group.push(event)
+      else groups.set(week, [event])
     }
   }
 
   return groups
 }
 
-export function computeDurationDays(startDate: Date, endDate: Date): number {
-  return Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-}
-
-export function getConflictsForWeek(conflicts: ConflictingEvent[], mondayKey: string): ConflictingEvent[] {
-  const monday = new Date(mondayKey)
-  const sunday = new Date(monday)
-  sunday.setDate(sunday.getDate() + 7)
-
-  return conflicts.filter(c => {
-    const date = new Date(c.eventDate)
-    return date >= monday && date < sunday
-  })
+/** The conflicts falling in the week that starts on `monday`. */
+export function getConflictsForWeek(
+  conflicts: ConflictingEvent[],
+  monday: string,
+  timeZone: string,
+): ConflictingEvent[] {
+  return conflicts.filter(conflict => weekOf(conflict.eventDate, timeZone) === monday)
 }

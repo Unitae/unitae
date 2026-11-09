@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('~/shared/domain/audit.server', () => ({
+  AuditAction: { DayOffCreated: 'day_off.created', DayOffDeleted: 'day_off.deleted' },
+  audit: vi.fn(),
+}))
+
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     event: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), delete: vi.fn() },
@@ -11,6 +16,7 @@ vi.mock('~/shared/infra/db.server', () => ({
 
 const { createDayOff, deleteDayOff } = await import('./days-off.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
+const { audit } = await import('~/shared/domain/audit.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -97,6 +103,23 @@ describe('createDayOff', () => {
     )
   })
 
+  it('records who declared the absence in the audit trail', async () => {
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({ id: 5, key: 'day-off' } as never)
+    vi.mocked(db.event.create).mockResolvedValue({ id: 77, name: 'Absence' } as never)
+
+    await createDayOff(db, 12, 1, new Date(2025, 3, 8), new Date(2025, 3, 10), 3)
+
+    expect(audit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'day_off.created',
+        congregationId: 3,
+        actorId: 12,
+        entityType: 'Event',
+        entityId: 77,
+      }),
+    )
+  })
+
   // With a null memberId (account without a linked Member — e.g. circuit
   // overseer or admin), we skip the conflict-flag refresh entirely: there
   // can be no assignments to flag.
@@ -112,24 +135,56 @@ describe('createDayOff', () => {
 })
 
 describe('deleteDayOff', () => {
-  it('deletes the event and returns it', async () => {
-    const fakeEvent = { id: 42, startDate: new Date(2025, 3, 8), endDate: new Date(2025, 3, 10) }
-    vi.mocked(db.event.delete).mockResolvedValue(fakeEvent as never)
+  const ACCOUNT_ID = 12
+  const absence = { id: 42, startDate: new Date(2025, 3, 8), endDate: new Date(2025, 3, 10) }
 
-    const result = await deleteDayOff(db, 42, 1, 1)
+  // Only the caller's own absence answers the lookup: another person's absence, or an event that is
+  // not an absence at all (a programme event the caller created), finds nothing.
+  function ownAbsenceLookup() {
+    vi.mocked(db.event.findFirst).mockImplementation((({ where }: { where: Record<string, unknown> }) =>
+      Promise.resolve(
+        where.id === absence.id &&
+          where.congregationId === 1 &&
+          where.createdById === ACCOUNT_ID &&
+          JSON.stringify(where.template) === JSON.stringify({ key: 'day-off' })
+          ? absence
+          : null,
+      )) as never)
+    vi.mocked(db.event.delete).mockResolvedValue(absence as never)
+  }
 
-    expect(result).toEqual(fakeEvent)
-    expect(db.event.delete).toHaveBeenCalledWith({
-      where: { id_congregationId: { id: 42, congregationId: 1 } },
-    })
+  it("deletes the caller's own absence and returns it", async () => {
+    ownAbsenceLookup()
+
+    const result = await deleteDayOff(db, { eventId: 42, accountId: ACCOUNT_ID, memberId: 1, congregationId: 1 })
+
+    expect(result).toEqual(absence)
+    expect(db.event.delete).toHaveBeenCalledWith({ where: { id_congregationId: { id: 42, congregationId: 1 } } })
+  })
+
+  it("refuses someone else's absence or an event that is not an absence", async () => {
+    ownAbsenceLookup()
+
+    const result = await deleteDayOff(db, { eventId: 42, accountId: 99, memberId: 1, congregationId: 1 })
+
+    expect(result).toBeNull()
+    expect(db.event.delete).not.toHaveBeenCalled()
+  })
+
+  it('records the deletion in the audit trail', async () => {
+    ownAbsenceLookup()
+
+    await deleteDayOff(db, { eventId: 42, accountId: ACCOUNT_ID, memberId: 1, congregationId: 1 })
+
+    expect(audit).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'day_off.deleted', actorId: ACCOUNT_ID, entityType: 'Event', entityId: 42 }),
+    )
   })
 
   it('refreshes conflict flags over the deleted range when memberId is provided', async () => {
-    const startDate = new Date(2025, 3, 8)
-    const endDate = new Date(2025, 3, 10)
-    vi.mocked(db.event.delete).mockResolvedValue({ id: 42, startDate, endDate } as never)
+    ownAbsenceLookup()
 
-    await deleteDayOff(db, 42, 1, 1)
+    await deleteDayOff(db, { eventId: 42, accountId: ACCOUNT_ID, memberId: 1, congregationId: 1 })
 
     expect(db.event.findMany).toHaveBeenCalled()
   })
@@ -138,13 +193,9 @@ describe('deleteDayOff', () => {
   // linked Member cannot own any conflict-carrying assignments, so refresh
   // is skipped rather than issuing a no-op query.
   it('skips refreshConflictFlags when memberId is null', async () => {
-    vi.mocked(db.event.delete).mockResolvedValue({
-      id: 42,
-      startDate: new Date(2025, 3, 8),
-      endDate: new Date(2025, 3, 10),
-    } as never)
+    ownAbsenceLookup()
 
-    await deleteDayOff(db, 42, null, 1)
+    await deleteDayOff(db, { eventId: 42, accountId: ACCOUNT_ID, memberId: null, congregationId: 1 })
 
     expect(db.event.findMany).not.toHaveBeenCalled()
   })

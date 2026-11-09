@@ -1,3 +1,4 @@
+import { endOfDay } from '~/shared/utils/calendar-day'
 import { combineLocalDateTime, formatDateForInput } from '~/shared/utils/event-time'
 
 /** « Dès maintenant », « À partir du … », « Pas encore ». */
@@ -18,13 +19,6 @@ export interface DisplayWindow {
 export type DisplayWindowResult =
   | { ok: true; window: DisplayWindow }
   | { ok: false; error: 'missing-from' | 'until-before-from' }
-
-const LAST_MINUTE_MS = 59_999
-
-/** The very last instant of a day in `timeZone`: a document taken off that day still shows all of it. */
-export function endOfDay(day: string, timeZone: string): Date {
-  return new Date(combineLocalDateTime(day, '23:59', timeZone).getTime() + LAST_MINUTE_MS)
-}
 
 /**
  * The form's choice as the window the board applies, by day in the congregation's zone: a document

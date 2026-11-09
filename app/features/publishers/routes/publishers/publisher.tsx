@@ -122,6 +122,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
       serviceYear,
       activityYears,
       emergency,
+      timeZone: context.get(congregationContext).timezone,
       roles: {
         canViewPublisher,
         canManagePublisher,
@@ -341,6 +342,7 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
     serviceYear,
     activityYears,
     emergency,
+    timeZone,
     roles,
   } = loaderData
 
@@ -535,7 +537,7 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
         </CardContent>
       </Card>
 
-      <PublisherEngagementCards assignments={upcomingAssignments} absences={upcomingAbsences} />
+      <PublisherEngagementCards assignments={upcomingAssignments} absences={upcomingAbsences} timeZone={timeZone} />
 
       <PastoralFollowUpCard
         publisherId={publisher.id}

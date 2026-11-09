@@ -11,6 +11,7 @@ import { Permission } from '~/shared/types/permission'
 
 const currentAccountContext = Symbol('currentAccountContext')
 const permissionsContext = Symbol('permissionsContext')
+const congregationContext = Symbol('congregationContext')
 
 // Any model, any method, empty result — this test is about the guard, not the query.
 const fakeDb = new Proxy(
@@ -23,6 +24,7 @@ const fakeDb = new Proxy(
 vi.mock('~/shared/auth/route-context.server', () => ({
   currentAccountContext,
   permissionsContext,
+  congregationContext,
   withScopeFromContext: (_context: unknown, fn: (db: unknown) => unknown) => fn(fakeDb),
 }))
 
@@ -32,8 +34,11 @@ vi.mock('~/shared/infra/logger.server', () => ({
 
 function contextWith(permissions: Permission[]) {
   return {
-    get: (key: symbol) =>
-      key === permissionsContext ? new Set(permissions) : { id: 1, congregationId: 1, firstname: 'A' },
+    get: (key: symbol) => {
+      if (key === permissionsContext) return new Set(permissions)
+      if (key === congregationContext) return { timezone: 'Europe/Paris' }
+      return { id: 1, congregationId: 1, firstname: 'A' }
+    },
   }
 }
 

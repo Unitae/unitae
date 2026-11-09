@@ -128,6 +128,8 @@ afterAll(async () => {
     await testDb.eventTemplate.deleteMany({ where: { congregationId: congId } })
     await testDb.userAccount.deleteMany({ where: { congregationId: congId } })
     await testDb.member.deleteMany({ where: { congregationId: congId } })
+    // Declaring an absence is audited: its rows point at the congregation.
+    await testDb.auditLog.deleteMany({ where: { congregationId: congId } })
     await testDb.congregation.delete({ where: { id: congId } })
   }
   await testDb.$disconnect()

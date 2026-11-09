@@ -3,7 +3,7 @@ import { parseWithZod } from '@conform-to/zod/v4'
 import { FormSection } from '@unitae/ui'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { Form, Link } from 'react-router'
-import { type DisplayWindowInput, endOfDay } from '~/features/display-board/model/display-window'
+import type { DisplayWindowInput } from '~/features/display-board/model/display-window'
 import { titleFromFileName } from '~/features/display-board/model/file-title'
 import { pdfDocumentSchema } from '~/features/display-board/schemas/board-document.schema'
 import type { PdfBoardCard } from '~/features/display-board/server/board-home.queries'
@@ -19,6 +19,7 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import { endOfDay } from '~/shared/utils/calendar-day'
 
 export interface PdfFormDefaults {
   title: string

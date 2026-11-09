@@ -1,75 +1,71 @@
-import { CalendarOff, X } from 'lucide-react'
+import { Panel } from '@unitae/ui'
+import { CalendarOff, CalendarPlus } from 'lucide-react'
 import { Link } from 'react-router'
-import { getSession } from '~/features/authentication/index.server'
-import { getNextDaysOffs } from '~/features/events/server/days-off.server'
+
+import { listMyAbsences } from '~/features/events/server/days-off.queries'
+import { MyAbsenceRow } from '~/features/events/ui/MyAbsenceRow'
 import * as m from '~/i18n/paraglide/messages'
-import { getLocale } from '~/i18n/paraglide/runtime'
-import { currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import logger from '~/shared/infra/logger.server'
+import { congregationContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Button } from '~/shared/ui/button'
-import { Card, CardContent } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
+
 import type { Route } from './+types/list'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.days_off_meta_title() }]
 }
 
-export async function loader({ request, context }: Route.LoaderArgs) {
+export function loader({ context }: Route.LoaderArgs) {
   const currentUser = context.get(currentAccountContext)
-  const session = await getSession(request.headers.get('Cookie'))
+  const { timezone } = context.get(congregationContext)
+  const now = new Date()
 
   return withScopeFromContext(context, async db => {
-    const { congregationId } = currentUser
-    const events = await getNextDaysOffs(db, currentUser.id, congregationId)
-
-    logger.info(`Loading personal Days Off list. User ID: ${currentUser.id}`)
-
-    return {
-      user: currentUser,
-      events,
-      error: session.get('error'),
-    }
+    const absences = await listMyAbsences(db, {
+      accountId: currentUser.id,
+      memberId: currentUser.member?.id ?? null,
+      congregationId: currentUser.congregationId,
+      now,
+    })
+    return { absences, timeZone: timezone, now }
   })
 }
 
 export default function DaysOffPage({ loaderData }: Route.ComponentProps) {
-  const { events } = loaderData
+  const { absences, timeZone, now } = loaderData
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex max-w-3xl flex-col gap-5">
       <PageHeader
         title={m.days_off_page_title()}
+        titleBadge={
+          absences.length > 0 ? (
+            <span className="text-base text-faint tabular-nums">
+              {m.days_off_upcoming_count({ count: absences.length })}
+            </span>
+          ) : undefined
+        }
         subtitle={m.days_off_page_subtitle()}
         breadcrumbs={[{ label: m.sidebar_my_absences() }]}
         actions={
-          <Button asChild>
-            <Link to="./new">{m.days_off_new_button()}</Link>
+          <Button asChild size="sm">
+            <Link to="/me/days-off/new">
+              <CalendarPlus aria-hidden="true" />
+              {m.days_off_new_button()}
+            </Link>
           </Button>
         }
       />
 
-      {events.length > 0 ? (
-        <div className="flex flex-col gap-3">
-          {events.map(event => (
-            <Card key={event.id}>
-              <CardContent className="flex items-center justify-between py-3">
-                <span className="text-sm">
-                  {m.days_off_date_range({
-                    startDate: new Date(event.startDate).toLocaleDateString(getLocale()),
-                    endDate: new Date(event.endDate).toLocaleDateString(getLocale()),
-                  })}
-                </span>
-                <Button variant="ghost" size="icon" asChild className="text-destructive hover:text-destructive">
-                  <Link to={`/me/days-off/${event.id}/delete`} title={m.days_off_delete_title()}>
-                    <X className="size-4" />
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      {absences.length > 0 ? (
+        <Panel aria-label={m.days_off_page_title()}>
+          <ul>
+            {absences.map(absence => (
+              <MyAbsenceRow key={absence.id} absence={absence} timeZone={timeZone} now={new Date(now)} />
+            ))}
+          </ul>
+        </Panel>
       ) : (
         <EmptyState icon={CalendarOff} title={m.days_off_empty_title()} description={m.days_off_empty_description()} />
       )}
