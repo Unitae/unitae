@@ -80,12 +80,22 @@ export function loader({ params, context }: Route.LoaderArgs) {
       hasActivityManager: canCorrectAnyActivity(permissions),
       ...leaders,
     })
+    // Every member listed is in this group, so its leaders may record their visits.
+    const canRecordVisits = canRecordPastoralVisit({
+      hasPublisherViewer: canViewPublishers,
+      hasPublisherManager: canEditPublishers,
+      myResponsibleGroupId: currentUser.member?.responsibleFor?.id ?? null,
+      myDeputyGroupId: currentUser.member?.deputyFor?.id ?? null,
+      targetGroupId: group.id,
+    })
     // Whether someone preached is a pastoral fact, kept to those who record the group's reports; the
-    // missing emergency information, to those who may see emergency information.
+    // missing emergency information, to those who may see emergency information; the last visit, which only
+    // the visit dialog shows, to those who may open it.
     const visible = (member: (typeof group.members)[number]) => ({
       ...member,
       reports: canManageGroupReports ? member.reports : [],
       emergencyGaps: canViewEmergency ? member.emergencyGaps : [],
+      lastPastoralVisitAt: canRecordVisits ? member.lastPastoralVisitAt : null,
     })
 
     return {
@@ -99,14 +109,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
         canViewEmergency,
         canManageActivity: canManageGroupReports,
         canCorrectReports,
-        // Every member listed is in this group, so its leaders may record their visits.
-        canRecordVisits: canRecordPastoralVisit({
-          hasPublisherViewer: canViewPublishers,
-          hasPublisherManager: canEditPublishers,
-          myResponsibleGroupId: currentUser.member?.responsibleFor?.id ?? null,
-          myDeputyGroupId: currentUser.member?.deputyFor?.id ?? null,
-          targetGroupId: group.id,
-        }),
+        canRecordVisits,
       },
     }
   })

@@ -39,7 +39,7 @@ const MAY = { month: 4, year: 2026 }
 
 // The member fields getGroup reads to compute its labels and must never return.
 const RAW_MEMBER_FIELDS =
-  /inactiveAt|baptismDate|createdAt|arrivedAt|lastPastoralVisitAt|dpaCardUpToDate|survivalBackpackReady|isAnointed|hours|notes/
+  /inactiveAt|baptismDate|createdAt|arrivedAt|dpaCardUpToDate|survivalBackpackReady|isAnointed|hours|notes/
 
 beforeAll(async () => {
   const [congA, congB] = await Promise.all([
@@ -166,11 +166,13 @@ describe('getGroup (integration)', () => {
       'emergencyGaps',
       'firstname',
       'id',
+      'lastPastoralVisitAt',
       'lastname',
       'reports',
       'signals',
     ])
-    // The dates and flags the labels are computed from stay on the server.
+    // The dates and flags the labels are computed from stay on the server, apart from the last visit: the visit
+    // dialog shows it, and the route hands it only to those who may open that dialog.
     expect(JSON.stringify(group)).not.toMatch(RAW_MEMBER_FIELDS)
   })
 
