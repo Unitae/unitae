@@ -1,18 +1,13 @@
-import { AlertTriangle, CalendarOff, ChevronRight } from 'lucide-react'
-import { useState } from 'react'
-import { Link, redirect } from 'react-router'
-import { absenceDays } from '~/features/events/model/absence'
-import { EventTemplateKey } from '~/features/events/model/event-template.type'
-import { computeFilters, getDefaultDateRange } from '~/features/events/server/event-filters.server'
-import {
-  type ConflictingEvent,
-  getConflictsForWeek,
-  groupEventsByWeek,
-  weekOf,
-} from '~/features/events/ui/days-off-helpers'
-import EventFilters from '~/features/events/ui/EventFilters'
+import { redirect, type ShouldRevalidateFunctionArgs } from 'react-router'
+
+import { absencePeriod, selectedPreset } from '~/features/events/model/absence-period'
+import { assignKey, conflictAction, type ReassignRights, reassignHref } from '~/features/events/model/reassign'
+import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
+import { congregationHasAbsences, listCongregationAbsences } from '~/features/events/server/days-off.queries'
+import { getResponsibleTemplateIds } from '~/features/events/server/events-auth.server'
+import { AbsencePeriodMenu } from '~/features/events/ui/AbsencePeriodMenu'
+import { ProgrammeAbsences } from '~/features/events/ui/ProgrammeAbsences'
 import * as m from '~/i18n/paraglide/messages'
-import { getLocale } from '~/i18n/paraglide/runtime'
 import {
   congregationContext,
   currentAccountContext,
@@ -21,330 +16,133 @@ import {
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
-import { Badge } from '~/shared/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
-import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
-import { RelativeTime } from '~/shared/ui/RelativeTime'
-import { startOfDay } from '~/shared/utils/calendar-day'
-import { formatEventDate } from '~/shared/utils/event-time'
-import { cn } from '~/shared/utils/utils'
+import { dayOf, endOfDay, startOfDay } from '~/shared/utils/calendar-day'
+import { formatPersonName } from '~/shared/utils/format-person-name'
+
 import type { Route } from './+types/days-off'
 
+const PERIOD_PARAMS = ['period', 'from', 'to']
+
 export const meta: Route.MetaFunction = () => {
-  return [{ title: m.days_off_admin_meta_title() }]
+  return [{ title: m.programs_absences_meta_title() }]
 }
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canViewPrograms = permissions.has(Permission.CanViewPrograms)
-  const canViewAbsences = permissions.has(Permission.CanViewAbsences)
 
   // Seeing other people's absences is its own capability. It used to be enough to hold
   // can-view-programs, which meant the absence permission could never restrict anything.
-  if (!canViewAbsences) {
+  if (!permissions.has(Permission.CanViewAbsences)) {
     logger.warn(`Try to load absences. User ID: ${currentUser.id}. Does NOT have rights to access absences.`)
-
     throw redirect('/')
   }
 
-  logger.info(`Loading absences list. User ID: ${currentUser.id}.`)
-
-  const url = new URL(request.url)
-  const selectors = computeFilters(url.searchParams)
-  selectors.template = { key: EventTemplateKey.DayOff }
-
-  const defaults = getDefaultDateRange()
-  const defaultFrom = defaults.from.toISOString().split('T')[0]
-  const defaultTo = defaults.to.toISOString().split('T')[0]
+  const { timezone } = context.get(congregationContext)
+  const now = new Date()
+  const today = dayOf(now, timezone)
+  const period = absencePeriod(new URL(request.url).searchParams, today)
+  const canViewPrograms = permissions.has(Permission.CanViewPrograms)
+  const canAssignParts = permissions.has(Permission.CanAssignProgramParts)
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
-
-    const [rawEvents, publishers] = await Promise.all([
-      db.event.findMany({
-        where: { ...selectors, congregationId },
-        include: { createdBy: { include: { member: { select: { id: true, firstname: true, lastname: true } } } } },
-        orderBy: [{ startDate: 'asc' }],
+    // Responsible of a template: the event's page lets them fill its slots without the right to assign.
+    const responsibleFor = (scope: ResponsibilityScope) =>
+      canViewPrograms && !canAssignParts ? getResponsibleTemplateIds(db, currentUser.id, congregationId, scope) : []
+    const [absences, hasAnyAbsence, partTemplateIds, serviceTemplateIds] = await Promise.all([
+      listCongregationAbsences(db, {
+        congregationId,
+        from: startOfDay(period.from, timezone),
+        to: endOfDay(period.to, timezone),
       }),
-      db.member.findMany({
-        where: { congregationId, leftAt: null },
-        orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
-        select: { id: true, firstname: true, lastname: true },
-      }),
+      congregationHasAbsences(db, congregationId),
+      responsibleFor(ResponsibilityScope.Programme),
+      responsibleFor(ResponsibilityScope.Service),
     ])
-
-    // Flatten the createdBy display name (Member when linked, account fallback otherwise)
-    const events = rawEvents.map(e => ({
-      ...e,
-      createdBy: {
-        firstname: e.createdBy.member?.firstname ?? e.createdBy.firstname,
-        lastname: e.createdBy.member?.lastname ?? e.createdBy.lastname,
-        memberId: e.createdBy.memberId,
-      },
-    }))
-
-    // Find conflicting events for each day-off (with dates for per-week scoping)
-    const conflictsByDayOff: Record<number, ConflictingEvent[]> = {}
-    for (const event of events) {
-      // Event parts and event service parts are bound to Member ids; resolve via the creator's linked member
-      const memberId = event.createdBy.memberId
-      const [parts, serviceAssignments] = memberId
-        ? await Promise.all([
-            db.eventPart.findMany({
-              where: {
-                hasConflict: true,
-                congregationId,
-                event: {
-                  startDate: { lte: event.endDate },
-                  endDate: { gte: event.startDate },
-                  templateId: { not: null },
-                },
-                OR: [{ assigneeId: memberId }, { assistantId: memberId }],
-              },
-              select: { event: { select: { id: true, name: true, startDate: true } } },
-            }),
-            db.eventServicePart.findMany({
-              where: {
-                hasConflict: true,
-                congregationId,
-                assigneeId: memberId,
-                event: {
-                  startDate: { lte: event.endDate },
-                  endDate: { gte: event.startDate },
-                  templateId: { not: null },
-                },
-              },
-              select: { event: { select: { id: true, name: true, startDate: true } } },
-            }),
-          ])
-        : [[], []]
-
-      // Deduplicate by event ID
-      const seen = new Set<number>()
-      const conflicts: ConflictingEvent[] = []
-      for (const a of [...parts, ...serviceAssignments]) {
-        if (!seen.has(a.event.id)) {
-          seen.add(a.event.id)
-          conflicts.push({
-            eventId: a.event.id,
-            eventName: a.event.name,
-            eventDate: a.event.startDate.toISOString(),
-          })
-        }
-      }
-
-      if (conflicts.length > 0) conflictsByDayOff[event.id] = conflicts
-    }
-
-    // Check if any day-offs exist at all (for contextual empty state)
-    const totalDayOffCount = await db.event.count({
-      where: { congregationId, template: { key: EventTemplateKey.DayOff } },
-    })
-    const hasAnyDaysOff = events.length > 0 || totalDayOffCount > 0
-
-    // Total conflict count for summary
-    const totalConflicts = Object.values(conflictsByDayOff).reduce((sum, c) => sum + c.length, 0)
+    const rights: ReassignRights = { canViewPrograms, canAssignParts, partTemplateIds, serviceTemplateIds }
+    const canOpenRecords = permissions.has(Permission.CanViewPublishers)
 
     return {
-      events,
-      publishers,
-      conflictsByDayOff,
-      totalConflicts,
-      hasAnyDaysOff,
-      defaults: { from: defaultFrom, to: defaultTo },
+      // Only what the page shows: no template ids, and a link only where the reader may follow it.
+      absences: absences.map(absence => ({
+        id: absence.id,
+        startDate: absence.startDate,
+        endDate: absence.endDate,
+        declaredAt: absence.declaredAt,
+        name: formatPersonName(absence),
+        recordHref: canOpenRecords && absence.memberId != null ? `/publishers/${absence.memberId}/view` : null,
+        conflicts: absence.conflicts.map(conflict => {
+          const action = conflictAction(conflict, rights)
+          return {
+            key: assignKey(conflict),
+            name: conflict.name,
+            eventDate: conflict.eventDate,
+            href: reassignHref(conflict, action),
+            action,
+          }
+        }),
+      })),
+      period,
+      preset: selectedPreset(period, today),
+      today,
+      now,
+      hasAnyAbsence,
       canViewPrograms,
       // Absences cover whole days in the congregation's zone: weeks and days are read there.
-      timeZone: context.get(congregationContext).timezone,
+      timeZone: timezone,
     }
   })
 }
 
-export default function DaysOffListPage({ loaderData }: Route.ComponentProps) {
-  const {
-    events = [],
-    publishers,
-    conflictsByDayOff,
-    totalConflicts,
-    hasAnyDaysOff,
-    defaults,
-    canViewPrograms,
-    timeZone,
-  } = loaderData
-  const weekGroups = groupEventsByWeek(events, timeZone)
-  const locale = getLocale()
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+// The search and « À revoir » narrow the loaded list in the page: only a new period reads the database again.
+export function shouldRevalidate({
+  currentUrl,
+  nextUrl,
+  formMethod,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs) {
+  if (formMethod != null || currentUrl.pathname !== nextUrl.pathname) return defaultShouldRevalidate
+  const periodOf = (url: URL) => PERIOD_PARAMS.map(name => url.searchParams.get(name)).join('|')
+  return periodOf(currentUrl) !== periodOf(nextUrl)
+}
 
-  const toggleCollapse = (weekKey: string) => {
-    setCollapsed(prev => ({ ...prev, [weekKey]: !prev[weekKey] }))
-  }
+export default function ProgrammeAbsencesPage({ loaderData }: Route.ComponentProps) {
+  const { absences, period, preset, today, now, hasAnyAbsence, canViewPrograms, timeZone } = loaderData
+  const conflicts = absences.reduce((total, absence) => total + absence.conflicts.length, 0)
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex max-w-5xl flex-col gap-4">
       <PageHeader
-        title={m.days_off_admin_page_title()}
-        subtitle={m.days_off_admin_page_subtitle()}
-        backTo={canViewPrograms ? '/programs' : undefined}
+        title={m.programs_absences_title()}
+        titleBadge={
+          absences.length > 0 ? (
+            <span className="text-base text-faint tabular-nums">
+              {absences.length > 1
+                ? m.programs_absences_count_other({ count: absences.length })
+                : m.programs_absences_count_one({ count: absences.length })}
+              {conflicts > 0 &&
+                ` · ${conflicts > 1 ? m.programs_absences_review_other({ count: conflicts }) : m.programs_absences_review_one({ count: conflicts })}`}
+            </span>
+          ) : undefined
+        }
+        subtitle={m.programs_absences_subtitle()}
         breadcrumbs={
           canViewPrograms
             ? [{ label: m.sidebar_programs(), to: '/programs' }, { label: m.sidebar_absences() }]
             : [{ label: m.sidebar_absences() }]
         }
+        controls={hasAnyAbsence ? <AbsencePeriodMenu period={period} preset={preset} today={today} /> : undefined}
       />
-
-      <EventFilters defaults={defaults} publishers={publishers} />
-
-      {events.length < 1 ? (
-        hasAnyDaysOff ? (
-          <EmptyState
-            icon={CalendarOff}
-            title={m.days_off_admin_empty_no_match_title()}
-            description={m.days_off_admin_empty_no_match_description()}
-          />
-        ) : (
-          <EmptyState
-            icon={CalendarOff}
-            title={m.days_off_admin_empty_title()}
-            description={m.days_off_admin_empty_description()}
-          />
-        )
-      ) : (
-        <div className="flex flex-col gap-4">
-          <p className="text-muted-foreground text-sm">
-            {totalConflicts > 0
-              ? m.days_off_admin_summary_conflicts({
-                  count: String(events.length),
-                  conflicts: String(totalConflicts),
-                })
-              : m.days_off_admin_summary({ count: String(events.length) })}
-          </p>
-
-          {[...weekGroups.entries()].map(([mondayKey, weekEvents], index) => {
-            const formattedDate = formatEventDate(startOfDay(mondayKey, timeZone), timeZone, locale, {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-            })
-            const isCollapsed = collapsed[mondayKey] ?? false
-            const weekHasConflicts = weekEvents.some(e => {
-              const allConflicts = conflictsByDayOff[e.id] ?? []
-              return getConflictsForWeek(allConflicts, mondayKey, timeZone).length > 0
-            })
-
-            return (
-              <Card key={mondayKey} className="animate-fade-in-up" style={{ animationDelay: `${index * 50}ms` }}>
-                <CardHeader className="pb-0">
-                  <button
-                    type="button"
-                    onClick={() => toggleCollapse(mondayKey)}
-                    className="flex w-full cursor-pointer items-center gap-2 text-left"
-                  >
-                    <ChevronRight
-                      className={cn(
-                        'size-5 text-muted-foreground transition-transform duration-200',
-                        !isCollapsed && 'rotate-90',
-                      )}
-                    />
-                    <CardTitle className="flex-1">{m.days_off_admin_week_of({ date: formattedDate })}</CardTitle>
-                    <div className="flex items-center gap-2">
-                      {weekHasConflicts && <AlertTriangle className="size-4 text-destructive" />}
-                      <Badge variant="outline" className="text-xs">
-                        {weekEvents.length}
-                      </Badge>
-                    </div>
-                  </button>
-                </CardHeader>
-
-                <div
-                  className={cn(
-                    'grid transition-[grid-template-rows] duration-200 ease-in-out',
-                    isCollapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]',
-                  )}
-                >
-                  <div className="overflow-hidden">
-                    <CardContent className="pt-3 pb-2">
-                      <div className="flex flex-col gap-1">
-                        {weekEvents.map(event => {
-                          const durationDays = absenceDays(event.startDate, event.endDate, timeZone).count
-                          const isContinuation = weekOf(event.startDate, timeZone) !== mondayKey
-                          const allConflicts = conflictsByDayOff[event.id] ?? []
-                          const weekConflicts = getConflictsForWeek(allConflicts, mondayKey, timeZone)
-                          const dayLabel = (date: Date | string) =>
-                            formatEventDate(date, timeZone, locale, { weekday: 'short', day: 'numeric', month: 'long' })
-                          const hasConflicts = weekConflicts.length > 0
-
-                          return (
-                            <div key={event.id}>
-                              <div
-                                className={cn(
-                                  'rounded-lg px-3 py-2.5',
-                                  hasConflicts
-                                    ? 'border-l-4 border-l-destructive bg-destructive/5'
-                                    : isContinuation
-                                      ? 'border-l-4 border-l-muted-foreground/20'
-                                      : '',
-                                )}
-                              >
-                                <div className="flex items-center justify-between gap-3 max-sm:flex-col max-sm:items-start">
-                                  <div className="flex flex-col gap-0.5">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <span className="font-medium text-sm">
-                                        {m.days_off_admin_absence_of({
-                                          firstname: event.createdBy.firstname ?? '',
-                                          lastname: event.createdBy.lastname?.toLocaleUpperCase() ?? '',
-                                        })}
-                                      </span>
-                                      {isContinuation && (
-                                        <Badge variant="secondary" className="text-xs">
-                                          {m.days_off_admin_continues()}
-                                        </Badge>
-                                      )}
-                                    </div>
-                                    <span className="text-muted-foreground text-xs">
-                                      {m.days_off_date_range({
-                                        startDate: dayLabel(event.startDate),
-                                        endDate: dayLabel(event.endDate),
-                                      })}{' '}
-                                      {m.days_off_admin_duration({ count: String(durationDays) })}
-                                    </span>
-                                  </div>
-                                  <span className="shrink-0 text-muted-foreground text-xs">
-                                    {m.days_off_admin_created_at_label()} <RelativeTime date={event.createdAt} />
-                                  </span>
-                                </div>
-
-                                {hasConflicts && (
-                                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                                    <Badge variant="destructive" className="gap-1 text-xs">
-                                      <AlertTriangle className="size-3" />
-                                      {m.days_off_admin_conflicts({ count: String(weekConflicts.length) })}
-                                    </Badge>
-                                    {weekConflicts.map(conflict => (
-                                      <Link
-                                        key={conflict.eventId}
-                                        to={`/programs/events/${conflict.eventId}`}
-                                        className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs transition-colors hover:bg-muted/80"
-                                      >
-                                        {conflict.eventName}
-                                        <ChevronRight className="size-3" />
-                                      </Link>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </CardContent>
-                  </div>
-                </div>
-              </Card>
-            )
-          })}
-        </div>
-      )}
+      <ProgrammeAbsences
+        absences={absences}
+        period={period}
+        preset={preset}
+        hasAnyAbsence={hasAnyAbsence}
+        timeZone={timeZone}
+        now={new Date(now)}
+      />
     </div>
   )
 }

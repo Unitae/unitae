@@ -23,25 +23,3 @@ export function useOpenFromLink(onOpen: (publisherId: number, params: URLSearchP
     )
   }, [raw])
 }
-
-/**
- * Opens what one address parameter names (`?panel=emergency` on the record, `?visit=<memberId>` on the group page), then
- * drops it, so a reload does not open it again. The old emergency and visit pages redirect here with it.
- */
-export function useOpenParam(name: string, onOpen: (value: string) => void) {
-  const [params, setParams] = useSearchParams()
-  const value = params.get(name)
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once per link; onOpen is fresh each render
-  useEffect(() => {
-    if (value == null || value === '') return
-    onOpen(value)
-    setParams(
-      prev => {
-        prev.delete(name)
-        return prev
-      },
-      { replace: true, preventScrollReset: true },
-    )
-  }, [value])
-}

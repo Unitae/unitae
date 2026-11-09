@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { getConflictsForWeek, groupEventsByWeek, weekOf } from './days-off-helpers'
+import { absenceWeeks, conflictsInWeek, matchesName, weekOf } from './days-off-helpers'
 
 const PARIS = 'Europe/Paris'
 
@@ -19,51 +19,92 @@ describe('weekOf', () => {
   })
 })
 
-describe('groupEventsByWeek', () => {
-  it('puts an absence starting on a Monday in that week, not the one before', () => {
-    const groups = groupEventsByWeek([absence(1, '2026-11-08T23:00:00Z', '2026-11-13T22:59:59.999Z')], PARIS)
+describe('absenceWeeks', () => {
+  const ids = (weeks: ReturnType<typeof absenceWeeks<ReturnType<typeof absence>>>) =>
+    weeks.map(week => [week.monday, week.absences.map(row => (row.continued ? `${row.absence.id}+` : row.absence.id))])
 
-    expect([...groups.keys()]).toEqual(['2026-11-09'])
-  })
-
-  it('places an absence in every week it touches', () => {
-    const groups = groupEventsByWeek([absence(1, '2026-12-20T23:00:00Z', '2027-01-03T22:59:59.999Z')], PARIS)
-
-    expect([...groups.keys()]).toEqual(['2026-12-21', '2026-12-28'])
-  })
-
-  it('keeps the weeks in the order of the absences', () => {
-    const groups = groupEventsByWeek(
-      [
-        absence(1, '2026-11-09T23:00:00Z', '2026-11-10T22:59:59.999Z'),
-        absence(2, '2026-11-16T23:00:00Z', '2026-11-17T22:59:59.999Z'),
-      ],
+  it('lists every week of the period, the ones nobody is away included', () => {
+    const weeks = absenceWeeks(
+      [absence(1, '2026-11-09T23:00:00Z', '2026-11-10T22:59:59.999Z')],
+      { from: '2026-11-11', to: '2026-11-29' },
       PARIS,
     )
 
-    expect([...groups.entries()].map(([week, events]) => [week, events.map(e => e.id)])).toEqual([
+    expect(ids(weeks)).toEqual([
       ['2026-11-09', [1]],
-      ['2026-11-16', [2]],
+      ['2026-11-16', []],
+      ['2026-11-23', []],
     ])
   })
 
-  it('returns nothing for no absence', () => {
-    expect(groupEventsByWeek([], PARIS).size).toBe(0)
+  it('puts an absence starting on a Monday in that week, not the one before', () => {
+    const weeks = absenceWeeks(
+      [absence(1, '2026-11-08T23:00:00Z', '2026-11-13T22:59:59.999Z')],
+      { from: '2026-11-02', to: '2026-11-15' },
+      PARIS,
+    )
+
+    expect(ids(weeks)).toEqual([
+      ['2026-11-02', []],
+      ['2026-11-09', [1]],
+    ])
+  })
+
+  it('places an absence in every week it touches, marked as continued after its first', () => {
+    const weeks = absenceWeeks(
+      [absence(1, '2026-12-20T23:00:00Z', '2027-01-03T22:59:59.999Z')],
+      { from: '2026-12-21', to: '2027-01-03' },
+      PARIS,
+    )
+
+    expect(ids(weeks)).toEqual([
+      ['2026-12-21', [1]],
+      ['2026-12-28', ['1+']],
+    ])
+  })
+
+  it('marks as continued an absence that began before the period', () => {
+    const weeks = absenceWeeks(
+      [absence(1, '2026-11-06T23:00:00Z', '2026-11-18T22:59:59.999Z')],
+      { from: '2026-11-09', to: '2026-11-15' },
+      PARIS,
+    )
+
+    expect(ids(weeks)).toEqual([['2026-11-09', ['1+']]])
+  })
+
+  it('keeps the order of the absences within a week', () => {
+    const weeks = absenceWeeks(
+      [
+        absence(2, '2026-11-09T23:00:00Z', '2026-11-10T22:59:59.999Z'),
+        absence(1, '2026-11-11T23:00:00Z', '2026-11-12T22:59:59.999Z'),
+      ],
+      { from: '2026-11-09', to: '2026-11-15' },
+      PARIS,
+    )
+
+    expect(ids(weeks)).toEqual([['2026-11-09', [2, 1]]])
   })
 })
 
-describe('getConflictsForWeek', () => {
+describe('conflictsInWeek', () => {
   const conflicts = [
-    { eventId: 1, eventName: 'Réunion de semaine', eventDate: '2026-11-12T18:00:00Z' },
-    { eventId: 2, eventName: 'Réunion de week-end', eventDate: '2026-11-15T09:00:00Z' },
-    { eventId: 3, eventName: 'Réunion de semaine', eventDate: '2026-11-19T18:00:00Z' },
+    { id: 1, eventDate: '2026-11-12T18:00:00Z' },
+    { id: 2, eventDate: '2026-11-15T09:00:00Z' },
+    { id: 3, eventDate: '2026-11-19T18:00:00Z' },
   ]
 
-  it('keeps the conflicts of the week, Sunday included', () => {
-    expect(getConflictsForWeek(conflicts, '2026-11-09', PARIS).map(c => c.eventId)).toEqual([1, 2])
+  it('keeps the assignments falling in the week, its Sunday included', () => {
+    expect(conflictsInWeek(conflicts, '2026-11-09', PARIS).map(c => c.id)).toEqual([1, 2])
+    expect(conflictsInWeek(conflicts, '2026-11-16', PARIS).map(c => c.id)).toEqual([3])
   })
+})
 
-  it('leaves out the following Monday onwards', () => {
-    expect(getConflictsForWeek(conflicts, '2026-11-16', PARIS).map(c => c.eventId)).toEqual([3])
+describe('matchesName', () => {
+  it('finds a name from any part of it, whatever its case and accents', () => {
+    expect(matchesName('Élodie MARTIN', 'elodie')).toBe(true)
+    expect(matchesName('Élodie MARTIN', 'mart')).toBe(true)
+    expect(matchesName('Élodie MARTIN', '  ')).toBe(true)
+    expect(matchesName('Élodie MARTIN', 'roux')).toBe(false)
   })
 })

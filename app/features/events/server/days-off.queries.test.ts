@@ -10,10 +10,14 @@ vi.mock('~/features/events/server/list-user-conflicts-in-range.server', () => ({
 }))
 
 vi.mock('~/shared/infra/db.server', () => ({
-  unscopedDb: { event: { findMany: vi.fn(), findFirst: vi.fn() } },
+  unscopedDb: {
+    event: { findMany: vi.fn(), findFirst: vi.fn() },
+    eventPart: { findMany: vi.fn() },
+    eventServicePart: { findMany: vi.fn() },
+  },
 }))
 
-const { findOwnDayOff, listMyAbsences } = await import('./days-off.queries')
+const { findOwnDayOff, listCongregationAbsences, listMyAbsences } = await import('./days-off.queries')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 const NOW = new Date('2026-11-11T12:00:00Z')
@@ -77,5 +81,125 @@ describe('findOwnDayOff', () => {
 
     expect(await findOwnDayOff(db, { eventId: 1, accountId: 12, congregationId: 1 })).toEqual(current)
     expect(await findOwnDayOff(db, { eventId: 1, accountId: 99, congregationId: 1 })).toBeNull()
+  })
+})
+
+describe('listCongregationAbsences', () => {
+  const FROM = new Date('2026-11-08T23:00:00Z')
+  const TO = new Date('2026-12-31T22:59:59.999Z')
+  const declared = new Date('2026-11-02T10:00:00Z')
+  const account = (memberId: number | null, firstname: string, lastname: string) => ({
+    firstname: `${firstname} (compte)`,
+    lastname: `${lastname} (compte)`,
+    member: memberId == null ? null : { id: memberId, firstname, lastname },
+  })
+  const meeting = (id: number, startDate: string, templateId: number | null = 4) => ({
+    id,
+    startDate: new Date(startDate),
+    endDate: new Date(new Date(startDate).getTime() + 2 * 60 * 60 * 1000),
+    templateId,
+  })
+  // Élodie (member 5) is away 10–13 Nov; Paul (member 7) 21 Dec – 3 Jan.
+  const elodie = { ...current, createdAt: declared, createdBy: account(5, 'Élodie', 'Martin') }
+  const paul = { ...later, createdAt: declared, createdBy: account(7, 'Paul', 'Roux') }
+
+  // Regression: the page offered people by member id and filtered absences by the account that declared them, so
+  // picking someone matched nobody. An absence now names its person by their member record.
+  it('names the person away by their member record, not by the account that declared the absence', async () => {
+    vi.mocked(db.event.findMany).mockResolvedValue([elodie] as never)
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([])
+    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([])
+
+    const [absence] = await listCongregationAbsences(db, { congregationId: 1, from: FROM, to: TO })
+
+    expect(absence).toMatchObject({ id: 1, memberId: 5, firstname: 'Élodie', lastname: 'Martin', declaredAt: declared })
+  })
+
+  it('gives each absence the flagged assignments of its own person that fall during it', async () => {
+    vi.mocked(db.event.findMany).mockResolvedValue([elodie, paul] as never)
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
+      {
+        id: 12,
+        name: 'Lecture de la Bible',
+        assigneeId: 5,
+        assistantId: null,
+        event: meeting(31, '2026-11-12T18:00:00Z'),
+      },
+      // Élodie's part the week after her absence: not during it.
+      { id: 13, name: 'Prière', assigneeId: 5, assistantId: null, event: meeting(32, '2026-11-19T18:00:00Z') },
+      // Paul as the assistant of someone else's part.
+      {
+        id: 14,
+        name: 'Démonstration',
+        assigneeId: 9,
+        assistantId: 7,
+        event: meeting(40, '2026-12-27T09:00:00Z', null),
+      },
+    ] as never)
+    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([
+      { id: 7, name: 'Sonorisation', assigneeId: 7, event: meeting(39, '2026-12-24T18:00:00Z') },
+    ] as never)
+
+    const result = await listCongregationAbsences(db, { congregationId: 1, from: FROM, to: TO })
+
+    expect(result.map(a => [a.id, a.conflicts])).toEqual([
+      [
+        1,
+        [
+          {
+            kind: 'part',
+            id: 12,
+            name: 'Lecture de la Bible',
+            eventId: 31,
+            eventDate: new Date('2026-11-12T18:00:00Z'),
+            templateId: 4,
+          },
+        ],
+      ],
+      [
+        2,
+        [
+          {
+            kind: 'service',
+            id: 7,
+            name: 'Sonorisation',
+            eventId: 39,
+            eventDate: new Date('2026-12-24T18:00:00Z'),
+            templateId: 4,
+          },
+          {
+            kind: 'part',
+            id: 14,
+            name: 'Démonstration',
+            eventId: 40,
+            eventDate: new Date('2026-12-27T09:00:00Z'),
+            templateId: null,
+          },
+        ],
+      ],
+    ])
+  })
+
+  // The old page ran two queries per absence.
+  it('reads the flagged assignments of everyone away in one query per kind', async () => {
+    vi.mocked(db.event.findMany).mockResolvedValue([elodie, paul] as never)
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([])
+    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([])
+
+    await listCongregationAbsences(db, { congregationId: 1, from: FROM, to: TO })
+
+    expect(vi.mocked(db.eventPart.findMany).mock.calls).toHaveLength(1)
+    expect(vi.mocked(db.eventServicePart.findMany).mock.calls).toHaveLength(1)
+  })
+
+  it('looks for no assignment when nobody away has a member, which alone can hold one', async () => {
+    vi.mocked(db.event.findMany).mockResolvedValue([
+      { ...elodie, createdBy: account(null, 'Admin', 'Compte') },
+    ] as never)
+
+    const [absence] = await listCongregationAbsences(db, { congregationId: 1, from: FROM, to: TO })
+
+    expect(absence).toMatchObject({ memberId: null, firstname: 'Admin (compte)', conflicts: [] })
+    expect(vi.mocked(db.eventPart.findMany).mock.calls).toHaveLength(0)
   })
 })

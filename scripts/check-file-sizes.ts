@@ -65,7 +65,6 @@ const EXEMPT_FILES = new Set<string>([
 
   // Route components >300L (11) — remaining after Wave 4.
   'app/features/congregation/routes/roles/role-list.tsx', //               316
-  'app/features/events/routes/programs/days-off.tsx', //                   345
   'app/features/events/routes/programs/events/view.tsx', //                585
   'app/features/events/routes/programs/list.tsx', //                       374
   'app/features/events/routes/programs/new.tsx', //                        487

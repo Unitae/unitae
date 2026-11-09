@@ -3,11 +3,13 @@ import { CalendarDays, FileText, Loader2, MoreHorizontal, Pencil, Send, Trash2 }
 import { useEffect, useState } from 'react'
 import { Link, useFetcher } from 'react-router'
 import { EventStatus } from '~/features/events/model/event-status.type'
+import { parseAssignKey } from '~/features/events/model/reassign'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 import { useCloseOnSave } from '~/shared/ui/hooks/use-close-on-save'
+import { useOpenParam } from '~/shared/ui/hooks/use-open-param'
 import { useSideEditor } from '~/shared/ui/hooks/use-side-editor'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -80,6 +82,11 @@ export function EventView({
   const part = target?.kind === 'part' ? event.eventParts.find(item => item.id === target.id) : undefined
   const service = target?.kind === 'service' ? event.eventServiceParts.find(item => item.id === target.id) : undefined
 
+  // `?assign=part-12` opens that slot's panel: the absences page links here to reassign a part someone is away for.
+  useOpenParam('assign', value => {
+    const slot = parseAssignKey(value)
+    if (slot != null && (slot.kind === 'part' ? canAssign : canAssignService)) panel.open({ ...slot, trigger: null })
+  })
   useEffect(() => setDirty(panel.dirty), [panel.dirty, setDirty])
   useCloseOnSave(partFetcher, panel.close)
   useCloseOnSave(serviceFetcher, panel.close)

@@ -28,9 +28,10 @@ vi.mock('~/shared/auth/route-context.server', () => ({
   withScopeFromContext: (_context: unknown, fn: (db: unknown) => unknown) => fn(fakeDb),
 }))
 
-vi.mock('~/shared/infra/logger.server', () => ({
-  default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-}))
+vi.mock('~/shared/infra/logger.server', () => {
+  const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
+  return { default: logger, createLogger: () => logger }
+})
 
 function contextWith(permissions: Permission[]) {
   return {
