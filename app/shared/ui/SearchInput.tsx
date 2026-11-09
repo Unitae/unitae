@@ -20,14 +20,13 @@ export function SearchInput({ paramName = 'q', placeholder, delay = 300 }: Searc
   const [value, setValue] = useState(initialValue)
   const debounced = useDebouncedValue(value, delay)
   const isSearching = navigation.state === 'loading' && value !== initialValue
-  const isFirstRender = useRef(true)
+  // The settled text last written to the address: nothing is written on mount, and a new address alone (the search
+  // cleared from outside the field, which also renews setSearchParams) does not write the old text back.
+  const written = useRef(debounced)
 
   useEffect(() => {
-    // Skip the first render to avoid triggering a search on mount
-    if (isFirstRender.current) {
-      isFirstRender.current = false
-      return
-    }
+    if (debounced === written.current) return
+    written.current = debounced
 
     setSearchParams(
       prev => {
