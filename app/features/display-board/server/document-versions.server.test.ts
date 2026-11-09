@@ -2,10 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockDeleteFile = vi.fn()
 const mockDeleteBoardFile = vi.fn()
+const mockGetBoardFile = vi.fn()
 const mockThumbnailQueueAdd = vi.fn()
 
 vi.mock('./document.server', () => ({ deleteFile: mockDeleteFile }))
-vi.mock('./document-storage.server', () => ({ deleteBoardFile: mockDeleteBoardFile }))
+vi.mock('./document-storage.server', () => ({ deleteBoardFile: mockDeleteBoardFile, getBoardFile: mockGetBoardFile }))
 vi.mock('./thumbnail-queue.server', () => ({
   thumbnailQueue: { add: mockThumbnailQueueAdd },
 }))
@@ -35,6 +36,7 @@ const { createVersionForUpload, deleteAllVersionFiles, restoreDocumentVersion } 
 
 beforeEach(() => {
   vi.resetAllMocks()
+  mockGetBoardFile.mockResolvedValue({ body: new ReadableStream(), contentType: 'application/pdf' })
 })
 
 describe('createVersionForUpload', () => {
@@ -114,6 +116,23 @@ describe('restoreDocumentVersion', () => {
       documentId: 100,
       pdfStorageKey: 'board/old.pdf',
     })
+  })
+
+  it('refuses a version whose file is gone, and leaves the document on its current file', async () => {
+    mockDb.boardDocumentVersion.findUnique.mockResolvedValue({
+      id: 5,
+      documentId: 100,
+      uri: 'board/lost.pdf',
+      versionNumber: 3,
+    })
+    mockDb.boardDocument.findUnique.mockResolvedValue({ uri: 'board/current.pdf', thumbnailUri: null })
+    mockGetBoardFile.mockResolvedValue(null)
+
+    const result = await restoreDocumentVersion(dbCast, 100, 5, 1, 42)
+
+    expect(result).toBeNull()
+    expect(mockDb.boardDocument.update).not.toHaveBeenCalled()
+    expect(mockDb.boardDocumentVersion.create).not.toHaveBeenCalled()
   })
 
   it('does not delete the current thumbnail when the document had none', async () => {
