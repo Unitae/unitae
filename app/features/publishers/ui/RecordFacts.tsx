@@ -1,5 +1,6 @@
 import { FactList, Panel } from '@unitae/ui'
 import { Pencil } from 'lucide-react'
+import { useEffect, useRef } from 'react'
 
 import { formatCalendarDay } from '~/features/publishers/model/calendar-day'
 import type { PublisherRecord } from '~/features/publishers/server/publisher-record.queries'
@@ -156,22 +157,29 @@ interface EmergencyBlockProps {
 }
 
 function EmergencyBlock({ info, canManage, open, onOpen }: EmergencyBlockProps) {
+  const ref = useRef<HTMLDivElement>(null)
+  // Opening its panel reflows the page into one column: the block being edited is brought back into view.
+  useEffect(() => {
+    if (open) ref.current?.scrollIntoView({ block: 'nearest' })
+  }, [open])
   return (
-    <Panel
-      title={m.publishers_emergency_section_title()}
-      padded
-      className={cn(open && 'ring-2 ring-ring')}
-      actions={
-        canManage && (
-          <Button variant="ghost" size="sm" onClick={event => onOpen(event.currentTarget)}>
-            <Pencil />
-            {m.publishers_emergency_edit_link()}
-          </Button>
-        )
-      }
-    >
-      <EmergencyFacts info={info} />
-    </Panel>
+    <div ref={ref} className="scroll-mt-4">
+      <Panel
+        title={m.publishers_emergency_section_title()}
+        padded
+        className={cn(open && 'ring-2 ring-ring')}
+        actions={
+          canManage && (
+            <Button variant="ghost" size="sm" onClick={event => onOpen(event.currentTarget)}>
+              <Pencil />
+              {m.publishers_emergency_edit_link()}
+            </Button>
+          )
+        }
+      >
+        <EmergencyFacts info={info} />
+      </Panel>
+    </div>
   )
 }
 
