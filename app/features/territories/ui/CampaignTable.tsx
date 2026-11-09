@@ -95,7 +95,7 @@ function State({ row }: { row: CampaignListRow }) {
   const short = (day: string) => formatCampaignDay(day)
   if (row.status === 'active') {
     return (
-      <Tag tone="brand">
+      <Tag tone="brand" className="gap-1.5">
         <span aria-hidden="true" className="size-1.5 rounded-full bg-brand" />
         {m.campaigns_state_active_until({ date: short(row.endDay) })}
       </Tag>

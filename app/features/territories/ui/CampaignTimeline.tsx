@@ -52,7 +52,8 @@ export function CampaignTimeline({
     if (steps.end === 'done') return m.campaigns_tl_close_campaign_done()
     if (!endDay) return m.campaigns_tl_close_campaign_undated()
     return m.campaigns_tl_close_campaign_next({
-      date: formatCampaignDay(addDays(endDay, 1), { day: 'numeric', month: 'short' }),
+      // The month written out: an abbreviated one ends in a period that would double the sentence's.
+      date: formatCampaignDay(addDays(endDay, 1), { day: 'numeric', month: 'long' }),
     })
   }
   const endSentence = (key: CampaignLifecyclePreview['end'][number]) =>
@@ -118,14 +119,17 @@ function Step({
       {!last && (
         <span
           aria-hidden="true"
-          className={cn('absolute top-8 bottom-[-10px] left-[9px] w-0.5', state === 'done' ? 'bg-brand' : 'bg-border')}
+          className={cn(
+            'absolute top-8 bottom-[-10px] left-[9px] w-0.5',
+            state === 'done' ? 'bg-primary' : 'bg-border',
+          )}
         />
       )}
       <span
         aria-hidden="true"
         className={cn(
           'mt-px grid size-5 place-content-center rounded-full',
-          state === 'done' && 'bg-brand text-white',
+          state === 'done' && 'bg-primary text-primary-foreground',
           state === 'now' && 'border-2 border-brand bg-surface',
           state === 'next' && 'border-2 border-border-strong bg-surface',
         )}

@@ -6,7 +6,7 @@ import * as m from '~/i18n/paraglide/messages'
 import { cn } from '~/shared/utils/utils'
 
 const TILE: Record<TileState, string> = {
-  back: 'border-brand bg-brand font-medium text-white',
+  back: 'border-primary bg-primary font-medium text-primary-foreground',
   out: 'border-brand bg-brand-soft font-medium text-brand-text',
   todo: 'border-border bg-surface text-muted-foreground',
 }

@@ -7,7 +7,7 @@ import * as m from '~/i18n/paraglide/messages'
 export function CampaignStateTag({ status }: { status: CampaignStatus }) {
   if (status === 'active') {
     return (
-      <Tag tone="brand">
+      <Tag tone="brand" className="gap-1.5">
         <span aria-hidden="true" className="size-1.5 rounded-full bg-brand" />
         {m.campaigns_tag_active()}
       </Tag>
