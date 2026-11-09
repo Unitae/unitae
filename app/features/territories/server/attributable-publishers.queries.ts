@@ -30,6 +30,8 @@ export async function findAttributablePublishers(
 ) {
   const publishers = await db.member.findMany({
     where: { isPublisher: true, leftAt: null, congregationId },
+    // The picker shows names only: nothing else of a member reaches the page.
+    select: { id: true, firstname: true, lastname: true },
     orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
   })
 

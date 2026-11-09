@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { pmrStatusLabels } from '~/features/territories/model/pmr-status'
-import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
-import { buildAttributionFilterChips, buildTerritoryFilterChips } from './build-filter-chips'
+import { buildTerritoryFilterChips } from './build-filter-chips'
 
 describe('buildTerritoryFilterChips', () => {
   it('returns no chip for empty params', () => {
@@ -46,35 +45,5 @@ describe('buildTerritoryFilterChips', () => {
 
   it('drops a pmr chip when the status is unknown', () => {
     expect(buildTerritoryFilterChips(new URLSearchParams({ pmr: 'mystery' }))).toEqual([])
-  })
-})
-
-describe('buildAttributionFilterChips', () => {
-  it('returns no chip for empty params', () => {
-    expect(buildAttributionFilterChips(new URLSearchParams())).toEqual([])
-  })
-
-  it('drops a group chip when the id is not in the supplied list', () => {
-    expect(buildAttributionFilterChips(new URLSearchParams({ group: '42' }))).toEqual([])
-  })
-
-  it('resolves a known group id to its display name (uppercased)', () => {
-    const chips = buildAttributionFilterChips(new URLSearchParams({ group: '7' }), {
-      groups: [{ id: 7, name: 'Groupe Soleil' }],
-    })
-    expect(chips).toHaveLength(1)
-    expect(chips[0]).toMatchObject({ key: 'group', value: 'GROUPE SOLEIL' })
-  })
-
-  it('maps known attribution kinds and status values', () => {
-    const chips = buildAttributionFilterChips(
-      new URLSearchParams({ type: TerritoryAttributionKind.Phone, status: 'orphaned' }),
-    )
-    const keys = chips.map(c => c.key)
-    expect(keys).toEqual(['type', 'status'])
-  })
-
-  it('drops an attribution kind chip when the value is unknown', () => {
-    expect(buildAttributionFilterChips(new URLSearchParams({ type: 'mystery' }))).toEqual([])
   })
 })

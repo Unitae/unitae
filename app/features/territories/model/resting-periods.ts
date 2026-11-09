@@ -11,6 +11,23 @@ export const RESTING_PERIOD_FOR_DOORS_TO_DOORS = RESTING_PERIOD_DAYS.doorsToDoor
 export const RESTING_PERIOD_FOR_CAMPAIGN = RESTING_PERIOD_DAYS.campaign * MS_PER_DAY
 export const RESTING_PERIOD_FOR_PHONE = RESTING_PERIOD_DAYS.phone * MS_PER_DAY
 
+/**
+ * How long a territory rests once its attribution is rentré: the campaign's own rest after campaign work (15 days
+ * when it sets none), 90 days after door-to-door work, 15 after phone work.
+ */
+export function restDaysAfter({
+  type,
+  campaignId,
+  campaignRestDays,
+}: {
+  type: string
+  campaignId: number | null
+  campaignRestDays: number | null
+}): number {
+  if (campaignId != null) return campaignRestDays ?? RESTING_PERIOD_DAYS.campaign
+  return type === 'Default' ? RESTING_PERIOD_DAYS.doorsToDoors : RESTING_PERIOD_DAYS.phone
+}
+
 // Per-campaign rest: a campaign can override how long its territories stay
 // unavailable after it ends; null falls back to the standard campaign rest.
 export function getCampaignRestCutoff(restPeriodDays: number | null, reference: Date = new Date()): Date {

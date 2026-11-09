@@ -4,6 +4,7 @@ import {
   CalendarCheck,
   CalendarDays,
   CalendarOff,
+  CalendarRange,
   FileText,
   Home,
   LayoutGrid,
@@ -31,6 +32,9 @@ export interface NavigationPermissions {
   canManageDynamicBoardDocuments: boolean
   canViewPublishers: boolean
   canViewTerritories: boolean
+  /** The attributions list, a right of its own. */
+  canViewAttributions: boolean
+  canManageCampaigns: boolean
   canViewProspection: boolean
   canManageTerritories: boolean
   canManageSettings: boolean
@@ -212,21 +216,38 @@ export function buildManagementSections(permissions: NavigationPermissions): Nav
   }
 
   const territoryItems: NavItem[] = []
+  // The territories area admits those who see the territories or the prospection: the attributions and the campaigns
+  // show only inside it, to those holding their own right.
+  const inTerritoryArea = permissions.canViewTerritories || permissions.canViewProspection
+  if (inTerritoryArea && permissions.canViewAttributions) {
+    territoryItems.push({
+      id: 'attributions',
+      label: m.sidebar_attributions,
+      icon: CalendarCheck,
+      to: '/territories/attributions',
+      match: { prefix: '/territories/attributions', exclude: ['/territories/attributions/campaigns'] },
+    })
+  }
+  if (inTerritoryArea && permissions.canManageCampaigns) {
+    territoryItems.push({
+      id: 'campaigns',
+      label: m.sidebar_campaigns,
+      icon: CalendarRange,
+      to: '/territories/attributions/campaigns',
+    })
+  }
   if (permissions.canViewTerritories) {
-    territoryItems.push(
-      { id: 'attributions', label: m.sidebar_attributions, icon: CalendarCheck, to: '/territories/attributions' },
-      {
-        id: 'territories',
-        label: m.sidebar_territories,
-        icon: MapIcon,
-        to: '/territories',
-        end: true,
-        match: {
-          prefix: '/territories',
-          exclude: ['/territories/attributions', '/territories/buildings', '/territories/stats'],
-        },
+    territoryItems.push({
+      id: 'territories',
+      label: m.sidebar_territories,
+      icon: MapIcon,
+      to: '/territories',
+      end: true,
+      match: {
+        prefix: '/territories',
+        exclude: ['/territories/attributions', '/territories/buildings', '/territories/stats'],
       },
-    )
+    })
   }
   if (permissions.canViewProspection) {
     territoryItems.push({
@@ -283,6 +304,8 @@ const EVERY_PERMISSION: NavigationPermissions = {
   canManageDynamicBoardDocuments: true,
   canViewPublishers: true,
   canViewTerritories: true,
+  canViewAttributions: true,
+  canManageCampaigns: true,
   canViewProspection: true,
   canManageTerritories: true,
   canManageSettings: true,

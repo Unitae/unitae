@@ -18,6 +18,7 @@ export const territoryManagementRoutes = [
         route(':campaignId/edit', 'features/territories/routes/campaigns/edit.tsx'),
         route(':campaignId/delete', 'features/territories/routes/campaigns/delete.tsx'),
       ]),
+      route('panel', 'features/territories/routes/attributions/panel.tsx'),
       route('new/available-territories', 'features/territories/routes/attributions/territories.tsx'),
       route('new', 'features/territories/routes/attributions/new.tsx'),
       route(':attributionId/edit', 'features/territories/routes/attributions/edit.tsx'),

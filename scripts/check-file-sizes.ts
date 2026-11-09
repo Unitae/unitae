@@ -70,7 +70,6 @@ const EXEMPT_FILES = new Set<string>([
   'app/features/settings/routes/congregation/templates/edit.tsx', //       617
   'app/features/settings/routes/territories/settings.tsx', //              351
   'app/features/settings/routes/users/edit-user.tsx', //                   457
-  'app/features/territories/routes/attributions/list.tsx', //              377
   'app/features/territories/routes/territory/list.tsx', //                 331
   'app/features/territories/routes/territory/view.tsx', //                 440
 

@@ -20,6 +20,8 @@ function permissions(overrides: Partial<NavigationPermissions> = {}): Navigation
     canManageDynamicBoardDocuments: false,
     canViewPublishers: false,
     canViewTerritories: false,
+    canViewAttributions: false,
+    canManageCampaigns: false,
     canViewProspection: false,
     canManageTerritories: false,
     canManageSettings: false,
@@ -149,6 +151,8 @@ describe('buildManagementSections', () => {
         canViewAbsences: true,
         canViewExternalSpeakers: true,
         canViewTerritories: true,
+        canViewAttributions: true,
+        canManageCampaigns: true,
         canViewProspection: true,
         canManageTerritories: true,
         canManageSettings: true,
@@ -160,7 +164,29 @@ describe('buildManagementSections', () => {
     const programs = sections.find(s => s.id === 'programs')
     expect(programs?.items.map(i => i.id)).toEqual(['programs', 'absences', 'external-speakers'])
     const territories = sections.find(s => s.id === 'territories')
-    expect(territories?.items.map(i => i.id)).toEqual(['attributions', 'territories', 'prospection', 'stats'])
+    expect(territories?.items.map(i => i.id)).toEqual([
+      'attributions',
+      'campaigns',
+      'territories',
+      'prospection',
+      'stats',
+    ])
+  })
+
+  it('shows attributions and campaigns only to those who may open them', () => {
+    const territories = (flags: Parameters<typeof permissions>[0]) =>
+      buildManagementSections(permissions(flags))
+        .find(s => s.id === 'territories')
+        ?.items.map(i => i.id)
+
+    // Seeing the territories is not reading their attributions: the page would send the reader away.
+    expect(territories({ canViewTerritories: true })).toEqual(['territories'])
+    expect(territories({ canViewProspection: true, canViewAttributions: true })).toEqual([
+      'attributions',
+      'prospection',
+    ])
+    // Without access to the territories area, the rights alone open nothing.
+    expect(territories({ canViewAttributions: true, canManageCampaigns: true })).toBeUndefined()
   })
 
   it('shows settings when any settings-adjacent permission is granted', () => {
@@ -188,6 +214,8 @@ describe('isNavItemActive', () => {
       canViewPublishers: true,
       canViewActivity: true,
       canViewTerritories: true,
+      canViewAttributions: true,
+      canManageCampaigns: true,
       canViewPrograms: true,
       canViewAbsences: true,
       canViewExternalSpeakers: true,
@@ -198,6 +226,8 @@ describe('isNavItemActive', () => {
   const publishersItem = assembly?.items.find(i => i.id === 'publishers')
   const programsItem = sections.find(s => s.id === 'programs')?.items.find(i => i.id === 'programs')
   const territoriesItem = territories?.items.find(i => i.id === 'territories')
+  const attributionsItem = territories?.items.find(i => i.id === 'attributions')
+  const campaignsItem = territories?.items.find(i => i.id === 'campaigns')
 
   it('keeps the publishers entry lit on a publisher record page', () => {
     expect(isNavItemActive(publishersItem!, '/publishers/1199/view', false)).toBe(true)
@@ -212,6 +242,12 @@ describe('isNavItemActive', () => {
     expect(isNavItemActive(territoriesItem!, '/territories/territory/575/view', false)).toBe(true)
     expect(isNavItemActive(territoriesItem!, '/territories/attributions/new', false)).toBe(false)
     expect(isNavItemActive(territoriesItem!, '/territories/buildings', false)).toBe(false)
+  })
+
+  it('yields the campaigns their own pages, under the attributions address', () => {
+    expect(isNavItemActive(attributionsItem!, '/territories/attributions/new/available-territories', false)).toBe(true)
+    expect(isNavItemActive(attributionsItem!, '/territories/attributions/campaigns/4', false)).toBe(false)
+    expect(isNavItemActive(campaignsItem!, '/territories/attributions/campaigns/4', true)).toBe(true)
   })
 
   it('keeps the programmes entry lit on an event but yields absences and speakers their own entries', () => {

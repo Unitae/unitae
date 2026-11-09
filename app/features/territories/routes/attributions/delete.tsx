@@ -1,91 +1,10 @@
 import { redirect } from 'react-router'
-
-import { commitSession, getSession } from '~/features/authentication/index.server'
-import { deleteAttribution } from '~/features/territories/server/delete-attribution.server'
-import * as m from '~/i18n/paraglide/messages'
-import {
-  currentAccountContext,
-  permissionsContext,
-  requirePermission,
-  withScopeFromContext,
-} from '~/shared/auth/route-context.server'
-import { Permission } from '~/shared/types/permission'
-import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/delete'
 
-export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Supprimer une attribution — Unitae' }]
-}
-
-export function loader({ params, context }: Route.LoaderArgs) {
-  const permissions = context.get(permissionsContext)
-
-  requirePermission(permissions, Permission.CanManageTerritoryAttributions)
-
-  const { congregationId } = context.get(currentAccountContext)
-
-  return withScopeFromContext(context, async db => {
-    const attribution = await db.attribution.findUnique({
-      where: {
-        id_congregationId: { id: requireParamId(params.attributionId, '/territories/attributions'), congregationId },
-      },
-      include: { publisher: true, territory: true },
-    })
-
-    if (attribution == null) {
-      throw redirect('/territories/attributions')
-    }
-
-    return { attribution }
-  })
-}
-
-export default function DeleteGroup({ loaderData }: Route.ComponentProps) {
-  const { attribution } = loaderData
-
-  return (
-    <DeleteConfirmation
-      title={m.attributions_delete_card_title()}
-      submitLabel={m.attributions_delete_submit({ number: String(attribution.territory.number) })}
-      cancelTo="/territories/attributions"
-    >
-      <p>
-        {attribution.publisher.firstname} — {m.sidebar_territories()} {attribution.territory.number}
-      </p>
-    </DeleteConfirmation>
-  )
-}
-
-export function action({ request, params, context }: Route.ActionArgs) {
-  const permissions = context.get(permissionsContext)
-
-  requirePermission(permissions, Permission.CanManageTerritoryAttributions)
-
-  const { congregationId, id: actorId } = context.get(currentAccountContext)
-
-  return withScopeFromContext(context, async db => {
-    const session = await getSession(request.headers.get('Cookie'))
-    const attribution = await deleteAttribution(
-      db,
-      requireParamId(params.attributionId, '/territories/attributions'),
-      congregationId,
-      actorId,
-    )
-
-    session.flash(
-      'success',
-      m.attributions_delete_flash_success({
-        name: `${attribution.publisher.lastname?.toLocaleUpperCase()} ${attribution.publisher.firstname}`,
-      }),
-    )
-
-    const previousPage = request.headers.get('referer')
-    return redirect(previousPage ?? '/territories/attributions', {
-      headers: {
-        'Set-Cookie': await commitSession(session),
-      },
-    })
-  })
+// « Annuler l'attribution » is a dialog of the attribution's side panel: the old address opens the panel.
+export function loader({ params }: Route.LoaderArgs) {
+  const id = requireParamId(params.attributionId, '/territories/attributions')
+  throw redirect(`/territories/attributions?open=${id}`)
 }
