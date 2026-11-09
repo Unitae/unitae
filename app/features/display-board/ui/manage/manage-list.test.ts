@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ManagedItem } from '~/features/display-board/server/board-management.queries'
 import type { ManageSection } from '~/features/display-board/ui/manage/ManageTable'
-import { filterSections, mergeVisibleOrder } from '~/features/display-board/ui/manage/manage-list'
+import { filterSections, mergeVisibleOrder, withPendingHighlight } from '~/features/display-board/ui/manage/manage-list'
 
 const doc = (id: number, title = `Doc ${id}`, state: 'shown' | 'unpublished' = 'shown'): ManagedItem => ({
   kind: 'pdf',
@@ -57,5 +57,25 @@ describe('filterSections', () => {
 
   it('keeps a chosen section even when it is empty', () => {
     expect(run('section=2').map(s => s.name)).toEqual(['Anciens'])
+  })
+})
+
+describe('withPendingHighlight', () => {
+  const sections: ManageSection[] = [{ id: 1, name: 'Assemblée', roles: [], items: [doc(1), doc(2)] }]
+
+  it('shows the rows « à la une » change on its way, and only those', () => {
+    const [section] = withPendingHighlight(sections, { items: [{ kind: 'pdf', id: 2 }], highlighted: true })
+
+    expect(section.items.map(item => item.isHighlighted)).toEqual([false, true])
+  })
+
+  it('reads a dynamic document under the name the request gives it', () => {
+    const dynamic = { ...doc(3), kind: 'dynamic' as const }
+    const [section] = withPendingHighlight([{ ...sections[0], items: [dynamic] }], {
+      items: [{ kind: 'dyn', id: 3 }],
+      highlighted: true,
+    })
+
+    expect(section.items[0].isHighlighted).toBe(true)
   })
 })

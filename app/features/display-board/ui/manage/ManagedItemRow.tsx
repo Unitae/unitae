@@ -1,45 +1,19 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Tag } from '@unitae/ui'
-import { Eye, GripVertical, MoreHorizontal, Pencil } from 'lucide-react'
+import { Eye, GripVertical, Pencil } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router'
 import type { ManagedItem } from '~/features/display-board/server/board-management.queries'
+import { type ItemCallbacks, ManagedItemMenu } from '~/features/display-board/ui/manage/ManagedItemMenu'
+import { canEditItem, itemKey, itemPaths, type ManageRights } from '~/features/display-board/ui/manage/manage-rights'
 import { StateLabel } from '~/features/display-board/ui/manage/StateLabel'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '~/shared/ui/dropdown-menu'
 import { RelativeTime } from '~/shared/ui/RelativeTime'
 import { cn } from '~/shared/utils/utils'
 
-export interface ManageRights {
-  canUpload: boolean
-  canReview: boolean
-  canOrganise: boolean
-  canConfigureSections: boolean
-  canManageDynamic: boolean
-}
-
-export const itemKey = (item: Pick<ManagedItem, 'kind' | 'id'>) => `${item.kind}-${item.id}`
-
-/** Each action behind the right its page checks: an uploader edits only the PDFs they uploaded. */
-export function canEditItem(item: ManagedItem, rights: ManageRights): boolean {
-  if (item.kind === 'dynamic') return rights.canManageDynamic
-  return rights.canReview || (rights.canUpload && item.ownedByUser)
-}
-
 const cellClass = 'h-11 whitespace-nowrap border-border border-b px-3.5'
 const wideOnly = 'max-md:hidden'
-
-function paths(item: ManagedItem) {
-  const base = item.kind === 'pdf' ? `/board/documents/${item.id}` : `/board/dynamic/${item.id}`
-  return { view: `${base}/viewer`, edit: `${base}/edit`, remove: `${base}/delete`, versions: `${base}/versions` }
-}
 
 function ReadsButton({ item, open }: { item: ManagedItem; open: boolean }) {
   const [searchParams] = useSearchParams()
@@ -72,6 +46,10 @@ interface ManagedItemRowProps {
   readsOpen: boolean
   timeZone: string
   compact?: boolean
+  canShiftUp: boolean
+  canShiftDown: boolean
+  moveTargets: { id: number; name: string }[]
+  callbacks: ItemCallbacks
 }
 
 export function ManagedItemRow({
@@ -82,13 +60,17 @@ export function ManagedItemRow({
   readsOpen,
   timeZone,
   compact = false,
+  canShiftUp,
+  canShiftDown,
+  moveTargets,
+  callbacks,
 }: ManagedItemRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: itemKey(item),
     disabled: !rights.canOrganise,
   })
   const editable = canEditItem(item, rights)
-  const to = paths(item)
+  const to = itemPaths(item)
 
   return (
     <tr
@@ -169,29 +151,14 @@ export function ManagedItemRow({
               </Link>
             </Button>
           )}
-          {editable && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon-sm" aria-label={m.board_manage_more({ title: item.title })}>
-                  <MoreHorizontal className="size-4" aria-hidden="true" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild className="md:hidden">
-                  <Link to={to.edit}>{m.board_manage_edit_short()}</Link>
-                </DropdownMenuItem>
-                {item.kind === 'pdf' && (
-                  <DropdownMenuItem asChild>
-                    <Link to={to.versions}>{m.board_manage_versions()}</Link>
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild className="text-destructive">
-                  <Link to={to.remove}>{m.board_manage_delete()}</Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+          <ManagedItemMenu
+            item={item}
+            rights={rights}
+            canShiftUp={canShiftUp}
+            canShiftDown={canShiftDown}
+            moveTargets={moveTargets}
+            callbacks={callbacks}
+          />
         </span>
       </td>
     </tr>

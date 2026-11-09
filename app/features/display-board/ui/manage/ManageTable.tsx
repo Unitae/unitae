@@ -13,7 +13,9 @@ import { MoreHorizontal, Pencil } from 'lucide-react'
 import { useId } from 'react'
 import { Link, useSubmit } from 'react-router'
 import type { ManagedItem } from '~/features/display-board/server/board-management.queries'
-import { itemKey, ManagedItemRow, type ManageRights } from '~/features/display-board/ui/manage/ManagedItemRow'
+import type { ItemCallbacks } from '~/features/display-board/ui/manage/ManagedItemMenu'
+import { ManagedItemRow } from '~/features/display-board/ui/manage/ManagedItemRow'
+import { itemKey, type ManageRights } from '~/features/display-board/ui/manage/manage-rights'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import {
@@ -91,6 +93,10 @@ interface ManageTableProps {
   timeZone: string
   /** Beside the reads panel: « Modifié » steps aside so titles keep their room. */
   compact?: boolean
+  /** Every section, for a row's « Déplacer vers… » even while a filter shows only one. */
+  allSections: { id: number; name: string }[]
+  onMove: ItemCallbacks['onMove']
+  onHighlight: ItemCallbacks['onHighlight']
 }
 
 /**
@@ -107,6 +113,9 @@ export function ManageTable({
   readsKey,
   timeZone,
   compact = false,
+  allSections,
+  onMove,
+  onHighlight,
 }: ManageTableProps) {
   // A stable id, or dnd-kit numbers its describedby ids differently on the server and the client.
   const dndId = useId()
@@ -115,6 +124,16 @@ export function ManageTable({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
   const columns = (rights.canOrganise ? 6 : 5) - (compact ? 1 : 0)
+
+  // « Monter » and « Descendre » move a row past its neighbour among the rows shown, as a drag would.
+  const shift = (section: ManageSection, item: ManagedItem, direction: -1 | 1) => {
+    const from = section.items.findIndex(candidate => itemKey(candidate) === itemKey(item))
+    const to = from + direction
+    if (from < 0 || to < 0 || to >= section.items.length) return
+    const reordered = [...section.items]
+    ;[reordered[from], reordered[to]] = [reordered[to], reordered[from]]
+    onReorder(reordered)
+  }
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over || active.id === over.id) return
@@ -190,7 +209,7 @@ export function ManageTable({
                     </td>
                   </tr>
                 ) : (
-                  section.items.map(item => (
+                  section.items.map((item, index) => (
                     <ManagedItemRow
                       key={itemKey(item)}
                       item={item}
@@ -200,6 +219,10 @@ export function ManageTable({
                       readsOpen={readsKey === itemKey(item)}
                       timeZone={timeZone}
                       compact={compact}
+                      canShiftUp={index > 0}
+                      canShiftDown={index < section.items.length - 1}
+                      moveTargets={allSections.filter(target => target.id !== section.id)}
+                      callbacks={{ onShift: (row, direction) => shift(section, row, direction), onMove, onHighlight }}
                     />
                   ))
                 )}

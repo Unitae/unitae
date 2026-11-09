@@ -1,13 +1,21 @@
-import { SelectionBar } from '@unitae/ui'
 import { FileText, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { Link, redirect, useFetcher, useSearchParams } from 'react-router'
 import { documentReads } from '~/features/display-board/server/board-audience.queries'
 import { listBoardManagement, type ManagedItem } from '~/features/display-board/server/board-management.queries'
-import { itemKey, type ManageRights } from '~/features/display-board/ui/manage/ManagedItemRow'
+import { ManageSelectionBar } from '~/features/display-board/ui/manage/ManageSelectionBar'
 import { ManageTable } from '~/features/display-board/ui/manage/ManageTable'
 import { ManageToolbar } from '~/features/display-board/ui/manage/ManageToolbar'
-import { filterSections, mergeVisibleOrder, withPendingOrder } from '~/features/display-board/ui/manage/manage-list'
+import {
+  filterSections,
+  type ItemPayload,
+  mergeVisibleOrder,
+  type PendingHighlight,
+  toPayload,
+  withPendingHighlight,
+  withPendingOrder,
+} from '~/features/display-board/ui/manage/manage-list'
+import { itemKey, type ManageRights } from '~/features/display-board/ui/manage/manage-rights'
 import { ReadsPanel } from '~/features/display-board/ui/manage/ReadsPanel'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -19,7 +27,6 @@ import {
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 
@@ -72,31 +79,28 @@ export function loader({ request, context }: Route.LoaderArgs) {
   })
 }
 
-const toPayload = (item: Pick<ManagedItem, 'kind' | 'id'>) => ({
-  kind: item.kind === 'pdf' ? 'pdf' : 'dyn',
-  id: item.id,
-})
-
 export default function ManageBoardPage({ loaderData }: Route.ComponentProps) {
   const { sections, reads, readsKey, rights, timeZone } = loaderData
   const [searchParams, setSearchParams] = useSearchParams()
   const reorder = useFetcher()
   const bulk = useFetcher()
+  const highlight = useFetcher()
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
-  const pending = (reorder.json as { orderedItems?: { kind: string; id: number }[] } | undefined)?.orderedItems
-  const ordered = withPendingOrder(sections, pending)
+  const pendingOrder = (reorder.json as { orderedItems?: ItemPayload[] } | undefined)?.orderedItems
+  const pendingHighlight = highlight.json as PendingHighlight | undefined
+  const ordered = withPendingHighlight(withPendingOrder(sections, pendingOrder), pendingHighlight)
   const shown = filterSections(ordered, searchParams)
   const total = sections.reduce((count, s) => count + s.items.length, 0)
-  const runBulk = (action: 'bulk-move' | 'bulk-delete', extra: Record<string, number> = {}) => {
-    const items = [...selected].map(key => {
-      const [kind, id] = key.split('-')
-      return toPayload({ kind: kind as ManagedItem['kind'], id: Number(id) })
-    })
-    bulk.submit(
-      { items, ...extra },
-      { method: 'POST', action: `/board/documents/${action}`, encType: 'application/json' },
-    )
+  const selectedItems = ordered.flatMap(s => s.items).filter(item => selected.has(itemKey(item)))
+  const send = (fetcher: typeof bulk, action: string, body: Record<string, ItemPayload[] | number | boolean>) =>
+    fetcher.submit(body, { method: 'POST', action: `/board/documents/${action}`, encType: 'application/json' })
+  const move = (items: ManagedItem[], sectionId: number) =>
+    send(bulk, 'bulk-move', { items: items.map(toPayload), sectionId })
+  const setHighlighted = (items: ManagedItem[], highlighted: boolean) =>
+    send(highlight, 'bulk-highlight', { items: items.map(toPayload), highlighted })
+  const onSelection = (run: () => void) => {
+    run()
     setSelected(new Set())
   }
 
@@ -179,12 +183,19 @@ export default function ManageBoardPage({ loaderData }: Route.ComponentProps) {
                     const items = section ? mergeVisibleOrder(section.items, visible) : visible
                     reorder.submit(
                       { orderedItems: items.map(toPayload) },
-                      { method: 'POST', action: '/board/documents/reorder', encType: 'application/json' },
+                      {
+                        method: 'POST',
+                        action: '/board/documents/reorder',
+                        encType: 'application/json',
+                      },
                     )
                   }}
                   readsKey={readsKey}
                   timeZone={timeZone}
                   compact={reads != null}
+                  allSections={sections}
+                  onMove={(item, sectionId) => move([item], sectionId)}
+                  onHighlight={setHighlighted}
                 />
               )}
             </div>
@@ -207,31 +218,16 @@ export default function ManageBoardPage({ loaderData }: Route.ComponentProps) {
           />
         )}
 
-        {rights.canOrganise && selected.size > 0 && (
-          <SelectionBar
-            label={m.board_manage_selected({ count: selected.size })}
+        {rights.canOrganise && selectedItems.length > 0 && (
+          <ManageSelectionBar
+            selected={selectedItems}
+            sections={sections}
+            rights={rights}
+            onMove={sectionId => onSelection(() => move(selectedItems, sectionId))}
+            onHighlight={value => onSelection(() => setHighlighted(selectedItems, value))}
+            onDelete={() => onSelection(() => send(bulk, 'bulk-delete', { items: selectedItems.map(toPayload) }))}
             onClear={() => setSelected(new Set())}
-            clearLabel={m.board_manage_clear_selection()}
-            aria-label={m.board_manage_selection_actions()}
-          >
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  {m.board_documents_bulk_move_to()}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="center" side="top">
-                {sections.map(section => (
-                  <DropdownMenuItem key={section.id} onSelect={() => runBulk('bulk-move', { sectionId: section.id })}>
-                    {section.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button variant="ghost" size="sm" className="text-destructive" onClick={() => runBulk('bulk-delete')}>
-              {m.board_documents_bulk_delete()}
-            </Button>
-          </SelectionBar>
+          />
         )}
       </div>
     </>
