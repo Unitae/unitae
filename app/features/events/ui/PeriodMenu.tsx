@@ -2,12 +2,7 @@ import { CalendarDays, Check, ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router'
 
-import {
-  ABSENCE_PRESETS,
-  type AbsencePeriod,
-  type AbsencePreset,
-  presetEnd,
-} from '~/features/events/model/absence-period'
+import { type ListPeriod, PERIOD_PRESETS, type PeriodPreset, presetEnd } from '~/features/events/model/list-period'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
@@ -16,10 +11,10 @@ import { Label } from '~/shared/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '~/shared/ui/popover'
 import { cn } from '~/shared/utils/utils'
 
-const PRESET_LABELS: Record<AbsencePreset, () => string> = {
-  '4-weeks': m.programs_absences_preset_4_weeks,
-  'next-month': m.programs_absences_preset_next_month,
-  '3-months': m.programs_absences_preset_3_months,
+const PRESET_LABELS: Record<PeriodPreset, () => string> = {
+  '4-weeks': m.list_period_preset_4_weeks,
+  'next-month': m.list_period_preset_next_month,
+  '3-months': m.list_period_preset_3_months,
 }
 
 // Node's and the browser's ICU space a range differently: the server's text must match the client's.
@@ -34,15 +29,15 @@ export function formatDay(day: string): string {
 }
 
 /** « 9 nov. – 31 déc. 2026 ». */
-export function formatDays(period: AbsencePeriod): string {
+export function formatDays(period: ListPeriod): string {
   return new Intl.DateTimeFormat(getLocale(), { timeZone: 'UTC', day: 'numeric', month: 'short', year: 'numeric' })
     .formatRange(noon(period.from), noon(period.to))
     .replace(SPACES, ' ')
 }
 
-interface AbsencePeriodMenuProps {
-  period: AbsencePeriod
-  preset: AbsencePreset | null
+interface PeriodMenuProps {
+  period: ListPeriod
+  preset: PeriodPreset | null
   /** `YYYY-MM-DD` in the congregation's zone. */
   today: string
 }
@@ -51,7 +46,7 @@ interface AbsencePeriodMenuProps {
  * The period on the title's row: three choices starting today, or two days picked by hand. A choice applies at once,
  * with no « Filtrer » button; a preset also closes the menu, the days stay open for the second one.
  */
-export function AbsencePeriodMenu({ period, preset, today }: AbsencePeriodMenuProps) {
+export function PeriodMenu({ period, preset, today }: PeriodMenuProps) {
   const [, setParams] = useSearchParams()
   const [open, setOpen] = useState(false)
   const apply = (next: Record<string, string | null>) =>
@@ -69,11 +64,7 @@ export function AbsencePeriodMenu({ period, preset, today }: AbsencePeriodMenuPr
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          aria-label={m.programs_absences_period_aria({ period: formatDays(period) })}
-        >
+        <Button variant="outline" size="sm" aria-label={m.list_period_aria({ period: formatDays(period) })}>
           <CalendarDays aria-hidden="true" className="text-faint" />
           <span className="tabular-nums">{formatDays(period)}</span>
           <ChevronDown aria-hidden="true" className="text-faint" />
@@ -81,8 +72,8 @@ export function AbsencePeriodMenu({ period, preset, today }: AbsencePeriodMenuPr
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-1.5">
         <fieldset className="flex flex-col gap-0.5">
-          <legend className="sr-only">{m.programs_absences_period_label()}</legend>
-          {ABSENCE_PRESETS.map(choice => (
+          <legend className="sr-only">{m.list_period_label()}</legend>
+          {PERIOD_PRESETS.map(choice => (
             <button
               key={choice}
               type="button"
@@ -106,18 +97,18 @@ export function AbsencePeriodMenu({ period, preset, today }: AbsencePeriodMenuPr
         <div className="my-1.5 h-px bg-border" />
         <div key={`${period.from}-${period.to}`} className="grid grid-cols-2 gap-2 px-1 pt-1 pb-1.5">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="absences-from">{m.programs_absences_period_from()}</Label>
+            <Label htmlFor="period-from">{m.list_period_from()}</Label>
             <Input
-              id="absences-from"
+              id="period-from"
               type="date"
               defaultValue={period.from}
               onChange={event => event.target.value && apply({ period: null, from: event.target.value, to: period.to })}
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="absences-to">{m.programs_absences_period_to()}</Label>
+            <Label htmlFor="period-to">{m.list_period_to()}</Label>
             <Input
-              id="absences-to"
+              id="period-to"
               type="date"
               defaultValue={period.to}
               onChange={event =>

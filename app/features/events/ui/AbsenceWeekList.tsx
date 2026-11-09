@@ -8,12 +8,11 @@ import { getLocale } from '~/i18n/paraglide/runtime'
 import { dayOf, startOfDay } from '~/shared/utils/calendar-day'
 import { formatEventDate } from '~/shared/utils/event-time'
 import { cn } from '~/shared/utils/utils'
-
-import { type AbsenceWeek, conflictsInWeek } from './days-off-helpers'
 import { ProgrammeAbsenceRow } from './ProgrammeAbsenceRow'
+import { conflictsInWeek, type PeriodWeek } from './period-weeks'
 
 interface AbsenceWeekListProps {
-  weeks: AbsenceWeek<ProgrammeAbsence>[]
+  weeks: PeriodWeek<ProgrammeAbsence>[]
   /** Show the weeks nobody is away; left out while a search or « À revoir » narrows the list. */
   showEmptyWeeks: boolean
   /** The Monday of this week, `YYYY-MM-DD`. */
@@ -25,7 +24,7 @@ interface AbsenceWeekListProps {
 /** One list, a section per week from Monday to Sunday; a week can fold away, and one nobody is away says so. */
 export function AbsenceWeekList({ weeks, showEmptyWeeks, currentWeek, timeZone, now }: AbsenceWeekListProps) {
   const [folded, setFolded] = useState<Record<string, boolean>>({})
-  const shown = weeks.filter(week => week.absences.length > 0 || showEmptyWeeks)
+  const shown = weeks.filter(week => week.items.length > 0 || showEmptyWeeks)
   const thisYear = dayOf(now, timeZone).slice(0, 4)
 
   return (
@@ -40,7 +39,7 @@ export function AbsenceWeekList({ weeks, showEmptyWeeks, currentWeek, timeZone, 
         const label = m.programs_absences_week_of({ date })
         const current = week.monday === currentWeek
 
-        if (week.absences.length === 0) {
+        if (week.items.length === 0) {
           return (
             <div
               key={week.monday}
@@ -53,8 +52,8 @@ export function AbsenceWeekList({ weeks, showEmptyWeeks, currentWeek, timeZone, 
         }
 
         const open = !folded[week.monday]
-        const review = week.absences.reduce(
-          (total, row) => total + conflictsInWeek(row.absence.conflicts, week.monday, timeZone).length,
+        const review = week.items.reduce(
+          (total, row) => total + conflictsInWeek(row.item.conflicts, week.monday, timeZone).length,
           0,
         )
         const listId = `absences-${week.monday}`
@@ -82,9 +81,9 @@ export function AbsenceWeekList({ weeks, showEmptyWeeks, currentWeek, timeZone, 
                 <span className="font-medium text-brand-text text-xs">{m.programs_absences_this_week()}</span>
               )}
               <span className="text-faint tabular-nums">
-                {week.absences.length > 1
-                  ? m.programs_absences_week_count_other({ count: week.absences.length })
-                  : m.programs_absences_week_count_one({ count: week.absences.length })}
+                {week.items.length > 1
+                  ? m.programs_absences_week_count_other({ count: week.items.length })
+                  : m.programs_absences_week_count_one({ count: week.items.length })}
               </span>
               <span className="flex-1" />
               {review > 0 && (
@@ -97,7 +96,7 @@ export function AbsenceWeekList({ weeks, showEmptyWeeks, currentWeek, timeZone, 
             </button>
             {open && (
               <ul id={listId}>
-                {week.absences.map(({ absence, continued }) => (
+                {week.items.map(({ item: absence, continued }) => (
                   <ProgrammeAbsenceRow
                     key={absence.id}
                     absence={absence}
