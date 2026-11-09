@@ -10,7 +10,7 @@ const VIEWER_PASSWORD = process.env.E2E_PROGRAM_VIEWER_PASSWORD
 
 const PROGRAMS_URL_RE = /\/programs(\?|$)/
 const PROGRAMS_NEW_URL_RE = /\/programs\/new/
-const NEW_EVENT_BUTTON_RE = /^Nouvel? /i
+const NEW_EVENT_BUTTON_RE = /^nouveau$/i
 const NO_TEMPLATE_OPTION_RE = /Aucun modèle/i
 
 test.describe('Program permissions — ProgramManager', () => {
