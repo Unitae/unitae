@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { absenceWeeks, conflictsInWeek, matchesName, weekOf } from './days-off-helpers'
+import { conflictsInWeek, matchesName, periodWeeks, weekOf } from './period-weeks'
 
 const PARIS = 'Europe/Paris'
 
@@ -19,12 +19,12 @@ describe('weekOf', () => {
   })
 })
 
-describe('absenceWeeks', () => {
-  const ids = (weeks: ReturnType<typeof absenceWeeks<ReturnType<typeof absence>>>) =>
-    weeks.map(week => [week.monday, week.absences.map(row => (row.continued ? `${row.absence.id}+` : row.absence.id))])
+describe('periodWeeks', () => {
+  const ids = (weeks: ReturnType<typeof periodWeeks<ReturnType<typeof absence>>>) =>
+    weeks.map(week => [week.monday, week.items.map(row => (row.continued ? `${row.item.id}+` : row.item.id))])
 
   it('lists every week of the period, the ones nobody is away included', () => {
-    const weeks = absenceWeeks(
+    const weeks = periodWeeks(
       [absence(1, '2026-11-09T23:00:00Z', '2026-11-10T22:59:59.999Z')],
       { from: '2026-11-11', to: '2026-11-29' },
       PARIS,
@@ -38,7 +38,7 @@ describe('absenceWeeks', () => {
   })
 
   it('puts an absence starting on a Monday in that week, not the one before', () => {
-    const weeks = absenceWeeks(
+    const weeks = periodWeeks(
       [absence(1, '2026-11-08T23:00:00Z', '2026-11-13T22:59:59.999Z')],
       { from: '2026-11-02', to: '2026-11-15' },
       PARIS,
@@ -51,7 +51,7 @@ describe('absenceWeeks', () => {
   })
 
   it('places an absence in every week it touches, marked as continued after its first', () => {
-    const weeks = absenceWeeks(
+    const weeks = periodWeeks(
       [absence(1, '2026-12-20T23:00:00Z', '2027-01-03T22:59:59.999Z')],
       { from: '2026-12-21', to: '2027-01-03' },
       PARIS,
@@ -64,7 +64,7 @@ describe('absenceWeeks', () => {
   })
 
   it('marks as continued an absence that began before the period', () => {
-    const weeks = absenceWeeks(
+    const weeks = periodWeeks(
       [absence(1, '2026-11-06T23:00:00Z', '2026-11-18T22:59:59.999Z')],
       { from: '2026-11-09', to: '2026-11-15' },
       PARIS,
@@ -74,7 +74,7 @@ describe('absenceWeeks', () => {
   })
 
   it('keeps the order of the absences within a week', () => {
-    const weeks = absenceWeeks(
+    const weeks = periodWeeks(
       [
         absence(2, '2026-11-09T23:00:00Z', '2026-11-10T22:59:59.999Z'),
         absence(1, '2026-11-11T23:00:00Z', '2026-11-12T22:59:59.999Z'),

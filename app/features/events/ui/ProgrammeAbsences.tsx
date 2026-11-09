@@ -2,21 +2,21 @@ import { Panel, Status } from '@unitae/ui'
 import { CalendarOff } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router'
 
-import type { AbsencePeriod, AbsencePreset } from '~/features/events/model/absence-period'
+import type { ListPeriod, PeriodPreset } from '~/features/events/model/list-period'
 import type { ProgrammeAbsence } from '~/features/events/model/programme-absence.type'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { SearchInput } from '~/shared/ui/SearchInput'
 import { cn } from '~/shared/utils/utils'
-import { formatDay } from './AbsencePeriodMenu'
 import { AbsenceWeekList } from './AbsenceWeekList'
-import { absenceWeeks, matchesName, weekOf } from './days-off-helpers'
+import { formatDay } from './PeriodMenu'
+import { matchesName, periodWeeks, weekOf } from './period-weeks'
 
 interface ProgrammeAbsencesProps {
   absences: ProgrammeAbsence[]
-  period: AbsencePeriod
-  preset: AbsencePreset | null
+  period: ListPeriod
+  preset: PeriodPreset | null
   /** Whether anyone has ever declared an absence. */
   hasAnyAbsence: boolean
   timeZone: string
@@ -99,7 +99,7 @@ export function ProgrammeAbsences({ absences, period, preset, hasAnyAbsence, tim
             preset === '3-months' ? undefined : (
               <Button asChild variant="outline" size="sm">
                 <Link to="?period=3-months" preventScrollReset>
-                  {m.programs_absences_show_3_months()}
+                  {m.list_period_show_3_months()}
                 </Link>
               </Button>
             )
@@ -124,7 +124,7 @@ export function ProgrammeAbsences({ absences, period, preset, hasAnyAbsence, tim
         </Panel>
       ) : (
         <AbsenceWeekList
-          weeks={absenceWeeks(shown, period, timeZone)}
+          weeks={periodWeeks(shown, period, timeZone)}
           showEmptyWeeks={!review && query.trim() === ''}
           currentWeek={weekOf(now, timeZone)}
           timeZone={timeZone}

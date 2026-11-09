@@ -1,5 +1,6 @@
 import { redirect } from 'react-router'
 import { resolveProgrammeLink } from '~/features/display-board/index.server'
+import { mayOpenEvent } from '~/features/events/model/programme-access'
 import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
 import { buildAssignmentCandidates } from '~/features/events/server/assignment-candidates.server'
 import { buildShareTextsForEvent } from '~/features/events/server/build-share-message.server'
@@ -23,6 +24,11 @@ import type { Route } from './+types/view'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.programs_view_meta_title() }]
+}
+
+/** A draft is work in progress: only someone who may act on it opens it, as on the programmes list. */
+function refuseDraft(status: string, rights: Parameters<typeof mayOpenEvent>[1]) {
+  if (!mayOpenEvent(status, rights)) throw redirect('/programs')
 }
 
 export function loader({ params, context }: Route.LoaderArgs) {
@@ -50,6 +56,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
       check(Permission.CanAssignProgramParts, ResponsibilityScope.Service),
     ])
     const canAssignAnything = canAssign || canAssignService
+    refuseDraft(event.status, { canEdit, canPublish, canAssign, canAssignService })
 
     const users = canAssignAnything
       ? await db.member.findMany({

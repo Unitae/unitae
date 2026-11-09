@@ -9,6 +9,8 @@ export interface ProgrammeAbsenceConflict {
   /** The event's page, opened on the slot for « Réattribuer »; null when the reader cannot open the programmes. */
   href: string | null
   action: ConflictAction | null
+  /** Its programme is published: red, since people rely on it; orange while it is a draft. */
+  published: boolean
 }
 
 /** Someone's absence on the absences page. */

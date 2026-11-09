@@ -35,6 +35,8 @@ vi.mock('~/features/events/server/days-off.queries', () => ({
       eventId: 30 + id,
       eventDate: new Date('2026-11-12T18:00:00Z'),
       templateId,
+      // Part 13 falls in a draft.
+      published: id !== 13,
     })
     return Promise.resolve([
       {
@@ -102,6 +104,18 @@ describe('/programs/days-off — what the page receives', () => {
       ['part-13', 'view', '/programs/events/43'],
       ['service-7', 'reassign', '/programs/events/37?assign=service-7'],
       ['part-14', 'view', '/programs/events/44'],
+    ])
+  })
+
+  // Red once the programme is published and people rely on it, orange while it is a draft.
+  it('tells the page which assignments fall in a published programme', async () => {
+    const data = await load([Permission.CanViewPrograms])
+
+    expect(data.absences[0].conflicts.map(conflict => [conflict.key, conflict.published])).toEqual([
+      ['part-12', true],
+      ['part-13', false],
+      ['service-7', true],
+      ['part-14', true],
     ])
   })
 

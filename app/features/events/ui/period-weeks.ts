@@ -10,32 +10,32 @@ interface Dated {
   endDate: Date | string
 }
 
-export interface AbsenceWeek<T> {
+export interface PeriodWeek<T> {
   /** The week's Monday, `YYYY-MM-DD`. */
   monday: string
-  /** Who is away that week; `continued` when the absence began before it. */
-  absences: { absence: T; continued: boolean }[]
+  /** What touches that week; `continued` when it began before it. */
+  items: { item: T; continued: boolean }[]
 }
 
 /**
- * Every week of the period, Monday to Sunday in the congregation's zone, with the absences touching it: one lasting
- * three weeks shows in each. A week nobody is away comes back empty, so the page can say so.
+ * Every week of the period, Monday to Sunday in the congregation's zone, with what touches it: an absence lasting
+ * three weeks shows in each. A week with nothing comes back empty, so the page can say so.
  */
-export function absenceWeeks<T extends Dated>(
-  absences: T[],
+export function periodWeeks<T extends Dated>(
+  items: T[],
   period: { from: string; to: string },
   timeZone: string,
-): AbsenceWeek<T>[] {
-  const weeks: AbsenceWeek<T>[] = []
+): PeriodWeek<T>[] {
+  const weeks: PeriodWeek<T>[] = []
   const last = mondayOf(period.to)
   for (let monday = mondayOf(period.from); monday <= last; monday = addDays(monday, 7)) {
-    weeks.push({ monday, absences: [] })
+    weeks.push({ monday, items: [] })
   }
-  for (const absence of absences) {
-    const first = weekOf(absence.startDate, timeZone)
-    const end = weekOf(absence.endDate, timeZone)
+  for (const item of items) {
+    const first = weekOf(item.startDate, timeZone)
+    const end = weekOf(item.endDate, timeZone)
     for (const week of weeks) {
-      if (week.monday >= first && week.monday <= end) week.absences.push({ absence, continued: week.monday > first })
+      if (week.monday >= first && week.monday <= end) week.items.push({ item, continued: week.monday > first })
     }
   }
   return weeks

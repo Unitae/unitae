@@ -68,7 +68,11 @@ function Conflicts({ conflicts, timeZone }: { conflicts: ProgrammeAbsenceConflic
   const locale = getLocale()
   return (
     <div className="mt-1.5 flex flex-col gap-1">
-      <Status tone="warning" className="whitespace-normal text-foreground">
+      {/* Red once a programme is published and people rely on it; orange while they all are drafts. */}
+      <Status
+        tone={conflicts.some(conflict => conflict.published) ? 'danger' : 'warning'}
+        className="whitespace-normal text-foreground"
+      >
         {conflicts.length > 1
           ? m.days_off_conflicts_other({ count: conflicts.length })
           : m.days_off_conflicts_one({ count: conflicts.length })}

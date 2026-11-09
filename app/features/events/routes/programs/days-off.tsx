@@ -1,11 +1,11 @@
 import { redirect, type ShouldRevalidateFunctionArgs } from 'react-router'
 
-import { absencePeriod, selectedPreset } from '~/features/events/model/absence-period'
+import { listPeriod, selectedPreset } from '~/features/events/model/list-period'
 import { assignKey, conflictAction, type ReassignRights, reassignHref } from '~/features/events/model/reassign'
 import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
 import { congregationHasAbsences, listCongregationAbsences } from '~/features/events/server/days-off.queries'
 import { getResponsibleTemplateIds } from '~/features/events/server/events-auth.server'
-import { AbsencePeriodMenu } from '~/features/events/ui/AbsencePeriodMenu'
+import { PeriodMenu } from '~/features/events/ui/PeriodMenu'
 import { ProgrammeAbsences } from '~/features/events/ui/ProgrammeAbsences'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -42,7 +42,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const { timezone } = context.get(congregationContext)
   const now = new Date()
   const today = dayOf(now, timezone)
-  const period = absencePeriod(new URL(request.url).searchParams, today)
+  const period = listPeriod(new URL(request.url).searchParams, today)
   const canViewPrograms = permissions.has(Permission.CanViewPrograms)
   const canAssignParts = permissions.has(Permission.CanAssignProgramParts)
 
@@ -81,6 +81,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
             eventDate: conflict.eventDate,
             href: reassignHref(conflict, action),
             action,
+            published: conflict.published,
           }
         }),
       })),
@@ -133,7 +134,7 @@ export default function ProgrammeAbsencesPage({ loaderData }: Route.ComponentPro
             ? [{ label: m.sidebar_programs(), to: '/programs' }, { label: m.sidebar_absences() }]
             : [{ label: m.sidebar_absences() }]
         }
-        controls={hasAnyAbsence ? <AbsencePeriodMenu period={period} preset={preset} today={today} /> : undefined}
+        controls={hasAnyAbsence ? <PeriodMenu period={period} preset={preset} today={today} /> : undefined}
       />
       <ProgrammeAbsences
         absences={absences}
