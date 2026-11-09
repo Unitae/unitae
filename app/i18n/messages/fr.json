@@ -583,6 +583,7 @@
     "board_form_title_required": "Donnez-lui un titre.",
     "board_form_untitled": "Sans titre",
     "board_form_section_label": "Section",
+    "board_form_section_invalid": "Choisissez une section du tableau.",
     "board_form_file_title": "Fichier",
     "board_form_file_description_new": "Le PDF à afficher. Son nom devient le titre, que vous pouvez changer.",
     "board_form_file_description_edit": "Le remplacer garde l’ancien dans l’historique.",

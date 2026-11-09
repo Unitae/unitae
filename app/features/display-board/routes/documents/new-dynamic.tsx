@@ -8,6 +8,7 @@ import { fromDisplayWindow, toDisplayWindow } from '~/features/display-board/mod
 import { DynamicType, isDynamicType } from '~/features/display-board/model/dynamic-document.type'
 import { newDynamicDocumentSchema } from '~/features/display-board/schemas/board-document.schema'
 import { createDynamicDocument } from '~/features/display-board/server/board-document.server'
+import { isSectionOfCongregation } from '~/features/display-board/server/document-form.queries'
 import { listDynamicChoices, loadDynamicForm } from '~/features/display-board/server/dynamic-form.queries'
 import { BOARD_WEB_FONTS_HREF } from '~/features/display-board/ui/dynamic/board-web-fonts'
 import { DynamicDocumentForm } from '~/features/display-board/ui/forms/DynamicDocumentForm'
@@ -222,6 +223,10 @@ export async function action({ request, context }: Route.ActionArgs) {
     const chosen = choices.available.find(c => c.dynamicType === dynamicType && c.dynamicRef === dynamicRef)
     if (chosen == null || chosen.alreadyAdded || !isDynamicType(dynamicType))
       throw redirect('/board/documents/new-dynamic')
+
+    if (!(await isSectionOfCongregation(db, sectionId, congregationId))) {
+      return data(submission.reply({ fieldErrors: { sectionId: [m.board_form_section_invalid()] } }), { status: 400 })
+    }
 
     let dynamicConfig: Prisma.InputJsonValue | undefined
     try {

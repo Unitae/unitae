@@ -581,6 +581,7 @@
     "board_form_title_required": "Give it a title.",
     "board_form_untitled": "Untitled",
     "board_form_section_label": "Section",
+    "board_form_section_invalid": "Choose a section of the board.",
     "board_form_file_title": "File",
     "board_form_file_description_new": "The PDF to show. Its name becomes the title, which you can change.",
     "board_form_file_description_edit": "Replacing it keeps the old one in the history.",

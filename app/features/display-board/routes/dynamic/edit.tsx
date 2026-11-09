@@ -166,6 +166,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const { congregationId, id: actorId } = context.get(currentAccountContext)
     const current = await loadDynamicForm(db, { congregationId, now: new Date(), document: { id: dynamicId } })
     if (current == null) throw redirect('/board/documents')
+    // Only one of this congregation's sections: the list the form offered.
+    if (!current.sections.some(section => section.id === sectionId)) {
+      return data(submission.reply({ fieldErrors: { sectionId: [m.board_form_section_invalid()] } }), { status: 400 })
+    }
     const resolved = toDisplayWindow(
       { show, from, until },
       { timeZone: timezone, now: new Date(), current: current.document.visibleFrom },

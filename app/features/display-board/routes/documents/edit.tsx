@@ -8,7 +8,11 @@ import { fromDisplayWindow, toDisplayWindow } from '~/features/display-board/mod
 import { isDocumentOwnedByUploader, updateBoardDocument } from '~/features/display-board/server/board-document.server'
 import { readPdfForm } from '~/features/display-board/server/board-upload.server'
 import { replaceDocumentFile } from '~/features/display-board/server/document.server'
-import { findDisplayStart, loadPdfForm } from '~/features/display-board/server/document-form.queries'
+import {
+  findDisplayStart,
+  isSectionOfCongregation,
+  loadPdfForm,
+} from '~/features/display-board/server/document-form.queries'
 import { PdfDocumentForm } from '~/features/display-board/ui/forms/PdfDocumentForm'
 import { VersionsPanel } from '~/features/display-board/ui/forms/VersionsPanel'
 import { stateText } from '~/features/display-board/ui/manage/StateLabel'
@@ -191,6 +195,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     await requireEditable(db, context, documentId)
     const existing = await findDisplayStart(db, documentId, congregationId)
     if (existing == null) throw redirect('/board/documents')
+    if (!(await isSectionOfCongregation(db, form.sectionId, congregationId))) {
+      return data(form.fail('invalid-section'), { status: 400 })
+    }
     // An uploader's edit never touches when it shows: undefined leaves those columns as they are.
     const resolved = form.display
       ? toDisplayWindow(form.display, { timeZone: timezone, now: new Date(), current: existing.visibleFrom })

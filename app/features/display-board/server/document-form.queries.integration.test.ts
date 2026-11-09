@@ -19,7 +19,9 @@ function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promi
   })
 }
 
-const { countHighlighted, findDisplayStart, findVersionFile, loadPdfForm } = await import('./document-form.queries')
+const { countHighlighted, findDisplayStart, findVersionFile, isSectionOfCongregation, loadPdfForm } = await import(
+  './document-form.queries'
+)
 
 const ts = Date.now()
 const now = new Date('2026-11-09T12:00:00Z')
@@ -202,5 +204,13 @@ describe('findDisplayStart', () => {
   it("gives the document's start, and nothing for another congregation's", async () => {
     expect(await scoped(tx => findDisplayStart(tx, ids.doc, ids.cong))).toEqual({ visibleFrom: days(-20) })
     expect(await scoped(tx => findDisplayStart(tx, ids.otherDoc, ids.cong))).toBeNull()
+  })
+})
+
+describe('isSectionOfCongregation', () => {
+  it("accepts this congregation's section and refuses another's, which a forged form could name", async () => {
+    expect(await scoped(tx => isSectionOfCongregation(tx, ids.sectionA, ids.cong))).toBe(true)
+    const otherSection = await withScope(ids.other, tx => tx.boardSection.findFirst({ select: { id: true } }))
+    expect(await scoped(tx => isSectionOfCongregation(tx, otherSection?.id ?? 0, ids.cong))).toBe(false)
   })
 })

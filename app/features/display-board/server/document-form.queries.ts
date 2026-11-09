@@ -148,3 +148,12 @@ export async function findVersionFile(
 export function findDisplayStart(db: TransactionClient, documentId: number, congregationId: number) {
   return db.boardDocument.findFirst({ where: { id: documentId, congregationId }, select: { visibleFrom: true } })
 }
+
+/**
+ * Whether a section posted by a form is this congregation's. Row-level security guards the document's own row,
+ * but not the section its foreign key points at: a forged id would attach it to another congregation's section,
+ * where it shows nowhere and stops that section from being deleted.
+ */
+export async function isSectionOfCongregation(db: TransactionClient, sectionId: number, congregationId: number) {
+  return (await db.boardSection.count({ where: { id: sectionId, congregationId } })) > 0
+}

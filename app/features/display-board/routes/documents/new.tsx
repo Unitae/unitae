@@ -7,7 +7,11 @@ import { createBoardDocument } from '~/features/display-board/server/board-docum
 import type { PdfBoardCard } from '~/features/display-board/server/board-home.queries'
 import { readPdfForm } from '~/features/display-board/server/board-upload.server'
 import { saveFile } from '~/features/display-board/server/document.server'
-import { countHighlighted, listSectionChoices } from '~/features/display-board/server/document-form.queries'
+import {
+  countHighlighted,
+  isSectionOfCongregation,
+  listSectionChoices,
+} from '~/features/display-board/server/document-form.queries'
 import { FileValidationError, validateBoardFile } from '~/features/display-board/server/file-validation.server'
 import { thumbnailQueue } from '~/features/display-board/server/thumbnail-queue.server'
 import { PdfDocumentForm } from '~/features/display-board/ui/forms/PdfDocumentForm'
@@ -130,6 +134,9 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   const { congregationId } = currentUser
   return withScopeFromContext(context, async db => {
+    if (!(await isSectionOfCongregation(db, form.sectionId, congregationId))) {
+      return data(form.fail('invalid-section'), { status: 400 })
+    }
     try {
       await new LimitService(db, congregation).errorIfWouldGoOverLimit('boardDocuments')
       await validateBoardFile(file)
