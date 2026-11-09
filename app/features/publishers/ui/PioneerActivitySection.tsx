@@ -1,14 +1,13 @@
-import { TriangleAlert } from 'lucide-react'
+import { MetricStrip, PeriodStepper, StatTile, Tag } from '@unitae/ui'
+import { Link } from 'react-router'
 
 import type { PioneerActivity, PioneerAnnualRow, PioneerAuxiliaryRow } from '~/features/publishers'
 import * as m from '~/i18n/paraglide/messages'
 import { PublisherType } from '~/shared/types/publisher-type'
-import { Badge } from '~/shared/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
-import { formatGroupName } from '~/shared/utils/format-group-name'
-import { PioneerPaceChart } from './PioneerPaceChart'
-import { PioneerRiskBadge, paceLabel, ReportingChip } from './pioneer-risk-badge'
-import { Sparkline } from './Sparkline'
+
+import { PaceMonthsChart, PaceTotalChart } from './PioneerPaceDetail'
+import { PaceHeadline, PaceStudies } from './PioneerPacePanel'
+import { hoursText } from './pioneer-pace-copy'
 
 // The pioneer profile label for an activity. Shared so the detail section and the publisher view
 // surface the same wording — and the same wording the edit page uses. An auxiliary carries two
@@ -37,135 +36,90 @@ interface Props {
   activity: PioneerActivity
 }
 
-function Stat({ value, label }: { value: string; label: string }) {
-  return (
-    <Card className="border-dashed">
-      <CardContent className="flex flex-col items-center justify-center gap-1 p-4 text-center">
-        <span className="font-black text-4xl tracking-tight tabular-nums">{value}</span>
-        <span className="text-muted-foreground text-xs">{label}</span>
-      </CardContent>
-    </Card>
-  )
-}
-
+/** The publisher record's pioneer service: the year's pace, its figures and its charts, year by year. */
 export function PioneerActivitySection({ serviceYear, activity }: Props) {
   return (
-    <Card id="activity">
-      <CardHeader>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <CardTitle>{m.pioneers_detail_title()}</CardTitle>
-            <Badge variant="secondary">{pioneerProfileLabel(activity)}</Badge>
-          </div>
-          {activity.row.groupName && <Badge variant="outline">{formatGroupName(activity.row.groupName)}</Badge>}
-        </div>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {activity.kind === 'annual' ? (
-          <AnnualDetail serviceYear={serviceYear} row={activity.row} />
-        ) : (
-          <AuxiliaryDetail row={activity.row} />
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
-function StudiesRow({ monthlyStudies, muted = false }: { monthlyStudies: (number | null)[]; muted?: boolean }) {
-  const total = monthlyStudies.reduce<number>((sum, s) => sum + (s ?? 0), 0)
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
-      <div>
-        <div className="font-medium text-sm">{m.pioneers_studies_label()}</div>
-        <div className="text-muted-foreground text-xs tabular-nums">{total}</div>
+    <section
+      id="activity"
+      aria-labelledby="pioneer-service"
+      className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4.5"
+    >
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <h2 id="pioneer-service" className="font-semibold text-lg">
+          {m.pioneers_detail_title()}
+        </h2>
+        <Tag>{pioneerProfileLabel(activity)}</Tag>
+        <span className="text-faint text-sm">{m.pioneers_goal_per_month({ goal: activity.row.monthlyRate })}</span>
+        <PeriodStepper
+          className="ml-auto"
+          label={m.pioneers_service_year({ start: String(serviceYear), end: String(serviceYear + 1) })}
+          previous={{ label: m.pioneers_previous_year(), href: `?sy=${serviceYear - 1}#activity` }}
+          next={{ label: m.pioneers_next_year(), href: `?sy=${serviceYear + 1}#activity` }}
+          renderLink={({ href, ...props }) => <Link to={href} preventScrollReset {...props} />}
+          labelWidth={150}
+        />
       </div>
-      <Sparkline values={monthlyStudies} muted={muted} />
-    </div>
+      {activity.kind === 'annual' ? (
+        <AnnualDetail serviceYear={serviceYear} row={activity.row} />
+      ) : (
+        <AuxiliaryDetail row={activity.row} />
+      )}
+    </section>
   )
 }
 
 function AnnualDetail({ serviceYear, row }: { serviceYear: number; row: PioneerAnnualRow }) {
   const { pace } = row
-
-  // No enrolled span yet, or enrolled but not one report filed: there is no data to compute a rhythm
-  // from, so show the empty state rather than a fabricated full-year deficit (a red "X h de retard",
-  // a "600 h Requis par mois", and an "out of reach" warning all derived from zero actuals).
-  if (pace.elapsedEnrolled === 0 || pace.reportedMonths === 0) {
-    return <p className="text-muted-foreground text-sm">{m.pioneers_insufficient_data()}</p>
-  }
-
-  // A concluded pioneer stopped mid-year: show their final cumulative hours against the goal
-  // adjusted to the months they served — never a full-year deficit, projection, or catch-up.
-  if (row.concluded) {
-    return (
-      <>
-        <Badge variant="outline">{m.pioneers_concluded()}</Badge>
-        <PioneerPaceChart serviceYear={serviceYear} monthlyHours={pace.monthlyHours} rate={row.monthlyRate} />
-        <div className="grid grid-cols-2 gap-4">
-          <Stat value={`${pace.achievedToDate} h`} label={m.pioneers_ytd_label()} />
-          <Stat value={`${pace.fullYearTarget} h`} label={m.pioneers_concluded_goal_label()} />
-        </div>
-        {pace.creditToDate > 0 && (
-          <p className="text-muted-foreground text-xs">{m.pioneers_credit_included({ hours: pace.creditToDate })}</p>
-        )}
-        <StudiesRow monthlyStudies={pace.monthlyStudies} muted />
-      </>
-    )
-  }
-
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2">
-        <PioneerRiskBadge bucket={pace.riskBucket} label={paceLabel(pace)} />
-        <ReportingChip status={pace.reportingStatus} />
+      <PaceHeadline row={row} serviceYear={serviceYear} />
+      <MetricStrip aria-label={m.pioneers_detail_title()} minTileWidth={160}>
+        <StatTile
+          label={m.pioneers_fact_done()}
+          value={hoursText(pace.achievedToDate)}
+          foot={pace.creditToDate > 0 ? m.pioneers_credit_included({ hours: pace.creditToDate }) : undefined}
+        />
+        <StatTile
+          label={row.concluded ? m.pioneers_fact_goal_adjusted() : m.pioneers_fact_goal_to_date()}
+          value={hoursText(row.concluded ? pace.fullYearTarget : pace.targetToDate)}
+          foot={row.concluded ? undefined : m.pioneers_fact_goal_year({ goal: hoursText(pace.fullYearTarget) })}
+        />
+        <StatTile
+          label={m.pioneers_fact_needed()}
+          value={row.concluded ? '—' : `≈ ${hoursText(pace.requiredAvgToFinish)}`}
+          tone={pace.outOfReach ? 'warning' : 'neutral'}
+          foot={pace.outOfReach ? m.pioneers_out_of_reach_short() : undefined}
+        />
+        <StatTile label={m.pioneers_fact_recent()} value={pace.reportedMonths > 0 ? hoursText(pace.recentAvg) : '—'} />
+      </MetricStrip>
+      <div className="grid gap-6 md:grid-cols-2">
+        <PaceMonthsChart row={row} serviceYear={serviceYear} />
+        <PaceTotalChart row={row} serviceYear={serviceYear} />
       </div>
-      <PioneerPaceChart serviceYear={serviceYear} monthlyHours={pace.monthlyHours} rate={row.monthlyRate} />
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Stat value={`${pace.achievedToDate} h`} label={m.pioneers_ytd_label()} />
-        <Stat value={`${pace.fullYearTarget} h`} label={m.pioneers_target_label()} />
-        <Stat value={`${Math.round(pace.requiredAvgToFinish)} h`} label={m.pioneers_needs_per_month_label()} />
-        <Stat value={`${Math.round(pace.recentAvg)} h`} label={m.pioneers_recent_avg_label()} />
-      </div>
-      {pace.creditToDate > 0 && (
-        <p className="text-muted-foreground text-xs">{m.pioneers_credit_included({ hours: pace.creditToDate })}</p>
-      )}
-      <StudiesRow monthlyStudies={pace.monthlyStudies} />
-      {pace.outOfReach ? (
-        <p className="flex items-center gap-2 text-amber-600 text-sm dark:text-amber-400">
-          <TriangleAlert className="size-4 shrink-0" />
-          {m.pioneers_out_of_reach()}
-        </p>
-      ) : (
-        <p className="text-muted-foreground text-sm">
-          {m.pioneers_projection({
-            projected: String(Math.round(pace.projectedYearEnd)),
-            goal: String(pace.fullYearTarget),
-          })}
-        </p>
-      )}
+      <PaceStudies row={row} serviceYear={serviceYear} />
     </>
   )
 }
 
 function AuxiliaryDetail({ row }: { row: PioneerAuxiliaryRow }) {
-  const pending = row.auxiliary.thisMonth != null && !row.auxiliary.thisMonth.reported
+  const current = row.auxiliary.thisMonth
   return (
-    <div className="flex flex-col gap-4">
-      {pending && (
-        <Badge variant="outline" className="self-start">
-          {m.pioneers_aux_report_pending()}
-        </Badge>
-      )}
-      <div className="grid grid-cols-2 gap-4">
-        <Stat
-          value={pending || row.auxiliary.thisMonth == null ? '—' : `${row.auxiliary.thisMonth.hours} h`}
-          label={m.pioneers_aux_standard_target({ rate: String(row.monthlyRate) })}
-        />
-        <Stat
-          value={`${row.auxiliary.metMonths}/${row.auxiliary.enrolledMonths}`}
-          label={m.pioneers_aux_months_label()}
-        />
-      </div>
-    </div>
+    <MetricStrip aria-label={m.pioneers_detail_title()} minTileWidth={160}>
+      <StatTile
+        label={m.pioneers_col_this_month()}
+        value={current?.reported ? hoursText(current.hours + current.credit) : '—'}
+        foot={current != null && !current.reported ? m.pioneers_aux_report_pending() : undefined}
+      />
+      <StatTile
+        label={m.pioneers_col_goal_met()}
+        value={row.auxiliary.metMonths}
+        unit={m.pioneers_aux_met_unit({ total: row.auxiliary.reportedMonths })}
+      />
+      <StatTile
+        label={m.pioneers_col_enrolment()}
+        value={row.auxiliary.enrolledMonths}
+        unit={m.pioneers_aux_months_unit()}
+      />
+    </MetricStrip>
   )
 }

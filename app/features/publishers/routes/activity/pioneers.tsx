@@ -49,7 +49,8 @@ export default function PioneersRoster({ loaderData }: Route.ComponentProps) {
   const { summary, serviceYear } = loaderData
 
   return (
-    <div className="flex flex-col gap-6">
+    // The marker lets the app shell stop clipping as a scroll container, so the docked panel can stick.
+    <div data-sticky-content="" className="flex flex-col gap-5">
       <PageHeader
         title={m.activity_page_title()}
         breadcrumbs={[{ label: m.activity_page_title() }]}

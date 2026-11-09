@@ -53,7 +53,7 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
   return [{ title: `${loaderData.publisher.firstname} ${loaderData.publisher.lastname} - Unitae` }]
 }
 
-export function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ request, params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
   const canViewPublisher = permissions.has(Permission.CanViewPublishers)
@@ -78,6 +78,9 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const publisherId = requireParamId<MemberId>(params.publisherId, '/publishers')
   const now = zonedNow(context.get(congregationContext).timezone)
   const serviceYear = toServiceYear(now.getMonth(), now.getFullYear())
+  // The pioneer section steps through service years on its own (`?sy=`); the rest of the record stays on this one.
+  const requestedYear = Number(new URL(request.url).searchParams.get('sy'))
+  const pioneerYear = Number.isInteger(requestedYear) && requestedYear > 2000 ? requestedYear : serviceYear
 
   return withScopeFromContext(context, async db => {
     const [publisher, attributions, pioneerActivity, upcomingAssignments, upcomingAbsences, activityYears] =
@@ -85,7 +88,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
         getPublisherById(db, publisherId, currentUser.congregationId as CongregationId, serviceYear),
         findActiveAttributionsForPublisher(db, publisherId, currentUser.congregationId),
         canViewActivity
-          ? getPioneerActivityForMember(db, publisherId, currentUser.congregationId, serviceYear, now)
+          ? getPioneerActivityForMember(db, publisherId, currentUser.congregationId, pioneerYear, now)
           : Promise.resolve(null),
         canViewPrograms
           ? findUpcomingAssignmentsForMember(db, publisherId, currentUser.congregationId as CongregationId, now)
@@ -120,6 +123,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
       upcomingAssignments,
       upcomingAbsences,
       serviceYear,
+      pioneerYear,
       activityYears,
       emergency,
       timeZone: context.get(congregationContext).timezone,
@@ -340,6 +344,7 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
     upcomingAssignments,
     upcomingAbsences,
     serviceYear,
+    pioneerYear,
     activityYears,
     emergency,
     timeZone,
@@ -478,7 +483,7 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
         </Card>
       </div>
 
-      {pioneerActivity && <PioneerActivitySection serviceYear={serviceYear} activity={pioneerActivity} />}
+      {pioneerActivity && <PioneerActivitySection serviceYear={pioneerYear} activity={pioneerActivity} />}
 
       <Card>
         <CardHeader>
