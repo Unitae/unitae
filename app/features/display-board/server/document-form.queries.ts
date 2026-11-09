@@ -143,3 +143,8 @@ export async function findVersionFile(
   if (version == null) return null
   return { title: version.document.title, uri: version.uri, versionNumber: version.versionNumber }
 }
+
+/** When a document started showing, so « Dès maintenant » keeps it; null if there is no such document. */
+export function findDisplayStart(db: TransactionClient, documentId: number, congregationId: number) {
+  return db.boardDocument.findFirst({ where: { id: documentId, congregationId }, select: { visibleFrom: true } })
+}

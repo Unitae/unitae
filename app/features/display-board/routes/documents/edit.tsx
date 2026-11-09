@@ -1,329 +1,216 @@
-import { parseWithZod } from '@conform-to/zod/v4'
-import { type FileUpload, MaxFileSizeExceededError, parseFormData } from '@mjackson/form-data-parser'
-import { History, Trash2 } from 'lucide-react'
-import { data, Form, Link, redirect } from 'react-router'
+import { Status, type StatusTone } from '@unitae/ui'
+import { Eye, MoreHorizontal } from 'lucide-react'
+import { useCallback, useState } from 'react'
+import { data, Link, redirect, useSearchParams } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { updateDocumentSchema } from '~/features/display-board/schemas/board-document.schema'
+import { type DisplayState, displayState } from '~/features/display-board/model/display-state'
+import { fromDisplayWindow, toDisplayWindow } from '~/features/display-board/model/display-window'
 import { isDocumentOwnedByUploader, updateBoardDocument } from '~/features/display-board/server/board-document.server'
+import { readPdfForm } from '~/features/display-board/server/board-upload.server'
 import { replaceDocumentFile } from '~/features/display-board/server/document.server'
-import { MAX_FILE_SIZE_BYTES, validateVisibilityDates } from '~/features/display-board/server/file-validation.server'
+import { findDisplayStart, loadPdfForm } from '~/features/display-board/server/document-form.queries'
+import { PdfDocumentForm } from '~/features/display-board/ui/forms/PdfDocumentForm'
+import { VersionsPanel } from '~/features/display-board/ui/forms/VersionsPanel'
+import { stateText } from '~/features/display-board/ui/manage/StateLabel'
 import { notify } from '~/features/notifications/index.server'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import logger from '~/shared/infra/logger.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
-import { Card, CardContent } from '~/shared/ui/card'
-import { FormActions } from '~/shared/ui/FormActions'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
-import { Input } from '~/shared/ui/input'
-import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
-import { SubmitButton } from '~/shared/ui/SubmitButton'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
 
-export const meta: Route.MetaFunction = () => {
-  return [{ title: m.board_documents_edit_meta_title() }]
+export const meta: Route.MetaFunction = ({ loaderData }) => [
+  { title: `${loaderData?.document.title ?? m.board_documents_edit_meta_title()} - Unitae` },
+]
+
+const TONE: Record<DisplayState['kind'], StatusTone> = {
+  shown: 'success',
+  scheduled: 'warning',
+  expired: 'danger',
+  unpublished: 'neutral',
+}
+
+/** A reviewer edits any PDF; an uploader only the ones they uploaded. */
+async function requireEditable(db: TransactionClient, context: Route.LoaderArgs['context'], documentId: number) {
+  const permissions = context.get(permissionsContext)
+  const canReview = permissions.has(Permission.CanReviewBoardDocuments)
+  const canUpload = permissions.has(Permission.CanUploadBoardDocuments)
+  if (!canReview && !canUpload) throw redirect('/')
+  const owns = canUpload && (await isDocumentOwnedByUploader(db, documentId, context.get(currentAccountContext).id))
+  if (!canReview && !owns) throw redirect('/board/documents')
+  return { canReview }
 }
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(currentAccountContext)
-  const canUploadDocument = permissions.has(Permission.CanUploadBoardDocuments)
-  const canManageBoard = permissions.has(Permission.CanReviewBoardDocuments)
-
-  if (!canUploadDocument && !canManageBoard) {
+  if (!permissions.has(Permission.CanReviewBoardDocuments) && !permissions.has(Permission.CanUploadBoardDocuments)) {
     throw redirect('/')
   }
+  const documentId = requireParamId(params.documentId, '/board/documents')
+  const { timezone } = context.get(congregationContext)
 
   return withScopeFromContext(context, async db => {
-    const documentId = requireParamId(params.documentId, '/board')
-    const document = await db.boardDocument.findUnique({
-      where: {
-        id_congregationId: { id: documentId, congregationId: currentUser.congregationId },
-      },
+    const { canReview } = await requireEditable(db, context, documentId)
+    const now = new Date()
+    const form = await loadPdfForm(db, {
+      documentId,
+      congregationId: context.get(currentAccountContext).congregationId,
+      now,
     })
-
-    if (document == null) throw redirect('/board/documents')
-
-    const ownsDocument = canUploadDocument && (await isDocumentOwnedByUploader(db, documentId, currentUser.id))
-    if (!canManageBoard && !ownsDocument) throw redirect('/board/documents')
-
-    const sections = await db.boardSection.findMany({ where: { congregationId: currentUser.congregationId } })
-
-    return { document, sections, canManageBoard }
+    if (form == null) throw redirect('/board/documents')
+    const window = fromDisplayWindow(form.document, { timeZone: timezone, now })
+    return { ...form, canReview, timeZone: timezone, now, window }
   })
 }
 
-export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
-  const { document, sections, canManageBoard } = loaderData
-
-  const { blocker, markDirty } = useUnsavedChanges()
-
-  let formattedVisibleFrom = ''
-  if (document.visibleFrom !== null) {
-    const visibleFrom = new Date(document.visibleFrom)
-    visibleFrom.setMinutes(visibleFrom.getMinutes() - visibleFrom.getTimezoneOffset())
-    formattedVisibleFrom = visibleFrom.toISOString().slice(0, 16)
-  }
-
-  let formattedVisibleUntil = ''
-  if (document.visibleUntil !== null) {
-    const visibleUntil = new Date(document.visibleUntil)
-    visibleUntil.setMinutes(visibleUntil.getMinutes() - visibleUntil.getTimezoneOffset())
-    formattedVisibleUntil = visibleUntil.toISOString().slice(0, 16)
-  }
+export default function EditDocumentPage({ loaderData, actionData }: Route.ComponentProps) {
+  const { document, sections, versions, reads, highlightedOthers, card, canReview, timeZone, now, window } = loaderData
+  const [searchParams, setSearchParams] = useSearchParams()
+  const { blocker, setDirty } = useUnsavedChanges()
+  const onDirtyChange = useCallback((dirty: boolean) => setDirty(dirty), [setDirty])
+  const [version, setVersion] = useState(0)
+  const state = displayState({ ...document, now: new Date(now) })
+  const section = sections.find(s => s.id === document.sectionId)?.name ?? ''
+  const historyTo = '?historique'
+  const closeHistory = () =>
+    setSearchParams(
+      prev => {
+        prev.delete('historique')
+        return prev
+      },
+      { preventScrollReset: true },
+    )
+  // What was loaded: a save that changes it starts the form again from it.
+  const loaded = [
+    document.title,
+    document.sectionId,
+    document.visibleFrom,
+    document.visibleUntil,
+    document.isHighlighted,
+  ]
 
   return (
-    <div className="flex flex-col gap-6">
+    <>
       <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
-        title={m.board_documents_edit_title()}
-        subtitle={m.board_documents_edit_subtitle()}
+        title={document.title}
+        meta={
+          <Status tone={TONE[state.kind]} className="text-foreground">
+            {stateText(state, timeZone)} · {m.board_form_in_section({ section })}
+          </Status>
+        }
         breadcrumbs={[
+          { label: m.board_page_title(), to: '/board' },
           { label: m.sidebar_board_manage(), to: '/board/documents' },
-          { label: m.board_documents_edit_title() },
+          { label: document.title },
         ]}
-        backTo="/board/documents"
         actions={
-          <div className="flex gap-2">
-            <Button variant="outline" size="icon" asChild>
-              <Link to={`/board/documents/${document.id}/versions`} title={m.board_versions_link_tooltip()}>
-                <History className="size-4" />
+          <>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to={`/board/documents/${document.id}/viewer`}>
+                <Eye className="size-4" aria-hidden="true" />
+                {m.board_form_view_on_board()}
               </Link>
             </Button>
-            <Button variant="destructive" size="icon" asChild>
-              <Link to={`/board/documents/${document.id}/delete`} title={m.board_documents_delete_tooltip()}>
-                <Trash2 className="size-4" />
-              </Link>
-            </Button>
-          </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon-sm" aria-label={m.board_form_more()}>
+                  <MoreHorizontal className="size-4" aria-hidden="true" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link to={historyTo} preventScrollReset>
+                    {m.board_form_file_history()}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="text-destructive">
+                  <Link to={`/board/documents/${document.id}/delete`}>{m.board_manage_delete()}</Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
         }
       />
-
-      <Card>
-        <CardContent className="pt-6">
-          <Form method="post" className="flex flex-col gap-4" encType="multipart/form-data" onChange={markDirty}>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="title">{m.board_documents_new_name_label()}</Label>
-              <Input
-                id="title"
-                name="title"
-                type="text"
-                placeholder={m.board_documents_new_name_placeholder()}
-                autoComplete="off"
-                defaultValue={document.title ?? ''}
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="sectionId">{m.board_documents_new_section_label()}</Label>
-              <Select name="sectionId" defaultValue={String(document.sectionId)}>
-                <SelectTrigger id="sectionId" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {sections.map(section => (
-                    <SelectItem key={section.id} value={String(section.id)}>
-                      {section.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {canManageBoard && (
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="visible-from">{m.board_documents_new_visible_from_label()}</Label>
-                  <Input
-                    id="visible-from"
-                    name="visible-from"
-                    type="datetime-local"
-                    placeholder={m.board_documents_new_visible_from_placeholder()}
-                    defaultValue={formattedVisibleFrom}
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="visible-until">{m.board_documents_new_visible_until_label()}</Label>
-                  <Input
-                    id="visible-until"
-                    name="visible-until"
-                    type="datetime-local"
-                    placeholder={m.board_documents_new_visible_until_placeholder()}
-                    defaultValue={formattedVisibleUntil}
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="document">{m.board_documents_edit_replace_file_label()}</Label>
-              <Input id="document" name="document" type="file" accept="application/pdf" />
-              <p className="text-muted-foreground text-xs">{m.board_documents_edit_replace_file_hint()}</p>
-            </div>
-
-            {canManageBoard && (
-              <div className="flex items-center gap-2">
-                <input
-                  id="hightlighted"
-                  className="size-4 rounded border border-input accent-primary"
-                  name="hightlighted"
-                  type="checkbox"
-                  defaultChecked={document.isHighlighted}
-                />
-                <Label
-                  htmlFor="hightlighted"
-                  className="cursor-pointer font-normal"
-                  title={m.board_documents_new_highlight_tooltip()}
-                >
-                  {m.board_documents_new_highlight_label()}
-                </Label>
-              </div>
-            )}
-
-            <FormActions>
-              <SubmitButton>{m.board_documents_edit_submit()}</SubmitButton>
-            </FormActions>
-          </Form>
-        </CardContent>
-      </Card>
-    </div>
+      <PdfDocumentForm
+        key={`${version}-${loaded.map(String).join('|')}`}
+        current={{ card, versions: Math.max(versions.length, 1), historyTo }}
+        defaults={{ title: document.title, sectionId: document.sectionId, window, highlighted: document.isHighlighted }}
+        sections={sections}
+        canReview={canReview}
+        highlightedOthers={highlightedOthers}
+        card={card}
+        facts={{
+          reads,
+          readsTo: canReview ? `/board/documents?lectures=pdf-${document.id}` : null,
+          versions: Math.max(versions.length, 1),
+          historyTo,
+          createdAt: document.createdAt,
+        }}
+        lastResult={actionData}
+        timeZone={timeZone}
+        panel={
+          searchParams.has('historique') ? (
+            <VersionsPanel documentId={document.id} versions={versions} timeZone={timeZone} onClose={closeHistory} />
+          ) : undefined
+        }
+        onCancel={() => setVersion(v => v + 1)}
+        onDirtyChange={onDirtyChange}
+      />
+    </>
   )
-}
-
-type ResolvedVisibility = {
-  visibleFrom: Date | null | undefined
-  visibleUntil: Date | null | undefined
-  rangeIsValid: boolean
-}
-
-function resolveVisibility(rawFrom: Date, rawUntil: Date, canManageBoard: boolean): ResolvedVisibility {
-  if (!canManageBoard) {
-    // Uploader edits never touch visibility — undefined skips the column.
-    return { visibleFrom: undefined, visibleUntil: undefined, rangeIsValid: true }
-  }
-  const visibleFrom = rawFrom.getTime() > 0 ? rawFrom : null
-  const visibleUntil = rawUntil.getTime() > 0 ? rawUntil : null
-  return { visibleFrom, visibleUntil, rangeIsValid: validateVisibilityDates(visibleFrom, visibleUntil) }
-}
-
-async function parseMultipartForm(request: Request) {
-  let uploadedFile: File | null = null
-  const uploadHandler = async (fileUpload: FileUpload) => {
-    if (fileUpload.fieldName === 'document') {
-      const chunks: Uint8Array[] = []
-      const reader = fileUpload.stream().getReader()
-      let done = false
-      while (!done) {
-        const result = await reader.read()
-        if (result.value) chunks.push(result.value)
-        done = result.done
-      }
-      const blob = new Blob(chunks as BlobPart[], { type: fileUpload.type })
-      uploadedFile = new File([blob], fileUpload.name, { type: fileUpload.type })
-      return uploadedFile
-    }
-  }
-
-  const form = await parseFormData(request, { maxFileSize: MAX_FILE_SIZE_BYTES }, uploadHandler)
-  const file = uploadedFile ?? (form.get('document') as File | null)
-  const hasNewFile = file != null && file.size > 0
-
-  return { form, file: hasNewFile ? file : null }
 }
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
+  const canReview = permissions.has(Permission.CanReviewBoardDocuments)
+  if (!canReview && !permissions.has(Permission.CanUploadBoardDocuments)) throw redirect('/')
+  const documentId = requireParamId(params.documentId, '/board/documents')
+  const { timezone } = context.get(congregationContext)
   const currentUser = context.get(currentAccountContext)
-  const canUploadDocument = permissions.has(Permission.CanUploadBoardDocuments)
-  const canManageBoard = permissions.has(Permission.CanReviewBoardDocuments)
-
-  if (!canUploadDocument && !canManageBoard) {
-    throw redirect('/')
-  }
-
+  const { congregationId } = currentUser
   const session = await getSession(request.headers.get('Cookie'))
 
-  let formResult: Awaited<ReturnType<typeof parseMultipartForm>>
-  try {
-    formResult = await parseMultipartForm(request)
-  } catch (error) {
-    if (error instanceof MaxFileSizeExceededError) {
-      session.flash('error', m.board_documents_invalid_file())
-      return redirect(`/board/documents/${params.documentId}/edit`, {
-        headers: { 'Set-Cookie': await commitSession(session) },
-      })
-    }
-    throw error
-  }
-
-  const { form, file } = formResult
-  const submission = parseWithZod(form, { schema: updateDocumentSchema })
-  if (submission.status !== 'success') {
-    return data(submission.reply(), { status: 400 })
-  }
-
-  const { title, sectionId } = submission.value
-  const visibility = resolveVisibility(
-    new Date(submission.value['visible-from']),
-    new Date(submission.value['visible-until']),
-    canManageBoard,
-  )
-
-  if (!visibility.rangeIsValid) {
-    session.flash('error', m.board_documents_date_range_error())
-    return redirect(`/board/documents/${params.documentId}/edit`, {
-      headers: { 'Set-Cookie': await commitSession(session) },
-    })
-  }
-
-  // Highlight is validator-controlled too; uploader edits skip the column.
-  const resolvedIsHighlighted = canManageBoard ? submission.value.hightlighted === 'on' : undefined
-
-  const { congregationId } = currentUser
+  // Read before the transaction: a large upload never holds it open.
+  const form = await readPdfForm(request, { canReview })
+  if (!form.ok) return data(form.reply, { status: 400 })
 
   return withScopeFromContext(context, async db => {
-    const documentId = requireParamId(params.documentId, '/board')
+    await requireEditable(db, context, documentId)
+    const existing = await findDisplayStart(db, documentId, congregationId)
+    if (existing == null) throw redirect('/board/documents')
+    // An uploader's edit never touches when it shows: undefined leaves those columns as they are.
+    const resolved = form.display
+      ? toDisplayWindow(form.display, { timeZone: timezone, now: new Date(), current: existing.visibleFrom })
+      : null
+    if (resolved && !resolved.ok) return data(form.fail(resolved.error), { status: 400 })
 
-    const ownsDocument = canUploadDocument && (await isDocumentOwnedByUploader(db, documentId, currentUser.id))
-    if (!canManageBoard && !ownsDocument) throw redirect('/board/documents')
-
-    // Handle file replacement if a new file was uploaded
-    if (file) {
-      const result = await replaceDocumentFile(db, documentId, congregationId, currentUser.id, file)
-      if (!result.replaced) {
-        logger.warn(`Document edit failed. User ID: ${currentUser.id}. File validation: ${result.error.messageKey}.`)
-        session.flash('error', m.board_documents_invalid_file())
-        return redirect(`/board/documents/${params.documentId}/edit`, {
-          headers: { 'Set-Cookie': await commitSession(session) },
-        })
-      }
+    if (form.file) {
+      const replaced = await replaceDocumentFile(db, documentId, congregationId, currentUser.id, form.file)
+      if (!replaced.replaced) return data(form.fail('invalid-file'), { status: 400 })
     }
-
     const document = await updateBoardDocument(db, documentId, congregationId, currentUser.id, {
-      title: String(title),
-      sectionId,
-      visibleFrom: visibility.visibleFrom,
-      visibleUntil: visibility.visibleUntil,
-      isHighlighted: resolvedIsHighlighted,
+      title: form.title,
+      sectionId: form.sectionId,
+      visibleFrom: resolved?.window.visibleFrom,
+      visibleUntil: resolved?.window.visibleUntil,
+      isHighlighted: form.display?.highlighted,
     })
+    if (document == null) throw redirect('/board/documents')
 
-    if (document == null) {
-      session.flash('error', m.common_generic_error())
-
-      return redirect(`/board/document/${params.documentId}/edit`, {
-        headers: {
-          'Set-Cookie': await commitSession(session),
-        },
-      })
-    }
-
-    if (!canManageBoard) {
+    if (!canReview) {
       await notify(db, {
         type: 'board.document.updated',
         entityType: 'BoardDocument',
@@ -333,13 +220,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         payload: { title: document.title, documentId: document.id },
       })
     }
-
     session.flash('success', m.board_documents_edit_success({ name: document.title }))
-
-    return redirect(`/board/documents/${document.id}/edit`, {
-      headers: {
-        'Set-Cookie': await commitSession(session),
-      },
-    })
+    return redirect(`/board/documents/${document.id}/edit`, { headers: { 'Set-Cookie': await commitSession(session) } })
   })
 }

@@ -19,7 +19,7 @@ function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promi
   })
 }
 
-const { countHighlighted, findVersionFile, loadPdfForm } = await import('./document-form.queries')
+const { countHighlighted, findDisplayStart, findVersionFile, loadPdfForm } = await import('./document-form.queries')
 
 const ts = Date.now()
 const now = new Date('2026-11-09T12:00:00Z')
@@ -195,5 +195,12 @@ describe('countHighlighted', () => {
   it('counts the PDFs and dynamic documents « à la une », leaving out the one being edited', async () => {
     expect(await scoped(tx => countHighlighted(tx, ids.cong))).toBe(2)
     expect(await scoped(tx => countHighlighted(tx, ids.cong, { kind: 'dynamic', id: 0 }))).toBe(2)
+  })
+})
+
+describe('findDisplayStart', () => {
+  it("gives the document's start, and nothing for another congregation's", async () => {
+    expect(await scoped(tx => findDisplayStart(tx, ids.doc, ids.cong))).toEqual({ visibleFrom: days(-20) })
+    expect(await scoped(tx => findDisplayStart(tx, ids.otherDoc, ids.cong))).toBeNull()
   })
 })

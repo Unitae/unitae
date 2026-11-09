@@ -21,6 +21,11 @@ export type DisplayWindowResult =
 
 const LAST_MINUTE_MS = 59_999
 
+/** The very last instant of a day in `timeZone`: a document taken off that day still shows all of it. */
+export function endOfDay(day: string, timeZone: string): Date {
+  return new Date(combineLocalDateTime(day, '23:59', timeZone).getTime() + LAST_MINUTE_MS)
+}
+
 /**
  * The form's choice as the window the board applies, by day in the congregation's zone: a document
  * appears at the start of its first day and leaves at the very end of its last. « Dès maintenant » on
@@ -36,10 +41,7 @@ export function toDisplayWindow(
   if (input.show === 'now') visibleFrom = current !== null && current <= now ? current : now
   if (input.show === 'from') visibleFrom = combineLocalDateTime(input.from, '00:00', timeZone)
 
-  const visibleUntil =
-    input.until === ''
-      ? null
-      : new Date(combineLocalDateTime(input.until, '23:59', timeZone).getTime() + LAST_MINUTE_MS)
+  const visibleUntil = input.until === '' ? null : endOfDay(input.until, timeZone)
   const start = visibleFrom ?? now
   if (visibleUntil !== null && input.show !== 'later' && visibleUntil < start) {
     return { ok: false, error: 'until-before-from' }
