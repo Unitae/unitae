@@ -12,8 +12,10 @@
 //
 // This check fails when a `Permission` member is never *enforced* anywhere.
 // Enforcement means the caller is turned away: `requirePermission(...)`, or a
-// negated `permissions.has(...)` whose branch throws. Reading a permission into
-// the loader payload so a component can hide a button is not enforcement.
+// negated `permissions.has(...)` whose branch throws, or a call to one of the
+// access policies in POLICY_HELPERS, which a route consults and refuses on.
+// Reading a permission into the loader payload so a component can hide a
+// button is not enforcement.
 //
 // It also fails when a permission has no description in *both* message
 // catalogues — `PERMISSION_DESCRIPTIONS` is `Record<Permission, …>` so tsc
@@ -54,6 +56,14 @@ const WHITESPACE_RE = /\s/
 // display helpers too, and this check exists to be strict.
 const AUTH_HELPERS = ['canEditEvent', 'canManageAnyProgram', 'filterToManageableEventIds', 'layoutGate']
 const AUTH_HELPER_RE = new RegExp(`\\b(?:${AUTH_HELPERS.join('|')})\\s*\\(([^)]*(?:\\([^)]*\\)[^)]*)*)\\)`, 'g')
+
+// Pure access policies a route consults and refuses on without throwing: the report panel answers a refused fetch
+// with a 403, because a thrown redirect would move the whole page away under a fetcher. A file that calls one
+// enforces every permission the policy's own body names. An explicit list like AUTH_HELPERS, and verified: a policy
+// that is no longer declared in its file, or no longer names a permission, fails the check.
+export const POLICY_HELPERS: Record<string, string> = {
+  reportAccess: 'app/features/publishers/model/group-activity-access.ts',
+}
 
 /**
  * The initialiser of a `const x = …` binding, continued across lines while the
@@ -199,6 +209,41 @@ function enforcedByGuards(src: string, boundTo: Map<string, Set<string>>): Set<s
   return enforced
 }
 
+/** The `Permission` members named in the body of `function name` in `src`; null when `src` does not declare it. */
+export function policyBodyPermissions(src: string, name: string): Set<string> | null {
+  const declaration = new RegExp(`function\\s+${name}\\s*\\(`).exec(src)
+  if (declaration == null) return null
+  const paramsClose = matchBalanced(src, declaration.index + declaration[0].length - 1)
+  const bodyOpen = paramsClose === -1 ? -1 : src.indexOf('{', paramsClose)
+  if (bodyOpen === -1) return new Set()
+  const bodyClose = matchBalanced(src, bodyOpen)
+  const body = src.slice(bodyOpen, bodyClose === -1 ? src.length : bodyClose)
+  return new Set([...body.matchAll(PERMISSION_REF_RE)].map(ref => ref[1]))
+}
+
+/** The permissions `src` enforces by consulting a listed policy, given what each policy's body names. */
+export function collectPolicyEnforcement(src: string, policies: Map<string, Set<string>>): Set<string> {
+  const enforced = new Set<string>()
+  for (const [name, permissions] of policies) {
+    // A call, not the policy's own declaration.
+    if (!new RegExp(`(?<!function\\s+)\\b${name}\\s*\\(`).test(src)) continue
+    for (const permission of permissions) enforced.add(permission)
+  }
+  return enforced
+}
+
+/** What each listed policy's body names, and the entries that no longer name any permission. */
+function loadPolicies(): { policies: Map<string, Set<string>>; brokenPolicies: string[] } {
+  const policies = new Map<string, Set<string>>()
+  const brokenPolicies: string[] = []
+  for (const [name, file] of Object.entries(POLICY_HELPERS)) {
+    const named = policyBodyPermissions(readFileSync(join(ROOT, file), 'utf8'), name)
+    if (named == null || named.size === 0) brokenPolicies.push(`${name} (${file})`)
+    else policies.set(name, named)
+  }
+  return { policies, brokenPolicies }
+}
+
 export function findUnenforcedPermissions(all: string[], enforced: Set<string>): string[] {
   return all.filter(member => !enforced.has(member))
 }
@@ -282,13 +327,16 @@ function walk(dir: string, out: string[] = []): string[] {
 function scan() {
   const permissionSource = readFileSync(join(ROOT, PERMISSION_FILE), 'utf8')
   const permissions = parsePermissionEnum(permissionSource)
+  const { policies, brokenPolicies } = loadPolicies()
 
   const enforced = new Set<string>()
   let checked = 0
   for (const dir of SCAN_DIRS) {
     for (const file of walk(join(ROOT, dir))) {
       checked += 1
-      for (const member of collectEnforcedPermissions(readFileSync(file, 'utf8'))) enforced.add(member)
+      const src = readFileSync(file, 'utf8')
+      for (const member of collectEnforcedPermissions(src)) enforced.add(member)
+      for (const member of collectPolicyEnforcement(src, policies)) enforced.add(member)
     }
   }
 
@@ -299,6 +347,7 @@ function scan() {
 
   return {
     checked,
+    brokenPolicies,
     danglingRequires: findDanglingRequires(parsePermissionRequires(permissionSource), members),
     unenforced: findUnenforcedPermissions(
       permissions.map(p => p.member),
@@ -316,7 +365,10 @@ function main(): void {
   const json = process.argv.includes('--json')
   const result = scan()
   const failed =
-    result.unenforced.length > 0 || result.missingDescriptions.length > 0 || result.danglingRequires.length > 0
+    result.unenforced.length > 0 ||
+    result.missingDescriptions.length > 0 ||
+    result.danglingRequires.length > 0 ||
+    result.brokenPolicies.length > 0
 
   if (json) {
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`)
@@ -345,6 +397,13 @@ function main(): void {
     process.stderr.write(`\n❌ ${result.danglingRequires.length} dangling PERMISSION_REQUIRES entr(y/ies):\n`)
     for (const name of result.danglingRequires) process.stderr.write(`  Permission.${name}\n`)
     process.stderr.write('\nEvery key and prerequisite must be a real permission.\n\n')
+  }
+
+  if (result.brokenPolicies.length > 0) {
+    process.stderr.write(`\n❌ Access policies no longer naming a permission: ${result.brokenPolicies.join(', ')}\n`)
+    process.stderr.write(
+      '\nA POLICY_HELPERS entry must be declared in its file and name the permissions it decides.\n\n',
+    )
   }
 
   if (failed) process.exit(1)

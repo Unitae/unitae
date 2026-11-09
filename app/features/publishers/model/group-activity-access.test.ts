@@ -5,6 +5,7 @@ import {
   canManageGroupActivity,
   canRecordAnyActivity,
   reportAccess,
+  reportPanelPath,
 } from './group-activity-access'
 
 const base = {
@@ -126,5 +127,28 @@ describe('reportAccess', () => {
 
   it('gives a viewer nothing to change', () => {
     expect(access([Permission.CanViewActivity], null, 4).canRecord).toBe(false)
+  })
+})
+
+describe('reportPanelPath', () => {
+  const month = { publisherId: 41, month: 9, year: 2026 }
+
+  it('opens the report on the activity page for those who see the month', () => {
+    expect(
+      reportPanelPath({
+        permissions: new Set([Permission.CanViewActivity]),
+        leader: null,
+        publisherGroupId: 4,
+        ...month,
+      }),
+    ).toBe('/publishers/activity?open=41&month=9&year=2026')
+  })
+
+  it("opens it on the group page for the overseer of the publisher's group", () => {
+    const leader = { responsibleForId: 9, deputyForId: null }
+    expect(reportPanelPath({ permissions: new Set(), leader, publisherGroupId: 9, ...month })).toBe(
+      '/groups/9/view?open=41&month=9&year=2026',
+    )
+    expect(reportPanelPath({ permissions: new Set(), leader, publisherGroupId: 4, ...month })).toBeNull()
   })
 })
