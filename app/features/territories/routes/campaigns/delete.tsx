@@ -1,9 +1,7 @@
 import { redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { deleteCampaign } from '~/features/territories/server/campaign.aggregate'
-import { getCampaign } from '~/features/territories/server/campaign.queries'
 import * as m from '~/i18n/paraglide/messages'
-import { getLocale } from '~/i18n/paraglide/runtime'
 import {
   currentAccountContext,
   permissionsContext,
@@ -12,42 +10,15 @@ import {
 } from '~/shared/auth/route-context.server'
 import { ConflictError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
-import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
 import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/delete'
 
-export const meta: Route.MetaFunction = () => {
-  return [{ title: m.campaigns_meta_title() }]
-}
-
+// Deleting is a dialog on the campaign's page now; an old link to this page lands there.
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.CanManageTerritoryCampaigns)
-
   const id = requireParamId(params.campaignId, '/territories/attributions/campaigns')
-
-  return withScopeFromContext(context, async (db, congregationId) => {
-    const campaign = await getCampaign(db, id, congregationId)
-    if (campaign == null) throw redirect('/territories/attributions/campaigns')
-    return { campaign }
-  })
-}
-
-export default function DeleteCampaignPage({ loaderData }: Route.ComponentProps) {
-  const { campaign } = loaderData
-
-  return (
-    <DeleteConfirmation
-      title={m.campaigns_delete_title()}
-      submitLabel={m.campaigns_delete_submit({ name: campaign.name })}
-      cancelTo={`/territories/attributions/campaigns/${campaign.id}`}
-    >
-      <p>
-        {campaign.name} — {new Date(campaign.startDate).toLocaleDateString(getLocale())} –{' '}
-        {new Date(campaign.endDate).toLocaleDateString(getLocale())}
-      </p>
-    </DeleteConfirmation>
-  )
+  throw redirect(`/territories/attributions/campaigns/${id}`)
 }
 
 export function action({ request, params, context }: Route.ActionArgs) {

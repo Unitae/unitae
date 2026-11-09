@@ -14,7 +14,7 @@ import { getLocale } from '~/i18n/paraglide/runtime'
 import { congregationContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
-
+import { formatLocalDate } from '~/shared/utils/date.server'
 import type { Route } from './+types/list'
 
 export const meta: Route.MetaFunction = () => {
@@ -68,11 +68,10 @@ export function loader({ context }: Route.LoaderArgs) {
         : {
             id: activeCampaign.id,
             name: activeCampaign.name,
-            startDate: activeCampaign.startDate,
-            endDate: activeCampaign.endDate,
+            // Campaign days are saved as midnight in the server's zone: read them there.
+            startDay: formatLocalDate(activeCampaign.startDate),
+            endDay: formatLocalDate(activeCampaign.endDate),
             status: 'active' as const,
-            // Campaign days are saved as midnight in the server's zone: word the last one there.
-            endLabel: new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long' }).format(activeCampaign.endDate),
           }
 
     return {

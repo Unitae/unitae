@@ -1,13 +1,22 @@
-import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { Form, Link, redirect, useNavigate } from 'react-router'
+import { MetricStrip, Panel, ProgressBar, StatTile } from '@unitae/ui'
+import { CalendarRange } from 'lucide-react'
+import { redirect } from 'react-router'
+
 import { commitSession, getSession } from '~/features/authentication/index.server'
+import { campaignLength, formatCampaignDay, formatCampaignRange } from '~/features/territories/model/campaign-days'
 import { previewCampaignLifecycle } from '~/features/territories/model/campaign-preview'
+import { campaignStepStates, scopeTiles } from '~/features/territories/model/campaign-progress'
 import { getCampaignStatus } from '~/features/territories/model/campaign-status'
-import { getCampaign, listCampaignAttributions } from '~/features/territories/server/campaign.queries'
+import { RESTING_PERIOD_DAYS } from '~/features/territories/model/resting-periods'
+import { getCampaign } from '~/features/territories/server/campaign.queries'
 import { endCampaign } from '~/features/territories/server/campaign-lifecycle.workflow'
-import { CampaignStatusBadge } from '~/features/territories/ui/CampaignStatusBadge'
+import { countCampaignReferences, getCampaignProgress } from '~/features/territories/server/campaign-progress.queries'
+import { CampaignActions } from '~/features/territories/ui/CampaignActions'
+import { CampaignAttributionTable } from '~/features/territories/ui/CampaignAttributionTable'
+import { CampaignScopeTiles } from '~/features/territories/ui/CampaignScopeTiles'
+import { CampaignStateTag } from '~/features/territories/ui/CampaignStateTag'
+import { CampaignTimeline } from '~/features/territories/ui/CampaignTimeline'
 import * as m from '~/i18n/paraglide/messages'
-import { getLocale } from '~/i18n/paraglide/runtime'
 import {
   currentAccountContext,
   permissionsContext,
@@ -15,30 +24,16 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
-import { Badge } from '~/shared/ui/badge'
-import { Button } from '~/shared/ui/button'
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { daysBetween } from '~/shared/utils/calendar-day'
+import { formatLocalDate } from '~/shared/utils/date.server'
+import { formatPersonName } from '~/shared/utils/format-person-name'
 import { requireParamId } from '~/shared/utils/params.server'
+
 import type { Route } from './+types/view'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.campaigns_meta_title() }]
-}
-
-const startLabels: Record<string, () => string> = {
-  pause: m.campaigns_preview_start_pause,
-  reassign: m.campaigns_preview_start_reassign,
-  close: m.campaigns_preview_start_close,
-  leave: m.campaigns_preview_start_leave,
-}
-const endLabels: Record<string, () => string> = {
-  'close-campaign': m.campaigns_preview_end_close_campaign,
-  'leave-campaign-open': m.campaigns_preview_end_leave_open,
-  resume: m.campaigns_preview_end_resume,
-  'keep-paused': m.campaigns_preview_end_keep,
-  'close-regulars': m.campaigns_preview_end_close_regulars,
 }
 
 export function loader({ params, context }: Route.LoaderArgs) {
@@ -50,198 +45,173 @@ export function loader({ params, context }: Route.LoaderArgs) {
   return withScopeFromContext(context, async (db, congregationId) => {
     const campaign = await getCampaign(db, id, congregationId)
     if (campaign == null) throw redirect('/territories/attributions/campaigns')
+    const [progress, references] = await Promise.all([
+      getCampaignProgress(db, campaign, congregationId),
+      countCampaignReferences(db, campaign.id, congregationId),
+    ])
 
-    const scopeTerritories = await db.territory.findMany({
-      where: { id: { in: campaign.scope.map(s => s.territoryId) }, congregationId },
-      select: { id: true, number: true },
-      orderBy: { number: 'asc' },
-    })
+    // Days, read in the convention they were saved with: the page shows calendar days, never instants.
+    const status = getCampaignStatus(campaign)
+    const today = formatLocalDate(new Date())
+    const endDay = formatLocalDate(campaign.endDate)
+    const endedDay = campaign.endedAt != null ? formatLocalDate(campaign.endedAt) : null
+    const restDays = campaign.restPeriodDays ?? RESTING_PERIOD_DAYS.campaign
+    const tiles = scopeTiles(progress.territories, progress.attributions)
+    const attributions = progress.attributions.map(attribution => ({
+      id: attribution.id,
+      territory: { id: attribution.territory.id, number: attribution.territory.number },
+      publisher: formatPersonName(attribution.publisher),
+      startDay: formatLocalDate(attribution.startDate),
+      endDay: attribution.endDate != null ? formatLocalDate(attribution.endDate) : null,
+    }))
+    const out = attributions.filter(attribution => attribution.endDay == null).length
 
-    const attributions = await listCampaignAttributions(db, campaign.id, congregationId)
-
-    // Coverage: distinct in-scope territories the campaign has touched, over
-    // the scope size (empty scope = every territory of the congregation).
-    const scopeIds = new Set(campaign.scope.map(scopeRow => scopeRow.territoryId))
-    const scopeSize = scopeIds.size > 0 ? scopeIds.size : await db.territory.count({ where: { congregationId } })
-    const workedTerritoryIds = new Set(
-      attributions.map(a => a.territory.id).filter(id => scopeIds.size === 0 || scopeIds.has(id)),
-    )
-    const coveragePercent = scopeSize === 0 ? 0 : Math.round((workedTerritoryIds.size / scopeSize) * 100)
-
-    return { campaign, scopeTerritories, attributions, coveragePercent }
+    return {
+      campaign: {
+        id: campaign.id,
+        name: campaign.name,
+        notes: campaign.notes,
+        startDay: formatLocalDate(campaign.startDate),
+        endDay,
+        endedDay,
+        restDays,
+        startRegularAction: campaign.startRegularAction,
+        startAutoReassign: campaign.startAutoReassign,
+        endCloseCampaign: campaign.endCloseCampaign,
+        endRegularAction: campaign.endRegularAction,
+        allTerritories: campaign.scope.length === 0,
+      },
+      status,
+      today,
+      steps: campaignStepStates(status, { today, endDay: endedDay ?? endDay, restDays }),
+      tiles,
+      attributions,
+      metrics: {
+        worked: tiles.filter(tile => tile.state !== 'todo').length,
+        total: tiles.length,
+        out,
+        back: attributions.length - out,
+      },
+      pausedCount: progress.pausedCount,
+      canAssign: permissions.has(Permission.CanManageTerritoryAttributions),
+      // An active campaign ends first; one any attribution points at stays for the history.
+      canDelete: status !== 'active' && references === 0,
+    }
   })
 }
 
 export default function CampaignView({ loaderData }: Route.ComponentProps) {
-  const { campaign, scopeTerritories, attributions, coveragePercent } = loaderData
-  const navigate = useNavigate()
-  const status = getCampaignStatus({
-    activatedAt: campaign.activatedAt ? new Date(campaign.activatedAt) : null,
-    endedAt: campaign.endedAt ? new Date(campaign.endedAt) : null,
-  })
-  const preview = previewCampaignLifecycle(campaign)
+  const { campaign, status, today, steps, tiles, attributions, metrics, pausedCount, canAssign, canDelete } = loaderData
+  const length = campaignLength(campaign.startDay, campaign.endDay)
+  const scope = campaign.allTerritories
+    ? m.campaigns_scope_all()
+    : metrics.total > 1
+      ? m.campaigns_scope_count({ count: metrics.total })
+      : m.campaigns_scope_one({ count: metrics.total })
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex max-w-6xl flex-col gap-5">
       <PageHeader
+        icon={CalendarRange}
         title={campaign.name}
-        titleBadge={<CampaignStatusBadge status={status} />}
-        subtitle={`${new Date(campaign.startDate).toLocaleDateString(getLocale())} – ${new Date(
-          campaign.endDate,
-        ).toLocaleDateString(getLocale())}`}
+        titleBadge={<CampaignStateTag status={status} />}
+        subtitle={[
+          formatCampaignRange(campaign.startDay, campaign.endDay),
+          length > 1 ? m.campaigns_length_other({ count: length }) : m.campaigns_length_one({ count: length }),
+          scope,
+        ].join(' · ')}
         breadcrumbs={[
           { label: m.sidebar_attributions(), to: '/territories/attributions' },
           { label: m.campaigns_title(), to: '/territories/attributions/campaigns' },
           { label: campaign.name },
         ]}
-        backTo="/territories/attributions/campaigns"
         actions={
-          <>
-            <Button asChild variant="outline">
-              <Link to={`/territories/attributions/campaigns/${campaign.id}/edit`}>
-                <Pencil />
-                {m.campaigns_edit_button()}
-              </Link>
-            </Button>
-            {status === 'active' ? (
-              <Form method="post">
-                <input type="hidden" name="intent" value="end" />
-                <Button type="submit" variant="destructive">
-                  {m.campaigns_end_now_button()}
-                </Button>
-              </Form>
-            ) : (
-              <Button asChild variant="outline" className="text-destructive">
-                <Link to={`/territories/attributions/campaigns/${campaign.id}/delete`}>
-                  <Trash2 />
-                  {m.campaigns_delete_title()}
-                </Link>
-              </Button>
-            )}
-          </>
+          <CampaignActions
+            campaign={campaign}
+            status={status}
+            outCount={metrics.out}
+            pausedCount={pausedCount}
+            canAssign={canAssign}
+            canDelete={canDelete}
+          />
         }
       />
 
-      {campaign.notes.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{m.campaigns_view_notes_title()}</CardTitle>
-          </CardHeader>
-          <CardContent className="whitespace-pre-wrap text-sm">{campaign.notes}</CardContent>
-        </Card>
-      )}
+      <CampaignMetrics status={status} campaign={campaign} metrics={metrics} today={today} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{m.campaigns_view_options_title()}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-1 text-sm">
-          <p>
-            <span className="text-muted-foreground">{m.campaigns_preview_start_prefix()}</span>{' '}
-            {preview.start.map(key => startLabels[key]()).join(' ; ')}
-          </p>
-          <p>
-            <span className="text-muted-foreground">{m.campaigns_preview_end_prefix()}</span>{' '}
-            {preview.end.map(key => endLabels[key]()).join(' ; ')}
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{m.campaigns_view_attributions_title({ percent: coveragePercent })}</CardTitle>
-          {status === 'active' && (
-            <CardAction>
-              <Button asChild size="sm" variant="outline">
-                <Link to="/territories/attributions/new/available-territories">
-                  <Plus />
-                  {m.attributions_assign_button()}
-                </Link>
-              </Button>
-            </CardAction>
+      <div className="flex flex-wrap items-start gap-5">
+        <div className="flex min-w-0 flex-[3_1_34rem] flex-col gap-5">
+          <CampaignAttributionTable rows={attributions} today={today} />
+          {tiles.length > 0 && <CampaignScopeTiles tiles={tiles} />}
+        </div>
+        <aside className="flex min-w-0 flex-[1_1_18rem] flex-col gap-5">
+          <CampaignTimeline
+            steps={steps}
+            preview={previewCampaignLifecycle(campaign)}
+            startDay={campaign.startDay}
+            endDay={campaign.endedDay ?? campaign.endDay}
+            restDays={campaign.restDays}
+          />
+          {campaign.notes.length > 0 && (
+            <Panel title={m.campaigns_view_notes_title()} padded>
+              <p className="whitespace-pre-line text-muted-foreground text-sm">{campaign.notes}</p>
+            </Panel>
           )}
-        </CardHeader>
-        <CardContent>
-          {attributions.length === 0 ? (
-            <p className="text-muted-foreground text-sm">{m.campaigns_view_attributions_empty()}</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{m.attributions_table_number()}</TableHead>
-                  <TableHead>{m.attributions_table_publisher()}</TableHead>
-                  <TableHead className="max-sm:hidden">{m.attributions_table_checkout_date()}</TableHead>
-                  <TableHead>{m.campaigns_view_attributions_return()}</TableHead>
-                  <TableHead />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {attributions.map(attribution => (
-                  <TableRow
-                    key={attribution.id}
-                    className="cursor-pointer hover:bg-accent/30"
-                    onClick={event => {
-                      if (event.defaultPrevented) return
-                      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
-                      if ((event.target as HTMLElement).closest('a, button, [role="button"]')) return
-                      navigate(`/territories/attributions/${attribution.id}/edit`)
-                    }}
-                  >
-                    <TableCell>
-                      <Link
-                        to={`/territories/territory/${attribution.territory.id}/view`}
-                        className="hover:text-primary"
-                      >
-                        {attribution.territory.number}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      {attribution.publisher.firstname} {attribution.publisher.lastname?.toLocaleUpperCase()}
-                    </TableCell>
-                    <TableCell className="max-sm:hidden">
-                      {new Date(attribution.startDate).toLocaleDateString(getLocale())}
-                    </TableCell>
-                    <TableCell>
-                      {attribution.endDate != null ? (
-                        new Date(attribution.endDate).toLocaleDateString(getLocale())
-                      ) : (
-                        <Badge variant="warning">{m.campaigns_view_attributions_open()}</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" asChild>
-                        <Link to={`/territories/attributions/${attribution.id}/edit`} title={m.campaigns_edit_button()}>
-                          <Pencil className="size-4" />
-                        </Link>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{m.campaigns_view_scope_title()}</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm">
-          {scopeTerritories.length === 0 ? (
-            <p className="text-muted-foreground">{m.campaigns_scope_all()}</p>
-          ) : (
-            <div className="flex flex-wrap gap-1.5">
-              {scopeTerritories.map(territory => (
-                <span key={territory.id} className="rounded bg-muted px-2 py-0.5">
-                  {territory.number}
-                </span>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        </aside>
+      </div>
     </div>
+  )
+}
+
+type ViewData = Route.ComponentProps['loaderData']
+
+/** Four figures: how much of the scope is covered, what is out, what came back, and how long it has left. */
+function CampaignMetrics({
+  status,
+  campaign,
+  metrics,
+  today,
+}: Pick<ViewData, 'status' | 'campaign' | 'metrics' | 'today'>) {
+  const percent = metrics.total === 0 ? 0 : Math.round((metrics.worked / metrics.total) * 100)
+  const days = (count: number) => (count > 1 ? m.campaigns_metric_days_other() : m.campaigns_metric_days_one())
+  const left = daysBetween(today, campaign.endDay) + 1
+  const until = daysBetween(today, campaign.startDay)
+  const length = campaignLength(campaign.startDay, campaign.endDay)
+
+  return (
+    <MetricStrip aria-label={m.campaigns_metrics_label()}>
+      <StatTile
+        label={m.campaigns_metric_coverage()}
+        value={metrics.worked}
+        unit={m.campaigns_metric_coverage_unit({ total: metrics.total })}
+        meter={<ProgressBar value={metrics.worked} max={Math.max(metrics.total, 1)} />}
+        foot={m.campaigns_metric_coverage_foot({ percent })}
+      />
+      <StatTile label={m.campaigns_metric_out()} value={metrics.out} foot={m.campaigns_metric_out_foot()} />
+      <StatTile label={m.campaigns_metric_back()} value={metrics.back} foot={m.campaigns_metric_back_foot()} />
+      {status === 'active' ? (
+        <StatTile
+          label={m.campaigns_metric_left()}
+          value={Math.max(left, 0)}
+          unit={days(left)}
+          foot={m.campaigns_metric_left_foot({ date: formatCampaignDay(campaign.endDay) })}
+        />
+      ) : status === 'scheduled' ? (
+        <StatTile
+          label={m.campaigns_metric_starts()}
+          value={Math.max(until, 0)}
+          unit={days(until)}
+          foot={m.campaigns_metric_starts_foot({ date: formatCampaignDay(campaign.startDay) })}
+        />
+      ) : (
+        <StatTile
+          label={m.campaigns_metric_length()}
+          value={length}
+          unit={days(length)}
+          foot={m.campaigns_metric_length_foot({ date: formatCampaignDay(campaign.endedDay ?? campaign.endDay) })}
+        />
+      )}
+    </MetricStrip>
   )
 }
 

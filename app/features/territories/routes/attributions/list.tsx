@@ -46,6 +46,8 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const canManagePublisher = permissions.has(Permission.CanManagePublishers)
   const canViewPublisher = permissions.has(Permission.CanViewPublishers)
   const canManageTerritories = permissions.has(Permission.CanManageTerritoryAttributions)
+  // The campaign pages ask for their own right: the button follows it.
+  const canManageCampaigns = permissions.has(Permission.CanManageTerritoryCampaigns)
   const canViewProspection = permissions.has(Permission.CanViewProspection)
 
   if (!canViewTerritories) {
@@ -118,6 +120,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
       attributions: result.attributions,
       pagination: result.pagination,
       canManageTerritories,
+      canManageCampaigns,
       canManagePublisher,
       canViewPublisher,
       groups,
@@ -140,6 +143,7 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
     pagination,
     attributions,
     canManageTerritories,
+    canManageCampaigns,
     theocraticYear,
     groups,
     campaigns,
@@ -188,18 +192,18 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
           actions={
             <>
               <S13ExportButton theocraticYear={theocraticYear} />
+              {canManageCampaigns && (
+                <Button asChild variant="outline">
+                  <Link to="./campaigns">
+                    <Megaphone />
+                    {m.campaigns_title()}
+                  </Link>
+                </Button>
+              )}
               {canManageTerritories && (
-                <>
-                  <Button asChild variant="outline">
-                    <Link to="./campaigns">
-                      <Megaphone />
-                      {m.campaigns_title()}
-                    </Link>
-                  </Button>
-                  <Button asChild>
-                    <Link to="./new/available-territories">{m.attributions_assign_button()}</Link>
-                  </Button>
-                </>
+                <Button asChild>
+                  <Link to="./new/available-territories">{m.attributions_assign_button()}</Link>
+                </Button>
               )}
             </>
           }
@@ -227,18 +231,18 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
         actions={
           <>
             <S13ExportButton theocraticYear={theocraticYear} />
+            {canManageCampaigns && (
+              <Button asChild variant="outline">
+                <Link to="./campaigns">
+                  <Megaphone />
+                  {m.campaigns_title()}
+                </Link>
+              </Button>
+            )}
             {canManageTerritories && (
-              <>
-                <Button asChild variant="outline">
-                  <Link to="./campaigns">
-                    <Megaphone />
-                    {m.campaigns_title()}
-                  </Link>
-                </Button>
-                <Button asChild>
-                  <Link to="./new/available-territories">{m.attributions_assign_button()}</Link>
-                </Button>
-              </>
+              <Button asChild>
+                <Link to="./new/available-territories">{m.attributions_assign_button()}</Link>
+              </Button>
             )}
           </>
         }
