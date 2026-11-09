@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
   collectEnforcedPermissions,
+  collectPolicyEnforcement,
   findDanglingRequires,
   findMissingDescriptions,
   findUnenforcedPermissions,
+  policyBodyPermissions,
 } from './check-permission-coverage'
 
 describe('collectEnforcedPermissions', () => {
@@ -111,6 +113,46 @@ describe('collectEnforcedPermissions', () => {
       'return { canManage }',
     ].join('\n')
     expect([...collectEnforcedPermissions(src)]).toEqual([])
+  })
+})
+
+describe('policyBodyPermissions', () => {
+  const policyFile = [
+    'export function canRecordAny(permissions) {',
+    '  return permissions.has(Permission.CanRecordActivity)',
+    '}',
+    '',
+    'export function reportAccess({ permissions, leader }: ReportAccessInput): ReportAccess {',
+    '  const leads = leader != null && { nested: true } != null',
+    '  return { canRecord: canRecordAny(permissions) || leads, canDelete: permissions.has(Permission.CanCorrectActivity) }',
+    '}',
+  ].join('\n')
+
+  it("names the permissions in the policy's own body, not the rest of its file", () => {
+    expect(policyBodyPermissions(policyFile, 'reportAccess')).toEqual(new Set(['CanCorrectActivity']))
+  })
+
+  it('is empty when the body names no permission, and null when the file does not declare it', () => {
+    expect(policyBodyPermissions('export function reportAccess() {\n  return {}\n}', 'reportAccess')).toEqual(new Set())
+    expect(policyBodyPermissions(policyFile, 'missingPolicy')).toBeNull()
+  })
+})
+
+describe('collectPolicyEnforcement', () => {
+  const policies = new Map([['reportAccess', new Set(['CanCorrectActivity'])]])
+
+  it('credits a route that consults the policy with every permission its body names', () => {
+    // routes/activity/report.tsx refuses with a 403 on the policy's answer, so the fetcher stays on the page.
+    const src = [
+      'const access = reportAccess({ permissions, leader, publisherGroupId })',
+      'if (!access.canDelete) return refused()',
+    ].join('\n')
+    expect([...collectPolicyEnforcement(src, policies)]).toEqual(['CanCorrectActivity'])
+  })
+
+  it('does not count the policy declaring itself, nor a file that never calls it', () => {
+    expect([...collectPolicyEnforcement('export function reportAccess(input) {}', policies)]).toEqual([])
+    expect([...collectPolicyEnforcement('const reportAccessible = true', policies)]).toEqual([])
   })
 })
 
