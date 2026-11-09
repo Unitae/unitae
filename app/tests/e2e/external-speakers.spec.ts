@@ -15,7 +15,7 @@ test.describe('External speakers registry', () => {
     await page.goto('/programs/external-speakers')
     await page.waitForLoadState('networkidle')
     await expect(page).toHaveURL(REGISTRY_URL_RE)
-    await expect(page.getByRole('heading', { name: 'Orateurs externes' }).first()).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Orateurs visiteurs' }).first()).toBeVisible()
   })
 
   test('add-speaker form loads at /programs/external-speakers/new', async ({ page }) => {

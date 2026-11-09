@@ -67,6 +67,10 @@ Messages use the Inlang message format in JSON:
 3. The Paraglide Vite plugin recompiles automatically during `pnpm start:dev`
 4. Import and use: `m.your_new_key()`
 
+Word both languages with the terms in [Translation Glossary](translation-glossary.md): it fixes the
+official congregation vocabulary (congregation, territory assignment, field service report…) in
+English and French.
+
 If a key is missing in `en.json`, Paraglide falls back to the `fr.json` value.
 
 ## Which Language Applies
