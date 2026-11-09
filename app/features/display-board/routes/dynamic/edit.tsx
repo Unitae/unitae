@@ -106,7 +106,7 @@ export default function EditDynamicDocumentPage({ loaderData, actionData }: Rout
         title={m.board_dynamic_edit_title()}
         subtitle={m.board_dynamic_edit_subtitle()}
         breadcrumbs={[
-          { label: m.sidebar_documents(), to: '/board/documents' },
+          { label: m.sidebar_board_manage(), to: '/board/documents' },
           { label: m.board_dynamic_edit_title() },
         ]}
         backTo="/board/documents"

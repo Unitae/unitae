@@ -9,11 +9,10 @@ const BOARD_DOCUMENTS_URL_RE = /\/board\/documents(?:\?|$)/
 const BOARD_DOCUMENTS_NEW_URL_RE = /\/board\/documents\/new(?:\?|$)/
 const NOT_BOARD_SECTIONS_URL_RE = /^(?!.*\/board\/sections).*$/
 
-const MANAGE_DOCUMENTS_RE = /Gérer les documents|Manage documents/i
+const MANAGE_BOARD_RE = /^Gérer le tableau$|^Manage the board$/i
 const MANAGE_SECTIONS_RE = /Gérer les sections|Manage sections/i
 const UPLOAD_BUTTON_RE = /Téléverser/i
-const ADD_DYNAMIC_RE = /Ajouter un document dynamique|Add dynamic document/i
-const SIDEBAR_DOCUMENTS_RE = /^Documents$/
+const ADD_DYNAMIC_RE = /Document dynamique|Live document/i
 const SIDEBAR_SECTIONS_RE = /^Sections$/
 
 // Use a non-existent ID so the test is independent of seed data — the permission
@@ -30,20 +29,20 @@ test.describe('Board permissions — BoardUploader (upload-only)', () => {
     if (!loggedIn) test.skip()
   })
 
-  test('board home shows "Manage Documents" but not "Manage Sections"', async ({ page }) => {
+  test('board home shows « Gérer le tableau » but not « Gérer les sections »', async ({ page }) => {
     await page.goto('/board')
     await page.waitForLoadState('networkidle')
     await expect(page).toHaveURL(BOARD_URL_RE)
 
-    await expect(page.getByRole('link', { name: MANAGE_DOCUMENTS_RE })).toBeVisible()
+    await expect(page.getByRole('link', { name: MANAGE_BOARD_RE }).first()).toBeVisible()
     await expect(page.getByRole('link', { name: MANAGE_SECTIONS_RE })).toHaveCount(0)
   })
 
-  test('sidebar exposes Documents but not Sections', async ({ page }) => {
+  test('sidebar exposes « Gérer le tableau » but not Sections', async ({ page }) => {
     await page.goto('/board')
     await page.waitForLoadState('networkidle')
 
-    await expect(page.getByRole('link', { name: SIDEBAR_DOCUMENTS_RE })).toBeVisible()
+    await expect(page.getByRole('link', { name: MANAGE_BOARD_RE }).first()).toBeVisible()
     await expect(page.getByRole('link', { name: SIDEBAR_SECTIONS_RE })).toHaveCount(0)
   })
 
@@ -71,7 +70,7 @@ test.describe('Board permissions — BoardUploader (upload-only)', () => {
     await expect(page.locator('input[name="hightlighted"]')).toHaveCount(0)
   })
 
-  test('cannot reach /board/sections — redirected away', async ({ page }) => {
+  test('/board/sections lands on the single management page, never a sections page', async ({ page }) => {
     await page.goto('/board/sections')
     await page.waitForLoadState('networkidle')
     await expect(page).toHaveURL(NOT_BOARD_SECTIONS_URL_RE)

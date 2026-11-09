@@ -1,528 +1,235 @@
-import { closestCenter, DndContext, type DragEndEvent } from '@dnd-kit/core'
-import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import { BarChart3, Eye, FileText, GripVertical, Pencil, Sparkles, Trash2 } from 'lucide-react'
+import { FileText, Plus } from 'lucide-react'
 import { useState } from 'react'
-import { Link, redirect, useFetcher, useRevalidator, useSearchParams } from 'react-router'
-import { DocumentVisibility } from '~/features/display-board/ui/DocumentVisibility'
+import { Link, redirect, useFetcher, useSearchParams } from 'react-router'
+import { documentReads } from '~/features/display-board/server/board-audience.queries'
+import { listBoardManagement, type ManagedItem } from '~/features/display-board/server/board-management.queries'
+import { ManageSelectionBar } from '~/features/display-board/ui/manage/ManageSelectionBar'
+import { ManageTable } from '~/features/display-board/ui/manage/ManageTable'
+import { ManageToolbar } from '~/features/display-board/ui/manage/ManageToolbar'
+import {
+  filterSections,
+  type ItemPayload,
+  mergeVisibleOrder,
+  type PendingHighlight,
+  toPayload,
+  withPendingHighlight,
+  withPendingOrder,
+} from '~/features/display-board/ui/manage/manage-list'
+import { itemKey, type ManageRights } from '~/features/display-board/ui/manage/manage-rights'
+import { ReadsPanel } from '~/features/display-board/ui/manage/ReadsPanel'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import logger from '~/shared/infra/logger.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
-import { SearchInput } from '~/shared/ui/SearchInput'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
 import type { Route } from './+types/list'
 
-export const meta: Route.MetaFunction = () => {
-  return [{ title: `Liste des documents du Tableau d'affichage - Unitae` }]
-}
+export const meta: Route.MetaFunction = () => [{ title: `${m.sidebar_board_manage()} - Unitae` }]
+
+const READS_PARAM = /^(pdf|dynamic)-(\d+)$/
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canUploadDocument = permissions.has(Permission.CanUploadBoardDocuments)
-  const canManageBoard = permissions.has(Permission.CanReviewBoardDocuments)
-
-  if (!canUploadDocument && !canManageBoard) {
-    logger.warn(`Tried to load board documents. User ID: ${currentUser.id}. Does NOT have rights to view documents.`)
-
-    throw redirect('/')
+  const rights: ManageRights = {
+    canUpload: permissions.has(Permission.CanUploadBoardDocuments),
+    canReview: permissions.has(Permission.CanReviewBoardDocuments),
+    canOrganise: permissions.has(Permission.CanOrganiseBoardDocuments),
+    canConfigureSections: permissions.has(Permission.CanConfigureBoardSections),
+    canManageDynamic: permissions.has(Permission.CanManageDynamicBoardDocuments),
   }
+  // The page opens to anyone holding one of the rights its actions check; each action shows only with its own.
+  if (!Object.values(rights).some(Boolean)) throw redirect('/')
 
-  logger.info(
-    `Loading board documents. User ID: ${currentUser.id}. ${canManageBoard ? 'Has' : 'Does NOT have'} rights to manage documents.`,
-  )
-
-  const url = new URL(request.url)
-  const searchQuery = url.searchParams.get('q') ?? ''
-  const sectionIdParam = url.searchParams.get('sectionId')
-  const filterSectionId = sectionIdParam && sectionIdParam !== 'all' ? sectionIdParam : null
+  const match = rights.canReview ? READS_PARAM.exec(new URL(request.url).searchParams.get('lectures') ?? '') : null
+  const target = match ? { kind: match[1] as 'pdf' | 'dynamic', id: Number(match[2]) } : null
+  const { timezone } = context.get(congregationContext)
+  const { congregationId } = currentUser
 
   return withScopeFromContext(context, async db => {
-    const { congregationId } = currentUser
-    const sections = await db.boardSection.findMany({
-      where: { congregationId },
-      orderBy: { order: 'asc' },
-    })
-
-    const documents = await db.boardDocument.findMany({
-      where: {
+    const now = new Date()
+    const [list, reads] = await Promise.all([
+      listBoardManagement(db, { congregationId, userId: currentUser.id, now }),
+      target ? documentReads(db, { ...target, congregationId, now }) : null,
+    ])
+    if (reads && target) {
+      audit({
+        action: AuditAction.BoardReadStatusViewed,
         congregationId,
-        ...(searchQuery ? { title: { contains: searchQuery, mode: 'insensitive' as const } } : {}),
-        ...(filterSectionId ? { sectionId: Number(filterSectionId) } : {}),
-      },
-      include: {
-        section: true,
-        _count: { select: { views: true } },
-        // v1 anchors original-uploader attribution; missing on legacy docs.
-        versions: { where: { versionNumber: 1 }, select: { uploadedById: true }, take: 1 },
-      },
-    })
-
-    const dynamicDocuments = await db.boardDynamicDocumentSettings.findMany({
-      where: {
-        congregationId,
-        ...(searchQuery ? { title: { contains: searchQuery, mode: 'insensitive' as const } } : {}),
-        ...(filterSectionId ? { sectionId: Number(filterSectionId) } : {}),
-      },
-      include: { section: true },
-    })
-
-    return { documents, dynamicDocuments, sections, canUploadDocument, canManageBoard, currentUserId: currentUser.id }
+        actorId: currentUser.id,
+        entityType: target.kind === 'pdf' ? 'BoardDocument' : 'BoardDynamicDocumentSettings',
+        entityId: target.id,
+      })
+    }
+    return {
+      sections: list.sections,
+      reads,
+      readsKey: reads && target ? `${target.kind}-${target.id}` : null,
+      rights,
+      timeZone: timezone,
+    }
   })
 }
 
-type Kind = 'pdf' | 'dyn'
-
-type UnifiedItem = {
-  kind: Kind
-  id: number
-  dndId: string
-  title: string
-  sectionId: number
-  sectionName: string
-  sectionOrder: number | null
-  order: number | null
-  visibleFrom: Date | null
-  visibleUntil: Date | null
-  isHighlighted: boolean
-  viewsCount: number | null
-  ownedByUser: boolean
-}
-
-function buildDndId(kind: Kind, id: number): string {
-  return `${kind}-${id}`
-}
-
-function parseDndId(dndId: string): { kind: Kind; id: number } {
-  const [kind, rest] = dndId.split('-', 2)
-  return { kind: kind as Kind, id: Number(rest) }
-}
-
-function mergeAndSort(
-  pdfs: Awaited<ReturnType<typeof loader>>['documents'],
-  dyns: Awaited<ReturnType<typeof loader>>['dynamicDocuments'],
-  currentUserId: number,
-): UnifiedItem[] {
-  const items: UnifiedItem[] = [
-    ...pdfs.map<UnifiedItem>(d => ({
-      kind: 'pdf',
-      id: d.id,
-      dndId: buildDndId('pdf', d.id),
-      title: d.title,
-      sectionId: d.sectionId,
-      sectionName: d.section.name,
-      sectionOrder: d.section.order,
-      order: d.order,
-      visibleFrom: d.visibleFrom,
-      visibleUntil: d.visibleUntil,
-      isHighlighted: d.isHighlighted,
-      viewsCount: d._count.views,
-      ownedByUser: d.versions[0]?.uploadedById === currentUserId,
-    })),
-    ...dyns.map<UnifiedItem>(d => ({
-      kind: 'dyn',
-      id: d.id,
-      dndId: buildDndId('dyn', d.id),
-      title: d.title,
-      sectionId: d.sectionId,
-      sectionName: d.section.name,
-      sectionOrder: d.section.order,
-      order: d.order,
-      visibleFrom: d.visibleFrom,
-      visibleUntil: d.visibleUntil,
-      isHighlighted: d.isHighlighted,
-      viewsCount: null,
-      ownedByUser: false,
-    })),
-  ]
-  items.sort((a, b) => {
-    const secA = a.sectionOrder ?? 0
-    const secB = b.sectionOrder ?? 0
-    if (secA !== secB) return secA - secB
-    const ordA = a.order ?? 0
-    const ordB = b.order ?? 0
-    return ordA - ordB
-  })
-  return items
-}
-
-function SortableItemRow({
-  item,
-  selected,
-  onToggle,
-  canManageBoard,
-  canEditOwnDocument,
-}: {
-  item: UnifiedItem
-  selected: boolean
-  onToggle: (dndId: string) => void
-  canManageBoard: boolean
-  canEditOwnDocument: boolean
-}) {
-  const canEditThisRow = canManageBoard || (canEditOwnDocument && item.kind === 'pdf' && item.ownedByUser)
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: item.dndId,
-    disabled: !canManageBoard,
-  })
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  }
-
-  const editHref = item.kind === 'pdf' ? `./${item.id}/edit` : `/board/dynamic/${item.id}/edit`
-  const viewerHref = item.kind === 'pdf' ? `./${item.id}/viewer` : `/board/dynamic/${item.id}/viewer`
-  const deleteHref = item.kind === 'pdf' ? `./${item.id}/delete` : `/board/dynamic/${item.id}/delete`
-
-  return (
-    <TableRow ref={setNodeRef} style={style}>
-      {canManageBoard && (
-        <TableCell className="w-8">
-          <button type="button" className="cursor-grab touch-none text-muted-foreground" {...attributes} {...listeners}>
-            <GripVertical className="size-4" />
-          </button>
-        </TableCell>
-      )}
-      {canManageBoard && (
-        <TableCell className="w-8">
-          <input
-            type="checkbox"
-            checked={selected}
-            onChange={() => onToggle(item.dndId)}
-            className="size-4 rounded border border-input accent-primary"
-          />
-        </TableCell>
-      )}
-      <TableCell>
-        <div className="flex items-center gap-2">
-          <span>{item.title}</span>
-          {item.kind === 'dyn' && (
-            <span className="rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary text-xs">
-              {m.board_dynamic_badge()}
-            </span>
-          )}
-        </div>
-      </TableCell>
-      <TableCell className="text-center max-sm:hidden">{item.viewsCount ?? '—'}</TableCell>
-      <TableCell className="text-center">
-        <DocumentVisibility document={item} />
-      </TableCell>
-      <TableCell className="text-right">
-        <div className="flex items-center justify-end gap-1">
-          <Button variant="ghost" size="icon" asChild>
-            <Link to={viewerHref}>
-              <Eye className="size-4" />
-            </Link>
-          </Button>
-          {canManageBoard && item.kind === 'pdf' && (
-            <Button variant="ghost" size="icon" asChild>
-              <Link to={`./${item.id}/read-status`} title={m.board_read_status_link_tooltip()}>
-                <BarChart3 className="size-4" />
-              </Link>
-            </Button>
-          )}
-          {canEditThisRow && (
-            <Button variant="ghost" size="icon" asChild>
-              <Link to={editHref}>
-                <Pencil className="size-4" />
-              </Link>
-            </Button>
-          )}
-          {canEditThisRow && (
-            <Button
-              variant="ghost"
-              size="icon"
-              asChild
-              className="text-destructive hover:text-destructive max-sm:hidden"
-            >
-              <Link to={deleteHref} title={m.board_documents_delete_tooltip()}>
-                <Trash2 className="size-4" />
-              </Link>
-            </Button>
-          )}
-        </div>
-      </TableCell>
-    </TableRow>
-  )
-}
-
-export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
-  const { documents, dynamicDocuments, sections, canUploadDocument, canManageBoard, currentUserId } = loaderData
-  const fetcher = useFetcher()
-  const bulkFetcher = useFetcher()
-  const revalidator = useRevalidator()
+export default function ManageBoardPage({ loaderData }: Route.ComponentProps) {
+  const { sections, reads, readsKey, rights, timeZone } = loaderData
   const [searchParams, setSearchParams] = useSearchParams()
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const reorder = useFetcher()
+  const bulk = useFetcher()
+  const highlight = useFetcher()
+  const [selected, setSelected] = useState<Set<string>>(new Set())
 
-  const items = mergeAndSort(documents, dynamicDocuments, currentUserId)
-  const sectionsWithItems = sections
-    .map(section => ({
-      section,
-      sectionItems: items.filter(i => i.sectionId === section.id),
-    }))
-    .filter(({ sectionItems }) => sectionItems.length > 0)
-
-  function toggleSelection(dndId: string) {
-    setSelectedIds(prev => {
-      const next = new Set(prev)
-      if (next.has(dndId)) next.delete(dndId)
-      else next.add(dndId)
-      return next
-    })
-  }
-
-  function toggleAllInSection(sectionItems: UnifiedItem[]) {
-    const allSelected = sectionItems.every(i => selectedIds.has(i.dndId))
-    setSelectedIds(prev => {
-      const next = new Set(prev)
-      if (allSelected) {
-        for (const item of sectionItems) next.delete(item.dndId)
-      } else {
-        for (const item of sectionItems) next.add(item.dndId)
-      }
-      return next
-    })
-  }
-
-  function handleBulkDelete() {
-    const selected = [...selectedIds].map(parseDndId)
-    bulkFetcher.submit(
-      { items: selected },
-      { method: 'POST', action: '/board/documents/bulk-delete', encType: 'application/json' },
-    )
-    setSelectedIds(new Set())
-    revalidator.revalidate()
-  }
-
-  function handleBulkMove(sectionId: number) {
-    const selected = [...selectedIds].map(parseDndId)
-    bulkFetcher.submit(
-      { items: selected, sectionId },
-      { method: 'POST', action: '/board/documents/bulk-move', encType: 'application/json' },
-    )
-    setSelectedIds(new Set())
-    revalidator.revalidate()
-  }
-
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-
-    const activeIndex = items.findIndex(i => i.dndId === active.id)
-    const overIndex = items.findIndex(i => i.dndId === over.id)
-    if (activeIndex === -1 || overIndex === -1) return
-
-    // Only reorder within the same section
-    if (items[activeIndex].sectionId !== items[overIndex].sectionId) return
-
-    const sectionId = items[activeIndex].sectionId
-    const sectionItems = items.filter(i => i.sectionId === sectionId)
-    const oldSectionIndex = sectionItems.findIndex(i => i.dndId === active.id)
-    const newSectionIndex = sectionItems.findIndex(i => i.dndId === over.id)
-
-    const reordered = [...sectionItems]
-    const [moved] = reordered.splice(oldSectionIndex, 1)
-    reordered.splice(newSectionIndex, 0, moved)
-
-    fetcher.submit(
-      { orderedItems: reordered.map(i => ({ kind: i.kind, id: i.id })) },
-      { method: 'POST', action: '/board/documents/reorder', encType: 'application/json' },
-    )
+  const pendingOrder = (reorder.json as { orderedItems?: ItemPayload[] } | undefined)?.orderedItems
+  const pendingHighlight = highlight.json as PendingHighlight | undefined
+  const ordered = withPendingHighlight(withPendingOrder(sections, pendingOrder), pendingHighlight)
+  const shown = filterSections(ordered, searchParams)
+  const total = sections.reduce((count, s) => count + s.items.length, 0)
+  const selectedItems = ordered.flatMap(s => s.items).filter(item => selected.has(itemKey(item)))
+  const send = (fetcher: typeof bulk, action: string, body: Record<string, ItemPayload[] | number | boolean>) =>
+    fetcher.submit(body, { method: 'POST', action: `/board/documents/${action}`, encType: 'application/json' })
+  const move = (items: ManagedItem[], sectionId: number) =>
+    send(bulk, 'bulk-move', { items: items.map(toPayload), sectionId })
+  const setHighlighted = (items: ManagedItem[], highlighted: boolean) =>
+    send(highlight, 'bulk-highlight', { items: items.map(toPayload), highlighted })
+  const onSelection = (run: () => void) => {
+    run()
+    setSelected(new Set())
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <>
       <PageHeader
-        title="Documents"
-        subtitle={m.board_documents_list_subtitle()}
-        breadcrumbs={[{ label: m.sidebar_documents() }]}
+        title={m.sidebar_board_manage()}
+        titleBadge={
+          <span className="text-base text-faint tabular-nums">
+            {m.board_manage_counts({ documents: total, sections: sections.length })}
+          </span>
+        }
+        breadcrumbs={[{ label: m.board_page_title(), to: '/board' }, { label: m.sidebar_board_manage() }]}
         actions={
-          <div className="flex gap-2">
-            {canManageBoard && (
-              <Button variant="outline" asChild>
-                <Link to="./new-dynamic">
-                  <Sparkles className="mr-2 size-4" />
-                  {m.board_add_dynamic_button()}
+          <>
+            {rights.canConfigureSections && (
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/board/sections/new">
+                  <Plus className="size-4" aria-hidden="true" />
+                  {m.board_manage_add_section()}
                 </Link>
               </Button>
             )}
-            {canUploadDocument && (
-              <Button asChild>
-                <Link to="./new">{m.board_documents_upload_button()}</Link>
+            {rights.canManageDynamic && (
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/board/documents/new-dynamic">
+                  <Plus className="size-4" aria-hidden="true" />
+                  {m.board_manage_add_dynamic()}
+                </Link>
               </Button>
             )}
-          </div>
+            {rights.canUpload && (
+              <Button size="sm" asChild>
+                <Link to="/board/documents/new">
+                  <Plus className="size-4" aria-hidden="true" />
+                  {m.board_manage_upload()}
+                </Link>
+              </Button>
+            )}
+          </>
         }
       />
-
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <SearchInput placeholder={m.board_documents_search_placeholder()} />
-        <Select
-          value={searchParams.get('sectionId') || 'all'}
-          onValueChange={value => {
-            setSearchParams(prev => {
-              if (value === 'all') {
-                prev.delete('sectionId')
-              } else {
-                prev.set('sectionId', value)
+      <div className="flex items-start gap-6" data-sticky-content={reads ? '' : undefined}>
+        {/* No width of its own to give: the table scrolls in its frame rather than widen the page. */}
+        <div className="flex w-0 min-w-0 flex-1 flex-col">
+          {sections.length === 0 ? (
+            <EmptyState
+              icon={FileText}
+              title={m.board_empty_manager_title()}
+              description={m.board_empty_manager_description()}
+              action={
+                rights.canConfigureSections ? (
+                  <Button asChild>
+                    <Link to="/board/sections/new">{m.board_empty_manager_action()}</Link>
+                  </Button>
+                ) : undefined
               }
-              return prev
-            })
-          }}
-        >
-          <SelectTrigger className="sm:w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{m.board_documents_filter_all_sections()}</SelectItem>
-            {sections.map(section => (
-              <SelectItem key={section.id} value={String(section.id)}>
-                {section.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {items.length === 0 ? (
-        <EmptyState
-          icon={FileText}
-          title={m.board_documents_empty_title()}
-          description={m.board_documents_empty_description()}
-        />
-      ) : (
-        <>
-          {canManageBoard && selectedIds.size > 0 && (
-            <div className="flex items-center gap-3 rounded-lg border bg-muted/50 px-4 py-2">
-              <span className="text-muted-foreground text-sm">
-                {m.board_documents_bulk_selected({ count: selectedIds.size })}
-              </span>
-              <Select
-                value=""
-                onValueChange={value => {
-                  if (value) handleBulkMove(Number(value))
-                }}
-              >
-                <SelectTrigger size="sm">
-                  <SelectValue placeholder={m.board_documents_bulk_move_to()} />
-                </SelectTrigger>
-                <SelectContent>
-                  {sections.map(section => (
-                    <SelectItem key={section.id} value={String(section.id)}>
-                      {section.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
-                {m.board_documents_bulk_delete()}
-              </Button>
+            />
+          ) : (
+            <div className="flex flex-col gap-4">
+              <ManageToolbar sections={sections} canReorder={rights.canOrganise} />
+              {shown.length === 0 ? (
+                <p className="py-8 text-center text-muted-foreground text-sm">{m.board_manage_no_match()}</p>
+              ) : (
+                <ManageTable
+                  sections={shown}
+                  sectionOrder={sections.map(s => s.id)}
+                  rights={rights}
+                  selected={selected}
+                  onToggle={key =>
+                    setSelected(prev => {
+                      const next = new Set(prev)
+                      if (!next.delete(key)) next.add(key)
+                      return next
+                    })
+                  }
+                  onReorder={visible => {
+                    // The whole section goes back, the rows a search hides in their places.
+                    const section = ordered.find(s => s.items.some(item => itemKey(item) === itemKey(visible[0])))
+                    const items = section ? mergeVisibleOrder(section.items, visible) : visible
+                    reorder.submit(
+                      { orderedItems: items.map(toPayload) },
+                      {
+                        method: 'POST',
+                        action: '/board/documents/reorder',
+                        encType: 'application/json',
+                      },
+                    )
+                  }}
+                  readsKey={readsKey}
+                  timeZone={timeZone}
+                  compact={reads != null}
+                  allSections={sections}
+                  onMove={(item, sectionId) => move([item], sectionId)}
+                  onHighlight={setHighlighted}
+                />
+              )}
             </div>
           )}
+        </div>
 
-          <div className="flex flex-col gap-6">
-            {sectionsWithItems.map(({ section, sectionItems }) => (
-              <SectionBlock
-                key={section.id}
-                section={section}
-                items={sectionItems}
-                allSelected={sectionItems.every(i => selectedIds.has(i.dndId)) && sectionItems.length > 0}
-                selectedIds={selectedIds}
-                onToggleAllInSection={() => toggleAllInSection(sectionItems)}
-                onToggle={toggleSelection}
-                onDragEnd={handleDragEnd}
-                canManageBoard={canManageBoard}
-                canEditOwnDocument={canUploadDocument}
-              />
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
+        {reads && (
+          <ReadsPanel
+            key={readsKey}
+            reads={reads}
+            onClose={() =>
+              setSearchParams(
+                prev => {
+                  prev.delete('lectures')
+                  return prev
+                },
+                { preventScrollReset: true },
+              )
+            }
+          />
+        )}
 
-function SectionBlock({
-  section,
-  items,
-  allSelected,
-  selectedIds,
-  onToggleAllInSection,
-  onToggle,
-  onDragEnd,
-  canManageBoard,
-  canEditOwnDocument,
-}: {
-  section: { id: number; name: string }
-  items: UnifiedItem[]
-  allSelected: boolean
-  selectedIds: Set<string>
-  onToggleAllInSection: () => void
-  onToggle: (dndId: string) => void
-  onDragEnd: (event: DragEndEvent) => void
-  canManageBoard: boolean
-  canEditOwnDocument: boolean
-}) {
-  return (
-    <div className="flex flex-col gap-3">
-      <h2 className="font-display font-semibold text-lg">{section.name}</h2>
-      <div className="overflow-hidden rounded-2xl border">
-        <DndContext collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {canManageBoard && (
-                  <TableHead className="w-8">
-                    <span className="sr-only">{m.board_documents_table_position()}</span>
-                  </TableHead>
-                )}
-                {canManageBoard && (
-                  <TableHead className="w-8">
-                    <input
-                      type="checkbox"
-                      checked={allSelected}
-                      onChange={onToggleAllInSection}
-                      className="size-4 rounded border border-input accent-primary"
-                    />
-                  </TableHead>
-                )}
-                <TableHead>{m.board_documents_table_name()}</TableHead>
-                <TableHead className="text-center max-sm:hidden">{m.board_documents_table_views()}</TableHead>
-                <TableHead className="text-center">
-                  <span className="max-sm:hidden">{m.board_documents_table_visibility()}</span>
-                  <span className="hidden max-sm:inline" aria-hidden="true">
-                    Vis.
-                  </span>
-                </TableHead>
-                <TableHead className="w-0">
-                  <span className="sr-only">{m.board_documents_table_actions()}</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <SortableContext items={items.map(i => i.dndId)} strategy={verticalListSortingStrategy}>
-              <TableBody>
-                {items.map(item => (
-                  <SortableItemRow
-                    key={item.dndId}
-                    item={item}
-                    selected={selectedIds.has(item.dndId)}
-                    onToggle={onToggle}
-                    canManageBoard={canManageBoard}
-                    canEditOwnDocument={canEditOwnDocument}
-                  />
-                ))}
-              </TableBody>
-            </SortableContext>
-          </Table>
-        </DndContext>
+        {rights.canOrganise && selectedItems.length > 0 && (
+          <ManageSelectionBar
+            selected={selectedItems}
+            sections={sections}
+            rights={rights}
+            onMove={sectionId => onSelection(() => move(selectedItems, sectionId))}
+            onHighlight={value => onSelection(() => setHighlighted(selectedItems, value))}
+            onDelete={() => onSelection(() => send(bulk, 'bulk-delete', { items: selectedItems.map(toPayload) }))}
+            onClear={() => setSelected(new Set())}
+          />
+        )}
       </div>
-    </div>
+    </>
   )
 }

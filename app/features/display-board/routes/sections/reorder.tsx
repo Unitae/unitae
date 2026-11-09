@@ -11,7 +11,7 @@ import { Permission } from '~/shared/types/permission'
 import type { Route } from './+types/reorder'
 
 export function loader(_args: Route.LoaderArgs) {
-  throw redirect('/board/sections')
+  throw redirect('/board/documents')
 }
 
 export async function action({ request, context }: Route.ActionArgs) {

@@ -57,7 +57,7 @@ Use the US spelling **program** in English, never "programme". French keeps *pro
 | responsable de la réunion Vie et ministère | Life and Ministry Meeting overseer |
 | conseiller pour l'enseignement | auxiliary counselor |
 | discours public | public talk |
-| orateur visiteur | visiting speaker (never "external speaker") |
+| orateur extérieur | visiting speaker (never "external speaker"; French never "orateur externe") |
 | Étude de *La Tour de Garde* | Watchtower Study |
 | attribution (de partie) | assignment |
 

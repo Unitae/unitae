@@ -60,6 +60,7 @@ export default [
         route('reorder', 'features/display-board/routes/documents/reorder.tsx'),
         route('bulk-delete', 'features/display-board/routes/documents/bulk-delete.tsx'),
         route('bulk-move', 'features/display-board/routes/documents/bulk-move.tsx'),
+        route('bulk-highlight', 'features/display-board/routes/documents/bulk-highlight.tsx'),
         route('/:documentId/edit', 'features/display-board/routes/documents/edit.tsx'),
         route('/:documentId/delete', 'features/display-board/routes/documents/delete.tsx'),
         route('/:documentId/move-up', 'features/display-board/routes/documents/move-up.tsx'),

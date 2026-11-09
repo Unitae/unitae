@@ -16,6 +16,8 @@ function permissions(overrides: Partial<NavigationPermissions> = {}): Navigation
     canUploadDocument: false,
     canManageBoard: false,
     canConfigureBoardSections: false,
+    canOrganiseBoardDocuments: false,
+    canManageDynamicBoardDocuments: false,
     canViewPublishers: false,
     canViewTerritories: false,
     canViewProspection: false,
@@ -73,23 +75,29 @@ describe('buildManagementSections', () => {
     expect(hasManagementSections(permissions({ canViewBoard: true }))).toBe(false)
   })
 
-  it('builds the board section for a document uploader without manage rights', () => {
-    const sections = buildManagementSections(permissions({ canViewBoard: true, canUploadDocument: true }))
-    expect(sections.map(s => s.id)).toEqual(['board'])
-    expect(sections[0].items.map(i => i.id)).toEqual(['board-view', 'board-documents'])
+  it('gives anyone holding one of the board management rights « Gérer le tableau », beside the board', () => {
+    for (const right of [
+      'canUploadDocument',
+      'canManageBoard',
+      'canOrganiseBoardDocuments',
+      'canConfigureBoardSections',
+      'canManageDynamicBoardDocuments',
+    ] as const) {
+      const sections = buildManagementSections(permissions({ canViewBoard: true, [right]: true }))
+      expect(
+        sections.map(s => s.id),
+        right,
+      ).toEqual(['board'])
+      expect(
+        sections[0].items.map(i => i.id),
+        right,
+      ).toEqual(['board-view', 'board-manage'])
+    }
   })
 
-  it('adds section management only with the right the sections page checks', () => {
-    const reviewer = buildManagementSections(permissions({ canManageBoard: true }))
-    expect(reviewer[0].items.map(i => i.id)).toEqual(['board-view', 'board-documents'])
-
-    const configurer = buildManagementSections(permissions({ canManageBoard: true, canConfigureBoardSections: true }))
-    expect(configurer[0].items.map(i => i.id)).toEqual(['board-view', 'board-sections', 'board-documents'])
-  })
-
-  it('gives someone who only configures sections the board and its sections, not the documents', () => {
-    const sections = buildManagementSections(permissions({ canConfigureBoardSections: true }))
-    expect(sections[0].items.map(i => i.id)).toEqual(['board-view', 'board-sections'])
+  it('leads « Gérer le tableau » to the one page that manages documents and sections', () => {
+    const [board] = buildManagementSections(permissions({ canConfigureBoardSections: true }))
+    expect(board.items.find(i => i.id === 'board-manage')?.to).toBe('/board/documents')
   })
 
   // A group overseer or deputy may open his own group without the publisher permission: the

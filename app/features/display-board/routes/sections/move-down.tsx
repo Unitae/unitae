@@ -14,7 +14,7 @@ import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/move-down'
 
 export function loader(_args: Route.LoaderArgs) {
-  throw redirect('/board/sections')
+  throw redirect('/board/documents')
 }
 
 export async function action({ request, params, context }: Route.ActionArgs) {
@@ -34,7 +34,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       session.flash('success', m.board_sections_move_down_success({ name: result.name }))
     }
 
-    return redirect('/board/sections', {
+    return redirect('/board/documents', {
       headers: {
         'Set-Cookie': await commitSession(session),
       },
