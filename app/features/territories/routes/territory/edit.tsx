@@ -1,6 +1,7 @@
 import { parseWithZod } from '@conform-to/zod/v4'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { data, Form, redirect } from 'react-router'
+import { getSession } from '~/features/authentication/index.server'
 import { updateTerritorySchema } from '~/features/territories/schemas/territory.schema'
 import {
   aggregateEntrance,
@@ -32,6 +33,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { getOptionalEnv } from '~/shared/utils/env.server'
+import { handleAppError } from '~/shared/utils/handle-app-error.server'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
@@ -74,11 +76,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       },
     })
 
-    if (territory == null) {
-      throw redirect('/territories', {
-        status: 404,
-      })
-    }
+    if (territory == null) throw redirect('/territories')
     const zips = await getAvailableZips(db, congregationId, territory.type)
     const url = new URL(request.url)
     const entrances = await getAvailableEntrances(
@@ -145,6 +143,12 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
     blocker,
     markDirty,
   } = useEntrancePendingState(savedTerritoryEntrances, territory.type)
+  // The notes are a change of their own: a territory whose entrances stay can still be saved.
+  const [notesChanged, setNotesChanged] = useState(false)
+  const changeNotes = () => {
+    markDirty()
+    setNotesChanged(true)
+  }
 
   const showMap = googleMapsApiKey != null
 
@@ -188,7 +192,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
         ) : null}
 
         <div className={`flex flex-col gap-4 ${showMap ? 'lg:w-[380px] xl:w-[420px]' : 'flex-1'}`}>
-          <TerritoryInfoCard territory={territory} projectedContent={projectedContent} onNotesChange={markDirty} />
+          <TerritoryInfoCard territory={territory} projectedContent={projectedContent} onNotesChange={changeNotes} />
 
           <PendingEntranceList
             savedTerritoryEntrances={savedTerritoryEntrances}
@@ -250,12 +254,8 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
               />
             ) : null}
 
-            {/* FormActions docks above the mobile tab bar; the previous sticky
-                wrapper never engaged (the shell's overflow-x-hidden content
-                wrapper is the sticky containment root while the document
-                scrolls). */}
             <FormActions>
-              <SubmitButton className="w-full" disabled={pendingChangesCount === 0}>
+              <SubmitButton className="w-full" disabled={pendingChangesCount === 0 && !notesChanged}>
                 {pendingChangesCount === 0
                   ? m.territories_edit_submit()
                   : m.territories_edit_submit_with_count({
@@ -285,13 +285,14 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const { entrances, reassignments, notes } = submission.value
   const { congregationId, id: actorId } = context.get(currentAccountContext)
 
-  return withScopeFromContext(context, async db => {
-    await updateTerritory(db, requireParamId(params.territoryId, '/territories'), congregationId, actorId, {
-      entranceIds: entrances,
-      reassignments,
-      notes,
-    })
+  const id = requireParamId(params.territoryId, '/territories')
 
-    return redirect('/territories')
+  return withScopeFromContext(context, async db => {
+    // A refused change (an entrance already elsewhere, a stale reassignment) comes back as a message.
+    await updateTerritory(db, id, congregationId, actorId, { entranceIds: entrances, reassignments, notes }).catch(
+      async error =>
+        handleAppError(error, await getSession(request.headers.get('Cookie')), `/territories/territory/${id}/edit`),
+    )
+    return redirect(`/territories/territory/${id}/view`)
   })
 }

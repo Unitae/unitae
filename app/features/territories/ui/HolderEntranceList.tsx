@@ -22,6 +22,8 @@ interface HolderEntranceListProps {
   showPhone: boolean
   /** Given when the map is shown: each row then points at its pins and opens its card. */
   focus?: EntranceFocus
+  /** An action at the end of each row, shown on hover; never inside the row's button. */
+  entranceAction?: (entrance: HolderEntrance) => ReactNode
 }
 
 /** The id of an entrance's row, for « Voir dans la liste » to bring it into view. */
@@ -30,7 +32,13 @@ export function entranceRowId(id: number): string {
 }
 
 /** The territory's entrances street by street, numbers in walking order, as its holder reads them on the doorstep. */
-export function HolderEntranceList({ streets, territoryType, showPhone, focus }: HolderEntranceListProps) {
+export function HolderEntranceList({
+  streets,
+  territoryType,
+  showPhone,
+  focus,
+  entranceAction,
+}: HolderEntranceListProps) {
   // A postcode only helps when two of them meet in the same territory.
   const showZip = new Set(streets.map(street => street.zip)).size > 1
   return (
@@ -43,6 +51,7 @@ export function HolderEntranceList({ streets, territoryType, showPhone, focus }:
           territoryType={territoryType}
           showPhone={showPhone}
           focus={focus}
+          entranceAction={entranceAction}
         />
       ))}
     </Panel>
@@ -55,12 +64,14 @@ function StreetSection({
   territoryType,
   showPhone,
   focus,
+  entranceAction,
 }: {
   street: StreetGroup
   showZip: boolean
   territoryType: string
   showPhone: boolean
   focus?: EntranceFocus
+  entranceAction?: (entrance: HolderEntrance) => ReactNode
 }) {
   const headingId = useId()
   const isPhone = territoryType === TerritoryKindKey.Phone
@@ -93,6 +104,7 @@ function StreetSection({
             territoryType={territoryType}
             showPhone={showPhone}
             focus={focus}
+            action={entranceAction?.(entrance)}
           />
         ))}
       </ul>
@@ -123,11 +135,13 @@ function EntranceRow({
   territoryType,
   showPhone,
   focus,
+  action,
 }: {
   entrance: HolderEntrance
   territoryType: string
   showPhone: boolean
   focus?: EntranceFocus
+  action?: ReactNode
 }) {
   const isShops = territoryType === TerritoryKindKey.Commerces
   const lead = isShops ? m.my_territories_shop() : entrance.access
@@ -152,10 +166,21 @@ function EntranceRow({
     </>
   )
 
+  // Beside the row's button, never inside it: a link cannot sit in a button.
+  const corner = action != null && (
+    <span className="absolute top-1.5 right-2 opacity-0 transition-opacity duration-(--u-duration-fast) focus-within:opacity-100 group-hover/entrance:opacity-100">
+      {action}
+    </span>
+  )
+
   if (focus == null) {
     return (
-      <li id={entranceRowId(entrance.id)} className={cn(ROW, 'border-border border-b last:border-b-0')}>
+      <li
+        id={entranceRowId(entrance.id)}
+        className={cn(ROW, 'group/entrance relative border-border border-b last:border-b-0', action != null && 'pr-12')}
+      >
         {content}
+        {corner}
       </li>
     )
   }
@@ -163,7 +188,7 @@ function EntranceRow({
   const selected = focus.selectedId === entrance.id
   const hovered = focus.hoveredId === entrance.id
   return (
-    <li id={entranceRowId(entrance.id)} className="border-border border-b last:border-b-0">
+    <li id={entranceRowId(entrance.id)} className="group/entrance relative border-border border-b last:border-b-0">
       <button
         type="button"
         aria-pressed={selected}
@@ -177,10 +202,12 @@ function EntranceRow({
           'w-full cursor-pointer text-left transition-colors hover:bg-hover focus-visible:outline-2 focus-visible:outline-ring focus-visible:-outline-offset-2',
           hovered && 'bg-hover',
           selected && 'bg-selected hover:bg-selected',
+          action != null && 'pr-12',
         )}
       >
         {content}
       </button>
+      {corner}
     </li>
   )
 }

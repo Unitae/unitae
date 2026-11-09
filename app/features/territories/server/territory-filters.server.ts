@@ -138,10 +138,11 @@ function applySearchFilter(filters: Prisma.TerritoryWhereInput, params: URLSearc
           },
         },
       },
-      // Current attributee — first/last name on the publisher Member
+      // Current attributee — first/last name on the publisher Member of an open attribution
       {
         attributions: {
           some: {
+            endDate: null,
             publisher: {
               OR: [{ firstnameNormalized: { contains: normalized } }, { lastnameNormalized: { contains: normalized } }],
             },

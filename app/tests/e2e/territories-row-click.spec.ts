@@ -6,6 +6,8 @@ const TEST_PASSWORD = E2E_ADMIN_PASSWORD
 
 const VIEW_URL_RE = /\/territories\/territory\/(\d+)\/view/
 const EDIT_URL_RE = /\/territories\/territory\/(\d+)\/edit/
+const MENU_RE = /^Actions du territoire|^Actions for territory/
+const EDIT_RE = /^Modifier$|^Edit$/
 
 test.describe('Territories — row click navigation', () => {
   test.beforeEach(async ({ page }) => {
@@ -25,12 +27,10 @@ test.describe('Territories — row click navigation', () => {
     if (rowCount < 2) test.skip()
 
     const targetRow = rows.nth(1)
-    const numberCell = targetRow.locator('td').nth(0)
-    const expectedNumber = (await numberCell.innerText()).trim()
+    const expectedNumber = (await targetRow.getByRole('link').first().textContent())?.trim() ?? ''
     expect(expectedNumber.length).toBeGreaterThan(0)
 
-    // Click a text-only cell so the row's click handler fires — not a nested
-    // link or button. Re-pick this cell if column contents change.
+    // Click a text-only cell: the number's link covers the whole row. Re-pick this cell if the columns change.
     await targetRow.locator('td').nth(1).click()
 
     await page.waitForURL(VIEW_URL_RE, { timeout: 5000 })
@@ -40,24 +40,23 @@ test.describe('Territories — row click navigation', () => {
     ).toBeVisible()
   })
 
-  test('clicking an action button does not trigger row navigation', async ({ page }) => {
+  test('opening a row’s menu does not trigger row navigation, its « Modifier » opens the editor', async ({ page }) => {
     const response = await page.goto('/territories?sort=number')
     if (response && response.status() >= 400) test.skip()
     await page.waitForLoadState('networkidle')
 
     const rows = page.locator('[data-testid="territory-row"]')
-    const rowCount = await rows.count()
-    if (rowCount < 1) test.skip()
+    if ((await rows.count()) < 1) test.skip()
 
     const targetRow = rows.first()
-    // Edit pencil renders only when the user can manage territories. Skip when
-    // the test account lacks that permission instead of asserting it exists.
-    const editLink = targetRow.locator('a[href*="/edit"]').first()
-    if (!(await editLink.isVisible({ timeout: 2000 }).catch(() => false))) test.skip()
-
-    await editLink.click()
-
-    await page.waitForURL(EDIT_URL_RE, { timeout: 5000 })
+    await targetRow.hover()
+    await targetRow.getByRole('button', { name: MENU_RE }).click()
+    // « Modifier » shows only to those who may manage territories.
+    const edit = page.getByRole('menuitem', { name: EDIT_RE })
+    if (!(await edit.isVisible({ timeout: 2000 }).catch(() => false))) test.skip()
     await expect(page).not.toHaveURL(VIEW_URL_RE)
+
+    await edit.click()
+    await page.waitForURL(EDIT_URL_RE, { timeout: 5000 })
   })
 })

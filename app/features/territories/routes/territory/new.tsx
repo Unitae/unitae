@@ -226,7 +226,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
       return redirect('/territories')
     } catch (error) {
-      await handleAppError(error, session, '/territories/new')
+      await handleAppError(error, session, '/territories/territory/new')
     }
   })
 }

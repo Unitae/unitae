@@ -27,7 +27,7 @@ let t02Id: number
 let t03Id: number
 let crossCongT02Id: number
 
-const { findAdjacentTerritories } = await import('./attributions.server')
+const { findAdjacentTerritories } = await import('./territory-page.queries')
 
 beforeAll(async () => {
   const primary = await testDb.congregation.create({
@@ -84,7 +84,7 @@ afterAll(async () => {
 describe('findAdjacentTerritories (integration)', () => {
   it('returns prev=T01 and next=T03 for the middle territory T02', async () => {
     const result = await withScope(primaryCongId, tx =>
-      findAdjacentTerritories(tx, 'T02', TerritoryKindKey.Classical, primaryCongId),
+      findAdjacentTerritories(tx, primaryCongId, { number: 'T02', type: TerritoryKindKey.Classical }, 'fr'),
     )
     expect(result.prev).toEqual({ id: t01Id, number: 'T01' })
     expect(result.next).toEqual({ id: t03Id, number: 'T03' })
@@ -92,7 +92,7 @@ describe('findAdjacentTerritories (integration)', () => {
 
   it('returns prev=null and next=T02 for the first territory T01', async () => {
     const result = await withScope(primaryCongId, tx =>
-      findAdjacentTerritories(tx, 'T01', TerritoryKindKey.Classical, primaryCongId),
+      findAdjacentTerritories(tx, primaryCongId, { number: 'T01', type: TerritoryKindKey.Classical }, 'fr'),
     )
     expect(result.prev).toBeNull()
     expect(result.next).toEqual({ id: t02Id, number: 'T02' })
@@ -100,7 +100,7 @@ describe('findAdjacentTerritories (integration)', () => {
 
   it('returns prev=T02 and next=null for the last territory T03', async () => {
     const result = await withScope(primaryCongId, tx =>
-      findAdjacentTerritories(tx, 'T03', TerritoryKindKey.Classical, primaryCongId),
+      findAdjacentTerritories(tx, primaryCongId, { number: 'T03', type: TerritoryKindKey.Classical }, 'fr'),
     )
     expect(result.prev).toEqual({ id: t02Id, number: 'T02' })
     expect(result.next).toBeNull()
@@ -108,7 +108,7 @@ describe('findAdjacentTerritories (integration)', () => {
 
   it('does not cross territory types (P01 has no Classical neighbours)', async () => {
     const result = await withScope(primaryCongId, tx =>
-      findAdjacentTerritories(tx, 'P01', TerritoryKindKey.Phone, primaryCongId),
+      findAdjacentTerritories(tx, primaryCongId, { number: 'P01', type: TerritoryKindKey.Phone }, 'fr'),
     )
     expect(result.prev).toBeNull()
     expect(result.next).toBeNull()
@@ -116,7 +116,7 @@ describe('findAdjacentTerritories (integration)', () => {
 
   it('does not leak across congregations (other-cong T02 is invisible)', async () => {
     const result = await withScope(primaryCongId, tx =>
-      findAdjacentTerritories(tx, 'T02', TerritoryKindKey.Classical, primaryCongId),
+      findAdjacentTerritories(tx, primaryCongId, { number: 'T02', type: TerritoryKindKey.Classical }, 'fr'),
     )
     // Sanity: result.prev/next must reference primary's T01/T03, not the cross-cong T02.
     expect(result.prev?.id).not.toBe(crossCongT02Id)

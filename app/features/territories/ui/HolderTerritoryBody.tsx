@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 
-import type { StreetGroup } from '~/features/territories/model/holder-territory'
+import type { HolderEntrance, StreetGroup } from '~/features/territories/model/holder-territory'
 import { entranceRowId, HolderEntranceList } from '~/features/territories/ui/HolderEntranceList'
 import { HolderTerritoryMap } from '~/features/territories/ui/HolderTerritoryMap'
 import { useMediaQuery } from '~/shared/ui/hooks/use-media-query'
@@ -20,6 +20,12 @@ interface HolderTerritoryBodyProps {
   /** Below xl one of them at a time, as the page's « Liste / Carte » switch says. */
   view: HolderView
   onViewChange: (view: HolderView) => void
+  /** Above the entrances, in the list's column: the territory's page puts its attribution there. */
+  before?: ReactNode
+  /** Under the entrances, in the list's column: the history and the notes on the territory's page. */
+  after?: ReactNode
+  /** An action at the end of each entrance's row, shown on hover: « Voir le bâtiment » for the managers. */
+  entranceAction?: (entrance: HolderEntrance) => ReactNode
 }
 
 /**
@@ -33,6 +39,9 @@ export function HolderTerritoryBody({
   map,
   view,
   onViewChange,
+  before,
+  after,
+  entranceAction,
 }: HolderTerritoryBodyProps) {
   const [hoveredId, setHoveredId] = useState<number | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
@@ -73,20 +82,31 @@ export function HolderTerritoryBody({
         territoryType={territoryType}
         showPhone={showPhone}
         focus={map == null ? undefined : { hoveredId, selectedId, onHover: setHoveredId, onSelect: selectFromList }}
+        entranceAction={entranceAction}
       />
     ) : null
+  const column =
+    before != null || after != null ? (
+      <div className="flex flex-col gap-6">
+        {before}
+        {list}
+        {after}
+      </div>
+    ) : (
+      list
+    )
 
   if (map == null) {
     return (
       <div data-sticky-content="" className="grid items-start gap-6">
-        {list}
+        {column}
       </div>
     )
   }
 
   return (
     <div data-sticky-content="" className="grid items-start gap-6 xl:grid-cols-[minmax(0,34rem)_minmax(0,1fr)]">
-      {list != null && <div className={cn(view === 'map' && 'max-xl:hidden')}>{list}</div>}
+      {column != null && <div className={cn(view === 'map' && 'max-xl:hidden')}>{column}</div>}
       <div className={cn('xl:sticky xl:top-6', view === 'list' && 'max-xl:hidden')}>
         <HolderTerritoryMap
           apiKey={map.apiKey}

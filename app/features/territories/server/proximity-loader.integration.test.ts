@@ -1,12 +1,11 @@
 /**
- * Confirms `findTerritoriesWithDetailsPaginated` produces correct distance
- * maps and partitions when given `proximityArgs.origin`, and that
- * `listOpenAttributions` measures each attribution's distance through the
- * same entrances and buildings, for the attributions list's proximity order.
+ * Confirms `listTerritoryRows` and `listOpenAttributions` measure each row's
+ * distance through the territory's entrances and buildings, for the
+ * territories and attributions lists' proximity order.
  *
- * Unit tests cover `paginateByProximity` in isolation; this exercises the
- * full Prisma path including the eager `include` shape (entrances →
- * buildings, attributions → publisher) the loaders rely on.
+ * Unit tests cover `closestTerritoryPoint` in isolation; this exercises the
+ * full Prisma path including the nested select (entrances → buildings) the
+ * lists rely on.
  */
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
@@ -20,7 +19,8 @@ vi.mock('~/shared/domain/audit.server', () => ({
   AuditAction: {},
 }))
 
-const { findTerritoriesWithDetailsPaginated } = await import('./territories.server')
+const { listTerritoryRows } = await import('./territory-list.queries')
+const { sortTerritories } = await import('~/features/territories/model/territory-list')
 const { listOpenAttributions } = await import('./attribution-list.queries')
 const { sortAttributions } = await import('~/features/territories/model/attribution-list')
 
@@ -175,66 +175,25 @@ afterAll(async () => {
   await testDb.$disconnect()
 })
 
-describe('findTerritoriesWithDetailsPaginated — proximity branch', () => {
-  it('returns near territory first, far second, and pushes no-coords to the tail', async () => {
-    const url = new URL('https://example.com/?page=1&pageSize=10')
-    const result = await withScope(congregationId, tx =>
-      findTerritoriesWithDetailsPaginated(tx, {}, url, congregationId, { origin }),
+describe('listTerritoryRows — proximity', () => {
+  it('measures each territory, so the nearest comes first and the unplaced last', async () => {
+    const rows = await withScope(congregationId, tx =>
+      listTerritoryRows(tx, congregationId, { where: {}, today: '2026-11-10', campaignMode: false, origin }),
     )
 
-    const order = result.territories.map(t => t.id)
-    expect(order).toEqual([nearId, farId, noCoordsId])
-    expect(result.pagination.total).toBe(3)
-    expect('distances' in result).toBe(true)
+    expect(sortTerritories(rows, 'proximity', 'fr').map(row => row.id)).toEqual([nearId, farId, noCoordsId])
+    const near = rows.find(row => row.id === nearId)?.distance ?? Number.NaN
+    const far = rows.find(row => row.id === farId)?.distance ?? Number.NaN
+    expect(near).toBeLessThan(far)
+    expect(rows.find(row => row.id === noCoordsId)?.distance).toBeNull()
   })
 
-  it('reports withCoordsCount and withoutCoordsCount correctly', async () => {
-    const url = new URL('https://example.com/?page=1&pageSize=10')
-    const result = await withScope(congregationId, tx =>
-      findTerritoriesWithDetailsPaginated(tx, {}, url, congregationId, { origin }),
+  it('measures nothing without a searched place', async () => {
+    const rows = await withScope(congregationId, tx =>
+      listTerritoryRows(tx, congregationId, { where: {}, today: '2026-11-10', campaignMode: false }),
     )
-
-    expect('withCoordsCount' in result && result.withCoordsCount).toBe(2)
-    expect('withoutCoordsCount' in result && result.withoutCoordsCount).toBe(1)
-  })
-
-  it('per-row distances are populated for geo-coded rows and null for the rest', async () => {
-    const url = new URL('https://example.com/?page=1&pageSize=10')
-    const result = await withScope(congregationId, tx =>
-      findTerritoriesWithDetailsPaginated(tx, {}, url, congregationId, { origin }),
-    )
-
-    if (!('distances' in result) || result.distances == null) throw new Error('distances missing')
-    const near = result.territories.find(t => t.id === nearId)!
-    const far = result.territories.find(t => t.id === farId)!
-    const noCoords = result.territories.find(t => t.id === noCoordsId)!
-
-    const distNear = result.distances.get(near)
-    const distFar = result.distances.get(far)
-    expect(distNear).not.toBeNull()
-    expect(distFar).not.toBeNull()
-    expect(distNear!).toBeLessThan(distFar!)
-    expect(result.distances.get(noCoords)).toBeNull()
-  })
-
-  it('honors `?page` for the combined list (page 2 returns the tail)', async () => {
-    const url = new URL('https://example.com/?page=2&pageSize=2')
-    const result = await withScope(congregationId, tx =>
-      findTerritoriesWithDetailsPaginated(tx, {}, url, congregationId, { origin }),
-    )
-
-    expect(result.territories.map(t => t.id)).toEqual([noCoordsId])
-    expect(result.pagination.page).toBe(2)
-    expect(result.pagination.pages).toBe(2)
-  })
-
-  it('without proximityArgs, the function returns the same Prisma-paged shape as before', async () => {
-    const url = new URL('https://example.com/?page=1&pageSize=10')
-    const result = await withScope(congregationId, tx =>
-      findTerritoriesWithDetailsPaginated(tx, {}, url, congregationId),
-    )
-    expect(result.territories).toHaveLength(3)
-    expect('distances' in result).toBe(false)
+    expect(rows).toHaveLength(3)
+    expect(rows.every(row => row.distance == null)).toBe(true)
   })
 })
 

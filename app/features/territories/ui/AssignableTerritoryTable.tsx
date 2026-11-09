@@ -1,7 +1,6 @@
 import { StatusIcon, Tag } from '@unitae/ui'
 
 import { isFreeToday } from '~/features/territories/model/assignable-territories'
-import type { Availability } from '~/features/territories/model/territory-availability'
 import type { AssignableTerritory } from '~/features/territories/server/assignable-territories.queries'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
@@ -9,6 +8,7 @@ import { shortDay } from '~/shared/utils/format-day'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 import { cn } from '~/shared/utils/utils'
 
+import { availabilityLabel } from './attribution-labels'
 import { territoryKindLabel, territoryQuantityLabel } from './my-territory-labels'
 
 const HEAD = 'h-10 whitespace-nowrap border-border border-b px-3.5 text-left font-medium text-faint text-sm'
@@ -114,11 +114,4 @@ export function AssignableTerritoryTable({
       </table>
     </div>
   )
-}
-
-function availabilityLabel(availability: Availability, today: string): string {
-  if (availability.kind === 'resting')
-    return m.attributions_assign_resting({ date: shortDay(availability.freeDay, today) })
-  if (availability.kind === 'paused') return m.attributions_assign_paused()
-  return m.attributions_assign_free()
 }
