@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  FileValidationError,
-  MAX_FILE_SIZE_BYTES,
-  validateBoardFile,
-  validateVisibilityDates,
-} from './file-validation.server'
+import { FileValidationError, MAX_FILE_SIZE_BYTES, validateBoardFile } from './file-validation.server'
 
 function createFakeFile(content: Uint8Array, type: string, name = 'test.pdf'): File {
   return new File([content as BlobPart], name, { type })
@@ -64,41 +59,5 @@ describe('validateBoardFile', () => {
 describe('MAX_FILE_SIZE_BYTES', () => {
   it('vaut 20 Mo', () => {
     expect(MAX_FILE_SIZE_BYTES).toBe(20 * 1024 * 1024)
-  })
-})
-
-describe('validateVisibilityDates', () => {
-  it('retourne true quand les deux dates sont null', () => {
-    expect(validateVisibilityDates(null, null)).toBe(true)
-  })
-
-  it('retourne true quand visibleFrom est null', () => {
-    expect(validateVisibilityDates(null, new Date('2026-01-01'))).toBe(true)
-  })
-
-  it('retourne true quand visibleUntil est null', () => {
-    expect(validateVisibilityDates(new Date('2026-01-01'), null)).toBe(true)
-  })
-
-  it('retourne true quand visibleUntil est apres visibleFrom', () => {
-    const from = new Date('2026-01-01')
-    const until = new Date('2026-02-01')
-    expect(validateVisibilityDates(from, until)).toBe(true)
-  })
-
-  it('retourne false quand visibleUntil est avant visibleFrom', () => {
-    const from = new Date('2026-02-01')
-    const until = new Date('2026-01-01')
-    expect(validateVisibilityDates(from, until)).toBe(false)
-  })
-
-  it('retourne false quand les deux dates sont identiques', () => {
-    const date = new Date('2026-01-01')
-    expect(validateVisibilityDates(date, new Date(date.getTime()))).toBe(false)
-  })
-
-  it('retourne true quand une date est invalide (NaN)', () => {
-    expect(validateVisibilityDates(new Date('invalid'), new Date('2026-01-01'))).toBe(true)
-    expect(validateVisibilityDates(new Date('2026-01-01'), new Date('invalid'))).toBe(true)
   })
 })

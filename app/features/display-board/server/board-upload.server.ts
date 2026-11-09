@@ -29,13 +29,14 @@ export async function parseBoardUpload(request: Request): Promise<{ form: FormDa
 }
 
 /** What can be wrong with a PDF form beyond its schema, and the field each belongs to. */
-export type PdfFormError = 'missing-from' | 'until-before-from' | 'missing-file' | 'invalid-file'
+export type PdfFormError = 'missing-from' | 'until-before-from' | 'missing-file' | 'invalid-file' | 'invalid-section'
 
 const ERRORS: Record<PdfFormError, { field: string; message: () => string }> = {
   'missing-from': { field: 'from', message: m.board_form_error_missing_from },
   'until-before-from': { field: 'until', message: m.board_form_error_until_before_from },
   'missing-file': { field: 'document', message: m.board_form_file_required },
   'invalid-file': { field: 'document', message: m.board_documents_invalid_file },
+  'invalid-section': { field: 'sectionId', message: m.board_form_section_invalid },
 }
 
 const fileError = (error: PdfFormError): SubmissionResult<string[]> => ({

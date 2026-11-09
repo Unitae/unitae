@@ -1,4 +1,5 @@
 import { redirect } from 'react-router'
+import { readAppearanceOverride } from '~/features/display-board/model/appearance-override'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
 import { isPrintableDynamicDocument } from '~/features/display-board/model/printable-document'
 import { sheetDataFor } from '~/features/display-board/model/programme-sheet-window'
@@ -79,7 +80,11 @@ export function loader({ params, request, context }: Route.LoaderArgs) {
     const { title } = settings
     // The programme's guard stays the board's, not `CanViewPrograms`: the sheet shows nothing this
     // account cannot already read on the board screen.
-    const sheet = await buildBoardSheet(data, parseAppearance(data.type, settings.appearance), {
+    // The form's preview asks for an appearance not saved yet; only those who may change it get one.
+    const override = permissions.has(Permission.CanManageDynamicBoardDocuments)
+      ? readAppearanceOverride(new URL(request.url).searchParams)
+      : null
+    const sheet = await buildBoardSheet(data, parseAppearance(data.type, override ?? settings.appearance), {
       title,
       congregationName,
       asOf,

@@ -32,15 +32,3 @@ export async function validateBoardFile(file: File): Promise<void> {
     }
   }
 }
-
-export function validateVisibilityDates(visibleFrom: Date | null, visibleUntil: Date | null): boolean {
-  if (visibleFrom == null || visibleUntil == null) {
-    return true
-  }
-
-  if (Number.isNaN(visibleFrom.getTime()) || Number.isNaN(visibleUntil.getTime())) {
-    return true
-  }
-
-  return visibleUntil.getTime() > visibleFrom.getTime()
-}

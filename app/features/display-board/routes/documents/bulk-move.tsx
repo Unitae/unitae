@@ -1,5 +1,6 @@
 import { redirect } from 'react-router'
 import { bulkMoveBoardItems } from '~/features/display-board/server/board-document.server'
+import { isSectionOfCongregation } from '~/features/display-board/server/document-form.queries'
 import {
   currentAccountContext,
   permissionsContext,
@@ -32,6 +33,8 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = context.get(currentAccountContext)
+    // A section of this congregation only: a forged id would strand the documents in another's.
+    if (!(await isSectionOfCongregation(db, sectionId, congregationId))) return { ok: false }
     const { pdfMoved, dynMoved } = await bulkMoveBoardItems(db, congregationId, sectionId, pdfIds, dynIds)
 
     logger.info(`Bulk moved ${pdfMoved} PDFs and ${dynMoved} dynamic docs to section ${sectionId}.`)

@@ -1,3 +1,5 @@
+import { isDynamicType } from '~/features/display-board/model/dynamic-document.type'
+import { type AppearanceInput, appearanceFor } from '~/features/display-board/schemas/appearance.schema'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
@@ -266,7 +268,12 @@ export async function markDocumentAsViewed(
   return document
 }
 
-export function createDynamicDocument(
+/**
+ * Adds a dynamic document with what its form chose. Without a start it shows from now: born with a null
+ * `visibleFrom`, a freshly added document flashed « ajouté » and never appeared. `visibleFrom: null` is
+ * kept back on purpose, « Pas encore ».
+ */
+export async function createDynamicDocument(
   db: TransactionClient,
   data: {
     title: string
@@ -275,19 +282,33 @@ export function createDynamicDocument(
     dynamicConfig?: JsonValue
     sectionId: number
     congregationId: number
+    actorId: number
+    visibleFrom?: Date | null
+    visibleUntil?: Date | null
+    isHighlighted?: boolean
+    showServices?: boolean
+    appearance?: AppearanceInput
   },
 ) {
-  return db.boardDynamicDocumentSettings.create({
+  const { actorId, appearance, visibleFrom, dynamicConfig, ...fields } = data
+  const created = await db.boardDynamicDocumentSettings.create({
     data: {
-      ...data,
-      dynamicConfig: data.dynamicConfig ?? undefined,
-      // The board only shows documents whose visibility window has opened. Without this, a
-      // freshly added document flashed « ajouté » and then never appeared — invisible until the
-      // admin guessed that the *optional* date field on the edit page was why. Adding a
-      // document means showing it; the edit page is where a different window gets chosen.
-      visibleFrom: new Date(),
+      ...fields,
+      dynamicConfig: dynamicConfig ?? undefined,
+      visibleFrom: visibleFrom === undefined ? new Date() : visibleFrom,
+      ...(appearance && isDynamicType(fields.dynamicType)
+        ? { appearance: { ...appearanceFor(fields.dynamicType, appearance) } }
+        : {}),
     },
   })
+  audit({
+    action: AuditAction.BoardDynamicDocumentCreated,
+    congregationId: fields.congregationId,
+    actorId,
+    entityType: 'BoardDynamicDocumentSettings',
+    entityId: created.id,
+  })
+  return created
 }
 
 export function deleteDynamicDocument(db: TransactionClient, id: number, congregationId: number) {
