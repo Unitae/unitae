@@ -206,6 +206,39 @@ describe('updateCampaign', () => {
   })
 })
 
+describe('updateCampaign — an ended campaign', () => {
+  // Its end has run: changing its dates, options or rest would change nothing but what the page says happened.
+  it('keeps everything but its name and notes', async () => {
+    const ended = {
+      id: 1,
+      activatedAt: new Date(2026, 6, 1),
+      endedAt: new Date(2026, 7, 1),
+      startDate: new Date(2026, 6, 1),
+      endDate: new Date(2026, 6, 31),
+      restPeriodDays: 20,
+      startRegularAction: 'Pause',
+      startAutoReassign: true,
+      endCloseCampaign: true,
+      endRegularAction: 'Resume',
+    }
+    mockDb.campaign.findFirst.mockResolvedValue(ended as never)
+
+    await updateCampaign(mockDb as never, 1, 10, 99, {
+      ...baseParams,
+      name: 'Assemblée régionale 2026',
+      notes: 'Bilan : 88 %',
+      endDate: '2026-12-31',
+      restPeriodDays: 5,
+      endCloseCampaign: false,
+      endRegularAction: 'Close',
+    })
+
+    const data = mockDb.campaign.update.mock.calls[0][0].data
+    expect(data).toEqual({ name: 'Assemblée régionale 2026', notes: 'Bilan : 88 %' })
+    expect(mockDb.campaign.findMany).not.toHaveBeenCalled()
+  })
+})
+
 describe('deleteCampaign', () => {
   it('forbids deleting an active campaign', async () => {
     mockDb.campaign.findFirst.mockResolvedValue({

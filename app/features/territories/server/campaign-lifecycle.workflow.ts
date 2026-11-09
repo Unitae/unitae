@@ -6,17 +6,13 @@ import {
 import { getCampaignStatus } from '~/features/territories/model/campaign-status'
 import { ConflictError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { formatLocalDate } from '~/shared/utils/date.server'
 import * as attributionAggregate from './attribution.aggregate'
 import * as pauseAggregate from './attribution-pause.aggregate'
 import * as campaignAggregate from './campaign.aggregate'
 import { listAllTerritoryIds } from './campaign.queries'
 
 export type CampaignWithScope = Campaign & { scope: { territoryId: number }[] }
-
-function localDateString(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
-}
 
 function scopeTerritoryIds(campaign: CampaignWithScope): number[] | null {
   return campaign.scope.length > 0 ? campaign.scope.map(s => s.territoryId) : null
@@ -73,7 +69,7 @@ async function _reassignIntoCampaign(
       await attributionAggregate.assign(db, {
         publisherId: row.publisherId,
         territoryId: row.territoryId,
-        startDate: localDateString(now),
+        startDate: formatLocalDate(now),
         notes: '',
         type: 'Default',
         campaignId: campaign.id,
@@ -140,7 +136,10 @@ export async function applyScopeChange(
   actorId: number,
   now: Date = new Date(),
 ) {
-  if (getCampaignStatus(campaign) !== 'active') {
+  const status = getCampaignStatus(campaign)
+  // An ended campaign's coverage is history: the territories it set out to cover stay as they were.
+  if (status === 'ended') return { added: 0, removed: 0 }
+  if (status !== 'active') {
     await campaignAggregate.replaceScope(db, campaign.id, congregationId, nextTerritoryIds)
     return { added: 0, removed: 0 }
   }

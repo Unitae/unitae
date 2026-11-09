@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseLocalDate, startOfNextDay } from './date.server'
+import { formatLocalDate, parseLocalDate, startOfNextDay } from './date.server'
 
 describe('parseLocalDate', () => {
   it('returns local midnight for a YYYY-MM-DD string', () => {
@@ -51,5 +51,18 @@ describe('startOfNextDay', () => {
     expect(result.getMinutes()).toBe(0)
     expect(result.getSeconds()).toBe(0)
     expect(result.getDate()).toBe(2)
+  })
+})
+
+// The inverse of parseLocalDate: a day saved as the server's local midnight reads back as the same day, whatever the
+// zone of whoever looks at it.
+describe('formatLocalDate', () => {
+  it('reads back the day parseLocalDate saved', () => {
+    expect(formatLocalDate(parseLocalDate('2026-11-29'))).toBe('2026-11-29')
+    expect(formatLocalDate(parseLocalDate('2024-02-29'))).toBe('2024-02-29')
+  })
+
+  it('reads the day of a later instant in the server zone', () => {
+    expect(formatLocalDate(new Date(2026, 10, 29, 23, 59))).toBe('2026-11-29')
   })
 })

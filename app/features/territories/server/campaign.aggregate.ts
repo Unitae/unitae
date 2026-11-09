@@ -126,6 +126,17 @@ export async function updateCampaign(
   })
   if (!existing) throw new NotFoundError('Campaign', id)
 
+  // Once it has ended, its end has run too: only its name and notes still mean something.
+  if (existing.endedAt != null) {
+    const campaign = await db.campaign.update({
+      // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
+      where: { id_congregationId: { id, congregationId } },
+      data: { name: params.name, notes: params.notes },
+    })
+    audit({ action: AuditAction.CampaignUpdated, congregationId, actorId, entityType: 'Campaign', entityId: id })
+    return campaign
+  }
+
   // Once a campaign has started, its start transition has already run — the
   // start date and the start options are frozen; only the rest can change.
   const started = existing.activatedAt != null

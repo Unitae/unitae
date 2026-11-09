@@ -5,6 +5,15 @@ export function parseLocalDate(value: string): Date {
   return new Date(year, month - 1, day)
 }
 
+/**
+ * The day an instant falls on in the server's zone, as `YYYY-MM-DD`: the inverse of parseLocalDate, so a day saved
+ * with it reads back as the same day, whoever looks at it and from wherever.
+ */
+export function formatLocalDate(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
 // Returns local midnight of the day AFTER `date`. Use as the exclusive
 // upper bound of a date range, paired with Prisma `lt`.
 export function startOfNextDay(date: Date): Date {
