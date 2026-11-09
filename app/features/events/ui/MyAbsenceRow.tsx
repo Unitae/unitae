@@ -2,11 +2,10 @@ import { Status, Tag } from '@unitae/ui'
 import { CalendarOff, Trash2 } from 'lucide-react'
 import { Form } from 'react-router'
 
-import { absenceDays, formatAbsencePeriod } from '~/features/events/model/absence'
+import { absenceDays, absenceLength, conflictWarning, formatAbsencePeriod } from '~/features/events/model/absence'
 import type { UserConflictInRange } from '~/features/events/server/list-user-conflicts-in-range.server'
 import { DateChip } from '~/features/events/ui/DateChip'
 import * as m from '~/i18n/paraglide/messages'
-import { getLocale } from '~/i18n/paraglide/runtime'
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -19,30 +18,12 @@ import {
 } from '~/shared/ui/alert-dialog'
 import { Button } from '~/shared/ui/button'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
-import { formatEventDate } from '~/shared/utils/event-time'
 
 export interface MyAbsenceRowData {
   id: number
   startDate: Date | string
   endDate: Date | string
   conflicts: UserConflictInRange[]
-}
-
-/** « 4 jours », « 1 jour ». */
-export function absenceLength(count: number): string {
-  return count > 1 ? m.days_off_days_other({ count }) : m.days_off_days_one({ count })
-}
-
-/** « dim. 27 déc. · prévenir Paul Roux »: when the assignment falls and whom to tell. */
-export function conflictWarning(conflict: UserConflictInRange, timeZone: string): string {
-  const date = formatEventDate(conflict.eventDate, timeZone, getLocale(), {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  })
-  return conflict.responsibleName != null
-    ? m.days_off_conflict_warn({ date, responsible: conflict.responsibleName })
-    : m.days_off_conflict_warn_fallback({ date })
 }
 
 /**

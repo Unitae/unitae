@@ -1,5 +1,7 @@
+import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { dayOf, daysBetween, endOfDay, startOfDay } from '~/shared/utils/calendar-day'
+import { formatEventDate } from '~/shared/utils/event-time'
 
 // Node's and the browser's ICU space a range differently (thin or plain spaces around the dash): the
 // server's text must match the client's, or React throws the page away and renders it again.
@@ -49,4 +51,27 @@ export function formatAbsencePeriod(
   })
     .formatRange(start, end)
     .replace(SPACES, ' ')
+}
+
+/** « 4 jours », « 1 jour ». */
+export function absenceLength(count: number): string {
+  return count > 1 ? m.days_off_days_other({ count }) : m.days_off_days_one({ count })
+}
+
+/** An assignment falling during an absence, with the person in charge of its programme when it has one. */
+export interface AbsenceConflict {
+  eventDate: Date | string
+  responsibleName: string | null
+}
+
+/** « dim. 27 déc. · prévenir Paul Roux »: when the assignment falls and whom to tell. */
+export function conflictWarning(conflict: AbsenceConflict, timeZone: string): string {
+  const date = formatEventDate(conflict.eventDate, timeZone, getLocale(), {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  })
+  return conflict.responsibleName != null
+    ? m.days_off_conflict_warn({ date, responsible: conflict.responsibleName })
+    : m.days_off_conflict_warn_fallback({ date })
 }

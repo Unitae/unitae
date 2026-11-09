@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/domain/audit.server', () => ({
   AuditAction: { DayOffCreated: 'day_off.created', DayOffDeleted: 'day_off.deleted' },
-  audit: vi.fn(),
+  auditInTransaction: vi.fn().mockResolvedValue({}),
 }))
 
 vi.mock('~/shared/infra/db.server', () => ({
@@ -16,7 +16,7 @@ vi.mock('~/shared/infra/db.server', () => ({
 
 const { createDayOff, deleteDayOff } = await import('./days-off.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
-const { audit } = await import('~/shared/domain/audit.server')
+const { auditInTransaction } = await import('~/shared/domain/audit.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -109,7 +109,8 @@ describe('createDayOff', () => {
 
     await createDayOff(db, 12, 1, new Date(2025, 3, 8), new Date(2025, 3, 10), 3)
 
-    expect(audit).toHaveBeenCalledWith(
+    expect(auditInTransaction).toHaveBeenCalledWith(
+      db,
       expect.objectContaining({
         action: 'day_off.created',
         congregationId: 3,
@@ -176,7 +177,8 @@ describe('deleteDayOff', () => {
 
     await deleteDayOff(db, { eventId: 42, accountId: ACCOUNT_ID, memberId: 1, congregationId: 1 })
 
-    expect(audit).toHaveBeenCalledWith(
+    expect(auditInTransaction).toHaveBeenCalledWith(
+      db,
       expect.objectContaining({ action: 'day_off.deleted', actorId: ACCOUNT_ID, entityType: 'Event', entityId: 42 }),
     )
   })

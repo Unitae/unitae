@@ -1,10 +1,9 @@
 import { redirect } from 'react-router'
 
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { absenceDays, formatAbsencePeriod } from '~/features/events/model/absence'
+import { absenceDays, absenceLength, formatAbsencePeriod } from '~/features/events/model/absence'
 import { findOwnDayOff } from '~/features/events/server/days-off.queries'
 import { deleteDayOff } from '~/features/events/server/days-off.server'
-import { absenceLength } from '~/features/events/ui/MyAbsenceRow'
 import * as m from '~/i18n/paraglide/messages'
 import { congregationContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'

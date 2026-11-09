@@ -2,7 +2,7 @@ import { EventStatus } from '~/features/events/model/event-status.type'
 import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import { refreshConflictFlags } from '~/features/events/server/refresh-conflict-flags.server'
 import * as m from '~/i18n/paraglide/messages'
-import { AuditAction, audit } from '~/shared/domain/audit.server'
+import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -70,7 +70,8 @@ export async function createDayOff(
     await refreshConflictFlags(db, memberId, startDate, endDate, congregationId)
   }
 
-  audit({
+  // Awaited, in the same transaction: the record of who declared it stands or falls with the absence.
+  await auditInTransaction(db, {
     action: AuditAction.DayOffCreated,
     congregationId,
     actorId: accountId,
@@ -109,7 +110,7 @@ export async function deleteDayOff(
     await refreshConflictFlags(db, memberId, event.startDate, event.endDate, congregationId)
   }
 
-  audit({
+  await auditInTransaction(db, {
     action: AuditAction.DayOffDeleted,
     congregationId,
     actorId: accountId,

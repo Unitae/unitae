@@ -5,7 +5,7 @@ vi.mock('~/i18n/paraglide/runtime', async importOriginal => ({
   getLocale: () => 'fr',
 }))
 
-const { absenceDays, absenceWindow, formatAbsencePeriod } = await import('./absence')
+const { absenceDays, absenceLength, absenceWindow, conflictWarning, formatAbsencePeriod } = await import('./absence')
 
 const PARIS = 'Europe/Paris'
 const NOW = new Date('2026-11-09T12:00:00Z')
@@ -59,5 +59,26 @@ describe('formatAbsencePeriod', () => {
     const { startDate, endDate } = absenceWindow({ first: '2026-12-21', last: '2027-01-03' }, PARIS)
 
     expect(formatAbsencePeriod(startDate, endDate, PARIS, NOW)).toBe('lun. 21 décembre 2026 – dim. 3 janvier 2027')
+  })
+})
+
+describe('absenceLength', () => {
+  it('says one day or several', () => {
+    expect(absenceLength(1)).toBe('1 jour')
+    expect(absenceLength(4)).toBe('4 jours')
+  })
+})
+
+describe('conflictWarning', () => {
+  it('says when the assignment falls, in the congregation zone, and whom to warn', () => {
+    expect(conflictWarning({ eventDate: '2026-12-26T23:30:00Z', responsibleName: 'Paul Roux' }, PARIS)).toBe(
+      'dim. 27 déc. · prévenir Paul Roux',
+    )
+  })
+
+  it('falls back on the person in charge of the programme', () => {
+    expect(conflictWarning({ eventDate: '2026-12-27T09:00:00Z', responsibleName: null }, PARIS)).toBe(
+      'dim. 27 déc. · prévenir le responsable du programme',
+    )
   })
 })

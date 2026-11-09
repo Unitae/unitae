@@ -1,8 +1,8 @@
 import { Status } from '@unitae/ui'
 
+import { conflictWarning } from '~/features/events/model/absence'
 import type { UserConflictInRange } from '~/features/events/server/list-user-conflicts-in-range.server'
 import { DateChip } from '~/features/events/ui/DateChip'
-import { conflictWarning } from '~/features/events/ui/MyAbsenceRow'
 import * as m from '~/i18n/paraglide/messages'
 import {
   AlertDialog,
