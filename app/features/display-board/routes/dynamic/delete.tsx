@@ -46,7 +46,7 @@ export default function DeleteDynamicDocumentPage({ loaderData }: Route.Componen
       submitLabel={m.board_dynamic_delete_button()}
       cancelTo="/board/documents"
     >
-      <p>{settings.title}</p>
+      <p>{m.board_dynamic_delete_what()}</p>
     </DeleteConfirmation>
   )
 }

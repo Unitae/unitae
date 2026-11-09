@@ -54,7 +54,7 @@ export default function DeleteDocumentPage({ loaderData }: Route.ComponentProps)
       submitLabel={m.board_documents_delete_button()}
       cancelTo="/board/documents"
     >
-      <p>{document.title}</p>
+      <p>{m.board_documents_delete_what()}</p>
     </DeleteConfirmation>
   )
 }

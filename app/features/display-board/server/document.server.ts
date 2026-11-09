@@ -101,36 +101,6 @@ export async function replaceDocumentFile(
   return { replaced: true, uri, thumbnailUri: null }
 }
 
-export async function deleteSectionWithFiles(
-  db: TransactionClient,
-  sectionId: number,
-  congregationId: number,
-): Promise<{ name: string }> {
-  const documents = await db.boardDocument.findMany({
-    where: { sectionId },
-    select: { uri: true, thumbnailUri: true },
-  })
-
-  // Delete documents first (FK constraint prevents deleting section while documents exist)
-  await db.boardDocument.deleteMany({ where: { sectionId } })
-
-  const section = await db.boardSection.delete({
-    where: {
-      id_congregationId: { id: sectionId, congregationId },
-    },
-  })
-
-  // Clean up stored files after DB deletion succeeds
-  for (const doc of documents) {
-    await deleteFile(doc)
-    if (doc.thumbnailUri) {
-      await deleteFile({ uri: doc.thumbnailUri })
-    }
-  }
-
-  return { name: section.name }
-}
-
 export function computeReorderedItems(
   items: { id: number; order: number | null }[],
   targetId: number,

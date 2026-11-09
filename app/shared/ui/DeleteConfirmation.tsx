@@ -14,9 +14,18 @@ interface DeleteConfirmationProps {
   cancelTo: string
   impact?: string
   children?: React.ReactNode
+  /** Choices posted with the deletion, inside its form: what to do with what it holds. */
+  fields?: React.ReactNode
 }
 
-export function DeleteConfirmation({ title, submitLabel, cancelTo, impact, children }: DeleteConfirmationProps) {
+export function DeleteConfirmation({
+  title,
+  submitLabel,
+  cancelTo,
+  impact,
+  children,
+  fields,
+}: DeleteConfirmationProps) {
   const cancelRef = useRef<HTMLAnchorElement>(null)
 
   useEffect(() => {
@@ -42,16 +51,17 @@ export function DeleteConfirmation({ title, submitLabel, cancelTo, impact, child
           )}
         </CardContent>
         <CardFooter className="flex flex-col gap-3">
-          <div className="flex w-full justify-center gap-3">
-            <Button variant="outline" asChild>
-              <Link ref={cancelRef} to={cancelTo}>
-                {m.common_cancel()}
-              </Link>
-            </Button>
-            <Form method="post">
+          <Form method="post" className="flex w-full flex-col gap-3">
+            {fields}
+            <div className="flex w-full justify-center gap-3">
+              <Button variant="outline" asChild>
+                <Link ref={cancelRef} to={cancelTo}>
+                  {m.common_cancel()}
+                </Link>
+              </Button>
               <SubmitButton variant="destructive">{submitLabel}</SubmitButton>
-            </Form>
-          </div>
+            </div>
+          </Form>
           <p className="text-center text-muted-foreground text-xs">{m.common_escape_to_cancel()}</p>
         </CardFooter>
       </Card>
