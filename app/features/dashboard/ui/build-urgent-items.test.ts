@@ -331,7 +331,7 @@ describe('urgentResponsibleConflictItems', () => {
     expect(items).toHaveLength(1)
     expect(items[0].priority).toBe(2)
     expect(items[0].tone).toBe('warning')
-    expect(items[0].to).toBe('/programs?hasConflicts=true')
+    expect(items[0].to).toBe('/programs?view=review')
     expect(items[0].key).toBe('responsible-conflicts')
   })
 

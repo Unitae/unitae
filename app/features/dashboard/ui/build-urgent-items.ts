@@ -161,7 +161,7 @@ export function urgentResponsibleConflictItems(summary: ResponsibleConflictsSumm
     {
       key: 'responsible-conflicts',
       label,
-      to: '/programs?hasConflicts=true',
+      to: '/programs?view=review',
       icon: AlertTriangle,
       tone: 'warning',
       // One tier below the user's own dayoff conflict — a manager scheduled
