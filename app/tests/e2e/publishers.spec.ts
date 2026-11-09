@@ -59,7 +59,9 @@ test.describe('Member lifecycle', () => {
     await page.getByRole('button', { name: MORE_ACTIONS_RE }).click()
     await page.getByRole('menuitem', { name: LEFT_MENU_ITEM_RE }).click()
     await page.getByRole('button', { name: CONFIRM_LEFT_RE }).click()
-    await page.waitForLoadState('networkidle')
+    // The save is a form post that does not wait for networkidle: leaving before the record shows the way back
+    // cancels it.
+    await expect(page.getByRole('button', { name: MARK_AS_RETURNED_RE })).toBeVisible({ timeout: 10_000 })
 
     // Leavers must disappear from the publishers list
     await page.goto('/publishers')
@@ -70,7 +72,7 @@ test.describe('Member lifecycle', () => {
     await page.goto(recordUrl)
     await page.waitForLoadState('networkidle')
     await page.getByRole('button', { name: MARK_AS_RETURNED_RE }).click()
-    await page.waitForLoadState('networkidle')
+    await expect(page.getByRole('button', { name: MARK_AS_RETURNED_RE })).toBeHidden({ timeout: 10_000 })
 
     // Returned member should reappear in the publishers list
     await page.goto('/publishers')
