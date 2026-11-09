@@ -7,8 +7,11 @@ const TEST_PASSWORD = E2E_ADMIN_PASSWORD
 const FIRSTNAME_FIELD_RE = /prénom/i
 const LASTNAME_FIELD_RE = /^nom$/i
 const SUBMIT_BUTTON_RE = /enregistrer|sauvegarder|créer|ajouter/i
-const MARK_AS_LEFT_TITLE_RE = /désactiver la fiche proclamateur/i
-const MARK_AS_RETURNED_TITLE_RE = /marquer comme de retour/i
+const MORE_ACTIONS_RE = /plus d.actions pour/i
+const LEFT_MENU_ITEM_RE = /a quitté l.assemblée/i
+const CONFIRM_LEFT_RE = /marquer comme parti/i
+const MARK_AS_RETURNED_RE = /marquer comme revenu/i
+const RECORD_URL_RE = /\/publishers\/\d+\/view/
 const ACCOUNT_ID_FROM_EDIT_URL_RE = /\/settings\/users\/(\d+)\/edit/
 
 async function createPublisherWithoutEmail(page: Page, lastname: string): Promise<boolean> {
@@ -21,9 +24,11 @@ async function createPublisherWithoutEmail(page: Page, lastname: string): Promis
 
   await firstnameField.fill('Lifecycle')
   await page.getByLabel(LASTNAME_FIELD_RE).fill(lastname)
-  await page.getByRole('radio', { name: 'Homme' }).check()
+  await page.getByRole('button', { name: 'Frère', exact: true }).click()
   // Email is left blank — verifies the placeholder-email workaround is gone
   await page.getByRole('button', { name: SUBMIT_BUTTON_RE }).click()
+  // The save navigates client-side: wait for it rather than reading the address before it moves.
+  await page.waitForURL(url => !url.pathname.endsWith('/publishers/new'), { timeout: 10_000 }).catch(() => undefined)
   await page.waitForLoadState('networkidle')
   return !page.url().includes('/publishers/new')
 }
@@ -46,13 +51,14 @@ test.describe('Member lifecycle', () => {
     await page.waitForLoadState('networkidle')
     await expect(page.getByText(lastname)).toBeVisible()
 
-    // Open the publisher detail page and click "Mark as left"
+    // Open the publisher's record: « … », then « A quitté l'assemblée… », dated today in its dialog.
     await page.getByText(lastname).first().click()
-    await page.waitForLoadState('networkidle')
+    await page.waitForURL(RECORD_URL_RE)
+    const recordUrl = page.url()
 
-    const markAsLeftButton = page.getByRole('button', { name: MARK_AS_LEFT_TITLE_RE })
-    if (!(await markAsLeftButton.isVisible({ timeout: 3000 }).catch(() => false))) test.skip()
-    await markAsLeftButton.click()
+    await page.getByRole('button', { name: MORE_ACTIONS_RE }).click()
+    await page.getByRole('menuitem', { name: LEFT_MENU_ITEM_RE }).click()
+    await page.getByRole('button', { name: CONFIRM_LEFT_RE }).click()
     await page.waitForLoadState('networkidle')
 
     // Leavers must disappear from the publishers list
@@ -60,18 +66,10 @@ test.describe('Member lifecycle', () => {
     await page.waitForLoadState('networkidle')
     await expect(page.getByText(lastname)).not.toBeVisible()
 
-    // The leaver is still reachable from the admin Users list, where the
-    // edit page surfaces a "Mark as returned" affordance.
-    await page.goto('/settings/users')
+    // Their record stays reachable, and offers the way back as its main action.
+    await page.goto(recordUrl)
     await page.waitForLoadState('networkidle')
-    const userRow = page.getByText(lastname).first()
-    if (!(await userRow.isVisible({ timeout: 3000 }).catch(() => false))) test.skip()
-    await userRow.click()
-    await page.waitForLoadState('networkidle')
-
-    const markAsReturnedButton = page.getByRole('button', { name: MARK_AS_RETURNED_TITLE_RE })
-    if (!(await markAsReturnedButton.isVisible({ timeout: 3000 }).catch(() => false))) test.skip()
-    await markAsReturnedButton.click()
+    await page.getByRole('button', { name: MARK_AS_RETURNED_RE }).click()
     await page.waitForLoadState('networkidle')
 
     // Returned member should reappear in the publishers list
