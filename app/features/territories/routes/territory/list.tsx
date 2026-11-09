@@ -36,6 +36,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.CanViewTerritories)
   const canViewAttributions = permissions.has(Permission.CanViewTerritoryAttributions)
+  const canManage = permissions.has(Permission.CanManageTerritories)
 
   return withScopeFromContext(context, async (db, congregationId) => {
     const url = new URL(request.url)
@@ -47,7 +48,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
       getActiveCampaign(db, congregationId),
     ])
     const rows = await listTerritoryRows(db, congregationId, {
-      where: computeFilters(url.searchParams),
+      where: computeFilters(url.searchParams, { searchHolders: canViewAttributions }),
       today,
       campaignMode: campaign != null,
       origin: place.origin ?? undefined,
@@ -59,7 +60,16 @@ export function loader({ request, context }: Route.LoaderArgs) {
     return {
       // Who holds a territory and since when is the attributions' business: without their right, none of it leaves.
       rows: sortTerritories(rows, sort, getLocale()).map(row =>
-        canViewAttributions ? row : { ...row, holder: null, lastDay: null },
+        canViewAttributions
+          ? row
+          : {
+              ...row,
+              holder: null,
+              lastDay: null,
+              availability: { kind: 'free' as const },
+              // Only « Supprimer » reads it, and only those who manage territories see that.
+              hasHistory: canManage && row.hasHistory,
+            },
       ),
       today,
       sort,
@@ -69,7 +79,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
       filtered: ['search', 'type', 'pmr'].some(key => url.searchParams.has(key)),
       households: rows.reduce((sum, row) => sum + row.quantity.homes, 0),
       canViewAttributions,
-      canManage: permissions.has(Permission.CanManageTerritories),
+      canManage,
     }
   })
 }

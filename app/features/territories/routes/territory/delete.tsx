@@ -32,7 +32,9 @@ export function action({ request, params, context }: Route.ActionArgs) {
       const territory = await deleteTerritory(db, id, congregationId, actorId)
       const session = await getSession(request.headers.get('Cookie'))
       session.flash('success', m.territories_delete_flash_success({ number: territory.number }))
-      return redirect('/territories', { headers: { 'Set-Cookie': await commitSession(session) } })
+      // Data, not a redirect: the dialog closes on it. The list loses the row when it revalidates; the territory's
+      // own page, revalidated, finds nothing and goes back to the list.
+      return data({ ok: true as const }, { headers: { 'Set-Cookie': await commitSession(session) } })
     } catch (error) {
       // Attributed once: its history counts for the S-13, so it stays.
       if (error instanceof ConflictError) return data({ error: m.territories_delete_has_history() }, { status: 409 })

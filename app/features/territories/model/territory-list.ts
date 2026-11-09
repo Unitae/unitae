@@ -1,3 +1,4 @@
+import { isFreeToday } from './assignable-territories'
 import type { AttributionState } from './attribution-list'
 import type { Availability } from './territory-availability'
 
@@ -11,11 +12,14 @@ interface Viewable {
   availability: Availability
 }
 
-/** Out: someone holds it. Late: its holder is past the due day. Free: nobody holds it and it can go out today. */
+/**
+ * Out: someone holds it. Late: its holder is past the due day. Free: it can go out today — nobody holds it, or a
+ * campaign paused its attribution — as « Disponibles » counts it on « Attribuer un territoire ».
+ */
 export function inTerritoryView(row: Viewable, view: TerritoryView): boolean {
   if (view === 'out') return row.holder != null
   if (view === 'late') return row.holder?.state === 'overdue'
-  if (view === 'free') return row.holder == null && row.availability.kind === 'free'
+  if (view === 'free') return isFreeToday(row.availability)
   return true
 }
 

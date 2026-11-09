@@ -19,6 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '~/shared/ui/dropdown-menu'
+import { useCloseOnSave } from '~/shared/ui/hooks/use-close-on-save'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 
 /** The territory a menu or the delete dialog acts on. */
@@ -101,8 +102,9 @@ interface DeleteTerritoryDialogProps {
 
 /** Deletes a territory never attributed; its entrances become free for another territory. */
 export function DeleteTerritoryDialog({ territory, onOpenChange }: DeleteTerritoryDialogProps) {
-  const fetcher = useFetcher<{ error?: string }>()
+  const fetcher = useFetcher<{ ok?: boolean; error?: string }>()
   const error = fetcher.data?.error
+  useCloseOnSave(fetcher, () => onOpenChange(false))
 
   return (
     <AlertDialog open={territory != null} onOpenChange={onOpenChange}>

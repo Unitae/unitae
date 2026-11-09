@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 
 import type { AttributionState } from '~/features/territories/model/attribution-list'
-import { type PmrStatus, pmrStatusLabels } from '~/features/territories/model/pmr-status'
+import type { PmrStatus } from '~/features/territories/model/pmr-status'
 import type { Availability } from '~/features/territories/model/territory-availability'
 import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import type { TerritoryHistoryEntry } from '~/features/territories/server/territory-page.queries'
@@ -48,7 +48,7 @@ export function TerritoryFacts({
     territoryKindLabel(type),
     territoryQuantityLabel(type, totals),
     m.territory_page_entrances_streets({ entrances: totals.entrances, streets: totals.streets }),
-    pmr != null && pmr !== 'not' ? pmrStatusLabels()[pmr] : null,
+    pmr === 'full' ? m.attributions_assign_pmr() : pmr === 'partial' ? m.attributions_assign_pmr_partial() : null,
     attributed > 0 ? m.territory_page_attributed_times({ count: attributed }) : null,
   ].filter((fact): fact is string => fact != null)
   return (

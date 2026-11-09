@@ -79,7 +79,8 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       today,
       history,
       ...standing,
-      hasHistory: page.history.length > 0,
+      // Only « Supprimer » reads it, and only those who manage territories see that.
+      hasHistory: permissions.has(Permission.CanManageTerritories) && page.history.length > 0,
       buildingOf: permissions.has(Permission.CanViewProspection) ? page.buildingOf : {},
       canViewAttributions,
       canManageAttributions: permissions.has(Permission.CanManageTerritoryAttributions),

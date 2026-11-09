@@ -26,12 +26,12 @@ describe('territory views', () => {
   ]
 
   it('counts all of them, those free today, those out, and those late', () => {
-    expect(territoryViewCounts(rows as never)).toEqual({ all: 5, free: 1, out: 3, late: 1 })
+    expect(territoryViewCounts(rows as never)).toEqual({ all: 5, free: 2, out: 3, late: 1 })
   })
 
-  it('puts each in its views', () => {
+  it('puts each in its views; a territory a campaign paused is free for it, as on « Attribuer »', () => {
     expect(rows.filter(r => inTerritoryView(r as never, 'late')).map(r => r.number)).toEqual(['T1'])
-    expect(rows.filter(r => inTerritoryView(r as never, 'free')).map(r => r.number)).toEqual(['T3'])
+    expect(rows.filter(r => inTerritoryView(r as never, 'free')).map(r => r.number)).toEqual(['T3', 'T5'])
   })
 })
 
