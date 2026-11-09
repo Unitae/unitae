@@ -63,15 +63,12 @@ const EXEMPT_FILES = new Set<string>([
   'app/features/territories/server/buildings.server.ts', //                366
   'app/shared/domain/roles.server.ts', //                                  421
 
-  // Route components >300L (14) — remaining after Wave 4.
+  // Route components >300L (11) — remaining after Wave 4.
   'app/features/congregation/routes/roles/role-list.tsx', //               316
   'app/features/events/routes/programs/days-off.tsx', //                   345
   'app/features/events/routes/programs/events/view.tsx', //                585
   'app/features/events/routes/programs/list.tsx', //                       374
   'app/features/events/routes/programs/new.tsx', //                        487
-  'app/features/publishers/routes/activity/new.tsx', //                    359
-  'app/features/publishers/routes/publishers/edit-publisher.tsx', //       336
-  'app/features/publishers/routes/publishers/publisher.tsx', //            408
   'app/features/settings/routes/congregation/templates/edit.tsx', //       617
   'app/features/settings/routes/territories/settings.tsx', //              351
   'app/features/settings/routes/users/edit-user.tsx', //                   457

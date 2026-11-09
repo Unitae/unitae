@@ -32,7 +32,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const memberId = requireParamId<MemberId>(params.publisherId, '/publishers')
   const submission = parseWithZod(await request.formData(), { schema: linkLoginSchema })
   const session = await getSession(request.headers.get('Cookie'))
-  const redirectTo = `/publishers/${memberId}/edit`
+  const redirectTo = `/publishers/${memberId}/view`
 
   if (submission.status !== 'success') {
     session.flash('error', m.publishers_edit_link_login_error_invalid())

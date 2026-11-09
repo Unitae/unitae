@@ -27,6 +27,9 @@ interface LifecycleActionConfig<T> {
   // produce the expected state (e.g. togglePublisherStatus didn't flip the
   // flag). Surfaces an error flash instead of success.
   assertSuccess?: (result: T) => boolean
+  // Why the submitted form cannot be applied (e.g. a departure dated in the future): flashed as the
+  // error instead of running the service.
+  refusal?: string | null
 }
 
 /**
@@ -41,7 +44,7 @@ interface LifecycleActionConfig<T> {
  *  6. Redirect to the previous page (or the publisher view).
  */
 export function runLifecycleAction<T>(config: LifecycleActionConfig<T>): Promise<Response> {
-  const { request, params, context, action, successMessage, errorMessage, assertSuccess } = config
+  const { request, params, context, action, refusal } = config
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
 
@@ -65,26 +68,40 @@ export function runLifecycleAction<T>(config: LifecycleActionConfig<T>): Promise
       select: { firstname: true, lastname: true },
     })
     const name = member ? `${member.firstname} ${member.lastname}` : ''
-
-    if (!member) {
-      session.flash('error', errorMessage(name))
-    } else {
-      try {
-        const result = await action(db, memberId, currentUser.congregationId, currentUser.id)
-        if (assertSuccess == null || assertSuccess(result)) {
-          session.flash('success', successMessage(name))
-        } else {
-          session.flash('error', errorMessage(name))
-        }
-      } catch (error) {
-        if (!(error instanceof NotFoundError)) throw error
-        session.flash('error', errorMessage(name))
-      }
-    }
+    const [kind, message] = await outcome(member != null, refusal, config, name, () =>
+      action(db, memberId, currentUser.congregationId, currentUser.id),
+    )
+    session.flash(kind, message)
 
     const previousPage = request.headers.get('referer')
     return redirect(previousPage ?? `/publishers/${memberId}/view`, {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
   })
+}
+
+/** What to flash: the member is missing, the form was refused, or the service ran and did, or did not, get there. */
+async function outcome<T>(
+  found: boolean,
+  refusal: string | null | undefined,
+  config: LifecycleActionConfig<T>,
+  name: string,
+  run: () => Promise<T>,
+): Promise<['success' | 'error', string]> {
+  if (!found) return ['error', config.errorMessage(name)]
+  if (refusal) return ['error', refusal]
+  return (await runService(run, config.assertSuccess))
+    ? ['success', config.successMessage(name)]
+    : ['error', config.errorMessage(name)]
+}
+
+/** Runs the lifecycle service: whether it produced the state it was asked for. A missing member reads as a failure. */
+async function runService<T>(run: () => Promise<T>, assertSuccess?: (result: T) => boolean): Promise<boolean> {
+  try {
+    const result = await run()
+    return assertSuccess == null || assertSuccess(result)
+  } catch (error) {
+    if (!(error instanceof NotFoundError)) throw error
+    return false
+  }
 }

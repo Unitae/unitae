@@ -64,7 +64,7 @@
         "@react-router/express": "^8.5.1",
         "@react-router/node": "^8.5.1",
         "@unitae/tokens": "^0.1.0",
-        "@unitae/ui": "^0.6.0",
+        "@unitae/ui": "^0.7.0",
         "@vis.gl/react-google-maps": "^1.10.1",
         "@zxcvbn-ts/core": "^4.2.0",
         "@zxcvbn-ts/language-common": "^4.1.3",

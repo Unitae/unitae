@@ -1,20 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { PublisherType } from '~/shared/types/publisher-type'
-import type { EnrolmentPeriod } from './pioneer-enrolment'
-import { auxiliaryGoalOptions, enrolmentMonthOptions, findActiveStandingEnrolment } from './pioneer-enrolment-form'
-
-function stint(over: Partial<EnrolmentPeriod> = {}): EnrolmentPeriod {
-  return {
-    type: PublisherType.PionnierPermanant,
-    startMonth: 8,
-    startYear: 2025,
-    endMonth: null,
-    endYear: null,
-    monthlyGoal: null,
-    ...over,
-  }
-}
+import { auxiliaryGoalOptions, enrolmentModeOf, enrolmentMonthOptions, enrolmentTypeOf } from './pioneer-enrolment-form'
 
 describe('enrolmentMonthOptions', () => {
   it('returns the current month and the next one', () => {
@@ -55,15 +42,29 @@ describe('auxiliaryGoalOptions', () => {
   })
 })
 
-describe('findActiveStandingEnrolment', () => {
-  it('returns the ongoing stint', () => {
-    const ongoing = stint({ endMonth: null, endYear: null })
-    const closed = stint({ startMonth: 2, startYear: 2024, endMonth: 4, endYear: 2024 })
-    expect(findActiveStandingEnrolment([closed, ongoing])).toBe(ongoing)
+describe('enrolmentModeOf', () => {
+  const base = { startMonth: 3, startYear: 2026, endMonth: null, endYear: null }
+
+  it('reads a one-month auxiliary stint as a monthly auxiliary, an open or longer one as permanent', () => {
+    const aux = PublisherType.PionnierAuxiliaires
+    expect(enrolmentModeOf({ ...base, type: aux, endMonth: 3, endYear: 2026 })).toBe('monthly-aux')
+    expect(enrolmentModeOf({ ...base, type: aux })).toBe('permanent-aux')
+    expect(enrolmentModeOf({ ...base, type: aux, endMonth: 6, endYear: 2026 })).toBe('permanent-aux')
   })
 
-  it('returns null when every stint is closed', () => {
-    const closed = stint({ startMonth: 2, startYear: 2024, endMonth: 4, endYear: 2024 })
-    expect(findActiveStandingEnrolment([closed])).toBeNull()
+  it('reads every other stint by its type', () => {
+    expect(enrolmentModeOf({ ...base, type: PublisherType.PionnierPermanant })).toBe('permanent')
+    expect(enrolmentModeOf({ ...base, type: PublisherType.PionnierSpecial })).toBe('special')
+    expect(enrolmentModeOf({ ...base, type: PublisherType.Missionnaire })).toBe('missionary')
+  })
+})
+
+describe('enrolmentTypeOf', () => {
+  it('records both auxiliary services under the auxiliary type', () => {
+    expect(enrolmentTypeOf('monthly-aux')).toBe(PublisherType.PionnierAuxiliaires)
+    expect(enrolmentTypeOf('permanent-aux')).toBe(PublisherType.PionnierAuxiliaires)
+    expect(enrolmentTypeOf('permanent')).toBe(PublisherType.PionnierPermanant)
+    expect(enrolmentTypeOf('special')).toBe(PublisherType.PionnierSpecial)
+    expect(enrolmentTypeOf('missionary')).toBe(PublisherType.Missionnaire)
   })
 })

@@ -39,7 +39,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     session.flash('success', m.publishers_edit_unlink_login_success({ email: result.email }))
   }
 
-  return redirect(`/publishers/${memberId}/edit`, {
+  return redirect(`/publishers/${memberId}/view`, {
     headers: { 'Set-Cookie': await commitSession(session) },
   })
 }

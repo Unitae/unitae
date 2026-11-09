@@ -1,4 +1,5 @@
 import { MetricStrip, PeriodStepper, StatTile, Tag } from '@unitae/ui'
+import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 
 import type { PioneerActivity, PioneerAnnualRow, PioneerAuxiliaryRow } from '~/features/publishers'
@@ -34,10 +35,14 @@ export function pioneerProfileLabel(activity: PioneerActivity): string {
 interface Props {
   serviceYear: number
   activity: PioneerActivity
+  /** The person's enrolments, listed under the year's figures. */
+  enrolments?: ReactNode
+  /** « Inscrire », beside the year's stepper, for a manager when no enrolment covers this month. */
+  enrolAction?: ReactNode
 }
 
 /** The publisher record's pioneer service: the year's pace, its figures and its charts, year by year. */
-export function PioneerActivitySection({ serviceYear, activity }: Props) {
+export function PioneerActivitySection({ serviceYear, activity, enrolments, enrolAction }: Props) {
   return (
     <section
       id="activity"
@@ -58,12 +63,14 @@ export function PioneerActivitySection({ serviceYear, activity }: Props) {
           renderLink={({ href, ...props }) => <Link to={href} preventScrollReset {...props} />}
           labelWidth={150}
         />
+        {enrolAction}
       </div>
       {activity.kind === 'annual' ? (
         <AnnualDetail serviceYear={serviceYear} row={activity.row} />
       ) : (
         <AuxiliaryDetail row={activity.row} />
       )}
+      {enrolments != null && <div className="-mx-4.5 -mb-4.5">{enrolments}</div>}
     </section>
   )
 }

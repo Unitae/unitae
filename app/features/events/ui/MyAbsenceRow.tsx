@@ -4,7 +4,6 @@ import { Form } from 'react-router'
 
 import { absenceDays, absenceLength, conflictWarning, formatAbsencePeriod } from '~/features/events/model/absence'
 import type { UserConflictInRange } from '~/features/events/server/list-user-conflicts-in-range.server'
-import { DateChip } from '~/features/events/ui/DateChip'
 import * as m from '~/i18n/paraglide/messages'
 import {
   AlertDialog,
@@ -17,6 +16,7 @@ import {
   AlertDialogTrigger,
 } from '~/shared/ui/alert-dialog'
 import { Button } from '~/shared/ui/button'
+import { DateChip } from '~/shared/ui/DateChip'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 
 export interface MyAbsenceRowData {
