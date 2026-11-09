@@ -4,7 +4,6 @@ import { describe, expect, it, vi } from 'vitest'
 const runtime = vi.hoisted(() => ({ getLocale: (): string => 'fr' }))
 
 vi.mock('~/i18n/paraglide/runtime', () => ({
-  baseLocale: 'fr',
   isLocale: (value: unknown) => value === 'fr' || value === 'en',
   overwriteGetLocale: (fn: () => string) => {
     runtime.getLocale = fn
@@ -33,7 +32,7 @@ describe('runWithLocale', () => {
     expect(seen).toEqual(['en', 'fr'])
   })
 
-  it('falls back to the base locale outside any callback', () => {
+  it('falls back to the default locale outside any callback', () => {
     runWithLocale('en', () => {})
 
     expect(runtime.getLocale()).toBe('fr')
@@ -53,7 +52,7 @@ describe('accountLocale', () => {
     expect(accountLocale({ locale: 'de' }, 'en')).toBe('en')
   })
 
-  it('is the base locale when neither is one the app ships', () => {
+  it('is the default locale when neither is one the app ships', () => {
     expect(accountLocale({ locale: null }, 'de')).toBe('fr')
   })
 })

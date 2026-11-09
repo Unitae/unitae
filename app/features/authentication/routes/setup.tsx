@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import { DEFAULT_LOCALE, languageLabel } from '~/shared/utils/language'
 import type { Route } from './+types/setup'
 
 export const meta: Route.MetaFunction = () => {
@@ -84,14 +85,14 @@ export default function SignupPage({ loaderData, actionData }: Route.ComponentPr
 
           <div className="flex flex-col gap-2">
             <Label htmlFor={fields.locale.id}>{m.auth_setup_locale_label()}</Label>
-            <Select name={fields.locale.name} defaultValue={fields.locale.initialValue ?? 'fr'}>
+            <Select name={fields.locale.name} defaultValue={fields.locale.initialValue ?? DEFAULT_LOCALE}>
               <SelectTrigger id={fields.locale.id}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {locales.map(locale => (
                   <SelectItem key={locale} value={locale}>
-                    {locale === 'fr' ? m.common_locale_fr() : m.common_locale_en()}
+                    {languageLabel(locale)}
                   </SelectItem>
                 ))}
               </SelectContent>

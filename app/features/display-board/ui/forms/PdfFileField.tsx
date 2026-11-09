@@ -5,6 +5,7 @@ import { Link } from 'react-router'
 import type { PdfBoardCard } from '~/features/display-board/server/board-home.queries'
 import { DocumentSheet } from '~/features/display-board/ui/DocumentSheet'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
 import { cn } from '~/shared/utils/utils'
 
@@ -24,7 +25,7 @@ interface PdfFileFieldProps {
 }
 
 function formatDay(date: Date, timeZone: string) {
-  return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', timeZone }).format(date)
+  return new Intl.DateTimeFormat(getLocale(), { day: 'numeric', month: 'short', timeZone }).format(date)
 }
 
 function formatSize(bytes: number) {

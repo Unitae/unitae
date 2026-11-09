@@ -8,6 +8,7 @@ import type { BboxEntrance } from '~/features/territories/server/buildings.serve
 import { entranceContentLabel } from '~/features/territories/server/entrance-content-label'
 import { EntranceImpactBlock } from '~/features/territories/ui/EntranceImpactBlock'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
 
 /** Pending states an edit-mode consumer (BuildingEntranceMapEditor, PendingEntranceList) may emit. */
@@ -80,7 +81,7 @@ function formatProspectionDate(iso: string | null): string | null {
   if (iso == null) return null
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return null
-  return date.toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })
+  return date.toLocaleDateString(getLocale(), { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
 // ─── Shared presentational pieces ─────────────────────────────────────────

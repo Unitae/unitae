@@ -13,6 +13,7 @@ import ArchiveBuildingToggleButton from '~/features/territories/ui/ArchiveBuildi
 import { BuildingMeta } from '~/features/territories/ui/BuildingMeta'
 import { ProspectionForm } from '~/features/territories/ui/prospection-form/ProspectionForm'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import {
   currentAccountContext,
   permissionsContext,
@@ -24,7 +25,6 @@ import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { requireParamId } from '~/shared/utils/params.server'
-
 import type { Route } from './+types/edit-building-prospection'
 
 export const meta: Route.MetaFunction = () => {
@@ -64,7 +64,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
               territory => territory.number,
             ),
           }))
-          .sort((a, b) => a.number.localeCompare(b.number, 'fr', { numeric: true }))
+          .sort((a, b) => a.number.localeCompare(b.number, getLocale(), { numeric: true }))
       : null
 
     return { building, streetBuildings, rights }

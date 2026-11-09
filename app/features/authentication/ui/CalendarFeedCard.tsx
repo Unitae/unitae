@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Form } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -66,7 +67,9 @@ export function CalendarFeedCard({ calendar }: { calendar: CalendarFeed | null }
               </div>
               <p className="text-muted-foreground text-xs">
                 {calendar.lastUsedAt
-                  ? m.user_profile_calendar_last_used({ date: new Date(calendar.lastUsedAt).toLocaleString() })
+                  ? m.user_profile_calendar_last_used({
+                      date: new Date(calendar.lastUsedAt).toLocaleString(getLocale()),
+                    })
                   : m.user_profile_calendar_never_used()}
               </p>
             </div>

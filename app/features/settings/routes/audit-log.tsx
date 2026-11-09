@@ -1,6 +1,7 @@
 import { Form as RouterForm, useSearchParams } from 'react-router'
 import { findAuditLogsPaginated } from '~/features/settings/server/audit-log.server'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { currentAccountContext, permissionsContext, requirePermission } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { Input } from '~/shared/ui/input'
@@ -19,7 +20,6 @@ import {
 } from '~/shared/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import { paginationFromUrl } from '~/shared/utils/pagination.server'
-
 import type { Route } from './+types/audit-log'
 
 export const meta: Route.MetaFunction = () => {
@@ -261,7 +261,7 @@ export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
             {logs.map(log => (
               <TableRow key={log.id}>
                 <TableCell className="text-muted-foreground text-sm">
-                  {new Date(log.createdAt).toLocaleString('fr-FR')}
+                  {new Date(log.createdAt).toLocaleString(getLocale())}
                 </TableCell>
                 <TableCell className="text-sm">{log.actorEmail ?? '—'}</TableCell>
                 <TableCell className="text-sm">{translateAction(log.action)}</TableCell>

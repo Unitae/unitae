@@ -6,6 +6,7 @@ import type {
 } from '~/features/display-board/model/programme-sheet.type'
 import { runsWidth, type TextMeasurer, type TextRun, wrapLines } from '~/features/display-board/model/sheet-text'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { formatEventDate } from '~/shared/utils/event-time'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 
@@ -31,8 +32,8 @@ export function sectionSheetColor(section: string, fallback: string): string {
 
 /** « Mercredi 7 octobre », in the congregation's timezone. */
 export function formatMeetingDate(date: Date, timezone: string): string {
-  const text = formatEventDate(date, timezone, 'fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
-  return text.charAt(0).toLocaleUpperCase('fr') + text.slice(1)
+  const text = formatEventDate(date, timezone, getLocale(), { weekday: 'long', day: 'numeric', month: 'long' })
+  return text.charAt(0).toLocaleUpperCase(getLocale()) + text.slice(1)
 }
 
 // ── Runs ───────────────────────────────────────────────────────────────
@@ -45,7 +46,7 @@ export function memberRuns(member: ProgrammeSheetMember): TextRun[] {
   return [
     ...(member.firstname ? [{ text: `${sanitizeText(member.firstname)} `, weight: 'regular' as const }] : []),
     ...(member.lastname
-      ? [{ text: sanitizeText(member.lastname).toLocaleUpperCase('fr'), weight: 'bold' as const }]
+      ? [{ text: sanitizeText(member.lastname).toLocaleUpperCase(getLocale()), weight: 'bold' as const }]
       : []),
   ]
 }

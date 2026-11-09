@@ -13,6 +13,7 @@ import {
 // Cross-feature import via the events barrel (deep-importing another
 // feature's model directly is forbidden by the boundaries lint rule).
 import { EventStatus } from '~/features/events'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 
@@ -267,7 +268,7 @@ export async function getDynamicPreview(
     })
 
     if (nextEvent) {
-      const formatted = nextEvent.startDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+      const formatted = nextEvent.startDate.toLocaleDateString(getLocale(), { day: 'numeric', month: 'short' })
       return `Prochain : ${formatted}`
     }
 

@@ -11,6 +11,7 @@ import {
 } from '~/features/display-board/model/sheet-page'
 import { lineCount, type TextMeasurer, type TextRun, widestWord } from '~/features/display-board/model/sheet-text'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { formatGroupName } from '~/shared/utils/format-group-name'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 
@@ -58,7 +59,7 @@ export function groupSheetName(group: SheetPublisherGroup): string {
 }
 
 export function groupCountLabel(group: SheetPublisherGroup): string {
-  const label = m.board_dynamic_publisher_groups_members_label().toLocaleLowerCase('fr')
+  const label = m.board_dynamic_publisher_groups_members_label().toLocaleLowerCase(getLocale())
   return `${buildGroupRoster(group).length} ${label}`
 }
 

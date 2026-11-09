@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { getSession } from '~/features/authentication/index.server'
 import { getNextDaysOffs } from '~/features/events/server/days-off.server'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Button } from '~/shared/ui/button'
@@ -56,8 +57,8 @@ export default function DaysOffPage({ loaderData }: Route.ComponentProps) {
               <CardContent className="flex items-center justify-between py-3">
                 <span className="text-sm">
                   {m.days_off_date_range({
-                    startDate: new Date(event.startDate).toLocaleDateString(),
-                    endDate: new Date(event.endDate).toLocaleDateString(),
+                    startDate: new Date(event.startDate).toLocaleDateString(getLocale()),
+                    endDate: new Date(event.endDate).toLocaleDateString(getLocale()),
                   })}
                 </span>
                 <Button variant="ghost" size="icon" asChild className="text-destructive hover:text-destructive">

@@ -1,3 +1,5 @@
+import { getLocale } from '~/i18n/paraglide/runtime'
+
 export interface LatLng {
   lat: number
   lng: number
@@ -62,7 +64,7 @@ function getKilometersFormatter(locale: string): Intl.NumberFormat {
  * shifts to kilometers with one decimal. Locale controls the decimal/group
  * separator (e.g. `1,2 km` in `fr-FR`, `1.2 km` in `en-GB`).
  */
-export function formatDistance(meters: number, locale = 'fr-FR'): string {
+export function formatDistance(meters: number, locale: string = getLocale()): string {
   if (!Number.isFinite(meters) || meters < 0) return ''
   if (meters < 1000) return getMetersFormatter(locale).format(Math.round(meters))
   return getKilometersFormatter(locale).format(meters / 1000)

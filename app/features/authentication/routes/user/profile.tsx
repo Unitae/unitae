@@ -14,7 +14,7 @@ import {
 import { CalendarFeedCard } from '~/features/authentication/ui/CalendarFeedCard'
 import { LanguagePreferenceCard } from '~/features/authentication/ui/LanguagePreferenceCard'
 import * as m from '~/i18n/paraglide/messages'
-import { baseLocale, isLocale } from '~/i18n/paraglide/runtime'
+import { isLocale } from '~/i18n/paraglide/runtime'
 import { congregationContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import logger from '~/shared/infra/logger.server'
@@ -27,6 +27,7 @@ import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
+import { DEFAULT_LOCALE } from '~/shared/utils/language'
 import type { Route } from './+types/profile'
 
 export const meta: Route.MetaFunction = () => {
@@ -58,7 +59,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     congregationName: congregation.displayName ?? congregation.name,
     // Both columns are free text: a locale the app does not ship reads as none.
     locale: isLocale(currentUser.locale) ? currentUser.locale : null,
-    congregationLocale: isLocale(congregation.locale) ? congregation.locale : baseLocale,
+    congregationLocale: isLocale(congregation.locale) ? congregation.locale : DEFAULT_LOCALE,
     calendar,
     error: session.get('error'),
   }

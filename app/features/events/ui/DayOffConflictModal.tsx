@@ -1,6 +1,7 @@
 import { AlertTriangle } from 'lucide-react'
 import type { UserConflictInRange } from '~/features/events/server/list-user-conflicts-in-range.server'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,7 +40,7 @@ export function DayOffConflictModal({ conflicts, timezone, open, onClose }: DayO
 
         <ul className="flex flex-col gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm">
           {conflicts.map((c, idx) => {
-            const date = formatEventDate(c.eventDate, timezone, 'fr-FR', ROW_DATE_OPTIONS)
+            const date = formatEventDate(c.eventDate, timezone, getLocale(), ROW_DATE_OPTIONS)
             const text =
               c.responsibleName != null
                 ? m.days_off_conflict_modal_row_named({

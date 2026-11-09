@@ -5,7 +5,6 @@ import { describe, expect, it, vi } from 'vitest'
 const runtime = vi.hoisted(() => ({ getLocale: (): string => 'fr' }))
 
 vi.mock('~/i18n/paraglide/runtime', () => ({
-  baseLocale: 'fr',
   isLocale: (value: unknown) => value === 'fr' || value === 'en',
   overwriteGetLocale: (fn: () => string) => {
     runtime.getLocale = fn
@@ -42,7 +41,7 @@ function localeSeenDownstream() {
 
 describe('requestLocale', () => {
   // Regression: the locale used to be applied by entry.server, which React Router calls after the
-  // loaders and actions have run. Every message they produced came out in the base locale.
+  // loaders and actions have run. Every message they produced came out in the default locale.
   it('runs the loaders and actions in the locale resolved for the request', async () => {
     vi.mocked(resolveDocumentLocale).mockResolvedValue({ locale: 'en', persist: true })
 
@@ -120,7 +119,7 @@ describe('requestLocale', () => {
     expect(response.headers.get('Set-Cookie')).toBeNull()
   })
 
-  it('carries on in the base locale for a subdomain no congregation owns and no cookie', async () => {
+  it('carries on in the default locale for a subdomain no congregation owns and no cookie', async () => {
     const redirect = new Response(null, { status: 302, headers: { Location: '/congregation-not-found' } })
     vi.mocked(resolveDocumentLocale).mockResolvedValue({ redirect })
 

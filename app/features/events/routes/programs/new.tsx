@@ -17,6 +17,7 @@ import {
 import { getTemplates } from '~/features/events/server/event-templates.server'
 import { canManageAnyProgram, getResponsibleTemplateIds } from '~/features/events/server/events-auth.server'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import {
   congregationContext,
   currentAccountContext,
@@ -37,7 +38,6 @@ import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { combineLocalDateTime } from '~/shared/utils/event-time'
-
 import type { Route } from './+types/new'
 
 const NO_TEMPLATE = 'none'
@@ -188,7 +188,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 function groupByMonth(dates: Date[]): Record<string, Date[]> {
   const result: Record<string, Date[]> = {}
   for (const d of dates) {
-    const key = d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+    const key = d.toLocaleDateString(getLocale(), { month: 'long', year: 'numeric' })
     const entry = result[key]
     if (entry) entry.push(d)
     else result[key] = [d]
@@ -290,7 +290,7 @@ function RecurringFields({
                 <span className="w-24 shrink-0 text-muted-foreground text-xs capitalize">{month}</span>
                 {dates.map(d => (
                   <span key={d.toISOString()} className="rounded bg-muted px-1.5 py-0.5 text-xs tabular-nums">
-                    {d.toLocaleDateString('fr-FR', { day: 'numeric' })}
+                    {d.toLocaleDateString(getLocale(), { day: 'numeric' })}
                   </span>
                 ))}
               </div>

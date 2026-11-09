@@ -279,7 +279,7 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
                             {attribution.publisher.firstname} {attribution.publisher.lastname?.toUpperCase().at(0)}.
                             {' — '}
                             {m.territories_assigned_until({
-                              date: attribution.lateDate.toLocaleDateString('fr-FR', {
+                              date: attribution.lateDate.toLocaleDateString(getLocale(), {
                                 day: '2-digit',
                                 month: '2-digit',
                               }),

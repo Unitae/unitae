@@ -1,5 +1,6 @@
 import type { CadenceEntry } from '~/features/events/model/cadence.type'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/shared/ui/tooltip'
 import { formatAbsoluteDate } from '~/shared/utils/relative-time'
 import { cn } from '~/shared/utils/utils'
@@ -17,7 +18,7 @@ interface RotationPanelProps {
 }
 
 const monthOf = (iso: string, timeZone: string) =>
-  new Intl.DateTimeFormat('fr-FR', { timeZone, month: 'short' }).format(new Date(iso))
+  new Intl.DateTimeFormat(getLocale(), { timeZone, month: 'short' }).format(new Date(iso))
 
 /**
  * Who held the slot over the last and next occurrences, readable without hovering: a sentence, the strip with

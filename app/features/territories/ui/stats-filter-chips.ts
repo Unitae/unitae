@@ -2,6 +2,7 @@ import type { PublisherGroup } from '~/database/generated/client'
 import { AttributionCategory } from '~/features/territories/model/attribution-category'
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { formatGroupName } from '~/shared/utils/format-group-name'
 
 export type ChipTone = 'window' | 'kind' | 'attribution' | 'group'
@@ -55,8 +56,8 @@ function attributionLabel(attribution: string, phoneTypeActive: boolean): string
 export function buildStatsFilterChips(input: BuildStatsFilterChipsInput): StatsFilterChip[] {
   const chips: StatsFilterChip[] = []
 
-  const start = new Date(input.startDate).toLocaleDateString('fr-FR')
-  const end = new Date(input.endDate).toLocaleDateString('fr-FR')
+  const start = new Date(input.startDate).toLocaleDateString(getLocale())
+  const end = new Date(input.endDate).toLocaleDateString(getLocale())
   chips.push({ key: 'window', tone: 'window', label: `${start} - ${end}` })
 
   const isAllTypes = input.kinds.length === 0 || input.kinds.includes('none')

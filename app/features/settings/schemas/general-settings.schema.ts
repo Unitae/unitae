@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { locales } from '~/i18n/paraglide/runtime'
 import { BREACHED_PASSWORD_CHECK_SCOPES, CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { isValidTimezone } from '~/shared/utils/event-time'
 
@@ -7,7 +8,7 @@ const DOMAIN_REGEX = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-
 // Congregation columns written by `updateGeneralSettings`.
 const generalSettingsSchema = z.object({
   displayName: z.string().optional().or(z.literal('')),
-  locale: z.enum(['fr', 'en']),
+  locale: z.enum(locales),
   timezone: z.string().refine(isValidTimezone, 'Fuseau horaire invalide'),
   domain: z
     .string()

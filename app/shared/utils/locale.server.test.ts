@@ -21,7 +21,6 @@ vi.mock('~/shared/infra/logger.server', () => ({
 }))
 
 vi.mock('~/i18n/paraglide/runtime', () => ({
-  baseLocale: 'fr',
   isLocale: (value: unknown) => value === 'fr' || value === 'en',
 }))
 
@@ -190,7 +189,7 @@ describe('resolveDocumentLocale', () => {
   })
 
   // Congregation.locale is a free-text column: what comes out of it is not always a locale the app ships.
-  it('renders in the base locale when the congregation holds a locale the app does not ship', async () => {
+  it('renders in the default locale when the congregation holds a locale the app does not ship', async () => {
     mockSession(42)
     vi.mocked(db.userAccount.findUnique).mockResolvedValue({ congregationId: 1 } as never)
     vi.mocked(findCongregation).mockResolvedValue({ locale: 'de' } as never)
@@ -220,7 +219,7 @@ describe('resolveDocumentLocale', () => {
     ).resolves.toEqual({ locale: 'fr', persist: false })
   })
 
-  it('falls back to the base locale when the lookup fails, without remembering it', async () => {
+  it('falls back to the default locale when the lookup fails, without remembering it', async () => {
     mockSession(42)
     vi.mocked(db.userAccount.findUnique).mockRejectedValue(new Error('connection refused'))
 

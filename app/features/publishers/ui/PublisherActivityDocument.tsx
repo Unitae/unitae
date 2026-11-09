@@ -3,6 +3,7 @@ import type { Member, PublisherActivity } from '~/database/generated/client'
 import { type EnrolmentPeriod, standingTypeFromEnrolments } from '~/features/publishers/model/pioneer-enrolment'
 import { buildServiceYearActivityRows } from '~/features/publishers/model/service-year-activity-rows'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { PublisherType } from '~/shared/types/publisher-type'
 
 interface PublisherActivityDocumentProps {
@@ -28,7 +29,7 @@ export function PublisherActivityDocument({ publisher, serviceYear }: PublisherA
           <View style={[styles.column, { flexGrow: 3, flexBasis: '50%' }]}>
             <Text style={[styles.text]}>
               <Text style={styles.label}>{m.activity_pdf_birth_date_label()}</Text>{' '}
-              {publisher.birthDate?.toLocaleDateString('fr-FR', {
+              {publisher.birthDate?.toLocaleDateString(getLocale(), {
                 year: 'numeric',
                 month: '2-digit',
                 day: '2-digit',
@@ -36,7 +37,7 @@ export function PublisherActivityDocument({ publisher, serviceYear }: PublisherA
             </Text>
             <Text style={[styles.text]}>
               <Text style={styles.label}>{m.activity_pdf_baptism_date_label()}</Text>{' '}
-              {publisher.baptismDate?.toLocaleDateString('fr-FR', {
+              {publisher.baptismDate?.toLocaleDateString(getLocale(), {
                 year: 'numeric',
                 month: '2-digit',
                 day: '2-digit',

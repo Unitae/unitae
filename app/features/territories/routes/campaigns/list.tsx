@@ -4,13 +4,13 @@ import { getCampaignStatus } from '~/features/territories/model/campaign-status'
 import { listCampaigns } from '~/features/territories/server/campaign.queries'
 import { CampaignStatusBadge } from '~/features/territories/ui/CampaignStatusBadge'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { permissionsContext, requirePermission, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
-
 import type { Route } from './+types/list'
 
 export const meta: Route.MetaFunction = () => {
@@ -91,8 +91,8 @@ export default function CampaignsList({ loaderData }: Route.ComponentProps) {
                   </Link>
                 </TableCell>
                 <TableCell>
-                  {new Date(campaign.startDate).toLocaleDateString('fr-FR')} –{' '}
-                  {new Date(campaign.endDate).toLocaleDateString('fr-FR')}
+                  {new Date(campaign.startDate).toLocaleDateString(getLocale())} –{' '}
+                  {new Date(campaign.endDate).toLocaleDateString(getLocale())}
                 </TableCell>
                 <TableCell className="text-muted-foreground max-sm:hidden">
                   {campaign.scopeCount === 0

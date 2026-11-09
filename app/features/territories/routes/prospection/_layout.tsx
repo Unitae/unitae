@@ -5,6 +5,7 @@ import { getZips } from '~/features/territories/server/buildings.server'
 import { buildTerritoryFilterChips } from '~/features/territories/ui/build-filter-chips'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import {
   currentAccountContext,
   layoutGate,
@@ -17,7 +18,6 @@ import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { FilterChipBar } from '~/shared/ui/filters/FilterChipBar'
 import { PageHeader } from '~/shared/ui/PageHeader'
-
 import type { Route } from './+types/_layout'
 
 export const meta: Route.MetaFunction = () => {
@@ -180,7 +180,9 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
           caseSensitive
           end
         >
-          <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.active.toLocaleString()}</span>
+          <span className="font-black font-display text-5xl max-sm:text-3xl">
+            {stats.active.toLocaleString(getLocale())}
+          </span>
           <span className="text-sm">{m.prospection_active_buildings()}</span>
         </NavLink>
         <NavLink
@@ -193,7 +195,9 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
           title={m.prospection_all_buildings_title()}
           end
         >
-          <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.total.toLocaleString()}</span>
+          <span className="font-black font-display text-5xl max-sm:text-3xl">
+            {stats.total.toLocaleString(getLocale())}
+          </span>
           <span className="text-sm">{m.prospection_all_buildings()}</span>
         </NavLink>
         <NavLink
@@ -203,10 +207,12 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
               ? 'flex shrink grow flex-col items-center justify-center gap-1 rounded-md bg-background p-4 text-center shadow-sm'
               : 'flex shrink grow flex-col items-center justify-center gap-1 rounded-md p-4 text-center text-muted-foreground hover:text-foreground'
           }
-          title={m.prospection_need_check_title({ date: staleDate.toLocaleDateString() })}
+          title={m.prospection_need_check_title({ date: staleDate.toLocaleDateString(getLocale()) })}
           end
         >
-          <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.stale.toLocaleString()}</span>
+          <span className="font-black font-display text-5xl max-sm:text-3xl">
+            {stats.stale.toLocaleString(getLocale())}
+          </span>
           <span className="text-sm">{m.prospection_need_check()}</span>
         </NavLink>
         {openDataAvailable && (
@@ -220,7 +226,9 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
             title={m.prospection_new_buildings_title()}
             end
           >
-            <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.created.toLocaleString()}</span>
+            <span className="font-black font-display text-5xl max-sm:text-3xl">
+              {stats.created.toLocaleString(getLocale())}
+            </span>
             <span className="text-sm">{m.prospection_new_buildings()}</span>
           </NavLink>
         )}
@@ -235,7 +243,9 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
             title={m.prospection_destroyed_buildings_title()}
             end
           >
-            <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.removed.toLocaleString()}</span>
+            <span className="font-black font-display text-5xl max-sm:text-3xl">
+              {stats.removed.toLocaleString(getLocale())}
+            </span>
             <span className="text-sm">{m.prospection_destroyed_buildings()}</span>
           </NavLink>
         )}

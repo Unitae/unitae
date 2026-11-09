@@ -2,6 +2,7 @@ import { CalendarDays, CalendarOff } from 'lucide-react'
 
 import type { MemberAbsence, MemberAssignment } from '~/features/events'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { RelatedItemRow, RelatedItemsCard } from '~/shared/ui/RelatedItemsCard'
 
 interface PublisherEngagementCardsProps {
@@ -11,7 +12,7 @@ interface PublisherEngagementCardsProps {
 
 function formatDate(date: Date | string | null): string {
   if (date == null) return ''
-  return new Date(date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(date).toLocaleDateString(getLocale(), { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 /**

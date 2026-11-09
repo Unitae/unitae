@@ -5,6 +5,7 @@ import { data, Form, Link, redirect, useSubmit } from 'react-router'
 import { editUserSchema } from '~/features/settings/schemas/user.schema'
 import { updateAccount } from '~/features/settings/server/update-account.server'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { isIdentityRoleKey } from '~/shared/domain/built-in-roles.server'
 import { GrantBeyondActorError } from '~/shared/domain/role-grant-limits.server'
@@ -36,7 +37,6 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
-
 import type { Route } from './+types/edit-user'
 
 export const meta: Route.MetaFunction = () => {
@@ -220,7 +220,7 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
       {anonymizedAt && (
         <Alert variant="destructive">
           <AlertDescription>
-            {m.settings_user_edit_anonymized_at({ date: new Date(anonymizedAt).toLocaleDateString('fr-FR') })}
+            {m.settings_user_edit_anonymized_at({ date: new Date(anonymizedAt).toLocaleDateString(getLocale()) })}
           </AlertDescription>
         </Alert>
       )}

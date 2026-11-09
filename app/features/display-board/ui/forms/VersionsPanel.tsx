@@ -3,6 +3,7 @@ import { Download, RotateCcw } from 'lucide-react'
 import { Form, Link } from 'react-router'
 import type { DocumentVersionRow } from '~/features/display-board/server/document-form.queries'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
 
 interface VersionsPanelProps {
@@ -13,7 +14,7 @@ interface VersionsPanelProps {
 }
 
 function formatDay(date: Date, timeZone: string) {
-  return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone }).format(date)
+  return new Intl.DateTimeFormat(getLocale(), { day: 'numeric', month: 'long', year: 'numeric', timeZone }).format(date)
 }
 
 /**

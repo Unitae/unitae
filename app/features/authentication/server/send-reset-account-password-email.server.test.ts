@@ -5,7 +5,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const runtime = vi.hoisted(() => ({ getLocale: (): string => 'fr' }))
 
 vi.mock('~/i18n/paraglide/runtime', () => ({
-  baseLocale: 'fr',
   isLocale: (value: unknown) => value === 'fr' || value === 'en',
   overwriteGetLocale: (fn: () => string) => {
     runtime.getLocale = fn

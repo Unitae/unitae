@@ -124,7 +124,7 @@ export function partPresetName(preset: { key: string; name: string | null }, loc
  */
 export function partPresetShareMessage(preset: { key: string; shareMessage: string | null }, locale: Locale): string {
   if (preset.shareMessage !== null) return preset.shareMessage
-  return SHARE_MESSAGES[locale]?.[preset.key as PartPresetKey] ?? ''
+  return SHARE_MESSAGES[locale]?.[preset.key as PartPresetKey] ?? SHARE_MESSAGES.en[preset.key as PartPresetKey] ?? ''
 }
 
 function resolveLabel(

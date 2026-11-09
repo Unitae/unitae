@@ -17,6 +17,7 @@ import { PublisherEngagementCards } from '~/features/publishers/ui/PublisherEnga
 import { AttributionStatus, TerritoryKindKey } from '~/features/territories'
 import { findActiveAttributionsForPublisher } from '~/features/territories/index.server'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import {
   congregationContext,
   currentAccountContext,
@@ -45,7 +46,6 @@ import { Separator } from '~/shared/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import { requireParamId } from '~/shared/utils/params.server'
 import { zonedNow } from '~/shared/utils/zoned-now'
-
 import type { Route } from './+types/publisher'
 
 export const meta: Route.MetaFunction = ({ loaderData }) => {
@@ -399,7 +399,7 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
                 <p className="text-muted-foreground text-sm">
                   {m.publishers_view_birth_date_label()} :{' '}
                   <span className="font-medium text-foreground">
-                    {publisher.birthDate?.toLocaleDateString('fr-FR', {
+                    {publisher.birthDate?.toLocaleDateString(getLocale(), {
                       year: 'numeric',
                       month: '2-digit',
                       day: '2-digit',
@@ -410,7 +410,7 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
                   <p className="text-muted-foreground text-sm">
                     {m.publishers_view_baptism_date_label()} :{' '}
                     <span className="font-medium text-foreground">
-                      {publisher.baptismDate?.toLocaleDateString('fr-FR', {
+                      {publisher.baptismDate?.toLocaleDateString(getLocale(), {
                         year: 'numeric',
                         month: '2-digit',
                         day: '2-digit',
@@ -518,7 +518,9 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
                         {attribution.territory.type === TerritoryKindKey.Hotel && m.publishers_view_territory_hotel()}
                         {attribution.territory.type === TerritoryKindKey.Univ && m.publishers_view_territory_univ()}
                       </TableCell>
-                      <TableCell className="text-center">{attribution.startDate.toLocaleDateString('fr-FR')}</TableCell>
+                      <TableCell className="text-center">
+                        {attribution.startDate.toLocaleDateString(getLocale())}
+                      </TableCell>
                       <TableCell className="text-center">
                         <AttributionStatus attribution={attribution} />
                       </TableCell>

@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import type { BoardCard as BoardCardData } from '~/features/display-board/server/board-home.queries'
 import { BoardCard } from '~/features/display-board/ui/BoardCard'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 
 export interface PreviewFacts {
   reads: { read: number; audience: number }
@@ -57,7 +58,9 @@ export function BoardPreviewAside({ card, timeZone, facts }: BoardPreviewAsidePr
           <div className={rowClass}>
             <span>{m.board_form_stat_added()}</span>
             <span className="text-muted-foreground">
-              {new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', timeZone }).format(facts.createdAt)}
+              {new Intl.DateTimeFormat(getLocale(), { day: 'numeric', month: 'long', timeZone }).format(
+                facts.createdAt,
+              )}
             </span>
           </div>
         </div>

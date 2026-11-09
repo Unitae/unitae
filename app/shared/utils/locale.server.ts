@@ -1,11 +1,10 @@
 import { getSession } from '~/features/authentication/server/session.server'
-import { baseLocale, isLocale, type Locale } from '~/i18n/paraglide/runtime'
+import { isLocale, type Locale } from '~/i18n/paraglide/runtime'
 import { findCongregation, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
+import { DEFAULT_LOCALE } from '~/shared/utils/language'
 import { localeFromCookie } from '~/shared/utils/locale-cookie'
-
-const DEFAULT_LOCALE = 'fr'
 
 /**
  * The locale of the account behind the session: the one it chose for itself, else its
@@ -81,7 +80,7 @@ export type DocumentLocale = { locale: Locale; persist: boolean } | { redirect: 
 export async function resolveDocumentLocale(request: Request): Promise<DocumentLocale> {
   try {
     const locale = await resolveLocaleFromRequest(request)
-    return { locale: isLocale(locale) ? locale : baseLocale, persist: true }
+    return { locale: isLocale(locale) ? locale : DEFAULT_LOCALE, persist: true }
   } catch (error) {
     if (!isRedirect(error)) {
       const { host, pathname } = new URL(request.url)
@@ -94,7 +93,7 @@ export async function resolveDocumentLocale(request: Request): Promise<DocumentL
     } else if (!redirectsToItself(request, error)) {
       return { redirect: error }
     }
-    return { locale: localeFromCookie(request) ?? baseLocale, persist: false }
+    return { locale: localeFromCookie(request) ?? DEFAULT_LOCALE, persist: false }
   }
 }
 
