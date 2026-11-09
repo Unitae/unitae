@@ -1,13 +1,13 @@
 import { getFormProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod/v4'
-import { data, Form, redirect } from 'react-router'
+import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { runCampaignLifecycleSweep } from '~/features/territories/jobs/handle-campaign-lifecycle-work.server'
 import { campaignSchema } from '~/features/territories/schemas/campaign.schema'
 import { updateCampaign } from '~/features/territories/server/campaign.aggregate'
 import { getCampaign } from '~/features/territories/server/campaign.queries'
 import { applyScopeChange } from '~/features/territories/server/campaign-lifecycle.workflow'
-import { CampaignForm } from '~/features/territories/ui/CampaignForm'
+import { CampaignForm, type CampaignFormLock } from '~/features/territories/ui/CampaignForm'
 import * as m from '~/i18n/paraglide/messages'
 import {
   currentAccountContext,
@@ -17,10 +17,12 @@ import {
 } from '~/shared/auth/route-context.server'
 import { ConflictError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
-import { Card, CardContent } from '~/shared/ui/card'
-import { FormActions } from '~/shared/ui/FormActions'
+import { Button } from '~/shared/ui/button'
+import { FormSaveBar } from '~/shared/ui/FormSaveBar'
+import { useFormChanges } from '~/shared/ui/hooks/use-form-changes'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { formatLocalDate } from '~/shared/utils/date.server'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
@@ -41,66 +43,82 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
     const territories = await db.territory.findMany({
       where: { congregationId },
-      select: { id: true, number: true, type: true },
+      select: { id: true, number: true },
       orderBy: { number: 'asc' },
     })
-    return { campaign, territories }
+    return {
+      campaign: { id: campaign.id, name: campaign.name },
+      // Days, read in the convention they were saved with, so the date fields show the days the campaign runs.
+      defaults: {
+        name: campaign.name,
+        notes: campaign.notes,
+        startDate: formatLocalDate(campaign.startDate),
+        endDate: formatLocalDate(campaign.endDate),
+        restPeriodDays: campaign.restPeriodDays,
+        startRegularAction: campaign.startRegularAction,
+        startAutoReassign: campaign.startAutoReassign,
+        endCloseCampaign: campaign.endCloseCampaign,
+        endRegularAction: campaign.endRegularAction,
+        scopeTerritoryIds: campaign.scope.map(row => row.territoryId),
+      },
+      lock: (campaign.endedAt != null
+        ? 'ended'
+        : campaign.activatedAt != null
+          ? 'started'
+          : 'none') as CampaignFormLock,
+      territories,
+    }
   })
 }
 
 export default function EditCampaignPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { campaign, territories } = loaderData
+  const { campaign, defaults, lock, territories } = loaderData
+  const { ref, changes } = useFormChanges()
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
       return parseWithZod(formData, { schema: campaignSchema })
     },
   })
+  const back = `/territories/attributions/campaigns/${campaign.id}`
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex max-w-6xl flex-col gap-5">
       <PageHeader
         title={m.campaigns_edit_title()}
         subtitle={campaign.name}
         breadcrumbs={[
           { label: m.sidebar_attributions(), to: '/territories/attributions' },
           { label: m.campaigns_title(), to: '/territories/attributions/campaigns' },
-          { label: campaign.name, to: `/territories/attributions/campaigns/${campaign.id}` },
+          { label: campaign.name, to: back },
           { label: m.campaigns_edit_title() },
         ]}
-        backTo={`/territories/attributions/campaigns/${campaign.id}`}
       />
-      <Card>
-        <CardContent className="pt-6">
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
-            <CampaignForm
-              defaults={{
-                name: campaign.name,
-                notes: campaign.notes,
-                startDate: new Date(campaign.startDate).toLocaleDateString('en-CA'),
-                endDate: new Date(campaign.endDate).toLocaleDateString('en-CA'),
-                restPeriodDays: campaign.restPeriodDays,
-                startRegularAction: campaign.startRegularAction,
-                startAutoReassign: campaign.startAutoReassign,
-                endCloseCampaign: campaign.endCloseCampaign,
-                endRegularAction: campaign.endRegularAction,
-                scopeTerritoryIds: campaign.scope.map(s => s.territoryId),
-              }}
-              territories={territories}
-              startLocked={campaign.activatedAt != null}
-              errors={{
-                name: fields.name.errors,
-                'end-date': fields['end-date'].errors,
-                'start-auto-reassign': fields['start-auto-reassign'].errors,
-              }}
-            />
-            {form.errors && <p className="text-destructive text-sm">{form.errors}</p>}
-            <FormActions>
-              <SubmitButton>{m.campaigns_form_submit()}</SubmitButton>
-            </FormActions>
-          </Form>
-        </CardContent>
-      </Card>
+      <Form method="post" {...getFormProps(form)} ref={ref} className="flex flex-col gap-4 pb-24">
+        <CampaignForm
+          defaults={defaults}
+          territories={territories}
+          lock={lock}
+          errors={{
+            name: fields.name.errors,
+            'end-date': fields['end-date'].errors,
+            'start-auto-reassign': fields['start-auto-reassign'].errors,
+          }}
+        />
+        {form.errors && (
+          <p role="alert" className="text-destructive text-sm">
+            {form.errors}
+          </p>
+        )}
+        {changes > 0 && (
+          <FormSaveBar changes={changes}>
+            <Button asChild variant="ghost">
+              <Link to={back}>{m.common_cancel()}</Link>
+            </Button>
+            <SubmitButton>{m.campaigns_form_submit()}</SubmitButton>
+          </FormSaveBar>
+        )}
+      </Form>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { getFormProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod/v4'
-import { data, Form, redirect } from 'react-router'
+import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { runCampaignLifecycleSweep } from '~/features/territories/jobs/handle-campaign-lifecycle-work.server'
 import {
@@ -19,8 +19,9 @@ import {
 } from '~/shared/auth/route-context.server'
 import { ConflictError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
-import { Card, CardContent } from '~/shared/ui/card'
-import { FormActions } from '~/shared/ui/FormActions'
+import { Button } from '~/shared/ui/button'
+import { FormSaveBar } from '~/shared/ui/FormSaveBar'
+import { useFormChanges } from '~/shared/ui/hooks/use-form-changes'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 
@@ -37,7 +38,7 @@ export function loader({ context }: Route.LoaderArgs) {
   return withScopeFromContext(context, async (db, congregationId) => {
     const territories = await db.territory.findMany({
       where: { congregationId },
-      select: { id: true, number: true, type: true },
+      select: { id: true, number: true },
       orderBy: { number: 'asc' },
     })
     return { territories }
@@ -46,6 +47,7 @@ export function loader({ context }: Route.LoaderArgs) {
 
 export default function NewCampaignPage({ loaderData, actionData }: Route.ComponentProps) {
   const { territories } = loaderData
+  const { ref, changes } = useFormChanges()
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -54,7 +56,7 @@ export default function NewCampaignPage({ loaderData, actionData }: Route.Compon
   })
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex max-w-6xl flex-col gap-5">
       <PageHeader
         title={m.campaigns_new_title()}
         breadcrumbs={[
@@ -62,38 +64,41 @@ export default function NewCampaignPage({ loaderData, actionData }: Route.Compon
           { label: m.campaigns_title(), to: '/territories/attributions/campaigns' },
           { label: m.campaigns_new_title() },
         ]}
-        backTo="/territories/attributions/campaigns"
       />
-      <Card>
-        <CardContent className="pt-6">
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
-            <CampaignForm
-              defaults={{
-                name: '',
-                notes: '',
-                startDate: '',
-                endDate: '',
-                restPeriodDays: null,
-                startRegularAction: CampaignRegularStartAction.Pause,
-                startAutoReassign: false,
-                endCloseCampaign: true,
-                endRegularAction: CampaignRegularEndAction.Resume,
-                scopeTerritoryIds: [],
-              }}
-              territories={territories}
-              errors={{
-                name: fields.name.errors,
-                'end-date': fields['end-date'].errors,
-                'start-auto-reassign': fields['start-auto-reassign'].errors,
-              }}
-            />
-            {form.errors && <p className="text-destructive text-sm">{form.errors}</p>}
-            <FormActions>
-              <SubmitButton>{m.campaigns_form_submit()}</SubmitButton>
-            </FormActions>
-          </Form>
-        </CardContent>
-      </Card>
+      <Form method="post" {...getFormProps(form)} ref={ref} className="flex flex-col gap-4 pb-24">
+        <CampaignForm
+          defaults={{
+            name: '',
+            notes: '',
+            startDate: '',
+            endDate: '',
+            restPeriodDays: null,
+            startRegularAction: CampaignRegularStartAction.Pause,
+            startAutoReassign: false,
+            endCloseCampaign: true,
+            endRegularAction: CampaignRegularEndAction.Resume,
+            scopeTerritoryIds: [],
+          }}
+          territories={territories}
+          errors={{
+            name: fields.name.errors,
+            'end-date': fields['end-date'].errors,
+            'start-auto-reassign': fields['start-auto-reassign'].errors,
+          }}
+        />
+        {form.errors && (
+          <p role="alert" className="text-destructive text-sm">
+            {form.errors}
+          </p>
+        )}
+        <p className="text-faint text-sm">{m.campaigns_form_create_hint()}</p>
+        <FormSaveBar changes={changes}>
+          <Button asChild variant="ghost">
+            <Link to="/territories/attributions/campaigns">{m.common_cancel()}</Link>
+          </Button>
+          <SubmitButton>{m.campaigns_form_create_submit()}</SubmitButton>
+        </FormSaveBar>
+      </Form>
     </div>
   )
 }

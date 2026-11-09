@@ -5,7 +5,7 @@ import { type CampaignBannerData, CampaignModeBanner } from '~/features/territor
 import * as m from '~/i18n/paraglide/messages'
 import { layoutGate, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
-
+import { formatLocalDate } from '~/shared/utils/date.server'
 import type { Route } from './+types/_layout'
 
 export const meta: Route.MetaFunction = () => {
@@ -32,8 +32,8 @@ export function loader({ context }: Route.LoaderArgs) {
         : {
             id: source.id,
             name: source.name,
-            startDate: source.startDate,
-            endDate: source.endDate,
+            startDay: formatLocalDate(source.startDate),
+            endDay: formatLocalDate(source.endDate),
             status: active != null ? 'active' : 'scheduled',
           }
 
@@ -44,12 +44,14 @@ export function loader({ context }: Route.LoaderArgs) {
       canViewPublishers,
       canViewProspection,
       bannerCampaign,
+      canManageCampaigns: permissions.has(Permission.CanManageTerritoryCampaigns),
+      today: formatLocalDate(new Date()),
     }
   })
 }
 
 export default function BoardLayout({ loaderData }: Route.ComponentProps) {
-  const { bannerCampaign, canManageTerritories } = loaderData
+  const { bannerCampaign, canManageTerritories, canManageCampaigns, today } = loaderData
   // The campaigns section IS the campaign management surface — reminding the
   // manager about the campaign there is redundant noise.
   const onCampaignPages = useLocation().pathname.startsWith('/territories/attributions/campaigns')
@@ -57,7 +59,12 @@ export default function BoardLayout({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-4">
       {!onCampaignPages && (
-        <CampaignModeBanner campaign={bannerCampaign} variant={canManageTerritories ? 'manager' : 'publisher'} />
+        <CampaignModeBanner
+          campaign={bannerCampaign}
+          variant={canManageTerritories ? 'manager' : 'publisher'}
+          canOpen={canManageCampaigns}
+          today={today}
+        />
       )}
       <Outlet />
     </div>

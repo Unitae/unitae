@@ -168,6 +168,16 @@ describe('endCampaign', () => {
 })
 
 describe('applyScopeChange', () => {
+  // Its coverage is history: the territories it set out to cover stay as they were.
+  it('leaves the scope of an ended campaign as it was', async () => {
+    const campaign = makeCampaign({ activatedAt: new Date(), endedAt: new Date(), scope: [{ territoryId: 1 }] })
+
+    const result = await applyScopeChange(db, campaign, [1, 2], 10, 0, now)
+
+    expect(result).toEqual({ added: 0, removed: 0 })
+    expect(campaignAggregate.replaceScope).not.toHaveBeenCalled()
+  })
+
   it('replaces the scope without transitions when the campaign is not active', async () => {
     await applyScopeChange(db, makeCampaign({ scope: [{ territoryId: 1 }] }), [1, 2], 10, 0, now)
 

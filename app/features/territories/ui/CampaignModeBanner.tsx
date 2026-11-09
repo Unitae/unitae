@@ -1,19 +1,18 @@
 import { Calendar, Megaphone, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
+import { formatCampaignDay } from '~/features/territories/model/campaign-days'
 import * as m from '~/i18n/paraglide/messages'
-import { getLocale } from '~/i18n/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
 import { cn } from '~/shared/utils/utils'
 
 export interface CampaignBannerData {
   id: number
   name: string
-  startDate: string | Date
-  endDate: string | Date
+  /** `YYYY-MM-DD`, read on the server in the convention the campaign's days were saved with. */
+  startDay: string
+  endDay: string
   status: 'active' | 'scheduled'
-  /** Its last day, worded on the server in the zone its dates were saved in. */
-  endLabel?: string
 }
 
 function dismissalKey(campaign: CampaignBannerData): string {
@@ -29,9 +28,15 @@ function dismissalKey(campaign: CampaignBannerData): string {
 export function CampaignModeBanner({
   campaign,
   variant,
+  canOpen = false,
+  today,
 }: {
   campaign: CampaignBannerData | null
   variant: 'manager' | 'publisher'
+  /** May open the campaign's page: « Gérer la campagne » shows. */
+  canOpen?: boolean
+  /** `YYYY-MM-DD`, in the campaign days' convention. */
+  today?: string
 }) {
   const [dismissed, setDismissed] = useState(true)
 
@@ -44,22 +49,22 @@ export function CampaignModeBanner({
   // management information.
   if (variant === 'publisher' && campaign.status !== 'active') return null
 
-  const start = new Date(campaign.startDate).toLocaleDateString(getLocale())
-  const end = new Date(campaign.endDate).toLocaleDateString(getLocale())
+  const start = formatCampaignDay(campaign.startDay, { day: 'numeric', month: 'long' })
+  const end = formatCampaignDay(campaign.endDay, { day: 'numeric', month: 'long' })
 
   const isActive = campaign.status === 'active'
   const Icon = isActive ? Megaphone : Calendar
 
   // A scheduled campaign whose start day has arrived is waiting for the next
   // lifecycle pass — announcing a past "start" date would read as nonsense.
-  const startsToday = new Date(campaign.startDate).getTime() <= Date.now()
+  const startsToday = today != null && campaign.startDay <= today
   const message = !isActive
     ? startsToday
       ? m.campaign_banner_starting({ name: campaign.name })
       : m.campaign_banner_scheduled({ name: campaign.name, start })
     : variant === 'manager'
       ? m.campaign_banner_active_manager({ name: campaign.name, start, end })
-      : m.campaign_banner_active_publisher_until({ name: campaign.name, end: campaign.endLabel ?? end })
+      : m.campaign_banner_active_publisher_until({ name: campaign.name, end })
 
   return (
     <div
@@ -72,7 +77,7 @@ export function CampaignModeBanner({
       <Icon aria-hidden="true" className={cn('size-4 shrink-0', isActive ? 'text-brand-text' : 'text-faint')} />
       <span className="flex-1">
         {message}
-        {variant === 'manager' && (
+        {canOpen && (
           <>
             {' '}
             <Link
