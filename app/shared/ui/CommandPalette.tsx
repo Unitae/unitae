@@ -7,7 +7,6 @@ import {
   CalendarOff,
   ClipboardList,
   FileText,
-  FolderOpen,
   Home,
   LayoutGrid,
   MapPin,
@@ -61,11 +60,14 @@ function getNavigationItems(permissions: AppSidebarPermissions): CommandItem[] {
   if (permissions.canViewBoard) {
     items.push({ id: 'board', label: m.sidebar_board(), icon: LayoutGrid, to: '/board' })
   }
-  if (permissions.canConfigureBoardSections) {
-    items.push({ id: 'sections', label: m.sidebar_sections(), icon: FolderOpen, to: '/board/sections' })
-  }
-  if (permissions.canUploadDocument || permissions.canManageBoard) {
-    items.push({ id: 'documents', label: m.sidebar_documents(), icon: FileText, to: '/board/documents' })
+  if (
+    permissions.canUploadDocument ||
+    permissions.canManageBoard ||
+    permissions.canOrganiseBoardDocuments ||
+    permissions.canConfigureBoardSections ||
+    permissions.canManageDynamicBoardDocuments
+  ) {
+    items.push({ id: 'board-manage', label: m.sidebar_board_manage(), icon: FileText, to: '/board/documents' })
   }
   items.push(...publisherItems(permissions))
   if (permissions.canViewActivity) {

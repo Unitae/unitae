@@ -35,7 +35,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     })
 
     if (document == null) {
-      throw redirect('/board/sections')
+      throw redirect('/board/documents')
     }
 
     const ownsDocument = canUploadDocument && (await isDocumentOwnedByUploader(db, documentId, currentUser.id))

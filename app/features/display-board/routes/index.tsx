@@ -37,9 +37,14 @@ export async function loader({ context }: Route.LoaderArgs) {
   return {
     ...home,
     timeZone: timezone,
-    // Each link behind the right its page checks.
-    canManageDocuments:
-      permissions.has(Permission.CanUploadBoardDocuments) || permissions.has(Permission.CanReviewBoardDocuments),
+    // « Gérer le tableau » opens to whoever holds one of the rights its actions check.
+    canManage: [
+      Permission.CanUploadBoardDocuments,
+      Permission.CanReviewBoardDocuments,
+      Permission.CanOrganiseBoardDocuments,
+      Permission.CanConfigureBoardSections,
+      Permission.CanManageDynamicBoardDocuments,
+    ].some(permission => permissions.has(permission)),
     canConfigureSections: permissions.has(Permission.CanConfigureBoardSections),
   }
 }
@@ -47,7 +52,7 @@ export async function loader({ context }: Route.LoaderArgs) {
 type Filter = 'all' | 'unread'
 
 export default function BoardPage({ loaderData }: Route.ComponentProps) {
-  const { highlighted, sections, unreadCount, timeZone, canManageDocuments, canConfigureSections } = loaderData
+  const { highlighted, sections, unreadCount, timeZone, canManage, canConfigureSections } = loaderData
   const [searchParams, setSearchParams] = useSearchParams()
   const [collapsed, setCollapsed] = usePersistedState<Record<number, boolean>>('board-collapsed', {})
   const filter: Filter = searchParams.get('vue') === 'non-lus' ? 'unread' : 'all'
@@ -83,22 +88,15 @@ export default function BoardPage({ loaderData }: Route.ComponentProps) {
           )
         }
         actions={
-          <>
-            {/* On a phone both live in the « Plus » sheet. */}
-            {canConfigureSections && (
-              <Button variant="ghost" size="sm" asChild className="max-md:hidden">
-                <Link to="/board/sections">{m.board_manage_sections()}</Link>
-              </Button>
-            )}
-            {canManageDocuments && (
-              <Button variant="outline" size="sm" asChild className="max-md:hidden">
-                <Link to="/board/documents">
-                  <FileText className="size-4" aria-hidden="true" />
-                  {m.board_manage_documents()}
-                </Link>
-              </Button>
-            )}
-          </>
+          canManage && (
+            // On a phone it lives in the « Plus » sheet.
+            <Button variant="outline" size="sm" asChild className="max-md:hidden">
+              <Link to="/board/documents">
+                <FileText className="size-4" aria-hidden="true" />
+                {m.sidebar_board_manage()}
+              </Link>
+            </Button>
+          )
         }
       />
 
@@ -145,7 +143,7 @@ function EmptyBoard({ canConfigureSections }: { canConfigureSections: boolean })
       description={m.board_empty_manager_description()}
       action={
         <Button asChild>
-          <Link to="/board/sections">{m.board_empty_manager_action()}</Link>
+          <Link to="/board/sections/new">{m.board_empty_manager_action()}</Link>
         </Button>
       }
     />
