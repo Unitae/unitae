@@ -8,6 +8,7 @@ import { canEditEvent } from '~/features/events/server/events-auth.server'
 import { listExternalSpeakers } from '~/features/events/server/external-speakers.server'
 import { EventView } from '~/features/events/ui/EventView'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import {
   congregationContext,
   currentAccountContext,
@@ -18,7 +19,6 @@ import {
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
-
 import type { Route } from './+types/view'
 
 export const meta: Route.MetaFunction = () => {
@@ -64,7 +64,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
           .sort((a, b) => {
             const aTime = a.lastVisitDate?.getTime() ?? -Infinity
             const bTime = b.lastVisitDate?.getTime() ?? -Infinity
-            if (aTime === bTime) return a.name.localeCompare(b.name, 'fr')
+            if (aTime === bTime) return a.name.localeCompare(b.name, getLocale())
             return aTime - bTime
           })
           .map(s => ({ id: s.id, name: s.name, congregationName: s.congregationName }))

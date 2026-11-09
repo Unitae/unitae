@@ -7,6 +7,7 @@ import { getCampaign, listCampaignAttributions } from '~/features/territories/se
 import { endCampaign } from '~/features/territories/server/campaign-lifecycle.workflow'
 import { CampaignStatusBadge } from '~/features/territories/ui/CampaignStatusBadge'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import {
   currentAccountContext,
   permissionsContext,
@@ -20,7 +21,6 @@ import { Card, CardAction, CardContent, CardHeader, CardTitle } from '~/shared/u
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import { requireParamId } from '~/shared/utils/params.server'
-
 import type { Route } from './+types/view'
 
 export const meta: Route.MetaFunction = () => {
@@ -86,9 +86,9 @@ export default function CampaignView({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={campaign.name}
         titleBadge={<CampaignStatusBadge status={status} />}
-        subtitle={`${new Date(campaign.startDate).toLocaleDateString('fr-FR')} – ${new Date(
+        subtitle={`${new Date(campaign.startDate).toLocaleDateString(getLocale())} – ${new Date(
           campaign.endDate,
-        ).toLocaleDateString('fr-FR')}`}
+        ).toLocaleDateString(getLocale())}`}
         breadcrumbs={[
           { label: m.sidebar_attributions(), to: '/territories/attributions' },
           { label: m.campaigns_title(), to: '/territories/attributions/campaigns' },
@@ -199,11 +199,11 @@ export default function CampaignView({ loaderData }: Route.ComponentProps) {
                       {attribution.publisher.firstname} {attribution.publisher.lastname?.toLocaleUpperCase()}
                     </TableCell>
                     <TableCell className="max-sm:hidden">
-                      {new Date(attribution.startDate).toLocaleDateString('fr-FR')}
+                      {new Date(attribution.startDate).toLocaleDateString(getLocale())}
                     </TableCell>
                     <TableCell>
                       {attribution.endDate != null ? (
-                        new Date(attribution.endDate).toLocaleDateString('fr-FR')
+                        new Date(attribution.endDate).toLocaleDateString(getLocale())
                       ) : (
                         <Badge variant="warning">{m.campaigns_view_attributions_open()}</Badge>
                       )}

@@ -1,6 +1,7 @@
 import { Status, type StatusTone } from '@unitae/ui'
 import type { DisplayState } from '~/features/display-board/model/display-state'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 
 const TONE: Record<DisplayState['kind'], StatusTone> = {
   shown: 'success',
@@ -10,7 +11,7 @@ const TONE: Record<DisplayState['kind'], StatusTone> = {
 }
 
 function formatDay(date: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', timeZone }).format(date)
+  return new Intl.DateTimeFormat(getLocale(), { day: 'numeric', month: 'short', timeZone }).format(date)
 }
 
 export function stateText(state: DisplayState, timeZone: string): string {

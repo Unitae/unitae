@@ -1,7 +1,8 @@
 import { createContext, type RouterContext } from 'react-router'
 
-import { baseLocale, type Locale } from '~/i18n/paraglide/runtime'
+import type { Locale } from '~/i18n/paraglide/runtime'
 import logger from '~/shared/infra/logger.server'
+import { DEFAULT_LOCALE } from '~/shared/utils/language'
 import { type DocumentLocale, resolveDocumentLocale } from '~/shared/utils/locale.server'
 import { localeCookie, localeFromCookie } from '~/shared/utils/locale-cookie'
 import { runWithLocale } from '~/shared/utils/locale-scope.server'
@@ -21,7 +22,7 @@ interface MiddlewareArgs {
 
 /**
  * Resolves the request's locale before any loader or action runs, and runs them in it. Applying it
- * in entry.server alone left them in the base locale: React Router calls entry.server last.
+ * in entry.server alone left them in the default locale: React Router calls entry.server last.
  *
  * It also writes the locale cookie the client translates with on every response that changes it,
  * data requests included, which never reach entry.server.
@@ -36,7 +37,7 @@ export function requestLocale() {
     context.set(documentLocaleContext, resolved)
 
     if ('redirect' in resolved) {
-      return runWithLocale(localeFromCookie(request) ?? baseLocale, next)
+      return runWithLocale(localeFromCookie(request) ?? DEFAULT_LOCALE, next)
     }
 
     const response = await runWithLocale(resolved.locale, next)

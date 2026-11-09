@@ -7,6 +7,7 @@ import {
   type MapVisibilityContext,
   mapVisibleWhere,
 } from '~/features/territories/server/map-visibility'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { AggregatedEntrance, Entrance } from '~/shared/types/entrance'
 import { paginationFromUrl } from '~/shared/utils/pagination.server'
@@ -50,7 +51,7 @@ export type BboxEntrance = {
 function sortBuildingsByAddress<T extends { zip: string; street: string; number: string }>(buildings: T[]) {
   buildings.sort((a, b) => {
     if (a.zip === b.zip && a.street === b.street) {
-      return a.number.localeCompare(b.number, 'fr', { numeric: true, sensitivity: 'base' })
+      return a.number.localeCompare(b.number, getLocale(), { numeric: true, sensitivity: 'base' })
     }
     return 0
   })

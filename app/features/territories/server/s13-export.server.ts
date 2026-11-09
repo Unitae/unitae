@@ -1,5 +1,5 @@
 import excelJs from 'exceljs'
-
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { escapeSpreadsheetFormula } from '~/shared/utils/escape-spreadsheet-formula'
 import type { getTerritoriesExportData } from './territories-export-data.server'
 
@@ -205,14 +205,14 @@ function addAttributionColumns(
     }
     firstRow.getCell(colIndex + 1).merge(firstRow.getCell(colIndex))
 
-    lastRow.getCell(colIndex).value = attribution.startDate ? attribution.startDate.toLocaleDateString('fr-FR') : ''
+    lastRow.getCell(colIndex).value = attribution.startDate ? attribution.startDate.toLocaleDateString(getLocale()) : ''
     lastRow.getCell(colIndex).border = {
       top: { style: 'thin' },
       left: { style: 'medium' },
       bottom: { style: isLastTerritorry ? 'thick' : 'thin' },
       right: { style: 'thin' },
     }
-    lastRow.getCell(colIndex + 1).value = attribution.endDate ? attribution.endDate.toLocaleDateString('fr-FR') : ''
+    lastRow.getCell(colIndex + 1).value = attribution.endDate ? attribution.endDate.toLocaleDateString(getLocale()) : ''
     lastRow.getCell(colIndex + 1).border = {
       top: { style: 'thin' },
       left: { style: 'thin' },

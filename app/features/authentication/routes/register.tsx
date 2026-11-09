@@ -18,6 +18,8 @@ import { Card, CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import { DEFAULT_LOCALE, languageLabel } from '~/shared/utils/language'
+import { slugify } from '~/shared/utils/slugify'
 import type { Route } from './+types/register'
 
 export const meta: Route.MetaFunction = () => {
@@ -41,15 +43,6 @@ export async function loader({ request }: Route.LoaderArgs) {
     { error: session.get('error'), success: session.get('success') },
     { headers: { 'Set-Cookie': await commitSession(session) } },
   )
-}
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
 }
 
 export default function RegisterPage({ loaderData, actionData }: Route.ComponentProps) {
@@ -93,14 +86,14 @@ export default function RegisterPage({ loaderData, actionData }: Route.Component
 
           <div className="flex flex-col gap-2">
             <Label htmlFor={fields.locale.id}>{m.auth_register_locale_label()}</Label>
-            <Select name={fields.locale.name} defaultValue={fields.locale.initialValue ?? 'fr'}>
+            <Select name={fields.locale.name} defaultValue={fields.locale.initialValue ?? DEFAULT_LOCALE}>
               <SelectTrigger id={fields.locale.id}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {locales.map(locale => (
                   <SelectItem key={locale} value={locale}>
-                    {locale === 'fr' ? m.common_locale_fr() : m.common_locale_en()}
+                    {languageLabel(locale)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -166,7 +159,7 @@ export async function action({ request }: Route.ActionArgs) {
     return data(submission.reply({ fieldErrors: { password: [policyError] } }), { status: 400 })
   }
 
-  const slug = slugify(congregationName)
+  const slug = slugify(congregationName, locale)
   if (slug.length < 2) {
     session.flash('error', m.auth_register_slug_invalid_error())
     return redirect('/register', { headers: { 'Set-Cookie': await commitSession(session) } })

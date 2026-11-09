@@ -1,3 +1,5 @@
+import { getLocale } from '~/i18n/paraglide/runtime'
+
 const OFFSET_REGEX = /GMT(?<offset>[+-]\d{2}:\d{2})?/
 
 function formatOffset(date: Date, timezone: string): string {
@@ -37,7 +39,7 @@ export function setHoursInTimezone(date: Date, hour: number, minute: number, tim
   return combineLocalDateTime(dateStr, timeStr, timezone)
 }
 
-export function formatEventTime(date: Date | string, timezone: string, locale = 'fr-FR'): string {
+export function formatEventTime(date: Date | string, timezone: string, locale: string = getLocale()): string {
   const d = typeof date === 'string' ? new Date(date) : date
   return d.toLocaleTimeString(locale, { timeZone: timezone, hour: '2-digit', minute: '2-digit' })
 }
@@ -45,7 +47,7 @@ export function formatEventTime(date: Date | string, timezone: string, locale = 
 export function formatEventDate(
   date: Date | string,
   timezone: string,
-  locale = 'fr-FR',
+  locale: string = getLocale(),
   options?: Intl.DateTimeFormatOptions,
 ): string {
   const d = typeof date === 'string' ? new Date(date) : date

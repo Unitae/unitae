@@ -1,22 +1,24 @@
 import type { CadenceEntry } from '~/features/events/model/cadence.type'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import type { PersonDescription } from '~/shared/ui/PersonDropdown'
-
-const LOCALE = 'fr-FR'
 
 /** « 22 octobre », « 1er octobre », with the year when it is not the reference one: « 18 août 2025 ». */
 function formatDay(date: Date, timeZone: string, withYear: boolean): string {
-  const parts = new Intl.DateTimeFormat(LOCALE, {
+  const locale = getLocale()
+  const parts = new Intl.DateTimeFormat(locale, {
     timeZone,
     day: 'numeric',
     month: 'long',
     ...(withYear ? { year: 'numeric' } : {}),
   }).formatToParts(date)
-  return parts.map(part => (part.type === 'day' && part.value === '1' ? '1er' : part.value)).join('')
+  // French writes the first of the month as an ordinal: « 1er octobre ».
+  const firstOrdinal = locale === 'fr' ? '1er' : '1'
+  return parts.map(part => (part.type === 'day' && part.value === '1' ? firstOrdinal : part.value)).join('')
 }
 
 const yearOf = (date: Date, timeZone: string) =>
-  Number(new Intl.DateTimeFormat(LOCALE, { timeZone, year: 'numeric' }).format(date))
+  Number(new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric' }).format(date))
 
 /** The day of an event, in the congregation's time zone. */
 export function formatFactDate(iso: string, timeZone: string, referenceYear: number): string {

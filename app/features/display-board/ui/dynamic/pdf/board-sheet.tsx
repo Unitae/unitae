@@ -14,6 +14,7 @@ import { programmePdfOptions } from '~/features/display-board/model/programme-pd
 import type { ProgrammeSheetEvent } from '~/features/display-board/model/programme-sheet.type'
 import { fitGroupsSheet, type SheetPublisherGroup } from '~/features/display-board/model/publisher-groups-sheet'
 import { loadBoardPdfTypeface } from '~/features/display-board/server/board-pdf-fonts.server'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import type { OrganigramNode } from '~/shared/domain/organigram.queries'
 import { formatEventDate } from '~/shared/utils/event-time'
 import { OrganigramDocument } from './OrganigramDocument'
@@ -54,7 +55,7 @@ export async function buildBoardSheet(
   options: BoardSheetOptions,
 ): Promise<ReactElement<DocumentProps>> {
   const measurer = await loadBoardPdfTypeface(appearance.typeface)
-  const asOf = formatEventDate(options.asOf, options.timezone, 'fr-FR', {
+  const asOf = formatEventDate(options.asOf, options.timezone, getLocale(), {
     day: 'numeric',
     month: 'long',
     year: 'numeric',

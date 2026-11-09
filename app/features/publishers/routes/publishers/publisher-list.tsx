@@ -13,6 +13,7 @@ import { MoveToGroupItems, useMoveToGroup } from '~/features/publishers/ui/move-
 import { PublisherListToolbar } from '~/features/publishers/ui/PublisherListToolbar'
 import { PublisherTable } from '~/features/publishers/ui/PublisherTable'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import {
   congregationContext,
   currentAccountContext,
@@ -24,7 +25,6 @@ import { Button } from '~/shared/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
-
 import type { Route } from './+types/publisher-list'
 
 export const meta: Route.MetaFunction = () => {
@@ -54,7 +54,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
       rows,
       groups: groups
         .map(({ id, name }) => ({ id, name }))
-        .sort((a, b) => a.name.localeCompare(b.name, 'fr', { numeric: true })),
+        .sort((a, b) => a.name.localeCompare(b.name, getLocale(), { numeric: true })),
       filters,
       timezone,
       rights,

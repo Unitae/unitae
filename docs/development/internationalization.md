@@ -4,9 +4,13 @@
 
 Unitae uses **Paraglide JS** (from the Inlang ecosystem) for internationalization. Translations are compiled at build time into tree-shakeable message functions — no runtime dictionary lookup.
 
-- **Base locale**: `fr` (`sourceLanguageTag` in `project.inlang/settings.json`)
-- **Supported locales**: `fr`, `en`
-- **French is the primary UI language** — both files carry the same keys
+- **Default language**: `fr`, `DEFAULT_LOCALE` in `app/shared/utils/language.ts`. It applies when
+  neither the account nor its congregation chose a language, and a new congregation starts in it.
+- **Base locale**: `en` (`sourceLanguageTag` in `project.inlang/settings.json`). Paraglide uses it
+  only as the fallback for a message a language does not have yet, so a partial translation shows
+  English rather than French. Never use `baseLocale` to mean "the default language".
+- **Supported locales**: the `languageTags` in `project.inlang/settings.json`. Code reads them from
+  Paraglide's `locales`, never from a hand-written list.
 
 ## File Structure
 
@@ -62,7 +66,7 @@ Messages use the Inlang message format in JSON:
 
 ## Adding or Modifying Translations
 
-1. Add or edit the key in `app/i18n/messages/fr.json` (base locale)
+1. Add or edit the key in `app/i18n/messages/fr.json`
 2. Add the corresponding translation in `app/i18n/messages/en.json`
 3. The Paraglide Vite plugin recompiles automatically during `pnpm start:dev`
 4. Import and use: `m.your_new_key()`
@@ -71,13 +75,14 @@ Word both languages with the terms in [Translation Glossary](translation-glossar
 official congregation vocabulary (congregation, territory assignment, field service report…) in
 English and French.
 
-If a key is missing in `en.json`, Paraglide falls back to the `fr.json` value.
+French and English always carry every key. In another language, a missing key falls back to the
+`en.json` value.
 
 ## Which Language Applies
 
 Paraglide's `getLocale()` is overridden once for the whole process, web server and worker alike, by
 `app/shared/utils/locale-scope.server.ts`: it returns the locale of the enclosing
-`runWithLocale(locale, fn)`, or the base locale outside of one. Every `m.*()` call without an
+`runWithLocale(locale, fn)`, or `DEFAULT_LOCALE` outside of one. Every `m.*()` call without an
 explicit `{ locale }` follows it. Never call `overwriteGetLocale()` anywhere else: the runtime keeps
 a single override, and a second one would replace the first, whichever module loaded last.
 
@@ -91,7 +96,7 @@ locale before any loader, action or resource route runs, and runs the rest of th
 2. That account's congregation's language, `Congregation.locale`, set in **Settings › General**
 3. The congregation the request's subdomain or custom domain belongs to
 4. Single-tenant: the first congregation
-5. `fr`
+5. `DEFAULT_LOCALE` (`fr`)
 
 Both columns are free text: a value the app does not ship is skipped. `entry.server.tsx` reuses
 what the middleware resolved, and resolves the locale itself only for a path no route matches,
@@ -143,7 +148,24 @@ paraglideVitePlugin({
 })
 ```
 
+## Formatting Dates, Numbers and Names
+
+Pass `getLocale()` (from `~/i18n/paraglide/runtime`) to every `Intl` formatter, `toLocale*String`,
+`toLocaleUpperCase`/`toLocaleLowerCase` and `localeCompare`. It answers the request's language on
+the server and the cookie's in the browser, so both render the same text. Never hard-code `'fr-FR'`
+or `'fr'`, and never call these methods without a locale: the server would format in its own
+language. `en` formats the US way (November 9, 2026), as Intl does by default.
+
+The only exceptions are formatters that read numbers back for a calculation (`formatToParts` for
+time zones in `event-time.ts`, `zoned-now.ts`): they keep a fixed `'en-US'` on purpose.
+
+Name a language with `languageLabel(locale)` from `~/shared/utils/language`: « Українська
+(Ukrainien) », the language in itself and then in the viewer's.
+
 ## Testing with Translations
+
+Unit and integration tests run with `getLocale()` pinned to `DEFAULT_LOCALE`
+(`app/tests/locale-setup.ts`), so real messages come out in French as they would outside a request.
 
 In unit tests, mock the entire messages module rather than importing real translations:
 

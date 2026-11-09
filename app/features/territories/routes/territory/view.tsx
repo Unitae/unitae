@@ -21,6 +21,7 @@ import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import {
   currentAccountContext,
   permissionsContext,
@@ -37,7 +38,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import { getOptionalEnv } from '~/shared/utils/env.server'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 import { requireParamId } from '~/shared/utils/params.server'
-
 import type { Route } from './+types/view'
 
 export const meta: Route.MetaFunction = ({ loaderData }) => {
@@ -171,7 +171,8 @@ function CurrentAttributionCard({
                 )}
               </span>
               <span className="text-muted-foreground text-sm">
-                {attribution.startDate.toLocaleDateString('fr-FR')} — {attribution.lateDate.toLocaleDateString('fr-FR')}
+                {attribution.startDate.toLocaleDateString(getLocale())} —{' '}
+                {attribution.lateDate.toLocaleDateString(getLocale())}
               </span>
             </div>
           </div>
@@ -259,8 +260,12 @@ function AttributionHistoryCard({
                           formatPersonName(attribution.publisher)
                         )}
                       </TableCell>
-                      <TableCell className="text-center">{attribution.startDate.toLocaleDateString('fr-FR')}</TableCell>
-                      <TableCell className="text-center">{attribution.endDate?.toLocaleDateString('fr-FR')}</TableCell>
+                      <TableCell className="text-center">
+                        {attribution.startDate.toLocaleDateString(getLocale())}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {attribution.endDate?.toLocaleDateString(getLocale())}
+                      </TableCell>
                       <TableCell className="text-center max-sm:hidden">
                         {durationDays != null ? m.territories_view_duration_days({ days: String(durationDays) }) : '-'}
                       </TableCell>

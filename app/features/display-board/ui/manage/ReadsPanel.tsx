@@ -2,6 +2,7 @@ import { Avatar, SegmentedControl, SidePanel } from '@unitae/ui'
 import { useState } from 'react'
 import type { DocumentReader } from '~/features/display-board/server/board-audience.queries'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 
 export interface DocumentReads {
@@ -27,7 +28,7 @@ function byGroup(readers: DocumentReader[]): [string, DocumentReader[]][] {
   return [...groups.entries()].sort(([a], [b]) => {
     if (a === '') return 1
     if (b === '') return -1
-    return a.localeCompare(b, 'fr')
+    return a.localeCompare(b, getLocale())
   })
 }
 

@@ -8,6 +8,7 @@ import { computeFilters, getDefaultDateRange } from '~/features/events/server/ev
 import { getResponsibleTemplateIds } from '~/features/events/server/events-auth.server'
 import EventFilters from '~/features/events/ui/EventFilters'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import {
   congregationContext,
   currentAccountContext,
@@ -31,7 +32,6 @@ import { Card, CardContent } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { formatEventDate, formatEventTime } from '~/shared/utils/event-time'
-
 import type { Route } from './+types/list'
 
 export const meta: Route.MetaFunction = () => {
@@ -175,7 +175,7 @@ function EventRow({
   onToggleSelection: () => void
   showCheckboxSlot: boolean
 }) {
-  const weekday = formatEventDate(event.startDate, timezone, 'fr-FR', { weekday: 'long' })
+  const weekday = formatEventDate(event.startDate, timezone, getLocale(), { weekday: 'long' })
   const time = eventTimeOrEmpty(new Date(event.startDate), timezone)
   const isUpcoming = new Date(event.startDate) >= new Date()
   const showConflictBadge = isUpcoming && event.conflictCount > 0
@@ -415,7 +415,7 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
           {weekGroups.map(({ weekKey, weekMonday, events }) => {
             const editableWeekEvents = events.filter(e => e.canEdit)
             const showCheckboxSlot = editableWeekEvents.length > 0
-            const weekDate = formatEventDate(weekMonday, timezone, 'fr-FR', {
+            const weekDate = formatEventDate(weekMonday, timezone, getLocale(), {
               day: 'numeric',
               month: 'long',
               year: 'numeric',

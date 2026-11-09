@@ -19,6 +19,7 @@ import { Clock, GripVertical, Pencil, Plus, Trash2 } from 'lucide-react'
 import { Fragment, useId } from 'react'
 import { groupProgrammeParts, summarizeDurations } from '~/features/events/model/programme-grouping'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { cn } from '~/shared/utils/utils'
@@ -208,7 +209,7 @@ function PartRow({ part, kind, indented, selected, dragLocked, onEdit, onDelete 
     id: part.id,
     disabled: dragLocked,
   })
-  const showKind = kind != null && kind.toLocaleLowerCase('fr') !== part.name.toLocaleLowerCase('fr')
+  const showKind = kind != null && kind.toLocaleLowerCase(getLocale()) !== part.name.toLocaleLowerCase(getLocale())
 
   return (
     <div

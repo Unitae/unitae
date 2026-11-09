@@ -4,13 +4,13 @@ import { countAvailableEntrances, getZips } from '~/features/territories/server/
 import { buildTerritoryFilterChips } from '~/features/territories/ui/build-filter-chips'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { currentAccountContext, layoutGate, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { FilterChipBar } from '~/shared/ui/filters/FilterChipBar'
 import { PageHeader } from '~/shared/ui/PageHeader'
-
 import type { Route } from './+types/_layout'
 
 export const meta: Route.MetaFunction = () => {
@@ -83,7 +83,9 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
           caseSensitive
           end
         >
-          <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.classical.toLocaleString()}</span>
+          <span className="font-black font-display text-5xl max-sm:text-3xl">
+            {stats.classical.toLocaleString(getLocale())}
+          </span>
           <span className="text-sm">
             {m.split_tool_classical_label_line1()} <br /> {m.split_tool_classical_label_line2()}
           </span>
@@ -98,7 +100,9 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
           title={m.split_tool_commerces_title()}
           end
         >
-          <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.commerce.toLocaleString()}</span>
+          <span className="font-black font-display text-5xl max-sm:text-3xl">
+            {stats.commerce.toLocaleString(getLocale())}
+          </span>
           <span className="text-sm">
             {m.split_tool_commerces_label_line1()} <br /> {m.split_tool_commerces_label_line2()}
           </span>
@@ -114,7 +118,9 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
             title={m.split_tool_phones_title()}
             end
           >
-            <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.phones.toLocaleString()}</span>
+            <span className="font-black font-display text-5xl max-sm:text-3xl">
+              {stats.phones.toLocaleString(getLocale())}
+            </span>
             <span className="text-sm">
               {m.split_tool_phones_label_line1()} <br /> {m.split_tool_phones_label_line2()}
             </span>
@@ -130,7 +136,9 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
           title={m.split_tool_campus_title()}
           end
         >
-          <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.campus.toLocaleString()}</span>
+          <span className="font-black font-display text-5xl max-sm:text-3xl">
+            {stats.campus.toLocaleString(getLocale())}
+          </span>
           <span className="text-sm">
             {m.split_tool_campus_label_line1()} <br /> {m.split_tool_campus_label_line2()}
           </span>
@@ -145,7 +153,9 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
           title={m.split_tool_hotels_title()}
           end
         >
-          <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.hotel.toLocaleString()}</span>
+          <span className="font-black font-display text-5xl max-sm:text-3xl">
+            {stats.hotel.toLocaleString(getLocale())}
+          </span>
           <span className="text-sm">
             {m.split_tool_hotels_label_line1()} <br /> {m.split_tool_hotels_label_line2()}
           </span>

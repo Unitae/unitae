@@ -4,6 +4,7 @@ import { CalendarDays, Eye } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useFetcher } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import type { RoleOption } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
@@ -131,7 +132,11 @@ export function EventEditor({
     editing?.kind === 'service'
       ? serviceEditorCopy('event', editing.id != null)
       : partEditorCopy('event', editing?.id != null)
-  const date = formatEventDate(event.startDate, timezone, 'fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+  const date = formatEventDate(event.startDate, timezone, getLocale(), {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
 
   return (
     // The marker lets the app shell stop clipping as a scroll container, so the docked editor can stick.

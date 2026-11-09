@@ -2,6 +2,7 @@ import { parseWithZod } from '@conform-to/zod/v4'
 import { data, Form, Link, redirect } from 'react-router'
 import { consentSchema } from '~/features/authentication/schemas/login.schema'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { type ConsentPurpose, getActiveConsents, withdrawConsent } from '~/shared/domain/consent.server'
@@ -81,7 +82,7 @@ export default function ConsentsPage({ loaderData }: Route.ComponentProps) {
                     <p className="font-medium text-sm">{PURPOSE_LABELS[consent.purpose]?.() ?? consent.purpose}</p>
                     <p className="text-muted-foreground text-xs">
                       {m.user_consents_granted_on({
-                        date: new Date(consent.consentedAt).toLocaleDateString('fr-FR'),
+                        date: new Date(consent.consentedAt).toLocaleDateString(getLocale()),
                         version: consent.consentVersion,
                       })}
                     </p>

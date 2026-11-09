@@ -6,11 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Label } from '~/shared/ui/label'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
-
-// Each language is named in itself, so whoever cannot read the current one still finds theirs.
-function localeName(locale: Locale): string {
-  return locale === 'fr' ? m.common_locale_fr() : m.common_locale_en()
-}
+import { languageLabel } from '~/shared/utils/language'
 
 /**
  * @param locale the language the account chose for itself, or null when it follows its congregation's
@@ -39,11 +35,11 @@ export function LanguagePreferenceCard({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={FOLLOW_CONGREGATION}>
-                  {m.user_profile_language_congregation({ language: localeName(congregationLocale) })}
+                  {m.user_profile_language_congregation({ language: languageLabel(congregationLocale) })}
                 </SelectItem>
                 {locales.map(each => (
                   <SelectItem key={each} value={each}>
-                    {localeName(each)}
+                    {languageLabel(each)}
                   </SelectItem>
                 ))}
               </SelectContent>

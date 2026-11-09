@@ -13,6 +13,7 @@ import {
 } from 'recharts'
 import { serviceYearMonths } from '~/features/publishers'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { EmptyState } from '~/shared/ui/EmptyState'
 
 interface Props {
@@ -32,7 +33,7 @@ export function PioneerPaceChart({ serviceYear, monthlyHours, rate }: Props) {
     const hours = monthlyHours[i]
     cumulative += hours ?? 0
     return {
-      name: new Date(year, month, 1).toLocaleDateString('fr-FR', { month: 'short' }),
+      name: new Date(year, month, 1).toLocaleDateString(getLocale(), { month: 'short' }),
       hours: hours ?? undefined,
       cumulative,
     }

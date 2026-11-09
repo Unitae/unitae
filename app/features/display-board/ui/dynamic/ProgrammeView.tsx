@@ -5,6 +5,7 @@ import type { ProgrammeDynamicConfig } from '~/features/display-board/model/dyna
 import { formatName, getPartDisplay, nameMatches, partMatchesQuery } from '~/features/display-board/model/event-display'
 import { groupPartsBySlot, sectionColor, sectionIcon } from '~/features/events'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { Badge } from '~/shared/ui/badge'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { usePersistedState } from '~/shared/ui/hooks/use-persisted-state'
@@ -70,7 +71,7 @@ export interface ProgrammeViewData {
 // ---------------------------------------------------------------------------
 
 function formatDate(date: Date): string {
-  return new Date(date).toLocaleDateString('fr-FR', {
+  return new Date(date).toLocaleDateString(getLocale(), {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -84,14 +85,14 @@ function getWeekKey(date: Date): string {
 }
 
 function getWeekLabel(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('fr-FR', {
+  return new Date(dateStr).toLocaleDateString(getLocale(), {
     day: 'numeric',
     month: 'short',
   })
 }
 
 function getMonth(date: Date): string {
-  return new Date(date).toLocaleDateString('fr-FR', {
+  return new Date(date).toLocaleDateString(getLocale(), {
     month: 'long',
     year: 'numeric',
   })

@@ -3,6 +3,7 @@ import { commitSession, getSession } from '~/features/authentication/index.serve
 import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import { deleteDayOff } from '~/features/events/server/days-off.server'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
@@ -44,7 +45,7 @@ export default function DeleteDayOff({ loaderData }: Route.ComponentProps) {
       submitLabel={m.days_off_delete_submit()}
       cancelTo="/me/days-off"
     >
-      <p>{event.startDate.toLocaleDateString()}</p>
+      <p>{event.startDate.toLocaleDateString(getLocale())}</p>
     </DeleteConfirmation>
   )
 }
@@ -80,7 +81,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       congregationId,
     )
 
-    session.flash('success', m.days_off_delete_success({ date: deletedEvent.startDate.toLocaleDateString() }))
+    session.flash(
+      'success',
+      m.days_off_delete_success({ date: deletedEvent.startDate.toLocaleDateString(getLocale()) }),
+    )
     logger.warn(`Successfully removed days off. User ID: ${currentUser.id}. Event: ${params.eventId}.`)
 
     const previousPage = request.headers.get('referer')

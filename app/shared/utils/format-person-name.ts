@@ -1,3 +1,5 @@
+import { getLocale } from '~/i18n/paraglide/runtime'
+
 type PersonNameParts = {
   firstname: string | null | undefined
   lastname: string | null | undefined
@@ -5,7 +7,7 @@ type PersonNameParts = {
 
 export function formatPersonName(person: PersonNameParts, fallback = '—'): string {
   const first = person.firstname?.trim()
-  const last = person.lastname?.trim().toLocaleUpperCase('fr')
+  const last = person.lastname?.trim().toLocaleUpperCase(getLocale())
 
   if (first && last) return `${first} ${last}`
   if (first) return first
@@ -14,9 +16,9 @@ export function formatPersonName(person: PersonNameParts, fallback = '—'): str
 }
 
 export function comparePersonName(a: PersonNameParts, b: PersonNameParts): number {
-  const lastDiff = (a.lastname ?? '').localeCompare(b.lastname ?? '', 'fr', { sensitivity: 'base' })
+  const lastDiff = (a.lastname ?? '').localeCompare(b.lastname ?? '', getLocale(), { sensitivity: 'base' })
   if (lastDiff !== 0) return lastDiff
-  return (a.firstname ?? '').localeCompare(b.firstname ?? '', 'fr', { sensitivity: 'base' })
+  return (a.firstname ?? '').localeCompare(b.firstname ?? '', getLocale(), { sensitivity: 'base' })
 }
 
 type AccountWithMember = {

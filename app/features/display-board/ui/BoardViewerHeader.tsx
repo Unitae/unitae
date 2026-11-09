@@ -1,4 +1,5 @@
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { PageTopbar } from '~/shared/ui/PageTopbar'
 
 interface BoardViewerHeaderProps {
@@ -11,7 +12,7 @@ interface BoardViewerHeaderProps {
 
 /** « 5 novembre », in the congregation's time zone. */
 export function formatViewerDate(date: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', timeZone }).format(date)
+  return new Intl.DateTimeFormat(getLocale(), { day: 'numeric', month: 'long', timeZone }).format(date)
 }
 
 /**

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Link, useFetcher } from 'react-router'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
@@ -87,7 +88,7 @@ export function EventView({
   const people = (ids: number[] | undefined) =>
     (ids ?? []).map(id => userById.get(id)).filter((user): user is PersonOption => user != null)
   const referenceYear = Number(
-    new Intl.DateTimeFormat('fr-FR', { timeZone: timezone, year: 'numeric' }).format(new Date(event.startDate)),
+    new Intl.DateTimeFormat(getLocale(), { timeZone: timezone, year: 'numeric' }).format(new Date(event.startDate)),
   )
   const partEditor = {
     timeZone: timezone,
@@ -108,7 +109,7 @@ export function EventView({
 
   const assignedParts = event.eventParts.filter(item => item.assigneeId ?? item.externalSpeakerId).length
   const filledServices = event.eventServiceParts.filter(item => item.assigneeId).length
-  const date = formatEventDate(event.startDate, timezone, 'fr-FR', {
+  const date = formatEventDate(event.startDate, timezone, getLocale(), {
     weekday: 'long',
     day: 'numeric',
     month: 'long',

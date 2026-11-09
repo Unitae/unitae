@@ -287,7 +287,7 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
                     {showDivider && <NoCoordinatesDivider count={withoutCoordsCount} colSpan={colSpan} />}
                     <TableRow>
                       <TableCell>
-                        {attribution.startDate.toLocaleDateString('fr-FR')}{' '}
+                        {attribution.startDate.toLocaleDateString(getLocale())}{' '}
                         <span className="text-muted-foreground text-xs">
                           (
                           {m.attributions_days_count({

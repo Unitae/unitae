@@ -6,6 +6,7 @@ import { restoreVersionSchema } from '~/features/display-board/schemas/board-doc
 import { isDocumentOwnedByUploader } from '~/features/display-board/server/board-document.server'
 import { restoreDocumentVersion } from '~/features/display-board/server/document-versions.server'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
@@ -14,7 +15,6 @@ import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import { requireParamId } from '~/shared/utils/params.server'
-
 import type { Route } from './+types/versions'
 
 export const meta: Route.MetaFunction = () => {
@@ -114,7 +114,7 @@ export default function VersionsPage({ loaderData }: Route.ComponentProps) {
                   <TableRow key={version.id}>
                     <TableCell>v{version.versionNumber}</TableCell>
                     <TableCell className="max-sm:hidden">{displayName(version.uploadedBy)}</TableCell>
-                    <TableCell>{new Date(version.createdAt).toLocaleDateString('fr-FR')}</TableCell>
+                    <TableCell>{new Date(version.createdAt).toLocaleDateString(getLocale())}</TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="icon" asChild>

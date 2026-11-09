@@ -363,6 +363,7 @@ await createTerritory(db, ...)
 
 ## Gotchas
 
+- **Never hard-code a locale** (`'fr-FR'`, `'fr'`) in `Intl`, `toLocale*` or `localeCompare` calls — pass `getLocale()`. French is `DEFAULT_LOCALE` (`shared/utils/language.ts`); Paraglide's `baseLocale` is English and only means "fallback for a missing message". See `docs/development/internationalization.md`.
 - **`.env` files are not readable** via the Read tool or `cat` — derive env vars by grepping `process.env\.` in `app/`.
 - **Job handlers** live in `app/features/{feature}/jobs/handle-*-work.server.ts`, not under `server/`. Worker imports them from `app/workers/worker.server.ts`.
 - **Email templates** are colocated per feature (`app/features/{feature}/emails/*.tsx`); the `pnpm start:emails` dev server is configured with `--dir app/features`.

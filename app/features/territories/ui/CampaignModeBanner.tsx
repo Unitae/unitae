@@ -2,6 +2,7 @@ import { Calendar, Megaphone, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 
 export interface CampaignBannerData {
   id: number
@@ -39,8 +40,8 @@ export function CampaignModeBanner({
   // management information.
   if (variant === 'publisher' && campaign.status !== 'active') return null
 
-  const start = new Date(campaign.startDate).toLocaleDateString('fr-FR')
-  const end = new Date(campaign.endDate).toLocaleDateString('fr-FR')
+  const start = new Date(campaign.startDate).toLocaleDateString(getLocale())
+  const end = new Date(campaign.endDate).toLocaleDateString(getLocale())
 
   const isActive = campaign.status === 'active'
   const tone = isActive

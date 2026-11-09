@@ -3,6 +3,7 @@ import { commitSession, getSession } from '~/features/authentication/index.serve
 import { deleteCampaign } from '~/features/territories/server/campaign.aggregate'
 import { getCampaign } from '~/features/territories/server/campaign.queries'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import {
   currentAccountContext,
   permissionsContext,
@@ -13,7 +14,6 @@ import { ConflictError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
 import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
 import { requireParamId } from '~/shared/utils/params.server'
-
 import type { Route } from './+types/delete'
 
 export const meta: Route.MetaFunction = () => {
@@ -43,8 +43,8 @@ export default function DeleteCampaignPage({ loaderData }: Route.ComponentProps)
       cancelTo={`/territories/attributions/campaigns/${campaign.id}`}
     >
       <p>
-        {campaign.name} — {new Date(campaign.startDate).toLocaleDateString('fr-FR')} –{' '}
-        {new Date(campaign.endDate).toLocaleDateString('fr-FR')}
+        {campaign.name} — {new Date(campaign.startDate).toLocaleDateString(getLocale())} –{' '}
+        {new Date(campaign.endDate).toLocaleDateString(getLocale())}
       </p>
     </DeleteConfirmation>
   )

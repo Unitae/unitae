@@ -10,6 +10,7 @@ export default defineConfig({
   test: {
     globals: false,
     environment: 'node',
+    setupFiles: [resolve(import.meta.dirname, 'app/tests/locale-setup.ts')],
     include: ['app/**/*.test.ts', 'scripts/**/*.test.ts'],
     exclude: ['app/**/*.integration.test.ts'],
     coverage: {

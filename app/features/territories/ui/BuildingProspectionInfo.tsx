@@ -6,6 +6,7 @@ import {
 import { shopKindLabels as getShopKindLabels, type ShopKind } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 
 type BuildingWithEntrances = Building & { entrances: BuildingEntrance[] }
@@ -70,7 +71,7 @@ export default function BuildingProspectionInfo({ building }: { building: Buildi
         {building.prospectionDate != null && (
           <p className="mt-2 text-muted-foreground text-sm">
             {m.prospection_info_last_prospection({
-              date: building.prospectionDate.toLocaleDateString('fr-FR', {
+              date: building.prospectionDate.toLocaleDateString(getLocale(), {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',

@@ -8,6 +8,7 @@ import {
   updatePasswordSecurityScope,
 } from '~/features/settings/server/password-security.server'
 import * as m from '~/i18n/paraglide/messages'
+import { locales } from '~/i18n/paraglide/runtime'
 import {
   congregationContext,
   currentAccountContext,
@@ -27,6 +28,7 @@ import { RadioGroup, RadioGroupItem } from '~/shared/ui/radio-group'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
+import { languageLabel } from '~/shared/utils/language'
 import { TIMEZONE_OPTIONS } from '~/shared/utils/timezone-options'
 import type { Route } from './+types/settings'
 
@@ -125,8 +127,11 @@ export default function GeneralSettingsPage({ loaderData, actionData }: Route.Co
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="fr">{m.settings_general_language_fr()}</SelectItem>
-                  <SelectItem value="en">{m.settings_general_language_en()}</SelectItem>
+                  {locales.map(option => (
+                    <SelectItem key={option} value={option}>
+                      {languageLabel(option)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               {fields.locale.errors && <p className="text-destructive text-sm">{fields.locale.errors}</p>}

@@ -2,9 +2,7 @@ import { PartPresetScope } from '~/features/events/model/part-preset.type'
 import { partPresetName } from '~/features/events/model/part-preset-defaults'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
-
-const NON_SLUG_RE = /[^a-z0-9]+/g
-const TRIM_DASH_RE = /^-+|-+$/g
+import { slugify } from '~/shared/utils/slugify'
 
 export interface PartPresetInput {
   // Null means "use the built-in wording" — see model/part-preset-defaults.ts.
@@ -31,15 +29,6 @@ function normalize(data: PartPresetInput) {
     allowExternalSpeaker: data.allowExternalSpeaker,
     shareMessage: data.shareMessage,
   }
-}
-
-function slugify(name: string): string {
-  return name
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLocaleLowerCase()
-    .replace(NON_SLUG_RE, '-')
-    .replace(TRIM_DASH_RE, '')
 }
 
 /**

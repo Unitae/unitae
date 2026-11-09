@@ -1,10 +1,11 @@
 import type { ManagedItem } from '~/features/display-board/server/board-management.queries'
 import type { ManageSection } from '~/features/display-board/ui/manage/ManageTable'
 import { itemKey } from '~/features/display-board/ui/manage/manage-rights'
+import { getLocale } from '~/i18n/paraglide/runtime'
 
 /** The rows the URL's search and filters keep; with a search or a state filter on, sections left empty are hidden. */
 export function filterSections(sections: ManageSection[], params: URLSearchParams): ManageSection[] {
-  const query = (params.get('q') ?? '').trim().toLocaleLowerCase('fr')
+  const query = (params.get('q') ?? '').trim().toLocaleLowerCase(getLocale())
   const section = params.get('section')
   const state = params.get('etat')
   return sections
@@ -12,7 +13,9 @@ export function filterSections(sections: ManageSection[], params: URLSearchParam
     .map(s => ({
       ...s,
       items: s.items.filter(
-        item => (!query || item.title.toLocaleLowerCase('fr').includes(query)) && (!state || item.state.kind === state),
+        item =>
+          (!query || item.title.toLocaleLowerCase(getLocale()).includes(query)) &&
+          (!state || item.state.kind === state),
       ),
     }))
     .filter(s => (!query && !state) || s.items.length > 0)

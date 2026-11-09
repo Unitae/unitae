@@ -4,6 +4,7 @@ import type { ReadBadge } from '~/features/display-board/model/read-state'
 import type { BoardCard as BoardCardData } from '~/features/display-board/server/board-home.queries'
 import { DocumentSheet } from '~/features/display-board/ui/DocumentSheet'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { RelativeTime } from '~/shared/ui/RelativeTime'
 import { cn } from '~/shared/utils/utils'
 
@@ -15,7 +16,7 @@ function badgeLabel(badge: ReadBadge): string | null {
 
 function untilLabel(date: Date, timeZone: string): string {
   return m.board_meta_until({
-    date: new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', timeZone }).format(date),
+    date: new Intl.DateTimeFormat(getLocale(), { day: 'numeric', month: 'short', timeZone }).format(date),
   })
 }
 

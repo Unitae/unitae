@@ -2,6 +2,7 @@ import { ArchiveRestore, Eye, Mail, Pencil, Phone, UserPlus, UsersRound } from '
 import { Link, redirect } from 'react-router'
 import { listExternalSpeakers } from '~/features/events/server/external-speakers.server'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
@@ -11,7 +12,6 @@ import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SearchInput } from '~/shared/ui/SearchInput'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
-
 import type { Route } from './+types/list'
 
 export const meta: Route.MetaFunction = () => {
@@ -45,7 +45,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
         .sort((a, b) => {
           const aTime = a.lastVisitDate?.getTime() ?? -Infinity
           const bTime = b.lastVisitDate?.getTime() ?? -Infinity
-          if (aTime === bTime) return a.name.localeCompare(b.name, 'fr')
+          if (aTime === bTime) return a.name.localeCompare(b.name, getLocale())
           return aTime - bTime
         })
         .map(s => ({

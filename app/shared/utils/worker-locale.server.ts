@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
-import { baseLocale, isLocale } from '~/i18n/paraglide/runtime'
+import { isLocale } from '~/i18n/paraglide/runtime'
+import { DEFAULT_LOCALE } from '~/shared/utils/language'
 import { runWithLocale } from '~/shared/utils/locale-scope.server'
 
 interface WorkerContext {
@@ -15,7 +16,7 @@ const workerContextStore = new AsyncLocalStorage<WorkerContext>()
  * The locale goes through runWithLocale, the app's one getLocale override.
  */
 export function runInWorkerContext<T>(locale: string, timezone: string, fn: () => T | Promise<T>): T | Promise<T> {
-  const resolvedLocale = isLocale(locale) ? locale : baseLocale
+  const resolvedLocale = isLocale(locale) ? locale : DEFAULT_LOCALE
   return runWithLocale(resolvedLocale, () => workerContextStore.run({ timezone }, fn))
 }
 

@@ -1,7 +1,9 @@
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { partPresetShareMessage } from '~/features/events/model/part-preset-defaults'
 import { renderShareMessage } from '~/features/events/model/share-message'
+import { isLocale } from '~/i18n/paraglide/runtime'
 import { formatEventDate, formatEventTime } from '~/shared/utils/event-time'
+import { DEFAULT_LOCALE } from '~/shared/utils/language'
 
 interface PersonName {
   firstname: string | null
@@ -37,11 +39,6 @@ function fullName(person: PersonName | null): string | null {
   return `${person.firstname ?? ''} ${person.lastname ?? ''}`.trim() || null
 }
 
-// The congregation stores a bare language code; Intl wants a BCP 47 tag.
-function toIntlLocale(locale: string): string {
-  return locale === 'en' ? 'en-GB' : 'fr-FR'
-}
-
 /**
  * Renders the message a programme manager sends to whoever is assigned to a
  * part, or null when there is nothing to send.
@@ -61,15 +58,13 @@ export function buildAssignmentShareText(args: BuildShareTextArgs): string | nul
   // Null on the kind means it never set one, so the catalogue supplies the body
   // in the congregation's language; empty means someone cleared it deliberately
   // and this kind sends nothing.
-  const body = part.preset ? partPresetShareMessage(part.preset, locale === 'en' ? 'en' : 'fr') : null
+  const body = part.preset ? partPresetShareMessage(part.preset, isLocale(locale) ? locale : DEFAULT_LOCALE) : null
   if (!body || body.trim() === '') return null
 
   // An external speaker is assigned just like a member is, and the manager has
   // as much reason to message them.
   const assignee = fullName(part.assignee) ?? part.externalSpeaker?.name ?? null
   if (!assignee) return null
-
-  const intlLocale = toIntlLocale(locale)
 
   const text = renderShareMessage(body, {
     assignee,
@@ -79,12 +74,12 @@ export function buildAssignmentShareText(args: BuildShareTextArgs): string | nul
     section: part.section,
     topic: part.topic,
     duration: part.durationMin == null ? null : `${part.durationMin} min`,
-    date: formatEventDate(event.startDate, timezone, intlLocale, {
+    date: formatEventDate(event.startDate, timezone, locale, {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
     }),
-    time: formatEventTime(event.startDate, timezone, intlLocale),
+    time: formatEventTime(event.startDate, timezone, locale),
     eventName: event.name,
     note: part.note,
     congregation: congregationName,

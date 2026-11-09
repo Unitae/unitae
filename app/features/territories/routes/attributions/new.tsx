@@ -10,6 +10,7 @@ import { createAttribution } from '~/features/territories/server/create-attribut
 import { AttributionKindBadge } from '~/features/territories/ui/AttributionKindBadge'
 import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import {
   congregationContext,
   currentAccountContext,
@@ -32,7 +33,6 @@ import { PersonDropdown } from '~/shared/ui/PersonDropdown'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
-
 import type { Route } from './+types/new'
 
 export const meta: Route.MetaFunction = () => {
@@ -111,7 +111,7 @@ export default function CreateAttributionPage({ loaderData, actionData }: Route.
         <div className="rounded-md bg-blue-100 px-4 py-3 text-blue-700 text-sm dark:bg-blue-900/30 dark:text-blue-400">
           {m.attributions_campaign_mode_notice({
             name: activeCampaign.name,
-            endDate: new Date(activeCampaign.endDate).toLocaleDateString('fr-FR'),
+            endDate: new Date(activeCampaign.endDate).toLocaleDateString(getLocale()),
           })}
         </div>
       )}

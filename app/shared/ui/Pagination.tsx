@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect } from 'react'
 import { useSearchParams } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
 import { usePersistedState } from '~/shared/ui/hooks/use-persisted-state'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
@@ -58,7 +59,7 @@ export default function Pagination({
                 {total > 1000 && <SelectItem value="2000">2000</SelectItem>}
               </SelectContent>
             </Select>
-            <span>{m.pagination_results_total({ total: total.toLocaleString() })}</span>
+            <span>{m.pagination_results_total({ total: total.toLocaleString(getLocale()) })}</span>
           </>
         )}
       </div>
