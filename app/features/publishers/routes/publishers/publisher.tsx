@@ -103,7 +103,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
 export default function PublisherPage({ loaderData }: Route.ComponentProps) {
   const { record, rights, timeZone, enrolmentOptions, assignments } = loaderData
   const name = formatPersonName(record)
-  const editor = useRecordEditor(record.id)
+  const editor = useRecordEditor(record.id, { name, enrolments: loaderData.enrolments, options: enrolmentOptions })
   const [visit, setVisit] = useState<VisitTarget | null>(null)
   const openVisit = () => setVisit({ publisherId: record.id, name, lastVisit: record.lastPastoralVisitAt })
   const showActivity = loaderData.activity == null && loaderData.reportMonths.length > 0
@@ -159,6 +159,8 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
                 enrolments={loaderData.enrolments}
                 options={enrolmentOptions ?? EMPTY_OPTIONS}
                 canManage={rights.canManageEnrolments && enrolmentOptions != null}
+                editing={editor.enrolmentOpen}
+                onEdit={editor.openEnrolment}
               />
             )}
             {assignments && (

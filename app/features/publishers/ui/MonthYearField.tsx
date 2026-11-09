@@ -53,12 +53,12 @@ export function MonthYearField({ id, label, names, value, onChange, years, ongoi
           </SelectContent>
         </Select>
         <Select
-          value={String(value?.year ?? fallbackYear)}
+          value={value == null ? '' : String(value.year)}
           disabled={value == null}
           onValueChange={next => value != null && onChange({ month: value.month, year: Number(next) })}
         >
           <SelectTrigger className="w-full" aria-label={m.publishers_record_enrolment_year({ label })}>
-            <SelectValue />
+            <SelectValue placeholder="—" />
           </SelectTrigger>
           <SelectContent>
             {yearChoices.map(year => (
