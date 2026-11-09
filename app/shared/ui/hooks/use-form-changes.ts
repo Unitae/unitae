@@ -5,6 +5,7 @@ type CountChanges = (before: FormData, after: FormData) => number
 
 const EVENTS = ['input', 'change'] as const
 const INTERACTIONS = ['pointerdown', 'keydown'] as const
+const REACT_REWRITES = new Set(['name', 'type'])
 
 /**
  * How many changes a form holds against what it showed when it mounted, kept current as the person edits. Pass
@@ -45,7 +46,14 @@ export function useFormChanges(count: CountChanges = countChangedFields) {
     }
     for (const type of EVENTS) form.addEventListener(type, onEdit)
     for (const type of INTERACTIONS) document.addEventListener(type, interact, true)
-    const observer = new MutationObserver(later)
+    // React rewrites an input's `name` and `type` each time it updates the input's props: it clears the name for a
+    // moment so radio groups stay consistent. Never the person's doing, and counting them looped: every render
+    // rewrote them, which recounted, which rendered again — and the router's transition carrying an action's answer
+    // or the reload after a save waited behind that stream until the next keypress.
+    const observer = new MutationObserver(records => {
+      if (records.some(record => record.type !== 'attributes' || !REACT_REWRITES.has(record.attributeName ?? '')))
+        later()
+    })
     observer.observe(form, { subtree: true, childList: true, attributes: true, characterData: true })
     return () => {
       clearTimeout(timer)
