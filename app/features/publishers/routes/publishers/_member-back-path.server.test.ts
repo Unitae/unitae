@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Permission } from '~/shared/types/permission'
 
-import { memberBackPath } from './_member-back-path.server'
+import { memberBackPath, memberPanelPath } from './_member-back-path.server'
 
 const MEMBER_ID = 6612
 const GROUP_ID = 2207
@@ -28,5 +28,16 @@ describe('memberBackPath', () => {
   it('falls back to the record, or home, for a member outside any group', () => {
     expect(memberBackPath(page('?from=group'), viewer, ungrouped)).toBe(`/publishers/${MEMBER_ID}/view`)
     expect(memberBackPath(page(), overseer, ungrouped)).toBe('/')
+  })
+})
+
+describe('memberPanelPath', () => {
+  it('opens the panel on the record, or on the group page for that member', () => {
+    expect(memberPanelPath(page(), viewer, inGroup, 'emergency')).toBe(`/publishers/${MEMBER_ID}/view?panel=emergency`)
+    expect(memberPanelPath(page(), overseer, inGroup, 'visit')).toBe(`/groups/${GROUP_ID}/view?visit=${MEMBER_ID}`)
+  })
+
+  it('leads home, with nothing to open, when neither page is the reader’s', () => {
+    expect(memberPanelPath(page(), overseer, ungrouped, 'emergency')).toBe('/')
   })
 })

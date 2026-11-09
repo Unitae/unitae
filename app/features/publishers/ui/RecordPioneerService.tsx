@@ -1,6 +1,6 @@
 import { Panel, Tag } from '@unitae/ui'
 import { Plus } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useFetcher } from 'react-router'
 
 import type { PioneerActivity } from '~/features/publishers'
@@ -9,8 +9,8 @@ import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/shared/ui/dialog'
 import { useCloseOnSave } from '~/shared/ui/hooks/use-close-on-save'
+import { cn } from '~/shared/utils/utils'
 
-import { EnrolmentDialog } from './EnrolmentDialog'
 import { formErrorsOf } from './enrolment-form-errors'
 import { goalLabel, monthLabel, periodLabel, serviceLabel } from './enrolment-labels'
 import { type MonthRef, MonthYearField } from './MonthYearField'
@@ -25,16 +25,16 @@ interface RecordPioneerServiceProps {
   enrolments: RecordEnrolment[]
   options: EnrolmentOptions
   canManage: boolean
+  /** The enrolment open in the side panel: `new` while enrolling, its id while correcting it. */
+  editing: number | 'new' | null
+  /** Opens the side panel to enrol, or to correct `enrolment`. */
+  onEdit: (trigger: HTMLElement, enrolment?: RecordEnrolment) => void
 }
-
-type Editing =
-  | { kind: 'create' }
-  | { kind: 'correct'; enrolment: RecordEnrolment }
-  | { kind: 'stop'; enrolment: RecordEnrolment }
 
 /**
  * The person's pioneer service on their record: the year's pace for readers of activity, and every enrolment, which
- * managers enrol, correct and stop from here. A manager without the activity right still gets the enrolments.
+ * managers enrol and correct in the side panel and stop from here. A manager without the activity right still gets the
+ * enrolments. While the panel is open the section is marked, and kept in view.
  */
 export function RecordPioneerService({
   publisherId,
@@ -44,73 +44,71 @@ export function RecordPioneerService({
   enrolments,
   options,
   canManage,
+  editing,
+  onEdit,
 }: RecordPioneerServiceProps) {
-  const [editing, setEditing] = useState<Editing | null>(null)
+  const [stopping, setStopping] = useState<RecordEnrolment | null>(null)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (editing != null) ref.current?.scrollIntoView({ block: 'nearest' })
+  }, [editing])
   const current = enrolments.find(enrolment => enrolment.current)
   const list = (
     <EnrolmentList
       enrolments={enrolments}
       canManage={canManage}
-      onCorrect={enrolment => setEditing({ kind: 'correct', enrolment })}
-      onStop={enrolment => setEditing({ kind: 'stop', enrolment })}
+      editing={editing}
+      onCorrect={(enrolment, trigger) => onEdit(trigger, enrolment)}
+      onStop={setStopping}
     />
   )
   const enrol = canManage && current == null && (
-    <Button variant="outline" size="sm" onClick={() => setEditing({ kind: 'create' })}>
+    <Button variant="outline" size="sm" onClick={event => onEdit(event.currentTarget)}>
       <Plus />
       {m.publishers_record_enrol()}
     </Button>
   )
-  const close = () => setEditing(null)
 
+  if (!activity && !canManage && enrolments.length === 0) return null
   return (
-    <>
+    <div ref={ref} className={cn('scroll-mt-4 rounded-lg', editing != null && 'ring-2 ring-ring')}>
       {activity ? (
         <PioneerActivitySection serviceYear={serviceYear} activity={activity} enrolments={list} enrolAction={enrol} />
       ) : (
-        (canManage || enrolments.length > 0) && (
-          <Panel
-            title={m.pioneers_detail_title()}
-            actions={
-              <>
-                {current == null && <span className="text-faint text-sm">{m.publishers_record_enrolment_none()}</span>}
-                {enrol}
-              </>
-            }
-          >
-            {list}
-          </Panel>
-        )
+        <Panel
+          title={m.pioneers_detail_title()}
+          actions={
+            <>
+              {current == null && <span className="text-faint text-sm">{m.publishers_record_enrolment_none()}</span>}
+              {enrol}
+            </>
+          }
+        >
+          {list}
+        </Panel>
       )}
-      <EnrolmentDialog
-        open={editing?.kind === 'create' || editing?.kind === 'correct'}
-        onClose={close}
-        publisherId={publisherId}
-        name={name}
-        options={options}
-        enrolment={editing?.kind === 'correct' ? editing.enrolment : undefined}
-      />
       <StopDialog
-        open={editing?.kind === 'stop'}
-        onClose={close}
+        open={stopping != null}
+        onClose={() => setStopping(null)}
         publisherId={publisherId}
         name={name}
-        enrolment={editing?.kind === 'stop' ? editing.enrolment : null}
+        enrolment={stopping}
         options={options}
       />
-    </>
+    </div>
   )
 }
 
 interface EnrolmentListProps {
   enrolments: RecordEnrolment[]
   canManage: boolean
-  onCorrect: (enrolment: RecordEnrolment) => void
+  editing: number | 'new' | null
+  onCorrect: (enrolment: RecordEnrolment, trigger: HTMLElement) => void
   onStop: (enrolment: RecordEnrolment) => void
 }
 
 /** Every enrolment, the latest first, the current one marked; a manager corrects any and stops the ongoing one. */
-function EnrolmentList({ enrolments, canManage, onCorrect, onStop }: EnrolmentListProps) {
+function EnrolmentList({ enrolments, canManage, editing, onCorrect, onStop }: EnrolmentListProps) {
   if (enrolments.length === 0) return null
   const latestFirst = [...enrolments].sort(
     (a, b) => b.startYear * 12 + b.startMonth - (a.startYear * 12 + a.startMonth),
@@ -123,7 +121,10 @@ function EnrolmentList({ enrolments, canManage, onCorrect, onStop }: EnrolmentLi
       {latestFirst.map(enrolment => (
         <div
           key={enrolment.id}
-          className="flex min-h-13 flex-wrap items-center gap-x-3 gap-y-1 border-border border-t px-4.5 py-2"
+          className={cn(
+            'flex min-h-13 flex-wrap items-center gap-x-3 gap-y-1 border-border border-t px-4.5 py-2',
+            editing === enrolment.id && 'bg-selected',
+          )}
         >
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
             <span className="font-medium">{serviceLabel(enrolment.mode)}</span>
@@ -141,7 +142,7 @@ function EnrolmentList({ enrolments, canManage, onCorrect, onStop }: EnrolmentLi
                   service: serviceLabel(enrolment.mode),
                   period: periodLabel(enrolment),
                 })}
-                onClick={() => onCorrect(enrolment)}
+                onClick={event => onCorrect(enrolment, event.currentTarget)}
               >
                 {m.publishers_record_enrolment_correct()}
               </Button>

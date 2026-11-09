@@ -1,14 +1,16 @@
+import { type ReportStatus, reportStatus } from '~/features/publishers/model/member-signals'
 import {
   ENROLMENT_MODES,
   enrolmentMonthOptions,
   enrolmentTypeOf,
 } from '~/features/publishers/model/pioneer-enrolment-form'
-import { toServiceYear } from '~/features/publishers/model/pioneer-pace'
+import { serviceYearMonths, toServiceYear } from '~/features/publishers/model/pioneer-pace'
 import type { EnrolmentOptions } from '~/features/publishers/model/publisher-record.type'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { PublisherType } from '~/shared/types/publisher-type'
+import { zonedNow } from '~/shared/utils/zoned-now'
 
 import { listPioneerGoalsForYear } from './pioneer-goals.queries'
 
@@ -121,4 +123,44 @@ export async function getEnrolmentOptions(
     >,
     hidePermanentAuxiliary: !permanentAuxiliary,
   }
+}
+
+export interface RecordReportMonth {
+  month: number
+  year: number
+  status: ReportStatus
+  id: number | null
+}
+
+/**
+ * The person's reports over a service year, month by month, as the group page reads them: filed, filed without
+ * preaching, missing, or not expected (before they were added, or not over yet). The latest report counts when a month
+ * was filed twice. `today` is read on the congregation's calendar.
+ */
+export async function getRecordReportMonths(
+  db: TransactionClient,
+  memberId: number,
+  congregationId: number,
+  { serviceYear, today, timeZone }: { serviceYear: number; today: Date; timeZone: string },
+): Promise<RecordReportMonth[]> {
+  const months = serviceYearMonths(serviceYear)
+  const [member, reports] = await Promise.all([
+    db.member.findFirst({ where: { id: memberId, congregationId }, select: { createdAt: true } }),
+    db.publisherActivity.findMany({
+      where: { publisherId: memberId, congregationId, OR: months.map(({ month, year }) => ({ month, year })) },
+      select: { id: true, month: true, year: true, isPublisher: true },
+      orderBy: { id: 'desc' },
+    }),
+  ])
+  const added = member ? zonedNow(timeZone, member.createdAt) : today
+  const expectedFrom = { month: added.getMonth(), year: added.getFullYear() }
+  const current = today.getFullYear() * 12 + today.getMonth()
+
+  return months.map(({ month, year }) => {
+    const report = reports.find(each => each.month === month && each.year === year)
+    // A month still running, or to come, is not due yet; a report already filed for it still shows.
+    const due = year * 12 + month < current
+    const status = report || due ? reportStatus(report, { month, year }, expectedFrom) : 'not-expected'
+    return { month, year, status, id: report?.id ?? null }
+  })
 }

@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// The last pastoral visit page: who may see the date and who may record it (publisher viewers and
-// managers congregation-wide, the member's group overseer and assistant for their group), what a
-// save or a clear writes, and where the page sends the caller back to.
+// The pastoral visit route: the visit dialog posts here (who may record a visit — publisher managers congregation-wide,
+// the member's group overseer and assistant for their group — and what a save or a clear writes), and an old link to the
+// page opens that dialog where it lives, on the record or the group page.
 
 const { flash, setLastPastoralVisit } = vi.hoisted(() => ({ flash: vi.fn(), setLastPastoralVisit: vi.fn() }))
 
@@ -46,8 +46,6 @@ async function respondOrData(run: () => unknown): Promise<unknown> {
   }
 }
 
-type PageData = { visitedOn: string | null; canRecord: boolean; backTo: string }
-
 // Member 9 exists; any other id is not found. `from=group` is what the group page's visit icon adds.
 type Target = { publisherId?: string; search?: string }
 
@@ -59,7 +57,7 @@ function open(target: Target, ...args: Parameters<typeof routeContext>) {
       params: { publisherId },
       context: routeContext(...args),
     } as never),
-  ) as Promise<PageData | Response>
+  ) as Promise<Response>
 }
 
 function submit(target: Target, fields: Record<string, string>, ...args: Parameters<typeof routeContext>) {
@@ -81,84 +79,43 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-describe('pastoral visit loader', () => {
-  it('shows the date to a publisher viewer, read-only, and goes back to the publisher record', async () => {
-    const result = (await open({}, [Permission.CanViewPublishers])) as PageData
+type Answer = { data: { ok?: boolean; error?: Record<string, string[]> }; init: { status: number } | null } | Response
+const status = (answer: Answer) => (answer instanceof Response ? answer.status : (answer.init?.status ?? 200))
 
-    expect(result.visitedOn).toBe('2026-03-10')
-    expect(result.canRecord).toBe(false)
-    expect(result.backTo).toBe('/publishers/9/view')
+describe('old pastoral visit page', () => {
+  it('opens the dialog on the record for a reader of records', async () => {
+    const result = await open({}, [Permission.CanViewPublishers])
+    expect(result.headers.get('Location')).toBe('/publishers/9/view?panel=visit')
   })
 
-  it("lets the member's group overseer record it, and goes back to the group", async () => {
-    const result = (await open({}, [], OVERSEER_OF_4)) as PageData
-
-    expect(result.canRecord).toBe(true)
-    expect(result.backTo).toBe('/groups/4/view')
-  })
-
-  it('refuses the overseer of another group', async () => {
-    const result = (await open({}, [], OVERSEER_OF_5)) as Response
-
-    expect(result.headers.get('Location')).toBe('/')
+  it('opens it on the group page for an overseer, or when the group page linked there', async () => {
+    expect((await open({}, [], OVERSEER_OF_4)).headers.get('Location')).toBe('/groups/4/view?visit=9')
+    const fromGroup = await open({ search: '?from=group' }, [Permission.CanViewPublishers], OVERSEER_OF_4)
+    expect(fromGroup.headers.get('Location')).toBe('/groups/4/view?visit=9')
   })
 
   it('sends an unknown member home', async () => {
-    const result = (await open({ publisherId: '10' }, [Permission.CanViewPublishers])) as Response
-
-    expect(result.headers.get('Location')).toBe('/')
-  })
-
-  // An overseer who may also open publisher records came from his group page: he goes back to it.
-  it('goes back to the group when opened from the group page', async () => {
-    const result = (await open({ search: '?from=group' }, [Permission.CanViewPublishers], OVERSEER_OF_4)) as PageData
-
-    expect(result.backTo).toBe('/groups/4/view')
+    expect((await open({ publisherId: '10' }, [Permission.CanViewPublishers])).headers.get('Location')).toBe('/')
   })
 })
 
-describe('pastoral visit action', () => {
-  it('refuses a publisher viewer', async () => {
-    const result = (await submit({}, { intent: 'save', visitedOn: '2026-10-20' }, [
-      Permission.CanViewPublishers,
-    ])) as Response
-
-    expect(result.headers.get('Location')).toBe('/')
+describe('noting a pastoral visit', () => {
+  it('refuses a publisher viewer, the overseer of another group and an unknown member, without writing', async () => {
+    const visit = { intent: 'save', visitedOn: '2026-10-20' }
+    const refused = [
+      await submit({}, visit, [Permission.CanViewPublishers]),
+      await submit({}, visit, [], OVERSEER_OF_5),
+      await submit({ publisherId: '10' }, visit, [Permission.CanManagePublishers]),
+    ] as Answer[]
+    expect(refused.map(status)).toEqual([403, 403, 403])
     expect(setLastPastoralVisit).not.toHaveBeenCalled()
   })
 
-  it('refuses the overseer of another group', async () => {
-    const result = (await submit({}, { intent: 'save', visitedOn: '2026-10-20' }, [], OVERSEER_OF_5)) as Response
-
-    expect(result.headers.get('Location')).toBe('/')
-    expect(setLastPastoralVisit).not.toHaveBeenCalled()
-  })
-
-  it('writes nothing for an unknown member', async () => {
-    const result = (await submit({ publisherId: '10' }, { intent: 'save', visitedOn: '2026-10-20' }, [
-      Permission.CanManagePublishers,
-    ])) as Response
-
-    expect(result.headers.get('Location')).toBe('/')
-    expect(setLastPastoralVisit).not.toHaveBeenCalled()
-  })
-
-  it('goes back to the group page it was opened from', async () => {
-    const result = (await submit(
-      { search: '?from=group' },
-      { intent: 'save', visitedOn: '2026-10-20' },
-      [Permission.CanViewPublishers],
-      OVERSEER_OF_4,
-    )) as Response
-
-    expect(result.headers.get('Location')).toBe('/groups/4/view')
-  })
-
-  it("records the overseer's visit and goes back to the group", async () => {
-    const result = (await submit({}, { intent: 'save', visitedOn: '2026-10-20' }, [], OVERSEER_OF_4)) as Response
+  it("records the overseer's visit, and answers the dialog so it closes", async () => {
+    const result = (await submit({}, { intent: 'save', visitedOn: '2026-10-20' }, [], OVERSEER_OF_4)) as Answer
 
     expect(setLastPastoralVisit).toHaveBeenCalledWith({}, 9, 1, new Date('2026-10-20T00:00:00Z'), 7)
-    expect(result.headers.get('Location')).toBe('/groups/4/view')
+    expect(result).toMatchObject({ data: { ok: true } })
     expect(flash).toHaveBeenCalledWith('success', expect.any(String))
   })
 
@@ -174,14 +131,11 @@ describe('pastoral visit action', () => {
     expect(setLastPastoralVisit).toHaveBeenCalledWith({}, 9, 1, null, 7)
   })
 
-  it('refuses a visit in the future, on the date field', async () => {
-    const result = (await submit({}, { intent: 'save', visitedOn: '2999-01-01' }, [], OVERSEER_OF_4)) as {
-      data: { error: Record<string, string[]> }
-      init: { status: number }
-    }
+  it('refuses a visit in the future, and says why', async () => {
+    const result = (await submit({}, { intent: 'save', visitedOn: '2999-01-01' }, [], OVERSEER_OF_4)) as Answer
 
-    expect(result.init.status).toBe(400)
-    expect(Object.keys(result.data.error)).toEqual(['visitedOn'])
+    expect(status(result)).toBe(400)
+    expect(result).toMatchObject({ data: { error: { '': [expect.stringContaining('futur')] } } })
     expect(setLastPastoralVisit).not.toHaveBeenCalled()
   })
 
@@ -190,12 +144,10 @@ describe('pastoral visit action', () => {
     vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-19T23:30:00Z') })
 
     await submit({}, { intent: 'save', visitedOn: '2026-10-20' }, [], OVERSEER_OF_4)
-    const tomorrow = (await submit({}, { intent: 'save', visitedOn: '2026-10-21' }, [], OVERSEER_OF_4)) as {
-      init: { status: number }
-    }
+    const tomorrow = (await submit({}, { intent: 'save', visitedOn: '2026-10-21' }, [], OVERSEER_OF_4)) as Answer
 
     expect(setLastPastoralVisit).toHaveBeenCalledWith({}, 9, 1, new Date('2026-10-20T00:00:00Z'), 7)
     expect(setLastPastoralVisit).not.toHaveBeenCalledWith({}, 9, 1, new Date('2026-10-21T00:00:00Z'), 7)
-    expect(tomorrow.init.status).toBe(400)
+    expect(status(tomorrow)).toBe(400)
   })
 })

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
-import { getEnrolmentOptions, getPublisherRecord } from './publisher-record.queries'
+import { getEnrolmentOptions, getPublisherRecord, getRecordReportMonths } from './publisher-record.queries'
 
 vi.mock('./pioneer-goals.queries', () => ({
   listPioneerGoalsForYear: vi.fn((_db: unknown, serviceYear: number) => [
@@ -110,5 +110,46 @@ describe('getEnrolmentOptions', () => {
     expect(options.rates).toMatchObject({ 'monthly-aux': 30, 'permanent-aux': 30, permanent: 50, special: 100 })
     expect(options.years).toEqual([2025, 2026, 2027, 2028, 2029])
     expect(options.hidePermanentAuxiliary).toBe(true)
+  })
+})
+
+describe('getRecordReportMonths', () => {
+  function reportsDb(reports: { id: number; month: number; year: number; isPublisher: boolean }[], createdAt: Date) {
+    return {
+      member: { findFirst: vi.fn(() => ({ createdAt })) },
+      publisherActivity: { findMany: vi.fn(() => [...reports].sort((a, b) => b.id - a.id)) },
+    } as unknown as TransactionClient
+  }
+
+  it('reads the service year month by month: filed, without preaching, missing, and not yet due', async () => {
+    const db = reportsDb(
+      [
+        { id: 1, month: 8, year: 2026, isPublisher: true },
+        { id: 2, month: 9, year: 2026, isPublisher: false },
+      ],
+      new Date('2024-01-10T00:00:00Z'),
+    )
+    const months = await getRecordReportMonths(db, 12, 1, {
+      serviceYear: 2026,
+      today: new Date(2026, 11, 3),
+      timeZone: 'UTC',
+    })
+    expect(months.slice(0, 4)).toEqual([
+      { month: 8, year: 2026, status: 'filed', id: 1 },
+      { month: 9, year: 2026, status: 'irregular', id: 2 },
+      { month: 10, year: 2026, status: 'not-filed', id: null },
+      { month: 11, year: 2026, status: 'not-expected', id: null },
+    ])
+    expect(months).toHaveLength(12)
+  })
+
+  it('expects nothing before the person was added', async () => {
+    const db = reportsDb([], new Date(2026, 9, 20))
+    const months = await getRecordReportMonths(db, 12, 1, {
+      serviceYear: 2026,
+      today: new Date(2026, 11, 3),
+      timeZone: 'UTC',
+    })
+    expect(months.slice(0, 3).map(month => month.status)).toEqual(['not-expected', 'not-filed', 'not-filed'])
   })
 })

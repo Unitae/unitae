@@ -1,22 +1,22 @@
+import { useState } from 'react'
 import { redirect } from 'react-router'
-import { findUpcomingAbsencesForMember, findUpcomingAssignmentsForMember } from '~/features/events/index.server'
 import { toServiceYear } from '~/features/publishers'
 import { earliestDeparture } from '~/features/publishers/model/departure-date'
-import { ageOn, anonymisationDate, toRecordEnrolments } from '~/features/publishers/model/publisher-record'
-import { type PublisherRecordRights, publisherRecordRights } from '~/features/publishers/model/publisher-record-access'
-import { withAbsences } from '~/features/publishers/model/record-engagements'
-import { getEmergencyInfoForMember } from '~/features/publishers/server/emergency.queries'
-import { listTheocraticYearsWithActivity } from '~/features/publishers/server/list-theocratic-years-with-activity.server'
-import { getPioneerActivityForMember } from '~/features/publishers/server/pioneer-activity.queries'
-import { getEnrolmentsForMember } from '~/features/publishers/server/pioneer-enrolment.queries'
-import { getEnrolmentOptions, getPublisherRecord } from '~/features/publishers/server/publisher-record.queries'
+import { reportAccess } from '~/features/publishers/model/group-activity-access'
+import { ageOn, anonymisationDate } from '~/features/publishers/model/publisher-record'
+import { publisherRecordRights } from '~/features/publishers/model/publisher-record-access'
+import { getPublisherRecord } from '~/features/publishers/server/publisher-record.queries'
 import { pioneerProfileLabel } from '~/features/publishers/ui/PioneerActivitySection'
 import { RecordActions } from '~/features/publishers/ui/RecordActions'
+import { RecordActivity } from '~/features/publishers/ui/RecordActivity'
+import { RecordColumns } from '~/features/publishers/ui/RecordColumns'
 import { RecordProgramme, RecordTerritories } from '~/features/publishers/ui/RecordEngagements'
 import { RecordFacts } from '~/features/publishers/ui/RecordFacts'
 import { RecordHeader, RecordQuickContacts, RecordStatusNote } from '~/features/publishers/ui/RecordHeader'
 import { RecordPioneerService } from '~/features/publishers/ui/RecordPioneerService'
-import { findActiveAttributionsForPublisher } from '~/features/territories/index.server'
+import { useOpenParam } from '~/features/publishers/ui/use-open-from-link'
+import { useRecordEditor } from '~/features/publishers/ui/use-record-editor'
+import { VisitDialog, type VisitTarget } from '~/features/publishers/ui/VisitDialog'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -25,8 +25,7 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { DEFAULT_RETENTION_MONTHS } from '~/shared/constants/limits'
-import type { TransactionClient } from '~/shared/infra/db.server'
-import type { CongregationId, MemberId } from '~/shared/types/branded'
+import type { MemberId } from '~/shared/types/branded'
 import { Permission } from '~/shared/types/permission'
 import { PageTopbar } from '~/shared/ui/PageTopbar'
 import { dayOf } from '~/shared/utils/calendar-day'
@@ -34,13 +33,12 @@ import { formatPersonName } from '~/shared/utils/format-person-name'
 import { requireParamId } from '~/shared/utils/params.server'
 import { zonedNow } from '~/shared/utils/zoned-now'
 
+import { loadRecordBlocks } from './_record-blocks.server'
 import type { Route } from './+types/publisher'
 
 export const meta: Route.MetaFunction = ({ loaderData }) => [
   { title: loaderData ? `${formatPersonName(loaderData.record)} - Unitae` : 'Unitae' },
 ]
-
-const skip = <T,>(value: T) => Promise.resolve(value)
 
 // The publisher record. Every block is loaded behind the right of the page it comes from (publisherRecordRights), so
 // the record never carries more than those pages would: reports, emergency flags and enrolments are separate reads.
@@ -73,7 +71,18 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
         deputyForId: member?.deputyFor?.id ?? null,
       },
     )
-    const blocks = await loadRecordBlocks(db, rights, { publisherId, congregationId, pioneerYear, now, clock })
+    const leader = { responsibleForId: member?.responsibleFor?.id ?? null, deputyForId: member?.deputyFor?.id ?? null }
+    const reports = reportAccess({ permissions, leader, publisherGroupId: record.group?.id ?? null })
+    const blocks = await loadRecordBlocks(db, rights, {
+      publisherId,
+      congregationId,
+      pioneerYear,
+      serviceYear,
+      timeZone,
+      withReports: rights.canViewActivity && record.isPublisher,
+      now,
+      clock,
+    })
     return {
       record,
       rights,
@@ -84,71 +93,26 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       serviceYear,
       pioneerYear,
       ...blocks,
+      reportRights: { canRecord: reports.canRecord, canCorrect: reports.canCorrect },
       age: record.birthDate ? ageOn(record.birthDate, today) : null,
       anonymisedOn: record.leftAt ? anonymisationDate(record.leftAt, DEFAULT_RETENTION_MONTHS) : null,
     }
   })
 }
 
-interface BlockScope {
-  publisherId: MemberId
-  congregationId: number
-  pioneerYear: number
-  /** Now on the congregation's calendar, for months and service years. */
-  now: Date
-  /** The real instant, for what is still to come. */
-  clock: Date
-}
-
-/** Each of the record's blocks, read only when the reader may see it, and handed over without what they may not. */
-async function loadRecordBlocks(db: TransactionClient, rights: PublisherRecordRights, scope: BlockScope) {
-  const { publisherId, congregationId, pioneerYear, now, clock } = scope
-  const congregation = congregationId as CongregationId
-  const [activity, enrolments, enrolmentOptions, attributions, assignments, absences, s21Years, emergency] =
-    await Promise.all([
-      rights.canViewActivity
-        ? getPioneerActivityForMember(db, publisherId, congregationId, pioneerYear, now)
-        : skip(null),
-      rights.canSeeEnrolments ? getEnrolmentsForMember(db, publisherId, congregationId) : skip([]),
-      rights.canManageEnrolments ? getEnrolmentOptions(db, congregationId, now) : skip(null),
-      rights.canViewAttributions ? findActiveAttributionsForPublisher(db, publisherId, congregationId) : skip([]),
-      rights.canViewPrograms ? findUpcomingAssignmentsForMember(db, publisherId, congregation, clock) : skip(null),
-      rights.canViewAbsences ? findUpcomingAbsencesForMember(db, publisherId, congregation, clock) : skip(null),
-      rights.canDownloadS21 ? listTheocraticYearsWithActivity(db, congregationId, { publisherId }) : skip([]),
-      rights.canViewEmergency ? getEmergencyInfoForMember(db, publisherId, congregation) : skip(null),
-    ])
-
-  return {
-    activity,
-    enrolments: toRecordEnrolments(enrolments, { month: now.getMonth(), year: now.getFullYear() }),
-    enrolmentOptions,
-    // The territory's own row stays behind: its notes are the territory managers'.
-    territories: attributions.map(attribution => ({
-      id: attribution.id,
-      territoryId: attribution.territoryId,
-      number: attribution.territory.number,
-      type: attribution.territory.type,
-      startDate: attribution.startDate,
-      lateDate: attribution.lateDate,
-      pausedAt: attribution.pausedAt,
-    })),
-    assignments: assignments && withAbsences(assignments, absences),
-    absences,
-    s21Years,
-    emergency: emergency && {
-      dpaCardUpToDate: emergency.dpaCardUpToDate,
-      survivalBackpackReady: emergency.survivalBackpackReady,
-      emergencyContacts: emergency.emergencyContacts,
-    },
-  }
-}
-
 export default function PublisherPage({ loaderData }: Route.ComponentProps) {
   const { record, rights, timeZone, enrolmentOptions, assignments } = loaderData
   const name = formatPersonName(record)
+  const editor = useRecordEditor(record.id, { name, enrolments: loaderData.enrolments, options: enrolmentOptions })
+  const [visit, setVisit] = useState<VisitTarget | null>(null)
+  const openVisit = () => setVisit({ publisherId: record.id, name, lastVisit: record.lastPastoralVisitAt })
+  const showActivity = loaderData.activity == null && loaderData.reportMonths.length > 0
+  const stacked = editor.docked && editor.panel != null
+  useOpenParam('panel', value => value === 'visit' && rights.canRecordVisit && openVisit())
 
   return (
-    <div className="flex flex-col gap-5">
+    // The marker lets the app shell stop clipping as a scroll container, so the docked panel can stick.
+    <div data-sticky-content="" className="flex flex-col gap-5">
       <PageTopbar
         trail={[{ label: m.sidebar_publishers(), to: '/publishers' }, { label: name }]}
         actions={
@@ -170,38 +134,63 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
       <RecordQuickContacts record={record} />
       <RecordStatusNote record={record} timeZone={timeZone} anonymisedOn={loaderData.anonymisedOn} />
 
-      <div className="flex flex-wrap items-start gap-6">
-        <div className="flex min-w-0 flex-[999_1_540px] flex-col gap-5">
-          {rights.canSeeEnrolments && (
-            <RecordPioneerService
-              publisherId={record.id}
-              name={name}
-              activity={loaderData.activity}
-              serviceYear={loaderData.pioneerYear}
-              enrolments={loaderData.enrolments}
-              options={enrolmentOptions ?? EMPTY_OPTIONS}
-              canManage={rights.canManageEnrolments && enrolmentOptions != null}
-            />
-          )}
-          {assignments && (
-            <RecordProgramme assignments={assignments} absences={loaderData.absences} timeZone={timeZone} />
-          )}
-          {rights.canViewAttributions && (
-            <RecordTerritories
-              territories={loaderData.territories}
-              canOpen={rights.canOpenTerritories}
-              timeZone={timeZone}
-              now={loaderData.now}
-            />
-          )}
-        </div>
-        <aside
-          className="flex min-w-0 flex-[1_1_290px] flex-col gap-4 lg:max-w-90"
-          aria-label={m.publishers_record_facts()}
-        >
-          <RecordFacts record={record} age={loaderData.age} emergency={loaderData.emergency} rights={rights} />
-        </aside>
-      </div>
+      <RecordColumns
+        stacked={stacked}
+        factsFirst={editor.emergencyOpen}
+        panel={editor.docked && editor.panel}
+        main={
+          <>
+            {showActivity && (
+              <RecordActivity
+                serviceYear={loaderData.serviceYear}
+                months={loaderData.reportMonths}
+                canRecord={loaderData.reportRights.canRecord}
+                canCorrect={loaderData.reportRights.canCorrect}
+                selectedMonth={editor.selectedMonth}
+                onOpen={editor.openReport}
+              />
+            )}
+            {rights.canSeeEnrolments && (
+              <RecordPioneerService
+                publisherId={record.id}
+                name={name}
+                activity={loaderData.activity}
+                serviceYear={loaderData.pioneerYear}
+                enrolments={loaderData.enrolments}
+                options={enrolmentOptions ?? EMPTY_OPTIONS}
+                canManage={rights.canManageEnrolments && enrolmentOptions != null}
+                editing={editor.enrolmentOpen}
+                onEdit={editor.openEnrolment}
+              />
+            )}
+            {assignments && (
+              <RecordProgramme assignments={assignments} absences={loaderData.absences} timeZone={timeZone} />
+            )}
+            {rights.canViewAttributions && (
+              <RecordTerritories
+                territories={loaderData.territories}
+                canOpen={rights.canOpenTerritories}
+                timeZone={timeZone}
+                now={loaderData.now}
+              />
+            )}
+          </>
+        }
+        facts={
+          <RecordFacts
+            record={record}
+            age={loaderData.age}
+            emergency={loaderData.emergency}
+            rights={rights}
+            emergencyOpen={editor.emergencyOpen}
+            onOpenEmergency={editor.openEmergency}
+            onOpenVisit={openVisit}
+          />
+        }
+      />
+      {!editor.docked && editor.panel}
+      {editor.discard}
+      <VisitDialog target={visit} today={loaderData.today} onClose={() => setVisit(null)} />
     </div>
   )
 }

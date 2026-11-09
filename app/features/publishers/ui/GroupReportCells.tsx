@@ -33,9 +33,9 @@ const DOT_STYLE: Record<ReportStatus, string> = {
 
 const filed = (report: ReportCell) => report.status === 'filed' || report.status === 'irregular'
 
-/** A month the reader may open: a missing report to file, or a filed one he may correct. */
-export function opensReport(report: ReportCell, canCorrect: boolean) {
-  return filed(report) ? canCorrect : report.status === 'not-filed'
+/** A month the reader may open: a missing report to file (when they may record), or a filed one they may correct. */
+export function opensReport(report: ReportCell, canCorrect: boolean, canRecord = true) {
+  return filed(report) ? canCorrect : report.status === 'not-filed' && canRecord
 }
 
 function Dot({ status }: { status: ReportStatus }) {
@@ -49,11 +49,14 @@ function Dot({ status }: { status: ReportStatus }) {
 export function ReportDots({
   reports,
   canCorrect,
+  canRecord = true,
   selectedMonth,
   onOpen,
 }: {
   reports: ReportCell[]
   canCorrect: boolean
+  /** The reader may file a missing report; a group's leader always may, a reader of the activity may not. */
+  canRecord?: boolean
   /** The month open in the panel for this member, if any. */
   selectedMonth: ActivityMonth | null
   onOpen: OpenReport
@@ -67,7 +70,7 @@ export function ReportDots({
           date: formatActivityMonth(report, locale, 'long'),
           status: STATUS_LABEL[report.status](),
         })
-        if (!opensReport(report, canCorrect)) {
+        if (!opensReport(report, canCorrect, canRecord)) {
           return (
             <span
               key={key}

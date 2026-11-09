@@ -1,5 +1,4 @@
 import { Avatar, Tag } from '@unitae/ui'
-import { Eye, HeartHandshake, Mail, Pencil, Siren } from 'lucide-react'
 import { Link } from 'react-router'
 import { type ActivityMonth, formatActivityMonth } from '~/features/publishers/model/activity-months'
 import type { EmergencyGap, PastoralSignal } from '~/features/publishers/model/member-signals'
@@ -13,26 +12,23 @@ import {
 } from '~/features/publishers/ui/GroupReportCells'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
-import { Button } from '~/shared/ui/button'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 import { cn } from '~/shared/utils/utils'
+
+import { EmergencyLink, MemberActions } from './GroupMemberActions'
 
 export interface GroupMemberRow {
   id: number
   firstname: string
   lastname: string
   email: string
+  /** The last pastoral visit noted, a calendar day stored at UTC midnight. */
+  lastPastoralVisitAt: Date | null
   /** The window's months, oldest first; empty for a viewer who does not record the group's reports. */
   reports: ReportCell[]
   signals: PastoralSignal[]
   /** Empty for a viewer who may not see emergency information. */
   emergencyGaps: EmergencyGap[]
-}
-
-const EMERGENCY_GAP_LABEL: Record<EmergencyGap, () => string> = {
-  card: m.groups_signal_emergency_card,
-  backpack: m.groups_signal_emergency_backpack,
-  contact: m.groups_signal_emergency_contact,
 }
 
 // The member's pastoral signals: what may prompt a visit, and when the last one was. Quiet tags, all alike: the
@@ -75,28 +71,8 @@ function signalLabel(signal: PastoralSignal, locale: string): string {
   }
 }
 
-// Missing emergency information is common enough that a label on every row would drown the
-// others: an icon after the name instead, titled with what is missing and leading to the member's
-// emergency page. The padding makes it a touch target; the negative margin keeps the row's height.
-function EmergencyLink({ memberId, name, gaps }: { memberId: number; name: string; gaps: EmergencyGap[] }) {
-  const items = gaps.map(gap => EMERGENCY_GAP_LABEL[gap]()).join(' · ')
-  const label = m.groups_member_emergency_aria({ name, items })
-  return (
-    <Link
-      to={`/publishers/${memberId}/emergency?from=group`}
-      className="-my-1 ml-0.5 inline-flex rounded-md p-1 align-middle text-warning-text hover:bg-hover"
-      aria-label={label}
-      title={label}
-    >
-      <Siren className="size-4" />
-    </Link>
-  )
-}
-
 const headClass = 'h-10 whitespace-nowrap border-border border-b px-3 text-left font-medium text-faint text-sm'
 const cellClass = 'border-border border-b px-3 py-2 align-middle group-last:border-b-0'
-const iconClass =
-  'opacity-0 transition-opacity duration-(--u-duration-fast) focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100'
 
 interface GroupMembersTableProps {
   members: GroupMemberRow[]
@@ -111,6 +87,10 @@ interface GroupMembersTableProps {
   /** The report open in the page's panel. */
   selected: { memberId: number; month: ActivityMonth } | null
   onOpenReport: (memberId: number, month: ActivityMonth, trigger: HTMLElement) => void
+  /** The siren: the member's emergency panel. */
+  onOpenEmergency: (memberId: number, trigger: HTMLElement) => void
+  /** The visit icon: the dialog to note a pastoral visit. */
+  onOpenVisit: (member: GroupMemberRow) => void
 }
 
 /**
@@ -130,6 +110,8 @@ export function GroupMembersTable({
   canViewPublishers,
   selected,
   onOpenReport,
+  onOpenEmergency,
+  onOpenVisit,
 }: GroupMembersTableProps) {
   const locale = getLocale()
   // The month being reported, for a viewer who records the group's reports.
@@ -175,6 +157,8 @@ export function GroupMembersTable({
               canViewPublishers={canViewPublishers}
               selected={selected}
               onOpenReport={onOpenReport}
+              onOpenEmergency={onOpenEmergency}
+              onOpenVisit={onOpenVisit}
             />
           ))}
         </tbody>
@@ -186,7 +170,14 @@ export function GroupMembersTable({
 interface MemberRowProps
   extends Pick<
     GroupMembersTableProps,
-    'canCorrectReports' | 'canRecordVisits' | 'canEditPublishers' | 'canViewPublishers' | 'selected' | 'onOpenReport'
+    | 'canCorrectReports'
+    | 'canRecordVisits'
+    | 'canEditPublishers'
+    | 'canViewPublishers'
+    | 'selected'
+    | 'onOpenReport'
+    | 'onOpenEmergency'
+    | 'onOpenVisit'
   > {
   member: GroupMemberRow
   last: boolean
@@ -209,6 +200,8 @@ function MemberRow({
   canViewPublishers,
   selected,
   onOpenReport,
+  onOpenEmergency,
+  onOpenVisit,
 }: MemberRowProps) {
   const name = formatPersonName(member)
   const record = `/publishers/${member.id}/view`
@@ -240,7 +233,11 @@ function MemberRow({
                   onOpen={opensCurrent && current ? trigger => open(current, trigger) : null}
                 />
                 {member.emergencyGaps.length > 0 && (
-                  <EmergencyLink memberId={member.id} name={name} gaps={member.emergencyGaps} />
+                  <EmergencyLink
+                    name={name}
+                    gaps={member.emergencyGaps}
+                    onOpen={trigger => onOpenEmergency(member.id, trigger)}
+                  />
                 )}
               </span>
               {labelled && <MemberLabels signals={member.signals} locale={locale} className="@max-4xl:hidden" />}
@@ -269,6 +266,7 @@ function MemberRow({
             canRecordVisits={canRecordVisits}
             canViewPublishers={canViewPublishers}
             canEditPublishers={canEditPublishers}
+            onOpenVisit={() => onOpenVisit(member)}
           />
         </td>
       </tr>
@@ -313,56 +311,4 @@ function MemberName({
     )
   }
   return <span className="font-medium">{name}</span>
-}
-
-/** Write, record a visit, open or edit the record: on hover, in a wide table. */
-function MemberActions({
-  member,
-  name,
-  canRecordVisits,
-  canViewPublishers,
-  canEditPublishers,
-}: {
-  member: GroupMemberRow
-  name: string
-  canRecordVisits: boolean
-  canViewPublishers: boolean
-  canEditPublishers: boolean
-}) {
-  return (
-    <div className="flex justify-end gap-0.5">
-      {member.email && (
-        <Button asChild variant="ghost" size="icon-sm" className={iconClass}>
-          <a href={`mailto:${member.email}`} aria-label={m.groups_member_email_aria({ name })}>
-            <Mail />
-          </a>
-        </Button>
-      )}
-      {canRecordVisits && (
-        <Button asChild variant="ghost" size="icon-sm" className={iconClass}>
-          <Link
-            to={`/publishers/${member.id}/pastoral-visit?from=group`}
-            aria-label={m.groups_member_visit_aria({ name })}
-            title={m.groups_member_visit_aria({ name })}
-          >
-            <HeartHandshake />
-          </Link>
-        </Button>
-      )}
-      {canViewPublishers && (
-        <Button asChild variant="ghost" size="icon-sm" className={iconClass}>
-          <Link to={`/publishers/${member.id}/view`} aria-label={m.groups_member_view_aria({ name })}>
-            <Eye />
-          </Link>
-        </Button>
-      )}
-      {canEditPublishers && (
-        <Button asChild variant="ghost" size="icon-sm" className={iconClass}>
-          <Link to={`/publishers/${member.id}/edit`} aria-label={m.groups_member_edit_aria({ name })}>
-            <Pencil />
-          </Link>
-        </Button>
-      )}
-    </div>
-  )
 }

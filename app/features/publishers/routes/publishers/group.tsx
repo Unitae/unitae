@@ -1,5 +1,6 @@
 import { ProgressBar, SectionHeading } from '@unitae/ui'
 import { Pencil, Siren, UsersRound } from 'lucide-react'
+import { useState } from 'react'
 import { Link, redirect } from 'react-router'
 import { formatActivityMonth } from '~/features/publishers/model/activity-months'
 import { canViewEmergencyInfo } from '~/features/publishers/model/emergency-access'
@@ -9,6 +10,8 @@ import { getGroup } from '~/features/publishers/server/groups.server'
 import { type GroupMemberRow, GroupMembersTable } from '~/features/publishers/ui/GroupMembersTable'
 import { ReportLegend } from '~/features/publishers/ui/GroupReportCells'
 import { useGroupReportEditor } from '~/features/publishers/ui/use-group-report-editor'
+import { useOpenParam } from '~/features/publishers/ui/use-open-from-link'
+import { VisitDialog, type VisitTarget } from '~/features/publishers/ui/VisitDialog'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import {
@@ -21,6 +24,7 @@ import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { formatDateForInput } from '~/shared/utils/event-time'
 import { formatGroupName } from '~/shared/utils/format-group-name'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 import { requireParamId } from '~/shared/utils/params.server'
@@ -76,16 +80,28 @@ export function loader({ params, context }: Route.LoaderArgs) {
       hasActivityManager: canCorrectAnyActivity(permissions),
       ...leaders,
     })
+    // Every member listed is in this group, so its leaders may record their visits.
+    const canRecordVisits = canRecordPastoralVisit({
+      hasPublisherViewer: canViewPublishers,
+      hasPublisherManager: canEditPublishers,
+      myResponsibleGroupId: currentUser.member?.responsibleFor?.id ?? null,
+      myDeputyGroupId: currentUser.member?.deputyFor?.id ?? null,
+      targetGroupId: group.id,
+    })
     // Whether someone preached is a pastoral fact, kept to those who record the group's reports; the
-    // missing emergency information, to those who may see emergency information.
+    // missing emergency information, to those who may see emergency information; the last visit, which only
+    // the visit dialog shows, to those who may open it.
     const visible = (member: (typeof group.members)[number]) => ({
       ...member,
       reports: canManageGroupReports ? member.reports : [],
       emergencyGaps: canViewEmergency ? member.emergencyGaps : [],
+      lastPastoralVisitAt: canRecordVisits ? member.lastPastoralVisitAt : null,
     })
 
     return {
       group: { ...group, members: group.members.map(visible), inactiveMembers: group.inactiveMembers.map(visible) },
+      // The latest a visit can be dated, and the day the visit dialog starts on.
+      today: formatDateForInput(new Date(), timezone),
       roles: {
         canManagePublisher,
         canEditPublishers,
@@ -93,14 +109,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
         canViewEmergency,
         canManageActivity: canManageGroupReports,
         canCorrectReports,
-        // Every member listed is in this group, so its leaders may record their visits.
-        canRecordVisits: canRecordPastoralVisit({
-          hasPublisherViewer: canViewPublishers,
-          hasPublisherManager: canEditPublishers,
-          myResponsibleGroupId: currentUser.member?.responsibleFor?.id ?? null,
-          myDeputyGroupId: currentUser.member?.deputyFor?.id ?? null,
-          targetGroupId: group.id,
-        }),
+        canRecordVisits,
       },
     }
   })
@@ -127,6 +136,14 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
   const { group, roles } = loaderData
   const reported = group.reportWindow.at(-1)
   const editor = useGroupReportEditor({ members: group.members, inactiveMembers: group.inactiveMembers, reported })
+  const [visit, setVisit] = useState<VisitTarget | null>(null)
+  // `?visit=<memberId>`, from an old visit link: that member's dialog, for those who may note one.
+  useOpenParam('visit', value => {
+    const member = [...group.members, ...group.inactiveMembers].find(each => each.id === Number(value))
+    if (member && roles.canRecordVisits) {
+      setVisit({ publisherId: member.id, name: formatPersonName(member), lastVisit: member.lastPastoralVisitAt })
+    }
+  })
   const membersTable = (members: GroupMemberRow[]) => (
     <GroupMembersTable
       members={members}
@@ -138,6 +155,10 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
       canViewPublishers={roles.canViewPublishers}
       selected={editor.selected}
       onOpenReport={editor.open}
+      onOpenEmergency={editor.openEmergency}
+      onOpenVisit={member =>
+        setVisit({ publisherId: member.id, name: formatPersonName(member), lastVisit: member.lastPastoralVisitAt })
+      }
     />
   )
   // Without the publisher permission (an overseer on his own group), the groups list is out of reach.
@@ -245,6 +266,7 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
       </div>
       {!editor.docked && editor.panel}
       {editor.discard}
+      <VisitDialog target={visit} today={loaderData.today} onClose={() => setVisit(null)} />
     </div>
   )
 }

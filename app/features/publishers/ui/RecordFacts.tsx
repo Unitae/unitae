@@ -1,32 +1,53 @@
-import { FactList, Panel, StatusIcon } from '@unitae/ui'
+import { FactList, Panel } from '@unitae/ui'
 import { Pencil } from 'lucide-react'
-import { Link } from 'react-router'
+import { useEffect, useRef } from 'react'
 
 import { formatCalendarDay } from '~/features/publishers/model/calendar-day'
 import type { PublisherRecord } from '~/features/publishers/server/publisher-record.queries'
-import type { EmergencyInfoViewData } from '~/features/publishers/ui/EmergencyInfoView'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
 import { formatGroupName } from '~/shared/utils/format-group-name'
 import { formatPersonName } from '~/shared/utils/format-person-name'
+import { cn } from '~/shared/utils/utils'
+
+import { EmergencyFacts, type EmergencyInfo } from './EmergencyFacts'
 
 interface RecordFactsProps {
   record: PublisherRecord
   /** Their age today, when the birth date is known. */
   age: number | null
-  emergency: EmergencyInfoViewData | null
+  emergency: EmergencyInfo | null
   rights: { canManageEmergency: boolean; canRecordVisit: boolean; canManageLogin: boolean }
+  /** The emergency panel is open beside the page: its block is marked. */
+  emergencyOpen: boolean
+  onOpenEmergency: (trigger: HTMLElement) => void
+  onOpenVisit: () => void
 }
 
 /** The record's side column: what you look up about the person rather than follow over time. */
-export function RecordFacts({ record, age, emergency, rights }: RecordFactsProps) {
+export function RecordFacts({
+  record,
+  age,
+  emergency,
+  rights,
+  emergencyOpen,
+  onOpenEmergency,
+  onOpenVisit,
+}: RecordFactsProps) {
   return (
     <>
       <ContactPanel record={record} />
       <CongregationPanel record={record} age={age} />
-      <VisitPanel record={record} canRecord={rights.canRecordVisit} />
-      {emergency && <EmergencyPanel publisherId={record.id} info={emergency} canManage={rights.canManageEmergency} />}
+      <VisitPanel record={record} canRecord={rights.canRecordVisit} onOpen={onOpenVisit} />
+      {emergency && (
+        <EmergencyBlock
+          info={emergency}
+          canManage={rights.canManageEmergency}
+          open={emergencyOpen}
+          onOpen={onOpenEmergency}
+        />
+      )}
       {rights.canManageLogin && <LoginPanel login={record.login} />}
     </>
   )
@@ -94,15 +115,23 @@ function CongregationPanel({ record, age }: { record: PublisherRecord; age: numb
   )
 }
 
-function VisitPanel({ record, canRecord }: { record: PublisherRecord; canRecord: boolean }) {
+function VisitPanel({
+  record,
+  canRecord,
+  onOpen,
+}: {
+  record: PublisherRecord
+  canRecord: boolean
+  onOpen: () => void
+}) {
   return (
     <Panel
       title={m.publishers_visit_section_title()}
       padded
       actions={
         canRecord && (
-          <Button asChild variant="ghost" size="sm">
-            <Link to={`/publishers/${record.id}/pastoral-visit`}>{m.publishers_visit_edit_link()}</Link>
+          <Button variant="ghost" size="sm" onClick={onOpen}>
+            {m.publishers_visit_edit_link()}
           </Button>
         )
       }
@@ -120,80 +149,37 @@ function VisitPanel({ record, canRecord }: { record: PublisherRecord; canRecord:
   )
 }
 
-function EmergencyPanel({
-  publisherId,
-  info,
-  canManage,
-}: {
-  publisherId: number
-  info: EmergencyInfoViewData
+interface EmergencyBlockProps {
+  info: EmergencyInfo
   canManage: boolean
-}) {
-  return (
-    <Panel
-      title={m.publishers_emergency_section_title()}
-      padded
-      actions={
-        canManage && (
-          <Button asChild variant="ghost" size="sm">
-            <Link to={`/publishers/${publisherId}/emergency`}>
-              <Pencil />
-              {m.publishers_emergency_edit_link()}
-            </Link>
-          </Button>
-        )
-      }
-    >
-      <div className="flex flex-col gap-3 text-sm">
-        <ul className="flex flex-col gap-2">
-          <Readiness
-            ready={info.dpaCardUpToDate}
-            yes={m.publishers_emergency_dpa_label()}
-            no={m.publishers_record_dpa_missing()}
-          />
-          <Readiness
-            ready={info.survivalBackpackReady}
-            yes={m.publishers_emergency_backpack_label()}
-            no={m.publishers_record_backpack_missing()}
-          />
-        </ul>
-        <div className="flex flex-col gap-2 border-border border-t pt-3">
-          <span className="font-medium text-faint text-xs">{m.publishers_emergency_contacts_title()}</span>
-          {info.emergencyContacts.length > 0 ? (
-            <ul className="flex flex-col gap-2">
-              {info.emergencyContacts.map(contact => (
-                <li key={contact.id} className="flex flex-col">
-                  <span>
-                    {contact.name}
-                    {contact.relationship && <span className="text-faint"> · {contact.relationship}</span>}
-                  </span>
-                  {contact.phone && (
-                    <a
-                      href={`tel:${contact.phone}`}
-                      className="self-start text-brand-text tabular-nums hover:underline"
-                    >
-                      {contact.phone}
-                    </a>
-                  )}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <span className="text-faint">{m.publishers_emergency_no_contacts()}</span>
-          )}
-        </div>
-      </div>
-    </Panel>
-  )
+  open: boolean
+  onOpen: (trigger: HTMLElement) => void
 }
 
-/** A readiness check as a mark and words: green tick when ready, half-filled warning when not. */
-function Readiness({ ready, yes, no }: { ready: boolean; yes: string; no: string }) {
+function EmergencyBlock({ info, canManage, open, onOpen }: EmergencyBlockProps) {
+  const ref = useRef<HTMLDivElement>(null)
+  // Opening its panel reflows the page into one column: the block being edited is brought back into view.
+  useEffect(() => {
+    if (open) ref.current?.scrollIntoView({ block: 'nearest' })
+  }, [open])
   return (
-    <li className="flex items-center gap-2">
-      <StatusIcon tone={ready ? 'success' : 'warning'} />
-      {ready ? yes : no}
-    </li>
+    <div ref={ref} className="scroll-mt-4">
+      <Panel
+        title={m.publishers_emergency_section_title()}
+        padded
+        className={cn(open && 'ring-2 ring-ring')}
+        actions={
+          canManage && (
+            <Button variant="ghost" size="sm" onClick={event => onOpen(event.currentTarget)}>
+              <Pencil />
+              {m.publishers_emergency_edit_link()}
+            </Button>
+          )
+        }
+      >
+        <EmergencyFacts info={info} />
+      </Panel>
+    </div>
   )
 }
 

@@ -137,6 +137,7 @@ export async function getGroup(
         firstname: member.firstname,
         lastname: member.lastname,
         email: member.email,
+        lastPastoralVisitAt: member.lastPastoralVisitAt,
         reports: window.map(target => {
           const report = member.activities.find(each => each.year === target.year && each.month === target.month)
           return { ...target, status: reportStatus(report, target, expectedFrom), id: report?.id ?? null }
