@@ -1236,6 +1236,7 @@
     "publishers_visit_previous": "Previous: {date}",
     "publishers_record_activity": "Activity",
     "publishers_record_reports_filed": "{filed} of {due} reports",
+    "publishers_record_reports_filed_one": "{filed} of {due} reports",
     "publishers_visit_meta_title": "Pastoral visit - Unitae",
     "publishers_visit_title": "Pastoral visit",
     "publishers_visit_subtitle": "The date of the last pastoral visit. Only the last date recorded is kept, with no other notes.",

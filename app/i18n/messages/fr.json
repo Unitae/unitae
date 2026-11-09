@@ -1238,6 +1238,7 @@
     "publishers_visit_previous": "Précédente : {date}",
     "publishers_record_activity": "Activité",
     "publishers_record_reports_filed": "{filed} rapports sur {due}",
+    "publishers_record_reports_filed_one": "{filed} rapport sur {due}",
     "publishers_visit_meta_title": "Visite pastorale - Unitae",
     "publishers_visit_title": "Visite pastorale",
     "publishers_visit_subtitle": "La date de la dernière visite pastorale. Seule la dernière date enregistrée est conservée, sans autre note.",
