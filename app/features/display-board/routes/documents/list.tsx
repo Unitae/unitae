@@ -5,8 +5,9 @@ import { Link, redirect, useFetcher, useSearchParams } from 'react-router'
 import { documentReads } from '~/features/display-board/server/board-audience.queries'
 import { listBoardManagement, type ManagedItem } from '~/features/display-board/server/board-management.queries'
 import { itemKey, type ManageRights } from '~/features/display-board/ui/manage/ManagedItemRow'
-import { type ManageSection, ManageTable } from '~/features/display-board/ui/manage/ManageTable'
+import { ManageTable } from '~/features/display-board/ui/manage/ManageTable'
 import { ManageToolbar } from '~/features/display-board/ui/manage/ManageToolbar'
+import { filterSections, mergeVisibleOrder, withPendingOrder } from '~/features/display-board/ui/manage/manage-list'
 import { ReadsPanel } from '~/features/display-board/ui/manage/ReadsPanel'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -71,36 +72,10 @@ export function loader({ request, context }: Route.LoaderArgs) {
   })
 }
 
-/** The rows the URL's search and filters keep; with any of them on, sections left empty are hidden. */
-function filterSections(sections: ManageSection[], params: URLSearchParams): ManageSection[] {
-  const query = (params.get('q') ?? '').trim().toLocaleLowerCase('fr')
-  const section = params.get('section')
-  const state = params.get('etat')
-  return sections
-    .filter(s => !section || String(s.id) === section)
-    .map(s => ({
-      ...s,
-      items: s.items.filter(
-        item => (!query || item.title.toLocaleLowerCase('fr').includes(query)) && (!state || item.state.kind === state),
-      ),
-    }))
-    .filter(s => (!query && !state) || s.items.length > 0)
-}
-
 const toPayload = (item: Pick<ManagedItem, 'kind' | 'id'>) => ({
   kind: item.kind === 'pdf' ? 'pdf' : 'dyn',
   id: item.id,
 })
-
-/** While a reorder is on its way, the order it sends rather than the one it replaces. */
-function withPendingOrder(sections: ManageSection[], pending: { kind: string; id: number }[] | undefined) {
-  if (!pending) return sections
-  const rank = new Map(pending.map((p, index) => [`${p.kind === 'pdf' ? 'pdf' : 'dynamic'}-${p.id}`, index]))
-  return sections.map(s => ({
-    ...s,
-    items: [...s.items].sort((a, b) => (rank.get(itemKey(a)) ?? 0) - (rank.get(itemKey(b)) ?? 0)),
-  }))
-}
 
 export default function ManageBoardPage({ loaderData }: Route.ComponentProps) {
   const { sections, reads, readsKey, rights, timeZone } = loaderData
@@ -110,7 +85,8 @@ export default function ManageBoardPage({ loaderData }: Route.ComponentProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const pending = (reorder.json as { orderedItems?: { kind: string; id: number }[] } | undefined)?.orderedItems
-  const shown = filterSections(withPendingOrder(sections, pending), searchParams)
+  const ordered = withPendingOrder(sections, pending)
+  const shown = filterSections(ordered, searchParams)
   const total = sections.reduce((count, s) => count + s.items.length, 0)
   const runBulk = (action: 'bulk-move' | 'bulk-delete', extra: Record<string, number> = {}) => {
     const items = [...selected].map(key => {
@@ -197,12 +173,15 @@ export default function ManageBoardPage({ loaderData }: Route.ComponentProps) {
                       return next
                     })
                   }
-                  onReorder={items =>
+                  onReorder={visible => {
+                    // The whole section goes back, the rows a search hides in their places.
+                    const section = ordered.find(s => s.items.some(item => itemKey(item) === itemKey(visible[0])))
+                    const items = section ? mergeVisibleOrder(section.items, visible) : visible
                     reorder.submit(
                       { orderedItems: items.map(toPayload) },
                       { method: 'POST', action: '/board/documents/reorder', encType: 'application/json' },
                     )
-                  }
+                  }}
                   readsKey={readsKey}
                   timeZone={timeZone}
                   compact={reads != null}
