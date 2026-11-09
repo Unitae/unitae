@@ -4,8 +4,6 @@ import { getLocale } from '~/i18n/paraglide/runtime'
 // Dates are read in the congregation's time zone: the server renders in UTC, the browser in the
 // viewer's zone, and both must print the same meeting time.
 
-const DAY_MS = 24 * 60 * 60 * 1000
-
 function format(date: Date | string, timeZone: string, options: Intl.DateTimeFormatOptions): string {
   return new Intl.DateTimeFormat(getLocale(), { timeZone, ...options }).format(new Date(date))
 }
@@ -43,12 +41,4 @@ export function formatShare(part: number, whole: number): string {
 export function formatDelta(delta: number): string {
   const magnitude = new Intl.NumberFormat(getLocale()).format(Math.abs(delta))
   return `${delta < 0 ? '−' : '+'}${magnitude}`
-}
-
-// How far through its loan period an attribution is, 0–100, rounded to whole days.
-export function elapsedPercent(start: Date | string, due: Date | string, now: Date = new Date()): number {
-  const total = Math.round((new Date(due).getTime() - new Date(start).getTime()) / DAY_MS)
-  if (total <= 0) return 100
-  const elapsed = Math.round((now.getTime() - new Date(start).getTime()) / DAY_MS)
-  return Math.min(100, Math.max(0, Math.round((elapsed / total) * 100)))
 }

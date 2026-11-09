@@ -4,9 +4,9 @@ import { Link } from 'react-router'
 
 import type { getUserTerritories, TerritoryStatus } from '~/features/dashboard/server/dashboard.server'
 import { DashboardSection, PanelEmpty, PanelError, panelLinkRowClass } from '~/features/dashboard/ui/DashboardSection'
-import { elapsedPercent } from '~/features/dashboard/ui/dashboard-format'
 import * as m from '~/i18n/paraglide/messages'
 import { RelativeTime } from '~/shared/ui/RelativeTime'
+import { elapsedPercent } from '~/shared/utils/elapsed-percent'
 import { cn } from '~/shared/utils/utils'
 
 type Territories = Awaited<ReturnType<typeof getUserTerritories>>

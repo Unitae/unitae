@@ -4,8 +4,9 @@ vi.mock('~/i18n/paraglide/runtime', () => ({
   getLocale: vi.fn(() => 'fr'),
 }))
 
-const { dateChip, elapsedPercent, formatDelta, formatMeetingWhen, formatShare, formatShortDate, formatTodayLabel } =
-  await import('./dashboard-format')
+const { dateChip, formatDelta, formatMeetingWhen, formatShare, formatShortDate, formatTodayLabel } = await import(
+  './dashboard-format'
+)
 
 // Instants are built in UTC and read in the congregation's zone, so the runner's own zone never
 // leaks into the result.
@@ -58,23 +59,5 @@ describe('formatDelta', () => {
 
   it('groups thousands the local way', () => {
     expect(formatDelta(1200)).toBe('+1\u202f200')
-  })
-})
-
-describe('elapsedPercent', () => {
-  const start = new Date(2026, 0, 1)
-  const due = new Date(2026, 0, 11)
-
-  it('measures how much of the loan period has passed', () => {
-    expect(elapsedPercent(start, due, new Date(2026, 0, 6))).toBe(50)
-  })
-
-  it('stays within 0 and 100', () => {
-    expect(elapsedPercent(start, due, new Date(2025, 11, 1))).toBe(0)
-    expect(elapsedPercent(start, due, new Date(2026, 2, 1))).toBe(100)
-  })
-
-  it('reads as complete when the due date is not after the start', () => {
-    expect(elapsedPercent(start, start, new Date(2026, 0, 1))).toBe(100)
   })
 })
