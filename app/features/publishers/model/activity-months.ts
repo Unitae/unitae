@@ -34,3 +34,14 @@ export function formatActivityMonth(
 export function formatShortMonth({ month, year }: ActivityMonth, locale: string): string {
   return new Date(year, month, 1).toLocaleDateString(locale, { month: 'short' })
 }
+
+/** A month as a side editor's kind, « 2026-9 »: two months of one person are two items to switch between. */
+export function monthKey({ month, year }: ActivityMonth): string {
+  return `${year}-${month}`
+}
+
+/** The month a side editor's kind names, or null for any other kind. */
+export function parseMonthKey(key: string): ActivityMonth | null {
+  const [year, month] = key.split('-').map(Number)
+  return Number.isInteger(year) && Number.isInteger(month) ? { month: month as number, year: year as number } : null
+}

@@ -1,20 +1,15 @@
-import type { ActivityMonth } from '~/features/publishers/model/activity-months'
+import { type ActivityMonth, monthKey, parseMonthKey } from '~/features/publishers/model/activity-months'
 import * as m from '~/i18n/paraglide/messages'
 import { useSideEditor } from '~/shared/ui/hooks/use-side-editor'
 import { DiscardChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
-
+import { EmergencyPanel } from './EmergencyPanel'
 import type { GroupMemberRow } from './GroupMembersTable'
 import { ReportPanel } from './ReportPanel'
-import { useOpenFromLink } from './use-open-from-link'
+import { useOpenFromLink, useOpenParam } from './use-open-from-link'
 import { useReportQueue } from './use-report-queue'
 
-// The side editor keys its item by kind and id: the kind carries the month, so two months of one member are two
-// items, and switching between them asks before dropping changes.
-const monthKey = ({ month, year }: ActivityMonth) => `${year}-${month}`
-function parseMonthKey(key: string): ActivityMonth | null {
-  const [year, month] = key.split('-').map(Number)
-  return Number.isInteger(year) && Number.isInteger(month) ? { month: month as number, year: year as number } : null
-}
+// The emergency panel shares the side editor with the reports, under a kind of its own.
+const EMERGENCY = 'emergency'
 
 interface Options {
   members: GroupMemberRow[]
@@ -33,7 +28,7 @@ export function useGroupReportEditor({ members, inactiveMembers, reported }: Opt
     [...members, ...inactiveMembers].some(member => member.id === target.id),
   )
   const target = editor.target
-  const month = target ? parseMonthKey(target.kind) : null
+  const month = target && target.kind !== EMERGENCY ? parseMonthKey(target.kind) : null
   const onReportedMonth = month != null && reported != null && monthKey(month) === monthKey(reported)
 
   const openReport = (memberId: number, at: ActivityMonth, trigger: HTMLElement | null) =>
@@ -57,7 +52,25 @@ export function useGroupReportEditor({ members, inactiveMembers, reported }: Opt
     ['month', 'year'],
   )
 
-  const panel = target?.id != null && month != null && (
+  // `?emergency=<memberId>`, from an old emergency link: that member's panel.
+  useOpenParam(EMERGENCY, value => {
+    const memberId = Number(value)
+    if (Number.isInteger(memberId)) editor.open({ kind: EMERGENCY, id: memberId, trigger: null })
+  })
+
+  const emergency = target?.kind === EMERGENCY && target.id != null && (
+    <EmergencyPanel
+      key={`${target.id}:emergency`}
+      publisherId={target.id}
+      docked={editor.docked}
+      trigger={target.trigger}
+      formRef={editor.formRef}
+      onRequestClose={() => editor.request(null)}
+      onClose={editor.close}
+    />
+  )
+
+  const report = target?.id != null && month != null && (
     <ReportPanel
       key={`${target.id}:${target.kind}`}
       target={{ publisherId: target.id, ...month, trigger: target.trigger }}
@@ -72,7 +85,7 @@ export function useGroupReportEditor({ members, inactiveMembers, reported }: Opt
 
   return {
     docked: editor.docked,
-    panel,
+    panel: emergency || report,
     discard: (
       <DiscardChangesDialog
         {...editor.discard}
@@ -82,5 +95,7 @@ export function useGroupReportEditor({ members, inactiveMembers, reported }: Opt
     ),
     selected: target?.id != null && month != null ? { memberId: target.id, month } : null,
     open: (memberId: number, at: ActivityMonth, trigger: HTMLElement) => openReport(memberId, at, trigger),
+    openEmergency: (memberId: number, trigger: HTMLElement) =>
+      editor.request({ kind: EMERGENCY, id: memberId, trigger }),
   }
 }

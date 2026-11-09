@@ -9,6 +9,7 @@ import { type GroupMemberRow, GroupMembersTable } from './GroupMembersTable'
 // structure those classes act on: which rows exist, what they span, and where the links lead.
 
 const MEMBER_ID = 8841
+const SIREN_BUTTON = /<button type="button"[^>]*aria-label="[^"]*Ana LIMA/
 const WINDOW = [{ month: 9, year: 2026 }]
 
 const member = (overrides: Partial<GroupMemberRow> = {}): GroupMemberRow => ({
@@ -16,6 +17,7 @@ const member = (overrides: Partial<GroupMemberRow> = {}): GroupMemberRow => ({
   firstname: 'Ana',
   lastname: 'Lima',
   email: '',
+  lastPastoralVisitAt: null,
   reports: [{ month: 9, year: 2026, status: 'filed', id: 5 }],
   signals: [],
   emergencyGaps: [],
@@ -37,6 +39,8 @@ function render(members: GroupMemberRow[], props: Partial<Parameters<typeof Grou
         canViewPublishers: true,
         selected: null,
         onOpenReport: () => {},
+        onOpenEmergency: () => {},
+        onOpenVisit: () => {},
         ...props,
       }),
     ),
@@ -69,10 +73,11 @@ describe('GroupMembersTable', () => {
     expect(render([labelled], { canManageActivity: false })).toContain('colSpan="1"')
   })
 
-  it('links the emergency icon to the member, back to the group page, and names who and what', () => {
+  it('opens the emergency panel from a button naming who and what is missing, not a page of its own', () => {
     const html = render([member({ emergencyGaps: ['card', 'contact'] })])
 
-    expect(html).toContain(`href="/publishers/${MEMBER_ID}/emergency?from=group"`)
+    expect(html).not.toContain('/emergency')
+    expect(html).toMatch(SIREN_BUTTON)
     expect(html).toContain('Ana LIMA')
     expect(html).toContain('carte DPA')
     expect(html).toContain('contact d&#x27;urgence')

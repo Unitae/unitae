@@ -18,3 +18,19 @@ export function memberBackPath(
   if (canViewRecord) return `/publishers/${member.id}/view`
   return '/'
 }
+
+/**
+ * Where an old emergency or visit link now leads: the member's record with that panel open, or their group's page with
+ * it open for them, whichever `memberBackPath` picks; home, with nothing to open, when neither is the reader's.
+ */
+export function memberPanelPath(
+  request: Request,
+  permissions: Set<Permission>,
+  member: { id: number; publisherGroupId: number | null },
+  panel: 'emergency' | 'visit',
+): string {
+  const back = memberBackPath(request, permissions, member)
+  if (back.startsWith('/groups/')) return `${back}?${panel}=${member.id}`
+  if (back.startsWith('/publishers/')) return `${back}?panel=${panel}`
+  return back
+}
