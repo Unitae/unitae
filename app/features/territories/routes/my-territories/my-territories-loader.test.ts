@@ -10,9 +10,11 @@ const MEMBER_ID = 1164
 const TERRITORY_ID = 33
 
 const currentAccountContext = Symbol('currentAccountContext')
+const congregationContext = Symbol('congregationContext')
 
 vi.mock('~/shared/auth/route-context.server', () => ({
   currentAccountContext,
+  congregationContext,
   withScopeFromContext: (_context: unknown, fn: (db: unknown) => unknown) => fn(fakeDb),
 }))
 
@@ -27,7 +29,8 @@ const attributionRow = {
   lateDate: new Date(2026, 11, 1),
   type: 'Default',
   notes: '',
-  territory: { id: TERRITORY_ID, number: 'T01', type: 'doors-to-doors', entrances: [] },
+  pausedAt: null,
+  territory: { id: TERRITORY_ID, number: 'T01', type: 'doors-to-doors', notes: 'Ask before visiting', entrances: [] },
 }
 
 const fakeDb = {
@@ -45,7 +48,11 @@ const fakeDb = {
 
 const context = {
   get: (key: unknown) =>
-    key === currentAccountContext ? { id: ACCOUNT_ID, congregationId: 42, member: { id: MEMBER_ID } } : undefined,
+    key === currentAccountContext
+      ? { id: ACCOUNT_ID, congregationId: 42, member: { id: MEMBER_ID } }
+      : key === congregationContext
+        ? { timezone: 'Europe/Paris' }
+        : undefined,
 }
 
 // Imported once at module scope: a dynamic import inside the test body puts the route's
@@ -58,7 +65,7 @@ describe('/me/territories loader', () => {
     const result = await loader({ context, params: {}, request: new Request('http://test/me/territories') } as never)
 
     expect(result.territories).toHaveLength(1)
-    expect(result.territories[0].territory.number).toBe('T01')
+    expect(result.territories[0].number).toBe('T01')
   })
 })
 
@@ -73,5 +80,7 @@ describe('/me/territories/:territoryId loader', () => {
     } as never)
 
     expect(result.territory.number).toBe('T01')
+    // The territory's notes are the managers': they never reach the holder's page.
+    expect(result.territory).not.toHaveProperty('notes')
   })
 })

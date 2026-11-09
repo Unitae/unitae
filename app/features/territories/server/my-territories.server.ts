@@ -44,6 +44,8 @@ export async function getUserTerritoriesWithDetails(
               phones: true,
               kind: true,
               shopKind: true,
+              // Only the street: it names the territory in the holder's list.
+              buildings: { where: { active: true }, select: { street: true }, take: 1 },
             },
           },
         },
@@ -72,16 +74,27 @@ export async function getUserTerritoryDetail(db: TransactionClient, memberId: nu
       type: true,
       pausedAt: true,
       campaign: { select: { name: true } },
+      // What the holder may read: the notes on the territory and on its buildings stay with the managers.
       territory: {
         select: {
           id: true,
           number: true,
           type: true,
-          notes: true,
           entrances: {
-            include: {
-              accesses: { orderBy: { position: 'asc' } },
-              buildings: { where: { active: true } },
+            select: {
+              id: true,
+              homes: true,
+              phones: true,
+              access: true,
+              isOpenEarly: true,
+              isMailboxOpen: true,
+              notes: true,
+              shopKind: true,
+              accesses: { orderBy: { position: 'asc' }, select: { type: true } },
+              buildings: {
+                where: { active: true },
+                select: { number: true, street: true, zip: true, latitude: true, longitude: true },
+              },
             },
           },
         },

@@ -1,7 +1,11 @@
-import type { BuildingAccess } from '~/database/generated/client'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import * as m from '~/i18n/paraglide/messages'
-import type { Entrance } from '~/shared/types/entrance'
+
+/** The fields the access line reads: the ordered sequence, or the older single access. */
+export interface EntranceAccessSource {
+  access: number | null
+  accesses?: { type: number }[]
+}
 
 function formatAccessLabel(accessType: number): string {
   if (accessType === TerritoryAccess.Intercom) return m.territory_doc_access_intercom()
@@ -10,8 +14,8 @@ function formatAccessLabel(accessType: number): string {
   return ''
 }
 
-export function formatAccessSequence(entrance: Entrance): string {
-  const accesses: BuildingAccess[] = entrance.accesses ?? []
+export function formatAccessSequence(entrance: EntranceAccessSource): string {
+  const accesses = entrance.accesses ?? []
   if (accesses.length > 0) {
     return accesses
       .map(a => formatAccessLabel(a.type))
