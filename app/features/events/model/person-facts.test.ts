@@ -30,23 +30,34 @@ describe('formatFactDate', () => {
   })
 })
 
+const PARIS = 'Europe/Paris'
+
 describe('formatAbsenceRange', () => {
   it('shares the month when both days fall in it', () => {
-    expect(formatAbsenceRange('2026-11-10T00:00:00Z', '2026-11-16T00:00:00Z', 2026)).toBe('du 10 au 16 novembre')
+    expect(formatAbsenceRange('2026-11-10T00:00:00Z', '2026-11-16T00:00:00Z', PARIS, 2026)).toBe('du 10 au 16 novembre')
   })
 
   it('names both months when the absence crosses one', () => {
-    expect(formatAbsenceRange('2026-10-28T00:00:00Z', '2026-11-03T00:00:00Z', 2026)).toBe('du 28 octobre au 3 novembre')
+    expect(formatAbsenceRange('2026-10-28T00:00:00Z', '2026-11-03T00:00:00Z', PARIS, 2026)).toBe(
+      'du 28 octobre au 3 novembre',
+    )
   })
 
   it('gives both years when it crosses the new year', () => {
-    expect(formatAbsenceRange('2026-12-28T00:00:00Z', '2027-01-03T00:00:00Z', 2026)).toBe(
+    expect(formatAbsenceRange('2026-12-28T00:00:00Z', '2027-01-03T00:00:00Z', PARIS, 2026)).toBe(
       'du 28 décembre 2026 au 3 janvier 2027',
     )
   })
 
+  it('reads an absence saved by day in the congregation zone on its own days', () => {
+    // Midnight in Paris is still the evening before in UTC.
+    expect(formatAbsenceRange('2026-11-09T23:00:00Z', '2026-11-13T22:59:59.999Z', PARIS, 2026)).toBe(
+      'du 10 au 13 novembre',
+    )
+  })
+
   it('says « le » for a single day', () => {
-    expect(formatAbsenceRange('2026-11-12T00:00:00Z', '2026-11-12T00:00:00Z', 2026)).toBe('le 12 novembre')
+    expect(formatAbsenceRange('2026-11-12T00:00:00Z', '2026-11-12T00:00:00Z', PARIS, 2026)).toBe('le 12 novembre')
   })
 })
 

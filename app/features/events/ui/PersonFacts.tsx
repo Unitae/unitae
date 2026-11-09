@@ -105,7 +105,9 @@ export function PersonFacts({
   const lines: FactLine[] = [
     ...daysOff.map(dayOff => ({
       tone: 'danger' as const,
-      text: m.person_facts_absence({ range: formatAbsenceRange(dayOff.startDate, dayOff.endDate, referenceYear) }),
+      text: m.person_facts_absence({
+        range: formatAbsenceRange(dayOff.startDate, dayOff.endDate, timeZone, referenceYear),
+      }),
     })),
     ...(sameEventAssignments.length > 0
       ? [

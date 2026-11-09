@@ -159,6 +159,10 @@ export const AuditAction = {
   EventUnreleased: 'event.unreleased',
   EventDeleted: 'event.deleted',
   EventUpdated: 'event.updated',
+
+  // Absences
+  DayOffCreated: 'day_off.created',
+  DayOffDeleted: 'day_off.deleted',
 } as const
 
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction]

@@ -1,19 +1,24 @@
 import { AlertTriangle, CalendarOff, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { Link, redirect } from 'react-router'
+import { absenceDays } from '~/features/events/model/absence'
 import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import { computeFilters, getDefaultDateRange } from '~/features/events/server/event-filters.server'
 import {
   type ConflictingEvent,
-  computeDurationDays,
   getConflictsForWeek,
-  getMonday,
   groupEventsByWeek,
+  weekOf,
 } from '~/features/events/ui/days-off-helpers'
 import EventFilters from '~/features/events/ui/EventFilters'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { Badge } from '~/shared/ui/badge'
@@ -21,6 +26,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { RelativeTime } from '~/shared/ui/RelativeTime'
+import { startOfDay } from '~/shared/utils/calendar-day'
+import { formatEventDate } from '~/shared/utils/event-time'
 import { cn } from '~/shared/utils/utils'
 import type { Route } from './+types/days-off'
 
@@ -148,6 +155,8 @@ export function loader({ request, context }: Route.LoaderArgs) {
       hasAnyDaysOff,
       defaults: { from: defaultFrom, to: defaultTo },
       canViewPrograms,
+      // Absences cover whole days in the congregation's zone: weeks and days are read there.
+      timeZone: context.get(congregationContext).timezone,
     }
   })
 }
@@ -161,8 +170,10 @@ export default function DaysOffListPage({ loaderData }: Route.ComponentProps) {
     hasAnyDaysOff,
     defaults,
     canViewPrograms,
+    timeZone,
   } = loaderData
-  const weekGroups = groupEventsByWeek(events)
+  const weekGroups = groupEventsByWeek(events, timeZone)
+  const locale = getLocale()
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
 
   const toggleCollapse = (weekKey: string) => {
@@ -210,8 +221,7 @@ export default function DaysOffListPage({ loaderData }: Route.ComponentProps) {
           </p>
 
           {[...weekGroups.entries()].map(([mondayKey, weekEvents], index) => {
-            const monday = new Date(mondayKey)
-            const formattedDate = monday.toLocaleDateString(getLocale(), {
+            const formattedDate = formatEventDate(startOfDay(mondayKey, timeZone), timeZone, locale, {
               day: 'numeric',
               month: 'long',
               year: 'numeric',
@@ -219,7 +229,7 @@ export default function DaysOffListPage({ loaderData }: Route.ComponentProps) {
             const isCollapsed = collapsed[mondayKey] ?? false
             const weekHasConflicts = weekEvents.some(e => {
               const allConflicts = conflictsByDayOff[e.id] ?? []
-              return getConflictsForWeek(allConflicts, mondayKey).length > 0
+              return getConflictsForWeek(allConflicts, mondayKey, timeZone).length > 0
             })
 
             return (
@@ -256,13 +266,12 @@ export default function DaysOffListPage({ loaderData }: Route.ComponentProps) {
                     <CardContent className="pt-3 pb-2">
                       <div className="flex flex-col gap-1">
                         {weekEvents.map(event => {
-                          const startDate = new Date(event.startDate)
-                          const endDate = new Date(event.endDate)
-                          const durationDays = computeDurationDays(startDate, endDate)
-                          const eventStartMonday = getMonday(startDate).toISOString().split('T')[0]
-                          const isContinuation = eventStartMonday !== mondayKey
+                          const durationDays = absenceDays(event.startDate, event.endDate, timeZone).count
+                          const isContinuation = weekOf(event.startDate, timeZone) !== mondayKey
                           const allConflicts = conflictsByDayOff[event.id] ?? []
-                          const weekConflicts = getConflictsForWeek(allConflicts, mondayKey)
+                          const weekConflicts = getConflictsForWeek(allConflicts, mondayKey, timeZone)
+                          const dayLabel = (date: Date | string) =>
+                            formatEventDate(date, timeZone, locale, { weekday: 'short', day: 'numeric', month: 'long' })
                           const hasConflicts = weekConflicts.length > 0
 
                           return (
@@ -294,16 +303,8 @@ export default function DaysOffListPage({ loaderData }: Route.ComponentProps) {
                                     </div>
                                     <span className="text-muted-foreground text-xs">
                                       {m.days_off_date_range({
-                                        startDate: startDate.toLocaleDateString(getLocale(), {
-                                          weekday: 'short',
-                                          day: 'numeric',
-                                          month: 'long',
-                                        }),
-                                        endDate: endDate.toLocaleDateString(getLocale(), {
-                                          weekday: 'short',
-                                          day: 'numeric',
-                                          month: 'long',
-                                        }),
+                                        startDate: dayLabel(event.startDate),
+                                        endDate: dayLabel(event.endDate),
                                       })}{' '}
                                       {m.days_off_admin_duration({ count: String(durationDays) })}
                                     </span>

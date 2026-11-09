@@ -4,15 +4,18 @@ import type { MemberAbsence, MemberAssignment } from '~/features/events'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { RelatedItemRow, RelatedItemsCard } from '~/shared/ui/RelatedItemsCard'
+import { formatEventDate } from '~/shared/utils/event-time'
 
 interface PublisherEngagementCardsProps {
   assignments: MemberAssignment[] | null
   absences: MemberAbsence[] | null
+  /** The congregation's: an absence's days and an event's date are read there, not in the server's zone. */
+  timeZone: string
 }
 
-function formatDate(date: Date | string | null): string {
+function formatDate(date: Date | string | null, timeZone: string): string {
   if (date == null) return ''
-  return new Date(date).toLocaleDateString(getLocale(), { day: 'numeric', month: 'short', year: 'numeric' })
+  return formatEventDate(date, timeZone, getLocale(), { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 /**
@@ -20,7 +23,7 @@ function formatDate(date: Date | string | null): string {
  * programme assignments and planned absences, each linking into the events
  * feature. A block is omitted (null) when the viewer lacks the permission.
  */
-export function PublisherEngagementCards({ assignments, absences }: PublisherEngagementCardsProps) {
+export function PublisherEngagementCards({ assignments, absences, timeZone }: PublisherEngagementCardsProps) {
   if (assignments == null && absences == null) return null
 
   return (
@@ -38,7 +41,7 @@ export function PublisherEngagementCards({ assignments, absences }: PublisherEng
               key={assignment.key}
               to={`/programs/events/${assignment.eventId}/view`}
               primary={assignment.partName}
-              secondary={`${assignment.eventName} — ${formatDate(assignment.eventStartDate)}`}
+              secondary={`${assignment.eventName} — ${formatDate(assignment.eventStartDate, timeZone)}`}
             />
           ))}
         </RelatedItemsCard>
@@ -55,7 +58,7 @@ export function PublisherEngagementCards({ assignments, absences }: PublisherEng
             <RelatedItemRow
               key={absence.id}
               to="/programs/days-off"
-              primary={`${formatDate(absence.startDate)} → ${formatDate(absence.endDate)}`}
+              primary={`${formatDate(absence.startDate, timeZone)} → ${formatDate(absence.endDate, timeZone)}`}
             />
           ))}
         </RelatedItemsCard>

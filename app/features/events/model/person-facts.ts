@@ -2,6 +2,7 @@ import type { CadenceEntry } from '~/features/events/model/cadence.type'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import type { PersonDescription } from '~/shared/ui/PersonDropdown'
+import { dayOf } from '~/shared/utils/calendar-day'
 
 /** « 22 octobre », « 1er octobre », with the year when it is not the reference one: « 18 août 2025 ». */
 function formatDay(date: Date, timeZone: string, withYear: boolean): string {
@@ -27,22 +28,23 @@ export function formatFactDate(iso: string, timeZone: string, referenceYear: num
 }
 
 /**
- * A declared absence: « du 10 au 16 novembre », « du 28 octobre au 3 novembre », « le 12 novembre ». Absences are
- * whole days stored at midnight UTC, so they are read in UTC: any other zone could move them by a day.
+ * A declared absence: « du 10 au 16 novembre », « du 28 octobre au 3 novembre », « le 12 novembre ». Its days are
+ * read in the congregation's zone, where an absence runs from the start of its first day to the end of its last;
+ * absences saved earlier at midnight UTC read as the same days east of UTC.
  */
-export function formatAbsenceRange(startIso: string, endIso: string, referenceYear: number): string {
-  const start = new Date(startIso)
-  const end = new Date(endIso)
-  const startYear = start.getUTCFullYear()
-  const endYear = end.getUTCFullYear()
-  const endLabel = formatDay(end, 'UTC', endYear !== referenceYear || startYear !== endYear)
-  if (start.toISOString().slice(0, 10) === end.toISOString().slice(0, 10)) return m.person_facts_day({ day: endLabel })
-  const sameMonth = startYear === endYear && start.getUTCMonth() === end.getUTCMonth()
+export function formatAbsenceRange(startIso: string, endIso: string, timeZone: string, referenceYear: number): string {
+  const first = dayOf(startIso, timeZone)
+  const last = dayOf(endIso, timeZone)
+  const [startYear, startMonth, startDay] = first.split('-').map(Number)
+  const [endYear, endMonth] = last.split('-').map(Number)
+  const endLabel = formatDay(new Date(endIso), timeZone, endYear !== referenceYear || startYear !== endYear)
+  if (first === last) return m.person_facts_day({ day: endLabel })
+  const sameMonth = startYear === endYear && startMonth === endMonth
   const startLabel = sameMonth
-    ? start.getUTCDate() === 1
+    ? startDay === 1 && getLocale() === 'fr'
       ? '1er'
-      : String(start.getUTCDate())
-    : formatDay(start, 'UTC', startYear !== endYear)
+      : String(startDay)
+    : formatDay(new Date(startIso), timeZone, startYear !== endYear)
   return m.person_facts_range({ start: startLabel, end: endLabel })
 }
 
@@ -65,7 +67,7 @@ interface DescribeOptions {
 export function describeCandidate(facts: CandidateFacts, { kind, timeZone, referenceYear }: DescribeOptions) {
   if (facts.absence) {
     return {
-      facts: `${m.person_facts_absence({ range: formatAbsenceRange(facts.absence.startDate, facts.absence.endDate, referenceYear) })}`,
+      facts: `${m.person_facts_absence({ range: formatAbsenceRange(facts.absence.startDate, facts.absence.endDate, timeZone, referenceYear) })}`,
       tone: 'danger',
       setAside: m.person_facts_absent_group(),
       rank: facts.lastAssignedAt ? Date.parse(facts.lastAssignedAt) : Number.NEGATIVE_INFINITY,

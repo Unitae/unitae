@@ -1,97 +1,80 @@
 import { redirect } from 'react-router'
+
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { EventTemplateKey } from '~/features/events/model/event-template.type'
+import { absenceDays, absenceLength, formatAbsencePeriod } from '~/features/events/model/absence'
+import { findOwnDayOff } from '~/features/events/server/days-off.queries'
 import { deleteDayOff } from '~/features/events/server/days-off.server'
 import * as m from '~/i18n/paraglide/messages'
-import { getLocale } from '~/i18n/paraglide/runtime'
-import { currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import logger from '~/shared/infra/logger.server'
+import { congregationContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
 import { requireParamId } from '~/shared/utils/params.server'
+
 import type { Route } from './+types/delete'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Supprimer une absence — Unitae' }]
+  return [{ title: `${m.days_off_delete_dialog_title()} - Unitae` }]
 }
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const currentUser = context.get(currentAccountContext)
-  logger.info(`Trying to remove days off. User ID: ${currentUser.id}. Event: ${params.eventId}`)
+  const { timezone } = context.get(congregationContext)
+  const eventId = requireParamId(params.eventId, '/me/days-off')
 
   return withScopeFromContext(context, async db => {
-    const { congregationId } = currentUser
-    const event = await db.event.findUnique({
-      where: {
-        id_congregationId: { id: requireParamId(params.eventId, '/me/days-off'), congregationId },
-        template: { key: EventTemplateKey.DayOff },
-      },
-      include: { createdBy: true },
+    const absence = await findOwnDayOff(db, {
+      eventId,
+      accountId: currentUser.id,
+      congregationId: currentUser.congregationId,
     })
-
-    if (event?.createdBy?.id !== currentUser.id) {
-      throw redirect('/me/days-off')
-    }
-
-    return { event }
+    if (absence == null) throw redirect('/me/days-off')
+    return { absence, timeZone: timezone, now: new Date() }
   })
 }
 
 export default function DeleteDayOff({ loaderData }: Route.ComponentProps) {
-  const { event } = loaderData
+  const { absence, timeZone, now } = loaderData
 
   return (
     <DeleteConfirmation
-      title={m.days_off_delete_confirm_title()}
+      title={m.days_off_delete_dialog_title()}
       submitLabel={m.days_off_delete_submit()}
       cancelTo="/me/days-off"
+      impact={m.days_off_delete_dialog_description()}
     >
-      <p>{event.startDate.toLocaleDateString(getLocale())}</p>
+      <p>
+        <span className="font-medium">
+          {formatAbsencePeriod(absence.startDate, absence.endDate, timeZone, new Date(now))}
+        </span>
+        {' · '}
+        <span className="tabular-nums">
+          {absenceLength(absenceDays(absence.startDate, absence.endDate, timeZone).count)}
+        </span>
+      </p>
     </DeleteConfirmation>
   )
 }
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const currentUser = context.get(currentAccountContext)
+  const { timezone } = context.get(congregationContext)
+  const eventId = requireParamId(params.eventId, '/me/days-off')
   const session = await getSession(request.headers.get('Cookie'))
 
   return withScopeFromContext(context, async db => {
-    const { congregationId } = currentUser
-    const event = await db.event.findUnique({
-      where: {
-        id_congregationId: { id: requireParamId(params.eventId, '/me/days-off'), congregationId },
-      },
-      include: { createdBy: true },
+    // Only the caller's own absence goes; anything else, absence or not, is left as it is.
+    const deleted = await deleteDayOff(db, {
+      eventId,
+      accountId: currentUser.id,
+      memberId: currentUser.member?.id ?? null,
+      congregationId: currentUser.congregationId,
     })
 
-    if (currentUser.id !== event?.createdBy.id) {
+    if (deleted == null) {
       session.flash('error', m.days_off_delete_unauthorized())
-      logger.warn(`Tried to remove days off of an other user. User ID: ${currentUser.id}. Event: ${params.eventId}.`)
-
-      return redirect('/me/days-off', {
-        headers: {
-          'Set-Cookie': await commitSession(session),
-        },
-      })
+    } else {
+      const period = formatAbsencePeriod(deleted.startDate, deleted.endDate, timezone)
+      session.flash('success', m.days_off_delete_success({ period }))
     }
-
-    const deletedEvent = await deleteDayOff(
-      db,
-      requireParamId(params.eventId, '/me/days-off'),
-      currentUser.member?.id ?? null,
-      congregationId,
-    )
-
-    session.flash(
-      'success',
-      m.days_off_delete_success({ date: deletedEvent.startDate.toLocaleDateString(getLocale()) }),
-    )
-    logger.warn(`Successfully removed days off. User ID: ${currentUser.id}. Event: ${params.eventId}.`)
-
-    const previousPage = request.headers.get('referer')
-    return redirect(previousPage ?? '/me/days-off', {
-      headers: {
-        'Set-Cookie': await commitSession(session),
-      },
-    })
+    return redirect('/me/days-off', { headers: { 'Set-Cookie': await commitSession(session) } })
   })
 }
