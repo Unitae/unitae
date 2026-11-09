@@ -29,9 +29,10 @@ export function loader({ params, context }: Route.LoaderArgs) {
     }
 
     const canViewTerritories = permissions.has(Permission.CanViewTerritories)
-    const isCurrentlyAttributed = territory.attributions.some(
-      a => a.endDate == null && a.publisherId === currentUser.id,
-    )
+    // Attributions are held by the Member, never the login account: compare with the member id.
+    const memberId = currentUser.member?.id ?? null
+    const isCurrentlyAttributed =
+      memberId != null && territory.attributions.some(a => a.endDate == null && a.publisherId === memberId)
 
     if (!canViewTerritories && !isCurrentlyAttributed) {
       throw new ForbiddenError()
