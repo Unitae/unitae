@@ -20,6 +20,7 @@ import { ActivityViewSwitch } from '~/features/publishers/ui/ActivityViewSwitch'
 import { ExportActivityDialog } from '~/features/publishers/ui/ExportActivityDialog'
 import { ReportPanel } from '~/features/publishers/ui/ReportPanel'
 import { formatMonthYear } from '~/features/publishers/ui/report-month-format'
+import { useOpenFromLink } from '~/features/publishers/ui/use-open-from-link'
 import { useReportQueue } from '~/features/publishers/ui/use-report-queue'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
@@ -154,6 +155,8 @@ export default function ActivityReports({ loaderData }: Route.ComponentProps) {
     onAdvance: row => panel.open({ kind: 'report', id: row.id, trigger: null }),
     onEnd: panel.close,
   })
+
+  useOpenFromLink(publisherId => panel.open({ kind: 'report', id: publisherId, trigger: null }))
 
   const stepMonth = (delta: number) => {
     const index = selectedMonth.year * 12 + selectedMonth.month + delta

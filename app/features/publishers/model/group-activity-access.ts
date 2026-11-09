@@ -71,3 +71,21 @@ export function reportAccess({ permissions, leader, publisherGroupId }: ReportAc
     canDelete: permissions.has(Permission.CanCorrectActivity),
   }
 }
+
+/**
+ * Where one publisher's monthly report opens now that the form lives in a panel: the activity page for those who may
+ * see the month's reports, the group page for the overseer or deputy of the publisher's group, nowhere otherwise.
+ * The old report pages redirect there; the panel's route still decides what the reader may do with the month.
+ */
+export function reportPanelPath(
+  input: ReportAccessInput & { publisherId: number; month: number; year: number },
+): string | null {
+  const { permissions, leader, publisherGroupId, publisherId, month, year } = input
+  const query = `open=${publisherId}&month=${month}&year=${year}`
+  if (permissions.has(Permission.CanViewActivity)) return `/publishers/activity?${query}`
+  const leadsTheGroup =
+    leader != null &&
+    publisherGroupId != null &&
+    (leader.responsibleForId === publisherGroupId || leader.deputyForId === publisherGroupId)
+  return leadsTheGroup ? `/groups/${publisherGroupId}/view?${query}` : null
+}

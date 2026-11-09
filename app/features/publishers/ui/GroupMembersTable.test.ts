@@ -35,6 +35,8 @@ function render(members: GroupMemberRow[], props: Partial<Parameters<typeof Grou
         canRecordVisits: false,
         canEditPublishers: false,
         canViewPublishers: true,
+        selected: null,
+        onOpenReport: () => {},
         ...props,
       }),
     ),

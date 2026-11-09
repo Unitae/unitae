@@ -232,13 +232,7 @@ function ReportFooter({ filed, canDelete, busy, queue, onDelete, onSave }: Repor
   const walk = !filed && queue != null && queue.total > 1
 
   return (
-    <div className="flex w-full flex-wrap items-center gap-2">
-      {filed && canDelete && (
-        <Button type="button" variant="ghost" className="text-danger-text" onClick={onDelete} disabled={busy}>
-          <Trash2 />
-          {m.report_panel_delete()}
-        </Button>
-      )}
+    <div className="flex w-full flex-col gap-2">
       {walk && (
         <span className="flex items-center gap-1 text-faint text-xs">
           <Button
@@ -264,15 +258,30 @@ function ReportFooter({ filed, canDelete, busy, queue, onDelete, onSave }: Repor
           </Button>
         </span>
       )}
-      <span className="flex-1" />
-      <SubmitButton form={FORM_ID} variant={walk ? 'outline' : 'default'} disabled={busy} onClick={() => onSave(false)}>
-        {m.common_save()}
-      </SubmitButton>
-      {walk && (
-        <SubmitButton form={FORM_ID} disabled={busy} onClick={() => onSave(true)}>
-          {m.report_panel_save_next()}
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {filed && !canDelete && (
+          <span className="mr-auto text-faint text-xs">{m.report_panel_delete_by_secretary()}</span>
+        )}
+        {filed && canDelete && (
+          <Button type="button" variant="ghost" className="mr-auto text-danger-text" onClick={onDelete} disabled={busy}>
+            <Trash2 />
+            {m.report_panel_delete()}
+          </Button>
+        )}
+        <SubmitButton
+          form={FORM_ID}
+          variant={walk ? 'outline' : 'default'}
+          disabled={busy}
+          onClick={() => onSave(false)}
+        >
+          {m.common_save()}
         </SubmitButton>
-      )}
+        {walk && (
+          <SubmitButton form={FORM_ID} disabled={busy} onClick={() => onSave(true)}>
+            {m.report_panel_save_next()}
+          </SubmitButton>
+        )}
+      </div>
     </div>
   )
 }
