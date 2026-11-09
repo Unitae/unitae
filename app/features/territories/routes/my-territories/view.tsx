@@ -6,9 +6,8 @@ import { redirect } from 'react-router'
 import { groupByStreet, toHolderEntrance } from '~/features/territories/model/holder-territory'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { computeStatus, getUserTerritoryDetail } from '~/features/territories/server/my-territories.server'
-import { HolderEntranceList } from '~/features/territories/ui/HolderEntranceList'
 import { HolderTerritoryFacts, LoanStatus } from '~/features/territories/ui/HolderLoan'
-import { HolderTerritoryMap } from '~/features/territories/ui/HolderTerritoryMap'
+import { HolderTerritoryBody, type HolderView } from '~/features/territories/ui/HolderTerritoryBody'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { congregationContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -67,8 +66,9 @@ export function loader({ params, context }: Route.LoaderArgs) {
         status: computeStatus(attribution.lateDate),
       },
       showPhone: phoneTypeActive ?? false,
-      // The map needs both the congregation's choice and a key: without one there is nothing to show.
-      mapKey: mapTabActive && apiKey ? apiKey : null,
+      // The map needs the congregation's choice, a key and one building placed on it: without them
+      // there is nothing to show, and the list keeps the whole width.
+      mapKey: mapTabActive && apiKey && entrances.some(entrance => entrance.points.length > 0) ? apiKey : null,
       timeZone: timezone,
     }
   })
@@ -76,7 +76,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
 export default function MyTerritoryView({ loaderData }: Route.ComponentProps) {
   const { territory, streets, totals, attribution, showPhone, mapKey, timeZone } = loaderData
-  const [view, setView] = useState<'list' | 'map'>('list')
+  const [view, setView] = useState<HolderView>('list')
 
   return (
     <div className={cn('flex flex-col', mapKey != null ? 'max-w-6xl' : 'max-w-4xl')}>
@@ -85,14 +85,17 @@ export default function MyTerritoryView({ loaderData }: Route.ComponentProps) {
         title={m.territory_doc_title({ name: territory.number })}
         titleBadge={<LoanStatus loan={attribution} timeZone={timeZone} form="long" relative="inline" />}
         meta={
-          <HolderTerritoryFacts
-            type={territory.type}
-            totals={totals}
-            loan={attribution}
-            campaignName={attribution.campaignName}
-            byPhone={attribution.byPhone}
-            timeZone={timeZone}
-          />
+          // The map alone on a phone leaves the header to the title and the due date.
+          <div className={cn('contents', view === 'map' && 'max-xl:hidden')}>
+            <HolderTerritoryFacts
+              type={territory.type}
+              totals={totals}
+              loan={attribution}
+              campaignName={attribution.campaignName}
+              byPhone={attribution.byPhone}
+              timeZone={timeZone}
+            />
+          </div>
         }
         breadcrumbs={[{ label: m.sidebar_my_territories(), to: '/me/territories' }, { label: territory.number }]}
         actions={
@@ -121,25 +124,14 @@ export default function MyTerritoryView({ loaderData }: Route.ComponentProps) {
         }
       />
 
-      <div
-        data-sticky-content=""
-        className={cn('grid items-start gap-6', mapKey != null && 'xl:grid-cols-[minmax(0,1fr)_26rem]')}
-      >
-        {streets.length > 0 && (
-          <div className={cn(mapKey != null && view === 'map' && 'max-xl:hidden')}>
-            <HolderEntranceList streets={streets} territoryType={territory.type} showPhone={showPhone} />
-          </div>
-        )}
-        {mapKey != null && (
-          <div className={cn('xl:sticky xl:top-6', view === 'list' && 'max-xl:hidden')}>
-            <HolderTerritoryMap
-              apiKey={mapKey}
-              number={territory.number}
-              entrances={streets.flatMap(street => street.entrances)}
-            />
-          </div>
-        )}
-      </div>
+      <HolderTerritoryBody
+        streets={streets}
+        territoryType={territory.type}
+        showPhone={showPhone}
+        map={mapKey == null ? null : { apiKey: mapKey, number: territory.number }}
+        view={view}
+        onViewChange={setView}
+      />
     </div>
   )
 }
