@@ -41,7 +41,6 @@ export default [
         index('features/display-board/routes/sections/list.tsx'),
         route('new', 'features/display-board/routes/sections/new.tsx'),
         route('reorder', 'features/display-board/routes/sections/reorder.tsx'),
-        route('bulk-delete', 'features/display-board/routes/sections/bulk-delete.tsx'),
         route('/:sectionId/edit', 'features/display-board/routes/sections/edit.tsx'),
         route('/:sectionId/delete', 'features/display-board/routes/sections/delete.tsx'),
         route('/:sectionId/move-up', 'features/display-board/routes/sections/move-up.tsx'),

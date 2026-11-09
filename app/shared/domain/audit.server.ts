@@ -69,6 +69,7 @@ export const AuditAction = {
   BoardSectionCreated: 'board.section.created',
   BoardSectionUpdated: 'board.section.updated',
   BoardSectionVisibilityChanged: 'board.section.visibility.changed',
+  BoardSectionDeleted: 'board.section.deleted',
 
   // Territories
   TerritoryCreated: 'territory.created',
