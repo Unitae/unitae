@@ -69,6 +69,7 @@ export default [
         route('/:documentId/viewer', 'features/display-board/routes/documents/viewer.tsx'),
         route('/:documentId/read-status', 'features/display-board/routes/documents/read-status.tsx'),
         route('/:documentId/versions', 'features/display-board/routes/documents/versions.tsx'),
+        route('/:documentId/versions/:versionId/file', 'features/display-board/routes/documents/version-file.tsx'),
         route('/:documentId/thumbnail', 'features/display-board/routes/documents/thumbnail.tsx'),
       ]),
     ]),

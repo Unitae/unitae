@@ -1,7 +1,7 @@
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 import { deleteFile } from './document.server'
-import { deleteBoardFile } from './document-storage.server'
+import { deleteBoardFile, getBoardFile } from './document-storage.server'
 import { thumbnailQueue } from './thumbnail-queue.server'
 
 /**
@@ -56,6 +56,15 @@ export async function restoreDocumentVersion(
   if (version == null || version.documentId !== documentId) {
     return null
   }
+
+  // A replacement used to delete the file it replaced: rows from then point at nothing. Bringing one back would
+  // leave the document without a file, so it stays on the one it has.
+  const file = await getBoardFile(version.uri)
+  if (file == null) {
+    logger.warn('Board version file is gone; not restoring it', { documentId, versionId })
+    return null
+  }
+  await file.body.cancel()
 
   const currentDoc = await db.boardDocument.findUnique({
     where: {

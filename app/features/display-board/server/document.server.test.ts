@@ -1,5 +1,20 @@
-import { describe, expect, it } from 'vitest'
-import { computeReorderedItems } from './document.server'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const { mockDeleteBoardFile } = vi.hoisted(() => ({ mockDeleteBoardFile: vi.fn() }))
+vi.mock('./document-storage.server', () => ({
+  deleteBoardFile: mockDeleteBoardFile,
+  getBoardFile: vi.fn(),
+  saveBoardFile: vi.fn().mockResolvedValue('board/new.pdf'),
+}))
+vi.mock('./document-versions.server', () => ({ createVersionForUpload: vi.fn() }))
+vi.mock('./thumbnail-queue.server', () => ({ thumbnailQueue: { add: vi.fn() } }))
+vi.mock('./file-validation.server', async importOriginal => ({
+  ...(await importOriginal<object>()),
+  validateBoardFile: vi.fn().mockResolvedValue(undefined),
+}))
+vi.mock('~/shared/infra/logger.server', () => ({ default: { error: vi.fn(), info: vi.fn(), warn: vi.fn() } }))
+
+import { computeReorderedItems, replaceDocumentFile } from './document.server'
 
 describe('computeReorderedItems', () => {
   it('moves the target item up, swapping it with the item before it', () => {
@@ -87,5 +102,31 @@ describe('computeReorderedItems', () => {
     ]
     const result = computeReorderedItems(items, 2, 'up')
     expect(result.map(r => r.id)).toEqual([2, 1])
+  })
+})
+
+describe('replaceDocumentFile', () => {
+  const pdf = new File(['%PDF-1.4'], 'lettre.pdf', { type: 'application/pdf' })
+  const db = (referencedByHistory: number) =>
+    ({
+      boardDocument: {
+        findUnique: vi.fn().mockResolvedValue({ uri: 'board/old.pdf', thumbnailUri: 'board/old.thumb.png' }),
+        update: vi.fn(),
+      },
+      boardDocumentVersion: { count: vi.fn().mockResolvedValue(referencedByHistory) },
+    }) as never
+
+  beforeEach(() => mockDeleteBoardFile.mockReset())
+
+  it('keeps the file it replaces when the history refers to it, so it can be downloaded and brought back', async () => {
+    await replaceDocumentFile(db(1), 100, 1, 42, pdf)
+
+    expect(mockDeleteBoardFile.mock.calls.map(([key]) => key)).toEqual(['board/old.thumb.png'])
+  })
+
+  it('deletes it when nothing refers to it, as for a document from before versions were kept', async () => {
+    await replaceDocumentFile(db(0), 100, 1, 42, pdf)
+
+    expect(mockDeleteBoardFile.mock.calls.map(([key]) => key)).toEqual(['board/old.pdf', 'board/old.thumb.png'])
   })
 })
