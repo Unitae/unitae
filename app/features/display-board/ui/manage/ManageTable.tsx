@@ -10,6 +10,7 @@ import {
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Tag } from '@unitae/ui'
 import { MoreHorizontal, Pencil } from 'lucide-react'
+import { useId } from 'react'
 import { Link, useSubmit } from 'react-router'
 import type { ManagedItem } from '~/features/display-board/server/board-management.queries'
 import { itemKey, ManagedItemRow, type ManageRights } from '~/features/display-board/ui/manage/ManagedItemRow'
@@ -107,6 +108,8 @@ export function ManageTable({
   timeZone,
   compact = false,
 }: ManageTableProps) {
+  // A stable id, or dnd-kit numbers its describedby ids differently on the server and the client.
+  const dndId = useId()
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -126,7 +129,7 @@ export function ManageTable({
   }
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+    <DndContext id={dndId} sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <div className="overflow-x-auto rounded-lg border border-border bg-card">
         <table
           className={cn(
@@ -154,16 +157,22 @@ export function ManageTable({
             <SortableContext key={section.id} items={section.items.map(itemKey)} strategy={verticalListSortingStrategy}>
               <tbody className="max-md:block">
                 <tr className="max-md:block">
-                  <td colSpan={columns} className="h-10 border-border border-b bg-subtle px-3.5 max-md:block">
-                    <span className="flex min-w-0 flex-wrap items-center gap-2">
-                      <span className="font-semibold">{section.name}</span>
-                      <span className="text-faint text-sm tabular-nums">{section.items.length}</span>
-                      <span className="ml-1.5 text-faint text-sm max-sm:hidden">{m.board_manage_visible_to()}</span>
-                      {section.roles.length === 0 ? (
-                        <Tag>{m.board_manage_everyone()}</Tag>
-                      ) : (
-                        section.roles.map(role => <Tag key={role.id}>{role.label}</Tag>)
-                      )}
+                  <td
+                    colSpan={columns}
+                    className="h-10 border-border border-b bg-subtle px-3.5 max-md:block max-md:h-auto max-md:py-2"
+                  >
+                    <span className="flex items-center gap-2">
+                      {/* Wraps on its own, so a narrow screen pushes the roles down rather than the actions. */}
+                      <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="font-semibold">{section.name}</span>
+                        <span className="text-faint text-sm tabular-nums">{section.items.length}</span>
+                        <span className="ml-1.5 text-faint text-sm max-sm:hidden">{m.board_manage_visible_to()}</span>
+                        {section.roles.length === 0 ? (
+                          <Tag>{m.board_manage_everyone()}</Tag>
+                        ) : (
+                          section.roles.map(role => <Tag key={role.id}>{role.label}</Tag>)
+                        )}
+                      </span>
                       {rights.canConfigureSections && (
                         <SectionActions
                           section={section}
