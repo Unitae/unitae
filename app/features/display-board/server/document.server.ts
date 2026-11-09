@@ -83,12 +83,15 @@ export async function replaceDocumentFile(
     data: { uri, thumbnailUri: null },
   })
 
-  // Clean up old files
+  // The file it replaces stays while the history refers to it: it is what « Remettre » and a version's download
+  // read. Only a file from before versions were kept, which no row points at, goes. The thumbnail always goes:
+  // the worker makes a new one from whichever file the document shows.
   if (oldDocument?.uri) {
-    await deleteFile(oldDocument)
-    if (oldDocument.thumbnailUri) {
-      await deleteFile({ uri: oldDocument.thumbnailUri })
-    }
+    const kept = await db.boardDocumentVersion.count({ where: { documentId, congregationId, uri: oldDocument.uri } })
+    if (kept === 0) await deleteFile(oldDocument)
+  }
+  if (oldDocument?.thumbnailUri) {
+    await deleteFile({ uri: oldDocument.thumbnailUri })
   }
 
   // Enqueue thumbnail regeneration
