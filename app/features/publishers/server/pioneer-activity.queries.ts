@@ -180,6 +180,8 @@ function classifyPioneerMember(
         months: plan.months,
         now,
         enrolledSinceYearStart: plan.enrolledSinceYearStart,
+        // The stint says when he started: enrolled months without a report count as zero, not « not enough data ».
+        enrolledFrom: plan.enrolledMonths[0],
         concluded: plan.concluded,
         notEnrolledMonths: plan.notEnrolledMonths,
       }),
@@ -235,15 +237,29 @@ function sortMostAtRiskFirst(annual: PioneerAnnualRow[]): void {
 }
 
 function computeTotals(annual: PioneerAnnualRow[]): PioneerActivitySummary['totals'] {
-  const totals = { onTrack: 0, behind: 0, atRisk: 0, actualHours: 0, targetHours: 0 }
+  const totals = {
+    onTrack: 0,
+    behind: 0,
+    atRisk: 0,
+    concluded: 0,
+    actualHours: 0,
+    creditHours: 0,
+    targetToDate: 0,
+    targetHours: 0,
+  }
   for (const row of annual) {
-    if (row.concluded) continue
+    if (row.concluded) {
+      totals.concluded++
+      continue
+    }
     if (row.pace.riskBucket === 'green') totals.onTrack++
     else if (row.pace.riskBucket === 'amber') totals.behind++
     else totals.atRisk++
     // Achieved, not raw field hours: the board's totals answer "are we on pace", and
     // credits count toward that goal by design.
     totals.actualHours += row.pace.achievedToDate
+    totals.creditHours += row.pace.creditToDate
+    totals.targetToDate += row.pace.targetToDate
     totals.targetHours += row.pace.fullYearTarget
   }
   return totals

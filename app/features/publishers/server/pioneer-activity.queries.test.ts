@@ -212,3 +212,37 @@ describe('getPioneerActivitySummary — secretary hour credits', () => {
     expect(summary.totals.actualHours).toBe(200)
   })
 })
+
+describe('getPioneerActivitySummary — an enrolment without reports', () => {
+  it('puts a pioneer enrolled mid-year who filed nothing behind from his first enrolled month', async () => {
+    vi.mocked(db.member.findMany).mockResolvedValue([
+      {
+        id: 6,
+        firstname: 'Sylvie',
+        lastname: 'BERNARD',
+        type: PublisherType.PionnierPermanant,
+        publisherGroup: null,
+        activities: [],
+        // Enrolled from November 2025, no report since.
+        pioneerEnrolments: [
+          {
+            type: PublisherType.PionnierPermanant,
+            startMonth: 10,
+            startYear: 2025,
+            endMonth: null,
+            endYear: null,
+            monthlyGoal: null,
+          },
+        ],
+      },
+    ] as never)
+
+    const result = await getPioneerActivitySummary(db, 42, SY, NOW) // expected month: December
+
+    const pace = result.annual[0]?.pace
+    expect(pace?.elapsedEnrolled).toBe(2) // November and December
+    expect(pace?.targetToDate).toBe(100)
+    expect(pace?.paceDelta).toBe(-100)
+    expect(pace?.riskBucket).toBe('red')
+  })
+})

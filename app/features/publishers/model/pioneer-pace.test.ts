@@ -637,3 +637,105 @@ describe('computeAuxiliarySummary — secretary hour credits', () => {
     expect(summary.thisMonth?.credit).toBe(5)
   })
 })
+
+// A pioneer enrolled mid-year who has filed nothing yet is behind from his first enrolled month: the plan says when
+// he started, so his goal does not wait for a report. Without a plan start (old data, reports only), the first report
+// still starts the span.
+describe('computePioneerPace — the enrolment starts the span, not the first report', () => {
+  it('counts every enrolled month without a report as zero hours', () => {
+    const pace = computePioneerPace({
+      serviceYear: SY,
+      monthlyRate: 50,
+      months: [],
+      now: new Date(2026, 2, 15), // expected Feb
+      enrolledFrom: { month: 1, year: 2026 }, // enrolled from February
+    })
+
+    expect(pace.elapsedEnrolled).toBe(1)
+    expect(pace.targetToDate).toBe(50)
+    expect(pace.paceDelta).toBe(-50)
+    expect(pace.fullYearTarget).toBe(350) // Feb–Aug
+    expect(pace.reportingStatus).toBe('overdue')
+    expect(pace.riskBucket).toBe('red')
+  })
+
+  it('starts the span at the enrolment even when the first report came later', () => {
+    const pace = computePioneerPace({
+      serviceYear: SY,
+      monthlyRate: 50,
+      months: [month(1, 2026, 50)], // the January report never came
+      now: new Date(2026, 2, 15),
+      enrolledFrom: { month: 0, year: 2026 },
+    })
+
+    expect(pace.elapsedEnrolled).toBe(2)
+    expect(pace.paceDelta).toBe(-50)
+  })
+
+  it('owes nothing yet for an enrolment that starts later, and plans only its own months', () => {
+    const pace = computePioneerPace({
+      serviceYear: SY,
+      monthlyRate: 50,
+      months: [],
+      now: new Date(2026, 2, 15), // expected Feb
+      enrolledFrom: { month: 3, year: 2026 }, // from April
+    })
+
+    expect(pace.elapsedEnrolled).toBe(0)
+    expect(pace.targetToDate).toBe(0)
+    expect(pace.remainingMonths).toBe(5) // April–August
+    expect(pace.fullYearTarget).toBe(250)
+  })
+
+  it('still waits for a first report when no enrolment says when he started', () => {
+    const pace = computePioneerPace({
+      serviceYear: SY,
+      monthlyRate: 50,
+      months: [],
+      now: new Date(2026, 2, 15),
+    })
+
+    expect(pace.elapsedEnrolled).toBe(0)
+    expect(pace.fullYearTarget).toBe(0)
+  })
+})
+
+describe('computePioneerPace — what each month of the year is', () => {
+  it('tells reported, missing, not enrolled and future months apart', () => {
+    const pace = computePioneerPace({
+      serviceYear: SY,
+      monthlyRate: 50,
+      months: [month(11, 2025, 40), month(1, 2026, 50)], // December and February filed
+      now: new Date(2026, 2, 15), // expected Feb
+      enrolledFrom: { month: 10, year: 2025 }, // from November
+    })
+
+    expect(pace.monthStates).toEqual([
+      'off', // Sept
+      'off', // Oct
+      'missing', // Nov
+      'reported', // Dec
+      'missing', // Jan
+      'reported', // Feb
+      'future', // Mar
+      'future',
+      'future',
+      'future',
+      'future',
+      'future', // Aug
+    ])
+  })
+
+  it('leaves a stop-and-restart gap out of the enrolled months', () => {
+    const pace = computePioneerPace({
+      serviceYear: SY,
+      monthlyRate: 50,
+      months: [month(8, 2025, 50), month(10, 2025, 50)],
+      now: new Date(2025, 11, 15), // expected Nov
+      enrolledSinceYearStart: true,
+      notEnrolledMonths: [{ month: 9, year: 2025 }],
+    })
+
+    expect(pace.monthStates.slice(0, 3)).toEqual(['reported', 'off', 'reported'])
+  })
+})

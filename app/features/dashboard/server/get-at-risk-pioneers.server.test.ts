@@ -33,7 +33,16 @@ describe('getAtRiskPioneers', () => {
         annualRow(4, 'red', -200, true), // concluded → excluded
       ],
       auxiliary: [],
-      totals: { onTrack: 1, behind: 0, atRisk: 2, actualHours: 0, targetHours: 0 },
+      totals: {
+        onTrack: 1,
+        behind: 0,
+        atRisk: 2,
+        concluded: 0,
+        actualHours: 0,
+        creditHours: 0,
+        targetToDate: 0,
+        targetHours: 0,
+      },
     } as never)
 
     const result = await getAtRiskPioneers({} as never, 42, NOW)
