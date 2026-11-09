@@ -1,4 +1,5 @@
 import { readState, replacementDate } from '~/features/display-board/model/read-state'
+import { sectionAudience } from '~/features/display-board/model/section-audience'
 import { getContentVersion } from '~/features/display-board/server/dynamic-documents.server'
 import { notificationRecipientFilter } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -67,14 +68,7 @@ export async function listBoardReaders(db: TransactionClient, congregationId: nu
   })
 }
 
-/**
- * Who can see a section: everyone for an open one, only the holders of one of its roles for a
- * restricted one. No bypass, admins included: the board shows them exactly what their roles allow.
- */
-export function sectionAudience(readers: BoardReader[], sectionRoleIds: number[]): BoardReader[] {
-  if (sectionRoleIds.length === 0) return readers
-  return readers.filter(reader => reader.roleIds.some(id => sectionRoleIds.includes(id)))
-}
+export { sectionAudience }
 
 async function findReadable(
   db: TransactionClient,

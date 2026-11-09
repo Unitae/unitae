@@ -1,17 +1,14 @@
-import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod/v4'
-import { Trash2 } from 'lucide-react'
-import { useState } from 'react'
-import { data, Form, Link, redirect } from 'react-router'
+import { MoreHorizontal } from 'lucide-react'
+import { useCallback, useState } from 'react'
+import { data, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { updateSectionSchema } from '~/features/display-board/schemas/board-section.schema'
+import { sectionSchema } from '~/features/display-board/schemas/board-section.schema'
 import { updateBoardSection } from '~/features/display-board/server/board-section.server'
-import {
-  getSectionVisibilityRoleIds,
-  setSectionVisibilityRoles,
-} from '~/features/display-board/server/section-visibility.server'
+import { loadSectionForm } from '~/features/display-board/server/section-form.queries'
+import { setSectionVisibilityRoles } from '~/features/display-board/server/section-visibility.server'
+import { SectionForm } from '~/features/display-board/ui/forms/SectionForm'
 import * as m from '~/i18n/paraglide/messages'
-import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import {
   currentAccountContext,
   permissionsContext,
@@ -20,150 +17,90 @@ import {
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
-import { Card, CardContent } from '~/shared/ui/card'
-import { FormActions } from '~/shared/ui/FormActions'
-import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
-import { Input } from '~/shared/ui/input'
-import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
-import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
-import type { Route } from './+types/edit'
-import { VisibilityField } from './new'
 
-export const meta: Route.MetaFunction = () => {
-  return [{ title: m.board_sections_edit_meta_title() }]
-}
+import type { Route } from './+types/edit'
+
+export const meta: Route.MetaFunction = ({ loaderData }) => [
+  { title: `${loaderData?.section?.name ?? m.board_sections_edit_meta_title()} - Unitae` },
+]
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.CanConfigureBoardSections)
-
   return withScopeFromContext(context, async db => {
     const { congregationId, id: userId } = context.get(currentAccountContext)
-    const sectionId = requireParamId(params.sectionId, '/board')
-    const section = await db.boardSection.findUnique({
-      where: {
-        id_congregationId: { id: sectionId, congregationId },
-      },
-    })
-
-    if (section == null) throw redirect('/board/documents')
-
-    const [roles, visibilityRoleIds, viewerRoleIds] = await Promise.all([
-      db.role.findMany({
-        where: { congregationId },
-        select: { id: true, key: true, name: true, isBuiltIn: true },
-        orderBy: [{ isBuiltIn: 'desc' }, { key: 'asc' }],
-      }),
-      getSectionVisibilityRoleIds(db, sectionId, congregationId),
-      resolveEffectiveRoleIds(db, userId, congregationId),
-    ])
-
-    return { section, roles, visibilityRoleIds, viewerRoleIds }
+    const sectionId = requireParamId(params.sectionId, '/board/documents')
+    const form = await loadSectionForm(db, { congregationId, userId, sectionId })
+    if (form?.section == null) throw redirect('/board/documents')
+    return { ...form, section: form.section }
   })
 }
 
 export default function EditSectionPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { section, roles, visibilityRoleIds, viewerRoleIds } = loaderData
-  const { blocker, markDirty } = useUnsavedChanges()
-  useFocusError(actionData)
-  const [form, fields] = useForm({
-    lastResult: actionData,
-    onValidate({ formData }) {
-      return parseWithZod(formData, { schema: updateSectionSchema })
-    },
-  })
-  const [selectedRoleIds, setSelectedRoleIds] = useState<number[]>(visibilityRoleIds)
-  const showLockoutWarning = selectedRoleIds.length > 0 && selectedRoleIds.every(id => !viewerRoleIds.includes(id))
+  const { section, roles, readerRoles, viewerRoleIds } = loaderData
+  const { blocker, setDirty } = useUnsavedChanges()
+  const onDirtyChange = useCallback((dirty: boolean) => setDirty(dirty), [setDirty])
+  const [version, setVersion] = useState(0)
 
   return (
-    <div className="flex flex-col gap-6">
+    <>
       <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
-        title={m.board_sections_edit_title()}
-        subtitle={m.board_sections_edit_subtitle()}
+        title={section.name}
         breadcrumbs={[
+          { label: m.board_page_title(), to: '/board' },
           { label: m.sidebar_board_manage(), to: '/board/documents' },
-          { label: m.board_sections_edit_title() },
+          { label: section.name },
         ]}
-        backTo="/board/sections"
         actions={
-          <Button variant="destructive" size="icon" asChild>
-            <Link to={`/board/sections/${section.id}/delete`} title={m.board_sections_delete_tooltip()}>
-              <Trash2 className="size-4" />
-            </Link>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon-sm" aria-label={m.board_manage_section_more({ name: section.name })}>
+                <MoreHorizontal className="size-4" aria-hidden="true" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild className="text-destructive">
+                <Link to={`/board/sections/${section.id}/delete`}>{m.board_sections_delete_button()}</Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         }
       />
-
-      <Card>
-        <CardContent className="pt-6">
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={markDirty}>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor={fields.name.id}>{m.board_sections_edit_name_label()}</Label>
-              <Input
-                {...getInputProps(fields.name, { type: 'text' })}
-                placeholder={m.board_sections_edit_name_placeholder()}
-                defaultValue={section.name ?? ''}
-              />
-              {fields.name.errors && <p className="text-destructive text-sm">{fields.name.errors}</p>}
-            </div>
-
-            <VisibilityField
-              roles={roles}
-              selectedIds={selectedRoleIds}
-              onChange={setSelectedRoleIds}
-              showLockoutWarning={showLockoutWarning}
-            />
-
-            <FormActions>
-              <SubmitButton>{m.board_sections_edit_submit()}</SubmitButton>
-            </FormActions>
-          </Form>
-        </CardContent>
-      </Card>
-    </div>
+      <SectionForm
+        key={`${version}-${section.name}-${section.roleIds.join(',')}`}
+        defaults={{ name: section.name, roleIds: section.roleIds }}
+        roles={roles}
+        readerRoles={readerRoles}
+        viewerRoleIds={viewerRoleIds}
+        lastResult={actionData}
+        onCancel={() => setVersion(v => v + 1)}
+        onDirtyChange={onDirtyChange}
+      />
+    </>
   )
 }
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.CanConfigureBoardSections)
-
   const session = await getSession(request.headers.get('Cookie'))
-  const submission = parseWithZod(await request.formData(), { schema: updateSectionSchema })
-  if (submission.status !== 'success') {
-    return data(submission.reply(), { status: 400 })
-  }
-
+  const submission = parseWithZod(await request.formData(), { schema: sectionSchema })
+  if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
   const { name, visibilityRoleIds } = submission.value
 
   return withScopeFromContext(context, async db => {
     const { congregationId, id: actorId } = context.get(currentAccountContext)
-    const sectionId = requireParamId(params.sectionId, '/board')
+    const sectionId = requireParamId(params.sectionId, '/board/documents')
     const section = await updateBoardSection(db, sectionId, congregationId, actorId, { name })
-
-    if (section == null) {
-      session.flash('error', m.common_generic_error())
-
-      return redirect('/board', {
-        headers: {
-          'Set-Cookie': await commitSession(session),
-        },
-      })
-    }
-
+    if (section == null) throw redirect('/board/documents')
     await setSectionVisibilityRoles(db, section.id, visibilityRoleIds, congregationId, actorId)
-
     session.flash('success', m.board_sections_edit_success({ name: section.name }))
-
-    return redirect(`/board/sections/${section.id}/edit`, {
-      headers: {
-        'Set-Cookie': await commitSession(session),
-      },
-    })
+    return redirect(`/board/sections/${section.id}/edit`, { headers: { 'Set-Cookie': await commitSession(session) } })
   })
 }
