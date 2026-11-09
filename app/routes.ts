@@ -159,6 +159,7 @@ export default [
         ]),
         route('export/xlsx', 'features/publishers/routes/activity/excel-export.tsx'),
         route('export/pdfs', 'features/publishers/routes/activity/pdf-export.tsx'),
+        route('report', 'features/publishers/routes/activity/report.tsx'),
         route('new', 'features/publishers/routes/activity/new.tsx'),
         route(':activityId/edit', 'features/publishers/routes/activity/edit.tsx'),
         route(':activityId/delete', 'features/publishers/routes/activity/delete.tsx'),

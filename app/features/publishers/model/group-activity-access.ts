@@ -33,3 +33,41 @@ export function canRecordAnyActivity(permissions: ReadonlySet<Permission>): bool
 export function canCorrectAnyActivity(permissions: ReadonlySet<Permission>): boolean {
   return permissions.has(Permission.CanCorrectActivity) || permissions.has(Permission.CanManagePublishers)
 }
+
+export interface ReportAccessInput {
+  permissions: ReadonlySet<Permission>
+  /** The groups the caller leads, from his linked member: overseer of one, deputy of another. */
+  leader: { responsibleForId: number | null; deputyForId: number | null } | null
+  /** The group of the publisher whose report it is. */
+  publisherGroupId: number | null
+}
+
+export interface ReportAccess {
+  /** May file this publisher's missing report. */
+  canRecord: boolean
+  /** May change this publisher's filed report. */
+  canCorrect: boolean
+  /** May see and set the hour credit: the secretary only. Group overseers describe it in the observations. */
+  canGrantCredit: boolean
+  /** May delete a filed report. */
+  canDelete: boolean
+}
+
+/**
+ * What the caller may do with one publisher's monthly report. A group's overseer or deputy records and corrects his
+ * own group's reports only; the activity permissions cover everyone. The report panel's loader and its action both
+ * ask this, so reading a report and saving it cannot disagree.
+ */
+export function reportAccess({ permissions, leader, publisherGroupId }: ReportAccessInput): ReportAccess {
+  const leadsTheGroup =
+    leader != null &&
+    publisherGroupId != null &&
+    (leader.responsibleForId === publisherGroupId || leader.deputyForId === publisherGroupId)
+
+  return {
+    canRecord: canRecordAnyActivity(permissions) || leadsTheGroup,
+    canCorrect: canCorrectAnyActivity(permissions) || leadsTheGroup,
+    canGrantCredit: permissions.has(Permission.CanCorrectActivity),
+    canDelete: permissions.has(Permission.CanCorrectActivity),
+  }
+}

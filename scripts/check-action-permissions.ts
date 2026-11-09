@@ -59,6 +59,12 @@ export const DELEGATES: Record<string, { file: string; enforces: RegExp }> = {
     file: 'app/features/publishers/model/group-activity-access.ts',
     enforces: ENFORCES_PERMISSION,
   },
+  // The report panel's rule: what the caller may do with one publisher's report, from the activity permissions and
+  // the group he leads. The panel refuses with a 403 rather than a thrown redirect, which would move the page away.
+  reportAccess: {
+    file: 'app/features/publishers/model/group-activity-access.ts',
+    enforces: ENFORCES_PERMISSION,
+  },
 }
 
 // Route actions that are intentionally open to any signed-in user, or to anonymous visitors.

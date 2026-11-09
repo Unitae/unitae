@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { Permission } from '~/shared/types/permission'
-import { canCorrectAnyActivity, canManageGroupActivity, canRecordAnyActivity } from './group-activity-access'
+import {
+  canCorrectAnyActivity,
+  canManageGroupActivity,
+  canRecordAnyActivity,
+  reportAccess,
+} from './group-activity-access'
 
 const base = {
   hasActivityManager: false,
@@ -61,5 +66,65 @@ describe('canCorrectAnyActivity', () => {
 
   it('denies the permission to record new reports only', () => {
     expect(canCorrectAnyActivity(new Set([Permission.CanRecordActivity]))).toBe(false)
+  })
+})
+
+describe('reportAccess', () => {
+  const OVERSEER: { responsibleForId: number | null; deputyForId: number | null } = {
+    responsibleForId: 9,
+    deputyForId: null,
+  }
+  const access = (permissions: Permission[], leader: typeof OVERSEER | null, publisherGroupId: number | null) =>
+    reportAccess({ permissions: new Set(permissions), leader, publisherGroupId })
+
+  it("lets a group's overseer record and correct his own group's reports, without credit or delete", () => {
+    expect(access([], OVERSEER, 9)).toEqual({
+      canRecord: true,
+      canCorrect: true,
+      canGrantCredit: false,
+      canDelete: false,
+    })
+  })
+
+  it('lets the deputy do the same', () => {
+    expect(access([], { responsibleForId: null, deputyForId: 9 }, 9).canCorrect).toBe(true)
+  })
+
+  it("refuses an overseer another group's reports, and a publisher without a group", () => {
+    expect(access([], OVERSEER, 4)).toEqual({
+      canRecord: false,
+      canCorrect: false,
+      canGrantCredit: false,
+      canDelete: false,
+    })
+    expect(access([], OVERSEER, null).canRecord).toBe(false)
+  })
+
+  it('lets a recorder file any report but correct none', () => {
+    const recorder = access([Permission.CanRecordActivity], null, 4)
+    expect(recorder.canRecord).toBe(true)
+    expect(recorder.canCorrect).toBe(false)
+  })
+
+  it('gives the secretary everything, credit and delete included', () => {
+    expect(access([Permission.CanRecordActivity, Permission.CanCorrectActivity], null, 4)).toEqual({
+      canRecord: true,
+      canCorrect: true,
+      canGrantCredit: true,
+      canDelete: true,
+    })
+  })
+
+  it('lets a publisher manager record and correct, without credit or delete', () => {
+    expect(access([Permission.CanManagePublishers], null, 4)).toEqual({
+      canRecord: true,
+      canCorrect: true,
+      canGrantCredit: false,
+      canDelete: false,
+    })
+  })
+
+  it('gives a viewer nothing to change', () => {
+    expect(access([Permission.CanViewActivity], null, 4).canRecord).toBe(false)
   })
 })

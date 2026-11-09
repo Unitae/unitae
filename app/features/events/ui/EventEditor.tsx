@@ -7,6 +7,8 @@ import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import type { RoleOption } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
+import { useCloseOnSave } from '~/shared/ui/hooks/use-close-on-save'
+import { useSideEditor } from '~/shared/ui/hooks/use-side-editor'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
@@ -21,8 +23,6 @@ import { PART_FORM_ID, type PartData, PartEditor, type PartPresetOption, partEdi
 import { PartEditSheet } from './PartEditSheet'
 import { SERVICE_FORM_ID, ServiceEditor, serviceEditorCopy } from './ServiceEditor'
 import { ServiceEditSheet } from './ServiceEditSheet'
-import { useCloseOnSave } from './use-close-on-save'
-import { useSideEditor } from './use-side-editor'
 
 interface EventEditorProps {
   event: {

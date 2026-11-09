@@ -33,3 +33,36 @@ export const updateActivitySchema = z.object({
 
 export type CreateActivityInput = z.infer<typeof createActivitySchema>
 export type UpdateActivityInput = z.infer<typeof updateActivitySchema>
+
+const reportMonth = {
+  publisherId: z.coerce.number().int().positive(),
+  month: z.coerce.number().int().min(0).max(11),
+  year: z.coerce.number().int().min(2000).max(2100),
+}
+
+/** The month the report panel opens: whose report, for which month. */
+export const reportQuerySchema = z.object(reportMonth)
+
+/**
+ * The report panel's two submissions. `save` files the month's report or changes the filed one, whichever exists;
+ * `delete` removes the filed one. As on the edit form, `creditHours` maps '' to undefined so an emptied field clears
+ * the credit, and the action only forwards it for those who may grant it.
+ */
+export const reportActionSchema = z.discriminatedUnion('intent', [
+  z.object({
+    intent: z.literal('save'),
+    ...reportMonth,
+    type: z.nativeEnum(PublisherType).optional(),
+    hours: z.coerce.number().min(0).optional().default(0),
+    studies: z.coerce.number().min(0).optional().default(0),
+    observations: z.string().optional().default(''),
+    preached: z
+      .string()
+      .optional()
+      .transform(v => v === 'on'),
+    creditHours: z.preprocess(v => (v === '' || v == null ? undefined : v), z.coerce.number().min(0).optional()),
+  }),
+  z.object({ intent: z.literal('delete'), ...reportMonth }),
+])
+
+export type ReportActionInput = z.infer<typeof reportActionSchema>

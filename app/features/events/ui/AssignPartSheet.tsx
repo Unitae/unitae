@@ -1,9 +1,9 @@
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
+import { useCloseOnSave } from '~/shared/ui/hooks/use-close-on-save'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '~/shared/ui/sheet'
 import { ASSIGN_PART_FORM_ID, AssignPartEditor, type AssignPartEditorProps, assignPartCopy } from './AssignPartEditor'
-import { useCloseOnSave } from './use-close-on-save'
 
 interface AssignPartSheetProps extends Omit<AssignPartEditorProps, 'formRef' | 'className' | 'part'> {
   open: boolean

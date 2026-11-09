@@ -1,4 +1,5 @@
-import { ChevronLeft, ChevronRight, Download, Users } from 'lucide-react'
+import { PeriodStepper } from '@unitae/ui'
+import { Download, Users } from 'lucide-react'
 import { useState } from 'react'
 import { redirect, type ShouldRevalidateFunctionArgs, useSearchParams } from 'react-router'
 import {
@@ -6,23 +7,36 @@ import {
   filterPublisherActivities,
   readActivityFiltersFromParams,
 } from '~/features/publishers/model/filter-publisher-activities'
+import { reportAccess } from '~/features/publishers/model/group-activity-access'
 import { wasInactiveDuring } from '~/features/publishers/model/inactive'
 import { previousMonth } from '~/features/publishers/model/previous-month'
-import { getPublisherStats } from '~/features/publishers/server/get-publisher-stats.server'
+import { reportStatus, summarizeReportMonth } from '~/features/publishers/model/report-month'
 import { getPublisherWithActivities } from '~/features/publishers/server/get-publisher-with-activities.server'
 import { listTheocraticYearsWithActivity } from '~/features/publishers/server/list-theocratic-years-with-activity.server'
+import { ActivityGroupStrip, ActivityMonthSummary } from '~/features/publishers/ui/ActivityMonthSummary'
+import { ActivityReportFilters } from '~/features/publishers/ui/ActivityReportFilters'
+import { type ActivityReportRow, ActivityReportsTable } from '~/features/publishers/ui/ActivityReportsTable'
+import { ActivityViewSwitch } from '~/features/publishers/ui/ActivityViewSwitch'
 import { ExportActivityDialog } from '~/features/publishers/ui/ExportActivityDialog'
-import { PublisherActivityFilters } from '~/features/publishers/ui/PublisherActivityFilters'
-import { PublisherActivityRow } from '~/features/publishers/ui/PublisherActivityRow'
-import PublisherActivityStats from '~/features/publishers/ui/PublisherActivityStats'
+import { ReportPanel } from '~/features/publishers/ui/ReportPanel'
+import { formatMonthYear } from '~/features/publishers/ui/report-month-format'
+import { useReportQueue } from '~/features/publishers/ui/use-report-queue'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { getLocale } from '~/i18n/paraglide/runtime'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
+import { useSideEditor } from '~/shared/ui/hooks/use-side-editor'
 import { PageHeader } from '~/shared/ui/PageHeader'
-import { Table, TableBody, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { DiscardChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
+import { zonedNow } from '~/shared/utils/zoned-now'
 import type { Route } from './+types/publisher-list'
 
 export const meta: Route.MetaFunction = () => {
@@ -39,205 +53,217 @@ export function shouldRevalidate({ currentUrl, nextUrl, defaultShouldRevalidate 
   })
   if (!clientOnlyChange) return defaultShouldRevalidate
 
-  const dataParamsChanged = ['month', 'year'].some(
-    name => currentUrl.searchParams.get(name) !== nextUrl.searchParams.get(name),
-  )
-  return dataParamsChanged
+  return ['month', 'year'].some(name => currentUrl.searchParams.get(name) !== nextUrl.searchParams.get(name))
+}
+
+/** The month asked for, when it is one; the congregation's current month otherwise. */
+function requestedMonth(params: URLSearchParams, now: Date) {
+  const month = Number(params.get('month'))
+  const year = Number(params.get('year'))
+  const valid = Number.isInteger(month) && month >= 0 && month <= 11 && Number.isInteger(year) && year >= 2000
+  return params.has('month') && params.has('year') && valid
+    ? { month, year, explicit: true }
+    : { month: now.getMonth(), year: now.getFullYear(), explicit: false }
 }
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canViewActivities = permissions.has(Permission.CanViewActivity)
-  const canManageActivities = permissions.has(Permission.CanRecordActivity)
 
-  if (!canViewActivities) {
+  if (!permissions.has(Permission.CanViewActivity)) {
     logger.warn(
       `Try to load publishers' activities. User ID: ${currentUser.id}. Does NOT have rights to access publishers' activity.`,
     )
     throw redirect('/')
   }
 
-  logger.info(`Loading publishers' activities. User ID: ${currentUser.id}.`)
+  const now = zonedNow(context.get(congregationContext).timezone)
+  let { month, year, explicit } = requestedMonth(new URL(request.url).searchParams, now)
+  const member = currentUser.member
+  const leader =
+    member == null
+      ? null
+      : { responsibleForId: member.responsibleFor?.id ?? null, deputyForId: member.deputyFor?.id ?? null }
 
-  const timeRange = new Date()
-  const searchParams = new URL(request.url).searchParams
-  const hasExplicitSelection = searchParams.has('month') || searchParams.has('year')
-  let month = Number(searchParams.get('month') ?? timeRange.getMonth())
-  let year = Number(searchParams.get('year') ?? timeRange.getFullYear())
-
-  return withScopeFromContext(context, async db => {
-    if (!hasExplicitSelection) {
-      const currentMonthActivityCount = await db.publisherActivity.count({ where: { month, year } })
-      if (currentMonthActivityCount === 0) {
-        ;({ month, year } = previousMonth({ month, year }))
-      }
+  return withScopeFromContext(context, async (db, congregationId) => {
+    // Reports for a month come in early the next one: until the first arrives, the page opens on the month before.
+    if (!explicit && (await db.publisherActivity.count({ where: { month, year } })) === 0) {
+      ;({ month, year } = previousMonth({ month, year }))
     }
 
-    const [users, publisherGroups, availableYears] = await Promise.all([
-      getPublisherWithActivities(db, currentUser.congregationId, month, year),
+    const [members, publisherGroups, availableYears] = await Promise.all([
+      getPublisherWithActivities(db, congregationId, month, year),
       db.publisherGroup.findMany({
-        where: { congregationId: currentUser.congregationId },
+        where: { congregationId },
         select: { id: true, name: true },
         orderBy: { name: 'asc' },
       }),
-      listTheocraticYearsWithActivity(db, currentUser.congregationId),
+      listTheocraticYearsWithActivity(db, congregationId),
     ])
 
+    const rows: ActivityReportRow[] = members.map(({ activities, publisherGroup, ...publisher }) => {
+      const report = activities[0] ?? null
+      const access = reportAccess({ permissions, leader, publisherGroupId: publisher.publisherGroupId })
+      return {
+        id: publisher.id,
+        firstname: publisher.firstname,
+        lastname: publisher.lastname,
+        publisherGroup: publisherGroup && { id: publisherGroup.id, name: publisherGroup.name },
+        wasInactive: wasInactiveDuring(publisher.inactiveAt, year, month),
+        notRegular: report != null && !report.isPublisher && (report.hours ?? 0) === 0,
+        editable: report == null ? access.canRecord : access.canCorrect,
+        lastActivity: report && {
+          id: report.id,
+          type: report.type,
+          isPublisher: report.isPublisher,
+          hours: report.hours,
+          studies: report.studies,
+          notes: report.notes,
+          creditHours: report.creditHours,
+        },
+      }
+    })
+
     return {
-      firstMonth: {
-        month: 8,
-        year: month < 8 ? year - 1 : year,
-      },
-      selectedMonth: {
-        month,
-        year,
-      },
-      stats: await getPublisherStats(db, currentUser.congregationId, month, year),
-      publishers: users
-        .map(({ activities, ...member }) => ({
-          ...member,
-          lastActivity: activities.length < 1 ? null : activities[0],
-          wasInactive: wasInactiveDuring(member.inactiveAt, year, month),
-          notRegular:
-            activities[0] != null &&
-            activities[0].isPublisher === false &&
-            (activities[0].hours == null || activities[0].hours === 0),
-        }))
-        .map(publisher => ({
-          ...publisher,
-          newActivityUrl: `./new?publisherId=${publisher.id}&month=${month}&year=${year}`,
-          editActivityUrl: `./${publisher.lastActivity?.id}/edit`,
-        })),
+      selectedMonth: { month, year },
+      rows,
+      summary: summarizeReportMonth(rows, (a, b) => a.localeCompare(b, getLocale(), { sensitivity: 'base' })),
       exportOptions: {
         publisherGroups,
         availableYears,
-        members: users.map(({ id, firstname, lastname }) => ({ id, firstname, lastname })),
+        defaultYear: month < 8 ? year - 1 : year,
+        members: members.map(({ id, firstname, lastname }) => ({ id, firstname, lastname })),
       },
-      canManageActivities,
     }
   })
 }
 
-export default function NewActivity({ loaderData }: Route.ComponentProps) {
-  const { publishers, selectedMonth, firstMonth, stats, canManageActivities, exportOptions } = loaderData
+export default function ActivityReports({ loaderData }: Route.ComponentProps) {
+  const { rows, summary, selectedMonth, exportOptions } = loaderData
   const [searchParams, setSearchParams] = useSearchParams()
   const [exportOpen, setExportOpen] = useState(false)
   const filters = readActivityFiltersFromParams(searchParams)
-  const visiblePublishers = filterPublisherActivities(publishers, filters)
-  const selectedDate = new Date()
-  selectedDate.setMonth(selectedMonth.month)
-  selectedDate.setFullYear(selectedMonth.year)
+  const visible = filterPublisherActivities(rows, filters)
+  const panel = useSideEditor<'report'>(target => rows.some(row => row.id === target.id))
+  const target = panel.target
+  const queue = useReportQueue({
+    rows: visible,
+    isMissing: row => row.editable && reportStatus(row) === 'missing',
+    currentId: target?.id ?? null,
+    onStep: row => panel.request({ kind: 'report', id: row.id, trigger: null }),
+    onAdvance: row => panel.open({ kind: 'report', id: row.id, trigger: null }),
+    onEnd: panel.close,
+  })
 
-  const handleMonthIncrease = () => {
-    searchParams.set('month', String(selectedMonth.month === 11 ? 0 : selectedMonth.month + 1))
-    searchParams.set('year', String(selectedMonth.month === 11 ? selectedMonth.year + 1 : selectedMonth.year))
-    setSearchParams(searchParams)
-  }
-  const handleMonthDecrease = () => {
-    searchParams.set('month', String(selectedMonth.month === 0 ? 11 : selectedMonth.month - 1))
-    searchParams.set('year', String(selectedMonth.month === 0 ? selectedMonth.year - 1 : selectedMonth.year))
-    setSearchParams(searchParams)
+  const stepMonth = (delta: number) => {
+    const index = selectedMonth.year * 12 + selectedMonth.month + delta
+    setSearchParams(prev => {
+      prev.set('month', String(index % 12))
+      prev.set('year', String(Math.floor(index / 12)))
+      return prev
+    })
   }
 
-  if (publishers.length < 1) {
+  const header = (
+    <PageHeader
+      title={m.activity_page_title()}
+      breadcrumbs={[{ label: m.activity_page_title() }]}
+      actions={
+        <Button variant="ghost" onClick={() => setExportOpen(true)} className="max-sm:hidden">
+          <Download />
+          {m.activity_export_button()}
+        </Button>
+      }
+      controls={
+        <>
+          <ActivityViewSwitch value="reports" />
+          <PeriodStepper
+            label={formatMonthYear(selectedMonth.month, selectedMonth.year)}
+            previous={{ label: m.activity_previous_month(), onClick: () => stepMonth(-1) }}
+            next={{ label: m.activity_next_month(), onClick: () => stepMonth(1) }}
+            labelWidth={132}
+          />
+        </>
+      }
+    />
+  )
+
+  if (rows.length === 0) {
     return (
       <div className="flex flex-col gap-6">
-        <PageHeader
-          title={m.activity_list_title()}
-          subtitle={m.activity_list_subtitle()}
-          breadcrumbs={[{ label: m.activity_list_title() }]}
-        />
-
+        {header}
         <EmptyState icon={Users} title={m.activity_empty_title()} description={m.activity_empty_description()} />
       </div>
     )
   }
 
+  const reportPanel = target && (
+    <ReportPanel
+      key={`${target.id}:${selectedMonth.month}:${selectedMonth.year}`}
+      target={{ publisherId: target.id ?? 0, ...selectedMonth, trigger: target.trigger }}
+      docked={panel.docked}
+      formRef={panel.formRef}
+      onRequestClose={() => panel.request(null)}
+      onClose={panel.close}
+      onSaved={next => (next ? queue.advance() : panel.close())}
+      queue={queue.position}
+    />
+  )
+
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        title={m.activity_list_title()}
-        subtitle={m.activity_list_subtitle()}
-        breadcrumbs={[{ label: m.activity_list_title() }]}
-        actions={
-          <>
-            <Button
-              variant="outline"
-              size="icon"
-              title={m.activity_export_button_title()}
-              className="max-sm:hidden"
-              onClick={() => setExportOpen(true)}
-            >
-              <Download className="size-4" />
-            </Button>
-            <ExportActivityDialog
-              open={exportOpen}
-              onOpenChange={setExportOpen}
-              availableYears={exportOptions.availableYears}
-              defaultYear={firstMonth.year}
-              publisherGroups={exportOptions.publisherGroups}
-              members={exportOptions.members}
-            />
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" onClick={handleMonthDecrease}>
-                <ChevronLeft className="size-4" />
-              </Button>
-              <span className="min-w-[120px] text-center font-medium text-sm sm:min-w-[140px]">
-                {selectedDate.toLocaleDateString('fr', {
-                  month: 'long',
-                  year: 'numeric',
-                })}
-              </span>
-              <Button variant="ghost" size="icon" onClick={handleMonthIncrease}>
-                <ChevronRight className="size-4" />
-              </Button>
-            </div>
-          </>
+    // The marker lets the app shell stop clipping as a scroll container, so the docked panel can stick.
+    <div data-sticky-content="" className="flex flex-col gap-5">
+      {header}
+      <ActivityMonthSummary summary={summary} />
+      <ActivityGroupStrip
+        groups={summary.groups}
+        selectedId={filters.groupIds.length === 1 ? (filters.groupIds[0] ?? null) : null}
+        onSelect={groupId =>
+          setSearchParams(
+            prev => {
+              prev.delete('group')
+              if (groupId != null) prev.set('group', String(groupId))
+              return prev
+            },
+            { replace: true },
+          )
         }
       />
 
-      <PublisherActivityStats stats={stats} />
-
-      <PublisherActivityFilters filters={filters} groups={exportOptions.publisherGroups} />
-
-      {visiblePublishers.length === 0 ? (
-        <EmptyState
-          icon={Users}
-          title={m.activity_filters_no_results_title()}
-          description={m.activity_filters_no_results_description()}
-        />
-      ) : (
-        <div className="overflow-hidden rounded-2xl border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-center max-sm:text-left">{m.activity_table_firstname()}</TableHead>
-                <TableHead className="text-center">{m.activity_table_lastname()}</TableHead>
-                <TableHead className="text-center">{m.activity_table_group()}</TableHead>
-                <TableHead className="text-center max-sm:hidden">{m.activity_table_hours()}</TableHead>
-                <TableHead className="text-center max-sm:hidden">{m.activity_table_studies()}</TableHead>
-                <TableHead className="text-center max-sm:hidden">{m.activity_table_pioneer()}</TableHead>
-                <TableHead className="text-center max-sm:hidden">{m.activity_table_observations()}</TableHead>
-                {canManageActivities && (
-                  <TableHead className="w-0">
-                    <span className="sr-only">Actions</span>
-                  </TableHead>
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visiblePublishers.map(publisher => (
-                <PublisherActivityRow
-                  key={publisher.id}
-                  publisher={publisher}
-                  canManageActivities={canManageActivities}
-                />
-              ))}
-            </TableBody>
-          </Table>
+      <div className="flex flex-wrap items-start gap-6">
+        <div className="flex min-w-0 flex-[3_1_560px] flex-col gap-3">
+          <ActivityReportFilters filters={filters} rows={rows} groups={exportOptions.publisherGroups} />
+          {visible.length === 0 ? (
+            <EmptyState
+              icon={Users}
+              title={m.activity_filters_no_results_title()}
+              description={m.activity_filters_no_results_description()}
+            />
+          ) : (
+            <ActivityReportsTable
+              rows={visible}
+              selectedId={target?.id ?? null}
+              onOpen={(row, trigger) => panel.request({ kind: 'report', id: row.id, trigger })}
+            />
+          )}
         </div>
-      )}
+        {panel.docked && reportPanel}
+      </div>
+      {!panel.docked && reportPanel}
+
+      <DiscardChangesDialog
+        {...panel.discard}
+        description={m.common_discard_changes_description()}
+        discardLabel={m.common_discard_changes_confirm()}
+      />
+      <ExportActivityDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        availableYears={exportOptions.availableYears}
+        defaultYear={exportOptions.defaultYear}
+        publisherGroups={exportOptions.publisherGroups}
+        members={exportOptions.members}
+      />
     </div>
   )
 }

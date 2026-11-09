@@ -11,7 +11,7 @@ import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/delete'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Supprimer une activité — Unitae' }]
+  return [{ title: m.activity_delete_meta_title() }]
 }
 
 export function loader({ params, context }: Route.LoaderArgs) {
