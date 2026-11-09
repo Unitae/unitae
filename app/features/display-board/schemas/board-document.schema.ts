@@ -23,24 +23,22 @@ export const pdfDocumentSchema = z.object({
   ...displayWindowFields,
 })
 
-export const createDynamicDocumentSchema = z.object({
-  dynamicType: z.string().min(1),
-  dynamicRef: z.string().optional().default(''),
-  title: z.string().min(1),
-})
-
-export const updateDynamicDocumentSchema = z.object({
+/** A dynamic document's form, edited. Its appearance and a programme's content travel with it. */
+export const dynamicDocumentSchema = z.object({
   title: z
-    .string()
-    .min(1)
-    .transform(v => v.trim()),
+    .string({ error: () => m.board_form_title_required() })
+    .trim()
+    .min(1, { error: () => m.board_form_title_required() }),
   sectionId: z.coerce.number(),
-  'visible-from': z.string().optional().default(''),
-  'visible-until': z.string().optional().default(''),
-  hightlighted: z.string().optional(),
-  showServices: z.string().optional(),
+  ...displayWindowFields,
   dynamicConfig: z.string().optional(),
   appearance: appearanceInputSchema.optional(),
+})
+
+/** The same form for a new one, which also says what it shows. */
+export const newDynamicDocumentSchema = dynamicDocumentSchema.extend({
+  dynamicType: z.string().min(1),
+  dynamicRef: z.string().optional().default(''),
 })
 
 export const restoreVersionSchema = z.object({
@@ -48,6 +46,5 @@ export const restoreVersionSchema = z.object({
 })
 
 export type PdfDocumentInput = z.infer<typeof pdfDocumentSchema>
-export type CreateDynamicDocumentInput = z.infer<typeof createDynamicDocumentSchema>
-export type UpdateDynamicDocumentInput = z.infer<typeof updateDynamicDocumentSchema>
+export type DynamicDocumentInput = z.infer<typeof dynamicDocumentSchema>
 export type RestoreVersionInput = z.infer<typeof restoreVersionSchema>

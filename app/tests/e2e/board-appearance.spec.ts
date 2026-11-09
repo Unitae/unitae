@@ -7,7 +7,7 @@ import { E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, login } from './helpers/auth'
 
 const DYNAMIC_EDIT_LINK = 'a[href^="/board/dynamic/"][href$="/edit"]'
 const DOCUMENT_ID = /\/board\/dynamic\/(\d+)\/edit/
-const SAVE_BUTTON = /Modifier le document|Update document/i
+const SAVE_BUTTON = /^(Enregistrer|Save)$/i
 
 async function checkedValue(page: Page, name: string): Promise<string | null> {
   const checked = page.locator(`button[role="radio"][id^="appearance-${name}-"][data-state="checked"]`)
@@ -19,8 +19,17 @@ async function choose(page: Page, choices: Record<string, string | null>) {
   for (const [name, value] of Object.entries(choices)) {
     if (value) await page.locator(`#appearance-${name}-${value}`).click()
   }
-  await page.getByRole('button', { name: SAVE_BUTTON }).click()
-  await page.waitForLoadState('networkidle')
+  // The save bar shows only once something changed: choosing what is already saved leaves nothing to save.
+  const save = page.getByRole('button', { name: SAVE_BUTTON })
+  const changed = await save
+    .waitFor({ state: 'visible', timeout: 3000 })
+    .then(() => true)
+    .catch(() => false)
+  if (!changed) return
+  // Wait for the save itself: an idle page would not wait for « networkidle ».
+  const saved = page.waitForResponse(response => response.request().method() === 'POST')
+  await save.click()
+  await saved
 }
 
 test.describe('board document appearance', () => {
