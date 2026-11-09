@@ -31,7 +31,8 @@ interface Views {
   viewedAt: Date | null
 }
 
-function countReads(
+/** How many of `audience` have read what the document shows now: a read of an earlier file does not count. */
+export function countReads(
   audience: BoardReader[],
   views: Views[],
   doc: { createdAt: Date; changedAt: Date | null },

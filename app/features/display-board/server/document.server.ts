@@ -17,7 +17,7 @@ function buildContentDisposition(title: string): string {
   return `inline; filename="${asciiFallback}"; filename*=UTF-8''${utf8Encoded}`
 }
 
-export async function getFileStream(document: BoardDocument): Promise<Response | null> {
+export async function getFileStream(document: Pick<BoardDocument, 'uri' | 'title'>): Promise<Response | null> {
   const key = document.uri ?? ''
   const file = await getBoardFile(key)
   if (!file) return null
