@@ -1,20 +1,36 @@
 import { Panel, StatusIcon, Tag } from '@unitae/ui'
-import { useId } from 'react'
+import { type ReactNode, useId } from 'react'
 
 import type { HolderEntrance, StreetGroup } from '~/features/territories/model/holder-territory'
 import { type ShopKind, shopKindLabels } from '~/features/territories/model/shop-kind.type'
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
+import { cn } from '~/shared/utils/utils'
+
+/** Which entrance the pointer is on and which one is open on the map, shared by the list and the map. */
+export interface EntranceFocus {
+  hoveredId: number | null
+  selectedId: number | null
+  onHover: (id: number | null) => void
+  onSelect: (id: number) => void
+}
 
 interface HolderEntranceListProps {
   streets: StreetGroup[]
   territoryType: string
   /** Show phone counts on a door-to-door territory, as the congregation's settings ask. */
   showPhone: boolean
+  /** Given when the map is shown: each row then points at its pins and opens its card. */
+  focus?: EntranceFocus
+}
+
+/** The id of an entrance's row, for « Voir dans la liste » to bring it into view. */
+export function entranceRowId(id: number): string {
+  return `entrance-${id}`
 }
 
 /** The territory's entrances street by street, numbers in walking order, as its holder reads them on the doorstep. */
-export function HolderEntranceList({ streets, territoryType, showPhone }: HolderEntranceListProps) {
+export function HolderEntranceList({ streets, territoryType, showPhone, focus }: HolderEntranceListProps) {
   // A postcode only helps when two of them meet in the same territory.
   const showZip = new Set(streets.map(street => street.zip)).size > 1
   return (
@@ -26,6 +42,7 @@ export function HolderEntranceList({ streets, territoryType, showPhone }: Holder
           showZip={showZip}
           territoryType={territoryType}
           showPhone={showPhone}
+          focus={focus}
         />
       ))}
     </Panel>
@@ -37,11 +54,13 @@ function StreetSection({
   showZip,
   territoryType,
   showPhone,
+  focus,
 }: {
   street: StreetGroup
   showZip: boolean
   territoryType: string
   showPhone: boolean
+  focus?: EntranceFocus
 }) {
   const headingId = useId()
   const isPhone = territoryType === TerritoryKindKey.Phone
@@ -68,7 +87,13 @@ function StreetSection({
       </h2>
       <ul>
         {street.entrances.map(entrance => (
-          <EntranceRow key={entrance.id} entrance={entrance} territoryType={territoryType} showPhone={showPhone} />
+          <EntranceRow
+            key={entrance.id}
+            entrance={entrance}
+            territoryType={territoryType}
+            showPhone={showPhone}
+            focus={focus}
+          />
         ))}
       </ul>
     </section>
@@ -76,7 +101,7 @@ function StreetSection({
 }
 
 /** How to get in and what is behind the door, in the order the holder needs them on the doorstep. */
-function entranceFacts(entrance: HolderEntrance, territoryType: string, showPhone: boolean): string[] {
+export function entranceFacts(entrance: HolderEntrance, territoryType: string, showPhone: boolean): string[] {
   const isPhone = territoryType === TerritoryKindKey.Phone
   const facts: string[] = []
   if (!isPhone && entrance.homes > 0) facts.push(m.my_territories_homes_count({ count: entrance.homes }))
@@ -86,27 +111,35 @@ function entranceFacts(entrance: HolderEntrance, territoryType: string, showPhon
   return facts
 }
 
+/** A shop's kind, as its tag reads. */
+export function shopKindLabel(entrance: HolderEntrance): string {
+  return shopKindLabels()[entrance.shopKind as ShopKind] ?? m.territory_doc_shop_fallback()
+}
+
+const ROW = 'grid grid-cols-[3.75rem_minmax(0,1fr)] gap-3 px-3.5 py-2.5 md:grid-cols-[4.5rem_minmax(0,1fr)] md:px-4'
+
 function EntranceRow({
   entrance,
   territoryType,
   showPhone,
+  focus,
 }: {
   entrance: HolderEntrance
   territoryType: string
   showPhone: boolean
+  focus?: EntranceFocus
 }) {
   const isShops = territoryType === TerritoryKindKey.Commerces
   const lead = isShops ? m.my_territories_shop() : entrance.access
   const facts = isShops ? [] : entranceFacts(entrance, territoryType, showPhone)
-
-  return (
-    <li className="grid grid-cols-[3.75rem_minmax(0,1fr)] gap-3 border-border border-b px-3.5 py-2.5 last:border-b-0 md:grid-cols-[4.5rem_minmax(0,1fr)] md:px-4">
+  const content: ReactNode = (
+    <>
       <span className="font-semibold tabular-nums">{entrance.numbers.join(', ')}</span>
       <span className="flex min-w-0 flex-col gap-1">
         {(lead !== '' || facts.length > 0) && (
           <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-faint text-sm">
             {lead !== '' && <span className="text-base text-foreground">{lead}</span>}
-            {isShops && <Tag>{shopKindLabels()[entrance.shopKind as ShopKind] ?? m.territory_doc_shop_fallback()}</Tag>}
+            {isShops && <Tag>{shopKindLabel(entrance)}</Tag>}
             {facts.map(fact => (
               <span key={fact} className="tabular-nums">
                 {fact}
@@ -116,12 +149,44 @@ function EntranceRow({
         )}
         {entrance.notes !== '' && <EntranceNote notes={entrance.notes} />}
       </span>
+    </>
+  )
+
+  if (focus == null) {
+    return (
+      <li id={entranceRowId(entrance.id)} className={cn(ROW, 'border-border border-b last:border-b-0')}>
+        {content}
+      </li>
+    )
+  }
+
+  const selected = focus.selectedId === entrance.id
+  const hovered = focus.hoveredId === entrance.id
+  return (
+    <li id={entranceRowId(entrance.id)} className="border-border border-b last:border-b-0">
+      <button
+        type="button"
+        aria-pressed={selected}
+        onClick={() => focus.onSelect(entrance.id)}
+        onMouseEnter={() => focus.onHover(entrance.id)}
+        onMouseLeave={() => focus.onHover(null)}
+        onFocus={() => focus.onHover(entrance.id)}
+        onBlur={() => focus.onHover(null)}
+        className={cn(
+          ROW,
+          'w-full cursor-pointer text-left transition-colors hover:bg-hover focus-visible:outline-2 focus-visible:outline-ring focus-visible:-outline-offset-2',
+          hovered && 'bg-hover',
+          selected && 'bg-selected hover:bg-selected',
+        )}
+      >
+        {content}
+      </button>
     </li>
   )
 }
 
 /** The information for publishers, flagged rather than painted red. */
-function EntranceNote({ notes }: { notes: string }) {
+export function EntranceNote({ notes }: { notes: string }) {
   return (
     <span className="flex items-start gap-2 text-sm">
       <StatusIcon tone="warning" className="mt-1" />
