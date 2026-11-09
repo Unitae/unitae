@@ -60,7 +60,8 @@ test.describe('Publishers', () => {
 
     await firstnameField.fill(firstname)
     await lastnameField.fill(lastname)
-    await page.getByRole('radio', { name: 'Homme' }).check()
+    // « Frère ou sœur » is a segmented choice of buttons, not radio inputs.
+    await page.getByRole('button', { name: 'Frère', exact: true }).click()
 
     // Submit the form
     await page.getByRole('button', { name: SUBMIT_BUTTON_RE }).click()
