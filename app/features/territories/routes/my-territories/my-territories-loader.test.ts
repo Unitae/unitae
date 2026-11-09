@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Regression: /me/territories must query attributions by the signed-in
 // account's MEMBER id (Attribution.publisherId is a Member FK), not by the
@@ -18,8 +18,15 @@ vi.mock('~/shared/auth/route-context.server', () => ({
   withScopeFromContext: (_context: unknown, fn: (db: unknown) => unknown) => fn(fakeDb),
 }))
 
+// What each test sets up: the Maps key, the congregation's map setting, the territory's entrances.
+const stub = {
+  mapsKey: undefined as string | undefined,
+  mapTabActive: false,
+  entrances: [] as unknown[],
+}
+
 vi.mock('~/shared/utils/env.server', () => ({
-  getOptionalEnv: () => undefined,
+  getOptionalEnv: (name: string) => (name === 'GOOGLE_MAPS_API_KEY' ? stub.mapsKey : undefined),
 }))
 
 // One active attribution exists — held by the MEMBER, as in production data.
@@ -40,11 +47,40 @@ const fakeDb = {
       Promise.resolve(where.publisherId === MEMBER_ID ? [attributionRow] : []),
     ),
     findFirst: vi.fn(({ where }: { where: { publisherId: number; territoryId: number } }) =>
-      Promise.resolve(where.publisherId === MEMBER_ID && where.territoryId === TERRITORY_ID ? attributionRow : null),
+      Promise.resolve(
+        where.publisherId === MEMBER_ID && where.territoryId === TERRITORY_ID
+          ? { ...attributionRow, territory: { ...attributionRow.territory, entrances: stub.entrances } }
+          : null,
+      ),
     ),
   },
-  setting: { findFirst: vi.fn().mockResolvedValue(null) },
+  setting: {
+    findFirst: vi.fn(({ where }: { where: { key: string } }) =>
+      Promise.resolve(where.key === 'map-tab-active' && stub.mapTabActive ? { value: 'true' } : null),
+    ),
+  },
 }
+
+const entrance = (id: number, latitude: number | null) => ({
+  id,
+  homes: 12,
+  phones: 0,
+  access: null,
+  accesses: [],
+  isOpenEarly: null,
+  isMailboxOpen: null,
+  notes: '',
+  shopKind: '',
+  buildings: [
+    { number: String(id), street: 'Rue Voltaire', zip: '69100', latitude, longitude: latitude == null ? null : 4.85 },
+  ],
+})
+
+beforeEach(() => {
+  stub.mapsKey = undefined
+  stub.mapTabActive = false
+  stub.entrances = []
+})
 
 const context = {
   get: (key: unknown) =>
@@ -59,6 +95,14 @@ const context = {
 // transform cost inside the measured window, which made this test time out at random
 // under a full parallel run.
 const { loader } = await import('./list')
+const { loader: viewLoader } = await import('./view')
+
+const loadView = () =>
+  viewLoader({
+    context,
+    params: { territoryId: String(TERRITORY_ID) },
+    request: new Request(`http://test/me/territories/${TERRITORY_ID}`),
+  } as never)
 
 describe('/me/territories loader', () => {
   it('lists the territories attributed to the signed-in member', async () => {
@@ -82,5 +126,28 @@ describe('/me/territories/:territoryId loader', () => {
     expect(result.territory.number).toBe('T01')
     // The territory's notes are the managers': they never reach the holder's page.
     expect(result.territory).not.toHaveProperty('notes')
+  })
+
+  // Regression: with the key and the setting on, a territory none of whose buildings is placed
+  // got the map anyway: an empty column beside the list, and a « Carte » view with nothing in it.
+  it('leaves the map out when none of the entrances is placed on it', async () => {
+    stub.mapsKey = 'maps-key'
+    stub.mapTabActive = true
+    stub.entrances = [entrance(3, null), entrance(5, null)]
+
+    const result = await loadView()
+
+    expect(result.streets).toHaveLength(1)
+    expect(result.mapKey).toBeNull()
+  })
+
+  it('shows the map once one entrance is placed on it', async () => {
+    stub.mapsKey = 'maps-key'
+    stub.mapTabActive = true
+    stub.entrances = [entrance(3, null), entrance(5, 45.76)]
+
+    const result = await loadView()
+
+    expect(result.mapKey).toBe('maps-key')
   })
 })

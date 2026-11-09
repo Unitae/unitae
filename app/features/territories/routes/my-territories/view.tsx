@@ -67,8 +67,9 @@ export function loader({ params, context }: Route.LoaderArgs) {
         status: computeStatus(attribution.lateDate),
       },
       showPhone: phoneTypeActive ?? false,
-      // The map needs both the congregation's choice and a key: without one there is nothing to show.
-      mapKey: mapTabActive && apiKey ? apiKey : null,
+      // The map needs the congregation's choice, a key and one building placed on it: without them
+      // there is nothing to show, and the list keeps the whole width.
+      mapKey: mapTabActive && apiKey && entrances.some(entrance => entrance.points.length > 0) ? apiKey : null,
       timeZone: timezone,
     }
   })
