@@ -1,5 +1,5 @@
-import { Building2, Plus, RefreshCw } from 'lucide-react'
-import { Form, Link, useSearchParams } from 'react-router'
+import { Building2, Plus } from 'lucide-react'
+import { Link, useSearchParams } from 'react-router'
 import {
   type BuildingView,
   checkDates,
@@ -7,8 +7,11 @@ import {
   parseBuildingView,
 } from '~/features/territories/model/building-list'
 import { countBuildingViews, listBuildingPage } from '~/features/territories/server/building-list.queries'
+import { getBuildingSyncFacts, getBuildingSyncStatus } from '~/features/territories/server/building-sync.queries'
 import { getZips } from '~/features/territories/server/buildings.server'
 import { BuildingListFooter } from '~/features/territories/ui/BuildingListFooter'
+import { BuildingSyncDialog } from '~/features/territories/ui/BuildingSyncDialog'
+import { BuildingSyncStatus } from '~/features/territories/ui/BuildingSyncStatus'
 import { type BuildingListItem, BuildingTable } from '~/features/territories/ui/BuildingTable'
 import { BuildingToolbar } from '~/features/territories/ui/BuildingToolbar'
 import * as m from '~/i18n/paraglide/messages'
@@ -63,7 +66,8 @@ export function loader({ request, context }: Route.LoaderArgs) {
     })
     const counts = await countBuildingViews(db, congregationId, { params, dates })
     const zips = await getZips(db, congregationId)
-    const source = await db.setting.findFirst({ where: { key: 'bano-url', congregationId } })
+    const facts = await getBuildingSyncFacts(db, congregationId)
+    const { latest, lastCompleted } = await getBuildingSyncStatus(db, congregationId, now)
 
     return {
       rows: list.rows.map(
@@ -86,7 +90,32 @@ export function loader({ request, context }: Route.LoaderArgs) {
       filtered: FILTER_PARAMS.some(key => params.has(key)),
       canSurvey: permissions.has(Permission.CanRecordProspection),
       canManage,
-      canSync: canManage && Boolean(source?.value),
+      canSync: canManage && facts.sourceUrl != null,
+      // The status line shows once a file is set or a sync has run; the dialog, to who may sync.
+      sync:
+        facts.sourceUrl == null && latest == null
+          ? null
+          : {
+              run: latest && {
+                status: latest.status,
+                progress: latest.progress,
+                startedDay: formatLocalDate(latest.startedAt),
+                createdCount: latest.createdCount,
+                missingCount: latest.missingCount,
+                error: latest.error,
+                startedBy: latest.startedBy,
+              },
+              facts: {
+                source: sourceLabel(facts.sourceUrl),
+                zips: facts.zips,
+                perimeter: facts.perimeter,
+                last: lastCompleted && {
+                  day: formatLocalDate(lastCompleted.startedAt),
+                  createdCount: lastCompleted.createdCount,
+                  missingCount: lastCompleted.missingCount,
+                },
+              },
+            },
     }
   })
 }
@@ -114,15 +143,11 @@ export default function ProspectionList({ loaderData }: Route.ComponentProps) {
       </Link>
     </Button>
   )
-  const actions = (loaderData.canSync || create) && (
+  const { sync } = loaderData
+  const actions = ((loaderData.canSync && sync) || create) && (
     <>
-      {loaderData.canSync && (
-        <Form method="post" action="/territories/buildings/sync">
-          <Button type="submit" variant="outline" size="sm">
-            <RefreshCw aria-hidden="true" />
-            {m.prospection_sync_button()}
-          </Button>
-        </Form>
+      {loaderData.canSync && sync && (
+        <BuildingSyncDialog facts={sync.facts} today={loaderData.today} running={sync.run?.status === 'Running'} />
       )}
       {create}
     </>
@@ -134,6 +159,16 @@ export default function ProspectionList({ loaderData }: Route.ComponentProps) {
         title={m.prospection_title()}
         breadcrumbs={[{ label: m.sidebar_prospection() }]}
         actions={actions || undefined}
+        meta={
+          sync && (
+            <BuildingSyncStatus
+              run={sync.run}
+              today={loaderData.today}
+              canSync={loaderData.canSync}
+              onView={chooseView}
+            />
+          )
+        }
       />
 
       {counts.all === 0 && !loaderData.filtered ? (
@@ -200,4 +235,16 @@ function emptyViewText(view: BuildingView): string {
   if (view === 'new') return m.prospection_view_empty_new()
   if (view === 'missing') return m.prospection_view_empty_missing()
   return m.prospection_view_empty_active()
+}
+
+/** « bano.openstreetmap.fr · bano-93.csv »: the host and the file, as the settings show them. */
+function sourceLabel(url: string | null): string {
+  if (url == null) return ''
+  try {
+    const parsed = new URL(url)
+    const file = parsed.pathname.split('/').filter(Boolean).at(-1)
+    return file ? `${parsed.host} · ${file}` : parsed.host
+  } catch {
+    return url
+  }
 }
