@@ -85,6 +85,8 @@ export const AuditAction = {
   BuildingSyncStarted: 'building.sync.started',
   BuildingSyncCompleted: 'building.sync.completed',
   BuildingSyncFailed: 'building.sync.failed',
+  // Several at once, from « Manquants ».
+  BuildingsDeactivated: 'buildings.deactivated',
 
   // Attributions
   AttributionCreated: 'attribution.created',

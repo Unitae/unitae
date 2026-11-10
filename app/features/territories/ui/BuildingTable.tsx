@@ -4,6 +4,7 @@ import { Link } from 'react-router'
 
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
+import { Checkbox } from '~/shared/ui/checkbox'
 import { shortDay } from '~/shared/utils/format-day'
 import { cn } from '~/shared/utils/utils'
 import type { BuildingView } from '../model/building-list'
@@ -27,12 +28,27 @@ export interface BuildingListItem extends Omit<BuildingListRow, 'prospectionDate
   createdDay: string
 }
 
+/** The rows ticked for a bulk action (« Manquants », for who manages buildings). */
+export interface BuildingSelection {
+  ids: ReadonlySet<number>
+  onToggle: (id: number) => void
+  onToggleAll: (ids: number[]) => void
+}
+
 export interface BuildingTableProps {
   rows: BuildingListItem[]
   view: BuildingView
   today: string
   canSurvey: boolean
   canManage: boolean
+  /** The list as it is (view, filters, order), so a survey opened from it can go on to the next building. */
+  from: string
+  selection?: BuildingSelection
+}
+
+/** Where « Prospecter » leads: the survey, told which list it came from. */
+export function surveyHref(id: number, from: string): string {
+  return `/territories/building/${id}/edit-prospection${from ? `?from=${encodeURIComponent(from)}` : ''}`
 }
 
 /**
@@ -40,7 +56,8 @@ export interface BuildingTableProps {
  * there), its territory and its last survey (« Ajouté » in « Nouveaux »). The address opens the building.
  */
 export function BuildingTable(props: BuildingTableProps) {
-  const { rows, view } = props
+  const { rows, view, selection } = props
+  const allTicked = selection != null && rows.length > 0 && rows.every(row => selection.ids.has(row.id))
   return (
     <>
       <PhoneRows {...props} />
@@ -48,6 +65,15 @@ export function BuildingTable(props: BuildingTableProps) {
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr>
+              {selection && (
+                <th className={cn(HEAD, 'w-10 pr-0')}>
+                  <Checkbox
+                    checked={allTicked}
+                    onCheckedChange={() => selection.onToggleAll(rows.map(row => row.id))}
+                    aria-label={m.prospection_select_all()}
+                  />
+                </th>
+              )}
               <th className={HEAD}>{m.prospection_column_building()}</th>
               <th className={HEAD}>{view === 'check' ? m.prospection_column_why() : m.prospection_column_content()}</th>
               <th className={HEAD}>{m.prospection_column_territory()}</th>
@@ -70,9 +96,23 @@ export function BuildingTable(props: BuildingTableProps) {
   )
 }
 
-function BuildingRow({ row, view, today, canSurvey, canManage }: BuildingTableProps & { row: BuildingListItem }) {
+function BuildingRow(props: BuildingTableProps & { row: BuildingListItem }) {
+  const { row, view, today, canSurvey, canManage, from, selection } = props
+  const ticked = selection?.ids.has(row.id) ?? false
   return (
-    <tr data-testid="building-row" className="group transition-colors duration-(--u-duration-fast) hover:bg-hover">
+    <tr
+      data-testid="building-row"
+      className={cn('group transition-colors duration-(--u-duration-fast) hover:bg-hover', ticked && 'bg-selected')}
+    >
+      {selection && (
+        <td className={cn(CELL, 'w-10 pr-0')}>
+          <Checkbox
+            checked={ticked}
+            onCheckedChange={() => selection.onToggle(row.id)}
+            aria-label={m.prospection_select_building({ address: `${row.number} ${row.street}` })}
+          />
+        </td>
+      )}
       <td className={CELL}>
         <Address row={row} />
       </td>
@@ -90,7 +130,7 @@ function BuildingRow({ row, view, today, canSurvey, canManage }: BuildingTablePr
           {canSurvey && (
             <Button asChild variant="ghost" size="icon-sm">
               <Link
-                to={`/territories/building/${row.id}/edit-prospection`}
+                to={surveyHref(row.id, from)}
                 aria-label={m.prospection_action_survey()}
                 title={m.prospection_action_survey()}
               >
@@ -98,7 +138,12 @@ function BuildingRow({ row, view, today, canSurvey, canManage }: BuildingTablePr
               </Link>
             </Button>
           )}
-          <BuildingMenu building={row} canSurvey={canSurvey} canManage={canManage} />
+          <BuildingMenu
+            building={row}
+            canSurvey={canSurvey}
+            canManage={canManage}
+            surveyTo={surveyHref(row.id, from)}
+          />
         </span>
       </td>
     </tr>
