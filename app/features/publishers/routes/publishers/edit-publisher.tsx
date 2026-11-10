@@ -18,6 +18,7 @@ import {
   requirePermission,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import { ConflictError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
@@ -50,7 +51,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const [groups, enrolments] = await Promise.all([
       db.publisherGroup.findMany({
         where: { congregationId },
-        select: { id: true, name: true },
+        select: { id: true, name: true, responsibleId: true, deputyId: true },
         orderBy: { name: 'asc' },
       }),
       getEnrolmentsForMember(db, memberId, congregationId),
@@ -58,12 +59,19 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const current = toRecordEnrolments(enrolments, { month: now.getMonth(), year: now.getFullYear() }).find(
       enrolment => enrolment.current,
     )
-    return { publisher, groups, current: current ?? null }
+    // A group's overseer and assistant stay in the group they lead: the form says so instead of offering a move.
+    const led = groups.find(group => group.responsibleId === memberId || group.deputyId === memberId)
+    return {
+      publisher,
+      groups: groups.map(({ id, name }) => ({ id, name })),
+      ledGroup: led ? { id: led.id, name: led.name } : null,
+      current: current ?? null,
+    }
   })
 }
 
 export default function EditPublisher({ loaderData, actionData }: Route.ComponentProps) {
-  const { publisher, groups, current } = loaderData
+  const { publisher, groups, ledGroup, current } = loaderData
   const { blocker, setDirty } = useUnsavedChanges()
   const [version, setVersion] = useState(0)
   const name = formatPersonName(publisher)
@@ -85,6 +93,7 @@ export default function EditPublisher({ loaderData, actionData }: Route.Componen
         key={version}
         values={{ ...publisher, publisherGroupId: publisher.group?.id ?? null }}
         groups={groups}
+        ledGroup={ledGroup}
         loginEmail={publisher.login?.email}
         actionData={actionData}
         onDirtyChange={setDirty}
@@ -124,24 +133,27 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
 
   const { birthDate, baptismDate, arrivedAt, group, email, ...fields } = submission.value
-  return withScopeFromContext(context, async db => {
-    const user = await updateMember(
-      db,
-      requireParamId(params.publisherId, '/publishers'),
-      currentUser.congregationId,
-      currentUser.id,
-      {
+  let user: Awaited<ReturnType<typeof updateMember>>
+  try {
+    user = await withScopeFromContext(context, db =>
+      updateMember(db, requireParamId(params.publisherId, '/publishers'), currentUser.congregationId, currentUser.id, {
         ...fields,
         birthDate: birthDate || null,
         baptismDate: baptismDate || null,
         arrivedAt: arrivedAt || null,
         groupId: group ?? null,
         email: email ?? '',
-      },
+      }),
     )
-    const session = await getSession(request.headers.get('Cookie'))
-    session.flash('success', m.publishers_edit_success({ name: formatPersonName(user) }))
-    // Back to the record the edit started from: the save is done, and the page to read it on is there.
-    return redirect(`/publishers/${user.id}/view`, { headers: { 'Set-Cookie': await commitSession(session) } })
-  })
+  } catch (error) {
+    // A group's overseer or assistant moved out of the group they lead (a stale page): said on the group field.
+    if (error instanceof ConflictError) {
+      return data(submission.reply({ fieldErrors: { group: [error.message] } }), { status: 409 })
+    }
+    throw error
+  }
+  const session = await getSession(request.headers.get('Cookie'))
+  session.flash('success', m.publishers_edit_success({ name: formatPersonName(user) }))
+  // Back to the record the edit started from: the save is done, and the page to read it on is there.
+  return redirect(`/publishers/${user.id}/view`, { headers: { 'Set-Cookie': await commitSession(session) } })
 }

@@ -407,6 +407,71 @@ describe('memberAggregate.setGroup — integration', () => {
   })
 })
 
+// Regression: the publisher form wrote the group straight through, so it could take a group's
+// overseer or assistant out of the group they lead, which every other path refuses.
+describe('memberAggregate.updateIdentity — the group of a group leader', () => {
+  async function leaderOf(name: string, role: 'responsible' | 'deputy') {
+    // A publisher: the form sends a baptism date, which the database only allows on one.
+    const leader = await testDb.member.create({
+      data: { firstname: `${name}-${ts}`, lastname: 'Lead', isPublisher: true, congregationId: congId },
+    })
+    const overseer =
+      role === 'deputy'
+        ? await testDb.member.create({
+            data: { firstname: `${name}R-${ts}`, lastname: 'Lead', congregationId: congId },
+          })
+        : leader
+    const group = await testDb.publisherGroup.create({
+      data: {
+        name: `${name}-${ts}`,
+        adress: '',
+        responsibleId: overseer.id,
+        deputyId: role === 'deputy' ? leader.id : null,
+        congregationId: congId,
+      },
+    })
+    await testDb.member.update({ where: { id: leader.id }, data: { publisherGroupId: group.id } })
+    return { leader, group }
+  }
+
+  const save = (memberId: number, firstname: string, groupId: number | null) =>
+    withScope(congId, tx =>
+      memberAggregate.updateIdentity(tx, memberId, congId, 1, { ...baseFormParams, firstname, groupId }),
+    )
+  const groupOf = async (memberId: number) =>
+    (await testDb.member.findUniqueOrThrow({ where: { id: memberId } })).publisherGroupId
+
+  it.each([
+    ['overseer', 'responsible'],
+    ['assistant', 'deputy'],
+  ] as const)('refuses to take an %s out of the group they lead, and writes nothing', async (_who, role) => {
+    const { leader, group } = await leaderOf(`IdLead-${role}`, role)
+
+    await expect(save(leader.id, 'Renamed', null)).rejects.toBeInstanceOf(ConflictError)
+    const after = await testDb.member.findUniqueOrThrow({ where: { id: leader.id } })
+    expect(after.publisherGroupId).toBe(group.id)
+    expect(after.firstname).toBe(`IdLead-${role}-${ts}`)
+  })
+
+  it('refuses to move an overseer into another group', async () => {
+    const { leader, group } = await leaderOf('IdLeadMove', 'responsible')
+    const other = await leaderOf('IdLeadOther', 'responsible')
+
+    await expect(save(leader.id, 'Moved', other.group.id)).rejects.toBeInstanceOf(ConflictError)
+    expect(await groupOf(leader.id)).toBe(group.id)
+  })
+
+  it('saves an overseer who stays in the group he leads', async () => {
+    const { leader, group } = await leaderOf('IdLeadStay', 'responsible')
+
+    await save(leader.id, `IdLeadStay2-${ts}`, group.id)
+
+    const after = await testDb.member.findUniqueOrThrow({ where: { id: leader.id } })
+    expect(after.publisherGroupId).toBe(group.id)
+    expect(after.firstname).toBe(`IdLeadStay2-${ts}`)
+  })
+})
+
 describe('pastoral dates — integration', () => {
   function create(firstname: string, extra: Partial<typeof baseFormParams> = {}) {
     return withScope(congId, tx =>
