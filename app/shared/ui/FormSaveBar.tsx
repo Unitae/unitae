@@ -4,6 +4,8 @@ import * as m from '~/i18n/paraglide/messages'
 interface FormSaveBarProps {
   /** Unsaved changes to announce, or `null` on a form with nothing to compare with yet (a creation). */
   changes: number | null
+  /** On a creation, what saving will do (« Créés en brouillon… ») in place of the changes. */
+  label?: React.ReactNode
   /** Cancel, then the primary save. */
   children: React.ReactNode
 }
@@ -13,14 +15,14 @@ interface FormSaveBarProps {
  * beside the open sidebar on wide screens and above the tab bar on phones. Leave room for it at the end of the
  * form (`pb-24`).
  */
-export function FormSaveBar({ changes, children }: FormSaveBarProps) {
+export function FormSaveBar({ changes, label, children }: FormSaveBarProps) {
   return (
     <SaveBar
       aria-label={m.form_save_bar()}
       dirty={changes != null && changes > 0}
       label={
         changes == null || changes === 0
-          ? undefined
+          ? label
           : (changes === 1 ? m.form_changes_one : m.form_changes_many)({ count: String(changes) })
       }
       className="fixed inset-x-0 bottom-0 z-30 max-md:bottom-[calc(56px+env(safe-area-inset-bottom))] md:group-has-data-[state=expanded]/sidebar-wrapper:left-(--sidebar-width)"

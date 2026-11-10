@@ -11,7 +11,8 @@ const VIEWER_PASSWORD = process.env.E2E_PROGRAM_VIEWER_PASSWORD
 const PROGRAMS_URL_RE = /\/programs(\?|$)/
 const PROGRAMS_NEW_URL_RE = /\/programs\/new/
 const NEW_EVENT_BUTTON_RE = /^nouveau$/i
-const NO_TEMPLATE_OPTION_RE = /Aucun modèle/i
+const SINGLE_DATE_RE = /^Une seule date$/
+const OTHER_EVENT_RE = /^Autre évènement/
 
 test.describe('Program permissions — ProgramManager', () => {
   test.beforeEach(async ({ page }) => {
@@ -29,11 +30,11 @@ test.describe('Program permissions — ProgramManager', () => {
     await expect(page.getByRole('link', { name: NEW_EVENT_BUTTON_RE })).toBeVisible()
   })
 
-  test('new-event page exposes the "Aucun modèle" option', async ({ page }) => {
+  test('creation page offers « Autre évènement »', async ({ page }) => {
     await page.goto('/programs/new')
     await page.waitForLoadState('networkidle')
-    await page.getByRole('combobox').first().click()
-    await expect(page.getByRole('option', { name: NO_TEMPLATE_OPTION_RE })).toBeVisible()
+    await page.getByRole('button', { name: SINGLE_DATE_RE }).click()
+    await expect(page.getByRole('radio', { name: OTHER_EVENT_RE })).toBeVisible()
   })
 })
 
@@ -53,12 +54,12 @@ test.describe('Program permissions — Responsible (non-manager)', () => {
     await expect(page.getByRole('link', { name: NEW_EVENT_BUTTON_RE })).toBeVisible()
   })
 
-  test('new-event page does not expose the "Aucun modèle" option', async ({ page }) => {
+  test('creation page does not offer « Autre évènement »', async ({ page }) => {
     await page.goto('/programs/new')
     await page.waitForLoadState('networkidle')
     await expect(page).toHaveURL(PROGRAMS_NEW_URL_RE)
-    await page.getByRole('combobox').first().click()
-    await expect(page.getByRole('option', { name: NO_TEMPLATE_OPTION_RE })).toHaveCount(0)
+    await page.getByRole('button', { name: SINGLE_DATE_RE }).click()
+    await expect(page.getByRole('radio', { name: OTHER_EVENT_RE })).toHaveCount(0)
   })
 
   test('foreign-template event ids are filtered out by the bulk-delete action', async ({ page, request }) => {
