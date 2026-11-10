@@ -3834,5 +3834,13 @@
     "territory_page_weeks": "{count} semaines",
     "filters_button": "Filtres",
     "filters_button_active": "Filtres, {count} actifs",
-    "filters_clear": "Effacer les filtres"
+    "filters_clear": "Effacer les filtres",
+    "territory_editor_number_required": "Donnez un numéro au territoire.",
+    "territory_editor_number_too_long": "40 caractères au plus.",
+    "territory_editor_number_taken": "{number} existe déjà. Choisissez un autre numéro.",
+    "territory_editor_entrance_taken": "Rien n’a été enregistré : {address} est déjà sur {territory}.",
+    "territory_editor_entrance_taken_plural": "Rien n’a été enregistré : {count} entrées sont déjà sur d’autres territoires ({list}).",
+    "territory_editor_created_flash": "Le territoire {number} est créé.",
+    "territory_editor_saved_flash": "Le territoire {number} est enregistré.",
+    "territories_edit_submit_with_one": "Enregistrer (1 modification)"
 }

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
 import { territoryContentLabel } from '~/features/territories/server/territory-content-label'
@@ -42,11 +42,16 @@ export function ownEntranceToBbox(entrance: AggregatedEntrance): BboxEntrance | 
   }
 }
 
+/**
+ * The territory editor's changes not saved yet: additions, removals, entrances taken from another territory. Leaving
+ * the page warns while there is one, or while `otherChanges` (the notes) holds; undoing them all ends the warning.
+ */
 export function useEntrancePendingState(
   savedTerritoryEntrances: AggregatedEntrance[],
   territoryType: TerritoryKindKey,
+  otherChanges = false,
 ) {
-  const { blocker, markDirty } = useUnsavedChanges()
+  const { blocker, setDirty } = useUnsavedChanges()
 
   const [pendingAdditions, setPendingAdditions] = useState<Map<number, BboxEntrance>>(new Map())
   const [pendingRemovals, setPendingRemovals] = useState<Map<number, BboxEntrance | AggregatedEntrance>>(new Map())
@@ -80,60 +85,51 @@ export function useEntrancePendingState(
     return territoryContentLabel(territoryType, entrances)
   }, [savedTerritoryEntrances, pendingRemovals, pendingAdditions, pendingReassignments, territoryType])
 
-  const handleAct = useCallback(
-    (entrance: BboxEntrance, action: EntranceAction) => {
-      markDirty()
-      if (action === 'undo') {
-        setPendingAdditions(prev => {
-          const next = new Map(prev)
-          next.delete(entrance.id)
-          return next
-        })
-        setPendingRemovals(prev => {
-          const next = new Map(prev)
-          next.delete(entrance.id)
-          return next
-        })
-        setPendingReassignments(prev => {
-          const next = new Map(prev)
-          next.delete(entrance.id)
-          return next
-        })
-        return
-      }
-      if (action === 'add') {
-        setPendingAdditions(prev => new Map(prev).set(entrance.id, entrance))
-        return
-      }
-      if (action === 'remove') {
-        setPendingRemovals(prev => new Map(prev).set(entrance.id, entrance))
-        return
-      }
-      if (action === 'reassign' && entrance.otherTerritory != null) {
-        const other = entrance.otherTerritory
-        setPendingReassignments(prev =>
-          new Map(prev).set(entrance.id, {
-            entrance,
-            fromTerritoryId: other.id,
-            fromTerritoryNumber: other.number,
-          }),
-        )
-      }
-    },
-    [markDirty],
-  )
-
-  const handleListRemove = useCallback(
-    (entrance: AggregatedEntrance) => {
-      markDirty()
+  const handleAct = useCallback((entrance: BboxEntrance, action: EntranceAction) => {
+    if (action === 'undo') {
+      setPendingAdditions(prev => {
+        const next = new Map(prev)
+        next.delete(entrance.id)
+        return next
+      })
+      setPendingRemovals(prev => {
+        const next = new Map(prev)
+        next.delete(entrance.id)
+        return next
+      })
+      setPendingReassignments(prev => {
+        const next = new Map(prev)
+        next.delete(entrance.id)
+        return next
+      })
+      return
+    }
+    if (action === 'add') {
+      setPendingAdditions(prev => new Map(prev).set(entrance.id, entrance))
+      return
+    }
+    if (action === 'remove') {
       setPendingRemovals(prev => new Map(prev).set(entrance.id, entrance))
-    },
-    [markDirty],
-  )
+      return
+    }
+    if (action === 'reassign' && entrance.otherTerritory != null) {
+      const other = entrance.otherTerritory
+      setPendingReassignments(prev =>
+        new Map(prev).set(entrance.id, {
+          entrance,
+          fromTerritoryId: other.id,
+          fromTerritoryNumber: other.number,
+        }),
+      )
+    }
+  }, [])
+
+  const handleListRemove = useCallback((entrance: AggregatedEntrance) => {
+    setPendingRemovals(prev => new Map(prev).set(entrance.id, entrance))
+  }, [])
 
   const handleSelectorChange = useCallback(
     (selection: AggregatedEntrance[]) => {
-      markDirty()
       const ownIds = new Set(savedTerritoryEntrances.map(e => e.id))
       setPendingAdditions(prev => {
         const next = new Map(prev)
@@ -145,7 +141,7 @@ export function useEntrancePendingState(
         return next
       })
     },
-    [savedTerritoryEntrances, markDirty],
+    [savedTerritoryEntrances],
   )
 
   const handleRevert = useCallback((entranceId: number) => {
@@ -178,6 +174,8 @@ export function useEntrancePendingState(
   )
 
   const pendingChangesCount = pendingAdditions.size + pendingRemovals.size + pendingReassignments.size
+  const dirty = pendingChangesCount > 0 || otherChanges
+  useEffect(() => setDirty(dirty), [dirty, setDirty])
 
   return {
     pendingAdditions,
@@ -194,6 +192,5 @@ export function useEntrancePendingState(
     handleListRemoveById,
     handleFocusEntrance,
     blocker,
-    markDirty,
   }
 }

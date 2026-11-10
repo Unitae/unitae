@@ -3,11 +3,12 @@ import { parseWithZod } from '@conform-to/zod/v4'
 import { ExternalLink, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
-import { getSession } from '~/features/authentication/index.server'
+import { commitSession, getSession } from '~/features/authentication/index.server'
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { createTerritorySchema } from '~/features/territories/schemas/territory.schema'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import { createTerritory } from '~/features/territories/server/create-territory.server'
+import { editorRefusal } from '~/features/territories/server/territory-editor-refusal.server'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'
 import * as m from '~/i18n/paraglide/messages'
@@ -183,6 +184,11 @@ export default function NewTerritoryPage({ loaderData, actionData }: Route.Compo
                 selection={territoryEntrances}
                 onSelectionChange={selection => setTerritoryEntrances(selection)}
               />
+              {form.errors && (
+                <p role="alert" className="text-destructive text-sm">
+                  {form.errors}
+                </p>
+              )}
               <FormActions>
                 <SubmitButton>{m.territories_form_create_submit()}</SubmitButton>
               </FormActions>
@@ -206,27 +212,36 @@ export async function action({ request, context }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  const { number, type, entrances } = submission.value
+  const { number, type, entrances, reassignments } = submission.value
   const congregation = context.get(congregationContext)
   const { id: actorId } = context.get(currentAccountContext)
+  const session = await getSession(request.headers.get('Cookie'))
 
-  return withScopeFromContext(context, async db => {
-    const session = await getSession(request.headers.get('Cookie'))
-    try {
-      const limits = new LimitService(db, congregation)
-      await limits.errorIfWouldGoOverLimit('territories')
-
-      await createTerritory(db, {
+  let territory: { id: number; number: string }
+  try {
+    // Outside the transaction: a refused creation leaves no half-made territory behind.
+    territory = await withScopeFromContext(context, async db => {
+      await new LimitService(db, congregation).errorIfWouldGoOverLimit('territories')
+      return createTerritory(db, {
         number,
         type,
         entranceIds: entrances,
+        reassignments,
         congregationId: congregation.id,
         actorId,
       })
-
-      return redirect('/territories')
-    } catch (error) {
-      await handleAppError(error, session, '/territories/territory/new')
+    })
+  } catch (error) {
+    const refusal = editorRefusal(error, number)
+    if (refusal?.kind === 'number-taken') {
+      return data(submission.reply({ fieldErrors: { number: [refusal.message] } }), { status: 409 })
     }
+    if (refusal != null) return data(submission.reply({ formErrors: [refusal.message] }), { status: 409 })
+    return handleAppError(error, session, '/territories/territory/new')
+  }
+
+  session.flash('success', m.territory_editor_created_flash({ number: territory.number }))
+  return redirect(`/territories/territory/${territory.id}/view`, {
+    headers: { 'Set-Cookie': await commitSession(session) },
   })
 }

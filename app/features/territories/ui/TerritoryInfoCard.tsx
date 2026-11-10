@@ -7,7 +7,7 @@ import { Textarea } from '~/shared/ui/textarea'
 type TerritoryInfoCardProps = {
   territory: { number: string; type: TerritoryKindKey; notes: string | null }
   projectedContent: string
-  onNotesChange: () => void
+  onNotesChange: (notes: string) => void
 }
 
 function typeLabel(type: TerritoryKindKey): string {
@@ -44,7 +44,7 @@ export function TerritoryInfoCard({ territory, projectedContent, onNotesChange }
             rows={4}
             name="notes"
             defaultValue={territory.notes ?? undefined}
-            onChange={onNotesChange}
+            onChange={event => onNotesChange(event.target.value)}
           />
         </div>
       </CardContent>

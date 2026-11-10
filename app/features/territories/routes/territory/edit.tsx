@@ -1,7 +1,7 @@
 import { parseWithZod } from '@conform-to/zod/v4'
 import { useMemo, useState } from 'react'
 import { data, Form, redirect } from 'react-router'
-import { getSession } from '~/features/authentication/index.server'
+import { commitSession, getSession } from '~/features/authentication/index.server'
 import { updateTerritorySchema } from '~/features/territories/schemas/territory.schema'
 import {
   aggregateEntrance,
@@ -10,6 +10,7 @@ import {
   getAvailableStreets,
   getAvailableZips,
 } from '~/features/territories/server/buildings.server'
+import { editorRefusal } from '~/features/territories/server/territory-editor-refusal.server'
 import { updateTerritory } from '~/features/territories/server/update-territory.server'
 import BuildingEntranceMapEditor from '~/features/territories/ui/BuildingEntranceMapEditor'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'
@@ -38,16 +39,9 @@ import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
 
-export const meta: Route.MetaFunction = ({ loaderData }) => {
-  if (!loaderData) return [{ title: 'Unitae' }]
-  return [
-    {
-      title: m.territories_edit_meta_title({
-        number: String(loaderData.territory.number),
-      }),
-    },
-  ]
-}
+export const meta: Route.MetaFunction = ({ loaderData }) => [
+  { title: loaderData ? m.territories_edit_meta_title({ number: loaderData.territory.number }) : 'Unitae' },
+]
 
 export function loader({ request, params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
@@ -121,6 +115,10 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
   const fromQuery = from != null && from.length > 0 ? `?from=${encodeURIComponent(from)}` : ''
   const viewBackTo = `/territories/territory/${territory.id}/view${fromQuery}`
 
+  // The notes are a change of their own: a territory whose entrances stay can still be saved.
+  const [notes, setNotes] = useState(territory.notes ?? '')
+  const notesChanged = notes !== (territory.notes ?? '')
+
   const ownBboxEntrances = useMemo(
     () => savedTerritoryEntrances.map(e => ownEntranceToBbox(e)).filter((e): e is BboxEntrance => e != null),
     [savedTerritoryEntrances],
@@ -141,14 +139,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
     handleListRemoveById,
     handleFocusEntrance,
     blocker,
-    markDirty,
-  } = useEntrancePendingState(savedTerritoryEntrances, territory.type)
-  // The notes are a change of their own: a territory whose entrances stay can still be saved.
-  const [notesChanged, setNotesChanged] = useState(false)
-  const changeNotes = () => {
-    markDirty()
-    setNotesChanged(true)
-  }
+  } = useEntrancePendingState(savedTerritoryEntrances, territory.type, notesChanged)
 
   const showMap = googleMapsApiKey != null
 
@@ -192,7 +183,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
         ) : null}
 
         <div className={`flex flex-col gap-4 ${showMap ? 'lg:w-[380px] xl:w-[420px]' : 'flex-1'}`}>
-          <TerritoryInfoCard territory={territory} projectedContent={projectedContent} onNotesChange={changeNotes} />
+          <TerritoryInfoCard territory={territory} projectedContent={projectedContent} onNotesChange={setNotes} />
 
           <PendingEntranceList
             savedTerritoryEntrances={savedTerritoryEntrances}
@@ -258,9 +249,9 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
               <SubmitButton className="w-full" disabled={pendingChangesCount === 0 && !notesChanged}>
                 {pendingChangesCount === 0
                   ? m.territories_edit_submit()
-                  : m.territories_edit_submit_with_count({
-                      count: String(pendingChangesCount),
-                    })}
+                  : pendingChangesCount === 1
+                    ? m.territories_edit_submit_with_one()
+                    : m.territories_edit_submit_with_count({ count: String(pendingChangesCount) })}
               </SubmitButton>
             </FormActions>
           </Form>
@@ -272,27 +263,28 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-
   requirePermission(permissions, Permission.CanManageTerritories)
 
-  const submission = parseWithZod(await request.formData(), {
-    schema: updateTerritorySchema,
-  })
-  if (submission.status !== 'success') {
-    return data(submission.reply(), { status: 400 })
-  }
+  const submission = parseWithZod(await request.formData(), { schema: updateTerritorySchema })
+  if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
 
-  const { entrances, reassignments, notes } = submission.value
+  const { number, entrances, reassignments, notes } = submission.value
   const { congregationId, id: actorId } = context.get(currentAccountContext)
-
   const id = requireParamId(params.territoryId, '/territories')
+  const session = await getSession(request.headers.get('Cookie'))
 
-  return withScopeFromContext(context, async db => {
-    // A refused change (an entrance already elsewhere, a stale reassignment) comes back as a message.
-    await updateTerritory(db, id, congregationId, actorId, { entranceIds: entrances, reassignments, notes }).catch(
-      async error =>
-        handleAppError(error, await getSession(request.headers.get('Cookie')), `/territories/territory/${id}/edit`),
+  let saved: { number: string }
+  try {
+    // Outside the transaction: a refused save (an entrance taken meanwhile, a number in use) leaves nothing behind.
+    saved = await withScopeFromContext(context, db =>
+      updateTerritory(db, id, congregationId, actorId, { number, entranceIds: entrances, reassignments, notes }),
     )
-    return redirect(`/territories/territory/${id}/view`)
-  })
+  } catch (error) {
+    const refusal = editorRefusal(error, number ?? '')
+    if (refusal == null) return handleAppError(error, session, `/territories/territory/${id}/edit`)
+    session.flash('error', refusal.message)
+    throw redirect(`/territories/territory/${id}/edit`, { headers: { 'Set-Cookie': await commitSession(session) } })
+  }
+  session.flash('success', m.territory_editor_saved_flash({ number: saved.number }))
+  return redirect(`/territories/territory/${id}/view`, { headers: { 'Set-Cookie': await commitSession(session) } })
 }
