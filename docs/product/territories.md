@@ -282,13 +282,27 @@ Each building record includes:
 - **Prospecting date** — When the building was last surveyed
 - **Notes** — Additional information about the building
 
+### The prospection page
+
+*Territoires › Prospection* lists the buildings, 50 per page, on the same search and filter row as the other territory lists (postcode, contents, access, position). Five views sit next to the search, each with its count:
+
+| View | Holds |
+|---|---|
+| **Actifs** (default) | Every active building |
+| **À vérifier** | Buildings to look at again, with every reason: never surveyed (created by hand), surveyed longer ago than the validity set in *Réglages › Territoires*, homes or phones to count, a way in to specify, active outside the territory for over 3 months, inactive inside it for over twice the validity |
+| **Nouveaux** | Listed by the last BANO sync and never surveyed |
+| **Manquants** | Active buildings the BANO listed before and its last sync did not: check on site, deactivate the ones that no longer exist. Buildings created by hand never show here |
+| **Tous** | Every building |
+
+A building sits in at most one of the three work lists (*Manquants*, then *Nouveaux*, then *À vérifier*). The order is by address — numbers as they are read, 2 before 10 — by oldest survey, or by most recently added.
+
 ### Open Data Sync
 
 For congregations in France, building addresses can be automatically imported from the national address database. See [Open Data Sync](../self-hosting/open-data-sync.md) for details.
 
 ## Split Tool
 
-The split tool helps administrators create new territories from prospected building data. It groups building entrances by type and lets you select which ones to include in a new territory.
+The split tool helps administrators create new territories from prospected building data. It groups building entrances by type and lets you select which ones to include in a new territory. It opens from **Créer en lot** in the top bar of *Territoires*, for whoever may plan territory splits.
 
 ### Available categories
 

@@ -3,7 +3,8 @@ import { Permission } from '~/shared/types/permission'
 import { passesGate } from '~/tests/helpers/layout-gate'
 import { routeContext } from '~/tests/helpers/route-action'
 import { middleware as territoriesMiddleware } from './_layout'
-import { middleware as prospectionMiddleware } from './prospection/_layout'
+import { middleware as prospectionMiddleware } from './prospection/list'
+import { middleware as syncMiddleware } from './prospection/sync-buildings'
 import { middleware as splitToolMiddleware } from './split-tool/_layout'
 
 // The territory gates run as middleware so they cover every child's action, not only page loads.
@@ -17,13 +18,19 @@ describe('territories layout gate', () => {
   })
 })
 
-describe('prospection layout gate', () => {
-  it('admits a caller who views prospection', async () => {
-    expect(await passesGate(prospectionMiddleware, routeContext([Permission.CanViewProspection]))).toBe(true)
+describe('prospection gate', () => {
+  it.each([
+    ['the list', prospectionMiddleware],
+    ['the sync', syncMiddleware],
+  ])('lets a caller who views prospection reach %s', async (_name, middleware) => {
+    expect(await passesGate(middleware, routeContext([Permission.CanViewProspection]))).toBe(true)
   })
 
-  it('refuses a caller who does not', async () => {
-    expect(await passesGate(prospectionMiddleware, routeContext([Permission.CanViewTerritories]))).toBe(false)
+  it.each([
+    ['the list', prospectionMiddleware],
+    ['the sync', syncMiddleware],
+  ])('keeps a caller who does not out of %s', async (_name, middleware) => {
+    expect(await passesGate(middleware, routeContext([Permission.CanViewTerritories]))).toBe(false)
   })
 })
 
