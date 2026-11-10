@@ -14,7 +14,7 @@ const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const events = await import('~/features/events/index.server')
 
 const NOW = new Date(Date.UTC(2026, 10, 7, 12))
-const ACTIVE: PublisherListFilters = { search: '', groupIds: [], privilege: null, status: 'active' }
+const ACTIVE: PublisherListFilters = { search: '', groupIds: [], noGroup: false, privilege: null, status: 'active' }
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -47,7 +47,13 @@ describe('publisherListWhere', () => {
 
   it('narrows by name, groups and privilege, and switches to those who left', () => {
     expect(
-      publisherListWhere(1, { search: 'mar', groupIds: [2], privilege: 'auxiliary-pioneer', status: 'left' }),
+      publisherListWhere(1, {
+        ...ACTIVE,
+        search: 'mar',
+        groupIds: [2],
+        privilege: 'auxiliary-pioneer',
+        status: 'left',
+      }),
     ).toEqual({
       congregationId: 1,
       isPublisher: true,
@@ -65,6 +71,19 @@ describe('publisherListWhere', () => {
       inactiveAt: { not: null },
       isHelder: true,
     })
+  })
+
+  it('keeps those in no group, alone or beside chosen groups, without touching the name search', () => {
+    expect(publisherListWhere(1, { ...ACTIVE, noGroup: true })).toMatchObject({ publisherGroupId: null })
+    const both = publisherListWhere(1, { ...ACTIVE, search: 'mar', groupIds: [2], noGroup: true })
+    expect(both).toMatchObject({
+      AND: [{ OR: [{ publisherGroupId: { in: [2] } }, { publisherGroupId: null }] }],
+      OR: [
+        { firstname: { contains: 'mar', mode: 'insensitive' } },
+        { lastname: { contains: 'mar', mode: 'insensitive' } },
+      ],
+    })
+    expect(both).not.toHaveProperty('publisherGroupId')
   })
 })
 

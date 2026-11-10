@@ -69,7 +69,7 @@ describe('getPublisherById', () => {
   })
 })
 
-const ACTIVE: PublisherListFilters = { search: '', groupIds: [], privilege: null, status: 'active' }
+const ACTIVE: PublisherListFilters = { search: '', groupIds: [], noGroup: false, privilege: null, status: 'active' }
 
 describe('listPublishers search filter', () => {
   let searchCongregationId: number
