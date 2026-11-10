@@ -8,6 +8,7 @@ import { congregationContext, currentAccountContext, permissionsContext } from '
 import { getTrialBanner } from '~/shared/domain/trial-banner.server'
 import { Permission } from '~/shared/types/permission'
 import { AppLayout } from '~/shared/ui/AppLayout'
+import { OutsideAppError } from '~/shared/ui/OutsideAppError'
 import { RouteErrorBoundary } from '~/shared/ui/RouteErrorBoundary'
 import { readSidebarOpenFromCookie } from '~/shared/ui/sidebar/sidebar-cookie'
 import { formatPersonName, resolveAccountName } from '~/shared/utils/format-person-name'
@@ -122,4 +123,22 @@ export default function AuthenticatedLayout({ loaderData }: Route.ComponentProps
   )
 }
 
-export { RouteErrorBoundary as ErrorBoundary }
+/**
+ * An error on a page keeps the shell: the layout's own data loaded, so the sidebar is drawn around the error. When
+ * the layout itself failed there is no shell to keep, and the error goes on the frame of the pages outside the app.
+ */
+export function ErrorBoundary({ loaderData }: Route.ErrorBoundaryProps) {
+  if (loaderData == null) return <OutsideAppError />
+  const { permissions, congregationName, userName, trial, sidebarOpen } = loaderData
+  return (
+    <AppLayout
+      permissions={permissions}
+      congregationName={congregationName}
+      userName={userName}
+      trial={trial}
+      sidebarOpen={sidebarOpen}
+    >
+      <RouteErrorBoundary />
+    </AppLayout>
+  )
+}

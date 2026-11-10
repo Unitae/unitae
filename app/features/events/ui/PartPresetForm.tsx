@@ -19,6 +19,8 @@ type PartPresetFormProps = {
   placeholders?: { name: string; speakerLabel: string; readerLabel: string; shareMessage: string }
   // Absent means no error. A separate null state would say nothing extra.
   errors?: string[]
+  /** The congregation's address, so that the preview's link is one the author recognises. */
+  baseUrl?: string
 }
 
 // Plausible values for the preview. Every slot is filled, so the author sees
@@ -37,17 +39,20 @@ const PREVIEW_CONTEXT: ShareMessageContext = {
   eventName: 'Réunion de semaine',
   note: 'Prévoir la vidéo',
   congregation: 'Assemblée de Lyon',
-  link: 'https://unitae.app/board',
+  link: 'https://unitae.example.com/board',
 }
 
-export function PartPresetForm({ preset, isSystem, placeholders, errors }: PartPresetFormProps) {
+export function PartPresetForm({ preset, isSystem, placeholders, errors, baseUrl }: PartPresetFormProps) {
   const [message, setMessage] = useState(preset?.shareMessage ?? '')
   const [hasReaderSlot, setHasReaderSlot] = useState(preset?.hasReaderSlot ?? false)
 
   // Rendered with renderShareMessage — the same function the share button will
   // use once it exists, which is the point of keeping that module pure: the
   // preview and the sent message cannot diverge.
-  const preview = renderShareMessage(message, PREVIEW_CONTEXT)
+  const preview = renderShareMessage(
+    message,
+    baseUrl ? { ...PREVIEW_CONTEXT, link: `${baseUrl}/board` } : PREVIEW_CONTEXT,
+  )
 
   return (
     <Form method="post" className="flex flex-col gap-6">

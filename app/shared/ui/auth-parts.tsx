@@ -1,5 +1,5 @@
 import { StatusIcon } from '@unitae/ui'
-import { Link } from 'react-router'
+import { Form, Link } from 'react-router'
 
 import { Label } from '~/shared/ui/label'
 import { cn } from '~/shared/utils/utils'
@@ -62,6 +62,20 @@ export function AuthLink({ to, children }: { to: string; children: React.ReactNo
     <Link to={to} className="self-start text-brand-text text-sm underline-offset-4 hover:underline">
       {children}
     </Link>
+  )
+}
+
+/**
+ * « Se déconnecter » under the form. A POST: the logout route only signs out on its action, and a link would land the
+ * account back on the page that holds it (an unconfirmed address, a suspended access).
+ */
+export function AuthSignOut({ children }: { children: React.ReactNode }) {
+  return (
+    <Form method="post" action="/logout" className="self-start">
+      <button type="submit" className="text-brand-text text-sm underline-offset-4 hover:underline">
+        {children}
+      </button>
+    </Form>
   )
 }
 

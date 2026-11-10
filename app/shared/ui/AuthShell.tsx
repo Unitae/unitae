@@ -4,6 +4,7 @@ import { Link } from 'react-router'
 
 import * as m from '~/i18n/paraglide/messages'
 import { Monogram } from '~/shared/ui/ShellMenus'
+import { cn } from '~/shared/utils/utils'
 
 interface AuthShellProps {
   /** The congregation the page belongs to: its monogram and name above the title. Null where none exists yet. */
@@ -15,20 +16,23 @@ interface AuthShellProps {
   icon?: LucideIcon
   /** What the page says under its title. */
   description?: React.ReactNode
+  /** A slightly wider column, for a page that is mostly reading: the consent. */
+  wide?: boolean
   children?: React.ReactNode
 }
 
 /**
- * The frame of every page before the app: the bare page, one narrow column in the middle, no card. The column opens
- * with the congregation's monogram and name (the unitae mark where no congregation exists yet) and the page's action
- * as its title; the unitae mark and the privacy page close the page.
+ * The frame of every page outside the app — signing in, a suspended access, an error the app could not frame: the
+ * bare page, one narrow column in the middle, no card. The column opens with the congregation's monogram and name
+ * (the unitae mark where no congregation exists yet) and the page's action as its title; the unitae mark and the
+ * privacy page close the page.
  */
-export function AuthShell({ congregation, title, eyebrow, icon: Icon, description, children }: AuthShellProps) {
+export function AuthShell({ congregation, title, eyebrow, icon: Icon, description, wide, children }: AuthShellProps) {
   const over = eyebrow ?? (Icon == null ? congregation : null)
   return (
     <div className="flex min-h-svh flex-col items-center bg-background px-4">
       <main className="flex w-full flex-1 items-center justify-center py-16">
-        <div className="flex w-full max-w-[22.5rem] animate-fade-in-up flex-col gap-5">
+        <div className={cn('flex w-full max-w-[22.5rem] animate-fade-in-up flex-col gap-5', wide && 'max-w-[25rem]')}>
           <div className="flex flex-col items-start gap-3.5">
             <Emblem congregation={congregation} icon={Icon} />
             <div className="flex flex-col gap-1">

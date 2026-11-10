@@ -2,7 +2,6 @@ import logger from '~/shared/infra/logger.server'
 
 const MIN_SESSION_SECRET_LENGTH = 32
 const PLACEHOLDER_SESSION_SECRETS = ['change-me-with-a-real-secret-key']
-const DEFAULT_BASE_DOMAIN = 'unitae.app'
 
 // Fail closed: treat anything that is not an explicit development/test environment (including an
 // unset or misspelled NODE_ENV) as production, mirroring the RLS guard (see rls-guard.server.ts).
@@ -33,30 +32,55 @@ export function getSessionSecrets(): string[] {
     .filter(Boolean)
 }
 
-function parseHostname(value: string): string | null {
+// The origin a value names, whether it is written with a scheme, a port or a trailing slash or without (a bare host
+// is read as https). Null for a value that names no host.
+function parseOrigin(value: string): string | null {
   try {
-    return new URL(value.includes('://') ? value : `https://${value}`).hostname || null
+    const url = new URL(value.includes('://') ? value : `https://${value}`)
+    if (!url.hostname || !['http:', 'https:'].includes(url.protocol)) return null
+    return url.origin
   } catch {
     return null
   }
 }
 
-// The hostname in UNITAE_BASE_URL, whether it is written with a scheme, a port or a trailing slash
-// or without. Non-throwing for the same reason as getSessionSecrets: it runs on every multi-tenant
-// request, so validateEnv() reports a value that names no host once, at boot.
-export function getBaseDomain(): string {
-  return parseHostname(process.env.UNITAE_BASE_URL || DEFAULT_BASE_DOMAIN) ?? DEFAULT_BASE_DOMAIN
+// The server itself, on the port the start script listens to (`react-router dev` serves on 5173). Never another
+// instance's domain: an instance that forgot UNITAE_BASE_URL keeps its links, and the tokens in them, at home.
+function fallbackBaseUrl(): string {
+  const port =
+    process.env.UNITAE_WEB_PORT || process.env.PORT || (process.env.NODE_ENV === 'development' ? '5173' : '3000')
+  return `http://localhost:${port}`
 }
 
-// Reported, not refused: an instance that only serves custom domains runs fine without a base
-// domain, so a boot failure here would break setups that work.
-function warnOnUnusableBaseUrl() {
-  const baseUrl = process.env.UNITAE_BASE_URL
-  if (process.env.UNITAE_MULTI_TENANT !== 'true' || baseUrl === undefined || parseHostname(baseUrl) != null) return
+/**
+ * The address people reach this instance at, as an origin (`https://unitae.example.com`): the links in emails and
+ * shared messages, the domain tenant subdomains hang from and the default sender all derive from it. Always a value:
+ * UNITAE_BASE_URL when it names a host, the server itself otherwise. Never read from a request: a forged Host header
+ * would send a password-reset link to someone else's site. Non-throwing for the same reason as getSessionSecrets;
+ * validateEnv() reports a missing or unusable value once, at boot.
+ */
+export function getBaseUrl(): string {
+  const configured = process.env.UNITAE_BASE_URL
+  return (configured && parseOrigin(configured)) || fallbackBaseUrl()
+}
 
+/** The hostname of {@link getBaseUrl}: what tenant subdomains are resolved against. */
+export function getBaseDomain(): string {
+  return new URL(getBaseUrl()).hostname
+}
+
+// Reported, not refused: the instance works without it, only its links point at the server itself.
+function warnOnMissingBaseUrl() {
+  const configured = process.env.UNITAE_BASE_URL
+  if (configured && parseOrigin(configured) != null) return
+  if (!configured && !isProductionEnv()) return
+
+  const problem = configured
+    ? `UNITAE_BASE_URL names no host (${JSON.stringify(configured)})`
+    : 'UNITAE_BASE_URL is not set'
   logger.warn(
-    `UNITAE_BASE_URL names no host: congregation subdomains are resolved against ${DEFAULT_BASE_DOMAIN}. ` +
-      'Set it to your root domain, e.g. https://unitae.example.com.',
+    `${problem}: links in emails and shared messages point to ${fallbackBaseUrl()}. ` +
+      'Set it to the address people use to reach this instance, e.g. https://unitae.example.com.',
   )
 }
 
@@ -106,5 +130,5 @@ export function validateEnv() {
     logger.warn('UNITAE_CRON_SECRET is not set. Cron endpoints will reject all requests.')
   }
 
-  warnOnUnusableBaseUrl()
+  warnOnMissingBaseUrl()
 }

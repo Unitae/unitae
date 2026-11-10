@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
@@ -22,8 +22,19 @@ const {
 } = await import('./congregation.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
+const ENV_KEYS = ['UNITAE_BASE_URL', 'UNITAE_MULTI_TENANT', 'UNITAE_EMAIL_FROM', 'UNITAE_WEB_PORT', 'PORT'] as const
+const originalEnv = Object.fromEntries(ENV_KEYS.map(key => [key, process.env[key]]))
+
 beforeEach(() => {
   vi.resetAllMocks()
+  for (const key of ENV_KEYS) delete process.env[key]
+})
+
+afterAll(() => {
+  for (const key of ENV_KEYS) {
+    if (originalEnv[key] === undefined) delete process.env[key]
+    else process.env[key] = originalEnv[key]
+  }
 })
 
 // Answers the slug lookup the way the table would: the row for that slug, or nothing. A test that
@@ -76,11 +87,21 @@ describe('resolveCongregation', () => {
     expect(result.displayName).toBe('Nom affiché')
   })
 
-  it("utilise l'email par défaut quand emailFromAddress est null", async () => {
+  it('signs with UNITAE_EMAIL_FROM when the congregation has no sender of its own', async () => {
+    process.env.UNITAE_EMAIL_FROM = 'Assemblées du Rhône <ne-pas-repondre@assemblees-rhone.org>'
     vi.mocked(db.congregation.findUnique).mockResolvedValue(baseCongregation as never)
 
     const result = await resolveCongregation(1)
-    expect(result.emailFrom).toBe('Unitae <noreply@unitae.app>')
+    expect(result.emailFrom).toBe('Assemblées du Rhône <ne-pas-repondre@assemblees-rhone.org>')
+  })
+
+  // Regression: the default sender was noreply@unitae.app on every instance, a domain a self-hoster cannot send from.
+  it("signs from the instance's own domain when UNITAE_EMAIL_FROM is unset", async () => {
+    process.env.UNITAE_BASE_URL = 'https://unitae.assemblees-rhone.org'
+    vi.mocked(db.congregation.findUnique).mockResolvedValue(baseCongregation as never)
+
+    const result = await resolveCongregation(1)
+    expect(result.emailFrom).toBe('Unitae <noreply@unitae.assemblees-rhone.org>')
   })
 
   it("construit l'emailFrom à partir de emailFromAddress et emailFromName", async () => {
@@ -106,19 +127,38 @@ describe('resolveCongregation', () => {
 
   it('construit le baseUrl à partir du slug quand baseUrl est null (multi-tenant)', async () => {
     process.env.UNITAE_MULTI_TENANT = 'true'
+    process.env.UNITAE_BASE_URL = 'https://unitae.app'
     vi.mocked(db.congregation.findUnique).mockResolvedValue(baseCongregation as never)
 
     const result = await resolveCongregation(1)
     expect(result.baseUrl).toBe('https://test.unitae.app')
-    delete process.env.UNITAE_MULTI_TENANT
   })
 
-  it('utilise UNITAE_BASE_URL directement quand single-tenant', async () => {
-    delete process.env.UNITAE_MULTI_TENANT
+  it('keeps the scheme and port of UNITAE_BASE_URL on a tenant subdomain', async () => {
+    process.env.UNITAE_MULTI_TENANT = 'true'
+    process.env.UNITAE_BASE_URL = 'http://unitae.lan:8080/'
     vi.mocked(db.congregation.findUnique).mockResolvedValue(baseCongregation as never)
 
     const result = await resolveCongregation(1)
-    expect(result.baseUrl).toBe('https://unitae.app')
+    expect(result.baseUrl).toBe('http://test.unitae.lan:8080')
+  })
+
+  it('utilise UNITAE_BASE_URL directement quand single-tenant', async () => {
+    process.env.UNITAE_BASE_URL = 'https://unitae.example.com/'
+    vi.mocked(db.congregation.findUnique).mockResolvedValue(baseCongregation as never)
+
+    const result = await resolveCongregation(1)
+    expect(result.baseUrl).toBe('https://unitae.example.com')
+  })
+
+  // Regression: without UNITAE_BASE_URL, links in emails (password resets included) pointed at unitae.app, so a
+  // self-hosted instance sent its reset tokens to another domain.
+  it('keeps links on the server itself when UNITAE_BASE_URL is unset', async () => {
+    process.env.UNITAE_WEB_PORT = '8080'
+    vi.mocked(db.congregation.findUnique).mockResolvedValue(baseCongregation as never)
+
+    const result = await resolveCongregation(1)
+    expect(result.baseUrl).toBe('http://localhost:8080')
   })
 
   it('utilise le baseUrl personnalisé quand il est défini', async () => {
@@ -288,8 +328,17 @@ describe('resolveCongregationFromRequest', () => {
     process.env.UNITAE_BASE_URL = ''
     mockSlugLookup({ 'tenant-alpha': { id: 1, slug: 'tenant-alpha' } })
 
-    const result = await resolveCongregationFromRequest(makeRequest('https://tenant-alpha.unitae.app/'))
+    const result = await resolveCongregationFromRequest(makeRequest('http://tenant-alpha.localhost:3000/'))
     expect(result).toEqual({ id: 1, slug: 'tenant-alpha' })
+  })
+
+  it('resolves no subdomain of unitae.app on an instance that does not live there', async () => {
+    process.env.UNITAE_MULTI_TENANT = 'true'
+    mockSlugLookup({ 'tenant-alpha': { id: 1, slug: 'tenant-alpha' } })
+    vi.mocked(db.congregation.findFirst).mockResolvedValue(null as never)
+
+    const result = await resolveCongregationFromRequest(makeRequest('https://tenant-alpha.unitae.app/'))
+    expect(result).toBeNull()
   })
 
   // Regression: the base domain itself was read as the slug "unitae.app", so every lookup on it

@@ -5,7 +5,7 @@ export default function VerifyEmail({
   email = 'test@email.com',
   token = 'e5e560cea5052445767419081f902c1b',
   firstname = 'Jean',
-  baseUrl = 'https://unitae.app',
+  baseUrl = 'https://unitae.example.com',
   platformName = 'Unitae',
 }: {
   email: string

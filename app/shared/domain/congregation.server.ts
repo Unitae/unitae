@@ -1,10 +1,20 @@
 import { redirect } from 'react-router'
 
 import { unscopedDb } from '~/shared/infra/db.server'
-import { getBaseDomain } from '~/shared/utils/env.server'
+import { getBaseDomain, getBaseUrl } from '~/shared/utils/env.server'
 
 const DEFAULT_PLATFORM_NAME = 'Unitae'
-const DEFAULT_EMAIL_FROM = process.env.UNITAE_EMAIL_FROM ?? 'Unitae <noreply@unitae.app>'
+
+// The instance's own domain, never another's: a self-hoster can only send from a domain they verified.
+function defaultEmailFrom(): string {
+  return process.env.UNITAE_EMAIL_FROM || `${DEFAULT_PLATFORM_NAME} <noreply@${getBaseDomain()}>`
+}
+
+// A tenant's subdomain of the instance's address, keeping its scheme and port.
+function tenantUrl(slug: string): string {
+  const base = new URL(getBaseUrl())
+  return `${base.protocol}//${slug}.${base.host}`
+}
 
 export type CongregationInfo = {
   id: number
@@ -54,8 +64,6 @@ export async function findCongregation(congregationId: number): Promise<Congrega
 
   if (!congregation) return null
 
-  const appBaseUrl = process.env.UNITAE_BASE_URL ?? 'https://unitae.app'
-
   return {
     id: congregation.id,
     name: congregation.name,
@@ -65,14 +73,12 @@ export async function findCongregation(congregationId: number): Promise<Congrega
     displayName: congregation.displayName ?? congregation.name,
     emailFrom: congregation.emailFromAddress
       ? `${congregation.emailFromName ?? congregation.name} <${congregation.emailFromAddress}>`
-      : DEFAULT_EMAIL_FROM,
+      : defaultEmailFrom(),
     // Priority: custom domain > explicit baseUrl > single-tenant base URL > slug-derived URL
     baseUrl: congregation.domain
       ? `https://${congregation.domain}`
       : (congregation.baseUrl ??
-        (process.env.UNITAE_MULTI_TENANT !== 'true'
-          ? appBaseUrl
-          : `https://${congregation.slug}.${appBaseUrl.replace('https://', '')}`)),
+        (process.env.UNITAE_MULTI_TENANT !== 'true' ? getBaseUrl() : tenantUrl(congregation.slug))),
     plan: congregation.plan,
     maxPublishers: congregation.maxPublishers,
     maxTerritories: congregation.maxTerritories,
@@ -94,7 +100,7 @@ export function getPlatformName(): string {
 /**
  * The congregation slug in a `<slug>.<base domain>` hostname. `null` for the base domain itself — it
  * is the platform, not a congregation — and for any other host, including one that merely ends with
- * the same letters (`notunitae.app`) or has nothing before the dot.
+ * the same letters (`notexample.com` for `example.com`) or has nothing before the dot.
  */
 function slugFromHostname(hostname: string): string | null {
   const suffix = `.${getBaseDomain()}`

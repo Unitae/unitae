@@ -1,8 +1,7 @@
 import { locales } from '~/i18n/paraglide/runtime'
+import { AuthField } from '~/shared/ui/auth-parts'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { DEFAULT_LOCALE, languageLabel } from '~/shared/utils/language'
-
-import { AuthField } from './auth-parts'
 
 /** The congregation's language, chosen when it is created. */
 export function LocaleField({

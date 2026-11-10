@@ -339,3 +339,14 @@ export function navGroupFor(pathname: string): string | null {
   }
   return null
 }
+
+/**
+ * The sidebar entry `pathname` sits under, among those `permissions` open: the way back from an error on that page.
+ * The most specific entry wins (`/territories/attributions/campaigns` over `/territories/attributions`). Null for home,
+ * for a page under no entry, and for the entry's own page, whose failure the way back would only repeat.
+ */
+export function navItemFor(pathname: string, permissions: NavigationPermissions): NavItem | null {
+  const items = [...buildManagementSections(permissions).flatMap(section => section.items), ...buildPersonalItems()]
+  const [best] = items.filter(item => itemCovers(item, pathname)).sort((a, b) => b.to.length - a.to.length)
+  return best == null || best.to === pathname ? null : best
+}

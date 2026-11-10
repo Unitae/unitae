@@ -2,8 +2,11 @@
 // The top-level await means a failed check rejects module evaluation, crashing
 // the process so it fails closed rather than serving requests with a broken
 // security posture.
+import { getHostSettings } from '~/shared/domain/host-settings.server'
 import { assertRuntimeRoleEnforcesRls } from '~/shared/infra/rls-guard.server'
 import { validateEnv } from '~/shared/utils/env.server'
 
 validateEnv()
+// Parsed now, so that a malformed HOST_SETTINGS is reported at start rather than on the first page that reads it.
+getHostSettings()
 await assertRuntimeRoleEnforcesRls()

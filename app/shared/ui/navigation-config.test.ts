@@ -8,6 +8,7 @@ import {
   isNavItemActive,
   type NavigationPermissions,
   navGroupFor,
+  navItemFor,
 } from './navigation-config'
 
 function permissions(overrides: Partial<NavigationPermissions> = {}): NavigationPermissions {
@@ -326,5 +327,45 @@ describe('navGroupFor', () => {
 
   it('does not take a sibling path that merely shares the prefix', () => {
     expect(navGroupFor('/publishersAudit')).toBeNull()
+  })
+})
+
+// The way back from an error on a page: the sidebar entry it sits under, among those the viewer may open.
+describe('navItemFor', () => {
+  const manager = permissions({
+    canViewPublishers: true,
+    canViewActivity: true,
+    canViewPrograms: true,
+    canViewAbsences: true,
+    canViewTerritories: true,
+    canViewAttributions: true,
+    canManageCampaigns: true,
+    canManageSettings: true,
+  })
+
+  it.each([
+    ['/publishers/412/view', 'publishers'],
+    ['/publishers/activity/2026-10', 'activity'],
+    ['/programs/4053/edit', 'programs'],
+    ['/programs/days-off/12', 'absences'],
+    ['/territories/attributions/campaigns/3', 'campaigns'],
+    ['/territories/attributions/88', 'attributions'],
+    ['/settings/users/4/edit', 'settings'],
+    ['/me/days-off/3/edit', 'my-absences'],
+  ])('leads from %s back to %s', (pathname, id) => {
+    expect(navItemFor(pathname, manager)?.id).toBe(id)
+  })
+
+  // The entry's own page failing would lead straight back to the same error.
+  it.each(['/publishers', '/programs', '/settings'])('offers no way back from the entry itself (%s)', pathname => {
+    expect(navItemFor(pathname, manager)).toBeNull()
+  })
+
+  it('offers no way back from home', () => {
+    expect(navItemFor('/', manager)).toBeNull()
+  })
+
+  it('offers no entry the viewer may not open', () => {
+    expect(navItemFor('/publishers/412/view', permissions({ canViewPrograms: true }))).toBeNull()
   })
 })
