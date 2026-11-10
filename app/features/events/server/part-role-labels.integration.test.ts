@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { duplicateTemplate } from '~/features/events/server/duplicate-template.server'
 import { applyTemplateToEvent } from '~/features/events/server/event-parts.server'
-import { generateEventsFromTemplate } from '~/features/events/server/event-template-generation.server'
+import { createProgrammeSeries } from '~/features/events/server/programme-creation.server'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -147,17 +147,21 @@ describe('per-part role labels — end-to-end', () => {
     ])
   })
 
-  it('generateEventsFromTemplate copies speakerLabel/readerLabel onto every generated assignment', async () => {
-    // weekDay=2 (Tuesday) is required — generation uses computeDatesForWeekdayCount.
+  it('createProgrammeSeries copies speakerLabel/readerLabel onto every created assignment', async () => {
+    // weekDay=2 (Tuesday) is required — a series places each template on its weekday.
     const { templateId } = await seedTemplate(`generate-${ts}`, 2)
 
-    const events = await withScope(congId, tx =>
-      generateEventsFromTemplate(tx, templateId, 1, managerAccountId, congId, 'UTC', new Date('2029-01-01T00:00:00Z')),
+    const { created } = await withScope(congId, tx =>
+      createProgrammeSeries(
+        tx,
+        { templateIds: [templateId], from: '2029-01-01', to: '2029-01-07' },
+        { congregationId: congId, timezone: 'UTC', actorId: managerAccountId },
+      ),
     )
-    expect(events.length).toBeGreaterThan(0)
+    expect(created.length).toBeGreaterThan(0)
 
     const assignments = await testDb.eventPart.findMany({
-      where: { eventId: events[0].id, congregationId: congId },
+      where: { eventId: created[0].id, congregationId: congId },
       orderBy: { order: 'asc' },
       select: { name: true, speakerLabel: true, readerLabel: true },
     })

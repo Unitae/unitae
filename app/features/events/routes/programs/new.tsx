@@ -2,20 +2,22 @@ import { parseWithZod } from '@conform-to/zod/v4'
 import { useMemo, useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { computeDatesForWeekdayCount } from '~/features/events/model/compute-dates'
 import { dayLabel } from '~/features/events/model/day-label'
+import { isSystemTemplate } from '~/features/events/model/event-template.type'
+import { daysOnWeekday } from '~/features/events/model/programme-dates'
 import {
   freeformEventSchema,
   recurringEventSchema,
   singleEventSchema,
 } from '~/features/events/schemas/program-new.schema'
 import { createFreeformEvent } from '~/features/events/server/event-parts.server'
-import {
-  createSingleEventFromTemplate,
-  generateEventsFromTemplate,
-} from '~/features/events/server/event-template-generation.server'
 import { getTemplates } from '~/features/events/server/event-templates.server'
 import { canManageAnyProgram, getResponsibleTemplateIds } from '~/features/events/server/events-auth.server'
+import {
+  createProgrammeOnDay,
+  createProgrammeSeries,
+  ProgrammeExistsError,
+} from '~/features/events/server/programme-creation.server'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import {
@@ -37,6 +39,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
+import { addDays, dayOf } from '~/shared/utils/calendar-day'
 import { combineLocalDateTime } from '~/shared/utils/event-time'
 import type { Route } from './+types/new'
 
@@ -66,7 +69,8 @@ export function loader({ context }: Route.LoaderArgs) {
       : await getResponsibleTemplateIds(db, currentUser.id, congregationId)
     if (!isProgramManager && responsibleTemplateIds.length === 0) throw redirect('/programs')
 
-    const allTemplates = await getTemplates(db, congregationId)
+    // Absences and freeform events have system templates of their own: never offered as programmes.
+    const allTemplates = (await getTemplates(db, congregationId)).filter(t => !isSystemTemplate(t.key))
     const templates = isProgramManager ? allTemplates : allTemplates.filter(t => responsibleTemplateIds.includes(t.id))
 
     return { templates, isProgramManager, timezone: context.get(congregationContext).timezone }
@@ -88,20 +92,22 @@ async function handleRecurringMode({ db, formData, currentUser, congregationId, 
   if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
 
   const { templateId, occurrences, startDate } = submission.value
-  const startFrom = startDate ? new Date(startDate) : undefined
-  const events = await generateEventsFromTemplate(
+  // A day of the congregation's calendar, so that the weeks fall where its members live.
+  const from = startDate ?? dayOf(new Date(), timezone)
+  const { created, existing } = await createProgrammeSeries(
     db,
-    templateId,
-    occurrences,
-    currentUser.id,
-    congregationId,
-    timezone,
-    startFrom,
+    { templateIds: [templateId], from, to: addDays(from, occurrences * 7 - 1) },
+    { congregationId, timezone, actorId: currentUser.id },
   )
-  logger.info(`Generated ${events.length} events from template ${templateId}. User ID: ${currentUser.id}.`)
-  const flashMsg =
-    events.length > 0 ? m.programs_new_generated_success({ count: events.length }) : m.programs_new_generated_none()
-  session.flash('success', flashMsg)
+  logger.info(`Created ${created.length} programmes from template ${templateId}. User ID: ${currentUser.id}.`)
+  const done = created.length > 0 ? m.programs_new_generated_success({ count: created.length }) : null
+  const left =
+    existing === 0
+      ? null
+      : existing === 1
+        ? m.programs_new_series_existing_one()
+        : m.programs_new_series_existing_many({ count: existing })
+  session.flash('success', [done, left].filter(Boolean).join(' ') || m.programs_new_generated_none())
   return null
 }
 
@@ -110,16 +116,9 @@ async function handleSingleMode({ db, formData, currentUser, congregationId, tim
   if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
 
   const { templateId, date } = submission.value
-  const event = await createSingleEventFromTemplate(
-    db,
-    templateId,
-    new Date(date),
-    currentUser.id,
-    congregationId,
-    timezone,
-  )
-  logger.info(`Created single event from template ${templateId}. User ID: ${currentUser.id}.`)
-  if (!event) return data({ alreadyExists: true }, { status: 409 })
+  // Refused before anything is written; the action turns the refusal into the field's message.
+  await createProgrammeOnDay(db, { templateId, day: date }, { congregationId, timezone, actorId: currentUser.id })
+  logger.info(`Created a programme from template ${templateId}. User ID: ${currentUser.id}.`)
   session.flash('success', m.programs_new_created_success())
   return null
 }
@@ -174,21 +173,27 @@ export async function action({ request, context }: Route.ActionArgs) {
   const mode = formData.get('mode')
   const { congregationId } = currentUser
 
-  return withScopeFromContext(context, async db => {
-    const can = (p: Permission) => permissions.has(p)
-    await assertCanSubmit(db, can, isProgramManager, currentUser.id, congregationId, mode, formData)
+  // The refusal is caught outside the transaction, which must not commit on it.
+  try {
+    return await withScopeFromContext(context, async db => {
+      const can = (p: Permission) => permissions.has(p)
+      await assertCanSubmit(db, can, isProgramManager, currentUser.id, congregationId, mode, formData)
 
-    const ctx: ActionCtx = { db, formData, currentUser, congregationId, timezone: congregation.timezone, session }
-    const modeResult = await dispatchMode(mode, ctx)
-    if (modeResult) return modeResult
-    return redirect('/programs', { headers: { 'Set-Cookie': await commitSession(session) } })
-  })
+      const ctx: ActionCtx = { db, formData, currentUser, congregationId, timezone: congregation.timezone, session }
+      const modeResult = await dispatchMode(mode, ctx)
+      if (modeResult) return modeResult
+      return redirect('/programs', { headers: { 'Set-Cookie': await commitSession(session) } })
+    })
+  } catch (error) {
+    if (error instanceof ProgrammeExistsError) return data({ alreadyExists: true }, { status: 409 })
+    throw error
+  }
 }
 
 function groupByMonth(dates: Date[]): Record<string, Date[]> {
   const result: Record<string, Date[]> = {}
   for (const d of dates) {
-    const key = d.toLocaleDateString(getLocale(), { month: 'long', year: 'numeric' })
+    const key = d.toLocaleDateString(getLocale(), { month: 'long', year: 'numeric', timeZone: 'UTC' })
     const entry = result[key]
     if (entry) entry.push(d)
     else result[key] = [d]
@@ -290,7 +295,7 @@ function RecurringFields({
                 <span className="w-24 shrink-0 text-muted-foreground text-xs capitalize">{month}</span>
                 {dates.map(d => (
                   <span key={d.toISOString()} className="rounded bg-muted px-1.5 py-0.5 text-xs tabular-nums">
-                    {d.toLocaleDateString(getLocale(), { day: 'numeric' })}
+                    {d.toLocaleDateString(getLocale(), { day: 'numeric', timeZone: 'UTC' })}
                   </span>
                 ))}
               </div>
@@ -368,7 +373,7 @@ function TemplateSelectField({
 }
 
 export default function NewEventPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { templates, isProgramManager } = loaderData
+  const { templates, isProgramManager, timezone } = loaderData
   const [selectedValue, setSelectedValue] = useState<string>('')
   const [occurrences, setOccurrences] = useState(8)
   const [startDate, setStartDate] = useState('')
@@ -382,9 +387,12 @@ export default function NewEventPage({ loaderData, actionData }: Route.Component
 
   const previewDates = useMemo(() => {
     if (!selectedTemplate || selectedTemplate.weekDay == null) return []
-    const startFrom = startDate ? new Date(startDate) : undefined
-    return computeDatesForWeekdayCount(selectedTemplate.weekDay, occurrences, startFrom)
-  }, [selectedTemplate, occurrences, startDate])
+    // The same days the server will create: calendar days of the congregation, read at noon UTC to be shown.
+    const from = startDate || dayOf(new Date(), timezone)
+    return daysOnWeekday(selectedTemplate.weekDay, from, addDays(from, occurrences * 7 - 1)).map(
+      day => new Date(`${day}T12:00:00Z`),
+    )
+  }, [selectedTemplate, occurrences, startDate, timezone])
 
   const previewByMonth = useMemo(() => groupByMonth(previewDates), [previewDates])
 

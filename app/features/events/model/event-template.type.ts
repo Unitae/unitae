@@ -6,7 +6,7 @@ export enum EventTemplateKey {
   Freeform = 'freeform',
 }
 
-const SYSTEM_TEMPLATE_KEYS: readonly EventTemplateKey[] = [EventTemplateKey.DayOff, EventTemplateKey.Freeform]
+export const SYSTEM_TEMPLATE_KEYS: readonly EventTemplateKey[] = [EventTemplateKey.DayOff, EventTemplateKey.Freeform]
 
 /**
  * System templates are seeded by the app itself and back domain concepts

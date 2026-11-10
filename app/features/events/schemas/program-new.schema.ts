@@ -1,16 +1,19 @@
 import { z } from 'zod'
+import { isCalendarDay } from '~/shared/utils/calendar-day'
+
+const day = z.string().refine(value => isCalendarDay(value))
 
 export const recurringEventSchema = z.object({
   mode: z.literal('recurring'),
   templateId: z.coerce.number(),
   occurrences: z.coerce.number().min(1).max(52),
-  startDate: z.string().optional(),
+  startDate: day.optional(),
 })
 
 export const singleEventSchema = z.object({
   mode: z.literal('single'),
   templateId: z.coerce.number(),
-  date: z.string().min(1),
+  date: day,
 })
 
 export const freeformEventSchema = z.object({

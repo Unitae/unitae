@@ -2,6 +2,7 @@ import { combineLocalDateTime, formatDateForInput } from '~/shared/utils/event-t
 
 const LAST_MINUTE_MS = 59_999
 const DAY_MS = 24 * 60 * 60 * 1000
+const DAY = /^\d{4}-\d{2}-\d{2}$/
 
 /** The calendar day an instant falls on in `timeZone`, as `YYYY-MM-DD`. */
 export function dayOf(date: Date | string, timeZone: string): string {
@@ -34,4 +35,11 @@ export function daysBetween(from: string, to: string): number {
 export function mondayOf(day: string): string {
   const weekday = new Date(`${day}T00:00:00Z`).getUTCDay()
   return addDays(day, weekday === 0 ? -6 : 1 - weekday)
+}
+
+/** A real calendar day written `YYYY-MM-DD`: « 2026-02-30 » is not one. */
+export function isCalendarDay(value: string | null | undefined): value is string {
+  if (value == null || !DAY.test(value)) return false
+  const date = new Date(`${value}T00:00:00Z`)
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
 }

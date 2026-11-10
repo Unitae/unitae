@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { addDays, dayOf, daysBetween, endOfDay, mondayOf, startOfDay } from './calendar-day'
+import { addDays, dayOf, daysBetween, endOfDay, isCalendarDay, mondayOf, startOfDay } from './calendar-day'
 
 const PARIS = 'Europe/Paris'
 
@@ -31,5 +31,21 @@ describe('calendar arithmetic', () => {
     expect(mondayOf('2026-11-11')).toBe('2026-11-09')
     expect(mondayOf('2026-11-15')).toBe('2026-11-09')
     expect(mondayOf('2026-11-09')).toBe('2026-11-09')
+  })
+})
+
+describe('isCalendarDay', () => {
+  it('accepts a real day written YYYY-MM-DD', () => {
+    expect(isCalendarDay('2028-02-29')).toBe(true)
+  })
+
+  it('refuses a day the calendar does not have', () => {
+    expect(isCalendarDay('2026-02-30')).toBe(false)
+  })
+
+  it('refuses anything not written YYYY-MM-DD', () => {
+    expect(isCalendarDay('12/11/2026')).toBe(false)
+    expect(isCalendarDay('')).toBe(false)
+    expect(isCalendarDay(null)).toBe(false)
   })
 })

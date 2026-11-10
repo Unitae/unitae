@@ -13,6 +13,7 @@ vi.mock('~/shared/domain/audit.server', () => ({
   audit: vi.fn(),
   auditInTransaction: vi.fn(),
   AuditAction: {
+    EventCreated: 'event.created',
     PartAllowedRolesChanged: 'part.allowed_roles.changed',
     ServicePartAllowedRolesChanged: 'service_role.allowed_roles.changed',
     EventDeleted: 'event.deleted',
@@ -95,6 +96,30 @@ describe('createFreeformEvent', () => {
         templateId: 99,
       },
     })
+  })
+
+  it('records who created the event in the audit trail', async () => {
+    const data = {
+      name: 'Nettoyage',
+      startDate: new Date('2027-01-16T13:00:00Z'),
+      endDate: new Date('2027-01-16T16:00:00Z'),
+      createdById: 42,
+      congregationId: 10,
+    }
+    mockDb.eventTemplate.findFirst.mockResolvedValue({ id: 99, key: 'freeform' })
+    mockDb.event.create.mockResolvedValue({ id: 555, ...data })
+
+    await createFreeformEvent(mockDb as never, data)
+
+    expect(vi.mocked(auditModule.auditInTransaction).mock.calls.at(-1)?.[1]).toEqual(
+      expect.objectContaining({
+        action: 'event.created',
+        actorId: 42,
+        congregationId: 10,
+        entityType: 'Event',
+        entityId: 555,
+      }),
+    )
   })
 
   // Fail loudly when the freeform template is missing rather than writing a
@@ -662,7 +687,7 @@ describe('applyTemplateToEvent', () => {
 
   it('copies presetId from template parts to assignments', async () => {
     // Regression: applyTemplateToEvent is the second template -> event path
-    // (generateEventsFromTemplate is the other). It copied the labels but
+    // (programme creation is the other). It copied the labels but
     // dropped the preset, so applying a template to an existing event produced
     // parts with no kind — and therefore no share message.
     // Distinct sentinels per part so a copy that swaps them still fails.
