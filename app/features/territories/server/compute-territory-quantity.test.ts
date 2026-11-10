@@ -38,6 +38,7 @@ function makeEntrance(overrides: { homes?: number; phones?: number } = {}): Aggr
         active: true,
         inTerritory: true,
         inOpenData: false,
+        lastSeenInSourceAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         prospectionDate: null,

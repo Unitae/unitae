@@ -30,6 +30,7 @@ describe('NOTIFICATION_REGISTRY', () => {
       'board.document.deleted',
       'board.document.expiring',
       'territory.sync.completed',
+      'territory.sync.failed',
     ]
     for (const type of knownTypes) {
       expect(NOTIFICATION_REGISTRY.has(type), `${type} missing from NOTIFICATION_REGISTRY`).toBe(true)

@@ -24,7 +24,6 @@ import {
   EMAIL_QUEUE_REMOVE_ON_COMPLETE,
   EMAIL_QUEUE_REMOVE_ON_FAIL,
   SYNC_QUEUE_ATTEMPTS,
-  SYNC_QUEUE_BACKOFF_MS,
   SYNC_QUEUE_REMOVE_ON_COMPLETE,
   SYNC_QUEUE_REMOVE_ON_FAIL,
   THUMBNAIL_QUEUE_ATTEMPTS,
@@ -38,8 +37,7 @@ import {
 
 describe('queue-delays constants', () => {
   test('sync queue defaults match the pre-extraction BullMQ config', () => {
-    expect(SYNC_QUEUE_ATTEMPTS).toBe(3)
-    expect(SYNC_QUEUE_BACKOFF_MS).toBe(10_000)
+    expect(SYNC_QUEUE_ATTEMPTS).toBe(1)
     expect(SYNC_QUEUE_REMOVE_ON_COMPLETE).toBe(5)
     expect(SYNC_QUEUE_REMOVE_ON_FAIL).toBe(10)
   })

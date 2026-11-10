@@ -50,6 +50,28 @@ enum CampaignRegularEndAction {
   Close      @map("close")
 }
 
+// Where a building sync reads its addresses from. Only the BANO for now.
+enum BuildingSyncProvider {
+  Bano @map("bano")
+}
+
+enum BuildingSyncStatus {
+  Running   @map("running")
+  Completed @map("completed")
+  Failed    @map("failed")
+}
+
+// Why a building sync failed. A code, never a message: the app words it in the reader's language.
+enum BuildingSyncError {
+  SourceUnreachable @map("source-unreachable")
+  SourceRefused     @map("source-refused")
+  SourceTooLarge    @map("source-too-large")
+  SourceUnreadable  @map("source-unreadable")
+  NoMatchingAddress @map("no-matching-address")
+  Interrupted       @map("interrupted")
+  Unknown           @map("unknown")
+}
+
 model Congregation {
   id               Int     @id @default(autoincrement())
   name             String
@@ -86,6 +108,7 @@ model Congregation {
   territoryKinds               TerritoryKind[]
   territoryKindAllowedRoles    TerritoryKindAllowedRole[]
   buildings                    Building[]
+  buildingSyncs                BuildingSync[]
   buildingEntrances            BuildingEntrance[]
   attributions                 Attribution[]
   campaigns                    Campaign[]
@@ -321,6 +344,7 @@ model UserAccount {
   calendarFeedTokens      CalendarFeedToken[]
   consentRecords          ConsentRecord[]
   notificationPreferences NotificationPreference[]
+  buildingSyncs           BuildingSync[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -802,20 +826,24 @@ model BuildingResidentialData {
 }
 
 model Building {
-  id               Int      @id @default(autoincrement())
-  number           String
-  street           String
+  id                 Int       @id @default(autoincrement())
+  number             String
+  street             String
   // Search aid: lowercased, diacritic-stripped copy of street.
   // Maintained at write-time so search queries can stay in pure Prisma.
-  streetNormalized String   @default("")
-  zip              String
-  latitude         Float?
-  longitude        Float?
-  active           Boolean  @default(true)
-  inTerritory      Boolean  @default(true)
-  inOpenData       Boolean  @default(false)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  streetNormalized   String    @default("")
+  zip                String
+  latitude           Float?
+  longitude          Float?
+  active             Boolean   @default(true)
+  inTerritory        Boolean   @default(true)
+  // Listed by the last completed sync. False on a building made by hand or no longer listed.
+  inOpenData         Boolean   @default(false)
+  // When a sync last listed it: the start of that run, so a run can tell the buildings it saw
+  // from the ones it did not. Null = never listed by any sync (made by hand).
+  lastSeenInSourceAt DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   prospectionDate DateTime?
   entrances       BuildingEntrance[]
@@ -830,6 +858,35 @@ model Building {
   @@unique([number, street, zip, congregationId], name: "address")
   @@unique([id, congregationId])
   @@index([congregationId, streetNormalized])
+}
+
+// One run of the address sync: who started it, from which source, how it ended. The latest run
+// drives the sync status shown on the prospection page; a running one blocks starting another.
+model BuildingSync {
+  id           Int                  @id @default(autoincrement())
+  provider     BuildingSyncProvider
+  sourceUrl    String
+  status       BuildingSyncStatus   @default(Running)
+  // 0–100, written by the worker while the run is going.
+  progress     Int                  @default(0)
+  // Set when the run completes: buildings it created, and active buildings a sync listed before
+  // that this run did not (the « Manquants » total at that moment).
+  createdCount Int?
+  missingCount Int?
+  error        BuildingSyncError?
+  startedAt    DateTime             @default(now())
+  finishedAt   DateTime?
+  // Doubles as a heartbeat: a Running run not touched for a while was interrupted.
+  updatedAt    DateTime             @updatedAt
+
+  startedBy   UserAccount? @relation(fields: [startedById], references: [id], onDelete: SetNull)
+  startedById Int?
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
+  @@unique([id, congregationId])
+  @@index([congregationId, startedAt])
 }
 
 model Setting {

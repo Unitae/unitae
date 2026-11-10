@@ -49,14 +49,14 @@ export const QUEUE_NAMES = {
 
 ### Sync Queue
 
-Imports and processes open data (BANO addresses) for territory management.
+Runs the address sync (BANO) for the prospection pages. Each job carries out one `BuildingSync` run, recorded before the job is queued.
 
-- **Producer**: `app/features/territories/server/sync-queue.server.ts`
+- **Producer**: the prospection sync route, after `startBuildingSync` commits the run (`app/features/territories/server/sync-queue.server.ts`)
 - **Handler**: `app/features/territories/jobs/handle-sync-work.server.ts`
-- **Concurrency**: 1 (CPU/IO-intensive import)
-- **Retries**: 3 attempts, exponential backoff (10s base)
-- **Tenant isolation**: Uses `withScope(congregationId, ...)` for RLS-scoped DB access
-- **Job data**: `{ userId, congregationId }`
+- **Concurrency**: 1. Syncs from different congregations wait for each other; a département takes a few minutes.
+- **Retries**: none. A failure closes the run as failed with a reason and notifies whoever started it; they run it again.
+- **Transactions**: the file is read in full before anything is written, then saved in batches of 250 addresses, each in its own short `withScope` transaction. Never put the whole import in one transaction: Prisma's interactive transactions time out after 5 s by default.
+- **Job data**: `{ runId, userId, congregationId }` (`runId` is absent on jobs queued before runs were recorded; the handler opens a run for them)
 
 ### Email Queue
 

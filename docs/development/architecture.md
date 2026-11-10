@@ -217,7 +217,7 @@ When not set, on-screen interactive maps are hidden, the PDF map page is skipped
 
 ### Notes
 
-- `BuildingEntrance` carries a stored centroid (`latitude` / `longitude`) recomputed on building add/remove and on a building's coord change. Maintained by `recalculateEntranceCentroid` in `update-buildings-in-entrance.server.ts` and called by `createBuilding`, `editBuilding`, `importOpenData`, and `updateBuildingsInEntrance`.
+- `BuildingEntrance` carries a stored centroid (`latitude` / `longitude`) recomputed on building add/remove and on a building's coord change. Maintained by `recalculateEntranceCentroid` in `update-buildings-in-entrance.server.ts` and called by `createBuilding`, `editBuilding` and `updateBuildingsInEntrance`. The address sync (`saveSyncedAddresses`) writes a new entrance's position directly, since it holds a single building.
 - Vite's SSR pipeline must bundle `@googlemaps/markerclusterer` (it ships a CommonJS main entry) — `vite.config.ts` has it in `ssr.noExternal`.
 - The editor's reassignment flow validates source territory + entrance link before disconnect/connect, runs everything in a single Prisma transaction, and audits each move as `EntranceReassigned` (see [Audit Logging](#audit-logging)).
 
@@ -230,7 +230,7 @@ The shared filter row on `/territories`, `/territories/attributions`, `/territor
 Names and street names are matched against **pre-normalized** lowercase + diacritic-stripped copies of the original columns, so runtime queries stay in pure Prisma `contains` (no `unaccent` extension, no raw SQL):
 
 - `Member.firstnameNormalized`, `Member.lastnameNormalized`, `Building.streetNormalized` are NOT NULL with `''` default.
-- Maintained at write-time by `app/shared/utils/strip-diacritics.ts` (`stripDiacritics(s)` = `s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()`) — called from every write path that touches the source columns: `createMember`, `updateMember`, `anonymizeMember`, `linkMemberToAccount`, `updateAccount`, `createBuilding`, `editBuilding`, `import-congregation`, `import-open-data`, and the marketing seed.
+- Maintained at write-time by `app/shared/utils/strip-diacritics.ts` (`stripDiacritics(s)` = `s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()`) — called from every write path that touches the source columns: `createMember`, `updateMember`, `anonymizeMember`, `linkMemberToAccount`, `updateAccount`, `createBuilding`, `editBuilding`, `import-congregation`, the address sync (`saveSyncedAddresses`), and the marketing seed.
 - The migration `20260606000000_add_normalized_search_columns` backfills pre-existing rows in pure SQL via Postgres `translate(lower(...), 'àáâã…', 'aaaa…')` — no `unaccent` extension required, runs cleanly on managed Postgres without superuser. The SQL/JS parity of the translate map is locked by `backfill-parity.integration.test.ts`.
 - Composite B-tree indexes `(congregationId, *Normalized)` match the RLS-scoped `where` shape so filter queries stay on the index.
 

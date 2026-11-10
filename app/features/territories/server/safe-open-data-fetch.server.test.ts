@@ -1,11 +1,10 @@
-import { Readable } from 'node:stream'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ValidationError } from '~/shared/errors/app-error.server'
 
 vi.mock('node:dns/promises', () => ({ lookup: vi.fn() }))
 
 import { lookup } from 'node:dns/promises'
-import { capBytes, isBlockedAddress, MAX_REDIRECTS, safeOpenDataFetch } from './safe-open-data-fetch.server'
+import { isBlockedAddress, MAX_REDIRECTS, safeOpenDataFetch } from './safe-open-data-fetch.server'
 
 const lookupMock = vi.mocked(lookup)
 const originalFetch = globalThis.fetch
@@ -17,12 +16,6 @@ const TOO_MANY_REDIRECTS = /redirection/i
 
 function publicDns() {
   lookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }] as never)
-}
-
-async function collect(stream: NodeJS.ReadableStream): Promise<string> {
-  const chunks: Buffer[] = []
-  for await (const chunk of stream) chunks.push(Buffer.from(chunk as Buffer))
-  return Buffer.concat(chunks).toString('utf8')
 }
 
 beforeEach(() => {
@@ -196,16 +189,15 @@ describe('safeOpenDataFetch', () => {
     const response = await safeOpenDataFetch(ALLOWED)
     expect(response.status).toBe(200)
   })
-})
 
-describe('capBytes', () => {
-  it('passes data through when under the cap', async () => {
-    const source = Readable.from([Buffer.from('123'), Buffer.from('456')])
-    expect(await collect(capBytes(source, 100))).toBe('123456')
-  })
+  it('gives up after the timeout the caller asks for', async () => {
+    globalThis.fetch = vi.fn(
+      (_url: unknown, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(init.signal?.reason))
+        }),
+    ) as unknown as typeof fetch
 
-  it('errors the stream once the byte cap is exceeded', async () => {
-    const source = Readable.from([Buffer.from('123'), Buffer.from('456')])
-    await expect(collect(capBytes(source, 4))).rejects.toThrow()
-  })
+    await expect(safeOpenDataFetch(ALLOWED, { timeoutMs: 50 })).rejects.toThrow()
+  }, 2_000)
 })
