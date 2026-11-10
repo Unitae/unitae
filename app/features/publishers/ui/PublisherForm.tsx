@@ -39,6 +39,8 @@ export interface PublisherFormValues {
 interface PublisherFormProps {
   values?: PublisherFormValues
   groups: { id: number; name: string }[]
+  /** The group this person oversees or assists: they belong in it, and may not be moved to any other. */
+  ledGroup?: { id: number; name: string } | null
   /** A new publisher's arrival date: today, on the congregation's calendar. */
   arrivalDefault?: string
   /** Their login's own e-mail, said apart from the contact one. */
@@ -64,6 +66,7 @@ function nominationOf(values?: PublisherFormValues): Nomination {
 export function PublisherForm({
   values,
   groups,
+  ledGroup,
   arrivalDefault,
   loginEmail,
   actionData,
@@ -83,7 +86,6 @@ export function PublisherForm({
   })
   const [gender, setGender] = useState<Gender | null>(values?.isMale == null ? null : values.isMale ? 'male' : 'female')
   const [nomination, setNomination] = useState<Nomination>(nominationOf(values))
-  const [group, setGroup] = useState(values?.publisherGroupId != null ? String(values.publisherGroupId) : NO_GROUP)
   const invalid = (name: keyof typeof fields) => fields[name].errors != null
 
   return (
@@ -157,22 +159,12 @@ export function PublisherForm({
       </FormSection>
 
       <FormSection title={m.publishers_record_congregation()} description={m.publishers_form_congregation_hint()}>
-        <Field id="group" label={m.publishers_form_field_service_group()}>
-          <input type="hidden" name="group" value={group === NO_GROUP ? '' : group} />
-          <Select value={group} onValueChange={setGroup}>
-            <SelectTrigger id="group" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={NO_GROUP}>{m.publishers_form_no_group()}</SelectItem>
-              {groups.map(option => (
-                <SelectItem key={option.id} value={String(option.id)}>
-                  {formatGroupName(option.name)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
+        <GroupField
+          groups={groups}
+          ledGroup={ledGroup}
+          initial={values?.publisherGroupId ?? null}
+          error={fields.group.errors?.[0]}
+        />
         <Field
           id="arrivedAt"
           label={m.publishers_form_arrived_at()}
@@ -226,6 +218,56 @@ export function PublisherForm({
       {(creating || changes > 0) && <FormSaveBar changes={creating ? null : changes}>{actions}</FormSaveBar>}
     </Form>
   )
+}
+
+/**
+ * Their field service group. A group's overseer or assistant belongs in the group they lead: once in it, the choice is
+ * locked and the hint says how to move them; still elsewhere (older data), the hint says it is the only group they may
+ * go to. A refusal from a stale page, or for another group, shows under it.
+ */
+function GroupField({
+  groups,
+  ledGroup,
+  initial,
+  error,
+}: {
+  groups: { id: number; name: string }[]
+  ledGroup?: { id: number; name: string } | null
+  initial: number | null
+  error?: string
+}) {
+  const [group, setGroup] = useState(initial != null ? String(initial) : NO_GROUP)
+  const locked = ledGroup != null && ledGroup.id === initial
+  return (
+    <Field
+      id="group"
+      label={m.publishers_form_field_service_group()}
+      hint={ledGroupHint(ledGroup, locked)}
+      error={error}
+    >
+      <input type="hidden" name="group" value={group === NO_GROUP ? '' : group} />
+      <Select value={group} onValueChange={setGroup} disabled={locked}>
+        <SelectTrigger id="group" className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={NO_GROUP}>{m.publishers_form_no_group()}</SelectItem>
+          {groups.map(option => (
+            <SelectItem key={option.id} value={String(option.id)}>
+              {formatGroupName(option.name)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </Field>
+  )
+}
+
+/** How to move a group's leader: change the group's leaders first, or, still elsewhere, only into their own group. */
+function ledGroupHint(ledGroup: { name: string } | null | undefined, locked: boolean): string | undefined {
+  if (ledGroup == null) return undefined
+  const name = formatGroupName(ledGroup.name)
+  return locked ? m.publishers_form_group_led_hint({ name }) : m.publishers_form_group_led_elsewhere_hint({ name })
 }
 
 interface FieldProps {

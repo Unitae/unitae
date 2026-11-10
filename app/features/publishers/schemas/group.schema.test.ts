@@ -32,7 +32,27 @@ describe('createGroupSchema', () => {
       address: '1 rue',
       responsible: 4,
       deputy: 5,
+      addMember: [],
+      removeMember: [],
     })
+  })
+
+  // The publishers staged in the form's « Proclamateurs » section, saved with the rest.
+  it('reads the publishers added and removed, one or several', () => {
+    const formData = new FormData()
+    for (const [name, value] of [
+      ['name', 'Nord'],
+      ['address', '1 rue'],
+      ['responsible', '4'],
+      ['addMember', '7'],
+      ['addMember', '8'],
+      ['removeMember', '9'],
+    ]) {
+      formData.append(name, value)
+    }
+    const submission = parseWithZod(formData, { schema: createGroupSchema })
+
+    expect(submission.status === 'success' && submission.value).toMatchObject({ addMember: [7, 8], removeMember: [9] })
   })
 
   it('reads an empty deputy as none', () => {

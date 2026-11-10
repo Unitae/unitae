@@ -68,12 +68,19 @@ function privilegeWhere(privilege: Privilege | null): Prisma.MemberWhereInput {
   return { pioneerEnrolments: { some: { type: PIONEER_TYPE[privilege], endMonth: null } } }
 }
 
+/** The groups chosen, « Sans groupe » among them. Both at once nest their OR, the name search having its own. */
+function groupWhere({ groupIds, noGroup }: PublisherListFilters): Prisma.MemberWhereInput {
+  if (groupIds.length === 0) return noGroup ? { publisherGroupId: null } : {}
+  if (!noGroup) return { publisherGroupId: { in: groupIds } }
+  return { AND: [{ OR: [{ publisherGroupId: { in: groupIds } }, { publisherGroupId: null }] }] }
+}
+
 export function publisherListWhere(congregationId: number, filters: PublisherListFilters): Prisma.MemberWhereInput {
   return {
     congregationId,
     isPublisher: true,
     ...STATUS_WHERE[filters.status],
-    ...(filters.groupIds.length > 0 ? { publisherGroupId: { in: filters.groupIds } } : {}),
+    ...groupWhere(filters),
     ...privilegeWhere(filters.privilege),
     ...(filters.search !== ''
       ? {

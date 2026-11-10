@@ -2,12 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('./member.aggregate', () => ({ setGroup: vi.fn() }))
 
-const { addGroupMember, moveMembersToGroup, removeGroupMember } = await import('./group-members.server')
+const { changeGroupMembers, moveMembersToGroup } = await import('./group-members.server')
 const { setGroup } = await import('./member.aggregate')
 const { ConflictError, NotFoundError } = await import('~/shared/errors/app-error.server')
 
 const mockDb = {
-  member: { findFirst: vi.fn(), findMany: vi.fn() },
+  member: { findMany: vi.fn() },
   publisherGroup: { findFirst: vi.fn() },
 }
 const db = mockDb as never
@@ -16,63 +16,58 @@ beforeEach(() => {
   vi.resetAllMocks()
 })
 
-describe('addGroupMember', () => {
-  it('puts an active publisher in the group and names them for the confirmation', async () => {
+describe('changeGroupMembers', () => {
+  const ana = { id: 9 }
+  const paul = { id: 10 }
+
+  it('puts the added publishers in the group and takes the removed ones out of every group', async () => {
     mockDb.publisherGroup.findFirst.mockResolvedValue({ id: 4 })
-    mockDb.member.findFirst.mockResolvedValue({ id: 9, firstname: 'Ana', lastname: 'Lima' })
+    mockDb.member.findMany.mockResolvedValueOnce([ana]).mockResolvedValueOnce([paul])
 
-    await expect(addGroupMember(db, 4, 7, 9, 99)).resolves.toEqual({ firstname: 'Ana', lastname: 'Lima' })
+    await changeGroupMembers(db, 4, 7, { add: [9], remove: [10] }, 99)
 
-    expect(setGroup).toHaveBeenCalledWith(db, 9, 7, 4, 99)
+    expect(vi.mocked(setGroup).mock.calls).toEqual([
+      [db, 9, 7, 4, 99],
+      [db, 10, 7, null, 99],
+    ])
   })
 
-  it('looks the publisher up among the active publishers of the congregation', async () => {
+  // Added: active publishers of the congregation; removed: those still in this group, so a move made meanwhile from
+  // the publishers list is not undone.
+  it('adds only active publishers, and removes only those still in the group', async () => {
     mockDb.publisherGroup.findFirst.mockResolvedValue({ id: 4 })
-    mockDb.member.findFirst.mockResolvedValue({ id: 9, firstname: 'Ana', lastname: 'Lima' })
+    mockDb.member.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([])
 
-    await addGroupMember(db, 4, 7, 9, 99)
+    await changeGroupMembers(db, 4, 7, { add: [9], remove: [10] }, 99)
 
-    expect(mockDb.member.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: 9, congregationId: 7, isPublisher: true, leftAt: null, anonymizedAt: null },
-      }),
-    )
-  })
-
-  it('refuses a member who is not an active publisher', async () => {
-    mockDb.publisherGroup.findFirst.mockResolvedValue({ id: 4 })
-    mockDb.member.findFirst.mockResolvedValue(null)
-
-    await expect(addGroupMember(db, 4, 7, 9, 99)).rejects.toBeInstanceOf(NotFoundError)
+    expect(mockDb.member.findMany.mock.calls.map(([query]) => query.where)).toEqual([
+      { id: { in: [9] }, congregationId: 7, isPublisher: true, leftAt: null, anonymizedAt: null },
+      { id: { in: [10] }, congregationId: 7, publisherGroupId: 4 },
+    ])
     expect(setGroup).not.toHaveBeenCalled()
   })
 
-  it('refuses a group outside the congregation', async () => {
+  // The save is one transaction: the refusal for a group leader undoes the rest of it.
+  it("lets the aggregate's refusal for a group leader through", async () => {
+    mockDb.publisherGroup.findFirst.mockResolvedValue({ id: 4 })
+    mockDb.member.findMany.mockResolvedValueOnce([ana]).mockResolvedValueOnce([])
+    vi.mocked(setGroup).mockRejectedValue(new ConflictError('Ana LIMA dirige le groupe Sud.'))
+
+    await expect(changeGroupMembers(db, 4, 7, { add: [9], remove: [] }, 99)).rejects.toBeInstanceOf(ConflictError)
+  })
+
+  it('refuses a group outside the congregation before moving anyone', async () => {
     mockDb.publisherGroup.findFirst.mockResolvedValue(null)
-    mockDb.member.findFirst.mockResolvedValue({ id: 9, firstname: 'Ana', lastname: 'Lima' })
 
-    await expect(addGroupMember(db, 4, 7, 9, 99)).rejects.toBeInstanceOf(NotFoundError)
+    await expect(changeGroupMembers(db, 4, 7, { add: [9], remove: [] }, 99)).rejects.toBeInstanceOf(NotFoundError)
     expect(setGroup).not.toHaveBeenCalled()
   })
-})
 
-describe('removeGroupMember', () => {
-  it('takes a member of the group out of every group', async () => {
-    mockDb.member.findFirst.mockResolvedValue({ id: 9, firstname: 'Ana', lastname: 'Lima' })
+  it('reads nothing when nobody was added or removed', async () => {
+    await changeGroupMembers(db, 4, 7, { add: [], remove: [] }, 99)
 
-    await expect(removeGroupMember(db, 4, 7, 9, 99)).resolves.toEqual({ firstname: 'Ana', lastname: 'Lima' })
-
-    expect(mockDb.member.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: 9, congregationId: 7, publisherGroupId: 4 } }),
-    )
-    expect(setGroup).toHaveBeenCalledWith(db, 9, 7, null, 99)
-  })
-
-  it('refuses a member who is not in the group', async () => {
-    mockDb.member.findFirst.mockResolvedValue(null)
-
-    await expect(removeGroupMember(db, 4, 7, 9, 99)).rejects.toBeInstanceOf(NotFoundError)
-    expect(setGroup).not.toHaveBeenCalled()
+    expect(mockDb.publisherGroup.findFirst).not.toHaveBeenCalled()
+    expect(mockDb.member.findMany).not.toHaveBeenCalled()
   })
 })
 

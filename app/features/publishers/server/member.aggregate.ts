@@ -1,12 +1,10 @@
-import * as m from '~/i18n/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
 import { LimitService } from '~/shared/domain/limits.server'
-import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
+import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { MemberId } from '~/shared/types/branded'
-import { formatPersonName } from '~/shared/utils/format-person-name'
 import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 import { arrivalOnReturn } from '../model/arrival'
 import { purgeEmergencyContacts } from './emergency-info.aggregate'
@@ -16,11 +14,7 @@ import {
   type MemberFormFields,
   memberDataFromForm,
 } from './member-identity'
-import {
-  _ensureMemberIsNotGroupResponsible,
-  _loadGroupMembership,
-  _loadMemberIdentity,
-} from './member-preconditions.server'
+import { _checkGroupMove, _ensureMemberIsNotGroupResponsible, _loadMemberIdentity } from './member-preconditions.server'
 
 export type { CreateDirectParams }
 
@@ -82,6 +76,9 @@ export async function updateIdentity(
   params: UpdateIdentityParams,
 ) {
   const before = await _loadMemberIdentity(db, id, congregationId)
+  const data = memberDataFromForm(params)
+  // The form may not take a group's overseer or deputy out of the group they lead, as setGroup refuses.
+  await _checkGroupMove(db, id, congregationId, data.publisherGroupId)
 
   // No `select:` here — `haveIdentityFlagsChanged` below diffs `before` against
   // this row's identity fields. Adding a `select` that omits any of the 8
@@ -90,7 +87,7 @@ export async function updateIdentity(
   const member = await db.member.update({
     // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
     where: { id_congregationId: { id, congregationId } },
-    data: memberDataFromForm(params),
+    data,
   })
 
   if (haveIdentityFlagsChanged(before, member)) {
@@ -242,13 +239,8 @@ export async function setGroup(
   groupId: number | null,
   actorId: number,
 ): Promise<void> {
-  const member = await _loadGroupMembership(db, memberId, congregationId)
+  const member = await _checkGroupMove(db, memberId, congregationId, groupId)
   if (member.publisherGroupId === groupId) return
-
-  const led = member.responsibleFor ?? member.deputyFor
-  if (led && led.id !== groupId) {
-    throw new ConflictError(m.groups_members_error_leads_group({ person: formatPersonName(member), name: led.name }))
-  }
 
   await db.member.update({
     // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming

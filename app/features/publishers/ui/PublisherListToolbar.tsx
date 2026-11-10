@@ -46,7 +46,7 @@ export function PublisherListToolbar({ groups, filters }: PublisherListToolbarPr
         <SearchInput paramName="q" placeholder={m.publishers_search_placeholder()} />
       </div>
 
-      <PublisherGroupFilter groups={groups} selectedIds={filters.groupIds} />
+      <PublisherGroupFilter groups={groups} selectedIds={filters.groupIds} noGroup={{ selected: filters.noGroup }} />
 
       <Select value={filters.privilege ?? 'all'} onValueChange={value => setParam('privilege', value, 'all')}>
         <SelectTrigger aria-label={m.publishers_filter_privilege_label()}>

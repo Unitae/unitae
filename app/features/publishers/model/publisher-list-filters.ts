@@ -16,9 +16,14 @@ export type Privilege = (typeof PRIVILEGES)[number]
 export interface PublisherListFilters {
   search: string
   groupIds: number[]
+  /** « Sans groupe » (`group=none`): those in no group, beside the groups chosen. */
+  noGroup: boolean
   privilege: Privilege | null
   status: PublisherStatus
 }
+
+/** The `group` value that stands for « Sans groupe ». */
+export const NO_GROUP_PARAM = 'none'
 
 const isOneOf = <T extends string>(values: readonly T[], value: string | null): value is T =>
   value != null && (values as readonly string[]).includes(value)
@@ -27,12 +32,11 @@ const isOneOf = <T extends string>(values: readonly T[], value: string | null): 
 export function parsePublisherListParams(params: URLSearchParams): PublisherListFilters {
   const privilege = params.get('privilege')
   const status = params.get('status')
+  const groups = params.getAll('group')
   return {
     search: params.get('q')?.trim() ?? '',
-    groupIds: params
-      .getAll('group')
-      .map(Number)
-      .filter(id => Number.isInteger(id) && id > 0),
+    groupIds: groups.map(Number).filter(id => Number.isInteger(id) && id > 0),
+    noGroup: groups.includes(NO_GROUP_PARAM),
     privilege: isOneOf(PRIVILEGES, privilege) ? privilege : null,
     status: isOneOf(PUBLISHER_STATUSES, status) ? status : 'active',
   }
@@ -40,5 +44,5 @@ export function parsePublisherListParams(params: URLSearchParams): PublisherList
 
 /** Whether the list is narrowed: the status picks a list rather than narrowing one. */
 export function hasNarrowingFilters(filters: PublisherListFilters): boolean {
-  return filters.search !== '' || filters.groupIds.length > 0 || filters.privilege != null
+  return filters.search !== '' || filters.groupIds.length > 0 || filters.noGroup || filters.privilege != null
 }

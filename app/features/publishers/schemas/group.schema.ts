@@ -7,6 +7,8 @@ function required(message: () => string) {
   return z.string({ error }).trim().min(1, { error })
 }
 
+const memberIds = z.array(z.coerce.number().int().positive()).default([])
+
 export const createGroupSchema = z
   .object({
     name: required(m.groups_form_error_name_required),
@@ -20,6 +22,9 @@ export const createGroupSchema = z
       .optional()
       .transform(v => (v != null && v !== '' ? Number(v) : undefined))
       .pipe(z.number().optional()),
+    // The publishers the « Proclamateurs » section added and removed, saved with the rest of the form.
+    addMember: memberIds,
+    removeMember: memberIds,
   })
   .refine(group => group.deputy == null || group.deputy !== group.responsible, {
     error: () => m.groups_form_error_same_person(),
@@ -29,8 +34,3 @@ export const createGroupSchema = z
 export const updateGroupSchema = createGroupSchema
 
 export type CreateGroupInput = z.infer<typeof createGroupSchema>
-
-// The publisher picked on the edit page's membership card.
-export const groupMemberSchema = z.object({
-  memberId: z.coerce.number().int().positive(),
-})

@@ -160,7 +160,8 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
 /** Nobody yet, nobody matching, or an empty status list: each says so in its own words. */
 function ListEmpty({ filters }: { filters: PublisherListFilters }) {
   if (hasNarrowingFilters(filters)) {
-    const searchOnly = filters.search !== '' && filters.groupIds.length === 0 && filters.privilege == null
+    const searchOnly =
+      filters.search !== '' && filters.groupIds.length === 0 && !filters.noGroup && filters.privilege == null
     return (
       <EmptyState
         icon={Users}

@@ -3,53 +3,41 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 
 import * as memberAggregate from './member.aggregate'
 
-const NAME = { id: true, firstname: true, lastname: true } as const
-
-/**
- * Puts an active publisher in the group, taking them out of the one they were in. Resolves to their
- * name for the confirmation. Throws a NotFoundError for a member who is not an active publisher, or a
- * group outside the congregation, and the aggregate's ConflictError for the leader of another group.
- */
-export async function addGroupMember(
-  db: TransactionClient,
-  groupId: number,
-  congregationId: number,
-  memberId: number,
-  actorId: number,
-) {
-  const [group, member] = await Promise.all([
-    db.publisherGroup.findFirst({ where: { id: groupId, congregationId }, select: { id: true } }),
-    db.member.findFirst({
-      where: { id: memberId, congregationId, isPublisher: true, leftAt: null, anonymizedAt: null },
-      select: NAME,
-    }),
-  ])
-  if (!group || !member) throw new NotFoundError('Member', memberId)
-
-  await memberAggregate.setGroup(db, memberId, congregationId, groupId, actorId)
-  return { firstname: member.firstname, lastname: member.lastname }
+/** Who the group form added and removed: the changes only, so a move made meanwhile elsewhere is not undone. */
+export interface GroupMemberChanges {
+  add: number[]
+  remove: number[]
 }
 
 /**
- * Takes a member of the group out of every group. Resolves to their name for the confirmation.
- * Throws a NotFoundError for someone not in the group, and the aggregate's ConflictError for its
- * overseer or deputy.
+ * Applies the group form's added and removed publishers. Added: the active publishers among them join the group,
+ * leaving the one they were in. Removed: those still in the group leave every group. The aggregate refuses to move
+ * a group's overseer or deputy out of the group they lead (ConflictError): the save runs in one transaction, so that
+ * refusal undoes the rest of it. Throws a NotFoundError for a group outside the congregation.
  */
-export async function removeGroupMember(
+export async function changeGroupMembers(
   db: TransactionClient,
   groupId: number,
   congregationId: number,
-  memberId: number,
+  { add, remove }: GroupMemberChanges,
   actorId: number,
-) {
-  const member = await db.member.findFirst({
-    where: { id: memberId, congregationId, publisherGroupId: groupId },
-    select: NAME,
-  })
-  if (!member) throw new NotFoundError('Member', memberId)
+): Promise<void> {
+  if (add.length === 0 && remove.length === 0) return
 
-  await memberAggregate.setGroup(db, memberId, congregationId, null, actorId)
-  return { firstname: member.firstname, lastname: member.lastname }
+  const group = await db.publisherGroup.findFirst({ where: { id: groupId, congregationId }, select: { id: true } })
+  if (!group) throw new NotFoundError('PublisherGroup', groupId)
+
+  const joining = await db.member.findMany({
+    where: { id: { in: add }, congregationId, isPublisher: true, leftAt: null, anonymizedAt: null },
+    select: { id: true },
+  })
+  for (const member of joining) await memberAggregate.setGroup(db, member.id, congregationId, groupId, actorId)
+
+  const leaving = await db.member.findMany({
+    where: { id: { in: remove }, congregationId, publisherGroupId: groupId },
+    select: { id: true },
+  })
+  for (const member of leaving) await memberAggregate.setGroup(db, member.id, congregationId, null, actorId)
 }
 
 export interface GroupMove {
