@@ -107,7 +107,7 @@ export function NothingFree() {
   )
 }
 
-/** The bulk map's legend: the next territory's entrances, the free ones, the territories of the type. */
+/** The bulk map's legend: the next territory's entrances and the free ones. */
 export function BatchLegend({ number }: { number: string }) {
   return (
     <ul
@@ -121,12 +121,6 @@ export function BatchLegend({ number }: { number: string }) {
       <li className="flex items-center gap-1.5">
         <EditorPin state="free" size="small" />
         {m.territory_editor_legend_free()}
-      </li>
-      <li className="flex items-center gap-1.5">
-        <svg width="16" height="12" viewBox="0 0 16 12" aria-hidden="true" className="text-faint">
-          <path d="M2 3 L13 1.5 L14.5 10 L3 10.5 Z" fill="currentColor" fillOpacity="0.08" stroke="currentColor" />
-        </svg>
-        {m.split_tool_legend_territory()}
       </li>
     </ul>
   )

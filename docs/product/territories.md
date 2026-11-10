@@ -321,7 +321,7 @@ The *Phones* category is only visible if phone territories are enabled in settin
 *Créer en lot* is the bulk counterpart of *Nouveau territoire*: the same screen, built from the territory editor's pieces, that chains territories.
 
 1. Open **Créer en lot** from the top bar of *Territoires*.
-2. Choose the type in the column; each shows how many free entrances it has. The map shows those free entrances, and the outlines of the type's existing territories with their number.
+2. Choose the type in the column; each shows how many free entrances it has. The map shows those free entrances.
 3. Narrow the work with the filters (postcode, way in, street): they decide both the map's entrances and the counts, so several people can split at the same time, each a part.
 4. Click the free entrances of the next territory (or add, from the column, the free entrances no map can show). The column lists them by street with the territory's content.
 5. **Créer T16** creates the territory with the suggested number (it can be changed) and checks the plan's territory limit. The page stays: the selection starts again, the next number is suggested, and *Créés ici* lists the territories made during the visit.

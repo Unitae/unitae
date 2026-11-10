@@ -2,7 +2,6 @@ import { useMap } from '@vis.gl/react-google-maps'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Bbox } from '~/features/territories/model/bbox.type'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
-import type { TerritoryOutline } from '~/features/territories/server/free-entrances.queries'
 
 export type { Bbox }
 
@@ -32,8 +31,6 @@ export type BboxLoadErrorReason = 'invalid_params' | 'territory_not_found' | 'in
 
 export type UseBboxEntrancesResult = {
   viewportEntrances: BboxEntrance[]
-  /** The outlines of the type's territories in view, when the zone API sends them (the split tool's mode). */
-  outlines: TerritoryOutline[]
   truncated: boolean
   truncatedTotal: number | null
   loading: boolean
@@ -60,7 +57,6 @@ type BboxLoadPayload = {
   entrances: BboxEntrance[]
   truncated: boolean
   total: number | null
-  outlines?: TerritoryOutline[]
 }
 
 function applyLoadedPayload(
@@ -104,14 +100,11 @@ export function useBboxEntrances({
   const map = useMap()
   const fetchAbort = useRef<AbortController | null>(null)
   const cacheRef = useRef<Map<string, BboxEntrance[]>>(new Map())
-  // Same keys as the entrances': one zone, one answer, one cache.
-  const outlinesRef = useRef<Map<string, TerritoryOutline[]>>(new Map())
   const entranceToKeysRef = useRef<Map<number, Set<string>>>(new Map())
   const lastBboxRef = useRef<Bbox | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [viewportEntrances, setViewportEntrances] = useState<BboxEntrance[]>([])
-  const [outlines, setOutlines] = useState<TerritoryOutline[]>([])
   const [truncated, setTruncated] = useState(false)
   const [truncatedTotal, setTruncatedTotal] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
@@ -124,7 +117,6 @@ export function useBboxEntrances({
       const cached = cacheRef.current.get(key)
       if (cached != null) {
         setViewportEntrances(cached)
-        setOutlines(outlinesRef.current.get(key) ?? [])
         setTruncated(false)
         setTruncatedTotal(null)
         setErrorReason(null)
@@ -149,9 +141,7 @@ export function useBboxEntrances({
         }
         const data = (await response.json()) as BboxLoadPayload
         applyLoadedPayload(cacheRef.current, entranceToKeysRef.current, key, data)
-        outlinesRef.current.set(key, data.outlines ?? [])
         setViewportEntrances(data.entrances)
-        setOutlines(data.outlines ?? [])
         setTruncated(data.truncated)
         setTruncatedTotal(data.total)
       } catch (err) {
@@ -169,10 +159,7 @@ export function useBboxEntrances({
   const invalidateCacheFor = useCallback((entranceId: number) => {
     const keys = entranceToKeysRef.current.get(entranceId)
     if (keys == null) return
-    for (const key of keys) {
-      cacheRef.current.delete(key)
-      outlinesRef.current.delete(key)
-    }
+    for (const key of keys) cacheRef.current.delete(key)
     entranceToKeysRef.current.delete(entranceId)
   }, [])
 
@@ -195,7 +182,6 @@ export function useBboxEntrances({
       return
     }
     cacheRef.current.clear()
-    outlinesRef.current.clear()
     entranceToKeysRef.current.clear()
     setViewportEntrances([])
     if (lastBboxRef.current != null) loadBbox(lastBboxRef.current)
@@ -234,7 +220,6 @@ export function useBboxEntrances({
 
   return {
     viewportEntrances,
-    outlines,
     truncated,
     truncatedTotal,
     loading,

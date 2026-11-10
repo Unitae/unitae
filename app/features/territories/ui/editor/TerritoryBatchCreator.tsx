@@ -49,8 +49,8 @@ interface TerritoryBatchCreatorProps {
 const PHONE_MAP = 'h-[calc(100dvh-var(--map-top,16rem)-8rem-env(safe-area-inset-bottom))] min-h-72'
 
 /**
- * « Créer en lot »: the editor's create screen that chains territories. The map shows the free entrances of the type
- * and the outlines of its territories; the column holds the next territory, the filters and « Créés ici ». After each
+ * « Créer en lot »: the editor's create screen that chains territories. The map shows the free entrances of the type;
+ * the column holds the next territory, the filters and « Créés ici ». After each
  * creation the page stays: the selection starts again with the next number.
  */
 export function TerritoryBatchCreator(props: TerritoryBatchCreatorProps) {
@@ -261,7 +261,6 @@ function BatchMapPane({
           focus={batch.focus}
           hint={draft.size === 0 ? m.split_tool_map_hint() : null}
           legend={<BatchLegend number={batch.number} />}
-          outlines
           visibleOf={free}
           card={
             selected && (

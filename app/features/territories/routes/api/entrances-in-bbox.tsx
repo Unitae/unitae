@@ -1,7 +1,6 @@
 import { data } from 'react-router'
 import { getPhoneTerritoryActive } from '~/features/settings/index.server'
 import { getAvailableEntrancesInBbox, getEntrancesInBbox } from '~/features/territories/server/buildings.server'
-import { getTerritoryOutlines } from '~/features/territories/server/free-entrances.queries'
 import {
   currentAccountContext,
   permissionsContext,
@@ -54,8 +53,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       if (params.mode === 'new') {
         return getEntrancesInBbox(db, congregationId, null, params.kind, params.bbox, { phoneTypeActive })
       }
-      // The split tool: the free entrances within its filters, and the outlines of the type's territories.
-      const zone = await getAvailableEntrancesInBbox(
+      // The split tool: the free entrances, within its filters.
+      return getAvailableEntrancesInBbox(
         db,
         congregationId,
         params.kind,
@@ -63,7 +62,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         { phoneTypeActive },
         params.filters,
       )
-      return { ...zone, outlines: await getTerritoryOutlines(db, congregationId, params.kind, params.bbox) }
     })
   } catch (error) {
     // Framework redirects (thrown Response) and domain-level AppErrors must bubble to their proper
