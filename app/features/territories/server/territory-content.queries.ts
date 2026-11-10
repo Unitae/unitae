@@ -12,12 +12,15 @@ export type TerritoryContent = {
   homes: number
   phones: number
   liberals: number
+  /** Who has it out now, for those who may see the attributions; `null` otherwise or when it is in. */
+  holder: { firstname: string | null; lastname: string | null; anonymized: boolean } | null
 }
 
 export async function getTerritoryContent(
   db: TransactionClient,
   territoryId: number,
   congregationId: number,
+  { withHolder = false }: { withHolder?: boolean } = {},
 ): Promise<TerritoryContent | null> {
   const territory = await db.territory.findFirst({
     where: { id: territoryId, congregationId },
@@ -29,6 +32,13 @@ export async function getTerritoryContent(
     },
   })
   if (territory == null) return null
+  const open = withHolder
+    ? await db.attribution.findFirst({
+        where: { territoryId, congregationId, endDate: null },
+        orderBy: { startDate: 'desc' },
+        select: { publisher: { select: { firstname: true, lastname: true, anonymizedAt: true } } },
+      })
+    : null
 
   const aggregated = territory.entrances.map(aggregateEntrance)
   const homes = aggregated.reduce((sum, entrance) => sum + entrance.homes, 0)
@@ -44,5 +54,13 @@ export async function getTerritoryContent(
     homes,
     phones,
     liberals,
+    holder: holderOf(open?.publisher),
   }
+}
+
+function holderOf(
+  publisher: { firstname: string | null; lastname: string | null; anonymizedAt: Date | null } | undefined,
+): TerritoryContent['holder'] {
+  if (publisher == null) return null
+  return { firstname: publisher.firstname, lastname: publisher.lastname, anonymized: publisher.anonymizedAt != null }
 }

@@ -30,6 +30,7 @@ const okContent: TerritoryContent = {
   homes: 5,
   phones: 0,
   liberals: 0,
+  holder: null,
 }
 
 function mockFetch(impl: (input: string, init?: { signal?: AbortSignal }) => Promise<Response>) {

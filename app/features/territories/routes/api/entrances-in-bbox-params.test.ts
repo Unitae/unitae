@@ -82,3 +82,19 @@ describe('parseEntrancesInBboxParams — create mode', () => {
     })
   })
 })
+
+describe('parseEntrancesInBboxParams — new mode (the editor creating a territory)', () => {
+  it('parses a valid bbox + TerritoryKindKey', () => {
+    const params = new URLSearchParams({ bbox: wideBbox, mode: 'new', kind: TerritoryKindKey.Classical })
+    expect(parseEntrancesInBboxParams(params)).toEqual({
+      mode: 'new',
+      bbox: { swLat: 48, swLng: 2, neLat: 49, neLng: 3 },
+      kind: TerritoryKindKey.Classical,
+    })
+  })
+
+  it('rejects an unknown kind', () => {
+    const params = new URLSearchParams({ bbox: wideBbox, mode: 'new', kind: 'castle' })
+    expect(parseEntrancesInBboxParams(params)).toBeNull()
+  })
+})

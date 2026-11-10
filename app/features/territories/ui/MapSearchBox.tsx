@@ -1,11 +1,17 @@
 import { Search } from 'lucide-react'
 import { type KeyboardEvent, useId, useMemo, useState } from 'react'
-import type { BboxEntrance } from '~/features/territories/server/buildings.server'
 import * as m from '~/i18n/paraglide/messages'
 import { Input } from '~/shared/ui/input'
 
+/** The little of an entrance the search reads. */
+export interface SearchableEntrance {
+  id: number
+  address: { number: string; street: string; zip: string }
+}
+
 type Props = {
-  candidates: BboxEntrance[]
+  /** What it searches: the entrances on the map, by number, street and postcode. */
+  candidates: SearchableEntrance[]
   onSelect: (entranceId: number) => void
 }
 
@@ -24,9 +30,9 @@ export default function MapSearchBox({ candidates, onSelect }: Props) {
 
   const matches = useMemo(() => {
     const q = normalize(query.trim())
-    if (q.length < 2) return [] as BboxEntrance[]
+    if (q.length < 2) return [] as SearchableEntrance[]
     const seen = new Set<number>()
-    const results: BboxEntrance[] = []
+    const results: SearchableEntrance[] = []
     for (const e of candidates) {
       if (seen.has(e.id)) continue
       const haystack = normalize(`${e.address.number} ${e.address.street} ${e.address.zip}`)

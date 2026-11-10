@@ -1,25 +1,14 @@
 import { parseWithZod } from '@conform-to/zod/v4'
-import { useMemo, useState } from 'react'
-import { data, Form, redirect } from 'react-router'
+import { Download } from 'lucide-react'
+import { useState } from 'react'
+import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { updateTerritorySchema } from '~/features/territories/schemas/territory.schema'
-import {
-  aggregateEntrance,
-  type BboxEntrance,
-  getAvailableEntrances,
-  getAvailableStreets,
-  getAvailableZips,
-} from '~/features/territories/server/buildings.server'
+import { getEditorCenter, getTerritoryEditor } from '~/features/territories/server/territory-editor.queries'
 import { editorRefusal } from '~/features/territories/server/territory-editor-refusal.server'
 import { updateTerritory } from '~/features/territories/server/update-territory.server'
-import BuildingEntranceMapEditor from '~/features/territories/ui/BuildingEntranceMapEditor'
-import BuildingSelector from '~/features/territories/ui/BuildingSelector'
-import { EntrancesWithoutCoordinatesList } from '~/features/territories/ui/EntrancesWithoutCoordinatesList'
-import PendingChangesRail from '~/features/territories/ui/PendingChangesRail'
-import { PendingEntranceList } from '~/features/territories/ui/PendingEntranceList'
-import { TerritoryEditActions } from '~/features/territories/ui/TerritoryEditActions'
-import { TerritoryInfoCard } from '~/features/territories/ui/TerritoryInfoCard'
-import { ownEntranceToBbox, useEntrancePendingState } from '~/features/territories/ui/use-entrance-pending-state'
+import { type EditorActionData, TerritoryEditor } from '~/features/territories/ui/editor/TerritoryEditor'
+import { DeleteTerritoryDialog, TerritoryMenu, type TerritoryTarget } from '~/features/territories/ui/TerritoryActions'
 import * as m from '~/i18n/paraglide/messages'
 import {
   currentAccountContext,
@@ -27,12 +16,9 @@ import {
   requirePermission,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
-import type { AggregatedEntrance } from '~/shared/types/entrance'
 import { Permission } from '~/shared/types/permission'
-import { FormActions } from '~/shared/ui/FormActions'
-import { PageHeader } from '~/shared/ui/PageHeader'
-import { SubmitButton } from '~/shared/ui/SubmitButton'
-import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
+import { Button } from '~/shared/ui/button'
+import { PageTopbar } from '~/shared/ui/PageTopbar'
 import { getOptionalEnv } from '~/shared/utils/env.server'
 import { handleAppError } from '~/shared/utils/handle-app-error.server'
 import { requireParamId } from '~/shared/utils/params.server'
@@ -40,223 +26,73 @@ import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/edit'
 
 export const meta: Route.MetaFunction = ({ loaderData }) => [
-  { title: loaderData ? m.territories_edit_meta_title({ number: loaderData.territory.number }) : 'Unitae' },
+  { title: loaderData ? m.territory_editor_meta_edit({ number: loaderData.territory.number }) : 'Unitae' },
 ]
 
-export function loader({ request, params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-
   requirePermission(permissions, Permission.CanManageTerritories)
+  const id = requireParamId(params.territoryId, '/territories')
+  const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY') ?? null
 
-  const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
-  const { congregationId } = context.get(currentAccountContext)
-
-  return withScopeFromContext(context, async db => {
-    const territory = await db.territory.findUnique({
-      where: {
-        id_congregationId: {
-          id: requireParamId(params.territoryId, '/territories'),
-          congregationId,
-        },
-      },
-      include: {
-        entrances: {
-          where: { buildings: { some: { active: true } } },
-          include: {
-            buildings: { where: { active: true } },
-            accesses: { orderBy: { position: 'asc' as const } },
-          },
-        },
-      },
-    })
-
+  return withScopeFromContext(context, async (db, congregationId) => {
+    const territory = await getTerritoryEditor(db, congregationId, id)
     if (territory == null) throw redirect('/territories')
-    const zips = await getAvailableZips(db, congregationId, territory.type)
-    const url = new URL(request.url)
-    const entrances = await getAvailableEntrances(
-      db,
-      congregationId,
-      String(url.searchParams.get('zip')),
-      String(url.searchParams.get('street')),
-      territory.type,
-    )
-
-    const territoryEntrances = territory.entrances.map(aggregateEntrance)
-    const from = url.searchParams.get('from')
-
-    const baseResponse = {
-      territory,
-      territoryEntrances,
-      entrances: entrances.map(aggregateEntrance),
-      zips,
-      googleMapsApiKey: apiKey,
-      from,
-    }
-
-    if (!url.searchParams.has('zip')) {
-      return { ...baseResponse, streets: [] }
-    }
-
-    const streets = await getAvailableStreets(db, congregationId, String(url.searchParams.get('zip')), territory.type)
-    return { ...baseResponse, streets }
+    // Where the map opens when none of the territory's entrances has a position.
+    const placed = territory.entrances.some(entrance => entrance.latitude != null)
+    const center = placed || apiKey == null ? null : await getEditorCenter(db, congregationId)
+    return { territory, apiKey, center }
   })
 }
 
-export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) {
-  const {
-    entrances,
-    territoryEntrances: savedTerritoryEntrances,
-    zips,
-    streets,
-    territory,
-    googleMapsApiKey,
-    from,
-  } = loaderData
-  const fromQuery = from != null && from.length > 0 ? `?from=${encodeURIComponent(from)}` : ''
-  const viewBackTo = `/territories/territory/${territory.id}/view${fromQuery}`
+export default function EditTerritoryPage({ loaderData, actionData }: Route.ComponentProps) {
+  const { territory, apiKey, center } = loaderData
+  const [deleting, setDeleting] = useState<TerritoryTarget | null>(null)
+  const view = `/territories/territory/${territory.id}/view`
+  const target: TerritoryTarget = {
+    id: territory.id,
+    number: territory.number,
+    hasHistory: territory.hasHistory,
+    entrances: territory.entrances.length,
+  }
 
-  // The notes are a change of their own: a territory whose entrances stay can still be saved.
-  const [notes, setNotes] = useState(territory.notes ?? '')
-  const notesChanged = notes !== (territory.notes ?? '')
-
-  const ownBboxEntrances = useMemo(
-    () => savedTerritoryEntrances.map(e => ownEntranceToBbox(e)).filter((e): e is BboxEntrance => e != null),
-    [savedTerritoryEntrances],
-  )
-
-  const {
-    pendingAdditions,
-    pendingRemovals,
-    pendingReassignments,
-    focusRequest,
-    projectedEntranceIds,
-    projectedContent,
-    pendingChangesCount,
-    handleAct,
-    handleListRemove,
-    handleSelectorChange,
-    handleRevert,
-    handleListRemoveById,
-    handleFocusEntrance,
-    blocker,
-  } = useEntrancePendingState(savedTerritoryEntrances, territory.type, notesChanged)
-
-  const showMap = googleMapsApiKey != null
-
-  const noCoordsEntrances = useMemo(
-    () => savedTerritoryEntrances.filter(e => e.latitude == null || e.longitude == null),
-    [savedTerritoryEntrances],
-  )
-
+  // One block: the territories layout spaces its children, and the editor must sit right under the top bar.
   return (
-    <div className="flex flex-col gap-6">
-      <UnsavedChangesDialog blocker={blocker} />
-      <PageHeader
-        title={m.territories_edit_title()}
-        subtitle={m.territories_edit_subtitle()}
-        breadcrumbs={[
+    <div>
+      <PageTopbar
+        className="mb-3 md:mb-0"
+        trail={[
           { label: m.sidebar_territories(), to: '/territories' },
-          {
-            label: territory.number,
-            to: viewBackTo,
-          },
-          { label: m.territories_edit_title() },
+          { label: territory.number, to: view },
+          { label: m.territory_editor_crumb_edit() },
         ]}
-        backTo={viewBackTo}
-        actions={<TerritoryEditActions territoryId={territory.id} />}
+        actions={
+          <>
+            <Button asChild variant="ghost" size="icon" title={m.territories_menu_pdf()}>
+              <a href={`/territories/territory/${territory.id}/pdf`} aria-label={m.territories_menu_pdf()}>
+                <Download aria-hidden="true" />
+              </a>
+            </Button>
+            <TerritoryMenu territory={target} canManage compact onDelete={setDeleting} />
+          </>
+        }
       />
-
-      <div className="flex gap-6 max-lg:flex-col lg:items-start">
-        {showMap ? (
-          <BuildingEntranceMapEditor
-            apiKey={googleMapsApiKey}
-            territoryId={territory.id}
-            territoryType={territory.type}
-            ownEntrances={ownBboxEntrances}
-            pendingAdditions={pendingAdditions}
-            pendingRemovals={pendingRemovals}
-            pendingReassignments={pendingReassignments}
-            focusRequest={focusRequest}
-            onAct={handleAct}
-            className="h-[calc(100vh-12rem)] flex-1 lg:sticky lg:top-4 lg:self-start max-lg:h-[60vh]"
-          />
-        ) : null}
-
-        <div className={`flex flex-col gap-4 ${showMap ? 'lg:w-[380px] xl:w-[420px]' : 'flex-1'}`}>
-          <TerritoryInfoCard territory={territory} projectedContent={projectedContent} onNotesChange={setNotes} />
-
-          <PendingEntranceList
-            savedTerritoryEntrances={savedTerritoryEntrances}
-            pendingAdditions={pendingAdditions}
-            pendingRemovals={pendingRemovals}
-            pendingReassignments={pendingReassignments}
-            territoryType={territory.type}
-            showMap={showMap}
-            onFocusEntrance={handleFocusEntrance}
-            onRevert={handleRevert}
-            onRemoveById={handleListRemoveById}
-          />
-
-          <PendingChangesRail
-            territoryType={territory.type}
-            initialEntrances={savedTerritoryEntrances}
-            pendingAdditions={pendingAdditions}
-            pendingRemovals={pendingRemovals}
-            pendingReassignments={pendingReassignments}
-            onRevert={handleRevert}
-          />
-
-          {showMap && noCoordsEntrances.length > 0 ? (
-            <EntrancesWithoutCoordinatesList
-              entrances={noCoordsEntrances}
-              territoryType={territory.type}
-              pendingRemovals={pendingRemovals}
-              onRemove={handleListRemove}
-              onRevert={handleRevert}
-            />
-          ) : null}
-
-          <Form id="territory-edit-form" method="post" className="flex flex-col gap-4">
-            {[...projectedEntranceIds].map(id => (
-              <input key={id} type="hidden" name="entrances" value={id} />
-            ))}
-            {[...pendingReassignments.entries()].map(([entranceId, value], idx) => (
-              <span key={entranceId} className="contents">
-                <input type="hidden" name={`reassignments[${idx}].entranceId`} value={entranceId} />
-                <input type="hidden" name={`reassignments[${idx}].fromTerritoryId`} value={value.fromTerritoryId} />
-              </span>
-            ))}
-
-            {!showMap ? (
-              <BuildingSelector
-                zips={zips}
-                streets={streets}
-                entrances={entrances ?? []}
-                selection={[
-                  ...savedTerritoryEntrances.filter(e => !pendingRemovals.has(e.id)),
-                  ...([...pendingAdditions.values()].map(e => ({
-                    id: e.id,
-                    number: e.address.number,
-                    street: e.address.street,
-                    zip: e.address.zip,
-                  })) as unknown as AggregatedEntrance[]),
-                ]}
-                onSelectionChange={handleSelectorChange}
-              />
-            ) : null}
-
-            <FormActions>
-              <SubmitButton className="w-full" disabled={pendingChangesCount === 0 && !notesChanged}>
-                {pendingChangesCount === 0
-                  ? m.territories_edit_submit()
-                  : pendingChangesCount === 1
-                    ? m.territories_edit_submit_with_one()
-                    : m.territories_edit_submit_with_count({ count: String(pendingChangesCount) })}
-              </SubmitButton>
-            </FormActions>
-          </Form>
-        </div>
-      </div>
+      <TerritoryEditor
+        mode="edit"
+        territory={territory}
+        saved={territory.entrances}
+        kinds={[territory.type]}
+        apiKey={apiKey}
+        center={center}
+        cancelTo={view}
+        result={actionData}
+      />
+      <DeleteTerritoryDialog
+        territory={deleting}
+        onOpenChange={open => {
+          if (!open) setDeleting(null)
+        }}
+      />
     </div>
   )
 }
@@ -266,7 +102,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   requirePermission(permissions, Permission.CanManageTerritories)
 
   const submission = parseWithZod(await request.formData(), { schema: updateTerritorySchema })
-  if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
+  if (submission.status !== 'success') {
+    return data<EditorActionData>({ numberError: submission.error?.number?.[0] }, { status: 400 })
+  }
 
   const { number, entrances, reassignments, notes } = submission.value
   const { congregationId, id: actorId } = context.get(currentAccountContext)
@@ -280,10 +118,14 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       updateTerritory(db, id, congregationId, actorId, { number, entranceIds: entrances, reassignments, notes }),
     )
   } catch (error) {
+    // Answered as data, not a redirect: the editor keeps its changes and says what to fix.
     const refusal = editorRefusal(error, number ?? '')
-    if (refusal == null) return handleAppError(error, session, `/territories/territory/${id}/edit`)
-    session.flash('error', refusal.message)
-    throw redirect(`/territories/territory/${id}/edit`, { headers: { 'Set-Cookie': await commitSession(session) } })
+    if (refusal?.kind === 'number-taken')
+      return data<EditorActionData>({ numberError: refusal.message }, { status: 409 })
+    if (refusal?.kind === 'entrance-taken') {
+      return data<EditorActionData>({ formError: refusal.message, taken: refusal.entrances }, { status: 409 })
+    }
+    return handleAppError(error, session, `/territories/territory/${id}/edit`)
   }
   session.flash('success', m.territory_editor_saved_flash({ number: saved.number }))
   return redirect(`/territories/territory/${id}/view`, { headers: { 'Set-Cookie': await commitSession(session) } })

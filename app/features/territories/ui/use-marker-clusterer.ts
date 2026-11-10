@@ -1,11 +1,19 @@
-import { MarkerClusterer } from '@googlemaps/markerclusterer'
+import { type Algorithm, MarkerClusterer, type Renderer } from '@googlemaps/markerclusterer'
 import type { AdvancedMarkerRef } from '@vis.gl/react-google-maps'
 import { useCallback, useEffect, useRef } from 'react'
 import { createCoalescedRenderer } from './marker-clusterer-utils'
 
 export type MarkerRefCallback = (marker: AdvancedMarkerRef) => void
 
-export function useMarkerClusterer(map: google.maps.Map | null) {
+export interface ClustererOptions {
+  /** Draws the groups (the library's own bubbles by default). */
+  renderer?: Renderer
+  /** Decides what groups (the library's default up to zoom 16 otherwise). */
+  algorithm?: Algorithm
+}
+
+/** Groups the markers that crowd each other. Pass stable `options` (a module constant): they rebuild the clusterer. */
+export function useMarkerClusterer(map: google.maps.Map | null, options?: ClustererOptions) {
   const clustererRef = useRef<MarkerClusterer | null>(null)
   const markersRef = useRef<Map<number, AdvancedMarkerRef>>(new Map())
   const refCallbacksRef = useRef<Map<number, MarkerRefCallback>>(new Map())
@@ -16,7 +24,7 @@ export function useMarkerClusterer(map: google.maps.Map | null) {
 
   useEffect(() => {
     if (map == null) return
-    const clusterer = new MarkerClusterer({ map })
+    const clusterer = new MarkerClusterer({ map, ...options })
     clustererRef.current = clusterer
     for (const marker of markersRef.current.values()) {
       if (marker != null) clusterer.addMarker(marker, true)
@@ -26,7 +34,7 @@ export function useMarkerClusterer(map: google.maps.Map | null) {
       clusterer.clearMarkers()
       if (clustererRef.current === clusterer) clustererRef.current = null
     }
-  }, [map])
+  }, [map, options])
 
   return useCallback((id: number): MarkerRefCallback => {
     const cached = refCallbacksRef.current.get(id)

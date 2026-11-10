@@ -45,6 +45,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         })
       }
 
+      if (params.mode === 'new') {
+        return getEntrancesInBbox(db, congregationId, null, params.kind, params.bbox, { phoneTypeActive })
+      }
       return getAvailableEntrancesInBbox(db, congregationId, params.kind, params.bbox, { phoneTypeActive })
     })
   } catch (error) {
