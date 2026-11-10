@@ -101,6 +101,7 @@ function translateAction(action: string): string {
     'congregation.settings.updated': m.audit_log_action_congregation_settings_updated(),
     'congregation.exported': m.audit_log_action_congregation_exported(),
     'congregation.imported': m.audit_log_action_congregation_imported(),
+    'event.created': m.audit_log_action_event_created(),
     'event.released': m.audit_log_action_event_released(),
     'event.unreleased': m.audit_log_action_event_unreleased(),
     'event.deleted': m.audit_log_action_event_deleted(),
@@ -229,6 +230,7 @@ export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
               </SelectGroup>
               <SelectGroup>
                 <SelectLabel>{m.audit_log_group_events()}</SelectLabel>
+                <SelectItem value="event.created">{m.audit_log_action_event_created()}</SelectItem>
                 <SelectItem value="event.released">{m.audit_log_action_event_released()}</SelectItem>
                 <SelectItem value="event.unreleased">{m.audit_log_action_event_unreleased()}</SelectItem>
                 <SelectItem value="event.deleted">{m.audit_log_action_event_deleted()}</SelectItem>

@@ -26,9 +26,18 @@ export async function createFreeformEvent(
   })
   if (!freeformTemplate) throw new NotFoundError('Freeform template')
 
-  return db.event.create({
+  const event = await db.event.create({
     data: { ...data, templateId: freeformTemplate.id },
   })
+  // Awaited, in the same transaction: the record of who created it stands or falls with the event.
+  await auditInTransaction(db, {
+    action: AuditAction.EventCreated,
+    congregationId: data.congregationId,
+    actorId: data.createdById,
+    entityType: 'Event',
+    entityId: event.id,
+  })
+  return event
 }
 
 export async function bulkDeleteEvents(db: TransactionClient, ids: number[], congregationId: number, actorId: number) {

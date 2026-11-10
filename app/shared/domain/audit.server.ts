@@ -155,6 +155,7 @@ export const AuditAction = {
   ExternalSpeakerUnarchived: 'external_speaker.unarchived',
 
   // Programme events
+  EventCreated: 'event.created',
   EventReleased: 'event.released',
   EventUnreleased: 'event.unreleased',
   EventDeleted: 'event.deleted',

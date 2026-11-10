@@ -1,4 +1,4 @@
-import { addDays, daysBetween } from '~/shared/utils/calendar-day'
+import { addDays, daysBetween, isCalendarDay } from '~/shared/utils/calendar-day'
 
 /** The periods offered in one click, each starting today. */
 export const PERIOD_PRESETS = ['4-weeks', 'next-month', '3-months'] as const
@@ -8,15 +8,6 @@ export type PeriodPreset = (typeof PERIOD_PRESETS)[number]
 export interface ListPeriod {
   from: string
   to: string
-}
-
-const DAY = /^\d{4}-\d{2}-\d{2}$/
-
-/** A real calendar day written `YYYY-MM-DD`: « 2026-02-30 » is not one. */
-function isDay(value: string | null): value is string {
-  if (value == null || !DAY.test(value)) return false
-  const date = new Date(`${value}T00:00:00Z`)
-  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
 }
 
 /** The same date `count` months later, held to the month's last day (31 January + 1 month = 28 February). */
@@ -48,8 +39,8 @@ export function listPeriod(params: URLSearchParams, today: string): ListPeriod {
   if (isPreset(preset)) return { from: today, to: presetEnd(preset, today) }
   const fromParam = params.get('from')
   const toParam = params.get('to')
-  const from = isDay(fromParam) ? fromParam : today
-  const asked = isDay(toParam) ? toParam : presetEnd('next-month', today)
+  const from = isCalendarDay(fromParam) ? fromParam : today
+  const asked = isCalendarDay(toParam) ? toParam : presetEnd('next-month', today)
   const latest = addDays(addMonths(from, 12), -1)
   const to = daysBetween(from, asked) < 0 ? from : daysBetween(asked, latest) < 0 ? latest : asked
   return { from, to }

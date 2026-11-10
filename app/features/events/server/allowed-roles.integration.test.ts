@@ -7,8 +7,8 @@ import {
   updatePartAssignment,
   updateServicePartAssignment,
 } from '~/features/events/server/event-parts.server'
-import { createSingleEventFromTemplate } from '~/features/events/server/event-template-generation.server'
 import { upsertTemplatePart, upsertTemplateServicePart } from '~/features/events/server/event-templates.server'
+import { createProgrammeOnDay } from '~/features/events/server/programme-creation.server'
 import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 
 const adapter = new PrismaPg({
@@ -316,15 +316,17 @@ describe('upsertTemplateServicePart + RLS (integration)', () => {
   })
 })
 
-describe('createSingleEventFromTemplate copies allowed roles (integration)', () => {
+describe('createProgrammeOnDay copies allowed roles (integration)', () => {
   it('copies template-part and service-role allowed-role lists onto the new event assignments', async () => {
     // Pre-condition: speakerPart has [elderRoleId speaker, publisherRoleId reader] from previous test
     // servicePart has [elderRoleId] from previous test
     const event = await withScope(primaryCongId, tx =>
-      createSingleEventFromTemplate(tx, templateId, new Date('2099-01-15'), elderAccountId, primaryCongId, 'UTC'),
+      createProgrammeOnDay(
+        tx,
+        { templateId, day: '2099-01-15' },
+        { congregationId: primaryCongId, timezone: 'UTC', actorId: elderAccountId },
+      ),
     )
-    expect(event).not.toBeNull()
-    if (!event) return
 
     const partAllowed = await withScope(primaryCongId, tx =>
       tx.eventPartAllowedRole.findMany({
@@ -375,9 +377,12 @@ describe('applyTemplateToEvent copies allowed roles (integration)', () => {
 describe('updatePartAssignment + updateServicePartAssignment update allowed roles (integration)', () => {
   it('replaces existing allowed-role rows on update', async () => {
     const event = await withScope(primaryCongId, tx =>
-      createSingleEventFromTemplate(tx, templateId, new Date('2099-03-15'), elderAccountId, primaryCongId, 'UTC'),
+      createProgrammeOnDay(
+        tx,
+        { templateId, day: '2099-03-15' },
+        { congregationId: primaryCongId, timezone: 'UTC', actorId: elderAccountId },
+      ),
     )
-    if (!event) throw new Error('event not created')
 
     const partAssignment = await withScope(primaryCongId, tx =>
       tx.eventPart.findFirst({ where: { eventId: event.id } }),
@@ -416,9 +421,12 @@ describe('updatePartAssignment + updateServicePartAssignment update allowed role
 
   it('replaces service-role allowed-role rows on update', async () => {
     const event = await withScope(primaryCongId, tx =>
-      createSingleEventFromTemplate(tx, templateId, new Date('2099-04-15'), elderAccountId, primaryCongId, 'UTC'),
+      createProgrammeOnDay(
+        tx,
+        { templateId, day: '2099-04-15' },
+        { congregationId: primaryCongId, timezone: 'UTC', actorId: elderAccountId },
+      ),
     )
-    if (!event) throw new Error('event not created')
 
     const serviceAssignment = await withScope(primaryCongId, tx =>
       tx.eventServicePart.findFirst({ where: { eventId: event.id } }),
