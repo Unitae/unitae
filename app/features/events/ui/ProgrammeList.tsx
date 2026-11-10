@@ -9,7 +9,7 @@ import type { ProgrammeRowData } from '~/features/events/model/programme-list.ty
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
-import { cn } from '~/shared/utils/utils'
+import { QuickViews } from '~/shared/ui/QuickViews'
 
 import { formatDay } from './PeriodMenu'
 import { ProgrammeBulkActions } from './ProgrammeBulkActions'
@@ -140,35 +140,18 @@ function ViewFilters({
   counts: Record<View, number>
   onChoose: (view: View) => void
 }) {
-  const filters: { value: View; label: string }[] = [
+  const views: { value: View; label: string }[] = [
     { value: 'all', label: m.programs_filter_all() },
     { value: 'drafts', label: m.programs_filter_drafts() },
     { value: 'review', label: m.programs_filter_review() },
   ]
   return (
-    <fieldset className="flex flex-wrap gap-1">
-      <legend className="sr-only">{m.programs_filter_label()}</legend>
-      {filters.map(filter => {
-        const pressed = view === filter.value
-        return (
-          <button
-            key={filter.value}
-            type="button"
-            aria-pressed={pressed}
-            onClick={() => onChoose(filter.value)}
-            className={cn(
-              'inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 font-medium text-sm outline-none transition-colors duration-(--u-duration-fast) focus-visible:ring-2 focus-visible:ring-ring max-md:h-11',
-              pressed
-                ? 'border-foreground text-foreground'
-                : 'border-border text-muted-foreground hover:bg-hover hover:text-foreground',
-            )}
-          >
-            {filter.label}
-            <span className="text-faint tabular-nums">{counts[filter.value]}</span>
-          </button>
-        )
-      })}
-    </fieldset>
+    <QuickViews
+      label={m.programs_filter_label()}
+      views={views.map(option => ({ ...option, count: counts[option.value] }))}
+      value={view}
+      onChoose={onChoose}
+    />
   )
 }
 

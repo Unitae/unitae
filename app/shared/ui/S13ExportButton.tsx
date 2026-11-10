@@ -1,4 +1,4 @@
-import { FileDown } from 'lucide-react'
+import { Download } from 'lucide-react'
 import { Link } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
@@ -10,8 +10,8 @@ export default function S13ExportButton({ theocraticYear }: { theocraticYear: nu
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon" title={m.export_button_title()}>
-          <FileDown className="size-4" />
+        <Button variant="ghost" size="icon" title={m.export_button_title()} aria-label={m.export_button_title()}>
+          <Download aria-hidden="true" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

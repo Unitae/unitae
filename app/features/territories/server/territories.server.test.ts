@@ -6,7 +6,7 @@ vi.mock('~/shared/infra/db.server', () => ({
   },
 }))
 
-const { findTerritoriesWithDetailsPaginated, findAvailableTerritoriesPaginated } = await import('./territories.server')
+const { findTerritoriesWithDetailsPaginated } = await import('./territories.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
@@ -33,17 +33,5 @@ describe('findTerritoriesWithDetailsPaginated', () => {
 
     expect(result.territories).toEqual([])
     expect(result.pagination.total).toBe(0)
-  })
-})
-
-describe('findAvailableTerritoriesPaginated', () => {
-  it('retourne les territoires disponibles avec pagination', async () => {
-    vi.mocked(db.territory.count).mockResolvedValue(10 as never)
-    vi.mocked(db.territory.findMany).mockResolvedValue([{ id: 3 }] as never)
-
-    const result = await findAvailableTerritoriesPaginated(db, {}, new URL('http://localhost/'), 1)
-
-    expect(result.territories).toHaveLength(1)
-    expect(result.pagination.total).toBe(10)
   })
 })

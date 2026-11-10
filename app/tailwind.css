@@ -86,6 +86,12 @@
 }
 
 @layer base {
+  /* The app's control height (inputs, buttons: h-9). @unitae/ui's medium controls read it, so a segmented
+     control beside a search field or a button lines up with them. */
+  :root {
+    --u-control-height: 2.25rem;
+  }
+
   *,
   ::after,
   ::before,

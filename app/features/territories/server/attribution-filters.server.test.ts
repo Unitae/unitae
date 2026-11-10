@@ -28,30 +28,13 @@ describe('computeFilters', () => {
     expect(result).not.toHaveProperty('type')
   })
 
-  it('applies late status filter with lateDate less than now', () => {
-    const before = new Date()
-    const result = computeFilters(new URLSearchParams({ status: 'late' }))
-    const after = new Date()
-
-    expect(result).toHaveProperty('lateDate')
-    const ltDate = (result.lateDate as { lt: Date }).lt
-    expect(ltDate.getTime()).toBeGreaterThanOrEqual(before.getTime())
-    expect(ltDate.getTime()).toBeLessThanOrEqual(after.getTime())
+  it('leaves the state to the page: status and paused change nothing in the query', () => {
+    // The list's quick views (late, paused, without a holder) filter on the state worked out per row.
+    expect(computeFilters(new URLSearchParams({ status: 'late', paused: 'true' }))).toEqual({})
   })
 
-  it('applies active status filter with lateDate greater than now', () => {
-    const before = new Date()
-    const result = computeFilters(new URLSearchParams({ status: 'active' }))
-    const after = new Date()
-
-    const gtDate = (result.lateDate as { gt: Date }).gt
-    expect(gtDate.getTime()).toBeGreaterThanOrEqual(before.getTime())
-    expect(gtDate.getTime()).toBeLessThanOrEqual(after.getTime())
-  })
-
-  it('ignores status filter when status param is "none"', () => {
-    const result = computeFilters(new URLSearchParams({ status: 'none' }))
-    expect(result).not.toHaveProperty('lateDate')
+  it('ignores a group that is not a number', () => {
+    expect(computeFilters(new URLSearchParams({ group: 'abc' }))).toEqual({})
   })
 
   it('applies search filter with OR across publisher name, territory number and building', () => {
@@ -108,11 +91,11 @@ describe('computeFilters', () => {
 
   it('combines multiple filters into a single where object', () => {
     const result = computeFilters(
-      new URLSearchParams({ group: '3', type: TerritoryAttributionKind.Default, status: 'late' }),
+      new URLSearchParams({ group: '3', type: TerritoryAttributionKind.Default, campaign: 'any' }),
     )
     expect(result).toHaveProperty('publisher')
     expect(result).toHaveProperty('type')
-    expect(result).toHaveProperty('lateDate')
+    expect(result).toHaveProperty('campaignId')
   })
 })
 
@@ -127,25 +110,17 @@ describe('campaign filter', () => {
     expect(result.campaignId).toEqual({ equals: 7 })
   })
 
+  it('campaign=outside matches regular work only', () => {
+    const result = computeFilters(new URLSearchParams({ campaign: 'outside' }))
+    expect(result.campaignId).toBeNull()
+  })
+
+  it('ignores a campaign that is not a number', () => {
+    expect(computeFilters(new URLSearchParams({ campaign: 'abc' }))).toEqual({})
+  })
+
   it('campaign=none applies no campaign filter', () => {
     const result = computeFilters(new URLSearchParams({ campaign: 'none' }))
     expect(result).not.toHaveProperty('campaignId')
-  })
-})
-
-describe('paused filter', () => {
-  it('paused=true matches paused attributions', () => {
-    const result = computeFilters(new URLSearchParams({ paused: 'true' }))
-    expect(result.pausedAt).toEqual({ not: null })
-  })
-
-  it('paused=false matches unpaused attributions', () => {
-    const result = computeFilters(new URLSearchParams({ paused: 'false' }))
-    expect(result.pausedAt).toBeNull()
-  })
-
-  it('paused=none applies no pause filter', () => {
-    const result = computeFilters(new URLSearchParams({ paused: 'none' }))
-    expect(result).not.toHaveProperty('pausedAt')
   })
 })

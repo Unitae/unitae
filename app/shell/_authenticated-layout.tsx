@@ -64,6 +64,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         canManageDynamicBoardDocuments: can(Permission.CanManageDynamicBoardDocuments),
         canViewPublishers: can(Permission.CanViewPublishers),
         canViewTerritories: can(Permission.CanViewTerritories),
+        canViewAttributions: can(Permission.CanViewTerritoryAttributions),
+        canManageCampaigns: can(Permission.CanManageTerritoryCampaigns),
         canViewProspection: can(Permission.CanViewProspection),
         canManageTerritories: can(Permission.CanManageTerritories),
         canManageSettings: can(Permission.CanDoAnything),

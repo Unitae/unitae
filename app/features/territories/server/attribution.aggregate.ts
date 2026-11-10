@@ -1,19 +1,11 @@
 import type { Prisma } from '~/database/generated/client'
-import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
+import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
-import { getSetting } from '~/shared/domain/settings.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
-import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { parseLocalDate, startOfNextDay } from '~/shared/utils/date.server'
+import { resolveDurationDays } from './attribution-duration.queries'
 import { getActiveCampaign } from './campaign.queries'
-
-const DEFAULT_DURATION_DAYS = {
-  default: 120,
-  phone: 14,
-  commerce: 120,
-}
 
 /**
  * Two attribution intervals overlap iff each starts on or before the other
@@ -36,38 +28,6 @@ export function attributionsOverlap(
   const aEndsAfterBStart = a.endDate == null || a.endDate >= b.startDate
   const bEndsAfterAStart = b.endDate == null || b.endDate >= a.startDate
   return aEndsAfterBStart && bEndsAfterAStart
-}
-
-function parsePositiveDays(value: string | null | undefined, fallback: number): number {
-  if (!value) return fallback
-  const parsed = Number(value)
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
-}
-
-async function _resolveDurationDays(
-  db: TransactionClient,
-  attributionType: TerritoryAttributionKind,
-  territoryType: TerritoryKindKey,
-  congregationId: number,
-): Promise<number> {
-  if (attributionType === TerritoryAttributionKind.Phone) {
-    const setting = await getSetting(db, TerritorySettingKey.AttributionPhoneDurationDays, congregationId)
-    return parsePositiveDays(setting, DEFAULT_DURATION_DAYS.phone)
-  }
-  if (territoryType === TerritoryKindKey.Commerces) {
-    const setting = await getSetting(db, TerritorySettingKey.AttributionCommerceDurationDays, congregationId)
-    return parsePositiveDays(setting, DEFAULT_DURATION_DAYS.commerce)
-  }
-  const setting = await getSetting(db, TerritorySettingKey.AttributionDefaultDurationDays, congregationId)
-  if (setting) return parsePositiveDays(setting, DEFAULT_DURATION_DAYS.default)
-
-  // Backward compat: fall back to legacy months setting × 30
-  const legacyMonths = await getSetting(db, TerritorySettingKey.AttributionDefaultDurationMonths, congregationId)
-  if (legacyMonths) {
-    const months = parsePositiveDays(legacyMonths, 0)
-    if (months > 0) return months * 30
-  }
-  return DEFAULT_DURATION_DAYS.default
 }
 
 async function _assertNoActiveOverlap(
@@ -148,7 +108,7 @@ export async function assign(db: TransactionClient, params: CreateAttributionPar
   } else {
     // Regular work — or a campaign whose attributions are closed manually
     // (endCloseCampaign off): the standard method/territory duration applies.
-    const durationDays = await _resolveDurationDays(db, params.type, territory.type, params.congregationId)
+    const durationDays = await resolveDurationDays(db, params.type, territory.type, params.congregationId)
     lateDate = new Date(startDate)
     lateDate.setDate(lateDate.getDate() + durationDays)
   }

@@ -4,6 +4,7 @@ import { Link } from 'react-router'
 
 import { formatCampaignDay } from '~/features/territories/model/campaign-days'
 import * as m from '~/i18n/paraglide/messages'
+import { type QuickView, QuickViews } from '~/shared/ui/QuickViews'
 import { daysBetween } from '~/shared/utils/calendar-day'
 import { cn } from '~/shared/utils/utils'
 
@@ -27,7 +28,7 @@ export function CampaignAttributionTable({ rows, today }: { rows: CampaignAttrib
   const out = rows.filter(row => row.endDay == null)
   const back = rows.filter(row => row.endDay != null)
   const shown = filter === 'out' ? out : filter === 'back' ? back : rows
-  const filters: { value: Filter; label: string; count: number }[] = [
+  const filters: QuickView<Filter>[] = [
     { value: 'all', label: m.campaigns_attr_filter_all(), count: rows.length },
     { value: 'out', label: m.campaigns_attr_filter_out(), count: out.length },
     { value: 'back', label: m.campaigns_attr_filter_back(), count: back.length },
@@ -40,26 +41,13 @@ export function CampaignAttributionTable({ rows, today }: { rows: CampaignAttrib
         meta={<span className="tabular-nums">{rows.length}</span>}
         actions={
           rows.length > 0 && (
-            <fieldset className="flex flex-wrap gap-1">
-              <legend className="sr-only">{m.campaigns_attr_filter_label()}</legend>
-              {filters.map(option => (
-                <button
-                  key={option.value}
-                  type="button"
-                  aria-pressed={filter === option.value}
-                  onClick={() => setFilter(option.value)}
-                  className={cn(
-                    'inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 font-medium text-sm outline-none transition-colors duration-(--u-duration-fast) focus-visible:ring-2 focus-visible:ring-ring',
-                    filter === option.value
-                      ? 'border-foreground text-foreground'
-                      : 'border-border text-muted-foreground hover:bg-hover hover:text-foreground',
-                  )}
-                >
-                  {option.label}
-                  <span className="text-faint tabular-nums">{option.count}</span>
-                </button>
-              ))}
-            </fieldset>
+            <QuickViews
+              label={m.campaigns_attr_filter_label()}
+              views={filters}
+              value={filter}
+              onChoose={setFilter}
+              size="sm"
+            />
           )
         }
       />

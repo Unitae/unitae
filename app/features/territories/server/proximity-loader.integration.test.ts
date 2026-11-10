@@ -1,7 +1,8 @@
 /**
- * Confirms `findTerritoriesWithDetailsPaginated` and
- * `findActiveAttributionsPaginated` produce correct distance maps and
- * partitions when given `proximityArgs.origin`.
+ * Confirms `findTerritoriesWithDetailsPaginated` produces correct distance
+ * maps and partitions when given `proximityArgs.origin`, and that
+ * `listOpenAttributions` measures each attribution's distance through the
+ * same entrances and buildings, for the attributions list's proximity order.
  *
  * Unit tests cover `paginateByProximity` in isolation; this exercises the
  * full Prisma path including the eager `include` shape (entrances →
@@ -20,7 +21,8 @@ vi.mock('~/shared/domain/audit.server', () => ({
 }))
 
 const { findTerritoriesWithDetailsPaginated } = await import('./territories.server')
-const { findActiveAttributionsPaginated } = await import('./attributions.server')
+const { listOpenAttributions } = await import('./attribution-list.queries')
+const { sortAttributions } = await import('~/features/territories/model/attribution-list')
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -236,23 +238,25 @@ describe('findTerritoriesWithDetailsPaginated — proximity branch', () => {
   })
 })
 
-describe('findActiveAttributionsPaginated — proximity branch', () => {
-  it('returns near attribution first, far second, no-coords last', async () => {
-    const url = new URL('https://example.com/?page=1&pageSize=10')
-    const result = await withScope(congregationId, tx =>
-      findActiveAttributionsPaginated(tx, { endDate: null }, url, congregationId, { origin }),
+describe('listOpenAttributions — proximity', () => {
+  it('measures each attribution, so the nearest comes first and the unplaced last', async () => {
+    const rows = await withScope(congregationId, tx =>
+      listOpenAttributions(tx, congregationId, { where: {}, today: '2026-11-10', origin }),
     )
 
-    const order = result.attributions.map(a => a.id)
-    expect(order).toEqual([nearAttributionId, farAttributionId, noCoordsAttributionId])
+    expect(sortAttributions(rows, 'proximity', 'fr').map(row => row.id)).toEqual([
+      nearAttributionId,
+      farAttributionId,
+      noCoordsAttributionId,
+    ])
+    expect(rows.find(row => row.id === noCoordsAttributionId)?.distance).toBeNull()
   })
 
-  it('without proximityArgs, sorts by startDate as today', async () => {
-    const url = new URL('https://example.com/?page=1&pageSize=10')
-    const result = await withScope(congregationId, tx =>
-      findActiveAttributionsPaginated(tx, { endDate: null }, url, congregationId),
+  it('measures nothing without a searched place', async () => {
+    const rows = await withScope(congregationId, tx =>
+      listOpenAttributions(tx, congregationId, { where: {}, today: '2026-11-10' }),
     )
-    expect(result.attributions).toHaveLength(3)
-    expect('distances' in result).toBe(false)
+    expect(rows).toHaveLength(3)
+    expect(rows.every(row => row.distance == null)).toBe(true)
   })
 })

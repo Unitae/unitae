@@ -1,26 +1,17 @@
 import { isPmrStatus, pmrStatusLabels } from '~/features/territories/model/pmr-status'
 import { ShopKind } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
-import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 import type { FilterChip } from '~/shared/ui/filters/FilterChipBar'
-import { formatGroupName } from '~/shared/utils/format-group-name'
 
 // URL query parameter a chip's X clears. Constrained to the parameters the
 // filter forms actually parse so a typo (`'zipcode'`) can't silently produce
 // a chip whose X clears nothing.
-export type TerritoryFilterKey = 'search' | 'zip' | 'type' | 'access' | 'shops' | 'pmr' | 'group' | 'status'
+export type TerritoryFilterKey = 'search' | 'zip' | 'type' | 'access' | 'shops' | 'pmr'
 
 export interface ActiveTerritoryFilterChip extends FilterChip {
   key: TerritoryFilterKey
-}
-
-interface BuildChipsOptions {
-  // Map of publisherGroupId → display name, supplied by pages showing the
-  // group filter (attribution list, prospection). Empty for pages that don't
-  // expose group.
-  groups?: Array<{ id: number; name: string }>
 }
 
 function typeChipValue(raw: string): string | null {
@@ -35,17 +26,6 @@ function typeChipValue(raw: string): string | null {
       return m.territories_type_hotel()
     case TerritoryKindKey.Univ:
       return m.territories_type_university_singular()
-    default:
-      return null
-  }
-}
-
-function attributionTypeChipValue(raw: string): string | null {
-  switch (raw) {
-    case TerritoryAttributionKind.Default:
-      return m.attributions_type_default()
-    case TerritoryAttributionKind.Phone:
-      return m.attributions_type_phone()
     default:
       return null
   }
@@ -93,19 +73,6 @@ function shopChipValue(raw: string): string | null {
   }
 }
 
-function attributionStatusChipValue(raw: string): string | null {
-  switch (raw) {
-    case 'current':
-      return m.territories_filter_status_current()
-    case 'late':
-      return m.territories_filter_status_late()
-    case 'orphaned':
-      return m.territories_filter_status_orphaned()
-    default:
-      return null
-  }
-}
-
 function pmrChipValue(raw: string): string | null {
   return isPmrStatus(raw) ? pmrStatusLabels()[raw] : null
 }
@@ -141,24 +108,5 @@ export function buildTerritoryFilterChips(params: URLSearchParams): ActiveTerrit
   appendChip(chips, params, 'access', m.territories_filter_chip_access(), accessChipValue)
   appendChip(chips, params, 'shops', m.territories_filter_chip_shops(), shopChipValue)
   appendChip(chips, params, 'pmr', m.territories_filter_chip_pmr(), pmrChipValue)
-  return chips
-}
-
-/**
- * Build the chip list for `/territories/attributions` (AttributionFilters).
- * `groups` resolves the publisher-group id back to its display name.
- */
-export function buildAttributionFilterChips(
-  params: URLSearchParams,
-  options: BuildChipsOptions = {},
-): ActiveTerritoryFilterChip[] {
-  const chips: ActiveTerritoryFilterChip[] = []
-  appendChip(chips, params, 'search', m.territories_filter_chip_search(), searchChipValue)
-  appendChip(chips, params, 'type', m.territories_filter_chip_mode(), attributionTypeChipValue)
-  appendChip(chips, params, 'group', m.territories_filter_chip_group(), raw => {
-    const group = options.groups?.find(g => g.id === Number(raw))
-    return group ? formatGroupName(group.name) : null
-  })
-  appendChip(chips, params, 'status', m.territories_filter_chip_status(), attributionStatusChipValue)
   return chips
 }
