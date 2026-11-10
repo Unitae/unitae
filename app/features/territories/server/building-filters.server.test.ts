@@ -119,7 +119,27 @@ describe('computeFilters', () => {
 
   it('combines zip and type filters', () => {
     const result = computeFilters(new URLSearchParams({ zip: '75001', type: TerritoryKindKey.Classical }))
-    expect(result).toHaveProperty('zip')
-    expect(result).toHaveProperty('entrances')
+    expect(result).toEqual({
+      AND: [
+        { zip: { equals: '75001' } },
+        { entrances: { some: { kind: EntranceKind.Residential, homes: { gt: 0 } } } },
+      ],
+    })
+  })
+
+  it('keeps both the type and the access filters, which each look at the entrances', () => {
+    const result = computeFilters(new URLSearchParams({ type: TerritoryKindKey.Classical, access: '1' }))
+    expect(result).toEqual({
+      AND: [
+        { entrances: { some: { kind: EntranceKind.Residential, homes: { gt: 0 } } } },
+        { entrances: { some: { access: { equals: 1 } } } },
+      ],
+    })
+  })
+
+  it('finds the buildings without a position', () => {
+    expect(computeFilters(new URLSearchParams({ position: 'none' }))).toEqual({
+      OR: [{ latitude: null }, { longitude: null }],
+    })
   })
 })

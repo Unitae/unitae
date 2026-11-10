@@ -5,88 +5,69 @@ import { TerritoryKindKey } from '~/features/territories/model/territory-kind.ty
 import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 import { addressRegex, proximityPrefix } from './address-regex'
 
+/**
+ * The prospection filters from the address (`zip`, `type`, `access`, `shops`, `position`, `search`). Each one is its
+ * own condition, so two that look at the entrances (« Contient » and « Accès ») both hold.
+ */
 export function computeFilters(params: URLSearchParams): Prisma.BuildingWhereInput {
-  let filters: Prisma.BuildingWhereInput = {}
+  const conditions = [
+    zipFilter(params),
+    typeFilter(params),
+    accessFilter(params),
+    shopFilter(params),
+    positionFilter(params),
+    searchFilter(params),
+  ].filter((condition): condition is Prisma.BuildingWhereInput => condition != null)
 
-  filters = applyZipFilter(filters, params)
-  filters = applyTypeFilter(filters, params)
-  filters = applyAccessFilter(filters, params)
-  filters = applyShopFilter(filters, params)
-  filters = applySearchFilter(filters, params)
-
-  return filters
+  if (conditions.length === 0) return {}
+  return conditions.length === 1 ? conditions[0] : { AND: conditions }
 }
 
-function applyZipFilter(filters: Prisma.BuildingWhereInput, params: URLSearchParams): Prisma.BuildingWhereInput {
-  if (params.has('zip') && params.get('zip') !== 'none') {
-    return {
-      ...filters,
-      zip: {
-        ...(typeof filters.zip !== 'string' ? filters.zip : {}),
-        equals: params.get('zip')?.toString(),
-      },
-    }
-  }
-  return filters
+type Condition = Prisma.BuildingWhereInput | null
+
+function chosen(params: URLSearchParams, name: string): string | null {
+  const value = params.get(name)
+  return value != null && value !== '' && value !== 'none' ? value : null
 }
 
-function applyShopFilter(filters: Prisma.BuildingWhereInput, params: URLSearchParams): Prisma.BuildingWhereInput {
-  if (params.has('shops') && params.get('shops') !== 'none') {
-    const type = params.get('shops') as ShopKind
-
-    return { ...filters, entrances: { some: { kind: EntranceKind.Commerce, shopKind: type } } }
-  }
-
-  return filters
+function zipFilter(params: URLSearchParams): Condition {
+  const zip = chosen(params, 'zip')
+  return zip == null ? null : { zip: { equals: zip } }
 }
 
-function applyTypeFilter(filters: Prisma.BuildingWhereInput, params: URLSearchParams): Prisma.BuildingWhereInput {
-  if (params.has('type') && params.get('type') !== 'none') {
-    const type = params.get('type') as TerritoryKindKey
-
-    if (type === TerritoryKindKey.Classical) {
-      return { ...filters, entrances: { some: { kind: EntranceKind.Residential, homes: { gt: 0 } } } }
-    }
-
-    if (type === TerritoryKindKey.Phone) {
-      return { ...filters, entrances: { some: { kind: EntranceKind.Residential, phones: { gt: 0 } } } }
-    }
-
-    if (type === TerritoryKindKey.Commerces) {
-      return { ...filters, entrances: { some: { kind: EntranceKind.Commerce } } }
-    }
-
-    if (type === TerritoryKindKey.Hotel) {
-      return { ...filters, entrances: { some: { kind: EntranceKind.Hotel } } }
-    }
-
-    if (type === TerritoryKindKey.Univ) {
-      return { ...filters, entrances: { some: { kind: EntranceKind.Campus } } }
-    }
-  }
-  return filters
+function shopFilter(params: URLSearchParams): Condition {
+  const shop = chosen(params, 'shops') as ShopKind | null
+  return shop == null ? null : { entrances: { some: { kind: EntranceKind.Commerce, shopKind: shop } } }
 }
 
-function applyAccessFilter(filters: Prisma.BuildingWhereInput, params: URLSearchParams): Prisma.BuildingWhereInput {
-  if (params.has('access') && params.get('access') !== 'none') {
-    return {
-      ...filters,
-      entrances: {
-        some: {
-          access: {
-            equals: Number(params.get('access')),
-          },
-        },
-      },
-    }
-  }
-  return filters
+const ENTRANCES_BY_TYPE: Record<TerritoryKindKey, Prisma.BuildingEntranceWhereInput> = {
+  [TerritoryKindKey.Classical]: { kind: EntranceKind.Residential, homes: { gt: 0 } },
+  [TerritoryKindKey.Phone]: { kind: EntranceKind.Residential, phones: { gt: 0 } },
+  [TerritoryKindKey.Commerces]: { kind: EntranceKind.Commerce },
+  [TerritoryKindKey.Hotel]: { kind: EntranceKind.Hotel },
+  [TerritoryKindKey.Univ]: { kind: EntranceKind.Campus },
 }
 
-function applySearchFilter(filters: Prisma.BuildingWhereInput, params: URLSearchParams): Prisma.BuildingWhereInput {
+function typeFilter(params: URLSearchParams): Condition {
+  const type = chosen(params, 'type')
+  const entrances = type == null ? undefined : ENTRANCES_BY_TYPE[type as TerritoryKindKey]
+  return entrances == null ? null : { entrances: { some: entrances } }
+}
+
+function accessFilter(params: URLSearchParams): Condition {
+  const access = chosen(params, 'access')
+  return access == null ? null : { entrances: { some: { access: { equals: Number(access) } } } }
+}
+
+/** `position=none`: the buildings no map can show. */
+function positionFilter(params: URLSearchParams): Condition {
+  return params.get('position') === 'none' ? { OR: [{ latitude: null }, { longitude: null }] } : null
+}
+
+function searchFilter(params: URLSearchParams): Condition {
   const raw = params.get('search')
   const trimmed = raw?.replace(proximityPrefix, '').trim() ?? ''
-  if (trimmed.length === 0) return filters
+  if (trimmed.length === 0) return null
 
   const normalized = stripDiacritics(trimmed)
   const addressTerms = trimmed.match(addressRegex)
@@ -95,7 +76,6 @@ function applySearchFilter(filters: Prisma.BuildingWhereInput, params: URLSearch
   const addressStreetNormalized = addressStreet != null ? stripDiacritics(addressStreet) : null
 
   return {
-    ...filters,
     OR: [
       addressTerms == null
         ? { streetNormalized: { contains: normalized } }

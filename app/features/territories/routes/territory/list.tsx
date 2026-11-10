@@ -1,4 +1,4 @@
-import { MapIcon, Plus } from 'lucide-react'
+import { MapIcon, Plus, Scissors } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import {
@@ -37,6 +37,8 @@ export function loader({ request, context }: Route.LoaderArgs) {
   requirePermission(permissions, Permission.CanViewTerritories)
   const canViewAttributions = permissions.has(Permission.CanViewTerritoryAttributions)
   const canManage = permissions.has(Permission.CanManageTerritories)
+  // The split tool is the other way to create territories: several at once from the surveyed buildings.
+  const canSplit = permissions.has(Permission.CanPlanTerritorySplits)
 
   return withScopeFromContext(context, async (db, congregationId) => {
     const url = new URL(request.url)
@@ -80,6 +82,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
       households: rows.reduce((sum, row) => sum + row.quantity.homes, 0),
       canViewAttributions,
       canManage,
+      canSplit,
     }
   })
 }
@@ -109,6 +112,19 @@ export default function TerritoryList({ loaderData }: Route.ComponentProps) {
       </Link>
     </Button>
   )
+  const actions = (loaderData.canSplit || create) && (
+    <>
+      {loaderData.canSplit && (
+        <Button asChild variant="outline" size="sm">
+          <Link to="/territories/buildings/split-territories" title={m.territories_create_in_bulk_hint()}>
+            <Scissors aria-hidden="true" />
+            {m.territories_create_in_bulk()}
+          </Link>
+        </Button>
+      )}
+      {create}
+    </>
+  )
 
   return (
     <div className="flex max-w-6xl flex-col gap-4">
@@ -122,7 +138,7 @@ export default function TerritoryList({ loaderData }: Route.ComponentProps) {
           ) : undefined
         }
         breadcrumbs={[{ label: m.sidebar_territories() }]}
-        actions={create || undefined}
+        actions={actions || undefined}
       />
       <GeocodeNotice notice={loaderData.geocodeNotice} />
 

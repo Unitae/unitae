@@ -32,6 +32,8 @@ export function SortMenu<V extends string>({ value, options }: { value: V; optio
             setSearchParams(
               prev => {
                 prev.set('sort', next)
+                // A new order starts again from its first page.
+                prev.delete('page')
                 return prev
               },
               { replace: true, preventScrollReset: true },

@@ -7,10 +7,8 @@ import {
   type MapVisibilityContext,
   mapVisibleWhere,
 } from '~/features/territories/server/map-visibility'
-import { getLocale } from '~/i18n/paraglide/runtime'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { AggregatedEntrance, Entrance } from '~/shared/types/entrance'
-import { paginationFromUrl } from '~/shared/utils/pagination.server'
 
 export const entranceKindForTerritoryType: Record<TerritoryKindKey, EntranceKind> = {
   [TerritoryKindKey.Classical]: EntranceKind.Residential,
@@ -46,69 +44,6 @@ export type BboxEntrance = {
   // JSON round-trip keeps it as a plain string on the client (Date objects don't
   // survive JSON.stringify → JSON.parse).
   prospectionDate: string | null
-}
-
-function sortBuildingsByAddress<T extends { zip: string; street: string; number: string }>(buildings: T[]) {
-  buildings.sort((a, b) => {
-    if (a.zip === b.zip && a.street === b.street) {
-      return a.number.localeCompare(b.number, getLocale(), { numeric: true, sensitivity: 'base' })
-    }
-    return 0
-  })
-  return buildings
-}
-
-export async function findBuildingsPaginated(
-  db: TransactionClient,
-  selectors: Prisma.BuildingWhereInput,
-  url: URL,
-  congregationId: number,
-) {
-  const totalBuildings = await db.building.count({ where: { ...selectors, congregationId } })
-  const pagination = paginationFromUrl(url, totalBuildings)
-
-  const buildings = await db.building.findMany({
-    skip: pagination.offset,
-    take: pagination.size,
-    where: { ...selectors, congregationId },
-    orderBy: [{ zip: 'asc' }, { street: 'asc' }, { number: 'asc' }],
-  })
-
-  sortBuildingsByAddress(buildings)
-
-  return { buildings, pagination }
-}
-
-export async function findBuildingsWithEntrancePaginated(
-  db: TransactionClient,
-  selectors: Prisma.BuildingWhereInput,
-  url: URL,
-  congregationId: number,
-) {
-  const totalBuildings = await db.building.count({ where: { ...selectors, congregationId } })
-  const pagination = paginationFromUrl(url, totalBuildings)
-
-  const buildings = await db.building.findMany({
-    skip: pagination.offset,
-    take: pagination.size,
-    where: { ...selectors, congregationId },
-    include: { entrances: { where: { kind: EntranceKind.Residential }, take: 1 } },
-    orderBy: [{ zip: 'asc' }, { street: 'asc' }, { number: 'asc' }],
-  })
-
-  sortBuildingsByAddress(buildings)
-
-  return { buildings, pagination }
-}
-
-export async function getProspectionStaleDate(db: TransactionClient): Promise<Date> {
-  const prospectionValidity = Number(
-    (await db.setting.findFirst({ where: { key: 'prospection-validity' } }))?.value ?? '0',
-  )
-  if (prospectionValidity <= 0) return new Date(0)
-  const staleDate = new Date()
-  staleDate.setMonth(staleDate.getMonth() - prospectionValidity)
-  return staleDate
 }
 
 export function aggregateEntrance(entrance: Entrance): AggregatedEntrance {

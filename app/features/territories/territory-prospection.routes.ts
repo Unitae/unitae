@@ -9,14 +9,14 @@ export const territoryProspection = [
     route('campus', 'features/territories/routes/split-tool/university.tsx'),
     route('create', 'features/territories/routes/split-tool/create.tsx'),
   ]),
-  route('buildings', 'features/territories/routes/prospection/_layout.tsx', [
-    index('features/territories/routes/prospection/active-building-list.tsx'),
-    route('sync', 'features/territories/routes/prospection/sync-buildings.tsx'),
-    route('new', 'features/territories/routes/prospection/new-building-list.tsx'),
-    route('need-check', 'features/territories/routes/prospection/need-check-building-list.tsx'),
-    route('missing', 'features/territories/routes/prospection/missing-building-list.tsx'),
-    route('all', 'features/territories/routes/prospection/building-list.tsx'),
-  ]),
+  route('buildings', 'features/territories/routes/prospection/list.tsx'),
+  route('buildings/sync', 'features/territories/routes/prospection/sync-buildings.tsx'),
+  // The old list pages, now views of the list above.
+  ...['new', 'need-check', 'missing', 'all'].map(path =>
+    route(`buildings/${path}`, 'features/territories/routes/prospection/legacy-list.tsx', {
+      id: `prospection-legacy-${path}`,
+    }),
+  ),
   ...prefix('building', [
     route('new', 'features/territories/routes/prospection/new-building.tsx'),
     ...prefix(':buildingId', [

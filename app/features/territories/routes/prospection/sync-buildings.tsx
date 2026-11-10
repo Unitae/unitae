@@ -7,6 +7,7 @@ import { syncQueue } from '~/features/territories/server/sync-queue.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
   currentAccountContext,
+  layoutGate,
   permissionsContext,
   requirePermission,
   withScopeFromContext,
@@ -22,6 +23,11 @@ const logger = createLogger('prospection-sync')
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.prospection_sync_meta_title() }]
 }
+
+// As a middleware, the gate covers the action too, not only the page.
+export const middleware: Route.MiddlewareFunction[] = [
+  layoutGate(permissions => permissions.has(Permission.CanViewProspection)),
+]
 
 export function loader(_args: Route.LoaderArgs) {
   throw redirect('/')
