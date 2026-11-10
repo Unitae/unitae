@@ -79,9 +79,9 @@ export const ALLOWLIST: Record<string, string> = {
   'app/features/authentication/routes/verify-email.tsx': "resends the caller's own verification email",
   'app/features/authentication/routes/setup.tsx': 'first-run setup, guarded by needSetupProcess()',
   'app/features/authentication/routes/register.tsx': 'self-registration, guarded by the multi-tenant check',
-  'app/features/authentication/routes/user/profile.tsx': "edits the caller's own profile",
-  'app/features/authentication/routes/user/security.tsx': "changes the caller's own password and 2FA",
-  'app/features/authentication/routes/user/consents.tsx': "manages the caller's own consents",
+  'app/features/authentication/routes/user/security.tsx':
+    "changes the caller's own password and 2FA, and signs out the caller's other devices",
+  'app/features/authentication/routes/user/privacy.tsx': "withdraws the caller's own consent",
   'app/features/authentication/routes/user/calendar-feed-regenerate.tsx': "rotates the caller's own calendar feed",
   'app/features/authentication/routes/user/calendar-feed-revoke.tsx': "revokes the caller's own calendar feed",
   'app/features/authentication/routes/user/language.tsx': "sets the caller's own interface language",

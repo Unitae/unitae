@@ -1,6 +1,6 @@
 import type { TransactionClient } from '~/shared/infra/db.server'
 
-interface UserDataExport {
+export interface UserDataExport {
   exportDate: string
   exportVersion: string
   user: Record<string, unknown>
@@ -49,7 +49,11 @@ export async function exportAccountData(
           birthDate: true,
           baptismDate: true,
           isPublisher: true,
-          type: true,
+          // Pioneer service, month by month (it replaced the old Member.type).
+          pioneerEnrolments: {
+            select: { type: true, startMonth: true, startYear: true, endMonth: true, endYear: true, monthlyGoal: true },
+            orderBy: [{ startYear: 'asc' }, { startMonth: 'asc' }],
+          },
           isHelder: true,
           isServant: true,
           isAnointed: true,
@@ -92,7 +96,8 @@ export async function exportAccountData(
         description: true,
         startDate: true,
         endDate: true,
-        kind: { select: { name: true, key: true } },
+        status: true,
+        template: { select: { name: true, key: true } },
         createdAt: true,
       },
       orderBy: { startDate: 'desc' },
@@ -192,4 +197,18 @@ export async function exportAccountData(
     })),
     consentRecords,
   }
+}
+
+/**
+ * The export as a download: a JSON file named after the account. Used by the person's own « Mon compte » and by
+ * the administrators' user page.
+ */
+export function accountDataDownload(data: UserDataExport, accountId: number): Response {
+  return new Response(JSON.stringify(data, null, 2), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Disposition': `attachment; filename="unitae-account-${accountId}.json"`,
+    },
+  })
 }

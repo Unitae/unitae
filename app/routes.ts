@@ -25,9 +25,12 @@ export default [
     route('password/:userId/invalidate', 'features/authentication/routes/password-invalidation.tsx'),
     route('me', 'features/authentication/routes/user/_layout.tsx', [
       route('profile', 'features/authentication/routes/user/profile.tsx'),
+      route('preferences', 'features/authentication/routes/user/preferences.tsx'),
       route('security', 'features/authentication/routes/user/security.tsx'),
-      route('consents', 'features/authentication/routes/user/consents.tsx'),
       route('notifications', 'features/notifications/routes/preferences.tsx'),
+      route('privacy', 'features/authentication/routes/user/privacy.tsx'),
+      route('consents', 'features/authentication/routes/user/consents.tsx'),
+      route('export-data', 'features/authentication/routes/user/export-data.tsx'),
       route('territories', 'features/territories/routes/my-territories/list.tsx'),
       route('territories/:territoryId', 'features/territories/routes/my-territories/view.tsx'),
       route('calendar-feed/regenerate', 'features/authentication/routes/user/calendar-feed-regenerate.tsx'),

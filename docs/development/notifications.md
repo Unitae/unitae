@@ -175,9 +175,17 @@ Members without an account are not addressable as notification recipients (no em
 
 ## User Preferences
 
-Users manage their preferences at `/notifications/preferences`. Preferences are stored in the `NotificationPreference` model with a compound key of `userId + notificationType + congregationId`.
+Users manage their preferences at `/me/notifications` (« Mon compte › Notifications »). Preferences are stored in the `NotificationPreference` model with a compound key of `userId + notificationType + congregationId`.
 
 The preferences UI shape is derived from `NOTIFICATION_REGISTRY` at loader time — `derivePreferenceCategories()` groups definitions by `category.key` and resolves the Paraglide label accessors. Adding a new type appears automatically.
+
+The page lists only the types that can reach the reader (`reachableNotificationTypes`):
+
+- a **role fan-out** type is shown when the account matches the delivery's own filter for its `recipientRole` (`receivesRoleNotifications`, the per-account twin of `findNotificationRecipientsWithPermission` — a permission held only through admin's can-do-anything does not count, exactly as in delivery);
+- any other type declares its `audience`: `{ member: true }` when it is addressed to the account of a record (programme assignments), `{ permission }` when it goes to whoever took an action that needs that permission (a building sync needs `CanManageBuildings`);
+- a type with neither is shown to everyone.
+
+`category.hint` says why a category reaches the reader when not everyone gets it; `description` is a line under a toggle (when it is sent).
 
 Wildcard preferences (e.g., `board.*`) disable all notifications in a category.
 
@@ -207,6 +215,8 @@ const myTypeDef = defineNotificationType({
   type: 'myfeature.myentity.myaction',
   category: { key: 'myfeature', label: () => m.notification_category_myfeature() },
   label: () => m.notification_myfeature_myaction(),
+  // For an `entity-user` type, say who can ever receive it: { member: true } or { permission: Permission.X }.
+  // audience: { permission: Permission.CanDoSomething },
   routing: {
     // See NotificationTypeConfig for the shape; other strategies include
     // 'entity-user' (recipientId passed by the caller of notify()) and the

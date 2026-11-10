@@ -21,6 +21,24 @@ describe('derivePreferenceCategories', () => {
     }
   })
 
+  it('leaves out the types the reader cannot receive, and the categories left empty', () => {
+    const categories = derivePreferenceCategories(
+      new Set(['programme.assignment.assigned', 'programme.assignment.unassigned']),
+    )
+
+    expect(categories.map(c => c.key)).toEqual(['programme'])
+    expect(categories[0]?.types.map(t => t.type)).toEqual([
+      'programme.assignment.assigned',
+      'programme.assignment.unassigned',
+    ])
+  })
+
+  it('carries the line that says why a category reaches the reader', () => {
+    const board = derivePreferenceCategories().find(c => c.key === 'board')
+
+    expect(board?.hint).toEqual(expect.any(String))
+  })
+
   it('groups every board.document.* type under the same category', () => {
     const categories = derivePreferenceCategories()
     const board = categories.find(c => c.key === 'board')

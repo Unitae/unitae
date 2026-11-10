@@ -68,13 +68,19 @@ export const setupSchema = z.object({
   password: newPassword(),
 })
 
-export const changePasswordSchema = z.object({
-  // Current password: verified by compare() against the stored hash, so no
-  // minimum-length policy is enforced here (only non-empty) — an already-stored
-  // legacy short password must still pass.
-  password: z.string().min(1),
-  new_password: newPassword(),
-})
+export const changePasswordSchema = z
+  .object({
+    // Current password: verified by compare() against the stored hash, so no
+    // minimum-length policy is enforced here (only non-empty) — an already-stored
+    // legacy short password must still pass.
+    password: z.string({ error: required }).min(1, { error: required }),
+    new_password: newPassword(),
+    new_password_confirm: z.string({ error: required }),
+  })
+  .refine(data => data.new_password === data.new_password_confirm, {
+    path: ['new_password_confirm'],
+    error: () => m.auth_error_password_mismatch(),
+  })
 
 export const consentSchema = z.object({
   purpose: z.string().min(1),

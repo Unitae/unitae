@@ -1,8 +1,9 @@
 import { Outlet } from 'react-router'
+import * as m from '~/i18n/paraglide/messages'
 import type { Route } from './+types/_layout'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Mon compte - Unitae' }]
+  return [{ title: `${m.account_title()} - Unitae` }]
 }
 
 export function loader(_args: Route.LoaderArgs) {

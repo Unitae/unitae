@@ -139,7 +139,7 @@ function getNavigationItems(permissions: AppSidebarPermissions): CommandItem[] {
     items.push({ id: 'audit-log', label: m.sidebar_audit_log(), icon: ClipboardList, to: '/settings/audit-log' })
   }
 
-  items.push({ id: 'profile', label: m.sidebar_my_profile(), icon: User, to: '/me/profile' })
+  items.push({ id: 'profile', label: m.account_title(), icon: User, to: '/me/profile' })
   items.push({ id: 'my-absences', label: m.sidebar_my_absences(), icon: CalendarOff, to: '/me/days-off' })
   items.push({
     id: 'notifications',

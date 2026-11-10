@@ -69,6 +69,7 @@ function translateAction(action: string): string {
     'user.login': m.audit_log_action_user_login(),
     'user.login.failed': m.audit_log_action_user_login_failed(),
     'user.logout': m.audit_log_action_user_logout(),
+    'user.sessions.ended': m.audit_log_action_user_sessions_ended(),
     'user.created': m.audit_log_action_user_created(),
     'user.updated': m.audit_log_action_user_updated(),
     'user.anonymized': m.audit_log_action_user_anonymized(),

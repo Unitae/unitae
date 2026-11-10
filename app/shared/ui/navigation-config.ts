@@ -283,7 +283,7 @@ export function buildManagementSections(permissions: NavigationPermissions): Nav
 /** Personal items shown in the desktop sidebar footer and the mobile "Plus" sheet. */
 export function buildPersonalItems(): NavItem[] {
   return [
-    { id: 'profile', label: m.sidebar_my_profile, icon: User, to: '/me/profile' },
+    { id: 'profile', label: m.account_title, icon: User, to: '/me/profile' },
     { id: 'my-territories', label: m.sidebar_my_territories, icon: MapPin, to: '/me/territories' },
     { id: 'my-absences', label: m.sidebar_my_absences, icon: CalendarOff, to: '/me/days-off' },
   ]

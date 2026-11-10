@@ -1,16 +1,23 @@
 import { z } from 'zod'
 import { defineNotificationType, manifest } from '~/features/notifications'
 import * as m from '~/i18n/paraglide/messages'
+import { Permission } from '~/shared/types/permission'
 import BuildingSyncDone from '../emails/buildings-sync-done'
 import BuildingSyncFailed from '../emails/buildings-sync-failed'
 
-// Both are sent to whoever started the sync (`recipientId` at notify() time).
-const category = { key: 'territory', label: () => m.notification_category_territory() }
+// Both are sent to whoever started the sync (`recipientId` at notify() time), which takes CanManageBuildings.
+const category = {
+  key: 'territory',
+  label: () => m.notification_category_territory(),
+  hint: () => m.notification_category_territory_hint(),
+}
+const audience = { permission: Permission.CanManageBuildings }
 
 const territorySyncCompleted = defineNotificationType({
   type: 'territory.sync.completed',
   category,
   label: () => m.notification_territory_sync_completed(),
+  audience,
   routing: {
     debounceMinutes: 0,
     recipientStrategy: 'entity-user',
@@ -35,6 +42,7 @@ const territorySyncFailed = defineNotificationType({
   type: 'territory.sync.failed',
   category,
   label: () => m.notification_territory_sync_failed(),
+  audience,
   routing: {
     debounceMinutes: 0,
     recipientStrategy: 'entity-user',

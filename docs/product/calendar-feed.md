@@ -14,9 +14,9 @@ The feed contains all future events plus events from the last three months. Anyt
 
 ## Subscribing
 
-The link is generated and managed in **Profile → My calendar**:
+The link is created and managed in **My account → Profile → Calendar**:
 
-1. Click *Generate link* the first time. Unitae creates a private URL.
+1. Click *Create my link* the first time. Unitae creates a private URL.
 2. Click *Copy* to put the URL on your clipboard.
 3. Paste it into your calendar app:
    - **Apple Calendar** — File → New Calendar Subscription → paste the URL
@@ -33,12 +33,12 @@ The feed is read-only — nobody can use it to change your data or impersonate y
 
 ## Managing the link
 
-From **Profile → My calendar**, you can:
+From **My account → Profile → Calendar**, you can:
 
-- **Generate** — Create the link the first time you want to use the feed.
-- **Copy** — Put the current URL on your clipboard.
-- **Regenerate** — Replace the URL with a fresh one. Any calendar app subscribed to the old link stops receiving updates and needs to be re-subscribed with the new URL. Use this if the link has been accidentally shared.
-- **Revoke** — Delete the link entirely. Subscribed calendar apps stop receiving updates. You can generate a new link later if you change your mind.
+- **Create** — Create the link the first time you want to use the feed.
+- **Copy** — Put the current URL on your clipboard. The block also says when a calendar app last read the feed.
+- **Change link** (in the « … » menu) — Replace the URL with a fresh one, after a confirmation. Any calendar app subscribed to the old link stops receiving updates and needs to be re-subscribed with the new URL. Use this if the link has been accidentally shared.
+- **Delete link** (in the « … » menu) — Delete the link entirely, after a confirmation. Subscribed calendar apps stop receiving updates. You can create a new link later if you change your mind.
 
 Regeneration and revocation are recorded in the audit log, so administrators can trace token activity if there's ever a concern.
 

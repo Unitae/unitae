@@ -10,21 +10,25 @@ import { NOTIFICATION_REGISTRY } from './registry.server'
 // Router loader data can't serialize. Handing plain strings to the client
 // keeps the loader payload JSON-safe and locale-resolved via `runInWorkerContext`.
 //
+// `reachable` (from reachableNotificationTypes) keeps only the types the reader
+// can receive; a category with none of them left is dropped.
+//
 // If two definitions share a `category.key`, the first-seen definition's
 // `category.label` accessor wins. Since consumer features share a single
 // `CATEGORY = { key, label }` const across all their definitions, this is
 // stable in practice — but a future PR could add a collision check here.
-export function derivePreferenceCategories(): NotificationCategoryView[] {
+export function derivePreferenceCategories(reachable?: ReadonlySet<string>): NotificationCategoryView[] {
   const byCategory = new Map<string, NotificationCategoryView>()
 
   for (const def of NOTIFICATION_REGISTRY.values()) {
+    if (reachable && !reachable.has(def.type)) continue
     const key = def.category.key
     let view = byCategory.get(key)
     if (!view) {
-      view = { key, label: def.category.label(), types: [] }
+      view = { key, label: def.category.label(), hint: def.category.hint?.(), types: [] }
       byCategory.set(key, view)
     }
-    view.types.push({ type: def.type, label: def.label(), critical: def.critical })
+    view.types.push({ type: def.type, label: def.label(), description: def.description?.(), critical: def.critical })
   }
 
   return [...byCategory.values()]

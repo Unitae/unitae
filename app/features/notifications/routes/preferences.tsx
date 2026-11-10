@@ -1,28 +1,47 @@
 import { parseWithZod } from '@conform-to/zod/v4'
+import { Panel, SectionHeading } from '@unitae/ui'
 import { data, useFetcher } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
-import { Label } from '~/shared/ui/label'
-import { PageHeader } from '~/shared/ui/PageHeader'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { AccountPage } from '~/shared/ui/AccountPage'
+import { SettingRow } from '~/shared/ui/SettingRow'
 import { Switch } from '~/shared/ui/switch'
+import type { NotificationTypeView } from '../model/notification-preference.type'
 import { togglePreferenceSchema } from '../schemas/preference.schema'
 import { derivePreferenceCategories } from '../server/preference-categories.server'
+import { reachableNotificationTypes } from '../server/preference-reach.server'
 import { getUserPreferences, togglePreference } from '../server/preferences.server'
 
 import type { Route } from './+types/preferences'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: `${m.notification_preferences_page_title()} - Unitae` }]
+  return [{ title: `${m.account_section_notifications()} - Unitae` }]
 }
 
 export function loader({ context }: Route.LoaderArgs) {
-  const currentUser = context.get(currentAccountContext)
+  const account = context.get(currentAccountContext)
+  const permissions = context.get(permissionsContext)
 
   return withScopeFromContext(context, async db => {
-    const preferences = await getUserPreferences(db, currentUser.id)
-    const categories = derivePreferenceCategories()
-    return { preferences, categories }
+    const [preferences, reachable] = await Promise.all([
+      getUserPreferences(db, account.id),
+      reachableNotificationTypes(db, {
+        accountId: account.id,
+        congregationId: account.congregationId,
+        hasMember: account.memberId != null,
+        permissions,
+      }),
+    ])
+    const disabled = new Set(preferences.filter(p => !p.enabled).map(p => p.notificationType))
+    // Only the types that can reach this account; a category-wide « off » (`board.*`) still counts.
+    const categories = derivePreferenceCategories(reachable).map(category => ({
+      ...category,
+      types: category.types.map(type => ({
+        ...type,
+        enabled: !disabled.has(type.type) && !disabled.has(`${category.key}.*`),
+      })),
+    }))
+    return { email: account.email, categories }
   })
 }
 
@@ -44,78 +63,49 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function NotificationPreferencesPage({ loaderData }: Route.ComponentProps) {
-  const { preferences, categories } = loaderData
-
-  // Build a map of disabled types for quick lookup
-  const disabledTypes = new Set(preferences.filter(p => !p.enabled).map(p => p.notificationType))
+  const { email, categories } = loaderData
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        title={m.notification_preferences_page_title()}
-        subtitle={m.notification_preferences_page_subtitle()}
-        breadcrumbs={[
-          { label: m.sidebar_my_profile(), to: '/me/profile' },
-          { label: m.notification_preferences_page_title() },
-        ]}
-        backTo="/me/profile"
-      />
-
-      {categories.map(category => (
-        <Card key={category.key}>
-          <CardHeader>
-            <CardTitle>{category.label}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="divide-y">
-              {category.types.map(typeInfo => (
-                <PreferenceToggle
-                  key={typeInfo.type}
-                  notificationType={typeInfo.type}
-                  label={typeInfo.label}
-                  enabled={!disabledTypes.has(typeInfo.type) && !disabledTypes.has(`${category.key}.*`)}
-                  critical={typeInfo.critical}
-                />
+    <AccountPage title={m.account_section_notifications()} subtitle={m.account_notifications_subtitle({ email })}>
+      {categories.length === 0 ? (
+        <p className="text-muted-foreground text-sm">{m.account_notifications_empty()}</p>
+      ) : (
+        categories.map(category => (
+          <section key={category.key} aria-labelledby={`notifications-${category.key}`}>
+            <SectionHeading id={`notifications-${category.key}`} title={category.label} meta={category.hint} />
+            <Panel>
+              {category.types.map(type => (
+                <PreferenceRow key={type.type} type={type} />
               ))}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+            </Panel>
+          </section>
+        ))
+      )}
+      <p className="text-faint text-sm leading-relaxed">{m.account_notifications_note()}</p>
+    </AccountPage>
   )
 }
 
-function PreferenceToggle({
-  notificationType,
-  label,
-  enabled,
-  critical,
-}: {
-  notificationType: string
-  label: string
-  enabled: boolean
-  critical?: boolean
-}) {
+/** One email, switched on or off at once; a critical one shows its switch on and locked. */
+function PreferenceRow({ type }: { type: NotificationTypeView & { enabled: boolean } }) {
   const fetcher = useFetcher()
-  const optimisticEnabled = fetcher.formData ? fetcher.formData.get('enabled') === 'true' : enabled
+  const optimistic = fetcher.formData ? fetcher.formData.get('enabled') === 'true' : type.enabled
+  const id = `notification-${type.type}`
 
   return (
-    <div className="flex items-center justify-between gap-4 py-3">
-      <Label htmlFor={notificationType} className="font-normal text-sm">
-        {label}
-      </Label>
-      <fetcher.Form method="post">
-        <input type="hidden" name="notificationType" value={notificationType} />
-        <input type="hidden" name="enabled" value={String(!optimisticEnabled)} />
-        <Switch
-          id={notificationType}
-          checked={optimisticEnabled}
-          disabled={critical}
-          onCheckedChange={() => {
-            fetcher.submit({ notificationType, enabled: String(!optimisticEnabled) }, { method: 'post' })
-          }}
-        />
-      </fetcher.Form>
-    </div>
+    <SettingRow
+      htmlFor={id}
+      title={type.label}
+      description={type.critical ? m.account_notifications_always() : type.description}
+    >
+      <Switch
+        id={id}
+        checked={type.critical || optimistic}
+        disabled={type.critical}
+        onCheckedChange={checked => {
+          fetcher.submit({ notificationType: type.type, enabled: String(checked) }, { method: 'post' })
+        }}
+      />
+    </SettingRow>
   )
 }
