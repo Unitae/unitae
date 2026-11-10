@@ -2,6 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import {
+  countPublishersWithoutGroup,
   findGroupLeaderCandidates,
   findGroupMemberCandidates,
   getGroup,
@@ -215,38 +216,90 @@ describe('getGroup (integration)', () => {
 })
 
 describe('listGroups (integration)', () => {
-  it("returns each group's leaders by name only, with its publisher count", async () => {
-    const [group] = await withScope(congAId, tx => listGroups(tx, congAId))
+  it("returns each group's leaders by name only, with its publisher and inactive counts", async () => {
+    const [group] = await withScope(congAId, tx => listGroups(tx, congAId, { ...AS_OF, withReports: false }))
 
-    expect(Object.keys(group).sort()).toEqual(['address', 'deputy', 'id', 'name', 'publisherCount', 'responsible'])
+    expect(Object.keys(group).sort()).toEqual([
+      'address',
+      'deputy',
+      'id',
+      'inactiveCount',
+      'name',
+      'publisherCount',
+      'reports',
+      'responsible',
+    ])
     expect(Object.keys(group.responsible).sort()).toEqual(['firstname', 'id', 'lastname'])
     expect(group.publisherCount).toBe(2)
+    expect(group.inactiveCount).toBe(1)
+    expect(group.reports).toBeNull()
+  })
+
+  // As the group page counts them: the publishers who are not inactive, for the last ended month.
+  it("counts last month's reports among the publishers who are not inactive", async () => {
+    const [group] = await withScope(congAId, tx => listGroups(tx, congAId, { ...AS_OF, withReports: true }))
+
+    expect(group.reports).toEqual({ month: MAY, filed: 1, expected: 1, missing: 0 })
+  })
+})
+
+describe('countPublishersWithoutGroup (integration)', () => {
+  it('counts the active publishers in no group', async () => {
+    expect(await withScope(congAId, tx => countPublishersWithoutGroup(tx, congAId))).toBe(1)
+    expect(await withScope(congBId, tx => countPublishersWithoutGroup(tx, congBId))).toBe(1)
   })
 })
 
 describe('findGroupLeaderCandidates (integration)', () => {
-  it('returns the eligible brothers by name, with the group each already leads', async () => {
+  it('returns the eligible brothers by name, with the group each leads and the one each is in', async () => {
     const candidates = await withScope(congAId, tx => findGroupLeaderCandidates(tx, congAId))
 
     expect(candidates.map(each => each.firstname)).toEqual(['Sensitive'])
-    expect(Object.keys(candidates[0]).sort()).toEqual(['deputyFor', 'firstname', 'id', 'lastname', 'responsibleFor'])
+    expect(Object.keys(candidates[0]).sort()).toEqual([
+      'deputyFor',
+      'firstname',
+      'group',
+      'id',
+      'lastname',
+      'responsibleFor',
+    ])
+    expect(candidates[0].group).toEqual({ id: groupAId, name: 'A-Group' })
   })
 })
 
 describe('group membership queries (integration)', () => {
-  it("lists the group's publishers by name", async () => {
+  // Whether each is inactive, never since when: the date stays on the server.
+  it("lists the group's publishers by name, saying who is inactive", async () => {
     const members = await withScope(congAId, tx => listGroupMembers(tx, groupAId, congAId))
 
-    expect(members.map(each => each.firstname)).toEqual(['Inactive', 'Sensitive'])
-    expect(Object.keys(members[0]).sort()).toEqual(['firstname', 'id', 'lastname'])
+    expect(members.map(each => [each.firstname, each.inactive])).toEqual([
+      ['Inactive', true],
+      ['Sensitive', false],
+    ])
+    expect(Object.keys(members[0]).sort()).toEqual(['firstname', 'id', 'inactive', 'lastname'])
   })
 
   // The overseer was created in no group: a NOT on the group id would drop him, as SQL's NOT
   // never matches a null.
-  it('offers the publishers outside the group, those in no group included', async () => {
+  it('offers the publishers outside the group, those in no group included, with the group each is in', async () => {
     const candidates = await withScope(congAId, tx => findGroupMemberCandidates(tx, congAId, groupAId))
 
     expect(candidates.map(each => each.firstname)).toEqual(['Resp'])
-    expect(Object.keys(candidates[0]).sort()).toEqual(['deputyFor', 'firstname', 'id', 'lastname', 'responsibleFor'])
+    expect(Object.keys(candidates[0]).sort()).toEqual([
+      'deputyFor',
+      'firstname',
+      'group',
+      'id',
+      'lastname',
+      'responsibleFor',
+    ])
+    expect(candidates[0].group).toBeNull()
+  })
+
+  // A group being created has nobody yet: every active publisher may join it.
+  it('offers every active publisher to a group being created', async () => {
+    const candidates = await withScope(congAId, tx => findGroupMemberCandidates(tx, congAId, null))
+
+    expect(candidates.map(each => each.firstname)).toEqual(['Inactive', 'Resp', 'Sensitive'])
   })
 })

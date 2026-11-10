@@ -6,6 +6,7 @@ import { formatActivityMonth } from '~/features/publishers/model/activity-months
 import { canViewEmergencyInfo } from '~/features/publishers/model/emergency-access'
 import { canCorrectAnyActivity, canManageGroupActivity } from '~/features/publishers/model/group-activity-access'
 import { canRecordPastoralVisit } from '~/features/publishers/model/pastoral-visit-access'
+import { reportProgress } from '~/features/publishers/model/report-progress'
 import { getGroup } from '~/features/publishers/server/groups.server'
 import { type GroupMemberRow, GroupMembersTable } from '~/features/publishers/ui/GroupMembersTable'
 import { ReportLegend } from '~/features/publishers/ui/GroupReportCells'
@@ -163,12 +164,13 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
   )
   // Without the publisher permission (an overseer on his own group), the groups list is out of reach.
   const groupsCrumb = roles.canViewPublishers ? [{ label: m.sidebar_publisher_groups(), to: '/groups' }] : []
-  const filed = reported
-    ? group.members.filter(member => {
-        const status = member.reports.at(-1)?.status
-        return status === 'filed' || status === 'irregular'
-      }).length
-    : 0
+  // Last month's reports as the groups list counts them: someone added since owed none.
+  const progress = reportProgress(
+    group.members.flatMap(member => {
+      const status = member.reports.at(-1)?.status
+      return status ? [status] : []
+    }),
+  )
 
   return (
     // The marker lets the app shell stop clipping as a scroll container, so the docked panel can stick.
@@ -224,15 +226,15 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
             actions={
               reported &&
               roles.canManageActivity &&
-              group.members.length > 0 && (
+              progress.expected > 0 && (
                 <span className="flex items-center gap-3 text-muted-foreground text-sm">
                   <span>
                     {m.groups_view_reports_progress({ month: formatActivityMonth(reported, getLocale(), 'long') })}{' '}
                     <b className="font-medium text-foreground tabular-nums">
-                      {m.groups_view_reports_count({ filed, total: group.members.length })}
+                      {m.groups_view_reports_count({ filed: progress.filed, total: progress.expected })}
                     </b>
                   </span>
-                  <ProgressBar value={filed} max={group.members.length} className="w-28" />
+                  <ProgressBar value={progress.filed} max={progress.expected} className="w-28" />
                 </span>
               )
             }

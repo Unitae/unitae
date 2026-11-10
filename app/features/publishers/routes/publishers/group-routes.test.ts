@@ -51,20 +51,24 @@ vi.mock('~/features/publishers/server/groups.server', () => ({
   getGroup: vi.fn(async (_db: unknown, groupId: number) => (groupId === 4 ? GROUP : null)),
 }))
 vi.mock('~/features/publishers/server/update-group.server', () => ({ updateGroup: vi.fn() }))
-vi.mock('~/features/publishers/server/group-members.server', () => ({
-  addGroupMember: vi.fn(),
-  removeGroupMember: vi.fn(),
+vi.mock('~/features/publishers/server/group-members.server', () => ({ changeGroupMembers: vi.fn() }))
+vi.mock('~/features/publishers/server/publisher-group-mutations.server', () => ({
+  createPublisherGroup: vi.fn(),
+  deletePublisherGroup: vi.fn(),
 }))
 
 const { Permission } = await import('~/shared/types/permission')
 const { ConflictError, ValidationError } = await import('~/shared/errors/app-error.server')
 const { formRequest, respond, routeContext } = await import('~/tests/helpers/route-action')
 const { updateGroup } = await import('~/features/publishers/server/update-group.server')
-const { addGroupMember, removeGroupMember } = await import('~/features/publishers/server/group-members.server')
+const { changeGroupMembers } = await import('~/features/publishers/server/group-members.server')
+const { createPublisherGroup, deletePublisherGroup } = await import(
+  '~/features/publishers/server/publisher-group-mutations.server'
+)
 const viewGroup = await import('./group')
 const editGroup = await import('./edit-group')
-const addMember = await import('./group-member-add')
-const removeMember = await import('./group-member-remove')
+const newGroup = await import('./new-group')
+const deleteGroup = await import('./delete-group')
 
 type ViewData = {
   group: typeof GROUP
@@ -92,6 +96,7 @@ async function respondOrData(run: () => unknown): Promise<unknown> {
 }
 
 const EDIT_FORM = { name: 'Nord', address: '1 rue', responsible: '10', deputy: '' }
+const MANAGER = [Permission.CanManagePublisherGroups]
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -198,104 +203,132 @@ describe('group view loader', () => {
   })
 })
 
+// The form posts its fields, then each publisher added or removed under one name.
+function groupRequest(url: string, fields: Record<string, string>, members: [string, string][] = []) {
+  const body = new URLSearchParams(fields)
+  for (const [name, value] of members) body.append(name, value)
+  return new Request(url, { method: 'POST', body })
+}
+
+type ReplyData = { data: { error: Record<string, string[] | null> }; init: { status: number } }
+
 describe('edit group action', () => {
-  function submit(fields: Record<string, string>) {
+  function submit(fields: Record<string, string>, members: [string, string][] = [], permissions = MANAGER) {
     return respondOrData(() =>
       editGroup.action({
-        request: formRequest('https://unitae.example.test/groups/4/edit', fields),
+        request: groupRequest('https://unitae.example.test/groups/4/edit', fields, members),
         params: { groupId: '4' },
-        context: routeContext([Permission.CanManagePublisherGroups]),
-      } as never),
-    )
-  }
-
-  // Regression: a stale choice reached the unique constraint and the page answered 500.
-  it("answers the service's refusal on the field, without redirecting", async () => {
-    vi.mocked(updateGroup).mockRejectedValue(new ValidationError('responsible', 'already oversees Sud'))
-
-    const result = (await submit(EDIT_FORM)) as { data: { error: Record<string, string[]> }; init: { status: number } }
-
-    expect(result.init.status).toBe(400)
-    expect(result.data.error).toEqual({ responsible: ['already oversees Sud'] })
-  })
-
-  it('goes back to the group once it is saved', async () => {
-    vi.mocked(updateGroup).mockResolvedValue({ id: 4, name: 'Nord' } as never)
-
-    const response = (await submit(EDIT_FORM)) as Response
-
-    expect(response.status).toBe(302)
-    expect(response.headers.get('Location')).toBe('/groups/4/view')
-  })
-})
-
-describe('group membership actions', () => {
-  function add(permissions: (typeof Permission)[keyof typeof Permission][], memberId = '9') {
-    return respond(() =>
-      addMember.action({
-        request: formRequest('https://unitae.example.test/groups/4/members/add', { memberId }),
-        params: { groupId: '4' },
-        context: routeContext(permissions),
-      } as never),
-    )
-  }
-
-  function remove(permissions: (typeof Permission)[keyof typeof Permission][]) {
-    return respond(() =>
-      removeMember.action({
-        request: formRequest('https://unitae.example.test/groups/4/members/9/remove', {}),
-        params: { groupId: '4', memberId: '9' },
         context: routeContext(permissions),
       } as never),
     )
   }
 
   it('refuses a caller who does not manage groups', async () => {
-    const response = await add([Permission.CanViewPublishers])
+    const response = (await submit(EDIT_FORM, [], [Permission.CanViewPublishers])) as Response
 
     expect(response.headers.get('Location')).toBe('/')
-    expect(addGroupMember).not.toHaveBeenCalled()
+    expect(updateGroup).not.toHaveBeenCalled()
   })
 
-  it('adds the publisher and goes back to the edit page with a confirmation', async () => {
-    vi.mocked(addGroupMember).mockResolvedValue({ firstname: 'Ana', lastname: 'Lima' })
+  // Regression: a stale choice reached the unique constraint and the page answered 500.
+  it("answers the service's refusal on the field, without redirecting", async () => {
+    vi.mocked(updateGroup).mockRejectedValueOnce(new ValidationError('responsible', 'already oversees Sud'))
 
-    const response = await add([Permission.CanManagePublisherGroups])
+    const result = (await submit(EDIT_FORM)) as ReplyData
 
-    expect(addGroupMember).toHaveBeenCalledWith({}, 4, 1, 9, 7)
+    expect(result.init.status).toBe(400)
+    expect(result.data.error).toEqual({ responsible: ['already oversees Sud'] })
+  })
+
+  it('saves the publishers added and removed with the rest, then goes back to the group', async () => {
+    vi.mocked(updateGroup).mockResolvedValue({ id: 4, name: 'Nord' } as never)
+
+    const response = (await submit(EDIT_FORM, [
+      ['addMember', '7'],
+      ['addMember', '8'],
+      ['removeMember', '9'],
+    ])) as Response
+
+    expect(changeGroupMembers).toHaveBeenCalledWith({}, 4, 1, { add: [7, 8], remove: [9] }, 7)
+    expect(response.status).toBe(302)
+    expect(response.headers.get('Location')).toBe('/groups/4/view')
+  })
+
+  // The members are saved in the same transaction: the refusal leaves the form as it was, saying why.
+  it('says above the form why a publisher could not be moved, without redirecting', async () => {
+    vi.mocked(updateGroup).mockResolvedValue({ id: 4, name: 'Nord' } as never)
+    vi.mocked(changeGroupMembers).mockRejectedValueOnce(new ConflictError('Paul leads Sud'))
+
+    const result = (await submit(EDIT_FORM, [['addMember', '10']])) as ReplyData
+
+    expect(result.init.status).toBe(400)
+    expect(result.data.error).toMatchObject({ '': ['Paul leads Sud'] })
+  })
+})
+
+describe('new group action', () => {
+  function submit(members: [string, string][] = []) {
+    return respondOrData(() =>
+      newGroup.action({
+        request: groupRequest('https://unitae.example.test/groups/new', EDIT_FORM, members),
+        params: {},
+        context: routeContext(MANAGER),
+      } as never),
+    )
+  }
+
+  it('creates the group with the publishers placed in it, then opens it', async () => {
+    vi.mocked(createPublisherGroup).mockResolvedValue({ id: 12, name: 'Nord' } as never)
+
+    const response = (await submit([['addMember', '7']])) as Response
+
+    expect(changeGroupMembers).toHaveBeenCalledWith({}, 12, 1, { add: [7], remove: [] }, 7)
+    expect(response.headers.get('Location')).toBe('/groups/12/view')
+  })
+
+  it('says above the form why a publisher could not be placed', async () => {
+    vi.mocked(createPublisherGroup).mockResolvedValue({ id: 12, name: 'Nord' } as never)
+    vi.mocked(changeGroupMembers).mockRejectedValueOnce(new ConflictError('Paul leads Sud'))
+
+    const result = (await submit([['addMember', '10']])) as ReplyData
+
+    expect(result.init.status).toBe(400)
+    expect(result.data.error).toMatchObject({ '': ['Paul leads Sud'] })
+  })
+})
+
+describe('delete group', () => {
+  function remove(permissions: (typeof Permission)[keyof typeof Permission][]) {
+    return respond(() =>
+      deleteGroup.action({
+        request: formRequest('https://unitae.example.test/groups/4/delete', {}),
+        params: { groupId: '4' },
+        context: routeContext(permissions),
+      } as never),
+    )
+  }
+
+  // Deleting is a dialog now: an old link to the page lands on the edit page.
+  it('sends an old link to the delete page to the edit page', async () => {
+    const response = await respond(() => deleteGroup.loader({ params: { groupId: '4' } } as never))
+
     expect(response.headers.get('Location')).toBe('/groups/4/edit')
-    expect(flash).toHaveBeenCalledWith('success', expect.stringContaining('Ana'))
   })
 
-  it('says why a leader of another group cannot be added', async () => {
-    vi.mocked(addGroupMember).mockRejectedValue(new ConflictError('Paul leads Sud'))
+  it('refuses a caller who does not manage groups', async () => {
+    const response = await remove([Permission.CanViewPublishers])
 
-    const response = await add([Permission.CanManagePublisherGroups])
-
-    expect(response.headers.get('Location')).toBe('/groups/4/edit')
-    expect(flash).toHaveBeenCalledWith('error', 'Paul leads Sud')
+    expect(response.headers.get('Location')).toBe('/')
+    expect(deletePublisherGroup).not.toHaveBeenCalled()
   })
 
-  it('refuses an empty choice without calling the service', async () => {
-    const response = await add([Permission.CanManagePublisherGroups], '')
+  it('deletes the group and goes back to the list with a confirmation', async () => {
+    vi.mocked(deletePublisherGroup).mockResolvedValue({ id: 4, name: 'Nord' } as never)
 
-    expect(response.headers.get('Location')).toBe('/groups/4/edit')
-    expect(addGroupMember).not.toHaveBeenCalled()
-    expect(flash).toHaveBeenCalledWith('error', expect.any(String))
-  })
+    const response = await remove(MANAGER)
 
-  it('removes a member and says why the overseer cannot be removed', async () => {
-    vi.mocked(removeGroupMember).mockResolvedValueOnce({ firstname: 'Ana', lastname: 'Lima' })
-    vi.mocked(removeGroupMember).mockRejectedValueOnce(new ConflictError('Paul leads Nord'))
-
-    await remove([Permission.CanManagePublisherGroups])
-    const refused = await remove([Permission.CanManagePublisherGroups])
-
-    expect(removeGroupMember).toHaveBeenCalledWith({}, 4, 1, 9, 7)
-    expect(refused.headers.get('Location')).toBe('/groups/4/edit')
-    expect(flash.mock.calls).toEqual([
-      ['success', expect.stringContaining('Ana')],
-      ['error', 'Paul leads Nord'],
-    ])
+    expect(deletePublisherGroup).toHaveBeenCalledWith({}, 4, 1, 7)
+    expect(response.headers.get('Location')).toBe('/groups')
+    expect(flash).toHaveBeenCalledWith('success', expect.stringContaining('NORD'))
   })
 })
