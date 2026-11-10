@@ -5,9 +5,10 @@ import { type Page, test } from '@playwright/test'
 export const E2E_ADMIN_EMAIL = process.env.E2E_USER_EMAIL ?? 'admin@unitae.test'
 export const E2E_ADMIN_PASSWORD = process.env.E2E_USER_PASSWORD ?? 'Str0ng-E2E-Passphrase-42'
 
-const EMAIL_RE = /email/i
-const PASSWORD_RE = /mot de passe/i
-const LOGIN_RE = /connexion/i
+const EMAIL_RE = /^e-?mail$/i
+// Exact: the « Afficher le mot de passe » button beside the field is labelled too.
+const PASSWORD_LABEL = 'Mot de passe'
+const LOGIN_RE = /^se connecter$/i
 
 // CI starts from a fresh database on which app-setup.spec.ts creates the admin account. There, a
 // missing account or a failed login means setup or authentication is broken, and skipping would
@@ -57,7 +58,7 @@ async function submitLogin(page: Page, email: string, password: string): Promise
   }
 
   await emailField.fill(email)
-  await page.getByLabel(PASSWORD_RE).fill(password)
+  await page.getByLabel(PASSWORD_LABEL, { exact: true }).fill(password)
   await page.getByRole('button', { name: LOGIN_RE }).click()
 
   // Wait for navigation away from login (max 10s)

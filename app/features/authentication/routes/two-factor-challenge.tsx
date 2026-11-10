@@ -1,5 +1,6 @@
-import { getFormProps, getInputProps, useForm } from '@conform-to/react'
+import { getFormProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod/v4'
+import { useEffect, useRef, useState } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { twoFactorCodeSchema } from '~/features/authentication/schemas/login.schema'
 import { resolveLoginAuditCongregationId } from '~/features/authentication/server/login-audit.server'
@@ -16,17 +17,18 @@ import {
 } from '~/features/authentication/server/session.server'
 import { verifyTwoFactorChallenge } from '~/features/authentication/server/verify-two-factor-challenge.server'
 import { AuthShell } from '~/features/authentication/ui/AuthShell'
+import { AUTH_SUBMIT, AuthField, AuthMessage } from '~/features/authentication/ui/auth-parts'
 import * as m from '~/i18n/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
-import { getBrandingName, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
+import { getCongregationBrand, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'
-import { Alert, AlertDescription } from '~/shared/ui/alert'
-import { Button } from '~/shared/ui/button'
-import { Card, CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
-import { Label } from '~/shared/ui/label'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { safeRedirectUrl } from '~/shared/utils/safe-redirect.server'
 import type { Route } from './+types/two-factor-challenge'
+
+const CODE_LENGTH = 6
+const NOT_A_DIGIT = /\D/g
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: `${m.auth_2fa_challenge_page_title()} - Unitae` }]
@@ -66,13 +68,15 @@ export async function loader({ request }: Route.LoaderArgs) {
   const redirectTo = safeRedirectUrl(new URL(request.url).searchParams.get('redirectTo'), '/')
 
   return data(
-    { error: session.get('error'), brandingName: await getBrandingName(request), redirectTo },
+    { error: session.get('error'), congregation: await getCongregationBrand(request), redirectTo },
     { headers: { 'Set-Cookie': await commitSession(session) } },
   )
 }
 
 export default function TwoFactorChallengePage({ loaderData, actionData }: Route.ComponentProps) {
-  const { error, brandingName, redirectTo } = loaderData
+  const { error, congregation, redirectTo } = loaderData
+  const formRef = useRef<HTMLFormElement>(null)
+  const [code, setCode] = useState('')
 
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -81,46 +85,49 @@ export default function TwoFactorChallengePage({ loaderData, actionData }: Route
     },
   })
 
-  return (
-    <AuthShell>
-      <CardHeader className="items-center space-y-2 text-center">
-        <h1 className="font-bold font-display text-2xl tracking-tight">{brandingName}</h1>
-        <p className="font-medium text-sm">{m.auth_2fa_challenge_heading()}</p>
-      </CardHeader>
-      <CardContent>
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)}>
-          <input type="hidden" name="redirectTo" value={redirectTo} />
-          <p className="text-muted-foreground text-sm">{m.auth_2fa_challenge_instruction()}</p>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={fields.code.id}>{m.auth_2fa_challenge_code_label()}</Label>
-            <Input
-              {...getInputProps(fields.code, { type: 'text' })}
-              autoFocus={true}
-              autoComplete="one-time-code"
-              inputMode="numeric"
-              maxLength={6}
-            />
-            {fields.code.errors && <p className="text-destructive text-sm">{fields.code.errors}</p>}
-          </div>
+  // Typed or pasted, the sixth digit sends the code: there is nothing else to press.
+  useEffect(() => {
+    if (code.length === CODE_LENGTH) formRef.current?.requestSubmit()
+  }, [code])
 
-          <Button type="submit" className="mt-2 w-full">
-            {m.auth_2fa_challenge_submit()}
-          </Button>
-        </Form>
-      </CardContent>
-      <CardFooter className="justify-center">
-        {/* POST to /logout so the pending 2FA state is cleared from the session. */}
-        <Form method="post" action="/logout">
-          <button type="submit" className="text-primary text-xs hover:underline">
-            {m.auth_2fa_challenge_back_to_login()}
-          </button>
-        </Form>
-      </CardFooter>
+  return (
+    <AuthShell
+      congregation={congregation}
+      title={m.auth_2fa_challenge_heading()}
+      description={m.auth_2fa_challenge_instruction()}
+    >
+      {error && <AuthMessage tone="error">{error}</AuthMessage>}
+      <Form method="post" ref={formRef} className="flex flex-col gap-4" {...getFormProps(form)}>
+        <input type="hidden" name="redirectTo" value={redirectTo} />
+        <AuthField
+          id={fields.code.id}
+          label={m.auth_2fa_challenge_code_label()}
+          errorId={fields.code.errorId}
+          errors={fields.code.errors}
+        >
+          {/* The tracking also follows the last digit: the left padding evens it out, so the code sits centred. */}
+          <Input
+            id={fields.code.id}
+            name={fields.code.name}
+            value={code}
+            onChange={event => setCode(event.target.value.replace(NOT_A_DIGIT, '').slice(0, CODE_LENGTH))}
+            aria-invalid={fields.code.errors != null || undefined}
+            aria-describedby={fields.code.errors != null ? fields.code.errorId : undefined}
+            autoFocus={true}
+            autoComplete="one-time-code"
+            inputMode="numeric"
+            className="h-13 pl-[0.45em] text-center font-medium text-2xl tabular-nums tracking-[0.45em]"
+          />
+        </AuthField>
+        <SubmitButton className={AUTH_SUBMIT}>{m.auth_2fa_challenge_submit()}</SubmitButton>
+      </Form>
+      <p className="text-faint text-sm leading-relaxed">{m.auth_2fa_challenge_lost()}</p>
+      {/* POST to /logout so the pending 2FA state is cleared from the session. */}
+      <Form method="post" action="/logout">
+        <button type="submit" className="text-brand-text text-sm underline-offset-4 hover:underline">
+          {m.auth_back_to_login()}
+        </button>
+      </Form>
     </AuthShell>
   )
 }

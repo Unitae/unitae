@@ -120,7 +120,7 @@ describe('registerCongregation', () => {
 
     const result = await registerCongregation('Ma Congrégation', 'test-congre', 'admin@test.com', 'motdepasse', 'fr')
 
-    expect(result).toHaveProperty('error')
+    expect(result).toHaveProperty('error', 'provision_failed')
     expect(result).not.toHaveProperty('congregationSlug')
   })
 
@@ -129,8 +129,8 @@ describe('registerCongregation', () => {
 
     const result = await registerCongregation('Ma Congrégation', 'test-congre', 'admin@test.com', 'motdepasse', 'fr')
 
-    expect(result).toHaveProperty('error')
-    expect(result.error).toContain('email')
+    // A code, not a sentence: the page puts its own message under the email field.
+    expect(result).toHaveProperty('error', 'email_taken')
     // The email check short-circuits before any slug work — no congregation is created.
     expect(result).not.toHaveProperty('congregationSlug')
   })

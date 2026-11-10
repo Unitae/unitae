@@ -1,11 +1,16 @@
+import { Clock } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import {
   consumeEmailVerificationToken,
   verifyEmailVerificationToken,
 } from '~/features/authentication/server/email-verification.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { AuthShell } from '~/features/authentication/ui/AuthShell'
+import { AUTH_SUBMIT } from '~/features/authentication/ui/auth-parts'
 import * as m from '~/i18n/paraglide/messages'
+import { getCongregationBrand } from '~/shared/domain/congregation.server'
 import { Button } from '~/shared/ui/button'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 
 import type { Route } from './+types/verify-email-confirm'
 
@@ -15,10 +20,10 @@ export const meta: Route.MetaFunction = () => {
 
 // The GET only validates the token — it never consumes it, so link-prefetchers can't burn it.
 // Consumption happens in the POST action, triggered by the user clicking the confirm button.
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ request, params }: Route.LoaderArgs) {
   const user = await verifyEmailVerificationToken(params.token ?? '')
 
-  return { valid: user != null }
+  return { valid: user != null, email: user?.email ?? null, congregation: await getCongregationBrand(request) }
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -55,31 +60,32 @@ export function isConfirmable(loaderData: { valid: boolean }, actionData?: { val
 }
 
 export default function VerifyEmailConfirmPage({ loaderData, actionData }: Route.ComponentProps) {
-  const valid = isConfirmable(loaderData, actionData)
+  const { email, congregation } = loaderData
+
+  if (!isConfirmable(loaderData, actionData)) {
+    return (
+      <AuthShell
+        congregation={congregation}
+        icon={Clock}
+        title={m.auth_link_expired_title()}
+        description={m.verify_email_invalid_token()}
+      >
+        <Button asChild className={AUTH_SUBMIT}>
+          <Link to="/verify-email">{m.verify_email_try_again()}</Link>
+        </Button>
+      </AuthShell>
+    )
+  }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50">
-      <div className="mx-auto max-w-md text-center">
-        <h1 className="mb-4 font-bold text-2xl text-gray-900">{m.verify_email_title()}</h1>
-
-        {valid ? (
-          <>
-            <p className="mb-6 text-gray-600">{m.verify_email_confirm_prompt()}</p>
-            <Form method="post">
-              <Button type="submit" className="w-full">
-                {m.verify_email_confirm_button()}
-              </Button>
-            </Form>
-          </>
-        ) : (
-          <>
-            <p className="mb-6 text-gray-600">{m.verify_email_invalid_token()}</p>
-            <Link to="/verify-email" className="text-blue-600 text-sm hover:text-blue-700">
-              {m.verify_email_try_again()}
-            </Link>
-          </>
-        )}
-      </div>
-    </div>
+    <AuthShell
+      congregation={congregation}
+      title={m.verify_email_confirm_title()}
+      description={email == null ? undefined : m.verify_email_confirm_prompt({ email })}
+    >
+      <Form method="post">
+        <SubmitButton className={AUTH_SUBMIT}>{m.verify_email_confirm_button()}</SubmitButton>
+      </Form>
+    </AuthShell>
   )
 }

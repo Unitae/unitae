@@ -12,8 +12,14 @@ vi.mock('react-router', () => ({
   }),
 }))
 
-const { findCongregation, getBrandingName, resolveCongregation, resolveCongregationFromRequest, getPlatformName } =
-  await import('./congregation.server')
+const {
+  findCongregation,
+  getBrandingName,
+  getCongregationBrand,
+  resolveCongregation,
+  resolveCongregationFromRequest,
+  getPlatformName,
+} = await import('./congregation.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
@@ -366,5 +372,27 @@ describe('getBrandingName — multi-tenant host', () => {
     mockSlugLookup({ lyon: { name: 'Lyon Centre', displayName: null } })
 
     await expect(getBrandingName(new Request('https://lyon.unitae.app/login'))).resolves.toBe('Lyon Centre')
+  })
+})
+
+// The sign-in pages show the congregation's monogram and name; with only the platform's name to show, the unitae
+// mark stands in its place rather than a « U » monogram.
+describe('getCongregationBrand', () => {
+  it('names the congregation when it has a name of its own', async () => {
+    vi.mocked(db.congregation.findFirst).mockResolvedValue({ name: 'Assemblée des Lilas', displayName: null } as never)
+
+    await expect(getCongregationBrand()).resolves.toBe('Assemblée des Lilas')
+  })
+
+  it('is null while the congregation keeps the placeholder name', async () => {
+    vi.mocked(db.congregation.findFirst).mockResolvedValue({ name: 'Ma Congrégation', displayName: null } as never)
+
+    await expect(getCongregationBrand()).resolves.toBeNull()
+  })
+
+  it('is null without any congregation', async () => {
+    vi.mocked(db.congregation.findFirst).mockResolvedValue(null as never)
+
+    await expect(getCongregationBrand()).resolves.toBeNull()
   })
 })

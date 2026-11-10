@@ -5,18 +5,21 @@ import { setupSchema } from '~/features/authentication/schemas/login.schema'
 
 import { needSetupProcess } from '~/features/authentication/server/need-setup-process.server'
 import { checkNewPasswordPolicy } from '~/features/authentication/server/password-policy.server'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import {
+  commitSession,
+  establishAuthenticatedSession,
+  getSession,
+} from '~/features/authentication/server/session.server'
 import { setupFirstAccount } from '~/features/authentication/server/setup-first-account.server'
 import { AuthShell } from '~/features/authentication/ui/AuthShell'
+import { AUTH_SUBMIT, AuthField, AuthMessage } from '~/features/authentication/ui/auth-parts'
+import { LocaleField } from '~/features/authentication/ui/LocaleField'
 import * as m from '~/i18n/paraglide/messages'
-import { locales } from '~/i18n/paraglide/runtime'
-import { Alert, AlertDescription } from '~/shared/ui/alert'
-import { Button } from '~/shared/ui/button'
-import { Card, CardContent, CardHeader } from '~/shared/ui/card'
+import type { locales } from '~/i18n/paraglide/runtime'
 import { Input } from '~/shared/ui/input'
-import { Label } from '~/shared/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
-import { DEFAULT_LOCALE, languageLabel } from '~/shared/utils/language'
+import { PasswordInput } from '~/shared/ui/PasswordInput'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { cn } from '~/shared/utils/utils'
 import type { Route } from './+types/setup'
 
 export const meta: Route.MetaFunction = () => {
@@ -54,7 +57,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   )
 }
 
-export default function SignupPage({ loaderData, actionData }: Route.ComponentProps) {
+export default function SetupPage({ loaderData, actionData }: Route.ComponentProps) {
   const { error } = loaderData
 
   const [form, fields] = useForm({
@@ -65,60 +68,47 @@ export default function SignupPage({ loaderData, actionData }: Route.ComponentPr
   })
 
   return (
-    <AuthShell>
-      <CardHeader className="items-center space-y-2 text-center">
-        <h1 className="font-bold font-display text-2xl tracking-tight">Unitae</h1>
-        <p className="text-muted-foreground text-sm">{m.auth_setup_subtitle()}</p>
-      </CardHeader>
-      <CardContent>
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)}>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={fields.email.id}>{m.auth_setup_email_label()}</Label>
-            <Input {...getInputProps(fields.email, { type: 'email' })} autoFocus={true} autoComplete="email" />
-            {fields.email.errors && <p className="text-destructive text-sm">{fields.email.errors}</p>}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={fields.locale.id}>{m.auth_setup_locale_label()}</Label>
-            <Select name={fields.locale.name} defaultValue={fields.locale.initialValue ?? DEFAULT_LOCALE}>
-              <SelectTrigger id={fields.locale.id}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {locales.map(locale => (
-                  <SelectItem key={locale} value={locale}>
-                    {languageLabel(locale)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {fields.locale.errors && <p className="text-destructive text-sm">{fields.locale.errors}</p>}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={fields.password.id}>{m.auth_setup_password_label()}</Label>
-            <Input {...getInputProps(fields.password, { type: 'password' })} autoComplete="new-password" />
-            {fields.password.errors && <p className="text-destructive text-sm">{fields.password.errors}</p>}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={fields['repeat-password'].id}>{m.auth_setup_confirm_password_label()}</Label>
-            <Input {...getInputProps(fields['repeat-password'], { type: 'password' })} autoComplete="new-password" />
-            {fields['repeat-password'].errors && (
-              <p className="text-destructive text-sm">{fields['repeat-password'].errors}</p>
-            )}
-          </div>
-
-          <Button type="submit" className="mt-4 w-full">
-            {m.auth_setup_submit()}
-          </Button>
-        </Form>
-      </CardContent>
+    <AuthShell
+      congregation={null}
+      eyebrow={m.auth_setup_page_title()}
+      title={m.auth_setup_title()}
+      description={m.auth_setup_subtitle()}
+    >
+      {error && <AuthMessage tone="error">{error}</AuthMessage>}
+      <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)}>
+        <AuthField
+          id={fields['congregation-name'].id}
+          label={m.auth_setup_congregation_name_label()}
+          errorId={fields['congregation-name'].errorId}
+          errors={fields['congregation-name'].errors}
+        >
+          <Input {...getInputProps(fields['congregation-name'], { type: 'text' })} autoFocus={true} />
+        </AuthField>
+        <LocaleField
+          id={fields.locale.id}
+          name={fields.locale.name}
+          initialValue={fields.locale.initialValue}
+          label={m.auth_setup_locale_label()}
+        />
+        <AuthField
+          id={fields.email.id}
+          label={m.auth_setup_email_label()}
+          errorId={fields.email.errorId}
+          errors={fields.email.errors}
+        >
+          <Input {...getInputProps(fields.email, { type: 'email' })} autoComplete="email" />
+        </AuthField>
+        <AuthField
+          id={fields.password.id}
+          label={m.auth_setup_password_label()}
+          help={m.auth_password_help()}
+          errorId={fields.password.errorId}
+          errors={fields.password.errors}
+        >
+          <PasswordInput {...getInputProps(fields.password, { type: 'password' })} autoComplete="new-password" />
+        </AuthField>
+        <SubmitButton className={cn('mt-1', AUTH_SUBMIT)}>{m.auth_setup_submit()}</SubmitButton>
+      </Form>
     </AuthShell>
   )
 }
@@ -133,7 +123,7 @@ export async function action({ request }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  const { email: username, password, locale } = submission.value
+  const { email: username, password, locale, 'congregation-name': congregationName } = submission.value
 
   // The first account belongs to the admin, so no congregation policy exists
   // yet — zxcvbn strength is enforced, breach-checking is not.
@@ -145,7 +135,7 @@ export async function action({ request }: Route.ActionArgs) {
   const userId = await setupFirstAccount(
     username,
     password,
-    m.auth_setup_default_congregation_name(),
+    congregationName,
     'default',
     locale as (typeof locales)[number],
   )
@@ -160,5 +150,9 @@ export async function action({ request }: Route.ActionArgs) {
     })
   }
 
-  return redirect('/login')
+  // The admin has just chosen this password: they come in straight away rather than type it again on the sign-in page.
+  await establishAuthenticatedSession(session, userId)
+  return redirect('/', {
+    headers: { 'Set-Cookie': await commitSession(session) },
+  })
 }

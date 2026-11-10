@@ -16,7 +16,7 @@ const scopedDb = {
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
-    congregation: { findFirst: vi.fn(), create: vi.fn() },
+    congregation: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
     userAccount: { create: vi.fn(), count: vi.fn() },
     permission: { findUnique: vi.fn(), upsert: vi.fn() },
     consentRecord: { create: vi.fn() },
@@ -39,6 +39,8 @@ vi.mock('~/shared/domain/built-in-roles.server', () => ({
 
 // Accounts the service actually created, so the guard test asserts on the outcome, not on spies.
 const createdAccounts: { email: string }[] = []
+// What the congregation is called once setup is done, whichever way it came to exist.
+const congregationNames: Record<number, { name: string; locale: string }> = {}
 
 const { setupFirstAccount } = await import('./setup-first-account.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
@@ -46,7 +48,21 @@ const { unscopedDb: db } = await import('~/shared/infra/db.server')
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(db.congregation.findFirst).mockResolvedValue(null as never)
-  vi.mocked(db.congregation.create).mockResolvedValue({ id: 1, slug: 'test' } as never)
+  for (const id of Object.keys(congregationNames)) delete congregationNames[Number(id)]
+  vi.mocked(db.congregation.create).mockImplementation((({ data }: { data: { name: string; locale: string } }) => {
+    congregationNames[1] = { name: data.name, locale: data.locale }
+    return Promise.resolve({ id: 1, slug: 'test' })
+  }) as never)
+  vi.mocked(db.congregation.update).mockImplementation((({
+    where,
+    data,
+  }: {
+    where: { id: number }
+    data: { name: string; locale: string }
+  }) => {
+    congregationNames[where.id] = { name: data.name, locale: data.locale }
+    return Promise.resolve({ id: where.id, slug: 'default' })
+  }) as never)
   createdAccounts.length = 0
   vi.mocked(db.userAccount.count).mockResolvedValue(0 as never)
   vi.mocked(db.userAccount.create).mockImplementation((async ({ data }: { data: { email: string } }) => {
@@ -67,6 +83,22 @@ beforeEach(() => {
 })
 
 describe('setupFirstAccount', () => {
+  it('names a new congregation after what the admin typed', async () => {
+    await setupFirstAccount('admin@test.com', 'motdepasse', 'Assemblée des Lilas', 'default', 'fr')
+
+    expect(congregationNames[1]).toEqual({ name: 'Assemblée des Lilas', locale: 'fr' })
+  })
+
+  // The database seed may already have created the instance's congregation: setup reuses it, but under the name
+  // and in the language the admin chose, not the seed's.
+  it('renames the congregation the seed created, and sets its language', async () => {
+    vi.mocked(db.congregation.findFirst).mockResolvedValue({ id: 9, name: 'Ma Congrégation', locale: 'fr' } as never)
+
+    await setupFirstAccount('admin@test.com', 'motdepasse', 'Lilas Congregation', 'default', 'en')
+
+    expect(congregationNames[9]).toEqual({ name: 'Lilas Congregation', locale: 'en' })
+  })
+
   // Setup creates the first admin of a fresh install. Once any account exists it must refuse,
   // whoever calls it: an initialised instance must never hand out another admin account.
   it('refuses once an account exists, without creating one', async () => {

@@ -7,7 +7,7 @@ import { hashToken } from '../../shared/auth/crypto.server'
 
 // French UI strings rendered by the confirm route.
 const CONFIRM_BUTTON_RE = /confirmer mon adresse/i
-const INVALID_TOKEN_RE = /invalide|expiré/i
+const INVALID_TOKEN_RE = /plus valable/i
 const LOGIN_URL_RE = /\/login/
 
 const connectionString = process.env.DB_RUNTIME_URL ?? process.env.DB_URL

@@ -23,6 +23,8 @@ type SessionData = {
 type SessionFlashData = {
   error: string
   success: string
+  // The address a password reset was asked for: the forgot page says where to look, whether an account exists or not.
+  resetSentTo: string
 }
 
 const { getSession, commitSession, destroySession } = createCookieSessionStorage<SessionData, SessionFlashData>({

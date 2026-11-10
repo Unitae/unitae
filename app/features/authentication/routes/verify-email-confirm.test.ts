@@ -22,6 +22,10 @@ vi.mock('~/features/authentication/server/session.server', () => ({
   commitSession: vi.fn(async () => '__session=committed'),
 }))
 
+vi.mock('~/shared/domain/congregation.server', () => ({
+  getCongregationBrand: vi.fn(async () => 'Assemblée des Lilas'),
+}))
+
 const { action, isConfirmable, loader } = await import('./verify-email-confirm')
 const { verifyEmailVerificationToken } = await import('~/features/authentication/server/email-verification.server')
 
@@ -50,7 +54,7 @@ describe('verify-email-confirm loader', () => {
 
     const result = await loader({ request, params: { token: 'good' } } as Parameters<typeof loader>[0])
 
-    expect(result).toEqual({ valid: true })
+    expect(result).toEqual({ valid: true, email: 'user@example.com', congregation: 'Assemblée des Lilas' })
     // The token survives the GET — a subsequent verification still resolves the user.
     expect(await verifyEmailVerificationToken('good')).not.toBeNull()
   })
@@ -58,7 +62,7 @@ describe('verify-email-confirm loader', () => {
   it('reports an invalid token', async () => {
     const result = await loader({ request, params: { token: 'missing' } } as Parameters<typeof loader>[0])
 
-    expect(result).toEqual({ valid: false })
+    expect(result).toEqual({ valid: false, email: null, congregation: 'Assemblée des Lilas' })
   })
 })
 

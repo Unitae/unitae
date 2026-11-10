@@ -62,10 +62,11 @@ describe('password-forgot action', () => {
     expect(counters.get('password_reset:window:ip:203.0.113.77')).toBe(1)
   })
 
-  it('shows the usual message once an address is rate-limited, so nothing is revealed', async () => {
+  it('shows the usual confirmation once an address is rate-limited, so nothing is revealed', async () => {
     for (let i = 0; i < 4; i++) await forgot('someone@example.com', '203.0.113.77')
 
-    expect(flashes.at(-1)).toEqual({ kind: 'success', message: m.auth_password_forgot_success_message() })
+    // The page says where to look: the address typed, which the person already knows.
+    expect(flashes.at(-1)).toEqual({ kind: 'resetSentTo', message: 'someone@example.com' })
   })
 
   it('says the service is unavailable instead of claiming an email was sent', async () => {

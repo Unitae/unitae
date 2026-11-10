@@ -7,9 +7,10 @@ const TEST_PASSWORD = E2E_ADMIN_PASSWORD
 const LOGIN_URL_RE = /\/login/
 const LOGIN_WITH_PUBLISHERS_REDIRECT_RE = /\/login\?redirectTo=%2Fpublishers/
 const PUBLISHERS_URL_RE = /\/publishers/
-const EMAIL_FIELD_RE = /email/i
-const PASSWORD_FIELD_RE = /mot de passe/i
-const SUBMIT_BUTTON_RE = /connexion/i
+const EMAIL_FIELD_RE = /^e-?mail$/i
+// Exact: the « Afficher le mot de passe » button beside the field is labelled too.
+const PASSWORD_FIELD = 'Mot de passe'
+const SUBMIT_BUTTON_RE = /^se connecter$/i
 
 test.describe('Authentication', () => {
   test('server responds to login page requests', async ({ page }) => {
@@ -40,7 +41,7 @@ test.describe('Authentication', () => {
     await expect(emailField).toBeVisible()
 
     await emailField.fill(TEST_EMAIL)
-    await page.getByLabel(PASSWORD_FIELD_RE).fill(TEST_PASSWORD)
+    await page.getByLabel(PASSWORD_FIELD, { exact: true }).fill(TEST_PASSWORD)
     await page.getByRole('button', { name: SUBMIT_BUTTON_RE }).click()
 
     await page.waitForLoadState('networkidle')
@@ -68,7 +69,7 @@ test.describe('Authentication', () => {
     await expect(emailField).toBeVisible()
 
     await emailField.fill('wrong@example.com')
-    await page.getByLabel(PASSWORD_FIELD_RE).fill('wrongpassword')
+    await page.getByLabel(PASSWORD_FIELD, { exact: true }).fill('wrongpassword')
     await page.getByRole('button', { name: SUBMIT_BUTTON_RE }).click()
 
     // Must stay on the login page — no redirect on bad credentials
