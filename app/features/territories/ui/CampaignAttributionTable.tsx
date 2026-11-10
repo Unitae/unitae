@@ -41,7 +41,13 @@ export function CampaignAttributionTable({ rows, today }: { rows: CampaignAttrib
         meta={<span className="tabular-nums">{rows.length}</span>}
         actions={
           rows.length > 0 && (
-            <QuickViews label={m.campaigns_attr_filter_label()} views={filters} value={filter} onChoose={setFilter} />
+            <QuickViews
+              label={m.campaigns_attr_filter_label()}
+              views={filters}
+              value={filter}
+              onChoose={setFilter}
+              size="sm"
+            />
           )
         }
       />
