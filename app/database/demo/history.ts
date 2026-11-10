@@ -164,6 +164,8 @@ export function generateReports(
   const inactiveAt = new Map<number, Date>()
 
   for (const person of people) {
+    // A pioneer keeps a pace of his own, month after month: the spread is between pioneers, not within one.
+    const pace = random.fromPercentiles(ACTIVITY.regularHours)
     const from = Math.max(first, ordinal(person.createdAt))
     const to = person.leftAt ? Math.min(lastEnded, ordinal(person.leftAt) - 1) : lastEnded
     const missedFrom = person.goesInactive ? lastEnded - random.int(6, 9) + 1 : Number.POSITIVE_INFINITY
@@ -198,7 +200,7 @@ export function generateReports(
           month: m,
           year,
           type: 'PionnierPermanant',
-          hours: Math.max(1, random.fromPercentiles(ACTIVITY.regularHours)),
+          hours: Math.max(1, pace + random.int(-8, 8)),
           studies: random.chance(ACTIVITY.studiesRate * 2) ? random.int(1, 3) : 0,
           isPublisher: true,
           creditHours: random.chance(ACTIVITY.creditHoursRate)

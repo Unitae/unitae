@@ -187,6 +187,15 @@ describe('the demo history', () => {
     }
   })
 
+  // A pioneer at 55 hours one month is not at 13 the next: each keeps his own pace.
+  it('keeps each regular pioneer within a few hours of his own pace', () => {
+    const hours = new Map<number, number[]>()
+    for (const report of demo.reports.filter(each => each.type === 'PionnierPermanant')) {
+      hours.set(report.person, [...(hours.get(report.person) ?? []), report.hours])
+    }
+    for (const list of hours.values()) expect(Math.max(...list) - Math.min(...list)).toBeLessThanOrEqual(16)
+  })
+
   it('makes the two inactive publishers end with six reports or more without ministry, inactive since then', () => {
     expect(demo.inactiveAt.size).toBe(PEOPLE.inactive)
     for (const [person, since] of demo.inactiveAt) {
