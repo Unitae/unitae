@@ -1,5 +1,5 @@
 import { SegmentedControl } from '@unitae/ui'
-import { type CSSProperties, useId } from 'react'
+import { type CSSProperties, useCallback, useId } from 'react'
 import { Form } from 'react-router'
 
 import type { EditorEntrance } from '~/features/territories/model/editor-entrance.type'
@@ -56,6 +56,11 @@ export function TerritoryEditor(props: TerritoryEditorProps) {
   const { draft, kind, selected } = editor
   const mapShown = apiKey != null && editor.view === 'map'
   const { ref: mapRef, top } = useTopOnPhone(mapShown)
+  // Stable: the zone loader is rebuilt, and its cache dropped, whenever it changes.
+  const zoneUrl = useCallback(
+    (bbox: { swLat: number; swLng: number; neLat: number; neLng: number }) => bboxUrl(bbox, territory.id, kind),
+    [territory.id, kind],
+  )
 
   return (
     <div
@@ -86,7 +91,8 @@ export function TerritoryEditor(props: TerritoryEditorProps) {
               apiKey={apiKey}
               className="size-full"
               label={territoryMapLabel(mode, territory.number)}
-              bboxUrl={bbox => bboxUrl(bbox, territory.id, kind)}
+              bboxUrl={zoneUrl}
+              refreshKey={editor.zoneVersion}
               own={editor.own}
               draft={draft}
               center={center}

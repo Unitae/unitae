@@ -38,6 +38,8 @@ export function useTerritoryEditor({ mode, territory, saved, refused }: Territor
   const [hotId, setHotId] = useState<number | null>(null)
   const [focus, setFocus] = useState<EditorMapFocus | null>(null)
   const [view, setView] = useState<'map' | 'list'>('map')
+  // Bumped when the type changes: the map's zones hold another type's entrances and must be fetched again.
+  const [zoneVersion, setZoneVersion] = useState(0)
 
   const rows = useMemo(() => draftRows(saved, draft), [saved, draft])
   const groups = useMemo(() => byStreet(rows, getLocale()), [rows])
@@ -69,6 +71,7 @@ export function useTerritoryEditor({ mode, territory, saved, refused }: Territor
     setKind(next)
     reset()
     setSelected(null)
+    setZoneVersion(version => version + 1)
   }
 
   return {
@@ -87,6 +90,7 @@ export function useTerritoryEditor({ mode, territory, saved, refused }: Territor
     focus,
     view,
     setView,
+    zoneVersion,
     pick,
     groups,
     kept,

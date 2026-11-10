@@ -24,6 +24,8 @@ import type { MapEntrance } from './editor-map-entrance'
 
 /** Keeps the outermost entrances off the map's edges. */
 const MARGIN = 0.0008
+/** The smallest area the map opens on, in degrees: a few streets. */
+const MIN_SPAN = 0.004
 const CHIP =
   'pointer-events-auto inline-flex items-center gap-1.5 rounded-md bg-surface px-2 py-1 text-xs shadow-md ring-1 ring-border'
 
@@ -36,6 +38,8 @@ interface EditorMapProps {
   apiKey: string
   label: string
   bboxUrl: (bbox: Bbox) => string
+  /** Bumped when what the zones hold changes (another type while creating): they are fetched again. */
+  refreshKey: number
   /** The territory's own entrances that have a position. */
   own: MapEntrance[]
   draft: Draft
@@ -106,11 +110,23 @@ function mapStart(
   return { defaultCenter: { lat: 20, lng: 0 }, defaultZoom: 2 }
 }
 
-function MapLayer({ bboxUrl, own, draft, selectedId, hotId, focus, hint, legend, onSelect, onHover }: EditorMapProps) {
+function MapLayer({
+  bboxUrl,
+  refreshKey,
+  own,
+  draft,
+  selectedId,
+  hotId,
+  focus,
+  hint,
+  legend,
+  onSelect,
+  onHover,
+}: EditorMapProps) {
   const map = useMap()
   const markerRef = useMarkerClusterer(map, editorClustering())
   const invalidateOnIds = useMemo(() => [...draft.keys()], [draft])
-  const zone = useBboxEntrances({ buildUrl: bboxUrl, invalidateOnIds })
+  const zone = useBboxEntrances({ buildUrl: bboxUrl, invalidateOnIds, refreshKey })
 
   // What the zone shows, then the territory's own entrances, then the changed ones even out of the zone.
   const entrances = useMemo(() => {
@@ -256,10 +272,14 @@ function boundsOf(points: readonly { lat: number; lng: number }[]): google.maps.
   const lats = points.map(point => point.lat)
   const lngs = points.map(point => point.lng)
   if (points.length === 0) return { north: MARGIN, south: -MARGIN, east: MARGIN, west: -MARGIN }
+  // At least a few streets around: one entrance alone would open at the closest zoom.
+  const pad = (low: number, high: number) => Math.max(MARGIN, (MIN_SPAN - (high - low)) / 2)
+  const [south, north] = [Math.min(...lats), Math.max(...lats)]
+  const [west, east] = [Math.min(...lngs), Math.max(...lngs)]
   return {
-    north: Math.max(...lats) + MARGIN,
-    south: Math.min(...lats) - MARGIN,
-    east: Math.max(...lngs) + MARGIN,
-    west: Math.min(...lngs) - MARGIN,
+    north: north + pad(south, north),
+    south: south - pad(south, north),
+    east: east + pad(west, east),
+    west: west - pad(west, east),
   }
 }

@@ -52,6 +52,15 @@ export function EditorSearch({ kind, territoryId, draft, onAdd, onTake }: Editor
           placeholder={m.territory_editor_search_placeholder()}
           className="pl-8"
           autoComplete="off"
+          onKeyDown={event => {
+            // Inside the territory's form: Enter adds the first result rather than saving the territory.
+            if (event.key !== 'Enter') return
+            event.preventDefault()
+            const first = results.find(result => !draft.has(result.id))
+            if (first == null) return
+            if (first.otherTerritory != null) onTake(first, first.otherTerritory)
+            else onAdd(first)
+          }}
         />
       </div>
       {debounced.length >= 2 && fetcher.state === 'idle' && results.length === 0 && (

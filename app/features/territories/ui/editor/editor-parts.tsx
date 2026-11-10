@@ -177,6 +177,8 @@ export function useTopOnPhone(active: boolean) {
     const measure = () => {
       if (ref.current != null) setTop(ref.current.getBoundingClientRect().top + window.scrollY)
     }
+    // From the top of the page: a list scrolled down would otherwise shorten the map.
+    window.scrollTo(0, 0)
     measure()
     window.addEventListener('resize', measure)
     return () => window.removeEventListener('resize', measure)
