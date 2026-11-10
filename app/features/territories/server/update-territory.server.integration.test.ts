@@ -4,7 +4,7 @@ import { PrismaClient } from '~/database/generated/client'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
-import { ValidationError } from '~/shared/errors/app-error.server'
+import { ConflictError, ValidationError } from '~/shared/errors/app-error.server'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -32,8 +32,10 @@ let crossCongTerritoryId: number
 let entranceShared: number
 let entranceFree: number
 let entranceCrossCong: number
+let entranceOnPhone: number
 
 const { updateTerritory } = await import('./update-territory.server')
+const { EntranceTakenError } = await import('./territory-entrances.server')
 
 beforeAll(async () => {
   const primary = await testDb.congregation.create({
@@ -86,6 +88,19 @@ beforeAll(async () => {
       },
     })
     entranceFree = free.id
+
+    const buildingPhone = await tx.building.create({
+      data: { number: '3', street: 'Rue X', zip: '75001', congregationId: primaryCongId },
+    })
+    const onPhone = await tx.buildingEntrance.create({
+      data: {
+        kind: EntranceKind.Residential,
+        congregationId: primaryCongId,
+        buildings: { connect: { id: buildingPhone.id } },
+        territories: { connect: { id: phoneTerritoryId } },
+      },
+    })
+    entranceOnPhone = onPhone.id
   })
 
   await withScope(otherCongId, async tx => {
@@ -134,7 +149,7 @@ beforeEach(async () => {
     })
     await tx.territory.update({
       where: { id_congregationId: { id: targetTerritoryId, congregationId: primaryCongId } },
-      data: { entrances: { set: [] } },
+      data: { number: `UT-TGT-${ts}`, entrances: { set: [] } },
     })
   })
 })
@@ -252,5 +267,92 @@ describe('updateTerritory (integration)', () => {
       include: { territories: { select: { id: true } } },
     })
     expect(sourceShared?.territories.map(t => t.id)).toContain(sourceTerritoryId)
+  })
+
+  it('refuses an entrance that is on another territory of the same type, and says which', async () => {
+    const attempt = withScope(primaryCongId, tx =>
+      updateTerritory(tx, targetTerritoryId, primaryCongId, 1, { entranceIds: [entranceShared], notes: '' }),
+    )
+
+    await expect(attempt).rejects.toBeInstanceOf(EntranceTakenError)
+    await expect(attempt).rejects.toMatchObject({
+      entrances: [{ id: entranceShared, address: '1 Rue X', territoryNumber: `UT-SRC-${ts}` }],
+    })
+  })
+
+  it('accepts an entrance that sits on a territory of another type', async () => {
+    await withScope(primaryCongId, tx =>
+      updateTerritory(tx, targetTerritoryId, primaryCongId, 1, { entranceIds: [entranceOnPhone], notes: '' }),
+    )
+
+    const target = await testDb.territory.findUnique({
+      where: { id: targetTerritoryId },
+      include: { entrances: { select: { id: true } } },
+    })
+    expect(target?.entrances.map(e => e.id)).toEqual([entranceOnPhone])
+  })
+
+  it('keeps an entrance the territory already holds, even if another territory of its type holds it too', async () => {
+    // Data from before the check: the same entrance on two door-to-door territories.
+    await withScope(primaryCongId, tx =>
+      tx.territory.update({
+        where: { id_congregationId: { id: targetTerritoryId, congregationId: primaryCongId } },
+        data: { entrances: { set: [{ id: entranceShared }] } },
+      }),
+    )
+
+    await withScope(primaryCongId, tx =>
+      updateTerritory(tx, targetTerritoryId, primaryCongId, 1, { entranceIds: [entranceShared], notes: 'kept' }),
+    )
+
+    const target = await testDb.territory.findUnique({ where: { id: targetTerritoryId }, select: { notes: true } })
+    expect(target?.notes).toBe('kept')
+  })
+
+  it('renames the territory, the number trimmed', async () => {
+    await withScope(primaryCongId, tx =>
+      updateTerritory(tx, targetTerritoryId, primaryCongId, 1, {
+        number: `  UT-REN-${ts} `,
+        entranceIds: [],
+        notes: '',
+      }),
+    )
+
+    const target = await testDb.territory.findUnique({ where: { id: targetTerritoryId }, select: { number: true } })
+    expect(target?.number).toBe(`UT-REN-${ts}`)
+  })
+
+  it('refuses a number another territory uses, whatever its case', async () => {
+    await expect(
+      withScope(primaryCongId, tx =>
+        updateTerritory(tx, targetTerritoryId, primaryCongId, 1, {
+          number: `ut-src-${ts}`,
+          entranceIds: [],
+          notes: '',
+        }),
+      ),
+    ).rejects.toThrow(new ConflictError('territory_number_taken'))
+  })
+
+  it('saves when the number does not change, even if another territory shares it', async () => {
+    const twin = await withScope(primaryCongId, tx =>
+      tx.territory.create({
+        data: { number: `UT-TGT-${ts}`, type: TerritoryKindKey.Classical, congregationId: primaryCongId },
+      }),
+    )
+
+    await withScope(primaryCongId, tx =>
+      updateTerritory(tx, targetTerritoryId, primaryCongId, 1, {
+        number: `UT-TGT-${ts}`,
+        entranceIds: [],
+        notes: 'twin',
+      }),
+    )
+
+    const target = await testDb.territory.findUnique({ where: { id: targetTerritoryId }, select: { notes: true } })
+    expect(target?.notes).toBe('twin')
+    await withScope(primaryCongId, tx =>
+      tx.territory.delete({ where: { id_congregationId: { id: twin.id, congregationId: primaryCongId } } }),
+    )
   })
 })
