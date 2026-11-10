@@ -90,7 +90,16 @@ export function ProgrammeWeekTable({
             })
             const label = m.programs_week_of({ date })
             if (week.items.length === 0) {
-              return <EmptyWeek key={week.monday} label={label} date={date} columns={columns} canCreate={canCreate} />
+              return (
+                <EmptyWeek
+                  key={week.monday}
+                  monday={week.monday}
+                  label={label}
+                  date={date}
+                  columns={columns}
+                  canCreate={canCreate}
+                />
+              )
             }
 
             const open = !folded[week.monday]
@@ -158,11 +167,14 @@ export function ProgrammeWeekTable({
 }
 
 function EmptyWeek({
+  monday,
   label,
   date,
   columns,
   canCreate,
 }: {
+  /** The week's Monday: « Créer » opens the creation page on that week. */
+  monday: string
   label: string
   date: string
   columns: number
@@ -177,7 +189,7 @@ function EmptyWeek({
           <span className="flex-1" />
           {canCreate && (
             <Link
-              to="/programs/new"
+              to={`/programs/new?week=${monday}`}
               aria-label={m.programs_week_create_aria({ date })}
               className="font-medium text-brand-text underline-offset-4 hover:underline"
             >

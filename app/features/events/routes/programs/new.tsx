@@ -1,468 +1,145 @@
 import { parseWithZod } from '@conform-to/zod/v4'
-import { useMemo, useState } from 'react'
-import { data, Form, Link, redirect } from 'react-router'
+import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { dayLabel } from '~/features/events/model/day-label'
-import { isSystemTemplate } from '~/features/events/model/event-template.type'
-import { daysOnWeekday } from '~/features/events/model/programme-dates'
-import {
-  freeformEventSchema,
-  recurringEventSchema,
-  singleEventSchema,
-} from '~/features/events/schemas/program-new.schema'
+import { type ProgrammeCreationInput, programmeCreationSchema } from '~/features/events/schemas/program-new.schema'
 import { createFreeformEvent } from '~/features/events/server/event-parts.server'
-import { getTemplates } from '~/features/events/server/event-templates.server'
 import { canManageAnyProgram, getResponsibleTemplateIds } from '~/features/events/server/events-auth.server'
+import { getProgrammeCreationData } from '~/features/events/server/programme-creation.queries'
 import {
+  type CreationContext,
   createProgrammeOnDay,
   createProgrammeSeries,
   ProgrammeExistsError,
 } from '~/features/events/server/programme-creation.server'
+import { ProgrammeCreationForm } from '~/features/events/ui/creation/ProgrammeCreationForm'
 import * as m from '~/i18n/paraglide/messages'
-import { getLocale } from '~/i18n/paraglide/runtime'
 import {
   congregationContext,
   currentAccountContext,
   permissionsContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
-import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
-import { Button } from '~/shared/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
-import { FormActions } from '~/shared/ui/FormActions'
-import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
-import { Input } from '~/shared/ui/input'
-import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
-import { SubmitButton } from '~/shared/ui/SubmitButton'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
-import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
-import { addDays, dayOf } from '~/shared/utils/calendar-day'
+import { dayOf, isCalendarDay, mondayOf } from '~/shared/utils/calendar-day'
 import { combineLocalDateTime } from '~/shared/utils/event-time'
 import type { Route } from './+types/new'
 
-const NO_TEMPLATE = 'none'
-const OCCURRENCE_PRESETS = [
-  { value: 4, label: '1 m.' },
-  { value: 8, label: '2 m.' },
-  { value: 13, label: '3 m.' },
-  { value: 26, label: '6 m.' },
-  { value: 52, label: '1 an' },
-]
+type Session = Awaited<ReturnType<typeof getSession>>
 
-export const meta: Route.MetaFunction = () => {
-  return [{ title: m.programs_new_meta_title() }]
-}
+export const meta: Route.MetaFunction = () => [{ title: m.programs_new_meta_title() }]
 
-export function loader({ context }: Route.LoaderArgs) {
-  const permissions = context.get(permissionsContext)
-  const currentUser = context.get(currentAccountContext)
-  const isProgramManager = permissions.has(Permission.CanManagePrograms)
+/**
+ * Who creates what: a programme manager any template, and « Autre évènement »; someone responsible for a few
+ * programmes, those templates only. Nobody else reaches the page.
+ */
+export function loader({ context, request }: Route.LoaderArgs) {
+  const canManage = context.get(permissionsContext).has(Permission.CanManagePrograms)
+  const { id: accountId } = context.get(currentAccountContext)
+  const { timezone } = context.get(congregationContext)
+  const today = dayOf(new Date(), timezone)
+  const week = new URL(request.url).searchParams.get('week')
 
-  return withScopeFromContext(context, async db => {
-    const { congregationId } = currentUser
-
-    const responsibleTemplateIds = isProgramManager
-      ? []
-      : await getResponsibleTemplateIds(db, currentUser.id, congregationId)
-    if (!isProgramManager && responsibleTemplateIds.length === 0) throw redirect('/programs')
-
-    // Absences and freeform events have system templates of their own: never offered as programmes.
-    const allTemplates = (await getTemplates(db, congregationId)).filter(t => !isSystemTemplate(t.key))
-    const templates = isProgramManager ? allTemplates : allTemplates.filter(t => responsibleTemplateIds.includes(t.id))
-
-    return { templates, isProgramManager, timezone: context.get(congregationContext).timezone }
+  return withScopeFromContext(context, async (db, congregationId) => {
+    const templateIds = canManage ? null : await getResponsibleTemplateIds(db, accountId, congregationId)
+    if (templateIds?.length === 0) throw redirect('/programs')
+    const { templates, existing } = await getProgrammeCreationData(db, { congregationId, timezone, today, templateIds })
+    return { templates, existing, today, canManage, week: isCalendarDay(week) ? mondayOf(week) : null }
   })
 }
 
-type Session = Awaited<ReturnType<typeof getSession>>
-type ActionCtx = {
-  db: TransactionClient
-  formData: FormData
-  currentUser: { id: number }
-  congregationId: number
-  timezone: string
-  session: Session
-}
-
-async function handleRecurringMode({ db, formData, currentUser, congregationId, timezone, session }: ActionCtx) {
-  const submission = parseWithZod(formData, { schema: recurringEventSchema })
-  if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
-
-  const { templateId, occurrences, startDate } = submission.value
-  // A day of the congregation's calendar, so that the weeks fall where its members live.
-  const from = startDate ?? dayOf(new Date(), timezone)
-  const { created, existing } = await createProgrammeSeries(
-    db,
-    { templateIds: [templateId], from, to: addDays(from, occurrences * 7 - 1) },
-    { congregationId, timezone, actorId: currentUser.id },
+export default function NewProgrammesPage({ loaderData, actionData }: Route.ComponentProps) {
+  return (
+    <div className="flex max-w-6xl flex-col gap-5">
+      <PageHeader
+        title={m.programs_new_page_title()}
+        breadcrumbs={[{ label: m.sidebar_programs(), to: '/programs' }, { label: m.programs_new_page_title() }]}
+      />
+      <ProgrammeCreationForm {...loaderData} result={actionData} />
+    </div>
   )
-  logger.info(`Created ${created.length} programmes from template ${templateId}. User ID: ${currentUser.id}.`)
-  const done = created.length > 0 ? m.programs_new_generated_success({ count: created.length }) : null
-  const left =
-    existing === 0
-      ? null
-      : existing === 1
-        ? m.programs_new_series_existing_one()
-        : m.programs_new_series_existing_many({ count: existing })
-  session.flash('success', [done, left].filter(Boolean).join(' ') || m.programs_new_generated_none())
-  return null
-}
-
-async function handleSingleMode({ db, formData, currentUser, congregationId, timezone, session }: ActionCtx) {
-  const submission = parseWithZod(formData, { schema: singleEventSchema })
-  if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
-
-  const { templateId, date } = submission.value
-  // Refused before anything is written; the action turns the refusal into the field's message.
-  await createProgrammeOnDay(db, { templateId, day: date }, { congregationId, timezone, actorId: currentUser.id })
-  logger.info(`Created a programme from template ${templateId}. User ID: ${currentUser.id}.`)
-  session.flash('success', m.programs_new_created_success())
-  return null
-}
-
-async function handleFreeformMode({ db, formData, currentUser, congregationId, timezone, session }: ActionCtx) {
-  const submission = parseWithZod(formData, { schema: freeformEventSchema })
-  if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
-
-  const { name, date, startTime, endTime } = submission.value
-  const startDate = combineLocalDateTime(date, startTime, timezone)
-  const endDate = combineLocalDateTime(date, endTime, timezone)
-  await createFreeformEvent(db, { name, startDate, endDate, createdById: currentUser.id, congregationId })
-  logger.info(`Created freeform event "${name}". User ID: ${currentUser.id}.`)
-  session.flash('success', m.programs_new_created_success())
-  return null
-}
-
-async function assertCanSubmit(
-  db: TransactionClient,
-  can: (p: Permission) => boolean,
-  isProgramManager: boolean,
-  userId: number,
-  congregationId: number,
-  mode: FormDataEntryValue | null,
-  formData: FormData,
-): Promise<void> {
-  if (!(await canManageAnyProgram(db, can, userId, congregationId))) throw redirect('/programs')
-  if (isProgramManager) return
-  if (mode === 'freeform') throw redirect('/programs')
-
-  const responsibleTemplateIds = await getResponsibleTemplateIds(db, userId, congregationId)
-  const submittedTemplateId = Number(formData.get('templateId'))
-  if (!Number.isFinite(submittedTemplateId) || !responsibleTemplateIds.includes(submittedTemplateId)) {
-    throw redirect('/programs')
-  }
-}
-
-function dispatchMode(mode: FormDataEntryValue | null, ctx: ActionCtx) {
-  if (mode === 'recurring') return handleRecurringMode(ctx)
-  if (mode === 'single') return handleSingleMode(ctx)
-  if (mode === 'freeform') return handleFreeformMode(ctx)
-  return Promise.resolve(null)
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(currentAccountContext)
-  const congregation = context.get(congregationContext)
-  const isProgramManager = permissions.has(Permission.CanManagePrograms)
+  const can = (permission: Permission) => permissions.has(permission)
+  const { id: actorId } = context.get(currentAccountContext)
+  const { timezone } = context.get(congregationContext)
+  const submission = parseWithZod(await request.formData(), {
+    schema: programmeCreationSchema(dayOf(new Date(), timezone)),
+  })
+  if (submission.status !== 'success') return data({ result: submission.reply() }, { status: 400 })
+  const input = submission.value
   const session = await getSession(request.headers.get('Cookie'))
-  const formData = await request.formData()
-  const mode = formData.get('mode')
-  const { congregationId } = currentUser
 
-  // The refusal is caught outside the transaction, which must not commit on it.
+  // Refusals are caught outside the transaction, which must not commit on them.
   try {
-    return await withScopeFromContext(context, async db => {
-      const can = (p: Permission) => permissions.has(p)
-      await assertCanSubmit(db, can, isProgramManager, currentUser.id, congregationId, mode, formData)
-
-      const ctx: ActionCtx = { db, formData, currentUser, congregationId, timezone: congregation.timezone, session }
-      const modeResult = await dispatchMode(mode, ctx)
-      if (modeResult) return modeResult
-      return redirect('/programs', { headers: { 'Set-Cookie': await commitSession(session) } })
+    const next = await withScopeFromContext(context, async (db, congregationId) => {
+      if (!(await canManageAnyProgram(db, can, actorId, congregationId))) throw redirect('/programs')
+      const allowed = can(Permission.CanManagePrograms)
+        ? null
+        : await getResponsibleTemplateIds(db, actorId, congregationId)
+      if (!mayCreate(input, allowed)) throw redirect('/programs')
+      return create(db, input, { congregationId, timezone, actorId }, session)
     })
+    return redirect(next, { headers: { 'Set-Cookie': await commitSession(session) } })
   } catch (error) {
-    if (error instanceof ProgrammeExistsError) return data({ alreadyExists: true }, { status: 409 })
+    if (error instanceof ProgrammeExistsError) {
+      const result = submission.reply({ fieldErrors: { day: [m.programs_new_error_exists()] } })
+      return data({ result, existingId: error.eventId }, { status: 409 })
+    }
+    if (error instanceof NotFoundError) {
+      return data({ result: submission.reply({ formErrors: [m.programs_new_error_unavailable()] }) }, { status: 400 })
+    }
     throw error
   }
 }
 
-function groupByMonth(dates: Date[]): Record<string, Date[]> {
-  const result: Record<string, Date[]> = {}
-  for (const d of dates) {
-    const key = d.toLocaleDateString(getLocale(), { month: 'long', year: 'numeric', timeZone: 'UTC' })
-    const entry = result[key]
-    if (entry) entry.push(d)
-    else result[key] = [d]
-  }
-  return result
+/** `allowed`: the templates someone responsible for a few may use; null for a programme manager. */
+function mayCreate(input: ProgrammeCreationInput, allowed: number[] | null): boolean {
+  if (allowed == null) return true
+  if (input.mode === 'freeform') return false
+  if (input.mode === 'series') return input.templateIds.every(id => allowed.includes(id))
+  return allowed.includes(input.templateId)
 }
 
-function FreeformFields() {
-  return (
-    <>
-      <input type="hidden" name="mode" value="freeform" />
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="name">{m.programs_new_event_name_label()}</Label>
-        <Input id="name" name="name" placeholder={m.programs_new_event_name_placeholder()} required />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="date">{m.programs_new_date_label()}</Label>
-        <Input id="date" name="date" type="date" min={new Date().toISOString().split('T')[0]} required />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="startTime">{m.programs_new_start_time_label()}</Label>
-          <Input id="startTime" name="startTime" type="time" defaultValue="19:00" />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="endTime">{m.programs_new_end_time_label()}</Label>
-          <Input id="endTime" name="endTime" type="time" defaultValue="21:00" />
-        </div>
-      </div>
-    </>
-  )
-}
-
-function RecurringFields({
-  occurrences,
-  startDate,
-  previewByMonth,
-  previewDates,
-  onSetOccurrences,
-  onStartDateChange,
-}: {
-  occurrences: number
-  startDate: string
-  previewByMonth: Record<string, Date[]>
-  previewDates: Date[]
-  onSetOccurrences: (n: number) => void
-  onStartDateChange: (v: string) => void
-}) {
-  return (
-    <>
-      <input type="hidden" name="mode" value="recurring" />
-      <div className="flex flex-col gap-2">
-        <Label>{m.programs_new_occurrences_presets_label()}</Label>
-        <div className="flex flex-wrap gap-2">
-          {OCCURRENCE_PRESETS.map(preset => (
-            <Button
-              key={preset.value}
-              type="button"
-              variant={occurrences === preset.value ? 'secondary' : 'outline'}
-              size="sm"
-              onClick={() => onSetOccurrences(preset.value)}
-            >
-              {preset.value} <span className="ml-1 text-muted-foreground">{preset.label}</span>
-            </Button>
-          ))}
-        </div>
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="occurrences">{m.programs_new_occurrences_label()}</Label>
-        <Input
-          id="occurrences"
-          name="occurrences"
-          type="number"
-          min={1}
-          max={52}
-          value={occurrences}
-          onChange={e => onSetOccurrences(Number(e.target.value))}
-          onBlur={e => onSetOccurrences(Math.max(1, Math.min(52, Number(e.target.value))))}
-          className="w-20"
-        />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="recurringStartDate">{m.programs_new_start_date_label()}</Label>
-        <Input
-          id="recurringStartDate"
-          name="startDate"
-          type="date"
-          value={startDate}
-          onChange={e => onStartDateChange(e.target.value)}
-          className="w-auto"
-        />
-      </div>
-      {previewDates.length > 0 && (
-        <div className="border-primary/30 border-l-2 pl-3">
-          <p className="mb-2 text-muted-foreground text-xs">{m.programs_new_occurrences_preview_label()}</p>
-          <div className="flex flex-col gap-1.5">
-            {Object.entries(previewByMonth).map(([month, dates]) => (
-              <div key={month} className="flex flex-wrap items-baseline gap-1.5">
-                <span className="w-24 shrink-0 text-muted-foreground text-xs capitalize">{month}</span>
-                {dates.map(d => (
-                  <span key={d.toISOString()} className="rounded bg-muted px-1.5 py-0.5 text-xs tabular-nums">
-                    {d.toLocaleDateString(getLocale(), { day: 'numeric', timeZone: 'UTC' })}
-                  </span>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </>
-  )
-}
-
-function SingleFields({ alreadyExists }: { alreadyExists: boolean }) {
-  return (
-    <>
-      <input type="hidden" name="mode" value="single" />
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="date">{m.programs_new_event_date_label()}</Label>
-        <Input id="date" name="date" type="date" min={new Date().toISOString().split('T')[0]} required />
-        {alreadyExists && <p className="text-destructive text-sm">{m.programs_new_already_exists()}</p>}
-      </div>
-    </>
-  )
-}
-
-type Template = { id: number; name: string; weekDay: number | null; startTime: string; endTime: string }
-
-function formatTemplateRange(startTime: string, endTime: string): string {
-  return `${startTime.replace(':', 'h')}–${endTime.replace(':', 'h')}`
-}
-
-function TemplateSelectField({
-  templates,
-  selectedValue,
-  selectedTemplate,
-  isNoTemplate,
-  isRecurring,
-  isProgramManager,
-  onSelect,
-}: {
-  templates: Template[]
-  selectedValue: string
-  selectedTemplate: Template | null | undefined
-  isNoTemplate: boolean
-  isRecurring: boolean
-  isProgramManager: boolean
-  onSelect: (value: string) => void
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      <Label htmlFor="templateId">{m.programs_new_template_label()}</Label>
-      {templates.length === 0 && <p className="text-muted-foreground text-xs">{m.programs_new_no_templates_hint()}</p>}
-      <Select name={isNoTemplate ? undefined : 'templateId'} value={selectedValue} onValueChange={onSelect}>
-        <SelectTrigger>
-          <SelectValue placeholder={m.programs_new_select_template()} />
-        </SelectTrigger>
-        <SelectContent>
-          {isProgramManager && <SelectItem value={NO_TEMPLATE}>{m.programs_new_no_template_option()}</SelectItem>}
-          {templates.map(template => (
-            <SelectItem key={template.id} value={template.id.toString()}>
-              {template.name}
-              {template.weekDay != null ? ` (${dayLabel(template.weekDay)})` : ''}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      {selectedTemplate && (
-        <p className="text-muted-foreground text-xs">
-          {isRecurring
-            ? `Modèle récurrent · ${dayLabel(selectedTemplate.weekDay ?? 0)}s · ${formatTemplateRange(selectedTemplate.startTime, selectedTemplate.endTime)}`
-            : 'Modèle unique'}
-        </p>
-      )}
-    </div>
-  )
-}
-
-export default function NewEventPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { templates, isProgramManager, timezone } = loaderData
-  const [selectedValue, setSelectedValue] = useState<string>('')
-  const [occurrences, setOccurrences] = useState(8)
-  const [startDate, setStartDate] = useState('')
-  const { blocker, markDirty } = useUnsavedChanges()
-
-  const isNoTemplate = isProgramManager && selectedValue === NO_TEMPLATE
-  const selectedTemplate = !isNoTemplate ? templates.find(t => t.id === Number(selectedValue)) : null
-  const isRecurring = selectedTemplate?.weekDay != null
-  const showForm = isNoTemplate || selectedTemplate != null
-  const alreadyExists = (actionData as { alreadyExists?: boolean } | undefined)?.alreadyExists === true
-
-  const previewDates = useMemo(() => {
-    if (!selectedTemplate || selectedTemplate.weekDay == null) return []
-    // The same days the server will create: calendar days of the congregation, read at noon UTC to be shown.
-    const from = startDate || dayOf(new Date(), timezone)
-    return daysOnWeekday(selectedTemplate.weekDay, from, addDays(from, occurrences * 7 - 1)).map(
-      day => new Date(`${day}T12:00:00Z`),
+/** Creates what the form asks for, and answers where to go next: the list on those weeks, or the new programme. */
+async function create(
+  db: TransactionClient,
+  input: ProgrammeCreationInput,
+  ctx: CreationContext,
+  session: Session,
+): Promise<string> {
+  if (input.mode === 'series') {
+    const { created } = await createProgrammeSeries(db, input, ctx)
+    const count = created.length
+    session.flash(
+      'success',
+      count === 0
+        ? m.programs_new_flash_none()
+        : count === 1
+          ? m.programs_new_flash_one()
+          : m.programs_new_flash_many({ count: String(count) }),
     )
-  }, [selectedTemplate, occurrences, startDate, timezone])
-
-  const previewByMonth = useMemo(() => groupByMonth(previewDates), [previewDates])
-
-  function handleSetOccurrences(n: number) {
-    setOccurrences(n)
-    markDirty()
+    const period = new URLSearchParams({ from: input.from, to: input.to })
+    if (count > 0) period.set('view', 'drafts')
+    return `/programs?${period.toString()}`
   }
 
-  function handleStartDateChange(v: string) {
-    setStartDate(v)
-    markDirty()
-  }
-
-  return (
-    <div className="flex flex-col gap-6">
-      <UnsavedChangesDialog blocker={blocker} />
-      <PageHeader
-        title={m.programs_new_page_title()}
-        subtitle={m.programs_new_page_subtitle()}
-        breadcrumbs={[{ label: m.sidebar_programs(), to: '/programs' }, { label: m.programs_new_page_title() }]}
-        backTo="/programs"
-      />
-
-      <Card className={isRecurring ? 'max-w-2xl' : 'max-w-lg'}>
-        <CardHeader>
-          <CardTitle className="text-base">{m.programs_new_config_title()}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form method="post" className="flex flex-col gap-4" onChange={markDirty}>
-            <TemplateSelectField
-              templates={templates}
-              selectedValue={selectedValue}
-              selectedTemplate={selectedTemplate}
-              isNoTemplate={isNoTemplate}
-              isRecurring={Boolean(isRecurring)}
-              isProgramManager={isProgramManager}
-              onSelect={v => {
-                setSelectedValue(v)
-                markDirty()
-              }}
-            />
-
-            {isNoTemplate && <FreeformFields />}
-            {selectedTemplate && isRecurring && (
-              <RecurringFields
-                occurrences={occurrences}
-                startDate={startDate}
-                previewByMonth={previewByMonth}
-                previewDates={previewDates}
-                onSetOccurrences={handleSetOccurrences}
-                onStartDateChange={handleStartDateChange}
-              />
-            )}
-            {selectedTemplate && !isRecurring && <SingleFields alreadyExists={alreadyExists} />}
-
-            {showForm && (
-              <FormActions className="justify-end pt-1">
-                <Button variant="ghost" asChild>
-                  <Link to="/programs">{m.common_cancel()}</Link>
-                </Button>
-                <SubmitButton>
-                  {isNoTemplate || !isRecurring
-                    ? m.programs_new_create_event()
-                    : m.programs_new_generate_events({ count: occurrences })}
-                </SubmitButton>
-              </FormActions>
-            )}
-          </Form>
-        </CardContent>
-      </Card>
-    </div>
-  )
+  const id =
+    input.mode === 'single'
+      ? (await createProgrammeOnDay(db, { templateId: input.templateId, day: input.day }, ctx)).id
+      : (
+          await createFreeformEvent(db, {
+            name: input.name,
+            startDate: combineLocalDateTime(input.day, input.startTime, ctx.timezone),
+            endDate: combineLocalDateTime(input.day, input.endTime, ctx.timezone),
+            createdById: ctx.actorId,
+            congregationId: ctx.congregationId,
+          })
+        ).id
+  session.flash('success', m.programs_new_flash_single())
+  return `/programs/events/${id}/edit`
 }
