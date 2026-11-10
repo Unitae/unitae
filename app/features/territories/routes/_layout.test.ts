@@ -5,7 +5,7 @@ import { routeContext } from '~/tests/helpers/route-action'
 import { middleware as territoriesMiddleware } from './_layout'
 import { middleware as prospectionMiddleware } from './prospection/list'
 import { middleware as syncMiddleware } from './prospection/sync-buildings'
-import { middleware as splitToolMiddleware } from './split-tool/_layout'
+import { middleware as splitToolMiddleware } from './split-tool/batch'
 
 // The territory gates run as middleware so they cover every child's action, not only page loads.
 describe('territories layout gate', () => {
@@ -34,7 +34,7 @@ describe('prospection gate', () => {
   })
 })
 
-describe('split-tool layout gate', () => {
+describe('split-tool gate', () => {
   it('admits a caller who plans splits', async () => {
     expect(await passesGate(splitToolMiddleware, routeContext([Permission.CanPlanTerritorySplits]))).toBe(true)
   })

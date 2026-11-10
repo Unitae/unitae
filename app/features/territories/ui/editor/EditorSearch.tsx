@@ -18,10 +18,12 @@ interface EditorSearchProps {
   draft: Draft
   onAdd: (entrance: EditorSearchResult) => void
   onTake: (entrance: EditorSearchResult, from: { id: number; number: string }) => void
+  /** The bulk tool: only the free entrances it may take. */
+  freeOnly?: boolean
 }
 
 /** Where no map can show: one search by number, street or postcode, each result added (or taken) in one press. */
-export function EditorSearch({ kind, territoryId, draft, onAdd, onTake }: EditorSearchProps) {
+export function EditorSearch({ kind, territoryId, draft, onAdd, onTake, freeOnly = false }: EditorSearchProps) {
   const id = useId()
   const [query, setQuery] = useState('')
   const debounced = useDebouncedValue(query.trim(), 250)
@@ -32,8 +34,9 @@ export function EditorSearch({ kind, territoryId, draft, onAdd, onTake }: Editor
     if (debounced.length < 2) return
     const params = new URLSearchParams({ kind, q: debounced })
     if (territoryId != null) params.set('territory', String(territoryId))
+    if (freeOnly) params.set('free', '1')
     load(`/territories/api/editor-entrances?${params.toString()}`)
-  }, [debounced, kind, territoryId, load])
+  }, [debounced, kind, territoryId, freeOnly, load])
 
   const results = debounced.length >= 2 ? (fetcher.data?.results ?? []) : []
 

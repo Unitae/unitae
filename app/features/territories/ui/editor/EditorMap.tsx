@@ -10,11 +10,13 @@ import { type ReactNode, useEffect, useMemo } from 'react'
 
 import { type Draft, pinState } from '~/features/territories/model/territory-draft'
 import { territoryOutline } from '~/features/territories/model/territory-outline'
+import type { TerritoryOutline } from '~/features/territories/server/free-entrances.queries'
 import { HolderMapControls } from '~/features/territories/ui/HolderMapControls'
 import MapSearchBox from '~/features/territories/ui/MapSearchBox'
 import { type Bbox, useBboxEntrances } from '~/features/territories/ui/map/use-bbox-entrances'
 import { useMarkerClusterer } from '~/features/territories/ui/use-marker-clusterer'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import MapConsentBanner, { useMapConsent } from '~/shared/ui/MapConsentBanner'
 import { cn } from '~/shared/utils/utils'
 import { EditorPin } from './EditorPin'
@@ -52,6 +54,10 @@ interface EditorMapProps {
   hint: string | null
   legend: ReactNode
   card: ReactNode
+  /** The split tool: the outlines of the type's territories in view, drawn grey with their number. */
+  outlines?: boolean
+  /** The split tool: how many free entrances there are in all, for « 42 sur 412 visibles ici ». */
+  visibleOf?: number
   onSelect: (entrance: MapEntrance) => void
   onHover: (id: number | null) => void
   className?: string
@@ -120,6 +126,8 @@ function MapLayer({
   focus,
   hint,
   legend,
+  outlines,
+  visibleOf,
   onSelect,
   onHover,
 }: EditorMapProps) {
@@ -191,11 +199,20 @@ function MapLayer({
         )
       })}
       <OutlinePolygon points={outline} />
+      {outlines && zone.outlines.map(other => <OtherTerritory key={other.id} territory={other} />)}
 
       <div className="pointer-events-none absolute top-3 left-3 z-10 flex max-w-[calc(100%-5rem)] flex-col items-start gap-2">
         <MapSearchBox candidates={entrances} onSelect={id => onSelectById(entrances, id, onSelect, map)} />
         {hint != null && (
           <span className="rounded-md bg-foreground px-2.5 py-1.5 text-background text-xs shadow-md">{hint}</span>
+        )}
+        {visibleOf != null && !zone.loading && (
+          <span className={cn(CHIP, 'text-muted-foreground tabular-nums')}>
+            {m.split_tool_visible_here({
+              visible: new Intl.NumberFormat(getLocale()).format(zone.viewportEntrances.length),
+              total: new Intl.NumberFormat(getLocale()).format(visibleOf),
+            })}
+          </span>
         )}
         {zone.loading && (
           <span role="status" className={cn(CHIP, 'text-muted-foreground')}>
@@ -266,6 +283,34 @@ function OutlinePolygon({ points }: { points: { lat: number; lng: number }[] }) 
     return () => polygon.setMap(null)
   }, [map, points])
   return null
+}
+
+/** Another territory of the type, on the split tool's map: a grey outline and its number, under the pins. */
+function OtherTerritory({ territory }: { territory: TerritoryOutline }) {
+  const map = useMap()
+  useEffect(() => {
+    if (map == null) return
+    const grey = hexColors.light['fg-faint']
+    const polygon = new google.maps.Polygon({
+      map,
+      paths: territory.outline,
+      clickable: false,
+      strokeColor: grey,
+      strokeOpacity: 0.7,
+      strokeWeight: 1.25,
+      fillColor: grey,
+      fillOpacity: 0.05,
+      zIndex: 0,
+    })
+    return () => polygon.setMap(null)
+  }, [map, territory.outline])
+  return (
+    <AdvancedMarker position={territory.label} zIndex={0} clickable={false}>
+      <span className="pointer-events-none rounded-sm bg-surface/85 px-1.5 py-px font-medium text-muted-foreground text-xs tabular-nums">
+        {territory.number}
+      </span>
+    </AdvancedMarker>
+  )
 }
 
 function boundsOf(points: readonly { lat: number; lng: number }[]): google.maps.LatLngBoundsLiteral {

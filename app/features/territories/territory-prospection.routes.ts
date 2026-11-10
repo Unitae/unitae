@@ -1,14 +1,14 @@
-import { index, prefix, type RouteConfig, route } from '@react-router/dev/routes'
+import { prefix, type RouteConfig, route } from '@react-router/dev/routes'
 
 export const territoryProspection = [
-  route('buildings/split-territories', 'features/territories/routes/split-tool/_layout.tsx', [
-    index('features/territories/routes/split-tool/list.tsx'),
-    route('phones', 'features/territories/routes/split-tool/phones.tsx'),
-    route('hotels', 'features/territories/routes/split-tool/hotels.tsx'),
-    route('commerces', 'features/territories/routes/split-tool/commerces.tsx'),
-    route('campus', 'features/territories/routes/split-tool/university.tsx'),
-    route('create', 'features/territories/routes/split-tool/create.tsx'),
-  ]),
+  // « Créer en lot »: the territory editor's create screen that chains territories.
+  route('buildings/split-territories', 'features/territories/routes/split-tool/batch.tsx'),
+  // The old per-type pages, now a choice of the page above.
+  ...['phones', 'hotels', 'commerces', 'campus'].map(path =>
+    route(`buildings/split-territories/${path}`, 'features/territories/routes/split-tool/legacy-kind.tsx', {
+      id: `split-tool-legacy-${path}`,
+    }),
+  ),
   route('buildings', 'features/territories/routes/prospection/list.tsx'),
   route('buildings/sync', 'features/territories/routes/prospection/sync-buildings.tsx'),
   route('buildings/deactivate', 'features/territories/routes/prospection/deactivate-buildings.tsx'),
