@@ -66,6 +66,7 @@ export function GroupForm({ group, leaders, members, candidates, lastResult, act
     defaultValue: group && { name: group.name, address: group.address },
     onValidate: ({ formData }) => parseWithZod(formData, { schema: createGroupSchema }),
   })
+  const saved = { responsibleId: group?.responsibleId ?? null, deputyId: group?.deputyId ?? null }
   const [responsible, setResponsible] = useState(group ? String(group.responsibleId) : '')
   const [deputy, setDeputy] = useState(group?.deputyId != null ? String(group.deputyId) : '')
   const draft = useGroupMembersDraft({
@@ -74,13 +75,14 @@ export function GroupForm({ group, leaders, members, candidates, lastResult, act
     leaders,
     responsibleId: idOf(responsible),
     deputyId: idOf(deputy),
+    saved,
   })
   const { disabledIds, disabledReason } = groupLeaderAvailability(leaders, group?.id)
   const memberIds = new Set(members.map(member => member.id))
-  // Under a leader field: the group he leaves for this one, if any.
-  const movesFrom = (value: string) => {
+  // Under a leader field changed in the form: the group the one chosen leaves for this one, if any.
+  const movesFrom = (value: string, before: number | null) => {
     const id = idOf(value)
-    const leader = leaders.find(each => each.id === id)
+    const leader = id === before ? undefined : leaders.find(each => each.id === id)
     return leader?.group && !memberIds.has(leader.id)
       ? m.groups_form_leader_moves({ name: formatGroupName(leader.group.name) })
       : undefined
@@ -110,7 +112,7 @@ export function GroupForm({ group, leaders, members, candidates, lastResult, act
         <Field
           id={fields.responsible.id}
           label={m.groups_form_responsible()}
-          hint={movesFrom(responsible)}
+          hint={movesFrom(responsible, saved.responsibleId)}
           error={fields.responsible.errors?.[0]}
         >
           <PersonDropdown
@@ -129,7 +131,7 @@ export function GroupForm({ group, leaders, members, candidates, lastResult, act
         <Field
           id={fields.deputy.id}
           label={m.groups_form_deputy()}
-          hint={movesFrom(deputy)}
+          hint={movesFrom(deputy, saved.deputyId)}
           error={fields.deputy.errors?.[0]}
         >
           <PersonDropdown

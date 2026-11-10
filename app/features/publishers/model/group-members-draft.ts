@@ -35,15 +35,18 @@ export interface GroupMembersDraft {
   /** The overseer and assistant chosen in the form (`null` for none). */
   responsibleId: number | null
   deputyId: number | null
+  /** The overseer and assistant as saved (none for a group being created). */
+  saved: { responsibleId: number | null; deputyId: number | null }
   /** Who was added and removed so far, in order. */
   added: number[]
   removed: number[]
 }
 
 /**
- * The « Proclamateurs » section as the form now stands. The overseer and assistant chosen in the form belong to the
- * group: one who comes from elsewhere shows as added (the save moves them in), and neither can be removed, whatever
- * was staged for them before. What the form posts is the changes only: `added` and `removed`.
+ * The « Proclamateurs » section as the form now stands. The overseer and assistant belong to the group they lead, and
+ * neither can be removed, whatever was staged for them before. One newly chosen in the form from elsewhere shows as
+ * added (the save moves them in); a current one still elsewhere is moved by the save too, but nothing was edited, so
+ * the section says nothing about them. What the form posts is the changes only: `added` and `removed`.
  */
 export function groupMemberRows({
   members,
@@ -51,6 +54,7 @@ export function groupMemberRows({
   leaders,
   responsibleId,
   deputyId,
+  saved,
   added,
   removed,
 }: GroupMembersDraft) {
@@ -62,8 +66,9 @@ export function groupMemberRows({
   const memberIds = new Set(members.map(member => member.id))
   const leaderIds = [responsibleId, deputyId].filter((id): id is number => id != null)
   const removedNow = removed.filter(id => memberIds.has(id) && roleOf(id) == null)
-  // Leaders from elsewhere join with the save itself: they are shown, not posted.
-  const joining = leaderIds.filter(id => !memberIds.has(id) && !added.includes(id))
+  // Leaders newly chosen from elsewhere join with the save itself: they are shown, not posted.
+  const savedLeaders = [saved.responsibleId, saved.deputyId]
+  const joining = leaderIds.filter(id => !memberIds.has(id) && !added.includes(id) && !savedLeaders.includes(id))
   const byId = new Map([...leaders, ...candidates].map(person => [person.id, person]))
 
   const rows: MemberRow[] = [

@@ -238,14 +238,11 @@ function GroupField({
 }) {
   const [group, setGroup] = useState(initial != null ? String(initial) : NO_GROUP)
   const locked = ledGroup != null && ledGroup.id === initial
-  const hint = ledGroup && { name: formatGroupName(ledGroup.name) }
   return (
     <Field
       id="group"
       label={m.publishers_form_field_service_group()}
-      hint={
-        hint && (locked ? m.publishers_form_group_led_hint(hint) : m.publishers_form_group_led_elsewhere_hint(hint))
-      }
+      hint={ledGroupHint(ledGroup, locked)}
       error={error}
     >
       <input type="hidden" name="group" value={group === NO_GROUP ? '' : group} />
@@ -264,6 +261,13 @@ function GroupField({
       </Select>
     </Field>
   )
+}
+
+/** How to move a group's leader: change the group's leaders first, or, still elsewhere, only into their own group. */
+function ledGroupHint(ledGroup: { name: string } | null | undefined, locked: boolean): string | undefined {
+  if (ledGroup == null) return undefined
+  const name = formatGroupName(ledGroup.name)
+  return locked ? m.publishers_form_group_led_hint({ name }) : m.publishers_form_group_led_elsewhere_hint({ name })
 }
 
 interface FieldProps {

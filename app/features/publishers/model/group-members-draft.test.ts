@@ -20,6 +20,7 @@ const BASE: GroupMembersDraft = {
   leaders: [candidate(1, 'Dupont'), candidate(9, 'Perrin', NORD)],
   responsibleId: 1,
   deputyId: null,
+  saved: { responsibleId: 1, deputyId: null },
   added: [],
   removed: [],
 }
@@ -65,6 +66,14 @@ describe('groupMemberRows', () => {
   })
 
   // Swapping leaders and removing the old one in the same edit is allowed; removing the new one is not.
+  // The save still moves a current leader in, but nothing was edited: the form says nothing about it.
+  it('says nothing about a current leader who is in another group until a leader is changed', () => {
+    const draft = groupMemberRows({ ...BASE, deputyId: 9, saved: { responsibleId: 1, deputyId: 9 } })
+
+    expect(draft.rows.map(row => row.person.id)).toEqual([1, 2])
+    expect(draft.total).toBe(2)
+  })
+
   it('keeps a leader chosen in the form even if he was removed before, and frees the one replaced', () => {
     const swapped = groupMemberRows({ ...BASE, responsibleId: 2, removed: [1, 2] })
 
