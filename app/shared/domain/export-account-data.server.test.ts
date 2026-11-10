@@ -12,7 +12,7 @@ const mockDb = {
   consentRecord: { findMany: vi.fn() },
 }
 
-const { exportAccountData } = await import('./export-account-data.server')
+const { accountDataDownload, exportAccountData } = await import('./export-account-data.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -39,7 +39,7 @@ describe('exportAccountData', () => {
         birthDate: new Date('1990-01-01'),
         baptismDate: new Date('2010-06-15'),
         isPublisher: true,
-        type: 'normal',
+        pioneerEnrolments: [],
         isHelder: false,
         isServant: true,
         isAnointed: false,
@@ -112,9 +112,51 @@ describe('exportAccountData', () => {
     expect(result.exportDate).toBeDefined()
   })
 
+  // Regression: the select still asked for Member.type, dropped with the pioneer enrolments. The client rejected
+  // the query at runtime (tsc does not check nested selects), so every export failed with a 500.
+  it('reads the pioneer service from the enrolments, not from the dropped Member.type', async () => {
+    mockDb.userAccount.findUnique.mockResolvedValue(null as never)
+
+    await exportAccountData(mockDb as never, 1, 42).catch(() => undefined)
+
+    const select = mockDb.userAccount.findUnique.mock.calls[0]?.[0]?.select?.member?.select
+    expect(select).not.toHaveProperty('type')
+    expect(select).toHaveProperty('pioneerEnrolments')
+  })
+
+  // Same failure: events still asked for their `kind`, replaced by the programme template.
+  it('names the template of the events the person created, not the dropped Event.kind', async () => {
+    mockDb.userAccount.findUnique.mockResolvedValue({ memberId: null } as never)
+    for (const table of [
+      mockDb.rolePermission,
+      mockDb.event,
+      mockDb.boardDocumentView,
+      mockDb.boardDocumentVersion,
+      mockDb.consentRecord,
+    ]) {
+      table.findMany.mockResolvedValue([] as never)
+    }
+
+    await exportAccountData(mockDb as never, 1, 42)
+
+    const select = mockDb.event.findMany.mock.calls[0]?.[0]?.select
+    expect(select).not.toHaveProperty('kind')
+    expect(select).toHaveProperty('template')
+  })
+
   it('lance une erreur si l utilisateur n existe pas', async () => {
     mockDb.userAccount.findUnique.mockResolvedValue(null as never)
 
     await expect(exportAccountData(mockDb as never, 999, 42)).rejects.toThrow('Utilisateur introuvable : 999')
+  })
+})
+
+describe('accountDataDownload', () => {
+  it('hands the export over as a JSON file named after the account, in no particular language', async () => {
+    const response = accountDataDownload({ exportVersion: '2.0' } as never, 775)
+
+    expect(response.headers.get('Content-Type')).toBe('application/json')
+    expect(response.headers.get('Content-Disposition')).toBe('attachment; filename="unitae-account-775.json"')
+    expect(await response.json()).toEqual({ exportVersion: '2.0' })
   })
 })
