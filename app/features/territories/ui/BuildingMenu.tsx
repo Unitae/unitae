@@ -15,10 +15,12 @@ interface BuildingMenuProps {
   building: { id: number; number: string; street: string; active: boolean }
   canSurvey: boolean
   canManage: boolean
+  /** The survey's address, with the list it was opened from. */
+  surveyTo: string
 }
 
 /** « … » of a building: view it, survey it, and, for who manages buildings, edit its address, deactivate or delete it. */
-export function BuildingMenu({ building, canSurvey, canManage }: BuildingMenuProps) {
+export function BuildingMenu({ building, canSurvey, canManage, surveyTo }: BuildingMenuProps) {
   const fetcher = useFetcher()
   const base = `/territories/building/${building.id}`
   const toggle = building.active ? 'disable' : 'enable'
@@ -44,7 +46,7 @@ export function BuildingMenu({ building, canSurvey, canManage }: BuildingMenuPro
         </DropdownMenuItem>
         {canSurvey && (
           <DropdownMenuItem asChild>
-            <Link to={`${base}/edit-prospection`}>
+            <Link to={surveyTo}>
               <ClipboardList aria-hidden="true" />
               {m.prospection_action_survey()}
             </Link>

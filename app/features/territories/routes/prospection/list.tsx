@@ -10,10 +10,13 @@ import { countBuildingViews, listBuildingPage } from '~/features/territories/ser
 import { getBuildingSyncFacts, getBuildingSyncStatus } from '~/features/territories/server/building-sync.queries'
 import { getZips } from '~/features/territories/server/buildings.server'
 import { BuildingListFooter } from '~/features/territories/ui/BuildingListFooter'
+import { BuildingSelectionBar } from '~/features/territories/ui/BuildingSelectionBar'
 import { BuildingSyncDialog } from '~/features/territories/ui/BuildingSyncDialog'
 import { BuildingSyncStatus } from '~/features/territories/ui/BuildingSyncStatus'
 import { type BuildingListItem, BuildingTable } from '~/features/territories/ui/BuildingTable'
 import { BuildingToolbar } from '~/features/territories/ui/BuildingToolbar'
+import { BuildingViewNote, emptyViewText } from '~/features/territories/ui/BuildingViewNote'
+import { useRowSelection } from '~/features/territories/ui/use-row-selection'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import {
@@ -120,8 +123,10 @@ export function loader({ request, context }: Route.LoaderArgs) {
   })
 }
 
+type LoaderData = Route.ComponentProps['loaderData']
+
 export default function ProspectionList({ loaderData }: Route.ComponentProps) {
-  const { rows, counts, view, canManage } = loaderData
+  const { counts, canManage, sync } = loaderData
   const [, setParams] = useSearchParams()
 
   const chooseView = (next: BuildingView) =>
@@ -143,14 +148,8 @@ export default function ProspectionList({ loaderData }: Route.ComponentProps) {
       </Link>
     </Button>
   )
-  const { sync } = loaderData
-  const actions = ((loaderData.canSync && sync) || create) && (
-    <>
-      {loaderData.canSync && sync && (
-        <BuildingSyncDialog facts={sync.facts} today={loaderData.today} running={sync.run?.status === 'Running'} />
-      )}
-      {create}
-    </>
+  const syncButton = loaderData.canSync && sync && (
+    <BuildingSyncDialog facts={sync.facts} today={loaderData.today} running={sync.run?.status === 'Running'} />
   )
 
   return (
@@ -158,7 +157,14 @@ export default function ProspectionList({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={m.prospection_title()}
         breadcrumbs={[{ label: m.sidebar_prospection() }]}
-        actions={actions || undefined}
+        actions={
+          syncButton || create ? (
+            <>
+              {syncButton}
+              {create}
+            </>
+          ) : undefined
+        }
         meta={
           sync && (
             <BuildingSyncStatus
@@ -170,7 +176,6 @@ export default function ProspectionList({ loaderData }: Route.ComponentProps) {
           )
         }
       />
-
       {counts.all === 0 && !loaderData.filtered ? (
         <EmptyState
           icon={Building2}
@@ -179,62 +184,45 @@ export default function ProspectionList({ loaderData }: Route.ComponentProps) {
           action={create || undefined}
         />
       ) : (
-        <>
-          <BuildingToolbar
-            view={view}
-            counts={counts}
-            onView={chooseView}
-            sort={loaderData.sort}
-            zips={loaderData.zips}
-          />
-          <ViewNote view={view} validity={loaderData.validity} />
-          {rows.length === 0 ? (
-            <p className="rounded-lg border border-border bg-card px-4 py-5 text-muted-foreground text-sm">
-              {loaderData.filtered ? m.prospection_filtered_empty() : emptyViewText(view)}
-            </p>
-          ) : (
-            <>
-              <BuildingTable
-                rows={rows}
-                view={view}
-                today={loaderData.today}
-                canSurvey={loaderData.canSurvey}
-                canManage={canManage}
-              />
-              <BuildingListFooter
-                page={loaderData.page}
-                pages={loaderData.pages}
-                pageSize={loaderData.pageSize}
-                total={loaderData.total}
-              />
-            </>
-          )}
-        </>
+        <BuildingList data={loaderData} onView={chooseView} />
       )}
     </div>
   )
 }
 
-/** What a work list holds and why, under the toolbar. */
-function ViewNote({ view, validity }: { view: BuildingView; validity: number }) {
-  const note =
-    view === 'check'
-      ? validity > 0
-        ? m.prospection_note_check({ months: validity })
-        : m.prospection_note_check_no_validity()
-      : view === 'new'
-        ? m.prospection_note_new()
-        : view === 'missing'
-          ? m.prospection_note_missing()
-          : null
-  return note ? <p className="max-w-3xl text-muted-foreground text-sm">{note}</p> : null
-}
+/** The toolbar, what the view holds, the rows and the footer; the selection bar while rows are ticked. */
+function BuildingList({ data, onView }: { data: LoaderData; onView: (view: BuildingView) => void }) {
+  const { rows, view, canManage } = data
+  const [params] = useSearchParams()
+  const selection = useRowSelection(rows, view === 'missing' && canManage)
 
-function emptyViewText(view: BuildingView): string {
-  if (view === 'check') return m.prospection_view_empty_check()
-  if (view === 'new') return m.prospection_view_empty_new()
-  if (view === 'missing') return m.prospection_view_empty_missing()
-  return m.prospection_view_empty_active()
+  return (
+    <>
+      <BuildingToolbar view={view} counts={data.counts} onView={onView} sort={data.sort} zips={data.zips} />
+      <BuildingViewNote view={view} validity={data.validity} />
+      {rows.length === 0 ? (
+        <p className="rounded-lg border border-border bg-card px-4 py-5 text-muted-foreground text-sm">
+          {data.filtered ? m.prospection_filtered_empty() : emptyViewText(view)}
+        </p>
+      ) : (
+        <>
+          <BuildingTable
+            rows={rows}
+            view={view}
+            today={data.today}
+            canSurvey={data.canSurvey}
+            canManage={canManage}
+            from={params.toString()}
+            selection={selection.enabled ? selection : undefined}
+          />
+          <BuildingListFooter page={data.page} pages={data.pages} pageSize={data.pageSize} total={data.total} />
+          {selection.ids.size > 0 && (
+            <BuildingSelectionBar selected={rows.filter(row => selection.ids.has(row.id))} onClear={selection.clear} />
+          )}
+        </>
+      )}
+    </>
+  )
 }
 
 /** « bano.openstreetmap.fr · bano-93.csv »: the host and the file, as the settings show them. */

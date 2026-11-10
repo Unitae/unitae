@@ -1,4 +1,5 @@
 import { FormSection } from '@unitae/ui'
+import { ArrowRight } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Form } from 'react-router'
 import type { DetailedBuilding } from '~/features/territories/model/detailed-building.type'
@@ -18,10 +19,21 @@ import { AddEntranceSection, CommerceSection, SimpleEntranceSection, UNIQUE_ENTR
 import { ResidentialSection } from './ResidentialSection'
 import type { StreetBuilding } from './SharedAccessField'
 
+/** Opened from « À vérifier » or « Nouveaux »: where the building stands in that list and which one comes next. */
+export interface SurveyWalk {
+  /** The list's query string, carried to the next building. */
+  from: string
+  view: 'check' | 'new'
+  position: number | null
+  total: number
+  nextId: number | null
+}
+
 interface ProspectionFormProps {
   building: DetailedBuilding
   /** Same-street buildings that may share the residential access, or `null` when the viewer may not link. */
   streetBuildings: StreetBuilding[] | null
+  walk?: SurveyWalk | null
 }
 
 /** The prospection form, with its save bar and the leave-without-saving guard. */
@@ -63,7 +75,7 @@ interface BodyProps extends ProspectionFormProps {
   onCancel: () => void
 }
 
-function ProspectionFormBody({ building, streetBuildings, onDirtyChange, onCancel }: BodyProps) {
+function ProspectionFormBody({ building, streetBuildings, walk, onDirtyChange, onCancel }: BodyProps) {
   const { ref, changes } = useFormChanges(countProspectionChanges)
   useEffect(() => onDirtyChange(changes > 0), [changes, onDirtyChange])
 
@@ -147,10 +159,30 @@ function ProspectionFormBody({ building, streetBuildings, onDirtyChange, onCance
 
       {changes > 0 && (
         <FormSaveBar changes={changes}>
+          {walk?.position != null && (
+            <span className="text-faint text-sm tabular-nums max-sm:hidden">
+              {(walk.view === 'check' ? m.prospection_walk_position_check : m.prospection_walk_position_new)({
+                position: walk.position,
+                total: walk.total,
+              })}
+            </span>
+          )}
           <Button type="button" variant="ghost" onClick={onCancel}>
             {m.common_cancel()}
           </Button>
-          <SubmitButton>{m.prospection_edit_prospection_submit()}</SubmitButton>
+          <SubmitButton variant={walk?.nextId != null ? 'outline' : 'default'}>
+            {m.prospection_edit_prospection_submit()}
+          </SubmitButton>
+          {walk?.nextId != null && (
+            <>
+              <input type="hidden" name="next" value={walk.nextId} />
+              <input type="hidden" name="from" value={walk.from} />
+              <SubmitButton name="intent" value="next">
+                {m.prospection_save_and_next()}
+                <ArrowRight aria-hidden="true" />
+              </SubmitButton>
+            </>
+          )}
         </FormSaveBar>
       )}
     </Form>

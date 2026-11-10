@@ -5,6 +5,7 @@ import { commitSession, getSession } from '~/features/authentication/index.serve
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { uniqueTerritories } from '~/features/territories/model/unique-territories'
 import { buildingProspectionSchema } from '~/features/territories/schemas/building-prospection.schema'
+import { findSurveyWalk } from '~/features/territories/server/building-list.queries'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import { getBuildings } from '~/features/territories/server/get-buildings.server'
 import { saveBuildingProspection } from '~/features/territories/server/save-building-prospection.server'
@@ -20,18 +21,20 @@ import {
   requirePermission,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import { getSetting } from '~/shared/domain/settings.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
+import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/edit-building-prospection'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: m.prospection_sync_meta_title() }]
+  return [{ title: m.prospection_meta_title() }]
 }
 
-export function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.CanRecordProspection)
   // Each link and action follows the guard of the page it leads to.
@@ -67,13 +70,25 @@ export function loader({ params, context }: Route.LoaderArgs) {
           .sort((a, b) => a.number.localeCompare(b.number, getLocale(), { numeric: true }))
       : null
 
-    return { building, streetBuildings, rights }
+    // Opened from « À vérifier » or « Nouveaux »: where it stands there, and the building after it.
+    const from = new URL(request.url).searchParams.get('from')
+    const validity = Number((await getSetting(db, TerritorySettingKey.ProspectionValidity, congregationId)) ?? '0')
+    const found = await findSurveyWalk(db, congregationId, {
+      buildingId: building.id,
+      from,
+      validity,
+      locale: getLocale(),
+    })
+    const walk = found && from != null ? { ...found, from } : null
+
+    return { building, streetBuildings, rights, walk }
   })
 }
 
 export default function EditBuildingProspectionPage({ loaderData }: Route.ComponentProps) {
-  const { building, streetBuildings, rights } = loaderData
+  const { building, streetBuildings, rights, walk } = loaderData
   const address = `${building.number} ${building.street}`
+  const list = walk ? `/territories/buildings?${walk.from}` : '/territories/buildings'
 
   return (
     <div className="flex flex-col">
@@ -83,7 +98,7 @@ export default function EditBuildingProspectionPage({ loaderData }: Route.Compon
         subtitle={m.building_header_description()}
         meta={<BuildingMeta building={building} canViewTerritories={rights.canViewTerritories} />}
         breadcrumbs={[
-          { label: m.sidebar_prospection(), to: rights.canViewProspection ? '/territories/buildings' : undefined },
+          { label: m.sidebar_prospection(), to: rights.canViewProspection ? list : undefined },
           { label: address, to: rights.canViewProspection ? `/territories/building/${building.id}/view` : undefined },
           { label: m.building_prospection_crumb() },
         ]}
@@ -101,7 +116,7 @@ export default function EditBuildingProspectionPage({ loaderData }: Route.Compon
           )
         }
       />
-      <ProspectionForm building={building} streetBuildings={streetBuildings} />
+      <ProspectionForm building={building} streetBuildings={streetBuildings} walk={walk} />
     </div>
   )
 }
@@ -113,7 +128,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const buildingId = requireParamId(params.buildingId, '/territories/buildings')
   const previousPage = request.headers.get('referer') ?? `/territories/building/${buildingId}/view`
 
-  const submission = parseWithZod(await request.formData(), { schema: buildingProspectionSchema })
+  const formData = await request.formData()
+  const submission = parseWithZod(formData, { schema: buildingProspectionSchema })
   if (submission.status !== 'success') {
     return data(submission.reply(), { status: 400 })
   }
@@ -138,9 +154,19 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     session.flash('error', m.prospection_edit_prospection_error())
   }
 
-  return redirect(previousPage, {
+  return redirect(nextSurvey(formData) ?? previousPage, {
     headers: {
       'Set-Cookie': await commitSession(session),
     },
   })
+}
+
+/** « Enregistrer et suivant »: the next building's survey, still told which list it walks. */
+function nextSurvey(formData: FormData): string | null {
+  if (formData.get('intent') !== 'next') return null
+  const next = Number(formData.get('next'))
+  if (!Number.isInteger(next) || next <= 0) return null
+  const from = formData.get('from')
+  const query = typeof from === 'string' && from !== '' ? `?from=${encodeURIComponent(from)}` : ''
+  return `/territories/building/${next}/edit-prospection${query}`
 }

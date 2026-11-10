@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildingWorkList, checkDates, type WorkList } from '../model/building-list'
 import { EntranceKind } from '../model/entrance-kind.type'
 import { TerritoryAccess } from '../model/territory-access.type'
-import { countBuildingViews, listBuildingPage } from './building-list.queries'
+import { countBuildingViews, findBuildingNeighbours, findSurveyWalk, listBuildingPage } from './building-list.queries'
 
 const { unscopedDb, withScope } = await import('~/shared/infra/db.server')
 
@@ -177,6 +177,23 @@ describe('listBuildingPage — the work lists', () => {
     expect(page.rows.find(row => row.street === 'intercom without homes')?.reasons).toEqual(['homes-missing'])
   })
 
+  it('walks « À vérifier » and « Nouveaux » from a survey, and no other list', async () => {
+    const stale = await scoped(db =>
+      db.building.findFirstOrThrow({ where: { congregationId, street: 'stale' }, select: { id: true } }),
+    )
+    const walk = (from: string | null) =>
+      scoped(db =>
+        findSurveyWalk(db, congregationId, { buildingId: stale.id, from, validity: 24, locale: 'fr', now: NOW }),
+      )
+    const checkCount = FIXTURES.filter(f => f.expected === 'check').length
+
+    expect(await walk('view=check')).toMatchObject({ view: 'check', total: checkCount })
+    expect((await walk('view=check'))?.position).toBeGreaterThan(0)
+    expect(await walk('view=new')).toMatchObject({ view: 'new', position: null, total: 1 })
+    expect(await walk('view=all')).toBeNull()
+    expect(await walk(null)).toBeNull()
+  })
+
   it('counts every view with the same filters as the list', async () => {
     const counts = await scoped(db =>
       countBuildingViews(db, congregationId, { params: new URLSearchParams(), dates: DATES }),
@@ -223,6 +240,48 @@ describe('listBuildingPage — order, pages and filters', () => {
     expect(first.rows.map(row => row.number)).toEqual(['1', '2', '2 bis'])
     expect(second.rows.map(row => row.number)).toEqual(['10'])
     expect(first).toMatchObject({ total: 4, pages: 2 })
+  })
+
+  it('finds where a building stands in its list and which one comes next, in the list’s order', async () => {
+    const neighbours = (number: string) =>
+      scoped(async db => {
+        const building = await db.building.findFirstOrThrow({ where: { congregationId, street: ROAD, number } })
+        return findBuildingNeighbours(db, congregationId, {
+          view: 'all',
+          params: new URLSearchParams('zip=93310'),
+          sort: 'address',
+          dates: DATES,
+          locale: 'fr',
+          buildingId: building.id,
+        })
+      })
+    const idOf = (number: string) =>
+      scoped(db => db.building.findFirstOrThrow({ where: { congregationId, street: ROAD, number } })).then(b => b.id)
+
+    expect(await neighbours('2')).toEqual({ position: 2, total: 4, nextId: await idOf('2 bis') })
+    expect(await neighbours('10')).toEqual({ position: 4, total: 4, nextId: null })
+  })
+
+  it('offers the first of the list to a building no longer in it', async () => {
+    const outside = await scoped(db =>
+      db.building.findFirstOrThrow({ where: { congregationId, street: 'up to date' }, select: { id: true } }),
+    )
+    const first = await scoped(db =>
+      db.building.findFirstOrThrow({ where: { congregationId, street: ROAD, number: '1' }, select: { id: true } }),
+    )
+
+    expect(
+      await scoped(db =>
+        findBuildingNeighbours(db, congregationId, {
+          view: 'all',
+          params: new URLSearchParams('zip=93310'),
+          sort: 'address',
+          dates: DATES,
+          locale: 'fr',
+          buildingId: outside.id,
+        }),
+      ),
+    ).toEqual({ position: null, total: 4, nextId: first.id })
   })
 
   it('keeps every filter when several are combined', async () => {

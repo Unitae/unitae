@@ -11,6 +11,7 @@ export const territoryProspection = [
   ]),
   route('buildings', 'features/territories/routes/prospection/list.tsx'),
   route('buildings/sync', 'features/territories/routes/prospection/sync-buildings.tsx'),
+  route('buildings/deactivate', 'features/territories/routes/prospection/deactivate-buildings.tsx'),
   // The old list pages, now views of the list above.
   ...['new', 'need-check', 'missing', 'all'].map(path =>
     route(`buildings/${path}`, 'features/territories/routes/prospection/legacy-list.tsx', {

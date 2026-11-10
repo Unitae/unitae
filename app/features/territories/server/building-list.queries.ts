@@ -9,6 +9,9 @@ import {
   buildingCheckReasons,
   buildingState,
   type CheckDates,
+  checkDates,
+  parseBuildingSort,
+  parseBuildingView,
 } from '../model/building-list'
 import { EntranceKind } from '../model/entrance-kind.type'
 import { TerritoryAccess } from '../model/territory-access.type'
@@ -129,7 +132,28 @@ export async function listBuildingPage(db: TransactionClient, congregationId: nu
   const page = Math.min(Math.max(1, options.page), pages)
   const skip = (page - 1) * pageSize
 
-  let ids: number[]
+  const ids = await orderedIds(db, where, sort, locale, { skip, take: pageSize })
+
+  const buildings = await db.building.findMany({ where: { id: { in: ids }, congregationId }, select: ROW_SELECT })
+  const byId = new Map(buildings.map(building => [building.id, building]))
+  const rows = ids.flatMap(id => {
+    const building = byId.get(id)
+    return building ? [toRow(building, dates)] : []
+  })
+  return { rows, total, page, pages, pageSize }
+}
+
+/**
+ * The list's ids in its order, or one page of them. « Adresse » sorts the whole filtered set's keys in memory, so
+ * numbers read the way people say them (2 before 10) across pages.
+ */
+async function orderedIds(
+  db: TransactionClient,
+  where: Prisma.BuildingWhereInput,
+  sort: BuildingSort,
+  locale: string,
+  page?: { skip: number; take: number },
+): Promise<number[]> {
   if (sort === 'address') {
     const keys = await db.building.findMany({
       where,
@@ -141,23 +165,35 @@ export async function listBuildingPage(db: TransactionClient, congregationId: nu
         a.number.localeCompare(b.number, locale, { numeric: true, sensitivity: 'base' }) ||
         a.zip.localeCompare(b.zip),
     )
-    ids = keys.slice(skip, skip + pageSize).map(key => key.id)
-  } else {
-    const orderBy: Prisma.BuildingOrderByWithRelationInput[] =
-      sort === 'oldest'
-        ? [{ prospectionDate: { sort: 'asc', nulls: 'first' } }, { id: 'asc' }]
-        : [{ createdAt: 'desc' }, { id: 'desc' }]
-    const found = await db.building.findMany({ where, select: { id: true }, orderBy, skip, take: pageSize })
-    ids = found.map(row => row.id)
+    const ids = keys.map(key => key.id)
+    return page ? ids.slice(page.skip, page.skip + page.take) : ids
   }
+  const orderBy: Prisma.BuildingOrderByWithRelationInput[] =
+    sort === 'oldest'
+      ? [{ prospectionDate: { sort: 'asc', nulls: 'first' } }, { id: 'asc' }]
+      : [{ createdAt: 'desc' }, { id: 'desc' }]
+  const found = await db.building.findMany({ where, select: { id: true }, orderBy, ...page })
+  return found.map(row => row.id)
+}
 
-  const buildings = await db.building.findMany({ where: { id: { in: ids }, congregationId }, select: ROW_SELECT })
-  const byId = new Map(buildings.map(building => [building.id, building]))
-  const rows = ids.flatMap(id => {
-    const building = byId.get(id)
-    return building ? [toRow(building, dates)] : []
-  })
-  return { rows, total, page, pages, pageSize }
+interface NeighbourOptions extends Omit<ListOptions, 'page' | 'pageSize'> {
+  buildingId: number
+}
+
+/**
+ * Where a building stands in a view, filters and order included, and the one after it: « Enregistrer et suivant »
+ * walks a list without going back to it. A building no longer in the view (just surveyed, say) leads to the first.
+ */
+export async function findBuildingNeighbours(db: TransactionClient, congregationId: number, options: NeighbourOptions) {
+  const { view, params, sort, dates, locale, buildingId } = options
+  const where: Prisma.BuildingWhereInput = { AND: [{ congregationId }, viewWhere(view, dates), computeFilters(params)] }
+  const ids = await orderedIds(db, where, sort, locale)
+  const index = ids.indexOf(buildingId)
+  return {
+    position: index === -1 ? null : index + 1,
+    total: ids.length,
+    nextId: (index === -1 ? ids[0] : ids[index + 1]) ?? null,
+  }
 }
 
 /** How many buildings each view holds, with the same filters as the list. */
@@ -203,4 +239,34 @@ function toRow(building: SelectedBuilding, dates: CheckDates): BuildingListRow {
     territory: territory ? { id: territory.id, number: territory.number } : null,
     reasons: buildingCheckReasons(building, dates),
   }
+}
+
+interface SurveyWalkOptions {
+  buildingId: number
+  /** The list's query string the survey was opened from, e.g. `view=check&zip=93260`. */
+  from: string | null
+  /** The congregation's prospection validity, in months. */
+  validity: number
+  locale: string
+  now?: Date
+}
+
+/**
+ * Where a survey opened from « À vérifier » or « Nouveaux » stands in that list, and the building after it. Null for
+ * any other list, or when the survey was not opened from one.
+ */
+export async function findSurveyWalk(db: TransactionClient, congregationId: number, options: SurveyWalkOptions) {
+  if (options.from == null) return null
+  const params = new URLSearchParams(options.from)
+  const view = parseBuildingView(params)
+  if (view !== 'check' && view !== 'new') return null
+  const neighbours = await findBuildingNeighbours(db, congregationId, {
+    view,
+    params,
+    sort: parseBuildingSort(params),
+    dates: checkDates(options.validity, options.now),
+    locale: options.locale,
+    buildingId: options.buildingId,
+  })
+  return { view, ...neighbours }
 }
