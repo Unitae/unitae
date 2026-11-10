@@ -30,6 +30,11 @@ export const entranceSelect = {
   phones: true,
   liberals: true,
   shopKind: true,
+  access: true,
+  accesses: { select: { type: true }, orderBy: { position: 'asc' } },
+  isPMR: true,
+  isOpenEarly: true,
+  isMailboxOpen: true,
   buildings: {
     where: { active: true },
     select: { id: true, number: true, street: true, zip: true, prospectionDate: true },
@@ -57,6 +62,11 @@ export function editorEntrance(row: EntranceRow): EditorEntrance | null {
     shopKind: row.shopKind,
     buildingId: first.id,
     prospectionDate: first.prospectionDate?.toISOString() ?? null,
+    access: row.access,
+    accesses: row.accesses,
+    isPMR: row.isPMR,
+    isOpenEarly: row.isOpenEarly,
+    isMailboxOpen: row.isMailboxOpen,
   }
 }
 

@@ -9,6 +9,7 @@ import { useForeignTerritoryContent } from '~/features/territories/ui/use-foreig
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
+import { entranceAccessLabels } from '../entrance-access-labels'
 import { EditorPin } from './EditorPin'
 import { addressOf, contentText } from './editor-labels'
 import type { MapEntrance } from './editor-map-entrance'
@@ -36,6 +37,7 @@ export function EditorEntranceCard(props: EditorEntranceCardProps) {
   const foreign = useForeignTerritoryContent(other?.id ?? null)
   const content = foreign.status === 'ready' ? foreign.content : null
   const title = addressOf(entrance)
+  const access = entranceAccessLabels(entrance)
 
   const facts = [
     kind === TerritoryKindKey.Commerces
@@ -58,6 +60,7 @@ export function EditorEntranceCard(props: EditorEntranceCardProps) {
         <div className="flex min-w-0 flex-1 flex-col gap-0.5 pt-1">
           <span className="font-semibold tabular-nums">{title}</span>
           <span className="text-faint text-sm tabular-nums">{facts.join(' · ')}</span>
+          {access.length > 0 && <span className="text-muted-foreground text-sm">{access.join(' · ')}</span>}
         </div>
         <Button
           type="button"
