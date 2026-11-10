@@ -1,11 +1,15 @@
+import { useSearchParams } from 'react-router'
+
 import type { AssignableSort, AssignableView } from '~/features/territories/model/assignable-territories'
 import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
-import { FilterBar } from '~/shared/ui/filters/FilterBar'
-import { FilterMenu } from '~/shared/ui/filters/FilterMenu'
+import { FilterChipBar } from '~/shared/ui/filters/FilterChipBar'
+import { FiltersPopover } from '~/shared/ui/filters/FiltersPopover'
+import { activeFilterChips, type FilterField } from '~/shared/ui/filters/filter-fields'
 import { QuickViews } from '~/shared/ui/QuickViews'
 import { SearchInput } from '~/shared/ui/SearchInput'
 
+import { ListToolbar } from './ListToolbar'
 import { territoryKindLabel } from './my-territory-labels'
 import { SortMenu } from './SortMenu'
 
@@ -19,22 +23,22 @@ interface AssignableToolbarProps {
   kinds: TerritoryKindKey[]
 }
 
-/** The search and the kind of territory, then « Disponibles / Tous » and the order. Everything lives in the URL. */
+/** Search, « Disponibles / Tous », « Filtres » (the kind) and the order on one row; the active filters below. */
 export function AssignableToolbar({ view, counts, onView, sort, proximity, kinds }: AssignableToolbarProps) {
+  const [params] = useSearchParams()
+  const fields: FilterField[] = [
+    {
+      param: 'type',
+      label: m.attributions_assign_filter_kind(),
+      allLabel: m.attributions_assign_filter_kind_all(),
+      options: kinds.map(kind => ({ value: kind, label: territoryKindLabel(kind) })),
+    },
+  ]
+
   return (
-    <div className="flex flex-col gap-2.5">
-      <FilterBar paramNames={['search', 'type']}>
-        <div className="min-w-[200px] flex-[0_1_280px] max-md:basis-full">
-          <SearchInput paramName="search" placeholder={m.attributions_assign_search_placeholder()} />
-        </div>
-        <FilterMenu
-          paramName="type"
-          label={m.attributions_assign_filter_kind()}
-          allLabel={m.attributions_assign_filter_kind_all()}
-          options={kinds.map(kind => ({ value: kind, label: territoryKindLabel(kind) }))}
-        />
-      </FilterBar>
-      <div className="flex flex-wrap items-center gap-2">
+    <ListToolbar
+      search={<SearchInput paramName="search" placeholder={m.attributions_assign_search_placeholder()} />}
+      views={
         <QuickViews
           label={m.attributions_assign_views_label()}
           views={[
@@ -44,7 +48,9 @@ export function AssignableToolbar({ view, counts, onView, sort, proximity, kinds
           value={view}
           onChoose={onView}
         />
-        <span className="flex-1" />
+      }
+      filters={<FiltersPopover fields={fields} />}
+      sort={
         <SortMenu
           value={sort}
           options={[
@@ -53,7 +59,8 @@ export function AssignableToolbar({ view, counts, onView, sort, proximity, kinds
             ...(proximity ? [{ value: 'proximity' as const, label: m.attributions_sort_proximity() }] : []),
           ]}
         />
-      </div>
-    </div>
+      }
+      chips={<FilterChipBar chips={activeFilterChips(fields, params)} clearParams={['type']} />}
+    />
   )
 }

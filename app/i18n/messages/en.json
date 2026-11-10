@@ -3683,7 +3683,7 @@
     "attributions_assign_resting": "Resting, free on {date}",
     "attributions_assign_row": "Assign territory {number}",
     "attributions_assign_row_button": "Assign",
-    "attributions_assign_search_placeholder": "Number, street or @address…",
+    "attributions_assign_search_placeholder": "Number or street…",
     "attributions_assign_sort_last": "Last assignment",
     "attributions_assign_subtitle": "The least recently assigned first. Search an address with @ to sort by distance.",
     "attributions_assign_title": "Assign a territory",
@@ -3709,7 +3709,7 @@
     "attributions_filter_group": "Group",
     "attributions_filter_group_all": "All groups",
     "attributions_filter_mode": "Method",
-    "attributions_filter_mode_all": "All methods",
+    "attributions_filter_mode_all": "All",
     "attributions_filtered_empty": "No assignment matches these filters.",
     "attributions_former_publisher": "Former publisher",
     "attributions_open_row": "Open the assignment of {number} to {name}",
@@ -3772,7 +3772,7 @@
     "attributions_return_title": "Return territory {number}",
     "attributions_row_resume": "Resume",
     "attributions_row_return": "Return…",
-    "attributions_search_placeholder": "Name, number or @address…",
+    "attributions_search_placeholder": "Name or number…",
     "attributions_sort_date": "Assigned",
     "attributions_sort_label": "Sort:",
     "attributions_sort_number": "Number",
@@ -3792,5 +3792,8 @@
     "attributions_view_orphaned": "No holder",
     "attributions_view_paused": "Paused",
     "attributions_views_label": "Assignments",
-    "sidebar_campaigns": "Campaigns"
+    "sidebar_campaigns": "Campaigns",
+    "filters_button": "Filters",
+    "filters_button_active": "Filters, {count} on",
+    "filters_clear": "Clear the filters"
 }

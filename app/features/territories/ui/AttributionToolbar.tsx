@@ -1,16 +1,17 @@
+import { useSearchParams } from 'react-router'
+
 import type { AttributionSort, AttributionView } from '~/features/territories/model/attribution-list'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import * as m from '~/i18n/paraglide/messages'
-import { FilterBar } from '~/shared/ui/filters/FilterBar'
-import { FilterMenu } from '~/shared/ui/filters/FilterMenu'
+import { FilterChipBar } from '~/shared/ui/filters/FilterChipBar'
+import { FiltersPopover } from '~/shared/ui/filters/FiltersPopover'
+import { activeFilterChips, type FilterField } from '~/shared/ui/filters/filter-fields'
 import { QuickViews } from '~/shared/ui/QuickViews'
 import { SearchInput } from '~/shared/ui/SearchInput'
 import { formatGroupName } from '~/shared/utils/format-group-name'
 
+import { ListToolbar } from './ListToolbar'
 import { SortMenu } from './SortMenu'
-
-/** The filters that narrow the query: the search, the method, the campaign, the group. */
-export const ATTRIBUTION_PARAMS = ['search', 'type', 'campaign', 'group'] as const
 
 interface AttributionToolbarProps {
   view: AttributionView
@@ -24,62 +25,30 @@ interface AttributionToolbarProps {
   campaigns: { id: number; name: string }[]
 }
 
-/** The search and the filters on one row, the quick views and the order on the next. Everything lives in the URL. */
+/** Search, the quick views, « Filtres » (method, campaign, group) and the order on one row; the active filters below. */
 export function AttributionToolbar(props: AttributionToolbarProps) {
   const { view, counts, onView, sort, proximity, phoneMethod, groups, campaigns } = props
-  const views: { value: AttributionView; label: string }[] = [
-    { value: 'all', label: m.attributions_view_all() },
-    { value: 'late', label: m.attributions_view_late() },
-    { value: 'paused', label: m.attributions_view_paused() },
-    { value: 'orphaned', label: m.attributions_view_orphaned() },
-  ]
+  const [params] = useSearchParams()
+  const fields = attributionFilterFields({ phoneMethod, groups, campaigns })
 
   return (
-    <div className="flex flex-col gap-2.5">
-      <FilterBar paramNames={ATTRIBUTION_PARAMS}>
-        <div className="min-w-[200px] flex-[0_1_280px] max-md:basis-full">
-          <SearchInput paramName="search" placeholder={m.attributions_search_placeholder()} />
-        </div>
-        {phoneMethod && (
-          <FilterMenu
-            paramName="type"
-            label={m.attributions_filter_mode()}
-            allLabel={m.attributions_filter_mode_all()}
-            options={[
-              { value: TerritoryAttributionKind.Default, label: m.attributions_panel_mode_default() },
-              { value: TerritoryAttributionKind.Phone, label: m.attributions_panel_mode_phone() },
-            ]}
-          />
-        )}
-        {campaigns.length > 0 && (
-          <FilterMenu
-            paramName="campaign"
-            label={m.attributions_filter_campaign()}
-            allLabel={m.attributions_filter_campaign_all()}
-            options={[
-              { value: 'outside', label: m.attributions_filter_campaign_outside() },
-              { value: 'any', label: m.attributions_filter_campaign_any() },
-              ...campaigns.map(campaign => ({ value: String(campaign.id), label: campaign.name })),
-            ]}
-          />
-        )}
-        {groups.length > 0 && (
-          <FilterMenu
-            paramName="group"
-            label={m.attributions_filter_group()}
-            allLabel={m.attributions_filter_group_all()}
-            options={groups.map(group => ({ value: String(group.id), label: formatGroupName(group.name) }))}
-          />
-        )}
-      </FilterBar>
-      <div className="flex flex-wrap items-center gap-2">
+    <ListToolbar
+      search={<SearchInput paramName="search" placeholder={m.attributions_search_placeholder()} />}
+      views={
         <QuickViews
           label={m.attributions_views_label()}
-          views={views.map(option => ({ ...option, count: counts[option.value] }))}
+          views={[
+            { value: 'all', label: m.attributions_view_all(), count: counts.all },
+            { value: 'late', label: m.attributions_view_late(), count: counts.late },
+            { value: 'paused', label: m.attributions_view_paused(), count: counts.paused },
+            { value: 'orphaned', label: m.attributions_view_orphaned(), count: counts.orphaned },
+          ]}
           value={view}
           onChoose={onView}
         />
-        <span className="flex-1" />
+      }
+      filters={<FiltersPopover fields={fields} />}
+      sort={
         <SortMenu
           value={sort}
           options={[
@@ -88,7 +57,48 @@ export function AttributionToolbar(props: AttributionToolbarProps) {
             ...(proximity ? [{ value: 'proximity' as const, label: m.attributions_sort_proximity() }] : []),
           ]}
         />
-      </div>
-    </div>
+      }
+      chips={<FilterChipBar chips={activeFilterChips(fields, params)} clearParams={fields.map(field => field.param)} />}
+    />
   )
+}
+
+function attributionFilterFields({
+  phoneMethod,
+  groups,
+  campaigns,
+}: Pick<AttributionToolbarProps, 'phoneMethod' | 'groups' | 'campaigns'>): FilterField[] {
+  const fields: FilterField[] = []
+  if (phoneMethod) {
+    fields.push({
+      param: 'type',
+      label: m.attributions_filter_mode(),
+      allLabel: m.attributions_filter_mode_all(),
+      options: [
+        { value: TerritoryAttributionKind.Default, label: m.attributions_panel_mode_default() },
+        { value: TerritoryAttributionKind.Phone, label: m.attributions_panel_mode_phone() },
+      ],
+    })
+  }
+  if (campaigns.length > 0) {
+    fields.push({
+      param: 'campaign',
+      label: m.attributions_filter_campaign(),
+      allLabel: m.attributions_filter_campaign_all(),
+      options: [
+        { value: 'outside', label: m.attributions_filter_campaign_outside() },
+        { value: 'any', label: m.attributions_filter_campaign_any() },
+        ...campaigns.map(campaign => ({ value: String(campaign.id), label: campaign.name })),
+      ],
+    })
+  }
+  if (groups.length > 0) {
+    fields.push({
+      param: 'group',
+      label: m.attributions_filter_group(),
+      allLabel: m.attributions_filter_group_all(),
+      options: groups.map(group => ({ value: String(group.id), label: formatGroupName(group.name) })),
+    })
+  }
+  return fields
 }

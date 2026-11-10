@@ -3683,7 +3683,7 @@
     "attributions_assign_resting": "Au repos, libre le {date}",
     "attributions_assign_row": "Attribuer le territoire {number}",
     "attributions_assign_row_button": "Attribuer",
-    "attributions_assign_search_placeholder": "Numéro, rue ou @adresse…",
+    "attributions_assign_search_placeholder": "Numéro ou rue…",
     "attributions_assign_sort_last": "Dernière attribution",
     "attributions_assign_subtitle": "Les moins récemment attribués d’abord. Cherchez une adresse avec @ pour trier par proximité.",
     "attributions_assign_title": "Attribuer un territoire",
@@ -3709,7 +3709,7 @@
     "attributions_filter_group": "Groupe",
     "attributions_filter_group_all": "Tous les groupes",
     "attributions_filter_mode": "Mode",
-    "attributions_filter_mode_all": "Tous les modes",
+    "attributions_filter_mode_all": "Tous",
     "attributions_filtered_empty": "Aucune attribution ne correspond à ces filtres.",
     "attributions_former_publisher": "Ancien proclamateur",
     "attributions_open_row": "Ouvrir l’attribution de {number} à {name}",
@@ -3772,7 +3772,7 @@
     "attributions_return_title": "Rentrer le territoire {number}",
     "attributions_row_resume": "Reprendre",
     "attributions_row_return": "Rentrer…",
-    "attributions_search_placeholder": "Nom, numéro ou @adresse…",
+    "attributions_search_placeholder": "Nom ou numéro…",
     "attributions_sort_date": "Sortie",
     "attributions_sort_label": "Trier :",
     "attributions_sort_number": "Numéro",
@@ -3792,5 +3792,8 @@
     "attributions_view_orphaned": "Sans titulaire",
     "attributions_view_paused": "En pause",
     "attributions_views_label": "Attributions",
-    "sidebar_campaigns": "Campagnes"
+    "sidebar_campaigns": "Campagnes",
+    "filters_button": "Filtres",
+    "filters_button_active": "Filtres, {count} actifs",
+    "filters_clear": "Effacer les filtres"
 }
