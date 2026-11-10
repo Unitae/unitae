@@ -318,19 +318,23 @@ The *Phones* category is only visible if phone territories are enabled in settin
 
 ### Workflow
 
-1. Navigate to **Territories > Prospecting > Splitting tool**
-2. A dashboard shows the number of available entrances per category
-3. Click a category to see the matching entrances
-4. Select the entrances to include
-5. Create the territory — the system assigns the next available number and validates the territory limit
+*Créer en lot* is the bulk counterpart of *Nouveau territoire*: the same screen, built from the territory editor's pieces, that chains territories.
 
-Only building entrances that are active, prospected, and not already assigned to a territory of the target type are shown.
+1. Open **Créer en lot** from the top bar of *Territoires*.
+2. Choose the type in the column; each shows how many free entrances it has. The map shows those free entrances.
+3. Narrow the work with the filters (postcode, way in, street): they decide both the map's entrances and the counts, so several people can split at the same time, each a part.
+4. Click the free entrances of the next territory (or add, from the column, the free entrances no map can show). The column lists them by street with the territory's content.
+5. **Créer T16** creates the territory with the suggested number (it can be changed) and checks the plan's territory limit. The page stays: the selection starts again, the next number is suggested, and *Créés ici* lists the territories made during the visit.
+
+If someone else took one of the chosen entrances, or the number, in the meantime, the creation is refused and says so; the selection stays. Without a Google Maps key, the entrances are found by number, street or postcode.
+
+Only building entrances that are active, prospected, fit for the type and not already in a territory of that type are offered.
 
 ## Maps
 
 When a Google Maps API key is configured, Unitae displays:
 
-- **Interactive maps** on the personal territory view, the admin view, the map editor, the split tool previews, and the territory creation preview
+- **Interactive maps** on the personal territory view, the admin view, the territory editor and the bulk creation tool
 - **Map images** in PDF territory card exports — overlaid with the assembly's perimeter and zones (see [Carte de l'assemblée](#carte-de-lassemblée))
 
 Maps are optional — all territory features work without them. See [Environment Variables](../self-hosting/environment-variables.md) for configuration.
@@ -339,7 +343,7 @@ Maps are optional — all territory features work without them. See [Environment
 
 A single visual language is shared across every on-screen map:
 
-- **Read-only views** (personal view, admin view, split tool previews, new-territory preview) use a **blue circle with a checkmark** — "this address belongs to the territory you are looking at." Green / grey / red are not used here because these views show only the territory's own addresses.
+- **Read-only views** (personal view, admin view) use a **blue circle with a checkmark** — "this address belongs to the territory you are looking at." Green / grey / red are not used here because these views show only the territory's own addresses.
 - **The map editor** adds the full state palette (blue / green / grey / red) — see [Territory Editor](#territory-editor) above.
 - **PDF territory cards** keep their **yellow** marker. The on-screen blue identity does not apply to print: yellow is more readable on photocopies and stays distinct from the colored zones drawn on the same page.
 

@@ -5,7 +5,7 @@ import { getLocale } from '~/i18n/paraglide/runtime'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 import { entranceKindForTerritoryType } from './buildings.server'
-import { mapVisibleWhere } from './map-visibility'
+import { availableForCreateWhere, mapVisibleWhere } from './map-visibility'
 
 export interface EditorTerritory {
   id: number
@@ -21,7 +21,8 @@ const SEARCH_MIN = 2
 const WORDS = /\s+/
 const SEARCH_LIMIT = 12
 
-const entranceSelect = {
+/** What the editor reads of an entrance; `editorEntrance` turns it into what it shows. */
+export const entranceSelect = {
   id: true,
   latitude: true,
   longitude: true,
@@ -29,6 +30,11 @@ const entranceSelect = {
   phones: true,
   liberals: true,
   shopKind: true,
+  access: true,
+  accesses: { select: { type: true }, orderBy: { position: 'asc' } },
+  isPMR: true,
+  isOpenEarly: true,
+  isMailboxOpen: true,
   buildings: {
     where: { active: true },
     select: { id: true, number: true, street: true, zip: true, prospectionDate: true },
@@ -36,9 +42,9 @@ const entranceSelect = {
   },
 } satisfies Prisma.BuildingEntranceSelect
 
-type EntranceRow = Prisma.BuildingEntranceGetPayload<{ select: typeof entranceSelect }>
+export type EntranceRow = Prisma.BuildingEntranceGetPayload<{ select: typeof entranceSelect }>
 
-function editorEntrance(row: EntranceRow): EditorEntrance | null {
+export function editorEntrance(row: EntranceRow): EditorEntrance | null {
   const [first] = row.buildings
   if (first == null) return null
   return {
@@ -56,6 +62,11 @@ function editorEntrance(row: EntranceRow): EditorEntrance | null {
     shopKind: row.shopKind,
     buildingId: first.id,
     prospectionDate: first.prospectionDate?.toISOString() ?? null,
+    access: row.access,
+    accesses: row.accesses,
+    isPMR: row.isPMR,
+    isOpenEarly: row.isOpenEarly,
+    isMailboxOpen: row.isMailboxOpen,
   }
 }
 
@@ -95,6 +106,8 @@ export interface EditorSearchInput {
   territoryId: number | null
   query: string
   phoneTypeActive: boolean
+  /** The split tool: only the entrances it may take, free of any territory of the type (as its map shows them). */
+  freeOnly?: boolean
 }
 
 /**
@@ -104,7 +117,7 @@ export interface EditorSearchInput {
 export async function searchEditorEntrances(
   db: TransactionClient,
   congregationId: number,
-  { kind, territoryId, query, phoneTypeActive }: EditorSearchInput,
+  { kind, territoryId, query, phoneTypeActive, freeOnly = false }: EditorSearchInput,
 ): Promise<EditorSearchResult[]> {
   const words = query.trim().split(WORDS).filter(Boolean)
   if (query.trim().length < SEARCH_MIN) return []
@@ -114,7 +127,9 @@ export async function searchEditorEntrances(
       congregationId,
       kind: entranceKindForTerritoryType[kind],
       AND: [
-        mapVisibleWhere(kind, null, { phoneTypeActive }),
+        freeOnly
+          ? availableForCreateWhere(kind, { phoneTypeActive })
+          : mapVisibleWhere(kind, null, { phoneTypeActive }),
         ...(territoryId != null ? [{ territories: { none: { id: territoryId } } }] : []),
         ...words.map(word => ({
           buildings: {

@@ -15,6 +15,7 @@ import MapSearchBox from '~/features/territories/ui/MapSearchBox'
 import { type Bbox, useBboxEntrances } from '~/features/territories/ui/map/use-bbox-entrances'
 import { useMarkerClusterer } from '~/features/territories/ui/use-marker-clusterer'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import MapConsentBanner, { useMapConsent } from '~/shared/ui/MapConsentBanner'
 import { cn } from '~/shared/utils/utils'
 import { EditorPin } from './EditorPin'
@@ -52,6 +53,8 @@ interface EditorMapProps {
   hint: string | null
   legend: ReactNode
   card: ReactNode
+  /** The split tool: how many free entrances there are in all, for « 42 sur 412 visibles ici ». */
+  visibleOf?: number
   onSelect: (entrance: MapEntrance) => void
   onHover: (id: number | null) => void
   className?: string
@@ -120,6 +123,7 @@ function MapLayer({
   focus,
   hint,
   legend,
+  visibleOf,
   onSelect,
   onHover,
 }: EditorMapProps) {
@@ -196,6 +200,14 @@ function MapLayer({
         <MapSearchBox candidates={entrances} onSelect={id => onSelectById(entrances, id, onSelect, map)} />
         {hint != null && (
           <span className="rounded-md bg-foreground px-2.5 py-1.5 text-background text-xs shadow-md">{hint}</span>
+        )}
+        {visibleOf != null && !zone.loading && (
+          <span className={cn(CHIP, 'text-muted-foreground tabular-nums')}>
+            {m.split_tool_visible_here({
+              visible: new Intl.NumberFormat(getLocale()).format(zone.viewportEntrances.length),
+              total: new Intl.NumberFormat(getLocale()).format(visibleOf),
+            })}
+          </span>
         )}
         {zone.loading && (
           <span role="status" className={cn(CHIP, 'text-muted-foreground')}>

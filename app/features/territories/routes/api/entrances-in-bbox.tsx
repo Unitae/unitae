@@ -18,10 +18,15 @@ const logger = createLogger('entrances-in-bbox')
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.CanManageTerritories)
-
   const url = new URL(request.url)
   const params = parseEntrancesInBboxParams(url.searchParams)
+  // The split tool's map is read by who may split territories (and see them), not only by who manages them.
+  const splitting =
+    params?.mode === 'create' &&
+    permissions.has(Permission.CanPlanTerritorySplits) &&
+    permissions.has(Permission.CanViewTerritories)
+  if (!splitting) requirePermission(permissions, Permission.CanManageTerritories)
+
   if (params == null) {
     return data({ error: 'invalid_params' }, { status: 400 })
   }
@@ -48,7 +53,15 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       if (params.mode === 'new') {
         return getEntrancesInBbox(db, congregationId, null, params.kind, params.bbox, { phoneTypeActive })
       }
-      return getAvailableEntrancesInBbox(db, congregationId, params.kind, params.bbox, { phoneTypeActive })
+      // The split tool: the free entrances, within its filters.
+      return getAvailableEntrancesInBbox(
+        db,
+        congregationId,
+        params.kind,
+        params.bbox,
+        { phoneTypeActive },
+        params.filters,
+      )
     })
   } catch (error) {
     // Framework redirects (thrown Response) and domain-level AppErrors must bubble to their proper

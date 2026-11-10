@@ -1,6 +1,7 @@
 import type { Prisma } from '~/database/generated/client'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
+import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 
 /**
  * Which entrances appear on the territory edit map, as a Prisma `where` fragment.
@@ -126,4 +127,29 @@ function accessClauseForCreate(
       throw new Error(`Unhandled TerritoryKindKey in accessClauseForCreate: ${String(exhaustiveCheck)}`)
     }
   }
+}
+
+/** The split tool's filters: who works on which postcode, way in or street. Empty values filter nothing. */
+export interface FreeEntranceFilters {
+  zip?: string | null
+  access?: number | null
+  street?: string | null
+}
+
+/**
+ * The split tool's filters as a `where` fragment on entrances, to AND with `availableForCreateWhere`: they decide the
+ * free entrances the map shows and the counts beside the type, so several people can split at once, each a part.
+ */
+export function freeEntranceFilterWhere({
+  zip,
+  access,
+  street,
+}: FreeEntranceFilters): Prisma.BuildingEntranceWhereInput {
+  const conditions: Prisma.BuildingEntranceWhereInput[] = []
+  if (zip) conditions.push({ buildings: { some: { zip } } })
+  if (access != null) conditions.push({ OR: [{ access }, { accesses: { some: { type: access } } }] })
+  const streetText = street?.trim() ?? ''
+  if (streetText !== '')
+    conditions.push({ buildings: { some: { streetNormalized: { contains: stripDiacritics(streetText) } } } })
+  return conditions.length > 0 ? { AND: conditions } : {}
 }

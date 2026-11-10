@@ -13,6 +13,12 @@ export interface EditorEntrance {
   /** The first building: where « Bâtiment » leads. */
   buildingId: number
   prospectionDate: string | null
+  /** How to get in, for the entrance card: the main way in, the others, and what they allow. */
+  access?: number | null
+  accesses?: { type: number }[]
+  isPMR?: boolean | null
+  isOpenEarly?: boolean | null
+  isMailboxOpen?: boolean | null
 }
 
 /** An entrance found by the editor's search: on a territory of the editor's type already, or free. */
