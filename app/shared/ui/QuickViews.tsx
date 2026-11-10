@@ -14,20 +14,23 @@ interface QuickViewsProps<V extends string> {
   views: QuickView<V>[]
   value: V
   onChoose: (value: V) => void
+  /** `md` (the default) is as tall as the search field and the buttons beside it; `sm` sits in a section heading. */
+  size?: 'sm' | 'md'
   className?: string
 }
 
 /**
  * A list's quick views, each with how many items it holds. From the tablet up, the design system's segmented control,
- * small, the count faint after the label (two to five views, as the control takes). On a phone its equal segments no
+ * the count faint after the label (two to five views, as the control takes). On a phone its equal segments no
  * longer fit, so the views become a row of chips that scrolls sideways, as the phone mockups draw them.
  */
-export function QuickViews<V extends string>({ label, views, value, onChoose, className }: QuickViewsProps<V>) {
+export function QuickViews<V extends string>(props: QuickViewsProps<V>) {
+  const { label, views, value, onChoose, size = 'md', className } = props
   return (
     <>
       <SegmentedControl
         aria-label={label}
-        size="sm"
+        size={size}
         value={value}
         onValueChange={onChoose}
         // As wide as its views, also where the parent stretches its children (a column).
