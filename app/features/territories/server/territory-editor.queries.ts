@@ -5,7 +5,7 @@ import { getLocale } from '~/i18n/paraglide/runtime'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 import { entranceKindForTerritoryType } from './buildings.server'
-import { mapVisibleWhere } from './map-visibility'
+import { availableForCreateWhere, mapVisibleWhere } from './map-visibility'
 
 export interface EditorTerritory {
   id: number
@@ -106,6 +106,8 @@ export interface EditorSearchInput {
   territoryId: number | null
   query: string
   phoneTypeActive: boolean
+  /** The split tool: only the entrances it may take, free of any territory of the type (as its map shows them). */
+  freeOnly?: boolean
 }
 
 /**
@@ -115,7 +117,7 @@ export interface EditorSearchInput {
 export async function searchEditorEntrances(
   db: TransactionClient,
   congregationId: number,
-  { kind, territoryId, query, phoneTypeActive }: EditorSearchInput,
+  { kind, territoryId, query, phoneTypeActive, freeOnly = false }: EditorSearchInput,
 ): Promise<EditorSearchResult[]> {
   const words = query.trim().split(WORDS).filter(Boolean)
   if (query.trim().length < SEARCH_MIN) return []
@@ -125,7 +127,9 @@ export async function searchEditorEntrances(
       congregationId,
       kind: entranceKindForTerritoryType[kind],
       AND: [
-        mapVisibleWhere(kind, null, { phoneTypeActive }),
+        freeOnly
+          ? availableForCreateWhere(kind, { phoneTypeActive })
+          : mapVisibleWhere(kind, null, { phoneTypeActive }),
         ...(territoryId != null ? [{ territories: { none: { id: territoryId } } }] : []),
         ...words.map(word => ({
           buildings: {

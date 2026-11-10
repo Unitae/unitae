@@ -7,12 +7,18 @@ import { Permission } from '~/shared/types/permission'
 
 import type { Route } from './+types/editor-entrances'
 
-/** The territory editor's search, where no map is shown: `?kind=&territory=&q=`. */
+/**
+ * The territory editor's search, where no map is shown: `?kind=&territory=&q=`. `&free=1` is the split tool's: only
+ * free entrances, for who may split territories (and see them) as well as for who manages them.
+ */
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.CanManageTerritories)
-
   const params = new URL(request.url).searchParams
+  const freeOnly = params.get('free') === '1'
+  const splitting =
+    freeOnly && permissions.has(Permission.CanPlanTerritorySplits) && permissions.has(Permission.CanViewTerritories)
+  if (!splitting) requirePermission(permissions, Permission.CanManageTerritories)
+
   const kind = Object.values(TerritoryKindKey).find(value => value === params.get('kind'))
   const territory = Number(params.get('territory'))
   if (kind == null) return data({ results: [] }, { status: 400 })
@@ -24,6 +30,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
       territoryId: Number.isInteger(territory) && territory > 0 ? territory : null,
       query: params.get('q') ?? '',
       phoneTypeActive,
+      freeOnly,
     })
     return { results }
   })

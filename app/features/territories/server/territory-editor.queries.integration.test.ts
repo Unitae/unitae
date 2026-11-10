@@ -2,6 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
+import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 
 const adapter = new PrismaPg({
@@ -40,6 +41,7 @@ interface EntranceFixture {
   active?: boolean
   prospected?: boolean
   territory?: number
+  access?: number
 }
 
 async function entrance(tx: Tx, congregation: number, fixture: EntranceFixture) {
@@ -63,6 +65,7 @@ async function entrance(tx: Tx, congregation: number, fixture: EntranceFixture) 
       kind: EntranceKind.Residential,
       homes: fixture.homes ?? 10,
       phones: 2,
+      access: fixture.access ?? null,
       latitude: fixture.coordinates === false ? null : 45.77,
       longitude: fixture.coordinates === false ? null : 4.88,
       congregationId: congregation,
@@ -109,7 +112,12 @@ beforeAll(async () => {
       street: 'Rue Voltaire',
       territory: otherTerritoryId,
     })
-    ids.free = await entrance(tx, congregationId, { numbers: ['33'], street: 'Boulevard Pasteur', homes: 14 })
+    ids.free = await entrance(tx, congregationId, {
+      numbers: ['33'],
+      street: 'Boulevard Pasteur',
+      homes: 14,
+      access: TerritoryAccess.Intercom,
+    })
     ids.freeOther = await entrance(tx, congregationId, { numbers: ['35'], street: 'Boulevard Pasteur', homes: 8 })
     ids.neverProspected = await entrance(tx, congregationId, {
       numbers: ['40'],
@@ -249,6 +257,22 @@ describe('searchEditorEntrances', () => {
 
   it('needs two characters before searching', async () => {
     expect(await search('p')).toEqual([])
+  })
+
+  it('offers the split tool only the entrances it could take: free, and fit for the type', async () => {
+    const freeOnly = (query: string) =>
+      withScope(congregationId, tx =>
+        searchEditorEntrances(tx, congregationId, {
+          kind: TerritoryKindKey.Classical,
+          territoryId: null,
+          query,
+          phoneTypeActive: false,
+          freeOnly: true,
+        }),
+      )
+
+    expect((await freeOnly('pasteur')).map(result => result.id)).toEqual([ids.free])
+    expect(await freeOnly('voltaire')).toEqual([])
   })
 })
 
