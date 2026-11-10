@@ -6,11 +6,16 @@ export default function BuildingSyncDone({
   firstname = 'Jean',
   baseUrl = 'https://unitae.example.com',
   platformName = 'Unitae',
+  created,
+  missing,
 }: {
   email: string
   firstname?: string
   baseUrl?: string
   platformName?: string
+  /** Counts from the run; absent on notifications queued before runs were recorded. */
+  created?: number
+  missing?: number
 }) {
   return (
     <Html>
@@ -27,7 +32,11 @@ export default function BuildingSyncDone({
               <Text>{m.email_sync_done_greeting({ name: firstname ?? email })}</Text>
               <Text>{m.email_sync_done_body_1()}</Text>
               <Text>
-                <strong>{m.email_sync_done_body_2()}</strong>
+                <strong>
+                  {created != null && missing != null
+                    ? m.email_sync_done_counts({ created, missing })
+                    : m.email_sync_done_body_2()}
+                </strong>
               </Text>
               <Text>{m.email_sync_done_body_3()} </Text>
               <Text className="text-center">

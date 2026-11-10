@@ -71,9 +71,6 @@ export const EXEMPT_FILES = new Set<string>([
   'app/features/settings/server/migrate-legacy-users-ndjson.server.ts',
   'app/features/settings/server/validate-congregation-import.server.ts',
 
-  // Territories bulk-import orchestrator (analogue to settings/import-*).
-  'app/features/territories/server/import-open-data.server.ts',
-
   // Export orchestrator — covered by `data-transfer.integration.test.ts`
   // adjacent to it (data-transfer suite tests both runImport + runExport
   // end-to-end). Not co-located; grandfathered here to keep the check green.

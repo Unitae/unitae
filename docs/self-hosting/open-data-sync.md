@@ -4,14 +4,15 @@ Unitae can automatically import building addresses from the French government's 
 
 ## What It Does
 
-The open data sync downloads a CSV file of all addresses in the configured postal codes, then creates or updates building records in Unitae. This saves hours of manual data entry when setting up territory prospection.
+The sync downloads a BANO CSV file, keeps the addresses in the congregation's postal codes, then creates or updates building records in Unitae. This saves hours of manual data entry when setting up territory prospection.
 
-For each address, the sync:
+For each address in the configured postal codes, the sync:
 
-- Creates a new building record if the address doesn't exist yet
-- Updates coordinates (latitude/longitude) for existing buildings
-- Marks which buildings come from open data (vs. manually entered)
-- Filters by the congregation's territory polygon (if configured) to determine which buildings are within the congregation's geographic area
+- Creates a new building (with its residential entrance) if the address doesn't exist yet
+- Marks an existing building as listed by the source, without changing what people set on it (active or not, position, notes)
+- Uses the congregation's territory polygon (if configured) to decide whether the building lies inside the congregation's area
+
+A building the source listed before and no longer lists shows as **missing**, so someone can check on site and deactivate it. Buildings entered by hand are never missing.
 
 ## Prerequisites
 
@@ -23,11 +24,13 @@ For each address, the sync:
 
 ### 1. Set the BANO URL
 
-In **Settings > Territories**, configure the BANO CSV URL for your department. The URL format is typically:
+In **Settings > Territories**, configure the BANO CSV URL for your département (here, Seine-Saint-Denis):
 
 ```
-https://bano.openstreetmap.fr/data/full.csv.gz
+https://bano.openstreetmap.fr/data/bano-93.csv
 ```
+
+Use your département's file, not the national one (`full.csv.gz`, several gigabytes once decompressed): the sync refuses files larger than 200 MB after decompression. Gzipped files are decompressed automatically.
 
 This URL is stored as the `bano-url` setting in the congregation's settings.
 
@@ -43,29 +46,30 @@ If you define a geographic polygon for your congregation's territory boundaries,
 
 ## Running a Sync
 
-1. Go to the territories section
-2. Click the sync button (requires the *Territories Manager* permission)
-3. The sync runs as a background job — you can continue using the app while it processes
+1. Go to the prospection page
+2. Click the sync button (requires the permission to manage buildings)
+3. The sync runs as a background job — you can continue using the app while it processes. Only one sync runs at a time per congregation.
 4. Progress is tracked from 0% to 100%
-5. An email notification is sent when the sync completes
+5. Whoever started it is notified when it completes, with the number of new and missing buildings, or when it fails, with the reason
 
 ## What Happens During a Sync
 
-1. All existing buildings previously marked as `inOpenData` are reset
-2. The BANO CSV is downloaded and streamed (not loaded entirely into memory)
-3. Each address is parsed and filtered by the allowed postal codes
-4. For each matching address:
-   - If a building with the same address already exists, it is updated with open data coordinates and flags
-   - If no building exists, a new one is created
-   - If a territory polygon is defined, the building's `inTerritory` flag is set based on whether its coordinates fall inside the polygon
-5. Progress is reported every 10% of processed records
-6. On completion, a branded email is sent to the user who triggered the sync
+1. A sync run is recorded: who started it, the source, its state
+2. The CSV is downloaded and read in full, keeping only the addresses in the allowed postal codes (only those are held in memory). Nothing is written yet.
+3. The addresses are saved in batches of 250, each batch in its own short transaction:
+   - an existing building is marked as listed by this run, and its `inTerritory` flag follows the territory polygon
+   - a new address becomes a building, active when it falls inside the polygon
+4. Once every batch is saved, buildings that an earlier sync listed and this one did not are marked as no longer listed, and the run records how many buildings it created and how many are now missing
+5. Whoever started the sync is notified
+
+If anything fails (the source cannot be reached, answers with an error, sends a file that is too large or not a BANO CSV, or has no address in your postal codes), the run is closed as failed with the reason and nothing is marked missing. Addresses already saved by earlier batches stay; running the sync again finishes the job.
 
 ## Technical Details
 
-- The sync job uses **BullMQ** with 3 retry attempts and exponential backoff
-- Worker concurrency is set to 1 to avoid resource contention during large imports
-- The worker creates a congregation-scoped database client for tenant isolation
+- The sync job uses **BullMQ** with a single attempt: a failure is recorded on the run and shown to the user instead of being retried
+- Worker concurrency is set to 1, so syncs from different congregations run one after another
+- Every database access is scoped to the congregation (Row-Level Security)
+- The download may take up to 5 minutes
 - Address uniqueness is determined by the combination of `(number, street, zip, congregationId)`
 - Point-in-polygon calculations determine territory membership
 
@@ -75,7 +79,8 @@ See [Background Processing](../development/background-processing.md) for the wor
 
 - **France only** — The BANO data source covers French addresses. Congregations in other countries need to enter building data manually.
 - **CSV format dependency** — The sync expects the BANO CSV format. Changes to the data source format may require code updates.
-- **Large datasets** — Departments with many addresses may take several minutes to process. The progress indicator tracks completion.
+- **Large datasets** — Départements with many addresses may take several minutes to process. The progress indicator tracks completion.
+- **Positions are not updated** — The sync sets a building's position when it creates it, and never changes it afterwards.
 
 ## Related
 

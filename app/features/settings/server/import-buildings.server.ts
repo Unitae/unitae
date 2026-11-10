@@ -21,10 +21,13 @@ export async function importBuildings(
     active: boolean
     inTerritory: boolean
     inOpenData: boolean
+    // Absent from archives exported before sync runs were recorded.
+    lastSeenInSourceAt?: string | null
     prospectionDate: string | null
     notes: string
     importantNotes: string
   }>(zip, 'buildings')
+  const importedAt = new Date()
 
   for (const record of records) {
     const existing = await db.building.findFirst({
@@ -40,6 +43,7 @@ export async function importBuildings(
       active: record.active,
       inTerritory: record.inTerritory,
       inOpenData: record.inOpenData,
+      lastSeenInSourceAt: lastSeenInSource(record, importedAt),
       prospectionDate: record.prospectionDate ? new Date(record.prospectionDate) : null,
       notes: record.notes,
       importantNotes: record.importantNotes,
@@ -195,4 +199,17 @@ export async function importBuildingEntranceLinks(
       data: { entrances: { connect: { id: entranceId } } },
     })
   }
+}
+
+/**
+ * The archive's date when it has one. An older archive has none: a building the last sync listed
+ * counts as seen now, any other as never listed. Same rule as the migration that introduced the
+ * column (20261110100000_add_building_sync_runs), so restoring an old backup and migrating live
+ * data give the same « Manquants ».
+ */
+function lastSeenInSource(record: { inOpenData: boolean; lastSeenInSourceAt?: string | null }, importedAt: Date) {
+  if (record.lastSeenInSourceAt !== undefined) {
+    return record.lastSeenInSourceAt ? new Date(record.lastSeenInSourceAt) : null
+  }
+  return record.inOpenData ? importedAt : null
 }

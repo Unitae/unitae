@@ -81,6 +81,10 @@ export const AuditAction = {
   // Buildings joined or left a shared residential entrance.
   BuildingEntranceSharingChanged: 'building.entrance_sharing.changed',
   BuildingProspectionUpdated: 'building.prospection.updated',
+  // The address sync, once per run: who started it, how it ended.
+  BuildingSyncStarted: 'building.sync.started',
+  BuildingSyncCompleted: 'building.sync.completed',
+  BuildingSyncFailed: 'building.sync.failed',
 
   // Attributions
   AttributionCreated: 'attribution.created',

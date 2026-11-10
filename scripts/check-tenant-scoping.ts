@@ -68,6 +68,7 @@ export const TENANT_MODELS = [
   'campaignTerritory',
   'buildingEntrance',
   'buildingAccess',
+  'buildingSync',
   'buildingResidentialData',
   'building',
   'setting',

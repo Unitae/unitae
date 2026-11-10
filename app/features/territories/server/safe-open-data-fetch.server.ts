@@ -1,12 +1,12 @@
 import { lookup } from 'node:dns/promises'
 import { BlockList, isIP } from 'node:net'
-import { type Readable, Transform } from 'node:stream'
 import { ValidationError } from '~/shared/errors/app-error.server'
 import { assertAllowedOpenDataUrl } from './open-data-allowlist.server'
 
-const FETCH_TIMEOUT_MS = 15_000
+// The signal stays on the response, so this bounds reading the body too: long enough for an
+// 80 MB département file on a slow link, short enough that a stalled source frees the worker.
+const DEFAULT_TIMEOUT_MS = 5 * 60_000
 export const MAX_REDIRECTS = 5
-const MAX_RESPONSE_BYTES = 50 * 1024 * 1024
 
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308])
 const IPV4_MAPPED_HEX = /^([0-9a-f]{1,4}):([0-9a-f]{1,4})$/
@@ -84,8 +84,13 @@ async function assertPublicHost(url: URL): Promise<void> {
  * pre-connect DNS/private-range block, and manual redirect handling that
  * re-validates every hop. Returns the response once it stops redirecting (or a
  * redirect response that carries no Location header).
+ *
+ * `timeoutMs` bounds each hop from the request to the end of its body.
  */
-export async function safeOpenDataFetch(value: string): Promise<Response> {
+export async function safeOpenDataFetch(
+  value: string,
+  { timeoutMs = DEFAULT_TIMEOUT_MS }: { timeoutMs?: number } = {},
+): Promise<Response> {
   let target = assertAllowedOpenDataUrl(value)
 
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
@@ -95,7 +100,7 @@ export async function safeOpenDataFetch(value: string): Promise<Response> {
     // assertPublicHost, so a rebinding host is only stopped by the host allowlist.
     const response = await fetch(target, {
       redirect: 'manual',
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeoutMs),
     })
 
     if (!REDIRECT_STATUSES.has(response.status)) {
@@ -112,25 +117,4 @@ export async function safeOpenDataFetch(value: string): Promise<Response> {
   }
 
   throw new ValidationError('bano-url', 'Trop de redirections pour les données ouvertes')
-}
-
-/**
- * Wrap a readable so it errors out once more than `maxBytes` have flowed
- * through — a defence against a hostile endpoint streaming an unbounded body.
- */
-export function capBytes(source: Readable, maxBytes = MAX_RESPONSE_BYTES): Readable {
-  let seen = 0
-  const limiter = new Transform({
-    transform(chunk, _encoding, callback) {
-      seen += chunk.length
-      if (seen > maxBytes) {
-        callback(new Error(`Open-data response exceeded ${maxBytes} bytes`))
-        return
-      }
-      callback(null, chunk)
-    },
-  })
-
-  source.on('error', error => limiter.destroy(error))
-  return source.pipe(limiter)
 }

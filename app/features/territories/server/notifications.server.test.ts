@@ -19,7 +19,7 @@ const CONGREGATION: CongregationInfo = {
 
 const RECIPIENT = { email: 'r@test.org', firstname: 'Jean' }
 
-const EXPECTED_TYPES = ['territory.sync.completed']
+const EXPECTED_TYPES = ['territory.sync.completed', 'territory.sync.failed']
 
 describe('territoryNotifications', () => {
   it('registers every expected territory type', () => {
@@ -32,6 +32,11 @@ describe('territoryNotifications', () => {
   it('registers territory.sync.completed', () => {
     const def = territoryNotifications.find(d => d.type === 'territory.sync.completed')
     expect(def).toBeDefined()
+  })
+
+  it('accepts a completion queued before runs were recorded, without counts', () => {
+    const def = territoryNotifications.find(d => d.type === 'territory.sync.completed')
+    expect(def?.payload.safeParse({}).success).toBe(true)
   })
 
   it('every definition ships an example that parses against its schema', () => {
