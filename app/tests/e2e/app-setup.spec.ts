@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test'
 import { E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, login } from './helpers/auth'
 
-const SETUP_URL_RE = /\/setup/
+// The home page itself, signed in: not the sign-in page, not an error page.
+const HOME_URL_RE = /^https?:\/\/[^/]+\/$/
 const CONGREGATION_NAME_RE = /^nom de l.assemblée$/i
 const EMAIL_RE = /^votre e-mail$/i
 const CREATE_RE = /^créer et entrer$/i
@@ -31,5 +32,5 @@ test('ensure app is initialised', async ({ page }) => {
   await page.getByRole('button', { name: CREATE_RE }).click()
 
   // The admin comes in straight away: no second trip through the sign-in page.
-  await expect(page).not.toHaveURL(SETUP_URL_RE, { timeout: 15_000 })
+  await expect(page).toHaveURL(HOME_URL_RE, { timeout: 15_000 })
 })

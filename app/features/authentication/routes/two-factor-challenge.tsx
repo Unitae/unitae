@@ -105,6 +105,7 @@ export default function TwoFactorChallengePage({ loaderData, actionData }: Route
           errorId={fields.code.errorId}
           errors={fields.code.errors}
         >
+          {/* The tracking also follows the last digit: the left padding evens it out, so the code sits centred. */}
           <Input
             id={fields.code.id}
             name={fields.code.name}
@@ -115,7 +116,7 @@ export default function TwoFactorChallengePage({ loaderData, actionData }: Route
             autoFocus={true}
             autoComplete="one-time-code"
             inputMode="numeric"
-            className="h-13 text-center font-medium text-2xl tabular-nums tracking-[0.45em]"
+            className="h-13 pl-[0.45em] text-center font-medium text-2xl tabular-nums tracking-[0.45em]"
           />
         </AuthField>
         <SubmitButton className={AUTH_SUBMIT}>{m.auth_2fa_challenge_submit()}</SubmitButton>

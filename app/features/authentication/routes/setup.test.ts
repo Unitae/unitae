@@ -9,9 +9,9 @@ vi.mock('~/features/authentication/server/need-setup-process.server', () => ({
 }))
 
 vi.mock('~/features/authentication/server/setup-first-account.server', () => ({
-  setupFirstAccount: vi.fn(async (email: string, _password: string, congregationName: string) => {
+  setupFirstAccount: vi.fn((email: string, _password: string, congregationName: string) => {
     accounts.push({ email, congregationName } as { email: string })
-    return accounts.length
+    return Promise.resolve(accounts.length)
   }),
 }))
 
@@ -22,8 +22,9 @@ vi.mock('~/features/authentication/server/password-policy.server', () => ({
 vi.mock('~/features/authentication/server/session.server', () => ({
   getSession: vi.fn(async () => ({ get: vi.fn(), flash: vi.fn() })),
   commitSession: vi.fn(async () => '__session=committed'),
-  establishAuthenticatedSession: vi.fn(async (_session: unknown, userId: number) => {
+  establishAuthenticatedSession: vi.fn((_session: unknown, userId: number) => {
     signedIn.push(userId)
+    return Promise.resolve()
   }),
 }))
 

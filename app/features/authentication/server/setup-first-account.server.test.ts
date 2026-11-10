@@ -49,15 +49,11 @@ beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(db.congregation.findFirst).mockResolvedValue(null as never)
   for (const id of Object.keys(congregationNames)) delete congregationNames[Number(id)]
-  vi.mocked(db.congregation.create).mockImplementation((async ({
-    data,
-  }: {
-    data: { name: string; locale: string }
-  }) => {
+  vi.mocked(db.congregation.create).mockImplementation((({ data }: { data: { name: string; locale: string } }) => {
     congregationNames[1] = { name: data.name, locale: data.locale }
-    return { id: 1, slug: 'test' }
+    return Promise.resolve({ id: 1, slug: 'test' })
   }) as never)
-  vi.mocked(db.congregation.update).mockImplementation((async ({
+  vi.mocked(db.congregation.update).mockImplementation((({
     where,
     data,
   }: {
@@ -65,7 +61,7 @@ beforeEach(() => {
     data: { name: string; locale: string }
   }) => {
     congregationNames[where.id] = { name: data.name, locale: data.locale }
-    return { id: where.id, slug: 'default' }
+    return Promise.resolve({ id: where.id, slug: 'default' })
   }) as never)
   createdAccounts.length = 0
   vi.mocked(db.userAccount.count).mockResolvedValue(0 as never)

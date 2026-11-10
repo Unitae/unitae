@@ -2,16 +2,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // In-memory congregation "database": registration adds to it, so tests assert on whether a
 // congregation was created rather than on spy call counts.
-const { congregations, takenEmails } = vi.hoisted(() => ({
+const { congregations, takenEmails, provisioning } = vi.hoisted(() => ({
   congregations: [] as { name: string }[],
   takenEmails: new Set<string>(),
+  provisioning: { fails: false },
 }))
 
 vi.mock('~/features/authentication/server/register-congregation.server', () => ({
-  registerCongregation: vi.fn(async (name: string, _slug: string, email: string) => {
-    if (takenEmails.has(email)) return { error: 'email_taken' }
+  registerCongregation: vi.fn((name: string, _slug: string, email: string) => {
+    if (takenEmails.has(email)) return Promise.resolve({ error: 'email_taken' })
+    if (provisioning.fails) return Promise.resolve({ error: 'provision_failed' })
     congregations.push({ name })
-    return { userId: congregations.length }
+    return Promise.resolve({ userId: congregations.length })
   }),
 }))
 
@@ -54,7 +56,19 @@ async function respond(request: Request): Promise<Response> {
 beforeEach(() => {
   congregations.length = 0
   takenEmails.clear()
+  provisioning.fails = false
 })
+
+type Refusal = {
+  init: { status: number }
+  data: { error: Record<string, string[]>; initialValue: Record<string, string> }
+}
+
+async function refusal(): Promise<Refusal> {
+  return (await action({ request: registerRequest(), params: {}, context: {} } as Parameters<
+    typeof action
+  >[0])) as unknown as Refusal
+}
 
 afterEach(() => {
   vi.unstubAllEnvs()
@@ -74,16 +88,23 @@ describe('register action', () => {
     vi.stubEnv('UNITAE_MULTI_TENANT', 'true')
     takenEmails.add('intruder@example.com')
 
-    const result = (await action({ request: registerRequest(), params: {}, context: {} } as Parameters<
-      typeof action
-    >[0])) as unknown as {
-      init: { status: number }
-      data: { error: Record<string, string[]>; initialValue: Record<string, string> }
-    }
+    const result = await refusal()
 
     expect(result.init.status).toBe(409)
     expect(result.data.error.email).toEqual([m.auth_register_email_taken_error()])
     expect(result.data.initialValue['congregation-name']).toBe('Intruder Congregation')
+    expect(congregations).toEqual([])
+  })
+
+  it('says the creation failed above the form, keeping what was typed', async () => {
+    vi.stubEnv('UNITAE_MULTI_TENANT', 'true')
+    provisioning.fails = true
+
+    const result = await refusal()
+
+    expect(result.init.status).toBe(400)
+    expect(result.data.error['']).toEqual([m.auth_register_generic_error()])
+    expect(result.data.initialValue.email).toBe('intruder@example.com')
     expect(congregations).toEqual([])
   })
 

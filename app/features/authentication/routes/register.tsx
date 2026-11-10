@@ -128,7 +128,8 @@ export async function action({ request }: Route.ActionArgs) {
       result.error === 'email_taken'
         ? submission.reply({ fieldErrors: { email: [m.auth_register_email_taken_error()] } })
         : submission.reply({ formErrors: [m.auth_register_generic_error()] })
-    return data(reply, { status: result.error === 'email_taken' ? 409 : 500 })
+    // Answered as data, like every refusal here: the page keeps the form and says what happened.
+    return data(reply, { status: result.error === 'email_taken' ? 409 : 400 })
   }
 
   const session = await getSession(request.headers.get('Cookie'))
