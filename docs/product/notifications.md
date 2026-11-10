@@ -34,13 +34,13 @@ Some actions cancel pending notifications. When a document is deleted shortly af
 
 ## Notification Preferences
 
-Users can manage their notification preferences at **Profile > Notification preferences**. Each notification type can be individually enabled or disabled. Preferences can also be set by category (e.g., disabling all board-related notifications at once).
+Users manage their notification preferences in **My account → Notifications**, which lists only the emails that can reach them: board notifications for those who receive board reviews, sync notifications for those allowed to start a sync, programme notifications for accounts linked to a publisher record. Each notification type is switched on or off on its own, and saved at once. Sign-in emails (forgotten password, address check) are always sent.
 
 Users with a notification type disabled are skipped — no email is sent.
 
 ## Email Delivery
 
-Notifications are delivered by email. Each email is rendered in its recipient's language (the one they chose in their profile, otherwise the congregation's) and sent from the congregation's configured sender address. Self-hosters configure the email provider during setup; managed-hosting users do not need to configure anything.
+Notifications are delivered by email. Each email is rendered in its recipient's language (the one they chose in My account → Preferences, otherwise the congregation's) and sent from the congregation's configured sender address. Self-hosters configure the email provider during setup; managed-hosting users do not need to configure anything.
 
 ## Self-hosting requirements
 

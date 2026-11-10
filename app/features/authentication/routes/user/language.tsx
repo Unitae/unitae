@@ -6,7 +6,7 @@ import { currentAccountContext } from '~/shared/auth/route-context.server'
 import type { Route } from './+types/language'
 
 export function loader() {
-  throw redirect('/me/profile')
+  throw redirect('/me/preferences')
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
@@ -14,7 +14,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   const submission = parseWithZod(await request.formData(), { schema: accountLocaleSchema })
   // The select only offers valid choices: anything else did not come from the form.
-  if (submission.status !== 'success') return redirect('/me/profile')
+  if (submission.status !== 'success') return redirect('/me/preferences')
 
   const { locale } = submission.value
   const changed = await setAccountLocale(
@@ -25,5 +25,5 @@ export async function action({ request, context }: Route.ActionArgs) {
   )
 
   // The client translates with what the page loaded with: a new language shows on a full load only.
-  return changed ? redirectDocument('/me/profile') : redirect('/me/profile')
+  return changed ? redirectDocument('/me/preferences') : redirect('/me/preferences')
 }

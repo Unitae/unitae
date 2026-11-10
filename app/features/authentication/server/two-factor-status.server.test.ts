@@ -47,20 +47,21 @@ describe('getTwoFactorStatus', () => {
   }
 
   it('reports enabled when the enrollment is confirmed', async () => {
-    const db = fakeDb({ twoFactorSecret: 'enc', twoFactorEnabledAt: new Date() })
+    const since = new Date('2026-03-03T09:00:00Z')
+    const db = fakeDb({ twoFactorSecret: 'enc', twoFactorEnabledAt: since })
 
-    expect(await getTwoFactorStatus(db, 7)).toEqual({ enabled: true, pending: false })
+    expect(await getTwoFactorStatus(db, 7)).toEqual({ enabled: true, pending: false, enabledAt: since })
   })
 
   it('reports pending when a secret exists but is not yet confirmed', async () => {
     const db = fakeDb({ twoFactorSecret: 'enc', twoFactorEnabledAt: null })
 
-    expect(await getTwoFactorStatus(db, 7)).toEqual({ enabled: false, pending: true })
+    expect(await getTwoFactorStatus(db, 7)).toEqual({ enabled: false, pending: true, enabledAt: null })
   })
 
   it('reports neither when there is no secret', async () => {
     const db = fakeDb({ twoFactorSecret: null, twoFactorEnabledAt: null })
 
-    expect(await getTwoFactorStatus(db, 7)).toEqual({ enabled: false, pending: false })
+    expect(await getTwoFactorStatus(db, 7)).toEqual({ enabled: false, pending: false, enabledAt: null })
   })
 })

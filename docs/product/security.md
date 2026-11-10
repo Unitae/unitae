@@ -12,7 +12,7 @@ Users log in with an email address and password. The session is stored in a secu
 
 ### Two-factor authentication (2FA)
 
-Users can optionally enable time-based one-time password (TOTP) two-factor authentication from their account security settings, using any standard authenticator app. Once enabled, a valid six-digit code is required at each login in addition to the password. An administrator with the right permission can reset a user's 2FA if they lose access to their authenticator.
+Users can optionally enable time-based one-time password (TOTP) two-step verification in **My account → Security**, using any standard authenticator app. Once enabled, a valid six-digit code is required at each login in addition to the password. An administrator with the right permission can reset a user's 2FA if they lose access to their authenticator.
 
 ### Rate limiting
 
@@ -21,6 +21,8 @@ Login attempts are rate-limited to prevent brute-force attacks. The limit is key
 ### Password security
 
 Passwords are securely hashed before being stored — the original password is never written anywhere. Password comparison is performed in a way that does not reveal information through timing.
+
+A user changes their password in **My account → Security**, by typing the current one and the new one twice. Changing it signs out every other device; the device that made the change stays signed in. The same page can sign out the other devices without changing the password (a lost phone, a shared computer).
 
 ### Password reset
 

@@ -14,11 +14,11 @@ export async function isTwoFactorEnabled(userId: number): Promise<boolean> {
   return account?.twoFactorEnabledAt != null
 }
 
-/** Authenticated read for the profile/security UI. */
+/** Authenticated read for « Mon compte › Sécurité »: whether it is on, and since when. */
 export async function getTwoFactorStatus(
   db: TransactionClient,
   userId: number,
-): Promise<{ enabled: boolean; pending: boolean }> {
+): Promise<{ enabled: boolean; pending: boolean; enabledAt: Date | null }> {
   const account = await db.userAccount.findFirst({
     where: { id: userId },
     select: { twoFactorSecret: true, twoFactorEnabledAt: true },
@@ -27,5 +27,6 @@ export async function getTwoFactorStatus(
   return {
     enabled: account?.twoFactorEnabledAt != null,
     pending: account?.twoFactorSecret != null && account?.twoFactorEnabledAt == null,
+    enabledAt: account?.twoFactorEnabledAt ?? null,
   }
 }

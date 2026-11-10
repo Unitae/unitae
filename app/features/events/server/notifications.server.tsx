@@ -37,6 +37,9 @@ const programmeAssignmentAssigned = defineNotificationType({
   type: PROGRAMME_ASSIGNMENT_TYPE.assigned,
   category: PROGRAMME_CATEGORY,
   label: () => m.notification_programme_assignment_assigned(),
+  description: () => m.notification_programme_assignment_assigned_description(),
+  // Only an account linked to a publisher record can be given a part or a service.
+  audience: { member: true },
   routing: { debounceMinutes: 30, recipientStrategy: 'entity-user' },
   payload: ASSIGNMENT_PAYLOAD,
   subject: () => m.email_programme_assigned_subject(),
@@ -70,6 +73,8 @@ const programmeAssignmentUnassigned = defineNotificationType({
   type: PROGRAMME_ASSIGNMENT_TYPE.unassigned,
   category: PROGRAMME_CATEGORY,
   label: () => m.notification_programme_assignment_unassigned(),
+  description: () => m.notification_programme_assignment_unassigned_description(),
+  audience: { member: true },
   routing: {
     cancels: [PROGRAMME_ASSIGNMENT_TYPE.assigned],
     fallback: { debounceMinutes: 0, recipientStrategy: 'entity-user' },

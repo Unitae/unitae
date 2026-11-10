@@ -6,9 +6,26 @@ import { changePasswordSchema, loginSchema, resetPasswordSchema, setupSchema } f
 
 describe('changePasswordSchema', () => {
   it('accepts a current password of any non-empty length and a ≥8 new password', () => {
-    const result = changePasswordSchema.safeParse({ password: 'x', new_password: 'a-strong-new-one' })
+    const result = changePasswordSchema.safeParse({
+      password: 'x',
+      new_password: 'a-strong-new-one',
+      new_password_confirm: 'a-strong-new-one',
+    })
 
     expect(result.success).toBe(true)
+  })
+
+  // Typed twice, as on the reset page: a typo must not lock the account out.
+  it('refuses a confirmation that differs, on the confirmation field', () => {
+    const result = changePasswordSchema.safeParse({
+      password: 'current',
+      new_password: 'a-strong-new-one',
+      new_password_confirm: 'a-strong-new-onf',
+    })
+
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0]?.path).toEqual(['new_password_confirm'])
+    expect(result.error?.issues[0]?.message).toBe(m.auth_error_password_mismatch())
   })
 
   // Regression for #292: the profile change-password action had no schema, so
@@ -32,7 +49,11 @@ describe('changePasswordSchema', () => {
   })
 
   it('requires the current password to be present', () => {
-    const result = changePasswordSchema.safeParse({ password: '', new_password: 'a-strong-new-one' })
+    const result = changePasswordSchema.safeParse({
+      password: '',
+      new_password: 'a-strong-new-one',
+      new_password_confirm: 'a-strong-new-one',
+    })
 
     expect(result.success).toBe(false)
   })

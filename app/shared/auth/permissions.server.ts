@@ -149,6 +149,28 @@ export function findNotificationRecipientsWithPermission(
   })
 }
 
+/**
+ * Whether role fan-out notifications keyed on `permissionKey` reach this account: the same filter as
+ * `findNotificationRecipientsWithPermission`, for one account. A permission held only through admin's
+ * can-do-anything does not count, exactly as in delivery.
+ */
+export async function receivesRoleNotifications(
+  db: DbClient,
+  accountId: number,
+  congregationId: number,
+  permissionKey: Permission,
+): Promise<boolean> {
+  const account = await db.userAccount.findFirst({
+    where: {
+      id: accountId,
+      congregationId,
+      AND: [accountsWithPermissionFilter(permissionKey), notificationRecipientFilter],
+    },
+    select: { id: true },
+  })
+  return account != null
+}
+
 export async function findMembersWithAnyRole(
   db: DbClient,
   roleIds: number[],

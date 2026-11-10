@@ -1,6 +1,6 @@
 import { getFormProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod/v4'
-import { useEffect, useRef, useState } from 'react'
+import { useRef } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { twoFactorCodeSchema } from '~/features/authentication/schemas/login.schema'
 import { resolveLoginAuditCongregationId } from '~/features/authentication/server/login-audit.server'
@@ -22,13 +22,10 @@ import { getCongregationBrand, resolveCongregationFromRequest } from '~/shared/d
 import { unscopedDb } from '~/shared/infra/db.server'
 import { AuthShell } from '~/shared/ui/AuthShell'
 import { AUTH_SUBMIT, AuthField, AuthMessage } from '~/shared/ui/auth-parts'
-import { Input } from '~/shared/ui/input'
+import { CodeInput } from '~/shared/ui/CodeInput'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { safeRedirectUrl } from '~/shared/utils/safe-redirect.server'
 import type { Route } from './+types/two-factor-challenge'
-
-const CODE_LENGTH = 6
-const NOT_A_DIGIT = /\D/g
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: `${m.auth_2fa_challenge_page_title()} - Unitae` }]
@@ -76,7 +73,6 @@ export async function loader({ request }: Route.LoaderArgs) {
 export default function TwoFactorChallengePage({ loaderData, actionData }: Route.ComponentProps) {
   const { error, congregation, redirectTo } = loaderData
   const formRef = useRef<HTMLFormElement>(null)
-  const [code, setCode] = useState('')
 
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -84,11 +80,6 @@ export default function TwoFactorChallengePage({ loaderData, actionData }: Route
       return parseWithZod(formData, { schema: twoFactorCodeSchema })
     },
   })
-
-  // Typed or pasted, the sixth digit sends the code: there is nothing else to press.
-  useEffect(() => {
-    if (code.length === CODE_LENGTH) formRef.current?.requestSubmit()
-  }, [code])
 
   return (
     <AuthShell
@@ -105,18 +96,13 @@ export default function TwoFactorChallengePage({ loaderData, actionData }: Route
           errorId={fields.code.errorId}
           errors={fields.code.errors}
         >
-          {/* The tracking also follows the last digit: the left padding evens it out, so the code sits centred. */}
-          <Input
+          <CodeInput
             id={fields.code.id}
             name={fields.code.name}
-            value={code}
-            onChange={event => setCode(event.target.value.replace(NOT_A_DIGIT, '').slice(0, CODE_LENGTH))}
+            onComplete={() => formRef.current?.requestSubmit()}
             aria-invalid={fields.code.errors != null || undefined}
             aria-describedby={fields.code.errors != null ? fields.code.errorId : undefined}
             autoFocus={true}
-            autoComplete="one-time-code"
-            inputMode="numeric"
-            className="h-13 pl-[0.45em] text-center font-medium text-2xl tabular-nums tracking-[0.45em]"
           />
         </AuthField>
         <SubmitButton className={AUTH_SUBMIT}>{m.auth_2fa_challenge_submit()}</SubmitButton>

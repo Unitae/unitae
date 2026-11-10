@@ -80,7 +80,7 @@ Manage congregation meeting programmes, event scheduling, and publisher assignme
 - **Per-template responsibility** — Delegate programme management to specific elders without granting the full Program Manager permission
 - **Days off** — Members record their upcoming absences so programme organizers can plan accordingly
 - **External speakers** — Maintain a registry of guest speakers (with congregation, phone, notes) and pick from it when assigning a programme part — kept separate from regular publishers
-- **Personal calendar feed** — Each member can subscribe to their own assignments and absences from any calendar app (Apple Calendar, Google Calendar, Outlook…) via a private iCalendar URL managed from their profile. See [Calendar Feed](calendar-feed.md)
+- **Personal calendar feed** — Each member can subscribe to their own assignments and absences from any calendar app (Apple Calendar, Google Calendar, Outlook…) via a private iCalendar URL managed from My account → Profile. See [Calendar Feed](calendar-feed.md)
 
 See [Events](events.md) for details.
 
@@ -120,10 +120,10 @@ See [Settings](settings.md) for the full list of what you can manage there, and 
 
 Unitae manages religious affiliation data, which is special category data under GDPR Article 9. Built-in tools help congregations comply with European data protection regulations.
 
-- **Data export** — Users can download all their personal data as JSON from their profile. Admins can export any user's data from the user management page (Articles 15 & 20)
+- **Data export** — Users can download all their personal data as JSON from My account → Privacy. Admins can export any user's data from the user management page (Articles 15 & 20)
 - **Right to erasure** — Admins can anonymize user records, replacing all personal data with non-identifiable values while preserving historical reports for statistical integrity (Article 17)
 - **Consent gate** — Users must explicitly consent to data processing on their first login before accessing the application
-- **Consent management** — Users can view and withdraw their consents at any time from their profile
+- **Consent management** — Users can view and withdraw their consents at any time from My account → Privacy; a dialog first explains that the app cannot be used without the data-processing consent
 - **Privacy policy** — Built-in `/privacy` page explaining data collection, purposes, legal basis, retention periods, sub-processors, and data subject rights
 - **Cookie consent** — Google Maps integration only loads after explicit user consent (ePrivacy Directive)
 - **Audit logging** — Audit trail for login, data export, anonymization, consent changes, user creation, and password operations

@@ -1,7 +1,8 @@
 import { Avatar, initials } from '@unitae/ui'
 import { ChevronsUpDown, LogOut, type LucideIcon, Monitor, Moon, PanelLeft, Sun, User } from 'lucide-react'
-import { Link, useSubmit } from 'react-router'
+import { Link, useLocation, useSubmit } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
+import { ACCOUNT_SECTIONS } from '~/shared/ui/AccountPage'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -103,6 +104,9 @@ export function WorkspaceMenu({
  */
 export function UserMenu({ name, compact = false }: { name: string; compact?: boolean }) {
   const submit = useSubmit()
+  // In « Mon compte », the person's row shows where they are, as a sidebar entry would.
+  const { pathname } = useLocation()
+  const inAccount = ACCOUNT_SECTIONS.some(section => pathname === section.to)
 
   return (
     <DropdownMenu>
@@ -115,7 +119,11 @@ export function UserMenu({ name, compact = false }: { name: string; compact?: bo
         </DropdownMenuTrigger>
       ) : (
         <DropdownMenuTrigger
-          className={cn(TRIGGER, 'gap-2.5 px-2 font-medium text-muted-foreground hover:text-foreground')}
+          className={cn(
+            TRIGGER,
+            'gap-2.5 px-2 font-medium text-muted-foreground hover:text-foreground',
+            inAccount && 'bg-selected text-foreground',
+          )}
         >
           <Avatar name={name} />
           <span className="min-w-0 flex-1 truncate">{name}</span>
@@ -135,7 +143,7 @@ export function UserMenu({ name, compact = false }: { name: string; compact?: bo
         <DropdownMenuItem asChild>
           <Link to="/me/profile">
             <User className="size-4 text-faint" aria-hidden="true" />
-            {m.sidebar_my_profile()}
+            {m.account_title()}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

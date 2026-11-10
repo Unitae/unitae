@@ -7,6 +7,8 @@ export const AuditAction = {
   UserLogin: 'user.login',
   UserLoginFailed: 'user.login.failed',
   UserLogout: 'user.logout',
+  // An account signing out its other devices from « Mon compte › Sécurité ».
+  UserSessionsEnded: 'user.sessions.ended',
 
   // Two-factor authentication
   TwoFactorEnabled: 'two_factor.enabled',

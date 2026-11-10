@@ -7,7 +7,11 @@ import BoardDocumentUpdated from '../emails/board-document-updated'
 import DocumentsExpiring from '../emails/documents-expiring'
 import NewDocumentInBoard from '../emails/new-document-in-board'
 
-const BOARD_CATEGORY = { key: 'board', label: () => m.notification_category_board() }
+const BOARD_CATEGORY = {
+  key: 'board',
+  label: () => m.notification_category_board(),
+  hint: () => m.notification_category_board_hint(),
+}
 
 // Non-manager uploads a document → validators are alerted after a 10-min debounce.
 const boardDocumentCreated = defineNotificationType({

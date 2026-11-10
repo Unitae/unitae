@@ -1,7 +1,10 @@
 import type { ReactNode } from 'react'
 import type { z } from 'zod'
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
+import type { Permission } from '~/shared/types/permission'
 import type { NotificationTypeConfig } from './notification-event.type'
+
+export type NotificationAudience = { member: true } | { permission: Permission }
 
 // Shape passed to a definition's subject() and renderEmail() callbacks.
 // The recipient's firstname is pre-resolved by displayFirstname (Member wins
@@ -28,11 +31,19 @@ export interface NotificationTypeDefinition<T = unknown> {
 
   // Which category this type belongs to in the preferences UI. Definitions
   // that share a category `key` get grouped under the same card. `label`
-  // is a Paraglide message accessor called at render time.
-  category: { key: string; label: () => string }
+  // is a Paraglide message accessor called at render time; `hint` says why
+  // the reader gets this category at all, when not everyone does.
+  category: { key: string; label: () => string; hint?: () => string }
 
-  // Preferences-UI toggle label.
+  // Preferences-UI toggle label, and an optional line under it (when it is sent, how often).
   label: () => string
+  description?: () => string
+
+  // Who can ever receive it, for the preferences page to leave out the rest.
+  // Role fan-out types need nothing here: their `recipientRole` decides.
+  // `member`: addressed to the account of a record (an assignee).
+  // `permission`: sent to whoever caused it, which takes that permission.
+  audience?: NotificationAudience
 
   // Debounce/cancellation/recipient routing config; the dispatcher reads this.
   routing: NotificationTypeConfig
