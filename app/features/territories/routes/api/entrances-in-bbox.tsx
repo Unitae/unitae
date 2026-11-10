@@ -1,6 +1,7 @@
 import { data } from 'react-router'
 import { getPhoneTerritoryActive } from '~/features/settings/index.server'
 import { getAvailableEntrancesInBbox, getEntrancesInBbox } from '~/features/territories/server/buildings.server'
+import { getTerritoryOutlines } from '~/features/territories/server/free-entrances.queries'
 import {
   currentAccountContext,
   permissionsContext,
@@ -18,10 +19,15 @@ const logger = createLogger('entrances-in-bbox')
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.CanManageTerritories)
-
   const url = new URL(request.url)
   const params = parseEntrancesInBboxParams(url.searchParams)
+  // The split tool's map is read by who may split territories (and see them), not only by who manages them.
+  const splitting =
+    params?.mode === 'create' &&
+    permissions.has(Permission.CanPlanTerritorySplits) &&
+    permissions.has(Permission.CanViewTerritories)
+  if (!splitting) requirePermission(permissions, Permission.CanManageTerritories)
+
   if (params == null) {
     return data({ error: 'invalid_params' }, { status: 400 })
   }
@@ -48,7 +54,16 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       if (params.mode === 'new') {
         return getEntrancesInBbox(db, congregationId, null, params.kind, params.bbox, { phoneTypeActive })
       }
-      return getAvailableEntrancesInBbox(db, congregationId, params.kind, params.bbox, { phoneTypeActive })
+      // The split tool: the free entrances within its filters, and the outlines of the type's territories.
+      const zone = await getAvailableEntrancesInBbox(
+        db,
+        congregationId,
+        params.kind,
+        params.bbox,
+        { phoneTypeActive },
+        params.filters,
+      )
+      return { ...zone, outlines: await getTerritoryOutlines(db, congregationId, params.kind, params.bbox) }
     })
   } catch (error) {
     // Framework redirects (thrown Response) and domain-level AppErrors must bubble to their proper

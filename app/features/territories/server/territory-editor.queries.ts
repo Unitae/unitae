@@ -21,7 +21,8 @@ const SEARCH_MIN = 2
 const WORDS = /\s+/
 const SEARCH_LIMIT = 12
 
-const entranceSelect = {
+/** What the editor reads of an entrance; `editorEntrance` turns it into what it shows. */
+export const entranceSelect = {
   id: true,
   latitude: true,
   longitude: true,
@@ -36,9 +37,9 @@ const entranceSelect = {
   },
 } satisfies Prisma.BuildingEntranceSelect
 
-type EntranceRow = Prisma.BuildingEntranceGetPayload<{ select: typeof entranceSelect }>
+export type EntranceRow = Prisma.BuildingEntranceGetPayload<{ select: typeof entranceSelect }>
 
-function editorEntrance(row: EntranceRow): EditorEntrance | null {
+export function editorEntrance(row: EntranceRow): EditorEntrance | null {
   const [first] = row.buildings
   if (first == null) return null
   return {

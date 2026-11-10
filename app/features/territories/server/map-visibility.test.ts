@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
-import { availableForCreateWhere, contentPresentClause, mapVisibleWhere } from './map-visibility'
+import {
+  availableForCreateWhere,
+  contentPresentClause,
+  freeEntranceFilterWhere,
+  mapVisibleWhere,
+} from './map-visibility'
 
 const digicodeUnknown = {
   AND: [{ homes: null }, { accesses: { some: { type: TerritoryAccess.Code } } }],
@@ -178,6 +183,29 @@ describe('availableForCreateWhere', () => {
     const result = availableForCreateWhere(TerritoryKindKey.Univ, { phoneTypeActive: false })
     expect(result).toEqual({
       AND: [{ territories: { none: { type: TerritoryKindKey.Univ } } }, prospectedAndActive],
+    })
+  })
+})
+
+describe('freeEntranceFilterWhere', () => {
+  it('filters nothing without a filter', () => {
+    expect(freeEntranceFilterWhere({})).toEqual({})
+    expect(freeEntranceFilterWhere({ zip: '', access: null, street: '  ' })).toEqual({})
+  })
+
+  it('keeps every filter it is given: postcode, way in and street', () => {
+    expect(freeEntranceFilterWhere({ zip: '93260', access: TerritoryAccess.Code, street: 'Rue des Coteaux' })).toEqual({
+      AND: [
+        { buildings: { some: { zip: '93260' } } },
+        { OR: [{ access: TerritoryAccess.Code }, { accesses: { some: { type: TerritoryAccess.Code } } }] },
+        { buildings: { some: { streetNormalized: { contains: 'rue des coteaux' } } } },
+      ],
+    })
+  })
+
+  it('compares the street without accents or case', () => {
+    expect(freeEntranceFilterWhere({ street: 'Allée Émile' })).toEqual({
+      AND: [{ buildings: { some: { streetNormalized: { contains: 'allee emile' } } } }],
     })
   })
 })

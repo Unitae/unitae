@@ -4,6 +4,8 @@ import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import {
   availableForCreateWhere,
+  type FreeEntranceFilters,
+  freeEntranceFilterWhere,
   type MapVisibilityContext,
   mapVisibleWhere,
 } from '~/features/territories/server/map-visibility'
@@ -179,11 +181,12 @@ export async function countAvailableEntrances(
   congregationId: number,
   kind: TerritoryKindKey,
   ctx: MapVisibilityContext,
+  filters: FreeEntranceFilters = {},
 ): Promise<{ total: number; withoutCoordinates: number }> {
   const baseWhere = {
     congregationId,
     kind: entranceKindForTerritoryType[kind],
-    ...availableForCreateWhere(kind, ctx),
+    AND: [availableForCreateWhere(kind, ctx), freeEntranceFilterWhere(filters)],
   } satisfies Prisma.BuildingEntranceWhereInput
 
   const [total, withoutCoordinates] = await Promise.all([
@@ -202,6 +205,7 @@ export function getAvailableEntrancesInBbox(
   kind: TerritoryKindKey,
   bbox: Bbox,
   ctx: MapVisibilityContext,
+  filters: FreeEntranceFilters = {},
   limit = 1500,
 ): Promise<{ entrances: BboxEntrance[]; truncated: boolean; total: number | null }> {
   const where = {
@@ -209,7 +213,7 @@ export function getAvailableEntrancesInBbox(
     kind: entranceKindForTerritoryType[kind],
     latitude: { gte: bbox.swLat, lte: bbox.neLat },
     longitude: { gte: bbox.swLng, lte: bbox.neLng },
-    ...availableForCreateWhere(kind, ctx),
+    AND: [availableForCreateWhere(kind, ctx), freeEntranceFilterWhere(filters)],
   } satisfies Prisma.BuildingEntranceWhereInput
 
   return queryEntrancesInBbox(

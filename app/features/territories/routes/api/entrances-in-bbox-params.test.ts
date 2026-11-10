@@ -44,7 +44,32 @@ describe('parseEntrancesInBboxParams — create mode', () => {
       mode: 'create',
       bbox: { swLat: 48, swLng: 2, neLat: 49, neLng: 3 },
       kind: TerritoryKindKey.Commerces,
+      filters: {},
     })
+  })
+
+  it('reads the split tool’s filters: postcode, way in and street', () => {
+    const params = new URLSearchParams({
+      bbox: wideBbox,
+      mode: 'create',
+      kind: TerritoryKindKey.Classical,
+      zip: '93260',
+      access: '4',
+      street: 'Coteaux',
+    })
+    expect(parseEntrancesInBboxParams(params)).toMatchObject({
+      filters: { zip: '93260', access: 4, street: 'Coteaux' },
+    })
+  })
+
+  it('ignores a way in that is not a number', () => {
+    const params = new URLSearchParams({
+      bbox: wideBbox,
+      mode: 'create',
+      kind: TerritoryKindKey.Classical,
+      access: 'x',
+    })
+    expect(parseEntrancesInBboxParams(params)).toMatchObject({ filters: {} })
   })
 
   it('rejects a missing kind', () => {
@@ -79,6 +104,7 @@ describe('parseEntrancesInBboxParams — create mode', () => {
       mode: 'create',
       bbox: { swLat: 48, swLng: 2, neLat: 49, neLng: 3 },
       kind: TerritoryKindKey.Hotel,
+      filters: {},
     })
   })
 })
