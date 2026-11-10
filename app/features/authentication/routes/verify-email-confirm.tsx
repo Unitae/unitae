@@ -5,10 +5,10 @@ import {
   verifyEmailVerificationToken,
 } from '~/features/authentication/server/email-verification.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { AuthShell } from '~/features/authentication/ui/AuthShell'
-import { AUTH_SUBMIT } from '~/features/authentication/ui/auth-parts'
 import * as m from '~/i18n/paraglide/messages'
 import { getCongregationBrand } from '~/shared/domain/congregation.server'
+import { AuthShell } from '~/shared/ui/AuthShell'
+import { AUTH_SUBMIT } from '~/shared/ui/auth-parts'
 import { Button } from '~/shared/ui/button'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 

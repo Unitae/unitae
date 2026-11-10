@@ -9,11 +9,11 @@ import {
   establishAuthenticatedSession,
   getSession,
 } from '~/features/authentication/server/session.server'
-import { AuthShell } from '~/features/authentication/ui/AuthShell'
-import { AUTH_SUBMIT, AuthField, AuthMessage } from '~/features/authentication/ui/auth-parts'
 import { LocaleField } from '~/features/authentication/ui/LocaleField'
 import * as m from '~/i18n/paraglide/messages'
 import type { locales } from '~/i18n/paraglide/runtime'
+import { AuthShell } from '~/shared/ui/AuthShell'
+import { AUTH_SUBMIT, AuthField, AuthMessage } from '~/shared/ui/auth-parts'
 import { Input } from '~/shared/ui/input'
 import { PasswordInput } from '~/shared/ui/PasswordInput'
 import { SubmitButton } from '~/shared/ui/SubmitButton'

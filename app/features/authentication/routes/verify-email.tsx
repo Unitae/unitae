@@ -8,11 +8,11 @@ import {
 } from '~/features/authentication/server/email-verification.server'
 import { sendVerificationEmail } from '~/features/authentication/server/send-verification-email.server'
 import { commitSession, destroySession, getSession } from '~/features/authentication/server/session.server'
-import { AuthShell } from '~/features/authentication/ui/AuthShell'
-import { AUTH_SUBMIT, AuthMessage } from '~/features/authentication/ui/auth-parts'
 import * as m from '~/i18n/paraglide/messages'
 import { getCongregationBrand, resolveCongregation } from '~/shared/domain/congregation.server'
 import { unscopedDb as db } from '~/shared/infra/db.server'
+import { AuthShell } from '~/shared/ui/AuthShell'
+import { AUTH_SUBMIT, AuthMessage, AuthSignOut } from '~/shared/ui/auth-parts'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { displayFirstname } from '~/shared/utils/display-name'
 
@@ -105,12 +105,7 @@ export default function VerifyEmailPage({ loaderData }: Route.ComponentProps) {
           {wait > 0 ? m.verify_email_resend_wait({ time: clock(wait) }) : m.verify_email_resend()}
         </SubmitButton>
       </Form>
-      {/* A POST: the logout route only signs out on its action, a link would land back here. */}
-      <Form method="post" action="/logout">
-        <button type="submit" className="text-brand-text text-sm underline-offset-4 hover:underline">
-          {m.verify_email_logout()}
-        </button>
-      </Form>
+      <AuthSignOut>{m.verify_email_logout()}</AuthSignOut>
     </AuthShell>
   )
 }

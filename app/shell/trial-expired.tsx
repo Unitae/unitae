@@ -1,32 +1,34 @@
-import { Clock, LogOut } from 'lucide-react'
-import { Link } from 'react-router'
+import { Clock } from 'lucide-react'
 import { getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/i18n/paraglide/messages'
 
 import { checkoutLink } from '~/shared/domain/billing-link.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
+import { AuthShell } from '~/shared/ui/AuthShell'
+import { AUTH_SUBMIT, AuthSignOut } from '~/shared/ui/auth-parts'
 import { Button } from '~/shared/ui/button'
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
 
 import type { Route } from './+types/trial-expired'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: "Période d'essai terminée - Unitae" }]
+  return [{ title: `${m.trial_expired_title()} - Unitae` }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
   // Signed, config-driven resubscription link: `checkoutLink` returns null when managed hosting is
   // not configured (self-hosting) — no billing UI is shown in that case.
   let upgradeUrl: string | null = null
+  let congregation: string | null = null
   try {
     const session = await getSession(request.headers.get('Cookie'))
     const userId = Number(session.get('userId'))
     if (!Number.isNaN(userId) && userId > 0) {
       const user = await unscopedDb.userAccount.findUnique({
         where: { id: userId },
-        select: { congregation: { select: { slug: true } } },
+        select: { congregation: { select: { slug: true, name: true, displayName: true } } },
       })
+      congregation = user?.congregation ? (user.congregation.displayName ?? user.congregation.name) : null
       const slug = user?.congregation?.slug
       if (slug) upgradeUrl = checkoutLink(slug)
     }
@@ -40,38 +42,27 @@ export async function loader({ request }: Route.LoaderArgs) {
     })
   }
 
-  return { upgradeUrl }
+  return { congregation, upgradeUrl }
 }
 
 export default function TrialExpiredPage({ loaderData }: Route.ComponentProps) {
-  const { upgradeUrl } = loaderData
+  const { congregation, upgradeUrl } = loaderData
 
+  // Without a subscription link (a self-hosted instance), only signing out is left.
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <Card className="max-w-md text-center">
-        <CardHeader className="items-center gap-3">
-          <div className="flex size-12 items-center justify-center rounded-full bg-muted">
-            <Clock className="size-6 text-muted-foreground" />
-          </div>
-          <CardTitle>{m.trial_expired_title()}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground text-sm">{m.trial_expired_message()}</p>
-        </CardContent>
-        <CardFooter className="flex-col gap-3">
-          {upgradeUrl && (
-            <Button asChild>
-              <a href={upgradeUrl}>{m.trial_expired_upgrade()}</a>
-            </Button>
-          )}
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/logout">
-              <LogOut className="size-4" />
-              {m.trial_expired_logout()}
-            </Link>
-          </Button>
-        </CardFooter>
-      </Card>
-    </div>
+    <AuthShell
+      congregation={congregation}
+      eyebrow={congregation ?? undefined}
+      icon={Clock}
+      title={m.trial_expired_title()}
+      description={m.trial_expired_message()}
+    >
+      {upgradeUrl && (
+        <Button className={AUTH_SUBMIT} asChild>
+          <a href={upgradeUrl}>{m.trial_expired_upgrade()}</a>
+        </Button>
+      )}
+      <AuthSignOut>{m.trial_expired_logout()}</AuthSignOut>
+    </AuthShell>
   )
 }

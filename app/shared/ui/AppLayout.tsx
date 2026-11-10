@@ -24,6 +24,8 @@ interface AppLayoutProps {
   trial?: TrialBannerInfo | null
   /** Initial sidebar state, read from the persistence cookie by the layout loader. */
   sidebarOpen?: boolean
+  /** Drawn in place of the page: the error a page threw, inside the shell. */
+  children?: React.ReactNode
 }
 
 /**
@@ -38,6 +40,7 @@ export function AppLayout({
   userName,
   trial = null,
   sidebarOpen = true,
+  children,
 }: AppLayoutProps) {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
@@ -98,9 +101,7 @@ export function AppLayout({
               the same zero-JS has() trick as `data-form-actions`: a capped, centred viewer
               reads as a floating column with cream gutters on a wide monitor. */}
           <div className="mx-auto w-full max-w-7xl has-[[data-full-bleed]]:max-w-none">
-            <ShellProvider value={shell}>
-              <Outlet />
-            </ShellProvider>
+            <ShellProvider value={shell}>{children ?? <Outlet />}</ShellProvider>
           </div>
         </div>
       </SidebarInset>
