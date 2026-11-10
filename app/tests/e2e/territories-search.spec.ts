@@ -6,7 +6,6 @@ const TEST_PASSWORD = E2E_ADMIN_PASSWORD
 
 const SEARCH_PLACEHOLDER_RE = /numéro|number/i
 const CLEAR_ALL_RE = /tout effacer/i
-const TERRITORIES_URL_RE = /\/territories\/?$/
 
 test.describe('Territories — unified search', () => {
   test.beforeEach(async ({ page }) => {
@@ -37,16 +36,16 @@ test.describe('Territories — unified search', () => {
     await page.waitForURL(url => url.searchParams.get('search') === query, { timeout: 5000 })
   })
 
-  test('"Tout effacer" clears the search and the filters', async ({ page }) => {
+  test('"Tout effacer" clears the filters and keeps the search', async ({ page }) => {
     await page.goto('/territories?search=pajot&type=Classical')
 
-    const clearAll = page.getByRole('button', { name: CLEAR_ALL_RE }).first()
+    const clearAll = page.getByRole('link', { name: CLEAR_ALL_RE }).first()
     if (!(await clearAll.isVisible({ timeout: 3000 }).catch(() => false))) test.skip()
 
     await clearAll.click()
-    await page.waitForURL(url => !url.search, { timeout: 5000 })
+    await page.waitForURL(url => !url.searchParams.has('type'), { timeout: 5000 })
 
-    await expect(page).toHaveURL(TERRITORIES_URL_RE)
+    expect(new URL(page.url()).searchParams.get('search')).toBe('pajot')
   })
 
   test('accent-insensitive name search returns the publisher with diacritics', async ({ page }) => {
