@@ -52,7 +52,8 @@ export function contentPresentClause(
 
 export function mapVisibleWhere(
   territoryType: TerritoryKindKey,
-  territoryId: number,
+  /** The territory being edited, whose own entrances always show; `null` while it is being created. */
+  territoryId: number | null,
   ctx: MapVisibilityContext,
 ): Prisma.BuildingEntranceWhereInput {
   const contentClause = contentPresentClause(territoryType, ctx)
@@ -63,6 +64,7 @@ export function mapVisibleWhere(
           AND: [{ buildings: { some: { prospectionDate: { not: null } } } }, contentClause],
         }
 
+  if (territoryId == null) return prospectedBranch
   return {
     OR: [{ territories: { some: { id: territoryId } } }, prospectedBranch],
   }

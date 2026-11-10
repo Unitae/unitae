@@ -12,7 +12,7 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 import type { AggregatedEntrance, Entrance } from '~/shared/types/entrance'
 import { paginationFromUrl } from '~/shared/utils/pagination.server'
 
-const entranceKindForTerritoryType: Record<TerritoryKindKey, EntranceKind> = {
+export const entranceKindForTerritoryType: Record<TerritoryKindKey, EntranceKind> = {
   [TerritoryKindKey.Classical]: EntranceKind.Residential,
   [TerritoryKindKey.Phone]: EntranceKind.Residential,
   [TerritoryKindKey.Commerces]: EntranceKind.Commerce,
@@ -56,11 +56,6 @@ function sortBuildingsByAddress<T extends { zip: string; street: string; number:
     return 0
   })
   return buildings
-}
-
-const entranceInclude = {
-  buildings: true,
-  accesses: { orderBy: { position: 'asc' as const } },
 }
 
 export async function findBuildingsPaginated(
@@ -147,84 +142,6 @@ export async function getZips(db: TransactionClient, congregationId: number, ter
   return await db.building.groupBy({ by: 'zip', where: selectors })
 }
 
-export async function getAvailableZips(
-  db: TransactionClient,
-  congregationId: number,
-  territoryType?: TerritoryKindKey,
-) {
-  const selectors: Prisma.BuildingWhereInput = { active: true, congregationId }
-
-  if (territoryType != null) {
-    selectors.entrances = {
-      some: {
-        territories: {
-          none: {
-            type: territoryType,
-          },
-        },
-      },
-    }
-  }
-
-  return await db.building.groupBy({ by: 'zip', where: selectors })
-}
-
-export async function getAvailableStreets(
-  db: TransactionClient,
-  congregationId: number,
-  zip?: string,
-  territoryType?: TerritoryKindKey,
-) {
-  const selectors: Prisma.BuildingWhereInput = { active: true, congregationId }
-
-  if (zip != null) {
-    selectors.zip = zip
-  }
-
-  if (territoryType != null) {
-    selectors.entrances = {
-      some: {
-        territories: {
-          every: {
-            type: territoryType,
-          },
-        },
-      },
-    }
-  }
-  return await db.building.groupBy({ by: 'street', where: selectors })
-}
-
-export async function getAvailableEntrances(
-  db: TransactionClient,
-  congregationId: number,
-  zip?: string,
-  street?: string,
-  territoryType?: TerritoryKindKey,
-): Promise<Entrance[]> {
-  const selectors: Prisma.BuildingEntranceWhereInput = {
-    congregationId,
-    buildings: { some: { active: true } },
-  }
-
-  if (zip != null) {
-    selectors.buildings = { some: { ...(selectors.buildings as Prisma.BuildingListRelationFilter).some, zip } }
-  }
-
-  if (street != null) {
-    selectors.buildings = { some: { ...(selectors.buildings as Prisma.BuildingListRelationFilter).some, street } }
-  }
-
-  if (territoryType != null) {
-    selectors.territories = { none: { type: territoryType } }
-  }
-
-  return await db.buildingEntrance.findMany({
-    where: selectors,
-    include: entranceInclude,
-  })
-}
-
 async function queryEntrancesInBbox(
   db: TransactionClient,
   where: Prisma.BuildingEntranceWhereInput,
@@ -286,10 +203,11 @@ async function queryEntrancesInBbox(
   return { entrances, truncated, total }
 }
 
-export async function getEntrancesInBbox(
+export function getEntrancesInBbox(
   db: TransactionClient,
   congregationId: number,
-  territoryId: number,
+  /** The territory being edited; `null` while the editor creates one. */
+  territoryId: number | null,
   territoryType: TerritoryKindKey,
   bbox: Bbox,
   ctx: MapVisibilityContext,
@@ -308,7 +226,7 @@ export async function getEntrancesInBbox(
     where,
     territoryType,
     row => {
-      const inThisTerritory = row.territories.some(t => t.id === territoryId)
+      const inThisTerritory = territoryId != null && row.territories.some(t => t.id === territoryId)
       const otherTerritory = row.territories.find(t => t.id !== territoryId) ?? null
       return { inThisTerritory, otherTerritory }
     },
@@ -343,7 +261,7 @@ export async function countAvailableEntrances(
   return { total, withoutCoordinates }
 }
 
-export async function getAvailableEntrancesInBbox(
+export function getAvailableEntrancesInBbox(
   db: TransactionClient,
   congregationId: number,
   kind: TerritoryKindKey,

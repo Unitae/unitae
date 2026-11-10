@@ -9,6 +9,7 @@ export const territoryManagementRoutes = [
     ...territoryProspection,
     route('api/entrances-in-bbox', 'features/territories/routes/api/entrances-in-bbox.tsx'),
     route('api/territory/:territoryId/content', 'features/territories/routes/api/territory-content.tsx'),
+    route('api/editor-entrances', 'features/territories/routes/api/editor-entrances.tsx'),
     ...prefix('attributions', [
       index('features/territories/routes/attributions/list.tsx'),
       ...prefix('campaigns', [

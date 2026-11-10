@@ -119,7 +119,9 @@ export function DeleteTerritoryDialog({ territory, onOpenChange }: DeleteTerrito
               <AlertDialogTitle>{m.territories_delete_dialog_title({ number: territory.number })}</AlertDialogTitle>
               <AlertDialogDescription>
                 {territory.entrances > 0
-                  ? m.territories_delete_dialog_body({ count: territory.entrances })
+                  ? territory.entrances === 1
+                    ? m.territories_delete_dialog_body_one()
+                    : m.territories_delete_dialog_body({ count: territory.entrances })
                   : m.territories_delete_dialog_body_empty()}
               </AlertDialogDescription>
             </AlertDialogHeader>

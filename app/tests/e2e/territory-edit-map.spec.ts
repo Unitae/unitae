@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 import { E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, login } from './helpers/auth'
 
@@ -10,19 +10,17 @@ const EDIT_URL_ID_RE = /\/territories\/territory\/(\d+)\//
 const TERRITORY_LINKS = '[data-testid="territory-row"] a[href*="/territories/territory/"]'
 const VIEW_SUFFIX_RE = /\/view.*$/
 const editHrefOf = (href: string | null) => (href ?? '').replace(VIEW_SUFFIX_RE, '/edit')
-const RAIL_HEADING_RE = /modifications? en attente|pending changes/i
+const ENTRANCES_HEADING_RE = /^(Entrées|Entrances)$/
 const BBOX_REQUEST_RE = /entrances-in-bbox/
 const BUILDING_VIEW_URL_RE = /\/territories\/building\/\d+\/view/
 const MARKER_ADDRESS_RE = /5 Rue de Test/i
 const MARKER_ADDRESS_ALT_RE = /7 Rue Test/i
-const BADGE_DIGICODE_RE = /digicode|keypad/i
-const BADGE_PMR_RE = /PMR|wheelchair/i
-const PROSPECTED_RE = /Prospecté|Last prospected/i
-const IMPACT_HOMES_RE = /12 foyer/i
-const IMPACT_DELTA_RE = /→\s*9/i
-const SHOPKIND_BOULANGERIE_RE = /boulangerie/i
-const VIEW_BUILDING_LINK_RE = /Voir le bâtiment|View building/i
-const VIEW_TERRITORY_T42_RE = /Voir le territoire.*T-42|View territory.*T-42/i
+const PROSPECTED_RE = /prospecté le|surveyed on/i
+const ADD_RE = /Ajouter au territoire|Add to the territory/i
+const IMPACT_RE = /T-OTHER (passera de|will go from) 12 (foyers|households) (à|to) 9 (foyers|households)/i
+const SHOPKIND_FOOD_RE = /Alimentaire|Food/i
+const VIEW_BUILDING_LINK_RE = /^(Bâtiment|Building)$/
+const VIEW_TERRITORY_T42_RE = /^(Voir|View) T-42$/
 
 type StubEntranceOverrides = Partial<{
   id: number
@@ -69,12 +67,23 @@ function makeStubEntrance(over: StubEntranceOverrides = {}) {
   }
 }
 
-async function stubBboxWith(page: Page, entrances: unknown[]) {
+/**
+ * Answers the zone API with these entrances, set inside the zone asked so the map shows them wherever it opens; a
+ * third of the way in, off the middle, where the territory's own pins gather (and could swallow them in a cluster).
+ */
+async function stubBboxWith(page: Page, entrances: Record<string, unknown>[]) {
   await page.route('**/territories/api/entrances-in-bbox*', async route => {
+    const bbox = new URL(route.request().url()).searchParams.get('bbox') ?? '0,0,0,0'
+    const [swLat, swLng, neLat, neLng] = bbox.split(',').map(Number)
+    const placed = entrances.map((entrance, index) => ({
+      ...entrance,
+      latitude: swLat + (neLat - swLat) / 3,
+      longitude: swLng + (neLng - swLng) / 3 + index * 0.0003,
+    }))
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ entrances, truncated: false, total: null }),
+      body: JSON.stringify({ entrances: placed, truncated: false, total: null }),
     })
   })
 }
@@ -103,7 +112,27 @@ async function openFirstEditPage(page: Page): Promise<{ territoryId: string } | 
   return { territoryId }
 }
 
-async function waitForMapMounted(page: Page): Promise<boolean> {
+/** The first territory of the list of this type, if the fixture has one. */
+async function findTerritoryOfKind(page: Page, kind: string): Promise<string | null> {
+  for (const link of await page.locator(TERRITORY_LINKS).all()) {
+    const id = (await link.getAttribute('href'))?.match(EDIT_URL_ID_RE)?.[1]
+    if (id == null) continue
+    const res = await page.request.get(`/territories/api/territory/${id}/content`)
+    const body = res.ok() ? await res.json().catch(() => null) : null
+    if (body?.kind === kind) return id
+  }
+  return null
+}
+
+/** Waits for the element to show; `isVisible` alone answers at once, before the map has drawn its pins. */
+function shows(locator: Locator, timeout = 5000): Promise<boolean> {
+  return locator
+    .waitFor({ state: 'visible', timeout })
+    .then(() => true)
+    .catch(() => false)
+}
+
+function waitForMapMounted(page: Page): Promise<boolean> {
   return page
     .waitForSelector('.gm-style', { timeout: 5000 })
     .then(() => true)
@@ -131,9 +160,8 @@ test.describe('Territory edit page', () => {
     await page.waitForLoadState('networkidle')
     await expect(page).toHaveURL(EDIT_URL_RE)
 
-    // The pending-changes rail is rendered in both map and dropdown modes.
-    const railHeading = page.getByRole('heading', { name: RAIL_HEADING_RE })
-    await expect(railHeading).toBeVisible({ timeout: 5000 })
+    // The territory's column lists its entrances, with or without a map.
+    await expect(page.getByRole('heading', { name: ENTRANCES_HEADING_RE })).toBeVisible({ timeout: 5000 })
 
     // The notes textarea is part of the form.
     await expect(page.locator('textarea[name="notes"]')).toBeVisible()
@@ -280,17 +308,8 @@ test.describe('Territory edit page', () => {
     await expect(textarea).toHaveValue('still responsive')
   })
 
-  test('clicking an available residential marker opens a popup with badges and prospection date', async ({ page }) => {
-    await stubBboxWith(page, [
-      makeStubEntrance({
-        homes: 4,
-        phones: 2,
-        access: 4, // TerritoryAccess.Code
-        accesses: [{ type: 4 }],
-        isPMR: true,
-        prospectionDate: '2024-06-15T00:00:00.000Z',
-      }),
-    ])
+  test('clicking a free marker opens its card with the prospection date and « Ajouter »', async ({ page }) => {
+    await stubBboxWith(page, [makeStubEntrance({ homes: 4, phones: 2, prospectionDate: '2024-06-15T12:00:00.000Z' })])
     const setup = await openFirstEditPage(page)
     if (setup == null) {
       test.skip()
@@ -302,16 +321,14 @@ test.describe('Territory edit page', () => {
     }
 
     const marker = page.getByRole('button', { name: MARKER_ADDRESS_RE }).first()
-    if (!(await marker.isVisible({ timeout: 3000 }).catch(() => false))) {
+    if (!(await shows(marker))) {
       test.skip(true, 'Marker not reachable — likely a kind/permission mismatch on the seeded territory')
       return
     }
     await marker.click()
 
-    // Badges use the six labels from map-popup-access-*. Assert on French + English variants.
-    await expect(page.getByText(BADGE_DIGICODE_RE).first()).toBeVisible({ timeout: 3000 })
-    await expect(page.getByText(BADGE_PMR_RE).first()).toBeVisible()
-    await expect(page.getByText(PROSPECTED_RE).first()).toBeVisible()
+    await expect(page.getByText(PROSPECTED_RE).first()).toBeVisible({ timeout: 3000 })
+    await expect(page.getByRole('button', { name: ADD_RE })).toBeVisible()
   })
 
   test('clicking an on-other-territory marker fires the content fetch and shows the impact block', async ({ page }) => {
@@ -332,20 +349,27 @@ test.describe('Territory edit page', () => {
       homes: 12,
       phones: 4,
       liberals: 0,
+      holder: null,
     })
 
-    const setup = await openFirstEditPage(page)
-    if (setup == null) {
-      test.skip()
+    // The impact counts the way the territory's type counts: homes, on a door-to-door territory.
+    await page.addInitScript(() => {
+      window.localStorage.setItem('unitae_map_consent', 'true')
+    })
+    await page.goto('/territories')
+    const doorToDoor = await findTerritoryOfKind(page, 'Classical')
+    if (doorToDoor == null) {
+      test.skip(true, 'Fixture has no door-to-door territory to test against')
       return
     }
+    await page.goto(`/territories/territory/${doorToDoor}/edit`)
     if (!(await waitForMapMounted(page))) {
       test.skip(true, 'Google Maps not configured (.gm-style never mounted)')
       return
     }
 
     const marker = page.getByRole('button', { name: MARKER_ADDRESS_RE }).first()
-    if (!(await marker.isVisible({ timeout: 3000 }).catch(() => false))) {
+    if (!(await shows(marker))) {
       test.skip(true, 'Marker not reachable')
       return
     }
@@ -354,12 +378,11 @@ test.describe('Territory edit page', () => {
     await marker.click()
     await contentRequest
 
-    // Primary aggregate (12 foyers) and the delta preview (12 - 3 = 9) must both show.
-    await expect(page.getByText(IMPACT_HOMES_RE).first()).toBeVisible({ timeout: 3000 })
-    await expect(page.getByText(IMPACT_DELTA_RE).first()).toBeVisible()
+    // What taking it does to the other territory: 12 homes, 3 of them here.
+    await expect(page.getByText(IMPACT_RE).first()).toBeVisible({ timeout: 3000 })
   })
 
-  test('a Commerce entrance popup shows the shop kind', async ({ page }) => {
+  test('a shop entrance card shows the kind of shop', async ({ page }) => {
     // Prefer a Commerce territory if the fixture has one — else the edit page filters this entrance out.
     await page.addInitScript(() => {
       window.localStorage.setItem('unitae_map_consent', 'true')
@@ -367,20 +390,7 @@ test.describe('Territory edit page', () => {
     const goto = await page.goto('/territories')
     if ((goto?.status() ?? 500) >= 500) test.skip()
 
-    const editLinks = await page.locator(TERRITORY_LINKS).all()
-    let commerceTerritoryId: string | null = null
-    for (const link of editLinks) {
-      const href = await link.getAttribute('href')
-      const id = href?.match(EDIT_URL_ID_RE)?.[1]
-      if (id == null) continue
-      const res = await page.request.get(`/territories/api/territory/${id}/content`)
-      if (!res.ok()) continue
-      const body = await res.json().catch(() => null)
-      if (body?.kind === 'Commerces') {
-        commerceTerritoryId = id
-        break
-      }
-    }
+    const commerceTerritoryId = await findTerritoryOfKind(page, 'Commerces')
     if (commerceTerritoryId == null) {
       test.skip(true, 'Fixture has no Commerces territory to test against')
       return
@@ -389,7 +399,7 @@ test.describe('Territory edit page', () => {
     await stubBboxWith(page, [
       makeStubEntrance({
         kind: 'Commerce',
-        shopKind: 'boulangerie',
+        shopKind: 'alimentaire',
         homes: 0,
         phones: 0,
         address: { number: '7', street: 'Rue Test', zip: '69000' },
@@ -403,19 +413,16 @@ test.describe('Territory edit page', () => {
     }
 
     const marker = page.getByRole('button', { name: MARKER_ADDRESS_ALT_RE }).first()
-    if (!(await marker.isVisible({ timeout: 3000 }).catch(() => false))) {
+    if (!(await shows(marker))) {
       test.skip(true, 'Marker not reachable')
       return
     }
     await marker.click()
 
-    // entranceContentLabel capitalizes and displays the shop kind.
-    await expect(page.getByText(SHOPKIND_BOULANGERIE_RE).first()).toBeVisible({ timeout: 3000 })
+    await expect(page.getByText(SHOPKIND_FOOD_RE).first()).toBeVisible({ timeout: 3000 })
   })
 
-  test('clicking "Voir le bâtiment" opens the building view in a new tab and preserves edit-page state', async ({
-    page,
-  }) => {
+  test('« Bâtiment » opens the building in a new tab and the editor stays', async ({ page }) => {
     await stubBboxWith(page, [makeStubEntrance()])
     const setup = await openFirstEditPage(page)
     if (setup == null) {
@@ -428,14 +435,14 @@ test.describe('Territory edit page', () => {
     }
 
     const marker = page.getByRole('button', { name: MARKER_ADDRESS_RE }).first()
-    if (!(await marker.isVisible({ timeout: 3000 }).catch(() => false))) {
+    if (!(await shows(marker))) {
       test.skip(true, 'Marker not reachable')
       return
     }
     await marker.click()
 
     const viewBuildingLink = page.getByRole('link', { name: VIEW_BUILDING_LINK_RE }).first()
-    if (!(await viewBuildingLink.isVisible({ timeout: 3000 }).catch(() => false))) {
+    if (!(await shows(viewBuildingLink))) {
       test.skip(true, 'Building link not visible')
       return
     }
@@ -452,9 +459,7 @@ test.describe('Territory edit page', () => {
     await expect(page).toHaveURL(EDIT_URL_RE)
   })
 
-  test('on an on-other-territory popup, the "Voir le territoire" link points to the source territory', async ({
-    page,
-  }) => {
+  test('on another territory’s entrance, « Voir T-42 » opens that territory in a new tab', async ({ page }) => {
     await stubBboxWith(page, [
       makeStubEntrance({
         status: 'on-other-territory',
@@ -472,7 +477,7 @@ test.describe('Territory edit page', () => {
     }
 
     const marker = page.getByRole('button', { name: MARKER_ADDRESS_RE }).first()
-    if (!(await marker.isVisible({ timeout: 3000 }).catch(() => false))) {
+    if (!(await shows(marker))) {
       test.skip(true, 'Marker not reachable')
       return
     }

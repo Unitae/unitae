@@ -17,7 +17,9 @@ export function loader({ params, context }: Route.LoaderArgs) {
   }
 
   return withScopeFromContext(context, async (db, congregationId) => {
-    const content = await getTerritoryContent(db, territoryId, congregationId)
+    // Who has it out is attribution data: named only for those who may see the attributions.
+    const withHolder = permissions.has(Permission.CanViewTerritoryAttributions)
+    const content = await getTerritoryContent(db, territoryId, congregationId, { withHolder })
     if (content == null) {
       return data({ error: 'territory_not_found' }, { status: 404 })
     }

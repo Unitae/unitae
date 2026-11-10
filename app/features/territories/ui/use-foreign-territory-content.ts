@@ -18,6 +18,9 @@ const territoryContentSchema = z.object({
   homes: z.number().nonnegative(),
   phones: z.number().nonnegative(),
   liberals: z.number().nonnegative(),
+  holder: z
+    .object({ firstname: z.string().nullable(), lastname: z.string().nullable(), anonymized: z.boolean() })
+    .nullable(),
 }) satisfies z.ZodType<TerritoryContent>
 
 export type ForeignContentErrorReason = 'not-found' | 'server' | 'network' | 'unexpected'

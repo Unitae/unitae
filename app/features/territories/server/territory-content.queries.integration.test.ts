@@ -72,6 +72,29 @@ beforeAll(async () => {
       })
     }
 
+    const holder = await tx.member.create({
+      data: { firstname: 'Pascal', lastname: 'Durand', isPublisher: true, congregationId: congId },
+    })
+    // Returned once, then taken out again: only the open attribution names who has it.
+    await tx.attribution.create({
+      data: {
+        publisherId: holder.id,
+        territoryId: classicalTerritoryId,
+        startDate: new Date('2026-01-10'),
+        endDate: new Date('2026-03-01'),
+        lateDate: new Date('2026-05-10'),
+        congregationId: congId,
+      },
+    })
+    await tx.attribution.create({
+      data: {
+        publisherId: holder.id,
+        territoryId: classicalTerritoryId,
+        lateDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        congregationId: congId,
+      },
+    })
+
     for (let i = 0; i < 3; i++) {
       const b = await tx.building.create({
         data: {
@@ -124,6 +147,8 @@ afterAll(async () => {
   for (const cid of [congId, otherCongId]) {
     if (cid == null) continue
     await withScope(cid, async tx => {
+      await tx.attribution.deleteMany({})
+      await tx.member.deleteMany({})
       await tx.buildingAccess.deleteMany({})
       await tx.buildingResidentialData.deleteMany({})
       await tx.buildingEntrance.deleteMany({})
@@ -164,5 +189,24 @@ describe('getTerritoryContent', () => {
   it('returns null when the requested territory belongs to another congregation (RLS)', async () => {
     const result = await withScope(congId, tx => getTerritoryContent(tx as never, otherCongTerritoryId, otherCongId))
     expect(result).toBeNull()
+  })
+
+  it('names who holds the territory when asked', async () => {
+    const result = await withScope(congId, tx =>
+      getTerritoryContent(tx as never, classicalTerritoryId, congId, { withHolder: true }),
+    )
+    expect(result?.holder).toEqual({ firstname: 'Pascal', lastname: 'Durand', anonymized: false })
+  })
+
+  it('leaves the holder out unless asked: it is attribution data', async () => {
+    const result = await withScope(congId, tx => getTerritoryContent(tx as never, classicalTerritoryId, congId))
+    expect(result?.holder).toBeNull()
+  })
+
+  it('has no holder for a territory nobody has', async () => {
+    const result = await withScope(congId, tx =>
+      getTerritoryContent(tx as never, commerceTerritoryId, congId, { withHolder: true }),
+    )
+    expect(result?.holder).toBeNull()
   })
 })

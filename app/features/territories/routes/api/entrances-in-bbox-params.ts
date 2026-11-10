@@ -4,6 +4,8 @@ import { TerritoryKindKey } from '~/features/territories/model/territory-kind.ty
 export type EntrancesInBboxParams =
   | { mode: 'edit'; bbox: Bbox; territoryId: number }
   | { mode: 'create'; bbox: Bbox; kind: TerritoryKindKey }
+  /** The territory editor creating a territory: what the edit map shows, without a territory of its own yet. */
+  | { mode: 'new'; bbox: Bbox; kind: TerritoryKindKey }
 
 function parseBbox(value: string | null): Bbox | null {
   if (!value) return null
@@ -30,10 +32,10 @@ export function parseEntrancesInBboxParams(searchParams: URLSearchParams): Entra
     return { mode: 'edit', bbox, territoryId }
   }
 
-  if (mode === 'create') {
+  if (mode === 'create' || mode === 'new') {
     const kind = parseKind(searchParams.get('kind'))
     if (kind == null) return null
-    return { mode: 'create', bbox, kind }
+    return { mode, bbox, kind }
   }
 
   return null
