@@ -5,13 +5,20 @@ import { TerritoryKindKey } from '~/features/territories/model/territory-kind.ty
 import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 import { addressRegex, proximityPrefix } from './address-regex'
 
-export function computeFilters(params: URLSearchParams): Prisma.TerritoryWhereInput {
+/**
+ * `searchHolders`: the search also finds a territory by the name of who holds it. Leave it off for readers without
+ * the attributions right, or a typed name would tell them which territory that person holds.
+ */
+export function computeFilters(
+  params: URLSearchParams,
+  { searchHolders = true }: { searchHolders?: boolean } = {},
+): Prisma.TerritoryWhereInput {
   let filters: Prisma.TerritoryWhereInput = {}
 
   filters = applyZipFilter(filters, params)
   filters = applyTypeFilter(filters, params)
   filters = applyAccessFilter(filters, params)
-  filters = applySearchFilter(filters, params)
+  filters = applySearchFilter(filters, params, searchHolders)
   filters = applyPmrFilter(filters, params)
 
   return filters
@@ -100,7 +107,11 @@ function applyPmrFilter(filters: Prisma.TerritoryWhereInput, params: URLSearchPa
   return { ...filters, AND: [{ type: TerritoryKindKey.Classical }, ...pmrClauses[status]] }
 }
 
-function applySearchFilter(filters: Prisma.TerritoryWhereInput, params: URLSearchParams): Prisma.TerritoryWhereInput {
+function applySearchFilter(
+  filters: Prisma.TerritoryWhereInput,
+  params: URLSearchParams,
+  searchHolders: boolean,
+): Prisma.TerritoryWhereInput {
   const raw = params.get('search')
   // Strip a leading `@` proximity marker so the text branch still runs even
   // when the user wanted geolocation — the loader handles geocoding/ranking;
@@ -138,16 +149,24 @@ function applySearchFilter(filters: Prisma.TerritoryWhereInput, params: URLSearc
           },
         },
       },
-      // Current attributee — first/last name on the publisher Member
-      {
-        attributions: {
-          some: {
-            publisher: {
-              OR: [{ firstnameNormalized: { contains: normalized } }, { lastnameNormalized: { contains: normalized } }],
+      // Current attributee — first/last name on the publisher Member of an open attribution
+      ...(searchHolders
+        ? [
+            {
+              attributions: {
+                some: {
+                  endDate: null,
+                  publisher: {
+                    OR: [
+                      { firstnameNormalized: { contains: normalized } },
+                      { lastnameNormalized: { contains: normalized } },
+                    ],
+                  },
+                },
+              },
             },
-          },
-        },
-      },
+          ]
+        : []),
     ],
   }
 }

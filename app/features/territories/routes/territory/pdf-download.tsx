@@ -25,7 +25,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const territory = await findTerritoryWithHistory(db, territoryId, currentUser.congregationId)
 
     if (territory == null) {
-      throw redirect('/territories', { status: 404 })
+      throw redirect('/territories')
     }
 
     const canViewTerritories = permissions.has(Permission.CanViewTerritories)

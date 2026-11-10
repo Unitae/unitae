@@ -5,7 +5,11 @@ import { E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, login } from './helpers/auth'
 const TEST_EMAIL = E2E_ADMIN_EMAIL
 const TEST_PASSWORD = E2E_ADMIN_PASSWORD
 const EDIT_URL_RE = /\/territories\/territory\/\d+\/edit/
-const EDIT_URL_ID_RE = /\/territories\/territory\/(\d+)\/edit/
+const EDIT_URL_ID_RE = /\/territories\/territory\/(\d+)\//
+// The list's rows link to each territory's page; its editor sits at the same address, ending in /edit.
+const TERRITORY_LINKS = '[data-testid="territory-row"] a[href*="/territories/territory/"]'
+const VIEW_SUFFIX_RE = /\/view.*$/
+const editHrefOf = (href: string | null) => (href ?? '').replace(VIEW_SUFFIX_RE, '/edit')
 const RAIL_HEADING_RE = /modifications? en attente|pending changes/i
 const BBOX_REQUEST_RE = /entrances-in-bbox/
 const BUILDING_VIEW_URL_RE = /\/territories\/building\/\d+\/view/
@@ -88,14 +92,14 @@ async function openFirstEditPage(page: Page): Promise<{ territoryId: string } | 
   const response = await page.goto('/territories')
   if ((response?.status() ?? 500) >= 500) return null
 
-  const editLink = page.locator('a[href*="/territories/territory/"][href$="/edit"]').first()
+  const editLink = page.locator(TERRITORY_LINKS).first()
   if (!(await editLink.isVisible({ timeout: 3000 }).catch(() => false))) return null
 
   const href = await editLink.getAttribute('href')
   const territoryId = href?.match(EDIT_URL_ID_RE)?.[1]
   if (territoryId == null) return null
 
-  await editLink.click()
+  await page.goto(editHrefOf(href))
   return { territoryId }
 }
 
@@ -117,13 +121,13 @@ test.describe('Territory edit page', () => {
     await page.waitForLoadState('networkidle')
     if ((response?.status() ?? 500) >= 500) test.skip()
 
-    const editLink = page.locator('a[href*="/territories/territory/"][href$="/edit"]').first()
+    const editLink = page.locator(TERRITORY_LINKS).first()
     if (!(await editLink.isVisible({ timeout: 3000 }).catch(() => false))) {
       test.skip()
       return
     }
 
-    await editLink.click()
+    await page.goto(editHrefOf(await editLink.getAttribute('href')))
     await page.waitForLoadState('networkidle')
     await expect(page).toHaveURL(EDIT_URL_RE)
 
@@ -185,7 +189,7 @@ test.describe('Territory edit page', () => {
     if ((goto?.status() ?? 500) >= 500) test.skip()
 
     // Fetch the first territory id from the list — skip if the fixture has none.
-    const firstEditLink = page.locator('a[href*="/territories/territory/"][href$="/edit"]').first()
+    const firstEditLink = page.locator(TERRITORY_LINKS).first()
     if (!(await firstEditLink.isVisible({ timeout: 3000 }).catch(() => false))) {
       test.skip()
       return
@@ -245,14 +249,14 @@ test.describe('Territory edit page', () => {
     const response = await page.goto('/territories')
     if ((response?.status() ?? 500) >= 500) test.skip()
 
-    const editLink = page.locator('a[href*="/territories/territory/"][href$="/edit"]').first()
+    const editLink = page.locator(TERRITORY_LINKS).first()
     if (!(await editLink.isVisible({ timeout: 3000 }).catch(() => false))) {
       test.skip()
       return
     }
 
     const bboxRequest = page.waitForRequest(BBOX_REQUEST_RE)
-    await editLink.click()
+    await page.goto(editHrefOf(await editLink.getAttribute('href')))
     await expect(page).toHaveURL(EDIT_URL_RE)
 
     const textarea = page.locator('textarea[name="notes"]')
@@ -363,7 +367,7 @@ test.describe('Territory edit page', () => {
     const goto = await page.goto('/territories')
     if ((goto?.status() ?? 500) >= 500) test.skip()
 
-    const editLinks = await page.locator('a[href*="/territories/territory/"][href$="/edit"]').all()
+    const editLinks = await page.locator(TERRITORY_LINKS).all()
     let commerceTerritoryId: string | null = null
     for (const link of editLinks) {
       const href = await link.getAttribute('href')

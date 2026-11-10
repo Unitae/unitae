@@ -18,7 +18,7 @@ vi.mock('~/shared/domain/audit.server', () => ({
   AuditAction: {},
 }))
 
-const { findTerritoriesWithDetailsPaginated } = await import('./territories.server')
+const { listTerritoryRows } = await import('./territory-list.queries')
 const { computeFilters } = await import('./territory-filters.server')
 
 const adapter = new PrismaPg({
@@ -88,11 +88,14 @@ afterAll(async () => {
 })
 
 async function namesMatching(params: Record<string, string>): Promise<string[]> {
-  const url = new URL(`https://example.com/?pageSize=50&${new URLSearchParams(params)}`)
-  const result = await withScope(congregationId, tx =>
-    findTerritoriesWithDetailsPaginated(tx, computeFilters(url.searchParams), url, congregationId),
+  const rows = await withScope(congregationId, tx =>
+    listTerritoryRows(tx, congregationId, {
+      where: computeFilters(new URLSearchParams(params)),
+      today: '2026-11-10',
+      campaignMode: false,
+    }),
   )
-  return result.territories.map(t => nameById.get(t.id) ?? `unknown:${t.id}`).sort()
+  return rows.map(t => nameById.get(t.id) ?? `unknown:${t.id}`).sort()
 }
 
 describe('computeFilters — pmr against Postgres', () => {

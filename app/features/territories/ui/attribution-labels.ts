@@ -1,6 +1,7 @@
 import type { StatusTone } from '@unitae/ui'
 
 import type { AttributionState } from '~/features/territories/model/attribution-list'
+import type { Availability } from '~/features/territories/model/territory-availability'
 import * as m from '~/i18n/paraglide/messages'
 import { addDays, daysBetween } from '~/shared/utils/calendar-day'
 import { shortDay } from '~/shared/utils/format-day'
@@ -76,4 +77,12 @@ export function loadFacts(person: { held: number; late: number }): string {
         ? m.attributions_people_held_one()
         : m.attributions_people_held_other({ count: person.held })
   return person.late > 0 ? `${held} · ${m.attributions_people_late({ count: person.late })}` : held
+}
+
+/** Whether a territory nobody holds can go out today: « Disponible », « Au repos, libre le 27 déc. », paused. */
+export function availabilityLabel(availability: Availability, today: string): string {
+  if (availability.kind === 'resting')
+    return m.attributions_assign_resting({ date: shortDay(availability.freeDay, today) })
+  if (availability.kind === 'paused') return m.attributions_assign_paused()
+  return m.attributions_assign_free()
 }

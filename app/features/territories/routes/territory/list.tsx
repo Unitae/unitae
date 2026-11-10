@@ -1,338 +1,173 @@
-import { Download, Map as MapIcon, Pencil, Trash2 } from 'lucide-react'
-import React from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router'
-import { territoryTypeLabels } from '~/features/territories/model/territory-kind.type'
-import { getZips } from '~/features/territories/server/buildings.server'
-import { classifySearch } from '~/features/territories/server/search-intent.server'
-import { findTerritoriesWithDetailsPaginated } from '~/features/territories/server/territories.server'
-import { territoryContentLabel } from '~/features/territories/server/territory-content-label'
+import { MapIcon, Plus } from 'lucide-react'
+import { useState } from 'react'
+import { Link, useSearchParams } from 'react-router'
+import {
+  inTerritoryView,
+  parseTerritorySort,
+  parseTerritoryView,
+  sortTerritories,
+  type TerritoryView,
+  territoryViewCounts,
+} from '~/features/territories/model/territory-list'
+import { getActiveCampaign } from '~/features/territories/server/campaign.queries'
+import { resolveSearchPlace } from '~/features/territories/server/search-place.server'
 import { computeFilters } from '~/features/territories/server/territory-filters.server'
-
-import { buildTerritoryFilterChips } from '~/features/territories/ui/build-filter-chips'
-import GeocodeNotice, { type GeocodeNoticeData } from '~/features/territories/ui/GeocodeNotice'
-import { NoCoordinatesDivider, NoCoordinatesPageBanner } from '~/features/territories/ui/NoCoordinatesNotice'
-import { PmrStatusBadge } from '~/features/territories/ui/PmrStatusBadge'
-import ProximityBanner from '~/features/territories/ui/ProximityBanner'
-import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
+import { listTerritoryRows } from '~/features/territories/server/territory-list.queries'
+import GeocodeNotice from '~/features/territories/ui/GeocodeNotice'
+import { DeleteTerritoryDialog, type TerritoryTarget } from '~/features/territories/ui/TerritoryActions'
+import { TerritoryTable } from '~/features/territories/ui/TerritoryTable'
+import { TerritoryToolbar } from '~/features/territories/ui/TerritoryToolbar'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
-import {
-  currentAccountContext,
-  permissionsContext,
-  requirePermission,
-  withScopeFromContext,
-} from '~/shared/auth/route-context.server'
+import { permissionsContext, requirePermission, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
-import { type GeocodeResult, geocode } from '~/shared/infra/geocoder.server'
 import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
-import { FilterChipBar } from '~/shared/ui/filters/FilterChipBar'
 import { PageHeader } from '~/shared/ui/PageHeader'
-import Pagination from '~/shared/ui/Pagination'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
-import { formatDistance } from '~/shared/utils/distance'
-import { sortFromUrl } from '~/shared/utils/pagination.server'
+import { formatLocalDate } from '~/shared/utils/date.server'
 
 import type { Route } from './+types/list'
 
-export const meta: Route.MetaFunction = () => {
-  return [{ title: m.territories_list_meta_title() }]
-}
+export const meta: Route.MetaFunction = () => [{ title: m.territories_list_meta_title() }]
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-
   requirePermission(permissions, Permission.CanViewTerritories)
+  const canViewAttributions = permissions.has(Permission.CanViewTerritoryAttributions)
+  const canManage = permissions.has(Permission.CanManageTerritories)
 
-  const canManageTerritories = permissions.has(Permission.CanManageTerritories)
-
-  const { congregationId } = context.get(currentAccountContext)
-
-  return withScopeFromContext(context, async db => {
+  return withScopeFromContext(context, async (db, congregationId) => {
     const url = new URL(request.url)
-    const [pmrActive, zips] = await Promise.all([
-      getBoolSetting(db, TerritorySettingKey.PmrActive, congregationId).then(v => v ?? false),
-      getZips(db, congregationId),
+    const today = formatLocalDate(new Date())
+    const place = await resolveSearchPlace(url.searchParams.get('search') ?? '')
+    const near = place.origin != null
+    const [pmrActive, campaign] = await Promise.all([
+      getBoolSetting(db, TerritorySettingKey.PmrActive, congregationId),
+      getActiveCampaign(db, congregationId),
     ])
-    const selectors = computeFilters(url.searchParams)
-    const search = url.searchParams.get('search') ?? ''
-    const intent = classifySearch(search)
-
-    let geocodeResult: GeocodeResult | null = null
-    if (intent.geoQuery != null) {
-      geocodeResult = await geocode(intent.geoQuery)
-    }
-    // When the geocode hits, default the sort to `proximity` so a typed
-    // address is ranked geographically by default. The user can still flip
-    // to `number` via the Select — `sortFromUrl` whitelists either value.
-    const defaultSort = geocodeResult != null ? 'proximity' : 'number'
-    const sort = sortFromUrl(url, ['number', 'proximity'], defaultSort)
-    const proximityActive = geocodeResult != null && sort === 'proximity'
-
-    const proximityArgs =
-      proximityActive && geocodeResult != null
-        ? { origin: { lat: geocodeResult.lat, lng: geocodeResult.lng } }
-        : undefined
-
-    const result = await findTerritoriesWithDetailsPaginated(db, selectors, url, congregationId, proximityArgs)
-
-    const locale = getLocale()
-    const distancesByTerritoryId: Record<number, string | null> = {}
-    if (proximityActive && 'distances' in result && result.distances != null) {
-      for (const territory of result.territories) {
-        const distance = result.distances.get(territory)
-        distancesByTerritoryId[territory.id] = distance == null ? null : formatDistance(distance, locale)
-      }
-    }
-
-    // Build the failure notice the UI renders above the filters: tells the
-    // user *why* proximity didn't kick in, instead of silently degrading to
-    // text-only.
-    const geocodeNotice: GeocodeNoticeData | null =
-      intent.forced && intent.geoQuery == null
-        ? { kind: 'missing-query' }
-        : intent.geoQuery != null && geocodeResult == null
-          ? { kind: 'failed', query: intent.geoQuery }
-          : null
+    const rows = await listTerritoryRows(db, congregationId, {
+      where: computeFilters(url.searchParams, { searchHolders: canViewAttributions }),
+      today,
+      campaignMode: campaign != null,
+      origin: place.origin ?? undefined,
+    })
+    // « Dernière attribution » reads the attributions: without their right, the list keeps its number order.
+    const asked = parseTerritorySort(url.searchParams, near)
+    const sort = asked === 'last' && !canViewAttributions ? 'number' : asked
 
     return {
-      zips,
-      pmrActive,
-      stats: { total: result.pagination.total },
-      territories: result.territories,
-      pagination: result.pagination,
-      canManageTerritories,
-      // Banner shows whenever the geocode hit; distance column / partition
-      // are separately gated on `proximityActive`.
-      geocodeResult,
-      proximityActive,
-      geocodeNotice,
-      distances: distancesByTerritoryId,
-      withoutCoordsCount: (proximityActive && 'withoutCoordsCount' in result && result.withoutCoordsCount) || 0,
-      withCoordsCount: (proximityActive && 'withCoordsCount' in result && result.withCoordsCount) || 0,
+      // Who holds a territory and since when is the attributions' business: without their right, none of it leaves.
+      rows: sortTerritories(rows, sort, getLocale()).map(row =>
+        canViewAttributions
+          ? row
+          : {
+              ...row,
+              holder: null,
+              lastDay: null,
+              availability: { kind: 'free' as const },
+              // Only « Supprimer » reads it, and only those who manage territories see that.
+              hasHistory: canManage && row.hasHistory,
+            },
+      ),
+      today,
       sort,
+      proximity: near,
+      geocodeNotice: place.notice,
+      pmrActive: pmrActive ?? false,
+      filtered: ['search', 'type', 'pmr'].some(key => url.searchParams.has(key)),
+      households: rows.reduce((sum, row) => sum + row.quantity.homes, 0),
+      canViewAttributions,
+      canManage,
     }
   })
 }
 
-export default function TerritoryListPage({ loaderData }: Route.ComponentProps) {
-  const {
-    pagination,
-    territories,
-    canManageTerritories,
-    zips,
-    pmrActive,
-    geocodeResult,
-    proximityActive,
-    geocodeNotice,
-    distances,
-    withoutCoordsCount,
-    withCoordsCount,
-    sort,
-  } = loaderData
-  const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
-  const fromQuery = searchParams.toString()
-  const viewSuffix = fromQuery.length > 0 ? `?from=${encodeURIComponent(fromQuery)}` : ''
-  const chips = buildTerritoryFilterChips(searchParams)
-  const baseCol = 5
-  const colSpan = baseCol + (proximityActive ? 1 : 0) + (pmrActive ? 1 : 0)
-  // Index of the first item in this page that falls in the "without coords"
-  // partition, so we can insert a divider row before it. -1 when the whole
-  // page is on one side of the partition.
-  const dividerIndex = proximityActive ? territories.findIndex(t => distances[t.id] == null) : -1
-  // True when *every* row on this page is past the coords/no-coords boundary
-  // — the in-table divider never renders, so we show a banner above the table
-  // so users understand why distances are missing.
-  const wholePageWithoutCoords = proximityActive && pagination.offset >= withCoordsCount && territories.length > 0
+export default function TerritoryList({ loaderData }: Route.ComponentProps) {
+  const { rows, today, canViewAttributions, canManage } = loaderData
+  const [params, setParams] = useSearchParams()
+  const view = canViewAttributions ? parseTerritoryView(params) : 'all'
+  const visible = rows.filter(row => inTerritoryView(row, view))
+  const [deleting, setDeleting] = useState<TerritoryTarget | null>(null)
 
-  if (territories.length < 1) {
-    return (
-      <div className="flex flex-col gap-5">
-        <PageHeader
-          title={m.territories_title()}
-          subtitle={m.territories_subtitle()}
-          breadcrumbs={[{ label: m.sidebar_territories() }]}
-          actions={
-            canManageTerritories && (
-              <Button asChild>
-                <Link to="./territory/new">{m.territories_new_button()}</Link>
-              </Button>
-            )
-          }
-        />
+  const chooseView = (next: TerritoryView) =>
+    setParams(
+      prev => {
+        if (next === 'all') prev.delete('view')
+        else prev.set('view', next)
+        return prev
+      },
+      { replace: true, preventScrollReset: true },
+    )
 
-        <FilterChipBar chips={chips} />
-        <GeocodeNotice notice={geocodeNotice} />
-        <TerritoryFilters zips={zips} showAccess showSearch showType showZip showPmr={pmrActive} />
+  const create = canManage && (
+    <Button asChild size="sm">
+      <Link to="/territories/territory/new">
+        <Plus aria-hidden="true" />
+        {m.territories_new_button()}
+      </Link>
+    </Button>
+  )
 
+  return (
+    <div className="flex max-w-6xl flex-col gap-4">
+      <PageHeader
+        title={m.territories_title()}
+        titleBadge={
+          rows.length > 0 ? (
+            <span className="text-base text-faint tabular-nums">
+              {m.territories_households({ count: new Intl.NumberFormat(getLocale()).format(loaderData.households) })}
+            </span>
+          ) : undefined
+        }
+        breadcrumbs={[{ label: m.sidebar_territories() }]}
+        actions={create || undefined}
+      />
+      <GeocodeNotice notice={loaderData.geocodeNotice} />
+
+      {rows.length === 0 && !loaderData.filtered ? (
         <EmptyState
           icon={MapIcon}
           title={m.territories_empty_title()}
           description={m.territories_empty_description()}
+          action={create || undefined}
         />
-      </div>
-    )
-  }
+      ) : (
+        <>
+          <TerritoryToolbar
+            view={view}
+            counts={territoryViewCounts(rows)}
+            onView={chooseView}
+            sort={loaderData.sort}
+            proximity={loaderData.proximity}
+            pmrActive={loaderData.pmrActive}
+            canViewAttributions={canViewAttributions}
+          />
+          {visible.length === 0 ? (
+            <p className="rounded-lg border border-border bg-card px-4 py-5 text-muted-foreground text-sm">
+              {m.territories_filtered_empty()}
+            </p>
+          ) : (
+            <TerritoryTable
+              rows={visible}
+              today={today}
+              from={params.toString()}
+              pmrActive={loaderData.pmrActive}
+              canViewAttributions={canViewAttributions}
+              canManage={canManage}
+              onDelete={setDeleting}
+            />
+          )}
+        </>
+      )}
 
-  return (
-    <div className="flex flex-col gap-5">
-      <PageHeader
-        title={m.territories_title()}
-        subtitle={m.territories_subtitle()}
-        breadcrumbs={[{ label: m.sidebar_territories() }]}
-        actions={
-          canManageTerritories && (
-            <Button asChild>
-              <Link to="./territory/new">{m.territories_new_button()}</Link>
-            </Button>
-          )
-        }
+      <DeleteTerritoryDialog
+        territory={deleting}
+        onOpenChange={open => {
+          if (!open) setDeleting(null)
+        }}
       />
-
-      <FilterChipBar chips={chips} />
-      <GeocodeNotice notice={geocodeNotice} />
-      {geocodeResult != null && <ProximityBanner geocode={geocodeResult} />}
-      <TerritoryFilters
-        zips={zips}
-        showAccess
-        showSearch
-        showType
-        showZip
-        showPmr={pmrActive}
-        showSort
-        sortValue={sort}
-        sortOptions={proximityActive ? ['number', 'proximity'] : ['number']}
-      />
-
-      <div className="flex grow flex-col gap-3">
-        {wholePageWithoutCoords && <NoCoordinatesPageBanner count={withoutCoordsCount} />}
-        <div className="overflow-hidden rounded-2xl border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{m.territories_table_number()}</TableHead>
-                {proximityActive && (
-                  <TableHead className="text-right">{m.territories_filter_distance_header()}</TableHead>
-                )}
-                <TableHead className="text-center max-sm:hidden">{m.territories_table_type()}</TableHead>
-                <TableHead className="text-center max-sm:hidden">{m.territories_table_content()}</TableHead>
-                {pmrActive && <TableHead className="text-center max-sm:hidden">{m.territories_table_pmr()}</TableHead>}
-                <TableHead>{m.territories_table_assigned_to()}</TableHead>
-                <TableHead className="w-0">
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {territories.map((territory, index) => {
-                const attribution = [...territory.attributions].shift()
-                const viewHref = `./territory/${territory.id}/view${viewSuffix}`
-                const distance = distances[territory.id]
-                const showDivider = proximityActive && dividerIndex === index && index > 0
-
-                return (
-                  <React.Fragment key={territory.id}>
-                    {showDivider && <NoCoordinatesDivider count={withoutCoordsCount} colSpan={colSpan} />}
-                    <TableRow
-                      data-testid="territory-row"
-                      className="group cursor-pointer hover:bg-accent/30"
-                      onClick={event => {
-                        if (event.defaultPrevented) return
-                        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
-                        if ((event.target as HTMLElement).closest('a, button, [role="button"]')) return
-                        navigate(viewHref)
-                      }}
-                    >
-                      <TableCell>
-                        <Link
-                          to={viewHref}
-                          className="font-medium hover:underline"
-                          aria-label={m.territories_view_row_link({ number: territory.number })}
-                        >
-                          {territory.number}
-                        </Link>
-                      </TableCell>
-                      {proximityActive && (
-                        <TableCell className="text-right tabular-nums text-foreground/80">
-                          <span title={distance == null ? m.territories_filter_distance_unknown_tooltip() : undefined}>
-                            {distance ?? '—'}
-                          </span>
-                        </TableCell>
-                      )}
-                      <TableCell className="text-center max-sm:hidden">
-                        {territoryTypeLabels()[territory.type]}
-                      </TableCell>
-                      <TableCell className="text-center max-sm:hidden">
-                        {territoryContentLabel(territory.type, territory.entrances)}
-                      </TableCell>
-                      {pmrActive && (
-                        <TableCell className="text-center max-sm:hidden">
-                          <PmrStatusBadge type={territory.type} entrances={territory.entrances} />
-                        </TableCell>
-                      )}
-                      <TableCell>
-                        {attribution ? (
-                          <span className={attribution.lateDate < new Date() ? 'text-destructive' : ''}>
-                            {attribution.publisher.firstname} {attribution.publisher.lastname?.toUpperCase().at(0)}.
-                            {' — '}
-                            {m.territories_assigned_until({
-                              date: attribution.lateDate.toLocaleDateString(getLocale(), {
-                                day: '2-digit',
-                                month: '2-digit',
-                              }),
-                            })}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">{m.territories_available()}</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" asChild>
-                            <a
-                              href={`/territories/territory/${territory.id}/pdf`}
-                              title={m.territories_download_pdf_title()}
-                            >
-                              <Download className="size-4" />
-                            </a>
-                          </Button>
-                          {canManageTerritories && (
-                            <>
-                              <Button variant="ghost" size="icon" asChild>
-                                <Link to={`./territory/${territory.id}/edit`} title={m.territories_edit_title_attr()}>
-                                  <Pencil className="size-4" />
-                                </Link>
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                asChild
-                                className="text-destructive hover:text-destructive max-sm:hidden"
-                              >
-                                <Link
-                                  to={`./territory/${territory.id}/delete`}
-                                  title={m.territories_delete_title_attr()}
-                                >
-                                  <Trash2 className="size-4" />
-                                </Link>
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  </React.Fragment>
-                )
-              })}
-            </TableBody>
-          </Table>
-        </div>
-
-        <Pagination pages={pagination.pages} page={pagination.page} size={pagination.size} total={pagination.total} />
-      </div>
     </div>
   )
 }

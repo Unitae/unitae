@@ -1,444 +1,246 @@
-import {
-  CalendarCheck,
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  ExternalLink,
-  Pencil,
-  StickyNote,
-  UserPlus,
-  X,
-} from 'lucide-react'
+import { SegmentedControl } from '@unitae/ui'
+import { Building2, ChevronLeft, ChevronRight, Download, MapIcon, Pencil } from 'lucide-react'
+import { useState } from 'react'
 import { Link, redirect } from 'react-router'
-import type { Attribution, Member } from '~/database/generated/client'
-import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
-import { findAdjacentTerritories, findTerritoryWithHistory } from '~/features/territories/server/attributions.server'
-import { aggregateEntrance } from '~/features/territories/server/buildings.server'
-import { entranceContentLabel } from '~/features/territories/server/entrance-content-label'
-import { territoryContentLabel } from '~/features/territories/server/territory-content-label'
-import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
-import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
-
+import { groupByStreet, toHolderEntrance } from '~/features/territories/model/holder-territory'
+import { getTerritoryPmrStatus } from '~/features/territories/model/pmr-status'
+import { territoryStanding } from '~/features/territories/model/territory-standing'
+import { getActiveCampaign } from '~/features/territories/server/campaign.queries'
+import { findAdjacentTerritories, getTerritoryPage } from '~/features/territories/server/territory-page.queries'
+import { ReturnAttributionDialog } from '~/features/territories/ui/AttributionDialogs'
+import { AttributionPanel, type AttributionTarget } from '~/features/territories/ui/AttributionPanel'
+import { holderName } from '~/features/territories/ui/attribution-labels'
+import { HolderTerritoryBody, type HolderView } from '~/features/territories/ui/HolderTerritoryBody'
+import { DeleteTerritoryDialog, TerritoryMenu, type TerritoryTarget } from '~/features/territories/ui/TerritoryActions'
+import { TerritoryAttribution, TerritoryHistory } from '~/features/territories/ui/TerritoryAttribution'
+import { NeighbourLink, TerritoryFacts, TerritoryStandingStatus } from '~/features/territories/ui/TerritoryPageParts'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
-import {
-  currentAccountContext,
-  permissionsContext,
-  requirePermission,
-  withScopeFromContext,
-} from '~/shared/auth/route-context.server'
+import { permissionsContext, requirePermission, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { getBoolSetting } from '~/shared/domain/settings.server'
 import { Permission } from '~/shared/types/permission'
+import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
-import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
-import { Progress } from '~/shared/ui/progress'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { formatLocalDate } from '~/shared/utils/date.server'
 import { getOptionalEnv } from '~/shared/utils/env.server'
-import { formatPersonName } from '~/shared/utils/format-person-name'
 import { requireParamId } from '~/shared/utils/params.server'
+
 import type { Route } from './+types/view'
 
-export const meta: Route.MetaFunction = ({ loaderData }) => {
-  if (!loaderData) return [{ title: 'Unitae' }]
-  return [{ title: m.territories_view_meta_title({ number: String(loaderData.territory.number) }) }]
-}
+export const meta: Route.MetaFunction = ({ loaderData }) => [
+  { title: loaderData ? m.territories_view_meta_title({ number: loaderData.territory.number }) : 'Unitae' },
+]
 
 export function loader({ request, params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-
   requirePermission(permissions, Permission.CanViewTerritories)
+  const canViewAttributions = permissions.has(Permission.CanViewTerritoryAttributions)
+  const territoryId = requireParamId(params.territoryId, '/territories')
 
-  const canManageTerritories = permissions.has(Permission.CanManageTerritories)
-  const canViewPublisher = permissions.has(Permission.CanViewPublishers)
-  const { congregationId } = context.get(currentAccountContext)
-  const from = new URL(request.url).searchParams.get('from')
+  return withScopeFromContext(context, async (db, congregationId) => {
+    const page = await getTerritoryPage(db, congregationId, territoryId)
+    if (page == null) throw redirect('/territories')
 
-  return withScopeFromContext(context, async db => {
-    const territory = await findTerritoryWithHistory(
-      db,
-      requireParamId(params.territoryId, '/territories'),
-      congregationId,
-    )
-
-    if (territory == null) {
-      throw redirect('/territories', { status: 404 })
-    }
-
+    const locale = getLocale()
+    const today = formatLocalDate(new Date())
+    const entrances = page.entrances.flatMap(entrance => toHolderEntrance(entrance, locale) ?? [])
     const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
-    const adjacent = await findAdjacentTerritories(db, territory.number, territory.type, congregationId)
+    const [phoneTypeActive, pmrActive, campaign, adjacent] = await Promise.all([
+      getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId),
+      getBoolSetting(db, TerritorySettingKey.PmrActive, congregationId),
+      getActiveCampaign(db, congregationId),
+      findAdjacentTerritories(db, congregationId, page.territory, locale),
+    ])
+    // Who held it and when is the attributions' business: without their right, none of it leaves the server.
+    const history = canViewAttributions ? page.history : []
+    const standing = territoryStanding(history, { today, campaignMode: campaign != null })
+    const pmr = pmrActive
+      ? getTerritoryPmrStatus(
+          page.territory.type,
+          page.entrances.map(entrance => ({ kind: entrance.kind, isPMR: entrance.isPMR })),
+        )
+      : null
 
     return {
-      territory,
-      territoryEntrances: territory.entrances.map(aggregateEntrance),
-      googleMapsApiKey: apiKey,
-      canManageTerritories,
-      canViewPublisher,
+      territory: page.territory,
+      streets: groupByStreet(entrances, locale),
+      totals: {
+        entrances: entrances.length,
+        streets: new Set(entrances.map(entrance => `${entrance.street}|${entrance.zip}`)).size,
+        homes: entrances.reduce((sum, entrance) => sum + (entrance.homes || entrance.phones), 0),
+        phones: entrances.reduce((sum, entrance) => sum + entrance.phones, 0),
+      },
+      pmr,
+      mapKey: apiKey && entrances.some(entrance => entrance.points.length > 0) ? apiKey : null,
+      showPhone: phoneTypeActive ?? false,
       adjacent,
-      from,
+      from: new URL(request.url).searchParams.get('from') ?? '',
+      today,
+      history,
+      ...standing,
+      // Only « Supprimer » reads it, and only those who manage territories see that.
+      hasHistory: permissions.has(Permission.CanManageTerritories) && page.history.length > 0,
+      buildingOf: permissions.has(Permission.CanViewProspection) ? page.buildingOf : {},
+      canViewAttributions,
+      canManageAttributions: permissions.has(Permission.CanManageTerritoryAttributions),
+      canManage: permissions.has(Permission.CanManageTerritories),
+      canViewPublishers: permissions.has(Permission.CanViewPublishers),
     }
   })
 }
 
-function getTerritoryTypeLabel(type: string): string {
-  const labels: Record<string, () => string> = {
-    [TerritoryKindKey.Classical]: () => m.territories_type_classical_capitalized(),
-    [TerritoryKindKey.Commerces]: () => m.territories_type_commerces(),
-    [TerritoryKindKey.Hotel]: () => m.territories_type_hotel(),
-    [TerritoryKindKey.Phone]: () => m.territories_type_phone_singular(),
-    [TerritoryKindKey.Univ]: () => m.territories_type_university_singular(),
-  }
-  return labels[type]?.() ?? type
-}
-
-function publisherInitials(publisher: Member): string {
-  const first = publisher.firstname?.charAt(0) ?? ''
-  const last = publisher.lastname?.charAt(0) ?? ''
-  return `${first}${last}`.toLocaleUpperCase()
-}
-
-function CurrentAttributionCard({
-  attribution,
-  territoryId,
-  canManageTerritories,
-  canViewPublisher,
-}: {
-  attribution: (Attribution & { publisher: Member }) | undefined
-  territoryId: number
-  canManageTerritories: boolean
-  canViewPublisher: boolean
-}) {
-  if (attribution == null) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{m.territories_view_current_attribution_heading()}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <EmptyState
-            icon={UserPlus}
-            title={m.territories_view_no_attribution()}
-            description={m.territories_view_no_attribution_body()}
-            action={
-              canManageTerritories ? (
-                <Button asChild>
-                  <Link to={`/territories/attributions/new?territory=${territoryId}`}>
-                    {m.territories_view_assign_button()}
-                  </Link>
-                </Button>
-              ) : undefined
-            }
-          />
-        </CardContent>
-      </Card>
-    )
+export default function TerritoryView({ loaderData }: Route.ComponentProps) {
+  const { territory, current, today, adjacent, from, canViewAttributions } = loaderData
+  const [view, setView] = useState<HolderView>('list')
+  const [panel, setPanel] = useState<AttributionTarget | null>(null)
+  const [returning, setReturning] = useState(false)
+  const [deleting, setDeleting] = useState<TerritoryTarget | null>(null)
+  const back = from !== '' ? `/territories?${from}` : '/territories'
+  const query = from !== '' ? `?from=${encodeURIComponent(from)}` : ''
+  const target: TerritoryTarget = {
+    id: territory.id,
+    number: territory.number,
+    hasHistory: loaderData.hasHistory,
+    entrances: loaderData.totals.entrances,
   }
 
-  const totalMs = attribution.lateDate.getTime() - attribution.startDate.getTime()
-  const elapsedMs = Date.now() - attribution.startDate.getTime()
-  const rawPercent = totalMs > 0 ? Math.round((elapsedMs / totalMs) * 100) : 0
-  const percent = Math.max(0, Math.min(100, rawPercent))
-  const isLate = attribution.lateDate < new Date()
-
-  const publisherName = formatPersonName(attribution.publisher)
-
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between gap-3 text-base">
-          <span>{m.territories_view_current_attribution_heading()}</span>
-          <AttributionStatus attribution={attribution} />
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <span
-              className="flex size-10 items-center justify-center rounded-full bg-primary/10 font-semibold text-primary text-sm"
-              aria-hidden="true"
-            >
-              {publisherInitials(attribution.publisher)}
-            </span>
-            <div className="flex flex-col">
-              <span className="font-medium">
-                {canViewPublisher ? (
-                  <Link to={`/publishers/${attribution.publisherId}/view`} className="hover:text-primary">
-                    {publisherName}
-                  </Link>
-                ) : (
-                  publisherName
-                )}
-              </span>
-              <span className="text-muted-foreground text-sm">
-                {attribution.startDate.toLocaleDateString(getLocale())} —{' '}
-                {attribution.lateDate.toLocaleDateString(getLocale())}
-              </span>
-            </div>
-          </div>
-          {canManageTerritories && (
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" asChild>
-                <Link
-                  to={`/territories/attributions/${attribution.id}/edit`}
-                  title={m.territories_edit_view_attribution_title()}
-                >
-                  <ExternalLink className="size-4 text-primary" />
-                </Link>
-              </Button>
-              {attribution.endDate == null && (
-                <Button variant="ghost" size="icon" asChild className="text-destructive hover:text-destructive">
-                  <Link
-                    to={`/territories/attributions/${attribution.id}/delete`}
-                    title={m.territories_edit_cancel_attribution_title()}
-                  >
-                    <X className="size-4" />
-                  </Link>
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
-        <div className="flex flex-col gap-1">
-          <Progress value={percent} className={isLate ? '[&>div]:bg-destructive' : ''} />
-          <p className="text-muted-foreground text-xs">
-            {m.territories_view_attribution_progress({ percent: String(percent) })}
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-function AttributionHistoryCard({
-  attributions,
-  canViewPublisher,
-}: {
-  attributions: (Attribution & { publisher: Member })[]
-  canViewPublisher: boolean
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{m.territories_view_history_heading()}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {attributions.length < 1 ? (
-          <EmptyState
-            icon={CalendarCheck}
-            title={m.territories_view_empty_history_title()}
-            description={m.territories_view_empty_history_description()}
-          />
-        ) : (
-          <div className="overflow-hidden rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{m.territories_view_table_publisher()}</TableHead>
-                  <TableHead className="text-center">{m.territories_view_table_checkout_date()}</TableHead>
-                  <TableHead className="text-center">{m.territories_view_table_return_date()}</TableHead>
-                  <TableHead className="text-center max-sm:hidden">{m.territories_view_table_duration()}</TableHead>
-                  <TableHead className="text-center max-sm:hidden">{m.territories_view_table_type()}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {attributions.map(attribution => {
-                  const durationDays = attribution.endDate
-                    ? Math.round(
-                        (attribution.endDate.getTime() - attribution.startDate.getTime()) / (1000 * 60 * 60 * 24),
-                      )
-                    : null
-
-                  return (
-                    <TableRow key={attribution.id}>
-                      <TableCell>
-                        {canViewPublisher ? (
-                          <Link to={`/publishers/${attribution.publisherId}/view`} className="hover:text-primary">
-                            {formatPersonName(attribution.publisher)}
-                          </Link>
-                        ) : (
-                          formatPersonName(attribution.publisher)
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {attribution.startDate.toLocaleDateString(getLocale())}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {attribution.endDate?.toLocaleDateString(getLocale())}
-                      </TableCell>
-                      <TableCell className="text-center max-sm:hidden">
-                        {durationDays != null ? m.territories_view_duration_days({ days: String(durationDays) }) : '-'}
-                      </TableCell>
-                      <TableCell className="text-center max-sm:hidden">
-                        {attribution.campaignId != null
-                          ? m.territories_view_attribution_type_campaign()
-                          : attribution.type === TerritoryAttributionKind.Phone
-                            ? m.territories_view_attribution_type_phones()
-                            : m.territories_view_attribution_type_default()}
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
-export default function ViewTerritoryPage({ loaderData }: Route.ComponentProps) {
-  const { territory, territoryEntrances, googleMapsApiKey, canManageTerritories, canViewPublisher, adjacent, from } =
-    loaderData
-
-  const currentAttribution = territory.attributions.find(a => a.endDate == null)
-  const pastAttributions = territory.attributions.filter(a => a.endDate != null)
-  const contentLabel = territoryContentLabel(territory.type, territoryEntrances)
-  const fromQuery = from != null && from.length > 0 ? `?from=${encodeURIComponent(from)}` : ''
-  const backTo = from != null && from.length > 0 ? `/territories?${from}` : '/territories'
-
-  return (
-    <div className="flex flex-col gap-6">
+    <div className="flex max-w-6xl flex-col">
       <PageHeader
-        title={m.territories_view_title({ number: String(territory.number) })}
-        subtitle={m.territories_view_subtitle()}
-        breadcrumbs={[{ label: m.sidebar_territories(), to: backTo }, { label: territory.number }]}
-        backTo={backTo}
+        icon={MapIcon}
+        title={m.territories_view_title({ number: territory.number })}
+        titleBadge={
+          canViewAttributions ? (
+            <TerritoryStandingStatus current={current} availability={loaderData.availability} today={today} />
+          ) : undefined
+        }
+        meta={
+          <TerritoryFacts
+            type={territory.type}
+            totals={loaderData.totals}
+            pmr={loaderData.pmr}
+            attributed={loaderData.history.length}
+          />
+        }
+        breadcrumbs={[{ label: m.sidebar_territories(), to: back }, { label: territory.number }]}
         actions={
           <>
-            {adjacent.prev != null ? (
-              <Button asChild variant="ghost" size="icon" title={m.territories_view_prev_title()}>
-                <Link to={`/territories/territory/${adjacent.prev.id}/view${fromQuery}`}>
-                  <ChevronLeft className="size-4" />
-                </Link>
-              </Button>
-            ) : (
-              <Button variant="ghost" size="icon" disabled title={m.territories_view_prev_title()}>
-                <ChevronLeft className="size-4" />
-              </Button>
-            )}
-            {adjacent.next != null ? (
-              <Button asChild variant="ghost" size="icon" title={m.territories_view_next_title()}>
-                <Link to={`/territories/territory/${adjacent.next.id}/view${fromQuery}`}>
-                  <ChevronRight className="size-4" />
-                </Link>
-              </Button>
-            ) : (
-              <Button variant="ghost" size="icon" disabled title={m.territories_view_next_title()}>
-                <ChevronRight className="size-4" />
-              </Button>
-            )}
-            <Button asChild variant="outline" size="icon" title={m.territories_download_pdf_title()}>
-              <a href={`/territories/territory/${territory.id}/pdf`}>
-                <Download className="size-4" />
+            <NeighbourLink to={adjacent.prev} query={query} label={m.territory_page_previous} icon={<ChevronLeft />} />
+            <NeighbourLink to={adjacent.next} query={query} label={m.territory_page_next} icon={<ChevronRight />} />
+            <Button asChild variant="ghost" size="icon" title={m.territories_menu_pdf()}>
+              <a href={`/territories/territory/${territory.id}/pdf`} aria-label={m.territories_menu_pdf()}>
+                <Download aria-hidden="true" />
               </a>
             </Button>
-
-            {canManageTerritories && (
-              <Button asChild variant="outline" title={m.territories_edit_title_attr()}>
-                <Link to={`../edit${fromQuery}`} relative="path">
-                  <Pencil className="size-4" />
-                  <span className="max-lg:sr-only">{m.territories_view_edit_label()}</span>
+            {loaderData.canManage && (
+              <Button asChild variant="outline" size="sm">
+                <Link to={`/territories/territory/${territory.id}/edit`}>
+                  <Pencil aria-hidden="true" />
+                  {m.territories_menu_edit()}
                 </Link>
               </Button>
+            )}
+            <TerritoryMenu territory={target} canManage={loaderData.canManage} compact onDelete={setDeleting} />
+          </>
+        }
+        controls={
+          loaderData.mapKey != null ? (
+            <div className="xl:hidden">
+              <SegmentedControl
+                options={[
+                  { value: 'list' as const, label: m.my_territories_view_list() },
+                  { value: 'map' as const, label: m.my_territories_tab_map() },
+                ]}
+                value={view}
+                onValueChange={setView}
+                aria-label={m.my_territories_view_label()}
+              />
+            </div>
+          ) : undefined
+        }
+      />
+      <HolderTerritoryBody
+        streets={loaderData.streets}
+        territoryType={territory.type}
+        showPhone={loaderData.showPhone}
+        map={loaderData.mapKey == null ? null : { apiKey: loaderData.mapKey, number: territory.number }}
+        view={view}
+        onViewChange={setView}
+        before={
+          canViewAttributions && (
+            <TerritoryAttribution
+              current={current}
+              last={loaderData.last}
+              availability={loaderData.availability}
+              today={today}
+              canManage={loaderData.canManageAttributions}
+              canViewPublishers={loaderData.canViewPublishers}
+              onReturn={() => setReturning(true)}
+              onEdit={() => current && setPanel({ kind: 'attribution', id: current.id, trigger: null })}
+              onAssign={() => setPanel({ kind: 'territory', id: territory.id, trigger: null })}
+            />
+          )
+        }
+        after={
+          <>
+            {canViewAttributions && loaderData.history.length > 0 && (
+              <TerritoryHistory entries={loaderData.history} today={today} />
+            )}
+            {territory.notes.trim() !== '' && (
+              <section className="flex flex-col gap-1.5">
+                <h2 className="font-semibold text-sm">
+                  {m.territory_page_notes()}{' '}
+                  <span className="font-normal text-faint">· {m.attributions_panel_notes_hint()}</span>
+                </h2>
+                <p className="whitespace-pre-line text-muted-foreground text-sm">{territory.notes}</p>
+              </section>
             )}
           </>
         }
+        entranceAction={entrance => {
+          const building = loaderData.buildingOf[entrance.id]
+          return building == null ? null : (
+            <Button asChild variant="ghost" size="icon-sm" title={m.territory_page_building()}>
+              <Link to={`/territories/building/${building}/view`} aria-label={m.territory_page_building()}>
+                <Building2 aria-hidden="true" />
+              </Link>
+            </Button>
+          )
+        }}
       />
 
-      <div className="flex gap-6 max-lg:flex-col lg:items-start">
-        <div className="flex flex-1 flex-col gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">{m.territories_view_info_title()}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-                <dt className="text-muted-foreground">{m.territories_view_number_label()}</dt>
-                <dd className="font-medium">{territory.number}</dd>
-                <dt className="text-muted-foreground">{m.territories_view_type_label()}</dt>
-                <dd className="font-medium">{getTerritoryTypeLabel(territory.type)}</dd>
-                <dt className="text-muted-foreground">
-                  {territory.type === TerritoryKindKey.Phone
-                    ? m.territories_view_phones_count_label()
-                    : m.territories_view_homes_count_label()}
-                </dt>
-                <dd className="font-medium text-primary">{contentLabel}</dd>
-              </dl>
-            </CardContent>
-          </Card>
-
-          {territory.notes.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <StickyNote className="size-4 text-muted-foreground" aria-hidden="true" />
-                  {m.territories_view_notes_card_title()}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="whitespace-pre-wrap text-sm">{territory.notes}</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {territoryEntrances.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between gap-2 text-base">
-                  <span>{m.territories_view_entrances_title()}</span>
-                  <span className="text-muted-foreground text-sm">({territoryEntrances.length})</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {territoryEntrances.map(entrance => (
-                  <div key={entrance.id} className="flex items-center justify-between gap-3 rounded-md border p-3">
-                    <div className="flex flex-col">
-                      <span className="font-medium">
-                        {entrance.number} {entrance.street}, {entrance.zip}
-                      </span>
-                      <span className="text-muted-foreground text-sm">
-                        {entranceContentLabel(territory.type, entrance)}
-                      </span>
-                    </div>
-                    {entrance.buildings[0] != null ? (
-                      <Button variant="ghost" size="icon" asChild>
-                        <a
-                          href={`/territories/building/${entrance.buildings[0].id}/view`}
-                          target="_blank"
-                          rel="noreferrer"
-                          title={m.territories_form_view_building_title()}
-                        >
-                          <ExternalLink className="size-4 text-primary" />
-                        </a>
-                      </Button>
-                    ) : null}
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
-          <CurrentAttributionCard
-            attribution={currentAttribution}
-            territoryId={territory.id}
-            canManageTerritories={canManageTerritories}
-            canViewPublisher={canViewPublisher}
-          />
-
-          <AttributionHistoryCard attributions={pastAttributions} canViewPublisher={canViewPublisher} />
-        </div>
-
-        {googleMapsApiKey != null && (
-          <BuildingEntranceMap
-            apiKey={googleMapsApiKey}
-            entrances={territory.entrances}
-            className="h-[calc(100vh-12rem)] min-h-[320px] w-full lg:sticky lg:top-4 lg:w-2/5 xl:w-1/2"
-            mapClassName="h-full w-full rounded-lg"
-          />
-        )}
-      </div>
+      {panel && (
+        <AttributionPanel
+          key={`${panel.kind}-${panel.id}`}
+          target={panel}
+          docked={false}
+          onRequestClose={() => setPanel(null)}
+          onClose={() => setPanel(null)}
+          walk={null}
+        />
+      )}
+      <ReturnAttributionDialog
+        attribution={
+          returning && current
+            ? {
+                id: current.id,
+                number: territory.number,
+                holder: holderName(current.publisher),
+                startDay: current.startDay,
+                restDays: current.restDays,
+              }
+            : null
+        }
+        today={today}
+        onOpenChange={open => setReturning(open)}
+      />
+      <DeleteTerritoryDialog
+        territory={deleting}
+        onOpenChange={open => {
+          if (!open) setDeleting(null)
+        }}
+      />
     </div>
   )
 }

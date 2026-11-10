@@ -90,10 +90,21 @@ describe('computeFilters', () => {
     expect(buildingsAnd).toBeDefined()
   })
 
+  it('leaves holders out of the search for readers without the attributions right', () => {
+    // Otherwise a name typed in the search would tell them which territory that person holds.
+    const result = computeFilters(new URLSearchParams({ search: 'Pajot' }), { searchHolders: false })
+    const or = result.OR as { attributions?: unknown }[]
+    expect(or.some(clause => clause.attributions != null)).toBe(false)
+  })
+
   it('searches publisher first/last name on current attribution', () => {
     const result = computeFilters(new URLSearchParams({ search: 'Päjot' }))
-    const or = result.OR as { attributions?: { some?: { publisher?: { OR?: Record<string, unknown>[] } } } }[]
+    const or = result.OR as {
+      attributions?: { some?: { endDate?: null; publisher?: { OR?: Record<string, unknown>[] } } }
+    }[]
     const publisherClause = or.find(c => c.attributions)
+    // Only who holds it now: a name from its history does not find a territory held by someone else.
+    expect(publisherClause?.attributions?.some?.endDate).toBeNull()
     const publisherOr = publisherClause?.attributions?.some?.publisher?.OR
     expect(publisherOr).toEqual(
       expect.arrayContaining([
