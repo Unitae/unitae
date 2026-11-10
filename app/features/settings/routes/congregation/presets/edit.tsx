@@ -10,7 +10,12 @@ import {
 } from '~/features/events'
 import { deletePartPreset, getPartPresetById, updatePartPreset } from '~/features/events/index.server'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -59,6 +64,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
         shareMessage: preset.shareMessage ?? '',
       },
       isSystem: preset.isSystem,
+      baseUrl: context.get(congregationContext).baseUrl,
       placeholders: {
         name: partPresetName({ key: preset.key, name: null }),
         speakerLabel: partPresetSpeakerLabel({ key: preset.key, speakerLabel: null }) ?? '',
@@ -111,7 +117,7 @@ export function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function EditPresetPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { preset, isSystem, placeholders } = loaderData
+  const { preset, isSystem, placeholders, baseUrl } = loaderData
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
@@ -122,7 +128,13 @@ export default function EditPresetPage({ loaderData, actionData }: Route.Compone
           { label: preset.name || placeholders.name },
         ]}
       />
-      <PartPresetForm preset={preset} isSystem={isSystem} placeholders={placeholders} errors={actionData?.errors} />
+      <PartPresetForm
+        preset={preset}
+        isSystem={isSystem}
+        placeholders={placeholders}
+        errors={actionData?.errors}
+        baseUrl={baseUrl}
+      />
 
       {!isSystem && (
         <Form method="post">

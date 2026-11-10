@@ -6,7 +6,7 @@ export default function NewDocumentInBoard({
   firstname = 'Jean',
   filename = 'Reunions publiques',
   documentId = 158,
-  baseUrl = 'https://unitae.app',
+  baseUrl = 'https://unitae.example.com',
   platformName = 'Unitae',
 }: {
   email: string

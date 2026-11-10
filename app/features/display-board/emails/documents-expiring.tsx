@@ -5,7 +5,7 @@ export default function DocumentsExpiring({
   email = 'test@email.com',
   firstname = 'Jean',
   documents = [{ id: 1, title: 'Reunions publiques' }],
-  baseUrl = 'https://unitae.app',
+  baseUrl = 'https://unitae.example.com',
   platformName = 'Unitae',
 }: {
   email: string

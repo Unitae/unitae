@@ -16,7 +16,7 @@ export default function ProgrammeAssignmentUnassigned({
   assignmentName = 'Perles de la Parole',
   role = 'speaker',
   link = '/board',
-  baseUrl = 'https://unitae.app',
+  baseUrl = 'https://unitae.example.com',
   platformName = 'Unitae',
 }: {
   email: string

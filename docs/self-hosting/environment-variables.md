@@ -27,7 +27,7 @@ The first entry signs new cookies; every entry still validates existing cookies 
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `UNITAE_BASE_URL` | — | Base URL for emails and redirects (e.g., `https://unitae.example.com`) |
+| `UNITAE_BASE_URL` | `http://localhost:<port>` | The address people reach the instance at (e.g., `https://unitae.example.com`). Links in emails and shared messages, the domain congregation subdomains hang from, and the default email sender all derive from it. Without it they point to the server itself (`http://localhost:8080` with the official images) and a warning is logged at start — set it on any instance people reach from another machine. It is never guessed from incoming requests: a forged `Host` header would send password-reset links elsewhere |
 | `UNITAE_COOKIE_DOMAIN` | — | Session cookie domain. Set in production to match your domain |
 | `UNITAE_MULTI_TENANT` | `false` | Enable multi-congregation mode. Set to `true` to allow multiple congregations |
 | `UNITAE_LOG_LEVEL` | `info` | Winston log level (`error`, `warn`, `info`, `debug`) |
@@ -71,7 +71,7 @@ Authentication rate limiting is backed by Redis (via a fail-fast `redisRateLimit
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `RESEND_API_KEY` | — | [Resend](https://resend.com/) API key for sending emails. Without this, the app works but cannot send password reset emails or notifications |
-| `UNITAE_EMAIL_FROM` | `Unitae <noreply@unitae.app>` | Default sender address for outgoing emails. Must match a verified domain in your Resend account |
+| `UNITAE_EMAIL_FROM` | `Unitae <noreply@` + the domain of `UNITAE_BASE_URL` + `>` | Default sender address for outgoing emails. Must match a verified domain in your Resend account |
 
 ## File Storage
 
@@ -119,6 +119,27 @@ The Content-Security-Policy is sent as `Content-Security-Policy-Report-Only`: it
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `UNITAE_HSTS_HEADER` | `max-age=63072000` | Full `Strict-Transport-Security` header value. The default omits `includeSubDomains`/`preload` because the app can't know your subdomain topology and those directives are near-irreversible for the `max-age` window. Set the complete value (e.g. `max-age=63072000; includeSubDomains; preload`) when you control **every** subdomain of your registrable domain |
+
+## Instance settings
+
+`HOST_SETTINGS` holds, as one JSON object, what makes an instance its own: where it sends people outside the app, and who runs it. Everything is optional; an instance that sets nothing links to nowhere else and describes itself, on its privacy page, as run by whoever deployed it.
+
+```ini
+HOST_SETTINGS='{"branding":{"platformName":"Assemblées du Rhône","homeUrl":"https://assemblees-rhone.org"},"operator":{"name":"Assemblées du Rhône","privacyContact":"dpo@assemblees-rhone.org","privacyPolicyUrl":"https://assemblees-rhone.org/confidentialite"}}'
+```
+
+| Key | Description |
+|-----|-------------|
+| `branding.homeUrl` | Your own site. A visitor who reaches an address with no congregation behind it (multi-tenant) is offered to go there. Without it, no button is shown |
+| `branding.platformName` | The name that button shows (« Aller sur Assemblées du Rhône »). Defaults to the host of `homeUrl` |
+| `operator.name` | Who runs the instance. The privacy page says the instance is run by them |
+| `operator.privacyContact` | The email address data-protection requests go to, shown on the privacy page |
+| `operator.privacyPolicyUrl` | Your own privacy policy. The privacy page announces it at the top and links to it: it complements Unitae's policy, which describes what the software does, rather than replacing it |
+| `operator.managedHosting` | Reserved for the managed hosting at unitae.app: shows its processor, subprocessors, billing retention and data transfers on the privacy page. Leave it out |
+| `support.url` | A support page, offered on the suspended-access page |
+| `billing.upgradeUrl`, `billing.portalUrl` | Subscription links (both or neither), for a hosting that bills congregations |
+
+A value that is not what its key expects — a link that is not an `http(s)` address, a contact that is not an email address — is ignored and reported once in the logs at start; the rest of the settings still apply.
 
 ## Docker Compose
 

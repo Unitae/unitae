@@ -4,7 +4,7 @@ import * as m from '~/i18n/paraglide/messages'
 export default function BuildingSyncDone({
   email = 'test@email.com',
   firstname = 'Jean',
-  baseUrl = 'https://unitae.app',
+  baseUrl = 'https://unitae.example.com',
   platformName = 'Unitae',
 }: {
   email: string

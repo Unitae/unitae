@@ -11,6 +11,8 @@ const ENV_KEYS = [
   'UNITAE_CRON_SECRET',
   'UNITAE_BASE_URL',
   'UNITAE_MULTI_TENANT',
+  'UNITAE_WEB_PORT',
+  'PORT',
 ] as const
 
 describe('env.server', () => {
@@ -188,29 +190,73 @@ describe('env.server', () => {
       expect(getBaseDomain()).toBe(hostname)
     })
 
-    it('falls back to unitae.app when the var is unset', async () => {
+    // Never another instance's domain: a self-hosted instance that forgot the variable must keep its links at home.
+    it('falls back to localhost when the var is unset', async () => {
       const { getBaseDomain } = await import('./env.server')
-      expect(getBaseDomain()).toBe('unitae.app')
+      expect(getBaseDomain()).toBe('localhost')
     })
 
-    it.each(['', 'not a host'])('falls back to unitae.app when the var is %j', async value => {
+    it.each(['', 'not a host'])('falls back to localhost when the var is %j', async value => {
       const { getBaseDomain } = await import('./env.server')
       process.env.UNITAE_BASE_URL = value
-      expect(getBaseDomain()).toBe('unitae.app')
+      expect(getBaseDomain()).toBe('localhost')
     })
+  })
+
+  describe('getBaseUrl', () => {
+    it.each([
+      ['unitae.example.com', 'https://unitae.example.com'],
+      ['https://unitae.example.com', 'https://unitae.example.com'],
+      ['http://unitae.example.com', 'http://unitae.example.com'],
+      ['https://unitae.example.com/', 'https://unitae.example.com'],
+      ['https://unitae.example.com:8443', 'https://unitae.example.com:8443'],
+      ['https://Unitae.Example.com/', 'https://unitae.example.com'],
+    ])('reads %s as %s', async (value, url) => {
+      const { getBaseUrl } = await import('./env.server')
+      process.env.UNITAE_BASE_URL = value
+      expect(getBaseUrl()).toBe(url)
+    })
+
+    it('falls back to the server itself, on the port it listens to', async () => {
+      const { getBaseUrl } = await import('./env.server')
+      process.env.UNITAE_WEB_PORT = '8080'
+      expect(getBaseUrl()).toBe('http://localhost:8080')
+    })
+
+    it('falls back to PORT, then to 3000, like the start script', async () => {
+      const { getBaseUrl } = await import('./env.server')
+      process.env.PORT = '4000'
+      expect(getBaseUrl()).toBe('http://localhost:4000')
+      delete process.env.PORT
+      expect(getBaseUrl()).toBe('http://localhost:3000')
+    })
+
+    it.each(['', 'not a host'])('falls back to the server itself when the var is %j', async value => {
+      const { getBaseUrl } = await import('./env.server')
+      process.env.UNITAE_BASE_URL = value
+      expect(getBaseUrl()).toBe('http://localhost:3000')
+    })
+  })
+
+  it('validateEnv does not refuse a boot without UNITAE_BASE_URL', async () => {
+    const { validateEnv } = await import('./env.server')
+    process.env.DB_URL = 'postgresql://localhost/db'
+    process.env.UNITAE_SESSION_SECRET = 'a-sufficiently-long-test-session-secret-value'
+    vi.stubEnv('NODE_ENV', 'production')
+    expect(() => validateEnv()).not.toThrow()
   })
 
   // A value that names no host leaves subdomains resolved against the default domain. Boot reports
   // it and carries on: an instance that only serves custom domains runs fine without one.
-  it.each([
-    '',
-    'not a host',
-  ])('validateEnv does not refuse a multi-tenant boot when UNITAE_BASE_URL is %j', async value => {
-    const { validateEnv } = await import('./env.server')
-    process.env.DB_URL = 'postgresql://localhost/db'
-    process.env.UNITAE_SESSION_SECRET = 'a-sufficiently-long-test-session-secret-value'
-    process.env.UNITAE_MULTI_TENANT = 'true'
-    process.env.UNITAE_BASE_URL = value
-    expect(() => validateEnv()).not.toThrow()
-  })
+  it.each(['', 'not a host'])(
+    'validateEnv does not refuse a multi-tenant boot when UNITAE_BASE_URL is %j',
+    async value => {
+      const { validateEnv } = await import('./env.server')
+      process.env.DB_URL = 'postgresql://localhost/db'
+      process.env.UNITAE_SESSION_SECRET = 'a-sufficiently-long-test-session-secret-value'
+      process.env.UNITAE_MULTI_TENANT = 'true'
+      process.env.UNITAE_BASE_URL = value
+      expect(() => validateEnv()).not.toThrow()
+    },
+  )
 })
