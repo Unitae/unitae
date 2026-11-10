@@ -1,16 +1,16 @@
 import { parseWithZod } from '@conform-to/zod/v4'
+import { MailCheck } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
 import { forgotPasswordSchema } from '~/features/authentication/schemas/login.schema'
 import { requestPasswordReset } from '~/features/authentication/server/request-password-reset.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { AuthShell } from '~/features/authentication/ui/AuthShell'
+import { AUTH_SUBMIT, AuthField, AuthLink, AuthMessage } from '~/features/authentication/ui/auth-parts'
 import * as m from '~/i18n/paraglide/messages'
-import { getBrandingName, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
-import { Alert, AlertDescription } from '~/shared/ui/alert'
+import { getCongregationBrand, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
 import { Button } from '~/shared/ui/button'
-import { CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
-import { Label } from '~/shared/ui/label'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { getClientIp } from '~/shared/utils/get-client-ip'
 import type { Route } from './+types/password-forgot'
 
@@ -22,10 +22,10 @@ export async function loader({ request }: Route.LoaderArgs) {
   await resolveCongregationFromRequest(request)
 
   const session = await getSession(request.headers.get('Cookie'))
-  const brandingName = await getBrandingName(request)
+  const congregation = await getCongregationBrand(request)
 
   return data(
-    { error: session.get('error'), success: session.get('success'), brandingName },
+    { error: session.get('error'), sentTo: session.get('resetSentTo'), congregation },
     {
       headers: {
         'Set-Cookie': await commitSession(session),
@@ -35,41 +35,40 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export default function ForgotPassword({ loaderData }: Route.ComponentProps) {
-  const { error, success, brandingName } = loaderData
+  const { error, sentTo, congregation } = loaderData
+
+  if (sentTo != null) {
+    return (
+      <AuthShell
+        congregation={congregation}
+        icon={MailCheck}
+        title={m.auth_password_forgot_sent_title()}
+        description={m.auth_password_forgot_sent_body({ email: sentTo })}
+      >
+        {error && <AuthMessage tone="error">{error}</AuthMessage>}
+        <p className="text-faint text-sm leading-relaxed">{m.auth_password_forgot_sent_hint()}</p>
+        <Button asChild variant="outline" className={AUTH_SUBMIT}>
+          <Link to="/login">{m.auth_back_to_login()}</Link>
+        </Button>
+        <AuthLink to="/password/forgot">{m.auth_password_forgot_other_address()}</AuthLink>
+      </AuthShell>
+    )
+  }
 
   return (
-    <AuthShell>
-      <CardHeader className="items-center space-y-2 text-center">
-        <h1 className="font-bold font-display text-2xl tracking-tight">{brandingName}</h1>
-        <p className="text-muted-foreground text-sm">{m.auth_password_forgot_subtitle()}</p>
-      </CardHeader>
-      <CardContent>
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        {success && (
-          <Alert className="mb-4">
-            <AlertDescription>{success}</AlertDescription>
-          </Alert>
-        )}
-        <Form method="post" className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="email">{m.auth_password_forgot_email_label()}</Label>
-            <Input id="email" name="email" type="email" autoComplete="username" autoFocus={true} required />
-          </div>
-
-          <Button type="submit" className="mt-4 w-full">
-            {m.auth_password_forgot_submit()}
-          </Button>
-        </Form>
-      </CardContent>
-      <CardFooter className="justify-center">
-        <Link to="/login" className="text-primary text-sm hover:underline">
-          {m.auth_password_forgot_back_to_login()}
-        </Link>
-      </CardFooter>
+    <AuthShell
+      congregation={congregation}
+      title={m.auth_password_forgot_page_title()}
+      description={m.auth_password_forgot_subtitle()}
+    >
+      {error && <AuthMessage tone="error">{error}</AuthMessage>}
+      <Form method="post" className="flex flex-col gap-4">
+        <AuthField id="email" label={m.auth_password_forgot_email_label()}>
+          <Input id="email" name="email" type="email" autoComplete="username" autoFocus={true} required />
+        </AuthField>
+        <SubmitButton className={AUTH_SUBMIT}>{m.auth_password_forgot_submit()}</SubmitButton>
+      </Form>
+      <AuthLink to="/login">{m.auth_back_to_login()}</AuthLink>
     </AuthShell>
   )
 }
@@ -89,11 +88,11 @@ export async function action({ request }: Route.ActionArgs) {
     // lookup and is the same for every address, so saying so reveals nothing.
     session.flash('error', m.auth_password_forgot_unavailable_error())
   } else {
-    // Flash the same success message for every email — unknown, rate-limited, or real —
-    // so the happy path can't be used to enumerate accounts. The only deliberate
-    // deviation is the send-failure error below, which is reachable solely for a real
-    // account and is not attacker-controllable per address.
-    session.flash('success', m.auth_password_forgot_success_message())
+    // The same confirmation for every email — unknown, rate-limited, or real — so the happy
+    // path can't be used to enumerate accounts: it names the address the person typed, which
+    // they already know. The only deliberate deviation is the send-failure error below, which
+    // is reachable solely for a real account and is not attacker-controllable per address.
+    session.flash('resetSentTo', submission.value.email)
     if (result.status === 'processed' && !result.emailDelivered) {
       session.flash('error', m.auth_email_send_error())
     }

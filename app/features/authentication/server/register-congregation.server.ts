@@ -1,7 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { seedDefaultTemplates } from '~/features/events/index.server'
 import { seedBuiltInTerritoryKinds } from '~/features/territories/index.server'
-import * as m from '~/i18n/paraglide/messages'
 import type { locales } from '~/i18n/paraglide/runtime'
 import { hash } from '~/shared/auth/crypto.server'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
@@ -38,7 +37,7 @@ export async function registerCongregation(
 ) {
   const existingUser = await db.userAccount.findUnique({ where: { email: adminEmail.toLowerCase() } })
   if (existingUser) {
-    return { error: m.auth_register_email_taken_error() }
+    return { error: 'email_taken' as const }
   }
 
   await seedPermissions(db)
@@ -60,7 +59,7 @@ export async function registerCongregation(
     })
   } catch (error) {
     logger.error('Failed to provision congregation', { baseSlug: congregationSlug, error })
-    return { error: m.auth_register_generic_error() }
+    return { error: 'provision_failed' as const }
   }
 
   const user = await db.userAccount.create({

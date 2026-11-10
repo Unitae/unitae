@@ -24,18 +24,16 @@ export async function setupFirstAccount(
 
   const hashedPassword = await hash(password)
 
-  // In single-tenant mode, the seed may have already created a congregation.
-  // Reuse it instead of creating a duplicate.
+  // In single-tenant mode, the seed may have already created a congregation. Reuse it instead of creating a
+  // duplicate, under the name and in the language the admin chose.
   const existingCongregation = await db.congregation.findFirst()
   const congregation =
-    existingCongregation ??
-    (await db.congregation.create({
-      data: {
-        name: congregationName,
-        slug: congregationSlug,
-        locale,
-      },
-    }))
+    existingCongregation == null
+      ? await db.congregation.create({ data: { name: congregationName, slug: congregationSlug, locale } })
+      : await db.congregation.update({
+          where: { id: existingCongregation.id },
+          data: { name: congregationName, locale },
+        })
 
   const user = await db.userAccount.create({
     data: {
@@ -63,7 +61,7 @@ export async function setupFirstAccount(
     await syncBuiltInRoleAssignments(scopedDb, user.id, congregation.id, user.id)
   })
 
-  // Enregistrer le consentement RGPD initial
+  // Record the initial GDPR consent.
   await recordConsentUnscoped(user.id, congregation.id, ConsentPurpose.DataProcessing)
 
   return user.id

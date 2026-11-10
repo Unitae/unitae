@@ -19,17 +19,17 @@ import {
 import { isTwoFactorEnabled } from '~/features/authentication/server/two-factor-status.server'
 import { validateCredentials } from '~/features/authentication/server/validate-credentials.server'
 import { AuthShell } from '~/features/authentication/ui/AuthShell'
+import { AUTH_SUBMIT, AuthField, AuthMessage } from '~/features/authentication/ui/auth-parts'
 import * as m from '~/i18n/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
-import { getBrandingName, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
+import { getCongregationBrand, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'
-import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Button } from '~/shared/ui/button'
-import { Card, CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
-import { Label } from '~/shared/ui/label'
+import { PasswordInput } from '~/shared/ui/PasswordInput'
 import { getClientIp } from '~/shared/utils/get-client-ip'
 import { safeRedirectUrl } from '~/shared/utils/safe-redirect.server'
+import { cn } from '~/shared/utils/utils'
 import type { Route } from './+types/login'
 
 export const meta: Route.MetaFunction = () => {
@@ -52,7 +52,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     const uid = Number(session.get('userId'))
     if (Number.isNaN(uid) || uid <= 0) {
       return data(
-        { error: undefined, brandingName: await getBrandingName(request), redirectTo },
+        { error: undefined, success: undefined, congregation: await getCongregationBrand(request), redirectTo },
         { headers: { 'Set-Cookie': await destroySession(session) } },
       )
     }
@@ -66,7 +66,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       })
       if (!user || user.congregationId !== urlCongregation.id) {
         return data(
-          { error: undefined, brandingName: await getBrandingName(request), redirectTo },
+          { error: undefined, success: undefined, congregation: await getCongregationBrand(request), redirectTo },
           { headers: { 'Set-Cookie': await destroySession(session) } },
         )
       }
@@ -74,10 +74,11 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw redirect(redirectTo)
   }
 
-  const brandingName = await getBrandingName(request)
+  const congregation = await getCongregationBrand(request)
 
+  // A password just changed or an address just confirmed: said here, where the person signs in next.
   return data(
-    { error: session.get('error'), brandingName, redirectTo },
+    { error: session.get('error'), success: session.get('success'), congregation, redirectTo },
     {
       headers: {
         'Set-Cookie': await commitSession(session),
@@ -87,7 +88,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export default function LoginPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { error, brandingName, redirectTo } = loaderData
+  const { error, success, congregation, redirectTo } = loaderData
 
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -97,41 +98,36 @@ export default function LoginPage({ loaderData, actionData }: Route.ComponentPro
   })
 
   return (
-    <AuthShell>
-      <CardHeader className="items-center space-y-2 text-center">
-        <h1 className="font-bold font-display text-2xl tracking-tight">{brandingName}</h1>
-      </CardHeader>
-      <CardContent>
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)}>
-          <input type="hidden" name="redirectTo" value={redirectTo} />
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={fields.email.id}>{m.auth_login_email()}</Label>
-            <Input {...getInputProps(fields.email, { type: 'email' })} autoFocus={true} autoComplete="username" />
-            {fields.email.errors && <p className="text-destructive text-sm">{fields.email.errors}</p>}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor={fields.password.id}>{m.auth_login_password()}</Label>
-              <Link to="/password/forgot" className="text-primary text-xs hover:underline">
-                {m.auth_login_forgot_password()}
-              </Link>
-            </div>
-            <Input {...getInputProps(fields.password, { type: 'password' })} autoComplete="current-password" />
-            {fields.password.errors && <p className="text-destructive text-sm">{fields.password.errors}</p>}
-          </div>
-
-          <Button type="submit" className="mt-4 w-full">
-            {m.auth_login_submit()}
-          </Button>
-        </Form>
-      </CardContent>
-      <CardFooter />
+    <AuthShell congregation={congregation} title={m.auth_login_page_title()}>
+      {error && <AuthMessage tone="error">{error}</AuthMessage>}
+      {success && <AuthMessage tone="success">{success}</AuthMessage>}
+      <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)}>
+        <input type="hidden" name="redirectTo" value={redirectTo} />
+        <AuthField
+          id={fields.email.id}
+          label={m.auth_login_email()}
+          errorId={fields.email.errorId}
+          errors={fields.email.errors}
+        >
+          <Input {...getInputProps(fields.email, { type: 'email' })} autoFocus={true} autoComplete="username" />
+        </AuthField>
+        <AuthField
+          id={fields.password.id}
+          label={m.auth_login_password()}
+          aside={
+            <Link to="/password/forgot" className="text-brand-text text-sm underline-offset-4 hover:underline">
+              {m.auth_login_forgot_password()}
+            </Link>
+          }
+          errorId={fields.password.errorId}
+          errors={fields.password.errors}
+        >
+          <PasswordInput {...getInputProps(fields.password, { type: 'password' })} autoComplete="current-password" />
+        </AuthField>
+        <Button type="submit" className={cn('mt-1', AUTH_SUBMIT)}>
+          {m.auth_login_submit()}
+        </Button>
+      </Form>
     </AuthShell>
   )
 }

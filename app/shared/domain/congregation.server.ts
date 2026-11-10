@@ -181,3 +181,12 @@ export async function getBrandingName(request?: Request): Promise<string> {
 
   return DEFAULT_PLATFORM_NAME
 }
+
+/**
+ * The congregation's name, for the pages before the app (its monogram and name above the title); null when
+ * {@link getBrandingName} could only offer the platform's name, so that those pages show the unitae mark instead.
+ */
+export async function getCongregationBrand(request?: Request): Promise<string | null> {
+  const name = await getBrandingName(request)
+  return name === DEFAULT_PLATFORM_NAME ? null : name
+}

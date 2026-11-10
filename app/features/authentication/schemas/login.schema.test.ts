@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { changePasswordSchema, setupSchema } from './login.schema'
+import * as m from '~/i18n/paraglide/messages'
+
+import { changePasswordSchema, loginSchema, resetPasswordSchema, setupSchema } from './login.schema'
 
 describe('changePasswordSchema', () => {
   it('accepts a current password of any non-empty length and a ≥8 new password', () => {
@@ -37,31 +39,47 @@ describe('changePasswordSchema', () => {
 })
 
 describe('setupSchema', () => {
-  const base = { email: 'elder@example.org', locale: 'fr' }
+  const base = { 'congregation-name': 'Assemblée des Lilas', email: 'elder@example.org', locale: 'fr' }
 
   it('rejects a password shorter than 8 characters (unified policy)', () => {
-    const result = setupSchema.safeParse({ ...base, password: 'short', 'repeat-password': 'short' })
+    const result = setupSchema.safeParse({ ...base, password: 'short' })
 
     expect(result.success).toBe(false)
   })
 
-  it('accepts a ≥8 password with a matching confirmation', () => {
-    const result = setupSchema.safeParse({
-      ...base,
-      password: 'a-strong-setup-pw',
-      'repeat-password': 'a-strong-setup-pw',
-    })
+  it('accepts a ≥8 password typed once, with « Afficher » to check it', () => {
+    const result = setupSchema.safeParse({ ...base, password: 'a-strong-setup-pw' })
 
     expect(result.success).toBe(true)
   })
 
-  it('rejects when the confirmation does not match', () => {
-    const result = setupSchema.safeParse({
-      ...base,
-      password: 'a-strong-setup-pw',
-      'repeat-password': 'a-strong-setup-xx',
-    })
+  it('wants the congregation’s name', () => {
+    const result = setupSchema.safeParse({ ...base, 'congregation-name': ' ', password: 'a-strong-setup-pw' })
 
-    expect(result.success).toBe(false)
+    expect(result.error?.issues.map(issue => issue.path.join('.'))).toEqual(['congregation-name'])
+  })
+})
+
+describe('resetPasswordSchema', () => {
+  const base = { email: 'elder@example.org', password: 'a-strong-reset-pw' }
+
+  it('accepts the new password typed twice', () => {
+    expect(resetPasswordSchema.safeParse({ ...base, passwordConfirm: 'a-strong-reset-pw' }).success).toBe(true)
+  })
+
+  it('says so under the confirmation when the two differ', () => {
+    const result = resetPasswordSchema.safeParse({ ...base, passwordConfirm: 'a-strong-reset-xx' })
+
+    expect(result.error?.issues).toEqual([
+      expect.objectContaining({ path: ['passwordConfirm'], message: m.auth_error_password_mismatch() }),
+    ])
+  })
+})
+
+describe('field messages', () => {
+  it('speak the reader’s language, never the validator’s defaults', () => {
+    const result = loginSchema.safeParse({ email: 'not-an-address', password: '' })
+
+    expect(result.error?.issues.map(issue => issue.message)).toEqual([m.auth_error_email(), m.auth_error_required()])
   })
 })

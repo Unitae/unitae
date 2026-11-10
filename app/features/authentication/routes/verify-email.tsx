@@ -1,14 +1,19 @@
-import { Form, Link, redirect } from 'react-router'
+import { MailCheck } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { data, Form, redirect } from 'react-router'
 import VerifyEmailTemplate from '~/features/authentication/emails/verify-email'
 import {
   createEmailVerificationToken,
   getLatestVerificationToken,
 } from '~/features/authentication/server/email-verification.server'
 import { sendVerificationEmail } from '~/features/authentication/server/send-verification-email.server'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { commitSession, destroySession, getSession } from '~/features/authentication/server/session.server'
+import { AuthShell } from '~/features/authentication/ui/AuthShell'
+import { AUTH_SUBMIT, AuthMessage } from '~/features/authentication/ui/auth-parts'
 import * as m from '~/i18n/paraglide/messages'
-import { resolveCongregation } from '~/shared/domain/congregation.server'
+import { getCongregationBrand, resolveCongregation } from '~/shared/domain/congregation.server'
 import { unscopedDb as db } from '~/shared/infra/db.server'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { displayFirstname } from '~/shared/utils/display-name'
 
 import type { Route } from './+types/verify-email'
@@ -17,6 +22,12 @@ const RESEND_COOLDOWN_SECONDS = 60
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: `${m.verify_email_title()} - Unitae` }]
+}
+
+/** Seconds before another link may be sent: a minute after the last one. */
+function secondsUntilResend(lastSentAt: Date | undefined): number {
+  if (lastSentAt == null) return 0
+  return Math.max(0, Math.ceil(RESEND_COOLDOWN_SECONDS - (Date.now() - lastSentAt.getTime()) / 1000))
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -28,46 +39,79 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw redirect('/login')
   }
 
-  const user = await db.userAccount.findUnique({ where: { id: userId } })
+  const user = await db.userAccount.findUnique({
+    where: { id: userId },
+    select: { email: true, active: true, emailVerifiedAt: true },
+  })
 
   if (user == null || !user.active) {
-    throw redirect('/login', {
-      headers: {
-        'Set-Cookie': await (await import('~/features/authentication/server/session.server')).destroySession(session),
-      },
-    })
+    throw redirect('/login', { headers: { 'Set-Cookie': await destroySession(session) } })
   }
 
   if (user.emailVerifiedAt) {
     throw redirect('/')
   }
 
-  const flashSuccess = session.get('success')
+  const latest = await getLatestVerificationToken(userId)
 
-  return Response.json({ email: user.email, flashSuccess }, { headers: { 'Set-Cookie': await commitSession(session) } })
+  return data(
+    {
+      email: user.email,
+      success: session.get('success'),
+      error: session.get('error'),
+      resendIn: secondsUntilResend(latest?.createdAt),
+      congregation: await getCongregationBrand(request),
+    },
+    { headers: { 'Set-Cookie': await commitSession(session) } },
+  )
+}
+
+/** Counts down from `seconds`, once a second, to 0. */
+function useCountdown(seconds: number): number {
+  const [left, setLeft] = useState(seconds)
+  useEffect(() => {
+    setLeft(seconds)
+    if (seconds <= 0) return
+    const started = Date.now()
+    const timer = setInterval(() => {
+      const rest = Math.max(0, seconds - Math.floor((Date.now() - started) / 1000))
+      setLeft(rest)
+      if (rest === 0) clearInterval(timer)
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [seconds])
+  return left
+}
+
+function clock(seconds: number): string {
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 }
 
 export default function VerifyEmailPage({ loaderData }: Route.ComponentProps) {
-  const { email, flashSuccess } = loaderData
+  const { email, success, error, resendIn, congregation } = loaderData
+  const wait = useCountdown(resendIn)
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50">
-      <div className="mx-auto max-w-md text-center">
-        <h1 className="mb-4 font-bold text-2xl text-gray-900">{m.verify_email_title()}</h1>
-        <p className="mb-6 text-gray-600">{m.verify_email_message({ email })}</p>
-        {flashSuccess && <p className="mb-4 rounded bg-green-50 px-4 py-2 text-green-700 text-sm">{flashSuccess}</p>}
-        <div className="flex flex-col gap-3">
-          <Form method="post">
-            <button type="submit" className="w-full rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-              {m.verify_email_resend()}
-            </button>
-          </Form>
-          <Link to="/logout" className="text-gray-500 text-sm hover:text-gray-700">
-            {m.verify_email_logout()}
-          </Link>
-        </div>
-      </div>
-    </div>
+    <AuthShell
+      congregation={congregation}
+      icon={MailCheck}
+      title={m.verify_email_title()}
+      description={m.verify_email_message({ email })}
+    >
+      {error && <AuthMessage tone="error">{error}</AuthMessage>}
+      {success && <AuthMessage tone="success">{success}</AuthMessage>}
+      <Form method="post">
+        <SubmitButton variant="outline" className={AUTH_SUBMIT} disabled={wait > 0}>
+          {wait > 0 ? m.verify_email_resend_wait({ time: clock(wait) }) : m.verify_email_resend()}
+        </SubmitButton>
+      </Form>
+      {/* A POST: the logout route only signs out on its action, a link would land back here. */}
+      <Form method="post" action="/logout">
+        <button type="submit" className="text-brand-text text-sm underline-offset-4 hover:underline">
+          {m.verify_email_logout()}
+        </button>
+      </Form>
+    </AuthShell>
   )
 }
 
@@ -88,16 +132,13 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/login')
   }
 
-  // Vérifier le rate limiting
+  // One link a minute: a second press, from another tab, is told to wait rather than sent another.
   const existingToken = await getLatestVerificationToken(userId)
-  if (existingToken) {
-    const secondsSinceCreation = (Date.now() - existingToken.createdAt.getTime()) / 1000
-    if (secondsSinceCreation < RESEND_COOLDOWN_SECONDS) {
-      session.flash('success', m.verify_email_rate_limited())
-      return redirect('/verify-email', {
-        headers: { 'Set-Cookie': await commitSession(session) },
-      })
-    }
+  if (secondsUntilResend(existingToken?.createdAt) > 0) {
+    session.flash('error', m.verify_email_rate_limited())
+    return redirect('/verify-email', {
+      headers: { 'Set-Cookie': await commitSession(session) },
+    })
   }
 
   const token = await createEmailVerificationToken(userId)
@@ -114,11 +155,8 @@ export async function action({ request }: Route.ActionArgs) {
     }),
   )
 
-  if (sent) {
-    session.flash('success', m.verify_email_resent())
-  } else {
-    session.flash('success', m.auth_email_send_error())
-  }
+  if (sent) session.flash('success', m.verify_email_resent())
+  else session.flash('error', m.auth_email_send_error())
   return redirect('/verify-email', {
     headers: { 'Set-Cookie': await commitSession(session) },
   })

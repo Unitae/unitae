@@ -4,9 +4,10 @@ import { E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, login } from './helpers/auth'
 const TEST_EMAIL = E2E_ADMIN_EMAIL
 const TEST_PASSWORD = E2E_ADMIN_PASSWORD
 
-const EMAIL_FIELD_RE = /email/i
-const PASSWORD_FIELD_RE = /mot de passe/i
-const SUBMIT_BUTTON_RE = /connexion/i
+const EMAIL_FIELD_RE = /^e-?mail$/i
+// Exact: the « Afficher le mot de passe » button beside the field is labelled too.
+const PASSWORD_FIELD = 'Mot de passe'
+const SUBMIT_BUTTON_RE = /^se connecter$/i
 
 // The entry is written after the response has left, so the page is reloaded until it shows.
 async function expectAuditRow(page: Page, action: string, label: string) {
@@ -44,7 +45,7 @@ test.describe('Sign-in audit', () => {
     }
 
     await emailField.fill(TEST_EMAIL)
-    await page.getByLabel(PASSWORD_FIELD_RE).fill(`not-${TEST_PASSWORD}`)
+    await page.getByLabel(PASSWORD_FIELD, { exact: true }).fill(`not-${TEST_PASSWORD}`)
     await page.getByRole('button', { name: SUBMIT_BUTTON_RE }).click()
     await page.waitForLoadState('networkidle')
 

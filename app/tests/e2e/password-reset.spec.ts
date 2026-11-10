@@ -4,8 +4,8 @@ import { E2E_ADMIN_EMAIL, skipUnlessInitialised } from './helpers/auth'
 
 const FORGOT_URL_RE = /\/password\/forgot/
 const SUBMIT_BUTTON_RE = /envoyer/i
-// The deliberately non-committal confirmation shown for ANY email, known or not.
-const UNIFORM_SUCCESS_RE = /Si votre adresse correspond à un compte utilisateur/i
+// The deliberately non-committal confirmation shown for ANY email, known or not. It names the address typed.
+const UNIFORM_SUCCESS_RE = /Si un compte existe pour/i
 
 // A real seeded account — the app-setup fixture guarantees it exists.
 const KNOWN_EMAIL = E2E_ADMIN_EMAIL
@@ -29,7 +29,8 @@ async function submitForgotPassword(page: Page, email: string): Promise<string> 
 
   const confirmation = page.getByText(UNIFORM_SUCCESS_RE)
   await expect(confirmation).toBeVisible()
-  return ((await confirmation.textContent()) ?? '').trim()
+  // The address typed is the only difference allowed: the person already knows it.
+  return ((await confirmation.textContent()) ?? '').replace(email, '<address>').trim()
 }
 
 test.describe('Password reset flow', () => {

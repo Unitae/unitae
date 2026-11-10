@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test'
 import { E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, login } from './helpers/auth'
 
-const LOGIN_URL_RE = /\/login/
+const SETUP_URL_RE = /\/setup/
+const CONGREGATION_NAME_RE = /^nom de l.assemblée$/i
+const EMAIL_RE = /^votre e-mail$/i
+const CREATE_RE = /^créer et entrer$/i
 
 test('ensure app is initialised', async ({ page }) => {
   const email = E2E_ADMIN_EMAIL
@@ -21,10 +24,12 @@ test('ensure app is initialised', async ({ page }) => {
     return
   }
 
-  await page.getByLabel('Email').fill(email)
+  await page.getByLabel(CONGREGATION_NAME_RE).fill('Assemblée E2E')
+  await page.getByLabel(EMAIL_RE).fill(email)
+  // Exact: the « Afficher le mot de passe » button beside the field is labelled too.
   await page.getByLabel('Mot de passe', { exact: true }).fill(password)
-  await page.getByLabel('Répéter le mot de passe', { exact: true }).fill(password)
-  await page.getByRole('button', { name: "Créer l'utilisateur" }).click()
+  await page.getByRole('button', { name: CREATE_RE }).click()
 
-  await expect(page).toHaveURL(LOGIN_URL_RE, { timeout: 15_000 })
+  // The admin comes in straight away: no second trip through the sign-in page.
+  await expect(page).not.toHaveURL(SETUP_URL_RE, { timeout: 15_000 })
 })

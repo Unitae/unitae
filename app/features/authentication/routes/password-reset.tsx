@@ -1,6 +1,7 @@
-import { getFormProps, getInputProps, useForm } from '@conform-to/react'
+import { getFormProps, getInputProps, type SubmissionResult, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod/v4'
-import { data, Form, redirect } from 'react-router'
+import { Clock } from 'lucide-react'
+import { data, Form, Link, redirect } from 'react-router'
 import { resetPasswordSchema } from '~/features/authentication/schemas/login.schema'
 import { isAccountInBreachScope } from '~/features/authentication/server/breach-scope.server'
 import { verifyPasswordResetToken } from '~/features/authentication/server/invalidate-account-password.server'
@@ -8,13 +9,13 @@ import { checkNewPasswordPolicy } from '~/features/authentication/server/passwor
 import { resetAccountPassword } from '~/features/authentication/server/reset-account-password.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { AuthShell } from '~/features/authentication/ui/AuthShell'
+import { AUTH_SUBMIT, AuthField, AuthLink } from '~/features/authentication/ui/auth-parts'
 import * as m from '~/i18n/paraglide/messages'
-import { getBrandingName, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
+import { getCongregationBrand, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
 import { withScope } from '~/shared/infra/db.server'
 import { Button } from '~/shared/ui/button'
-import { CardContent, CardHeader } from '~/shared/ui/card'
-import { Input } from '~/shared/ui/input'
-import { Label } from '~/shared/ui/label'
+import { PasswordInput } from '~/shared/ui/PasswordInput'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import type { Route } from './+types/password-reset'
 
 export const meta: Route.MetaFunction = () => {
@@ -24,74 +25,77 @@ export const meta: Route.MetaFunction = () => {
 export async function loader({ request, params }: Route.LoaderArgs) {
   await resolveCongregationFromRequest(request)
 
+  const congregation = await getCongregationBrand(request)
   const user = await verifyPasswordResetToken(params.userHash ?? '')
 
-  if (user == null) {
-    throw redirect('/')
-  }
-
-  const brandingName = await getBrandingName(request)
-
-  return {
-    email: user.email,
-    id: user.id,
-    active: user.active,
-    firstname: user.firstname,
-    lastname: user.lastname,
-    brandingName,
-  }
+  // A used or expired link says so, and offers a new one, rather than landing on the sign-in page without a word.
+  if (user == null) return { valid: false as const, congregation }
+  return { valid: true as const, email: user.email, congregation }
 }
 
 export default function PasswordResetPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { brandingName, ...user } = loaderData
+  // The link can also run out between opening the page and saving: the action then refuses, and says the same.
+  const refused = actionData != null && 'invalid' in actionData
 
+  if (!loaderData.valid || refused) {
+    return (
+      <AuthShell
+        congregation={loaderData.congregation}
+        icon={Clock}
+        title={m.auth_link_expired_title()}
+        description={m.auth_password_reset_expired_body()}
+      >
+        <Button asChild className={AUTH_SUBMIT}>
+          <Link to="/password/forgot">{m.auth_password_reset_new_link()}</Link>
+        </Button>
+        <AuthLink to="/login">{m.auth_back_to_login()}</AuthLink>
+      </AuthShell>
+    )
+  }
+
+  return (
+    <AuthShell congregation={loaderData.congregation} title={m.auth_password_reset_page_title()}>
+      <NewPasswordForm email={loaderData.email} result={actionData} />
+    </AuthShell>
+  )
+}
+
+/** The account, said rather than shown as a greyed field, and the new password typed twice. */
+function NewPasswordForm({ email, result }: { email: string; result: SubmissionResult<string[]> | undefined }) {
   const [form, fields] = useForm({
-    lastResult: actionData,
-    defaultValue: { email: user.email },
+    lastResult: result,
+    defaultValue: { email },
     onValidate({ formData }) {
       return parseWithZod(formData, { schema: resetPasswordSchema })
     },
   })
 
   return (
-    <AuthShell>
-      <CardHeader className="items-center space-y-2 text-center">
-        <h1 className="font-bold font-display text-2xl tracking-tight">{brandingName}</h1>
-        <p className="text-muted-foreground text-sm">{m.auth_password_reset_subtitle()}</p>
-      </CardHeader>
-      <CardContent>
-        <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)}>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={fields.email.id}>{m.auth_password_reset_email_label()}</Label>
-            <Input
-              {...getInputProps(fields.email, { type: 'email' })}
-              autoComplete="username"
-              readOnly
-              className="bg-muted"
-            />
-            {fields.email.errors && <p className="text-destructive text-sm">{fields.email.errors}</p>}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={fields.password.id}>{m.auth_password_reset_new_password_label()}</Label>
-            <Input {...getInputProps(fields.password, { type: 'password' })} autoComplete="new-password" />
-            {fields.password.errors && <p className="text-destructive text-sm">{fields.password.errors}</p>}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={fields.passwordConfirm.id}>{m.auth_password_reset_confirm_password_label()}</Label>
-            <Input {...getInputProps(fields.passwordConfirm, { type: 'password' })} autoComplete="new-password" />
-            {fields.passwordConfirm.errors && (
-              <p className="text-destructive text-sm">{fields.passwordConfirm.errors}</p>
-            )}
-          </div>
-
-          <Button type="submit" className="mt-4 w-full">
-            {m.auth_password_reset_submit()}
-          </Button>
-        </Form>
-      </CardContent>
-    </AuthShell>
+    <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)}>
+      <input type="hidden" name="email" value={email} />
+      <p className="flex flex-col gap-0.5 rounded-md bg-sidebar px-3 py-2.5 text-sm">
+        <span className="text-faint text-xs">{m.auth_password_reset_account()}</span>
+        {email}
+      </p>
+      <AuthField
+        id={fields.password.id}
+        label={m.auth_password_reset_new_password_label()}
+        help={m.auth_password_help()}
+        errorId={fields.password.errorId}
+        errors={fields.password.errors}
+      >
+        <PasswordInput {...getInputProps(fields.password, { type: 'password' })} autoComplete="new-password" />
+      </AuthField>
+      <AuthField
+        id={fields.passwordConfirm.id}
+        label={m.auth_password_reset_confirm_password_label()}
+        errorId={fields.passwordConfirm.errorId}
+        errors={fields.passwordConfirm.errors}
+      >
+        <PasswordInput {...getInputProps(fields.passwordConfirm, { type: 'password' })} autoComplete="new-password" />
+      </AuthField>
+      <SubmitButton className={AUTH_SUBMIT}>{m.auth_password_reset_submit()}</SubmitButton>
+    </Form>
   )
 }
 
@@ -108,11 +112,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   const user = await verifyPasswordResetToken(params.userHash ?? '')
 
   if (user == null || user.email !== username) {
-    session.flash('error', m.auth_password_reset_invalid_token_error())
-
-    throw redirect('/', {
-      headers: { 'Set-Cookie': await commitSession(session) },
-    })
+    return data({ invalid: true as const }, { status: 410 })
   }
 
   const checkBreached = await withScope(user.congregationId, db =>
@@ -127,7 +127,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   await resetAccountPassword(user.id, password)
 
   session.flash('success', m.auth_password_reset_success_message())
-  return redirect('/', {
+  return redirect('/login', {
     headers: { 'Set-Cookie': await commitSession(session) },
   })
 }

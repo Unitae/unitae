@@ -10,16 +10,15 @@ import {
   getSession,
 } from '~/features/authentication/server/session.server'
 import { AuthShell } from '~/features/authentication/ui/AuthShell'
+import { AUTH_SUBMIT, AuthField, AuthMessage } from '~/features/authentication/ui/auth-parts'
+import { LocaleField } from '~/features/authentication/ui/LocaleField'
 import * as m from '~/i18n/paraglide/messages'
-import { locales } from '~/i18n/paraglide/runtime'
-import { Alert, AlertDescription } from '~/shared/ui/alert'
-import { Button } from '~/shared/ui/button'
-import { Card, CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
+import type { locales } from '~/i18n/paraglide/runtime'
 import { Input } from '~/shared/ui/input'
-import { Label } from '~/shared/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
-import { DEFAULT_LOCALE, languageLabel } from '~/shared/utils/language'
+import { PasswordInput } from '~/shared/ui/PasswordInput'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { slugify } from '~/shared/utils/slugify'
+import { cn } from '~/shared/utils/utils'
 import type { Route } from './+types/register'
 
 export const meta: Route.MetaFunction = () => {
@@ -34,20 +33,12 @@ function requireMultiTenant() {
   }
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
+export function loader(_args: Route.LoaderArgs) {
   requireMultiTenant()
-
-  const session = await getSession(request.headers.get('Cookie'))
-
-  return data(
-    { error: session.get('error'), success: session.get('success') },
-    { headers: { 'Set-Cookie': await commitSession(session) } },
-  )
+  return null
 }
 
-export default function RegisterPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { error, success } = loaderData
-
+export default function RegisterPage({ actionData }: Route.ComponentProps) {
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -56,84 +47,49 @@ export default function RegisterPage({ loaderData, actionData }: Route.Component
   })
 
   return (
-    <AuthShell>
-      <CardHeader className="items-center space-y-2 text-center">
-        <h1 className="font-bold font-display text-2xl tracking-tight">Unitae</h1>
-        <p className="text-muted-foreground text-sm">{m.auth_register_subtitle()}</p>
-      </CardHeader>
-      <CardContent>
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        {success && (
-          <Alert className="mb-4">
-            <AlertDescription>{success}</AlertDescription>
-          </Alert>
-        )}
-        <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)}>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={fields['congregation-name'].id}>{m.auth_register_congregation_name_label()}</Label>
-            <Input
-              {...getInputProps(fields['congregation-name'], { type: 'text' })}
-              placeholder={m.auth_register_congregation_name_placeholder()}
-            />
-            {fields['congregation-name'].errors && (
-              <p className="text-destructive text-sm">{fields['congregation-name'].errors}</p>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={fields.locale.id}>{m.auth_register_locale_label()}</Label>
-            <Select name={fields.locale.name} defaultValue={fields.locale.initialValue ?? DEFAULT_LOCALE}>
-              <SelectTrigger id={fields.locale.id}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {locales.map(locale => (
-                  <SelectItem key={locale} value={locale}>
-                    {languageLabel(locale)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {fields.locale.errors && <p className="text-destructive text-sm">{fields.locale.errors}</p>}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={fields.email.id}>{m.auth_register_admin_email_label()}</Label>
-            <Input {...getInputProps(fields.email, { type: 'email' })} autoComplete="email" />
-            {fields.email.errors && <p className="text-destructive text-sm">{fields.email.errors}</p>}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={fields.password.id}>{m.auth_register_password_label()}</Label>
-            <Input {...getInputProps(fields.password, { type: 'password' })} autoComplete="new-password" />
-            {fields.password.errors && <p className="text-destructive text-sm">{fields.password.errors}</p>}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={fields['repeat-password'].id}>{m.auth_register_confirm_password_label()}</Label>
-            <Input {...getInputProps(fields['repeat-password'], { type: 'password' })} autoComplete="new-password" />
-            {fields['repeat-password'].errors && (
-              <p className="text-destructive text-sm">{fields['repeat-password'].errors}</p>
-            )}
-          </div>
-
-          <Button type="submit" className="mt-4 w-full">
-            {m.auth_register_submit()}
-          </Button>
-        </Form>
-      </CardContent>
-      <CardFooter className="justify-center">
-        <p className="text-muted-foreground text-sm">
-          {m.auth_register_existing_account()}{' '}
-          <Link to="/login" className="text-primary hover:underline">
-            {m.auth_register_login_link()}
-          </Link>
-        </p>
-      </CardFooter>
+    <AuthShell congregation={null} title={m.auth_register_page_title()}>
+      {form.errors && <AuthMessage tone="error">{form.errors[0]}</AuthMessage>}
+      <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)}>
+        <AuthField
+          id={fields['congregation-name'].id}
+          label={m.auth_register_congregation_name_label()}
+          errorId={fields['congregation-name'].errorId}
+          errors={fields['congregation-name'].errors}
+        >
+          <Input {...getInputProps(fields['congregation-name'], { type: 'text' })} autoFocus={true} />
+        </AuthField>
+        <LocaleField
+          id={fields.locale.id}
+          name={fields.locale.name}
+          initialValue={fields.locale.initialValue}
+          label={m.auth_register_locale_label()}
+          help={m.auth_register_locale_help()}
+        />
+        <AuthField
+          id={fields.email.id}
+          label={m.auth_register_admin_email_label()}
+          errorId={fields.email.errorId}
+          errors={fields.email.errors}
+        >
+          <Input {...getInputProps(fields.email, { type: 'email' })} autoComplete="email" />
+        </AuthField>
+        <AuthField
+          id={fields.password.id}
+          label={m.auth_register_password_label()}
+          help={m.auth_password_help()}
+          errorId={fields.password.errorId}
+          errors={fields.password.errors}
+        >
+          <PasswordInput {...getInputProps(fields.password, { type: 'password' })} autoComplete="new-password" />
+        </AuthField>
+        <SubmitButton className={cn('mt-1', AUTH_SUBMIT)}>{m.auth_register_submit()}</SubmitButton>
+      </Form>
+      <p className="text-faint text-sm">
+        {m.auth_register_existing_account()}{' '}
+        <Link to="/login" className="text-brand-text underline-offset-4 hover:underline">
+          {m.auth_register_login_link()}
+        </Link>
+      </p>
     </AuthShell>
   )
 }
@@ -141,7 +97,6 @@ export default function RegisterPage({ loaderData, actionData }: Route.Component
 export async function action({ request }: Route.ActionArgs) {
   requireMultiTenant()
 
-  const session = await getSession(request.headers.get('Cookie'))
   const submission = parseWithZod(await request.formData(), { schema: registerSchema })
 
   if (submission.status !== 'success') {
@@ -159,18 +114,24 @@ export async function action({ request }: Route.ActionArgs) {
     return data(submission.reply({ fieldErrors: { password: [policyError] } }), { status: 400 })
   }
 
+  // Every refusal keeps what was typed, and is said under the field it concerns.
   const slug = slugify(congregationName, locale)
   if (slug.length < 2) {
-    session.flash('error', m.auth_register_slug_invalid_error())
-    return redirect('/register', { headers: { 'Set-Cookie': await commitSession(session) } })
+    const fieldErrors = { 'congregation-name': [m.auth_register_slug_invalid_error()] }
+    return data(submission.reply({ fieldErrors }), { status: 400 })
   }
 
   const result = await registerCongregation(congregationName, slug, email, password, locale)
 
   if ('error' in result) {
-    session.flash('error', result.error ?? m.auth_register_generic_error())
-    return redirect('/register', { headers: { 'Set-Cookie': await commitSession(session) } })
+    const reply =
+      result.error === 'email_taken'
+        ? submission.reply({ fieldErrors: { email: [m.auth_register_email_taken_error()] } })
+        : submission.reply({ formErrors: [m.auth_register_generic_error()] })
+    return data(reply, { status: result.error === 'email_taken' ? 409 : 500 })
   }
+
+  const session = await getSession(request.headers.get('Cookie'))
 
   await establishAuthenticatedSession(session, result.userId)
 
