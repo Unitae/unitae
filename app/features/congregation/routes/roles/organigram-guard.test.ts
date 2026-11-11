@@ -82,11 +82,21 @@ describe('organigram loader — who may read the chart', () => {
 
   it('offers no editing data to a read-only caller', async () => {
     // The panel's pickers are the whole edit surface: a viewer must not receive the member list
-    // or the adoptable roles even though the route renders for them.
-    const result = (await loadWith([Permission.CanViewRoles])) as { canManageRoles: boolean; people: unknown[] }
+    // or the roles outside the chart even though the route renders for them.
+    const result = (await loadWith([Permission.CanViewRoles])) as { canManage: boolean; manage: unknown }
 
-    expect(result.canManageRoles).toBe(false)
-    expect(result.people).toEqual([])
+    expect(result.canManage).toBe(false)
+    expect(result.manage).toBeNull()
+  })
+
+  it('gives a manager what arranging the chart needs', async () => {
+    const result = (await loadWith([Permission.CanManageRoles])) as {
+      canManage: boolean
+      manage: { people: unknown[] } | null
+    }
+
+    expect(result.canManage).toBe(true)
+    expect(result.manage?.people).toEqual([])
   })
 })
 

@@ -1,39 +1,34 @@
 import { NavLink } from 'react-router'
+import * as m from '~/i18n/paraglide/messages'
 import { cn } from '~/shared/utils/utils'
 
-// Two views of the same data, one surface.
-//
-// The organigram answers "who reports to whom"; the matrix answers "who may do this kind of
-// work". The second tab carries the page's own title — it IS the roles page; « Groupes
-// d'aptitude » named the concept but not the place, and a tab that does not match the title
-// above it reads as a different destination.
+// Two views of the same roles: the organigram answers « who answers to whom », Équipes « who is in which team ».
 
 const TABS = [
-  { to: '/congregation/roles/organigram', label: 'Organigramme' },
-  { to: '/congregation/roles', label: 'Rôles' },
+  { to: '/congregation/roles/organigram', label: m.org_tab_chart },
+  { to: '/congregation/roles', label: m.org_tab_teams },
 ] as const
 
 export function RolesTabs() {
   return (
-    <nav aria-label="Vues des rôles" className="flex gap-1 border-b">
+    <nav aria-label={m.org_tab_label()} className="border-border flex gap-1 border-b">
       {TABS.map(tab => (
         <NavLink
           key={tab.to}
           to={tab.to}
-          // `end` on the matrix only: without it the index route matches the organigram URL too
-          // and both tabs light up.
+          // `end` on Équipes only: without it the index route matches the organigram URL too and both tabs light up.
           end={tab.to === '/congregation/roles'}
           className={({ isActive }) =>
             cn(
-              '-mb-px min-h-11 border-b-2 px-3 py-2 text-sm transition-colors',
-              'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
+              '-mb-px min-h-10 border-b-2 px-3 py-2 text-sm transition-colors duration-(--u-duration-fast) outline-none',
+              'focus-visible:ring-ring focus-visible:ring-2',
               isActive
-                ? 'border-b-primary font-medium text-foreground'
-                : 'border-b-transparent text-muted-foreground hover:text-foreground',
+                ? 'border-b-foreground text-foreground font-medium'
+                : 'text-muted-foreground hover:text-foreground border-b-transparent',
             )
           }
         >
-          {tab.label}
+          {tab.label()}
         </NavLink>
       ))}
     </nav>

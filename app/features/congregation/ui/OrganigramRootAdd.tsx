@@ -1,51 +1,39 @@
-import { Form } from 'react-router'
+import { useFetcher } from 'react-router'
+import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
-import { Label } from '~/shared/ui/label'
 
-// Putting a roster back at the top of the chart.
-//
-// Services are never roots — everything answers to the collège des anciens — so the old
-// "add a service at the top" form is gone. What can legitimately sit at the top are the two
-// auto-synced rosters, and the only way one is missing is a congregation that took its list
-// off the sheet, or an archive from before the organigram existed. This is the recovery path;
-// in the normal case both rosters are placed and this renders nothing at all.
+// Putting a list back at the top of the chart. Only the elders' and assistants' lists sit at the top — every role
+// answers to them — and one is missing only when a congregation took it off, or restored an archive from before the
+// organigram. A recovery path: in the normal case both lists are placed and this renders nothing.
 
-interface Props {
-  /** The identity rosters currently absent from the chart. */
+export function OrganigramRootAdd({
+  rosters,
+  emphasis = 'quiet',
+}: {
+  /** The lists absent from the chart. */
   rosters: { id: number; name: string }[]
-  /** Prominent when the chart is empty, quiet once there is something to look at. */
+  /** Prominent on an empty chart, quiet once there is something to read. */
   emphasis?: 'primary' | 'quiet'
-}
-
-export function OrganigramRootAdd({ rosters, emphasis = 'quiet' }: Props) {
+}) {
+  const fetcher = useFetcher()
   if (rosters.length === 0) return null
 
   return (
-    <Form method="post" className="flex flex-col gap-2 sm:flex-row sm:items-end">
-      <input type="hidden" name="intent" value="add" />
-      <input type="hidden" name="parentRoleId" value="none" />
-
-      <div className="flex-1 space-y-1">
-        <Label htmlFor="root-add-role" className="text-muted-foreground text-xs">
-          Remettre une liste au sommet de l’organigramme
-        </Label>
-        <select
-          id="root-add-role"
-          name="roleId"
-          required
-          className="h-11 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+    <div className="flex flex-wrap gap-2">
+      {rosters.map(roster => (
+        <Button
+          key={roster.id}
+          type="button"
+          size="sm"
+          variant={emphasis === 'primary' ? 'default' : 'outline'}
+          disabled={fetcher.state !== 'idle'}
+          onClick={() =>
+            fetcher.submit({ intent: 'add', roleId: String(roster.id), parentRoleId: 'none' }, { method: 'post' })
+          }
         >
-          {rosters.map(roster => (
-            <option key={roster.id} value={roster.id}>
-              {roster.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <Button type="submit" variant={emphasis === 'primary' ? 'default' : 'outline'}>
-        Ajouter
-      </Button>
-    </Form>
+          {m.org_root_add({ name: roster.name })}
+        </Button>
+      ))}
+    </div>
   )
 }

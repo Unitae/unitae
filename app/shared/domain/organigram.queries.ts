@@ -218,7 +218,25 @@ export async function getOrganigram(db: TransactionClient, congregationId: numbe
   })
   if (roles.length === 0) return []
 
-  const roleIds = roles.map(role => role.id)
+  return buildOrganigramTree(
+    roles,
+    await loadHolders(
+      db,
+      congregationId,
+      roles.map(role => role.id),
+    ),
+  )
+}
+
+/**
+ * Everyone holding one of these roles, with their seat. Unioned across both assignment tables, as `getOrganigram`
+ * explains; exported for the panel of a role outside the chart.
+ */
+export async function loadHolders(
+  db: TransactionClient,
+  congregationId: number,
+  roleIds: number[],
+): Promise<OrganigramHolder[]> {
   const members = await db.member.findMany({
     where: {
       congregationId,
@@ -261,6 +279,19 @@ export async function getOrganigram(db: TransactionClient, congregationId: numbe
       holders.push({ ...base, roleId: assignment.roleId, kind: assignment.kind })
     }
   }
+  return holders
+}
 
-  return buildOrganigramTree(roles, holders)
+/** A role outside the chart as a node of its own, with its holders: what its panel needs. */
+export async function getOffChartRole(
+  db: TransactionClient,
+  roleId: number,
+  congregationId: number,
+): Promise<OrganigramNode | null> {
+  const role = await db.role.findFirst({
+    where: { id: roleId, congregationId, showInOrganigram: false, isBuiltIn: false },
+    select: ORGANIGRAM_ROLE_SELECT,
+  })
+  if (!role) return null
+  return buildOrganigramTree([role], await loadHolders(db, congregationId, [role.id]))[0] ?? null
 }

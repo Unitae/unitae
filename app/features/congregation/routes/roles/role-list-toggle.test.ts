@@ -31,13 +31,12 @@ vi.mock('~/shared/auth/route-context.server', () => ({
   withScopeFromContext: (_context: unknown, fn: (db: unknown) => unknown) => fn(fakeDb),
 }))
 
-vi.mock('~/features/authentication/index.server', () => ({
-  getSession: vi.fn().mockResolvedValue({ flash: vi.fn() }),
-  commitSession: vi.fn().mockResolvedValue('cookie'),
-}))
-
 const { Permission } = await import('~/shared/types/permission')
 const { action } = await import('./role-list')
+const { GrantBeyondActorError } = await import('~/shared/domain/role-grant-limits.server')
+
+const answer = (result: unknown) => (result as { data: unknown }).data
+const status = (result: unknown) => (result as { init?: ResponseInit | null }).init?.status
 
 function contextWith(permissions: (typeof Permission)[keyof typeof Permission][]) {
   return {
@@ -65,8 +64,10 @@ describe('role matrix toggle', () => {
     memberFindFirst.mockResolvedValue({ firstname: 'Anna', lastname: 'Test' })
     holderOfMember.mockResolvedValue({ memberId: 500, userId: 800 })
 
-    await toggle({ memberId: '500', roleId: '7', intent: 'add' })
+    const result = await toggle({ memberId: '500', roleId: '7', intent: 'add' })
 
+    // The page stays put: the answer names the change for the « Enregistré » line, no redirect, no toast.
+    expect(answer(result)).toEqual({ ok: true, intent: 'add', person: 'Anna TEST', role: 'Compte' })
     expect(holderOfMember).toHaveBeenCalledWith(expect.anything(), 500, 10)
     expect(addToRole).toHaveBeenCalledWith(
       expect.anything(),
@@ -113,9 +114,22 @@ describe('role matrix toggle', () => {
   it('refuses a person of another congregation', async () => {
     memberFindFirst.mockResolvedValue(null)
 
-    await toggle({ memberId: '500', roleId: '7', intent: 'add' })
+    const result = await toggle({ memberId: '500', roleId: '7', intent: 'add' })
 
     expect(addToRole).not.toHaveBeenCalled()
+    expect(answer(result)).toMatchObject({ ok: false })
+    expect(status(result)).toBe(404)
+  })
+
+  it('says so when the person may not give the rights the role carries', async () => {
+    memberFindFirst.mockResolvedValue({ firstname: 'Anna', lastname: 'Test' })
+    holderOfMember.mockResolvedValue({ memberId: 500, userId: 800 })
+    addToRole.mockRejectedValueOnce(new GrantBeyondActorError('beyond'))
+
+    const result = await toggle({ memberId: '500', roleId: '7', intent: 'add' })
+
+    expect(answer(result)).toMatchObject({ ok: false })
+    expect(status(result)).toBe(403)
   })
 
   it('refuses a role that no longer exists instead of letting the service no-op in silence', async () => {

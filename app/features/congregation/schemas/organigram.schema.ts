@@ -17,31 +17,32 @@ export type SeatKindValue = z.infer<typeof seatKindSchema>
 /** An HTML checkbox: 'on' when ticked, absent when not — absence is false, not missing data. */
 export const checkbox = z.preprocess(value => value === 'on' || value === 'true' || value === true, z.boolean())
 
-/** An empty select means "nothing picked", which the attach intent resolves against `name`. */
-const optionalRole = z.preprocess(
-  value => (value === '' || value == null ? null : value),
-  z.coerce.number().int().positive().nullable(),
-)
-
 export const organigramIntentSchema = z.discriminatedUnion('intent', [
+  // A role of the congregation placed on the chart: under another, or back at the top (a list).
   z.object({ intent: z.literal('add'), roleId: id, parentRoleId: optionalParent }),
-  // One form, no mode toggle: pick an existing service OR type a new name, and the action does
-  // whichever the admin actually filled in (a typed name wins). Asking "existing or new?" with
-  // radios forced an answer before the options were even visible.
-  z.object({
-    intent: z.literal('attach'),
-    roleId: optionalRole,
-    name: z.string().trim().max(100).optional().default(''),
-    parentRoleId: optionalParent,
-    // A personal role: one titulaire, adjoints allowed, no plain members. Read only when a new
-    // service is created — an adopted role keeps its own shape.
-    singlePerson: checkbox,
-  }),
   z.object({ intent: z.literal('remove'), roleId: id }),
   z.object({ intent: z.literal('set-parent'), roleId: id, parentRoleId: optionalParent }),
   z.object({ intent: z.literal('move'), roleId: id, direction: z.enum(['up', 'down']) }),
   z.object({ intent: z.literal('seat'), roleId: id, memberId: id, kind: seatKindSchema }),
   z.object({ intent: z.literal('unseat'), roleId: id, memberId: id }),
+  // A new role, under a role of the chart or outside it (no parent).
+  z.object({
+    intent: z.literal('create'),
+    name: z.string().trim().min(1).max(100),
+    singlePerson: checkbox,
+    parentRoleId: optionalParent,
+    description: z.string().trim().max(1000).optional().default(''),
+  }),
+  // A role's own definition, edited in its panel.
+  z.object({
+    intent: z.literal('update'),
+    roleId: id,
+    name: z.string().trim().min(1).max(100),
+    description: z.string().trim().max(1000).optional().default(''),
+    note: z.string().trim().max(200).optional().default(''),
+    singlePerson: checkbox,
+  }),
+  z.object({ intent: z.literal('delete'), roleId: id }),
 ])
 
 export type OrganigramIntent = z.infer<typeof organigramIntentSchema>

@@ -6,58 +6,51 @@ function parse(fields: Record<string, string>) {
 }
 
 describe('organigram intents', () => {
-  it('reads an attach with an existing service picked', () => {
-    const result = parse({ intent: 'attach', roleId: '3', name: '', parentRoleId: '4' })
-
-    expect(result.success).toBe(true)
-    if (result.success && result.data.intent === 'attach') {
-      expect(result.data.roleId).toBe(3)
-      expect(result.data.name).toBe('')
-      expect(result.data.parentRoleId).toBe(4)
-    }
+  it('reads a role attached under another, or put back at the top', () => {
+    const under = parse({ intent: 'add', roleId: '3', parentRoleId: '4' })
+    expect(under.success && under.data).toEqual({ intent: 'add', roleId: 3, parentRoleId: 4 })
+    const top = parse({ intent: 'add', roleId: '3', parentRoleId: 'none' })
+    expect(top.success && top.data).toEqual({ intent: 'add', roleId: 3, parentRoleId: null })
   })
 
-  it('reads an attach with a new name typed and nothing picked', () => {
-    // One form, no mode radio: the action creates when a name was typed, adds when a service
-    // was picked. The schema just delivers both fields honestly.
-    const result = parse({ intent: 'attach', roleId: '', name: 'Nettoyage', parentRoleId: 'none' })
-
-    expect(result.success).toBe(true)
-    if (result.success && result.data.intent === 'attach') {
-      expect(result.data.roleId).toBeNull()
-      expect(result.data.name).toBe('Nettoyage')
-      expect(result.data.parentRoleId).toBeNull()
-    }
+  it('reads a new role, outside the chart when no place is chosen, a team unless marked personal', () => {
+    const created = parse({ intent: 'create', name: ' Lecteurs ', parentRoleId: 'none' })
+    expect(created.success && created.data).toEqual({
+      intent: 'create',
+      name: 'Lecteurs',
+      parentRoleId: null,
+      singlePerson: false,
+      description: '',
+    })
+    const personal = parse({ intent: 'create', name: 'Comptes', parentRoleId: '4', singlePerson: 'on' })
+    expect(personal.success && personal.data).toMatchObject({ parentRoleId: 4, singlePerson: true })
   })
 
-  it('parses an attach with neither field filled — the action owns that refusal', () => {
-    const result = parse({ intent: 'attach', roleId: '', name: '  ', parentRoleId: '4' })
-
-    expect(result.success).toBe(true)
-    if (result.success && result.data.intent === 'attach') {
-      expect(result.data.roleId).toBeNull()
-      expect(result.data.name).toBe('')
-    }
+  it('refuses a role without a name', () => {
+    expect(parse({ intent: 'create', name: '   ' }).success).toBe(false)
+    expect(parse({ intent: 'update', roleId: '3', name: '' }).success).toBe(false)
   })
 
-  it('still accepts the existing intents', () => {
-    expect(parse({ intent: 'add', roleId: '3', parentRoleId: 'none' }).success).toBe(true)
+  it('reads a role’s definition, its note included', () => {
+    const updated = parse({
+      intent: 'update',
+      roleId: '3',
+      name: 'Sono',
+      note: ' Chaque réunion ',
+      singlePerson: 'off',
+    })
+    expect(updated.success && updated.data).toEqual({
+      intent: 'update',
+      roleId: 3,
+      name: 'Sono',
+      description: '',
+      note: 'Chaque réunion',
+      singlePerson: false,
+    })
+  })
+
+  it('reads a seat', () => {
     expect(parse({ intent: 'seat', roleId: '3', memberId: '9', kind: 'leader' }).success).toBe(true)
-  })
-
-  it('reads the personal-role checkbox on attach, absent meaning group', () => {
-    const checked = parse({ intent: 'attach', name: 'Responsable estrade', parentRoleId: '4', singlePerson: 'on' })
-    expect(checked.success).toBe(true)
-    if (checked.success && checked.data.intent === 'attach') expect(checked.data.singlePerson).toBe(true)
-
-    // An unchecked checkbox is simply missing from the form data.
-    const unchecked = parse({ intent: 'attach', name: 'Sono', parentRoleId: '4' })
-    expect(unchecked.success).toBe(true)
-    if (unchecked.success && unchecked.data.intent === 'attach') expect(unchecked.data.singlePerson).toBe(false)
-  })
-
-  it('has no toggle intent: the personal-role flag is edited on the role page', () => {
-    // Moved to `editRoleSchema` — the chart arranges roles, the role page defines them.
-    expect(parse({ intent: 'set-single-person', roleId: '7', singlePerson: 'on' }).success).toBe(false)
+    expect(parse({ intent: 'seat', roleId: '3', memberId: '9', kind: 'boss' }).success).toBe(false)
   })
 })
