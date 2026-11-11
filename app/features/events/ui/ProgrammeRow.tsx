@@ -7,6 +7,7 @@ import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { Checkbox } from '~/shared/ui/checkbox'
 import { DateChip } from '~/shared/ui/DateChip'
+import { openRowOnClick } from '~/shared/ui/row-click'
 import { formatEventDate, formatEventTime } from '~/shared/utils/event-time'
 import { cn } from '~/shared/utils/utils'
 
@@ -45,8 +46,9 @@ export function ProgrammeRow({ programme, selectionColumn, selected, onToggle, t
 
   return (
     <tr
+      onClick={openRowOnClick}
       className={cn(
-        'group relative transition-colors duration-(--u-duration-fast)',
+        'group relative cursor-pointer transition-colors duration-(--u-duration-fast)',
         selected ? 'bg-selected' : 'hover:bg-hover',
       )}
     >
@@ -64,7 +66,8 @@ export function ProgrammeRow({ programme, selectionColumn, selected, onToggle, t
       <td className={cn(PROGRAMME_CELL, 'max-md:h-auto max-md:whitespace-normal max-md:py-3')}>
         <Link
           to={`/programs/events/${programme.id}`}
-          className="flex items-center gap-3 outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset max-md:items-start"
+          data-row-primary
+          className="flex items-center gap-3 outline-none rounded-sm focus-visible:ring-2 focus-visible:ring-ring max-md:items-start"
         >
           <DateChip date={programme.startDate} timeZone={timeZone} />
           <span className="flex min-w-0 flex-col gap-0.5">

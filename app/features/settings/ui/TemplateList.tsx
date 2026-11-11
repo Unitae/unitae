@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { dayLabel, EventTemplateKey } from '~/features/events'
 import * as m from '~/i18n/paraglide/messages'
 import { getRoleDisplayName } from '~/shared/types/role'
+import { openRowOnClick } from '~/shared/ui/row-click'
 
 export interface TemplateRow {
   id: number
@@ -51,11 +52,16 @@ export function TemplateTable({ rows }: { rows: TemplateRow[] }) {
         </thead>
         <tbody>
           {rows.map(row => (
-            <tr key={row.id} className="group relative transition-colors duration-(--u-duration-fast) hover:bg-hover">
+            <tr
+              key={row.id}
+              onClick={openRowOnClick}
+              className="group relative cursor-pointer transition-colors duration-(--u-duration-fast) hover:bg-hover"
+            >
               <td className={cellClass}>
                 <Link
                   to={`/settings/templates/${row.id}`}
-                  className="flex items-center gap-2.5 font-medium outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset"
+                  data-row-primary
+                  className="flex items-center gap-2.5 font-medium outline-none rounded-sm focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <span
                     aria-hidden="true"

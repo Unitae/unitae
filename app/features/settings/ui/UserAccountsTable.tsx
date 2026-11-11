@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import type { UserAccountRow } from '~/features/settings/server/user-accounts.queries'
 import * as m from '~/i18n/paraglide/messages'
 import { getRoleDisplayName } from '~/shared/types/role'
+import { openRowOnClick } from '~/shared/ui/row-click'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 import { cn } from '~/shared/utils/utils'
 
@@ -51,11 +52,16 @@ export function UserAccountsTable({ rows }: { rows: UserAccountRow[] }) {
             const state = accountState(row)
             const muted = row.status === 'deactivated' || row.status === 'anonymized'
             return (
-              <tr key={row.id} className="group relative transition-colors duration-(--u-duration-fast) hover:bg-hover">
+              <tr
+                key={row.id}
+                onClick={openRowOnClick}
+                className="group relative cursor-pointer transition-colors duration-(--u-duration-fast) hover:bg-hover"
+              >
                 <td className={cn(cellClass, 'py-2')}>
                   <Link
                     to={`/settings/users/${row.id}`}
-                    className="flex items-center gap-3 outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset"
+                    data-row-primary
+                    className="flex items-center gap-3 outline-none rounded-sm focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <Avatar name={name} className={cn(muted && 'opacity-60')} />
                     <span className="flex min-w-0 flex-col">

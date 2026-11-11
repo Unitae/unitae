@@ -3,16 +3,19 @@ import { Link } from 'react-router'
 
 import type { TerritoryListRow } from '~/features/territories/server/territory-list.queries'
 import * as m from '~/i18n/paraglide/messages'
+import { openRowOnClick } from '~/shared/ui/row-click'
 import { shortDay } from '~/shared/utils/format-day'
 import { cn } from '~/shared/utils/utils'
-
 import { availabilityLabel, dueText, holderName, STATE_TONE, stateLabel } from './attribution-labels'
 import { territoryKindLabel, territoryQuantityLabel } from './my-territory-labels'
 import { TerritoryMenu, type TerritoryTarget } from './TerritoryActions'
 
 const HEAD = 'h-10 whitespace-nowrap border-border border-b px-3.5 text-left font-medium text-faint text-sm'
 const CELL = 'h-10 whitespace-nowrap border-border border-b px-3.5 group-last:border-b-0'
-const OPENER =
+/** The number, the row's primary control: the whole row opens through it (see `openRowOnClick`). */
+const OPENER = 'rounded-sm font-semibold tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring'
+/** On a phone the row is a list item, which does contain an absolute child: the number's overlay covers it. */
+const STRETCHED_OPENER =
   'font-semibold tabular-nums outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset'
 
 interface TerritoryTableProps {
@@ -78,13 +81,14 @@ function TerritoryRow({
   return (
     <tr
       data-testid="territory-row"
-      className="group relative transition-colors duration-(--u-duration-fast) hover:bg-hover"
+      onClick={openRowOnClick}
+      className="group relative cursor-pointer transition-colors duration-(--u-duration-fast) hover:bg-hover"
     >
       <td className={CELL}>
         <span className="inline-flex items-center gap-2.5">
           <StatusIcon tone={holder ? STATE_TONE[holder.state] : 'neutral'} />
           {holder && <span className="sr-only">{stateLabel(holder.state)}</span>}
-          <Link to={territoryHref(row.id, from)} className={OPENER}>
+          <Link to={territoryHref(row.id, from)} data-row-primary className={OPENER}>
             {row.number}
           </Link>
           <span className="text-faint">{territoryKindLabel(row.type)}</span>
@@ -134,7 +138,7 @@ function PhoneRows({ rows, today, from, canViewAttributions }: TerritoryTablePro
             <StatusIcon tone={holder ? STATE_TONE[holder.state] : 'neutral'} className="mt-1" />
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
               <span className="flex min-w-0 items-center gap-1.5">
-                <Link to={territoryHref(row.id, from)} className={OPENER}>
+                <Link to={territoryHref(row.id, from)} className={STRETCHED_OPENER}>
                   {row.number}
                 </Link>
                 <span className="text-faint">·</span>

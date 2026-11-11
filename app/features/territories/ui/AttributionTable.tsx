@@ -4,16 +4,16 @@ import type { AttributionListRow } from '~/features/territories/model/attributio
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
+import { openRowOnClick } from '~/shared/ui/row-click'
 import { shortDay } from '~/shared/utils/format-day'
 import { cn } from '~/shared/utils/utils'
-
 import { dueText, holderName, STATE_TONE, stateLabel } from './attribution-labels'
 import { territoryKindLabel } from './my-territory-labels'
 
 const HEAD = 'h-10 whitespace-nowrap border-border border-b px-3.5 text-left font-medium text-faint text-sm'
 const CELL = 'h-10 whitespace-nowrap border-border border-b px-3.5 group-last:border-b-0'
-const OPENER =
-  'font-semibold tabular-nums outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset'
+/** The number, the row's primary control: the whole row opens through it (see `openRowOnClick`). */
+const OPENER = 'rounded-sm font-semibold tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
 interface AttributionTableProps {
   rows: AttributionListRow[]
@@ -118,8 +118,9 @@ function AttributionRow({
 
   return (
     <tr
+      onClick={openRowOnClick}
       className={cn(
-        'group relative transition-colors duration-(--u-duration-fast) hover:bg-hover',
+        'group relative cursor-pointer transition-colors duration-(--u-duration-fast) hover:bg-hover',
         selected && 'bg-selected hover:bg-selected',
       )}
     >
@@ -173,6 +174,7 @@ function TerritoryNumber({
     return (
       <button
         type="button"
+        data-row-primary
         className={OPENER}
         aria-label={m.attributions_open_row({ number: row.territory.number, name: holderName(row.publisher) })}
         onClick={event => onOpen(row, event.currentTarget)}
@@ -183,7 +185,7 @@ function TerritoryNumber({
   }
   if (canViewTerritories) {
     return (
-      <Link to={`/territories/territory/${row.territory.id}/view`} className={OPENER}>
+      <Link to={`/territories/territory/${row.territory.id}/view`} data-row-primary className={OPENER}>
         {row.territory.number}
       </Link>
     )
