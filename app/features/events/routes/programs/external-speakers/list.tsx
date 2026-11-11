@@ -2,6 +2,7 @@ import { parseWithZod } from '@conform-to/zod/v4'
 import { data, redirect } from 'react-router'
 import { externalSpeakerIntentSchema } from '~/features/events/schemas/external-speaker.schema'
 import { getSpeakerVisits, listSpeakerDirectory } from '~/features/events/server/external-speakers.queries'
+import { countOurList } from '~/features/events/server/our-speakers.queries'
 import { SpeakerDirectoryScreen } from '~/features/events/ui/SpeakerDirectoryScreen'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -33,10 +34,14 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const speakerId = Number(new URL(request.url).searchParams.get('speaker')) || null
 
   return withScopeFromContext(context, async (db, congregationId) => {
-    const directory = await listSpeakerDirectory(db, congregationId)
+    const [directory, ourCount] = await Promise.all([
+      listSpeakerDirectory(db, congregationId),
+      countOurList(db, congregationId),
+    ])
     const open = speakerId != null && directory.speakers.some(speaker => speaker.id === speakerId)
     return {
       directory,
+      ourCount,
       visits: open && speakerId != null ? await getSpeakerVisits(db, congregationId, speakerId) : null,
       timezone: context.get(congregationContext).timezone,
       canManage,

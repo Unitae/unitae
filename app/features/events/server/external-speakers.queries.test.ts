@@ -1,14 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockDb = {
-  externalSpeaker: { findMany: vi.fn(), findFirst: vi.fn() },
+  externalSpeaker: { findMany: vi.fn(), findFirst: vi.fn(), count: vi.fn() },
   speakerCongregation: { findMany: vi.fn(), findFirst: vi.fn() },
   eventPart: { findMany: vi.fn() },
 }
 
-const { getSpeakerListContext, getSpeakerVisits, listExternalSpeakerOptions, listSpeakerDirectory } = await import(
-  './external-speakers.queries'
-)
+const {
+  countSpeakersOnLists,
+  getSpeakerListContext,
+  getSpeakerVisits,
+  listExternalSpeakerOptions,
+  listSpeakerDirectory,
+} = await import('./external-speakers.queries')
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -166,5 +170,16 @@ describe('getSpeakerListContext', () => {
     mockDb.speakerCongregation.findFirst.mockResolvedValue(null)
 
     expect(await getSpeakerListContext(mockDb as never, 1, 8)).toBeNull()
+  })
+})
+
+describe('countSpeakersOnLists', () => {
+  it('counts the speakers on the lists we received: not retired, not deleted', async () => {
+    mockDb.externalSpeaker.count.mockResolvedValue(14)
+
+    expect(await countSpeakersOnLists(mockDb as never, 1)).toBe(14)
+    expect(mockDb.externalSpeaker.count).toHaveBeenCalledWith({
+      where: { congregationId: 1, archivedAt: null, anonymizedAt: null },
+    })
   })
 })

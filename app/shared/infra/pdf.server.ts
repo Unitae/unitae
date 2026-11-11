@@ -62,6 +62,13 @@ async function warmRegisteredFonts() {
   }
 }
 
+/** The PDF as bytes, for an attachment: laid out after the same font warm-up as a download. */
+export async function renderPdfBuffer(document: ReactElement<DocumentProps>): Promise<Buffer> {
+  await warmRegisteredFonts()
+  const blob = await pdf(document).toBlob()
+  return Buffer.from(await blob.arrayBuffer())
+}
+
 export async function renderPdfResponse(document: ReactElement<DocumentProps>, filename: string): Promise<Response> {
   let blob: Blob
   try {

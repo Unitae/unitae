@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const readNdjsonFile = vi.fn()
 vi.mock('./ndjson-archive', () => ({ readNdjsonFile: (...args: unknown[]) => readNdjsonFile(...args) }))
 
-const { importExternalSpeakers, importSpeakerCongregations } = await import('./import-external-speakers.server')
+const { importExternalSpeakers, importOurSpeakers, importSpeakerCongregations } = await import(
+  './import-external-speakers.server'
+)
 const { EntityIdMap } = await import('./data-transfer.type')
 
 function makeDb() {
@@ -15,6 +17,9 @@ function makeDb() {
     },
     externalSpeaker: {
       create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: nextSpeaker++, ...data })),
+    },
+    ourSpeaker: {
+      create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: 700, ...data })),
     },
   }
 }
@@ -147,5 +152,98 @@ describe('an archive from before 2.13', () => {
     ])
     const paul = db.externalSpeaker.create.mock.calls[0]?.[0].data
     expect(paul).toMatchObject({ phone2: null, email2: null, talks: [], anonymizedAt: null })
+  })
+})
+
+describe('a 2.14 archive', () => {
+  it('keeps when our list went to each congregation, and how', async () => {
+    archive({
+      'speaker-congregations': [
+        {
+          id: 3,
+          name: 'Bagnolet',
+          ...contacts,
+          listDate: null,
+          notes: '',
+          ourListSentAt: '2026-10-03T10:00:00.000Z',
+          ourListSentManually: true,
+          ourListSentDigest: 'sha-of-the-list',
+        },
+      ],
+    })
+    const db = makeDb()
+
+    await importSpeakerCongregations({} as never, db as never, new EntityIdMap(), 1)
+
+    expect(db.speakerCongregation.create.mock.calls[0]?.[0].data).toMatchObject({
+      ourListSentAt: new Date('2026-10-03T10:00:00.000Z'),
+      ourListSentManually: true,
+      ourListSentDigest: 'sha-of-the-list',
+    })
+  })
+
+  it('puts each brother of « Notre liste » back on his imported record, and drops one whose record is not there', async () => {
+    archive({
+      'our-speakers': [
+        {
+          memberId: 12,
+          onList: true,
+          talks: [4, 26],
+          phoneMode: 'record',
+          phoneCustom: '',
+          phone2: '01 43 62 18 40',
+          emailMode: 'custom',
+          emailCustom: 'discours.lilas@exemple.fr',
+          email2: '',
+          note: 'Pas disponible en décembre',
+        },
+        {
+          memberId: 99,
+          onList: true,
+          talks: [],
+          phoneMode: 'record',
+          phoneCustom: '',
+          phone2: '',
+          emailMode: 'record',
+          emailCustom: '',
+          email2: '',
+          note: '',
+        },
+      ],
+    })
+    const db = makeDb()
+    const idMap = new EntityIdMap()
+    idMap.set('members', 12, 312)
+
+    await importOurSpeakers({} as never, db as never, idMap, 1)
+
+    expect(db.ourSpeaker.create).toHaveBeenCalledTimes(1)
+    expect(db.ourSpeaker.create.mock.calls[0]?.[0].data).toMatchObject({
+      memberId: 312,
+      congregationId: 1,
+      onList: true,
+      talks: [4, 26],
+      phone2: '01 43 62 18 40',
+      emailMode: 'custom',
+      emailCustom: 'discours.lilas@exemple.fr',
+      note: 'Pas disponible en décembre',
+    })
+  })
+})
+
+describe('an archive from before 2.14', () => {
+  it('imports the congregations as never sent, and no « Notre liste »', async () => {
+    archive({ 'speaker-congregations': [{ id: 3, name: 'Bagnolet', ...contacts, listDate: null, notes: '' }] })
+    const db = makeDb()
+
+    await importSpeakerCongregations({} as never, db as never, new EntityIdMap(), 1)
+    await importOurSpeakers({} as never, db as never, new EntityIdMap(), 1)
+
+    expect(db.speakerCongregation.create.mock.calls[0]?.[0].data).toMatchObject({
+      ourListSentAt: null,
+      ourListSentManually: false,
+      ourListSentDigest: null,
+    })
+    expect(db.ourSpeaker.create).not.toHaveBeenCalled()
   })
 })

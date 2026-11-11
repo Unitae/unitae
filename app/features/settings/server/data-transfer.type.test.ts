@@ -75,8 +75,8 @@ describe('EntityIdMap', () => {
 })
 
 describe('ARCHIVE_VERSION', () => {
-  it('is the current 2.13 schema version', () => {
-    expect(ARCHIVE_VERSION).toBe('2.13')
+  it('is the current 2.14 schema version', () => {
+    expect(ARCHIVE_VERSION).toBe('2.14')
   })
 })
 
@@ -160,6 +160,10 @@ describe('ENTITY_FILES', () => {
     const memberRoleAssignmentsIndex = ENTITY_FILES.indexOf('member-role-assignments')
     expect(ENTITY_FILES.indexOf('roles')).toBeLessThan(memberRoleAssignmentsIndex)
     expect(ENTITY_FILES.indexOf('members')).toBeLessThan(memberRoleAssignmentsIndex)
+  })
+
+  it('has members before our-speakers (dependency order)', () => {
+    expect(ENTITY_FILES.indexOf('members')).toBeLessThan(ENTITY_FILES.indexOf('our-speakers'))
   })
 
   it('has speaker-congregations before external-speakers (dependency order)', () => {

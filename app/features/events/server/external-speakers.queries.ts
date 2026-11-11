@@ -224,3 +224,8 @@ export async function getSpeakerListContext(
       .map(s => ({ ...fields(s), congregationName: s.speakerCongregation?.name ?? s.congregationName })),
   }
 }
+
+/** How many speakers are on the lists we received, for the page's tab: not retired, not deleted. */
+export function countSpeakersOnLists(db: TransactionClient, congregationId: number): Promise<number> {
+  return db.externalSpeaker.count({ where: { congregationId, archivedAt: null, anonymizedAt: null } })
+}

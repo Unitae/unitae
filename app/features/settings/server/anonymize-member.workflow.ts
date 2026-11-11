@@ -1,3 +1,4 @@
+import { removeOurSpeakerEntry } from '~/features/events/index.server'
 import { memberAggregate } from '~/features/publishers/index.server'
 import { attributionAggregate } from '~/features/territories/index.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -7,6 +8,7 @@ import type { MemberId } from '~/shared/types/branded'
  * Orchestrates the anonymize action across two aggregates:
  *   1. Close every open attribution for the publisher (Attribution invariant).
  *   2. Scrub the Member's PII + drop role assignments (Member invariant).
+ *   3. Drop his entry on our list of speakers, with the phones and e-mails he shared there.
  *
  * The two writes commute — the resulting DB state is identical either way —
  * but attribution-close-first mirrors the real-world sequence a user sees
@@ -21,4 +23,5 @@ export async function anonymizeMemberWorkflow(
 ): Promise<void> {
   await attributionAggregate.markReturnedForPublisher(db, memberId, new Date(), congregationId, actorId)
   await memberAggregate.anonymize(db, memberId, congregationId, actorId)
+  await removeOurSpeakerEntry(db, congregationId, memberId)
 }

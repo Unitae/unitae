@@ -15,7 +15,7 @@ vi.mock('resend', () => ({
   },
 }))
 
-const { sendEmail } = await import('./mailer.server')
+const { isEmailConfigured, sendEmail } = await import('./mailer.server')
 
 const PAYLOAD = { to: 'recipient@test.org', from: 'Congré <noreply@test.org>', subject: 'Sujet', react: null }
 
@@ -51,5 +51,17 @@ describe('sendEmail', () => {
     sendMock.mockRejectedValue(new Error('ECONNRESET'))
 
     await expect(sendEmail(PAYLOAD as never)).rejects.toThrow('ECONNRESET')
+  })
+})
+
+describe('isEmailConfigured', () => {
+  it('says whether this installation can send e-mail at all: only with a Resend key', () => {
+    vi.stubEnv('RESEND_API_KEY', 're_sentinel')
+    expect(isEmailConfigured()).toBe(true)
+
+    vi.stubEnv('RESEND_API_KEY', '')
+    expect(isEmailConfigured()).toBe(false)
+
+    vi.unstubAllEnvs()
   })
 })

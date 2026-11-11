@@ -149,12 +149,16 @@ Visiting speakers come from **lists**: each nearby congregation sends the list o
 
 **Retiring and deleting.** A speaker no longer on his congregation's list is *retired* (« Retirer de la liste »): no longer offered when assigning a part, but his history stays and a talk already planned stays on its programme, flagged « n'est plus sur la liste ». A retired speaker can be put back, or *deleted for good*: his planned talks are freed (the part goes back to « à pourvoir »), his name and contact details are erased, and past programmes then read « Orateur extérieur · *congregation* ». A congregation can be deleted once no speaker is left in it.
 
+**Our list.** The other tab, « Notre liste », is the list we send. Its candidates are the members of an organigram role an administrator picks in **Réglages → Orateurs extérieurs** (a team such as « Orateurs publics »); each candidate is ticked « Sur notre liste » or not, so the role is managed in the organigram and the list here. For each brother on it: the talk outline numbers he prepares, a note for the other congregations, and his shared contact — up to two phones and two e-mails, the first of each following his record by default (« De sa fiche »), replaced by another one, or not shared. The list is headed by the coordinator (from the service committee) and the public talk coordinator, the holder of the role the congregation created for that task and linked in Réglages.
+
+The list prints as a PDF in the congregation's language. « Envoyer notre liste » sends it by e-mail, one message per congregation to its public talk coordinator so none sees the others' addresses; the dialog shows exactly what goes out — the sender (the app's address), the reply-to (our public talk coordinator), the recipients, the coordinators in copy if asked, the subject, the message and the PDF. It can also be downloaded and sent from one's own mailbox, then « marquée envoyée ». « Envois » shows when the list last went to each congregation, and which are no longer up to date because the list (or a brother's record it follows) changed since. An installation without e-mail sending offers the download and « marquer envoyée » only.
+
 When assigning a programme part — typically the public talk — managers pick a speaker from this list, least recently here first, with his congregation and talk numbers under his name. External speakers don't show up in publisher screens, statistics, or activity reports.
 
 **Permissions**
 
-- *External Speaker Viewer* — open the list, the speakers and congregations, the kept PDFs, and pick speakers when assigning a part
-- *External Speaker Manager* — also add and edit congregations and speakers, update a list, retire, put back and delete
+- *External Speaker Viewer* — open the list, the speakers and congregations, the kept PDFs, our list and its PDF (with the brothers' shared contacts), and pick speakers when assigning a part
+- *External Speaker Manager* — also add and edit congregations and speakers, update a list, retire, put back and delete, edit our list, send it and mark it sent
 
 ## Per-Template Responsibility
 
@@ -172,7 +176,7 @@ If no responsible is set, only users with the Program Manager or Admin permissio
 | Program Viewer | View events, programmes, and template list |
 | Program Manager | Create, edit, release, un-release, and delete events. Assign publishers. Manage templates |
 | External Speaker Viewer | Open the external speaker registry and pick from it |
-| External Speaker Manager | Add and edit external speakers and their congregations, update a list, retire and delete |
+| External Speaker Manager | Add and edit external speakers and their congregations, update a list, retire and delete, edit and send our list |
 | Template responsible | Edit, release, un-release, and delete events for their template only. Assign publishers |
 | Admin | Everything, including creating new templates |
 

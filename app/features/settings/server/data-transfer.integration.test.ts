@@ -370,6 +370,21 @@ beforeAll(async () => {
         nameNormalized: 'congregation voisine',
         responsibleName: 'Frère Responsable',
         responsibleEmail: 'discours@example.com',
+        ourListSentAt: new Date('2026-10-03T10:00:00Z'),
+        ourListSentManually: true,
+        ourListSentDigest: 'sha-of-the-list',
+        congregationId: sourceId,
+      },
+    })
+    // « Notre liste »: Alice's record carries an entry (the import keys it back to her new record).
+    await tx.ourSpeaker.create({
+      data: {
+        memberId: aliceMember.id,
+        onList: true,
+        talks: [4, 26],
+        emailMode: 'custom',
+        emailCustom: 'discours.source@example.com',
+        note: 'Pas en décembre',
         congregationId: sourceId,
       },
     })
@@ -590,6 +605,7 @@ async function importFromZip(buffer: Buffer, congregationId: number): Promise<vo
     await mod.importPioneerGoals(zip, db, congregationId)
     await mod.importSpeakerCongregations(zip, db, idMap, congregationId)
     await mod.importExternalSpeakers(zip, db, idMap, congregationId)
+    await mod.importOurSpeakers(zip, db, idMap, congregationId)
     await mod.importTerritories(zip, db, idMap, congregationId)
     await mod.importTerritoryCardOverlays(zip, db, idMap, congregationId)
     await mod.importTerritoryPerimeter(zip, db, congregationId)
@@ -661,6 +677,7 @@ describe('Export/Import round-trip', () => {
     expect(entityCounts['user-role-assignments']).toBe(2)
     expect(entityCounts['external-speakers']).toBe(1)
     expect(entityCounts['speaker-congregations']).toBe(1)
+    expect(entityCounts['our-speakers']).toBe(1)
     expect(entityCounts['territory-card-overlays']).toBe(1)
     expect(entityCounts['territory-perimeter']).toBe(1)
     expect(entityCounts['programme-template-part-allowed-roles']).toBe(1)
@@ -962,6 +979,22 @@ describe('Export/Import round-trip', () => {
         responsibleName: 'Frère Responsable',
       })
       expect(speakers[0].speakerCongregationId).toBe(speakerCongregations[0].id)
+      expect(speakerCongregations[0]).toMatchObject({
+        ourListSentAt: new Date('2026-10-03T10:00:00Z'),
+        ourListSentManually: true,
+        ourListSentDigest: 'sha-of-the-list',
+      })
+      // « Notre liste » back on Alice's imported record.
+      const ourSpeakers = await tx.ourSpeaker.findMany({ include: { member: { select: { firstname: true } } } })
+      expect(ourSpeakers).toHaveLength(1)
+      expect(ourSpeakers[0]).toMatchObject({
+        onList: true,
+        talks: [4, 26],
+        emailMode: 'custom',
+        emailCustom: 'discours.source@example.com',
+        note: 'Pas en décembre',
+      })
+      expect(ourSpeakers[0]?.member.firstname).toBe('Alice')
 
       // Territory card overlay + perimeter
       const overlays = await tx.territoryCardOverlay.findMany({})

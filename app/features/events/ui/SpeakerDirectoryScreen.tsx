@@ -30,6 +30,7 @@ import { DiscardChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { NewSpeakerCongregationDialog } from './NewSpeakerCongregationDialog'
 import { SpeakerCongregationPanel } from './SpeakerCongregationPanel'
 import { SpeakerDirectoryTable } from './SpeakerDirectoryTable'
+import { SpeakerListsTabs } from './SpeakerListsTabs'
 import { SpeakerPanel } from './SpeakerPanel'
 
 // The visiting speakers we receive, grouped by the congregation whose list they are on. A row opens the speaker
@@ -46,6 +47,8 @@ const SORT_LABEL: Record<SpeakerSort, () => string> = {
 
 export interface SpeakerDirectoryPage {
   directory: SpeakerDirectory
+  /** How many brothers are on the list we send, for its tab. */
+  ourCount: number
   /** The open speaker's visits, loaded with the page. */
   visits: SpeakerVisits | null
   timezone: string
@@ -252,6 +255,7 @@ export function SpeakerDirectoryScreen({ page }: { page: SpeakerDirectoryPage })
           </span>
         </div>
       </PageTopbar>
+      <SpeakerListsTabs received={counts.onList} ours={page.ourCount} />
 
       <div className="flex items-start gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-3">

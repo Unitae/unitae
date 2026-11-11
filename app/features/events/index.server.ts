@@ -26,6 +26,8 @@ export {
   type NextAbsence,
 } from './server/member-engagement.queries'
 export { eventsNotifications } from './server/notifications.server'
+export { getOurSpeakerListPage } from './server/our-speakers.queries'
+export { removeOurSpeakerEntry } from './server/our-speakers.server'
 export { getPartPresetById, listPartPresets, listPartPresetsForSettings } from './server/part-presets.queries'
 export { createPartPreset, deletePartPreset, updatePartPreset } from './server/part-presets.server'
 export { PART_PRESET_COUNT, seedDefaultPartPresets } from './server/seed-part-presets.server'

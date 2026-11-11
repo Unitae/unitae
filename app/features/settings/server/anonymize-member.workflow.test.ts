@@ -3,12 +3,16 @@ import type { MemberId } from '~/shared/types/branded'
 
 const mockMarkReturnedForPublisher = vi.fn()
 const mockAnonymize = vi.fn()
+const mockRemoveOurSpeakerEntry = vi.fn()
 
 vi.mock('~/features/territories/index.server', () => ({
   attributionAggregate: { markReturnedForPublisher: mockMarkReturnedForPublisher },
 }))
 vi.mock('~/features/publishers/index.server', () => ({
   memberAggregate: { anonymize: mockAnonymize },
+}))
+vi.mock('~/features/events/index.server', () => ({
+  removeOurSpeakerEntry: mockRemoveOurSpeakerEntry,
 }))
 
 const { anonymizeMemberWorkflow } = await import('./anonymize-member.workflow')
@@ -20,6 +24,14 @@ beforeEach(() => {
 })
 
 describe('anonymizeMemberWorkflow', () => {
+  it('takes him off the list of speakers we send, with the phones and e-mails he shared there', async () => {
+    const db = { some: 'db' }
+    // biome-ignore lint/suspicious/noExplicitAny: partial mocked transaction client
+    await anonymizeMemberWorkflow(db as any, 10 as MemberId, 42, 99)
+
+    expect(mockRemoveOurSpeakerEntry).toHaveBeenCalledWith(db, 42, 10)
+  })
+
   it('closes open attributions before scrubbing the member', async () => {
     const callOrder: string[] = []
     mockMarkReturnedForPublisher.mockImplementation(async () => {
