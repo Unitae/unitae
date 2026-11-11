@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigation } from 'react-router'
+import type { MapFetcher } from '~/features/settings/ui/map-fetcher'
 import { buildGeoJsonExport, type CardOverlay, type CardOverlayPath } from '~/features/territories'
+import { DEFAULT_SWATCH } from '~/shared/ui/ColorSwatches'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 
-const DEFAULT_OVERLAY_COLOR = '#C2175B'
+const DEFAULT_OVERLAY_COLOR = DEFAULT_SWATCH
 export const PERIMETER_DRAFT_COLOR = '#6B7280'
 
 export function downloadCardOverlaysGeoJson(overlays: CardOverlay[], perimeter: { paths: CardOverlayPath[] } | null) {
@@ -42,7 +43,12 @@ export function computeInitialCenter(
   return undefined
 }
 
-export function useCardOverlayEditor(overlays: CardOverlay[], perimeter: { paths: CardOverlayPath[] } | null) {
+export function useCardOverlayEditor(
+  overlays: CardOverlay[],
+  perimeter: { paths: CardOverlayPath[] } | null,
+  /** The fetcher the draft is saved with: the draft closes once it reports the save went through, never before. */
+  draft: MapFetcher,
+) {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [perimeterMode, setPerimeterMode] = useState<PerimeterMode>(null)
@@ -134,30 +140,27 @@ export function useCardOverlayEditor(overlays: CardOverlay[], perimeter: { paths
     [markDraftDirty],
   )
 
-  // After a successful create/update submit, exit draft mode so the freshly loaded row
-  // shows up in the list rather than the stale local draft.
-  const navigation = useNavigation()
+  // After a save that went through, leave the draft so the saved zone shows in the list. A save that failed keeps the
+  // drawing on the map and the form as it was, to try again.
   const wasSubmittingRef = useRef(false)
   useEffect(() => {
-    const isSubmitting =
-      navigation.state === 'submitting' &&
-      navigation.formMethod === 'POST' &&
-      navigation.formAction?.endsWith('/card-overlays')
-    if (isSubmitting) {
+    if (draft.state === 'submitting') {
       wasSubmittingRef.current = true
       return
     }
-    if (wasSubmittingRef.current && navigation.state === 'idle') {
+    if (wasSubmittingRef.current && draft.state === 'idle') {
       wasSubmittingRef.current = false
-      setIsDrawing(false)
-      setEditingId(null)
-      setPerimeterMode(null)
-      setDraftPaths(null)
-      setDraftName('')
-      setDraftColor(DEFAULT_OVERLAY_COLOR)
-      setDraftDirty(false)
+      if ((draft.data as { ok?: boolean } | undefined)?.ok) {
+        setIsDrawing(false)
+        setEditingId(null)
+        setPerimeterMode(null)
+        setDraftPaths(null)
+        setDraftName('')
+        setDraftColor(DEFAULT_OVERLAY_COLOR)
+        setDraftDirty(false)
+      }
     }
-  }, [navigation.state, navigation.formMethod, navigation.formAction])
+  }, [draft.state, draft.data])
 
   return {
     editingId,

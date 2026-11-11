@@ -144,6 +144,7 @@ export const AuditAction = {
 
   // Congregation settings
   CongregationSettingsUpdated: 'congregation.settings.updated',
+  TerritorySettingsUpdated: 'territory.settings.updated',
 
   // Data transfer
   CongregationExported: 'congregation.exported',

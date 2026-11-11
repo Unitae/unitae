@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import * as m from '~/i18n/paraglide/messages'
 
 export type CardOverlayPath = { lat: number; lng: number }
 
@@ -126,7 +127,7 @@ export type GeoJsonImport = {
 export function parseGeoJsonImport(input: unknown): GeoJsonImport {
   const parsed = geoJsonInputSchema.safeParse(input)
   if (!parsed.success) {
-    throw new GeoJsonValidationError('Le GeoJSON est invalide ou ne contient pas de polygones exploitables')
+    throw new GeoJsonValidationError(m.geojson_error_invalid())
   }
 
   const features = parsed.data.type === 'Feature' ? [parsed.data] : parsed.data.features
@@ -140,14 +141,16 @@ export function parseGeoJsonImport(input: unknown): GeoJsonImport {
 
     if (isPerimeter) {
       if (perimeter != null) {
-        throw new GeoJsonValidationError('Le fichier contient plusieurs périmètres — un seul est autorisé')
+        throw new GeoJsonValidationError(m.geojson_error_many_perimeters())
       }
       if (feature.geometry.type !== 'Polygon') {
-        throw new GeoJsonValidationError('Le périmètre doit être un Polygon (et non un MultiPolygon)')
+        throw new GeoJsonValidationError(m.geojson_error_perimeter_multipolygon())
       }
       const paths = cardOverlayPathsSchema.safeParse(ringToPaths(feature.geometry.coordinates[0]))
       if (!paths.success) {
-        throw new GeoJsonValidationError(`Périmètre : ${paths.error.issues[0]?.message ?? 'invalide'}`)
+        throw new GeoJsonValidationError(
+          m.geojson_error_perimeter({ detail: paths.error.issues[0]?.message ?? m.geojson_error_detail_invalid() }),
+        )
       }
       perimeter = paths.data
       continue
@@ -163,7 +166,10 @@ export function parseGeoJsonImport(input: unknown): GeoJsonImport {
       const paths = cardOverlayPathsSchema.safeParse(ringToPaths(ring))
       if (!paths.success) {
         throw new GeoJsonValidationError(
-          `Polygone "${name ?? 'sans nom'}" : ${paths.error.issues[0]?.message ?? 'invalide'}`,
+          m.geojson_error_zone({
+            name: name ?? m.geojson_error_unnamed(),
+            detail: paths.error.issues[0]?.message ?? m.geojson_error_detail_invalid(),
+          }),
         )
       }
       zones.push({ name, color, paths: paths.data })
@@ -171,7 +177,7 @@ export function parseGeoJsonImport(input: unknown): GeoJsonImport {
   }
 
   if (zones.length === 0 && perimeter == null) {
-    throw new GeoJsonValidationError('Le GeoJSON ne contient aucun polygone valide')
+    throw new GeoJsonValidationError(m.geojson_error_no_polygon())
   }
 
   return { zones, perimeter }

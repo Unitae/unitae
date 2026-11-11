@@ -10,6 +10,7 @@ vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     territoryKind: { upsert: vi.fn(), findFirst: vi.fn() },
     territoryKindAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
+    role: { findMany: vi.fn() },
   },
 }))
 
@@ -19,6 +20,9 @@ const { audit } = await import('~/shared/domain/audit.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
+  // Every role asked about belongs to the congregation, unless a case says otherwise.
+  vi.mocked(db.role.findMany).mockImplementation((async (args: { where: { id: { in: number[] } } }) =>
+    args.where.id.in.map(id => ({ id }))) as never)
 })
 
 describe('seedBuiltInTerritoryKinds', () => {
@@ -102,5 +106,24 @@ describe('setKindAllowedRoles', () => {
 
     await expect(setKindAllowedRoles(db, 'Phone', [3], 4, 100)).rejects.toThrow()
     expect(db.territoryKindAllowedRole.createMany).not.toHaveBeenCalled()
+  })
+
+  it('keeps only the roles of the congregation, whatever ids the form carries', async () => {
+    vi.mocked(db.territoryKind.findFirst).mockResolvedValue({ id: 9 } as never)
+    vi.mocked(db.territoryKindAllowedRole.findMany).mockResolvedValue([] as never)
+    // Role 77 belongs to another congregation: the scoped lookup does not return it.
+    vi.mocked(db.role.findMany).mockResolvedValue([{ id: 3 }] as never)
+
+    const diff = await setKindAllowedRoles(db, 'Phone', [3, 77], 4, 100)
+
+    expect(diff).toEqual({ added: [3], removed: [] })
+    expect(db.role.findMany).toHaveBeenCalledWith({
+      where: { id: { in: [3, 77] }, congregationId: 4 },
+      select: { id: true },
+    })
+    expect(db.territoryKindAllowedRole.createMany).toHaveBeenCalledWith({
+      data: [{ kindId: 9, roleId: 3, congregationId: 4 }],
+      skipDuplicates: true,
+    })
   })
 })

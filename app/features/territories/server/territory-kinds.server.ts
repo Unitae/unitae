@@ -68,13 +68,20 @@ export async function setKindAllowedRoles(
   })
   if (kind == null) throw new NotFoundError('TerritoryKind')
 
+  // A foreign key does not see row-level security: a role id of another congregation would be accepted. Only the
+  // congregation's own roles are kept.
+  const ownRoles =
+    desiredRoleIds.length === 0
+      ? []
+      : await db.role.findMany({ where: { id: { in: desiredRoleIds }, congregationId }, select: { id: true } })
+  const own = new Set(ownRoles.map(role => role.id))
   const previous = await db.territoryKindAllowedRole.findMany({
     where: { kindId: kind.id, congregationId },
     select: { roleId: true },
   })
   const diff = diffRoleIds(
     previous.map(row => row.roleId),
-    desiredRoleIds,
+    desiredRoleIds.filter(id => own.has(id)),
   )
   if (diff.added.length === 0 && diff.removed.length === 0) return diff
 

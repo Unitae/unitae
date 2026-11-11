@@ -1,4 +1,3 @@
-import { redirect } from 'react-router'
 import { z } from 'zod'
 import {
   cardOverlayColorSchema,
@@ -14,6 +13,7 @@ import {
   setPerimeter,
   updateCardOverlay,
 } from '~/features/territories/index.server'
+import * as m from '~/i18n/paraglide/messages'
 import type { LimitService } from '~/shared/domain/limits.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -88,7 +88,8 @@ export const cardOverlayActionSchema = z.discriminatedUnion('intent', [
   clearPerimeterSchema,
 ])
 
-const REDIRECT_TARGET = '/settings/territories/card-overlays'
+/** What an intent did, for the toast; or why it did not, kept under the form so nothing drawn is lost. */
+export type MapActionResult = { ok: true; message: string } | { ok: false; error: string }
 
 export async function handleCardOverlayAction(
   db: TransactionClient,
@@ -96,17 +97,11 @@ export async function handleCardOverlayAction(
   data: z.infer<typeof cardOverlayActionSchema>,
   congregationId: number,
   actorId: number,
-): Promise<{ error: string } | Response> {
+): Promise<MapActionResult> {
   if (data.intent === 'create') {
     await limits.errorIfWouldGoOverLimit('cardOverlays')
-    await createCardOverlay(db, {
-      name: data.name,
-      color: data.color,
-      paths: data.paths,
-      congregationId,
-      actorId,
-    })
-    return redirect(REDIRECT_TARGET)
+    await createCardOverlay(db, { name: data.name, color: data.color, paths: data.paths, congregationId, actorId })
+    return { ok: true, message: m.settings_map_zone_saved() }
   }
 
   if (data.intent === 'update') {
@@ -117,22 +112,22 @@ export async function handleCardOverlayAction(
       congregationId,
       actorId,
     })
-    return redirect(REDIRECT_TARGET)
+    return { ok: true, message: m.settings_map_zone_saved() }
   }
 
   if (data.intent === 'delete') {
     await deleteCardOverlay(db, data.id, congregationId, actorId)
-    return redirect(REDIRECT_TARGET)
+    return { ok: true, message: m.settings_map_zone_deleted() }
   }
 
   if (data.intent === 'set-perimeter') {
     await setPerimeter(db, { paths: data.paths, congregationId, actorId })
-    return redirect(REDIRECT_TARGET)
+    return { ok: true, message: m.settings_map_perimeter_saved() }
   }
 
   if (data.intent === 'clear-perimeter') {
     await clearPerimeter(db, congregationId, actorId)
-    return redirect(REDIRECT_TARGET)
+    return { ok: true, message: m.settings_map_perimeter_cleared() }
   }
 
   // import-geojson — accepts both zones (appended to the existing list) and an optional perimeter
@@ -141,20 +136,14 @@ export async function handleCardOverlayAction(
   try {
     imported = parseGeoJsonImport(JSON.parse(data.geojson))
   } catch (error) {
-    return { error: error instanceof GeoJsonValidationError ? error.message : 'GeoJSON invalide' }
+    return { ok: false, error: error instanceof GeoJsonValidationError ? error.message : m.geojson_error_invalid() }
   }
   if (imported.perimeter != null) {
     await setPerimeter(db, { paths: imported.perimeter, congregationId, actorId })
   }
   for (const draft of imported.zones) {
     await limits.errorIfWouldGoOverLimit('cardOverlays')
-    await createCardOverlay(db, {
-      name: draft.name,
-      color: draft.color,
-      paths: draft.paths,
-      congregationId,
-      actorId,
-    })
+    await createCardOverlay(db, { name: draft.name, color: draft.color, paths: draft.paths, congregationId, actorId })
   }
-  return redirect(REDIRECT_TARGET)
+  return { ok: true, message: m.settings_map_imported() }
 }

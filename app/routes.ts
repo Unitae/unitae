@@ -92,7 +92,10 @@ export default [
         ]),
       ]),
       route('territories', 'features/settings/routes/territories/settings.tsx'),
-      route('territories/card-overlays', 'features/settings/routes/territories/card-overlays.tsx'),
+      route('map', 'features/settings/routes/map.tsx'),
+      route('territories/card-overlays', 'features/settings/routes/legacy.tsx', {
+        id: 'settings-legacy-card-overlays',
+      }),
       route('audit-log', 'features/settings/routes/audit-log.tsx'),
       ...prefix('permissions', [
         index('features/settings/routes/permissions/permission-list.tsx'),

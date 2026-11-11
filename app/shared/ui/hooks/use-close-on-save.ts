@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import type { useFetcher } from 'react-router'
 
 /** Calls `onSaved` once the fetcher's submission comes back `{ ok: true }`: the editor that sent it can close. */
-export function useCloseOnSave(fetcher: ReturnType<typeof useFetcher>, onSaved: () => void) {
+export function useCloseOnSave(fetcher: Pick<ReturnType<typeof useFetcher>, 'state' | 'data'>, onSaved: () => void) {
   const previous = useRef(fetcher.state)
   const latest = useRef(onSaved)
   latest.current = onSaved
