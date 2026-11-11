@@ -8,6 +8,17 @@ vi.mock('~/shared/domain/audit.server', () => ({
   audit: vi.fn(),
 }))
 vi.mock('~/shared/infra/db.server', () => ({ unscopedDb: { auditLog: { create: vi.fn() } } }))
+const { openAccessChecks } = vi.hoisted(() => ({ openAccessChecks: [] as number[] }))
+vi.mock('~/shared/domain/role-membership.server', async () => {
+  const { GrantBeyondActorError } = await import('~/shared/domain/role-grant-limits.server')
+  return {
+    // Member 66's record holds a role whose rights the actor lacks.
+    assertMayOpenAccessForRecord: vi.fn(async (_db: unknown, memberId: number) => {
+      openAccessChecks.push(memberId)
+      if (memberId === 66) throw new GrantBeyondActorError('Cannot grant can-do-anything: not held by the actor')
+    }),
+  }
+})
 vi.mock('~/features/authentication/server/invalidate-account-password.server', () => ({
   createPasswordResetToken: vi.fn().mockResolvedValue('token-xyz'),
 }))
@@ -40,6 +51,7 @@ describe('linkAccountToMember', () => {
         email: 'a@b.test',
         congregationId: 10,
         actorId: 99,
+        actorPermissions: new Set(['can-manage-publishers']),
       }),
     ).rejects.toBeInstanceOf(NotFoundError)
   })
@@ -53,6 +65,7 @@ describe('linkAccountToMember', () => {
         email: 'a@b.test',
         congregationId: 10,
         actorId: 99,
+        actorPermissions: new Set(['can-manage-publishers']),
       }),
     ).rejects.toBeInstanceOf(ConflictError)
   })
@@ -67,6 +80,7 @@ describe('linkAccountToMember', () => {
         email: 'a@b.test',
         congregationId: 10,
         actorId: 99,
+        actorPermissions: new Set(['can-manage-publishers']),
       }),
     ).rejects.toBeInstanceOf(ConflictError)
   })
@@ -81,6 +95,7 @@ describe('linkAccountToMember', () => {
       email: 'A@B.test',
       congregationId: 10,
       actorId: 99,
+      actorPermissions: new Set(['can-manage-publishers']),
     })
 
     expect(result).toEqual({ accountId: 42, resetToken: 'token-xyz', memberFirstname: 'Marie' })
@@ -99,5 +114,24 @@ describe('linkAccountToMember', () => {
         metadata: { memberId: 1 },
       }),
     )
+  })
+})
+
+describe('linkAccountToMember — the record’s roles', () => {
+  it('refuses to open an access whose roles would grant rights the actor lacks, before creating anything', async () => {
+    const { GrantBeyondActorError } = await import('~/shared/domain/role-grant-limits.server')
+    mockDb.member.findFirst.mockResolvedValue({ id: 66, firstname: 'Paul', account: null })
+    mockDb.userAccount.findFirst.mockResolvedValue(null)
+
+    await expect(
+      linkAccountToMember(mockDb as never, {
+        memberId: 66 as MemberId,
+        email: 'paul@b.test',
+        congregationId: 10,
+        actorId: 99,
+        actorPermissions: new Set(['can-manage-publishers']),
+      }),
+    ).rejects.toBeInstanceOf(GrantBeyondActorError)
+    expect(mockDb.userAccount.create).not.toHaveBeenCalled()
   })
 })

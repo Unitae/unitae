@@ -1,5 +1,7 @@
 import { createPasswordResetToken } from '~/features/authentication/index.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
+import type { ActorPermissions } from '~/shared/domain/role-grant-limits.server'
+import { assertMayOpenAccessForRecord } from '~/shared/domain/role-membership.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { MemberId } from '~/shared/types/branded'
@@ -9,13 +11,17 @@ interface LinkAccountToMemberParams {
   email: string
   congregationId: number
   actorId: number
+  /** The rights of whoever opens the access: the record's roles start granting theirs to the new login. */
+  actorPermissions: ActorPermissions
 }
 
 /**
  * Add a login to an existing Member. Creates a UserAccount with an empty
  * password and a fresh password-reset token (caller is expected to send
  * the email). Throws `ConflictError` if the Member already has an account
- * or if the email is already taken.
+ * or if the email is already taken, and `GrantBeyondActorError` when the
+ * record holds roles whose rights the actor does not have: the new login
+ * would receive them.
  */
 export async function linkAccountToMember(
   db: TransactionClient,
@@ -27,6 +33,8 @@ export async function linkAccountToMember(
   })
   if (!member) throw new NotFoundError('Member')
   if (member.account) throw new ConflictError('Member already has a linked account')
+
+  await assertMayOpenAccessForRecord(db, params.memberId, params.congregationId, params.actorPermissions)
 
   const normalizedEmail = params.email.toLocaleLowerCase()
   const emailTaken = await db.userAccount.findFirst({ where: { email: normalizedEmail } })

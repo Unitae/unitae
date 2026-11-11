@@ -94,7 +94,10 @@ const WITH_LOGIN = { memberId: 500, userId: 800 }
 const WITHOUT_LOGIN = { memberId: 501, userId: null }
 const LOGIN_ONLY = { memberId: null, userId: 801 }
 
-const { addToRole, removeFromRole, setGivenRoles } = await import('./role-membership.server')
+const { addToRole, assertMayOpenAccessForRecord, removeFromRole, setGivenRoles } = await import(
+  './role-membership.server'
+)
+const { GrantBeyondActorError } = await import('~/shared/domain/role-grant-limits.server')
 const { audit } = await import('~/shared/domain/audit.server')
 const { ForbiddenError, ValidationError } = await import('~/shared/errors/app-error.server')
 
@@ -205,5 +208,45 @@ describe('setGivenRoles', () => {
     logins.push({ userId: 800, roleId: 2, congregationId: CONGREGATION, kind: 'member' })
     await setGivenRoles(db, WITH_LOGIN, [], CONGREGATION, ACTOR, ADMIN_ACTOR)
     expect(lastAdminChecks).toEqual([800])
+  })
+})
+
+describe('assertMayOpenAccessForRecord', () => {
+  // A record's given roles carry their permissions to the login created for it. Creating that login hands those
+  // permissions out, so the actor must hold them — the same limit as giving the roles directly.
+  const permissionsOf: Record<number, string[]> = {
+    3: ['can-view-programs'],
+    4: ['can-do-anything'],
+    1: ['can-view-board'],
+  }
+  const recordDb = (roleIds: number[]) =>
+    ({
+      memberRoleAssignment: {
+        findMany: async () => roleIds.map(id => ({ role: { id, key: ROLES.find(r => r.id === id)?.key ?? 'x' } })),
+      },
+      rolePermission: {
+        findMany: async ({ where }: { where: { roleId: { in: number[] } } }) =>
+          where.roleId.in.flatMap(id => (permissionsOf[id] ?? []).map(key => ({ permission: { key } }))),
+      },
+    }) as never
+
+  it('lets an actor who holds the roles’ permissions open the access', async () => {
+    await expect(
+      assertMayOpenAccessForRecord(recordDb([3]), 501, CONGREGATION, new Set(['can-view-programs'])),
+    ).resolves.toBeUndefined()
+  })
+
+  it('refuses an actor who lacks a permission one of the roles carries', async () => {
+    await expect(
+      assertMayOpenAccessForRecord(recordDb([3, 4]), 501, CONGREGATION, new Set(['can-view-programs'])),
+    ).rejects.toBeInstanceOf(GrantBeyondActorError)
+  })
+
+  it('leaves identity roles out: an elder is an elder whoever opens the access', async () => {
+    await expect(assertMayOpenAccessForRecord(recordDb([1]), 501, CONGREGATION, new Set())).resolves.toBeUndefined()
+  })
+
+  it('lets an administrator open any access', async () => {
+    await expect(assertMayOpenAccessForRecord(recordDb([4]), 501, CONGREGATION, ADMIN_ACTOR)).resolves.toBeUndefined()
   })
 })

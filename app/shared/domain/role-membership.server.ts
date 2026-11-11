@@ -238,3 +238,23 @@ export async function setGivenRoles(
     },
   })
 }
+
+/**
+ * Before a login is created for an existing record: the record's given roles start granting their permissions the
+ * moment the person can sign in, so opening the access hands them out. The actor must hold every one of them — the
+ * same limit as giving those roles directly. Identity roles are left out: they follow facts about the person (an elder
+ * is an elder), not anyone's choice.
+ */
+export async function assertMayOpenAccessForRecord(
+  db: TransactionClient,
+  memberId: number,
+  congregationId: number,
+  actorPermissions: ActorPermissions,
+): Promise<void> {
+  const rows = await db.memberRoleAssignment.findMany({
+    where: { memberId, congregationId },
+    select: { role: { select: { id: true, key: true } } },
+  })
+  const given = rows.filter(row => !isIdentityRoleKey(row.role.key)).map(row => row.role.id)
+  await assertActorHoldsRolePermissions(db, given, congregationId, actorPermissions)
+}
