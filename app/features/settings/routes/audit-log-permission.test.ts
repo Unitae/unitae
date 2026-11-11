@@ -7,6 +7,9 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('~/features/settings/server/audit-log.server', () => ({
   findAuditLogsPaginated: vi.fn(async () => ({
     count: 1,
+    page: 1,
+    pageSize: 25,
+    pages: 1,
     logs: [
       {
         id: 1,
@@ -17,7 +20,7 @@ vi.mock('~/features/settings/server/audit-log.server', () => ({
         entityId: 2,
         metadata: null,
         createdAt: new Date('2026-10-01T10:00:00Z'),
-        actor: null,
+        actorName: 'Ada Admin',
       },
     ],
   })),
@@ -37,7 +40,7 @@ describe('audit-log loader', () => {
       context: routeContext([Permission.CanConfigureCongregation]),
     } as never)
 
-    expect(result.logs).toHaveLength(1)
+    expect(result.rows).toHaveLength(1)
   })
 
   it('refuses a caller admitted to settings for another reason', async () => {
