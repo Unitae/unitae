@@ -343,7 +343,7 @@ describe('navItemFor', () => {
     ['/programs/days-off/12', 'absences'],
     ['/territories/attributions/campaigns/3', 'campaigns'],
     ['/territories/attributions/88', 'attributions'],
-    ['/settings/users/4/edit', 'settings'],
+    ['/settings/users/4', 'settings'],
     ['/me/days-off/3/edit', 'my-absences'],
   ])('leads from %s back to %s', (pathname, id) => {
     expect(navItemFor(pathname, manager)?.id).toBe(id)
