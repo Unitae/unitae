@@ -7,9 +7,11 @@ For the end-user view of the same system, see the product doc: [Roles and Permis
 ## Two layers, distinct concepts
 
 - **Permission** — the unit of access. A finite, code-defined enum (45 entries) declared in `app/shared/types/permission.ts`. New permissions require code + migration changes.
-- **Role** — a named bundle of permissions. Lives in the database (`Role` table), scoped to a congregation. Roles can be **built-in** (seeded, identity-stable, auto-synced from `Member` flags) or **custom** (created at runtime by a Roles Manager and assigned to a `UserAccount`).
+- **Role** — a named bundle of permissions. Lives in the database (`Role` table), scoped to a congregation. Roles can be **built-in** (seeded, identity-stable, auto-synced from `Member` flags) or **custom** (created at runtime by a Roles Manager and given to people).
 
-Built-in identity roles attach to **`Member`** via `MemberRoleAssignment`. Custom roles (and the management permissions they grant) attach to **`UserAccount`** via `UserRoleAssignment`. The two tables are siblings: identity ("you are an elder") vs access ("you can manage roles").
+A role belongs to the **person**: everyone in the congregation holds their roles on their record (`Member`, via `MemberRoleAssignment`), whether or not they can sign in — identity roles synced from the record's flags, and roles given by hand with their seat (`kind`: leader, deputy, member). A publisher without an account can therefore be on a team, sit in the organigram, or be picked for a part reserved to a role. Only two cases sit on the login (`UserAccount`, via `UserRoleAssignment`): an account without a record (a circuit overseer, an outside administrator) and system roles such as `admin`, which are access rather than a qualification. Permissions act only through a login: a person's roles grant theirs the day a login is created for them.
+
+Where a given role is stored is decided in one place, `app/shared/domain/role-assignments.server.ts` (`giveRole`, `takeRole`, `holderOfMember`, `holderOfAccount`). Readers always union both tables (see below), so a row older code left on a login is still honoured and moves to the record on its next change.
 
 Roles are the **only** carrier of a permission. The former `CongregationUserPermission` table, which let an admin grant a permission to one user directly, was migrated into roles and dropped in #149 — so the role screens are the single place access is granted. See [Role kinds](#role-kinds) below.
 
@@ -26,7 +28,7 @@ Roles are the **only** carrier of a permission. The former `CongregationUserPerm
 | Role admin UI | `app/features/congregation/routes/roles/` |
 | User assignment UI | settings — see `app/features/settings/` |
 
-Database schema is in `app/database/schema.prisma`. The relevant tables are `Permission`, `Role`, `RolePermission`, `UserRoleAssignment` (custom/management roles, on `UserAccount`) and `MemberRoleAssignment` (built-in identity roles, on `Member`).
+Database schema is in `app/database/schema.prisma`. The relevant tables are `Permission`, `Role`, `RolePermission`, `MemberRoleAssignment` (every role of a person with a record: identity roles, and given roles with their seat) and `UserRoleAssignment` (roles of an account without a record, and `admin`).
 
 ## Resolution flow
 
@@ -80,7 +82,7 @@ Created and edited through `app/shared/domain/roles.server.ts`:
 - `createRole` — slugifies the name into a key, ensures uniqueness within the congregation, audits as `RoleCreated`
 - `updateRoleIdentity` — edits name/description (forbidden on built-ins)
 - `updateRolePermissions` → `syncRolePermissions` — diff-based add/remove on `RolePermission`, audits as `RolePermissionChanged`
-- `addUserToRole` / `removeUserFromRole` / `setUserCustomRoleAssignments` — manage `UserRoleAssignment` for non-built-in roles (i.e. management roles on a `UserAccount`), audits as `UserRoleAssignmentChanged`
+- `addToRole` / `removeFromRole` / `setGivenRoles` (`role-membership.server.ts`) — give and take roles by hand for a holder (`{ memberId, userId }`), stored through `role-assignments.server.ts`, audited as `UserRoleAssignmentChanged`; organigram seats go through `organigram-seats.server.ts`
 - `deleteRole` — forbidden on built-ins; cascades to memberships and permission rows
 
 The corresponding routes live in `app/features/congregation/routes/roles/`.
@@ -115,7 +117,7 @@ the `isBuiltIn` flag — that flag only answers "can this be renamed or deleted"
 |---|---|---|---|---|
 | Identity | `BUILT_IN_ROLE_KEYS` (`member`, `publisher`, `elder`, …) | `true` | `Member` | `syncBuiltInRoleAssignments`, from Member flags |
 | System | `SYSTEM_ROLE_KEYS` (`admin`) | `true` | `UserAccount` | granted by hand |
-| Custom | whatever an admin creates | `false` | `UserAccount` | granted by hand |
+| Custom | whatever an admin creates | `false` | `Member` (or `UserAccount` for an account without a record) | granted by hand |
 
 Both lists live in `app/shared/domain/built-in-roles.server.ts`, alongside
 `isIdentityRoleKey()` — prefer that helper over reading `isBuiltIn` when the question is
@@ -126,7 +128,7 @@ Two consequences are easy to get wrong:
 - **`syncBuiltInRoleAssignments` selects by key list, not by `isBuiltIn`.** A role with no
   predicate is treated as "not desired" and its assignment deleted, so matching on the flag
   would silently strip `admin` on the next Member sync.
-- **Account-assignable means custom *or* system.** `setUserCustomRoleAssignments` filters on
+- **Hand-given means custom *or* system.** `handGivenRole()` filters on
   `isBuiltIn: false OR key IN SYSTEM_ROLE_KEYS`; filtering on the flag alone makes `admin`
   impossible to grant through the UI.
 
