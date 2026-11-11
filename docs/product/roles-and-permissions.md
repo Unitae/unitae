@@ -39,14 +39,16 @@ If you want a built-in role to actually grant access (say, give every elder the 
 You can create as many roles of your own as you need. A custom role has:
 
 - A name (and an optional description, useful for explaining the role to other admins)
-- Any combination of the 24 permissions
-- The list of users who hold it
+- A type: a **team** (responsables, adjoints and members) or a **personal role** (one titulaire, adjoints allowed)
+- An optional note printed under it on the board's organigram
+- Any combination of the permissions
+- The people who hold it — anyone in the congregation, with or without an account
 
 Typical examples: *Service committee*, *PR coordinator*, *Group overseer*. Whatever names match how your congregation actually works.
 
-To create a role, add it from the organigram, then pick what it allows in **Settings → Roles and permissions** and give it to people from their record or their account.
+To create a role, use **Nouveau rôle** on the organigram — under a role of the chart, or outside it. Then pick what it allows in **Settings → Roles and permissions**. Responsables and adjoints are named in the role's panel on the organigram; a team's members are ticked in the **Équipes** tab.
 
-You can edit, rename, and delete custom roles at any time. Built-in roles cannot be renamed or deleted (the system depends on their identity).
+A custom role is renamed, retyped or deleted from its panel (**Modifier**). Built-in roles cannot be renamed or deleted (the system depends on their identity). A role cannot be deleted while it is the only one reserving a board section, a territory kind, or a part of a template or upcoming programme — deleting it would open those to everyone, so the panel lists them first.
 
 ## The 24 permissions
 

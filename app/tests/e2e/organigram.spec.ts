@@ -5,7 +5,8 @@ const TEST_EMAIL = E2E_ADMIN_EMAIL
 const TEST_PASSWORD = E2E_ADMIN_PASSWORD
 
 const UNSEAT_BUTTON = /^Retirer /
-const NODE_IN_URL = /node=\d+/
+const ROLE_IN_URL = /role=\d+/
+const ROOT_ADD = /^Remettre « .+ » en haut$/
 
 // These run against whatever the environment was seeded with, so each one skips rather than
 // fails when its precondition is absent — the convention the other specs in this directory use.
@@ -18,35 +19,32 @@ test.describe('organigram', () => {
     test.skip(page.url().includes('/login'), 'account cannot reach the organigram')
   })
 
-  test('the chart is read-only — every mutation lives in the node panel', async ({ page }) => {
+  test('the chart is read-only — every change lives in the role panel', async ({ page }) => {
     await expect(page.getByRole('heading', { level: 1, name: 'Organigramme' })).toBeVisible()
     // No destructive control sits in the chart itself, so nothing can be hit while scrolling.
     await expect(page.getByRole('button', { name: UNSEAT_BUTTON })).toHaveCount(0)
   })
 
   test('an empty chart still offers a way to start one', async ({ page }) => {
-    const isEmpty = await page.getByText('Aucun service dans l’organigramme').isVisible()
+    const isEmpty = await page.getByText('Aucun rôle dans l’organigramme').isVisible()
     test.skip(!isEmpty, 'this congregation already has a chart')
 
-    // Without this the congregation is stuck: no node means no panel, and the panel is the only
-    // other place a role can be added.
-    await expect(page.locator('#root-add-role')).toBeVisible()
+    // Without this the congregation is stuck: no role means no panel to add one from.
+    await expect(page.getByRole('button', { name: ROOT_ADD }).first()).toBeVisible()
   })
 
-  test('selecting a node opens its panel, and the selection survives a reload', async ({ page }) => {
-    // Scoped to the chart's own rows, which link to ?node=<id>. `getByRole('link')` matches
-    // every link on the page — the sidebar's «Accueil» comes first in the DOM, so `.first()`
-    // navigated to the home page and the assertion failed for a reason unrelated to the chart.
-    const firstNode = page.locator('a[href*="node="]')
-    test.skip((await firstNode.count()) === 0, 'no chart to select from')
+  test('selecting a role opens its panel, and the selection survives a reload', async ({ page }) => {
+    // Scoped to the chart's own rows, so a sidebar control is never picked by mistake.
+    const rows = page.getByRole('region', { name: 'Organigramme de l’assemblée' }).getByRole('button')
+    test.skip((await rows.count()) === 0, 'no chart to select from')
 
-    await firstNode.first().click()
-    await expect(page).toHaveURL(NODE_IN_URL)
+    await rows.first().click()
+    await expect(page).toHaveURL(ROLE_IN_URL)
 
-    // Selection lives in the URL precisely so a form post does not close the panel.
+    // The selection lives in the address, so a reload or a shared link opens the same panel.
     await page.reload()
-    await expect(page).toHaveURL(NODE_IN_URL)
-    await expect(page.getByRole('heading', { level: 2 })).toBeVisible()
+    await expect(page).toHaveURL(ROLE_IN_URL)
+    await expect(page.getByRole('heading', { level: 2 }).first()).toBeVisible()
   })
 
   test('the chart does not scroll sideways on a phone', async ({ page }) => {

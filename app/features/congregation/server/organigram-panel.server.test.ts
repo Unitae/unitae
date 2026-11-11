@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { OrganigramNode } from '~/shared/domain/organigram.queries'
 import type { FlatEntry } from '~/shared/domain/organigram-layout'
-import { buildMoveTargets, buildPanelNode, buildRolePickers } from './organigram-panel.server'
+import { buildMoveTargets, buildOffChartPanel, buildRolePanel, buildRolePickers } from './organigram-panel.server'
 
 // Pure assembly for the organigram page: flat entries in, panel shape and legal move targets
 // out. Extracted from the route loader so the flag wiring is testable without a request.
@@ -25,46 +25,79 @@ function entry(over: Partial<FlatEntry> & { node: OrganigramNode }): FlatEntry {
   return { id: over.node.id, label: over.node.name, parentId: null, parentName: null, ...over }
 }
 
-describe('buildPanelNode', () => {
-  it('marks a committee post fixed, personal, and a post', () => {
-    const post = node({ key: 'coordinator', isSinglePerson: true })
+const holder = (memberId: number, firstname: string, kind: string, isElder = false) => ({
+  roleId: 1,
+  memberId,
+  firstname,
+  lastname: 'Dupont',
+  anonymizedAt: null,
+  kind,
+  isElder,
+})
+const CUSTOM = { description: 'Prépare les territoires.', isBuiltIn: false }
+const BUILT_IN = { description: null, isBuiltIn: true }
 
-    const panel = buildPanelNode(entry({ node: post }))
-
-    expect(panel.isFixed).toBe(true)
-    expect(panel.isPost).toBe(true)
-    expect(panel.isCommittee).toBe(false)
-    expect(panel.isSinglePerson).toBe(true)
+describe('buildRolePanel', () => {
+  it('tells a committee post, the committee, a list, a personal role and a team apart', () => {
+    const kinds = [
+      buildRolePanel([entry({ node: node({ key: 'coordinator', isSinglePerson: true }) })], 0, BUILT_IN).kind,
+      buildRolePanel([entry({ node: node({ key: 'service-committee' }) })], 0, BUILT_IN).kind,
+      buildRolePanel([entry({ node: node({ key: 'elder', isRoster: true }) })], 0, BUILT_IN).kind,
+      buildRolePanel([entry({ node: node({ isSinglePerson: true }) })], 0, CUSTOM).kind,
+      buildRolePanel([entry({ node: node({}) })], 0, CUSTOM).kind,
+    ]
+    expect(kinds).toEqual(['post', 'committee', 'roster', 'personal', 'team'])
   })
 
-  it('carries a custom personal role’s flag without fixing it in place', () => {
-    const custom = node({ key: 'responsable-audio-video', isSinglePerson: true })
-
-    const panel = buildPanelNode(entry({ node: custom }))
-
-    expect(panel.isSinglePerson).toBe(true)
-    expect(panel.isFixed).toBe(false)
-    expect(panel.isPost).toBe(false)
-  })
-
-  it('formats holders with the lastname in capitals', () => {
-    const service = node({
-      holders: [
-        {
-          roleId: 1,
-          memberId: 9,
-          firstname: 'Marc',
-          lastname: 'Dupont',
-          anonymizedAt: null,
-          kind: 'leader',
-          isElder: true,
-        },
-      ],
+  it('splits a team’s seats from its plain members, names in capitals', () => {
+    const team = node({
+      holders: [holder(9, 'Marc', 'leader', true), holder(10, 'Hugo', 'deputy'), holder(11, 'Luc', 'member')],
     })
+    const panel = buildRolePanel([entry({ node: team })], 0, CUSTOM)
+    expect(panel.seats).toEqual([
+      { memberId: 9, name: 'Marc DUPONT', seat: 'leader', isElder: true },
+      { memberId: 10, name: 'Hugo DUPONT', seat: 'deputy', isElder: false },
+    ])
+    expect(panel.members).toEqual(['Luc DUPONT'])
+  })
 
-    const panel = buildPanelNode(entry({ node: service }))
+  it('lists a roster’s people as its members, every one of them', () => {
+    const roster = node({ key: 'elder', isRoster: true, holders: [holder(9, 'Marc', 'member', true)] })
+    const panel = buildRolePanel([entry({ node: roster })], 0, BUILT_IN)
+    expect(panel.seats.map(seat => seat.name)).toEqual(['Marc DUPONT'])
+    expect(panel.members).toEqual([])
+  })
 
-    expect(panel.holders).toEqual([{ memberId: 9, name: 'Marc DUPONT', kind: 'leader' }])
+  it('gives its parent, its children, and its place among its siblings', () => {
+    const first = node({ name: 'Porte' })
+    const second = node({ name: 'Auditorium' })
+    const parent = node({ name: 'Accueil', children: [first, second] })
+    const flat = [
+      entry({ node: parent }),
+      entry({ node: first, parentId: parent.id, parentName: 'Accueil' }),
+      entry({ node: second, parentId: parent.id, parentName: 'Accueil' }),
+    ]
+    const panel = buildRolePanel(flat, 2, CUSTOM)
+    expect(panel.parent).toEqual({ id: parent.id, name: 'Accueil' })
+    expect(panel.position).toEqual({ index: 2, of: 2 })
+    expect(buildRolePanel(flat, 0, CUSTOM).children.map(child => child.name)).toEqual(['Porte', 'Auditorium'])
+  })
+
+  it('lets the congregation’s own roles be edited, never a built-in one', () => {
+    expect(buildRolePanel([entry({ node: node({}) })], 0, CUSTOM).editable).toBe(true)
+    expect(buildRolePanel([entry({ node: node({ key: 'coordinator' }) })], 0, BUILT_IN).editable).toBe(false)
+  })
+
+  it('offers every role as a new place except itself and those under it', () => {
+    const child = node({})
+    const parent = node({ children: [child] })
+    const other = node({})
+    const flat = [
+      entry({ node: parent }),
+      entry({ node: child, parentId: parent.id, parentName: parent.name }),
+      entry({ node: other }),
+    ]
+    expect(buildRolePanel(flat, 0, CUSTOM).moveTargets.map(target => target.id)).toEqual([other.id])
   })
 })
 
@@ -108,5 +141,34 @@ describe('buildMoveTargets', () => {
     const flat = [entry({ node: a }), entry({ node: b })]
 
     expect(buildMoveTargets(flat, undefined)).toHaveLength(2)
+  })
+})
+
+describe('buildOffChartPanel', () => {
+  it('shows a role outside the chart with its people, and every chart role as a place to attach it', () => {
+    const lecteurs = node({
+      name: 'Lecteurs',
+      holders: [holder(9, 'Marc', 'leader', true), holder(11, 'Luc', 'member')],
+    })
+    const places = [
+      { id: 1, label: 'Anciens' },
+      { id: 2, label: '\u00a0\u00a0Comité de service' },
+    ]
+    const panel = buildOffChartPanel(lecteurs, CUSTOM, places)
+    expect(panel).toMatchObject({
+      name: 'Lecteurs',
+      kind: 'team',
+      offChart: true,
+      editable: true,
+      parent: null,
+      children: [],
+      members: ['Luc DUPONT'],
+      moveTargets: places,
+    })
+    expect(panel.seats).toEqual([{ memberId: 9, name: 'Marc DUPONT', seat: 'leader', isElder: true }])
+  })
+
+  it('marks a role of the chart as on it', () => {
+    expect(buildRolePanel([entry({ node: node({}) })], 0, CUSTOM).offChart).toBe(false)
   })
 })

@@ -11,6 +11,13 @@ vi.mock('~/shared/domain/audit.server', () => ({
   audit: vi.fn(),
 }))
 vi.mock('~/shared/auth/permissions.server', () => ({ requireNotLastAdmin: vi.fn() }))
+const { reservations } = vi.hoisted(() => ({
+  reservations: { sections: [] as string[], territoryKinds: [], templateSlots: [], programmeSlots: 0 },
+}))
+vi.mock('~/shared/domain/role-reservations.server', async importOriginal => ({
+  ...(await importOriginal<typeof import('~/shared/domain/role-reservations.server')>()),
+  findSoleReservations: vi.fn(async () => reservations),
+}))
 
 const mockDb = {
   role: {
@@ -165,6 +172,39 @@ describe('updateRoleIdentity', () => {
     expect(vi.mocked(audit)).not.toHaveBeenCalled()
   })
 
+  it('saves the note printed under the role on the board, and clears it when emptied', async () => {
+    mockDb.role.findFirst.mockResolvedValue({
+      id: 7,
+      key: 'sono',
+      name: 'Sono',
+      description: null,
+      organigramNote: 'Le 1er dimanche',
+      isBuiltIn: false,
+    } as never)
+
+    await updateRoleIdentity(mockDb as never, 7, 10, 1, { organigramNote: '  Chaque réunion  ' })
+    expect(mockDb.role.update).toHaveBeenLastCalledWith(
+      expect.objectContaining({ data: { organigramNote: 'Chaque réunion' } }),
+    )
+
+    await updateRoleIdentity(mockDb as never, 7, 10, 1, { organigramNote: '' })
+    expect(mockDb.role.update).toHaveBeenLastCalledWith(expect.objectContaining({ data: { organigramNote: null } }))
+  })
+
+  it('leaves an unchanged note alone', async () => {
+    mockDb.role.findFirst.mockResolvedValue({
+      id: 7,
+      key: 'sono',
+      name: 'Sono',
+      description: null,
+      organigramNote: 'Le 1er dimanche',
+      isBuiltIn: false,
+    } as never)
+
+    await updateRoleIdentity(mockDb as never, 7, 10, 1, { name: 'Sono', organigramNote: 'Le 1er dimanche' })
+    expect(mockDb.role.update).not.toHaveBeenCalled()
+  })
+
   it('audits RoleUpdated with fieldsChanged when name changes', async () => {
     mockDb.role.findFirst.mockResolvedValue({
       id: 7,
@@ -289,6 +329,26 @@ describe('deleteRole', () => {
         metadata: { key: 'speaker', name: 'Orateur', memberCount: 3 },
       }),
     )
+  })
+})
+
+describe('deleteRole — what it alone reserves', () => {
+  it('refuses while the role is the only one reserving a board section, naming it', async () => {
+    const { RoleReservesError } = await import('~/shared/domain/role-reservations.server')
+    mockDb.role.findFirst.mockResolvedValue({
+      id: 9,
+      key: 'anciens-et-assistants',
+      isBuiltIn: false,
+      _count: { members: 0, memberAssignments: 2 },
+    } as never)
+    mockDb.role.findMany.mockResolvedValue([] as never)
+    reservations.sections = ['Comptes rendus']
+
+    const refusal = deleteRole(mockDb as never, 9, 10, 1, ADMIN_ACTOR)
+    await expect(refusal).rejects.toBeInstanceOf(RoleReservesError)
+    await expect(refusal).rejects.toMatchObject({ reservations: { sections: ['Comptes rendus'] } })
+    expect(mockDb.role.delete).not.toHaveBeenCalled()
+    reservations.sections = []
   })
 })
 

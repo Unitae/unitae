@@ -11,6 +11,7 @@ import { PrismaClient } from '~/database/generated/client'
 import { duplicateTemplate } from '~/features/events/server/duplicate-template.server'
 import { applyTemplateToEvent } from '~/features/events/server/event-parts.server'
 import { createProgrammeSeries } from '~/features/events/server/programme-creation.server'
+import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -109,6 +110,9 @@ afterAll(async () => {
   await testDb.templatePart.deleteMany({ where: { congregationId: congId } })
   await testDb.event.deleteMany({ where: { congregationId: congId } })
   await testDb.eventTemplate.deleteMany({ where: { congregationId: congId } })
+  // Drain fire-and-forget audit writes so the deleteMany below clears them all, otherwise an in-flight write can
+  // land after cleanup and break the congregation FK.
+  await flushPendingAuditWrites()
   await testDb.auditLog.deleteMany({ where: { congregationId: congId } })
   await testDb.userAccount.deleteMany({ where: { congregationId: congId } })
   await testDb.congregation.delete({ where: { id: congId } })

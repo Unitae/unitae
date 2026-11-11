@@ -110,11 +110,11 @@ export async function createServiceInOrganigram(
   parentRoleId: number | null,
   congregationId: number,
   actorId: number,
-  { isSinglePerson = false }: { isSinglePerson?: boolean } = {},
+  { isSinglePerson = false, description = null }: { isSinglePerson?: boolean; description?: string | null } = {},
 ): Promise<number> {
   const created = await createRole(db, congregationId, actorId, {
     name,
-    description: null,
+    description: description?.trim() || null,
     permissionKeys: [],
     isSinglePerson,
   })

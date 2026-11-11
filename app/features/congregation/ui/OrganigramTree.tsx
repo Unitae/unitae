@@ -1,144 +1,100 @@
-import { Users } from 'lucide-react'
-import { Link, useSearchParams } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
-import type { OrganigramNode } from '~/shared/domain/organigram.queries'
+import type { OrganigramHolder, OrganigramNode } from '~/shared/domain/organigram.queries'
 import { seatLabel } from '~/shared/domain/organigram-layout'
-import { Badge } from '~/shared/ui/badge'
 import { cn } from '~/shared/utils/utils'
 
-// The chart is READ-ONLY on every viewport. Holders stay visible — «qui est le préposé aux
-// comptes ?» is the second most common thing anyone asks of it, and answering that without a
-// click is the point of the document — but nothing here mutates.
+// The chart reads without a click: who holds each seat, who is on each list or team. Selecting a role opens its panel;
+// nothing here changes anything, so a long scroll carries no risk of a stray tap.
 //
-// All editing lives in the node panel, reached by selecting a node. That keeps the chart quiet
-// on a page that is overwhelmingly read, and removes the accidental-tap risk of putting
-// destructive controls in a long scrolling list.
-//
-// Semantic <ul>/<li>, deliberately NOT the ARIA treeview pattern: VoiceOver treats trees as
-// tables, and JAWS/NVDA read every child when a parent takes focus. Nesting is announced natively.
+// Semantic <ul>/<li>, deliberately NOT the ARIA treeview pattern: screen readers announce nesting natively, and a
+// treeview makes JAWS and NVDA read every child when a parent takes focus.
 
-interface Holder {
-  memberId: number
-  firstname: string | null
-  lastname: string | null
-  anonymizedAt: Date | null
-  kind: string
-  isElder: boolean
+function personName(holder: OrganigramHolder): string {
+  if (holder.anonymizedAt != null) return m.board_read_status_anonymized_user()
+  return [holder.firstname, holder.lastname?.toLocaleUpperCase()].filter(Boolean).join(' ') || '—'
 }
 
-function formatName(person: Holder): string {
-  if (person.anonymizedAt != null) return m.board_read_status_anonymized_user()
-  const lastname = person.lastname?.toLocaleUpperCase() ?? null
-  return [person.firstname, lastname].filter(Boolean).join(' ') || '—'
+interface RowProps {
+  node: OrganigramNode
+  depth: number
+  selectedId: number | null
+  onSelect: (id: number, trigger: HTMLElement) => void
 }
 
-function NodeRow({ node, selectedId }: { node: OrganigramNode; selectedId: number | null }) {
-  const [searchParams] = useSearchParams()
-  const isSelected = selectedId === node.id
-  // "— personne" states only what is true of a group: nobody has been added yet. A personal
-  // role is different — it either has its titulaire or it does not — so there, and only there,
-  // an empty titular seat may honestly be called vacant.
-  const isVacant = node.isSinglePerson && !node.holders.some(holder => holder.kind === 'leader')
-  const isEmpty = !node.isRoster && !node.isSinglePerson && node.holders.length === 0 && node.children.length === 0
+/** The role's name, its count, and « Vacant » when a personal role has no titulaire. */
+function RowHead({ node, extraMembers }: { node: OrganigramNode; extraMembers: number }) {
+  // Only a personal role can be vacant: a team simply has nobody yet.
+  const vacant = node.isSinglePerson && !node.holders.some(holder => holder.kind === 'leader')
+  return (
+    <span className="flex flex-wrap items-center gap-2">
+      <span className={cn('font-semibold', node.isRoster ? 'text-xs tracking-wide uppercase' : 'text-sm')}>
+        {node.name}
+      </span>
+      {node.isRoster && <span className="text-faint text-sm tabular-nums">{node.holders.length}</span>}
+      {extraMembers > 0 && (
+        <span className="text-faint text-sm tabular-nums">
+          {extraMembers === 1 ? m.org_members_more_one() : m.org_members_more_many({ count: String(extraMembers) })}
+        </span>
+      )}
+      {vacant && (
+        <span className="bg-warning-soft text-warning-text rounded-sm px-1.5 text-xs leading-5 font-medium">
+          {m.org_vacant()}
+        </span>
+      )}
+    </span>
+  )
+}
 
-  const params = new URLSearchParams(searchParams)
-  params.set('node', String(node.id))
+/** Responsables and adjoints, each behind their seat label. */
+function RowSeats({ node, seats }: { node: OrganigramNode; seats: OrganigramHolder[] }) {
+  // Names line up behind their seat labels; a titulaire alone carries none, and is not pushed right by an empty one.
+  const labelled = seats.some(holder => seatLabel(holder, node) != null)
+  return (
+    <span className="flex flex-col gap-0.5 text-sm">
+      {seats.map(holder => (
+        <span key={`${holder.memberId}-${holder.kind}`} className="flex items-baseline">
+          {labelled && (
+            <span className="text-faint w-24 shrink-0 text-[11px] font-medium tracking-wide uppercase">
+              {seatLabel(holder, node)}
+            </span>
+          )}
+          <span>{personName(holder)}</span>
+        </span>
+      ))}
+    </span>
+  )
+}
+
+function Row({ node, depth, selectedId, onSelect }: RowProps) {
+  const selected = node.id === selectedId
+  const seats = node.isRoster ? [] : node.holders.filter(holder => holder.kind === 'leader' || holder.kind === 'deputy')
+  const members = node.isRoster ? node.holders : node.holders.filter(holder => holder.kind === 'member')
+  // A team with responsables shows its members as a count; a team made of members alone lists them.
+  const listMembers = node.isRoster || seats.length === 0
 
   return (
-    // 12px of indent per level on a phone, 20px from `sm` up. At depth 6 that is 72px of gutter
-    // on a 390px screen instead of 96 — tight but readable — while desktop, which has the room,
-    // gets an indent you can actually see.
-    <li className="border-border border-l pl-3 sm:pl-5">
-      {/*
-        The whole row is one target, at least 44px tall — comfortably past the WCAG 2.2 minimum
-        and sized for the demographic, instead of three 24px icons. `preventScrollReset` keeps
-        the reader's place when the panel opens.
-      */}
-      <Link
-        to={{ search: params.toString() }}
-        preventScrollReset
-        aria-current={isSelected ? 'true' : undefined}
+    <li className={cn(depth > 0 && 'border-border ml-2 border-l pl-2 sm:ml-3.5 sm:pl-3')}>
+      <button
+        type="button"
+        aria-pressed={selected}
+        onClick={event => onSelect(node.id, event.currentTarget)}
         className={cn(
-          '-mx-2 flex min-h-11 items-start gap-2 rounded-md border-l-2 border-l-transparent px-2 py-2.5',
-          'transition-colors hover:bg-accent/60',
-          'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
-          // A faint band sets the two rosters apart as headings-with-content, the way the
-          // printed sheet greys its masthead — without costing the row its click affordance.
-          node.isRoster && !isSelected && 'bg-muted/20',
-          // The selected row is where every form in the panel applies, so it has to be obvious
-          // at a glance — a faint background alone was not enough to find it in 12 rows.
-          isSelected && 'border-l-primary bg-accent',
+          'flex w-full min-w-0 flex-col items-start gap-0.5 rounded-md px-3 py-2 text-left transition-colors duration-(--u-duration-fast) outline-none',
+          'focus-visible:ring-ring focus-visible:ring-2',
+          selected ? 'bg-selected' : 'hover:bg-hover',
         )}
       >
-        <span className="flex min-w-0 flex-1 flex-col gap-1">
-          <span className="flex flex-wrap items-center gap-2">
-            {/* The rosters are a different kind of thing — reconciled from Member flags rather
-                than appointed — so they read as a heading rather than as another service. */}
-            {node.isRoster && <Users aria-hidden="true" className="size-3.5 text-muted-foreground" />}
-            <span
-              className={cn(
-                'text-sm',
-                node.isRoster ? 'font-semibold uppercase tracking-wide' : 'font-medium',
-                isEmpty && 'text-muted-foreground',
-              )}
-            >
-              {node.name}
-            </span>
-            {node.isRoster && <Badge variant="outline">{node.holders.length}</Badge>}
-            {isEmpty && <span className="text-muted-foreground text-xs">— personne</span>}
-            {/* A badge, not a whisper: "who is missing?" is the first question this chart gets
-                asked, and an empty titular seat is the answer. */}
-            {isVacant && (
-              <Badge
-                variant="outline"
-                className="border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400"
-              >
-                Vacant
-              </Badge>
-            )}
-          </span>
-
-          {node.holders.length > 0 &&
-            (node.isRoster ? (
-              // A roster is a plain list of names — inline and wrapped, or ten elders would eat
-              // ten rows of the page.
-              <span className="flex flex-wrap items-baseline gap-x-1 gap-y-0.5 text-muted-foreground text-sm">
-                {node.holders.map((holder, index) => (
-                  <span key={`${holder.memberId}-${holder.kind}`} className="whitespace-nowrap">
-                    {index > 0 && (
-                      <span aria-hidden="true" className="pr-1 text-muted-foreground/40">
-                        ·
-                      </span>
-                    )}
-                    <span className="text-foreground/80">{formatName(holder)}</span>
-                  </span>
-                ))}
-              </span>
-            ) : (
-              // One person per line, the seat label tied to the name it qualifies. The old
-              // dot-separated run — "RESPONSABLE Nicolas LAURENT · ADJOINT David LEFÈVRE" —
-              // asked the reader to parse labels out of a sentence.
-              <span className="flex flex-col gap-0.5 text-sm">
-                {node.holders.map(holder => {
-                  const label = seatLabel(holder, node)
-                  return (
-                    <span key={`${holder.memberId}-${holder.kind}`} className="flex items-baseline gap-1.5">
-                      {label && <span className="text-primary/80 text-xs uppercase">{label}</span>}
-                      <span className="text-foreground/80">{formatName(holder)}</span>
-                    </span>
-                  )
-                })}
-              </span>
-            ))}
-
-          {node.note && <span className="text-muted-foreground text-xs italic">{node.note}</span>}
-        </span>
-      </Link>
-
+        <RowHead node={node} extraMembers={listMembers ? 0 : members.length} />
+        {seats.length > 0 && <RowSeats node={node} seats={seats} />}
+        {listMembers && members.length > 0 && (
+          <span className="text-muted-foreground text-sm leading-relaxed">{members.map(personName).join(' · ')}</span>
+        )}
+        {node.note && <span className="text-faint text-xs">{node.note}</span>}
+      </button>
       {node.children.length > 0 && (
         <ul className="flex flex-col">
           {node.children.map(child => (
-            <NodeRow key={child.id} node={child} selectedId={selectedId} />
+            <Row key={child.id} node={child} depth={depth + 1} selectedId={selectedId} onSelect={onSelect} />
           ))}
         </ul>
       )}
@@ -146,11 +102,19 @@ function NodeRow({ node, selectedId }: { node: OrganigramNode; selectedId: numbe
   )
 }
 
-export function OrganigramTree({ tree, selectedId = null }: { tree: OrganigramNode[]; selectedId?: number | null }) {
+export function OrganigramTree({
+  tree,
+  selectedId,
+  onSelect,
+}: {
+  tree: OrganigramNode[]
+  selectedId: number | null
+  onSelect: (id: number, trigger: HTMLElement) => void
+}) {
   return (
     <ul className="flex flex-col">
       {tree.map(node => (
-        <NodeRow key={node.id} node={node} selectedId={selectedId} />
+        <Row key={node.id} node={node} depth={0} selectedId={selectedId} onSelect={onSelect} />
       ))}
     </ul>
   )
