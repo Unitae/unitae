@@ -56,6 +56,8 @@ const IDENTITY_MESSAGE_PATTERN = /Identity role memberships/i
 const ts = Date.now()
 let congregationId: number
 let userId: number
+/** Another account, the one making the changes: nobody changes their own roles. */
+let actorId: number
 
 beforeAll(async () => {
   await seedPermissions(testDb)
@@ -78,6 +80,18 @@ beforeAll(async () => {
     },
   })
   userId = user.id
+
+  const actor = await testDb.userAccount.create({
+    data: {
+      email: `roles-actor-${ts}@test.com`,
+      password: 'hashed',
+      firstname: 'Acting',
+      lastname: 'Admin',
+      active: true,
+      congregationId,
+    },
+  })
+  actorId = actor.id
 })
 
 afterAll(async () => {
@@ -189,7 +203,7 @@ describe('roles.server (integration)', () => {
     )
 
     await withScope(congregationId, tx =>
-      setUserCustomRoleAssignments(tx, userId, congregationId, userId, [customRole.id], ADMIN_ACTOR),
+      setUserCustomRoleAssignments(tx, userId, congregationId, actorId, [customRole.id], ADMIN_ACTOR),
     )
 
     const assignments = await testDb.userRoleAssignment.findMany({
@@ -201,7 +215,7 @@ describe('roles.server (integration)', () => {
     expect(keys).toContain(customRole.key)
 
     await withScope(congregationId, tx =>
-      setUserCustomRoleAssignments(tx, userId, congregationId, userId, [], ADMIN_ACTOR),
+      setUserCustomRoleAssignments(tx, userId, congregationId, actorId, [], ADMIN_ACTOR),
     )
 
     const after = await testDb.userRoleAssignment.findMany({
@@ -220,14 +234,14 @@ describe('roles.server (integration)', () => {
       createRole(tx, congregationId, userId, { name: `Toggle ${ts}`, description: null, permissionKeys: [] }),
     )
 
-    await withScope(congregationId, tx => addUserToRole(tx, userId, role.id, congregationId, userId, ADMIN_ACTOR))
-    await withScope(congregationId, tx => addUserToRole(tx, userId, role.id, congregationId, userId, ADMIN_ACTOR))
+    await withScope(congregationId, tx => addUserToRole(tx, userId, role.id, congregationId, actorId, ADMIN_ACTOR))
+    await withScope(congregationId, tx => addUserToRole(tx, userId, role.id, congregationId, actorId, ADMIN_ACTOR))
 
     const afterAdd = await testDb.userRoleAssignment.findMany({ where: { userId, roleId: role.id } })
     expect(afterAdd).toHaveLength(1)
 
-    await withScope(congregationId, tx => removeUserFromRole(tx, userId, role.id, congregationId, userId, ADMIN_ACTOR))
-    await withScope(congregationId, tx => removeUserFromRole(tx, userId, role.id, congregationId, userId, ADMIN_ACTOR))
+    await withScope(congregationId, tx => removeUserFromRole(tx, userId, role.id, congregationId, actorId, ADMIN_ACTOR))
+    await withScope(congregationId, tx => removeUserFromRole(tx, userId, role.id, congregationId, actorId, ADMIN_ACTOR))
 
     const afterRemove = await testDb.userRoleAssignment.findMany({ where: { userId, roleId: role.id } })
     expect(afterRemove).toHaveLength(0)
@@ -241,7 +255,7 @@ describe('roles.server (integration)', () => {
 
     let caught: unknown = null
     try {
-      await withScope(congregationId, tx => addUserToRole(tx, userId, elder.id, congregationId, userId, ADMIN_ACTOR))
+      await withScope(congregationId, tx => addUserToRole(tx, userId, elder.id, congregationId, actorId, ADMIN_ACTOR))
     } catch (error) {
       caught = error
     }
@@ -256,12 +270,14 @@ describe('roles.server (integration)', () => {
     const admin = await testDb.role.findFirst({ where: { congregationId, key: 'admin' } })
     if (!admin) throw new Error('admin role not seeded')
 
-    await withScope(congregationId, tx => addUserToRole(tx, userId, admin.id, congregationId, userId, ADMIN_ACTOR))
+    await withScope(congregationId, tx => addUserToRole(tx, userId, admin.id, congregationId, actorId, ADMIN_ACTOR))
 
     const assignments = await testDb.userRoleAssignment.findMany({ where: { userId, roleId: admin.id } })
     expect(assignments).toHaveLength(1)
 
-    await withScope(congregationId, tx => removeUserFromRole(tx, userId, admin.id, congregationId, userId, ADMIN_ACTOR))
+    await withScope(congregationId, tx =>
+      removeUserFromRole(tx, userId, admin.id, congregationId, actorId, ADMIN_ACTOR),
+    )
   })
 
   it('updateRoleIdentity rejects built-in roles', async () => {

@@ -28,6 +28,8 @@ const ts = Date.now()
 let primaryCongId: number
 let otherCongId: number
 let primaryUserId: number
+/** Another account of the congregation, the one making the changes: nobody deactivates their own account. */
+let actorId: number
 let otherUserId: number
 let adminPermissionId: number
 
@@ -65,6 +67,18 @@ beforeAll(async () => {
       },
     })
     primaryUserId = user.id
+
+    const actor = await tx.userAccount.create({
+      data: {
+        email: `update-user-actor-${ts}@test.com`,
+        password: 'hashed',
+        firstname: 'Acting',
+        lastname: 'Admin',
+        active: true,
+        congregationId: primaryCongId,
+      },
+    })
+    actorId = actor.id
 
     // Admin arrives through the auto-role the #149 backfill mints.
     const adminRole = await tx.role.create({
@@ -138,7 +152,7 @@ describe('updateAccount (integration)', () => {
         tx,
         primaryUserId,
         primaryCongId,
-        primaryUserId,
+        actorId,
         {
           firstname: 'Alice',
           lastname: 'After',
@@ -168,7 +182,7 @@ describe('updateAccount (integration)', () => {
         tx,
         primaryUserId,
         primaryCongId,
-        primaryUserId,
+        actorId,
         {
           firstname: 'Alice',
           lastname: 'After',
@@ -198,7 +212,7 @@ describe('updateAccount (integration)', () => {
         tx,
         primaryUserId,
         primaryCongId,
-        primaryUserId,
+        actorId,
         {
           firstname: 'Alice',
           lastname: 'After',
@@ -221,7 +235,7 @@ describe('updateAccount (integration)', () => {
         tx,
         primaryUserId,
         primaryCongId,
-        primaryUserId,
+        actorId,
         {
           firstname: 'Alice',
           lastname: 'After',
