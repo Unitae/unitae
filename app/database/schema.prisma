@@ -147,6 +147,7 @@ model Congregation {
   partPresets                     PartPreset[]
   externalSpeakers                ExternalSpeaker[]
   speakerCongregations            SpeakerCongregation[]
+  ourSpeakers                     OurSpeaker[]
 
   emergencyContacts EmergencyContact[]
 
@@ -249,6 +250,8 @@ model Member {
   roleAssignments MemberRoleAssignment[]
 
   emergencyContacts EmergencyContact[]
+  // On the list of speakers we send to other congregations, when he gives public talks there.
+  ourSpeaker        OurSpeaker?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1207,6 +1210,38 @@ model ExternalSpeaker {
   @@index([speakerCongregationId])
 }
 
+// A brother of ours who gives public talks in other congregations: whether he is on the list we send them, his talk
+// outline numbers, and which of his contact details go on it. The candidates are the members of the role chosen in
+// Réglages; a row exists once someone edited one of them.
+model OurSpeaker {
+  id     Int     @id @default(autoincrement())
+  onList Boolean @default(false)
+  talks  Int[]   @default([])
+
+  // The first phone and e-mail follow his record (`record`), are replaced (`custom`), or stay off the list (`hidden`).
+  // The second of each is always typed here.
+  phoneMode   String @default("record")
+  phoneCustom String @default("")
+  phone2      String @default("")
+  emailMode   String @default("record")
+  emailCustom String @default("")
+  email2      String @default("")
+  note        String @default("")
+
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  memberId Int    @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Cascade: a congregation's own list goes with it.
+  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
+  @@unique([id, congregationId])
+  @@index([congregationId, onList])
+}
+
 // A congregation whose list of public speakers we receive. Each sends its list now and then; the latest PDF is kept.
 model SpeakerCongregation {
   id             Int    @id @default(autoincrement())
@@ -1227,6 +1262,13 @@ model SpeakerCongregation {
   listFileName String?
 
   notes String @default("")
+
+  // When our own list last went to this congregation; `ourListSentManually` when someone sent it from their own
+  // mailbox and marked it so.
+  ourListSentAt       DateTime?
+  ourListSentManually Boolean   @default(false)
+  // A digest of the list as it was sent: compared with today's, it says whether they hold the current list.
+  ourListSentDigest   String?
 
   speakers ExternalSpeaker[]
 

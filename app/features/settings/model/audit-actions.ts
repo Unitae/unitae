@@ -114,6 +114,8 @@ export const AUDIT_ACTIONS: readonly { action: string; group: AuditGroup; label:
     group: 'programmes',
     label: m.audit_log_action_speaker_congregation_list_updated,
   },
+  { action: 'our_speaker.updated', group: 'programmes', label: m.audit_log_action_our_speaker_updated },
+  { action: 'our_speaker_list.sent', group: 'programmes', label: m.audit_log_action_our_speaker_list_sent },
   { action: 'event.created', group: 'programmes', label: m.audit_log_action_event_created },
   { action: 'event.released', group: 'programmes', label: m.audit_log_action_event_released },
   { action: 'event.unreleased', group: 'programmes', label: m.audit_log_action_event_unreleased },

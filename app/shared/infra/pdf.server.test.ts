@@ -3,7 +3,7 @@ import { Document, Font, Page, Text } from '@react-pdf/renderer'
 import { createElement } from 'react'
 import { describe, expect, it } from 'vitest'
 import { readPdf } from '~/tests/helpers/pdf-text'
-import { renderPdfResponse } from './pdf.server'
+import { renderPdfBuffer, renderPdfResponse } from './pdf.server'
 
 const fonts = path.join(process.cwd(), 'public', 'fonts')
 Font.register({ family: 'Fira Sans', src: path.join(fonts, 'FiraSans-Regular.ttf') })
@@ -40,5 +40,18 @@ describe('renderPdfResponse', () => {
     expect(await printed(await renderPdfResponse(sheet('aujourd’hui', 'Source Serif 4'), 'serif.pdf'))).toBe(
       'aujourd’hui',
     )
+  })
+})
+
+describe('renderPdfBuffer', () => {
+  // The same warm-up as a download: a PDF attached to an e-mail must not lose the letters a previous one cached.
+  it('renders the bytes of a PDF, accents and all, after one that printed an accented capital', async () => {
+    await renderPdfBuffer(sheet('Éric'))
+    const bytes = await renderPdfBuffer(sheet('Engage la conversation'))
+    const [page] = await readPdf(
+      bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+    )
+
+    expect(page.text).toBe('Engage la conversation')
   })
 })

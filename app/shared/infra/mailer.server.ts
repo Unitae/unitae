@@ -19,6 +19,11 @@ export const mailer = new Proxy({} as Resend, {
   },
 })
 
+/** Whether this installation can send e-mail at all: a self-hosted one may run without a Resend key. */
+export function isEmailConfigured(): boolean {
+  return Boolean(process.env.RESEND_API_KEY)
+}
+
 /**
  * Sends an email, throwing when Resend refuses it.
  *

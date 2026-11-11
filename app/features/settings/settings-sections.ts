@@ -62,6 +62,12 @@ const CATALOG: CatalogEntry[] = [
     opens: can => can(Permission.CanManagePrograms) || can(Permission.CanManageProgramTemplates),
   },
   {
+    key: 'external-speakers',
+    group: 'congregation',
+    href: '/settings/external-speakers',
+    opens: can => can(Permission.CanConfigureCongregation),
+  },
+  {
     key: 'territories',
     group: 'congregation',
     href: '/settings/territories',

@@ -15,6 +15,24 @@ interface SpeakerCongregationRecord {
   coordinatorEmail: string
   listDate: string | null
   notes: string
+  // From 2.14 on: when our own list last went to them.
+  ourListSentAt?: string | null
+  ourListSentManually?: boolean
+  ourListSentDigest?: string | null
+}
+
+/** A brother of « Notre liste » (2.14 and later), keyed to his record. */
+interface OurSpeakerRecord {
+  memberId: number
+  onList: boolean
+  talks: number[]
+  phoneMode: string
+  phoneCustom: string
+  phone2: string
+  emailMode: string
+  emailCustom: string
+  email2: string
+  note: string
 }
 
 interface ExternalSpeakerRecord {
@@ -56,6 +74,9 @@ export async function importSpeakerCongregations(
         coordinatorEmail: record.coordinatorEmail,
         listDate: toDate(record.listDate),
         notes: record.notes,
+        ourListSentAt: toDate(record.ourListSentAt),
+        ourListSentManually: record.ourListSentManually ?? false,
+        ourListSentDigest: record.ourListSentDigest ?? null,
         congregationId,
       },
     })
@@ -125,5 +146,37 @@ export async function importExternalSpeakers(
       },
     })
     idMap.set('external-speakers', record.id, created.id)
+  }
+}
+
+/**
+ * « Notre liste » (2.14 and later): each brother's entry, back on his imported record. One whose record did not come
+ * along (anonymised since) is dropped, as his entry would have been.
+ */
+export async function importOurSpeakers(
+  zip: JsZip,
+  db: TransactionClient,
+  idMap: EntityIdMap,
+  congregationId: number,
+): Promise<void> {
+  const records = await readNdjsonFile<OurSpeakerRecord>(zip, 'our-speakers')
+  for (const record of records) {
+    const memberId = idMap.getOptional('members', record.memberId)
+    if (!memberId) continue
+    await db.ourSpeaker.create({
+      data: {
+        memberId,
+        onList: record.onList,
+        talks: record.talks,
+        phoneMode: record.phoneMode,
+        phoneCustom: record.phoneCustom,
+        phone2: record.phone2,
+        emailMode: record.emailMode,
+        emailCustom: record.emailCustom,
+        email2: record.email2,
+        note: record.note,
+        congregationId,
+      },
+    })
   }
 }

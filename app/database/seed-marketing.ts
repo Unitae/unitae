@@ -76,6 +76,7 @@ async function cleanCongregationData(congregationId: number) {
   await prisma.partPreset.deleteMany({ where })
   await prisma.externalSpeaker.deleteMany({ where })
   await prisma.speakerCongregation.deleteMany({ where })
+  await prisma.ourSpeaker.deleteMany({ where })
   await prisma.boardDynamicDocumentView.deleteMany({ where: { settings: { congregationId } } })
   await prisma.boardDynamicDocumentSettings.deleteMany({ where })
   await prisma.boardDocumentView.deleteMany({ where })
@@ -513,6 +514,22 @@ async function main() {
   ])
   const roleIds = await writeRoles(congregationId, people, accounts, members, holders)
   console.log(`  ✓ ${CUSTOM_ROLES.length} congregation roles`)
+
+  // « Notre liste »: most public speakers go on the list we send, with the talks they prepare; one has yet to give
+  // his. Drawn from a source of their own, so the rest of the congregation keeps its draws.
+  const ourList = new Random(0x0a751)
+  const publicSpeakers = holders.get('discours-publics') ?? []
+  await prisma.ourSpeaker.createMany({
+    data: publicSpeakers.map((person, index) => ({
+      memberId: members[person] as number,
+      onList: index < publicSpeakers.length - 2,
+      talks:
+        index < publicSpeakers.length - 3
+          ? [...new Set(Array.from({ length: ourList.int(2, 6) }, () => ourList.int(1, 194)))].sort((a, b) => a - b)
+          : [],
+      congregationId,
+    })),
+  })
 
   const territories = await writeArea(prisma, congregationId, area)
   await writeAttributions(prisma, congregationId, { members, territories }, attributions)

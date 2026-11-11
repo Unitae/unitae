@@ -1,6 +1,10 @@
 export enum CongregationSettingKey {
   PermanentAuxiliaryPioneerProfileActivated = 'auxiliary-pioneer-profile-active',
   BreachedPasswordCheckScope = 'breached-password-check-scope',
+  // « Notre liste »: the key of the organigram role whose members may go on the list we send to other congregations,
+  // and of the role whose holder is our public talk coordinator (printed at its head, replies go to him).
+  ExternalSpeakersCandidatesRole = 'external-speakers-candidates-role',
+  ExternalSpeakersResponsibleRole = 'external-speakers-responsible-role',
 }
 
 // Scope of the optional HaveIBeenPwned breached-password check. `off` (or unset)

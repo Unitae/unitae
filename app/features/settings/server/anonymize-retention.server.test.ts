@@ -2,11 +2,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { MemberId } from '~/shared/types/branded'
 
 const mockAnonymize = vi.fn()
+const mockRemoveOurSpeakerEntry = vi.fn()
 const mockFindMany = vi.fn()
 const mockAudit = vi.fn()
 
 vi.mock('~/features/publishers/index.server', () => ({
   memberAggregate: { anonymize: mockAnonymize },
+}))
+vi.mock('~/features/events/index.server', () => ({
+  removeOurSpeakerEntry: mockRemoveOurSpeakerEntry,
 }))
 vi.mock('~/shared/domain/audit.server', () => ({
   AuditAction: { RetentionAutoAnonymized: 'retention.auto_anonymized' },
@@ -75,6 +79,8 @@ describe('autoAnonymizeRetentionCandidates', () => {
     expect(mockAnonymize).toHaveBeenCalledTimes(2)
     expect(mockAnonymize).toHaveBeenCalledWith(dbCast, 10, 42, 0)
     expect(mockAnonymize).toHaveBeenCalledWith(dbCast, 20, 42, 0)
+    // Off our list of speakers too, with what they shared there.
+    expect(mockRemoveOurSpeakerEntry).toHaveBeenCalledWith(dbCast, 42, 20)
     expect(result.anonymized).toBe(2)
     expect(result.skipped).toBe(0)
   })

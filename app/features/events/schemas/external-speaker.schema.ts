@@ -11,7 +11,7 @@ const optionalId = z.preprocess(
   z.coerce.number().int().positive().nullable(),
 )
 const text = (max: number) => z.string().trim().max(max).optional().default('')
-const email = z
+export const email = z
   .string()
   .trim()
   .max(200)
@@ -24,7 +24,7 @@ const email = z
 const TALK_SEPARATORS = /[\s,;/]+/
 
 /** Talk numbers, from the token field's repeated inputs or a typed « 12, 54 102 »: whole numbers, each once. */
-const talks = z.preprocess(
+export const talks = z.preprocess(
   value => {
     const raw = Array.isArray(value) ? value.join(' ') : typeof value === 'string' ? value : ''
     return raw

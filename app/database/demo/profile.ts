@@ -283,6 +283,9 @@ export const SETTINGS: Record<string, string> = {
   'map-tab-active': 'true',
   'pmr-active': 'true',
   'auxiliary-pioneer-profile-active': 'true',
+  // « Notre liste »: the public speakers are its candidates; the public talk programme's coordinator heads it.
+  'external-speakers-candidates-role': 'discours-publics',
+  'external-speakers-responsible-role': 'coordinateur-discours-publics',
 }
 
 export const BOARD = {

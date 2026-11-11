@@ -109,6 +109,7 @@ export default [
         route(':templateId/reorder-parts', 'features/settings/routes/templates/reorder-parts.tsx'),
       ]),
       route('part-types', 'features/settings/routes/part-types.tsx'),
+      route('external-speakers', 'features/settings/routes/external-speakers.tsx'),
       route('data', 'features/settings/routes/data/settings.tsx'),
       route('data/export/:jobId/download', 'features/settings/routes/congregation/export-download.tsx'),
       route('data/*', 'features/settings/routes/legacy.tsx', { id: 'settings-legacy-data' }),

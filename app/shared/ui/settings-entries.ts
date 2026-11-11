@@ -7,6 +7,7 @@ import {
   type LucideIcon,
   Map as MapIcon,
   MapPin,
+  Mic,
   Settings,
   Shield,
   UserCog,
@@ -20,6 +21,7 @@ export type SettingsEntryKey =
   | 'publishers'
   | 'templates'
   | 'part-types'
+  | 'external-speakers'
   | 'territories'
   | 'map'
   | 'users'
@@ -40,6 +42,7 @@ export const SETTINGS_ENTRY_DISPLAY: Record<SettingsEntryKey, { label: () => str
   publishers: { label: m.settings_entry_publishers, icon: Users },
   templates: { label: m.settings_entry_templates, icon: CalendarDays },
   'part-types': { label: m.settings_entry_part_types, icon: BookOpen },
+  'external-speakers': { label: m.settings_entry_external_speakers, icon: Mic },
   territories: { label: m.settings_entry_territories, icon: MapIcon },
   map: { label: m.settings_entry_map, icon: MapPin },
   users: { label: m.settings_entry_users, icon: UserCog },

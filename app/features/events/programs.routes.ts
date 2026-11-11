@@ -25,6 +25,10 @@ export const programsRoutes = [
     ...prefix('external-speakers', [
       index('features/events/routes/programs/external-speakers/list.tsx'),
       route('new', 'features/events/routes/programs/external-speakers/new.tsx'),
+      ...prefix('ours', [
+        index('features/events/routes/programs/external-speakers/ours.tsx'),
+        route('pdf', 'features/events/routes/programs/external-speakers/ours-pdf.tsx'),
+      ]),
       ...prefix(':externalSpeakerId', [route('edit', 'features/events/routes/programs/external-speakers/edit.tsx')]),
       ...prefix('congregations/:speakerCongregationId', [
         route('update', 'features/events/routes/programs/external-speakers/update-list.tsx'),

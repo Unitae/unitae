@@ -1,3 +1,4 @@
+import { removeOurSpeakerEntry } from '~/features/events/index.server'
 import { memberAggregate } from '~/features/publishers/index.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -65,6 +66,8 @@ export async function autoAnonymizeRetentionCandidates(
   for (const memberId of candidates) {
     try {
       await memberAggregate.anonymize(db, memberId as MemberId, congregationId, actorId)
+      // Off our list of speakers too, with the phones and e-mails shared there.
+      await removeOurSpeakerEntry(db, congregationId, memberId)
       anonymized++
     } catch (error) {
       logger.warn('Retention anonymize skipped', {
