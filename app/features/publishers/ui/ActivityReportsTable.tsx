@@ -6,10 +6,10 @@ import { type ReportStatus, reportStatus } from '~/features/publishers/model/rep
 import * as m from '~/i18n/paraglide/messages'
 import type { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
+import { openRowOnClick } from '~/shared/ui/row-click'
 import { formatGroupName } from '~/shared/utils/format-group-name'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 import { cn } from '~/shared/utils/utils'
-
 import { serviceShortLabel } from './publisher-type-labels'
 
 export interface ActivityReportRow {
@@ -99,8 +99,9 @@ function ReportRow({
 
   return (
     <tr
+      onClick={openRowOnClick}
       className={cn(
-        'group relative transition-colors duration-(--u-duration-fast)',
+        'group relative cursor-pointer transition-colors duration-(--u-duration-fast)',
         selected ? 'bg-selected' : row.editable && 'hover:bg-hover',
         status === 'inactive' && 'text-muted-foreground',
       )}
@@ -113,7 +114,8 @@ function ReportRow({
               <button
                 type="button"
                 onClick={event => onOpen(row, event.currentTarget)}
-                className="truncate text-left font-medium outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset"
+                data-row-primary
+                className="truncate text-left font-medium outline-none rounded-sm focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {name}
               </button>

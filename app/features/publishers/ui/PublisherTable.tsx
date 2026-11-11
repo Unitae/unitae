@@ -18,6 +18,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '~/shared/ui/dropdown-menu'
+import { openRowOnClick } from '~/shared/ui/row-click'
 import { formatGroupName } from '~/shared/utils/format-group-name'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 import { cn } from '~/shared/utils/utils'
@@ -149,8 +150,9 @@ function PublisherRow({
   const name = formatPersonName(row)
   return (
     <tr
+      onClick={openRowOnClick}
       className={cn(
-        'group relative transition-colors duration-(--u-duration-fast)',
+        'group relative cursor-pointer transition-colors duration-(--u-duration-fast)',
         isSelected ? 'bg-selected' : 'hover:bg-hover',
         left && 'text-muted-foreground',
       )}
@@ -167,7 +169,8 @@ function PublisherRow({
       <td className={cn(cellClass, 'max-md:h-auto max-md:whitespace-normal max-md:py-2.5')}>
         <Link
           to={`/publishers/${row.id}/view`}
-          className="flex items-center gap-2 font-medium outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset max-md:gap-3"
+          data-row-primary
+          className="flex items-center gap-2 font-medium outline-none rounded-sm focus-visible:ring-2 focus-visible:ring-ring max-md:gap-3"
         >
           <Avatar name={name} className="max-md:size-7 max-md:text-[11px]" />
           <span className="flex min-w-0 flex-col gap-1">

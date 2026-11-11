@@ -1,5 +1,6 @@
 import { Tag } from '@unitae/ui'
 import * as m from '~/i18n/paraglide/messages'
+import { openRowOnClick } from '~/shared/ui/row-click'
 import { cn } from '~/shared/utils/utils'
 
 export interface PartTypeRow {
@@ -37,9 +38,10 @@ export function PartTypeTable({ rows, selectedId, onSelect }: PartTypeTableProps
         <tbody>
           {rows.map(row => (
             <tr
+              onClick={openRowOnClick}
               key={row.id}
               className={cn(
-                'group relative transition-colors duration-(--u-duration-fast)',
+                'group relative cursor-pointer transition-colors duration-(--u-duration-fast)',
                 row.id === selectedId ? 'bg-selected' : 'hover:bg-hover',
               )}
             >
@@ -48,7 +50,8 @@ export function PartTypeTable({ rows, selectedId, onSelect }: PartTypeTableProps
                   type="button"
                   aria-pressed={row.id === selectedId}
                   onClick={event => onSelect(row, event.currentTarget)}
-                  className="flex items-center gap-2 whitespace-nowrap text-left font-medium outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset"
+                  data-row-primary
+                  className="flex items-center gap-2 whitespace-nowrap text-left font-medium outline-none rounded-sm focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {row.name}
                   {row.isSystem && <Tag>{m.settings_part_types_built_in()}</Tag>}

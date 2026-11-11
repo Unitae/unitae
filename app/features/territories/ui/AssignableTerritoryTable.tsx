@@ -4,10 +4,10 @@ import { isFreeToday } from '~/features/territories/model/assignable-territories
 import type { AssignableTerritory } from '~/features/territories/server/assignable-territories.queries'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
+import { openRowOnClick } from '~/shared/ui/row-click'
 import { shortDay } from '~/shared/utils/format-day'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 import { cn } from '~/shared/utils/utils'
-
 import { availabilityLabel } from './attribution-labels'
 import { territoryKindLabel, territoryQuantityLabel } from './my-territory-labels'
 
@@ -54,9 +54,10 @@ export function AssignableTerritoryTable({
             const free = isFreeToday(row.availability)
             return (
               <tr
+                onClick={openRowOnClick}
                 key={row.id}
                 className={cn(
-                  'group relative transition-colors duration-(--u-duration-fast) hover:bg-hover',
+                  'group relative cursor-pointer transition-colors duration-(--u-duration-fast) hover:bg-hover',
                   row.id === selectedId && 'bg-selected hover:bg-selected',
                   !free && 'text-faint',
                 )}
@@ -66,7 +67,8 @@ export function AssignableTerritoryTable({
                     <StatusIcon tone="neutral" />
                     <button
                       type="button"
-                      className="font-semibold tabular-nums outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset"
+                      data-row-primary
+                      className="font-semibold tabular-nums outline-none rounded-sm focus-visible:ring-2 focus-visible:ring-ring"
                       aria-label={m.attributions_assign_row({ number: row.number })}
                       onClick={event => onAssign(row, event.currentTarget)}
                     >

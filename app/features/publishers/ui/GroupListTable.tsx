@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '~/shared/ui/dropdown-menu'
+import { openRowOnClick } from '~/shared/ui/row-click'
 import { formatGroupName } from '~/shared/utils/format-group-name'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 import { cn } from '~/shared/utils/utils'
@@ -90,11 +91,15 @@ function GroupRow({
 }) {
   const name = formatGroupName(group.name)
   return (
-    <tr className="group relative transition-colors duration-(--u-duration-fast) hover:bg-hover">
+    <tr
+      onClick={openRowOnClick}
+      className="group relative cursor-pointer transition-colors duration-(--u-duration-fast) hover:bg-hover"
+    >
       <td className={cn(cellClass, 'max-md:h-auto max-md:whitespace-normal max-md:py-2.5')}>
         <Link
           to={`/groups/${group.id}/view`}
-          className="flex flex-col gap-0.5 outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset"
+          data-row-primary
+          className="flex flex-col gap-0.5 outline-none rounded-sm focus-visible:ring-2 focus-visible:ring-ring"
         >
           <span className="font-medium">{name}</span>
           {group.address && <span className="truncate text-faint text-xs max-md:hidden">{group.address}</span>}

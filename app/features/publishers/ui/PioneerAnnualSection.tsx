@@ -2,10 +2,10 @@ import { Avatar, ProgressBar, SectionHeading, Sparkline, Status, Tag } from '@un
 
 import type { PioneerAnnualRow } from '~/features/publishers'
 import * as m from '~/i18n/paraglide/messages'
+import { openRowOnClick } from '~/shared/ui/row-click'
 import { formatGroupName } from '~/shared/utils/format-group-name'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 import { cn } from '~/shared/utils/utils'
-
 import { hoursText, overdueLabel, paceLine, paceStatus, rosterSubline } from './pioneer-pace-copy'
 
 const headClass = 'h-10 whitespace-nowrap border-border border-b px-3.5 text-left font-medium text-faint text-sm'
@@ -76,8 +76,9 @@ function AnnualRow({
 
   return (
     <tr
+      onClick={openRowOnClick}
       className={cn(
-        'group relative transition-colors duration-(--u-duration-fast)',
+        'group relative cursor-pointer transition-colors duration-(--u-duration-fast)',
         selected ? 'bg-selected' : 'hover:bg-hover',
         row.concluded && 'text-muted-foreground',
       )}
@@ -89,7 +90,8 @@ function AnnualRow({
             <button
               type="button"
               onClick={event => onOpen(row, event.currentTarget)}
-              className="truncate text-left font-medium outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset"
+              data-row-primary
+              className="truncate text-left font-medium outline-none rounded-sm focus-visible:ring-2 focus-visible:ring-ring"
             >
               {name}
             </button>

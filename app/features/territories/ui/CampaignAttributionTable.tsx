@@ -5,6 +5,7 @@ import { Link } from 'react-router'
 import { formatCampaignDay } from '~/features/territories/model/campaign-days'
 import * as m from '~/i18n/paraglide/messages'
 import { type QuickView, QuickViews } from '~/shared/ui/QuickViews'
+import { openRowOnClick } from '~/shared/ui/row-click'
 import { daysBetween } from '~/shared/utils/calendar-day'
 import { cn } from '~/shared/utils/utils'
 
@@ -73,13 +74,15 @@ export function CampaignAttributionTable({ rows, today }: { rows: CampaignAttrib
             <tbody>
               {shown.map(row => (
                 <tr
+                  onClick={openRowOnClick}
                   key={row.id}
-                  className="group relative transition-colors duration-(--u-duration-fast) hover:bg-hover"
+                  className="group relative cursor-pointer transition-colors duration-(--u-duration-fast) hover:bg-hover"
                 >
                   <td className={CELL}>
                     <Link
                       to={`/territories/attributions/${row.id}/edit`}
-                      className="font-medium tabular-nums outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset"
+                      data-row-primary
+                      className="font-medium tabular-nums outline-none rounded-sm focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       {row.territory.number}
                     </Link>

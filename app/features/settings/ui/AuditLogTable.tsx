@@ -1,4 +1,5 @@
 import * as m from '~/i18n/paraglide/messages'
+import { openRowOnClick } from '~/shared/ui/row-click'
 import { cn } from '~/shared/utils/utils'
 
 /** A line of the audit log, as the page shows it. */
@@ -41,9 +42,10 @@ export function AuditLogTable({ rows, selectedId, onSelect }: AuditLogTableProps
         <tbody>
           {rows.map(row => (
             <tr
+              onClick={openRowOnClick}
               key={row.id}
               className={cn(
-                'group relative transition-colors duration-(--u-duration-fast)',
+                'group relative cursor-pointer transition-colors duration-(--u-duration-fast)',
                 row.id === selectedId ? 'bg-selected' : 'hover:bg-hover',
               )}
             >
@@ -56,7 +58,8 @@ export function AuditLogTable({ rows, selectedId, onSelect }: AuditLogTableProps
                   type="button"
                   aria-pressed={row.id === selectedId}
                   onClick={event => onSelect(row, event.currentTarget)}
-                  className="flex flex-col text-left outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset"
+                  data-row-primary
+                  className="flex flex-col text-left outline-none rounded-sm focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <span>{row.action}</span>
                   <span className="truncate text-faint text-xs md:hidden">

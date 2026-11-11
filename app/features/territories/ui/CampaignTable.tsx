@@ -4,6 +4,7 @@ import { Link } from 'react-router'
 import { campaignLength, formatCampaignDay, formatCampaignRange } from '~/features/territories/model/campaign-days'
 import type { CampaignStatus } from '~/features/territories/model/campaign-status'
 import * as m from '~/i18n/paraglide/messages'
+import { openRowOnClick } from '~/shared/ui/row-click'
 import { cn } from '~/shared/utils/utils'
 
 export interface CampaignListRow {
@@ -40,11 +41,16 @@ export function CampaignTable({ rows }: { rows: CampaignListRow[] }) {
           {rows.map(row => {
             const length = campaignLength(row.startDay, row.endDay)
             return (
-              <tr key={row.id} className="group relative transition-colors duration-(--u-duration-fast) hover:bg-hover">
+              <tr
+                key={row.id}
+                onClick={openRowOnClick}
+                className="group relative cursor-pointer transition-colors duration-(--u-duration-fast) hover:bg-hover"
+              >
                 <td className={cn(CELL, 'max-md:whitespace-normal')}>
                   <Link
                     to={`/territories/attributions/campaigns/${row.id}`}
-                    className="flex flex-col gap-0.5 py-1 outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset"
+                    data-row-primary
+                    className="flex flex-col gap-0.5 py-1 outline-none rounded-sm focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <span className="font-medium">{row.name}</span>
                     <span className="text-faint text-sm tabular-nums">
