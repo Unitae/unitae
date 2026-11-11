@@ -1,83 +1,100 @@
 # Settings
 
-The **Settings** area is where administrators configure the congregation, manage users and access, and run data-level tasks like exports and imports. Most members never need to open it — it's where the people responsible for the platform set things up.
+The **Settings** area (*Réglages*) is where the people responsible for the platform configure the congregation, manage who can sign in and what they can do, and run data-level tasks like exports and imports. Most members never need to open it.
+
+Settings is one area with a column of parts on the left, grouped as **Congregation**, **Access**, **Data** and, on the hosted service, **Account**. Each person sees only the parts their permissions open (named below as the roles page describes them), and the area opens on the first of them. Settings appears in the sidebar and the command palette only for someone who can open at least one part. On a phone, Settings stays a list of its parts, and each part has a way back to it.
+
+Every part that saves a form shows a save bar once something changed, and confirms with a short message once it is saved. Leaving a part with unsaved changes asks first.
+
+## General
+
+The congregation's name, its language, its time zone, and the password rules for its accounts.
+
+Permission required: *Can edit congregation settings*.
+
+## Publishers
+
+- **Pioneer goals** — the monthly hour goal for each pioneer type (regular, auxiliary, special, missionary), per service year. This is the target the [pioneer activity monitoring](publishers.md#pioneer-activity-monitoring) roster measures pioneers against. Each type has a built-in default (50, 30, 100 and 100 h/month). Change a type to override it for the chosen service year, or *Rétablir* to go back to the default. Only the types you changed are saved, and past service years are read-only.
+- **Continuous auxiliary pioneer** — enables the standing auxiliary appointment. When it is off, only month-to-month auxiliary enrolment is offered (see [Publishers → Pioneer service](publishers.md#pioneer-service)). Turning it off while people are enrolled tells you who they are first.
+
+Permission required: *Can edit congregation settings*, or *Can set annual pioneer hour goals* for the goals.
+
+## Programme templates
+
+The meetings that repeat from one week to the next: their day, their hours, their parts, their services and who runs them (see [Events](events.md)). A template opens as one page laid out like the event editor:
+
+- **Information**: name, weekday, start and end time, and a colour from the palette, shown in the lists and the calendar.
+- **Responsibles**: the role that runs the whole programme, and the role that runs only its service parts (audio-video, platform, attendants, cleaning).
+- **The programme**: its parts by section and room, dragged to reorder, each opening beside the list.
+- **The services**, with the roles allowed to take them.
+
+Built-in templates are listed apart. They can be adjusted but not deleted. A template can be duplicated from its page.
+
+Permission required: *Can create and configure meeting templates*. A person whose role runs a template sees that template in the list and can change its information and programme; who runs it, duplicating and deleting stay with the template managers.
+
+## Part types
+
+The kinds of part a programme is made of: what the person doing it is called, whether a second person (reader, assistant) takes part, whether a visiting speaker may give it, and the message used to share the assignment. A built-in type keeps its catalogue wording until you change it. A custom type can be deleted while no part uses it.
+
+Permission required: *Can create, edit and delete meetings* to edit; *Can create and configure meeting templates* is enough to see them.
+
+## Territories
+
+How the territory module behaves:
+
+- **Allowed postal codes** for the open-data sync (which addresses get imported).
+- **Durations**: how long an assignment lasts by default, for the commerce and phone kinds, and how long a building survey stays valid.
+- **Territory kinds**: which roles may take each kind.
+- **Phone territories** toggle: show or hide the *Phones* kind.
+
+Permission required: *Can configure territory kinds and card overlays*.
+
+## Congregation map
+
+*Carte de l'assemblée*: draw the congregation's preaching perimeter and its named, coloured zones, or import them from a GeoJSON file (see [Territories](territories.md) for what they print on). The perimeter decides which addresses are inside the congregation's territory. Importing a file warns before it replaces a perimeter already drawn.
+
+Permission required: *Can configure territory kinds and card overlays*.
 
 ## Users
 
-Create, edit and deactivate the people who can sign in to your congregation's Unitae.
+The accounts that sign in. The list shows each person with the roles their account holds, how many more their publisher record gives them, and a state column: invited, two-step verification on, deactivated, or anonymised. Search and quick views narrow the list.
 
-The Users list is the admin-side view of every record in the system. It shows three kinds of rows side by side:
+An account opens as a page:
 
-- **Publishers with a login** — full member of the congregation who can sign in (most common)
-- **Publishers without a login** — offline members maintained by the secretary; created from the publishers screen
-- **Logins without a publisher record** — circuit overseers, external admins, or anyone who needs read access to data but isn't part of the congregation
+- **Sign-in**: name and email address. An account linked to a publisher record takes its name from the record.
+- **Roles**: roles held by the account itself, ticked on or off and saved right away. Roles that come from the organigram or the record are shown with where they come from.
+- **Security**: two-step verification, with its reset; the password, with a link to set a new one (or the invitation sent again, for an account never used); and the person's data to download.
+- **Actions**: deactivate, anonymise, or delete the account.
 
-For each row you can:
+A new user is created with a name and an email address only; roles are given afterwards. An administrator's account can only be changed by an administrator. Nobody can deactivate, demote, anonymise or delete their own account. The last administrator can never be removed.
 
-- **Add or remove a login** — turn an offline publisher into someone with a sign-in account, or remove a login while keeping the profile.
-- **Edit profile** — name, email, publisher fields, group, etc.
-- **Mark as left** — the publisher disappears from publisher-facing lists, attribution dropdowns, group rosters; their data stays. Reversible via *Mark as returned*.
-- **Anonymize** (right to erasure) — replaces personal data with placeholders while preserving statistical history. Irreversible. Typically used after a publisher has been gone long enough that you no longer need to identify them.
+Permission required: *Can create, edit and remove user accounts* to change; *Can view user accounts and their roles* to read them.
 
-Permission required: *Settings User Manager* or *Admin*.
+## Roles and permissions
 
-## Roles
-
-Decide what each member can see and do.
-
-- Browse the **built-in roles** (Publisher, Elder, Anointed, etc.) and tick which permissions they should grant
-- Create your own **custom roles** — for example, *Service committee* or *PR coordinator* — bundling exactly the permissions you need
-- Assign one or many roles to each member from their profile
+What each role allows. Pick a role in the list to tick its permissions, grouped by area. Built-in roles are shown with their built-in grants, and the administrator role cannot be narrowed. Roles are created, renamed and given to people from the organigram, a person's record or their account. This page is for what roles allow.
 
 For the full conceptual picture, see [Roles and Permissions](roles-and-permissions.md).
 
-Permission required: *Roles Viewer* to read; *Roles Manager* and *Permissions Manager* to change.
+Permission required: *Can choose which permissions a role grants*.
 
-## Congregation settings
+## Import and export
 
-Top-level preferences for the whole congregation, grouped into sections on the page:
-
-- **Display name** — How the congregation appears in the app and emails
-- **Publishers** — Enable the **permanent auxiliary pioneer** status (a standing auxiliary appointment); when off, only month-to-month auxiliary enrolment is offered (see [Publishers → Pioneer service](publishers.md#pioneer-service))
-- **Pioneer goals** — The default monthly hour goal for each pioneer type (regular, auxiliary, special, missionary), per service year (detailed in [Pioneer goals](#pioneer-goals) below)
-- **Event templates** — Reusable templates used to create events (midweek meeting, Memorial, …) faster (see [Events](events.md))
-- **Event types** — Custom categories with colors used to highlight events on the programme list
-- **Default sender address** — The "from" address used for outgoing notification emails (when configurable)
-
-Permission required: *Admin* — except **Pioneer goals**, which is also open to a *Pioneer Goal Manager* (they reach it through this page without needing full admin).
-
-## Territory settings
-
-Tune how the territory module behaves for your congregation:
-
-- **Allowed postal codes** for the open-data sync (controls which addresses get imported)
-- **Phone territories** toggle — show or hide the *Phones* territory type in the UI
-- **Carte de l'assemblée** — draw your assembly's preaching territory perimeter and its named/colored zones (see [Territories](territories.md) for what they print on)
-
-Permission required: *Admin*.
-
-## Pioneer goals
-
-Set the **monthly hour goal for each pioneer type**, per service year — the target the [pioneer activity monitoring](publishers.md#pioneer-activity-monitoring) roster measures pioneers against.
-
-- Each pioneer type (regular, auxiliary, special, missionary) has a built-in default (50, 30, 100, 100 h/month respectively). Leave a type untouched to keep its default, or enter a value to override it for the selected service year.
-- Goals are set per service year, so you can adjust them as branch requirements change from one year to the next. Past service years are read-only.
-
-Permission required: *Pioneer Goal Manager*.
-
-## Data transfer
-
-Run a full export or import of the congregation's data — useful for migrating between Unitae instances, taking a manual backup, or restoring data after an incident.
+A full backup of the congregation in a `.unitae` file, and its restoration: useful for moving between Unitae instances, taking a manual backup, or restoring data after an incident. An export can include the uploaded files. Past exports stay available for download. An import first analyses the file and shows what it holds, then replaces the congregation's data once confirmed. Progress shows on the page while a job runs.
 
 See [Data Transfer](data-transfer.md) for what's included and the import-conflict workflow.
 
-Permission required: *Admin*.
+Permission required: *Can export a full congregation archive* to export; importing needs *Can import a congregation archive* and *Can do anything in the congregation*.
 
 ## Audit log
 
-Every meaningful change in the congregation — sign-ins, role assignments, document uploads, territory edits, event releases and un-releases, exports, and so on — is recorded with the actor, the time, and the affected entity. The audit log viewer is the place to look up "who did what, when". The action filter groups entries by feature: territories, publishers, board, events (release / un-release / delete), settings, and so on.
+Sensitive actions in the congregation are recorded with who did them, when, and what they touched: sign-ins, rights, data, deletions and changes across every module. The log shows the last 30 days by default. You can also pick the last 7 days, 3 or 12 months, all time, or chosen dates, always counted in the congregation's time zone. Filter by action (grouped as the modules are) or search for a person by name or email address. A line opens its detail, with the full date and what the action recorded.
 
-Permission required: *Admin*.
+Permission required: *Can edit congregation settings*.
+
+## Subscription
+
+On the hosted service, the subscription opens the billing portal.
 
 ## Related
 

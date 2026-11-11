@@ -20,7 +20,7 @@ Three default templates are shipped with every congregation:
 2. **Weekend meeting** (Saturday) — 5 parts: public talk, Watchtower study, songs and prayers
 3. **Memorial** (non-recurring) — 5 parts: memorial talk, prayers over emblems
 
-Templates are managed in **Settings > Congregation settings > Programme templates**. Admins can create new templates, duplicate existing ones, and edit their structure.
+Templates are managed in **Settings > Programme templates**. Admins can create new templates, duplicate existing ones, and edit their structure.
 
 ## Events
 
