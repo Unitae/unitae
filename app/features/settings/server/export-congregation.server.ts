@@ -205,7 +205,8 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
       name: 'member-role-assignments',
       export: () =>
         db.memberRoleAssignment.findMany({
-          select: { memberId: true, roleId: true },
+          // Since 2.12 the record also holds the roles given by hand, with their seat.
+          select: { memberId: true, roleId: true, kind: true },
         }),
     },
     // No `congregation-user-permissions` entry: the direct user→permission edge

@@ -22,8 +22,6 @@ export interface MatrixMember {
   id: number
   firstname: string | null
   lastname: string | null
-  /** Eligibility is account-bound; a member without a login shows greyed with the reason. */
-  hasAccount: boolean
   /** roleId → seat kind, for every custom role the member holds. */
   seats: Record<number, string>
 }

@@ -1,123 +1,103 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createRoleStore } from '~/tests/helpers/role-store'
 
 vi.mock('~/shared/domain/audit.server', () => ({
   AuditAction: { UserRoleAssignmentChanged: 'UserRoleAssignmentChanged' },
   audit: vi.fn(),
 }))
 
-const mockDb = {
-  role: { findMany: vi.fn() },
-  userRoleAssignment: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
-}
-
 const { syncServiceCommitteeMembers } = await import('./service-committee.server')
+const { audit } = await import('~/shared/domain/audit.server')
 
 const CONGREGATION = 10
 const ACTOR = 99
 
-const COMMITTEE = 100
-const COORDINATOR = 101
-const SECRETARY = 102
-const OVERSEER = 103
-
 const ROLES = [
-  { id: COMMITTEE, key: 'service-committee' },
-  { id: COORDINATOR, key: 'coordinator' },
-  { id: SECRETARY, key: 'secretary' },
-  { id: OVERSEER, key: 'service-overseer' },
+  { id: 100, key: 'service-committee' },
+  { id: 101, key: 'coordinator' },
+  { id: 102, key: 'secretary' },
+  { id: 103, key: 'service-overseer' },
 ]
 
-/** `findMany` on assignments is called twice: the posts' holders, then the committee's. */
-function assignments(onPosts: number[], onCommittee: number[]) {
-  mockDb.userRoleAssignment.findMany
-    .mockResolvedValueOnce(onPosts.map(userId => ({ userId })))
-    .mockResolvedValueOnce(onCommittee.map(userId => ({ userId })))
+let store: ReturnType<typeof createRoleStore>
+
+function seat(memberId: number, roleId: number, kind = 'leader') {
+  store.records.push({ memberId, roleId, congregationId: CONGREGATION, kind })
 }
+const committee = () =>
+  store.records
+    .filter(row => row.roleId === 100)
+    .map(row => row.memberId)
+    .sort()
 
 beforeEach(() => {
-  vi.resetAllMocks()
-  mockDb.role.findMany.mockResolvedValue(ROLES)
-  mockDb.userRoleAssignment.createMany.mockResolvedValue({ count: 0 })
-  mockDb.userRoleAssignment.deleteMany.mockResolvedValue({ count: 0 })
+  vi.clearAllMocks()
+  store = createRoleStore(CONGREGATION, ROLES, [
+    { memberId: 500, userId: 800 },
+    { memberId: 501, userId: null },
+    { memberId: 502, userId: 802 },
+    { memberId: 503, userId: 803 },
+  ])
 })
 
 describe('syncServiceCommitteeMembers', () => {
   it('puts the three post holders into the committee', async () => {
-    // The committee IS the coordinator, the secretary and the service overseer. Its membership
-    // is therefore derived, never typed — seating a coordinator joins them to the committee.
-    assignments([800, 801, 802], [])
-
-    await syncServiceCommitteeMembers(mockDb as never, CONGREGATION, ACTOR)
-
-    expect(mockDb.userRoleAssignment.createMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.arrayContaining([
-          { userId: 800, roleId: COMMITTEE, congregationId: CONGREGATION, kind: 'member' },
-          { userId: 801, roleId: COMMITTEE, congregationId: CONGREGATION, kind: 'member' },
-          { userId: 802, roleId: COMMITTEE, congregationId: CONGREGATION, kind: 'member' },
-        ]),
-      }),
-    )
+    // The committee IS the coordinator, the secretary and the service overseer: its membership is derived.
+    seat(500, 101)
+    seat(501, 102)
+    seat(502, 103)
+    await syncServiceCommitteeMembers(store.db, CONGREGATION, ACTOR)
+    expect(committee()).toEqual([500, 501, 502])
   })
 
   it('takes out someone who no longer holds a post', async () => {
-    // The outgoing coordinator leaves the committee at the same moment they leave the post,
-    // which is what makes the handover complete rather than half-done.
-    assignments([800], [800, 999])
+    seat(500, 101)
+    seat(500, 100, 'member')
+    seat(503, 100, 'member')
+    await syncServiceCommitteeMembers(store.db, CONGREGATION, ACTOR)
+    expect(committee()).toEqual([500])
+  })
 
-    await syncServiceCommitteeMembers(mockDb as never, CONGREGATION, ACTOR)
+  it('takes out someone whose committee seat older code left on the login', async () => {
+    seat(500, 101)
+    store.logins.push({ userId: 803, roleId: 100, congregationId: CONGREGATION, kind: 'member' })
+    await syncServiceCommitteeMembers(store.db, CONGREGATION, ACTOR)
+    expect(store.logins).toEqual([])
+    expect(committee()).toEqual([500])
+  })
 
-    expect(mockDb.userRoleAssignment.deleteMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: expect.objectContaining({ roleId: COMMITTEE, userId: { in: [999] } }) }),
-    )
+  it('counts a post held on the login through that login’s record', async () => {
+    store.logins.push({ userId: 802, roleId: 101, congregationId: CONGREGATION, kind: 'leader' })
+    await syncServiceCommitteeMembers(store.db, CONGREGATION, ACTOR)
+    expect(committee()).toEqual([502])
   })
 
   it('writes nothing when the membership already matches', async () => {
-    // Called after every seat, so a no-op has to stay a no-op: churning rows would fill the
-    // audit log with changes nobody made.
-    assignments([800, 801], [801, 800])
-
-    await syncServiceCommitteeMembers(mockDb as never, CONGREGATION, ACTOR)
-
-    expect(mockDb.userRoleAssignment.createMany).not.toHaveBeenCalled()
-    expect(mockDb.userRoleAssignment.deleteMany).not.toHaveBeenCalled()
+    // Called after every seat, so a no-op stays a no-op: no rows churned, no audit for changes nobody made.
+    seat(500, 101)
+    seat(500, 100, 'member')
+    await syncServiceCommitteeMembers(store.db, CONGREGATION, ACTOR)
+    expect(vi.mocked(audit)).not.toHaveBeenCalled()
   })
 
   it('counts someone holding two posts once', async () => {
-    assignments([800, 800], [])
-
-    await syncServiceCommitteeMembers(mockDb as never, CONGREGATION, ACTOR)
-
-    const [call] = mockDb.userRoleAssignment.createMany.mock.calls
-    expect(call?.[0].data).toHaveLength(1)
+    seat(500, 101)
+    seat(500, 102)
+    await syncServiceCommitteeMembers(store.db, CONGREGATION, ACTOR)
+    expect(committee()).toEqual([500])
   })
 
   it('does nothing when the congregation has no committee role', async () => {
-    // Provisioning creates it, but a congregation restored from an older archive may not have
-    // one yet, and seating a person must not fail because of that.
-    mockDb.role.findMany.mockResolvedValue([])
-
-    await expect(syncServiceCommitteeMembers(mockDb as never, CONGREGATION, ACTOR)).resolves.toBeUndefined()
-    expect(mockDb.userRoleAssignment.createMany).not.toHaveBeenCalled()
-  })
-
-  it('reads the posts’ holders, not the whole congregation', async () => {
-    assignments([], [])
-
-    await syncServiceCommitteeMembers(mockDb as never, CONGREGATION, ACTOR)
-
-    const [postsQuery] = mockDb.userRoleAssignment.findMany.mock.calls
-    expect(postsQuery?.[0].where.roleId).toEqual({ in: [COORDINATOR, SECRETARY, OVERSEER] })
+    store = createRoleStore(CONGREGATION, ROLES.slice(1), [{ memberId: 500, userId: 800 }])
+    seat(500, 101)
+    await expect(syncServiceCommitteeMembers(store.db, CONGREGATION, ACTOR)).resolves.toBeUndefined()
+    expect(committee()).toEqual([])
   })
 
   it('counts only the titular holders — a post’s adjoint is not on the committee', async () => {
-    // A post may carry deputy seats, but the committee IS its three titulaires: the coordinator's
-    // adjoint helps the coordinator, they do not sit on the committee.
-    assignments([], [])
-
-    await syncServiceCommitteeMembers(mockDb as never, CONGREGATION, ACTOR)
-
-    const [postsQuery] = mockDb.userRoleAssignment.findMany.mock.calls
-    expect(postsQuery?.[0].where.kind).toBe('leader')
+    seat(500, 101)
+    seat(503, 101, 'deputy')
+    await syncServiceCommitteeMembers(store.db, CONGREGATION, ACTOR)
+    expect(committee()).toEqual([500])
   })
 })

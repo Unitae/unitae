@@ -7,6 +7,13 @@ import {
 } from '~/shared/domain/built-in-roles.server'
 import type { SeatKind } from '~/shared/domain/organigram.queries'
 import {
+  findGivenSeat,
+  giveRole,
+  holderOfMember,
+  type RoleHolder,
+  takeRole,
+} from '~/shared/domain/role-assignments.server'
+import {
   type ActorPermissions,
   assertActorHoldsRolePermissions,
   assertMayChangeAccountAccess,
@@ -22,7 +29,6 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 // within three lines of its budget: that one moves boxes, this one puts people in them.
 
 export const ORGANIGRAM_ERRORS = {
-  memberHasNoAccount: 'Cette personne n’a pas de compte : elle ne peut pas encore être placée dans l’organigramme.',
   postRequiresElder: 'Le comité de service est composé de trois anciens : cette personne n’est pas ancien.',
   rosterIsSynced: 'Cette liste est synchronisée automatiquement : on n’y place personne à la main.',
 } as const
@@ -36,16 +42,43 @@ async function requireRole(db: TransactionClient, roleId: number, congregationId
   return role
 }
 
-async function requireSeatableAccount(db: TransactionClient, memberId: number, congregationId: number) {
-  const member = await db.member.findFirst({
-    where: { id: memberId, congregationId },
-    select: { id: true, account: { select: { id: true } } },
+/** The person to seat: any current record of the congregation, with or without a login. */
+async function requireSeatableHolder(db: TransactionClient, memberId: number, congregationId: number) {
+  const holder = await holderOfMember(db, memberId, congregationId)
+  if (!holder) throw new NotFoundError('Member', memberId)
+  return holder
+}
+
+/** The other titulaires of a role — the ones a new titulaire replaces — wherever their seat is kept. */
+async function outgoingTitulaires(
+  db: TransactionClient,
+  roleId: number,
+  incoming: RoleHolder,
+  congregationId: number,
+): Promise<RoleHolder[]> {
+  // `NOT: { userId: undefined }` would match nothing, so each exclusion is added only when there is something to exclude.
+  const onRecord = await db.memberRoleAssignment.findMany({
+    where: {
+      roleId,
+      congregationId,
+      kind: 'leader',
+      ...(incoming.memberId != null ? { NOT: { memberId: incoming.memberId } } : {}),
+    },
+    select: { memberId: true, member: { select: { account: { select: { id: true } } } } },
   })
-  if (!member) throw new NotFoundError('Member', memberId)
-  // Seats are account-bound until role assignments move onto Member. Say so plainly rather
-  // than letting the insert fail on a foreign key.
-  if (!member.account) throw new ValidationError('memberId', ORGANIGRAM_ERRORS.memberHasNoAccount)
-  return member.account.id
+  const onLogin = await db.userRoleAssignment.findMany({
+    where: {
+      roleId,
+      congregationId,
+      kind: 'leader',
+      ...(incoming.userId != null ? { NOT: { userId: incoming.userId } } : {}),
+    },
+    select: { userId: true, user: { select: { memberId: true } } },
+  })
+  return [
+    ...onRecord.map(row => ({ memberId: row.memberId, userId: row.member.account?.id ?? null })),
+    ...onLogin.map(row => ({ memberId: row.user.memberId, userId: row.userId })),
+  ]
 }
 
 /**
@@ -66,6 +99,48 @@ async function rolesGrantedBySeat(
   return committee ? [role.id, committee.id] : [role.id]
 }
 
+interface SeatCheck {
+  role: { id: number; key: string }
+  holder: RoleHolder
+  seatKind: SeatKind
+  isPost: boolean
+  /** The titulaires a new titulaire replaces. */
+  outgoing: RoleHolder[]
+  congregationId: number
+  actorPermissions: ActorPermissions
+}
+
+/** Every refusal of a seating, checked before any write so a refusal never leaves a seat half changed. */
+async function assertMaySeat(db: TransactionClient, check: SeatCheck): Promise<void> {
+  const { role, holder, seatKind, isPost, outgoing, congregationId, actorPermissions } = check
+  // A seat grants the role's permissions: the same limits as the role matrix. Without a login they give no access
+  // yet, so only the actor's own limit applies.
+  if (holder.userId != null) await assertMayChangeAccountAccess(holder.userId, congregationId, actorPermissions)
+  await assertActorHoldsRolePermissions(
+    db,
+    await rolesGrantedBySeat(db, role, seatKind, congregationId),
+    congregationId,
+    actorPermissions,
+  )
+  // A new titulaire unseats the outgoing one (the handover): that is a revocation, held to the same limits as
+  // unseatMember.
+  const grantsAdmin = outgoing.length > 0 && (await roleGrantsAdmin(db, role.id, congregationId))
+  for (const leaving of outgoing) {
+    if (leaving.userId == null) continue
+    await assertMayChangeAccountAccess(leaving.userId, congregationId, actorPermissions)
+    if (grantsAdmin) await requireNotLastAdmin(leaving.userId, congregationId)
+  }
+  // The three committee titulaires are elders. The rule is about who *holds* the post, not who helps them — an
+  // adjoint need not be an elder.
+  if (isPost && seatKind === 'leader') {
+    const isElder = await db.memberRoleAssignment.findFirst({
+      where: { memberId: holder.memberId ?? -1, congregationId, role: { key: 'elder' } },
+      select: { memberId: true },
+    })
+    if (!isElder) throw new ValidationError('memberId', ORGANIGRAM_ERRORS.postRequiresElder)
+  }
+}
+
 export interface SeatInput {
   roleId: number
   memberId: number
@@ -81,11 +156,11 @@ export async function seatMember(
   actorPermissions: ActorPermissions,
 ): Promise<void> {
   const role = await requireRole(db, roleId, congregationId)
-  // Identity memberships are synced from Member flags, never granted: a hand-written
-  // `UserRoleAssignment` on one would hand out the roster's permissions and outlive every sync.
-  // `addUserToRole` refuses these, and this path must be no wider than that one.
+  // Identity memberships are synced from Member flags, never granted: a hand-written seat on one
+  // would hand out the roster's permissions and outlive every sync. `addToRole` refuses these,
+  // and this path must be no wider than that one.
   if (isIdentityRoleKey(role.key)) throw new ForbiddenError(ORGANIGRAM_ERRORS.rosterIsSynced)
-  const userId = await requireSeatableAccount(db, memberId, congregationId)
+  const holder = await requireSeatableHolder(db, memberId, congregationId)
 
   // A personal role has one titulaire and, optionally, adjoints: a plain «membre» seat does not
   // exist on it, so an unqualified request means the titular seat. The committee posts carry the
@@ -94,60 +169,21 @@ export async function seatMember(
   const isSingle = role.isSinglePerson || isPost
   const seatKind = isSingle && kind !== 'deputy' ? 'leader' : kind
 
-  // A seat grants the role's permissions: the same limits as the role matrix.
-  await assertMayChangeAccountAccess(userId, congregationId, actorPermissions)
-  await assertActorHoldsRolePermissions(
-    db,
-    await rolesGrantedBySeat(db, role, seatKind, congregationId),
-    congregationId,
-    actorPermissions,
-  )
-  // A new titulaire unseats the outgoing one (the handover below): that is a revocation, held to
-  // the same limits as unseatMember, and checked before any write.
-  if (isSingle && seatKind === 'leader') {
-    const outgoing: { userId: number }[] = await db.userRoleAssignment.findMany({
-      where: { roleId, congregationId, kind: 'leader', NOT: { userId } },
-      select: { userId: true },
-    })
-    const grantsAdmin = outgoing.length > 0 && (await roleGrantsAdmin(db, roleId, congregationId))
-    for (const holder of outgoing) {
-      await assertMayChangeAccountAccess(holder.userId, congregationId, actorPermissions)
-      if (grantsAdmin) await requireNotLastAdmin(holder.userId, congregationId)
-    }
-  }
+  const outgoing = isSingle && seatKind === 'leader' ? await outgoingTitulaires(db, roleId, holder, congregationId) : []
+  await assertMaySeat(db, { role, holder, seatKind, isPost, outgoing, congregationId, actorPermissions })
 
-  // The three committee titulaires are elders. The rule is about who *holds* the post, not who
-  // helps them — an adjoint need not be an elder. Checked before any write, so a refusal never
-  // leaves the post vacant.
-  if (isPost && seatKind === 'leader') {
-    const isElder = await db.memberRoleAssignment.findFirst({
-      where: { memberId, congregationId, role: { key: 'elder' } },
-      select: { memberId: true },
-    })
-    if (!isElder) throw new ValidationError('memberId', ORGANIGRAM_ERRORS.postRequiresElder)
-  }
-
-  const existing = await db.userRoleAssignment.findFirst({
-    where: { userId, roleId, congregationId },
-    select: { userId: true, kind: true },
-  })
+  const existing = await findGivenSeat(db, holder, role, congregationId)
 
   // Deliberately not an early return when the seat is unchanged: the committee reconcile below
   // must still run. That makes seating self-healing — it repairs a committee whose membership
   // drifted, rather than requiring someone to guess which seat to poke.
-  const unchanged = existing != null && existing.kind === seatKind
-  if (existing && !unchanged) {
-    await db.userRoleAssignment.update({ where: { userId_roleId: { userId, roleId } }, data: { kind: seatKind } })
-  } else if (!existing) {
-    await db.userRoleAssignment.create({ data: { userId, roleId, congregationId, kind: seatKind } })
-  }
+  const unchanged = existing === seatKind
+  if (!unchanged) await giveRole(db, holder, role, congregationId, seatKind)
 
   // Seating a new titulaire *is* the handover: the outgoing holder leaves the role, and with
   // it the permissions it carries. Only the titular seat is swept — the adjoints stay through
   // a handover, on the committee posts as on any personal role.
-  if (isSingle && seatKind === 'leader') {
-    await db.userRoleAssignment.deleteMany({ where: { roleId, congregationId, kind: 'leader', NOT: { userId } } })
-  }
+  for (const leaving of outgoing) await takeRole(db, leaving, role, congregationId)
   // The committee is made of its three titulaires, so its membership follows the posts.
   if (isPost) {
     await syncServiceCommitteeMembers(db, congregationId, actorId)
@@ -158,8 +194,8 @@ export async function seatMember(
       action: AuditAction.UserRoleAssignmentChanged,
       congregationId,
       actorId,
-      entityType: 'User',
-      entityId: userId,
+      entityType: 'Member',
+      entityId: memberId,
       metadata: { added: existing ? [] : [role.key], removed: [], kind: seatKind },
     })
   }
@@ -175,21 +211,21 @@ export async function unseatMember(
   actorPermissions: ActorPermissions,
 ): Promise<void> {
   const role = await requireRole(db, roleId, congregationId)
-  const userId = await requireSeatableAccount(db, memberId, congregationId)
+  const holder = await requireSeatableHolder(db, memberId, congregationId)
 
   // Unseating revokes what the seat granted: the same limits as the role matrix.
-  await assertMayChangeAccountAccess(userId, congregationId, actorPermissions)
+  if (holder.userId != null) await assertMayChangeAccountAccess(holder.userId, congregationId, actorPermissions)
   await assertActorHoldsRolePermissions(
     db,
     await rolesGrantedBySeat(db, role, 'leader', congregationId),
     congregationId,
     actorPermissions,
   )
-  if (await roleGrantsAdmin(db, roleId, congregationId)) {
-    await requireNotLastAdmin(userId, congregationId)
+  if (holder.userId != null && (await roleGrantsAdmin(db, roleId, congregationId))) {
+    await requireNotLastAdmin(holder.userId, congregationId)
   }
 
-  await db.userRoleAssignment.deleteMany({ where: { userId, roleId, congregationId } })
+  await takeRole(db, holder, role, congregationId)
 
   // Leaving a post leaves the committee. Half a handover is worse than none: the permissions
   // the post carries would stay with someone who no longer holds it.
@@ -201,8 +237,8 @@ export async function unseatMember(
     action: AuditAction.UserRoleAssignmentChanged,
     congregationId,
     actorId,
-    entityType: 'User',
-    entityId: userId,
+    entityType: 'Member',
+    entityId: memberId,
     metadata: { added: [], removed: [role.key] },
   })
 }

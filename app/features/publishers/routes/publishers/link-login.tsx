@@ -7,6 +7,7 @@ import { linkAccountToMember } from '~/features/publishers/server/link-account-t
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { resolveCongregation } from '~/shared/domain/congregation.server'
+import { GrantBeyondActorError } from '~/shared/domain/role-grant-limits.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { MemberId } from '~/shared/types/branded'
 import { Permission } from '~/shared/types/permission'
@@ -46,10 +47,15 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         email: submission.value.email,
         congregationId: currentUser.congregationId,
         actorId: currentUser.id,
+        actorPermissions: permissions,
       })
     } catch (error) {
       if (error instanceof NotFoundError) {
         throw redirect('/publishers')
+      }
+      // The record holds roles whose rights this person cannot hand out: an administrator opens the access.
+      if (error instanceof GrantBeyondActorError) {
+        return { error: 'roles' as const }
       }
       if (error instanceof ConflictError) {
         return { error: 'conflict' as const }
@@ -58,6 +64,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     }
   })
 
+  if ('error' in result && result.error === 'roles') {
+    session.flash('error', m.publishers_edit_link_login_error_roles())
+    return redirect(redirectTo, { headers: { 'Set-Cookie': await commitSession(session) } })
+  }
   if ('error' in result) {
     session.flash('error', m.publishers_edit_link_login_error_conflict())
     return data(submission.reply({ formErrors: ['email_conflict'] }), {

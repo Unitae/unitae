@@ -233,7 +233,7 @@ describe('organigram survives an export/import round trip', () => {
     // The export's own comment says it: `kind` decides who leads a service, and dropping it on
     // restore would quietly demote every responsable and adjoint to a plain member.
     const importConfig = await import('./import-congregation.server')
-    const importAccounts = await import('./import-user-accounts.server')
+    const importAccounts = await import('./import-role-assignments.server')
     const zip = await exportRolesAndSeats()
 
     const seatsStamp = `${stamp}-seats`

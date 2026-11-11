@@ -17,10 +17,11 @@ const mockDb = {
     updateMany: vi.fn(),
   },
   member: { findFirst: vi.fn() },
-  memberRoleAssignment: { findFirst: vi.fn() },
+  memberRoleAssignment: { findFirst: vi.fn(), count: vi.fn() },
   userRoleAssignment: {
     findFirst: vi.fn(),
     findMany: vi.fn(),
+    count: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     deleteMany: vi.fn(),
@@ -189,7 +190,8 @@ describe('setRoleSinglePerson', () => {
       isSinglePerson: false,
       showInOrganigram: true,
     })
-    mockDb.userRoleAssignment.findMany.mockResolvedValue([])
+    mockDb.memberRoleAssignment.count.mockResolvedValue(1)
+    mockDb.userRoleAssignment.count.mockResolvedValue(0)
     mockDb.role.update.mockResolvedValue({})
 
     await setRoleSinglePerson(mockDb as never, 7, true, CONGREGATION, ACTOR)
@@ -207,7 +209,9 @@ describe('setRoleSinglePerson', () => {
       isSinglePerson: false,
       showInOrganigram: true,
     })
-    mockDb.userRoleAssignment.findMany.mockResolvedValue([{ userId: 800 }, { userId: 801 }])
+    // One titulaire on a record, one on a login without a record: two.
+    mockDb.memberRoleAssignment.count.mockResolvedValue(1)
+    mockDb.userRoleAssignment.count.mockResolvedValue(1)
 
     await expect(setRoleSinglePerson(mockDb as never, 7, true, CONGREGATION, ACTOR)).rejects.toBeInstanceOf(
       ConflictError,
@@ -261,7 +265,7 @@ describe('setRoleSinglePerson', () => {
 
     await setRoleSinglePerson(mockDb as never, 7, false, CONGREGATION, ACTOR)
 
-    expect(mockDb.userRoleAssignment.findMany).not.toHaveBeenCalled()
+    expect(mockDb.memberRoleAssignment.count).not.toHaveBeenCalled()
     expect(mockDb.role.update).toHaveBeenCalledWith(expect.objectContaining({ data: { isSinglePerson: false } }))
   })
 })

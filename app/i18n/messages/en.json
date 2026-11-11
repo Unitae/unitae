@@ -4245,5 +4245,6 @@
     "audit_log_entity_perimeter": "Boundary",
     "audit_log_entity_dynamic_document": "Generated document",
     "audit_log_col_email": "Email address",
-    "audit_log_close": "Close the details"
+    "audit_log_close": "Close the details",
+    "publishers_edit_link_login_error_roles": "This person holds roles that grant rights you don’t have: an administrator must create their access."
 }

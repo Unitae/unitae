@@ -79,15 +79,15 @@ function MatrixCell({
         <input type="hidden" name="intent" value={isAssigned ? 'remove' : 'add'} />
         <button
           type="submit"
-          disabled={!canManageRoles || !member.hasAccount}
-          title={member.hasAccount ? title : 'Pas de compte'}
+          disabled={!canManageRoles}
+          title={title}
           aria-label={`${isAssigned ? 'Retirer de' : 'Ajouter à'} ${column.name}`}
           className={cn(
             'inline-flex size-9 items-center justify-center rounded-md border text-sm transition',
             isAssigned
               ? 'border-primary bg-primary text-primary-foreground'
               : 'border-border bg-background hover:bg-accent',
-            (!canManageRoles || !member.hasAccount) && 'cursor-not-allowed opacity-50',
+            !canManageRoles && 'cursor-not-allowed opacity-50',
           )}
         >
           {isAssigned ? <span className="text-xs">{mark}</span> : null}

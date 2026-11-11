@@ -25,6 +25,9 @@ const mockDb = {
     findFirst: vi.fn(),
     update: vi.fn(),
   },
+  // The roles given to the login, moved onto the new record.
+  userRoleAssignment: { findMany: vi.fn(), deleteMany: vi.fn() },
+  memberRoleAssignment: { upsert: vi.fn() },
 }
 // biome-ignore lint/suspicious/noExplicitAny: partial mocked transaction client
 const dbCast = mockDb as any
@@ -33,6 +36,7 @@ const { linkMemberToAccount } = await import('./link-member-to-account.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
+  mockDb.userRoleAssignment.findMany.mockResolvedValue([])
 })
 
 const baseParams = {
@@ -139,5 +143,23 @@ describe('linkMemberToAccount', () => {
     const result = await linkMemberToAccount(dbCast, baseCongregation, baseParams)
 
     expect(result).toEqual({ memberId: 10, accountId: 5 })
+  })
+})
+
+describe('linkMemberToAccount — roles', () => {
+  it('moves the roles given to the login onto the new record, admin staying on the login', async () => {
+    mockDb.userAccount.findFirst.mockResolvedValue({ id: 5, memberId: null, firstname: 'A', lastname: 'B' })
+    mockCreateDirect.mockResolvedValue({ id: 10 })
+    mockDb.userRoleAssignment.findMany.mockResolvedValue([
+      { kind: 'leader', role: { id: 3, key: 'sono' } },
+      { kind: 'member', role: { id: 1, key: 'admin' } },
+    ])
+
+    await linkMemberToAccount(dbCast, baseCongregation, baseParams)
+
+    expect(mockDb.memberRoleAssignment.upsert).toHaveBeenCalledTimes(1)
+    expect(mockDb.memberRoleAssignment.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ create: { memberId: 10, roleId: 3, congregationId: 42, kind: 'leader' } }),
+    )
   })
 })

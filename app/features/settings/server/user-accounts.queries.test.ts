@@ -58,20 +58,31 @@ describe('listUserAccounts', () => {
     expect(rows[0]).not.toHaveProperty('password')
   })
 
-  it('lists the account’s own roles and counts those its record gives', async () => {
+  it('lists the roles given to the person, on the record or the login, and counts the identity ones', async () => {
     db.userAccount.findMany.mockResolvedValue([
       account({
         id: 2,
         memberId: 40,
-        member: { firstname: 'Claire', lastname: 'André' },
+        member: {
+          firstname: 'Claire',
+          lastname: 'André',
+          roleAssignments: [
+            { role: { id: 20, key: 'publisher', name: null } },
+            { role: { id: 21, key: 'sister', name: null } },
+            { role: { id: 22, key: 'member', name: null } },
+            { role: { id: 10, key: 'sono', name: 'Sonorisation' } },
+          ],
+        },
         roleAssignments: [{ role: { id: 9, key: 'territories', name: 'Responsable des territoires' } }],
       }),
     ])
-    db.memberRoleAssignment.findMany.mockResolvedValue([{ memberId: 40 }, { memberId: 40 }, { memberId: 40 }])
 
     const [row] = await listUserAccounts(db as never, 3, {})
 
-    expect(row?.roles).toEqual([{ id: 9, key: 'territories', name: 'Responsable des territoires' }])
+    expect(row?.roles).toEqual([
+      { id: 9, key: 'territories', name: 'Responsable des territoires' },
+      { id: 10, key: 'sono', name: 'Sonorisation' },
+    ])
     expect(row?.recordRoleCount).toBe(3)
   })
 
@@ -125,7 +136,7 @@ describe('getAccountPage', () => {
       isBuiltIn: false,
       permissions: [],
       members: [],
-      memberAssignments: [{ member: { firstname: 'Luc', lastname: 'Perrin' } }],
+      memberAssignments: [{ member: { firstname: 'Claire', lastname: 'André' } }],
     },
     {
       id: 8,
@@ -176,13 +187,14 @@ describe('getAccountPage', () => {
   it('lists the roles in order, the administrator first, saying which the account holds', async () => {
     const page = await getAccountPage(pageDb as never, 9, 3, new Set(['can-do-anything']))
 
+    // `speakers` is held on the login, `av` on the record: both are the person's.
     expect(page?.roles.map(role => [role.key, role.assigned])).toEqual([
       ['admin', false],
       ['speakers', true],
-      ['av', false],
+      ['av', true],
       ['secretary', false],
     ])
-    expect(page?.roles.find(role => role.key === 'av')?.holders).toEqual(['Luc PERRIN'])
+    expect(page?.roles.find(role => role.key === 'av')?.holders).toEqual(['Claire ANDRÉ'])
     expect(page?.roles.find(role => role.key === 'secretary')?.holders).toEqual(['Jean BERNARD'])
     expect(page?.roles.find(role => role.key === 'speakers')?.holderCount).toBe(1)
   })

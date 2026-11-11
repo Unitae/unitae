@@ -5,6 +5,7 @@ import {
   SERVICE_COMMITTEE_KEY,
   SERVICE_COMMITTEE_POST_KEYS,
 } from '~/shared/domain/built-in-roles.server'
+import { giveRole, type RoleHolder, takeRole } from '~/shared/domain/role-assignments.server'
 import { type ActorPermissions, assertActorHoldsRolePermissions } from '~/shared/domain/role-grant-limits.server'
 import { syncServiceCommitteeMembers } from '~/shared/domain/service-committee.server'
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '~/shared/errors/app-error.server'
@@ -107,6 +108,30 @@ export async function proposeCommitteeAdoption(
   }
 }
 
+/** Who leads a role, wherever the seat is kept: its leader, or else its first holder. */
+async function leadingHolder(
+  db: TransactionClient,
+  roleId: number,
+  congregationId: number,
+): Promise<RoleHolder | null> {
+  const onRecord = await db.memberRoleAssignment.findMany({
+    where: { roleId, congregationId },
+    select: { memberId: true, kind: true, member: { select: { account: { select: { id: true } } } } },
+  })
+  const onLogin = await db.userRoleAssignment.findMany({
+    where: { roleId, congregationId },
+    select: { userId: true, kind: true, user: { select: { memberId: true } } },
+  })
+  const holders = [
+    ...onRecord.map(row => ({
+      kind: row.kind,
+      holder: { memberId: row.memberId, userId: row.member.account?.id ?? null },
+    })),
+    ...onLogin.map(row => ({ kind: row.kind, holder: { memberId: row.user.memberId, userId: row.userId } })),
+  ]
+  return (holders.find(entry => entry.kind === 'leader') ?? holders[0])?.holder ?? null
+}
+
 /**
  * Move one hand-made role's contents onto the post that replaces it.
  *
@@ -116,11 +141,13 @@ export async function proposeCommitteeAdoption(
  */
 async function carryOver(
   db: TransactionClient,
-  sourceId: number,
-  targetId: number,
+  source: { id: number; key: string },
+  target: { id: number; key: string },
   congregationId: number,
   { moveHolder }: { moveHolder: boolean },
 ): Promise<void> {
+  const sourceId = source.id
+  const targetId = target.id
   const permissions: { permissionId: number }[] = await db.rolePermission.findMany({
     where: { roleId: sourceId, congregationId },
     select: { permissionId: true },
@@ -138,18 +165,10 @@ async function carryOver(
 
   // A post holds one person. Where the old role had several, the leader moves and the rest stay
   // behind on it — the role still exists, so nobody loses anything they had.
-  const holders: { userId: number; kind: string }[] = moveHolder
-    ? await db.userRoleAssignment.findMany({
-        where: { roleId: sourceId, congregationId },
-        select: { userId: true, kind: true },
-      })
-    : []
-  const incoming = holders.find(holder => holder.kind === 'leader') ?? holders[0]
+  const incoming = moveHolder ? await leadingHolder(db, sourceId, congregationId) : null
   if (incoming) {
-    await db.userRoleAssignment.create({
-      data: { userId: incoming.userId, roleId: targetId, congregationId, kind: 'leader' },
-    })
-    await db.userRoleAssignment.deleteMany({ where: { userId: incoming.userId, roleId: sourceId, congregationId } })
+    await giveRole(db, incoming, target, congregationId, 'leader')
+    await takeRole(db, incoming, source, congregationId)
   }
 
   await db.role.updateMany({ where: { congregationId, parentRoleId: sourceId }, data: { parentRoleId: targetId } })
@@ -249,7 +268,7 @@ export async function adoptServiceCommittee(
   for (const { target, source } of mappings) {
     // The committee's own membership is derived from its three posts, so moving a holder onto
     // it would be reconciled straight back off — a change the admin would watch undo itself.
-    await carryOver(db, source.id, target.id, congregationId, { moveHolder: target.key !== SERVICE_COMMITTEE_KEY })
+    await carryOver(db, source, target, congregationId, { moveHolder: target.key !== SERVICE_COMMITTEE_KEY })
   }
 
   // Whatever the mapping filled the three posts with is what the committee is made of.

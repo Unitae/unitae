@@ -1,17 +1,10 @@
-import { requireAdminsRemainWithoutRole, requireNotLastAdmin } from '~/shared/auth/permissions.server'
-import { assertMayActOnAccount } from '~/shared/domain/account-protection.server'
+import { requireAdminsRemainWithoutRole } from '~/shared/auth/permissions.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
-import {
-  BUILT_IN_ROLE_KEYS,
-  isIdentityRoleKey,
-  SERVICE_COMMITTEE_KEY,
-  SYSTEM_ROLE_KEYS,
-} from '~/shared/domain/built-in-roles.server'
+import { BUILT_IN_ROLE_KEYS, SERVICE_COMMITTEE_KEY, SYSTEM_ROLE_KEYS } from '~/shared/domain/built-in-roles.server'
 import {
   type ActorPermissions,
   assertActorHolds,
   assertActorHoldsRolePermissions,
-  assertMayChangeAccountAccess,
   GrantBeyondActorError,
   isAdminActor,
   roleGrantsAdmin,
@@ -31,23 +24,6 @@ const BUILT_IN_ORDER = new Map<string, number>([
   ...SYSTEM_ROLE_KEYS.map((key, index) => [key, BUILT_IN_ROLE_KEYS.length + index] as const),
 ])
 
-/**
- * Roles that attach to a UserAccount and are granted by hand: custom roles, plus system
- * roles such as `admin`. Identity roles are excluded — they live on the Member and are
- * reconciled from its flags, so accepting one here would be overwritten on the next sync.
- *
- * Defined once because it is needed on both sides of the assignment diff, and a filter
- * that drifted between the two would drop `admin` from the desired set while leaving it
- * in the existing set — which reads as "no change" and silently refuses the grant.
- */
-function accountAssignableRole() {
-  // Personal roles are excluded like identity roles are: their one seat is granted from the
-  // organigram with a handover, never from a checkbox list. Because the filter is applied to
-  // both sides of the assignment diff, a role it excludes is never stripped either — a
-  // titulaire keeps their seat when someone edits their eligibility groups.
-  return { isSinglePerson: false, OR: [{ isBuiltIn: false }, { key: { in: [...SYSTEM_ROLE_KEYS] } }] }
-}
-
 export interface RoleListItem {
   id: number
   key: string
@@ -62,7 +38,7 @@ export async function listRoles(db: TransactionClient, congregationId: number): 
   const roles = await db.role.findMany({
     where: { congregationId },
     include: {
-      _count: { select: { permissions: true, members: true } },
+      _count: { select: { permissions: true, members: true, memberAssignments: true } },
     },
   })
 
@@ -74,7 +50,7 @@ export async function listRoles(db: TransactionClient, congregationId: number): 
       description: role.description,
       isBuiltIn: role.isBuiltIn,
       permissionCount: role._count.permissions,
-      memberCount: role._count.members,
+      memberCount: role._count.members + role._count.memberAssignments,
     }))
     .sort((a, b) => {
       if (a.isBuiltIn && b.isBuiltIn) {
@@ -99,7 +75,7 @@ export async function listRoles(db: TransactionClient, congregationId: number): 
  * box in the chart whose membership derives from its posts — it is never a seat someone holds,
  * so pointing a template at it would resolve to nobody.
  *
- * Deliberately NOT `accountAssignableRole()`: that filter drops `isSinglePerson` roles because
+ * Deliberately NOT `handGivenRole()` (role-membership.server.ts): that filter drops `isSinglePerson` roles because
  * granting a personal role from a checkbox list is wrong. Pointing a template at one is the
  * opposite — a «Responsable …» post, seated once in the organigram with automatic handover, is
  * the best possible answer to "who runs this programme".
@@ -111,7 +87,7 @@ export async function listDelegatableRoles(db: TransactionClient, congregationId
       key: { notIn: [...BUILT_IN_ROLE_KEYS, SERVICE_COMMITTEE_KEY] },
     },
     include: {
-      _count: { select: { permissions: true, members: true } },
+      _count: { select: { permissions: true, members: true, memberAssignments: true } },
     },
   })
 
@@ -123,7 +99,7 @@ export async function listDelegatableRoles(db: TransactionClient, congregationId
       description: role.description,
       isBuiltIn: role.isBuiltIn,
       permissionCount: role._count.permissions,
-      memberCount: role._count.members,
+      memberCount: role._count.members + role._count.memberAssignments,
     }))
     .sort((a, b) => getRoleDisplayName(a).localeCompare(getRoleDisplayName(b)))
 }
@@ -144,7 +120,7 @@ export async function getRole(db: TransactionClient, id: number, congregationId:
     where: { id, congregationId },
     include: {
       permissions: { include: { permission: true } },
-      _count: { select: { members: true } },
+      _count: { select: { members: true, memberAssignments: true } },
     },
   })
 
@@ -158,7 +134,7 @@ export async function getRole(db: TransactionClient, id: number, congregationId:
     isBuiltIn: role.isBuiltIn,
     isSinglePerson: role.isSinglePerson,
     permissionKeys: role.permissions.map(rp => rp.permission.key),
-    memberCount: role._count.members,
+    memberCount: role._count.members + role._count.memberAssignments,
   }
 }
 
@@ -300,96 +276,6 @@ export async function updateRolePermissions(
   await syncRolePermissions(db, id, congregationId, previousKeys, permissionKeys, actorId)
 }
 
-export async function addUserToRole(
-  db: TransactionClient,
-  userId: number,
-  roleId: number,
-  congregationId: number,
-  actorId: number,
-  actorPermissions: ActorPermissions,
-): Promise<void> {
-  const role = await db.role.findFirst({ where: { id: roleId, congregationId } })
-  if (!role) return
-
-  // Identity roles only. System roles such as `admin` are also isBuiltIn — undeletable —
-  // but they are granted by hand, so gating on the flag would wrongly refuse them.
-  if (isIdentityRoleKey(role.key)) {
-    throw new ForbiddenError('Identity role memberships are managed automatically')
-  }
-  // A personal role has one titulaire and adjoints, never plain members — its seat is granted
-  // from the organigram, where seating is a handover rather than an addition.
-  if (role.isSinglePerson) {
-    throw new ForbiddenError('Personal roles are seated from the organigram')
-  }
-
-  const existing = await db.userRoleAssignment.findFirst({
-    where: { userId, roleId },
-    select: { userId: true },
-  })
-  if (existing) return
-
-  await assertMayChangeAccountAccess(userId, congregationId, actorPermissions)
-  await assertActorHoldsRolePermissions(db, [roleId], congregationId, actorPermissions)
-
-  await db.userRoleAssignment.create({ data: { userId, roleId, congregationId } })
-
-  audit({
-    action: AuditAction.UserRoleAssignmentChanged,
-    congregationId,
-    actorId,
-    entityType: 'User',
-    entityId: userId,
-    metadata: { added: [role.key], removed: [] },
-  })
-}
-
-export async function removeUserFromRole(
-  db: TransactionClient,
-  userId: number,
-  roleId: number,
-  congregationId: number,
-  actorId: number,
-  actorPermissions: ActorPermissions,
-): Promise<void> {
-  const role = await db.role.findFirst({ where: { id: roleId, congregationId } })
-  if (!role) return
-
-  // Identity roles only. System roles such as `admin` are also isBuiltIn — undeletable —
-  // but they are granted by hand, so gating on the flag would wrongly refuse them.
-  if (isIdentityRoleKey(role.key)) {
-    throw new ForbiddenError('Identity role memberships are managed automatically')
-  }
-
-  const existing = await db.userRoleAssignment.findFirst({
-    where: { userId, roleId },
-    select: { userId: true, kind: true },
-  })
-  if (!existing) return
-
-  // The matrix bulk-edits members; one stray uncheck must not silently unseat a responsable
-  // or an adjoint. Leadership changes hands on the organigram, where the seat is visible as one.
-  if (existing.kind === 'leader' || existing.kind === 'deputy') {
-    throw new ForbiddenError('Leadership seats are managed from the organigram')
-  }
-
-  await assertMayActOnAccount({ accountId: userId, actorId, congregationId, actorPermissions, action: 'remove-roles' })
-  await assertActorHoldsRolePermissions(db, [roleId], congregationId, actorPermissions)
-  if (await roleGrantsAdmin(db, roleId, congregationId)) {
-    await requireNotLastAdmin(userId, congregationId)
-  }
-
-  await db.userRoleAssignment.deleteMany({ where: { userId, roleId } })
-
-  audit({
-    action: AuditAction.UserRoleAssignmentChanged,
-    congregationId,
-    actorId,
-    entityType: 'User',
-    entityId: userId,
-    metadata: { added: [], removed: [role.key] },
-  })
-}
-
 export async function deleteRole(
   db: TransactionClient,
   id: number,
@@ -399,7 +285,7 @@ export async function deleteRole(
 ): Promise<void> {
   const role = await db.role.findFirst({
     where: { id, congregationId },
-    include: { _count: { select: { members: true } } },
+    include: { _count: { select: { members: true, memberAssignments: true } } },
   })
   if (!role) return
 
@@ -437,96 +323,7 @@ export async function deleteRole(
     actorId,
     entityType: 'Role',
     entityId: id,
-    metadata: { key: role.key, name: role.name, memberCount: role._count.members },
-  })
-}
-
-export async function setUserCustomRoleAssignments(
-  db: TransactionClient,
-  userId: number,
-  congregationId: number,
-  actorId: number,
-  customRoleIds: number[],
-  actorPermissions: ActorPermissions,
-): Promise<void> {
-  // Account-assignable = custom roles plus system roles such as `admin`. Identity
-  // roles are excluded: they live on the Member and are reconciled from its flags by
-  // syncBuiltInRoleAssignments, so accepting one here would be overwritten anyway.
-  // Filtering on `isBuiltIn: false` alone would silently drop `admin` from both the
-  // desired set and the existing set, making it impossible to grant through the UI.
-  const customRoles = await db.role.findMany({
-    where: { congregationId, ...accountAssignableRole() },
-    select: { id: true, key: true },
-  })
-  const customRoleIdSet = new Set(customRoles.map(r => r.id))
-  const desired = new Set(customRoleIds.filter(id => customRoleIdSet.has(id)))
-
-  const existing = await db.userRoleAssignment.findMany({
-    where: { userId, role: accountAssignableRole() },
-    select: { roleId: true },
-  })
-  const existingIds = new Set(existing.map(a => a.roleId))
-
-  const added: number[] = []
-  const removed: number[] = []
-  for (const id of desired) {
-    if (!existingIds.has(id)) added.push(id)
-  }
-  for (const id of existingIds) {
-    if (!desired.has(id)) removed.push(id)
-  }
-
-  if (added.length === 0 && removed.length === 0) return
-
-  // Nobody takes their own roles away; an administrator's roles are changed by administrators only.
-  await assertMayActOnAccount({
-    accountId: userId,
-    actorId,
-    congregationId,
-    actorPermissions,
-    action: removed.length > 0 ? 'remove-roles' : 'edit',
-  })
-  await assertActorHoldsRolePermissions(db, [...added, ...removed], congregationId, actorPermissions)
-
-  // If any removed role granted Admin, this update could strip the user's
-  // admin power. Guard against leaving the congregation without an admin.
-  if (removed.length > 0) {
-    const removedRolesWithAdmin = await db.rolePermission.findFirst({
-      where: {
-        roleId: { in: removed },
-        congregationId,
-        permission: { key: Permission.CanDoAnything },
-      },
-      select: { roleId: true },
-    })
-    if (removedRolesWithAdmin) {
-      await requireNotLastAdmin(userId, congregationId)
-    }
-  }
-
-  if (added.length > 0) {
-    await db.userRoleAssignment.createMany({
-      data: added.map(roleId => ({ userId, roleId, congregationId })),
-    })
-  }
-
-  if (removed.length > 0) {
-    await db.userRoleAssignment.deleteMany({
-      where: { userId, roleId: { in: removed } },
-    })
-  }
-
-  const keyById = new Map(customRoles.map(r => [r.id, r.key]))
-  audit({
-    action: AuditAction.UserRoleAssignmentChanged,
-    congregationId,
-    actorId,
-    entityType: 'User',
-    entityId: userId,
-    metadata: {
-      added: added.map(id => keyById.get(id)).filter(Boolean),
-      removed: removed.map(id => keyById.get(id)).filter(Boolean),
-    },
+    metadata: { key: role.key, name: role.name, memberCount: role._count.members + role._count.memberAssignments },
   })
 }
 

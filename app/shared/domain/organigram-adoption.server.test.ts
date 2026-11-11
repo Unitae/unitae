@@ -8,7 +8,8 @@ vi.mock('~/shared/domain/audit.server', () => ({
 const mockDb = {
   role: { findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
   rolePermission: { findMany: vi.fn(), createMany: vi.fn() },
-  userRoleAssignment: { findMany: vi.fn(), create: vi.fn(), deleteMany: vi.fn() },
+  userRoleAssignment: { findMany: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
+  memberRoleAssignment: { findMany: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
 }
 
 const syncServiceCommitteeMembers = vi.fn()
@@ -54,8 +55,11 @@ beforeEach(() => {
   mockDb.role.update.mockResolvedValue({})
   mockDb.role.updateMany.mockResolvedValue({ count: 0 })
   mockDb.rolePermission.createMany.mockResolvedValue({ count: 0 })
-  mockDb.userRoleAssignment.create.mockResolvedValue({})
+  mockDb.userRoleAssignment.upsert.mockResolvedValue({})
   mockDb.userRoleAssignment.deleteMany.mockResolvedValue({ count: 0 })
+  mockDb.memberRoleAssignment.findMany.mockResolvedValue([])
+  mockDb.memberRoleAssignment.upsert.mockResolvedValue({})
+  mockDb.memberRoleAssignment.deleteMany.mockResolvedValue({ count: 0 })
 })
 
 describe('proposeCommitteeAdoption', () => {
@@ -115,8 +119,10 @@ describe('adoptServiceCommittee', () => {
     )
   })
 
-  it('moves the mapped role’s holder onto the post', async () => {
-    mockDb.userRoleAssignment.findMany.mockResolvedValue([{ userId: 800, roleId: 21, kind: 'leader' }])
+  it('moves the mapped role’s holder onto the post, on their record', async () => {
+    mockDb.memberRoleAssignment.findMany.mockResolvedValue([
+      { memberId: 500, kind: 'leader', member: { account: { id: 800 } } },
+    ])
 
     await adoptServiceCommittee(
       mockDb as never,
@@ -126,8 +132,27 @@ describe('adoptServiceCommittee', () => {
       ADMIN_ACTOR,
     )
 
-    expect(mockDb.userRoleAssignment.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ userId: 800, roleId: 3, kind: 'leader' }) }),
+    expect(mockDb.memberRoleAssignment.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ create: expect.objectContaining({ memberId: 500, roleId: 3, kind: 'leader' }) }),
+    )
+    expect(mockDb.memberRoleAssignment.deleteMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ memberId: 500, roleId: 21 }) }),
+    )
+  })
+
+  it('moves a holder whose seat older code left on the login onto the record', async () => {
+    mockDb.userRoleAssignment.findMany.mockResolvedValue([{ userId: 800, kind: 'leader', user: { memberId: 500 } }])
+
+    await adoptServiceCommittee(
+      mockDb as never,
+      [{ postKey: 'coordinator', fromRoleId: 21 }],
+      CONGREGATION,
+      ACTOR,
+      ADMIN_ACTOR,
+    )
+
+    expect(mockDb.memberRoleAssignment.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ create: expect.objectContaining({ memberId: 500, roleId: 3, kind: 'leader' }) }),
     )
     expect(mockDb.userRoleAssignment.deleteMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ userId: 800, roleId: 21 }) }),
@@ -244,7 +269,8 @@ describe('adoptServiceCommittee', () => {
       ),
     ).rejects.toBeInstanceOf(ForbiddenError)
     expect(mockDb.role.update).not.toHaveBeenCalled()
-    expect(mockDb.userRoleAssignment.create).not.toHaveBeenCalled()
+    expect(mockDb.memberRoleAssignment.upsert).not.toHaveBeenCalled()
+    expect(mockDb.userRoleAssignment.upsert).not.toHaveBeenCalled()
   })
 
   it('refuses to map a built-in post onto another', async () => {
@@ -262,7 +288,9 @@ describe('adoptServiceCommittee', () => {
   it('does not seat anyone on the committee itself', async () => {
     // The committee's membership is derived from its three posts, so a holder moved onto it here
     // would be reconciled straight back off — a change the admin would watch undo itself.
-    mockDb.userRoleAssignment.findMany.mockResolvedValue([{ userId: 800, roleId: 20, kind: 'leader' }])
+    mockDb.memberRoleAssignment.findMany.mockResolvedValue([
+      { memberId: 500, roleId: 20, kind: 'leader', member: { account: { id: 800 } } },
+    ])
 
     await adoptServiceCommittee(
       mockDb as never,
@@ -272,7 +300,8 @@ describe('adoptServiceCommittee', () => {
       ADMIN_ACTOR,
     )
 
-    expect(mockDb.userRoleAssignment.create).not.toHaveBeenCalled()
+    expect(mockDb.memberRoleAssignment.upsert).not.toHaveBeenCalled()
+    expect(mockDb.userRoleAssignment.upsert).not.toHaveBeenCalled()
     // Its permissions and its children still come across.
     expect(mockDb.role.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ parentRoleId: 20 }) }),
@@ -300,7 +329,8 @@ describe('adoptServiceCommittee', () => {
       ADMIN_ACTOR,
     )
 
-    expect(mockDb.userRoleAssignment.create).not.toHaveBeenCalled()
+    expect(mockDb.memberRoleAssignment.upsert).not.toHaveBeenCalled()
+    expect(mockDb.userRoleAssignment.upsert).not.toHaveBeenCalled()
     expect(mockDb.rolePermission.createMany).not.toHaveBeenCalled()
   })
 })

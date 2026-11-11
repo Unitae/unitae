@@ -4245,5 +4245,6 @@
     "audit_log_entity_perimeter": "Périmètre",
     "audit_log_entity_dynamic_document": "Document automatique",
     "audit_log_col_email": "Adresse e-mail",
-    "audit_log_close": "Fermer le détail"
+    "audit_log_close": "Fermer le détail",
+    "publishers_edit_link_login_error_roles": "Cette personne a des rôles qui donnent des droits que vous n’avez pas : un administrateur doit créer son accès."
 }

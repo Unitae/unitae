@@ -1,4 +1,4 @@
-export const ARCHIVE_VERSION = '2.11'
+export const ARCHIVE_VERSION = '2.12'
 
 // Older archive versions an import will still accept. v1.0 archives miss every
 // post-shipping feature table (custom roles, allowed-roles, external speakers,
@@ -41,6 +41,10 @@ export const ARCHIVE_VERSION = '2.11'
 // v2.11 adds `arrivedAt` and `lastPastoralVisitAt` to `members.ndjson`: when the person
 // arrived in the congregation and their last pastoral visit. Pre-2.11 rows have neither,
 // which is how members recorded before these dates already were.
+// v2.12 moves the roles given by hand from logins onto records: `member-role-assignments.ndjson`
+// carries them with their `kind`, and only accounts without a record (and `admin`) keep rows in
+// `user-role-assignments.ndjson`. Pre-2.12 archives carry every given role on the login; the
+// importer hands a linked login's roles to its record, by the same rule as the migration.
 // v1.x archives are listed here so the import path reports
 // them with a warning rather than rejecting outright; a compatibility shim that
 // splits legacy `users.ndjson` is a deferred follow-up.
@@ -59,6 +63,7 @@ export const SUPPORTED_ARCHIVE_VERSIONS = [
   '2.9',
   '2.10',
   '2.11',
+  '2.12',
 ] as const
 
 export interface ManifestJson {

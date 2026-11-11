@@ -21,7 +21,7 @@ export interface UpdateAccountParams {
  *
  * Identity only — this service grants nothing. Since #149 a permission reaches
  * an account solely through a role, so access changes go through
- * `setUserCustomRoleAssignments`, which carries its own last-admin guard.
+ * `setGivenRoles` (role-membership.server.ts), which carries its own last-admin guard.
  */
 export async function updateAccount(
   db: TransactionClient,

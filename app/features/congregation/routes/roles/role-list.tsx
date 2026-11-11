@@ -9,8 +9,9 @@ import { RoleMatrixTable } from '~/features/congregation/ui/RoleMatrixTable'
 import { RolesTabs } from '~/features/congregation/ui/RolesTabs'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { holderOfMember } from '~/shared/domain/role-assignments.server'
 import { GrantBeyondActorError } from '~/shared/domain/role-grant-limits.server'
-import { addUserToRole, removeUserFromRole } from '~/shared/domain/roles.server'
+import { addToRole, removeFromRole } from '~/shared/domain/role-membership.server'
 import { ForbiddenError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
 import { getRoleDisplayName } from '~/shared/types/role'
@@ -36,10 +37,8 @@ const FILTER_LABELS: Record<BuiltInFilterKey, () => string> = {
   'assistant-servant': () => m.congregation_roles_filter_assistant_servant(),
 }
 
-// Built-in domain roles only apply to active publishers. The `all` filter still
-// shows everyone (admins and other non-publisher accounts), but every targeted
-// built-in filter ANDs `isPublisher: true` so the matrix matches what the role
-// sync helper actually assigns.
+// Built-in domain roles only apply to active publishers: every targeted filter ANDs
+// `isPublisher: true` so the matrix matches what the role sync assigns; `all` shows everyone.
 function buildBuiltInWhere(filter: BuiltInFilterKey) {
   switch (filter) {
     case 'male':
@@ -98,11 +97,16 @@ export function loader({ request, context }: Route.LoaderArgs) {
     // Holder counts are congregation-wide, not filtered: « Sono : 4 » should stay true while
     // the rows show only the sisters. Split by seat kind, the same rows also say which roles
     // still hold plain members — the legacy columns that must stay visible until emptied.
-    const assignmentCounts = await db.userRoleAssignment.groupBy({
-      by: ['roleId', 'kind'],
-      where: { congregationId: currentUser.congregationId, role: { isBuiltIn: false } },
-      _count: { roleId: true },
-    })
+    // Seats sit on records, or on logins for accounts without one: both are counted.
+    const countWhere = { congregationId: currentUser.congregationId, role: { isBuiltIn: false } }
+    const assignmentCounts = [
+      ...(await db.memberRoleAssignment.groupBy({
+        by: ['roleId', 'kind'],
+        where: countWhere,
+        _count: { roleId: true },
+      })),
+      ...(await db.userRoleAssignment.groupBy({ by: ['roleId', 'kind'], where: countWhere, _count: { roleId: true } })),
+    ]
     const counts: Record<number, number> = {}
     for (const row of assignmentCounts) {
       counts[row.roleId] = (counts[row.roleId] ?? 0) + row._count.roleId
@@ -127,8 +131,8 @@ export function loader({ request, context }: Route.LoaderArgs) {
         ...buildBuiltInWhere(filter),
       },
       include: {
-        // Custom (management) roles live on UserAccount.roleAssignments.
-        // Members without an account contribute no assignments here.
+        // Roles given by hand sit on the record, login or not; a few older rows may still sit on the login.
+        roleAssignments: { where: { role: { isBuiltIn: false } }, select: { roleId: true, kind: true } },
         account: {
           include: {
             roleAssignments: {
@@ -148,11 +152,10 @@ export function loader({ request, context }: Route.LoaderArgs) {
         id: member.id,
         firstname: member.firstname,
         lastname: member.lastname,
-        // The seat kind rides along so the grid can say R/A, not just "in it".
-        seats: Object.fromEntries((member.account?.roleAssignments ?? []).map(a => [a.roleId, a.kind])),
-        // Eligibility is granted to the account, so a member without a login cannot hold one.
-        // Show them greyed out with the reason rather than letting the toggle fail.
-        hasAccount: member.account != null,
+        // The seat kind rides along so the grid can say R/A, not just "in it". The record wins over a stale login row.
+        seats: Object.fromEntries(
+          [...(member.account?.roleAssignments ?? []), ...member.roleAssignments].map(a => [a.roleId, a.kind]),
+        ),
       })),
       canManageRoles,
       currentSearch: search ?? '',
@@ -182,20 +185,17 @@ export async function action({ request, context }: Route.ActionArgs) {
   const session = await getSession(request.headers.get('Cookie'))
 
   await withScopeFromContext(context, async db => {
-    // Eligibility groups are granted to the account, but the matrix is a grid of people. Resolve
-    // the account here rather than asking the form to know it.
+    // A role belongs to the person: anyone in the congregation can be put in a team, login or not.
     const member = await db.member.findFirst({
       where: { id: memberId, congregationId: currentUser.congregationId },
-      select: { firstname: true, lastname: true, account: { select: { id: true } } },
+      select: { firstname: true, lastname: true },
     })
-    if (!member?.account) {
-      session.flash('error', m.congregation_roles_no_account_error())
+    const holder = member ? await holderOfMember(db, memberId, currentUser.congregationId) : null
+    if (!member || !holder) {
+      session.flash('error', m.congregation_roles_role_gone_error())
       return
     }
-    const userId = member.account.id
 
-    // Resolved before the write, not after: the services no-op silently on a role that vanished
-    // under a stale tab, and a page that then says nothing at all is how an admin clicks twice.
     const role = await db.role.findFirst({
       where: { id: roleId, congregationId: currentUser.congregationId },
       select: { key: true, name: true },
@@ -207,9 +207,9 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     try {
       if (intent === 'add') {
-        await addUserToRole(db, userId, roleId, currentUser.congregationId, currentUser.id, permissions)
+        await addToRole(db, holder, roleId, currentUser.congregationId, currentUser.id, permissions)
       } else {
-        await removeUserFromRole(db, userId, roleId, currentUser.congregationId, currentUser.id, permissions)
+        await removeFromRole(db, holder, roleId, currentUser.congregationId, currentUser.id, permissions)
       }
       // Name the change: a toggle deep in a grid gives no feedback of its own, and « Marc DUPONT
       // fait partie de Sono » is what tells a cautious admin their click did the right thing.

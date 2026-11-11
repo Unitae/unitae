@@ -26,7 +26,6 @@ function MemberCard({
         <span className="font-medium text-sm">
           {member.firstname} {member.lastname?.toLocaleUpperCase()}
         </span>
-        {!member.hasAccount && <span className="text-muted-foreground text-xs">Pas de compte</span>}
       </span>
 
       {groups.map(group => (
@@ -69,14 +68,14 @@ function MemberCard({
                   <input type="hidden" name="intent" value={isAssigned ? 'remove' : 'add'} />
                   <button
                     type="submit"
-                    disabled={!canManageRoles || !member.hasAccount}
+                    disabled={!canManageRoles}
                     aria-label={`${isAssigned ? 'Retirer de' : 'Ajouter à'} ${column.name}`}
                     className={cn(
                       chipClass,
                       isAssigned
                         ? 'border-primary bg-primary text-primary-foreground'
                         : 'border-border text-muted-foreground hover:bg-accent',
-                      (!canManageRoles || !member.hasAccount) && 'cursor-not-allowed opacity-50',
+                      !canManageRoles && 'cursor-not-allowed opacity-50',
                     )}
                   >
                     {column.name}

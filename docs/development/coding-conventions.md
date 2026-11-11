@@ -137,8 +137,8 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 Identity is split: `Member` holds person/publisher data; `UserAccount` holds login credentials. They link 1:1 via `UserAccount.memberId` (nullable). Decide each new FK by intent:
 
-- **Action requires being logged in to perform** → FK targets `UserAccount`. Audit `actorId`, `Event.createdBy`, `BoardDocument.viewedBy`, document uploads, tokens, permissions, management role assignments.
-- **Subject is a person in the congregation** → FK targets `Member`. Attributions, activities, programme assignments (assignee/assistant), publisher groups, identity-role assignments.
+- **Action requires being logged in to perform** → FK targets `UserAccount`. Audit `actorId`, `Event.createdBy`, `BoardDocument.viewedBy`, document uploads, tokens, the `admin` role, and the roles of an account without a record.
+- **Subject is a person in the congregation** → FK targets `Member`. Attributions, activities, programme assignments (assignee/assistant), publisher groups, and role assignments — identity roles and roles given by hand alike, so a publisher without a login can hold one.
 
 Display names: when reading from a session-loaded `currentUser`, name lives on `currentUser.member` if linked, otherwise on `currentUser` itself. Use `accountDisplayName(account)` from `app/shared/utils/display-name.ts` to handle both.
 

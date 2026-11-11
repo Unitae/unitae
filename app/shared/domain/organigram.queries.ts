@@ -205,10 +205,10 @@ const ORGANIGRAM_ROLE_SELECT = {
 /**
  * The congregation's organigram, ready to render.
  *
- * Holders are unioned across both assignment tables: the identity rosters reach a person
- * through `MemberRoleAssignment` (auto-synced from Member flags) and every hand-granted seat
- * reaches them through the linked account's `UserRoleAssignment`. Reading only one of the two
- * returns half an empty chart — the canonical rule lives in
+ * Holders are unioned across both assignment tables: the record (`MemberRoleAssignment`) holds
+ * the identity rosters, auto-synced from Member flags, and every seat given by hand with its kind;
+ * the login (`UserRoleAssignment`) holds seats an account without a record has, or that older
+ * code left there. Reading only one of the two returns half a chart — the canonical rule lives in
  * `app/shared/auth/permissions.server.ts`.
  */
 export async function getOrganigram(db: TransactionClient, congregationId: number): Promise<OrganigramNode[]> {
@@ -237,7 +237,7 @@ export async function getOrganigram(db: TransactionClient, congregationId: numbe
       // The identity flag the elder roster itself is synced from — what decides whether a
       // leader is titled « Responsable » or « Préposé ».
       isHelder: true,
-      roleAssignments: { where: { roleId: { in: roleIds } }, select: { roleId: true } },
+      roleAssignments: { where: { roleId: { in: roleIds } }, select: { roleId: true, kind: true } },
       account: {
         select: { roleAssignments: { where: { roleId: { in: roleIds } }, select: { roleId: true, kind: true } } },
       },
@@ -253,9 +253,9 @@ export async function getOrganigram(db: TransactionClient, congregationId: numbe
       anonymizedAt: member.anonymizedAt,
       isElder: member.isHelder,
     }
-    // Identity-side rows carry no seat: roster membership is derived, never appointed.
+    // Identity rows are always `member`: roster membership is derived, never appointed.
     for (const assignment of member.roleAssignments) {
-      holders.push({ ...base, roleId: assignment.roleId, kind: 'member' })
+      holders.push({ ...base, roleId: assignment.roleId, kind: assignment.kind })
     }
     for (const assignment of member.account?.roleAssignments ?? []) {
       holders.push({ ...base, roleId: assignment.roleId, kind: assignment.kind })

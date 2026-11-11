@@ -21,7 +21,8 @@ import {
   permissionsContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
-import { setUserCustomRoleAssignments } from '~/shared/domain/roles.server'
+import { holderOfAccount } from '~/shared/domain/role-assignments.server'
+import { setGivenRoles } from '~/shared/domain/role-membership.server'
 import { ConflictError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
 import { formatPersonName } from '~/shared/utils/format-person-name'
@@ -97,7 +98,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         { firstname, lastname, email, active },
         permissions,
       )
-      await setUserCustomRoleAssignments(db, accountId, congregationId, currentUser.id, customRoleIds, permissions)
+      // The account's person holds the roles: on their record when they have one.
+      const holder = await holderOfAccount(db, accountId, congregationId)
+      if (holder) await setGivenRoles(db, holder, customRoleIds, congregationId, currentUser.id, permissions)
     })
   } catch (error) {
     const reason = accountRefusal(error)

@@ -169,6 +169,7 @@ async function writeRoles(
   congregationId: number,
   congregation: Congregation,
   accounts: Map<number, number>,
+  members: number[],
   holders: Map<string, number[]>,
 ): Promise<Map<string, number>> {
   const builtIns = await prisma.role.findMany({
@@ -205,19 +206,27 @@ async function writeRoles(
     })
   }
 
-  const assignments: { userId: number; roleId: number; congregationId: number }[] = []
-  const grant = (person: number, roleKey: string) => {
+  // Roles belong to the person, on their record; only `admin`, an access, sits on the login.
+  const onLogin: { userId: number; roleId: number; congregationId: number }[] = []
+  const onRecord: { memberId: number; roleId: number; congregationId: number; kind: string }[] = []
+  const grantAdmin = (person: number) => {
     const userId = accounts.get(person)
-    const roleId = ids.get(roleKey)
-    if (userId != null && roleId != null) assignments.push({ userId, roleId, congregationId })
+    const roleId = ids.get('admin')
+    if (userId != null && roleId != null) onLogin.push({ userId, roleId, congregationId })
   }
-  grant(congregation.admin, 'admin')
-  grant(congregation.secretary, 'admin')
-  grant(congregation.coordinator, 'coordinator')
-  grant(congregation.secretary, 'secretary')
-  grant(congregation.serviceOverseer, 'service-overseer')
+  const grant = (person: number, roleKey: string, kind = 'member') => {
+    const memberId = members[person]
+    const roleId = ids.get(roleKey)
+    if (memberId != null && roleId != null) onRecord.push({ memberId, roleId, congregationId, kind })
+  }
+  grantAdmin(congregation.admin)
+  grantAdmin(congregation.secretary)
+  grant(congregation.coordinator, 'coordinator', 'leader')
+  grant(congregation.secretary, 'secretary', 'leader')
+  grant(congregation.serviceOverseer, 'service-overseer', 'leader')
   for (const [roleKey, people] of holders) for (const person of people) grant(person, roleKey)
-  await prisma.userRoleAssignment.createMany({ data: assignments, skipDuplicates: true })
+  await prisma.userRoleAssignment.createMany({ data: onLogin, skipDuplicates: true })
+  await prisma.memberRoleAssignment.createMany({ data: onRecord, skipDuplicates: true })
   return ids
 }
 
@@ -500,7 +509,7 @@ async function main() {
     people.secretary,
     people.serviceOverseer,
   ])
-  const roleIds = await writeRoles(congregationId, people, accounts, holders)
+  const roleIds = await writeRoles(congregationId, people, accounts, members, holders)
   console.log(`  ✓ ${CUSTOM_ROLES.length} congregation roles`)
 
   const territories = await writeArea(prisma, congregationId, area)
