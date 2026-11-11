@@ -74,7 +74,8 @@ test.describe('Role-gated assignees — UI surface', () => {
     await expect(page.getByText('Identité', { exact: true })).toBeVisible()
     await expect(page.getByText('Programme', { exact: true })).toBeVisible()
     await expect(page.getByText(ORATEUR_RE).first()).toBeVisible()
-    await expect(page.getByText(SECOND_SPEAKER_LABEL_RE).first()).toBeVisible()
+    // The second person's slot shows only for a part that has one; the speaker's roles always do.
+    await expect(page.getByRole('group', { name: ALLOWED_SPEAKER_RE })).toBeVisible()
 
     await expect(page.getByText(PUBLISHER_DEFAULT_RE).first()).toBeVisible()
 
