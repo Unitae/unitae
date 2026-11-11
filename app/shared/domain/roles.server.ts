@@ -9,6 +9,7 @@ import {
   isAdminActor,
   roleGrantsAdmin,
 } from '~/shared/domain/role-grant-limits.server'
+import { findSoleReservations, hasSoleReservations, RoleReservesError } from '~/shared/domain/role-reservations.server'
 import { ConflictError, ForbiddenError, ValidationError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { Permission } from '~/shared/types/permission'
@@ -192,6 +193,8 @@ export async function createRole(
 export interface UpdateRoleIdentityParams {
   name?: string
   description?: string | null
+  /** Printed under the role in the board's organigram; empty clears it. */
+  organigramNote?: string | null
 }
 
 export async function updateRoleIdentity(
@@ -209,7 +212,7 @@ export async function updateRoleIdentity(
   }
 
   const fieldsChanged: string[] = []
-  const data: { name?: string; description?: string | null } = {}
+  const data: { name?: string; description?: string | null; organigramNote?: string | null } = {}
 
   if (params.name !== undefined) {
     const trimmed = params.name.trim()
@@ -226,6 +229,14 @@ export async function updateRoleIdentity(
     if (trimmed !== previous) {
       data.description = trimmed
       fieldsChanged.push('description')
+    }
+  }
+
+  if (params.organigramNote !== undefined) {
+    const trimmed = params.organigramNote?.trim() || null
+    if (trimmed !== (role.organigramNote?.trim() || null)) {
+      data.organigramNote = trimmed
+      fieldsChanged.push('organigramNote')
     }
   }
 
@@ -314,6 +325,10 @@ export async function deleteRole(
       `Des services de l’organigramme lui sont rattachés : ${names}. Déplacez-les avant de supprimer ce rôle.`,
     )
   }
+
+  // Wherever this role is the only one allowed, deleting it would open the place to everyone: settle those first.
+  const reservations = await findSoleReservations(db, id, congregationId)
+  if (hasSoleReservations(reservations)) throw new RoleReservesError(reservations)
 
   await db.role.delete({ where: { id_congregationId: { id, congregationId } } })
 

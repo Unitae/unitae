@@ -33,6 +33,12 @@ vi.mock('~/shared/auth/permissions.server', async () => {
 })
 
 // In-memory roles, their permissions, and account assignments.
+// What a deleted role alone reserves is covered in roles.server.test.ts; nothing here.
+vi.mock('~/shared/domain/role-reservations.server', async importOriginal => ({
+  ...(await importOriginal<typeof import('~/shared/domain/role-reservations.server')>()),
+  findSoleReservations: vi.fn(async () => ({ sections: [], territoryKinds: [], templateSlots: [], programmeSlots: 0 })),
+}))
+
 const ROLES = {
   admin: { id: 1, key: 'admin', isBuiltIn: true, isSinglePerson: false, permissions: ['can-do-anything'] },
   member: { id: 2, key: 'member', isBuiltIn: true, isSinglePerson: false, permissions: ['can-view-board'] },
