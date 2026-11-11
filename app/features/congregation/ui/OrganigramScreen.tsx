@@ -88,6 +88,7 @@ export function OrganigramScreen({ page }: { page: OrganigramPage & { canManage:
       onOpenRole={go}
       onCreateUnder={name => setNewRole({ name, parentId: panel.id })}
       onDirtyChange={setDirty}
+      onDeleted={() => go(null)}
     />
   )
 

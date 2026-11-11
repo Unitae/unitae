@@ -206,6 +206,7 @@ export function RolePanel({
   onOpenRole,
   onCreateUnder,
   onDirtyChange,
+  onDeleted,
 }: {
   role: PanelRole
   manage: RolePanelManage | null
@@ -217,6 +218,8 @@ export function RolePanel({
   onCreateUnder: (name: string) => void
   /** The edit form holds unsaved changes: opening another role should ask first. */
   onDirtyChange: (dirty: boolean) => void
+  /** The role is gone: the panel closes without asking about its form. */
+  onDeleted: () => void
 }) {
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -225,7 +228,12 @@ export function RolePanel({
   useCloseOnSave(fetcher, () => setEditing(false))
   const dirty = editing && form.changes > 0
 
-  useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange])
+  // Gone with the panel, however it closes — a revalidation after a deletion included — so no later click asks about
+  // a form that no longer exists.
+  useEffect(() => {
+    onDirtyChange(dirty)
+    return () => onDirtyChange(false)
+  }, [dirty, onDirtyChange])
 
   const canEdit = manage != null && role.editable
   const footer = editing ? (
@@ -253,7 +261,7 @@ export function RolePanel({
           onOpenChange={setDeleting}
           onDeleted={() => {
             setDeleting(false)
-            onClose()
+            onDeleted()
           }}
         />
       )}

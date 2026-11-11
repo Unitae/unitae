@@ -16,7 +16,6 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '~/shared/ui/dropdown-menu'
-import { useMediaQuery } from '~/shared/ui/hooks/use-media-query'
 import { PageTopbar } from '~/shared/ui/PageTopbar'
 import { SearchInput } from '~/shared/ui/SearchInput'
 import { cn } from '~/shared/utils/utils'
@@ -116,7 +115,6 @@ export function TeamsScreen({
   canManage: boolean
 }) {
   const [last, setLast] = useState<TeamToggleResult | null>(null)
-  const wide = useMediaQuery('(min-width: 768px)') !== false
   const body = { groups, members, counts, canManage, onResult: setLast }
 
   return (
@@ -167,10 +165,16 @@ export function TeamsScreen({
         <p className="border-border text-muted-foreground rounded-lg border border-dashed p-6 text-center text-sm">
           {m.teams_empty()}
         </p>
-      ) : wide ? (
-        <TeamsTable {...body} />
       ) : (
-        <TeamsPhone {...body} />
+        // Both are rendered and CSS shows one, so neither a phone nor a desktop sees the other first.
+        <>
+          <div className="max-md:hidden">
+            <TeamsTable {...body} />
+          </div>
+          <div className="md:hidden">
+            <TeamsPhone {...body} />
+          </div>
+        </>
       )}
 
       {canManage && groups.length > 0 && <p className="text-faint text-xs">{m.teams_hint()}</p>}

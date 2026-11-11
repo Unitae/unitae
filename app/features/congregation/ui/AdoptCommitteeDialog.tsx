@@ -26,6 +26,18 @@ function brings(candidate: CandidateBrings | undefined): string {
   return parts.filter(Boolean).join(' · ')
 }
 
+/** The takeover as the action reads it: each post's key and the role it takes over (empty = start empty), in pairs. */
+export function adoptionForm(posts: { key: string }[], choices: Record<string, string>): FormData {
+  const form = new FormData()
+  form.append('intent', 'adopt')
+  for (const post of posts) {
+    const chosen = choices[post.key]
+    form.append('postKey', post.key)
+    form.append('fromRoleId', chosen == null || chosen === EMPTY ? '' : chosen)
+  }
+  return form
+}
+
 export function AdoptCommitteeDialog({
   open,
   onOpenChange,
@@ -51,15 +63,7 @@ export function AdoptCommitteeDialog({
     if (result?.ok) close.current(false)
   }, [result])
 
-  const submit = () => {
-    const form = new FormData()
-    form.append('intent', 'adopt')
-    for (const post of posts) {
-      form.append('postKey', post.key)
-      form.append('fromRoleId', choices[post.key] === EMPTY ? '' : (choices[post.key] ?? ''))
-    }
-    fetcher.submit(form, { method: 'post' })
-  }
+  const submit = () => fetcher.submit(adoptionForm(posts, choices), { method: 'post' })
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

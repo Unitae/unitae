@@ -40,6 +40,7 @@ vi.mock('~/shared/domain/roles.server', () => ({
 const { runOrganigramAction, organigramRefusal, reservationLines } = await import('./_organigram-action.server')
 const { RoleReservesError } = await import('~/shared/domain/role-reservations.server')
 const { GrantBeyondActorError } = await import('~/shared/domain/role-grant-limits.server')
+const { adoptionForm } = await import('~/features/congregation/ui/AdoptCommitteeDialog')
 const { ValidationError } = await import('~/shared/errors/app-error.server')
 
 const db = {
@@ -107,6 +108,17 @@ describe('runOrganigramAction', () => {
     expect(calls.list[0]?.[1]).toEqual([
       { postKey: 'coordinator', fromRoleId: 21 },
       { postKey: 'secretary', fromRoleId: null },
+    ])
+  })
+
+  it('reads the takeover exactly as the dialog sends it', async () => {
+    const posts = [{ key: 'coordinator' }, { key: 'secretary' }, { key: 'service-overseer' }]
+    const form = adoptionForm(posts, { coordinator: '21', secretary: 'empty', 'service-overseer': '34' })
+    await runOrganigramAction(request, db, form, ACTOR)
+    expect(calls.list[0]?.[1]).toEqual([
+      { postKey: 'coordinator', fromRoleId: 21 },
+      { postKey: 'secretary', fromRoleId: null },
+      { postKey: 'service-overseer', fromRoleId: 34 },
     ])
   })
 
