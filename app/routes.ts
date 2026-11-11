@@ -102,20 +102,16 @@ export default [
       route('permissions/*', 'features/settings/routes/legacy.tsx', { id: 'settings-legacy-permissions' }),
       route('publishers', 'features/settings/routes/publishers.tsx'),
       route('congregation/*', 'features/settings/routes/legacy.tsx'),
+      ...prefix('templates', [
+        index('features/settings/routes/templates/list.tsx'),
+        route('new', 'features/settings/routes/templates/new.tsx'),
+        route(':templateId', 'features/settings/routes/templates/template.tsx'),
+        route(':templateId/reorder-parts', 'features/settings/routes/templates/reorder-parts.tsx'),
+      ]),
       ...prefix('congregation/presets', [
         index('features/settings/routes/congregation/preset-list.tsx'),
         route('new', 'features/settings/routes/congregation/presets/new.tsx'),
         route(':presetId/edit', 'features/settings/routes/congregation/presets/edit.tsx'),
-      ]),
-      ...prefix('congregation/templates', [
-        index('features/settings/routes/congregation/template-list.tsx'),
-        route('new', 'features/settings/routes/congregation/templates/new.tsx'),
-        ...prefix(':templateId', [
-          index('features/settings/routes/congregation/templates/view.tsx'),
-          route('edit', 'features/settings/routes/congregation/templates/edit.tsx'),
-          route('responsible', 'features/settings/routes/congregation/templates/responsible.tsx'),
-          route('reorder-parts', 'features/settings/routes/congregation/templates/reorder-parts.tsx'),
-        ]),
       ]),
       route('data', 'features/settings/routes/data/settings.tsx'),
       route('data/export', 'features/settings/routes/congregation/export.tsx'),

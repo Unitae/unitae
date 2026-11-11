@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
-    role: { findFirst: vi.fn() },
+    role: { findFirst: vi.fn(), findMany: vi.fn() },
     member: { findMany: vi.fn() },
     memberRoleAssignment: { findMany: vi.fn() },
     templatePartAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
@@ -25,6 +25,9 @@ const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
+  // Every role asked about belongs to the congregation, unless a case says otherwise.
+  vi.mocked(db.role.findMany).mockImplementation((async (args: { where: { id: { in: number[] } } }) =>
+    args.where.id.in.map(id => ({ id }))) as never)
 })
 
 describe('resolveEligibleUserIds', () => {
@@ -165,5 +168,36 @@ describe('getPartAssignmentAllowedRoleIds', () => {
     await getPartAssignmentAllowedRoleIds(db, 9, 'reader', 1)
 
     expect(vi.mocked(db.eventPartAllowedRole.findMany).mock.calls[0]?.[0]?.where?.asKind).toBe('reader')
+  })
+})
+
+describe('allowed roles — only the congregation’s own', () => {
+  // A foreign key does not see row-level security: a role id of another congregation would be accepted.
+  beforeEach(() => {
+    vi.mocked(db.role.findMany).mockResolvedValue([{ id: 3 }] as never)
+  })
+
+  it('drops a foreign role from a template part', async () => {
+    vi.mocked(db.templatePartAllowedRole.findMany).mockResolvedValue([] as never)
+
+    await setTemplatePartAllowedRoles(db, 10, 'speaker', [3, 77], 1)
+
+    expect(db.templatePartAllowedRole.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: [{ partId: 10, roleId: 3, asKind: 'speaker', congregationId: 1 }] }),
+    )
+    expect(db.role.findMany).toHaveBeenCalledWith({
+      where: { id: { in: [3, 77] }, congregationId: 1 },
+      select: { id: true },
+    })
+  })
+
+  it('drops a foreign role from a template service', async () => {
+    vi.mocked(db.templateServicePartAllowedRole.findMany).mockResolvedValue([] as never)
+
+    await setTemplateServicePartAllowedRoles(db, 20, [77, 3], 1)
+
+    expect(db.templateServicePartAllowedRole.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: [{ servicePartId: 20, roleId: 3, congregationId: 1 }] }),
+    )
   })
 })

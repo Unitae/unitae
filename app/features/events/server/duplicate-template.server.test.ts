@@ -8,7 +8,13 @@ vi.mock('~/shared/infra/db.server', () => ({
   },
 }))
 
+vi.mock('~/shared/domain/audit.server', () => ({
+  AuditAction: { TemplateDuplicated: 'event_template.duplicated' },
+  audit: vi.fn(),
+}))
+
 const { duplicateTemplate } = await import('./duplicate-template.server')
+const { audit } = await import('~/shared/domain/audit.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
@@ -19,7 +25,7 @@ describe('duplicateTemplate', () => {
   it('returns null when source template not found', async () => {
     vi.mocked(db.eventTemplate.findFirst).mockResolvedValue(null as never)
 
-    const result = await duplicateTemplate(db, 99, 1)
+    const result = await duplicateTemplate(db, 99, 1, 9)
 
     expect(result).toBeNull()
     expect(vi.mocked(db.eventTemplate.create)).not.toHaveBeenCalled()
@@ -37,7 +43,7 @@ describe('duplicateTemplate', () => {
       serviceParts: [],
     } as never)
 
-    const result = await duplicateTemplate(db, 1, 1)
+    const result = await duplicateTemplate(db, 1, 1, 9)
 
     expect(result).toBeNull()
     expect(vi.mocked(db.eventTemplate.create)).not.toHaveBeenCalled()
@@ -99,7 +105,7 @@ describe('duplicateTemplate', () => {
     vi.mocked(db.templatePartAllowedRole.createMany).mockResolvedValue({ count: 2 } as never)
     vi.mocked(db.templateServicePartAllowedRole.createMany).mockResolvedValue({ count: 1 } as never)
 
-    await duplicateTemplate(db, 5, 7)
+    await duplicateTemplate(db, 5, 7, 9)
 
     // Speaker role for the first part
     expect(vi.mocked(db.templatePartAllowedRole.createMany)).toHaveBeenCalledWith({
@@ -169,7 +175,7 @@ describe('duplicateTemplate', () => {
       serviceParts: [],
     } as never)
 
-    await duplicateTemplate(db, 5, 7)
+    await duplicateTemplate(db, 5, 7, 9)
 
     const createCall = vi.mocked(db.eventTemplate.create).mock.calls[0][0] as {
       data: { parts: { create: Array<{ speakerLabel: string | null; readerLabel: string | null }> } }
@@ -215,7 +221,7 @@ describe('duplicateTemplate and the part kind', () => {
     } as never)
     vi.mocked(db.eventTemplate.create).mockResolvedValue({ id: 6, parts: [], serviceParts: [] } as never)
 
-    await duplicateTemplate(db, 5, 1)
+    await duplicateTemplate(db, 5, 1, 9)
 
     const created = vi.mocked(db.eventTemplate.create).mock.calls[0]?.[0]?.data?.parts?.create as
       | Record<string, unknown>[]
@@ -251,11 +257,43 @@ describe('duplicateTemplate and the part kind', () => {
     } as never)
     vi.mocked(db.eventTemplate.create).mockResolvedValue({ id: 6, parts: [], serviceParts: [] } as never)
 
-    await duplicateTemplate(db, 5, 1)
+    await duplicateTemplate(db, 5, 1, 9)
 
     const created = vi.mocked(db.eventTemplate.create).mock.calls[0]?.[0]?.data?.parts?.create as
       | Record<string, unknown>[]
       | undefined
     expect(created?.[0]).toEqual(expect.objectContaining({ presetId: null }))
+  })
+
+  it('says in the audit log which template the copy comes from', async () => {
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({
+      id: 1,
+      key: 'meeting',
+      name: 'Reunion',
+      description: null,
+      weekDay: 3,
+      isRecurring: true,
+      startTime: '19:00',
+      endTime: '21:00',
+      parts: [],
+      serviceParts: [],
+    } as never)
+    vi.mocked(db.eventTemplate.create).mockResolvedValue({
+      id: 2,
+      name: 'Reunion (copie)',
+      parts: [],
+      serviceParts: [],
+    } as never)
+
+    await duplicateTemplate(db, 1, 1, 9)
+
+    expect(audit).toHaveBeenCalledWith({
+      action: 'event_template.duplicated',
+      congregationId: 1,
+      actorId: 9,
+      entityType: 'EventTemplate',
+      entityId: 2,
+      metadata: { from: 1 },
+    })
   })
 })

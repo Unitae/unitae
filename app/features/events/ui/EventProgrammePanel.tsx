@@ -70,6 +70,10 @@ interface EventProgrammePanelProps {
   onEditPart: (part: PartAssignment, trigger: HTMLElement) => void
   onDeletePart: (part: { id: number; name: string }) => void
   onDragEnd: (event: DragEndEvent) => void
+  /** Shown to someone who may only look: no adding, moving, editing or deleting. */
+  readOnly?: boolean
+  /** What the panel says while it holds no part. */
+  emptyHint?: string
 }
 
 export function EventProgrammePanel({
@@ -86,6 +90,8 @@ export function EventProgrammePanel({
   onEditPart,
   onDeletePart,
   onDragEnd,
+  readOnly = false,
+  emptyHint,
 }: EventProgrammePanelProps) {
   const sections = groupProgrammeParts(parts)
   const total = summarizeDurations(parts)
@@ -101,31 +107,37 @@ export function EventProgrammePanel({
     <Panel
       title={m.programs_edit_spiritual_program()}
       actions={
-        <>
-          {templates.length > 0 && (
-            <>
-              <Select value={selectedTemplateId} onValueChange={onTemplateChange}>
-                <SelectTrigger className="w-[220px] max-w-full" aria-label={m.programs_edit_select_template()}>
-                  <SelectValue placeholder={m.programs_edit_select_template()} />
-                </SelectTrigger>
-                <SelectContent>
-                  {templates.map(template => (
-                    <SelectItem key={template.id} value={template.id.toString()}>
-                      {template.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button variant="outline" onClick={onApplyTemplate} disabled={!selectedTemplateId || isApplyingTemplate}>
-                {m.programs_edit_apply_button()}
-              </Button>
-            </>
-          )}
-          <Button onClick={event => onAddPart(event.currentTarget)}>
-            <Plus />
-            {m.programs_edit_add_part_button()}
-          </Button>
-        </>
+        !readOnly && (
+          <>
+            {templates.length > 0 && (
+              <>
+                <Select value={selectedTemplateId} onValueChange={onTemplateChange}>
+                  <SelectTrigger className="w-[220px] max-w-full" aria-label={m.programs_edit_select_template()}>
+                    <SelectValue placeholder={m.programs_edit_select_template()} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.map(template => (
+                      <SelectItem key={template.id} value={template.id.toString()}>
+                        {template.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  onClick={onApplyTemplate}
+                  disabled={!selectedTemplateId || isApplyingTemplate}
+                >
+                  {m.programs_edit_apply_button()}
+                </Button>
+              </>
+            )}
+            <Button onClick={event => onAddPart(event.currentTarget)}>
+              <Plus />
+              {m.programs_edit_add_part_button()}
+            </Button>
+          </>
+        )
       }
       footer={
         parts.length > 0 && (
@@ -141,7 +153,9 @@ export function EventProgrammePanel({
       }
     >
       {parts.length === 0 ? (
-        <p className="px-4.5 py-6 text-muted-foreground text-sm">{m.programs_edit_apply_template_hint()}</p>
+        <p className="px-4.5 py-6 text-muted-foreground text-sm">
+          {emptyHint ?? m.programs_edit_apply_template_hint()}
+        </p>
       ) : (
         <>
           <div
@@ -175,7 +189,8 @@ export function EventProgrammePanel({
                             kind={part.presetId != null ? presetNames.get(part.presetId) : undefined}
                             indented={named}
                             selected={part.id === selectedId}
-                            dragLocked={dragLocked}
+                            dragLocked={dragLocked || readOnly}
+                            readOnly={readOnly}
                             onEdit={trigger => onEditPart(part, trigger)}
                             onDelete={() => onDeletePart({ id: part.id, name: part.name })}
                           />
@@ -200,11 +215,12 @@ interface PartRowProps {
   indented: boolean
   selected: boolean
   dragLocked: boolean
+  readOnly: boolean
   onEdit: (trigger: HTMLElement) => void
   onDelete: () => void
 }
 
-function PartRow({ part, kind, indented, selected, dragLocked, onEdit, onDelete }: PartRowProps) {
+function PartRow({ part, kind, indented, selected, dragLocked, readOnly, onEdit, onDelete }: PartRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: part.id,
     disabled: dragLocked,
@@ -224,20 +240,24 @@ function PartRow({ part, kind, indented, selected, dragLocked, onEdit, onDelete 
         isDragging && 'z-10 opacity-60',
       )}
     >
-      <button
-        type="button"
-        aria-label={m.programs_edit_move_item({ name: part.name })}
-        title={dragLocked ? m.programs_edit_move_locked() : undefined}
-        className={cn(
-          'flex-none touch-none rounded text-faint outline-none focus-visible:ring-2 focus-visible:ring-ring',
-          dragLocked ? 'cursor-not-allowed' : 'cursor-grab',
-          ROW_REVEAL,
-        )}
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical className="size-4" />
-      </button>
+      {readOnly ? (
+        <span className="w-4 flex-none" />
+      ) : (
+        <button
+          type="button"
+          aria-label={m.programs_edit_move_item({ name: part.name })}
+          title={dragLocked ? m.programs_edit_move_locked() : undefined}
+          className={cn(
+            'flex-none touch-none rounded text-faint outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            dragLocked ? 'cursor-not-allowed' : 'cursor-grab',
+            ROW_REVEAL,
+          )}
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="size-4" />
+        </button>
+      )}
       <span className="min-w-0 flex-1 text-sm">
         {part.name}
         {showKind && <span className="text-faint"> · {kind}</span>}
@@ -257,7 +277,13 @@ function PartRow({ part, kind, indented, selected, dragLocked, onEdit, onDelete 
           </>
         )}
       </span>
-      <span className={cn('flex w-16 flex-none justify-end gap-0.5', selected ? 'opacity-100' : ROW_REVEAL)}>
+      <span
+        className={cn(
+          'flex w-16 flex-none justify-end gap-0.5',
+          readOnly && 'invisible',
+          selected ? 'opacity-100' : ROW_REVEAL,
+        )}
+      >
         <Button
           variant="ghost"
           size="icon-sm"

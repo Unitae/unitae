@@ -4,6 +4,11 @@ const MOVED: [RegExp, (match: RegExpMatchArray) => string][] = [
   [/^\/settings\/congregation\/?$/, () => '/settings/publishers'],
   [/^\/settings\/congregation\/pioneer-goals\/?$/, () => '/settings/publishers'],
   [/^\/settings\/territories\/card-overlays\/?$/, () => '/settings/map'],
+  [/^\/settings\/congregation\/templates(\/new)?\/?$/, () => '/settings/templates'],
+  [
+    /^\/settings\/congregation\/templates\/(\d+)(\/(edit|responsible))?\/?$/,
+    match => `/settings/templates/${match[1]}`,
+  ],
   [/^\/settings\/users\/(\d+)\/edit\/?$/, match => `/settings/users/${match[1]}`],
   [/^\/settings\/permissions\/?$/, () => '/settings/roles'],
   [/^\/settings\/permissions\/(\d+)\/edit\/?$/, match => `/settings/roles?role=${match[1]}`],

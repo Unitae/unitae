@@ -53,6 +53,7 @@ export async function updateTemplate(
     endTime?: string
   },
   congregationId: number,
+  actorId: number,
 ) {
   // System templates (day-off, freeform) back domain concepts referenced by
   // key. Renaming, restructuring, or rescheduling them would silently break
@@ -61,21 +62,48 @@ export async function updateTemplate(
   // belt-and-suspenders check on the writer.
   const existing = await db.eventTemplate.findFirst({
     where: { id: templateId, congregationId },
-    select: { key: true },
+    select: {
+      key: true,
+      name: true,
+      weekDay: true,
+      isRecurring: true,
+      description: true,
+      color: true,
+      startTime: true,
+      endTime: true,
+    },
   })
   const scoped = existing != null && isSystemTemplate(existing.key) ? { color: data.color } : data
-  if (Object.values(scoped).every(v => v === undefined)) return null
+  // Only what differs from the saved template is written and logged: a save that changes nothing leaves no trace.
+  const changed = Object.fromEntries(
+    Object.entries(scoped).filter(
+      ([field, value]) =>
+        value !== undefined && (existing == null || existing[field as keyof typeof existing] !== value),
+    ),
+  ) as typeof scoped
+  if (Object.keys(changed).length === 0) return null
 
-  return db.eventTemplate.update({
+  const updated = await db.eventTemplate.update({
     where: {
       id_congregationId: { id: templateId, congregationId },
     },
     data: {
-      ...scoped,
-      ...(scoped.name != null ? { name: sanitizeText(scoped.name) } : {}),
-      ...(scoped.description != null ? { description: sanitizeText(scoped.description) } : {}),
+      ...changed,
+      ...(changed.name != null ? { name: sanitizeText(changed.name) } : {}),
+      ...('description' in changed && changed.description != null
+        ? { description: sanitizeText(changed.description) }
+        : {}),
     },
   })
+  audit({
+    action: AuditAction.TemplateUpdated,
+    congregationId,
+    actorId,
+    entityType: 'EventTemplate',
+    entityId: templateId,
+    metadata: { fields: Object.keys(changed) },
+  })
+  return updated
 }
 
 export async function upsertTemplatePart(
@@ -291,40 +319,4 @@ export async function isTemplateResponsible(
   return db.templateResponsible.findFirst({
     where: { templateId, congregationId, roleId: { in: roleIds }, scope: { in: scopesCovering(scope) } },
   })
-}
-
-export type DeleteTemplateResult =
-  | { ok: true; name: string }
-  | { ok: false; reason: 'not-found' | 'system' }
-  | { ok: false; reason: 'in-use'; eventCount: number }
-
-export async function deleteTemplate(
-  db: TransactionClient,
-  templateId: number,
-  congregationId: number,
-): Promise<DeleteTemplateResult> {
-  const template = await db.eventTemplate.findFirst({
-    where: { id: templateId, congregationId },
-    select: { key: true, name: true, _count: { select: { events: true } } },
-  })
-  if (!template) return { ok: false, reason: 'not-found' }
-
-  // System templates (day-off, freeform) back domain concepts looked up by
-  // key at runtime — createDayOff / createFreeformEvent would break if the row
-  // disappeared. Same guard as updateTemplate / duplicateTemplate.
-  if (isSystemTemplate(template.key)) return { ok: false, reason: 'system' }
-
-  // Event.templateId is ON DELETE SET NULL: deleting a template still linked to
-  // events would orphan them (templateId → NULL), and downstream queries that
-  // filter on template.key silently drop null-template rows — the exact bug the
-  // 20260720* migration series had to repair. Refuse rather than orphan.
-  if (template._count.events > 0) return { ok: false, reason: 'in-use', eventCount: template._count.events }
-
-  // parts, serviceParts, responsibles and their allowed-role rows all cascade
-  // (onDelete: Cascade) from the template FK, so the single delete is enough.
-  await db.eventTemplate.delete({
-    where: { id_congregationId: { id: templateId, congregationId } },
-  })
-
-  return { ok: true, name: template.name }
 }

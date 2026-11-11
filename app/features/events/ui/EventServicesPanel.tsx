@@ -21,6 +21,8 @@ interface EventServicesPanelProps {
   onAddService: (trigger: HTMLElement) => void
   onEditService: (service: ServicePartAssignment, trigger: HTMLElement) => void
   onDeleteService: (service: { id: number; name: string }) => void
+  /** Shown to someone who may only look: no adding, editing or deleting. */
+  readOnly?: boolean
 }
 
 /** The event's services (sound, attendants…), each with the roles that may do it. */
@@ -31,15 +33,18 @@ export function EventServicesPanel({
   onAddService,
   onEditService,
   onDeleteService,
+  readOnly = false,
 }: EventServicesPanelProps) {
   return (
     <Panel
       title={m.programs_edit_services_title()}
       actions={
-        <Button variant="outline" onClick={event => onAddService(event.currentTarget)}>
-          <Plus />
-          {m.programs_edit_add_service_button()}
-        </Button>
+        !readOnly && (
+          <Button variant="outline" onClick={event => onAddService(event.currentTarget)}>
+            <Plus />
+            {m.programs_edit_add_service_button()}
+          </Button>
+        )
       }
     >
       {services.length === 0 ? (
@@ -63,7 +68,9 @@ export function EventServicesPanel({
                   ? m.programs_edit_publisher_default_chip()
                   : allowed.map(role => getRoleDisplayName(role)).join(', ')}
               </span>
-              <span className={cn('flex flex-none gap-0.5', selected ? 'opacity-100' : ROW_REVEAL)}>
+              <span
+                className={cn('flex flex-none gap-0.5', readOnly && 'hidden', selected ? 'opacity-100' : ROW_REVEAL)}
+              >
                 <Button
                   variant="ghost"
                   size="icon-sm"

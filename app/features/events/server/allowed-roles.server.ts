@@ -111,6 +111,17 @@ function diffRoleIds(previous: number[], desired: number[]): DiffResult {
   }
 }
 
+/**
+ * The ids among `roleIds` that are roles of the congregation. A foreign key does not see row-level security, so a role
+ * id of another congregation posted in a form would otherwise be stored.
+ */
+async function ownRoleIds(db: TransactionClient, roleIds: number[], congregationId: number): Promise<number[]> {
+  if (roleIds.length === 0) return []
+  const own = await db.role.findMany({ where: { id: { in: roleIds }, congregationId }, select: { id: true } })
+  const ids = new Set(own.map(role => role.id))
+  return roleIds.filter(id => ids.has(id))
+}
+
 export async function setTemplatePartAllowedRoles(
   db: TransactionClient,
   partId: number,
@@ -118,8 +129,9 @@ export async function setTemplatePartAllowedRoles(
   desiredRoleIds: number[],
   congregationId: number,
 ): Promise<DiffResult> {
+  const desired = await ownRoleIds(db, desiredRoleIds, congregationId)
   const previous = await getTemplatePartAllowedRoleIds(db, partId, asKind, congregationId)
-  const diff = diffRoleIds(previous, desiredRoleIds)
+  const diff = diffRoleIds(previous, desired)
   if (diff.added.length === 0 && diff.removed.length === 0) return diff
 
   if (diff.removed.length > 0) {
@@ -143,8 +155,9 @@ export async function setPartAssignmentAllowedRoles(
   desiredRoleIds: number[],
   congregationId: number,
 ): Promise<DiffResult> {
+  const desired = await ownRoleIds(db, desiredRoleIds, congregationId)
   const previous = await getPartAssignmentAllowedRoleIds(db, eventPartId, asKind, congregationId)
-  const diff = diffRoleIds(previous, desiredRoleIds)
+  const diff = diffRoleIds(previous, desired)
   if (diff.added.length === 0 && diff.removed.length === 0) return diff
 
   if (diff.removed.length > 0) {
@@ -167,8 +180,9 @@ export async function setTemplateServicePartAllowedRoles(
   desiredRoleIds: number[],
   congregationId: number,
 ): Promise<DiffResult> {
+  const desired = await ownRoleIds(db, desiredRoleIds, congregationId)
   const previous = await getTemplateServicePartAllowedRoleIds(db, servicePartId, congregationId)
-  const diff = diffRoleIds(previous, desiredRoleIds)
+  const diff = diffRoleIds(previous, desired)
   if (diff.added.length === 0 && diff.removed.length === 0) return diff
 
   if (diff.removed.length > 0) {
@@ -191,8 +205,9 @@ export async function setServicePartAssignmentAllowedRoles(
   desiredRoleIds: number[],
   congregationId: number,
 ): Promise<DiffResult> {
+  const desired = await ownRoleIds(db, desiredRoleIds, congregationId)
   const previous = await getServicePartAssignmentAllowedRoleIds(db, eventServicePartId, congregationId)
-  const diff = diffRoleIds(previous, desiredRoleIds)
+  const diff = diffRoleIds(previous, desired)
   if (diff.added.length === 0 && diff.removed.length === 0) return diff
 
   if (diff.removed.length > 0) {

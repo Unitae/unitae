@@ -9,14 +9,14 @@ import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/reorder-parts'
 
 export function loader({ params }: Route.LoaderArgs) {
-  const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
-  throw redirect(`/settings/congregation/templates/${templateId}`)
+  const templateId = requireParamId(params.templateId, '/settings/templates')
+  throw redirect(`/settings/templates/${templateId}`)
 }
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
+  const templateId = requireParamId(params.templateId, '/settings/templates')
 
   const { orderedIds } = (await request.json()) as { orderedIds: number[] }
   if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
@@ -27,10 +27,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const { congregationId } = currentUser
     const responsible = await isTemplateResponsible(db, templateId, currentUser.id, congregationId)
     if (!permissions.has(Permission.CanManageProgramTemplates) && !responsible) {
-      throw redirect('/settings/congregation/templates')
+      throw redirect('/settings/templates')
     }
 
-    // Mirror the guard on /edit — system templates have no parts today, but
+    // Mirror the template page's guard — system templates have no parts today, but
     // if that ever changes we don't want a stale endpoint to be the loose
     // thread.
     const target = await db.eventTemplate.findFirst({
