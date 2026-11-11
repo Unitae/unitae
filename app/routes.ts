@@ -110,12 +110,8 @@ export default [
       ]),
       route('part-types', 'features/settings/routes/part-types.tsx'),
       route('data', 'features/settings/routes/data/settings.tsx'),
-      route('data/export', 'features/settings/routes/congregation/export.tsx'),
-      route('data/export/:jobId/status', 'features/settings/routes/congregation/export-status.tsx'),
       route('data/export/:jobId/download', 'features/settings/routes/congregation/export-download.tsx'),
-      route('data/import', 'features/settings/routes/congregation/import.tsx'),
-      route('data/import/confirm', 'features/settings/routes/congregation/import-confirm.tsx'),
-      route('data/import/:jobId/status', 'features/settings/routes/congregation/import-status.tsx'),
+      route('data/*', 'features/settings/routes/legacy.tsx', { id: 'settings-legacy-data' }),
     ]),
     ...prefix('congregation/roles', [
       index('features/congregation/routes/roles/role-list.tsx'),

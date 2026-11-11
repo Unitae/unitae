@@ -16,6 +16,10 @@ describe('currentSettingsPath', () => {
     ['/settings/congregation/templates/4/responsible', '/settings/templates/4'],
     ['/settings/users/12/edit', '/settings/users/12'],
     ['/settings/permissions', '/settings/roles'],
+    ['/settings/data/export', '/settings/data?'],
+    ['/settings/data/import/confirm', '/settings/data?'],
+    ['/settings/data/export/abc-1/status', '/settings/data?export=abc-1'],
+    ['/settings/data/import/abc-1/status', '/settings/data?importJob=abc-1'],
     ['/settings/permissions/7/edit', '/settings/roles?role=7'],
   ])('leads %s to %s', (from, to) => {
     expect(currentSettingsPath(from)).toBe(to)

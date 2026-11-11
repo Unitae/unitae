@@ -12,6 +12,10 @@ const MOVED: [RegExp, (match: RegExpMatchArray) => string][] = [
   ],
   [/^\/settings\/users\/(\d+)\/edit\/?$/, match => `/settings/users/${match[1]}`],
   [/^\/settings\/permissions\/?$/, () => '/settings/roles'],
+  [/^\/settings\/data\/export\/([\w-]+)\/status\/?$/, match => `/settings/data?export=${match[1]}`],
+  [/^\/settings\/data\/import\/([\w-]+)\/status\/?$/, match => `/settings/data?importJob=${match[1]}`],
+  // The old confirmation page carried the archive's summary in its query: it is dropped, never passed on.
+  [/^\/settings\/data\/(export|import)(\/confirm)?\/?$/, () => '/settings/data?'],
   [/^\/settings\/permissions\/(\d+)\/edit\/?$/, match => `/settings/roles?role=${match[1]}`],
 ]
 

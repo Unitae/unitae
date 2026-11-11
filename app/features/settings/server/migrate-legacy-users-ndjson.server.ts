@@ -1,4 +1,5 @@
 import type JsZip from 'jszip'
+import * as m from '~/i18n/paraglide/messages'
 import { readNdjsonFile, writeNdjsonFile } from './ndjson-archive'
 
 interface LegacyUserRow {
@@ -130,12 +131,15 @@ export async function migrateLegacyUsersNdjson(zip: JsZip, manifestVersion: stri
   // during the regular import path and recomputes them from the flags.
 
   const warnings: string[] = [
-    `Archive v${manifestVersion}: ${legacy.length} legacy user row(s) split into ${members.length} member(s) and ${accounts.length} account(s) on the fly.`,
+    m.import_warning_legacy_users({
+      version: `v${manifestVersion}`,
+      rows: String(legacy.length),
+      members: String(members.length),
+      accounts: String(accounts.length),
+    }),
   ]
   if (placeholderDropped > 0) {
-    warnings.push(
-      `${placeholderDropped} placeholder-email account(s) (legacy *@placeholder.unitae.app) skipped — they were never real logins.`,
-    )
+    warnings.push(m.import_warning_placeholder_accounts({ count: String(placeholderDropped) }))
   }
   return warnings
 }

@@ -118,7 +118,7 @@ describe('migrateLegacyUsersNdjson', () => {
     ])
 
     const warnings = await migrateLegacyUsersNdjson(zip, '1.1')
-    expect(warnings.some(w => w.includes('placeholder-email'))).toBe(true)
+    expect(warnings.some(w => w.includes('placeholder.unitae.app'))).toBe(true)
 
     const members = await readNdjson<{ id: number }>(zip, 'members')
     const accounts = await readNdjson<{ id: number }>(zip, 'user-accounts')
