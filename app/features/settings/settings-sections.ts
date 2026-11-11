@@ -84,7 +84,7 @@ const CATALOG: CatalogEntry[] = [
     key: 'data',
     group: 'data',
     href: '/settings/data',
-    // An import replaces the congregation's data: the import page asks for the administrator on top of its right.
+    // An import restores roles, rights and accounts, so it can grant anything: the page asks for the administrator too.
     opens: can =>
       can(Permission.CanExportCongregationData) ||
       (can(Permission.CanImportCongregationData) && can(Permission.CanDoAnything)),

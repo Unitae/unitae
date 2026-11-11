@@ -80,7 +80,7 @@ Permission required: *Can choose which permissions a role grants*.
 
 ## Import and export
 
-A full backup of the congregation in a `.unitae` file, and its restoration: useful for moving between Unitae instances, taking a manual backup, or restoring data after an incident. An export can include the uploaded files. Past exports stay available for download. An import first analyses the file and shows what it holds, then replaces the congregation's data once confirmed. Progress shows on the page while a job runs.
+A full backup of the congregation in a `.unitae` file, and its restoration: useful for moving between Unitae instances, taking a manual backup, or restoring data after an incident. An export can include the uploaded files. Past exports stay available for download. An import first analyses the file and shows what it holds, then brings it into the congregation once confirmed: accounts and territories already there are updated, the rest is added. Progress shows on the page while a job runs.
 
 See [Data Transfer](data-transfer.md) for what's included and the import-conflict workflow.
 
