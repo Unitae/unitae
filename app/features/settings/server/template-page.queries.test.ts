@@ -43,23 +43,32 @@ describe('getTemplatePage', () => {
   it('is null for a template outside the congregation', async () => {
     vi.mocked(getTemplateById).mockResolvedValue(null)
 
-    expect(await getTemplatePage(db as never, 12, 3)).toBeNull()
+    expect(await getTemplatePage(db as never, 12, 3, { withResponsibles: true })).toBeNull()
   })
 
   it('gives each part and service the roles allowed on it', async () => {
-    const page = await getTemplatePage(db as never, 12, 3)
+    const page = await getTemplatePage(db as never, 12, 3, { withResponsibles: true })
 
     expect(page?.template.parts[0]).toMatchObject({ allowedSpeakerRoleIds: [30], allowedReaderRoleIds: [31] })
     expect(page?.template.serviceParts[0]).toMatchObject({ allowedRoleIds: [40] })
   })
 
   it('names who runs each part of the template today, and how many programmes use it', async () => {
-    const page = await getTemplatePage(db as never, 12, 3)
+    const page = await getTemplatePage(db as never, 12, 3, { withResponsibles: true })
 
     expect(page?.responsibles).toEqual({
       programme: { roleId: 5, holders: ['Henri MOREAU'] },
       service: { roleId: null, holders: [] },
+      roles: [],
     })
     expect(page?.eventCount).toBe(42)
+  })
+
+  it('leaves out who runs the template, and who holds those roles, for anyone but a template manager', async () => {
+    const page = await getTemplatePage(db as never, 12, 3, { withResponsibles: false })
+
+    expect(page?.responsibles).toBeNull()
+    expect(findMembersWithAnyRole).not.toHaveBeenCalled()
+    expect(listDelegatableRoles).not.toHaveBeenCalled()
   })
 })
