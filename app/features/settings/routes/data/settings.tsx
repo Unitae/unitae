@@ -74,11 +74,15 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 }
 
 export function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  // Each intent checks its own right; a caller holding neither is turned away before the form is read.
+  if (!permissions.has(Permission.CanExportCongregationData) && !permissions.has(Permission.CanImportCongregationData))
+    throw redirect('/settings')
   const currentUser = context.get(currentAccountContext)
   return handleDataAction(request, {
     id: currentUser.id,
     congregationId: currentUser.congregationId,
-    ...rightsOf(context.get(permissionsContext)),
+    ...rightsOf(permissions),
   })
 }
 
