@@ -45,7 +45,7 @@ export const meta: Route.MetaFunction = () => {
 // Where to go once the record is created, or on "back": the dashboard's setup checklist sends an
 // admin here for their own record and wants them back, other callers land on the account's page.
 function returnTarget(request: Request, accountId: number): string {
-  return safeRedirectUrl(new URL(request.url).searchParams.get('returnTo'), `/settings/users/${accountId}/edit`)
+  return safeRedirectUrl(new URL(request.url).searchParams.get('returnTo'), `/settings/users/${accountId}`)
 }
 
 function successMessage(isSelf: boolean, email: string): string {
@@ -69,7 +69,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       select: { id: true, email: true, firstname: true, lastname: true, memberId: true },
     })
     if (!account) throw redirect('/settings/users')
-    if (account.memberId != null) throw redirect(`/settings/users/${accountId}/edit`)
+    if (account.memberId != null) throw redirect(`/settings/users/${accountId}`)
 
     return { account, isSelf: account.id === currentUser.id, returnTo: returnTarget(request, accountId) }
   })
@@ -204,7 +204,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       if (error instanceof NotFoundError) throw redirect('/settings/users')
       if (error instanceof ConflictError) {
         session.flash('error', m.settings_user_add_to_congregation_error_conflict())
-        return redirect(`/settings/users/${accountId}/edit`, {
+        return redirect(`/settings/users/${accountId}`, {
           headers: { 'Set-Cookie': await commitSession(session) },
         })
       }

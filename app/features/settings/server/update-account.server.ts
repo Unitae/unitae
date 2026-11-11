@@ -6,8 +6,9 @@ import type { ActorPermissions } from '~/shared/domain/role-grant-limits.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export interface UpdateAccountParams {
-  firstname: string
-  lastname: string
+  /** Absent: the name stays as it is (a linked account's is its record's, corrected from the record). */
+  firstname?: string
+  lastname?: string
   email: string
   active: boolean
 }
@@ -39,6 +40,7 @@ export async function updateAccount(
   })
   const hasLinkedMember = existing?.memberId != null
   const deactivating = !params.active && existing?.active !== false
+  const renaming = params.firstname !== undefined && params.lastname !== undefined
 
   // An admin's email and active flag decide who can sign in as an admin: an admin's call alone. And nobody switches
   // their own account off.
@@ -57,14 +59,17 @@ export async function updateAccount(
     },
     data: {
       // Display name lives on Member when linked; on UserAccount otherwise.
-      firstname: hasLinkedMember ? null : params.firstname,
-      lastname: hasLinkedMember ? null : params.lastname,
+      ...(hasLinkedMember
+        ? { firstname: null, lastname: null }
+        : renaming
+          ? { firstname: params.firstname, lastname: params.lastname }
+          : {}),
       email: params.email.toLocaleLowerCase(),
       active: params.active,
     },
   })
 
-  if (existing?.memberId != null) {
+  if (existing?.memberId != null && params.firstname !== undefined && params.lastname !== undefined) {
     await memberAggregate.updateAccountName(
       db,
       existing.memberId,

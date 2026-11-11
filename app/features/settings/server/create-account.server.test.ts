@@ -92,3 +92,25 @@ describe('createAccount', () => {
     expect(result.emailSent).toBe(false)
   })
 })
+
+describe('createAccount — the address', () => {
+  it('looks the address up in lower case, as it is stored', async () => {
+    mockDb.userAccount.findUnique.mockResolvedValue({ id: 3 })
+
+    await expect(
+      createAccount(mockDb as never, baseCongregation, 1, { ...baseParams, email: 'Sophie@Example.com' }, () => null),
+    ).rejects.toBeInstanceOf(ConflictError)
+    expect(mockDb.userAccount.findUnique).toHaveBeenCalledWith({ where: { email: 'sophie@example.com' } })
+  })
+
+  it('refuses an address another congregation already uses as a conflict, not a crash', async () => {
+    // Row-level security hides the other congregation's account from the lookup; the unique index still refuses it.
+    mockDb.userAccount.findUnique.mockResolvedValue(null)
+    mockDb.userAccount.create.mockRejectedValue(Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }))
+
+    await expect(createAccount(mockDb as never, baseCongregation, 1, baseParams, () => null)).rejects.toBeInstanceOf(
+      ConflictError,
+    )
+    expect(mockCreatePasswordResetToken).not.toHaveBeenCalled()
+  })
+})

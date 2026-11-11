@@ -82,7 +82,8 @@ export default [
         index('features/settings/routes/users/user-list.tsx'),
         route('new', 'features/settings/routes/users/new-user.tsx'),
         ...prefix(':accountId', [
-          route('edit', 'features/settings/routes/users/edit-user.tsx'),
+          index('features/settings/routes/users/account.tsx'),
+          route('edit', 'features/settings/routes/legacy.tsx', { id: 'settings-legacy-user-edit' }),
           route('export-data', 'features/settings/routes/users/export-data.tsx'),
           route('anonymize', 'features/settings/routes/users/anonymize.tsx'),
           route('make-publisher', 'features/settings/routes/users/make-publisher.tsx'),

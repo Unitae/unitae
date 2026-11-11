@@ -7,6 +7,7 @@ describe('currentSettingsPath', () => {
     ['/settings/congregation/', '/settings/publishers'],
     ['/settings/congregation/pioneer-goals', '/settings/publishers'],
     ['/settings/territories/card-overlays', '/settings/map'],
+    ['/settings/users/12/edit', '/settings/users/12'],
   ])('leads %s to %s', (from, to) => {
     expect(currentSettingsPath(from)).toBe(to)
   })
