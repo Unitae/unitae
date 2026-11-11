@@ -332,6 +332,10 @@ beforeAll(async () => {
     await tx.userRoleAssignment.create({
       data: { userId: alice.id, roleId: customRole.id, congregationId: sourceId },
     })
+    // Since 2.12 a role given by hand sits on the record, with its seat: Bob is the custom role's adjoint.
+    await tx.memberRoleAssignment.create({
+      data: { memberId: bobMember.id, roleId: customRole.id, congregationId: sourceId, kind: 'deputy' },
+    })
 
     const serviceRole = await tx.role.create({
       data: {
@@ -563,6 +567,7 @@ async function importFromZip(buffer: Buffer, congregationId: number): Promise<vo
     await mod.importMembers(zip, db, idMap, congregationId)
     await mod.importUserAccounts(zip, db, idMap, congregationId)
     await mod.importUserRoleAssignments(zip, db, idMap, congregationId)
+    await mod.importMemberRoleAssignments(zip, db, idMap, congregationId)
     await mod.importCongregationUserPermissions(zip, db, idMap, congregationId)
     await mod.importPublisherGroups(zip, db, idMap, congregationId)
     await mod.updateMemberPublisherGroups(zip, db, idMap, congregationId)
@@ -793,9 +798,12 @@ describe('Export/Import round-trip', () => {
       expect(restoredRole).not.toBeNull()
       const restoredGrants = await tx.rolePermission.findMany({ where: { roleId: restoredRole?.id } })
       expect(restoredGrants.map(g => g.permissionId)).toEqual([adminPermissionId])
-      const assignments = await tx.userRoleAssignment.findMany({ where: { roleId: restoredRole?.id } })
+      // A role given by hand belongs to the person: the archive held it on Alice's login, the restore puts it on her
+      // record, where it still grants her account its permission.
+      const assignments = await tx.memberRoleAssignment.findMany({ where: { roleId: restoredRole?.id } })
       expect(assignments).toHaveLength(1)
-      expect(assignments[0].userId).toBe(alice.id)
+      expect(assignments[0].memberId).toBe(alice.memberId)
+      expect(await tx.userRoleAssignment.count({ where: { roleId: restoredRole?.id } })).toBe(0)
 
       // Settings
       const settings = await tx.setting.findMany({})
@@ -910,12 +918,19 @@ describe('Export/Import round-trip', () => {
       expect(rolePerms).toHaveLength(1)
       expect(rolePerms[0].permissionId).toBe(adminPermissionId)
 
-      // UserRoleAssignment — Alice is a member of the custom role on the target.
-      const customRoleAssignments = await tx.userRoleAssignment.findMany({
+      // Alice holds the custom role on the target — on her record, where a role given by hand belongs.
+      // Bob's seat, held on his record in the archive, comes back on his record with its kind.
+      const customRoleAssignments = await tx.memberRoleAssignment.findMany({
         where: { roleId: customRoleOnTarget?.id },
+        select: { memberId: true, kind: true },
       })
-      expect(customRoleAssignments).toHaveLength(1)
-      expect(customRoleAssignments[0].userId).toBe(alice.id)
+      expect(customRoleAssignments).toHaveLength(2)
+      expect(customRoleAssignments).toEqual(
+        expect.arrayContaining([
+          { memberId: alice.memberId, kind: 'member' },
+          { memberId: bob.memberId, kind: 'deputy' },
+        ]),
+      )
 
       // ExternalSpeaker remapped onto the part assignment.
       const speakers = await tx.externalSpeaker.findMany({})

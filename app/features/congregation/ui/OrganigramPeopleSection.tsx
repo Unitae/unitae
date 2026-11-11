@@ -135,12 +135,10 @@ function HolderRow({
 export function PeopleSection({
   node,
   people,
-  peopleWithoutAccount,
   nonElderIds,
 }: {
   node: PanelNode
   people: PersonOption[]
-  peopleWithoutAccount: number[]
   nonElderIds: number[]
 }) {
   const single = node.isSinglePerson
@@ -204,15 +202,15 @@ export function PeopleSection({
                   : 'Nommer le titulaire'}
           </Label>
           {/* Searchable rather than a plain select: ~80 candidates is far past the point where
-                scrolling a list is workable, and members with no login must show why. */}
+                scrolling a list is workable, and a refused person must show why. */}
           <PersonDropdown
             id={`add-person-${node.id}`}
             name="memberId"
             people={people}
             allowNone={false}
             placeholder="Chercher une personne…"
-            disabledIds={elderOnly ? nonElderIds : peopleWithoutAccount}
-            disabledReason={id => (elderOnly && !peopleWithoutAccount.includes(id) ? 'Pas ancien' : 'Pas de compte')}
+            disabledIds={elderOnly ? nonElderIds : []}
+            disabledReason={() => 'Pas ancien'}
           />
           <div className="flex gap-2">
             <select

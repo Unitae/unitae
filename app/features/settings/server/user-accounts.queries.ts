@@ -64,20 +64,16 @@ export async function listUserAccounts(
       password: true,
       twoFactorEnabledAt: true,
       memberId: true,
-      member: { select: { firstname: true, lastname: true } },
+      member: {
+        select: {
+          firstname: true,
+          lastname: true,
+          roleAssignments: { select: { role: { select: { id: true, key: true, name: true } } } },
+        },
+      },
       roleAssignments: { select: { role: { select: { id: true, key: true, name: true } } } },
     },
   })
-
-  const memberIds = accounts.flatMap(account => (account.memberId != null ? [account.memberId] : []))
-  const recordRoles = memberIds.length
-    ? await db.memberRoleAssignment.findMany({
-        where: { memberId: { in: memberIds }, congregationId },
-        select: { memberId: true },
-      })
-    : []
-  const recordRoleCount = new Map<number, number>()
-  for (const { memberId } of recordRoles) recordRoleCount.set(memberId, (recordRoleCount.get(memberId) ?? 0) + 1)
 
   const locale = getLocale()
   const byName = (a: UserAccountRow, b: UserAccountRow) =>
@@ -98,8 +94,11 @@ export async function listUserAccounts(
         passwordSet: isPasswordSet(account.password),
       }),
       twoFactor: account.twoFactorEnabledAt != null,
-      roles: account.roleAssignments.map(assignment => assignment.role),
-      recordRoleCount: account.memberId != null ? (recordRoleCount.get(account.memberId) ?? 0) : 0,
+      // Roles given by hand, on the login or the record; the record's identity roles are only counted.
+      roles: [...account.roleAssignments, ...(account.member?.roleAssignments ?? [])]
+        .map(assignment => assignment.role)
+        .filter(role => !isIdentityRoleKey(role.key)),
+      recordRoleCount: (account.member?.roleAssignments ?? []).filter(a => isIdentityRoleKey(a.role.key)).length,
     }))
     .sort(byName)
 }
@@ -133,7 +132,7 @@ export interface AccountPage {
   status: AccountStatus
   /** The roles an account can be given, the administrator first, then by name. */
   roles: AccountPageRole[]
-  /** The roles its record gives it (member, publisher, sister…), which follow the record. */
+  /** The identity roles of its record (member, publisher, sister…), which follow the record's flags. */
   recordRoles: UserAccountRole[]
 }
 
@@ -192,7 +191,11 @@ export async function getAccountPage(
     },
   })
 
-  const own = new Set(account.roleAssignments.map(assignment => assignment.roleId))
+  // The roles it holds: given to the record (where they live when there is one) or to the login.
+  const own = new Set([
+    ...account.roleAssignments.map(assignment => assignment.roleId),
+    ...(account.member?.roleAssignments ?? []).map(assignment => assignment.role.id),
+  ])
   const actorIsAdmin = actorPermissions.has(Permission.CanDoAnything)
   const locale = getLocale()
   const pageRoles: AccountPageRole[] = roles

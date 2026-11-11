@@ -159,33 +159,6 @@ export async function importUserAccounts(
   }
 }
 
-export async function importUserRoleAssignments(
-  zip: JsZip,
-  db: TransactionClient,
-  idMap: EntityIdMap,
-  congregationId: number,
-): Promise<void> {
-  // `kind` decides who leads a service on the organigram. Absent from archives taken before
-  // seats existed — those rows were all plain members, which is what the default restores.
-  const records = await readNdjsonFile<{ userId: number; roleId: number; kind?: string }>(zip, 'user-role-assignments')
-  const data: { userId: number; roleId: number; congregationId: number; kind: string }[] = []
-
-  for (const record of records) {
-    const userId = idMap.getOptional('user-accounts', record.userId)
-    const roleId = idMap.getOptional('roles', record.roleId)
-    if (!userId || !roleId) continue
-    data.push({ userId, roleId, congregationId, kind: record.kind ?? 'member' })
-  }
-
-  if (data.length > 0) {
-    // syncBuiltInRoleAssignments inside importUsers already inserted built-in role rows
-    // matching each user's boolean flags. The composite (userId, roleId) PK absorbs duplicates;
-    // this call adds custom-role memberships and any built-in assignments the source had that
-    // the boolean-flag heuristic doesn't reproduce.
-    await db.userRoleAssignment.createMany({ data, skipDuplicates: true })
-  }
-}
-
 /**
  * Import the direct permission grants carried by a pre-#149 archive.
  *

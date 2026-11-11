@@ -7,7 +7,8 @@ const mockAccountUpdate = vi.fn()
 const mockSync = vi.fn()
 
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
-vi.mock('~/shared/domain/built-in-roles.server', () => ({
+vi.mock('~/shared/domain/built-in-roles.server', async importOriginal => ({
+  ...(await importOriginal<typeof import('~/shared/domain/built-in-roles.server')>()),
   syncBuiltInRoleAssignments: mockSync,
 }))
 

@@ -41,7 +41,6 @@ interface Props {
   node: PanelNode
   /** Everyone in the congregation; those without a login are disabled with a reason. */
   people: PersonOption[]
-  peopleWithoutAccount: number[]
   /** Members who are not elders — refused on the three committee posts. */
   nonElderIds: number[]
   /** Roles that exist but are not yet in the chart. */
@@ -67,14 +66,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   )
 }
 
-export function OrganigramNodePanel({
-  node,
-  people,
-  peopleWithoutAccount,
-  nonElderIds,
-  adoptable,
-  moveTargets,
-}: Props) {
+export function OrganigramNodePanel({ node, people, nonElderIds, adoptable, moveTargets }: Props) {
   return (
     <div className="flex flex-col">
       <header className="flex flex-col gap-1">
@@ -108,13 +100,7 @@ export function OrganigramNodePanel({
       </header>
 
       {/* Keyed so the seat form's local state (chosen kind) resets when another node is selected. */}
-      <PeopleSection
-        key={node.id}
-        node={node}
-        people={people}
-        peopleWithoutAccount={peopleWithoutAccount}
-        nonElderIds={nonElderIds}
-      />
+      <PeopleSection key={node.id} node={node} people={people} nonElderIds={nonElderIds} />
 
       {/* Collapsed by default: these are done a handful of times while building the chart, then
           rarely again — and every action inside is reversible, which the copy says in place. */}

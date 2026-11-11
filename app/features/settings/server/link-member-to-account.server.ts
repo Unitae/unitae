@@ -2,6 +2,7 @@ import { memberAggregate } from '~/features/publishers/index.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
 import { LimitService } from '~/shared/domain/limits.server'
+import { moveGivenRolesOntoRecord } from '~/shared/domain/role-assignments.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { AccountId } from '~/shared/types/branded'
@@ -72,6 +73,8 @@ export async function linkMemberToAccount(
     where: { id_congregationId: { id: account.id, congregationId: params.congregationId } },
     data: { memberId: member.id, firstname: null, lastname: null },
   })
+  // The roles given to the login now belong to the person: they move onto the record.
+  await moveGivenRolesOntoRecord(db, account.id, member.id, params.congregationId)
 
   audit({
     action: AuditAction.AccountLinkedToMember,

@@ -2,6 +2,7 @@ import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
 import { LimitService } from '~/shared/domain/limits.server'
+import { takeGivenRolesOfRecord } from '~/shared/domain/role-assignments.server'
 import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { MemberId } from '~/shared/types/branded'
@@ -186,9 +187,11 @@ export async function setLifecycle(
 
   if (spec.syncsRoles) await syncBuiltInRoleAssignments(db, memberId, congregationId, actorId)
 
+  // Leaving means losing the roles given by hand, on the record and on the login (identity roles fell with the sync).
   if (state === 'left') {
+    await takeGivenRolesOfRecord(db, memberId, congregationId)
     const account = (current as { account?: { id: number } | null }).account
-    if (account) await db.userRoleAssignment.deleteMany({ where: { userId: account.id } })
+    if (account) await db.userRoleAssignment.deleteMany({ where: { userId: account.id, congregationId } })
   }
 
   audit({
@@ -325,6 +328,8 @@ export async function anonymize(
   // FK cascade never fires — remove them explicitly.
   await purgeEmergencyContacts(db, memberId, congregationId)
   await syncBuiltInRoleAssignments(db, memberId, congregationId, null)
+  // Anonymised is gone for good: the roles given by hand go too, not only the identity ones.
+  await takeGivenRolesOfRecord(db, memberId, congregationId)
 
   await db.dataDeletionRecord.create({
     data: {

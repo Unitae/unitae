@@ -1,19 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// The matrix toggles a member into an eligibility group. Assignments are account-bound, so the
-// action has to translate the member into their account — the form cannot know the account id and
-// should not have to.
+// The matrix toggles a person into a team. A role belongs to the person, so the action gives it to
+// the record (with its login, if any) — the form sends the member id and nothing else.
 //
-// This is a regression test for a live 500: the form submitted `member.id` into a field named
-// `userId`, which reached `addUserToRole` and landed in `userRoleAssignment.create` where it must
-// be a `UserAccount` id. Member ids and account ids are different sequences, so it failed on the
-// foreign key. It survived because this feature had no route tests.
+// Originally a regression test for a live 500: the form's member id reached a write that expected
+// an account id. It survived because this feature had no route tests.
 
 const currentAccountContext = Symbol('currentAccountContext')
 const permissionsContext = Symbol('permissionsContext')
 
-const addUserToRole = vi.fn()
-const removeUserFromRole = vi.fn()
+const addToRole = vi.fn()
+const removeFromRole = vi.fn()
+const holderOfMember = vi.fn()
 
 const memberFindFirst = vi.fn()
 const roleFindFirst = vi.fn()
@@ -24,7 +22,8 @@ const fakeDb = {
   role: { findMany: vi.fn().mockResolvedValue([]), findFirst: roleFindFirst },
 }
 
-vi.mock('~/shared/domain/roles.server', () => ({ addUserToRole, removeUserFromRole }))
+vi.mock('~/shared/domain/role-membership.server', () => ({ addToRole, removeFromRole }))
+vi.mock('~/shared/domain/role-assignments.server', () => ({ holderOfMember }))
 
 vi.mock('~/shared/auth/route-context.server', () => ({
   currentAccountContext,
@@ -62,22 +61,16 @@ beforeEach(() => {
 })
 
 describe('role matrix toggle', () => {
-  it('assigns against the member’s account, not the member id', async () => {
-    memberFindFirst.mockResolvedValue({ id: 500, account: { id: 800 } })
+  it('gives the role to the person, with their login', async () => {
+    memberFindFirst.mockResolvedValue({ firstname: 'Anna', lastname: 'Test' })
+    holderOfMember.mockResolvedValue({ memberId: 500, userId: 800 })
 
     await toggle({ memberId: '500', roleId: '7', intent: 'add' })
 
-    expect(addUserToRole).toHaveBeenCalledWith(expect.anything(), 800, 7, 10, 1, new Set([Permission.CanManageRoles]))
-  })
-
-  it('removes against the member’s account too', async () => {
-    memberFindFirst.mockResolvedValue({ id: 500, account: { id: 800 } })
-
-    await toggle({ memberId: '500', roleId: '7', intent: 'remove' })
-
-    expect(removeUserFromRole).toHaveBeenCalledWith(
+    expect(holderOfMember).toHaveBeenCalledWith(expect.anything(), 500, 10)
+    expect(addToRole).toHaveBeenCalledWith(
       expect.anything(),
-      800,
+      { memberId: 500, userId: 800 },
       7,
       10,
       1,
@@ -85,22 +78,55 @@ describe('role matrix toggle', () => {
     )
   })
 
-  it('refuses a member with no login instead of failing on a foreign key', async () => {
-    memberFindFirst.mockResolvedValue({ id: 500, account: null })
+  it('gives the role to a publisher without a login', async () => {
+    memberFindFirst.mockResolvedValue({ firstname: 'Bruno', lastname: 'Test' })
+    holderOfMember.mockResolvedValue({ memberId: 501, userId: null })
+
+    await toggle({ memberId: '501', roleId: '7', intent: 'add' })
+
+    expect(addToRole).toHaveBeenCalledWith(
+      expect.anything(),
+      { memberId: 501, userId: null },
+      7,
+      10,
+      1,
+      new Set([Permission.CanManageRoles]),
+    )
+  })
+
+  it('takes the role off the person too', async () => {
+    memberFindFirst.mockResolvedValue({ firstname: 'Anna', lastname: 'Test' })
+    holderOfMember.mockResolvedValue({ memberId: 500, userId: 800 })
+
+    await toggle({ memberId: '500', roleId: '7', intent: 'remove' })
+
+    expect(removeFromRole).toHaveBeenCalledWith(
+      expect.anything(),
+      { memberId: 500, userId: 800 },
+      7,
+      10,
+      1,
+      new Set([Permission.CanManageRoles]),
+    )
+  })
+
+  it('refuses a person of another congregation', async () => {
+    memberFindFirst.mockResolvedValue(null)
 
     await toggle({ memberId: '500', roleId: '7', intent: 'add' })
 
-    expect(addUserToRole).not.toHaveBeenCalled()
+    expect(addToRole).not.toHaveBeenCalled()
   })
 
   it('refuses a role that no longer exists instead of letting the service no-op in silence', async () => {
     // A stale tab: the role was deleted after the matrix rendered. The service would return
     // without writing and the page would reload saying nothing — the click that "did nothing".
-    memberFindFirst.mockResolvedValue({ id: 500, account: { id: 800 } })
+    memberFindFirst.mockResolvedValue({ firstname: 'Anna', lastname: 'Test' })
+    holderOfMember.mockResolvedValue({ memberId: 500, userId: 800 })
     roleFindFirst.mockResolvedValue(null)
 
     await toggle({ memberId: '500', roleId: '7', intent: 'add' })
 
-    expect(addUserToRole).not.toHaveBeenCalled()
+    expect(addToRole).not.toHaveBeenCalled()
   })
 })

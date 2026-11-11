@@ -55,6 +55,7 @@ import {
   importPublisherGroups,
   updateMemberPublisherGroups,
 } from './import-publishers.server'
+import { importMemberRoleAssignments, importUserRoleAssignments } from './import-role-assignments.server'
 import {
   importAttributions,
   importTerritories,
@@ -63,12 +64,7 @@ import {
   importTerritoryKinds,
   importTerritoryPerimeter,
 } from './import-territories.server'
-import {
-  importCongregationUserPermissions,
-  importMembers,
-  importUserAccounts,
-  importUserRoleAssignments,
-} from './import-user-accounts.server'
+import { importCongregationUserPermissions, importMembers, importUserAccounts } from './import-user-accounts.server'
 import { migrateLegacyUsersNdjson } from './migrate-legacy-users-ndjson.server'
 import { readManifest } from './ndjson-archive'
 
@@ -121,6 +117,7 @@ export {
   importPublisherGroups,
   updateMemberPublisherGroups,
 } from './import-publishers.server'
+export { importMemberRoleAssignments, importUserRoleAssignments } from './import-role-assignments.server'
 export {
   importAttributions,
   importTerritories,
@@ -129,12 +126,7 @@ export {
   importTerritoryKinds,
   importTerritoryPerimeter,
 } from './import-territories.server'
-export {
-  importCongregationUserPermissions,
-  importMembers,
-  importUserAccounts,
-  importUserRoleAssignments,
-} from './import-user-accounts.server'
+export { importCongregationUserPermissions, importMembers, importUserAccounts } from './import-user-accounts.server'
 export { migrateLegacyUsersNdjson } from './migrate-legacy-users-ndjson.server'
 export { validateImport } from './validate-congregation-import.server'
 
@@ -200,6 +192,7 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
       await progress()
 
       await importUserRoleAssignments(zip, db, idMap, congregationId)
+      await importMemberRoleAssignments(zip, db, idMap, congregationId)
       await progress()
 
       await importCongregationUserPermissions(zip, db, idMap, congregationId)

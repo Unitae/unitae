@@ -9,9 +9,32 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 // joins them to the committee and unseating removes them, the same way the elder roster is
 // reconciled from Member flags rather than edited by hand.
 //
-// These are real `UserRoleAssignment` rows rather than a union computed while rendering, because
-// permissions resolve from that table: a committee role carrying a permission has to actually
-// reach the three people holding its posts.
+// These are real rows on the members' records rather than a union computed while rendering, because
+// permissions resolve from the assignment tables: a committee role carrying a permission has to
+// actually reach the three people holding its posts. The titulaires are elders, so they always
+// have a record; a seat older code left on a login is read through that login's record.
+
+/**
+ * The records holding any of these roles, wherever the seat is kept. A person holding two posts during a transition is
+ * one member of the committee, hence a set.
+ */
+async function recordsHolding(
+  db: TransactionClient,
+  roleIds: number[],
+  congregationId: number,
+  kind?: string,
+): Promise<Set<number>> {
+  const onRecord: { memberId: number }[] = await db.memberRoleAssignment.findMany({
+    where: { roleId: { in: roleIds }, congregationId, ...(kind ? { kind } : {}) },
+    select: { memberId: true },
+  })
+  const onLogin: { user: { memberId: number | null } }[] = await db.userRoleAssignment.findMany({
+    where: { roleId: { in: roleIds }, congregationId, ...(kind ? { kind } : {}) },
+    select: { user: { select: { memberId: true } } },
+  })
+  const memberIds = [...onRecord.map(row => row.memberId), ...onLogin.map(row => row.user.memberId)]
+  return new Set(memberIds.filter((id): id is number => id != null))
+}
 
 /**
  * Reconcile the committee's members with whoever currently holds its three posts.
@@ -43,32 +66,25 @@ export async function syncServiceCommitteeMembers(
 
   // Titulaires only: a post may carry deputy seats, but the coordinator's adjoint helps the
   // coordinator — they do not sit on the committee.
-  const held: { userId: number }[] = await db.userRoleAssignment.findMany({
-    where: { roleId: { in: postIds }, congregationId, kind: 'leader' },
-    select: { userId: true },
-  })
-  const current: { userId: number }[] = await db.userRoleAssignment.findMany({
-    where: { roleId: committee.id, congregationId },
-    select: { userId: true },
-  })
+  const desired = await recordsHolding(db, postIds, congregationId, 'leader')
+  const existing = await recordsHolding(db, [committee.id], congregationId)
 
-  // A person may hold two posts during a transition; they are one member of the committee.
-  const desired = new Set(held.map(row => row.userId))
-  const existing = new Set(current.map(row => row.userId))
-
-  const added = [...desired].filter(userId => !existing.has(userId))
-  const removed = [...existing].filter(userId => !desired.has(userId))
+  const added = [...desired].filter(memberId => !existing.has(memberId))
+  const removed = [...existing].filter(memberId => !desired.has(memberId))
   if (added.length === 0 && removed.length === 0) return
 
   if (added.length > 0) {
-    await db.userRoleAssignment.createMany({
-      data: added.map(userId => ({ userId, roleId: committee.id, congregationId, kind: 'member' })),
+    await db.memberRoleAssignment.createMany({
+      data: added.map(memberId => ({ memberId, roleId: committee.id, congregationId, kind: 'member' })),
       skipDuplicates: true,
     })
   }
   if (removed.length > 0) {
+    await db.memberRoleAssignment.deleteMany({
+      where: { roleId: committee.id, congregationId, memberId: { in: removed } },
+    })
     await db.userRoleAssignment.deleteMany({
-      where: { roleId: committee.id, congregationId, userId: { in: removed } },
+      where: { roleId: committee.id, congregationId, user: { memberId: { in: removed } } },
     })
   }
 

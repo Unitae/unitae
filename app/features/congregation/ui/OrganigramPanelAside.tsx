@@ -22,7 +22,6 @@ import type { PersonOption } from '~/shared/ui/PersonDropdown'
 interface Props {
   panel: PanelNode
   people: PersonOption[]
-  peopleWithoutAccount: number[]
   nonElderIds: number[]
   adoptable: { id: number; name: string }[]
   moveTargets: { id: number; label: string }[]
@@ -30,15 +29,7 @@ interface Props {
   closeSearch: string
 }
 
-export function OrganigramPanelAside({
-  panel,
-  people,
-  peopleWithoutAccount,
-  nonElderIds,
-  adoptable,
-  moveTargets,
-  closeSearch,
-}: Props) {
+export function OrganigramPanelAside({ panel, people, nonElderIds, adoptable, moveTargets, closeSearch }: Props) {
   return (
     <aside
       aria-label={`Service : ${panel.name}`}
@@ -71,7 +62,6 @@ export function OrganigramPanelAside({
           <OrganigramNodePanel
             node={panel}
             people={people}
-            peopleWithoutAccount={peopleWithoutAccount}
             nonElderIds={nonElderIds}
             adoptable={adoptable}
             moveTargets={moveTargets}

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createRoleStore } from '~/tests/helpers/role-store'
 
 // Seating someone in an organigram node grants that role's permissions, and a committee post also
 // grants the committee's. The same limits as the role matrix apply: the actor must hold every
@@ -23,6 +24,7 @@ vi.mock('~/shared/auth/permissions.server', async () => {
 })
 
 const ROLES = [
+  { id: 10, key: 'elder', isBuiltIn: true, isSinglePerson: false, parentRoleId: null, permissions: [] as string[] },
   { id: 1, key: 'admin', isSinglePerson: false, parentRoleId: null, permissions: ['can-do-anything'] },
   { id: 2, key: 'sono', isSinglePerson: false, parentRoleId: null, permissions: ['can-view-programs'] },
   { id: 3, key: 'payroll', isSinglePerson: false, parentRoleId: null, permissions: ['can-manage-users'] },
@@ -32,73 +34,37 @@ const ROLES = [
   { id: 8, key: 'super-lead', isSinglePerson: true, parentRoleId: null, permissions: ['can-do-anything'] },
 ]
 
-let assignments: { userId: number; roleId: number; kind: string }[] = []
-
-const db = {
-  role: {
-    findFirst: vi.fn(
-      async ({ where }: { where: { id?: number; key?: string } }) =>
-        ROLES.find(r => (where.id != null ? r.id === where.id : r.key === where.key)) ?? null,
-    ),
-  },
-  member: {
-    findFirst: vi.fn(async ({ where }: { where: { id: number } }) => ({
-      id: where.id,
-      account: { id: where.id + 100 },
-    })),
-  },
-  // Every seated person in these tests is an elder, so the committee rule never interferes.
-  memberRoleAssignment: { findFirst: vi.fn(async () => ({ memberId: 1 })) },
-  rolePermission: {
-    findMany: vi.fn(async ({ where }: { where: { roleId: { in: number[] } } }) =>
-      ROLES.filter(r => where.roleId.in.includes(r.id)).flatMap(r =>
-        r.permissions.map(key => ({ permission: { key } })),
-      ),
-    ),
-    findFirst: vi.fn(async ({ where }: { where: { roleId: { in: number[] } } }) =>
-      ROLES.some(r => where.roleId.in.includes(r.id) && r.permissions.includes('can-do-anything'))
-        ? { roleId: 1 }
-        : null,
-    ),
-  },
-  userRoleAssignment: {
-    findFirst: vi.fn(
-      async ({ where }: { where: { userId: number; roleId: number } }) =>
-        assignments.find(a => a.userId === where.userId && a.roleId === where.roleId) ?? null,
-    ),
-    create: vi.fn(async ({ data }: { data: { userId: number; roleId: number; kind: string } }) => {
-      assignments.push({ userId: data.userId, roleId: data.roleId, kind: data.kind })
-    }),
-    update: vi.fn(),
-    findMany: vi.fn(async ({ where }: { where: { roleId: number; kind: string; NOT: { userId: number } } }) =>
-      assignments
-        .filter(a => a.roleId === where.roleId && a.kind === where.kind && a.userId !== where.NOT.userId)
-        .map(a => ({ userId: a.userId })),
-    ),
-    deleteMany: vi.fn(
-      async ({ where }: { where: { userId?: number; roleId: number; kind?: string; NOT?: { userId: number } } }) => {
-        assignments = assignments.filter(a => {
-          if (a.roleId !== where.roleId) return true
-          if (where.userId != null) return a.userId !== where.userId
-          return !(a.kind === where.kind && a.userId !== where.NOT?.userId)
-        })
-      },
-    ),
-  },
-}
-
 const { seatMember, unseatMember } = await import('./organigram-seats.server')
 const { adoptServiceCommittee } = await import('./organigram-adoption.server')
 const { ConflictError, ForbiddenError } = await import('~/shared/errors/app-error.server')
 
 const ROLE_MANAGER = new Set(['can-manage-roles', 'can-view-programs'])
 const ADMIN = new Set(['can-do-anything'])
-// Member 7 has account 107.
+// Member 7 has account 107, 8 has 108, 9 has 109; every one of them is an elder, so the committee rule never
+// interferes.
 const SELF = 7
+let store: ReturnType<typeof createRoleStore>
+let db: never
+/** The seats on the records, as the old table looked: `{ userId, roleId, kind }`. */
+const seats = () =>
+  store.records
+    .filter(row => row.roleId !== 10)
+    .map(row => ({ userId: (row.memberId as number) + 100, roleId: row.roleId, kind: row.kind }))
+function seed(rows: { userId: number; roleId: number; kind: string }[]) {
+  for (const row of rows) {
+    store.records.push({ memberId: row.userId - 100, roleId: row.roleId, congregationId: 10, kind: row.kind })
+  }
+}
 
 beforeEach(() => {
-  assignments = []
   adminIds.clear()
+  store = createRoleStore(10, ROLES, [
+    { memberId: 7, userId: 107 },
+    { memberId: 8, userId: 108 },
+    { memberId: 9, userId: 109 },
+  ])
+  for (const memberId of [7, 8, 9]) store.records.push({ memberId, roleId: 10, congregationId: 10, kind: 'member' })
+  db = store.db
 })
 
 describe('seatMember grant limits', () => {
@@ -106,26 +72,26 @@ describe('seatMember grant limits', () => {
     await expect(
       seatMember(db as never, { roleId: 1, memberId: SELF, kind: 'member' }, 10, 7, ROLE_MANAGER),
     ).rejects.toBeInstanceOf(ForbiddenError)
-    expect(assignments).toEqual([])
+    expect(seats()).toEqual([])
   })
 
   it('refuses a seat whose role carries a permission the actor lacks', async () => {
     await expect(
       seatMember(db as never, { roleId: 3, memberId: SELF, kind: 'member' }, 10, 7, ROLE_MANAGER),
     ).rejects.toBeInstanceOf(ForbiddenError)
-    expect(assignments).toEqual([])
+    expect(seats()).toEqual([])
   })
 
   it('refuses a committee post when the committee carries a permission the actor lacks', async () => {
     await expect(
       seatMember(db as never, { roleId: 4, memberId: SELF, kind: 'leader' }, 10, 7, ROLE_MANAGER),
     ).rejects.toBeInstanceOf(ForbiddenError)
-    expect(assignments).toEqual([])
+    expect(seats()).toEqual([])
   })
 
   it('seats someone in a role whose permissions the actor holds', async () => {
     await seatMember(db as never, { roleId: 2, memberId: SELF, kind: 'member' }, 10, 7, ROLE_MANAGER)
-    expect(assignments).toEqual([{ userId: 107, roleId: 2, kind: 'member' }])
+    expect(seats()).toEqual([{ userId: 107, roleId: 2, kind: 'member' }])
   })
 
   it("refuses to change an admin's seats for an actor who is not an admin", async () => {
@@ -133,27 +99,27 @@ describe('seatMember grant limits', () => {
     await expect(
       seatMember(db as never, { roleId: 2, memberId: SELF, kind: 'member' }, 10, 9, ROLE_MANAGER),
     ).rejects.toBeInstanceOf(ForbiddenError)
-    expect(assignments).toEqual([])
+    expect(seats()).toEqual([])
   })
 
   it('lets an admin seat someone in the admin role', async () => {
     await seatMember(db as never, { roleId: 1, memberId: SELF, kind: 'member' }, 10, 9, ADMIN)
-    expect(assignments).toEqual([{ userId: 107, roleId: 1, kind: 'member' }])
+    expect(store.logins).toEqual([{ userId: 107, roleId: 1, congregationId: 10, kind: 'member' }])
   })
 })
 
 describe('unseatMember grant limits', () => {
   it('refuses to unseat anyone from the admin role for an actor who is not an admin', async () => {
-    assignments = [{ userId: 107, roleId: 1, kind: 'member' }]
+    seed([{ userId: 107, roleId: 1, kind: 'member' }])
     await expect(unseatMember(db as never, 1, SELF, 10, 9, ROLE_MANAGER)).rejects.toBeInstanceOf(ForbiddenError)
-    expect(assignments).toHaveLength(1)
+    expect(seats()).toHaveLength(1)
   })
 
   it('refuses to unseat the last admin from the admin role', async () => {
     adminIds.add(107)
-    assignments = [{ userId: 107, roleId: 1, kind: 'member' }]
+    seed([{ userId: 107, roleId: 1, kind: 'member' }])
     await expect(unseatMember(db as never, 1, SELF, 10, 9, ADMIN)).rejects.toBeInstanceOf(ConflictError)
-    expect(assignments).toHaveLength(1)
+    expect(seats()).toHaveLength(1)
   })
 })
 
@@ -192,8 +158,15 @@ describe('adoptServiceCommittee grant limits', () => {
     },
     userRoleAssignment: {
       findMany: vi.fn(async () => []),
-      create: vi.fn(async () => {
-        writes.push('userRoleAssignment.create')
+      upsert: vi.fn(async () => {
+        writes.push('userRoleAssignment.upsert')
+      }),
+      deleteMany: vi.fn(async () => ({ count: 0 })),
+    },
+    memberRoleAssignment: {
+      findMany: vi.fn(async () => []),
+      upsert: vi.fn(async () => {
+        writes.push('memberRoleAssignment.upsert')
       }),
       deleteMany: vi.fn(async () => ({ count: 0 })),
     },
@@ -219,29 +192,29 @@ describe('adoptServiceCommittee grant limits', () => {
 describe('handover grant limits (second review)', () => {
   it('refuses a handover that unseats an admin, for an actor who is not an admin', async () => {
     adminIds.add(108)
-    assignments = [{ userId: 108, roleId: 6, kind: 'leader' }]
+    seed([{ userId: 108, roleId: 6, kind: 'leader' }])
     await expect(
       seatMember(db as never, { roleId: 6, memberId: SELF, kind: 'leader' }, 10, 9, ROLE_MANAGER),
     ).rejects.toBeInstanceOf(ForbiddenError)
-    expect(assignments).toEqual([{ userId: 108, roleId: 6, kind: 'leader' }])
+    expect(seats()).toEqual([{ userId: 108, roleId: 6, kind: 'leader' }])
   })
 
   it('refuses a handover that would take an admin-carrying post from the last admin', async () => {
     adminIds.add(108)
-    assignments = [{ userId: 108, roleId: 8, kind: 'leader' }]
+    seed([{ userId: 108, roleId: 8, kind: 'leader' }])
     await expect(
       seatMember(db as never, { roleId: 8, memberId: SELF, kind: 'leader' }, 10, 108, ADMIN),
     ).rejects.toBeInstanceOf(ConflictError)
-    expect(assignments).toEqual([{ userId: 108, roleId: 8, kind: 'leader' }])
+    expect(seats()).toEqual([{ userId: 108, roleId: 8, kind: 'leader' }])
   })
 
   it('hands over a seat whose outgoing titulaire the actor may manage, keeping the deputies', async () => {
-    assignments = [
+    seed([
       { userId: 108, roleId: 6, kind: 'leader' },
       { userId: 109, roleId: 6, kind: 'deputy' },
-    ]
+    ])
     await seatMember(db as never, { roleId: 6, memberId: SELF, kind: 'leader' }, 10, 9, ROLE_MANAGER)
-    expect(assignments).toEqual([
+    expect(seats()).toEqual([
       { userId: 109, roleId: 6, kind: 'deputy' },
       { userId: 107, roleId: 6, kind: 'leader' },
     ])

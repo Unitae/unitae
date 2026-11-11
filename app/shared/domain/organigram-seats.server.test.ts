@@ -1,280 +1,213 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createRoleStore } from '~/tests/helpers/role-store'
 
 const syncServiceCommitteeMembers = vi.fn()
 vi.mock('~/shared/domain/service-committee.server', () => ({ syncServiceCommitteeMembers }))
 
-vi.mock('~/shared/auth/permissions.server', () => ({ isAccountAdmin: vi.fn(), requireNotLastAdmin: vi.fn() }))
+vi.mock('~/shared/auth/permissions.server', () => ({
+  isAccountAdmin: vi.fn(async () => false),
+  requireNotLastAdmin: vi.fn(),
+}))
 
 vi.mock('~/shared/domain/audit.server', () => ({
   AuditAction: { OrganigramChanged: 'OrganigramChanged', UserRoleAssignmentChanged: 'UserRoleAssignmentChanged' },
   audit: vi.fn(),
 }))
 
-const mockDb = {
-  role: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
-  member: { findFirst: vi.fn() },
-  memberRoleAssignment: { findFirst: vi.fn() },
-  // Read by the grant limits; empty here, so no seat in these tests carries the admin role.
-  rolePermission: { findFirst: vi.fn(), findMany: vi.fn() },
-  userRoleAssignment: {
-    findMany: vi.fn(),
-    findFirst: vi.fn(),
-    create: vi.fn(),
-    update: vi.fn(),
-    deleteMany: vi.fn(),
-  },
-}
-
 const { seatMember, unseatMember } = await import('./organigram-seats.server')
 const { ForbiddenError, ValidationError } = await import('~/shared/errors/app-error.server')
 
 // The actor's permissions: an admin, so grant limits never interfere with what these tests cover.
 const ADMIN_ACTOR = new Set(['can-do-anything'])
-
 const CONGREGATION = 10
 const ACTOR = 99
 
+const ROLES = [
+  { id: 1, key: 'elder', isBuiltIn: true },
+  { id: 2, key: 'assistant-servant', isBuiltIn: true },
+  { id: 3, key: 'sono' },
+  { id: 4, key: 'coordinator', isBuiltIn: true, isSinglePerson: true },
+  { id: 5, key: 'secretary', isBuiltIn: true, isSinglePerson: true },
+  { id: 6, key: 'service-overseer', isBuiltIn: true, isSinglePerson: true },
+  { id: 7, key: 'responsable-audio-video', isSinglePerson: true },
+  { id: 8, key: 'service-committee', isBuiltIn: true },
+]
+const ID = Object.fromEntries(ROLES.map(role => [role.key, role.id]))
+
+// 500 has a login, 501 has none, 502 and 503 are other people with logins.
+let store: ReturnType<typeof createRoleStore>
+
+function seed(memberId: number, key: string, kind = 'member') {
+  store.records.push({ memberId, roleId: ID[key] as number, congregationId: CONGREGATION, kind })
+}
+
+const seat = (memberId: number, key: string, kind: 'leader' | 'deputy' | 'member') =>
+  seatMember(store.db, { roleId: ID[key] as number, memberId, kind }, CONGREGATION, ACTOR, ADMIN_ACTOR)
+
 beforeEach(() => {
-  vi.resetAllMocks()
-  // No outgoing titulaire unless a test seats one.
-  mockDb.userRoleAssignment.findMany.mockResolvedValue([])
+  vi.clearAllMocks()
+  store = createRoleStore(CONGREGATION, ROLES, [
+    { memberId: 500, userId: 800 },
+    { memberId: 501, userId: null },
+    { memberId: 502, userId: 802 },
+    { memberId: 503, userId: 803 },
+  ])
 })
 
 describe('seatMember', () => {
-  it('writes the seat against the member’s account', async () => {
-    mockDb.role.findFirst.mockResolvedValue({ id: 3, key: 'secretaire' })
-    mockDb.member.findFirst.mockResolvedValue({ id: 500, account: { id: 800 } })
-    mockDb.userRoleAssignment.findFirst.mockResolvedValue(null)
-    mockDb.userRoleAssignment.create.mockResolvedValue({})
-
-    await seatMember(mockDb as never, { roleId: 3, memberId: 500, kind: 'leader' }, CONGREGATION, ACTOR, ADMIN_ACTOR)
-
-    expect(mockDb.userRoleAssignment.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { userId: 800, roleId: 3, congregationId: CONGREGATION, kind: 'leader' } }),
-    )
+  it('writes the seat on the person’s record', async () => {
+    await seat(500, 'sono', 'leader')
+    expect(store.records).toEqual([{ memberId: 500, roleId: 3, congregationId: CONGREGATION, kind: 'leader' }])
+    expect(store.logins).toEqual([])
   })
 
-  it('reports a clear error for a member with no login rather than a foreign-key failure', async () => {
-    // Seats are account-bound for now, so a member without a UserAccount cannot hold one. The
-    // picker greys these out; the service still has to refuse in terms the route can show.
-    mockDb.role.findFirst.mockResolvedValue({ id: 3, key: 'secretaire' })
-    mockDb.member.findFirst.mockResolvedValue({ id: 500, account: null })
-
-    await expect(
-      seatMember(mockDb as never, { roleId: 3, memberId: 500, kind: 'member' }, CONGREGATION, ACTOR, ADMIN_ACTOR),
-    ).rejects.toBeInstanceOf(ValidationError)
-    expect(mockDb.userRoleAssignment.create).not.toHaveBeenCalled()
+  it('seats a publisher who has no login', async () => {
+    await seat(501, 'sono', 'deputy')
+    expect(store.seatsOf(501)).toEqual(['sono:deputy'])
   })
 
-  it.each(['elder', 'assistant-servant', 'sister', 'pioneer'])(
-    'refuses to seat someone in the auto-synced %s roster',
-    async key => {
-      // Identity memberships are synced from Member flags. A hand-written UserRoleAssignment on
-      // one would grant the roster's permissions to anyone and never be cleaned up by the sync —
-      // `addUserToRole` refuses this, and the organigram seat path must refuse it the same way.
-      mockDb.role.findFirst.mockResolvedValue({ id: 1, key })
-      mockDb.member.findFirst.mockResolvedValue({ id: 500, account: { id: 800 } })
-
-      await expect(
-        seatMember(mockDb as never, { roleId: 1, memberId: 500, kind: 'member' }, CONGREGATION, ACTOR, ADMIN_ACTOR),
-      ).rejects.toBeInstanceOf(ForbiddenError)
-      expect(mockDb.userRoleAssignment.create).not.toHaveBeenCalled()
-      expect(mockDb.userRoleAssignment.update).not.toHaveBeenCalled()
-    },
-  )
+  it.each(['elder', 'assistant-servant'])('refuses to seat someone in the auto-synced %s roster', async key => {
+    await expect(seat(500, key, 'member')).rejects.toBeInstanceOf(ForbiddenError)
+    expect(store.records).toEqual([])
+  })
 
   it('changes the seat kind when the person is already in the node', async () => {
-    mockDb.role.findFirst.mockResolvedValue({ id: 3, key: 'secretaire' })
-    mockDb.member.findFirst.mockResolvedValue({ id: 500, account: { id: 800 } })
-    mockDb.userRoleAssignment.findFirst.mockResolvedValue({ userId: 800, roleId: 3, kind: 'member' })
-    mockDb.userRoleAssignment.update.mockResolvedValue({})
+    seed(500, 'sono', 'member')
+    await seat(500, 'sono', 'leader')
+    expect(store.seatsOf(500)).toEqual(['sono:leader'])
+  })
 
-    await seatMember(mockDb as never, { roleId: 3, memberId: 500, kind: 'leader' }, CONGREGATION, ACTOR, ADMIN_ACTOR)
-
-    expect(mockDb.userRoleAssignment.create).not.toHaveBeenCalled()
-    expect(mockDb.userRoleAssignment.update).toHaveBeenCalledWith(expect.objectContaining({ data: { kind: 'leader' } }))
+  it('moves a seat older code left on the login onto the record', async () => {
+    store.logins.push({ userId: 800, roleId: 3, congregationId: CONGREGATION, kind: 'member' })
+    await seat(500, 'sono', 'deputy')
+    expect(store.logins).toEqual([])
+    expect(store.records).toEqual([{ memberId: 500, roleId: 3, congregationId: CONGREGATION, kind: 'deputy' }])
   })
 })
 
 describe('seatMember — the three committee posts', () => {
-  function seatOn(key: string) {
-    mockDb.role.findFirst.mockResolvedValue({ id: 3, key })
-    mockDb.member.findFirst.mockResolvedValue({ id: 500, account: { id: 800 } })
-    mockDb.userRoleAssignment.findFirst.mockResolvedValue(null)
-    mockDb.userRoleAssignment.create.mockResolvedValue({})
-    mockDb.userRoleAssignment.deleteMany.mockResolvedValue({ count: 0 })
-  }
-
   it.each(['coordinator', 'secretary', 'service-overseer'])(
     'hands %s over instead of adding a second holder',
     async key => {
-      // There is exactly one coordinator. Seating a new one is the handover the whole feature
-      // exists for: the outgoing holder loses the post, and with it the permissions it carries.
-      seatOn(key)
-      mockDb.memberRoleAssignment.findFirst.mockResolvedValue({ memberId: 500 })
-
-      await seatMember(mockDb as never, { roleId: 3, memberId: 500, kind: 'leader' }, CONGREGATION, ACTOR, ADMIN_ACTOR)
-
-      expect(mockDb.userRoleAssignment.deleteMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: expect.objectContaining({ roleId: 3, NOT: { userId: 800 } }) }),
-      )
+      // There is exactly one coordinator. Seating a new one is the handover: the outgoing holder loses the post.
+      seed(500, 'elder')
+      seed(502, key, 'leader')
+      await seat(500, key, 'leader')
+      expect(store.seatsOf(500)).toContain(`${key}:leader`)
+      expect(store.seatsOf(502)).toEqual([])
     },
   )
 
-  it.each(['coordinator', 'secretary', 'service-overseer'])('refuses a %s who is not an elder', async key => {
-    seatOn(key)
-    mockDb.memberRoleAssignment.findFirst.mockResolvedValue(null)
+  it('hands a post over from a titulaire whose seat is still on the login', async () => {
+    seed(500, 'elder')
+    store.logins.push({ userId: 803, roleId: ID.coordinator as number, congregationId: CONGREGATION, kind: 'leader' })
+    await seat(500, 'coordinator', 'leader')
+    expect(store.seatsOf(503)).toEqual([])
+  })
 
-    await expect(
-      seatMember(mockDb as never, { roleId: 3, memberId: 500, kind: 'leader' }, CONGREGATION, ACTOR, ADMIN_ACTOR),
-    ).rejects.toBeInstanceOf(ValidationError)
-    expect(mockDb.userRoleAssignment.create).not.toHaveBeenCalled()
-    expect(mockDb.userRoleAssignment.deleteMany).not.toHaveBeenCalled()
+  it.each(['coordinator', 'secretary', 'service-overseer'])('refuses a %s who is not an elder', async key => {
+    seed(502, key, 'leader')
+    await expect(seat(500, key, 'leader')).rejects.toBeInstanceOf(ValidationError)
+    // A refusal never leaves the post vacant.
+    expect(store.seatsOf(502)).toEqual([`${key}:leader`])
+  })
+
+  it('names an elder without a login to a post', async () => {
+    seed(501, 'elder')
+    await seat(501, 'coordinator', 'leader')
+    expect(store.seatsOf(501)).toEqual(['coordinator:leader', 'elder:member'])
   })
 
   it('joins the new holder to the committee, which is made of its three posts', async () => {
-    seatOn('coordinator')
-    mockDb.memberRoleAssignment.findFirst.mockResolvedValue({ memberId: 500 })
-
-    await seatMember(mockDb as never, { roleId: 3, memberId: 500, kind: 'leader' }, CONGREGATION, ACTOR, ADMIN_ACTOR)
-
-    expect(syncServiceCommitteeMembers).toHaveBeenCalledWith(mockDb, CONGREGATION, ACTOR)
+    seed(500, 'elder')
+    await seat(500, 'coordinator', 'leader')
+    expect(syncServiceCommitteeMembers).toHaveBeenCalledWith(store.db, CONGREGATION, ACTOR)
   })
 
   it('does not touch the committee when an ordinary service is seated', async () => {
-    seatOn('sono')
-
-    await seatMember(mockDb as never, { roleId: 3, memberId: 500, kind: 'member' }, CONGREGATION, ACTOR, ADMIN_ACTOR)
-
+    await seat(500, 'sono', 'member')
     expect(syncServiceCommitteeMembers).not.toHaveBeenCalled()
   })
 
   it('leaves an ordinary service free to hold several people', async () => {
-    seatOn('sono')
-
-    await seatMember(mockDb as never, { roleId: 3, memberId: 500, kind: 'member' }, CONGREGATION, ACTOR, ADMIN_ACTOR)
-
-    expect(mockDb.userRoleAssignment.deleteMany).not.toHaveBeenCalled()
-    // No elder check either — «Sono» is open to anyone.
-    expect(mockDb.memberRoleAssignment.findFirst).not.toHaveBeenCalled()
+    seed(502, 'sono', 'leader')
+    await seat(500, 'sono', 'leader')
+    expect(store.seatsOf(502)).toEqual(['sono:leader'])
+    expect(store.seatsOf(500)).toEqual(['sono:leader'])
   })
 
   it('stores a post holder as its leader, whatever kind was submitted', async () => {
-    // A single-person post has no membre/adjoint distinction to make.
-    seatOn('coordinator')
-    mockDb.memberRoleAssignment.findFirst.mockResolvedValue({ memberId: 500 })
+    seed(500, 'elder')
+    await seat(500, 'coordinator', 'member')
+    expect(store.seatsOf(500)).toContain('coordinator:leader')
+  })
 
-    await seatMember(mockDb as never, { roleId: 3, memberId: 500, kind: 'member' }, CONGREGATION, ACTOR, ADMIN_ACTOR)
-
-    expect(mockDb.userRoleAssignment.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ kind: 'leader' }) }),
-    )
+  it('lets a post take an adjoint who is not an elder', async () => {
+    await seat(500, 'coordinator', 'deputy')
+    expect(store.seatsOf(500)).toEqual(['coordinator:deputy'])
   })
 })
 
 describe('seatMember — single-person roles', () => {
-  function seatOnSingle() {
-    mockDb.role.findFirst.mockResolvedValue({ id: 7, key: 'responsable-audio-video', isSinglePerson: true })
-    mockDb.member.findFirst.mockResolvedValue({ id: 500, account: { id: 800 } })
-    mockDb.userRoleAssignment.findFirst.mockResolvedValue(null)
-    mockDb.userRoleAssignment.create.mockResolvedValue({})
-    mockDb.userRoleAssignment.deleteMany.mockResolvedValue({ count: 0 })
-  }
-
   it('hands the titular seat over, like a committee post', async () => {
-    seatOnSingle()
-
-    await seatMember(mockDb as never, { roleId: 7, memberId: 500, kind: 'leader' }, CONGREGATION, ACTOR, ADMIN_ACTOR)
-
-    expect(mockDb.userRoleAssignment.deleteMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: expect.objectContaining({ roleId: 7, kind: 'leader', NOT: { userId: 800 } }) }),
-    )
+    seed(502, 'responsable-audio-video', 'leader')
+    await seat(500, 'responsable-audio-video', 'leader')
+    expect(store.seatsOf(502)).toEqual([])
+    expect(store.seatsOf(500)).toEqual(['responsable-audio-video:leader'])
   })
 
   it('leaves the adjoints in place through a handover', async () => {
-    // « Adjoint » is either a deputy seat on the personal role or a child personal role — either
-    // way, replacing the titulaire must not sweep them out.
-    seatOnSingle()
-
-    await seatMember(mockDb as never, { roleId: 7, memberId: 500, kind: 'leader' }, CONGREGATION, ACTOR, ADMIN_ACTOR)
-
-    const deletions = mockDb.userRoleAssignment.deleteMany.mock.calls.map(([arg]) => arg.where)
-    for (const where of deletions) {
-      expect(where.kind).toBe('leader')
-    }
+    seed(502, 'responsable-audio-video', 'leader')
+    seed(503, 'responsable-audio-video', 'deputy')
+    await seat(500, 'responsable-audio-video', 'leader')
+    expect(store.seatsOf(503)).toEqual(['responsable-audio-video:deputy'])
   })
 
   it('seats an adjoint without touching the titulaire', async () => {
-    seatOnSingle()
-
-    await seatMember(mockDb as never, { roleId: 7, memberId: 500, kind: 'deputy' }, CONGREGATION, ACTOR, ADMIN_ACTOR)
-
-    expect(mockDb.userRoleAssignment.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ kind: 'deputy' }) }),
-    )
-    expect(mockDb.userRoleAssignment.deleteMany).not.toHaveBeenCalled()
+    seed(502, 'responsable-audio-video', 'leader')
+    await seat(500, 'responsable-audio-video', 'deputy')
+    expect(store.seatsOf(502)).toEqual(['responsable-audio-video:leader'])
+    expect(store.seatsOf(500)).toEqual(['responsable-audio-video:deputy'])
   })
 
   it('has no plain members: an unqualified seat is the titular one', async () => {
-    seatOnSingle()
+    await seat(500, 'responsable-audio-video', 'member')
+    expect(store.seatsOf(500)).toEqual(['responsable-audio-video:leader'])
+  })
 
-    await seatMember(mockDb as never, { roleId: 7, memberId: 500, kind: 'member' }, CONGREGATION, ACTOR, ADMIN_ACTOR)
-
-    expect(mockDb.userRoleAssignment.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ kind: 'leader' }) }),
-    )
+  it('hands the seat to a publisher without a login', async () => {
+    seed(502, 'responsable-audio-video', 'leader')
+    await seat(501, 'responsable-audio-video', 'leader')
+    expect(store.seatsOf(501)).toEqual(['responsable-audio-video:leader'])
+    expect(store.seatsOf(502)).toEqual([])
   })
 
   it('does not reconcile the committee for an ordinary personal role', async () => {
-    seatOnSingle()
-
-    await seatMember(mockDb as never, { roleId: 7, memberId: 500, kind: 'leader' }, CONGREGATION, ACTOR, ADMIN_ACTOR)
-
+    await seat(500, 'responsable-audio-video', 'leader')
     expect(syncServiceCommitteeMembers).not.toHaveBeenCalled()
-  })
-
-  it('lets a post take an adjoint who is not an elder', async () => {
-    // The three titulaires are elders; the rule is about who holds the post, not who helps them.
-    mockDb.role.findFirst.mockResolvedValue({ id: 3, key: 'coordinator', isSinglePerson: true })
-    mockDb.member.findFirst.mockResolvedValue({ id: 500, account: { id: 800 } })
-    mockDb.userRoleAssignment.findFirst.mockResolvedValue(null)
-    mockDb.userRoleAssignment.create.mockResolvedValue({})
-    mockDb.memberRoleAssignment.findFirst.mockResolvedValue(null)
-
-    await seatMember(mockDb as never, { roleId: 3, memberId: 500, kind: 'deputy' }, CONGREGATION, ACTOR, ADMIN_ACTOR)
-
-    expect(mockDb.userRoleAssignment.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ kind: 'deputy' }) }),
-    )
-  })
-})
-
-describe('unseatMember — the committee follows its posts', () => {
-  it('takes the outgoing holder out of the committee too', async () => {
-    // Half a handover is worse than none: leaving them on the committee keeps the permissions
-    // the post was supposed to carry away with it.
-    mockDb.role.findFirst.mockResolvedValue({ id: 3, key: 'secretary' })
-    mockDb.member.findFirst.mockResolvedValue({ id: 500, account: { id: 800 } })
-    mockDb.userRoleAssignment.deleteMany.mockResolvedValue({ count: 1 })
-
-    await unseatMember(mockDb as never, 3, 500, CONGREGATION, ACTOR, ADMIN_ACTOR)
-
-    expect(syncServiceCommitteeMembers).toHaveBeenCalledWith(mockDb, CONGREGATION, ACTOR)
   })
 })
 
 describe('unseatMember', () => {
   it('removes only that person from only that node', async () => {
-    // Unseating now loads the role first, because whether the committee has to follow depends
-    // on the role's key. That also means an unknown role is a 404 rather than a silent no-op.
-    mockDb.role.findFirst.mockResolvedValue({ id: 3, key: 'sono' })
-    mockDb.member.findFirst.mockResolvedValue({ id: 500, account: { id: 800 } })
-    mockDb.userRoleAssignment.deleteMany.mockResolvedValue({ count: 1 })
+    seed(500, 'sono', 'leader')
+    seed(500, 'responsable-audio-video', 'leader')
+    seed(502, 'sono', 'member')
+    await unseatMember(store.db, ID.sono as number, 500, CONGREGATION, ACTOR, ADMIN_ACTOR)
+    expect(store.seatsOf(500)).toEqual(['responsable-audio-video:leader'])
+    expect(store.seatsOf(502)).toEqual(['sono:member'])
+  })
 
-    await unseatMember(mockDb as never, 3, 500, CONGREGATION, ACTOR, ADMIN_ACTOR)
+  it('unseats a publisher without a login', async () => {
+    seed(501, 'sono', 'deputy')
+    await unseatMember(store.db, ID.sono as number, 501, CONGREGATION, ACTOR, ADMIN_ACTOR)
+    expect(store.seatsOf(501)).toEqual([])
+  })
 
-    expect(mockDb.userRoleAssignment.deleteMany).toHaveBeenCalledWith({
-      where: { userId: 800, roleId: 3, congregationId: CONGREGATION },
-    })
+  it('takes the outgoing holder out of the committee too', async () => {
+    // Half a handover is worse than none: the committee follows its posts.
+    seed(500, 'secretary', 'leader')
+    await unseatMember(store.db, ID.secretary as number, 500, CONGREGATION, ACTOR, ADMIN_ACTOR)
+    expect(syncServiceCommitteeMembers).toHaveBeenCalledWith(store.db, CONGREGATION, ACTOR)
   })
 })

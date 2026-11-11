@@ -435,9 +435,9 @@ model UserRoleAssignment {
   congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
   congregationId Int
 
-  // Which seat this person occupies in an organigram node: leader | deputy | member.
-  // Defaults to `member`, which is correct for every pre-existing row and for every grant
-  // made outside the organigram — only the seating UI ever writes anything else.
+  // Which seat this account occupies in an organigram node: leader | deputy | member.
+  // Only accounts without a record hold given roles here, plus system roles such as `admin`;
+  // everyone with a record holds them on MemberRoleAssignment.
   kind String @default("member")
 
   @@id([userId, roleId])
@@ -445,12 +445,14 @@ model UserRoleAssignment {
   @@index([roleId])
 }
 
-// Identity role assignments (e.g. brother, elder, pioneer, publisher).
-// Auto-synced from Member flags by `syncBuiltInRoleAssignments`. Permissions
-// reach the linked UserAccount through this table too — every reader that
-// resolves an account's permissions or role membership must union this with
-// UserRoleAssignment. The canonical primitives live in
-// app/shared/auth/permissions.server.ts.
+// The roles of a person in the congregation, on their record. Two kinds of row:
+//   - identity roles (brother, elder, pioneer, publisher…), auto-synced from Member flags by
+//     `syncBuiltInRoleAssignments`, which only ever touches those role keys;
+//   - roles given by hand (teams, personal roles, committee posts), with the seat the person
+//     holds, so a publisher without an account can hold one too.
+// Permissions reach the linked UserAccount through this table — every reader that resolves an
+// account's permissions or role membership must union this with UserRoleAssignment. The
+// canonical primitives live in app/shared/auth/permissions.server.ts.
 model MemberRoleAssignment {
   member         Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
   memberId       Int
@@ -458,6 +460,9 @@ model MemberRoleAssignment {
   roleId         Int
   congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
   congregationId Int
+
+  // The seat in an organigram node: leader | deputy | member. Identity rows are always `member`.
+  kind String @default("member")
 
   @@id([memberId, roleId])
   @@index([congregationId])

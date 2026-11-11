@@ -66,7 +66,6 @@ export function loader({ request, context }: Route.LoaderArgs) {
         rosters: [] as { id: number; name: string }[],
         moveTargets: [] as { id: number; label: string }[],
         people: [] as { id: number; firstname: string | null; lastname: string | null }[],
-        peopleWithoutAccount: [] as number[],
         nonElderIds: [] as number[],
         committeePending: false,
       }
@@ -87,7 +86,6 @@ export function loader({ request, context }: Route.LoaderArgs) {
           id: true,
           firstname: true,
           lastname: true,
-          account: { select: { id: true } },
           // Only elders may hold a committee post, so the picker has to know who they are
           // rather than letting the admin choose and then be refused.
           roleAssignments: { where: { role: { key: 'elder' } }, select: { roleId: true } },
@@ -104,7 +102,6 @@ export function loader({ request, context }: Route.LoaderArgs) {
       ...buildRolePickers(roles),
       moveTargets: buildMoveTargets(flat, selected),
       people: members.map(member => ({ id: member.id, firstname: member.firstname, lastname: member.lastname })),
-      peopleWithoutAccount: members.filter(member => member.account == null).map(member => member.id),
       nonElderIds: members.filter(member => member.roleAssignments.length === 0).map(member => member.id),
       // The built-in committee exists but has never been placed: this congregation built its
       // chart before the committee was structured, and is offered the mapping instead.
@@ -178,8 +175,8 @@ export async function action({ request, context }: Route.ActionArgs) {
           break
       }
     } catch (error) {
-      // Every refusal here is a rule the admin can act on — a cycle, a depth cap, a member with
-      // no login. Surfacing the message beats a 500 that says nothing.
+      // Every refusal here is a rule the admin can act on — a cycle, a depth cap, a non-elder on
+      // a post. Surfacing the message beats a 500 that says nothing.
       if (!(error instanceof AppError)) throw error
       session.flash('error', error.message)
     }
@@ -201,7 +198,6 @@ export default function OrganigramPage({ loaderData }: Route.ComponentProps) {
     selectedId,
     panel,
     people,
-    peopleWithoutAccount,
     nonElderIds,
     adoptable,
     rosters,
@@ -282,7 +278,6 @@ export default function OrganigramPage({ loaderData }: Route.ComponentProps) {
           <OrganigramPanelAside
             panel={panel}
             people={people}
-            peopleWithoutAccount={peopleWithoutAccount}
             nonElderIds={nonElderIds}
             adoptable={adoptable}
             moveTargets={moveTargets}

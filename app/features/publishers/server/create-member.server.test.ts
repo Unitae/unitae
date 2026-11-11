@@ -9,7 +9,10 @@ vi.mock('~/shared/domain/limits.server', () => ({
   },
 }))
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
-vi.mock('~/shared/domain/built-in-roles.server', () => ({ syncBuiltInRoleAssignments: vi.fn() }))
+vi.mock('~/shared/domain/built-in-roles.server', async importOriginal => ({
+  ...(await importOriginal<typeof import('~/shared/domain/built-in-roles.server')>()),
+  syncBuiltInRoleAssignments: vi.fn(),
+}))
 vi.mock('~/features/authentication/server/invalidate-account-password.server', () => ({
   createPasswordResetToken: vi.fn().mockResolvedValue('token'),
 }))

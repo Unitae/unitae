@@ -152,11 +152,11 @@ export async function setRoleSinglePerson(
   if (role.isSinglePerson === isSinglePerson) return
 
   if (isSinglePerson) {
-    const leaders = await db.userRoleAssignment.findMany({
-      where: { roleId, congregationId, kind: 'leader' },
-      select: { userId: true },
-    })
-    if (leaders.length > 1) {
+    // Leaders sit on records, or on logins for accounts without one: count both.
+    const leaders =
+      (await db.memberRoleAssignment.count({ where: { roleId, congregationId, kind: 'leader' } })) +
+      (await db.userRoleAssignment.count({ where: { roleId, congregationId, kind: 'leader' } }))
+    if (leaders > 1) {
       throw new ConflictError(
         'Ce service a plusieurs responsables. Retirez-en pour n’en garder qu’un avant d’en faire un rôle personnel.',
       )

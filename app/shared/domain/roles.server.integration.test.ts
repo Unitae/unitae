@@ -19,17 +19,9 @@ const { seedBuiltInRoles, seedPermissions } = await import('~/shared/domain/setu
 const { BUILT_IN_ROLE_KEYS, SERVICE_COMMITTEE_KEY, SERVICE_COMMITTEE_POST_KEYS } = await import(
   '~/shared/domain/built-in-roles.server'
 )
-const {
-  createRole,
-  updateRoleIdentity,
-  updateRolePermissions,
-  deleteRole,
-  listRoles,
-  setUserCustomRoleAssignments,
-  addUserToRole,
-  removeUserFromRole,
-  listDelegatableRoles,
-} = await import('./roles.server')
+const { createRole, updateRoleIdentity, updateRolePermissions, deleteRole, listRoles, listDelegatableRoles } =
+  await import('./roles.server')
+const { addToRole, removeFromRole, setGivenRoles } = await import('./role-membership.server')
 const { resolveEffectivePermissions } = await import('~/shared/auth/permissions.server')
 
 // The actor's permissions: an admin, so grant limits never interfere with what these tests cover.
@@ -182,7 +174,7 @@ describe('roles.server (integration)', () => {
     expect(userAfter).not.toBeNull()
   })
 
-  it('setUserCustomRoleAssignments only touches non-built-in assignments', async () => {
+  it('setGivenRoles only touches non-built-in assignments', async () => {
     const elder = await testDb.role.findFirst({ where: { congregationId, key: 'elder' } })
     if (!elder) throw new Error('elder role not seeded')
 
@@ -203,7 +195,7 @@ describe('roles.server (integration)', () => {
     )
 
     await withScope(congregationId, tx =>
-      setUserCustomRoleAssignments(tx, userId, congregationId, actorId, [customRole.id], ADMIN_ACTOR),
+      setGivenRoles(tx, { memberId: null, userId }, [customRole.id], congregationId, actorId, ADMIN_ACTOR),
     )
 
     const assignments = await testDb.userRoleAssignment.findMany({
@@ -215,7 +207,7 @@ describe('roles.server (integration)', () => {
     expect(keys).toContain(customRole.key)
 
     await withScope(congregationId, tx =>
-      setUserCustomRoleAssignments(tx, userId, congregationId, actorId, [], ADMIN_ACTOR),
+      setGivenRoles(tx, { memberId: null, userId }, [], congregationId, actorId, ADMIN_ACTOR),
     )
 
     const after = await testDb.userRoleAssignment.findMany({
@@ -229,19 +221,27 @@ describe('roles.server (integration)', () => {
     await withScope(congregationId, tx => deleteRole(tx, customRole.id, congregationId, userId, ADMIN_ACTOR))
   })
 
-  it('addUserToRole and removeUserFromRole toggle a single membership idempotently', async () => {
+  it('addToRole and removeFromRole toggle a single membership idempotently', async () => {
     const role = await withScope(congregationId, tx =>
       createRole(tx, congregationId, userId, { name: `Toggle ${ts}`, description: null, permissionKeys: [] }),
     )
 
-    await withScope(congregationId, tx => addUserToRole(tx, userId, role.id, congregationId, actorId, ADMIN_ACTOR))
-    await withScope(congregationId, tx => addUserToRole(tx, userId, role.id, congregationId, actorId, ADMIN_ACTOR))
+    await withScope(congregationId, tx =>
+      addToRole(tx, { memberId: null, userId }, role.id, congregationId, actorId, ADMIN_ACTOR),
+    )
+    await withScope(congregationId, tx =>
+      addToRole(tx, { memberId: null, userId }, role.id, congregationId, actorId, ADMIN_ACTOR),
+    )
 
     const afterAdd = await testDb.userRoleAssignment.findMany({ where: { userId, roleId: role.id } })
     expect(afterAdd).toHaveLength(1)
 
-    await withScope(congregationId, tx => removeUserFromRole(tx, userId, role.id, congregationId, actorId, ADMIN_ACTOR))
-    await withScope(congregationId, tx => removeUserFromRole(tx, userId, role.id, congregationId, actorId, ADMIN_ACTOR))
+    await withScope(congregationId, tx =>
+      removeFromRole(tx, { memberId: null, userId }, role.id, congregationId, actorId, ADMIN_ACTOR),
+    )
+    await withScope(congregationId, tx =>
+      removeFromRole(tx, { memberId: null, userId }, role.id, congregationId, actorId, ADMIN_ACTOR),
+    )
 
     const afterRemove = await testDb.userRoleAssignment.findMany({ where: { userId, roleId: role.id } })
     expect(afterRemove).toHaveLength(0)
@@ -249,13 +249,15 @@ describe('roles.server (integration)', () => {
     await withScope(congregationId, tx => deleteRole(tx, role.id, congregationId, userId, ADMIN_ACTOR))
   })
 
-  it('addUserToRole rejects identity role assignment with ForbiddenError', async () => {
+  it('addToRole rejects identity role assignment with ForbiddenError', async () => {
     const elder = await testDb.role.findFirst({ where: { congregationId, key: 'elder' } })
     if (!elder) throw new Error('elder role not seeded')
 
     let caught: unknown = null
     try {
-      await withScope(congregationId, tx => addUserToRole(tx, userId, elder.id, congregationId, actorId, ADMIN_ACTOR))
+      await withScope(congregationId, tx =>
+        addToRole(tx, { memberId: null, userId }, elder.id, congregationId, actorId, ADMIN_ACTOR),
+      )
     } catch (error) {
       caught = error
     }
@@ -263,20 +265,22 @@ describe('roles.server (integration)', () => {
     expect((caught as Error).message).toMatch(IDENTITY_MESSAGE_PATTERN)
   })
 
-  it('addUserToRole accepts the admin system role', async () => {
+  it('addToRole accepts the admin system role', async () => {
     // `admin` is isBuiltIn like the identity roles, but nothing about a Member implies
     // it — it is granted by hand. Gating this on the flag rather than on identity would
     // make it ungrantable.
     const admin = await testDb.role.findFirst({ where: { congregationId, key: 'admin' } })
     if (!admin) throw new Error('admin role not seeded')
 
-    await withScope(congregationId, tx => addUserToRole(tx, userId, admin.id, congregationId, actorId, ADMIN_ACTOR))
+    await withScope(congregationId, tx =>
+      addToRole(tx, { memberId: null, userId }, admin.id, congregationId, actorId, ADMIN_ACTOR),
+    )
 
     const assignments = await testDb.userRoleAssignment.findMany({ where: { userId, roleId: admin.id } })
     expect(assignments).toHaveLength(1)
 
     await withScope(congregationId, tx =>
-      removeUserFromRole(tx, userId, admin.id, congregationId, actorId, ADMIN_ACTOR),
+      removeFromRole(tx, { memberId: null, userId }, admin.id, congregationId, actorId, ADMIN_ACTOR),
     )
   })
 

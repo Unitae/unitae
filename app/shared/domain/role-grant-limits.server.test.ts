@@ -61,7 +61,7 @@ const db = {
       if (!role) return null
       return {
         ...role,
-        _count: { members: 0 },
+        _count: { members: 0, memberAssignments: 0 },
         permissions: (state.rolePermissions.get(role.id) ?? []).map(key => ({ permission: { key } })),
       }
     }),
@@ -101,6 +101,10 @@ const db = {
     create: vi.fn(async ({ data }: { data: { userId: number; roleId: number } }) => {
       state.assignments.push({ userId: data.userId, roleId: data.roleId })
     }),
+    upsert: vi.fn(async ({ create }: { create: { userId: number; roleId: number } }) => {
+      if (!state.assignments.some(a => a.userId === create.userId && a.roleId === create.roleId))
+        state.assignments.push({ userId: create.userId, roleId: create.roleId })
+    }),
     createMany: vi.fn(async ({ data }: { data: { userId: number; roleId: number }[] }) => {
       for (const row of data) state.assignments.push({ userId: row.userId, roleId: row.roleId })
     }),
@@ -111,8 +115,8 @@ const db = {
   },
 }
 
-const { addUserToRole, deleteRole, removeUserFromRole, setUserCustomRoleAssignments, updateRolePermissions } =
-  await import('./roles.server')
+const { deleteRole, updateRolePermissions } = await import('./roles.server')
+const { addToRole, removeFromRole, setGivenRoles } = await import('./role-membership.server')
 const { ConflictError, ForbiddenError } = await import('~/shared/errors/app-error.server')
 const { assertActorHolds, isAdminActor } = await import('./role-grant-limits.server')
 const { OwnAccountError } = await import('./account-protection.server')
@@ -129,62 +133,64 @@ beforeEach(() => {
   lastAdminGuardCalls.length = 0
 })
 
-describe('addUserToRole', () => {
+describe('addToRole', () => {
   it('refuses to grant the admin role to an actor who is not an admin', async () => {
-    await expect(addUserToRole(db as never, 5, ROLES.admin.id, 10, 7, ROLE_MANAGER)).rejects.toBeInstanceOf(
-      ForbiddenError,
-    )
+    await expect(
+      addToRole(db as never, { memberId: null, userId: 5 }, ROLES.admin.id, 10, 7, ROLE_MANAGER),
+    ).rejects.toBeInstanceOf(ForbiddenError)
     expect(state.assignments).toEqual([])
   })
 
   it('lets an actor grant a role whose permissions they hold', async () => {
-    await addUserToRole(db as never, 5, ROLES.speakers.id, 10, 7, ROLE_MANAGER)
+    await addToRole(db as never, { memberId: null, userId: 5 }, ROLES.speakers.id, 10, 7, ROLE_MANAGER)
     expect(state.assignments).toEqual([{ userId: 5, roleId: ROLES.speakers.id }])
   })
 
   it('lets an admin grant the admin role', async () => {
-    await addUserToRole(db as never, 5, ROLES.admin.id, 10, 7, ADMIN)
+    await addToRole(db as never, { memberId: null, userId: 5 }, ROLES.admin.id, 10, 7, ADMIN)
     expect(state.assignments).toEqual([{ userId: 5, roleId: ROLES.admin.id }])
   })
 
   it("refuses to change an admin's roles to an actor who is not an admin", async () => {
     adminIds.add(5)
-    await expect(addUserToRole(db as never, 5, ROLES.speakers.id, 10, 7, ROLE_MANAGER)).rejects.toBeInstanceOf(
-      ForbiddenError,
-    )
+    await expect(
+      addToRole(db as never, { memberId: null, userId: 5 }, ROLES.speakers.id, 10, 7, ROLE_MANAGER),
+    ).rejects.toBeInstanceOf(ForbiddenError)
     expect(state.assignments).toEqual([])
   })
 })
 
-describe('removeUserFromRole', () => {
+describe('removeFromRole', () => {
   it('refuses to revoke the admin role to an actor who is not an admin', async () => {
     state.assignments = [{ userId: 5, roleId: ROLES.admin.id }]
-    await expect(removeUserFromRole(db as never, 5, ROLES.admin.id, 10, 7, ROLE_MANAGER)).rejects.toBeInstanceOf(
-      ForbiddenError,
-    )
+    await expect(
+      removeFromRole(db as never, { memberId: null, userId: 5 }, ROLES.admin.id, 10, 7, ROLE_MANAGER),
+    ).rejects.toBeInstanceOf(ForbiddenError)
     expect(state.assignments).toEqual([{ userId: 5, roleId: ROLES.admin.id }])
   })
 
   it('refuses to strip the admin role from the last admin', async () => {
     adminIds.add(5)
     state.assignments = [{ userId: 5, roleId: ROLES.admin.id }]
-    await expect(removeUserFromRole(db as never, 5, ROLES.admin.id, 10, 8, ADMIN)).rejects.toBeInstanceOf(ConflictError)
+    await expect(
+      removeFromRole(db as never, { memberId: null, userId: 5 }, ROLES.admin.id, 10, 8, ADMIN),
+    ).rejects.toBeInstanceOf(ConflictError)
     expect(state.assignments).toEqual([{ userId: 5, roleId: ROLES.admin.id }])
   })
 
   it('refuses to take a role off the actor’s own account', async () => {
     state.assignments = [{ userId: 7, roleId: ROLES.speakers.id }]
-    await expect(removeUserFromRole(db as never, 7, ROLES.speakers.id, 10, 7, ROLE_MANAGER)).rejects.toBeInstanceOf(
-      OwnAccountError,
-    )
+    await expect(
+      removeFromRole(db as never, { memberId: null, userId: 7 }, ROLES.speakers.id, 10, 7, ROLE_MANAGER),
+    ).rejects.toBeInstanceOf(OwnAccountError)
     expect(state.assignments).toEqual([{ userId: 7, roleId: ROLES.speakers.id }])
   })
 })
 
-describe('setUserCustomRoleAssignments', () => {
+describe('setGivenRoles', () => {
   it('refuses to assign the admin role to an actor who is not an admin', async () => {
     await expect(
-      setUserCustomRoleAssignments(db as never, 5, 10, 7, [ROLES.admin.id], ROLE_MANAGER),
+      setGivenRoles(db as never, { memberId: null, userId: 5 }, [ROLES.admin.id], 10, 7, ROLE_MANAGER),
     ).rejects.toBeInstanceOf(ForbiddenError)
     expect(state.assignments).toEqual([])
   })
@@ -193,21 +199,28 @@ describe('setUserCustomRoleAssignments', () => {
     adminIds.add(5)
     state.assignments = [{ userId: 5, roleId: ROLES.admin.id }]
     await expect(
-      setUserCustomRoleAssignments(db as never, 5, 10, 7, [ROLES.admin.id, ROLES.speakers.id], ROLE_MANAGER),
+      setGivenRoles(
+        db as never,
+        { memberId: null, userId: 5 },
+        [ROLES.admin.id, ROLES.speakers.id],
+        10,
+        7,
+        ROLE_MANAGER,
+      ),
     ).rejects.toBeInstanceOf(ForbiddenError)
     expect(state.assignments).toEqual([{ userId: 5, roleId: ROLES.admin.id }])
   })
 
   it('lets an actor assign a role whose permissions they hold', async () => {
-    await setUserCustomRoleAssignments(db as never, 5, 10, 7, [ROLES.speakers.id], ROLE_MANAGER)
+    await setGivenRoles(db as never, { memberId: null, userId: 5 }, [ROLES.speakers.id], 10, 7, ROLE_MANAGER)
     expect(state.assignments).toEqual([{ userId: 5, roleId: ROLES.speakers.id }])
   })
 
   it('refuses to take a role off the actor’s own account', async () => {
     state.assignments = [{ userId: 7, roleId: ROLES.speakers.id }]
-    await expect(setUserCustomRoleAssignments(db as never, 7, 10, 7, [], ROLE_MANAGER)).rejects.toBeInstanceOf(
-      OwnAccountError,
-    )
+    await expect(
+      setGivenRoles(db as never, { memberId: null, userId: 7 }, [], 10, 7, ROLE_MANAGER),
+    ).rejects.toBeInstanceOf(OwnAccountError)
     expect(state.assignments).toEqual([{ userId: 7, roleId: ROLES.speakers.id }])
   })
 })
