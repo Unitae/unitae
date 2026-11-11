@@ -16,7 +16,7 @@ export {
   upsertTemplatePart,
   upsertTemplateServicePart,
 } from './server/event-templates.server'
-export { templateItemBelongsToTemplate } from './server/events-auth.server'
+export { getResponsibleTemplateIds, templateItemBelongsToTemplate } from './server/events-auth.server'
 export {
   findLastAssignmentsForMembers,
   findNextAbsencesForMembers,

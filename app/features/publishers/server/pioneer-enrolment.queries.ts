@@ -1,5 +1,7 @@
 import type { PioneerEnrolment } from '~/database/generated/client'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import type { PublisherType } from '~/shared/types/publisher-type'
 import type { MonthEnrolment } from '../model/month-enrolment.type'
 import {
   type EnrolmentPeriod,
@@ -65,4 +67,25 @@ export async function getMonthEnrolment(
   const enrolment = enrolmentForMonth(await getEnrolmentsForMember(db, memberId, congregationId), month, year)
   if (enrolment == null) return null
   return { type: enrolment.type, goal: await resolveEnrolmentMonthlyGoal(db, enrolment, toServiceYear(month, year)) }
+}
+
+/**
+ * The members whose stint of `type` has no end (a permanent auxiliary pioneer), by last name: whom turning the
+ * permanent enrolment off would stop, named before it happens.
+ */
+export async function listOngoingEnrolleesOfType(
+  db: TransactionClient,
+  congregationId: number,
+  type: PublisherType,
+): Promise<{ id: number; firstname: string; lastname: string }[]> {
+  const rows = await db.pioneerEnrolment.findMany({
+    where: { congregationId, type, endMonth: null, endYear: null },
+    select: { member: { select: { id: true, firstname: true, lastname: true } } },
+  })
+  return rows
+    .map(row => row.member)
+    .sort(
+      (a, b) =>
+        a.lastname.localeCompare(b.lastname, getLocale()) || a.firstname.localeCompare(b.firstname, getLocale()),
+    )
 }

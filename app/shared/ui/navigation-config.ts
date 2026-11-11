@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 
 import * as m from '~/i18n/paraglide/messages'
+import type { SettingsLink } from '~/shared/ui/settings-entries'
 
 export interface NavigationPermissions {
   canViewBoard: boolean
@@ -37,9 +38,6 @@ export interface NavigationPermissions {
   canManageCampaigns: boolean
   canViewProspection: boolean
   canManageTerritories: boolean
-  canManageSettings: boolean
-  canManageUsers: boolean
-  canManagePioneerGoals: boolean
   canViewPrograms: boolean
   canViewAbsences: boolean
   canViewActivity: boolean
@@ -47,7 +45,8 @@ export interface NavigationPermissions {
   canManageExternalSpeakers: boolean
   canViewRoles: boolean
   canManageRoles: boolean
-  canManagePermissions: boolean
+  /** The parts of Réglages the viewer may open, in the column's order: none hides Réglages. */
+  settingsLinks: SettingsLink[]
   /** The group the member oversees or assists, which he may open without `canViewPublishers`. */
   ledGroupId: number | null
 }
@@ -264,12 +263,7 @@ export function buildManagementSections(permissions: NavigationPermissions): Nav
     sections.push({ id: 'territories', label: m.sidebar_territories, items: territoryItems })
   }
 
-  if (
-    permissions.canManageSettings ||
-    permissions.canManageUsers ||
-    permissions.canManagePermissions ||
-    permissions.canManagePioneerGoals
-  ) {
+  if (permissions.settingsLinks.length > 0) {
     sections.push({
       id: 'settings',
       label: m.sidebar_settings,
@@ -308,9 +302,6 @@ const EVERY_PERMISSION: NavigationPermissions = {
   canManageCampaigns: true,
   canViewProspection: true,
   canManageTerritories: true,
-  canManageSettings: true,
-  canManageUsers: true,
-  canManagePioneerGoals: true,
   canViewPrograms: true,
   canViewAbsences: true,
   canViewActivity: true,
@@ -318,7 +309,7 @@ const EVERY_PERMISSION: NavigationPermissions = {
   canManageExternalSpeakers: true,
   canViewRoles: true,
   canManageRoles: true,
-  canManagePermissions: true,
+  settingsLinks: [{ key: 'general', href: '/settings/general' }],
   ledGroupId: null,
 }
 

@@ -98,8 +98,8 @@ export default [
         index('features/settings/routes/permissions/permission-list.tsx'),
         route(':roleId/edit', 'features/settings/routes/permissions/edit-permission.tsx'),
       ]),
-      route('congregation', 'features/settings/routes/congregation/settings.tsx'),
-      route('congregation/pioneer-goals', 'features/settings/routes/congregation/pioneer-goals.tsx'),
+      route('publishers', 'features/settings/routes/publishers.tsx'),
+      route('congregation/*', 'features/settings/routes/legacy.tsx'),
       ...prefix('congregation/presets', [
         index('features/settings/routes/congregation/preset-list.tsx'),
         route('new', 'features/settings/routes/congregation/presets/new.tsx'),

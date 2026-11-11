@@ -122,6 +122,8 @@ export const AuditAction = {
 
   // Pioneer goals
   PioneerGoalUpdated: 'pioneer_goal.updated',
+  // A goal set back to its default: the congregation's own goal for that type is dropped.
+  PioneerGoalReset: 'pioneer_goal.reset',
 
   // Pioneer enrolment
   PioneerEnrolled: 'pioneer_enrolment.created',
