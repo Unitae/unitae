@@ -55,7 +55,7 @@ async function anonymizeUser(tx: Tx, userId: number, actorId: number): Promise<v
   if (account.memberId != null) {
     await anonymizeMember(tx, account.memberId as MemberId, account.congregationId, actorId)
   }
-  await anonymizeAccount(tx, account.id as AccountId, account.congregationId, actorId)
+  await anonymizeAccount(tx, account.id as AccountId, account.congregationId, actorId, new Set(['can-do-anything']))
 }
 
 beforeAll(async () => {

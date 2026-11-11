@@ -38,7 +38,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     if (!account) throw redirect('/settings/users')
 
     try {
-      await deleteAccount(db, accountId, currentUser.congregationId, currentUser.id)
+      await deleteAccount(db, accountId, currentUser.congregationId, currentUser.id, permissions)
     } catch (error) {
       if (error instanceof NotFoundError) throw redirect('/settings/users')
       if (error instanceof ConflictError) {

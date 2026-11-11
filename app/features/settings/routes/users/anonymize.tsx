@@ -43,7 +43,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       if (account.memberId != null) {
         await anonymizeMember(db, account.memberId as MemberId, account.congregationId, currentUser.id)
       }
-      await anonymizeAccount(db, accountId, account.congregationId, currentUser.id)
+      await anonymizeAccount(db, accountId, account.congregationId, currentUser.id, permissions)
     })
   } catch (error) {
     if (error instanceof NotFoundError) throw redirect('/settings/users')

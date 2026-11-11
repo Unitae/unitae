@@ -4,7 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 // the caller's congregation: accounts are looked up within it, never by bare id. Sessions revoked and
 // emails sent are recorded in memory, so the tests assert on what happened to each account.
 
-const { revoked, emailed, links } = vi.hoisted(() => ({
+const { revoked, emailed, links, adminIds } = vi.hoisted(() => ({
+  adminIds: new Set<number>(),
   revoked: [] as number[],
   emailed: [] as number[],
   // Pending reset links per account, honouring the keepPending option like the real service.
@@ -56,6 +57,9 @@ vi.mock('~/features/authentication/server/session.server', () => ({
 }))
 vi.mock('~/features/authentication/emails/reset-password-required', () => ({ default: () => null }))
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: { PasswordResetRequested: 'x' }, audit: vi.fn() }))
+vi.mock('~/shared/auth/permissions.server', () => ({
+  isAccountAdmin: vi.fn(async (accountId: number) => adminIds.has(accountId)),
+}))
 vi.mock('~/shared/domain/congregation.server', () => ({
   resolveCongregation: vi.fn(async () => ({ baseUrl: 'https://unitae.example.test', displayName: 'Unitae' })),
 }))
@@ -74,7 +78,17 @@ function invalidate(userId: number) {
   )
 }
 
+/** What the action answers a fetcher with, a `data()` result rather than a Response. */
+function answer(userId: number) {
+  return action({
+    request: new Request(`https://unitae.example.test/users/${userId}/password-invalidation`, { method: 'POST' }),
+    params: { userId: String(userId) },
+    context: routeContext([Permission.CanManageUsers], { congregationId: 1 }),
+  } as never)
+}
+
 beforeEach(() => {
+  adminIds.clear()
   revoked.length = 0
   emailed.length = 0
   links.clear()
@@ -82,7 +96,7 @@ beforeEach(() => {
 
 describe('password-invalidation action', () => {
   it("revokes and emails an account of the caller's congregation", async () => {
-    await invalidate(20)
+    await answer(20)
     expect(revoked).toEqual([20])
     expect(emailed).toEqual([20])
   })
@@ -98,8 +112,24 @@ describe('password-invalidation action', () => {
   it('replaces the reset links sent earlier to the account', async () => {
     links.set(20, ['earlier-link'])
 
-    await invalidate(20)
+    await answer(20)
 
     expect(links.get(20)).toEqual(['token-2'])
+  })
+
+  it('keeps an administrator’s account to administrators: no session ended, no link sent', async () => {
+    adminIds.add(20)
+
+    const result = (await answer(20)) as { data: unknown; init: { status: number } }
+
+    expect(result.init.status).toBe(403)
+    expect(revoked).toEqual([])
+    expect(emailed).toEqual([])
+  })
+
+  it('answers the dialog that sent it, so it closes', async () => {
+    const result = (await answer(20)) as { data: unknown }
+
+    expect(result.data).toEqual({ ok: true })
   })
 })

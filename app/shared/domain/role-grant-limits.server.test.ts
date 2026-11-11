@@ -12,9 +12,10 @@ vi.mock('~/shared/domain/audit.server', () => ({
   audit: vi.fn(),
 }))
 
-const { adminIds, lastAdminGuardCalls } = vi.hoisted(() => ({
+const { adminIds, lastAdminGuardCalls, adminsAfterRoleChange } = vi.hoisted(() => ({
   adminIds: new Set<number>(),
   lastAdminGuardCalls: [] as number[],
+  adminsAfterRoleChange: { count: 1 },
 }))
 
 vi.mock('~/shared/auth/permissions.server', async () => {
@@ -25,6 +26,9 @@ vi.mock('~/shared/auth/permissions.server', async () => {
       lastAdminGuardCalls.push(accountId)
       if (adminIds.has(accountId) && adminIds.size === 1) throw new ConflictError('last admin')
     }),
+    requireAdminsRemainWithoutRole: vi.fn(async () => {
+      if (adminsAfterRoleChange.count === 0) throw new ConflictError('last admin')
+    }),
   }
 })
 
@@ -33,6 +37,13 @@ const ROLES = {
   admin: { id: 1, key: 'admin', isBuiltIn: true, isSinglePerson: false, permissions: ['can-do-anything'] },
   member: { id: 2, key: 'member', isBuiltIn: true, isSinglePerson: false, permissions: ['can-view-board'] },
   speakers: { id: 3, key: 'speakers', isBuiltIn: false, isSinglePerson: false, permissions: ['can-view-programs'] },
+  coordinators: {
+    id: 4,
+    key: 'coordinators',
+    isBuiltIn: false,
+    isSinglePerson: false,
+    permissions: ['can-do-anything'],
+  },
 } as const
 type RoleRow = (typeof ROLES)[keyof typeof ROLES]
 const byId = (id: number): RoleRow | undefined => Object.values(ROLES).find(r => r.id === id)
@@ -92,11 +103,13 @@ const { addUserToRole, removeUserFromRole, setUserCustomRoleAssignments, updateR
 )
 const { ConflictError, ForbiddenError } = await import('~/shared/errors/app-error.server')
 const { assertActorHolds, isAdminActor } = await import('./role-grant-limits.server')
+const { OwnAccountError } = await import('./account-protection.server')
 
 const ROLE_MANAGER = new Set(['can-manage-roles', 'can-view-programs'])
 const ADMIN = new Set(['can-do-anything'])
 
 beforeEach(() => {
+  adminsAfterRoleChange.count = 1
   state.assignments = []
   state.rolePermissions = new Map(Object.values(ROLES).map(r => [r.id, [...r.permissions]]))
   adminIds.clear()
@@ -145,6 +158,14 @@ describe('removeUserFromRole', () => {
     await expect(removeUserFromRole(db as never, 5, ROLES.admin.id, 10, 8, ADMIN)).rejects.toBeInstanceOf(ConflictError)
     expect(state.assignments).toEqual([{ userId: 5, roleId: ROLES.admin.id }])
   })
+
+  it('refuses to take a role off the actor’s own account', async () => {
+    state.assignments = [{ userId: 7, roleId: ROLES.speakers.id }]
+    await expect(removeUserFromRole(db as never, 7, ROLES.speakers.id, 10, 7, ROLE_MANAGER)).rejects.toBeInstanceOf(
+      OwnAccountError,
+    )
+    expect(state.assignments).toEqual([{ userId: 7, roleId: ROLES.speakers.id }])
+  })
 })
 
 describe('setUserCustomRoleAssignments', () => {
@@ -168,9 +189,34 @@ describe('setUserCustomRoleAssignments', () => {
     await setUserCustomRoleAssignments(db as never, 5, 10, 7, [ROLES.speakers.id], ROLE_MANAGER)
     expect(state.assignments).toEqual([{ userId: 5, roleId: ROLES.speakers.id }])
   })
+
+  it('refuses to take a role off the actor’s own account', async () => {
+    state.assignments = [{ userId: 7, roleId: ROLES.speakers.id }]
+    await expect(setUserCustomRoleAssignments(db as never, 7, 10, 7, [], ROLE_MANAGER)).rejects.toBeInstanceOf(
+      OwnAccountError,
+    )
+    expect(state.assignments).toEqual([{ userId: 7, roleId: ROLES.speakers.id }])
+  })
 })
 
 describe('updateRolePermissions', () => {
+  it('keeps the admin role whole, even for an administrator: it holds every permission', async () => {
+    await expect(
+      updateRolePermissions(db as never, ROLES.admin.id, 10, 7, ['can-view-programs'], ADMIN),
+    ).rejects.toBeInstanceOf(ForbiddenError)
+  })
+
+  it('refuses to take can-do-anything off a role when no administrator would be left', async () => {
+    adminsAfterRoleChange.count = 0
+    await expect(updateRolePermissions(db as never, ROLES.coordinators.id, 10, 7, [], ADMIN)).rejects.toBeInstanceOf(
+      ConflictError,
+    )
+  })
+
+  it('takes can-do-anything off a role while another administrator remains', async () => {
+    await expect(updateRolePermissions(db as never, ROLES.coordinators.id, 10, 7, [], ADMIN)).resolves.toBeUndefined()
+  })
+
   it('refuses to add a permission the actor does not hold', async () => {
     await expect(
       updateRolePermissions(

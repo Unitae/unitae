@@ -4200,5 +4200,8 @@
     "geojson_error_zone": "Zone « {name} » : {detail}",
     "geojson_error_unnamed": "sans nom",
     "geojson_error_detail_invalid": "invalide",
-    "geojson_error_no_polygon": "Le fichier ne contient aucun polygone valide."
+    "geojson_error_no_polygon": "Le fichier ne contient aucun polygone valide.",
+    "settings_user_admin_only": "Le compte d’un administrateur se gère par un administrateur.",
+    "settings_user_own_account": "Vous ne pouvez pas faire cela sur votre propre compte : demandez-le à un autre gestionnaire.",
+    "settings_user_last_admin": "C’est le dernier administrateur de l’assemblée : donnez d’abord le rôle à quelqu’un d’autre."
 }

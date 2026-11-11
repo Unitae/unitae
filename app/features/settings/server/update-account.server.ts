@@ -1,7 +1,8 @@
 import { memberAggregate } from '~/features/publishers/index.server'
 import { requireNotLastAdmin } from '~/shared/auth/permissions.server'
+import { assertMayActOnAccount } from '~/shared/domain/account-protection.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
-import { type ActorPermissions, assertMayChangeAccountAccess } from '~/shared/domain/role-grant-limits.server'
+import type { ActorPermissions } from '~/shared/domain/role-grant-limits.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export interface UpdateAccountParams {
@@ -29,9 +30,6 @@ export async function updateAccount(
   params: UpdateAccountParams,
   actorPermissions: ActorPermissions,
 ) {
-  // An admin's email and active flag decide who can sign in as an admin: an admin's call alone.
-  await assertMayChangeAccountAccess(userId, congregationId, actorPermissions)
-
   // Look up the linked member ID up front so the single account update can
   // null the display-name fields when a Member owns the name. Saves a second
   // userAccount.update round-trip that the previous shape did.
@@ -40,10 +38,18 @@ export async function updateAccount(
     select: { memberId: true, active: true },
   })
   const hasLinkedMember = existing?.memberId != null
+  const deactivating = !params.active && existing?.active !== false
 
-  if (!params.active && existing?.active !== false) {
-    await requireNotLastAdmin(userId, congregationId)
-  }
+  // An admin's email and active flag decide who can sign in as an admin: an admin's call alone. And nobody switches
+  // their own account off.
+  await assertMayActOnAccount({
+    accountId: userId,
+    actorId,
+    congregationId,
+    actorPermissions,
+    action: deactivating ? 'deactivate' : 'edit',
+  })
+  if (deactivating) await requireNotLastAdmin(userId, congregationId)
 
   await db.userAccount.update({
     where: {

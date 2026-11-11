@@ -4200,5 +4200,8 @@
     "geojson_error_zone": "Zone “{name}”: {detail}",
     "geojson_error_unnamed": "unnamed",
     "geojson_error_detail_invalid": "invalid",
-    "geojson_error_no_polygon": "The file contains no valid polygon."
+    "geojson_error_no_polygon": "The file contains no valid polygon.",
+    "settings_user_admin_only": "An administrator’s account is handled by an administrator.",
+    "settings_user_own_account": "You cannot do this to your own account: ask another manager.",
+    "settings_user_last_admin": "This is the congregation’s last administrator: give the role to someone else first."
 }

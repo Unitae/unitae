@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { requireNotLastAdmin } from '~/shared/auth/permissions.server'
+import { assertMayActOnAccount } from '~/shared/domain/account-protection.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
+import type { ActorPermissions } from '~/shared/domain/role-grant-limits.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { AccountId } from '~/shared/types/branded'
@@ -22,6 +24,7 @@ export async function anonymizeAccount(
   accountId: AccountId,
   congregationId: number,
   actorId: number,
+  actorPermissions: ActorPermissions,
 ): Promise<void> {
   const account = await db.userAccount.findFirst({
     where: { id: accountId, congregationId },
@@ -31,6 +34,8 @@ export async function anonymizeAccount(
   if (!account) throw new NotFoundError('UserAccount')
   if (account.anonymizedAt) throw new ConflictError('Account already anonymized')
 
+  // Nobody anonymises their own account; an administrator's is handled by administrators only.
+  await assertMayActOnAccount({ accountId, actorId, congregationId, actorPermissions, action: 'anonymise' })
   await requireNotLastAdmin(accountId, congregationId)
 
   const anonymizedEmail = `deleted-${randomUUID()}@anonymized.local`
