@@ -6,5 +6,6 @@ import type { Route } from './+types/legacy'
 export function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url)
   const to = currentSettingsPath(url.pathname)
-  throw redirect(to ? `${to}${url.search}` : '/settings')
+  // A target carrying its own query (?role=) keeps it; any other keeps the old address's.
+  throw redirect(to ? (to.includes('?') ? to : `${to}${url.search}`) : '/settings')
 }

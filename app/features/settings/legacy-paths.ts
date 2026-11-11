@@ -5,6 +5,8 @@ const MOVED: [RegExp, (match: RegExpMatchArray) => string][] = [
   [/^\/settings\/congregation\/pioneer-goals\/?$/, () => '/settings/publishers'],
   [/^\/settings\/territories\/card-overlays\/?$/, () => '/settings/map'],
   [/^\/settings\/users\/(\d+)\/edit\/?$/, match => `/settings/users/${match[1]}`],
+  [/^\/settings\/permissions\/?$/, () => '/settings/roles'],
+  [/^\/settings\/permissions\/(\d+)\/edit\/?$/, match => `/settings/roles?role=${match[1]}`],
 ]
 
 /** The current address of an old settings address, or null when it is not one. */

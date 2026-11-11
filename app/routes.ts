@@ -98,10 +98,8 @@ export default [
         id: 'settings-legacy-card-overlays',
       }),
       route('audit-log', 'features/settings/routes/audit-log.tsx'),
-      ...prefix('permissions', [
-        index('features/settings/routes/permissions/permission-list.tsx'),
-        route(':roleId/edit', 'features/settings/routes/permissions/edit-permission.tsx'),
-      ]),
+      route('roles', 'features/settings/routes/roles.tsx'),
+      route('permissions/*', 'features/settings/routes/legacy.tsx', { id: 'settings-legacy-permissions' }),
       route('publishers', 'features/settings/routes/publishers.tsx'),
       route('congregation/*', 'features/settings/routes/legacy.tsx'),
       ...prefix('congregation/presets', [

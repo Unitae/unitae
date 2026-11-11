@@ -8,6 +8,8 @@ describe('currentSettingsPath', () => {
     ['/settings/congregation/pioneer-goals', '/settings/publishers'],
     ['/settings/territories/card-overlays', '/settings/map'],
     ['/settings/users/12/edit', '/settings/users/12'],
+    ['/settings/permissions', '/settings/roles'],
+    ['/settings/permissions/7/edit', '/settings/roles?role=7'],
   ])('leads %s to %s', (from, to) => {
     expect(currentSettingsPath(from)).toBe(to)
   })
