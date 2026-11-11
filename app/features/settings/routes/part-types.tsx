@@ -53,31 +53,37 @@ export function loader({ context }: Route.LoaderArgs) {
     return {
       canEdit,
       baseUrl: context.get(congregationContext).baseUrl,
-      presets: presets.map(preset => ({
-        id: preset.id,
-        isSystem: preset.isSystem,
-        name: partPresetName(preset),
-        usage: preset._count.templateParts + preset._count.eventParts,
-        // Stored values only: a blank field keeps the catalogue's wording, which the placeholders show.
-        values: {
-          name: preset.name ?? '',
-          speakerLabel: preset.speakerLabel,
-          readerLabel: preset.readerLabel,
-          hasReaderSlot: preset.hasReaderSlot,
-          allowExternalSpeaker: preset.allowExternalSpeaker,
-          shareMessage: preset.shareMessage ?? '',
-        },
-        placeholders: {
-          name: partPresetName({ key: preset.key, name: null }),
-          speakerLabel: partPresetSpeakerLabel({ key: preset.key, speakerLabel: null }) ?? '',
-          readerLabel: partPresetReaderLabel({ key: preset.key, readerLabel: null }) ?? '',
-          shareMessage: partPresetShareMessage({ key: preset.key, shareMessage: null }, locale),
-        },
-        speaker: partPresetSpeakerLabel(preset) ?? m.settings_presets_form_speaker_placeholder(),
-        reader: preset.hasReaderSlot
-          ? (partPresetReaderLabel(preset) ?? m.settings_presets_form_reader_placeholder())
-          : null,
-      })),
+      presets: presets
+        .map(preset => ({
+          id: preset.id,
+          isSystem: preset.isSystem,
+          name: partPresetName(preset),
+          usage: preset._count.templateParts + preset._count.eventParts,
+          // Stored values only: a blank field keeps the catalogue's wording, which the placeholders show.
+          values: {
+            name: preset.name ?? '',
+            speakerLabel: preset.speakerLabel,
+            readerLabel: preset.readerLabel,
+            hasReaderSlot: preset.hasReaderSlot,
+            allowExternalSpeaker: preset.allowExternalSpeaker,
+            shareMessage: preset.shareMessage ?? '',
+          },
+          placeholders: {
+            name: partPresetName({ key: preset.key, name: null }),
+            speakerLabel: partPresetSpeakerLabel({ key: preset.key, speakerLabel: null }) ?? '',
+            readerLabel: partPresetReaderLabel({ key: preset.key, readerLabel: null }) ?? '',
+            shareMessage: partPresetShareMessage({ key: preset.key, shareMessage: null }, locale),
+          },
+          speaker: partPresetSpeakerLabel(preset) ?? m.settings_presets_form_speaker_placeholder(),
+          reader: preset.hasReaderSlot
+            ? (partPresetReaderLabel(preset) ?? m.settings_presets_form_reader_placeholder())
+            : null,
+        }))
+        // Built-in first, then by the name people read: a built-in type stores no name of its own.
+        .sort(
+          (a, b) =>
+            Number(b.isSystem) - Number(a.isSystem) || a.name.localeCompare(b.name, locale, { sensitivity: 'base' }),
+        ),
     }
   })
 }
