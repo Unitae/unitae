@@ -89,14 +89,24 @@ export function describeCandidate(facts: CandidateFacts, { kind, timeZone, refer
 interface SpeakerFacts {
   /** Empty while the record is incomplete (an imported speaker). */
   congregationName: string
+  /** The talk numbers on his list; the first three are shown. */
+  talks?: number[]
   lastAssignedAt?: string
   elsewhere?: string[]
 }
+
+const SHOWN_TALKS = 3
 
 /**
  * One external speaker in the list for a part: their congregation, or that their record is to complete, then the
  * same history and order as a publisher — never given first, then the longest since their last time.
  */
+function talksFact(talks: number[] | undefined): string | null {
+  if (talks == null || talks.length === 0) return null
+  const shown = talks.slice(0, SHOWN_TALKS).join(', ')
+  return m.person_facts_talks({ numbers: talks.length > SHOWN_TALKS ? `${shown}…` : shown })
+}
+
 export function describeExternalCandidate(
   facts: SpeakerFacts,
   { timeZone, referenceYear }: { timeZone: string; referenceYear: number },
@@ -109,6 +119,7 @@ export function describeExternalCandidate(
   return {
     facts: [
       incomplete ? m.person_facts_incomplete() : facts.congregationName,
+      talksFact(facts.talks),
       busy ? m.person_facts_list_elsewhere() : null,
       history,
     ]

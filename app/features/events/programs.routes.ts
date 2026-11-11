@@ -26,6 +26,10 @@ export const programsRoutes = [
       index('features/events/routes/programs/external-speakers/list.tsx'),
       route('new', 'features/events/routes/programs/external-speakers/new.tsx'),
       ...prefix(':externalSpeakerId', [route('edit', 'features/events/routes/programs/external-speakers/edit.tsx')]),
+      ...prefix('congregations/:speakerCongregationId', [
+        route('update', 'features/events/routes/programs/external-speakers/update-list.tsx'),
+        route('list-pdf', 'features/events/routes/programs/external-speakers/list-pdf.tsx'),
+      ]),
     ]),
   ]),
 ] satisfies RouteConfig

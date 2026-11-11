@@ -4,6 +4,7 @@ import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/shared/ui/collapsible'
 import { useIsMobile } from '~/shared/ui/hooks/use-mobile'
+import { loadPdfJs as loadSharedPdfJs } from '~/shared/ui/pdf/load-pdfjs'
 import { Skeleton } from '~/shared/ui/skeleton'
 import {
   computeAutoFitScale,
@@ -69,13 +70,7 @@ const SCROLLBAR_BUDGET_PX = 16
 
 async function loadPdfJs() {
   try {
-    await import('./pdf-globals-shim')
-    await import('./pdf-upsert-shim')
-    await import('es-arraybuffer-base64/auto')
-    const pdfjs = await import('pdfjs-dist')
-    const workerSrc = (await import('./pdf-worker?worker&url')).default
-    pdfjs.GlobalWorkerOptions.workerSrc = workerSrc
-    return pdfjs
+    return await loadSharedPdfJs()
   } catch (err) {
     throw new PdfLoadError(err)
   }

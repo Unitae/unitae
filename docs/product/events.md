@@ -139,21 +139,22 @@ Each member can subscribe to their own programme assignments and absences from a
 
 ## External Speakers
 
-Visiting speakers (and any other regular non-publisher contributors) live in their own registry, separate from publishers. Each entry has:
+Visiting speakers come from **lists**: each nearby congregation sends the list of its public speakers now and then, and the congregation receives one list per congregation. The page (**Programmes → Orateurs extérieurs**) is organised that way.
 
-- **Name**
-- **Originating congregation** (optional)
-- **Phone** (optional)
-- **Notes** (optional)
+**Congregations.** A congregation whose list is received is a record of its own: its name, its two contacts (the public talk coordinator, *responsable des discours*, and the coordinator of the body of elders), the date of its latest list, that list's PDF, and notes. Names are matched ignoring case, accents, spaces and hyphens, so « Montreuil-Est » and « MONTREUIL EST » are one congregation.
 
-When assigning a programme part — typically the public talk — managers can pick a speaker from this list instead of (or alongside) a publisher. External speakers don't show up in publisher screens, statistics, or activity reports; they exist only to be referenced in programme assignments.
+**Speakers.** Each speaker belongs to a congregation and has a name, up to two phones and two e-mails (at least one of the four), the numbers of the talk outlines he can give (numbers only: titles belong to their publisher), and notes. The list groups speakers under their congregation, with their talks, their last visit here and their next planned one; a row opens the speaker in a side panel (beside the list from 1280 px, in a sheet below) with his contact details and every visit. A congregation's name opens the congregation the same way.
 
-Speakers no longer needed can be **archived** (kept in history but hidden from new-assignment pickers) and unarchived later.
+**Updating a list.** « Mettre à jour la liste » (computer or tablet) takes the PDF a congregation sent — a table or a plain list — and reads its text in the browser: names, phones, e-mails, talk numbers, and the two contacts at its head. The rows are compared with the speakers we have and marked *new*, *changed* (with the value before), *back on the list*, or proposed for *retirement* when absent from the new list; a name already known in another congregation asks whether it is the same brother, who then moves with his visits. The PDF stays open beside the rows for checking; a scanned PDF (an image) is filled in by hand. Nothing is saved before « Enregistrer », which applies everything at once and keeps the PDF on the congregation, replacing the previous one.
+
+**Retiring and deleting.** A speaker no longer on his congregation's list is *retired* (« Retirer de la liste »): no longer offered when assigning a part, but his history stays and a talk already planned stays on its programme, flagged « n'est plus sur la liste ». A retired speaker can be put back, or *deleted for good*: his planned talks are freed (the part goes back to « à pourvoir »), his name and contact details are erased, and past programmes then read « Orateur extérieur · *congregation* ». A congregation can be deleted once no speaker is left in it.
+
+When assigning a programme part — typically the public talk — managers pick a speaker from this list, least recently here first, with his congregation and talk numbers under his name. External speakers don't show up in publisher screens, statistics, or activity reports.
 
 **Permissions**
 
-- *External Speaker Viewer* — open the registry and pick speakers when assigning a part
-- *External Speaker Manager* — also add, edit, archive, and unarchive entries
+- *External Speaker Viewer* — open the list, the speakers and congregations, the kept PDFs, and pick speakers when assigning a part
+- *External Speaker Manager* — also add and edit congregations and speakers, update a list, retire, put back and delete
 
 ## Per-Template Responsibility
 
@@ -171,7 +172,7 @@ If no responsible is set, only users with the Program Manager or Admin permissio
 | Program Viewer | View events, programmes, and template list |
 | Program Manager | Create, edit, release, un-release, and delete events. Assign publishers. Manage templates |
 | External Speaker Viewer | Open the external speaker registry and pick from it |
-| External Speaker Manager | Add, edit, archive, and unarchive external speakers |
+| External Speaker Manager | Add and edit external speakers and their congregations, update a list, retire and delete |
 | Template responsible | Edit, release, un-release, and delete events for their template only. Assign publishers |
 | Admin | Everything, including creating new templates |
 

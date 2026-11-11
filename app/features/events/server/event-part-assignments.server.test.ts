@@ -286,6 +286,36 @@ describe('assignPart', () => {
     expect(allowedRoles.resolveEligibleUserIds).not.toHaveBeenCalled()
   })
 
+  // A speaker retired from their list after being planned keeps the talk: saving the part again (a topic, a duration)
+  // must not fail on them. Only a new choice has to be on a list.
+  it('keeps a retired speaker already holding the part when the part is saved again', async () => {
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
+      id: 1,
+      externalSpeakerId: 99,
+      event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+    } as never)
+    vi.mocked(db.externalSpeaker.findFirst).mockResolvedValue({ id: 99, archivedAt: new Date(2026, 2, 1) } as never)
+    vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1, externalSpeakerId: 99 } as never)
+
+    const result = await assignPart(db, 1, null, null, 99, 'n° 54', 1)
+
+    expect(result).toHaveProperty('assignment')
+  })
+
+  it('refuses to newly assign a retired speaker', async () => {
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
+      id: 1,
+      externalSpeakerId: null,
+      event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+    } as never)
+    vi.mocked(db.externalSpeaker.findFirst).mockResolvedValue({ id: 99, archivedAt: new Date(2026, 2, 1) } as never)
+
+    const result = await assignPart(db, 1, null, null, 99, 'n° 54', 1)
+
+    expect(result).toHaveProperty('error')
+    expect(db.eventPart.update).not.toHaveBeenCalled()
+  })
+
   // Duration shortcut: the assign-part sheet lets managers tweak the runtime
   // of a specific part without opening the template editor. The value is
   // always written through — `null` clears the row's duration.

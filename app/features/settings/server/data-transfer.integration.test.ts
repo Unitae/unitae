@@ -364,13 +364,25 @@ beforeAll(async () => {
       },
     })
 
+    const speakerCongregation = await tx.speakerCongregation.create({
+      data: {
+        name: 'Congrégation Voisine',
+        nameNormalized: 'congregation voisine',
+        responsibleName: 'Frère Responsable',
+        responsibleEmail: 'discours@example.com',
+        congregationId: sourceId,
+      },
+    })
     const externalSpeaker = await tx.externalSpeaker.create({
       data: {
         name: 'Frère Visiteur',
         congregationName: 'Congrégation Voisine',
+        speakerCongregationId: speakerCongregation.id,
         phone: '+33123456789',
+        phone2: '+33987654321',
         email: 'visiteur@example.com',
         notes: 'Speaks every quarter',
+        talks: [12, 54],
         congregationId: sourceId,
       },
     })
@@ -465,6 +477,7 @@ afterAll(async () => {
       await tx.eventServicePart.deleteMany({})
       await tx.eventPart.deleteMany({})
       await tx.externalSpeaker.deleteMany({})
+      await tx.speakerCongregation.deleteMany({})
       await tx.templateResponsible.deleteMany({})
       await tx.templateServicePart.deleteMany({})
       await tx.templatePart.deleteMany({})
@@ -575,6 +588,7 @@ async function importFromZip(buffer: Buffer, congregationId: number): Promise<vo
     await mod.importPioneerEnrolments(zip, db, idMap, congregationId)
     await mod.importEmergencyContacts(zip, db, idMap, congregationId)
     await mod.importPioneerGoals(zip, db, congregationId)
+    await mod.importSpeakerCongregations(zip, db, idMap, congregationId)
     await mod.importExternalSpeakers(zip, db, idMap, congregationId)
     await mod.importTerritories(zip, db, idMap, congregationId)
     await mod.importTerritoryCardOverlays(zip, db, idMap, congregationId)
@@ -646,6 +660,7 @@ describe('Export/Import round-trip', () => {
     expect(entityCounts['role-permissions']).toBe(2)
     expect(entityCounts['user-role-assignments']).toBe(2)
     expect(entityCounts['external-speakers']).toBe(1)
+    expect(entityCounts['speaker-congregations']).toBe(1)
     expect(entityCounts['territory-card-overlays']).toBe(1)
     expect(entityCounts['territory-perimeter']).toBe(1)
     expect(entityCounts['programme-template-part-allowed-roles']).toBe(1)
@@ -699,6 +714,7 @@ describe('Export/Import round-trip', () => {
       await tx.eventServicePart.deleteMany({})
       await tx.eventPart.deleteMany({})
       await tx.externalSpeaker.deleteMany({})
+      await tx.speakerCongregation.deleteMany({})
       await tx.templateResponsible.deleteMany({})
       await tx.templateServicePart.deleteMany({})
       await tx.templatePart.deleteMany({})
@@ -936,7 +952,16 @@ describe('Export/Import round-trip', () => {
       const speakers = await tx.externalSpeaker.findMany({})
       expect(speakers).toHaveLength(1)
       expect(speakers[0].name).toBe('Frère Visiteur')
+      expect(speakers[0]).toMatchObject({ phone2: '+33987654321', talks: [12, 54] })
       expect(eventParts[0].externalSpeakerId).toBe(speakers[0].id)
+      // …and onto its congregation, recreated with its contact.
+      const speakerCongregations = await tx.speakerCongregation.findMany({})
+      expect(speakerCongregations).toHaveLength(1)
+      expect(speakerCongregations[0]).toMatchObject({
+        name: 'Congrégation Voisine',
+        responsibleName: 'Frère Responsable',
+      })
+      expect(speakers[0].speakerCongregationId).toBe(speakerCongregations[0].id)
 
       // Territory card overlay + perimeter
       const overlays = await tx.territoryCardOverlay.findMany({})

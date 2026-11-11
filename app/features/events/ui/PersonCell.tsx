@@ -1,6 +1,7 @@
 import { Avatar, Status, Tag } from '@unitae/ui'
 import { Link } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
+import { type ExternalSpeakerLabelSource, externalSpeakerLabel } from '~/shared/utils/external-speaker-label'
 
 export type PersonName = { firstname: string | null; lastname: string | null }
 
@@ -10,8 +11,8 @@ interface PersonCellProps {
   /** The publisher in the slot, with their id for the link to their page. */
   person: PersonName | null
   personId: number | null
-  /** An external speaker in the slot, instead of a publisher. */
-  external?: { name: string } | null
+  /** A visiting speaker in the slot, instead of a publisher; `archivedAt` set once retired from their list. */
+  external?: (ExternalSpeakerLabelSource & { archivedAt?: Date | string | null }) | null
   /** The person is away on the event's date. */
   conflict?: boolean
   /** The viewer may open the publisher's page. */
@@ -30,11 +31,24 @@ export function PersonCell({
   onAssign,
 }: PersonCellProps) {
   if (external) {
+    const label = externalSpeakerLabel(external)
+    // Retired after the talk was planned: the talk stays, and whoever reads the programme sees why to check it.
+    const retired = external.archivedAt != null && external.anonymizedAt == null
+    const congregation = external.speakerCongregation?.name
     return (
-      <span className="flex min-w-0 items-center gap-2 text-sm">
-        <Avatar name={external.name} size="sm" />
-        <span className="truncate">{external.name}</span>
-        <Tag>{m.programs_view_external()}</Tag>
+      <span className="flex min-w-0 flex-col gap-0.5 text-sm">
+        <span className="flex min-w-0 items-center gap-2">
+          <Avatar name={label} size="sm" />
+          <span className="truncate">{label}</span>
+          <Tag>{m.programs_view_external()}</Tag>
+        </span>
+        {retired && (
+          <Status tone="warning" className="text-xs">
+            {congregation
+              ? m.external_speakers_retired_planned({ congregation })
+              : m.external_speakers_retired_planned_bare()}
+          </Status>
+        )}
       </span>
     )
   }

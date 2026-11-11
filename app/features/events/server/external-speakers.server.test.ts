@@ -6,6 +6,7 @@ vi.mock('~/shared/domain/audit.server', () => ({
     ExternalSpeakerUpdated: 'external_speaker.updated',
     ExternalSpeakerArchived: 'external_speaker.archived',
     ExternalSpeakerUnarchived: 'external_speaker.unarchived',
+    ExternalSpeakerDeleted: 'external_speaker.deleted',
   },
   audit: vi.fn(),
 }))
@@ -17,17 +18,21 @@ const mockDb = {
     create: vi.fn(),
     update: vi.fn(),
   },
+  speakerCongregation: {
+    findFirst: vi.fn(),
+  },
   eventPart: {
-    findMany: vi.fn(),
+    updateMany: vi.fn(),
+    count: vi.fn(),
   },
 }
 
 const {
-  archiveExternalSpeaker,
   createExternalSpeaker,
-  getExternalSpeaker,
-  listExternalSpeakers,
-  unarchiveExternalSpeaker,
+  deleteExternalSpeaker,
+  DuplicateExternalSpeakerError,
+  restoreExternalSpeaker,
+  retireExternalSpeaker,
   updateExternalSpeaker,
 } = await import('./external-speakers.server')
 const { ConflictError, NotFoundError } = await import('~/shared/errors/app-error.server')
@@ -36,171 +41,150 @@ beforeEach(() => {
   vi.resetAllMocks()
 })
 
-const baseInput = {
-  name: 'Pierre Martin',
-  congregationName: 'Marseille',
-  phone: '0612345678',
-  email: 'pierre@example.com',
-  notes: 'Très bon orateur',
+const input = {
+  name: '  Paul   LEROY ',
+  speakerCongregationId: 8,
+  phone: '06 12 34 56 78',
+  phone2: '',
+  email: 'paul.leroy@exemple.fr',
+  email2: 'discours.bagnolet@exemple.fr',
+  talks: [131, 12, 54, 12],
+  notes: '',
+}
+
+function echoCreate() {
+  mockDb.externalSpeaker.create.mockImplementation(({ data }) => Promise.resolve({ id: 7, ...data }))
 }
 
 describe('createExternalSpeaker', () => {
-  it('creates a speaker when no duplicate exists', async () => {
-    mockDb.externalSpeaker.findFirst.mockResolvedValue(null)
-    mockDb.externalSpeaker.create.mockResolvedValue({ id: 7, ...baseInput })
+  it('stores the speaker in its congregation, with talks sorted once each and blanks as null', async () => {
+    mockDb.speakerCongregation.findFirst.mockResolvedValue({ id: 8, name: 'Bagnolet' })
+    mockDb.externalSpeaker.findMany.mockResolvedValue([])
+    echoCreate()
 
-    const result = await createExternalSpeaker(mockDb as never, 1, 99, baseInput)
+    const created = await createExternalSpeaker(mockDb as never, 1, 99, input)
 
-    expect(result.id).toBe(7)
-    expect(mockDb.externalSpeaker.create).toHaveBeenCalled()
+    expect(created).toMatchObject({
+      name: 'Paul LEROY',
+      speakerCongregationId: 8,
+      congregationName: 'Bagnolet',
+      phone: '06 12 34 56 78',
+      phone2: null,
+      email2: 'discours.bagnolet@exemple.fr',
+      talks: [12, 54, 131],
+      notes: null,
+      congregationId: 1,
+    })
   })
 
-  it('throws ConflictError when duplicate name+congregation exists', async () => {
-    mockDb.externalSpeaker.findFirst.mockResolvedValue({ id: 5 })
+  it('refuses another spelling of a speaker already in the same congregation', async () => {
+    mockDb.speakerCongregation.findFirst.mockResolvedValue({ id: 8, name: 'Bagnolet' })
+    mockDb.externalSpeaker.findMany.mockResolvedValue([{ id: 3, name: 'paul leroy' }])
 
-    await expect(createExternalSpeaker(mockDb as never, 1, 99, baseInput)).rejects.toThrow(ConflictError)
+    const attempt = createExternalSpeaker(mockDb as never, 1, 99, input)
+
+    await expect(attempt).rejects.toThrow(DuplicateExternalSpeakerError)
+    await expect(attempt).rejects.toMatchObject({ existingId: 3 })
     expect(mockDb.externalSpeaker.create).not.toHaveBeenCalled()
   })
 
-  it('stores empty contact fields as null', async () => {
-    mockDb.externalSpeaker.findFirst.mockResolvedValue(null)
-    mockDb.externalSpeaker.create.mockResolvedValue({ id: 1 })
+  it('accepts a speaker without congregation, the legacy « à compléter » case', async () => {
+    mockDb.externalSpeaker.findMany.mockResolvedValue([])
+    echoCreate()
 
-    await createExternalSpeaker(mockDb as never, 1, 99, { ...baseInput, phone: '', notes: '' })
+    const created = await createExternalSpeaker(mockDb as never, 1, 99, { ...input, speakerCongregationId: null })
 
-    const data = mockDb.externalSpeaker.create.mock.calls[0][0].data
-    expect(data.phone).toBeNull()
-    expect(data.notes).toBeNull()
-    expect(data.email).toBe('pierre@example.com')
+    expect(created).toMatchObject({ speakerCongregationId: null, congregationName: '' })
+    expect(mockDb.speakerCongregation.findFirst).not.toHaveBeenCalled()
+  })
+
+  it('throws NotFoundError for a congregation outside the tenant', async () => {
+    mockDb.speakerCongregation.findFirst.mockResolvedValue(null)
+
+    await expect(createExternalSpeaker(mockDb as never, 1, 99, input)).rejects.toThrow(NotFoundError)
   })
 })
 
 describe('updateExternalSpeaker', () => {
-  it('updates the speaker when found and no duplicate exists', async () => {
-    mockDb.externalSpeaker.findFirst.mockResolvedValueOnce({ id: 7 }).mockResolvedValueOnce(null)
-    mockDb.externalSpeaker.update.mockResolvedValue({ id: 7, ...baseInput })
-
-    const result = await updateExternalSpeaker(mockDb as never, 7, 1, 99, baseInput)
-
-    expect(result.id).toBe(7)
-  })
-
-  it('throws NotFoundError when speaker does not exist', async () => {
+  it('throws NotFoundError for a speaker outside the tenant or already deleted', async () => {
     mockDb.externalSpeaker.findFirst.mockResolvedValue(null)
 
-    await expect(updateExternalSpeaker(mockDb as never, 7, 1, 99, baseInput)).rejects.toThrow(NotFoundError)
+    await expect(updateExternalSpeaker(mockDb as never, 7, 1, 99, input)).rejects.toThrow(NotFoundError)
   })
 
-  it('throws ConflictError when another speaker has the same name+congregation', async () => {
-    mockDb.externalSpeaker.findFirst.mockResolvedValueOnce({ id: 7 }).mockResolvedValueOnce({ id: 8 })
+  it('ignores the speaker itself in the duplicate check', async () => {
+    mockDb.externalSpeaker.findFirst.mockResolvedValue({ id: 7, name: 'Paul LEROY' })
+    mockDb.speakerCongregation.findFirst.mockResolvedValue({ id: 8, name: 'Bagnolet' })
+    mockDb.externalSpeaker.findMany.mockResolvedValue([{ id: 7, name: 'Paul LEROY' }])
+    mockDb.externalSpeaker.update.mockImplementation(({ data }) => Promise.resolve({ id: 7, ...data }))
 
-    await expect(updateExternalSpeaker(mockDb as never, 7, 1, 99, baseInput)).rejects.toThrow(ConflictError)
+    const updated = await updateExternalSpeaker(mockDb as never, 7, 1, 99, input)
+
+    expect(updated).toMatchObject({ id: 7, name: 'Paul LEROY', talks: [12, 54, 131] })
+  })
+})
+
+describe('retireExternalSpeaker / restoreExternalSpeaker', () => {
+  it('retires a speaker on the list', async () => {
+    mockDb.externalSpeaker.findFirst.mockResolvedValue({ id: 7, archivedAt: null })
+    mockDb.externalSpeaker.update.mockImplementation(({ data }) => Promise.resolve({ id: 7, ...data }))
+
+    const retired = await retireExternalSpeaker(mockDb as never, 7, 1, 99)
+
+    expect(retired.archivedAt).toBeInstanceOf(Date)
+  })
+
+  it('puts a retired speaker back on the list', async () => {
+    mockDb.externalSpeaker.findFirst.mockResolvedValue({ id: 7, archivedAt: new Date() })
+    mockDb.externalSpeaker.update.mockImplementation(({ data }) => Promise.resolve({ id: 7, ...data }))
+
+    const restored = await restoreExternalSpeaker(mockDb as never, 7, 1, 99)
+
+    expect(restored.archivedAt).toBeNull()
+  })
+
+  it('throws NotFoundError for an unknown speaker', async () => {
+    mockDb.externalSpeaker.findFirst.mockResolvedValue(null)
+
+    await expect(retireExternalSpeaker(mockDb as never, 7, 1, 99)).rejects.toThrow(NotFoundError)
+    await expect(restoreExternalSpeaker(mockDb as never, 7, 1, 99)).rejects.toThrow(NotFoundError)
+  })
+})
+
+describe('deleteExternalSpeaker', () => {
+  it('refuses a speaker still on the list: retire first', async () => {
+    mockDb.externalSpeaker.findFirst.mockResolvedValue({ id: 7, archivedAt: null })
+
+    await expect(deleteExternalSpeaker(mockDb as never, 7, 1, 99)).rejects.toThrow(ConflictError)
     expect(mockDb.externalSpeaker.update).not.toHaveBeenCalled()
   })
-})
 
-describe('archiveExternalSpeaker', () => {
-  it('sets archivedAt to a date', async () => {
-    mockDb.externalSpeaker.findFirst.mockResolvedValue({ id: 7 })
-    mockDb.externalSpeaker.update.mockResolvedValue({ id: 7, archivedAt: new Date() })
+  it('frees the planned talks, erases name and contact, and keeps the row for past programmes', async () => {
+    mockDb.externalSpeaker.findFirst.mockResolvedValue({ id: 7, archivedAt: new Date('2026-01-03') })
+    mockDb.eventPart.updateMany.mockResolvedValue({ count: 1 })
+    mockDb.eventPart.count.mockResolvedValue(2)
+    mockDb.externalSpeaker.update.mockImplementation(({ data }) => Promise.resolve({ id: 7, ...data }))
 
-    const result = await archiveExternalSpeaker(mockDb as never, 7, 1, 99)
+    const result = await deleteExternalSpeaker(mockDb as never, 7, 1, 99)
 
-    expect(result.archivedAt).toBeInstanceOf(Date)
-    const updateCall = mockDb.externalSpeaker.update.mock.calls[0][0]
-    expect(updateCall.data.archivedAt).toBeInstanceOf(Date)
-  })
-
-  it('throws NotFoundError when speaker does not exist', async () => {
-    mockDb.externalSpeaker.findFirst.mockResolvedValue(null)
-    await expect(archiveExternalSpeaker(mockDb as never, 7, 1, 99)).rejects.toThrow(NotFoundError)
-  })
-})
-
-describe('unarchiveExternalSpeaker', () => {
-  it('clears archivedAt', async () => {
-    mockDb.externalSpeaker.findFirst.mockResolvedValue({ id: 7 })
-    mockDb.externalSpeaker.update.mockResolvedValue({ id: 7, archivedAt: null })
-
-    await unarchiveExternalSpeaker(mockDb as never, 7, 1, 99)
-
-    const updateCall = mockDb.externalSpeaker.update.mock.calls[0][0]
-    expect(updateCall.data.archivedAt).toBeNull()
-  })
-})
-
-describe('listExternalSpeakers', () => {
-  it('exposes lastVisitDate from the most recent past assignment', async () => {
-    const lastDate = new Date('2025-10-01')
-    mockDb.externalSpeaker.findMany.mockResolvedValue([
-      {
-        id: 1,
-        name: 'Pierre',
-        congregationName: 'Marseille',
-        phone: null,
-        email: null,
-        notes: null,
-        archivedAt: null,
-        eventParts: [{ event: { startDate: lastDate } }],
-      },
-    ])
-
-    const result = await listExternalSpeakers(mockDb as never, 1)
-    expect(result[0].lastVisitDate).toEqual(lastDate)
-  })
-
-  it('returns null lastVisitDate when speaker has never been invited', async () => {
-    mockDb.externalSpeaker.findMany.mockResolvedValue([
-      {
-        id: 1,
-        name: 'Pierre',
-        congregationName: 'Marseille',
-        phone: null,
-        email: null,
-        notes: null,
-        archivedAt: null,
-        eventParts: [],
-      },
-    ])
-
-    const result = await listExternalSpeakers(mockDb as never, 1)
-    expect(result[0].lastVisitDate).toBeNull()
-  })
-
-  it('excludes archived speakers by default', async () => {
-    mockDb.externalSpeaker.findMany.mockResolvedValue([])
-    await listExternalSpeakers(mockDb as never, 1)
-    const where = mockDb.externalSpeaker.findMany.mock.calls[0][0].where
-    expect(where.archivedAt).toBeNull()
-  })
-
-  it('includes archived speakers when includeArchived is true', async () => {
-    mockDb.externalSpeaker.findMany.mockResolvedValue([])
-    await listExternalSpeakers(mockDb as never, 1, { includeArchived: true })
-    const where = mockDb.externalSpeaker.findMany.mock.calls[0][0].where
-    expect(where.archivedAt).toBeUndefined()
-  })
-})
-
-describe('getExternalSpeaker', () => {
-  it('returns the speaker with recent history', async () => {
-    mockDb.externalSpeaker.findFirst.mockResolvedValue({
-      id: 7,
-      name: 'Pierre',
-      congregationName: 'Marseille',
+    expect(result).toEqual({ freedParts: 1, pastParts: 2 })
+    const freed = mockDb.eventPart.updateMany.mock.calls[0]?.[0]
+    expect(freed).toMatchObject({
+      where: { congregationId: 1, externalSpeakerId: 7 },
+      data: { externalSpeakerId: null },
     })
-    mockDb.eventPart.findMany.mockResolvedValue([
-      { name: 'Discours public', topic: 'Foi', event: { startDate: new Date('2025-09-01') } },
-    ])
-
-    const result = await getExternalSpeaker(mockDb as never, 7, 1)
-    expect(result?.recentHistory).toHaveLength(1)
-    expect(result?.recentHistory[0]).toMatchObject({ partName: 'Discours public', topic: 'Foi' })
-  })
-
-  it('returns null when the speaker does not exist', async () => {
-    mockDb.externalSpeaker.findFirst.mockResolvedValue(null)
-    const result = await getExternalSpeaker(mockDb as never, 7, 1)
-    expect(result).toBeNull()
+    expect(freed.where.event.startDate.gte).toBeInstanceOf(Date)
+    const erased = mockDb.externalSpeaker.update.mock.calls[0]?.[0].data
+    expect(erased).toMatchObject({
+      name: '',
+      congregationName: '',
+      phone: null,
+      phone2: null,
+      email: null,
+      email2: null,
+      notes: null,
+      talks: [],
+    })
+    expect(erased.anonymizedAt).toBeInstanceOf(Date)
   })
 })

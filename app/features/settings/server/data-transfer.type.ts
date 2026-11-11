@@ -1,4 +1,4 @@
-export const ARCHIVE_VERSION = '2.12'
+export const ARCHIVE_VERSION = '2.13'
 
 // Older archive versions an import will still accept. v1.0 archives miss every
 // post-shipping feature table (custom roles, allowed-roles, external speakers,
@@ -45,6 +45,10 @@ export const ARCHIVE_VERSION = '2.12'
 // carries them with their `kind`, and only accounts without a record (and `admin`) keep rows in
 // `user-role-assignments.ndjson`. Pre-2.12 archives carry every given role on the login; the
 // importer hands a linked login's roles to its record, by the same rule as the migration.
+// v2.13 makes the congregations whose list of speakers we receive records: `speaker-congregations.ndjson`
+// (name, the two contacts, the date of the latest list — not its PDF), and `external-speakers.ndjson` gains
+// `speakerCongregationId`, `phone2`, `email2`, `talks` and `anonymizedAt`. Pre-2.13 speakers carry only the free-text
+// `congregationName`; the importer builds one congregation per spelling, by the same rule as the migration.
 // v1.x archives are listed here so the import path reports
 // them with a warning rather than rejecting outright; a compatibility shim that
 // splits legacy `users.ndjson` is a deferred follow-up.
@@ -64,6 +68,7 @@ export const SUPPORTED_ARCHIVE_VERSIONS = [
   '2.10',
   '2.11',
   '2.12',
+  '2.13',
 ] as const
 
 export interface ManifestJson {
@@ -107,6 +112,7 @@ export const ENTITY_FILES = [
   'pioneer-enrolments',
   'emergency-contacts',
   'pioneer-goals',
+  'speaker-congregations',
   'external-speakers',
   'territories',
   'territory-kinds',

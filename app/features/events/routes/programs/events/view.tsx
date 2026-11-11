@@ -6,10 +6,9 @@ import { buildAssignmentCandidates } from '~/features/events/server/assignment-c
 import { buildShareTextsForEvent } from '~/features/events/server/build-share-message.server'
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
 import { canEditEvent } from '~/features/events/server/events-auth.server'
-import { listExternalSpeakers } from '~/features/events/server/external-speakers.server'
+import { listExternalSpeakerOptions } from '~/features/events/server/external-speakers.queries'
 import { EventView } from '~/features/events/ui/EventView'
 import * as m from '~/i18n/paraglide/messages'
-import { getLocale } from '~/i18n/paraglide/runtime'
 import {
   congregationContext,
   currentAccountContext,
@@ -65,17 +64,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
         })
       : []
 
-    const externalSpeakers = canAssign
-      ? (await listExternalSpeakers(db, congregationId, { includeArchived: false }))
-          .slice()
-          .sort((a, b) => {
-            const aTime = a.lastVisitDate?.getTime() ?? -Infinity
-            const bTime = b.lastVisitDate?.getTime() ?? -Infinity
-            if (aTime === bTime) return a.name.localeCompare(b.name, getLocale())
-            return aTime - bTime
-          })
-          .map(s => ({ id: s.id, name: s.name, congregationName: s.congregationName }))
-      : []
+    // Least recently here first: the order a planner rotates through.
+    const externalSpeakers = canAssign ? await listExternalSpeakerOptions(db, congregationId) : []
 
     const candidates = canAssignAnything
       ? await buildAssignmentCandidates(db, event, users, congregationId)

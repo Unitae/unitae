@@ -2,7 +2,7 @@ import { PartPresetKey } from '../../features/events/model/part-preset.type'
 import { ABSENCE_NAMES, LAST_NAMES, MALE_FIRST_NAMES, NEARBY_TOWNS, TALK_TITLES } from './names'
 import type { PersonSeed } from './people'
 import { MEETINGS } from './profile'
-import type { Random } from './random'
+import { Random } from './random'
 
 const DAY = 24 * 60 * 60 * 1000
 const YEAR = 365.25 * DAY
@@ -57,8 +57,13 @@ export interface ExternalSpeakerSeed {
   name: string
   congregationName: string
   phone: string
+  phone2: string | null
   email: string | null
+  talks: number[]
 }
+
+/** Talk outlines run from 1 to 194; a speaker prepares a handful. */
+const OUTLINES = 194
 
 export interface AbsenceSeed {
   person: number
@@ -111,16 +116,23 @@ export function parisTime(day: Date, time: string): Date {
 }
 
 export function generateExternalSpeakers(random: Random): ExternalSpeakerSeed[] {
+  // Talks and second phones from a source of their own, so the rest of the congregation keeps its draws.
+  const extra = new Random(0x0a7e5)
   return Array.from({ length: MEETINGS.externalSpeakers }, () => {
     const firstname = random.pick(MALE_FIRST_NAMES)
     const lastname = random.pick(LAST_NAMES)
+    const talkCount = extra.int(1, 7)
     return {
       name: `${firstname} ${lastname}`,
-      congregationName: `Assemblée de ${random.pick(NEARBY_TOWNS)}`,
+      congregationName: random.pick(NEARBY_TOWNS),
       phone: `06 ${Array.from({ length: 4 }, () => String(random.int(0, 99)).padStart(2, '0')).join(' ')}`,
+      phone2: extra.chance(0.15)
+        ? `01 ${Array.from({ length: 4 }, () => String(extra.int(0, 99)).padStart(2, '0')).join(' ')}`
+        : null,
       email: random.chance(0.65)
         ? `${firstname.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')}.orateur@example.org`
         : null,
+      talks: [...new Set(Array.from({ length: talkCount }, () => extra.int(1, OUTLINES)))].sort((a, b) => a - b),
     }
   })
 }

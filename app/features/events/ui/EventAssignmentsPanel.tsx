@@ -6,6 +6,7 @@ import { partReaderLabel, partSpeakerLabel } from '~/features/events/model/part-
 import { groupProgrammeParts, summarizeDurations } from '~/features/events/model/programme-grouping'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
+import { type ExternalSpeakerLabelSource, externalSpeakerLabel } from '~/shared/utils/external-speaker-label'
 import { cn } from '~/shared/utils/utils'
 import type { AssignablePart } from './AssignPartEditor'
 import { PersonCell, type PersonName, personName } from './PersonCell'
@@ -17,7 +18,7 @@ export interface AssignedPart extends AssignablePart {
   trackOrder: number | null
   assignee: PersonName | null
   assistant: PersonName | null
-  externalSpeaker: { name: string } | null
+  externalSpeaker: (ExternalSpeakerLabelSource & { archivedAt?: Date | string | null }) | null
   hasConflict: boolean
 }
 
@@ -165,7 +166,11 @@ function PartRow({
   onUnassign,
 }: PartRowProps) {
   const capability = resolvePartCapability(part, part.preset)
-  const assigned = part.externalSpeaker?.name ?? (part.assignee ? personName(part.assignee) : null)
+  const assigned = part.externalSpeaker
+    ? externalSpeakerLabel(part.externalSpeaker)
+    : part.assignee
+      ? personName(part.assignee)
+      : null
   // Only a kind that names a second person makes it a slot to fill: a kind done by one person has none, and a part
   // without a kind merely allows one. Both leave the cell empty rather than show a gap. Someone already in it stays.
   const secondExpected = part.preset?.hasReaderSlot === true || part.assistantId != null

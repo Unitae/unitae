@@ -69,7 +69,7 @@ type PartAssignment = {
   trackOrder?: number | null
   durationMin?: number | null
   hasConflict?: boolean
-  externalSpeaker?: { name: string } | null
+  externalSpeaker?: { name: string; anonymizedAt: Date | null; speakerCongregation: { name: string } | null } | null
 }
 type ServicePartAssignment = { id: number; name: string; assignee: Person | null }
 

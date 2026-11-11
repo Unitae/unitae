@@ -1,102 +1,80 @@
+import { normalizeSpeakerName, tidyCongregationName } from '~/features/events/model/speaker-congregation-name'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
+// Writes to the external speakers. Reads (the directory, a speaker's sheet, the assign-panel options) live in
+// external-speakers.queries.ts. An anonymised speaker (« supprimé définitivement ») is out of reach of every write.
+
 export interface ExternalSpeakerInput {
   name: string
-  congregationName: string
+  /** Null for the legacy speakers with no congregation (« à compléter »). */
+  speakerCongregationId: number | null
   phone: string
+  phone2: string
   email: string
+  email2: string
+  talks: number[]
   notes: string
 }
 
-export interface ExternalSpeakerListItem {
-  id: number
-  name: string
-  congregationName: string
-  phone: string | null
-  email: string | null
-  notes: string | null
-  archivedAt: Date | null
-  lastVisitDate: Date | null
+/** Thrown when the name is another spelling of a speaker already in the same congregation. */
+export class DuplicateExternalSpeakerError extends ConflictError {
+  constructor(readonly existingId: number) {
+    super('External speaker already exists for this congregation')
+  }
 }
 
-interface ListOptions {
-  search?: string
-  includeArchived?: boolean
+/** Talk outline numbers as stored: positive whole numbers, each once, ascending. */
+export function tidyTalks(talks: number[]): number[] {
+  return [...new Set(talks.filter(talk => Number.isInteger(talk) && talk > 0))].sort((a, b) => a - b)
 }
 
-export async function listExternalSpeakers(
+function blankToNull(value: string): string | null {
+  const trimmed = value.trim()
+  return trimmed === '' ? null : trimmed
+}
+
+/** The congregation the speaker joins, checked against the tenant; its name is mirrored onto the old text column. */
+async function resolveCongregation(
   db: TransactionClient,
   congregationId: number,
-  options: ListOptions = {},
-): Promise<ExternalSpeakerListItem[]> {
-  const { search, includeArchived = false } = options
-
-  const speakers = await db.externalSpeaker.findMany({
-    where: {
-      congregationId,
-      ...(includeArchived ? {} : { archivedAt: null }),
-      ...(search
-        ? {
-            OR: [
-              { name: { contains: search, mode: 'insensitive' as const } },
-              { congregationName: { contains: search, mode: 'insensitive' as const } },
-            ],
-          }
-        : {}),
-    },
-    include: {
-      eventParts: {
-        where: { event: { startDate: { lt: new Date() } } },
-        select: { event: { select: { startDate: true } } },
-        orderBy: { event: { startDate: 'desc' } },
-        take: 1,
-      },
-    },
-    orderBy: [{ name: 'asc' }],
+  speakerCongregationId: number | null,
+) {
+  if (speakerCongregationId == null) return { speakerCongregationId: null, congregationName: '' }
+  const target = await db.speakerCongregation.findFirst({
+    where: { id: speakerCongregationId, congregationId },
+    select: { id: true, name: true },
   })
-
-  return speakers.map(speaker => ({
-    id: speaker.id,
-    name: speaker.name,
-    congregationName: speaker.congregationName,
-    phone: speaker.phone,
-    email: speaker.email,
-    notes: speaker.notes,
-    archivedAt: speaker.archivedAt,
-    lastVisitDate: speaker.eventParts[0]?.event.startDate ?? null,
-  }))
+  if (!target) throw new NotFoundError('SpeakerCongregation', speakerCongregationId)
+  return { speakerCongregationId: target.id, congregationName: target.name }
 }
 
-export async function getExternalSpeaker(db: TransactionClient, id: number, congregationId: number) {
-  const speaker = await db.externalSpeaker.findFirst({
-    where: { id, congregationId },
+async function assertNotDuplicate(
+  db: TransactionClient,
+  congregationId: number,
+  speakerCongregationId: number | null,
+  name: string,
+  exceptId?: number,
+) {
+  const key = normalizeSpeakerName(name)
+  const neighbours = await db.externalSpeaker.findMany({
+    where: { congregationId, speakerCongregationId, anonymizedAt: null },
+    select: { id: true, name: true },
   })
-  if (!speaker) return null
+  const clash = neighbours.find(other => other.id !== exceptId && normalizeSpeakerName(other.name) === key)
+  if (clash) throw new DuplicateExternalSpeakerError(clash.id)
+}
 
-  const recentHistory = await db.eventPart.findMany({
-    where: {
-      congregationId,
-      externalSpeakerId: id,
-      event: { startDate: { lt: new Date() } },
-    },
-    select: {
-      name: true,
-      topic: true,
-      event: { select: { startDate: true } },
-    },
-    orderBy: { event: { startDate: 'desc' } },
-    take: 5,
-  })
-
+function speakerFields(input: ExternalSpeakerInput) {
   return {
-    ...speaker,
-    recentHistory: recentHistory.map(h => ({
-      date: h.event.startDate,
-      partName: h.name,
-      topic: h.topic,
-    })),
+    name: tidyCongregationName(input.name),
+    phone: blankToNull(input.phone),
+    phone2: blankToNull(input.phone2),
+    email: blankToNull(input.email),
+    email2: blankToNull(input.email2),
+    talks: tidyTalks(input.talks),
+    notes: blankToNull(input.notes),
   }
 }
 
@@ -104,29 +82,13 @@ export async function createExternalSpeaker(
   db: TransactionClient,
   congregationId: number,
   actorId: number,
-  params: ExternalSpeakerInput,
+  input: ExternalSpeakerInput,
 ) {
-  const duplicate = await db.externalSpeaker.findFirst({
-    where: {
-      congregationId,
-      name: { equals: params.name, mode: 'insensitive' },
-      congregationName: { equals: params.congregationName, mode: 'insensitive' },
-    },
-  })
-  if (duplicate) {
-    throw new ConflictError('External speaker already exists for this congregation')
-  }
+  const link = await resolveCongregation(db, congregationId, input.speakerCongregationId)
+  const fields = speakerFields(input)
+  await assertNotDuplicate(db, congregationId, link.speakerCongregationId, fields.name)
 
-  const speaker = await db.externalSpeaker.create({
-    data: {
-      name: params.name,
-      congregationName: params.congregationName,
-      phone: params.phone || null,
-      email: params.email || null,
-      notes: params.notes || null,
-      congregationId,
-    },
-  })
+  const speaker = await db.externalSpeaker.create({ data: { ...fields, ...link, congregationId } })
 
   audit({
     action: AuditAction.ExternalSpeakerCreated,
@@ -134,9 +96,17 @@ export async function createExternalSpeaker(
     actorId,
     entityType: 'ExternalSpeaker',
     entityId: speaker.id,
-    metadata: { name: speaker.name, congregationName: speaker.congregationName },
+    metadata: { name: speaker.name, congregationName: link.congregationName },
   })
+  return speaker
+}
 
+async function findLiveSpeaker(db: TransactionClient, id: number, congregationId: number) {
+  const speaker = await db.externalSpeaker.findFirst({
+    where: { id, congregationId, anonymizedAt: null },
+    select: { id: true, name: true, archivedAt: true },
+  })
+  if (!speaker) throw new NotFoundError('ExternalSpeaker', id)
   return speaker
 }
 
@@ -145,32 +115,16 @@ export async function updateExternalSpeaker(
   id: number,
   congregationId: number,
   actorId: number,
-  params: ExternalSpeakerInput,
+  input: ExternalSpeakerInput,
 ) {
-  const existing = await db.externalSpeaker.findFirst({ where: { id, congregationId } })
-  if (!existing) throw new NotFoundError('ExternalSpeaker', id)
-
-  const duplicate = await db.externalSpeaker.findFirst({
-    where: {
-      congregationId,
-      id: { not: id },
-      name: { equals: params.name, mode: 'insensitive' },
-      congregationName: { equals: params.congregationName, mode: 'insensitive' },
-    },
-  })
-  if (duplicate) {
-    throw new ConflictError('External speaker already exists for this congregation')
-  }
+  await findLiveSpeaker(db, id, congregationId)
+  const link = await resolveCongregation(db, congregationId, input.speakerCongregationId)
+  const fields = speakerFields(input)
+  await assertNotDuplicate(db, congregationId, link.speakerCongregationId, fields.name, id)
 
   const speaker = await db.externalSpeaker.update({
     where: { id_congregationId: { id, congregationId } },
-    data: {
-      name: params.name,
-      congregationName: params.congregationName,
-      phone: params.phone || null,
-      email: params.email || null,
-      notes: params.notes || null,
-    },
+    data: { ...fields, ...link },
   })
 
   audit({
@@ -179,58 +133,98 @@ export async function updateExternalSpeaker(
     actorId,
     entityType: 'ExternalSpeaker',
     entityId: speaker.id,
-    metadata: { name: speaker.name, congregationName: speaker.congregationName },
+    metadata: { name: speaker.name, congregationName: link.congregationName },
   })
-
   return speaker
 }
 
-export async function archiveExternalSpeaker(
+/** « Retirer de la liste »: no longer offered in programmes. Visits and talks already planned stay. */
+export async function retireExternalSpeaker(
   db: TransactionClient,
   id: number,
   congregationId: number,
   actorId: number,
 ) {
-  const existing = await db.externalSpeaker.findFirst({ where: { id, congregationId } })
-  if (!existing) throw new NotFoundError('ExternalSpeaker', id)
-
+  await findLiveSpeaker(db, id, congregationId)
   const speaker = await db.externalSpeaker.update({
     where: { id_congregationId: { id, congregationId } },
     data: { archivedAt: new Date() },
   })
-
   audit({
     action: AuditAction.ExternalSpeakerArchived,
     congregationId,
     actorId,
     entityType: 'ExternalSpeaker',
-    entityId: speaker.id,
+    entityId: id,
   })
-
   return speaker
 }
 
-export async function unarchiveExternalSpeaker(
+/** « Remettre sur la liste ». */
+export async function restoreExternalSpeaker(
   db: TransactionClient,
   id: number,
   congregationId: number,
   actorId: number,
 ) {
-  const existing = await db.externalSpeaker.findFirst({ where: { id, congregationId } })
-  if (!existing) throw new NotFoundError('ExternalSpeaker', id)
-
+  await findLiveSpeaker(db, id, congregationId)
   const speaker = await db.externalSpeaker.update({
     where: { id_congregationId: { id, congregationId } },
     data: { archivedAt: null },
   })
-
   audit({
     action: AuditAction.ExternalSpeakerUnarchived,
     congregationId,
     actorId,
     entityType: 'ExternalSpeaker',
-    entityId: speaker.id,
+    entityId: id,
+  })
+  return speaker
+}
+
+/**
+ * « Supprimer définitivement », for a retired speaker only. The talks still planned are freed (the part goes back to
+ * « à pourvoir »); name, contact, talks and notes are erased; the row stays, so past programmes read « Orateur
+ * extérieur · <congregation> » rather than an empty slot.
+ */
+export async function deleteExternalSpeaker(
+  db: TransactionClient,
+  id: number,
+  congregationId: number,
+  actorId: number,
+) {
+  const speaker = await findLiveSpeaker(db, id, congregationId)
+  if (speaker.archivedAt == null) throw new ConflictError('Retire the speaker from the list before deleting it')
+
+  const now = new Date()
+  const freed = await db.eventPart.updateMany({
+    where: { congregationId, externalSpeakerId: id, event: { startDate: { gte: now } } },
+    data: { externalSpeakerId: null },
+  })
+  const pastParts = await db.eventPart.count({ where: { congregationId, externalSpeakerId: id } })
+
+  await db.externalSpeaker.update({
+    where: { id_congregationId: { id, congregationId } },
+    data: {
+      name: '',
+      congregationName: '',
+      phone: null,
+      phone2: null,
+      email: null,
+      email2: null,
+      notes: null,
+      talks: [],
+      anonymizedAt: now,
+    },
   })
 
-  return speaker
+  audit({
+    action: AuditAction.ExternalSpeakerDeleted,
+    congregationId,
+    actorId,
+    entityType: 'ExternalSpeaker',
+    entityId: id,
+    metadata: { freedParts: freed.count, pastParts },
+  })
+  return { freedParts: freed.count, pastParts }
 }

@@ -83,6 +83,7 @@ export const TENANT_MODELS = [
   'templateServicePart',
   'eventPart',
   'externalSpeaker',
+  'speakerCongregation',
   'eventServicePart',
   'templatePartAllowedRole',
   'eventPartAllowedRole',

@@ -41,7 +41,8 @@ export function getEventProgramme(db: TransactionClient, eventId: number, congre
         include: {
           assignee: true,
           assistant: true,
-          externalSpeaker: true,
+          // archivedAt and the congregation: a speaker retired after being planned is flagged on the programme.
+          externalSpeaker: { include: { speakerCongregation: { select: { name: true } } } },
           // Read live rather than denormalized: an improved wording should
           // reach assignments that already exist.
           preset: true,
@@ -115,10 +116,12 @@ export async function assignPart(
   const cleanTopic = sanitizeText(topic)
 
   if (externalSpeakerId != null) {
+    // A deleted speaker is never assignable; a retired one only stays where they already are.
     const speaker = await db.externalSpeaker.findFirst({
-      where: { id: externalSpeakerId, congregationId, archivedAt: null },
+      where: { id: externalSpeakerId, congregationId, anonymizedAt: null },
+      select: { archivedAt: true },
     })
-    const invalidSpeaker = checkExternalSpeakerValid(speaker)
+    const invalidSpeaker = checkExternalSpeakerValid(speaker, existing.externalSpeakerId === externalSpeakerId)
     if (invalidSpeaker) return invalidSpeaker
 
     const assignment = await db.eventPart.update({
