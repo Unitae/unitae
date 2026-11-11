@@ -1,4 +1,5 @@
-import { requireNotLastAdmin } from '~/shared/auth/permissions.server'
+import { requireAdminsRemainWithoutRole, requireNotLastAdmin } from '~/shared/auth/permissions.server'
+import { assertMayActOnAccount } from '~/shared/domain/account-protection.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import {
   BUILT_IN_ROLE_KEYS,
@@ -19,6 +20,8 @@ import { ConflictError, ForbiddenError, ValidationError } from '~/shared/errors/
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { Permission } from '~/shared/types/permission'
 import { getRoleDisplayName } from '~/shared/types/role'
+
+const ADMIN_ROLE_KEY: (typeof SYSTEM_ROLE_KEYS)[number] = 'admin'
 
 // Identity roles first, in their canonical order, then system roles. Both carry
 // isBuiltIn, so a single map over BUILT_IN_ROLE_KEYS left `admin` unranked — and
@@ -282,11 +285,17 @@ export async function updateRolePermissions(
   const desired = new Set(permissionKeys)
   const changed = [...desired].filter(k => !previous.has(k)).concat([...previous].filter(k => !desired.has(k)))
   if (changed.length > 0) {
+    // The admin role is what can-do-anything is: changing it would only take administrators' access away.
+    if (role.key === ADMIN_ROLE_KEY)
+      throw new ForbiddenError('The admin role holds every permission and stays as it is')
     // Built-in roles (identity and system) shape everyone's access: an admin's call alone.
     if (role.isBuiltIn && !isAdminActor(actorPermissions)) {
       throw new GrantBeyondActorError("Only an admin can change a built-in role's permissions")
     }
     assertActorHolds(actorPermissions, changed)
+    if (previous.has(Permission.CanDoAnything) && !desired.has(Permission.CanDoAnything)) {
+      await requireAdminsRemainWithoutRole(id, congregationId)
+    }
   }
   await syncRolePermissions(db, id, congregationId, previousKeys, permissionKeys, actorId)
 }
@@ -363,7 +372,7 @@ export async function removeUserFromRole(
     throw new ForbiddenError('Leadership seats are managed from the organigram')
   }
 
-  await assertMayChangeAccountAccess(userId, congregationId, actorPermissions)
+  await assertMayActOnAccount({ accountId: userId, actorId, congregationId, actorPermissions, action: 'remove-roles' })
   await assertActorHoldsRolePermissions(db, [roleId], congregationId, actorPermissions)
   if (await roleGrantsAdmin(db, roleId, congregationId)) {
     await requireNotLastAdmin(userId, congregationId)
@@ -386,6 +395,7 @@ export async function deleteRole(
   id: number,
   congregationId: number,
   actorId: number,
+  actorPermissions: ActorPermissions,
 ): Promise<void> {
   const role = await db.role.findFirst({
     where: { id, congregationId },
@@ -395,6 +405,14 @@ export async function deleteRole(
 
   if (role.isBuiltIn) {
     throw new ForbiddenError('Built-in roles cannot be deleted')
+  }
+
+  // Deleting a role takes its permissions away from everyone who holds it: only someone who holds them may, and
+  // never when it would leave the congregation without an administrator.
+  await assertActorHoldsRolePermissions(db, [id], congregationId, actorPermissions)
+  if (await roleGrantsAdmin(db, id, congregationId)) {
+    if (!isAdminActor(actorPermissions)) throw new GrantBeyondActorError('Only an admin can delete an admin role')
+    await requireAdminsRemainWithoutRole(id, congregationId)
   }
 
   // The organigram's self-referencing FK is ON DELETE RESTRICT, so deleting a role that others
@@ -460,7 +478,14 @@ export async function setUserCustomRoleAssignments(
 
   if (added.length === 0 && removed.length === 0) return
 
-  await assertMayChangeAccountAccess(userId, congregationId, actorPermissions)
+  // Nobody takes their own roles away; an administrator's roles are changed by administrators only.
+  await assertMayActOnAccount({
+    accountId: userId,
+    actorId,
+    congregationId,
+    actorPermissions,
+    action: removed.length > 0 ? 'remove-roles' : 'edit',
+  })
   await assertActorHoldsRolePermissions(db, [...added, ...removed], congregationId, actorPermissions)
 
   // If any removed role granted Admin, this update could strip the user's

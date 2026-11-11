@@ -1,4 +1,5 @@
 import JsZip from 'jszip'
+import * as m from '~/i18n/paraglide/messages'
 import { unscopedDb, withScope } from '~/shared/infra/db.server'
 import { getFileBuffer } from '~/shared/infra/file-storage.server'
 import { legacyPresetWarnings } from '../archive-warnings'
@@ -24,25 +25,24 @@ export async function validateImport(storageKey: string, congregationId: number)
       entityCounts: manifest.entityCounts,
       conflicts: [],
       warnings: [
-        `Unsupported archive version: ${manifest.version} (expected one of: ${SUPPORTED_ARCHIVE_VERSIONS.join(', ')})`,
+        m.import_warning_unsupported_version({
+          version: manifest.version,
+          supported: SUPPORTED_ARCHIVE_VERSIONS.join(', '),
+        }),
       ],
     }
   }
 
   const conflicts: ImportConflict[] = []
-  const warnings: string[] = ['Passwords are not imported. Users will need to reset their password after import.']
+  const warnings: string[] = [m.import_warning_passwords()]
 
   if (manifest.version === '1.0') {
-    warnings.push(
-      'Archive predates v1.1 — custom roles, external speakers, territory card overlays, perimeter, and role-based gating will not be imported.',
-    )
+    warnings.push(m.import_warning_v1_0())
     if (
       zip.file('data/congregation-user-permissions.ndjson') == null &&
       zip.file('data/congregation-user-roles.ndjson') != null
     ) {
-      warnings.push(
-        'Archive predates the UserRole → Permission rename; permission assignments will be migrated automatically.',
-      )
+      warnings.push(m.import_warning_permission_rename())
     }
   }
 
@@ -91,7 +91,7 @@ async function collectUserAccountConflicts(
         existingId: existing.id,
         action: 'skip',
       })
-      warnings.push(`L'utilisateur ${existing.email} existe déjà dans une autre congrégation et sera ignoré.`)
+      warnings.push(m.import_warning_account_elsewhere({ email: existing.email }))
     }
   }
 }

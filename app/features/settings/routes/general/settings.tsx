@@ -1,12 +1,18 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod/v4'
-import { data, Form, redirect, redirectDocument } from 'react-router'
+import { FormSection } from '@unitae/ui'
+import { data, redirect, redirectDocument } from 'react-router'
+import { commitSession, getSession } from '~/features/authentication/index.server'
 import { generalPageSchema } from '~/features/settings/schemas/general-settings.schema'
 import { updateGeneralSettings } from '~/features/settings/server/general-settings.server'
 import {
   getPasswordSecurityScope,
   updatePasswordSecurityScope,
 } from '~/features/settings/server/password-security.server'
+import { ChoiceCards } from '~/features/settings/ui/ChoiceCards'
+import { SettingsField } from '~/features/settings/ui/SettingsField'
+import { SettingsForm } from '~/features/settings/ui/SettingsForm'
+import { SettingsHeader } from '~/features/settings/ui/SettingsHeader'
 import * as m from '~/i18n/paraglide/messages'
 import { locales } from '~/i18n/paraglide/runtime'
 import {
@@ -18,16 +24,8 @@ import {
 import { unscopedDb } from '~/shared/infra/db.server'
 import { type BreachedPasswordCheckScope, CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Permission } from '~/shared/types/permission'
-import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
-import { FormActions } from '~/shared/ui/FormActions'
-import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
-import { Label } from '~/shared/ui/label'
-import { PageHeader } from '~/shared/ui/PageHeader'
-import { RadioGroup, RadioGroupItem } from '~/shared/ui/radio-group'
-import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
-import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { languageLabel } from '~/shared/utils/language'
 import { TIMEZONE_OPTIONS } from '~/shared/utils/timezone-options'
 import type { Route } from './+types/settings'
@@ -84,8 +82,6 @@ const PASSWORD_SECURITY_SCOPES = [
 
 export default function GeneralSettingsPage({ loaderData, actionData }: Route.ComponentProps) {
   const { displayName, locale, timezone, domain, showDomain, breachedPasswordCheckScope } = loaderData
-  const { blocker, markDirty } = useUnsavedChanges()
-
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -94,122 +90,105 @@ export default function GeneralSettingsPage({ loaderData, actionData }: Route.Co
   })
 
   return (
-    <div className="flex flex-col gap-6">
-      <UnsavedChangesDialog blocker={blocker} />
-      <PageHeader
-        title={m.settings_general_title()}
-        subtitle={m.settings_general_subtitle()}
-        breadcrumbs={[{ label: m.sidebar_settings(), to: '/settings' }, { label: m.sidebar_settings_general() }]}
-      />
+    <div className="flex max-w-4xl flex-col">
+      <SettingsHeader title={m.settings_general_title()} subtitle={m.settings_general_subtitle()} />
 
-      <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6" onChange={markDirty}>
-        <Card>
-          <CardHeader>
-            <CardTitle>{m.settings_congregation_local_title()}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="space-y-2">
-              <Label htmlFor={fields.displayName.id}>{m.settings_congregation_display_name_label()}</Label>
-              <Input
-                {...getInputProps(fields.displayName, { type: 'text' })}
-                key={fields.displayName.id}
-                placeholder={m.settings_congregation_display_name_placeholder()}
-                defaultValue={displayName}
-              />
-              {fields.displayName.errors && <p className="text-destructive text-sm">{fields.displayName.errors}</p>}
-              <p className="text-muted-foreground text-xs">{m.settings_congregation_display_name_hint()}</p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor={fields.locale.id}>{m.settings_general_language_label()}</Label>
-              <Select name={fields.locale.name} defaultValue={locale}>
-                <SelectTrigger id={fields.locale.id}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {locales.map(option => (
-                    <SelectItem key={option} value={option}>
-                      {languageLabel(option)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {fields.locale.errors && <p className="text-destructive text-sm">{fields.locale.errors}</p>}
-              <p className="text-muted-foreground text-xs">{m.settings_general_language_hint()}</p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor={fields.timezone.id}>{m.settings_general_timezone_label()}</Label>
-              <Select name={fields.timezone.name} defaultValue={timezone}>
-                <SelectTrigger id={fields.timezone.id}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIMEZONE_OPTIONS.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {fields.timezone.errors && <p className="text-destructive text-sm">{fields.timezone.errors}</p>}
-              <p className="text-muted-foreground text-xs">{m.settings_general_timezone_hint()}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{m.settings_general_password_security_title()}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <p className="text-muted-foreground text-sm">{m.settings_general_password_security_description()}</p>
-            <RadioGroup
-              name={CongregationSettingKey.BreachedPasswordCheckScope}
-              defaultValue={breachedPasswordCheckScope}
-              className="gap-3"
+      <SettingsForm {...getFormProps(form)} savedKey={JSON.stringify(loaderData)} errors={form.errors}>
+        <FormSection
+          title={m.settings_general_section_congregation()}
+          description={m.settings_general_section_congregation_hint()}
+        >
+          <SettingsField
+            id={fields.displayName.id}
+            label={m.settings_congregation_display_name_label()}
+            error={fields.displayName.errors?.[0]}
+            className="col-span-full"
+          >
+            <Input
+              {...getInputProps(fields.displayName, { type: 'text' })}
+              key={fields.displayName.id}
+              placeholder={m.settings_congregation_display_name_placeholder()}
+              defaultValue={displayName}
+            />
+          </SettingsField>
+          {showDomain && (
+            <SettingsField
+              id={fields.domain.id}
+              label={m.settings_general_custom_domain_label()}
+              hint={m.settings_general_custom_domain_hint()}
+              error={fields.domain.errors?.[0]}
+              className="col-span-full"
             >
-              {PASSWORD_SECURITY_SCOPES.map(scope => (
-                <div key={scope.value} className="flex items-start gap-3">
-                  <RadioGroupItem value={scope.value} id={`breach-scope-${scope.value}`} className="mt-1" />
-                  <Label
-                    htmlFor={`breach-scope-${scope.value}`}
-                    className="flex flex-col items-start gap-1 font-normal"
-                  >
-                    <span className="font-medium">{scope.label()}</span>
-                    <span className="text-muted-foreground text-xs">{scope.hint()}</span>
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
-          </CardContent>
-        </Card>
+              <Input
+                {...getInputProps(fields.domain, { type: 'text' })}
+                key={fields.domain.id}
+                placeholder={m.settings_general_custom_domain_placeholder()}
+                defaultValue={domain}
+              />
+            </SettingsField>
+          )}
+        </FormSection>
 
-        {showDomain && (
-          <Card>
-            <CardHeader>
-              <CardTitle>{m.settings_general_custom_domain_label()}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <Label htmlFor={fields.domain.id}>{m.settings_general_custom_domain_label()}</Label>
-                <Input
-                  {...getInputProps(fields.domain, { type: 'text' })}
-                  key={fields.domain.id}
-                  placeholder={m.settings_general_custom_domain_placeholder()}
-                  defaultValue={domain}
-                />
-                {fields.domain.errors && <p className="text-destructive text-sm">{fields.domain.errors}</p>}
-                <p className="text-muted-foreground text-xs">{m.settings_general_custom_domain_hint()}</p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        <FormSection
+          title={m.settings_general_section_language()}
+          description={m.settings_general_section_language_hint()}
+        >
+          <SettingsField
+            id={fields.locale.id}
+            label={m.settings_general_language_label()}
+            hint={m.settings_general_language_hint()}
+            error={fields.locale.errors?.[0]}
+          >
+            <Select name={fields.locale.name} defaultValue={locale}>
+              <SelectTrigger id={fields.locale.id} className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {locales.map(option => (
+                  <SelectItem key={option} value={option}>
+                    {languageLabel(option)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </SettingsField>
+          <SettingsField
+            id={fields.timezone.id}
+            label={m.settings_general_timezone_label()}
+            error={fields.timezone.errors?.[0]}
+          >
+            <Select name={fields.timezone.name} defaultValue={timezone}>
+              <SelectTrigger id={fields.timezone.id} className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TIMEZONE_OPTIONS.map(option => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </SettingsField>
+        </FormSection>
 
-        <FormActions>
-          <SubmitButton>{m.common_save()}</SubmitButton>
-        </FormActions>
-      </Form>
+        <FormSection
+          title={m.settings_general_section_passwords()}
+          description={m.settings_general_password_security_description()}
+        >
+          <ChoiceCards
+            id="breach-scope"
+            name={CongregationSettingKey.BreachedPasswordCheckScope}
+            label={m.settings_general_section_passwords()}
+            defaultValue={breachedPasswordCheckScope}
+            choices={PASSWORD_SECURITY_SCOPES.map(scope => ({
+              value: scope.value,
+              label: scope.label(),
+              description: scope.hint(),
+            }))}
+          />
+        </FormSection>
+      </SettingsForm>
     </div>
   )
 }
@@ -242,5 +221,10 @@ export async function action({ request, context }: Route.ActionArgs) {
   )
 
   // The client translates with what the page loaded with: a new language shows on a full load only.
-  return general.locale === congregation.locale ? redirect('/settings/general') : redirectDocument('/settings/general')
+  const session = await getSession(request.headers.get('Cookie'))
+  session.flash('success', m.settings_saved())
+  const headers = { 'Set-Cookie': await commitSession(session) }
+  return general.locale === congregation.locale
+    ? redirect('/settings/general', { headers })
+    : redirectDocument('/settings/general', { headers })
 }

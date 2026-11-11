@@ -105,3 +105,16 @@ export const needsRehash = (stored: string): boolean => {
     return false
   }
 }
+
+/**
+ * Whether the stored value is a password the account chose, as opposed to the placeholder an account carries from
+ * its creation until it follows its invitation (empty, `password`, `$IMPORTED$`). Never compares anything.
+ */
+export const isPasswordSet = (stored: string): boolean => {
+  try {
+    parseStoredHash(stored)
+    return true
+  } catch {
+    return false
+  }
+}

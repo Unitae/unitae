@@ -1,103 +1,67 @@
-import {
-  Building2,
-  ClipboardList,
-  CreditCard,
-  HardDrive,
-  Map as MapIcon,
-  Settings,
-  Shield,
-  UserCog,
-} from 'lucide-react'
-import { redirect } from 'react-router'
+import { ArrowUpRight, ChevronRight } from 'lucide-react'
+import { Link, redirect, useRouteLoaderData } from 'react-router'
+import { loadSettingsAccess } from '~/features/settings/server/settings-access.server'
+import { firstSettingsHref } from '~/features/settings/settings-sections'
+import { SETTINGS_GROUP_LABEL } from '~/features/settings/ui/SettingsRail'
 import * as m from '~/i18n/paraglide/messages'
-import { congregationContext, permissionsContext } from '~/shared/auth/route-context.server'
-import { billingEntryUrl } from '~/shared/domain/billing-link.server'
-import { Permission } from '~/shared/types/permission'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { PageHeader } from '~/shared/ui/PageHeader'
-import {
-  buildSettingsSections,
-  type SettingsCard,
-  type SettingsGroupKey,
-  type SettingsItemKey,
-} from '../settings-sections'
-import { SettingsNavCard } from '../ui/SettingsNavCard'
+import { SETTINGS_ENTRY_DISPLAY } from '~/shared/ui/settings-entries'
+import type { loader as layoutLoader } from './_layout'
 import type { Route } from './+types/index'
 
-export function loader({ context }: Route.LoaderArgs) {
+const WIDE = '(min-width: 48rem)'
+
+export async function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const congregation = context.get(congregationContext)
-
-  const perms = {
-    canManageSettings: permissions.has(Permission.CanConfigureCongregation),
-    canManageUsers: permissions.has(Permission.CanManageUsers),
-    canManagePermissions: permissions.has(Permission.CanConfigurePermissions),
-    canManagePioneerGoals: permissions.has(Permission.CanSetPioneerGoals),
-  }
-
-  const billingUrl = billingEntryUrl({
-    isAdmin: perms.canManageSettings,
-    stripeCustomerId: congregation.stripeCustomerId,
-    slug: congregation.slug,
-  })
-
-  const sections = buildSettingsSections(perms, billingUrl)
-  if (sections.length === 0) {
-    throw redirect('/')
-  }
-
-  return { sections }
-}
-
-type IconComponent = React.ComponentType<{ className?: string }>
-
-const ITEM_DISPLAY: Record<SettingsItemKey, { icon: IconComponent; title: () => string; description: () => string }> = {
-  general: { icon: Settings, title: m.sidebar_settings_general, description: m.settings_hub_general_desc },
-  subscription: { icon: CreditCard, title: m.sidebar_subscription, description: m.settings_hub_subscription_desc },
-  congregation: { icon: Building2, title: m.sidebar_settings_assembly, description: m.settings_hub_congregation_desc },
-  territories: { icon: MapIcon, title: m.sidebar_settings_territories, description: m.settings_hub_territories_desc },
-  users: { icon: UserCog, title: m.sidebar_users, description: m.settings_hub_users_desc },
-  permissions: { icon: Shield, title: m.sidebar_settings_permissions, description: m.settings_hub_permissions_desc },
-  data: { icon: HardDrive, title: m.sidebar_settings_data, description: m.settings_hub_data_desc },
-  audit: { icon: ClipboardList, title: m.sidebar_audit_log, description: m.settings_hub_audit_desc },
-}
-
-const GROUP_TITLE: Record<SettingsGroupKey, () => string> = {
-  account: m.settings_hub_group_account,
-  modules: m.settings_hub_group_modules,
-  access: m.settings_hub_group_access,
-  data: m.settings_hub_group_data,
-}
-
-function SettingsCardLink({ item }: { item: SettingsCard }) {
-  const display = ITEM_DISPLAY[item.key]
-  return (
-    <SettingsNavCard
-      icon={display.icon}
-      title={display.title()}
-      description={display.description()}
-      href={item.href}
-      external={item.external}
-    />
+  const account = context.get(currentAccountContext)
+  const access = await withScopeFromContext(context, (db, congregationId) =>
+    loadSettingsAccess(db, permissions, account.id, congregationId),
   )
+  return { first: firstSettingsHref(access) }
 }
 
-export default function SettingsHub({ loaderData }: Route.ComponentProps) {
-  const { sections } = loaderData
+// A wide screen has the column beside every part, so Réglages opens straight on the first part the viewer may open;
+// a phone keeps this page as its list of parts.
+export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs) {
+  const data = await serverLoader()
+  if (data.first && window.matchMedia(WIDE).matches) throw redirect(data.first)
+  return data
+}
+clientLoader.hydrate = true as const
+
+const ROW =
+  'flex min-h-13 items-center gap-3 border-t px-3.5 text-[0.9375rem] outline-hidden first:border-t-0 hover:bg-hover focus-visible:bg-hover [&>svg:first-child]:size-4 [&>svg:first-child]:text-faint'
+
+export default function SettingsIndex() {
+  const layout = useRouteLoaderData<typeof layoutLoader>('features/settings/routes/_layout')
+  const groups = layout?.groups ?? []
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <PageHeader title={m.settings_hub_title()} subtitle={m.settings_hub_subtitle()} />
-
-      <div className="space-y-8">
-        {sections.map(section => (
-          <section key={section.key}>
-            <h2 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-              {GROUP_TITLE[section.key]()}
-            </h2>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              {section.items.map(item => (
-                <SettingsCardLink key={item.key} item={item} />
-              ))}
+    <div className="md:hidden">
+      <PageHeader title={m.settings_title()} breadcrumbs={[{ label: m.settings_title() }]} />
+      <div className="flex flex-col gap-4">
+        {groups.map(group => (
+          <section key={group.key} className="flex flex-col gap-1.5">
+            <h2 className="px-0.5 font-medium text-faint text-xs">{SETTINGS_GROUP_LABEL[group.key]()}</h2>
+            <div className="overflow-hidden rounded-lg border bg-card">
+              {group.entries.map(entry => {
+                const { icon: Icon, label } = SETTINGS_ENTRY_DISPLAY[entry.key]
+                return entry.external ? (
+                  <a key={entry.key} href={entry.href} target="_blank" rel="noreferrer" className={ROW}>
+                    <Icon aria-hidden="true" />
+                    <span className="flex-1">{label()}</span>
+                    <ArrowUpRight aria-hidden="true" className="size-4 text-faint" />
+                    <span className="sr-only">({m.settings_external_hint()})</span>
+                  </a>
+                ) : (
+                  <Link key={entry.key} to={entry.href} className={ROW}>
+                    <Icon aria-hidden="true" />
+                    <span className="flex-1">{label()}</span>
+                    <ChevronRight aria-hidden="true" className="size-4 text-faint" />
+                  </Link>
+                )
+              })}
             </div>
           </section>
         ))}

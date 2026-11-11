@@ -51,7 +51,7 @@ Pioneers are managed from the **Pioneer service** section of the publisher's edi
 
 A lasting appointment: **regular pioneer**, **special pioneer**, **missionary**, or **permanent auxiliary pioneer**. You choose the type and the start month, and the appointment runs until you close it. While it's active, the publisher's type reflects it and the section shows the appointment read-only with a **Close** control (you pick the closing month). Closing it returns the publisher to *Publisher*.
 
-The **permanent auxiliary pioneer** option only appears when your congregation has enabled it in [congregation settings](settings.md#congregation-settings) — some congregations use a standing auxiliary status, others only the month-to-month form below.
+The **permanent auxiliary pioneer** option only appears when your congregation has enabled it in [Settings → Publishers](settings.md#publishers) — some congregations use a standing auxiliary status, others only the month-to-month form below.
 
 ### Monthly auxiliary enrolment
 
@@ -59,7 +59,7 @@ The classic auxiliary form: enrol a publisher for a **single month** with a **pe
 
 ### Goals, and seeing who's enrolled
 
-Each pioneer type has a **default monthly hour goal** (regular ~50 h, auxiliary 30 h, special/missionary ~100 h), set congregation-wide under [Pioneer goals](settings.md#pioneer-goals). A monthly auxiliary enrolment can override it with a **per-person** goal (15 vs 30 h).
+Each pioneer type has a **default monthly hour goal** (regular ~50 h, auxiliary 30 h, special/missionary ~100 h), set congregation-wide under [Settings → Publishers](settings.md#publishers). A monthly auxiliary enrolment can override it with a **per-person** goal (15 vs 30 h).
 
 Because an enrolment is recorded separately from the hours report, a pioneer shows on the roster **before** their report arrives: an auxiliary who has signed up but not yet reported appears as *enrolled · report pending*, with the goal known and the hours still empty.
 
@@ -198,7 +198,7 @@ Regular (non-pioneer) publishers keep a simpler activity section without the pac
 
 ### Editing pioneer goals
 
-Goals can be tuned per service year and per type in **Settings → Pioneer goals** (see [Settings](settings.md#pioneer-goals)). This needs the *Pioneer Goal Manager* permission. A type with no override falls back to the built-in default; past service years' goals can't be edited.
+Goals can be tuned per service year and per type in **Settings → Publishers** (see [Settings](settings.md#publishers)). This needs the *Pioneer Goal Manager* permission. A type with no override falls back to the built-in default; past service years' goals can't be edited.
 
 ### Dashboard widget
 

@@ -1,7 +1,5 @@
-import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod/v4'
-import { data, Form, redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/index.server'
+import { data, redirect } from 'react-router'
 import { createUserSchema } from '~/features/settings/schemas/user.schema'
 import { createAccount, UserAlreadyExistsError } from '~/features/settings/server/create-account.server'
 import * as m from '~/i18n/paraglide/messages'
@@ -12,89 +10,14 @@ import {
   requirePermission,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import { LimitReachedError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
-import { Card, CardContent } from '~/shared/ui/card'
-import { FormActions } from '~/shared/ui/FormActions'
-import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
-import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
-import { Input } from '~/shared/ui/input'
-import { Label } from '~/shared/ui/label'
-import { PageHeader } from '~/shared/ui/PageHeader'
-import { SubmitButton } from '~/shared/ui/SubmitButton'
-import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
-import { handleAppError } from '~/shared/utils/handle-app-error.server'
+import { redirectWithToast } from '../_toast.server'
 import type { Route } from './+types/new-user'
 
-export const meta: Route.MetaFunction = () => {
-  return [{ title: m.settings_users_meta_title() }]
-}
-
-export function loader({ context }: Route.LoaderArgs) {
-  const permissions = context.get(permissionsContext)
-  const canManageUser = permissions.has(Permission.CanManageUsers)
-
-  if (!canManageUser) {
-    throw redirect('/')
-  }
-
-  return null
-}
-
-export default function SettingsLayout({ actionData }: Route.ComponentProps) {
-  const { blocker, markDirty } = useUnsavedChanges()
-  useFocusError(actionData)
-  const [form, fields] = useForm({
-    lastResult: actionData,
-    onValidate({ formData }) {
-      return parseWithZod(formData, { schema: createUserSchema })
-    },
-  })
-
-  return (
-    <div className="flex flex-col gap-6">
-      <UnsavedChangesDialog blocker={blocker} />
-      <PageHeader
-        title={m.settings_user_new_title()}
-        subtitle={m.settings_user_new_subtitle()}
-        breadcrumbs={[{ label: m.sidebar_users(), to: '/settings/users' }, { label: m.settings_user_new_title() }]}
-        backTo="/settings/users"
-      />
-
-      <Card>
-        <CardContent>
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={markDirty}>
-            <div className="space-y-2">
-              <Label htmlFor={fields.firstname.id}>{m.settings_user_new_firstname_label()}</Label>
-              <Input
-                {...getInputProps(fields.firstname, { type: 'text' })}
-                placeholder={m.settings_user_new_firstname_label()}
-              />
-              {fields.firstname.errors && <p className="text-destructive text-sm">{fields.firstname.errors}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor={fields.lastname.id}>{m.settings_user_new_lastname_label()}</Label>
-              <Input
-                {...getInputProps(fields.lastname, { type: 'text' })}
-                placeholder={m.settings_user_new_lastname_label()}
-              />
-              {fields.lastname.errors && <p className="text-destructive text-sm">{fields.lastname.errors}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor={fields.email.id}>{m.settings_user_new_email_label()}</Label>
-              <Input
-                {...getInputProps(fields.email, { type: 'email' })}
-                placeholder={m.settings_user_new_email_label()}
-              />
-              {fields.email.errors && <p className="text-destructive text-sm">{fields.email.errors}</p>}
-            </div>
-            <FormActions>
-              <SubmitButton>{m.settings_user_new_submit()}</SubmitButton>
-            </FormActions>
-          </Form>
-        </CardContent>
-      </Card>
-    </div>
-  )
+// The account is created from the users list's dialog; the address of the old page leads there.
+export function loader() {
+  throw redirect('/settings/users')
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
@@ -103,18 +26,15 @@ export async function action({ request, context }: Route.ActionArgs) {
   const currentUser = context.get(currentAccountContext)
   const congregation = context.get(congregationContext)
   const submission = parseWithZod(await request.formData(), { schema: createUserSchema })
-
-  if (submission.status !== 'success') {
-    return data(submission.reply(), { status: 400 })
-  }
+  if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
 
   const { firstname, lastname, email } = submission.value
-
-  return withScopeFromContext(context, async db => {
-    const session = await getSession(request.headers.get('Cookie'))
-    try {
+  // Outside the transaction: a refused address rolls it back before the answer goes out.
+  let result: Awaited<ReturnType<typeof createAccount>>
+  try {
+    result = await withScopeFromContext(context, async db => {
       const { ResetPasswordRequired } = await import('~/features/authentication')
-      const result = await createAccount(
+      return createAccount(
         db,
         congregation,
         currentUser.id,
@@ -129,22 +49,21 @@ export async function action({ request, context }: Route.ActionArgs) {
           />
         ),
       )
-
-      if (!result.emailSent) {
-        session.flash('error', m.auth_email_send_warning_user_created())
-      }
-    } catch (error) {
-      if (error instanceof UserAlreadyExistsError) {
-        session.flash('error', m.error_conflict())
-        throw redirect('/settings/users/new', {
-          headers: { 'Set-Cookie': await commitSession(session) },
-        })
-      }
-      await handleAppError(error, session, '/settings/users/new')
-    }
-
-    return redirect('/settings/users', {
-      headers: { 'Set-Cookie': await commitSession(session) },
     })
-  })
+  } catch (error) {
+    if (error instanceof UserAlreadyExistsError) {
+      return data(submission.reply({ fieldErrors: { email: [m.settings_users_email_taken()] } }), { status: 409 })
+    }
+    if (error instanceof LimitReachedError) {
+      return data(submission.reply({ formErrors: [m.settings_users_limit()] }), { status: 409 })
+    }
+    throw error
+  }
+
+  return redirectWithToast(
+    request,
+    `/settings/users/${result.userId}`,
+    result.emailSent ? m.settings_users_new_created({ email }) : m.auth_email_send_warning_user_created(),
+    result.emailSent ? 'success' : 'error',
+  )
 }

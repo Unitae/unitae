@@ -349,7 +349,7 @@ A single visual language is shared across every on-screen map:
 
 ## Carte de l'assemblée
 
-Open *Settings → Territories → Carte de l'assemblée* to define how your assembly's preaching territory is drawn on every printed territory card. The page hosts two related things:
+Open *Settings → Carte de l'assemblée* to define how your assembly's preaching territory is drawn on every printed territory card. The page hosts two related things:
 
 ### Perimeter
 

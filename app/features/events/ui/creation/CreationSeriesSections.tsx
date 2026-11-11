@@ -197,7 +197,7 @@ function NoMeetings({ canManage }: { canManage: boolean }) {
         <p className="max-w-prose text-muted-foreground text-sm">{m.programs_new_no_meetings_body()}</p>
         {canManage && (
           <Button asChild variant="outline" size="sm">
-            <Link to="/settings/congregation/templates">
+            <Link to="/settings/templates">
               <Settings aria-hidden="true" />
               {m.programs_new_no_meetings_link()}
             </Link>

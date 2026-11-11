@@ -24,6 +24,8 @@ vi.mock('~/shared/domain/audit.server', () => ({
   AuditAction: {
     PartAllowedRolesChanged: 'part.allowed_roles.changed',
     ServicePartAllowedRolesChanged: 'service_role.allowed_roles.changed',
+    TemplateUpdated: 'event_template.updated',
+    TemplateDeleted: 'event_template.deleted',
   },
 }))
 
@@ -38,7 +40,6 @@ const {
   setTemplateResponsible,
   removeTemplateResponsible,
   isTemplateResponsible,
-  deleteTemplate,
 } = await import('./event-templates.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const allowedRoles = await import('~/features/events/server/allowed-roles.server')
@@ -104,14 +105,14 @@ describe('updateTemplate', () => {
     const updated = { id: 1, name: 'Updated Name' }
     vi.mocked(db.eventTemplate.update).mockResolvedValue(updated as never)
 
-    const result = await updateTemplate(db, 1, { name: 'Updated Name' }, 1)
+    const result = await updateTemplate(db, 1, { name: 'Updated Name' }, 1, 9)
     expect(result).toEqual(updated)
   })
 
   it('updates the colour when provided', async () => {
     vi.mocked(db.eventTemplate.update).mockResolvedValue({ id: 1 } as never)
 
-    await updateTemplate(db, 1, { name: 'Réunion', color: '#ff00aa' }, 1)
+    await updateTemplate(db, 1, { name: 'Réunion', color: '#ff00aa' }, 1, 9)
 
     const call = vi.mocked(db.eventTemplate.update).mock.calls[0]
     expect((call[0] as { data: { color: string } }).data.color).toBe('#ff00aa')
@@ -125,7 +126,13 @@ describe('updateTemplate', () => {
     vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({ key: 'day-off' } as never)
     vi.mocked(db.eventTemplate.update).mockResolvedValue({ id: 1 } as never)
 
-    await updateTemplate(db, 1, { name: 'Nope', color: '#abcdef', weekDay: 3, startTime: '20:00', endTime: '22:00' }, 1)
+    await updateTemplate(
+      db,
+      1,
+      { name: 'Nope', color: '#abcdef', weekDay: 3, startTime: '20:00', endTime: '22:00' },
+      1,
+      9,
+    )
 
     const call = vi.mocked(db.eventTemplate.update).mock.calls[0]
     const written = (call[0] as { data: Record<string, unknown> }).data
@@ -135,9 +142,47 @@ describe('updateTemplate', () => {
   it('skips the update entirely on system templates when nothing but ignored fields is passed', async () => {
     vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({ key: 'freeform' } as never)
 
-    await updateTemplate(db, 1, { name: 'Nope', weekDay: 3, startTime: '20:00', endTime: '22:00' }, 1)
+    await updateTemplate(db, 1, { name: 'Nope', weekDay: 3, startTime: '20:00', endTime: '22:00' }, 1, 9)
 
     expect(db.eventTemplate.update).not.toHaveBeenCalled()
+    expect(auditModule.audit).not.toHaveBeenCalled()
+  })
+
+  it('writes nothing when the fields hold what is saved', async () => {
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({
+      key: 'midweek',
+      name: 'Réunion',
+      color: '#ff00aa',
+    } as never)
+
+    const result = await updateTemplate(db, 1, { name: 'Réunion', color: '#ff00aa' }, 1, 9)
+
+    expect(result).toBeNull()
+    expect(db.eventTemplate.update).not.toHaveBeenCalled()
+    expect(auditModule.audit).not.toHaveBeenCalled()
+  })
+
+  it('says in the audit log which of the template’s fields changed', async () => {
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({
+      key: 'midweek',
+      name: 'Réunion de semaine',
+      color: '#ff00aa',
+      startTime: '19:00',
+    } as never)
+    vi.mocked(db.eventTemplate.update).mockResolvedValue({ id: 1 } as never)
+
+    await updateTemplate(db, 1, { name: 'Réunion', color: '#ff00aa', startTime: '19:30' }, 1, 9)
+
+    expect(vi.mocked(db.eventTemplate.update).mock.calls[0][0].data).toEqual({ name: 'Réunion', startTime: '19:30' })
+
+    expect(auditModule.audit).toHaveBeenCalledWith({
+      action: 'event_template.updated',
+      congregationId: 1,
+      actorId: 9,
+      entityType: 'EventTemplate',
+      entityId: 1,
+      metadata: { fields: ['name', 'startTime'] },
+    })
   })
 })
 
@@ -522,72 +567,5 @@ describe('upsertTemplateServicePart audit firing', () => {
     await upsertTemplateServicePart(db, 1, { name: 'Son', key: 'sono', allowedRoleIds: [] }, 1, 99)
 
     expect(vi.mocked(auditModule.audit)).not.toHaveBeenCalled()
-  })
-})
-
-describe('deleteTemplate', () => {
-  it('deletes a custom template with no linked events and returns its name', async () => {
-    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({
-      key: 'midweek',
-      name: 'Réunion de semaine',
-      _count: { events: 0 },
-    } as never)
-    vi.mocked(db.eventTemplate.delete).mockResolvedValue({ id: 7 } as never)
-
-    const result = await deleteTemplate(db, 7, 1)
-
-    expect(result).toEqual({ ok: true, name: 'Réunion de semaine' })
-    expect(db.eventTemplate.delete).toHaveBeenCalledWith({
-      where: { id_congregationId: { id: 7, congregationId: 1 } },
-    })
-  })
-
-  it('returns not-found and never deletes when the template does not exist', async () => {
-    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue(null as never)
-
-    const result = await deleteTemplate(db, 999, 1)
-
-    expect(result).toEqual({ ok: false, reason: 'not-found' })
-    expect(db.eventTemplate.delete).not.toHaveBeenCalled()
-  })
-
-  // System templates (day-off, freeform) are looked up by key at runtime; the
-  // server refuses to remove them even if a stale form POSTs the intent.
-  it('refuses to delete a system template', async () => {
-    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({
-      key: 'day-off',
-      name: 'Jour de congé',
-      _count: { events: 0 },
-    } as never)
-
-    const result = await deleteTemplate(db, 3, 1)
-
-    expect(result).toEqual({ ok: false, reason: 'system' })
-    expect(db.eventTemplate.delete).not.toHaveBeenCalled()
-  })
-
-  // Event.templateId is ON DELETE SET NULL: removing an in-use template would
-  // orphan its events (templateId → NULL) and drop them from key-filtered
-  // queries. The writer blocks it and surfaces the count instead.
-  it('refuses to delete a template still linked to events and reports the count', async () => {
-    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({
-      key: 'midweek',
-      name: 'Réunion de semaine',
-      _count: { events: 4 },
-    } as never)
-
-    const result = await deleteTemplate(db, 7, 1)
-
-    expect(result).toEqual({ ok: false, reason: 'in-use', eventCount: 4 })
-    expect(db.eventTemplate.delete).not.toHaveBeenCalled()
-  })
-
-  it('scopes the lookup to the given congregation', async () => {
-    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue(null as never)
-
-    await deleteTemplate(db, 7, 42)
-
-    const args = vi.mocked(db.eventTemplate.findFirst).mock.calls[0][0]
-    expect(args?.where).toEqual({ id: 7, congregationId: 42 })
   })
 })

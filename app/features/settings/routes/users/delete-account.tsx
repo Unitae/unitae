@@ -1,5 +1,4 @@
 import { redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/index.server'
 import { deleteAccount } from '~/features/settings/server/delete-account.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -8,50 +7,38 @@ import {
   requirePermission,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
-import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
+import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { AccountId } from '~/shared/types/branded'
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
-
+import { accountRefusal } from '../_account-refusal.server'
+import { redirectWithToast } from '../_toast.server'
 import type { Route } from './+types/delete-account'
 
+// Action only, for the account page's dialog: deletes the login; a linked record stays.
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-
   requirePermission(permissions, Permission.CanDeleteUserAccounts)
-
   const accountId = requireParamId<AccountId>(params.accountId, '/settings/users')
 
-  // Prevent self-deletion — admins shouldn't lock themselves out via this flow
-  if (currentUser.id === accountId) {
-    throw redirect('/settings/users')
+  let email: string
+  try {
+    email = await withScopeFromContext(context, async (db, congregationId) => {
+      const account = await db.userAccount.findFirst({
+        where: { id: accountId, congregationId },
+        select: { email: true },
+      })
+      if (!account) throw new NotFoundError('UserAccount')
+      await deleteAccount(db, accountId, congregationId, currentUser.id, permissions)
+      return account.email
+    })
+  } catch (error) {
+    if (error instanceof NotFoundError) throw redirect('/settings/users')
+    const reason = accountRefusal(error)
+    if (reason) return redirectWithToast(request, `/settings/users/${accountId}`, reason, 'error')
+    throw error
   }
 
-  const session = await getSession(request.headers.get('Cookie'))
-
-  await withScopeFromContext(context, async db => {
-    const account = await db.userAccount.findFirst({
-      where: { id: accountId, congregationId: currentUser.congregationId },
-      select: { email: true },
-    })
-    if (!account) throw redirect('/settings/users')
-
-    try {
-      await deleteAccount(db, accountId, currentUser.congregationId, currentUser.id)
-    } catch (error) {
-      if (error instanceof NotFoundError) throw redirect('/settings/users')
-      if (error instanceof ConflictError) {
-        session.flash('error', error.message)
-        return
-      }
-      throw error
-    }
-
-    session.flash('success', m.settings_user_edit_delete_account_success({ email: account.email }))
-  })
-
-  return redirect('/settings/users', {
-    headers: { 'Set-Cookie': await commitSession(session) },
-  })
+  return redirectWithToast(request, '/settings/users', m.settings_user_edit_delete_account_success({ email }))
 }

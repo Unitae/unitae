@@ -1,0 +1,208 @@
+import { AlertCircle, Download, MoreHorizontal, Upload } from 'lucide-react'
+import { useState } from 'react'
+import { data, redirect, useFetcher } from 'react-router'
+import { CardOverlayImportDialog } from '~/features/settings/ui/CardOverlayImportDialog'
+import { ConfirmDialog } from '~/features/settings/ui/ConfirmDialog'
+import { PerimeterPanel, ZoneDraftPanel, ZonesPanel } from '~/features/settings/ui/MapZonesColumn'
+import { SettingsHeader } from '~/features/settings/ui/SettingsHeader'
+import { downloadCardOverlaysGeoJson, useCardOverlayEditor } from '~/features/settings/ui/use-card-overlay-editor'
+import { CardOverlayMap } from '~/features/territories'
+import { getPerimeter, listCardOverlays } from '~/features/territories/index.server'
+import * as m from '~/i18n/paraglide/messages'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
+import { LimitService } from '~/shared/domain/limits.server'
+import { LimitReachedError } from '~/shared/errors/app-error.server'
+import { Permission } from '~/shared/types/permission'
+import { Button } from '~/shared/ui/button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
+import { TooltipProvider } from '~/shared/ui/tooltip'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
+import { getOptionalEnv } from '~/shared/utils/env.server'
+import { cn } from '~/shared/utils/utils'
+import { cardOverlayActionSchema, handleCardOverlayAction } from './_map-action.server'
+import { okWithToast } from './_toast.server'
+import type { Route } from './+types/map'
+
+export const meta: Route.MetaFunction = () => [{ title: m.settings_map_meta_title() }]
+
+export function loader({ context }: Route.LoaderArgs) {
+  if (!context.get(permissionsContext).has(Permission.CanConfigureTerritorySettings)) throw redirect('/')
+  const congregation = context.get(congregationContext)
+
+  return withScopeFromContext(context, async db => {
+    const [overlays, perimeter] = await Promise.all([listCardOverlays(db), getPerimeter(db)])
+    return {
+      overlays,
+      perimeter,
+      googleMapsApiKey: getOptionalEnv('GOOGLE_MAPS_API_KEY'),
+      maxOverlays: congregation.maxCardOverlays,
+    }
+  })
+}
+
+export async function action({ request, context }: Route.ActionArgs) {
+  if (!context.get(permissionsContext).has(Permission.CanConfigureTerritorySettings)) throw redirect('/')
+  const currentUser = context.get(currentAccountContext)
+  const congregation = context.get(congregationContext)
+  const parsed = cardOverlayActionSchema.safeParse(Object.fromEntries((await request.formData()).entries()))
+  if (!parsed.success) return data({ ok: false as const, error: m.settings_map_save_failed() }, { status: 400 })
+
+  try {
+    const result = await withScopeFromContext(context, db =>
+      handleCardOverlayAction(db, new LimitService(db, congregation), parsed.data, congregation.id, currentUser.id),
+    )
+    if (!result.ok) return data(result, { status: 400 })
+    return okWithToast(request, result.message)
+  } catch (error) {
+    if (!(error instanceof LimitReachedError)) throw error
+    const max = congregation.maxCardOverlays
+    const message = max != null ? m.settings_map_limit({ max: String(max) }) : m.settings_map_limit_generic()
+    return data({ ok: false as const, error: message }, { status: 400 })
+  }
+}
+
+export default function CongregationMapPage({ loaderData }: Route.ComponentProps) {
+  const { overlays, perimeter, googleMapsApiKey, maxOverlays } = loaderData
+  const fetcher = useFetcher<typeof action>()
+  const draft = useFetcher<typeof action>()
+  const [importOpen, setImportOpen] = useState(false)
+  const editor = useCardOverlayEditor(overlays, perimeter, draft)
+  const canDraw = googleMapsApiKey != null && googleMapsApiKey.length > 0
+  const limitReached = maxOverlays != null && overlays.length >= maxOverlays ? maxOverlays : null
+  const errorOf = (result: typeof fetcher.data) => (result != null && !result.ok ? result.error : null)
+  const error = errorOf(draft.data) ?? errorOf(fetcher.data)
+
+  return (
+    <TooltipProvider>
+      <div className="flex flex-col">
+        <SettingsHeader
+          title={m.settings_entry_map()}
+          subtitle={m.settings_map_subtitle()}
+          actions={
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label={m.common_more_actions()}>
+                  <MoreHorizontal />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={() => setImportOpen(true)}>
+                  <Upload />
+                  {m.settings_map_import()}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={overlays.length === 0 && perimeter == null}
+                  onSelect={() => downloadCardOverlaysGeoJson(overlays, perimeter)}
+                >
+                  <Download />
+                  {m.settings_map_export()}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          }
+        />
+        <UnsavedChangesDialog blocker={editor.blocker} />
+
+        <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+          {canDraw ? (
+            <div className={cn('rounded-lg', editor.isDraftActive && 'ring-2 ring-brand/40')}>
+              <CardOverlayMap
+                apiKey={googleMapsApiKey}
+                overlays={overlays}
+                excludeOverlayId={editor.editingId}
+                perimeter={perimeter?.paths ?? null}
+                excludePerimeter={editor.editingPerimeter}
+                drawingEnabled={(editor.isDrawing || editor.perimeterMode === 'new') && editor.draftPaths == null}
+                draftPaths={editor.draftPaths}
+                draftColor={editor.draftColor}
+                onDraftChange={editor.handleDraftChange}
+                initialCenter={editor.initialCenter}
+                initialZoom={editor.initialCenter == null ? undefined : 13}
+                className="h-[560px] w-full overflow-hidden rounded-lg border max-lg:h-[420px]"
+              />
+            </div>
+          ) : (
+            <p className="rounded-lg border bg-card px-4.5 py-4 text-muted-foreground text-sm">
+              {m.settings_map_no_key()}
+            </p>
+          )}
+
+          <div className="flex flex-col gap-4">
+            {error && (
+              <p
+                role="alert"
+                className="flex gap-2 rounded-md bg-destructive/10 px-3.5 py-2.5 text-destructive text-sm"
+              >
+                <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+                {error}
+              </p>
+            )}
+            {editor.isDraftActive ? (
+              <ZoneDraftPanel
+                draft={draft}
+                perimeterMode={editor.perimeterMode}
+                editing={editor.editingOverlay}
+                paths={editor.draftPaths}
+                name={editor.draftName}
+                color={editor.draftColor}
+                onNameChange={name => {
+                  editor.setDraftName(name)
+                  editor.markDraftDirty()
+                }}
+                onColorChange={color => {
+                  editor.setDraftColor(color)
+                  editor.markDraftDirty()
+                }}
+                onCancel={editor.handleCancelClick}
+              />
+            ) : (
+              <>
+                <ZonesPanel
+                  overlays={overlays}
+                  fetcher={fetcher}
+                  canDraw={canDraw}
+                  limitReached={limitReached}
+                  onDraw={editor.startDrawing}
+                  onEditShape={editor.startEditing}
+                />
+                <PerimeterPanel
+                  perimeter={perimeter}
+                  fetcher={fetcher}
+                  canDraw={canDraw}
+                  onEdit={editor.startEditingPerimeter}
+                  onDefine={editor.startNewPerimeter}
+                />
+              </>
+            )}
+          </div>
+        </div>
+
+        <ConfirmDialog
+          open={editor.confirmCancelOpen}
+          onOpenChange={editor.setConfirmCancelOpen}
+          title={m.common_unsaved_changes_title()}
+          description={m.common_unsaved_changes_description()}
+          confirmLabel={m.common_unsaved_changes_leave()}
+          destructive
+          onConfirm={() => {
+            editor.setConfirmCancelOpen(false)
+            editor.exitDraftMode()
+          }}
+        />
+        <CardOverlayImportDialog
+          open={importOpen}
+          onOpenChange={setImportOpen}
+          fetcher={fetcher}
+          hasPerimeter={perimeter != null}
+        />
+      </div>
+    </TooltipProvider>
+  )
+}
+
+export { RouteErrorBoundary as ErrorBoundary } from '~/shared/ui/RouteErrorBoundary'

@@ -5,7 +5,7 @@ vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     rolePermission: { findMany: vi.fn() },
     role: { findMany: vi.fn() },
-    userAccount: { findMany: vi.fn() },
+    userAccount: { findMany: vi.fn(), count: vi.fn() },
     member: { findMany: vi.fn() },
   },
 }))
@@ -17,6 +17,7 @@ const {
   findNotificationRecipientsWithPermission,
   findMembersWithAnyRole,
   notificationRecipientFilter,
+  requireAdminsRemainWithoutRole,
   requireNotLastAdmin,
 } = await import('./permissions.server')
 const { unscopedDb } = await import('~/shared/infra/db.server')
@@ -287,5 +288,35 @@ describe('requireNotLastAdmin', () => {
     ] as never)
 
     await expect(requireNotLastAdmin(1, 7)).rejects.toThrow('Cannot remove the last admin from the congregation.')
+  })
+})
+
+describe('requireAdminsRemainWithoutRole', () => {
+  it('returns when an account still holds can-do-anything through another role', async () => {
+    vi.mocked(unscopedDb.userAccount.count).mockResolvedValue(1)
+
+    await expect(requireAdminsRemainWithoutRole(12, 7)).resolves.toBeUndefined()
+  })
+
+  it('throws ConflictError when taking it off the role would leave no administrator', async () => {
+    vi.mocked(unscopedDb.userAccount.count).mockResolvedValue(0)
+
+    await expect(requireAdminsRemainWithoutRole(12, 7)).rejects.toThrow(
+      'Cannot remove the last admin from the congregation.',
+    )
+  })
+
+  it('counts the administrators through every role but that one, on both paths', async () => {
+    vi.mocked(unscopedDb.userAccount.count).mockResolvedValue(1)
+
+    await requireAdminsRemainWithoutRole(12, 7)
+
+    const role = { id: { not: 12 }, permissions: { some: { permission: { key: Permission.CanDoAnything } } } }
+    expect(unscopedDb.userAccount.count).toHaveBeenCalledWith({
+      where: {
+        congregationId: 7,
+        OR: [{ roleAssignments: { some: { role } } }, { member: { roleAssignments: { some: { role } } } }],
+      },
+    })
   })
 })

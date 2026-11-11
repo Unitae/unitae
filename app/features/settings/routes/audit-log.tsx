@@ -1,283 +1,143 @@
-import { Form as RouterForm, useSearchParams } from 'react-router'
+import { SidePanel } from '@unitae/ui'
+import { auditActionLabel } from '~/features/settings/model/audit-actions'
+import { auditDetails } from '~/features/settings/model/audit-details'
+import { auditEntityLabel } from '~/features/settings/model/audit-entities'
+import { auditPeriod } from '~/features/settings/model/audit-period'
 import { findAuditLogsPaginated } from '~/features/settings/server/audit-log.server'
+import { AuditEntryDetail, type AuditLogRow, AuditLogTable } from '~/features/settings/ui/AuditLogTable'
+import { AuditLogToolbar } from '~/features/settings/ui/AuditLogToolbar'
+import { SettingsHeader } from '~/features/settings/ui/SettingsHeader'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
-import { currentAccountContext, permissionsContext, requirePermission } from '~/shared/auth/route-context.server'
-import { Permission } from '~/shared/types/permission'
-import { Input } from '~/shared/ui/input'
-import { Label } from '~/shared/ui/label'
-import { PageHeader } from '~/shared/ui/PageHeader'
-import Pagination from '~/shared/ui/Pagination'
-import { SubmitButton } from '~/shared/ui/SubmitButton'
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '~/shared/ui/select'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
-import { paginationFromUrl } from '~/shared/utils/pagination.server'
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  requirePermission,
+} from '~/shared/auth/route-context.server'
+import { Permission } from '~/shared/types/permission'
+import { useSideEditor } from '~/shared/ui/hooks/use-side-editor'
+import Pagination from '~/shared/ui/Pagination'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '~/shared/ui/sheet'
+import { formatDateForInput } from '~/shared/utils/event-time'
 import type { Route } from './+types/audit-log'
 
-export const meta: Route.MetaFunction = () => {
-  return [{ title: m.audit_log_meta_title() }]
-}
+export const meta: Route.MetaFunction = () => [{ title: m.audit_log_meta_title() }]
+
+/** The sizes the pagination offers; any other asks for the first. */
+const PAGE_SIZES = [25, 50, 100, 250, 500, 1000, 2000]
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   // The settings layout admits several permissions; the audit log is congregation administration.
-  const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.CanConfigureCongregation)
-  const currentUser = context.get(currentAccountContext)
-  const congregationId = currentUser.congregationId
+  requirePermission(context.get(permissionsContext), Permission.CanConfigureCongregation)
+  const { congregationId } = context.get(currentAccountContext)
+  const { timezone } = context.get(congregationContext)
+  const params = new URL(request.url).searchParams
+  const today = formatDateForInput(new Date(), timezone)
+  const range = auditPeriod({ period: params.get('period'), from: params.get('from'), to: params.get('to') }, today)
+  const askedSize = Number(params.get('pageSize'))
+  const action = params.get('action')
 
-  const url = new URL(request.url)
-  const actionParam = url.searchParams.get('action')
-  const action = actionParam && actionParam !== 'all' ? actionParam : undefined
-  const dateFrom = url.searchParams.get('dateFrom') ?? undefined
-  const dateTo = url.searchParams.get('dateTo') ?? undefined
-
-  const { count, logs } = await findAuditLogsPaginated({
+  const result = await findAuditLogsPaginated({
     congregationId,
-    page: Number(url.searchParams.get('page') ?? '1'),
-    pageSize: 25,
-    action,
-    dateFrom,
-    dateTo,
+    page: Number(params.get('page') ?? '1'),
+    pageSize: PAGE_SIZES.includes(askedSize) ? askedSize : PAGE_SIZES[0],
+    timeZone: timezone,
+    action: action && action !== 'all' ? action : undefined,
+    from: range.from,
+    to: range.to,
+    search: params.get('q')?.trim() || undefined,
   })
 
-  const pagination = paginationFromUrl(url, count)
+  const locale = getLocale()
+  const time = { timeZone: timezone, hour: '2-digit', minute: '2-digit' } as const
+  const thisYear = new Intl.DateTimeFormat(locale, { ...time, day: 'numeric', month: 'short' })
+  const otherYear = new Intl.DateTimeFormat(locale, { ...time, day: 'numeric', month: 'short', year: 'numeric' })
+  const full = new Intl.DateTimeFormat(locale, { timeZone: timezone, dateStyle: 'long', timeStyle: 'medium' })
+
+  const rows: AuditLogRow[] = result.logs.map(log => ({
+    id: log.id,
+    when: (formatDateForInput(log.createdAt, timezone).startsWith(today.slice(0, 4)) ? thisYear : otherYear).format(
+      log.createdAt,
+    ),
+    fullDate: full.format(log.createdAt),
+    person: log.actorName ?? log.actorEmail ?? m.audit_log_system(),
+    email: log.actorEmail,
+    action: auditActionLabel(log.action),
+    object: auditEntityLabel(log.entityType, log.entityId),
+    details: auditDetails(log.metadata),
+  }))
 
   return {
-    logs: logs.map(log => ({
-      id: log.id,
-      action: log.action,
-      actorEmail: log.actorEmail,
-      entityType: log.entityType,
-      entityId: log.entityId,
-      metadata: log.metadata,
-      createdAt: log.createdAt.toISOString(),
-    })),
-    pagination,
+    rows,
+    count: result.count,
+    page: result.page,
+    pageSize: result.pageSize,
+    pages: result.pages,
+    period: range.period,
+    from: range.from,
+    to: range.to,
+    today,
   }
-}
-
-function translateAction(action: string): string {
-  const translations: Record<string, string> = {
-    'user.login': m.audit_log_action_user_login(),
-    'user.login.failed': m.audit_log_action_user_login_failed(),
-    'user.logout': m.audit_log_action_user_logout(),
-    'user.sessions.ended': m.audit_log_action_user_sessions_ended(),
-    'user.created': m.audit_log_action_user_created(),
-    'user.updated': m.audit_log_action_user_updated(),
-    'user.anonymized': m.audit_log_action_user_anonymized(),
-    'user.permissions.changed': m.audit_log_action_user_permissions_changed(),
-    'user.data.exported': m.audit_log_action_user_data_exported(),
-    'consent.granted': m.audit_log_action_consent_granted(),
-    'consent.withdrawn': m.audit_log_action_consent_withdrawn(),
-    'password.changed': m.audit_log_action_password_changed(),
-    'password.reset.requested': m.audit_log_action_password_reset_requested(),
-    'board.read_status.viewed': m.audit_log_action_board_read_status_viewed(),
-    'board.document.created': m.audit_log_action_board_document_created(),
-    'board.document.updated': m.audit_log_action_board_document_updated(),
-    'board.document.deleted': m.audit_log_action_board_document_deleted(),
-    'board.section.created': m.audit_log_action_board_section_created(),
-    'board.section.updated': m.audit_log_action_board_section_updated(),
-    'territory.created': m.audit_log_action_territory_created(),
-    'territory.updated': m.audit_log_action_territory_updated(),
-    'territory.deleted': m.audit_log_action_territory_deleted(),
-    'attribution.created': m.audit_log_action_attribution_created(),
-    'attribution.updated': m.audit_log_action_attribution_updated(),
-    'attribution.deleted': m.audit_log_action_attribution_deleted(),
-    'publisher.created': m.audit_log_action_publisher_created(),
-    'publisher.updated': m.audit_log_action_publisher_updated(),
-    'publisher.status.changed': m.audit_log_action_publisher_status_changed(),
-    'publisher.group.created': m.audit_log_action_publisher_group_created(),
-    'publisher.group.deleted': m.audit_log_action_publisher_group_deleted(),
-    'publisher.activity.created': m.audit_log_action_publisher_activity_created(),
-    'publisher.activity.updated': m.audit_log_action_publisher_activity_updated(),
-    'publisher.activity.deleted': m.audit_log_action_publisher_activity_deleted(),
-    'congregation.settings.updated': m.audit_log_action_congregation_settings_updated(),
-    'congregation.exported': m.audit_log_action_congregation_exported(),
-    'congregation.imported': m.audit_log_action_congregation_imported(),
-    'event.created': m.audit_log_action_event_created(),
-    'event.released': m.audit_log_action_event_released(),
-    'event.unreleased': m.audit_log_action_event_unreleased(),
-    'event.deleted': m.audit_log_action_event_deleted(),
-    'platform.congregation.updated': m.audit_log_action_platform_congregation_updated(),
-    'platform.users.listed': m.audit_log_action_platform_users_listed(),
-  }
-  return translations[action] ?? action
-}
-
-function getEntityLabel(entityType: string): string {
-  switch (entityType) {
-    case 'User':
-      return m.audit_log_entity_user()
-    case 'Congregation':
-      return m.audit_log_entity_congregation()
-    case 'BoardDocument':
-      return m.audit_log_entity_board_document()
-    case 'BoardSection':
-      return m.audit_log_entity_board_section()
-    case 'Territory':
-      return m.audit_log_entity_territory()
-    case 'Attribution':
-      return m.audit_log_entity_attribution()
-    case 'PublisherGroup':
-      return m.audit_log_entity_publisher_group()
-    case 'PublisherActivity':
-      return m.audit_log_entity_publisher_activity()
-    case 'Event':
-      return m.audit_log_entity_event()
-    default:
-      return entityType
-  }
-}
-
-function translateEntity(entityType: string | null, entityId: number | null): string {
-  if (!entityType || entityId == null) return '—'
-  return `${getEntityLabel(entityType)} #${entityId}`
 }
 
 export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
-  const { logs, pagination } = loaderData
-  const [searchParams] = useSearchParams()
+  const { rows, count, page, pageSize, pages, period, from, to, today } = loaderData
+  const panel = useSideEditor<'entry'>(target => rows.some(row => row.id === target.id))
+  const selected = panel.target ? rows.find(row => row.id === panel.target?.id) : undefined
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        title={m.audit_log_title()}
-        subtitle={m.audit_log_subtitle()}
-        breadcrumbs={[{ label: m.sidebar_settings(), to: '/settings' }, { label: m.sidebar_audit_log() }]}
-      />
-
-      <RouterForm method="get" className="flex flex-wrap items-end gap-3">
-        <div className="space-y-1">
-          <Label htmlFor="action">{m.audit_log_filter_action()}</Label>
-          <Select name="action" defaultValue={searchParams.get('action') || 'all'}>
-            <SelectTrigger id="action">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{m.audit_log_filter_all_actions()}</SelectItem>
-              <SelectGroup>
-                <SelectLabel>{m.audit_log_group_auth()}</SelectLabel>
-                <SelectItem value="user.login">{m.audit_log_action_user_login()}</SelectItem>
-                <SelectItem value="user.login.failed">{m.audit_log_action_user_login_failed()}</SelectItem>
-                <SelectItem value="user.logout">{m.audit_log_action_user_logout()}</SelectItem>
-                <SelectItem value="password.changed">{m.audit_log_action_password_changed()}</SelectItem>
-                <SelectItem value="password.reset.requested">
-                  {m.audit_log_action_password_reset_requested()}
-                </SelectItem>
-                <SelectItem value="consent.granted">{m.audit_log_action_consent_granted()}</SelectItem>
-                <SelectItem value="consent.withdrawn">{m.audit_log_action_consent_withdrawn()}</SelectItem>
-              </SelectGroup>
-              <SelectGroup>
-                <SelectLabel>{m.audit_log_group_users()}</SelectLabel>
-                <SelectItem value="user.created">{m.audit_log_action_user_created()}</SelectItem>
-                <SelectItem value="user.updated">{m.audit_log_action_user_updated()}</SelectItem>
-                <SelectItem value="user.anonymized">{m.audit_log_action_user_anonymized()}</SelectItem>
-                <SelectItem value="user.permissions.changed">
-                  {m.audit_log_action_user_permissions_changed()}
-                </SelectItem>
-                <SelectItem value="user.data.exported">{m.audit_log_action_user_data_exported()}</SelectItem>
-                <SelectItem value="publisher.created">{m.audit_log_action_publisher_created()}</SelectItem>
-                <SelectItem value="publisher.updated">{m.audit_log_action_publisher_updated()}</SelectItem>
-                <SelectItem value="publisher.status.changed">
-                  {m.audit_log_action_publisher_status_changed()}
-                </SelectItem>
-                <SelectItem value="publisher.group.created">{m.audit_log_action_publisher_group_created()}</SelectItem>
-                <SelectItem value="publisher.group.deleted">{m.audit_log_action_publisher_group_deleted()}</SelectItem>
-                <SelectItem value="publisher.activity.created">
-                  {m.audit_log_action_publisher_activity_created()}
-                </SelectItem>
-                <SelectItem value="publisher.activity.updated">
-                  {m.audit_log_action_publisher_activity_updated()}
-                </SelectItem>
-                <SelectItem value="publisher.activity.deleted">
-                  {m.audit_log_action_publisher_activity_deleted()}
-                </SelectItem>
-              </SelectGroup>
-              <SelectGroup>
-                <SelectLabel>{m.audit_log_group_territories()}</SelectLabel>
-                <SelectItem value="territory.created">{m.audit_log_action_territory_created()}</SelectItem>
-                <SelectItem value="territory.updated">{m.audit_log_action_territory_updated()}</SelectItem>
-                <SelectItem value="territory.deleted">{m.audit_log_action_territory_deleted()}</SelectItem>
-                <SelectItem value="attribution.created">{m.audit_log_action_attribution_created()}</SelectItem>
-                <SelectItem value="attribution.updated">{m.audit_log_action_attribution_updated()}</SelectItem>
-                <SelectItem value="attribution.deleted">{m.audit_log_action_attribution_deleted()}</SelectItem>
-              </SelectGroup>
-              <SelectGroup>
-                <SelectLabel>{m.audit_log_group_board()}</SelectLabel>
-                <SelectItem value="board.document.created">{m.audit_log_action_board_document_created()}</SelectItem>
-                <SelectItem value="board.document.updated">{m.audit_log_action_board_document_updated()}</SelectItem>
-                <SelectItem value="board.document.deleted">{m.audit_log_action_board_document_deleted()}</SelectItem>
-                <SelectItem value="board.section.created">{m.audit_log_action_board_section_created()}</SelectItem>
-                <SelectItem value="board.section.updated">{m.audit_log_action_board_section_updated()}</SelectItem>
-                <SelectItem value="board.read_status.viewed">
-                  {m.audit_log_action_board_read_status_viewed()}
-                </SelectItem>
-              </SelectGroup>
-              <SelectGroup>
-                <SelectLabel>{m.audit_log_group_settings()}</SelectLabel>
-                <SelectItem value="congregation.settings.updated">
-                  {m.audit_log_action_congregation_settings_updated()}
-                </SelectItem>
-                <SelectItem value="congregation.exported">{m.audit_log_action_congregation_exported()}</SelectItem>
-                <SelectItem value="congregation.imported">{m.audit_log_action_congregation_imported()}</SelectItem>
-              </SelectGroup>
-              <SelectGroup>
-                <SelectLabel>{m.audit_log_group_events()}</SelectLabel>
-                <SelectItem value="event.created">{m.audit_log_action_event_created()}</SelectItem>
-                <SelectItem value="event.released">{m.audit_log_action_event_released()}</SelectItem>
-                <SelectItem value="event.unreleased">{m.audit_log_action_event_unreleased()}</SelectItem>
-                <SelectItem value="event.deleted">{m.audit_log_action_event_deleted()}</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+    <div className="flex flex-col">
+      <SettingsHeader title={m.settings_entry_audit()} subtitle={m.audit_log_subtitle()} />
+      <AuditLogToolbar count={count} period={period} from={from} to={to} today={today} />
+      <div className="flex flex-wrap items-start gap-6">
+        <div className="flex min-w-0 flex-[3_1_480px] flex-col gap-4">
+          {rows.length === 0 ? (
+            <p className="rounded-lg border bg-card px-4.5 py-6 text-center text-muted-foreground text-sm">
+              {m.audit_log_empty()}
+            </p>
+          ) : (
+            <AuditLogTable
+              rows={rows}
+              selectedId={selected?.id ?? null}
+              onSelect={(row, trigger) => panel.request({ kind: 'entry', id: row.id, trigger })}
+            />
+          )}
+          {count > 0 && <Pagination page={page} pages={pages} size={pageSize} total={count} />}
         </div>
-        <div className="space-y-1">
-          <Label htmlFor="dateFrom">{m.audit_log_filter_from()}</Label>
-          <Input id="dateFrom" name="dateFrom" type="date" defaultValue={searchParams.get('dateFrom') ?? ''} />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="dateTo">{m.audit_log_filter_to()}</Label>
-          <Input id="dateTo" name="dateTo" type="date" defaultValue={searchParams.get('dateTo') ?? ''} />
-        </div>
-        <SubmitButton variant="secondary">{m.audit_log_filter_apply()}</SubmitButton>
-      </RouterForm>
-
-      <div className="overflow-hidden rounded-2xl border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{m.audit_log_col_date()}</TableHead>
-              <TableHead>{m.audit_log_col_actor()}</TableHead>
-              <TableHead>{m.audit_log_col_action()}</TableHead>
-              <TableHead>{m.audit_log_col_entity()}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {logs.map(log => (
-              <TableRow key={log.id}>
-                <TableCell className="text-muted-foreground text-sm">
-                  {new Date(log.createdAt).toLocaleString(getLocale())}
-                </TableCell>
-                <TableCell className="text-sm">{log.actorEmail ?? '—'}</TableCell>
-                <TableCell className="text-sm">{translateAction(log.action)}</TableCell>
-                <TableCell className="text-muted-foreground text-sm">
-                  {translateEntity(log.entityType, log.entityId)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        {panel.docked && selected && (
+          <SidePanel
+            key={selected.id}
+            title={selected.action}
+            description={selected.fullDate}
+            closeLabel={m.audit_log_close()}
+            onClose={panel.close}
+            returnFocus={panel.target?.trigger}
+          >
+            <AuditEntryDetail row={selected} />
+          </SidePanel>
+        )}
       </div>
 
-      <Pagination page={pagination.page} pages={pagination.pages} size={pagination.size} total={pagination.total} />
+      {!panel.docked && (
+        <Sheet open={selected != null} onOpenChange={next => !next && panel.close()}>
+          <SheetContent className="sm:max-w-md">
+            {selected && (
+              <>
+                <SheetHeader>
+                  <SheetTitle>{selected.action}</SheetTitle>
+                  <SheetDescription>{selected.fullDate}</SheetDescription>
+                </SheetHeader>
+                <div className="flex-1 overflow-y-auto px-4 pb-4">
+                  <AuditEntryDetail row={selected} />
+                </div>
+              </>
+            )}
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   )
 }
+
+export { RouteErrorBoundary as ErrorBoundary } from '~/shared/ui/RouteErrorBoundary'

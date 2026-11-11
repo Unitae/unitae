@@ -1,53 +1,65 @@
 import { useState } from 'react'
 import * as m from '~/i18n/paraglide/messages'
 import { Input } from '~/shared/ui/input'
-import { Label } from '~/shared/ui/label'
+import { cn } from '~/shared/utils/utils'
 
-function formatDayHint(days: number): string {
-  if (days < 14) return `${days} jour${days > 1 ? 's' : ''}`
+/** « 2 semaines », « ≈ 4 mois » beside a number of days; nothing under a week, where the days say it all. */
+export function dayReadout(days: number): string | null {
+  if (!Number.isFinite(days) || days < 7) return null
   if (days < 28) {
     const weeks = Math.round(days / 7)
-    return `= ${weeks} semaine${weeks > 1 ? 's' : ''}`
+    return weeks === 1 ? m.settings_duration_weeks_one() : m.settings_duration_weeks_many({ count: String(weeks) })
   }
-  const months = Math.round(days / 30)
-  return `≈ ${months} mois`
+  return m.settings_duration_months({ count: String(Math.round(days / 30)) })
 }
 
-interface Props {
-  field: { id: string; name: string; errors?: string[] }
+/** « 2 ans » beside a whole number of years in months. */
+export function monthReadout(months: number): string | null {
+  if (!Number.isFinite(months) || months < 12 || months % 12 !== 0) return null
+  const years = months / 12
+  return years === 1 ? m.settings_duration_years_one() : m.settings_duration_years_many({ count: String(years) })
+}
+
+interface DurationInputProps {
+  id: string
+  name: string
+  /** Names the field for assistive technologies when its label sits elsewhere in the row. */
   label: string
-  hint: string
   defaultValue: number
-  onChange: () => void
+  unit: 'days' | 'months'
+  max: number
+  error?: string
+  /** For the unit and its readout, e.g. a fixed width so the fields of a list line up. */
+  unitClassName?: string
 }
 
-/** A day count with a live "≈ 4 mois" readout beside it. */
-export function DurationInput({ field, label, hint, defaultValue, onChange }: Props) {
-  const [hint_, setHint] = useState(formatDayHint(defaultValue))
+/** A number of days or months, with what it amounts to beside it (« jours · ≈ 4 mois »). */
+export function DurationInput({ id, name, label, defaultValue, unit, max, error, unitClassName }: DurationInputProps) {
+  const [value, setValue] = useState(defaultValue)
+  const readout = unit === 'days' ? dayReadout(value) : monthReadout(value)
 
   return (
-    <div className="space-y-2">
-      <Label htmlFor={field.id}>{label}</Label>
-      <div className="flex items-center gap-3">
-        <Input
-          id={field.id}
-          name={field.name}
-          type="number"
-          min={1}
-          max={365}
-          defaultValue={defaultValue}
-          className="w-28"
-          onChange={e => {
-            const v = Number(e.target.value)
-            if (v > 0) setHint(formatDayHint(v))
-            onChange()
-          }}
-        />
-        <span className="text-muted-foreground text-sm">{m.settings_territories_attribution_duration_days_unit()}</span>
-        <span className="text-muted-foreground text-xs">{hint_}</span>
-      </div>
-      {field.errors && <p className="text-destructive text-sm">{field.errors}</p>}
-      <p className="text-muted-foreground text-xs">{hint}</p>
-    </div>
+    <span className="flex items-center gap-2">
+      <Input
+        id={id}
+        name={name}
+        type="number"
+        inputMode="numeric"
+        min={1}
+        max={max}
+        defaultValue={defaultValue}
+        onChange={event => setValue(Number(event.target.value))}
+        aria-label={label}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
+        className="w-20 text-right tabular-nums"
+      />
+      <span className={cn('text-muted-foreground text-sm', unitClassName)}>
+        {unit === 'days'
+          ? m.settings_territories_attribution_duration_days_unit()
+          : m.settings_territories_months_unit()}
+        {readout && <span className="text-faint"> · {readout}</span>}
+      </span>
+    </span>
   )
 }

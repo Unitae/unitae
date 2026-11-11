@@ -22,7 +22,7 @@ vi.mock('~/features/settings/server/create-account.server', () => ({
   UserAlreadyExistsError: class extends Error {},
   createAccount: vi.fn(async (_db: unknown, _congregation: unknown, _actor: number, input: { email: string }) => {
     accounts.push(input.email)
-    return { emailSent: true }
+    return { userId: 42, emailSent: true }
   }),
 }))
 
@@ -50,7 +50,7 @@ describe('new-user action', () => {
   it('creates the account for a caller who manages users', async () => {
     const response = await submit([Permission.CanManageUsers])
 
-    expect(response.headers.get('Location')).toBe('/settings/users')
+    expect(response.headers.get('Location')).toBe('/settings/users/42')
     expect(accounts).toEqual(['mallory@example.com'])
   })
 

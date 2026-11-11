@@ -1,4 +1,4 @@
-import { redirect } from 'react-router'
+import { data, redirect } from 'react-router'
 import ResetPasswordRequired from '~/features/authentication/emails/reset-password-required'
 import { createPasswordResetToken } from '~/features/authentication/server/invalidate-account-password.server'
 import { revokeAccountSessions } from '~/features/authentication/server/revoke-account-sessions.server'
@@ -6,8 +6,10 @@ import { sendResetAccountPasswordEmail } from '~/features/authentication/server/
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, requirePermission } from '~/shared/auth/route-context.server'
+import { assertMayActOnAccount } from '~/shared/domain/account-protection.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { resolveCongregation } from '~/shared/domain/congregation.server'
+import { GrantBeyondActorError } from '~/shared/domain/role-grant-limits.server'
 import { unscopedDb as db } from '~/shared/infra/db.server'
 import { Permission } from '~/shared/types/permission'
 import { displayFirstname } from '~/shared/utils/display-name'
@@ -42,6 +44,22 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   if (user == null) throw redirect('/settings/users')
 
+  // An administrator's sessions and password are handled by administrators only.
+  try {
+    await assertMayActOnAccount({
+      accountId: user.id,
+      actorId: currentUser.id,
+      congregationId: currentUser.congregationId,
+      actorPermissions: permissions,
+      action: 'send-password-link',
+    })
+  } catch (error) {
+    if (error instanceof GrantBeyondActorError) {
+      return data({ ok: false as const, error: m.settings_user_admin_only() }, { status: 403 })
+    }
+    throw error
+  }
+
   // Revoke the target's active sessions first — this is the security action and must not
   // depend on email deliverability. An admin forcing a reset on a compromised account needs
   // the attacker logged out even when the mail provider is down. Audit here too, so the
@@ -69,16 +87,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     />,
   )
 
-  if (!sent) {
-    session.flash('error', m.auth_email_send_error())
-    return redirect(`/settings/users/${user.id}/edit`, {
-      headers: { 'Set-Cookie': await commitSession(session) },
-    })
-  }
-
-  session.flash('success', m.auth_password_invalidation_success({ email: user.email }))
-
-  return redirect(`/settings/users/${user.id}/edit`, {
-    headers: { 'Set-Cookie': await commitSession(session) },
-  })
+  // The sessions are ended whether or not the e-mail goes out: the dialog closes, and the toast says which happened.
+  session.flash(
+    sent ? 'success' : 'error',
+    sent ? m.auth_password_invalidation_success({ email: user.email }) : m.auth_email_send_error(),
+  )
+  return data({ ok: true as const }, { headers: { 'Set-Cookie': await commitSession(session) } })
 }

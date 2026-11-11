@@ -12,7 +12,7 @@ const LEFT_MENU_ITEM_RE = /a quitté l.assemblée/i
 const CONFIRM_LEFT_RE = /marquer comme parti/i
 const MARK_AS_RETURNED_RE = /marquer comme revenu/i
 const RECORD_URL_RE = /\/publishers\/\d+\/view/
-const ACCOUNT_ID_FROM_EDIT_URL_RE = /\/settings\/users\/(\d+)\/edit/
+const ACCOUNT_ID_FROM_URL_RE = /\/settings\/users\/(\d+)/
 
 async function createPublisherWithoutEmail(page: Page, lastname: string): Promise<boolean> {
   await page.goto('/publishers/new')
@@ -93,7 +93,7 @@ test.describe('Member lifecycle', () => {
     await expect(page.getByText(lastname)).toBeVisible()
 
     // Look the account up by visiting the Users list and clicking the row to
-    // reach the edit page — we need the accountId for the POST below.
+    // reach the account page — we need the accountId for the POST below.
     await page.goto('/settings/users')
     await page.waitForLoadState('networkidle')
     const userRow = page.getByText(lastname).first()
@@ -102,7 +102,7 @@ test.describe('Member lifecycle', () => {
     await page.waitForLoadState('networkidle')
 
     const editUrl = page.url()
-    const idMatch = editUrl.match(ACCOUNT_ID_FROM_EDIT_URL_RE)
+    const idMatch = editUrl.match(ACCOUNT_ID_FROM_URL_RE)
     if (!idMatch) test.skip()
     const accountId = idMatch![1]
 

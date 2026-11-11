@@ -136,8 +136,8 @@ Set — stated explicitly to avoid ambiguity).
 - `buildStaticCommands(bag)` returns:
   - **Navigation** — the current items **plus deep links**, each gated by the *same guard the route
     uses* (enumerate & mirror; note `canManageSettings` maps to `Permission.Admin`): `/settings/general`,
-    `/settings/territories`, `/settings/territories/card-overlays`, `/settings/congregation`,
-    `/settings/audit-log`, `/settings/data`, `/settings/permissions`, plus existing module sub-sections.
+    `/settings/territories`, `/settings/map`, `/settings/publishers`, `/settings/templates`,
+    `/settings/audit-log`, `/settings/data`, `/settings/roles`, plus existing module sub-sections.
   - **Actions — quick-create** (navigate, gated by the *manage* permission): New territory
     `/territories/new`, New attribution `/territories/attributions/new`, New building
     `/territories/buildings/new`, New event, New user `/settings/users/new`, New role

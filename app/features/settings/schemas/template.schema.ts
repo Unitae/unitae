@@ -1,11 +1,15 @@
 import { z } from 'zod'
 import { MANAGED_ROLE_SLOTS_FIELD } from '~/features/events'
+import * as m from '~/i18n/paraglide/messages'
 
 const TIME_REGEX = /^\d{2}:\d{2}$/
 
+/** The new-template dialog: the name, the day (or none, for a one-off) and the times; the key is made from the name. */
 export const createTemplateSchema = z.object({
-  name: z.string().min(1),
-  key: z.string().min(1),
+  name: z
+    .string({ error: () => m.settings_templates_name_required() })
+    .trim()
+    .min(1, { error: () => m.settings_templates_name_required() }),
   weekDay: z
     .string()
     .optional()
@@ -34,6 +38,17 @@ export const updateTemplateSchema = z.object({
     .optional(),
   startTime: z.string().regex(TIME_REGEX).optional(),
   endTime: z.string().regex(TIME_REGEX).optional(),
+  /** Who runs the programme and the services: sent by the managers' form only. */
+  programmeRoleId: z
+    .string()
+    .optional()
+    .transform(v => (v == null ? undefined : v === '' || v === 'none' ? null : Number(v)))
+    .pipe(z.number().nullable().optional()),
+  serviceRoleId: z
+    .string()
+    .optional()
+    .transform(v => (v == null ? undefined : v === '' || v === 'none' ? null : Number(v)))
+    .pipe(z.number().nullable().optional()),
 })
 
 const roleIdsField = z.preprocess(

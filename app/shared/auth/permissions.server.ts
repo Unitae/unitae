@@ -21,22 +21,14 @@ function rolesAssignedToAccount(userId: number): Prisma.RoleWhereInput {
   }
 }
 
-function accountsWithPermissionFilter(permissionKey: Permission): Prisma.UserAccountWhereInput {
+/** Accounts holding `permissionKey` through a role; with `exceptRoleId`, through any role but that one. */
+function accountsWithPermissionFilter(permissionKey: Permission, exceptRoleId?: number): Prisma.UserAccountWhereInput {
+  const role: Prisma.RoleWhereInput = {
+    ...(exceptRoleId != null ? { id: { not: exceptRoleId } } : {}),
+    permissions: { some: { permission: { key: permissionKey } } },
+  }
   return {
-    OR: [
-      {
-        roleAssignments: {
-          some: { role: { permissions: { some: { permission: { key: permissionKey } } } } },
-        },
-      },
-      {
-        member: {
-          roleAssignments: {
-            some: { role: { permissions: { some: { permission: { key: permissionKey } } } } },
-          },
-        },
-      },
-    ],
+    OR: [{ roleAssignments: { some: { role } } }, { member: { roleAssignments: { some: { role } } } }],
   }
 }
 
@@ -71,6 +63,13 @@ export const notificationRecipientFilter: Prisma.UserAccountWhereInput = {
 }
 
 type DbClient = TransactionClient | typeof unscopedDb
+
+/** Raised when a change would leave the congregation without an administrator. */
+export class LastAdminError extends ConflictError {
+  constructor() {
+    super('Cannot remove the last admin from the congregation.')
+  }
+}
 
 export async function resolveEffectivePermissions(userId: number, congregationId: number): Promise<Set<Permission>> {
   const viaRoles = await unscopedDb.rolePermission.findMany({
@@ -205,7 +204,16 @@ export async function requireNotLastAdmin(accountId: number, congregationId: num
   if (!isAdmin) return
 
   const remaining = admins.filter(a => a.id !== accountId).length
-  if (remaining === 0) {
-    throw new ConflictError('Cannot remove the last admin from the congregation.')
-  }
+  if (remaining === 0) throw new LastAdminError()
+}
+
+/**
+ * Guard taking can-do-anything off a role: throws `ConflictError` when no account would hold it through another role,
+ * which would leave the congregation without an administrator.
+ */
+export async function requireAdminsRemainWithoutRole(roleId: number, congregationId: number): Promise<void> {
+  const remaining = await unscopedDb.userAccount.count({
+    where: { congregationId, ...accountsWithPermissionFilter(Permission.CanDoAnything, roleId) },
+  })
+  if (remaining === 0) throw new LastAdminError()
 }

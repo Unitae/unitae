@@ -41,10 +41,18 @@ export {
   type ShareVariable,
 } from './model/share-message'
 export { type PartPresetFormValues, partPresetSchema } from './schemas/part-preset.schema'
+export {
+  EventProgrammePanel,
+  type PartAssignment,
+  reorderPartIds,
+} from './ui/EventProgrammePanel'
+export { EventServicesPanel, type ServicePartAssignment } from './ui/EventServicesPanel'
 export { InlineDeleteDialog } from './ui/InlineDeleteDialog'
+export { PART_FORM_ID, type PartData, PartEditor, type PartPresetOption, partEditorCopy } from './ui/PartEditor'
 export { PartEditSheet } from './ui/PartEditSheet'
 export { PartPresetForm } from './ui/PartPresetForm'
 export { PartPresetSummary } from './ui/PartPresetSummary'
 export { SectionHeading, TrackHeading } from './ui/ProgrammeHeadings'
+export { SERVICE_FORM_ID, ServiceEditor, serviceEditorCopy } from './ui/ServiceEditor'
 export { ServiceEditSheet } from './ui/ServiceEditSheet'
 export { SortableRow } from './ui/SortableRow'

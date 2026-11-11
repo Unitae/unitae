@@ -108,10 +108,13 @@ See [Data Transfer](data-transfer.md) for details.
 
 Configure the congregation and manage users.
 
-- **Users** — Create, edit, and deactivate user accounts and assign roles
-- **Roles** — Use the built-in roles or create custom ones bundling exactly the permissions your congregation needs
-- **Congregation settings** — Display name, publisher profile options, programme template management
-- **Territory settings** — Allowed postal codes for open data sync, phone territory toggle
+- **General** — The congregation's name, language, time zone and password rules
+- **Publishers** — Pioneer goals per service year, and the continuous auxiliary pioneer option
+- **Programme templates and part types** — The meetings that repeat, each edited as one page like the event editor, and the kinds of part they are made of
+- **Territory settings** — Allowed postal codes for open data sync, assignment durations, who may take each territory kind, phone territory toggle
+- **Users** — Create, edit, and deactivate user accounts, give them roles, and see each account's state
+- **Roles and permissions** — What each role allows; roles themselves are created and given from the organigram
+- **Import and export, audit log** — A full backup of the congregation and its restoration, and the log of sensitive actions
 - **Carte de l'assemblée** — Draw your assembly's overall preaching territory and its named/colored zones on a Google Map (or import them from a GeoJSON file). The perimeter decides which addresses are inside the assembly's territory; the zones are printed on every territory card to help publishers locate themselves
 
 See [Settings](settings.md) for the full list of what you can manage there, and [Roles and Permissions](roles-and-permissions.md) for how access control works.

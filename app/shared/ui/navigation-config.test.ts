@@ -25,9 +25,6 @@ function permissions(overrides: Partial<NavigationPermissions> = {}): Navigation
     canManageCampaigns: false,
     canViewProspection: false,
     canManageTerritories: false,
-    canManageSettings: false,
-    canManageUsers: false,
-    canManagePioneerGoals: false,
     canViewPrograms: false,
     canViewAbsences: false,
     canViewActivity: false,
@@ -35,7 +32,7 @@ function permissions(overrides: Partial<NavigationPermissions> = {}): Navigation
     canManageExternalSpeakers: false,
     canViewRoles: false,
     canManageRoles: false,
-    canManagePermissions: false,
+    settingsLinks: [],
     ledGroupId: null,
     ...overrides,
   }
@@ -65,7 +62,7 @@ describe('buildTabBar', () => {
       canViewPublishers: true,
       canViewTerritories: true,
       canManageTerritories: true,
-      canManageSettings: true,
+      settingsLinks: [{ key: 'general', href: '/settings/general' }],
       canViewPrograms: true,
     })
     expect(buildTabBar(everything).map(t => t.id)).toEqual(['home', 'board', 'my-territories', 'my-absences'])
@@ -156,7 +153,7 @@ describe('buildManagementSections', () => {
         canManageCampaigns: true,
         canViewProspection: true,
         canManageTerritories: true,
-        canManageSettings: true,
+        settingsLinks: [{ key: 'general', href: '/settings/general' }],
       }),
     )
     expect(sections.map(s => s.id)).toEqual(['board', 'assembly', 'programs', 'territories', 'settings'])
@@ -190,16 +187,12 @@ describe('buildManagementSections', () => {
     expect(territories({ canViewAttributions: true, canManageCampaigns: true })).toBeUndefined()
   })
 
-  it('shows settings when any settings-adjacent permission is granted', () => {
-    for (const flag of [
-      'canManageSettings',
-      'canManageUsers',
-      'canManagePermissions',
-      'canManagePioneerGoals',
-    ] as const) {
-      const sections = buildManagementSections(permissions({ [flag]: true }))
-      expect(sections.map(s => s.id)).toEqual(['settings'])
-    }
+  it('shows settings when the viewer may open one of its parts', () => {
+    const sections = buildManagementSections(
+      permissions({ settingsLinks: [{ key: 'users', href: '/settings/users' }] }),
+    )
+    expect(sections.map(s => s.id)).toEqual(['settings'])
+    expect(buildManagementSections(permissions()).map(s => s.id)).toEqual([])
   })
 })
 
@@ -340,7 +333,7 @@ describe('navItemFor', () => {
     canViewTerritories: true,
     canViewAttributions: true,
     canManageCampaigns: true,
-    canManageSettings: true,
+    settingsLinks: [{ key: 'general', href: '/settings/general' }],
   })
 
   it.each([
@@ -350,7 +343,7 @@ describe('navItemFor', () => {
     ['/programs/days-off/12', 'absences'],
     ['/territories/attributions/campaigns/3', 'campaigns'],
     ['/territories/attributions/88', 'attributions'],
-    ['/settings/users/4/edit', 'settings'],
+    ['/settings/users/4', 'settings'],
     ['/me/days-off/3/edit', 'my-absences'],
   ])('leads from %s back to %s', (pathname, id) => {
     expect(navItemFor(pathname, manager)?.id).toBe(id)

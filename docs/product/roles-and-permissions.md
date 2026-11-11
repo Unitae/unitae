@@ -44,7 +44,7 @@ You can create as many roles of your own as you need. A custom role has:
 
 Typical examples: *Service committee*, *PR coordinator*, *Group overseer*. Whatever names match how your congregation actually works.
 
-To create a role: **Settings → Roles → New role**. Pick the permissions, save, then assign users from their profile.
+To create a role, add it from the organigram, then pick what it allows in **Settings → Roles and permissions** and give it to people from their record or their account.
 
 You can edit, rename, and delete custom roles at any time. Built-in roles cannot be renamed or deleted (the system depends on their identity).
 
@@ -68,7 +68,7 @@ Permissions are grouped by area of the app. Most areas come in two flavours: **V
 - **Publisher Manager** — create, edit, deactivate publishers, manage groups
 - **Activity Viewer** — read the monthly activity reports and statistics, open the pioneers monitoring roster, and see the dashboard at-risk-pioneers widget
 - **Activity Manager** — record, edit, and export publisher activity
-- **Pioneer Goal Manager** — set the monthly hour goal per pioneer type and service year (congregation settings → Pioneer goals)
+- **Pioneer Goal Manager** — set the monthly hour goal per pioneer type and service year (Settings → Publishers)
 
 ### Emergency
 - **Emergency Info Viewer** — view any publisher's emergency information (DPA card, survival backpack, emergency contacts) across the whole congregation

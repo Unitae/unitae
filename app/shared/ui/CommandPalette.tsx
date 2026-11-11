@@ -27,6 +27,7 @@ import * as m from '~/i18n/paraglide/messages'
 import type { AppSidebarPermissions } from '~/shared/ui/AppSidebar'
 import { Dialog, DialogContent, DialogOverlay, DialogPortal } from '~/shared/ui/dialog'
 import { Input } from '~/shared/ui/input'
+import { SETTINGS_ENTRY_DISPLAY } from '~/shared/ui/settings-entries'
 
 interface CommandItem {
   id: string
@@ -103,9 +104,6 @@ function getNavigationItems(permissions: AppSidebarPermissions): CommandItem[] {
   if (permissions.canManageTerritories) {
     items.push({ id: 'stats', label: m.sidebar_statistics(), icon: PieChart, to: '/territories/stats' })
   }
-  if (permissions.canManageUsers) {
-    items.push({ id: 'users', label: m.sidebar_users(), icon: Users, to: '/settings/users' })
-  }
   if (permissions.canViewRoles) {
     // Mirrors the sidebar: the chart is the entry point, the matrix is a tab on it.
     items.push({
@@ -115,28 +113,10 @@ function getNavigationItems(permissions: AppSidebarPermissions): CommandItem[] {
       to: '/congregation/roles/organigram',
     })
   }
-  if (permissions.canManagePermissions) {
-    items.push({
-      id: 'settings-permissions',
-      label: m.sidebar_settings_permissions(),
-      icon: Shield,
-      to: '/settings/permissions',
-    })
-  }
-  if (permissions.canManageSettings) {
-    items.push({
-      id: 'settings-territories',
-      label: m.sidebar_settings_territories(),
-      icon: MapPin,
-      to: '/settings/territories',
-    })
-    items.push({
-      id: 'settings-congregation',
-      label: m.sidebar_settings_assembly(),
-      icon: Building2,
-      to: '/settings/congregation',
-    })
-    items.push({ id: 'audit-log', label: m.sidebar_audit_log(), icon: ClipboardList, to: '/settings/audit-log' })
+  for (const link of permissions.settingsLinks) {
+    if (link.key === 'subscription') continue
+    const { label, icon } = SETTINGS_ENTRY_DISPLAY[link.key]
+    items.push({ id: `settings-${link.key}`, label: label(), icon, to: link.href })
   }
 
   items.push({ id: 'profile', label: m.account_title(), icon: User, to: '/me/profile' })

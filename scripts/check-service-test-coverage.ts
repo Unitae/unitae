@@ -46,7 +46,6 @@ export const EXEMPT_FILES = new Set<string>([
   'app/features/events/routes/programs/events/_edit-event-intents.server.ts',
   'app/features/publishers/routes/publishers/_lifecycle-action.server.ts',
   'app/features/publishers/routes/publishers/_pioneer-enrolment-action.server.ts',
-  'app/features/settings/routes/territories/_card-overlays-action.server.ts',
 
   // Background-job dispatch — thin worker glue, delegates to service functions.
   'app/features/display-board/jobs/handle-thumbnail-work.server.ts',

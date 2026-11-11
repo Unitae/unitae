@@ -1,9 +1,9 @@
 // Public server-only surface of the events feature.
 
 export { getNextDaysOffs } from './server/days-off.server'
+export { deleteTemplate } from './server/delete-template.server'
 export { duplicateTemplate } from './server/duplicate-template.server'
 export {
-  deleteTemplate,
   deleteTemplatePart,
   deleteTemplateServicePart,
   getTemplateById,
@@ -16,7 +16,7 @@ export {
   upsertTemplatePart,
   upsertTemplateServicePart,
 } from './server/event-templates.server'
-export { templateItemBelongsToTemplate } from './server/events-auth.server'
+export { getResponsibleTemplateIds, templateItemBelongsToTemplate } from './server/events-auth.server'
 export {
   findLastAssignmentsForMembers,
   findNextAbsencesForMembers,
@@ -30,3 +30,4 @@ export { getPartPresetById, listPartPresets, listPartPresetsForSettings } from '
 export { createPartPreset, deletePartPreset, updatePartPreset } from './server/part-presets.server'
 export { PART_PRESET_COUNT, seedDefaultPartPresets } from './server/seed-part-presets.server'
 export { seedDefaultTemplates } from './server/seed-templates.server'
+export { saveTemplateResponsibles, type TemplateResponsibles } from './server/template-responsibles.server'

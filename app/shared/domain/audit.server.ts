@@ -42,6 +42,12 @@ export const AuditAction = {
   // and the audit viewer can label it.
   DirectPermissionGrantsMigrated: 'permission.direct_grants_migrated',
   PartAllowedRolesChanged: 'part.allowed_roles.changed',
+  // Programme templates
+  TemplateCreated: 'event_template.created',
+  TemplateUpdated: 'event_template.updated',
+  TemplateDeleted: 'event_template.deleted',
+  TemplateDuplicated: 'event_template.duplicated',
+  TemplateResponsiblesChanged: 'event_template.responsibles.changed',
   ServicePartAllowedRolesChanged: 'service_role.allowed_roles.changed',
   PartPresetCreated: 'part_preset.created',
   PartPresetUpdated: 'part_preset.updated',
@@ -122,6 +128,8 @@ export const AuditAction = {
 
   // Pioneer goals
   PioneerGoalUpdated: 'pioneer_goal.updated',
+  // A goal set back to its default: the congregation's own goal for that type is dropped.
+  PioneerGoalReset: 'pioneer_goal.reset',
 
   // Pioneer enrolment
   PioneerEnrolled: 'pioneer_enrolment.created',
@@ -142,6 +150,7 @@ export const AuditAction = {
 
   // Congregation settings
   CongregationSettingsUpdated: 'congregation.settings.updated',
+  TerritorySettingsUpdated: 'territory.settings.updated',
 
   // Data transfer
   CongregationExported: 'congregation.exported',

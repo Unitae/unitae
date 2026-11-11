@@ -51,7 +51,7 @@ Imported rows get fresh database identities. The `EntityIdMap` (defined in `data
 
 ## Background processing
 
-Both export and import run as BullMQ jobs through the `data-transfer` queue (`data-transfer-queue.server.ts`). Progress (0–100) is updated via `job.updateProgress` and read by the UI's progress page. The handler lives in `app/features/settings/jobs/handle-data-transfer-work.server.ts`.
+Both export and import run as BullMQ jobs through the `data-transfer` queue (`data-transfer-queue.server.ts`). Progress (0–100) is updated via `job.updateProgress` and read by the import and export page while the job runs. The handler lives in `app/features/settings/jobs/handle-data-transfer-work.server.ts`.
 
 ## Audit
 
@@ -64,7 +64,7 @@ Archives land in the configured file storage (S3 or local) under `{congregationI
 
 ## Limits
 
-The HTTP upload form caps imports at 500 MB (`MAX_IMPORT_SIZE` in `app/features/settings/routes/congregation/import.tsx`). Exports are unbounded by file size; large exports will eventually OOM the worker because the ZIP is buffered in memory before upload.
+The HTTP upload form caps imports at 500 MB (`MAX_IMPORT_SIZE` in `app/features/settings/routes/data/_data-action.server.ts`). Exports are unbounded by file size; large exports will eventually OOM the worker because the ZIP is buffered in memory before upload.
 
 ## Related
 

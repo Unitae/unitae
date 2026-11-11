@@ -17,8 +17,8 @@ test.describe('Settings', () => {
     await expect(page).toHaveURL(SETTINGS_URL_RE)
   })
 
-  test('settings congregation page loads', async ({ page }) => {
-    await page.goto('/settings/congregation')
+  test('settings general page loads', async ({ page }) => {
+    await page.goto('/settings/general')
     await page.waitForLoadState('networkidle')
     await expect(page).toHaveURL(SETTINGS_URL_RE)
   })

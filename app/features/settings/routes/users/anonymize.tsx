@@ -1,7 +1,7 @@
 import { redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/index.server'
 import { anonymizeAccount } from '~/features/settings/server/anonymize-account.server'
 import { anonymizeMember } from '~/features/settings/server/anonymize-member.server'
+import * as m from '~/i18n/paraglide/messages'
 import {
   currentAccountContext,
   permissionsContext,
@@ -9,54 +9,42 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
-import logger from '~/shared/infra/logger.server'
 import type { AccountId, MemberId } from '~/shared/types/branded'
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
-
+import { accountRefusal } from '../_account-refusal.server'
+import { redirectWithToast } from '../_toast.server'
 import type { Route } from './+types/anonymize'
 
-// Action-only route : anonymise un utilisateur (admin uniquement)
+// Action only, for the account page's dialog: anonymises the account, and its record when it has one.
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const congregationId = currentUser.congregationId
-
   requirePermission(permissions, Permission.CanAnonymisePeople)
-
   const accountId = requireParamId<AccountId>(params.accountId, '/settings/users')
-
-  if (currentUser.id === accountId) {
-    throw redirect('/settings/users')
-  }
-
-  const session = await getSession(request.headers.get('Cookie'))
+  const accountPage = `/settings/users/${accountId}`
 
   try {
-    await withScopeFromContext(context, async db => {
+    await withScopeFromContext(context, async (db, congregationId) => {
       const account = await db.userAccount.findUnique({
         where: { id_congregationId: { id: accountId, congregationId } },
-        select: { id: true, congregationId: true, memberId: true },
+        select: { memberId: true },
       })
       if (!account) throw new NotFoundError('UserAccount')
-
+      // The account first: its guard refuses before the record is touched (one transaction either way).
+      await anonymizeAccount(db, accountId, congregationId, currentUser.id, permissions)
       if (account.memberId != null) {
-        await anonymizeMember(db, account.memberId as MemberId, account.congregationId, currentUser.id)
+        await anonymizeMember(db, account.memberId as MemberId, congregationId, currentUser.id)
       }
-      await anonymizeAccount(db, accountId, account.congregationId, currentUser.id)
     })
   } catch (error) {
     if (error instanceof NotFoundError) throw redirect('/settings/users')
-    if (error instanceof ConflictError) {
-      session.flash('error', error.message)
-      return redirect(`/settings/users/${accountId}/edit`, {
-        headers: { 'Set-Cookie': await commitSession(session) },
-      })
-    }
+    const reason = accountRefusal(error)
+    if (reason) return redirectWithToast(request, accountPage, reason, 'error')
+    // The record's own refusals (it leads a group…) are written for the person reading them.
+    if (error instanceof ConflictError) return redirectWithToast(request, accountPage, error.message, 'error')
     throw error
   }
 
-  logger.info(`User anonymized. UserAccount ID: ${accountId}. By admin ID: ${currentUser.id}.`)
-
-  return redirect('/settings/users')
+  return redirectWithToast(request, accountPage, m.settings_account_anonymised())
 }

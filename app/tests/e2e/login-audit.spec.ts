@@ -9,9 +9,10 @@ const EMAIL_FIELD_RE = /^e-?mail$/i
 const PASSWORD_FIELD = 'Mot de passe'
 const SUBMIT_BUTTON_RE = /^se connecter$/i
 
-// The entry is written after the response has left, so the page is reloaded until it shows.
+// The entry is written after the response has left, so the page is reloaded until it shows. The log is searched for
+// the account's address; a line names the person, and its detail their address.
 async function expectAuditRow(page: Page, action: string, label: string) {
-  const url = `/settings/audit-log?action=${action}`
+  const url = `/settings/audit-log?action=${action}&q=${encodeURIComponent(TEST_EMAIL)}`
 
   await page.goto(url)
   // The account cannot open the audit log: nothing to check with it.
@@ -19,8 +20,10 @@ async function expectAuditRow(page: Page, action: string, label: string) {
 
   await expect(async () => {
     await page.goto(url)
-    const row = page.getByRole('row').filter({ hasText: TEST_EMAIL }).filter({ hasText: label })
-    await expect(row.first()).toBeVisible({ timeout: 1_000 })
+    const row = page.getByRole('row').filter({ hasText: label }).first()
+    await expect(row).toBeVisible({ timeout: 1_000 })
+    await row.getByRole('button').click()
+    await expect(page.getByText(TEST_EMAIL, { exact: true }).first()).toBeVisible({ timeout: 1_000 })
   }).toPass({ timeout: 10_000 })
 }
 
@@ -53,6 +56,6 @@ test.describe('Sign-in audit', () => {
     if (!loggedIn) test.skip()
     await page.waitForLoadState('networkidle')
 
-    await expectAuditRow(page, 'user.login.failed', 'Echec de connexion')
+    await expectAuditRow(page, 'user.login.failed', 'Connexion refusée')
   })
 })

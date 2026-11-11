@@ -8,6 +8,7 @@ export {
   getEnrolmentsForMember,
   getEnrolmentsForServiceYear,
   getMonthEnrolment,
+  listOngoingEnrolleesOfType,
   resolveEnrolmentMonthlyGoal,
 } from './server/pioneer-enrolment.queries'
 export {
@@ -20,4 +21,5 @@ export {
 export { backfillCongregationEnrolments } from './server/pioneer-enrolment-backfill.server'
 export { listPioneerGoalsForYear, type PioneerGoalRow, resolvePioneerGoal } from './server/pioneer-goals.queries'
 export { getPublishers } from './server/publishers.server'
+export { savePioneerGoals } from './server/save-pioneer-goals.server'
 export { setPioneerGoal } from './server/set-pioneer-goal.server'

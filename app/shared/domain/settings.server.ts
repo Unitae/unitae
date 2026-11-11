@@ -46,3 +46,8 @@ export async function setSetting(db: TransactionClient, key: SettingKey, value: 
     })
   }
 }
+
+/** Removes a setting, so whatever reads it falls back to its default (an emptied BANO file: no synchronisation). */
+export async function clearSetting(db: TransactionClient, key: SettingKey, congregationId: number) {
+  await db.setting.deleteMany({ where: { key, congregationId } })
+}

@@ -176,7 +176,7 @@ describe('per-part role labels — end-to-end', () => {
   it('duplicateTemplate carries speakerLabel/readerLabel onto the cloned template parts', async () => {
     const { templateId } = await seedTemplate(`duplicate-${ts}`)
 
-    const duplicated = await withScope(congId, tx => duplicateTemplate(tx, templateId, congId))
+    const duplicated = await withScope(congId, tx => duplicateTemplate(tx, templateId, congId, managerAccountId))
     expect(duplicated).not.toBeNull()
 
     const parts = await testDb.templatePart.findMany({

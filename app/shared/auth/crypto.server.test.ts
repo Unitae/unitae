@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { compare, hash, hashToken, needsRehash } from './crypto.server'
+import { compare, hash, hashToken, isPasswordSet, needsRehash } from './crypto.server'
 
 const HEX_PATTERN = /^[0-9a-f]+$/
 
@@ -153,5 +153,18 @@ describe('needsRehash', () => {
     expect(needsRehash('$IMPORTED$')).toBe(false)
     expect(needsRehash('')).toBe(false)
     expect(needsRehash(NAN_PARAM_HASH)).toBe(false)
+  })
+})
+
+describe('isPasswordSet', () => {
+  it('recognises a password the account chose, in either stored format', async () => {
+    expect(isPasswordSet(await hash('correct horse battery staple'))).toBe(true)
+    expect(isPasswordSet('0123abcd.89efcdab')).toBe(true)
+  })
+
+  it('tells the placeholders of an account invited but not yet signed in', () => {
+    expect(isPasswordSet('')).toBe(false)
+    expect(isPasswordSet('password')).toBe(false)
+    expect(isPasswordSet('$IMPORTED$')).toBe(false)
   })
 })

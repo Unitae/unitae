@@ -42,6 +42,7 @@ const db = {
 
 const { updateAccount } = await import('./update-account.server')
 const { ConflictError, ForbiddenError } = await import('~/shared/errors/app-error.server')
+const { OwnAccountError } = await import('~/shared/domain/account-protection.server')
 
 const USER_MANAGER = new Set(['can-manage-users'])
 const ADMIN = new Set(['can-do-anything'])
@@ -78,9 +79,23 @@ describe('updateAccount guards', () => {
 
   it('refuses to deactivate the last admin', async () => {
     adminIds.add(1)
-    await expect(updateAccount(db as never, 1, 10, 1, edit('admin@example.com', false), ADMIN)).rejects.toBeInstanceOf(
+    await expect(updateAccount(db as never, 1, 10, 9, edit('admin@example.com', false), ADMIN)).rejects.toBeInstanceOf(
       ConflictError,
     )
     expect(accounts.get(1)?.active).toBe(true)
+  })
+
+  it('refuses to deactivate the actor’s own account, so nobody locks themselves out', async () => {
+    adminIds.add(1)
+    adminIds.add(2)
+    await expect(updateAccount(db as never, 2, 10, 2, edit('second@example.com', false), ADMIN)).rejects.toBeInstanceOf(
+      OwnAccountError,
+    )
+    expect(accounts.get(2)?.active).toBe(true)
+  })
+
+  it('lets the actor change their own name and email', async () => {
+    await updateAccount(db as never, 5, 10, 5, edit('me@example.com'), USER_MANAGER)
+    expect(accounts.get(5)?.email).toBe('me@example.com')
   })
 })

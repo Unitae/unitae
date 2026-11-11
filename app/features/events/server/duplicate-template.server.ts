@@ -1,7 +1,14 @@
 import { isSystemTemplate } from '~/features/events/model/event-template.type'
+import * as m from '~/i18n/paraglide/messages'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
-export async function duplicateTemplate(db: TransactionClient, templateId: number, congregationId: number) {
+export async function duplicateTemplate(
+  db: TransactionClient,
+  templateId: number,
+  congregationId: number,
+  actorId: number,
+) {
   const source = await db.eventTemplate.findFirst({
     where: { id: templateId, congregationId },
     include: {
@@ -21,7 +28,7 @@ export async function duplicateTemplate(db: TransactionClient, templateId: numbe
 
   const duplicated = await db.eventTemplate.create({
     data: {
-      name: `${source.name} (copie)`,
+      name: m.events_template_copy_name({ name: source.name }),
       key: `${source.key}-copy-${Date.now()}`,
       description: source.description,
       weekDay: source.weekDay,
@@ -92,5 +99,13 @@ export async function duplicateTemplate(db: TransactionClient, templateId: numbe
     })
   }
 
+  audit({
+    action: AuditAction.TemplateDuplicated,
+    congregationId,
+    actorId,
+    entityType: 'EventTemplate',
+    entityId: duplicated.id,
+    metadata: { from: templateId },
+  })
   return duplicated
 }

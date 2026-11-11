@@ -1,12 +1,13 @@
-import { useState } from 'react'
-import { Form } from 'react-router'
+import { type ReactNode, type Ref, useRef, useState } from 'react'
+import { type FetcherWithComponents, Form } from 'react-router'
 import { renderShareMessage, SHARE_VARIABLES, type ShareMessageContext } from '~/features/events/model/share-message'
 import type { PartPresetFormValues } from '~/features/events/schemas/part-preset.schema'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
-import { Checkbox } from '~/shared/ui/checkbox'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
+import { SettingRow } from '~/shared/ui/SettingRow'
+import { Switch } from '~/shared/ui/switch'
 import { Textarea } from '~/shared/ui/textarea'
 
 type PartPresetFormProps = {
@@ -21,6 +22,14 @@ type PartPresetFormProps = {
   errors?: string[]
   /** The congregation's address, so that the preview's link is one the author recognises. */
   baseUrl?: string
+  /** Posts through this fetcher, from a panel whose footer holds the save button (`id` ties them). */
+  fetcher?: Pick<FetcherWithComponents<unknown>, 'Form'>
+  id?: string
+  formRef?: Ref<HTMLFormElement>
+  /** Fields posted with the form: the intent, the type's id. */
+  hidden?: ReactNode
+  /** Nothing can be changed: the fields only show the type. */
+  readOnly?: boolean
 }
 
 // Plausible values for the preview. Every slot is filled, so the author sees
@@ -42,9 +51,37 @@ const PREVIEW_CONTEXT: ShareMessageContext = {
   link: 'https://unitae.example.com/board',
 }
 
-export function PartPresetForm({ preset, isSystem, placeholders, errors, baseUrl }: PartPresetFormProps) {
+export function PartPresetForm({
+  preset,
+  isSystem,
+  placeholders,
+  errors,
+  baseUrl,
+  fetcher,
+  id,
+  formRef,
+  hidden,
+  readOnly = false,
+}: PartPresetFormProps) {
   const [message, setMessage] = useState(preset?.shareMessage ?? '')
   const [hasReaderSlot, setHasReaderSlot] = useState(preset?.hasReaderSlot ?? false)
+  const messageField = useRef<HTMLTextAreaElement>(null)
+  const FormElement = fetcher?.Form ?? Form
+
+  // Puts a variable where the cursor is in the message, as if typed: the form counts it, and the preview follows.
+  function insertVariable(variable: string) {
+    const field = messageField.current
+    const token = `{{${variable}}}`
+    if (!field) return setMessage(current => current + token)
+    const start = field.selectionStart ?? message.length
+    const end = field.selectionEnd ?? message.length
+    const next = message.slice(0, start) + token + message.slice(end)
+    setMessage(next)
+    requestAnimationFrame(() => {
+      field.focus()
+      field.setSelectionRange(start + token.length, start + token.length)
+    })
+  }
 
   // Rendered with renderShareMessage — the same function the share button will
   // use once it exists, which is the point of keeping that module pure: the
@@ -55,9 +92,10 @@ export function PartPresetForm({ preset, isSystem, placeholders, errors, baseUrl
   )
 
   return (
-    <Form method="post" className="flex flex-col gap-6">
+    <FormElement method="post" id={id} ref={formRef} className="flex flex-col gap-5">
+      {hidden}
       {isSystem && (
-        <div role="note" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+        <div role="note" className="rounded-md bg-hover px-3 py-2 text-muted-foreground text-sm">
           {m.settings_presets_system_notice()}
         </div>
       )}
@@ -80,27 +118,32 @@ export function PartPresetForm({ preset, isSystem, placeholders, errors, baseUrl
           defaultValue={preset?.name ?? ''}
           placeholder={placeholders?.name}
           maxLength={80}
+          disabled={readOnly}
         />
       </div>
 
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <Checkbox
+      <div className="overflow-hidden rounded-lg border bg-card">
+        <SettingRow htmlFor="allowExternalSpeaker" title={m.settings_presets_form_allow_external()}>
+          <Switch
             id="allowExternalSpeaker"
             name="allowExternalSpeaker"
             defaultChecked={preset?.allowExternalSpeaker ?? false}
+            disabled={readOnly}
           />
-          <Label htmlFor="allowExternalSpeaker">{m.settings_presets_form_allow_external()}</Label>
-        </div>
-        <div className="flex items-center gap-2">
-          <Checkbox
+        </SettingRow>
+        <SettingRow
+          htmlFor="hasReaderSlot"
+          title={m.settings_presets_form_has_reader()}
+          description={m.settings_presets_form_has_reader_hint()}
+        >
+          <Switch
             id="hasReaderSlot"
             name="hasReaderSlot"
             checked={hasReaderSlot}
-            onCheckedChange={value => setHasReaderSlot(value === true)}
+            onCheckedChange={setHasReaderSlot}
+            disabled={readOnly}
           />
-          <Label htmlFor="hasReaderSlot">{m.settings_presets_form_has_reader()}</Label>
-        </div>
+        </SettingRow>
       </div>
 
       <div className="flex gap-3">
@@ -112,6 +155,7 @@ export function PartPresetForm({ preset, isSystem, placeholders, errors, baseUrl
             defaultValue={preset?.speakerLabel ?? ''}
             placeholder={placeholders?.speakerLabel || m.settings_presets_form_speaker_placeholder()}
             maxLength={50}
+            disabled={readOnly}
           />
         </div>
         {/* Only offered when there is a second slot to name — otherwise it is a
@@ -125,6 +169,7 @@ export function PartPresetForm({ preset, isSystem, placeholders, errors, baseUrl
               defaultValue={preset?.readerLabel ?? ''}
               placeholder={placeholders?.readerLabel || m.settings_presets_form_reader_placeholder()}
               maxLength={50}
+              disabled={readOnly}
             />
           </div>
         )}
@@ -133,24 +178,30 @@ export function PartPresetForm({ preset, isSystem, placeholders, errors, baseUrl
       <div className="flex flex-col gap-2">
         <Label htmlFor="shareMessage">{m.settings_presets_form_message_label()}</Label>
         <Textarea
+          ref={messageField}
           id="shareMessage"
           name="shareMessage"
           value={message}
           onChange={event => setMessage(event.target.value)}
-          rows={10}
+          rows={8}
           placeholder={placeholders?.shareMessage}
           maxLength={1000}
+          disabled={readOnly}
         />
-        <p className="text-muted-foreground text-xs">{m.settings_presets_form_message_help()}</p>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <p className="font-medium text-sm">{m.settings_presets_form_variables_title()}</p>
-        <div className="flex flex-wrap gap-1">
-          {SHARE_VARIABLES.map(variable => (
-            <code key={variable} className="rounded bg-muted px-1.5 py-0.5 text-xs">{`{{${variable}}}`}</code>
-          ))}
-        </div>
+        {!readOnly && (
+          <div className="flex flex-wrap items-center gap-1">
+            <span className="mr-1 text-faint text-xs">{m.settings_presets_form_insert()}</span>
+            {SHARE_VARIABLES.map(variable => (
+              <button
+                key={variable}
+                type="button"
+                onClick={() => insertVariable(variable)}
+                className="rounded bg-hover px-1.5 py-0.5 font-mono text-xs outline-none hover:bg-selected focus-visible:ring-2 focus-visible:ring-ring"
+              >{`{{${variable}}}`}</button>
+            ))}
+          </div>
+        )}
+        <p className="text-faint text-xs">{m.settings_presets_form_message_help()}</p>
       </div>
 
       <div className="flex flex-col gap-2">
@@ -160,9 +211,11 @@ export function PartPresetForm({ preset, isSystem, placeholders, errors, baseUrl
         </div>
       </div>
 
-      <div>
-        <Button type="submit">{m.settings_presets_form_submit()}</Button>
-      </div>
-    </Form>
+      {!fetcher && !readOnly && (
+        <div>
+          <Button type="submit">{m.settings_presets_form_submit()}</Button>
+        </div>
+      )}
+    </FormElement>
   )
 }

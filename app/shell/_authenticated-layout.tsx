@@ -2,9 +2,16 @@ import { useEffect } from 'react'
 import { data } from 'react-router'
 import { toast } from 'sonner'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { settingsLinksFor } from '~/features/settings'
+import { loadSettingsAccess } from '~/features/settings/index.server'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { requireAuth } from '~/shared/auth/middleware.server'
-import { congregationContext, currentAccountContext, permissionsContext } from '~/shared/auth/route-context.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import { getTrialBanner } from '~/shared/domain/trial-banner.server'
 import { Permission } from '~/shared/types/permission'
 import { AppLayout } from '~/shared/ui/AppLayout'
@@ -49,6 +56,10 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const session = await getSession(request.headers.get('Cookie'))
 
   const can = (role: Permission) => permissions.has(role)
+  const settingsAccess = await withScopeFromContext(context, (db, congregationId) =>
+    loadSettingsAccess(db, permissions, currentUser.id, congregationId),
+  )
+  const settingsLinks = settingsLinksFor(settingsAccess)
   const messages = { success: session.get('success'), error: session.get('error') }
   // Reading the sidebar cookie here keeps a collapsed sidebar collapsed
   // across full page loads.
@@ -69,9 +80,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         canManageCampaigns: can(Permission.CanManageTerritoryCampaigns),
         canViewProspection: can(Permission.CanViewProspection),
         canManageTerritories: can(Permission.CanManageTerritories),
-        canManageSettings: can(Permission.CanDoAnything),
-        canManageUsers: can(Permission.CanManageUsers),
-        canManagePioneerGoals: can(Permission.CanSetPioneerGoals),
         canViewPrograms: can(Permission.CanViewPrograms),
         canViewAbsences: can(Permission.CanViewAbsences),
         canViewActivity: can(Permission.CanViewActivity),
@@ -79,7 +87,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         canManageExternalSpeakers: can(Permission.CanManageExternalSpeakers),
         canViewRoles: can(Permission.CanViewRoles) || can(Permission.CanManageRoles),
         canManageRoles: can(Permission.CanManageRoles),
-        canManagePermissions: can(Permission.CanConfigurePermissions),
+        settingsLinks,
         ledGroupId: currentUser.member?.responsibleFor?.id ?? currentUser.member?.deputyFor?.id ?? null,
       },
       congregationName: congregation.displayName ?? congregation.name,

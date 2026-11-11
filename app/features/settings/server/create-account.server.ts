@@ -34,9 +34,9 @@ export async function createAccount(
   params: CreateAccountParams,
   renderEmail: (userId: number, token: string) => ReactNode,
 ): Promise<CreateAccountResult> {
-  const existingUser = await db.userAccount.findUnique({
-    where: { email: params.email },
-  })
+  // Stored in lower case, so looked up in lower case: « Sophie@… » is the address « sophie@… » already taken.
+  const email = params.email.toLocaleLowerCase()
+  const existingUser = await db.userAccount.findUnique({ where: { email } })
 
   if (existingUser != null) {
     throw new ConflictError('User already exists')
@@ -45,17 +45,24 @@ export async function createAccount(
   const limits = new LimitService(db, congregation)
   await limits.errorIfWouldGoOverLimit('users')
 
-  const user = await db.userAccount.create({
-    data: {
-      firstname: params.firstname,
-      lastname: params.lastname,
-      email: params.email.toLocaleLowerCase(),
-      active: true,
-      password: 'password',
-      emailVerifiedAt: new Date(),
-      congregationId: params.congregationId,
-    },
-  })
+  // An address can only sign in to one congregation. Row-level security hides another congregation's accounts from
+  // the lookup above, so its unique index is what refuses one: a conflict, like any address already taken.
+  const user = await db.userAccount
+    .create({
+      data: {
+        firstname: params.firstname,
+        lastname: params.lastname,
+        email,
+        active: true,
+        password: 'password',
+        emailVerifiedAt: new Date(),
+        congregationId: params.congregationId,
+      },
+    })
+    .catch((error: unknown) => {
+      if ((error as { code?: string } | null)?.code === 'P2002') throw new ConflictError('User already exists')
+      throw error
+    })
 
   const token = await createPasswordResetToken(user.id, db)
   const emailSent = await sendResetAccountPasswordEmail(user.id, renderEmail(user.id, token))

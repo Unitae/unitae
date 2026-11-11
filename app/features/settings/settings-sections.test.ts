@@ -1,75 +1,89 @@
 import { describe, expect, it } from 'vitest'
-import { buildSettingsSections } from './settings-sections'
+import { Permission } from '~/shared/types/permission'
+import {
+  firstSettingsHref,
+  mayOpenSettings,
+  type SettingsAccess,
+  settingsGroups,
+  settingsLinksFor,
+} from './settings-sections'
 
-const ADMIN = { canManageSettings: true, canManageUsers: true, canManagePermissions: true, canManagePioneerGoals: true }
 const BILLING = 'https://www.unitae.app/billing?token=abc'
 
-describe('buildSettingsSections', () => {
-  it('groups all cards in order for a full admin with billing configured', () => {
-    const sections = buildSettingsSections(ADMIN, BILLING)
-    expect(sections.map(s => s.key)).toEqual(['account', 'modules', 'access', 'data'])
-    expect(sections.map(s => s.items.map(i => i.key))).toEqual([
-      ['general', 'subscription'],
-      ['congregation', 'territories'],
-      ['users', 'permissions'],
-      ['data', 'audit'],
+function access(permissions: Permission[], templateResponsible = false): SettingsAccess {
+  return { permissions: new Set(permissions), templateResponsible }
+}
+
+const ADMIN = access(Object.values(Permission))
+
+const keysOf = (a: SettingsAccess, billingUrl: string | null = null) =>
+  settingsGroups(a, billingUrl).map(group => [group.key, group.entries.map(entry => entry.key)])
+
+describe('settingsGroups', () => {
+  it('lists every part, grouped and in order, for an administrator with billing configured', () => {
+    expect(keysOf(ADMIN, BILLING)).toEqual([
+      ['congregation', ['general', 'publishers', 'templates', 'part-types', 'territories', 'map']],
+      ['access', ['users', 'roles']],
+      ['data', ['data', 'audit']],
+      ['account', ['subscription']],
     ])
   })
 
-  it('omits the subscription card (but keeps Général) when billing is not configured (self-hosted)', () => {
-    const sections = buildSettingsSections(ADMIN, null)
-    const account = sections.find(s => s.key === 'account')
-    expect(account?.items.map(i => i.key)).toEqual(['general'])
+  it('leaves the subscription out on a self-hosted instance', () => {
+    expect(keysOf(ADMIN).map(([group]) => group)).not.toContain('account')
   })
 
-  it('points the subscription card at the billing URL', () => {
-    const sections = buildSettingsSections(ADMIN, BILLING)
-    const sub = sections.flatMap(s => s.items).find(i => i.key === 'subscription')
-    expect(sub).toEqual({ key: 'subscription', href: BILLING, external: true })
+  it('points the subscription at the billing page, outside the app', () => {
+    const subscription = settingsGroups(ADMIN, BILLING).flatMap(group => group.entries)[10]
+    expect(subscription).toEqual({ key: 'subscription', href: BILLING, external: true })
   })
 
-  it('drops empty groups — a user-manager sees only the access group with users', () => {
-    const sections = buildSettingsSections(
-      { canManageSettings: false, canManageUsers: true, canManagePermissions: false, canManagePioneerGoals: false },
-      null,
-    )
-    expect(sections.map(s => s.key)).toEqual(['access'])
-    expect(sections[0].items.map(i => i.key)).toEqual(['users'])
+  it('opens each part with its own right, and drops the groups left empty', () => {
+    expect(keysOf(access([Permission.CanSetPioneerGoals]))).toEqual([['congregation', ['publishers']]])
+    expect(keysOf(access([Permission.CanViewUsers]))).toEqual([['access', ['users']]])
+    expect(keysOf(access([Permission.CanConfigureTerritorySettings]))).toEqual([
+      ['congregation', ['territories', 'map']],
+    ])
+    expect(keysOf(access([Permission.CanManagePrograms]))).toEqual([['congregation', ['part-types']]])
+    expect(keysOf(access([Permission.CanExportCongregationData]))).toEqual([['data', ['data']]])
   })
 
-  it('returns no sections when the viewer can manage nothing (drives the hub redirect)', () => {
-    const sections = buildSettingsSections(
-      { canManageSettings: false, canManageUsers: false, canManagePermissions: false, canManagePioneerGoals: false },
-      null,
-    )
-    expect(sections).toEqual([])
+  it('lets a template responsible in, to the programme templates only', () => {
+    expect(keysOf(access([Permission.CanViewPrograms], true))).toEqual([['congregation', ['templates']]])
   })
 
-  it('shows only permissions to a permissions-manager', () => {
-    const sections = buildSettingsSections(
-      { canManageSettings: false, canManageUsers: false, canManagePermissions: true, canManagePioneerGoals: false },
-      null,
-    )
-    expect(sections.map(s => s.key)).toEqual(['access'])
-    expect(sections[0].items.map(i => i.key)).toEqual(['permissions'])
+  it('needs the administrator for an import, as the import page does', () => {
+    expect(keysOf(access([Permission.CanImportCongregationData]))).toEqual([])
+  })
+})
+
+describe('mayOpenSettings', () => {
+  it('keeps Réglages closed to a publisher who can only read the programme', () => {
+    expect(mayOpenSettings(access([Permission.CanViewPrograms, Permission.CanViewBoard]))).toBe(false)
   })
 
-  it('surfaces the congregation card to an admin who lacks the pioneer-goal permission (the other half of the OR)', () => {
-    const sections = buildSettingsSections(
-      { canManageSettings: true, canManageUsers: false, canManagePermissions: false, canManagePioneerGoals: false },
-      null,
-    )
-    expect(sections.find(s => s.key === 'modules')?.items.map(i => i.key)).toContain('congregation')
+  it('opens Réglages to anyone with one part', () => {
+    expect(mayOpenSettings(access([Permission.CanConfigurePermissions]))).toBe(true)
+    expect(mayOpenSettings(access([], true))).toBe(true)
+  })
+})
+
+describe('firstSettingsHref', () => {
+  it('is the first part the viewer may open', () => {
+    expect(firstSettingsHref(ADMIN)).toBe('/settings/general')
+    expect(firstSettingsHref(access([Permission.CanManageUsers]))).toBe('/settings/users')
   })
 
-  it('surfaces the congregation card to a pioneer-goal-manager (goals live inside the congregation module)', () => {
-    // Pioneer goals is a sub-setting of the Congregation module; the parent card aggregates its
-    // children's permissions, so a pioneer-goal-manager reaches goals through Congregation.
-    const sections = buildSettingsSections(
-      { canManageSettings: false, canManageUsers: false, canManagePermissions: false, canManagePioneerGoals: true },
-      null,
-    )
-    expect(sections.map(s => s.key)).toEqual(['modules'])
-    expect(sections[0].items.map(i => i.key)).toEqual(['congregation'])
+  it('is null for someone with no part, never the subscription', () => {
+    expect(firstSettingsHref(access([Permission.CanViewBoard]))).toBeNull()
+  })
+})
+
+describe('settingsLinksFor', () => {
+  it('lists the parts the viewer may open, without the subscription', () => {
+    expect(settingsLinksFor(access([Permission.CanConfigurePermissions, Permission.CanViewUsers]))).toEqual([
+      { key: 'users', href: '/settings/users' },
+      { key: 'roles', href: '/settings/roles' },
+    ])
   })
 })
