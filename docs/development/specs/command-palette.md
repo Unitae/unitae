@@ -141,7 +141,7 @@ Set — stated explicitly to avoid ambiguity).
   - **Actions — quick-create** (navigate, gated by the *manage* permission): New territory
     `/territories/new`, New attribution `/territories/attributions/new`, New building
     `/territories/buildings/new`, New event, New user `/settings/users/new`, New role
-    `/congregation/roles/new`, Upload document `/board/documents/new`.
+    `/congregation/roles/organigram?new=1`, Upload document `/board/documents/new`.
   - **Actions — session/UI:** Toggle dark mode (`kind:'action'`; reuse ThemeToggle logic extracted to
     `use-theme.ts`; icon reflects current theme), Log out (`kind:'form'` → fetcher POST `/logout`), Go
     to my profile.
