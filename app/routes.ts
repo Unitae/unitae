@@ -108,11 +108,7 @@ export default [
         route(':templateId', 'features/settings/routes/templates/template.tsx'),
         route(':templateId/reorder-parts', 'features/settings/routes/templates/reorder-parts.tsx'),
       ]),
-      ...prefix('congregation/presets', [
-        index('features/settings/routes/congregation/preset-list.tsx'),
-        route('new', 'features/settings/routes/congregation/presets/new.tsx'),
-        route(':presetId/edit', 'features/settings/routes/congregation/presets/edit.tsx'),
-      ]),
+      route('part-types', 'features/settings/routes/part-types.tsx'),
       route('data', 'features/settings/routes/data/settings.tsx'),
       route('data/export', 'features/settings/routes/congregation/export.tsx'),
       route('data/export/:jobId/status', 'features/settings/routes/congregation/export-status.tsx'),

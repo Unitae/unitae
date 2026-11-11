@@ -5,6 +5,7 @@ const MOVED: [RegExp, (match: RegExpMatchArray) => string][] = [
   [/^\/settings\/congregation\/pioneer-goals\/?$/, () => '/settings/publishers'],
   [/^\/settings\/territories\/card-overlays\/?$/, () => '/settings/map'],
   [/^\/settings\/congregation\/templates(\/new)?\/?$/, () => '/settings/templates'],
+  [/^\/settings\/congregation\/presets(\/.*)?$/, () => '/settings/part-types'],
   [
     /^\/settings\/congregation\/templates\/(\d+)(\/(edit|responsible))?\/?$/,
     match => `/settings/templates/${match[1]}`,
