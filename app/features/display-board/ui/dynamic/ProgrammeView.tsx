@@ -9,6 +9,7 @@ import { getLocale } from '~/i18n/paraglide/runtime'
 import { Badge } from '~/shared/ui/badge'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { usePersistedState } from '~/shared/ui/hooks/use-persisted-state'
+import type { ExternalSpeakerLabelSource } from '~/shared/utils/external-speaker-label'
 import { cn } from '~/shared/utils/utils'
 
 // ---------------------------------------------------------------------------
@@ -23,7 +24,7 @@ interface PartAssignment {
   order: number
   topic: string
   durationMin: number | null
-  externalSpeaker: { name: string } | null
+  externalSpeaker: ExternalSpeakerLabelSource | null
   assignee: {
     id: number
     firstname: string | null

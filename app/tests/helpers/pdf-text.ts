@@ -1,7 +1,7 @@
 // Reads a rendered PDF back the way a viewer would, for tests that check what a sheet actually
 // printed: its pages, and each piece of text with where it sits on the page.
 import path from 'node:path'
-import '~/features/display-board/ui/pdf-upsert-shim'
+import '~/shared/ui/pdf/pdf-upsert-shim'
 
 // The 14 standard PDF fonts pdfjs reads a sheet's fallback text with.
 const STANDARD_FONTS = `${path.join(process.cwd(), 'node_modules', 'pdfjs-dist', 'standard_fonts')}/`

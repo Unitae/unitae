@@ -8,6 +8,7 @@ import { runsWidth, type TextMeasurer, type TextRun, wrapLines } from '~/feature
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { formatEventDate } from '~/shared/utils/event-time'
+import { externalSpeakerLabel } from '~/shared/utils/external-speaker-label'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 
 // What the printable programme prints, line by line, before react-pdf draws it: one meeting after
@@ -52,7 +53,8 @@ export function memberRuns(member: ProgrammeSheetMember): TextRun[] {
 }
 
 export function assigneeRuns(part: ProgrammeSheetPart): TextRun[] {
-  if (part.externalSpeaker) return [{ text: sanitizeText(part.externalSpeaker.name), weight: 'regular' }]
+  if (part.externalSpeaker)
+    return [{ text: sanitizeText(externalSpeakerLabel(part.externalSpeaker)), weight: 'regular' }]
   if (!part.assignee) return [{ text: UNASSIGNED, weight: 'regular' }]
   return [
     ...memberRuns(part.assignee),

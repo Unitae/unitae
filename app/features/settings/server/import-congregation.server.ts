@@ -45,10 +45,10 @@ import {
   importEventServiceParts,
   importEvents,
 } from './import-events.server'
+import { importExternalSpeakers, importSpeakerCongregations } from './import-external-speakers.server'
 import { importPartPresets } from './import-part-presets.server'
 import {
   importEmergencyContacts,
-  importExternalSpeakers,
   importPioneerEnrolments,
   importPioneerGoals,
   importPublisherActivities,
@@ -107,10 +107,10 @@ export {
   importEventServiceParts,
   importEvents,
 } from './import-events.server'
+export { importExternalSpeakers, importSpeakerCongregations } from './import-external-speakers.server'
 export { importPartPresets } from './import-part-presets.server'
 export {
   importEmergencyContacts,
-  importExternalSpeakers,
   importPioneerEnrolments,
   importPioneerGoals,
   importPublisherActivities,
@@ -214,6 +214,9 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
       await progress()
 
       await importPioneerGoals(zip, db, congregationId)
+      await progress()
+
+      await importSpeakerCongregations(zip, db, idMap, congregationId)
       await progress()
 
       await importExternalSpeakers(zip, db, idMap, congregationId)

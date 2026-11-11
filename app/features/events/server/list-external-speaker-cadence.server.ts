@@ -6,6 +6,7 @@ import {
   toCadenceStatus,
 } from '~/features/events/server/cadence-shared.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { EXTERNAL_SPEAKER_LABEL_SELECT, externalSpeakerLabel } from '~/shared/utils/external-speaker-label'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 
 export type { CadenceEntry }
@@ -38,7 +39,7 @@ export async function listExternalSpeakerCadence(
       assigneeId: true,
       externalSpeakerId: true,
       assignee: { select: { firstname: true, lastname: true } },
-      externalSpeaker: { select: { name: true } },
+      externalSpeaker: { select: EXTERNAL_SPEAKER_LABEL_SELECT },
     },
   } as const
 
@@ -74,7 +75,7 @@ export async function listExternalSpeakerCadence(
   // the FK is the identity signal, not the display string. Fall back to
   // the in-house assignee for rows where the slot was covered internally.
   const nameOf = (p: PartRow): string | null => {
-    if (p.externalSpeakerId != null) return p.externalSpeaker?.name || null
+    if (p.externalSpeakerId != null) return p.externalSpeaker ? externalSpeakerLabel(p.externalSpeaker) : null
     if (p.assigneeId != null) return p.assignee ? formatPersonName(p.assignee, '') || null : null
     return null
   }

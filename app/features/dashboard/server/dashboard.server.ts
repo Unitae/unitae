@@ -5,6 +5,7 @@ import { getNextDaysOffs } from '~/features/events/index.server'
 import { TWO_WEEKS_MS } from '~/shared/constants/limits'
 import { DASHBOARD_RECENT_ITEMS_LIMIT } from '~/shared/constants/pagination'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { EXTERNAL_SPEAKER_LABEL_SELECT } from '~/shared/utils/external-speaker-label'
 
 export type TerritoryStatus = 'on-time' | 'due-soon' | 'overdue'
 
@@ -173,7 +174,7 @@ export async function getNextMeeting(db: TransactionClient, userId: number, cong
           assignee: { select: { id: true, firstname: true, lastname: true } },
           assistant: { select: { id: true, firstname: true, lastname: true } },
           // A visiting speaker holds the part instead of a member: not an empty slot.
-          externalSpeaker: { select: { name: true } },
+          externalSpeaker: { select: EXTERNAL_SPEAKER_LABEL_SELECT },
         },
         orderBy: { order: 'asc' },
       },

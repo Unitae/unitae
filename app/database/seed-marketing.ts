@@ -14,6 +14,7 @@ import { randomBytes, scrypt } from 'node:crypto'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { EventTemplateKey } from '../features/events/model/event-template.type'
 import { PartPresetKey } from '../features/events/model/part-preset.type'
+import { normalizeCongregationName } from '../features/events/model/speaker-congregation-name'
 import { seedDefaultTemplates } from '../features/events/server/seed-templates.server'
 import { seedBuiltInTerritoryKinds } from '../features/territories/server/territory-kinds.server'
 import { syncBuiltInRoleAssignments } from '../shared/domain/built-in-roles.server'
@@ -74,6 +75,7 @@ async function cleanCongregationData(congregationId: number) {
   // After the parts that point at them, before the congregation itself: the FK to Congregation restricts.
   await prisma.partPreset.deleteMany({ where })
   await prisma.externalSpeaker.deleteMany({ where })
+  await prisma.speakerCongregation.deleteMany({ where })
   await prisma.boardDynamicDocumentView.deleteMany({ where: { settings: { congregationId } } })
   await prisma.boardDynamicDocumentSettings.deleteMany({ where })
   await prisma.boardDocumentView.deleteMany({ where })
@@ -518,8 +520,30 @@ async function main() {
     `  ✓ ${territories.length} territories, ${area.buildings.length} buildings, ${attributions.length} attributions`,
   )
 
+  const speakerSeeds = generateExternalSpeakers(random)
+  const speakerCongregations = new Map<string, number>()
+  for (const [index, town] of [...new Set(speakerSeeds.map(speaker => speaker.congregationName))].entries()) {
+    const responsible = speakerSeeds.find(speaker => speaker.congregationName === town)
+    const row = await prisma.speakerCongregation.create({
+      data: {
+        name: town,
+        nameNormalized: normalizeCongregationName(town),
+        responsibleName: responsible?.name ?? '',
+        responsiblePhone: responsible?.phone ?? '',
+        responsibleEmail: responsible?.email ?? '',
+        // Lists received over the past year and a half: some are due for an update.
+        listDate: new Date(now.getTime() - (30 + ((index * 47) % 520)) * 24 * 60 * 60 * 1000),
+        congregationId,
+      },
+    })
+    speakerCongregations.set(town, row.id)
+  }
   const speakerRows = await prisma.externalSpeaker.createManyAndReturn({
-    data: generateExternalSpeakers(random).map(speaker => ({ ...speaker, congregationId })),
+    data: speakerSeeds.map(speaker => ({
+      ...speaker,
+      speakerCongregationId: speakerCongregations.get(speaker.congregationName) ?? null,
+      congregationId,
+    })),
     select: { id: true },
   })
   const { specs, templateIds } = await arrangeTemplates(congregationId, roleIds)

@@ -3,6 +3,7 @@ import { CalendarDays, FileText, Loader2, MoreHorizontal, Pencil, Send, Trash2 }
 import { useEffect, useState } from 'react'
 import { Link, useFetcher } from 'react-router'
 import { EventStatus } from '~/features/events/model/event-status.type'
+import type { ExternalSpeakerOption } from '~/features/events/model/external-speaker.type'
 import { parseAssignKey } from '~/features/events/model/reassign'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
@@ -44,7 +45,7 @@ interface EventViewProps {
   users: PersonOption[]
   partCandidates: Record<number, { speakerIds: number[]; readerIds: number[] }>
   serviceCandidates: Record<number, number[]>
-  externalSpeakers: { id: number; name: string; congregationName: string }[]
+  externalSpeakers: ExternalSpeakerOption[]
   shareTexts: Record<number, string>
   timezone: string
 }

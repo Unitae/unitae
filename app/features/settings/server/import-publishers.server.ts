@@ -215,35 +215,3 @@ export async function importPioneerGoals(zip: JsZip, db: TransactionClient, cong
     })
   }
 }
-
-export async function importExternalSpeakers(
-  zip: JsZip,
-  db: TransactionClient,
-  idMap: EntityIdMap,
-  congregationId: number,
-): Promise<void> {
-  const records = await readNdjsonFile<{
-    id: number
-    name: string
-    congregationName: string
-    phone: string | null
-    email: string | null
-    notes: string | null
-    archivedAt: string | null
-  }>(zip, 'external-speakers')
-
-  for (const record of records) {
-    const created = await db.externalSpeaker.create({
-      data: {
-        name: record.name,
-        congregationName: record.congregationName,
-        phone: record.phone,
-        email: record.email,
-        notes: record.notes,
-        archivedAt: record.archivedAt ? new Date(record.archivedAt) : null,
-        congregationId,
-      },
-    })
-    idMap.set('external-speakers', record.id, created.id)
-  }
-}

@@ -13,8 +13,9 @@ interface ExternalSpeakerInfoData {
     id: number
     name: string
     congregationName: string
-    phone: string | null
-    email: string | null
+    phones: string[]
+    emails: string[]
+    talks: number[]
     notes: string | null
     isIncomplete: boolean
   }
@@ -78,24 +79,31 @@ export function ExternalSpeakerFacts({
     <div className="flex flex-col gap-2">
       <FactLines lines={lines} />
       {profile.congregationName && <p className="text-muted-foreground text-sm">{profile.congregationName}</p>}
-      {profile.phone && (
+      {profile.talks.length > 0 && (
+        <p className="text-muted-foreground text-sm tabular-nums">
+          {m.person_facts_talks({ numbers: profile.talks.join(', ') })}
+        </p>
+      )}
+      {profile.phones.map(phone => (
         <a
-          href={`tel:${profile.phone}`}
-          className="flex w-fit items-center gap-2 text-muted-foreground text-sm hover:text-foreground"
+          key={phone}
+          href={`tel:${phone.replaceAll(' ', '')}`}
+          className="flex w-fit items-center gap-2 text-muted-foreground text-sm tabular-nums hover:text-foreground"
         >
           <Phone aria-hidden="true" className="size-3.5 text-faint" />
-          {profile.phone}
+          {phone}
         </a>
-      )}
-      {profile.email && (
+      ))}
+      {profile.emails.map(email => (
         <a
-          href={`mailto:${profile.email}`}
+          key={email}
+          href={`mailto:${email}`}
           className="flex w-fit items-center gap-2 text-muted-foreground text-sm hover:text-foreground"
         >
           <Mail aria-hidden="true" className="size-3.5 text-faint" />
-          {profile.email}
+          {email}
         </a>
-      )}
+      ))}
       {profile.notes && <p className="whitespace-pre-line text-faint text-sm">{profile.notes}</p>}
       {cadence.anchored && (
         <RotationPanel

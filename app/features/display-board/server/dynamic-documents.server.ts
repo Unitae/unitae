@@ -16,6 +16,7 @@ import { EventStatus } from '~/features/events'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { PublisherType } from '~/shared/types/publisher-type'
+import { EXTERNAL_SPEAKER_LABEL_SELECT } from '~/shared/utils/external-speaker-label'
 
 // Section order on the board: auxiliaries (permanent + one-month) first, then the standing types.
 const PIONEER_TYPE_RANK: Record<string, number> = {
@@ -416,7 +417,7 @@ function fetchProgrammeByIds(
         include: {
           assignee: { select: userSelect },
           assistant: { select: userSelect },
-          externalSpeaker: { select: { name: true } },
+          externalSpeaker: { select: EXTERNAL_SPEAKER_LABEL_SELECT },
         },
       },
       eventServiceParts: includeServices ? { include: { assignee: { select: userSelect } } } : false,
@@ -446,7 +447,7 @@ function fetchProgrammeByKey(
         include: {
           assignee: { select: userSelect },
           assistant: { select: userSelect },
-          externalSpeaker: { select: { name: true } },
+          externalSpeaker: { select: EXTERNAL_SPEAKER_LABEL_SELECT },
         },
       },
       eventServiceParts: showServices ? { include: { assignee: { select: userSelect } } } : false,

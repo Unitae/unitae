@@ -100,9 +100,9 @@ describe('limits — time windows', () => {
 })
 
 describe('limits — progress / thresholds', () => {
-  test('IMPORT_TOTAL_STEPS is 43', () => {
+  test('IMPORT_TOTAL_STEPS is 44', () => {
     // Must equal the number of progress() calls in runImport, or the bar lies.
-    expect(IMPORT_TOTAL_STEPS).toBe(43)
+    expect(IMPORT_TOTAL_STEPS).toBe(44)
   })
 
   test('IMPORT_PROGRESS_CAP reserves the last 5% for finalization', () => {

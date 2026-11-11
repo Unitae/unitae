@@ -93,6 +93,27 @@ export const AUDIT_ACTIONS: readonly { action: string; group: AuditGroup; label:
   { action: 'external_speaker.updated', group: 'programmes', label: m.audit_log_action_external_speaker_updated },
   { action: 'external_speaker.archived', group: 'programmes', label: m.audit_log_action_external_speaker_archived },
   { action: 'external_speaker.unarchived', group: 'programmes', label: m.audit_log_action_external_speaker_unarchived },
+  { action: 'external_speaker.deleted', group: 'programmes', label: m.audit_log_action_external_speaker_deleted },
+  {
+    action: 'speaker_congregation.created',
+    group: 'programmes',
+    label: m.audit_log_action_speaker_congregation_created,
+  },
+  {
+    action: 'speaker_congregation.updated',
+    group: 'programmes',
+    label: m.audit_log_action_speaker_congregation_updated,
+  },
+  {
+    action: 'speaker_congregation.deleted',
+    group: 'programmes',
+    label: m.audit_log_action_speaker_congregation_deleted,
+  },
+  {
+    action: 'speaker_congregation.list_updated',
+    group: 'programmes',
+    label: m.audit_log_action_speaker_congregation_list_updated,
+  },
   { action: 'event.created', group: 'programmes', label: m.audit_log_action_event_created },
   { action: 'event.released', group: 'programmes', label: m.audit_log_action_event_released },
   { action: 'event.unreleased', group: 'programmes', label: m.audit_log_action_event_unreleased },

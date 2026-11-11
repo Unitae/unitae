@@ -40,6 +40,7 @@ export {
   type ShareMessageContext,
   type ShareVariable,
 } from './model/share-message'
+export { normalizeCongregationName, tidyCongregationName } from './model/speaker-congregation-name'
 export { type PartPresetFormValues, partPresetSchema } from './schemas/part-preset.schema'
 export {
   EventProgrammePanel,

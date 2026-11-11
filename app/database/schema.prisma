@@ -146,6 +146,7 @@ model Congregation {
   eventServicePartAllowedRoles    EventServicePartAllowedRole[]
   partPresets                     PartPreset[]
   externalSpeakers                ExternalSpeaker[]
+  speakerCongregations            SpeakerCongregation[]
 
   emergencyContacts EmergencyContact[]
 
@@ -1174,11 +1175,24 @@ model EventPart {
 model ExternalSpeaker {
   id               Int       @id @default(autoincrement())
   name             String
+  // Deprecated: the free-text congregation before SpeakerCongregation. Still written as a mirror of the linked
+  // congregation's name for one release, so a server still running the previous version keeps displaying it.
   congregationName String    @default("")
   phone            String?
+  phone2           String?
   email            String?
+  email2           String?
   notes            String?
+  // Public talk outline numbers, as the congregation's list gives them. Numbers only: titles belong to their publisher.
+  talks            Int[]     @default([])
+  // « Retiré de la liste »: no longer offered in programmes; history and planned talks stay.
   archivedAt       DateTime?
+  // « Supprimé définitivement »: name and contact erased. The row stays so past programmes read
+  // « Orateur extérieur · <congregation> » instead of an empty slot.
+  anonymizedAt     DateTime?
+
+  speakerCongregation   SpeakerCongregation? @relation(fields: [speakerCongregationId], references: [id], onDelete: SetNull)
+  speakerCongregationId Int?
 
   eventParts EventPart[]
 
@@ -1190,6 +1204,41 @@ model ExternalSpeaker {
 
   @@unique([id, congregationId])
   @@index([congregationId, archivedAt])
+  @@index([speakerCongregationId])
+}
+
+// A congregation whose list of public speakers we receive. Each sends its list now and then; the latest PDF is kept.
+model SpeakerCongregation {
+  id             Int    @id @default(autoincrement())
+  name           String
+  // Lowercased, diacritic-stripped, whitespace-collapsed `name` (normalizeCongregationName): one row per spelling.
+  nameNormalized String
+
+  responsibleName  String @default("")
+  responsiblePhone String @default("")
+  responsibleEmail String @default("")
+  coordinatorName  String @default("")
+  coordinatorPhone String @default("")
+  coordinatorEmail String @default("")
+
+  // Date written on the latest list received, and that list's PDF in file storage.
+  listDate     DateTime?
+  listFileKey  String?
+  listFileName String?
+
+  notes String @default("")
+
+  speakers ExternalSpeaker[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Cascade: the lists a congregation received go with it.
+  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
+  @@unique([id, congregationId])
+  @@unique([congregationId, nameNormalized])
 }
 
 model EventServicePart {

@@ -15,7 +15,7 @@ import { ConflictError } from '~/shared/errors/app-error.server'
 
 export const PROGRAMME_ASSIGNMENT_ERRORS = {
   assignmentNotFound: "L'attribution n'existe pas.",
-  externalSpeakerInvalid: "Cet orateur externe n'existe pas ou a été archivé.",
+  externalSpeakerInvalid: "Cet orateur extérieur n'existe pas ou n'est plus sur la liste de son assemblée.",
   participantsNotDistinct: "L'orateur et le lecteur ne peuvent pas être la même personne.",
   ineligibleSpeaker: "L'orateur sélectionné ne fait pas partie des rôles autorisés pour cette partie.",
   ineligibleReader: 'Le deuxième orateur sélectionné ne fait pas partie des rôles autorisés pour cette partie.',
@@ -39,8 +39,15 @@ export function assertDistinctParticipants(assigneeId: number | null, assistantI
   }
 }
 
-export function checkExternalSpeakerValid(speaker: { archivedAt: Date | null } | null): Rejection | null {
-  if (speaker == null || speaker.archivedAt != null) {
+/**
+ * A speaker can be newly assigned only while on a list. One retired after being planned keeps the part: `keeping`
+ * says the part already holds this speaker, so saving it again (a topic, a duration) does not fail on them.
+ */
+export function checkExternalSpeakerValid(
+  speaker: { archivedAt: Date | null } | null,
+  keeping = false,
+): Rejection | null {
+  if (speaker == null || (speaker.archivedAt != null && !keeping)) {
     return { error: PROGRAMME_ASSIGNMENT_ERRORS.externalSpeakerInvalid }
   }
   return null

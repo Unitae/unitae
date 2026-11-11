@@ -4,6 +4,8 @@ import { E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, login } from './helpers/auth'
 const TEST_EMAIL = E2E_ADMIN_EMAIL
 const TEST_PASSWORD = E2E_ADMIN_PASSWORD
 const REGISTRY_URL_RE = /\/programs\/external-speakers/
+const NEW_SPEAKER_URL_RE = /\/programs\/external-speakers\?new/
+const CONGREGATION_URL_RE = /\?congregation=\d+/
 
 test.describe('External speakers registry', () => {
   test.beforeEach(async ({ page }) => {
@@ -18,10 +20,23 @@ test.describe('External speakers registry', () => {
     await expect(page.getByRole('heading', { name: 'Orateurs extérieurs' }).first()).toBeVisible()
   })
 
-  test('add-speaker form loads at /programs/external-speakers/new', async ({ page }) => {
+  // The old « Ajouter » page now opens the new-speaker form in the list's panel.
+  test('the old add-speaker address opens the form in the panel', async ({ page }) => {
     await page.goto('/programs/external-speakers/new')
     await page.waitForLoadState('networkidle')
+    await expect(page).toHaveURL(NEW_SPEAKER_URL_RE)
     await expect(page.getByLabel('Prénom et nom')).toBeVisible()
-    await expect(page.getByLabel('Congrégation')).toBeVisible()
+    await expect(page.getByLabel('Assemblée', { exact: true })).toBeVisible()
+  })
+
+  test('a new congregation is created from the dialog and opens in the panel', async ({ page }) => {
+    const name = `E2E ${Date.now()}`
+    await page.goto('/programs/external-speakers')
+    await page.waitForLoadState('networkidle')
+    await page.getByRole('button', { name: 'Nouvelle assemblée' }).first().click()
+    await page.getByRole('dialog').getByLabel('Nom').fill(name)
+    await page.getByRole('dialog').getByRole('button', { name: 'Créer', exact: true }).click()
+    await expect(page).toHaveURL(CONGREGATION_URL_RE)
+    await expect(page.getByRole('heading', { name })).toBeVisible()
   })
 })

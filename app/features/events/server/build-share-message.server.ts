@@ -3,6 +3,7 @@ import { partPresetShareMessage } from '~/features/events/model/part-preset-defa
 import { renderShareMessage } from '~/features/events/model/share-message'
 import { isLocale } from '~/i18n/paraglide/runtime'
 import { formatEventDate, formatEventTime } from '~/shared/utils/event-time'
+import { type ExternalSpeakerLabelSource, externalSpeakerLabel } from '~/shared/utils/external-speaker-label'
 import { DEFAULT_LOCALE } from '~/shared/utils/language'
 
 interface PersonName {
@@ -18,7 +19,7 @@ export interface ShareablePart {
   durationMin: number | null
   assignee: PersonName | null
   assistant: PersonName | null
-  externalSpeaker: { name: string } | null
+  externalSpeaker: ExternalSpeakerLabelSource | null
   preset: { key: string; shareMessage: string | null } | null
 }
 
@@ -63,7 +64,7 @@ export function buildAssignmentShareText(args: BuildShareTextArgs): string | nul
 
   // An external speaker is assigned just like a member is, and the manager has
   // as much reason to message them.
-  const assignee = fullName(part.assignee) ?? part.externalSpeaker?.name ?? null
+  const assignee = fullName(part.assignee) ?? (part.externalSpeaker ? externalSpeakerLabel(part.externalSpeaker) : null)
   if (!assignee) return null
 
   const text = renderShareMessage(body, {

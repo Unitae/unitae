@@ -23,6 +23,7 @@ const ENTITY_LABEL: Record<string, () => string> = {
   PublisherActivity: m.audit_log_entity_publisher_activity,
   PublisherGroup: m.audit_log_entity_publisher_group,
   Role: m.audit_log_entity_role,
+  SpeakerCongregation: m.audit_log_entity_speaker_congregation,
   TemplatePart: m.audit_log_entity_template_part,
   TemplateServicePart: m.audit_log_entity_template_service,
   Territory: m.audit_log_entity_territory,

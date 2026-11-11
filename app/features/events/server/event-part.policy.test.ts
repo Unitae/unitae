@@ -79,6 +79,14 @@ describe('checkExternalSpeakerValid', () => {
       error: PROGRAMME_ASSIGNMENT_ERRORS.externalSpeakerInvalid,
     })
   })
+
+  it('lets a part keep a speaker retired after being planned', () => {
+    expect(checkExternalSpeakerValid({ archivedAt: new Date('2024-01-01') }, true)).toBeNull()
+  })
+
+  it('still rejects a missing speaker the part claims to keep', () => {
+    expect(checkExternalSpeakerValid(null, true)).toEqual({ error: PROGRAMME_ASSIGNMENT_ERRORS.externalSpeakerInvalid })
+  })
 })
 
 describe('checkEligibleForRole', () => {

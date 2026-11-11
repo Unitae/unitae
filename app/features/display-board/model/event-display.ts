@@ -1,4 +1,5 @@
 import * as m from '~/i18n/paraglide/messages'
+import { type ExternalSpeakerLabelSource, externalSpeakerLabel } from '~/shared/utils/external-speaker-label'
 
 export type UserNameInfo = {
   firstname: string | null
@@ -7,7 +8,7 @@ export type UserNameInfo = {
 } | null
 
 export interface PartDisplayLike {
-  externalSpeaker: { name: string } | null
+  externalSpeaker: ExternalSpeakerLabelSource | null
   assignee: UserNameInfo
   assistant: UserNameInfo
 }
@@ -37,13 +38,13 @@ export function nameMatches(user: UserNameInfo, query: string): boolean {
 }
 
 export function getPartDisplay(part: PartDisplayLike): PartDisplay {
-  if (part.externalSpeaker) return { text: part.externalSpeaker.name, isExternal: true }
+  if (part.externalSpeaker) return { text: externalSpeakerLabel(part.externalSpeaker), isExternal: true }
   const assigneeName = formatName(part.assignee)
   const assistantName = formatName(part.assistant)
   return { text: formatAssigneeWithAssistant(assigneeName, assistantName), isExternal: false }
 }
 
 export function partMatchesQuery(part: PartDisplayLike, query: string): boolean {
-  if (part.externalSpeaker?.name.toLowerCase().includes(query)) return true
+  if (part.externalSpeaker && externalSpeakerLabel(part.externalSpeaker).toLowerCase().includes(query)) return true
   return nameMatches(part.assignee, query) || nameMatches(part.assistant, query)
 }

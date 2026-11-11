@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, type useFetcher } from 'react-router'
+import type { ExternalSpeakerOption } from '~/features/events/model/external-speaker.type'
 import { resolvePartCapability } from '~/features/events/model/part-capability'
 import { partReaderLabel, partSpeakerLabel } from '~/features/events/model/part-labels'
 import { ExternalSpeakerFacts } from '~/features/events/ui/ExternalSpeakerFacts'
@@ -43,7 +44,7 @@ export interface AssignPartEditorProps {
   speakerCandidates: PersonOption[]
   readerCandidates: PersonOption[]
   /** Speakers from other congregations; an empty congregation means their record is to complete. */
-  externalSpeakers: { id: number; name: string; congregationName: string }[]
+  externalSpeakers: ExternalSpeakerOption[]
   eventId: number
   fetcher: ReturnType<typeof useFetcher>
   /** The congregation's time zone, for the dates in the facts. */
@@ -179,7 +180,7 @@ export function AssignPartEditor({
               describePerson={describeExternal}
             />
             {!hasRegistry && (
-              <Link to="/programs/external-speakers/new" className="text-primary text-sm hover:underline">
+              <Link to="/programs/external-speakers?new" className="text-primary text-sm hover:underline">
                 {m.programs_assign_part_external_manage_link()}
               </Link>
             )}

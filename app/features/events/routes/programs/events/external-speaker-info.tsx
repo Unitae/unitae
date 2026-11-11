@@ -35,7 +35,8 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
     }
 
     const speaker = await db.externalSpeaker.findFirst({
-      where: { id: externalSpeakerId, congregationId },
+      where: { id: externalSpeakerId, congregationId, anonymizedAt: null },
+      include: { speakerCongregation: { select: { name: true } } },
     })
     if (!speaker) return Response.json(null)
 
@@ -65,11 +66,15 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       profile: {
         id: speaker.id,
         name: speaker.name,
-        congregationName: speaker.congregationName,
-        phone: speaker.phone,
-        email: speaker.email,
+        congregationName: speaker.speakerCongregation?.name ?? speaker.congregationName,
+        phones: [speaker.phone, speaker.phone2].filter((value): value is string => Boolean(value)),
+        emails: [speaker.email, speaker.email2].filter((value): value is string => Boolean(value)),
+        talks: speaker.talks,
         notes: speaker.notes,
-        isIncomplete: speaker.congregationName === '',
+        // The list's rule: no congregation, or nobody to reach.
+        isIncomplete:
+          speaker.speakerCongregationId == null ||
+          ![speaker.phone, speaker.phone2, speaker.email, speaker.email2].some(Boolean),
       },
       recentHistory: recentHistory.map(h => ({
         date: h.event.startDate.toISOString(),

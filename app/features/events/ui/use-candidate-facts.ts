@@ -21,7 +21,7 @@ interface Options {
   /** Off when the slot is not shown: nothing is loaded. */
   enabled?: boolean
   /** The external speakers who may take the slot, with their congregation (empty while their record is incomplete). */
-  speakers?: { id: number; congregationName: string }[]
+  speakers?: { id: number; congregationName: string; talks: number[] }[]
 }
 
 /**
@@ -59,6 +59,7 @@ export function useCandidateFacts({ eventId, slot, timeZone, referenceYear, enab
       return describeExternalCandidate(
         {
           congregationName: speaker.congregationName,
+          talks: speaker.talks,
           lastAssignedAt: facts.speakers.lastAssignedAt[id],
           elsewhere: facts.speakers.elsewhere[id],
         },

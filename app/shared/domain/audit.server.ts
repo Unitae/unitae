@@ -170,6 +170,11 @@ export const AuditAction = {
   ExternalSpeakerUpdated: 'external_speaker.updated',
   ExternalSpeakerArchived: 'external_speaker.archived',
   ExternalSpeakerUnarchived: 'external_speaker.unarchived',
+  ExternalSpeakerDeleted: 'external_speaker.deleted',
+  SpeakerCongregationCreated: 'speaker_congregation.created',
+  SpeakerCongregationUpdated: 'speaker_congregation.updated',
+  SpeakerCongregationDeleted: 'speaker_congregation.deleted',
+  SpeakerListUpdated: 'speaker_congregation.list_updated',
 
   // Programme events
   EventCreated: 'event.created',

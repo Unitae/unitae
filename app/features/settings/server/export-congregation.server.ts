@@ -288,6 +288,26 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
         }),
     },
     {
+      // The PDF of each congregation's latest list stays out of the archive: it is a copy of what they sent.
+      name: 'speaker-congregations',
+      export: () =>
+        db.speakerCongregation.findMany({
+          select: {
+            id: true,
+            name: true,
+            responsibleName: true,
+            responsiblePhone: true,
+            responsibleEmail: true,
+            coordinatorName: true,
+            coordinatorPhone: true,
+            coordinatorEmail: true,
+            listDate: true,
+            notes: true,
+          },
+        }),
+    },
+    {
+      // Deleted speakers go too, nameless: imported programmes then still read « Orateur extérieur · <assemblée> ».
       name: 'external-speakers',
       export: () =>
         db.externalSpeaker.findMany({
@@ -295,10 +315,15 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
             id: true,
             name: true,
             congregationName: true,
+            speakerCongregationId: true,
             phone: true,
+            phone2: true,
             email: true,
+            email2: true,
             notes: true,
+            talks: true,
             archivedAt: true,
+            anonymizedAt: true,
           },
         }),
     },

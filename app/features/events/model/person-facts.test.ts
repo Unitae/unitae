@@ -153,6 +153,14 @@ describe('describeExternalCandidate', () => {
     expect(speaker).toMatchObject({ facts: 'Assemblée de Montreuil-Est · La dernière le 14 mars', tone: undefined })
   })
 
+  it('gives the talks he offers after his congregation, the first few', () => {
+    const speaker = describeExternalCandidate(
+      { congregationName: 'Bagnolet', talks: [12, 54, 102, 131, 180], lastAssignedAt: '2026-03-14T17:00:00Z' },
+      options,
+    )
+    expect(speaker.facts).toBe('Bagnolet · n° 12, 54, 102… · La dernière le 14 mars')
+  })
+
   it('warns about a record to complete', () => {
     expect(describeExternalCandidate({ congregationName: '' }, options)).toMatchObject({
       facts: 'Fiche à compléter · Jamais sur cette partie',

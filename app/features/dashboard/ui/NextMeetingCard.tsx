@@ -7,6 +7,7 @@ import { DashboardSection, PanelEmpty, panelRowClass } from '~/features/dashboar
 import { formatMeetingWhen } from '~/features/dashboard/ui/dashboard-format'
 import { groupProgrammeParts, sectionColor, sectionDurationMin } from '~/features/events'
 import * as m from '~/i18n/paraglide/messages'
+import { externalSpeakerLabel } from '~/shared/utils/external-speaker-label'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 import { cn } from '~/shared/utils/utils'
 
@@ -111,7 +112,7 @@ function PartRow({ part, assignTo }: { part: MeetingPart; assignTo: string | nul
           </>
         ) : part.externalSpeaker != null ? (
           <>
-            <span className="truncate">{part.externalSpeaker.name}</span>
+            <span className="truncate">{externalSpeakerLabel(part.externalSpeaker)}</span>
             <Tag className="shrink-0">{m.programs_view_external_badge()}</Tag>
           </>
         ) : (

@@ -1,6 +1,8 @@
 // What the printable programme reads from an event — nothing more, so the board can feed it from
 // its own query.
 
+import type { ExternalSpeakerLabelSource } from '~/shared/utils/external-speaker-label'
+
 export interface ProgrammeSheetMember {
   firstname: string | null
   lastname: string | null
@@ -19,7 +21,7 @@ export interface ProgrammeSheetPart {
   durationMin: number | null
   assignee: ProgrammeSheetMember | null
   assistant: ProgrammeSheetMember | null
-  externalSpeaker: { name: string } | null
+  externalSpeaker: ExternalSpeakerLabelSource | null
 }
 
 export interface ProgrammeSheetEvent {
