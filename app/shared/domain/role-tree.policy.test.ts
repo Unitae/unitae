@@ -159,16 +159,12 @@ describe('assertCanShowInOrganigram', () => {
     expect(() => assertCanShowInOrganigram(key)).not.toThrow()
   })
 
-  it.each([
-    'sister',
-    'brother',
-    'pioneer',
-    'publisher',
-    'baptized',
-    'member',
-  ])('rejects the %s identity role — a population, not a position', key => {
-    expect(() => assertCanShowInOrganigram(key)).toThrow(ForbiddenError)
-  })
+  it.each(['sister', 'brother', 'pioneer', 'publisher', 'baptized', 'member'])(
+    'rejects the %s identity role — a population, not a position',
+    key => {
+      expect(() => assertCanShowInOrganigram(key)).toThrow(ForbiddenError)
+    },
+  )
 
   it('rejects the admin system role — authority over the software, not a position', () => {
     expect(() => assertCanShowInOrganigram('admin')).toThrow(ForbiddenError)

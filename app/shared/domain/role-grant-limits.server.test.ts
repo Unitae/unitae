@@ -48,16 +48,29 @@ const ROLES = {
 type RoleRow = (typeof ROLES)[keyof typeof ROLES]
 const byId = (id: number): RoleRow | undefined => Object.values(ROLES).find(r => r.id === id)
 
-const state = { assignments: [] as { userId: number; roleId: number }[], rolePermissions: new Map<number, string[]>() }
+const state = {
+  assignments: [] as { userId: number; roleId: number }[],
+  rolePermissions: new Map<number, string[]>(),
+  deletedRoles: [] as number[],
+}
 
 const db = {
   role: {
     findFirst: vi.fn(async ({ where }: { where: { id: number } }) => {
       const role = byId(where.id)
       if (!role) return null
-      return { ...role, permissions: (state.rolePermissions.get(role.id) ?? []).map(key => ({ permission: { key } })) }
+      return {
+        ...role,
+        _count: { members: 0 },
+        permissions: (state.rolePermissions.get(role.id) ?? []).map(key => ({ permission: { key } })),
+      }
     }),
-    findMany: vi.fn(async () => Object.values(ROLES).filter(r => !r.isBuiltIn || r.key === 'admin')),
+    findMany: vi.fn(async (args?: { where?: { parentRoleId?: number } }) =>
+      args?.where?.parentRoleId != null ? [] : Object.values(ROLES).filter(r => !r.isBuiltIn || r.key === 'admin'),
+    ),
+    delete: vi.fn(async ({ where }: { where: { id_congregationId: { id: number } } }) => {
+      state.deletedRoles.push(where.id_congregationId.id)
+    }),
   },
   rolePermission: {
     findMany: vi.fn(async ({ where }: { where: { roleId: { in: number[] } } }) =>
@@ -98,9 +111,8 @@ const db = {
   },
 }
 
-const { addUserToRole, removeUserFromRole, setUserCustomRoleAssignments, updateRolePermissions } = await import(
-  './roles.server'
-)
+const { addUserToRole, deleteRole, removeUserFromRole, setUserCustomRoleAssignments, updateRolePermissions } =
+  await import('./roles.server')
 const { ConflictError, ForbiddenError } = await import('~/shared/errors/app-error.server')
 const { assertActorHolds, isAdminActor } = await import('./role-grant-limits.server')
 const { OwnAccountError } = await import('./account-protection.server')
@@ -110,6 +122,7 @@ const ADMIN = new Set(['can-do-anything'])
 
 beforeEach(() => {
   adminsAfterRoleChange.count = 1
+  state.deletedRoles = []
   state.assignments = []
   state.rolePermissions = new Map(Object.values(ROLES).map(r => [r.id, [...r.permissions]]))
   adminIds.clear()
@@ -289,5 +302,32 @@ describe('grant limit edge cases (adversarial review)', () => {
         ROLE_MANAGER,
       ),
     ).resolves.toBeUndefined()
+  })
+})
+
+describe('deleteRole', () => {
+  it('refuses to delete a role carrying can-do-anything to an actor who is not an admin', async () => {
+    await expect(
+      deleteRole(db as never, ROLES.coordinators.id, 10, 7, new Set(['can-manage-roles'])),
+    ).rejects.toBeInstanceOf(ForbiddenError)
+    expect(state.deletedRoles).toEqual([])
+  })
+
+  it('refuses to delete a role carrying can-do-anything when no administrator would be left', async () => {
+    adminsAfterRoleChange.count = 0
+    await expect(deleteRole(db as never, ROLES.coordinators.id, 10, 7, ADMIN)).rejects.toBeInstanceOf(ConflictError)
+    expect(state.deletedRoles).toEqual([])
+  })
+
+  it('refuses to delete a role whose permissions the actor does not hold', async () => {
+    await expect(
+      deleteRole(db as never, ROLES.speakers.id, 10, 7, new Set(['can-manage-roles'])),
+    ).rejects.toBeInstanceOf(ForbiddenError)
+    expect(state.deletedRoles).toEqual([])
+  })
+
+  it('deletes a role whose permissions the actor holds', async () => {
+    await deleteRole(db as never, ROLES.speakers.id, 10, 7, ROLE_MANAGER)
+    expect(state.deletedRoles).toEqual([ROLES.speakers.id])
   })
 })

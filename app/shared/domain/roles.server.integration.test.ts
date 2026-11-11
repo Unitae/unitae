@@ -111,7 +111,7 @@ describe('roles.server (integration)', () => {
       [Permission.CanUploadBoardDocuments, Permission.CanViewPrograms].sort(),
     )
 
-    await withScope(congregationId, tx => deleteRole(tx, role.id, congregationId, userId))
+    await withScope(congregationId, tx => deleteRole(tx, role.id, congregationId, userId, ADMIN_ACTOR))
   })
 
   it('updateRole audits permission changes and reflects in resolveEffectivePermissions', async () => {
@@ -137,7 +137,7 @@ describe('roles.server (integration)', () => {
     const afterGrant = await resolveEffectivePermissions(userId, congregationId)
     expect(afterGrant.has(Permission.CanManageExternalSpeakers)).toBe(true)
 
-    await withScope(congregationId, tx => deleteRole(tx, role.id, congregationId, userId))
+    await withScope(congregationId, tx => deleteRole(tx, role.id, congregationId, userId, ADMIN_ACTOR))
   })
 
   it('deleting a custom role cascades assignments but leaves users intact', async () => {
@@ -156,7 +156,7 @@ describe('roles.server (integration)', () => {
     const assignmentsBefore = await testDb.userRoleAssignment.findMany({ where: { roleId: role.id } })
     expect(assignmentsBefore).toHaveLength(1)
 
-    await withScope(congregationId, tx => deleteRole(tx, role.id, congregationId, userId))
+    await withScope(congregationId, tx => deleteRole(tx, role.id, congregationId, userId, ADMIN_ACTOR))
 
     const roleAfter = await testDb.role.findFirst({ where: { id: role.id } })
     expect(roleAfter).toBeNull()
@@ -212,7 +212,7 @@ describe('roles.server (integration)', () => {
     expect(afterKeys).toContain('elder')
     expect(afterKeys).not.toContain(customRole.key)
 
-    await withScope(congregationId, tx => deleteRole(tx, customRole.id, congregationId, userId))
+    await withScope(congregationId, tx => deleteRole(tx, customRole.id, congregationId, userId, ADMIN_ACTOR))
   })
 
   it('addUserToRole and removeUserFromRole toggle a single membership idempotently', async () => {
@@ -232,7 +232,7 @@ describe('roles.server (integration)', () => {
     const afterRemove = await testDb.userRoleAssignment.findMany({ where: { userId, roleId: role.id } })
     expect(afterRemove).toHaveLength(0)
 
-    await withScope(congregationId, tx => deleteRole(tx, role.id, congregationId, userId))
+    await withScope(congregationId, tx => deleteRole(tx, role.id, congregationId, userId, ADMIN_ACTOR))
   })
 
   it('addUserToRole rejects identity role assignment with ForbiddenError', async () => {
@@ -293,8 +293,8 @@ describe('roles.server (integration)', () => {
 
     expect(Math.max(...builtInPositions)).toBeLessThan(Math.min(...customPositions))
 
-    await withScope(congregationId, tx => deleteRole(tx, customA.id, congregationId, userId))
-    await withScope(congregationId, tx => deleteRole(tx, customB.id, congregationId, userId))
+    await withScope(congregationId, tx => deleteRole(tx, customA.id, congregationId, userId, ADMIN_ACTOR))
+    await withScope(congregationId, tx => deleteRole(tx, customB.id, congregationId, userId, ADMIN_ACTOR))
   })
 })
 
@@ -310,7 +310,7 @@ describe('listDelegatableRoles (integration)', () => {
     const roles = await withScope(congregationId, tx => listDelegatableRoles(tx, congregationId))
     expect(roles.map(r => r.key)).toContain(custom.key)
 
-    await withScope(congregationId, tx => deleteRole(tx, custom.id, congregationId, userId))
+    await withScope(congregationId, tx => deleteRole(tx, custom.id, congregationId, userId, ADMIN_ACTOR))
   })
 
   it('returns a personal (isSinglePerson) role', async () => {
@@ -329,7 +329,7 @@ describe('listDelegatableRoles (integration)', () => {
     const roles = await withScope(congregationId, tx => listDelegatableRoles(tx, congregationId))
     expect(roles.map(r => r.key)).toContain(personal.key)
 
-    await withScope(congregationId, tx => deleteRole(tx, personal.id, congregationId, userId))
+    await withScope(congregationId, tx => deleteRole(tx, personal.id, congregationId, userId, ADMIN_ACTOR))
   })
 
   it('excludes every identity role', async () => {

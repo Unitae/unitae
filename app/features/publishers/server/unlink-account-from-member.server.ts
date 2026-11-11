@@ -1,4 +1,7 @@
+import { requireNotLastAdmin } from '~/shared/auth/permissions.server'
+import { assertMayActOnAccount } from '~/shared/domain/account-protection.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
+import type { ActorPermissions } from '~/shared/domain/role-grant-limits.server'
 import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { MemberId } from '~/shared/types/branded'
@@ -18,6 +21,7 @@ export async function unlinkAccountFromMember(
   memberId: MemberId,
   congregationId: number,
   actorId: number,
+  actorPermissions: ActorPermissions,
 ): Promise<{ accountId: number; email: string } | null> {
   const member = await db.member.findFirst({
     where: { id: memberId, congregationId },
@@ -27,6 +31,9 @@ export async function unlinkAccountFromMember(
   if (!member.account) return null
 
   const { id: accountId, email } = member.account
+  // Taking a login away deletes the account: the same rules as deleting it from Réglages.
+  await assertMayActOnAccount({ accountId, actorId, congregationId, actorPermissions, action: 'delete' })
+  await requireNotLastAdmin(accountId, congregationId)
   await db.userAccount.delete({ where: { id_congregationId: { id: accountId, congregationId } } })
 
   audit({

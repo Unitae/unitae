@@ -208,14 +208,13 @@ describe('resolveEffectivePermissions (integration)', () => {
 })
 
 describe('seat kind never changes permissions (integration)', () => {
-  it.each([
-    'leader',
-    'deputy',
-    'member',
-  ] as const)('grants the role’s permissions to its %s like to anyone else on it', async kind => {
-    const perms = await resolveEffectivePermissions(seatAccountIds[kind], congregationId)
-    expect(perms.has(Permission.CanViewTerritories)).toBe(true)
-  })
+  it.each(['leader', 'deputy', 'member'] as const)(
+    'grants the role’s permissions to its %s like to anyone else on it',
+    async kind => {
+      const perms = await resolveEffectivePermissions(seatAccountIds[kind], congregationId)
+      expect(perms.has(Permission.CanViewTerritories)).toBe(true)
+    },
+  )
 
   it('finds all three holders, whatever seat they occupy', async () => {
     const accounts = await findAccountsWithPermission(testDb, congregationId, Permission.CanViewTerritories)

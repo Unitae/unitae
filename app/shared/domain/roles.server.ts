@@ -395,6 +395,7 @@ export async function deleteRole(
   id: number,
   congregationId: number,
   actorId: number,
+  actorPermissions: ActorPermissions,
 ): Promise<void> {
   const role = await db.role.findFirst({
     where: { id, congregationId },
@@ -404,6 +405,14 @@ export async function deleteRole(
 
   if (role.isBuiltIn) {
     throw new ForbiddenError('Built-in roles cannot be deleted')
+  }
+
+  // Deleting a role takes its permissions away from everyone who holds it: only someone who holds them may, and
+  // never when it would leave the congregation without an administrator.
+  await assertActorHoldsRolePermissions(db, [id], congregationId, actorPermissions)
+  if (await roleGrantsAdmin(db, id, congregationId)) {
+    if (!isAdminActor(actorPermissions)) throw new GrantBeyondActorError('Only an admin can delete an admin role')
+    await requireAdminsRemainWithoutRole(id, congregationId)
   }
 
   // The organigram's self-referencing FK is ON DELETE RESTRICT, so deleting a role that others

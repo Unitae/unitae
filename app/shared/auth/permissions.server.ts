@@ -64,6 +64,13 @@ export const notificationRecipientFilter: Prisma.UserAccountWhereInput = {
 
 type DbClient = TransactionClient | typeof unscopedDb
 
+/** Raised when a change would leave the congregation without an administrator. */
+export class LastAdminError extends ConflictError {
+  constructor() {
+    super('Cannot remove the last admin from the congregation.')
+  }
+}
+
 export async function resolveEffectivePermissions(userId: number, congregationId: number): Promise<Set<Permission>> {
   const viaRoles = await unscopedDb.rolePermission.findMany({
     where: { congregationId, role: rolesAssignedToAccount(userId) },
@@ -197,9 +204,7 @@ export async function requireNotLastAdmin(accountId: number, congregationId: num
   if (!isAdmin) return
 
   const remaining = admins.filter(a => a.id !== accountId).length
-  if (remaining === 0) {
-    throw new ConflictError('Cannot remove the last admin from the congregation.')
-  }
+  if (remaining === 0) throw new LastAdminError()
 }
 
 /**
@@ -210,5 +215,5 @@ export async function requireAdminsRemainWithoutRole(roleId: number, congregatio
   const remaining = await unscopedDb.userAccount.count({
     where: { congregationId, ...accountsWithPermissionFilter(Permission.CanDoAnything, roleId) },
   })
-  if (remaining === 0) throw new ConflictError('Cannot remove the last admin from the congregation.')
+  if (remaining === 0) throw new LastAdminError()
 }

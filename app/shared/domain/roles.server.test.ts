@@ -260,7 +260,9 @@ describe('deleteRole', () => {
       _count: { members: 0 },
     } as never)
 
-    await expect(deleteRole(mockDb as never, 1, 10, 1)).rejects.toBeInstanceOf(ForbiddenError)
+    await expect(deleteRole(mockDb as never, 1, 10, 1, new Set(['can-do-anything']))).rejects.toBeInstanceOf(
+      ForbiddenError,
+    )
     expect(mockDb.role.delete).not.toHaveBeenCalled()
   })
 
@@ -277,7 +279,7 @@ describe('deleteRole', () => {
     mockDb.role.findMany.mockResolvedValue([] as never)
     mockDb.role.delete.mockResolvedValue({} as never)
 
-    await deleteRole(mockDb as never, 7, 10, 1)
+    await deleteRole(mockDb as never, 7, 10, 1, new Set(['can-do-anything']))
 
     expect(mockDb.role.delete).toHaveBeenCalledWith({
       where: { id_congregationId: { id: 7, congregationId: 10 } },
@@ -482,8 +484,10 @@ describe('deleteRole — organigram children', () => {
       { id: 3, key: 'comptes', name: 'Comptes' },
     ])
 
-    await expect(deleteRole(mockDb as never, 1, 10, 99)).rejects.toBeInstanceOf(ConflictError)
-    await expect(deleteRole(mockDb as never, 1, 10, 99)).rejects.toThrow(NAMES_THE_CHILD)
+    await expect(deleteRole(mockDb as never, 1, 10, 99, new Set(['can-do-anything']))).rejects.toBeInstanceOf(
+      ConflictError,
+    )
+    await expect(deleteRole(mockDb as never, 1, 10, 99, new Set(['can-do-anything']))).rejects.toThrow(NAMES_THE_CHILD)
     expect(mockDb.role.delete).not.toHaveBeenCalled()
   })
 
@@ -498,7 +502,7 @@ describe('deleteRole — organigram children', () => {
     mockDb.role.findMany.mockResolvedValue([])
     mockDb.role.delete.mockResolvedValue({})
 
-    await deleteRole(mockDb as never, 4, 10, 99)
+    await deleteRole(mockDb as never, 4, 10, 99, new Set(['can-do-anything']))
 
     expect(mockDb.role.delete).toHaveBeenCalled()
   })
