@@ -53,7 +53,7 @@ export default function PrivacyPolicyPage({ loaderData }: Route.ComponentProps) 
         </nav>
         <article className="flex min-w-0 max-w-[68ch] flex-1 flex-col gap-9">
           <div className="flex flex-col gap-2">
-            <h1 className="font-semibold text-[1.875rem] leading-tight tracking-tight">{m.privacy_title()}</h1>
+            <h1 className="text-h1">{m.privacy_title()}</h1>
             <p className="text-faint text-sm">{m.privacy_last_updated()}</p>
           </div>
           <details className="group rounded-md border bg-card lg:hidden">

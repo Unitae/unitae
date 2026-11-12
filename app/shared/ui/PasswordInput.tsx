@@ -20,7 +20,7 @@ export function PasswordInput({ className, ...props }: React.ComponentProps<'inp
         onClick={() => setShown(value => !value)}
         aria-label={m.form_password_show()}
         aria-pressed={shown}
-        className="absolute inset-y-0 right-0 grid w-10 place-content-center rounded-r-md text-faint transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="absolute inset-y-0 right-0 grid w-10 place-content-center pointer-coarse:w-11 rounded-r-md text-faint transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Icon aria-hidden="true" className="size-4" />
       </button>

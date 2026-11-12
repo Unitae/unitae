@@ -61,7 +61,7 @@ export function QuickViews<V extends string>(props: QuickViewsProps<V>) {
               aria-pressed={pressed}
               onClick={() => onChoose(view.value)}
               className={cn(
-                'inline-flex h-9 flex-none items-center gap-1.5 rounded-full border bg-card px-3 font-medium text-sm outline-none transition-colors duration-(--u-duration-fast) focus-visible:ring-2 focus-visible:ring-ring',
+                'inline-flex h-9 flex-none items-center pointer-coarse:h-11 gap-1.5 rounded-full border bg-card px-3 font-medium text-sm outline-none transition-colors duration-(--u-duration-fast) focus-visible:ring-2 focus-visible:ring-ring',
                 pressed ? 'border-foreground text-foreground' : 'border-border text-muted-foreground',
               )}
             >

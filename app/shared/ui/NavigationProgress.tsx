@@ -32,9 +32,7 @@ export function NavigationProgress() {
 
   return (
     <div className="fixed inset-x-0 top-0 z-50 h-0.5">
-      <div
-        className={`h-full bg-primary ${completing ? 'w-full transition-all duration-200' : 'animate-navigation-progress'}`}
-      />
+      <div className={`h-full bg-primary ${completing ? 'w-full transition-all' : 'animate-navigation-progress'}`} />
     </div>
   )
 }

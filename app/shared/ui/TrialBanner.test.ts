@@ -5,6 +5,9 @@ import type { TrialBannerInfo } from '~/shared/domain/trial-status'
 
 import { TrialBanner } from './TrialBanner'
 
+/** An HTML tag, to read the rendered words alone. */
+const TAG = /<[^>]+>/g
+
 const render = (trial: TrialBannerInfo | null) => renderToStaticMarkup(createElement(TrialBanner, { trial }))
 
 const IN_TRIAL: TrialBannerInfo = { daysLeft: 12, endingSoon: false, endsOn: '30 octobre', subscribeUrl: null }
@@ -28,8 +31,9 @@ describe('TrialBanner', () => {
   })
 
   it('says it is the last day rather than "1 days"', () => {
-    const html = render({ ...IN_TRIAL, daysLeft: 1, endingSoon: true })
-    expect(html).not.toContain(' 1 ')
-    expect(html).toContain('Dernier jour')
+    // The words only: the status icon's SVG path has numbers of its own.
+    const text = render({ ...IN_TRIAL, daysLeft: 1, endingSoon: true }).replace(TAG, ' ')
+    expect(text).not.toContain(' 1 ')
+    expect(text).toContain('Dernier jour')
   })
 })

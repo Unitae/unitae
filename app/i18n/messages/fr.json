@@ -139,6 +139,7 @@
     "common_unsaved_changes_leave": "Quitter",
     "common_discard_changes_description": "Les modifications non enregistrées seront perdues.",
     "common_discard_changes_confirm": "Abandonner",
+    "common_walk_position": "{position} sur {total}",
     "common_offline_message": "Vous êtes hors ligne. Certaines fonctionnalités peuvent être indisponibles.",
     "command_palette_placeholder": "Rechercher une page…",
     "command_palette_navigation": "Navigation",

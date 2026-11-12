@@ -1,3 +1,4 @@
+import { Kbd } from '@unitae/ui'
 import { Bell, Search, TrendingUp, User } from 'lucide-react'
 import { type ComponentType, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
@@ -163,16 +164,13 @@ export function CommandPalette({ permissions, open, onOpenChange }: CommandPalet
 
           <div className="flex items-center gap-3 border-t px-3 py-2 text-muted-foreground text-xs">
             <span>
-              <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">↑↓</kbd>{' '}
-              {m.command_palette_hint_navigate()}
+              <Kbd>↑↓</Kbd> {m.command_palette_hint_navigate()}
             </span>
             <span>
-              <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">↵</kbd>{' '}
-              {m.command_palette_hint_open()}
+              <Kbd>↵</Kbd> {m.command_palette_hint_open()}
             </span>
             <span>
-              <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">esc</kbd>{' '}
-              {m.command_palette_hint_close()}
+              <Kbd>esc</Kbd> {m.command_palette_hint_close()}
             </span>
           </div>
         </DialogContent>

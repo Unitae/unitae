@@ -117,9 +117,7 @@ export function SpeakerListUpdateScreen({ page }: { page: SpeakerListUpdatePage 
       >
         <div className="flex flex-col gap-1.5">
           <div className="flex flex-wrap items-baseline gap-x-2.5">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {m.external_speakers_update_title({ name: congregation.name })}
-            </h1>
+            <h1 className="text-h1">{m.external_speakers_update_title({ name: congregation.name })}</h1>
             {congregation.listDate && (
               <span className="text-faint tabular-nums">
                 {m.external_speakers_update_current({ date: formatSpeakerDate(congregation.listDate, timezone) })}

@@ -1,9 +1,9 @@
-import { AlertTriangle } from 'lucide-react'
+import { Callout } from '@unitae/ui'
+import { Trash2 } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { Form, Link } from 'react-router'
 
 import * as m from '~/i18n/paraglide/messages'
-import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
@@ -36,19 +36,14 @@ export function DeleteConfirmation({
     <div className="flex items-center justify-center p-7">
       <Card className="max-w-lg">
         <CardHeader className="items-center gap-3">
-          <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10">
-            <AlertTriangle className="size-6 text-destructive" />
-          </div>
+          <span className="grid size-10 place-content-center rounded-md border border-border bg-sidebar">
+            <Trash2 aria-hidden="true" className="size-5 text-faint" />
+          </span>
           <CardTitle className="text-center">{title}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {children && <div className="rounded-lg border bg-muted/30 px-3 py-2 text-center text-sm">{children}</div>}
-          {impact && (
-            <Alert className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400">
-              <AlertTriangle className="size-4" />
-              <AlertDescription>{impact}</AlertDescription>
-            </Alert>
-          )}
+          {impact && <Callout tone="warning">{impact}</Callout>}
         </CardContent>
         <CardFooter className="flex flex-col gap-3">
           <Form method="post" className="flex w-full flex-col gap-3">

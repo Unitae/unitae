@@ -32,7 +32,7 @@ export function RecordHeader({ record, pioneerLabel }: { record: PublisherRecord
     <div className="flex animate-fade-in-up items-center gap-3.5">
       <Avatar name={name} size="md" className="size-11 text-[15px]" />
       <div className="flex min-w-0 flex-col gap-1.5">
-        <h1 className="font-semibold text-3xl tracking-tight max-sm:text-2xl">{name}</h1>
+        <h1 className="text-h1">{name}</h1>
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {tags.map(tag => (

@@ -81,7 +81,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
       <PageTopbar trail={[{ label: m.sidebar_home() }]} className="mb-0">
         <div className="flex animate-fade-in-up flex-col gap-1">
           <p className="font-medium text-faint text-xs">{formatTodayLabel(new Date(), timezone)}</p>
-          <h1 className="font-semibold text-2xl tracking-tight">
+          <h1 className="text-h1">
             {data.firstname
               ? `${m.dashboard_greeting_hello()} ${data.firstname}`
               : // Sign-up asks for no name, so a fresh admin account has none.
