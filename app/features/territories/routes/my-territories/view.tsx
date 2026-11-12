@@ -5,6 +5,7 @@ import { redirect } from 'react-router'
 
 import { groupByStreet, toHolderEntrance } from '~/features/territories/model/holder-territory'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
+import { getHolderMap } from '~/features/territories/server/holder-map.server'
 import { computeStatus, getUserTerritoryDetail } from '~/features/territories/server/my-territories.server'
 import { HolderTerritoryFacts, LoanStatus } from '~/features/territories/ui/HolderLoan'
 import { HolderTerritoryBody, type HolderView } from '~/features/territories/ui/HolderTerritoryBody'
@@ -15,7 +16,6 @@ import { getBoolSetting } from '~/shared/domain/settings.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
-import { getOptionalEnv } from '~/shared/utils/env.server'
 import { requireParamId } from '~/shared/utils/params.server'
 import { cn } from '~/shared/utils/utils'
 
@@ -38,11 +38,14 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
     const locale = getLocale()
     const entrances = attribution.territory.entrances.flatMap(entrance => toHolderEntrance(entrance, locale) ?? [])
-    const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
     const [phoneTypeActive, mapTabActive] = await Promise.all([
       getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, currentUser.congregationId),
       getBoolSetting(db, TerritorySettingKey.MapTabActive, currentUser.congregationId),
     ])
+    // The map needs the congregation's choice, a base map on the instance and one building placed on it: without
+    // them there is nothing to show, and the list keeps the whole width.
+    const placed = entrances.some(entrance => entrance.points.length > 0)
+    const holderMap = mapTabActive && placed ? await getHolderMap(db, currentUser.congregationId) : null
 
     return {
       territory: {
@@ -66,20 +69,18 @@ export function loader({ params, context }: Route.LoaderArgs) {
         status: computeStatus(attribution.lateDate),
       },
       showPhone: phoneTypeActive ?? false,
-      // The map needs the congregation's choice, a key and one building placed on it: without them
-      // there is nothing to show, and the list keeps the whole width.
-      mapKey: mapTabActive && apiKey && entrances.some(entrance => entrance.points.length > 0) ? apiKey : null,
+      map: holderMap,
       timeZone: timezone,
     }
   })
 }
 
 export default function MyTerritoryView({ loaderData }: Route.ComponentProps) {
-  const { territory, streets, totals, attribution, showPhone, mapKey, timeZone } = loaderData
+  const { territory, streets, totals, attribution, showPhone, map, timeZone } = loaderData
   const [view, setView] = useState<HolderView>('list')
 
   return (
-    <div className={cn('flex flex-col', mapKey != null ? 'max-w-6xl' : 'max-w-4xl')}>
+    <div className={cn('flex flex-col', map != null ? 'max-w-6xl' : 'max-w-4xl')}>
       <PageHeader
         icon={MapPin}
         title={m.territory_doc_title({ name: territory.number })}
@@ -107,7 +108,7 @@ export default function MyTerritoryView({ loaderData }: Route.ComponentProps) {
           </Button>
         }
         controls={
-          mapKey != null ? (
+          map != null ? (
             // Side by side from xl; below, one at a time.
             <div className="xl:hidden">
               <SegmentedControl
@@ -128,7 +129,7 @@ export default function MyTerritoryView({ loaderData }: Route.ComponentProps) {
         streets={streets}
         territoryType={territory.type}
         showPhone={showPhone}
-        map={mapKey == null ? null : { apiKey: mapKey, number: territory.number }}
+        map={map == null ? null : { ...map, number: territory.number }}
         view={view}
         onViewChange={setView}
       />

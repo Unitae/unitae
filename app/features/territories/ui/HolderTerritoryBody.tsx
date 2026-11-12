@@ -1,5 +1,6 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 
+import type { Bbox } from '~/features/territories/model/bbox.type'
 import type { HolderEntrance, StreetGroup } from '~/features/territories/model/holder-territory'
 import { entranceRowId, HolderEntranceList } from '~/features/territories/ui/HolderEntranceList'
 import { HolderTerritoryMap } from '~/features/territories/ui/HolderTerritoryMap'
@@ -15,8 +16,8 @@ interface HolderTerritoryBodyProps {
   streets: StreetGroup[]
   territoryType: string
   showPhone: boolean
-  /** The Maps key and the territory's number; null when there is no map to show. */
-  map: { apiKey: string; number: string } | null
+  /** The base map's tiles and area, and the territory's number; null when there is no map to show. */
+  map: { tiles: string; area: Bbox; number: string } | null
   /** Below xl one of them at a time, as the page's « Liste / Carte » switch says. */
   view: HolderView
   onViewChange: (view: HolderView) => void
@@ -109,7 +110,8 @@ export function HolderTerritoryBody({
       {column != null && <div className={cn(view === 'map' && 'max-xl:hidden')}>{column}</div>}
       <div className={cn('xl:sticky xl:top-6', view === 'list' && 'max-xl:hidden')}>
         <HolderTerritoryMap
-          apiKey={map.apiKey}
+          tiles={map.tiles}
+          area={map.area}
           number={map.number}
           entrances={entrances}
           territoryType={territoryType}

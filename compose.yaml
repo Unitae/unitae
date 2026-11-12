@@ -71,6 +71,9 @@ services:
       - app
     volumes:
       - unitae_content:/app/content:rw
+      # The base map of the territory maps (docs/self-hosting/maps.md): put area.pmtiles in ./maps,
+      # uncomment this line, and set UNITAE_MAP_TILES="/app/maps/area.pmtiles" in .env.
+      # - ./maps:/app/maps:ro
     healthcheck:
       # `curl` is not present in the node:22-alpine runtime image, and a missing
       # binary makes every probe fail — the container reports `unhealthy` forever

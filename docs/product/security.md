@@ -53,7 +53,7 @@ Unitae processes religious affiliation data, classified as special category data
 - **Soft leave (reversible)** — Distinct from anonymisation, you can *Mark as left* a publisher who has left the congregation. They disappear from publisher-facing lists immediately; their data stays, identity-role assignments are dropped, and any login the person had loses its custom roles. Use this when someone moves away or steps back. If they come back later, *Mark as returned* clears the leave date and the identity roles are recomputed from their still-intact flags (management roles previously on the linked login are NOT auto-restored — re-grant them manually). Anonymise later if you decide to permanently erase identifying information.
 - **Consent gate** — Users must explicitly consent to data processing on their first login before accessing the application.
 - **Consent management** — Users can view and withdraw their consents at any time from their profile.
-- **Cookie consent** — Third-party services (Google Maps) only load after explicit consent.
+- **Cookie consent** — Third-party services (Google Maps, in the territory editor and the *Carte de l'assemblée* drawing) only load after explicit consent. The territory maps come from the instance itself and need none.
 - **Audit logging** — A trail of GDPR-sensitive operations: login, data export, anonymisation, consent changes, user creation, password operations.
 - **Log PII obfuscation** — Email addresses and other personal data are automatically obfuscated in application logs.
 - **Data retention** — Automated cleanup of expired tokens and old withdrawn consent records.

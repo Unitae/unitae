@@ -1,17 +1,21 @@
 import { Panel, SectionHeading } from '@unitae/ui'
 import { MapPin } from 'lucide-react'
-import { useId } from 'react'
+import { useEffect, useId } from 'react'
 
 import { mainStreets } from '~/features/territories/model/holder-territory'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { getActiveCampaign } from '~/features/territories/server/campaign.queries'
 import { getUserTerritoriesWithDetails } from '~/features/territories/server/my-territories.server'
 import { CampaignModeBanner } from '~/features/territories/ui/CampaignModeBanner'
+import { prefetchHolderMapCanvas } from '~/features/territories/ui/holder-map-chunk'
 import { MyTerritoryRow, type MyTerritoryRowData } from '~/features/territories/ui/MyTerritoryRow'
 import { territoryCountLabel } from '~/features/territories/ui/my-territory-labels'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { congregationContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { getBoolSetting } from '~/shared/domain/settings.server'
+import { getMapTiles } from '~/shared/infra/map-tiles.server'
+import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { formatLocalDate } from '~/shared/utils/date.server'
@@ -62,6 +66,11 @@ export function loader({ context }: Route.LoaderArgs) {
     })
 
     const activeCampaign = await getActiveCampaign(db, congregationId)
+    // Whether a territory page here will show a map: the list then fetches the map's code while it sits idle.
+    const mapOn =
+      rows.length > 0 &&
+      getMapTiles() != null &&
+      ((await getBoolSetting(db, TerritorySettingKey.MapTabActive, congregationId)) ?? false)
     const bannerCampaign =
       activeCampaign == null
         ? null
@@ -78,14 +87,16 @@ export function loader({ context }: Route.LoaderArgs) {
       territories: rows.filter(row => row.pausedAt == null),
       paused: rows.filter(row => row.pausedAt != null),
       bannerCampaign,
+      mapOn,
       timeZone: timezone,
     }
   })
 }
 
 export default function MyTerritoriesList({ loaderData }: Route.ComponentProps) {
-  const { territories, paused, bannerCampaign, timeZone } = loaderData
+  const { territories, paused, bannerCampaign, mapOn, timeZone } = loaderData
   const pausedHeadingId = useId()
+  useEffect(() => (mapOn ? prefetchHolderMapCanvas() : undefined), [mapOn])
 
   return (
     <div className="flex max-w-5xl flex-col gap-5">

@@ -44,3 +44,6 @@ playwright-report/
 # settings.local.json is personal and carries real credentials in its `env` block —
 # it must never be committed to this public repo.
 .claude/settings.local.json
+
+# The base map file self-hosters put next to compose.yaml (docs/self-hosting/maps.md)
+/maps/

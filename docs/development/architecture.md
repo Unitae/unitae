@@ -193,16 +193,47 @@ Two storage drivers, selected automatically based on `S3_ENDPOINT`:
 
 Key structure: `{congregationId}/{feature}/{uuid}.pdf`
 
-## Google Maps Integration
+## Maps
+
+Two map stacks live side by side while the editors move over:
+
+- **The base map (MapLibre)** — *Mes territoires* and a territory's page. Protomaps vector tiles from one PMTiles
+  archive named by `UNITAE_MAP_TILES` (a path or an `https://` URL), painted with `mapStyle()` from
+  `@unitae/tokens/map-style`. The browser never reaches the archive: see [The base map](#the-base-map).
+- **Google Maps** — the territory editor, *Créer en lot*, the *Carte de l'assemblée* drawing, the PDF map page and the
+  proximity search, behind `GOOGLE_MAPS_API_KEY` (and the consent banner for the on-screen parts).
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `GOOGLE_MAPS_API_KEY` | No | Enables map rendering on territory pages, static maps in PDF exports, and the *Carte de l'assemblée* drawing editor |
-| `GOOGLE_MAPS_MAP_ID` | No | Enables custom styled maps (requires API key) |
+| `UNITAE_MAP_TILES` | No | The base map's PMTiles archive. Without it the territory maps are hidden |
+| `GOOGLE_MAPS_API_KEY` | No | Enables the territory editor's map, static maps in PDF exports, and the *Carte de l'assemblée* drawing editor |
+| `GOOGLE_MAPS_MAP_ID` | No | Enables custom styled Google maps (requires API key) |
 
-When not set, on-screen interactive maps are hidden, the PDF map page is skipped, and the *Carte de l'assemblée* page falls back to the GeoJSON import/export workflow only (no visual editor).
+When the Google key is not set, the editor falls back to a search, the PDF map page is skipped, and the *Carte de l'assemblée* page falls back to the GeoJSON import/export workflow only (no visual editor).
 
-### Components
+### The base map
+
+- **`app/shared/infra/map-tiles.server.ts`** — opens the archive with `pmtiles` (a local file through one handle,
+  ranged GETs on a private bucket with the storage's S3 client, or ranges over HTTP), names its *edition* from the
+  header, and keeps recent tiles in memory (gzipped, LRU, 64 MB, each entry counted even when the tile is empty). The
+  reader decompresses tiles itself, so the store gzips each one once.
+- **`app/features/territories/routes/map/tile.tsx`** — `GET /map/tiles/:edition/:z/:x/:y`, under the authenticated
+  layout: 204 outside the congregation's area or past the archive's deepest zoom, 404 for another edition, 503 when the
+  archive can't be read, and
+  `Cache-Control: private, max-age=31536000, immutable` otherwise (the edition is in the address).
+- **`app/features/territories/server/map-area.queries.ts`** (`getMapArea`) — the congregation's area: around its
+  perimeter, else around its placed entrances, with a margin (`model/map-area.ts`). `map-tiles-area.server.ts` caches
+  it per congregation and warms its tiles; `holder-map.server.ts` (`getHolderMap`) gives a page its tile address and
+  area.
+- **Glyphs** — `public/map-fonts/` ships the label glyphs (« Unitae Map », IBM Plex renamed under its licence; see
+  `scripts/map-fonts/README.md`); `app/shell/map-fonts.tsx` answers the other ranges with Noto Sans.
+- **`app/features/territories/ui/HolderTerritoryMap.tsx`** — the frame (caption, loading and failure, the entrance
+  card), server-rendered; **`HolderMapCanvas.tsx`** — the map itself on `@vis.gl/react-maplibre`, loaded in the
+  browser only, as its own chunk (`holder-map-chunk.ts`; the *Mes territoires* list prefetches it while idle). MapLibre
+  is told its worker's address (`setWorkerUrl`), since bundling moves it away from its module.
+- `server.js` compresses `/map-fonts/` responses (protobuf is not compressible by default).
+
+### Google Maps components
 
 - **`app/features/territories/ui/BuildingEntranceMap.tsx`** — read-only Google Map (`@vis.gl/react-google-maps`) used by the territory view, the new-territory preview, the five split-tool variants, and the publisher dashboard. Renders `<AdvancedMarker>` + the shared `<EntranceMarkerPin>` (defaults to the in-territory blue + check variant). Accepts `className` / `mapClassName` overrides so the territory view can shrink the map to a 40/50% sticky sidebar without affecting other call sites.
 - **`app/features/territories/ui/BuildingEntranceMapEditor.tsx`** — the interactive map-driven territory editor. Uses the same `<EntranceMarkerPin>` with the relevant variant per state (in-territory / available / on-other / pending-add / pending-remove). Wires `@googlemaps/markerclusterer` for clustering, fetches viewport entrances on map idle (debounced + cached by a coarse 0.01° grid), and surfaces a search box, legend, retry chip, and empty-state overlay.

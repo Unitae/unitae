@@ -97,12 +97,13 @@ By default, uploaded files are stored on the local filesystem. Set `S3_ENDPOINT`
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `GOOGLE_MAPS_API_KEY` | — | Google Maps API key. Enables maps on territory pages, in PDF exports, the visual drawing editor on the *Carte de l'assemblée* settings page, and **proximity ranking in the territory/attribution search** (typing an address ranks the matching territories by distance) |
+| `UNITAE_MAP_TILES` | — | The base map of the territory maps (*Mes territoires*, a territory's page): a Protomaps PMTiles file, as a path on the server, `s3://bucket/key` (a private bucket, read with the `S3_*` credentials above) or a public `https://` URL. The app serves its tiles itself. Without it those maps are hidden. See [Maps](maps.md) |
+| `GOOGLE_MAPS_API_KEY` | — | Google Maps API key. Enables the territory editor's map, the map page of PDF exports, the visual drawing editor on the *Carte de l'assemblée* settings page, and **proximity ranking in the territory/attribution search** (typing an address ranks the matching territories by distance) |
 | `GOOGLE_MAPS_MAP_ID` | — | Google Maps Map ID for custom styled maps. Requires `GOOGLE_MAPS_API_KEY` |
 
 The API key needs the **Maps JavaScript API**, **Maps Static API**, **Drawing Library**, and **Geocoding API** enabled in the Google Cloud Console. The Geocoding API powers the proximity search; geocoded addresses are cached in Redis for 90 days so repeat searches don't re-query the API.
 
-When `GOOGLE_MAPS_API_KEY` is not set, on-screen interactive maps are hidden, the PDF map page is skipped, the *Carte de l'assemblée* page falls back to the GeoJSON import/export workflow only — assemblies can still author their map in an external tool (geojson.io, Google My Maps, QGIS) and paste the result — and the proximity ranking in the territory search degrades silently to text-only matches.
+When `GOOGLE_MAPS_API_KEY` is not set, the territory editor falls back to a search, the PDF map page is skipped, the *Carte de l'assemblée* page falls back to the GeoJSON import/export workflow only — assemblies can still author their map in an external tool (geojson.io, Google My Maps, QGIS) and paste the result — and the proximity ranking in the territory search degrades silently to text-only matches.
 
 ## Open Data Sync
 

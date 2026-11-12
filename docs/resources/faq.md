@@ -66,7 +66,7 @@ The link is per-user and protected by a long random token. Only people you give 
 
 ### Do I need a Google Maps API key?
 
-No. Maps are optional. Without an API key, territory management works normally — you just won't see interactive maps or map images in PDF exports. See [Environment Variables](../self-hosting/environment-variables.md).
+No. Maps are optional. The territory maps of *Mes territoires* and a territory's page use a base map your instance serves itself (`UNITAE_MAP_TILES`, see [Maps](../self-hosting/maps.md)), not Google. Without a Google key, territory management works normally — the editor finds entrances by address instead of on a map, and PDF exports have no map page. See [Environment Variables](../self-hosting/environment-variables.md).
 
 ### Do I need a Resend API key for emails?
 

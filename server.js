@@ -37,7 +37,8 @@ function parseTrustProxy(value) {
 const app = express()
 app.set('trust proxy', parseTrustProxy(process.env.UNITAE_TRUST_PROXY))
 app.disable('x-powered-by')
-app.use(compression())
+// Map label glyphs are protobuf, which compression leaves alone by default: they shrink by a third.
+app.use(compression({ filter: (req, res) => req.path.startsWith('/map-fonts/') || compression.filter(req, res) }))
 app.use('/assets', express.static(path.join(assetsDirectory, 'assets'), { immutable: true, maxAge: '1y' }))
 app.use(express.static(assetsDirectory))
 app.use(express.static('public', { maxAge: '1h' }))
