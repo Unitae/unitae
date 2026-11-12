@@ -6,11 +6,12 @@ export interface DurationStatsTerritory {
   number: string
 }
 
+/** Null figures when no attribution was returned: there is no duration to show, not a duration of 0 days. */
 export interface DurationStats {
-  averageDays: number
-  longestDays: number
+  averageDays: number | null
+  longestDays: number | null
   longestTerritory: DurationStatsTerritory | null
-  shortestDays: number
+  shortestDays: number | null
   shortestTerritory: DurationStatsTerritory | null
 }
 
@@ -41,10 +42,10 @@ export function computeDurationStats(attributions: StatsAttribution[]): Duration
 
   if (count === 0) {
     return {
-      averageDays: 0,
-      longestDays: 0,
+      averageDays: null,
+      longestDays: null,
       longestTerritory: null,
-      shortestDays: 0,
+      shortestDays: null,
       shortestTerritory: null,
     }
   }

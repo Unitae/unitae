@@ -18,9 +18,9 @@ interface AnalysisSectionProps {
   progression: {
     ranked: RankedTerritoriesResult
     durationStats: DurationStats
-    overdueRate: number
-    availabilityGap: number
-    restUtilization: number
+    overdueRate: number | null
+    availabilityGap: number | null
+    restUtilization: number | null
     foyersReached: FoyersReached
     attributionsPerMonth: MonthlyCount[]
   }

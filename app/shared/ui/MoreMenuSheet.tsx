@@ -1,8 +1,12 @@
-import type { LucideIcon } from 'lucide-react'
-import { NavLink } from 'react-router'
+import { Link, useLocation } from 'react-router'
 
 import * as m from '~/i18n/paraglide/messages'
-import { buildManagementSections, type NavigationPermissions } from '~/shared/ui/navigation-config'
+import {
+  buildManagementSections,
+  isNavItemCurrent,
+  type NavItem,
+  type NavigationPermissions,
+} from '~/shared/ui/navigation-config'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '~/shared/ui/sheet'
 import { cn } from '~/shared/utils/utils'
 
@@ -35,13 +39,14 @@ export function MoreMenuSheet({ permissions, open, onOpenChange }: MoreMenuSheet
         <div className="flex flex-col gap-4 px-2">
           {sections.map(section => (
             <section key={section.id} aria-label={section.label()}>
-              <h3 className="px-3 pb-1 font-medium text-faint text-xs">{section.label()}</h3>
+              {/* A group of one is just its entry, as in the sidebar: its label would only repeat it. */}
+              {section.items.length > 1 && (
+                <h3 className="px-3 pb-1 font-medium text-faint text-xs">{section.label()}</h3>
+              )}
               <ul className="flex flex-col gap-px">
                 {section.items.map(item => (
                   <li key={`${section.id}-${item.id}`}>
-                    <SheetLink to={item.to} end={item.end} icon={item.icon} onNavigate={close}>
-                      {item.label()}
-                    </SheetLink>
+                    <SheetLink item={item} onNavigate={close} />
                   </li>
                 ))}
               </ul>
@@ -56,33 +61,20 @@ export function MoreMenuSheet({ permissions, open, onOpenChange }: MoreMenuSheet
 const ROW =
   'flex min-h-[44px] items-center gap-3 rounded-md px-3 font-medium text-muted-foreground text-sm transition-colors hover:bg-hover hover:text-foreground'
 
-function SheetLink({
-  to,
-  end,
-  icon: Icon,
-  onNavigate,
-  children,
-}: {
-  to: string
-  end?: boolean
-  icon: LucideIcon
-  onNavigate: () => void
-  children: React.ReactNode
-}) {
+function SheetLink({ item, onNavigate }: { item: NavItem; onNavigate: () => void }) {
+  const { pathname } = useLocation()
+  const current = isNavItemCurrent(item, pathname)
+  const Icon = item.icon
   return (
-    <NavLink
-      to={to}
-      end={end}
+    <Link
+      to={item.to}
       viewTransition
       onClick={onNavigate}
-      className={({ isActive }) => cn(ROW, isActive && 'bg-selected text-foreground')}
+      aria-current={current ? 'page' : undefined}
+      className={cn(ROW, current && 'bg-selected text-foreground')}
     >
-      {({ isActive }) => (
-        <>
-          <Icon className={cn('size-4 text-faint', isActive && 'text-brand')} aria-hidden="true" />
-          {children}
-        </>
-      )}
-    </NavLink>
+      <Icon className={cn('size-4 text-faint', current && 'text-brand')} aria-hidden="true" />
+      {item.label()}
+    </Link>
   )
 }

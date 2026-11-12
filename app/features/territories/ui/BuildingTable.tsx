@@ -40,6 +40,8 @@ export interface BuildingTableProps {
   view: BuildingView
   today: string
   canSurvey: boolean
+  /** Whether the reader may open the territory page; the territory is plain text otherwise. */
+  canOpenTerritories: boolean
   canManage: boolean
   /** The list as it is (view, filters, order), so a survey opened from it can go on to the next building. */
   from: string
@@ -120,7 +122,7 @@ function BuildingRow(props: BuildingTableProps & { row: BuildingListItem }) {
         {view === 'check' ? <Reasons row={row} today={today} /> : (buildingContentLabel(row.content) ?? '—')}
       </td>
       <td className={CELL}>
-        <TerritoryLink row={row} />
+        <TerritoryLink row={row} canOpen={props.canOpenTerritories} />
       </td>
       <td className={cn(CELL, 'tabular-nums')}>
         <WhenCell row={row} view={view} today={today} />
@@ -184,10 +186,14 @@ function Reasons({ row, today }: { row: BuildingListItem; today: string }) {
   )
 }
 
-function TerritoryLink({ row }: { row: BuildingListItem }) {
+function TerritoryLink({ row, canOpen }: { row: BuildingListItem; canOpen: boolean }) {
   if (row.territory == null) return <span className="text-faint">{m.prospection_no_territory()}</span>
+  if (!canOpen) return <span className="tabular-nums">{row.territory.number}</span>
   return (
-    <Link to={`/territories/territory/${row.territory.id}/view`} className="tabular-nums hover:underline">
+    <Link
+      to={`/territories/territory/${row.territory.id}/view`}
+      className="text-brand-text tabular-nums underline-offset-3 hover:underline"
+    >
       {row.territory.number}
     </Link>
   )

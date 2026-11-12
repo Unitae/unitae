@@ -1,12 +1,13 @@
 import { Kbd } from '@unitae/ui'
 import { Home, LayoutGrid, Search } from 'lucide-react'
-import { NavLink, useLocation } from 'react-router'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link, useLocation } from 'react-router'
 
 import * as m from '~/i18n/paraglide/messages'
 import {
   buildManagementSections,
   buildPersonalItems,
-  isNavItemActive,
+  isNavItemCurrent,
   type NavItem,
   type NavigationPermissions,
   type NavSection,
@@ -46,6 +47,7 @@ export function AppSidebar({ permissions, congregationName, userName, onSearchCl
   // Mon profil lives in the user menu at the foot.
   const personalItems = buildPersonalItems().filter(item => item.id !== 'profile')
   const footerItems = sections.filter(section => FOOTER_SECTIONS.has(section.id)).flatMap(section => section.items)
+  const { ref: navRef, fade, update: updateFade } = useBottomFade()
 
   return (
     <Sidebar>
@@ -62,9 +64,14 @@ export function AppSidebar({ permissions, congregationName, userName, onSearchCl
         </button>
       </SidebarHeader>
 
-      <SidebarContent className="px-1 [scrollbar-width:thin]">
-        <nav aria-label={m.nav_primary()} className="flex flex-col gap-1.5">
-          <SidebarGroup>
+      <SidebarContent
+        ref={navRef}
+        onScroll={updateFade}
+        data-fade={fade ? 'bottom' : undefined}
+        className="px-1 [scrollbar-width:thin] data-[fade=bottom]:[mask-image:linear-gradient(to_bottom,black_calc(100%-2.5rem),transparent)]"
+      >
+        <nav aria-label={m.nav_primary()} className="flex flex-col gap-1">
+          <SidebarGroup className="py-1">
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarNavItem item={{ id: 'home', label: m.sidebar_home, icon: Home, to: '/', end: true }} />
@@ -103,7 +110,7 @@ export function AppSidebar({ permissions, congregationName, userName, onSearchCl
 /** A group of the sidebar, labelled in sentence case. A group of one is just its entry. */
 function SidebarNavSection({ section }: { section: NavSection }) {
   return (
-    <SidebarGroup>
+    <SidebarGroup className="py-1">
       {section.items.length > 1 && <SidebarGroupLabel>{section.label()}</SidebarGroupLabel>}
       <SidebarGroupContent>
         <SidebarMenu>
@@ -120,25 +127,48 @@ function SidebarNavItem({ item }: { item: NavItem }) {
   const { isMobile, setOpenMobile } = useSidebar()
   const { pathname } = useLocation()
   const Icon = item.icon
-  // Section-aware highlight: deep pages (a publisher record, a territory
-  // sheet) keep their owning entry lit even though NavLink's exact `end`
-  // match no longer applies.
-  const isActive = item.match ? isNavItemActive(item, pathname, false) : undefined
+  // One rule decides the current entry (deep pages keep their owning entry lit, siblings under the same address get
+  // their own): NavLink's prefix matching would light two entries on a campaign page.
+  const current = isNavItemCurrent(item, pathname)
 
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton asChild isActive={isActive} className="min-h-[44px] md:min-h-0">
-        <NavLink
+      <SidebarMenuButton asChild isActive={current} className="min-h-[44px] md:min-h-0">
+        <Link
           to={item.to}
-          end={item.end}
+          aria-current={current ? 'page' : undefined}
           onClick={() => {
             if (isMobile) setOpenMobile(false)
           }}
         >
           <Icon />
           <span>{item.label()}</span>
-        </NavLink>
+        </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>
   )
+}
+
+/**
+ * Whether the entries go on below the visible part of the sidebar: the list then fades out at the bottom, so a cut
+ * entry reads as « more below », not as missing (overlay scrollbars show nothing at rest).
+ */
+function useBottomFade() {
+  const ref = useRef<HTMLDivElement>(null)
+  const [fade, setFade] = useState(false)
+  const update = useCallback(() => {
+    const element = ref.current
+    if (element == null) return
+    setFade(element.scrollTop + element.clientHeight < element.scrollHeight - 1)
+  }, [])
+  useEffect(() => {
+    const element = ref.current
+    if (element == null) return
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(element)
+    for (const child of element.children) observer.observe(child)
+    return () => observer.disconnect()
+  }, [update])
+  return { ref, fade, update }
 }

@@ -76,4 +76,10 @@ describe('computeAttributionsPerMonth', () => {
     expect(result[0].count).toBe(1)
     expect(result[1].count).toBe(0)
   })
+
+  it('leaves the months still to come empty, not at zero', () => {
+    const today = new Date(2025, 9, 15)
+    const result = computeAttributionsPerMonth([], new Date(2025, 8, 1), new Date(2025, 11, 31), today)
+    expect(result.map(row => row.count)).toEqual([0, 0, null, null])
+  })
 })

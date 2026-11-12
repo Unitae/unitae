@@ -105,10 +105,13 @@ export default function MapSearchBox({ candidates, onSelect }: Props) {
           className="flex max-h-64 flex-col overflow-auto rounded-md border bg-card/95 text-sm shadow-md backdrop-blur"
         >
           {matches.length === 0 ? (
-            <li className="px-3 py-2 text-muted-foreground italic">{m.territories_map_search_no_results()}</li>
+            // The list items only hold the options: they stay out of the listbox's structure.
+            <li role="presentation" className="px-3 py-2 text-muted-foreground italic">
+              {m.territories_map_search_no_results()}
+            </li>
           ) : (
             matches.map((entrance, index) => (
-              <li key={entrance.id}>
+              <li key={entrance.id} role="presentation">
                 <button
                   type="button"
                   role="option"

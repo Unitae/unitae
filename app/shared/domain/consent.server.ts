@@ -3,9 +3,10 @@ import { unscopedDb } from '~/shared/infra/db.server'
 
 export const CONSENT_VERSION = '1.0'
 
+// Only the purposes the app records and checks. (An e-mail notifications purpose was listed but never recorded nor
+// read: e-mail delivery follows each person's notification settings instead.)
 export const ConsentPurpose = {
   DataProcessing: 'DATA_PROCESSING',
-  EmailNotifications: 'EMAIL_NOTIFICATIONS',
 } as const
 
 export type ConsentPurpose = (typeof ConsentPurpose)[keyof typeof ConsentPurpose]

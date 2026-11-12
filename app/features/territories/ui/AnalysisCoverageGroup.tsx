@@ -2,7 +2,7 @@ import { BarList, ChartCard, ChartEmpty, LineChart } from '@unitae/ui'
 import type { CoverageByType } from '~/features/territories/server/compute-coverage-by-territory-type.server'
 import type { MonthlyCoverage } from '~/features/territories/server/compute-monthly-coverage-evolution.server'
 import type { NeverWorkedResult } from '~/features/territories/server/territories-never-worked.server'
-import { formatNumber, formatPercent, statsViewLabels } from '~/features/territories/ui/stats-format'
+import { formatFigure, formatNumber, formatPercent, statsViewLabels } from '~/features/territories/ui/stats-format'
 import TerritoriesNeverWorkedList from '~/features/territories/ui/TerritoriesNeverWorkedList'
 import * as m from '~/i18n/paraglide/messages'
 import { formatMonthLabel, formatMonthLong } from '~/shared/utils/month-label'
@@ -33,7 +33,7 @@ export default function AnalysisCoverageGroup({
                 ],
                 rows: monthlyCoverage.map(d => ({
                   month: formatMonthLong(d.month),
-                  coverage: formatPercent(d.coverage),
+                  coverage: formatFigure(d.coverage, formatPercent),
                 })),
               }
             : undefined

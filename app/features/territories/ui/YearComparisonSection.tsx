@@ -8,8 +8,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/shared/ui
 interface YearAggregate {
   coverage: number
   totalCoverage: number
-  averageDurationDays: number
-  overdueRate: number
+  averageDurationDays: number | null
+  overdueRate: number | null
   attributionCount: number
 }
 

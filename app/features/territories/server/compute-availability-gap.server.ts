@@ -2,7 +2,8 @@ import { MS_PER_DAY } from '~/shared/constants/limits'
 import type { StatsAttribution } from './stats-attribution.type'
 
 // Calcule le délai moyen (en jours) entre la fin d'une attribution et le début de la suivante pour le même territoire
-export function computeAvailabilityGap(attributions: StatsAttribution[]): number {
+// Null when no territory was given out again after a return: there is no delay to average.
+export function computeAvailabilityGap(attributions: StatsAttribution[]): number | null {
   // Regrouper par territoire, triées par date de début (déjà triées par le fetch)
   const byTerritory = new Map<number, StatsAttribution[]>()
   for (const a of attributions) {
@@ -28,7 +29,7 @@ export function computeAvailabilityGap(attributions: StatsAttribution[]): number
     }
   }
 
-  if (gaps.length === 0) return 0
+  if (gaps.length === 0) return null
 
   const sum = gaps.reduce((acc, g) => acc + g, 0)
   return Math.round(sum / gaps.length)

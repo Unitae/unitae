@@ -92,6 +92,8 @@ export function loader({ request, context }: Route.LoaderArgs) {
       today: formatLocalDate(now),
       filtered: FILTER_PARAMS.some(key => params.has(key)),
       canSurvey: permissions.has(Permission.CanRecordProspection),
+      // The territory page needs its own right: without it, the territory reads as plain text.
+      canOpenTerritories: permissions.has(Permission.CanViewTerritories),
       canManage,
       canSync: canManage && facts.sourceUrl != null,
       // The status line shows once a file is set or a sync has run; the dialog, to who may sync.
@@ -211,6 +213,7 @@ function BuildingList({ data, onView }: { data: LoaderData; onView: (view: Build
             view={view}
             today={data.today}
             canSurvey={data.canSurvey}
+            canOpenTerritories={data.canOpenTerritories}
             canManage={canManage}
             from={params.toString()}
             selection={selection.enabled ? selection : undefined}

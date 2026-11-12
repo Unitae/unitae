@@ -1,6 +1,7 @@
 import excelJs from 'exceljs'
 
 import { wasInactiveDuring } from '~/features/publishers/model/inactive'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { PublisherType, publisherTypeReportsHours } from '~/shared/types/publisher-type'
 import { escapeSpreadsheetFormula } from '~/shared/utils/escape-spreadsheet-formula'
@@ -34,7 +35,7 @@ export async function buildPublishersYearlyActivityXlsx(months: MonthlyActivitie
 
   for (const { month, year: yearMonth, activities } of months) {
     const date = new Date(yearMonth, month, 1)
-    const monthName = date.toLocaleString('fr', { month: 'long' })
+    const monthName = date.toLocaleString(getLocale(), { month: 'long' })
     const sheetName = `${monthName} ${yearMonth}`.toUpperCase()
 
     const worksheet = workbook.addWorksheet(sheetName)

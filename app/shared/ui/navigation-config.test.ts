@@ -6,6 +6,7 @@ import {
   buildTabBar,
   hasManagementSections,
   isNavItemActive,
+  isNavItemCurrent,
   type NavigationPermissions,
   navGroupFor,
   navItemFor,
@@ -264,6 +265,45 @@ describe('isNavItemActive', () => {
     const home = buildTabBar(permissions())[0]
     expect(isNavItemActive(home, '/anywhere', true)).toBe(true)
     expect(isNavItemActive(home, '/anywhere', false)).toBe(false)
+  })
+})
+
+describe('isNavItemCurrent', () => {
+  const sections = buildManagementSections(
+    permissions({
+      canViewTerritories: true,
+      canViewAttributions: true,
+      canManageCampaigns: true,
+      canViewProspection: true,
+      canManageTerritories: true,
+    }),
+  )
+  const items = sections.flatMap(section => section.items)
+  const current = (pathname: string) => items.filter(item => isNavItemCurrent(item, pathname)).map(item => item.id)
+
+  it('lights only « Campagnes » on a campaign page, though it sits under the attributions address', () => {
+    expect(current('/territories/attributions/campaigns')).toEqual(['campaigns'])
+    expect(current('/territories/attributions/campaigns/14/edit')).toEqual(['campaigns'])
+  })
+
+  it('lights only « Attributions » on its own pages', () => {
+    expect(current('/territories/attributions')).toEqual(['attributions'])
+    expect(current('/territories/attributions/new/available-territories')).toEqual(['attributions'])
+  })
+
+  it('lights « Territoires » on « Créer en lot », which is reached from the territories list', () => {
+    expect(current('/territories/buildings/split-territories')).toEqual(['territories'])
+    expect(current('/territories/buildings/split-territories/phones')).toEqual(['territories'])
+  })
+
+  it('keeps « Prospection » for the building lists', () => {
+    expect(current('/territories/buildings')).toEqual(['prospection'])
+  })
+
+  it('lights the home entry on the home page only', () => {
+    const home = buildTabBar(permissions())[0]
+    expect(isNavItemCurrent(home, '/')).toBe(true)
+    expect(isNavItemCurrent(home, '/territories')).toBe(false)
   })
 })
 

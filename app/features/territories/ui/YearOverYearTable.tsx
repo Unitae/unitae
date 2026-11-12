@@ -1,12 +1,19 @@
 import { TrendingDown, TrendingUp } from 'lucide-react'
-import { formatDelta, formatNumber, formatPercent } from '~/features/territories/ui/stats-format'
+import {
+  formatDelta,
+  formatFigure,
+  formatNumber,
+  formatPercent,
+  formatPerTerritory,
+  NO_FIGURE,
+} from '~/features/territories/ui/stats-format'
 import * as m from '~/i18n/paraglide/messages'
 
 interface YearMetrics {
   coverage: number
   totalCoverage: number
-  averageDurationDays: number
-  overdueRate: number
+  averageDurationDays: number | null
+  overdueRate: number | null
   attributionCount: number
 }
 
@@ -21,10 +28,17 @@ interface MetricRow {
   label: string
   currentValue: string
   previousValue: string
-  delta: number
+  /** Null when one of the two years has nothing to measure. */
+  delta: number | null
   unit: string
   invertedBetter?: boolean // true si une baisse est positive (ex: taux de retard)
 }
+
+// A change between two percentages is in points, not a percentage of the first.
+const POINTS = '\u00a0pts'
+const days = (value: number) => `${formatNumber(value)}\u00a0j`
+const difference = (current: number | null, previous: number | null) =>
+  current == null || previous == null ? null : current - previous
 
 function formatSignedDelta(delta: number, unit: string): string {
   return `${formatDelta(delta)}${unit}`
@@ -34,31 +48,31 @@ export default function YearOverYearTable({ current, previous, currentLabel, pre
   const rows: MetricRow[] = [
     {
       label: m.stats_yoy_coverage(),
-      currentValue: formatPercent(current.coverage),
-      previousValue: formatPercent(previous.coverage),
-      delta: current.coverage - previous.coverage,
-      unit: '\u202f%',
+      currentValue: formatPerTerritory(current.coverage),
+      previousValue: formatPerTerritory(previous.coverage),
+      delta: (current.coverage - previous.coverage) / 100,
+      unit: '',
     },
     {
       label: m.stats_yoy_total_coverage(),
       currentValue: formatPercent(current.totalCoverage),
       previousValue: formatPercent(previous.totalCoverage),
       delta: current.totalCoverage - previous.totalCoverage,
-      unit: '\u202f%',
+      unit: POINTS,
     },
     {
       label: m.stats_yoy_avg_duration(),
-      currentValue: `${formatNumber(current.averageDurationDays)}\u00a0j`,
-      previousValue: `${formatNumber(previous.averageDurationDays)}\u00a0j`,
-      delta: current.averageDurationDays - previous.averageDurationDays,
+      currentValue: formatFigure(current.averageDurationDays, days),
+      previousValue: formatFigure(previous.averageDurationDays, days),
+      delta: difference(current.averageDurationDays, previous.averageDurationDays),
       unit: '\u00a0j',
     },
     {
       label: m.stats_yoy_overdue_rate(),
-      currentValue: formatPercent(current.overdueRate),
-      previousValue: formatPercent(previous.overdueRate),
-      delta: current.overdueRate - previous.overdueRate,
-      unit: '\u202f%',
+      currentValue: formatFigure(current.overdueRate, formatPercent),
+      previousValue: formatFigure(previous.overdueRate, formatPercent),
+      delta: difference(current.overdueRate, previous.overdueRate),
+      unit: POINTS,
       invertedBetter: true,
     },
     {
@@ -83,8 +97,19 @@ export default function YearOverYearTable({ current, previous, currentLabel, pre
         </thead>
         <tbody>
           {rows.map(row => {
-            const isPositive = row.invertedBetter ? row.delta < 0 : row.delta > 0
-            const isNeutral = Math.abs(row.delta) < 0.1
+            const { delta } = row
+            if (delta == null) {
+              return (
+                <tr key={row.label} className="border-b last:border-0">
+                  <td className="py-3 font-medium">{row.label}</td>
+                  <td className="py-3 text-right font-display font-semibold">{row.currentValue}</td>
+                  <td className="py-3 text-right text-muted-foreground">{row.previousValue}</td>
+                  <td className="py-3 text-right text-muted-foreground">{NO_FIGURE}</td>
+                </tr>
+              )
+            }
+            const isPositive = row.invertedBetter ? delta < 0 : delta > 0
+            const isNeutral = Math.abs(delta) < 0.1
 
             return (
               <tr key={row.label} className="border-b last:border-0">
@@ -99,7 +124,7 @@ export default function YearOverYearTable({ current, previous, currentLabel, pre
                   >
                     {!isNeutral &&
                       (isPositive ? <TrendingUp className="size-3.5" /> : <TrendingDown className="size-3.5" />)}
-                    {formatSignedDelta(row.delta, row.unit)}
+                    {formatSignedDelta(delta, row.unit)}
                   </span>
                 </td>
               </tr>

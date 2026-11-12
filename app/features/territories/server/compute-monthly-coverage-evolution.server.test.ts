@@ -61,4 +61,18 @@ describe('computeMonthlyCoverageEvolution', () => {
     expect(result[0].coverage).toBe(10)
     expect(result[1].coverage).toBe(10)
   })
+
+  it('stops the line at the current month: the months still to come have no coverage yet', () => {
+    const counts: TerritoryCountByType[] = [{ type: TerritoryKindKey.Classical, count: 4 }]
+    const attributions = [makeAttribution(1, new Date(2025, 8, 10), null)]
+    const today = new Date(2025, 9, 15)
+    const result = computeMonthlyCoverageEvolution(
+      attributions,
+      counts,
+      new Date(2025, 8, 1),
+      new Date(2025, 11, 31),
+      today,
+    )
+    expect(result.map(row => row.coverage)).toEqual([25, 25, null, null])
+  })
 })

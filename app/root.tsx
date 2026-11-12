@@ -5,6 +5,7 @@ import { requestLocale } from '~/shared/middleware/locale.server'
 import { originCheck } from '~/shared/middleware/origin-check.server'
 import { nonceContext, securityHeaders } from '~/shared/middleware/security-headers.server'
 import { OutsideAppError } from '~/shared/ui/OutsideAppError'
+import { DEFAULT_LOCALE } from '~/shared/utils/language'
 
 import type { Route } from './+types/root'
 import './tailwind.css'
@@ -19,7 +20,7 @@ export function loader({ context }: Route.LoaderArgs) {
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const data = useRouteLoaderData<typeof loader>('root')
-  const locale = data?.locale ?? 'fr'
+  const locale = data?.locale ?? DEFAULT_LOCALE
   const nonce = data?.nonce
 
   // Static inline script to prevent dark mode flash — no user input involved

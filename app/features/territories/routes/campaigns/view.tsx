@@ -141,7 +141,7 @@ export default function CampaignView({ loaderData }: Route.ComponentProps) {
 
       <div className="flex flex-wrap items-start gap-5">
         <div className="flex min-w-0 flex-[3_1_34rem] flex-col gap-5">
-          <CampaignAttributionTable rows={attributions} today={today} />
+          <CampaignAttributionTable rows={attributions} today={today} ended={status === 'ended'} />
           {tiles.length > 0 && <CampaignScopeTiles tiles={tiles} />}
         </div>
         <aside className="flex min-w-0 flex-[1_1_18rem] flex-col gap-5">

@@ -28,15 +28,15 @@ function makeAttribution(
 }
 
 describe('computeRestPeriodUtilization', () => {
-  it("retourne 0 quand il n'y a aucune attribution", () => {
-    expect(computeRestPeriodUtilization([])).toBe(0)
+  it("ne donne aucune durée quand il n'y a aucune attribution", () => {
+    expect(computeRestPeriodUtilization([])).toBeNull()
   })
 
-  it("retourne 0 quand il n'y a qu'une seule attribution par territoire", () => {
+  it("ne donne aucune durée quand il n'y a qu'une seule attribution par territoire", () => {
     const attributions = [
       makeAttribution(1, TerritoryAttributionKind.Default, new Date(2025, 0, 1), new Date(2025, 1, 1)),
     ]
-    expect(computeRestPeriodUtilization(attributions)).toBe(0)
+    expect(computeRestPeriodUtilization(attributions)).toBeNull()
   })
 
   it('retourne 0 quand le territoire est repris pendant la période de repos', () => {
@@ -78,7 +78,7 @@ describe('computeRestPeriodUtilization', () => {
       makeAttribution(1, TerritoryAttributionKind.Default, new Date(2025, 6, 1), new Date(2025, 7, 1), 2),
     ]
     // Première attribution sans endDate → impossible de calculer la fin de repos
-    expect(computeRestPeriodUtilization(attributions)).toBe(0)
+    expect(computeRestPeriodUtilization(attributions)).toBeNull()
   })
 })
 

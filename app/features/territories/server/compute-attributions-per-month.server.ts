@@ -2,7 +2,8 @@ import type { StatsAttribution } from './stats-attribution.type'
 
 export interface MonthlyCount {
   month: string
-  count: number
+  /** Null for a month still to come: a gap, not a month without attributions. */
+  count: number | null
 }
 
 // Génère tous les mois entre startDate et endDate au format "YYYY-MM"
@@ -26,6 +27,7 @@ export function computeAttributionsPerMonth(
   attributions: StatsAttribution[],
   startDate: Date,
   endDate: Date,
+  today: Date = new Date(),
 ): MonthlyCount[] {
   const allMonths = generateMonthRange(startDate, endDate)
   const countMap = new Map<string, number>()
@@ -44,5 +46,6 @@ export function computeAttributionsPerMonth(
     }
   }
 
-  return allMonths.map(month => ({ month, count: countMap.get(month) ?? 0 }))
+  const thisMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`
+  return allMonths.map(month => ({ month, count: month > thisMonth ? null : (countMap.get(month) ?? 0) }))
 }
