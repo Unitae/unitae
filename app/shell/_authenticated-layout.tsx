@@ -22,7 +22,24 @@ import { formatPersonName, resolveAccountName } from '~/shared/utils/format-pers
 
 import type { Route } from './+types/_authenticated-layout'
 
+/** The pattern React Router reports for the catch-all route of this layout. */
+const UNKNOWN_ADDRESS = '*'
+
+/**
+ * An unknown address (the catch-all at the end of this layout): someone signed in gets the 404 inside the shell; a
+ * visitor gets the plain 404 page, with its status, rather than being sent to sign in for a page that does not exist.
+ * Runs before `requireAuth`, whose redirect would otherwise answer first.
+ */
+const notFoundForVisitors: Route.MiddlewareFunction = async ({ request, pattern }, next) => {
+  if (pattern === UNKNOWN_ADDRESS) {
+    const session = await getSession(request.headers.get('Cookie'))
+    if (!session.get('userId')) throw new Response(null, { status: 404, statusText: 'Not Found' })
+  }
+  return next()
+}
+
 export const middleware: Route.MiddlewareFunction[] = [
+  notFoundForVisitors,
   requireAuth([
     Permission.CanDoAnything,
     Permission.CanViewBoard,
