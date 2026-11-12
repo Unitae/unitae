@@ -7,12 +7,11 @@ import * as m from '~/i18n/paraglide/messages'
 import { FilterChipBar } from '~/shared/ui/filters/FilterChipBar'
 import { FiltersPopover } from '~/shared/ui/filters/FiltersPopover'
 import { activeFilterChips, type FilterField } from '~/shared/ui/filters/filter-fields'
+import { ListToolbar } from '~/shared/ui/ListToolbar'
 import { QuickViews } from '~/shared/ui/QuickViews'
 import { SearchInput } from '~/shared/ui/SearchInput'
-
-import { ListToolbar } from './ListToolbar'
+import { SortMenu } from '~/shared/ui/SortMenu'
 import { territoryKindLabel } from './my-territory-labels'
-import { SortMenu } from './SortMenu'
 
 interface TerritoryToolbarProps {
   view: TerritoryView

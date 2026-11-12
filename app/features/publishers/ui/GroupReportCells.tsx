@@ -5,6 +5,7 @@ import type { ReportStatus } from '~/features/publishers/model/member-signals'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
+import { ROW_ACTION_REVEAL } from '~/shared/ui/row-click'
 import { cn } from '~/shared/utils/utils'
 
 export interface ReportCell extends ActivityMonth {
@@ -135,7 +136,13 @@ export function ReportStatusCell({
     return <span className="text-faint text-xs">{STATUS_LABEL[report.status]()}</span>
   }
   return (
-    <Button type="button" variant="outline" size="sm" onClick={event => onOpen(report, event.currentTarget)}>
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      onClick={event => onOpen(report, event.currentTarget)}
+      className={ROW_ACTION_REVEAL}
+    >
       {m.activity_row_enter()}
     </Button>
   )

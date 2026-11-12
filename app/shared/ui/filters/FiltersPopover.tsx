@@ -4,11 +4,12 @@ import { useSearchParams } from 'react-router'
 
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
+import { Checkbox } from '~/shared/ui/checkbox'
 import { Label } from '~/shared/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '~/shared/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 
-import { activeFilterCount, type FilterField } from './filter-fields'
+import { activeFilterCount, chosenOptions, type FilterField, toggledValues } from './filter-fields'
 
 /** No option can take it: the value of « all ». */
 const ALL = '\u0000all'
@@ -30,6 +31,17 @@ export function FiltersPopover({ fields }: { fields: FilterField[] }) {
       prev => {
         if (value === ALL) prev.delete(param)
         else prev.set(param, value)
+        prev.delete('page')
+        return prev
+      },
+      { replace: true, preventScrollReset: true },
+    )
+  const toggle = (param: string, value: string) =>
+    setParams(
+      prev => {
+        const next = toggledValues(prev.getAll(param), value)
+        prev.delete(param)
+        for (const v of next) prev.append(param, v)
         prev.delete('page')
         return prev
       },
@@ -63,9 +75,13 @@ export function FiltersPopover({ fields }: { fields: FilterField[] }) {
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="flex w-80 flex-col gap-3.5 p-3.5">
-        {fields.map(field => (
-          <FieldControl key={field.param} field={field} value={params.get(field.param)} onChange={set} />
-        ))}
+        {fields.map(field =>
+          field.multiple ? (
+            <ChoiceList key={field.param} field={field} params={params} onToggle={toggle} />
+          ) : (
+            <FieldControl key={field.param} field={field} value={params.get(field.param)} onChange={set} />
+          ),
+        )}
         <div className="flex items-center justify-between border-border border-t pt-2.5">
           <Button type="button" variant="ghost" size="sm" onClick={clear} disabled={active === 0} className="-ml-2">
             {m.filters_clear()}
@@ -120,5 +136,42 @@ function FieldControl({
         </SelectContent>
       </Select>
     </div>
+  )
+}
+
+/** A field taking several choices: each option ticked or not, none ticked meaning « all ». */
+function ChoiceList({
+  field,
+  params,
+  onToggle,
+}: {
+  field: FilterField
+  params: URLSearchParams
+  onToggle: (param: string, value: string) => void
+}) {
+  const chosen = new Set(chosenOptions(field, params).map(option => option.value))
+  return (
+    <fieldset className="m-0 flex flex-col gap-1.5 border-0 p-0">
+      <legend className="mb-1.5 p-0 font-medium text-sm">{field.label}</legend>
+      <div className="flex max-h-56 flex-col overflow-y-auto">
+        {field.options.map(option => {
+          const id = `filter-${field.param}-${option.value}`
+          return (
+            <label
+              key={option.value}
+              htmlFor={id}
+              className="flex min-h-8 cursor-pointer items-center gap-2.5 rounded-md px-1.5 text-sm hover:bg-hover pointer-coarse:min-h-11"
+            >
+              <Checkbox
+                id={id}
+                checked={chosen.has(option.value)}
+                onCheckedChange={() => onToggle(field.param, option.value)}
+              />
+              {option.label}
+            </label>
+          )
+        })}
+      </div>
+    </fieldset>
   )
 }

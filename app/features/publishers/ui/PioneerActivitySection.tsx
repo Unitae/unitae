@@ -80,7 +80,7 @@ function AnnualDetail({ serviceYear, row }: { serviceYear: number; row: PioneerA
   return (
     <>
       <PaceHeadline row={row} serviceYear={serviceYear} />
-      <MetricStrip aria-label={m.pioneers_detail_title()} minTileWidth={160}>
+      <MetricStrip aria-label={m.pioneers_detail_title()} minTileWidth={150}>
         <StatTile
           label={m.pioneers_fact_done()}
           value={hoursText(pace.achievedToDate)}
@@ -111,7 +111,7 @@ function AnnualDetail({ serviceYear, row }: { serviceYear: number; row: PioneerA
 function AuxiliaryDetail({ row }: { row: PioneerAuxiliaryRow }) {
   const current = row.auxiliary.thisMonth
   return (
-    <MetricStrip aria-label={m.pioneers_detail_title()} minTileWidth={160}>
+    <MetricStrip aria-label={m.pioneers_detail_title()} minTileWidth={150}>
       <StatTile
         label={m.pioneers_col_this_month()}
         value={current?.reported ? hoursText(current.hours + current.credit) : '—'}

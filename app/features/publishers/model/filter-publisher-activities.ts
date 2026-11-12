@@ -98,8 +98,4 @@ export function readActivityFiltersFromParams(params: URLSearchParams): Activity
   }
 }
 
-export function activityFiltersAreEmpty(filters: ActivityFilters): boolean {
-  return filters.query === '' && filters.groupIds.length === 0 && filters.status === 'all' && filters.type === 'all'
-}
-
 export const ACTIVITY_FILTER_PARAM_NAMES = ['q', 'group', 'status', 'type'] as const

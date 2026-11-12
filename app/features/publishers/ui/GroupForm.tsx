@@ -1,6 +1,6 @@
 import { getFormProps, getInputProps, type SubmissionResult, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod/v4'
-import { FormSection } from '@unitae/ui'
+import { Callout, FormSection } from '@unitae/ui'
 import { type ReactNode, useEffect, useState } from 'react'
 import { Form } from 'react-router'
 import { groupLeaderAvailability } from '~/features/publishers/model/group-leader-availability'
@@ -90,11 +90,7 @@ export function GroupForm({ group, leaders, members, candidates, lastResult, act
 
   return (
     <Form method="post" {...getFormProps(form)} ref={ref} className="flex flex-col pb-24">
-      {form.errors && (
-        <p role="alert" className="mb-2 rounded-md bg-destructive/10 px-3.5 py-2.5 text-destructive text-sm">
-          {form.errors.join(' ')}
-        </p>
-      )}
+      {form.errors && <Callout tone="danger" role="alert" title={form.errors.join(' ')} className="mb-2" />}
 
       <FormSection title={m.groups_form_section_group()} description={m.groups_form_section_group_hint()}>
         <Field id={fields.name.id} label={m.groups_form_name()} error={fields.name.errors?.[0]}>

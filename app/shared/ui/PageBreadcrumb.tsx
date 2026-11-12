@@ -22,7 +22,10 @@ export function PageBreadcrumb({ items, className }: { items: BreadcrumbEntry[];
           <li
             // biome-ignore lint/suspicious/noArrayIndexKey: a trail may repeat a label; its order never changes
             key={index}
-            className={cn('flex min-w-0 items-center gap-1.5', index === last ? 'max-md:hidden' : 'max-w-48 shrink-0')}
+            className={cn(
+              'flex min-w-0 items-center gap-1.5',
+              index === last ? 'max-md:hidden' : 'max-w-48 shrink-0 max-md:shrink',
+            )}
           >
             {index > 0 && <ChevronRight className="size-3.5 shrink-0 text-faint" aria-hidden="true" />}
             <TrailItem item={item} current={index === last} />

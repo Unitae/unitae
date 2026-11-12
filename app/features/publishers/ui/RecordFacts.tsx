@@ -1,6 +1,7 @@
 import { FactList, Panel } from '@unitae/ui'
 import { Pencil } from 'lucide-react'
 import { useEffect, useRef } from 'react'
+import { Link } from 'react-router'
 
 import { formatCalendarDay } from '~/features/publishers/model/calendar-day'
 import type { PublisherRecord } from '~/features/publishers/server/publisher-record.queries'
@@ -97,7 +98,17 @@ function CongregationPanel({ record, age }: { record: PublisherRecord; age: numb
         facts={[
           {
             label: m.publishers_record_group(),
-            value: record.group ? formatGroupName(record.group.name) : m.publishers_record_no_group(),
+            // The record's readers may all open the group page (it takes the same right).
+            value: record.group ? (
+              <Link
+                to={`/groups/${record.group.id}/view`}
+                className="text-brand-text underline-offset-4 hover:underline"
+              >
+                {formatGroupName(record.group.name)}
+              </Link>
+            ) : (
+              m.publishers_record_no_group()
+            ),
             hint:
               record.group && m.publishers_record_group_leader({ name: formatPersonName(record.group.responsible) }),
           },
@@ -169,11 +180,16 @@ function EmergencyBlock({ info, canManage, open, onOpen }: EmergencyBlockProps) 
         padded
         className={cn(open && 'ring-2 ring-ring')}
         actions={
-          canManage && (
-            <Button variant="ghost" size="sm" onClick={event => onOpen(event.currentTarget)}>
-              <Pencil />
-              {m.publishers_emergency_edit_link()}
-            </Button>
+          open ? (
+            // The panel beside the page edits this block: say so where « Modifier » was.
+            <span className="font-medium text-brand-text text-xs">{m.publishers_record_block_editing()}</span>
+          ) : (
+            canManage && (
+              <Button variant="ghost" size="sm" onClick={event => onOpen(event.currentTarget)}>
+                <Pencil />
+                {m.publishers_emergency_edit_link()}
+              </Button>
+            )
           )
         }
       >

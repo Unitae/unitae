@@ -10,8 +10,8 @@ interface ListToolbarProps {
 }
 
 /**
- * The toolbar of the territory lists, the same on each: the search, the quick views and « Filtres » on one row, the
- * order at its end; the active filters as chips underneath.
+ * A list's toolbar, the same on every list: the search, the quick views and « Filtres » on one row, the order at its
+ * end; the active filters as chips underneath. On a phone the search takes the first row and the views scroll.
  */
 export function ListToolbar({ search, views, filters, sort, chips }: ListToolbarProps) {
   return (

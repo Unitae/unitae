@@ -1,4 +1,4 @@
-import { Avatar, ProgressBar } from '@unitae/ui'
+import { Avatar, ProgressRing } from '@unitae/ui'
 import { Eye, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { Link } from 'react-router'
 import { type ActivityMonth, formatActivityMonth } from '~/features/publishers/model/activity-months'
@@ -149,8 +149,8 @@ function PersonLink({ person }: { person: Person }) {
 function Reports({ reports }: { reports: NonNullable<GroupListRow['reports']> }) {
   if (reports.expected === 0) return <span className="text-faint">—</span>
   return (
-    <span className="flex items-center gap-2.5">
-      <ProgressBar value={reports.filed} max={reports.expected} size="sm" className="w-20" />
+    <span className="flex items-center gap-2">
+      <ProgressRing value={reports.filed} max={reports.expected} />
       <span className="tabular-nums">
         {m.groups_view_reports_count({ filed: reports.filed, total: reports.expected })}
       </span>

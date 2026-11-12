@@ -3,18 +3,27 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PublisherListFilters } from '~/features/publishers/model/publisher-list-filters'
 import { PublisherType } from '~/shared/types/publisher-type'
 
-vi.mock('~/shared/infra/db.server', () => ({ unscopedDb: { member: { findMany: vi.fn() } } }))
+vi.mock('~/shared/infra/db.server', () => ({ unscopedDb: { member: { findMany: vi.fn(), count: vi.fn() } } }))
 vi.mock('~/features/events/index.server', () => ({
   findLastAssignmentsForMembers: vi.fn(),
   findNextAbsencesForMembers: vi.fn(),
 }))
 
-const { listPublishers, privilegesOf, publisherListWhere } = await import('./list-publishers.server')
+const { countPublishersByStatus, listPublishers, privilegesOf, publisherListWhere } = await import(
+  './list-publishers.server'
+)
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const events = await import('~/features/events/index.server')
 
 const NOW = new Date(Date.UTC(2026, 10, 7, 12))
-const ACTIVE: PublisherListFilters = { search: '', groupIds: [], noGroup: false, privilege: null, status: 'active' }
+const ACTIVE: PublisherListFilters = {
+  search: '',
+  groupIds: [],
+  noGroup: false,
+  privilege: null,
+  status: 'active',
+  sort: 'name',
+}
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -135,5 +144,27 @@ describe('listPublishers', () => {
     const [row] = await listPublishers(db, 1, ACTIVE, { includeAbsences: false, now: NOW })
 
     expect(row.nextAbsence).toBeNull()
+  })
+})
+
+describe('countPublishersByStatus', () => {
+  it('counts each list (active, inactive, left) under the same search, groups and privilege', async () => {
+    vi.mocked(db.member.count).mockImplementation((({ where }: { where: Record<string, unknown> }) => {
+      if (where.inactiveAt === null) return Promise.resolve(41)
+      if (where.leftAt === null) return Promise.resolve(3)
+      return Promise.resolve(6)
+    }) as never)
+
+    const counts = await countPublishersByStatus(db, 1, {
+      ...ACTIVE,
+      search: 'mar',
+      privilege: 'elder',
+      status: 'left',
+    })
+
+    expect(counts).toEqual({ active: 41, inactive: 3, left: 6 })
+    for (const [args] of vi.mocked(db.member.count).mock.calls) {
+      expect(args?.where).toMatchObject({ congregationId: 1, isHelder: true, OR: expect.any(Array) })
+    }
   })
 })

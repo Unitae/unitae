@@ -1,84 +1,105 @@
 import { useSearchParams } from 'react-router'
 import {
+  NO_GROUP_PARAM,
   PRIVILEGES,
-  type Privilege,
   type PublisherListFilters,
+  type PublisherSort,
   type PublisherStatus,
+  publisherSortOptions,
 } from '~/features/publishers/model/publisher-list-filters'
-import { PublisherGroupFilter, type PublisherGroupOption } from '~/features/publishers/ui/PublisherGroupFilter'
 import { privilegeFilterLabel } from '~/features/publishers/ui/publisher-list-format'
 import * as m from '~/i18n/paraglide/messages'
-import { FilterBar } from '~/shared/ui/filters/FilterBar'
+import { FilterChipBar } from '~/shared/ui/filters/FilterChipBar'
+import { FiltersPopover } from '~/shared/ui/filters/FiltersPopover'
+import { activeFilterChips, type FilterField } from '~/shared/ui/filters/filter-fields'
+import { ListToolbar } from '~/shared/ui/ListToolbar'
+import { QuickViews } from '~/shared/ui/QuickViews'
 import { SearchInput } from '~/shared/ui/SearchInput'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import { SortMenu } from '~/shared/ui/SortMenu'
+import { formatGroupName } from '~/shared/utils/format-group-name'
 
-const PARAM_NAMES = ['q', 'group', 'privilege', 'status'] as const
+const SORT_LABEL: Record<PublisherSort, () => string> = {
+  name: m.publishers_sort_name,
+  group: m.publishers_sort_group,
+  departure: m.publishers_sort_departure,
+}
 
-const STATUS_LABEL: Record<PublisherStatus, () => string> = {
-  active: m.publishers_status_active,
-  inactive: m.publishers_status_inactive,
-  left: m.publishers_status_left,
+export interface PublisherGroupOption {
+  id: number
+  name: string
 }
 
 interface PublisherListToolbarProps {
   groups: PublisherGroupOption[]
   filters: PublisherListFilters
+  /** How many each list holds under the search, groups and privilege chosen. */
+  counts: Record<PublisherStatus, number>
 }
 
-/** Search, then the three filters of the list, then how it is sorted. Everything lives in the URL. */
-export function PublisherListToolbar({ groups, filters }: PublisherListToolbarProps) {
-  const [, setSearchParams] = useSearchParams()
+/**
+ * The search, the three lists (actifs, inactifs, partis) with their counts, « Filtres » (groups, privilege) and the
+ * order, on one row; the active filters below. Everything lives in the address.
+ */
+export function PublisherListToolbar({ groups, filters, counts }: PublisherListToolbarProps) {
+  const [params, setParams] = useSearchParams()
+  const fields = publisherFilterFields(groups)
 
-  // The default value leaves the URL clean: no parameter means every active publisher.
-  const setParam = (name: 'privilege' | 'status', value: string, fallback: string) =>
-    setSearchParams(
+  // The default list leaves the address clean; each list has its own orders, so the order starts again.
+  const chooseStatus = (status: PublisherStatus) =>
+    setParams(
       prev => {
-        if (value === fallback) prev.delete(name)
-        else prev.set(name, value)
+        if (status === 'active') prev.delete('status')
+        else prev.set('status', status)
+        prev.delete('sort')
         return prev
       },
-      { replace: true },
+      { replace: true, preventScrollReset: true },
     )
 
   return (
-    <FilterBar paramNames={PARAM_NAMES}>
-      <div className="min-w-[200px] flex-[0_1_280px]">
-        <SearchInput paramName="q" placeholder={m.publishers_search_placeholder()} />
-      </div>
-
-      <PublisherGroupFilter groups={groups} selectedIds={filters.groupIds} noGroup={{ selected: filters.noGroup }} />
-
-      <Select value={filters.privilege ?? 'all'} onValueChange={value => setParam('privilege', value, 'all')}>
-        <SelectTrigger aria-label={m.publishers_filter_privilege_label()}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">{m.publishers_filter_privilege_all()}</SelectItem>
-          {PRIVILEGES.map((privilege: Privilege) => (
-            <SelectItem key={privilege} value={privilege}>
-              {privilegeFilterLabel(privilege)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <Select value={filters.status} onValueChange={value => setParam('status', value, 'active')}>
-        <SelectTrigger aria-label={m.publishers_filter_status_label()}>
-          <span className="text-muted-foreground">{m.publishers_filter_status_label()}</span>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {(Object.keys(STATUS_LABEL) as PublisherStatus[]).map(status => (
-            <SelectItem key={status} value={status}>
-              {STATUS_LABEL[status]()}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <span className="ml-auto text-faint text-sm max-md:hidden">
-        {filters.status === 'left' ? m.publishers_sorted_by_departure() : m.publishers_sorted_by_name()}
-      </span>
-    </FilterBar>
+    <ListToolbar
+      search={<SearchInput paramName="q" placeholder={m.publishers_search_placeholder()} />}
+      views={
+        <QuickViews
+          label={m.publishers_filter_status_label()}
+          views={[
+            { value: 'active', label: m.publishers_status_active(), count: counts.active },
+            { value: 'inactive', label: m.publishers_status_inactive(), count: counts.inactive },
+            { value: 'left', label: m.publishers_status_left(), count: counts.left },
+          ]}
+          value={filters.status}
+          onChoose={chooseStatus}
+        />
+      }
+      filters={<FiltersPopover fields={fields} />}
+      sort={
+        <SortMenu
+          value={filters.sort}
+          options={publisherSortOptions(filters.status).map(sort => ({ value: sort, label: SORT_LABEL[sort]() }))}
+        />
+      }
+      chips={<FilterChipBar chips={activeFilterChips(fields, params)} clearParams={fields.map(field => field.param)} />}
+    />
   )
+}
+
+function publisherFilterFields(groups: PublisherGroupOption[]): FilterField[] {
+  return [
+    {
+      param: 'group',
+      label: m.activity_filters_group_label(),
+      allLabel: m.activity_filters_group_all(),
+      multiple: true,
+      options: [
+        ...groups.map(group => ({ value: String(group.id), label: formatGroupName(group.name) })),
+        { value: NO_GROUP_PARAM, label: m.publishers_move_no_group() },
+      ],
+    },
+    {
+      param: 'privilege',
+      label: m.publishers_filter_privilege_label(),
+      allLabel: m.publishers_filter_privilege_all(),
+      options: PRIVILEGES.map(privilege => ({ value: privilege, label: privilegeFilterLabel(privilege) })),
+    },
+  ]
 }

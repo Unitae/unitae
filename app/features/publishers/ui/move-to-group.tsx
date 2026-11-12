@@ -1,5 +1,5 @@
 import { useLocation, useSubmit } from 'react-router'
-import type { PublisherGroupOption } from '~/features/publishers/ui/PublisherGroupFilter'
+import type { PublisherGroupOption } from '~/features/publishers/ui/PublisherListToolbar'
 import * as m from '~/i18n/paraglide/messages'
 import { DropdownMenuItem, DropdownMenuSeparator } from '~/shared/ui/dropdown-menu'
 import { formatGroupName } from '~/shared/utils/format-group-name'

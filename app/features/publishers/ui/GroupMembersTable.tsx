@@ -131,8 +131,11 @@ export function GroupMembersTable({
             <th className={headClass}>{m.groups_view_name_column()}</th>
             {reported && (
               <>
-                <th className={cn(headClass, 'w-40')}>{m.groups_view_reports_column()}</th>
-                <th className={cn(headClass, 'w-16 @2xl:w-36')}>
+                {/* On a phone the dots go under the name: the column folds to nothing, so the spans still add up. */}
+                <th className={cn(headClass, 'w-40 @max-md:w-0 @max-md:p-0')}>
+                  <span className="@max-md:hidden">{m.groups_view_reports_column()}</span>
+                </th>
+                <th className={cn(headClass, 'w-24 px-2 @2xl:w-36')}>
                   <ReportColumnHeading month={reported} />
                 </th>
               </>
@@ -210,6 +213,15 @@ function MemberRow({
   const open: OpenReport = (month, trigger) => onOpenReport(member.id, month, trigger)
   const opensCurrent = reported != null && current != null && opensReport(current, canCorrectReports)
   const isSelected = selected?.memberId === member.id
+  // Under the name on a phone, in their own column wider up.
+  const dots = (
+    <ReportDots
+      reports={member.reports}
+      canCorrect={canCorrectReports}
+      selectedMonth={isSelected ? (selected?.month ?? null) : null}
+      onOpen={open}
+    />
+  )
   // Shown or hidden, the label row is the `tr:last-child`, so the last-row border reset misses the last
   // member's own row.
   const rowBorder = labelled && (last ? '[&>td]:border-b-0' : '@max-4xl:[&>td]:border-b-0')
@@ -240,21 +252,17 @@ function MemberRow({
                   />
                 )}
               </span>
+              {reported && <div className="@md:hidden">{dots}</div>}
               {labelled && <MemberLabels signals={member.signals} locale={locale} className="@max-4xl:hidden" />}
             </span>
           </span>
         </td>
         {reported && (
           <>
-            <td className={cn(cellClass, 'px-1.5')}>
-              <ReportDots
-                reports={member.reports}
-                canCorrect={canCorrectReports}
-                selectedMonth={isSelected ? (selected?.month ?? null) : null}
-                onOpen={open}
-              />
+            <td className={cn(cellClass, 'px-1.5 @max-md:p-0')}>
+              <div className="@max-md:hidden">{dots}</div>
             </td>
-            <td className={cellClass}>
+            <td className={cn(cellClass, 'px-2')}>
               {current && <ReportStatusCell report={current} canCorrect={canCorrectReports} onOpen={open} />}
             </td>
           </>

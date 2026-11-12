@@ -80,7 +80,7 @@ describe('GroupMembersTable', () => {
     expect(html).toMatch(SIREN_BUTTON)
     expect(html).toContain('Ana LIMA')
     expect(html).toContain('carte DPA')
-    expect(html).toContain('contact d&#x27;urgence')
+    expect(html).toContain('contact d’urgence')
   })
 
   it('shows no emergency icon when nothing is missing', () => {

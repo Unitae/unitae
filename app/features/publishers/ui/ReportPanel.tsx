@@ -107,12 +107,15 @@ export function ReportPanel({
     </PanelBody>
   )
 
+  // The walk through the missing reports: in the docked panel's header, in the sheet's footer.
+  const walkable = data != null && data.report == null && queue != null && queue.total > 1 ? queue : null
+
   const footer = data && (
     <ReportFooter
       filed={data.report != null}
       canDelete={data.canDelete}
       busy={busy}
-      queue={queue}
+      queue={docked ? null : walkable}
       onDelete={() => setConfirmDelete(true)}
       onSave={andNext => {
         next.current = andNext
@@ -156,6 +159,17 @@ export function ReportPanel({
         onClose={onRequestClose}
         returnFocus={target.trigger}
         footer={footer}
+        walk={
+          walkable == null
+            ? undefined
+            : {
+                position: m.report_panel_missing_position({ position: walkable.position, total: walkable.total }),
+                previousLabel: m.report_panel_previous_missing(),
+                nextLabel: m.report_panel_next_missing(),
+                onPrevious: walkable.onPrevious,
+                onNext: walkable.onNext,
+              }
+        }
         className={className}
       >
         {body}

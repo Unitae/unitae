@@ -9,7 +9,7 @@ const NEW_PUBLISHER_URL_RE = /\/publishers\/new/
 const FIRSTNAME_FIELD_RE = /prénom/i
 const LASTNAME_FIELD_RE = /^nom$/i
 const SUBMIT_BUTTON_RE = /enregistrer|sauvegarder|créer|ajouter/i
-const SEARCH_PLACEHOLDER_RE = /rechercher un proclamateur/i
+const SEARCH_PLACEHOLDER_RE = /rechercher un nom/i
 const NO_MATCH_TITLE_RE = /aucun proclamateur trouvé/i
 
 test.describe('Publishers', () => {

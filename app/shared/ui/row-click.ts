@@ -56,3 +56,10 @@ export function openRowOnClick(event: ReactMouseEvent<HTMLElement>): void {
   }
   primary.click()
 }
+
+/**
+ * A row's main action (« Saisir ») where there is a mouse: hidden until the row is hovered or something in it has
+ * keyboard focus. On a touch screen it is always there, and the button is 44 px. The row carries `group`.
+ */
+export const ROW_ACTION_REVEAL =
+  'transition-opacity duration-(--u-duration-fast) focus-visible:opacity-100 pointer-fine:opacity-0 pointer-fine:group-focus-within:opacity-100 pointer-fine:group-hover:opacity-100'

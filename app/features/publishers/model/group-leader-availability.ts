@@ -1,4 +1,5 @@
 import * as m from '~/i18n/paraglide/messages'
+import { formatGroupName } from '~/shared/utils/format-group-name'
 
 export interface GroupLeaderCandidate {
   id: number
@@ -17,9 +18,9 @@ export function groupLeaderAvailability(candidates: GroupLeaderCandidate[], curr
   for (const candidate of candidates) {
     const { responsibleFor, deputyFor } = candidate
     if (responsibleFor && responsibleFor.id !== currentGroupId) {
-      reasons.set(candidate.id, m.groups_form_already_responsible({ name: responsibleFor.name }))
+      reasons.set(candidate.id, m.groups_form_already_responsible({ name: formatGroupName(responsibleFor.name) }))
     } else if (deputyFor && deputyFor.id !== currentGroupId) {
-      reasons.set(candidate.id, m.groups_form_already_deputy({ name: deputyFor.name }))
+      reasons.set(candidate.id, m.groups_form_already_deputy({ name: formatGroupName(deputyFor.name) }))
     }
   }
 

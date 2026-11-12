@@ -58,14 +58,11 @@ export default function GroupListPage({ loaderData }: Route.ComponentProps) {
     <div className="flex flex-col gap-4">
       <PageHeader
         title={m.groups_list_title()}
+        titleBadge={groups.length > 0 && <span className="text-faint text-lg tabular-nums">{groups.length}</span>}
         breadcrumbs={[{ label: m.sidebar_publisher_groups() }]}
         meta={
           groups.length > 0 && (
             <span className="tabular-nums">
-              {groups.length === 1
-                ? m.groups_list_groups_one()
-                : m.groups_list_groups_other({ count: String(groups.length) })}
-              {' · '}
               {publishers === 1
                 ? m.groups_list_publishers_one()
                 : m.groups_list_publishers_other({ count: String(publishers) })}
