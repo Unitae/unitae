@@ -1,6 +1,7 @@
 import { redirect } from 'react-router'
 import { reorderPartAssignments } from '~/features/events/server/event-parts.server'
 import { canEditEvent } from '~/features/events/server/events-auth.server'
+import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
@@ -25,7 +26,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
     const can = (role: Permission) => permissions.has(role)
-    const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
+    const event = await findProgrammeEvent(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
 
     if (

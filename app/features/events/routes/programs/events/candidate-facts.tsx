@@ -1,4 +1,5 @@
 import { mayReadSlotFacts } from '~/features/events/server/events-auth.server'
+import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
 import { listSlotCandidateFacts, type SlotTarget } from '~/features/events/server/slot-candidate-facts.server'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import type { Permission } from '~/shared/types/permission'
@@ -34,10 +35,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
     const can = (role: Permission) => permissions.has(role)
-    const event = await db.event.findFirst({
-      where: { id: eventId, congregationId },
-      select: { id: true, templateId: true, startDate: true, endDate: true },
-    })
+    const event = await findProgrammeEvent(db, eventId, congregationId)
     if (!event) return Response.json(null, { status: 404 })
     if (!(await mayReadSlotFacts(db, can, currentUser.id, event, congregationId, { kind, assignmentId }))) {
       return Response.json(null, { status: 403 })

@@ -11,6 +11,7 @@ import {
   listApplicableTemplates,
 } from '~/features/events/server/events-auth.server'
 import { listPartPresets } from '~/features/events/server/part-presets.queries'
+import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
 import { EventEditor } from '~/features/events/ui/EventEditor'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -106,7 +107,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
     const can = (role: Permission) => permissions.has(role)
-    const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
+    const event = await findProgrammeEvent(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
 
     if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {

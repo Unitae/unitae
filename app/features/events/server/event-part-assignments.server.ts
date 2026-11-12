@@ -12,6 +12,7 @@ import {
   DAY_OFF_MESSAGE,
   PROGRAMME_ASSIGNMENT_ERRORS,
 } from '~/features/events/server/event-part.policy'
+import { PROGRAMME_EVENT } from '~/features/events/server/programme-event.queries'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 
@@ -34,7 +35,7 @@ async function lockServicePartAssignmentRow(db: TransactionClient, id: number, c
 
 export function getEventProgramme(db: TransactionClient, eventId: number, congregationId: number) {
   return db.event.findFirst({
-    where: { id: eventId, congregationId },
+    where: { id: eventId, congregationId, ...PROGRAMME_EVENT },
     include: {
       template: true,
       eventParts: {

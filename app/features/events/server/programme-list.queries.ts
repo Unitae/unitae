@@ -1,5 +1,5 @@
 import { EventStatus } from '~/features/events/model/event-status.type'
-import { EventTemplateKey } from '~/features/events/model/event-template.type'
+import { PROGRAMME_EVENT } from '~/features/events/server/programme-event.queries'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 /** How many slots a programme has, how many have someone, and how many are flagged as falling in an absence. */
@@ -22,8 +22,6 @@ export interface ProgrammeListItem {
   services: SlotCounts
 }
 
-const NOT_AN_ABSENCE = { NOT: { template: { key: EventTemplateKey.DayOff } } }
-
 function counts(slots: { filled: boolean; hasConflict: boolean }[]): SlotCounts {
   return {
     total: slots.length,
@@ -42,7 +40,7 @@ export async function listProgrammes(
   { congregationId, from, to }: { congregationId: number; from: Date; to: Date },
 ): Promise<ProgrammeListItem[]> {
   const rows = await db.event.findMany({
-    where: { congregationId, ...NOT_AN_ABSENCE, startDate: { lte: to }, endDate: { gte: from } },
+    where: { congregationId, ...PROGRAMME_EVENT, startDate: { lte: to }, endDate: { gte: from } },
     select: {
       id: true,
       name: true,
@@ -78,7 +76,7 @@ export async function congregationHasProgrammes(
   { withDrafts }: { withDrafts: boolean },
 ): Promise<boolean> {
   const one = await db.event.findFirst({
-    where: { congregationId, ...NOT_AN_ABSENCE, ...(withDrafts ? {} : { status: EventStatus.Released }) },
+    where: { congregationId, ...PROGRAMME_EVENT, ...(withDrafts ? {} : { status: EventStatus.Released }) },
     select: { id: true },
   })
   return one != null

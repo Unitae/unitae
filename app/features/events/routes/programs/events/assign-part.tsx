@@ -9,6 +9,7 @@ import {
   dispatchAssignmentDiffs,
   partAssignmentDiffs,
 } from '~/features/events/server/notify-assignment.server'
+import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -49,7 +50,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
     const can = (role: Permission) => permissions.has(role)
-    const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
+    const event = await findProgrammeEvent(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
 
     if (

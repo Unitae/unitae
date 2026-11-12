@@ -2,6 +2,7 @@ import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import type { PartSlot } from '~/features/events/server/cadence-shared.server'
 import { mayReadSlotFacts } from '~/features/events/server/events-auth.server'
 import { listUserSameEventAssignments } from '~/features/events/server/list-user-same-event-assignments.server'
+import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
 import { resolvePublisherCadence } from '~/features/events/server/resolve-publisher-cadence.server'
 import { standingTypeFromEnrolments } from '~/features/publishers'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -40,7 +41,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
   return withScopeFromContext(context, async db => {
     const currentUser = context.get(currentAccountContext)
     const { congregationId } = currentUser
-    const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
+    const event = await findProgrammeEvent(db, eventId, congregationId)
     if (!event) return Response.json(null)
     // Absences and rotation are for whoever may assign this slot of this event.
     const slot =
