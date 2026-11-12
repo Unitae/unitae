@@ -89,11 +89,11 @@ importers:
         specifier: ^8.5.1
         version: 8.5.1(@typescript/typescript6@6.0.2)(react-router@8.5.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))
       '@unitae/tokens':
-        specifier: ^0.2.0
-        version: 0.2.0(@fontsource/ibm-plex-sans@5.3.0)(@protomaps/basemaps@5.7.2)
+        specifier: ^0.3.0
+        version: 0.3.0(@fontsource/ibm-plex-sans@5.3.0)(@protomaps/basemaps@5.7.2)
       '@unitae/ui':
-        specifier: ^0.8.0
-        version: 0.8.0(@unitae/tokens@0.2.0(@fontsource/ibm-plex-sans@5.3.0)(@protomaps/basemaps@5.7.2))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(recharts@3.10.1(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react-is@18.3.1)(react@19.3.1)(redux@5.0.1))
+        specifier: ^0.9.0
+        version: 0.9.0(@unitae/tokens@0.3.0(@fontsource/ibm-plex-sans@5.3.0)(@protomaps/basemaps@5.7.2))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(recharts@3.10.1(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react-is@18.3.1)(react@19.3.1)(redux@5.0.1))
       '@vis.gl/react-maplibre':
         specifier: 8.1.3
         version: 8.1.3(maplibre-gl@6.16.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -272,6 +272,9 @@ importers:
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
+      tw-animate-css:
+        specifier: ^1.4.0
+        version: 1.4.0
       typescript:
         specifier: npm:@typescript/typescript6@^6.0.2
         version: '@typescript/typescript6@6.0.2'
@@ -2876,8 +2879,8 @@ packages:
     resolution: {integrity: sha512-mbCddXd+jm7hfx7w2YU64/Av4/NqqeG3GoRZgxPcgoTxYjhrcfJRw9ULch71SS4G+Q3bOXFhRvPqjguN0Hyp5w==}
     hasBin: true
 
-  '@unitae/tokens@0.2.0':
-    resolution: {integrity: sha512-3EVQjmWjm5VMb1yPMuNgZFkNuL8fjVAgPLL6Ndl3h3QIHZh0Xka6IZM5o/gAeqlV+giWHTEMRTora85Zzfcu3A==}
+  '@unitae/tokens@0.3.0':
+    resolution: {integrity: sha512-pweCcMz6FhsIDaCWtgKGnrJfCpe3hbazLPn6scMgsVGTqU9qfdHtsGTiErQIiPeO7DqieN/ffSA84VoFK3bg8w==}
     engines: {node: '>=22.22.0'}
     peerDependencies:
       '@fontsource/ibm-plex-sans': ^5.0.0
@@ -2888,11 +2891,11 @@ packages:
       '@protomaps/basemaps':
         optional: true
 
-  '@unitae/ui@0.8.0':
-    resolution: {integrity: sha512-KgXjc34OB7SjehjFEYEegW2Rc7TOUF1cYZLWv4ccgntK3xmTxse4c7A3VNGsllwWut5lgl8VS24QSOBD9FxaJA==}
+  '@unitae/ui@0.9.0':
+    resolution: {integrity: sha512-R0Eebwppfmq78voGCIHJcZci3ZT3gQMOLcdnAj5FZ/2lpUyE5fliWQfnFjwzUtaUi0ufchMn8zoG1vP1HIuUfQ==}
     engines: {node: '>=22.22.0'}
     peerDependencies:
-      '@unitae/tokens': ^0.1.0 || ^0.2.0
+      '@unitae/tokens': ^0.1.0 || ^0.2.0 || ^0.3.0
       react: ^19.0.0
       react-dom: ^19.0.0
       recharts: ^3.0.0
@@ -6506,6 +6509,9 @@ packages:
   tunnel-agent@0.6.0:
     resolution: {integrity: sha512-McnNiV1l8RYeY8tBgEpuodCC1mLUdbSN+CYBL7kJsJNInOP8UjDDEwdk6Mw60vdLLrr5NHKZhMAOSrR2NZuQ+w==}
 
+  tw-animate-css@1.4.0:
+    resolution: {integrity: sha512-7bziOlRqH0hJx80h/3mbicLW7o8qLsH5+RaLR2t+OHM3D0JlWGODQKQ4cxbK7WlvmUxpcj6Kgu6EKqjrGFe3QQ==}
+
   type-check@0.4.0:
     resolution: {integrity: sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==}
     engines: {node: '>= 0.8.0'}
@@ -9605,14 +9611,14 @@ snapshots:
     dependencies:
       '@typescript/old': typescript@6.0.3
 
-  '@unitae/tokens@0.2.0(@fontsource/ibm-plex-sans@5.3.0)(@protomaps/basemaps@5.7.2)':
+  '@unitae/tokens@0.3.0(@fontsource/ibm-plex-sans@5.3.0)(@protomaps/basemaps@5.7.2)':
     optionalDependencies:
       '@fontsource/ibm-plex-sans': 5.3.0
       '@protomaps/basemaps': 5.7.2
 
-  '@unitae/ui@0.8.0(@unitae/tokens@0.2.0(@fontsource/ibm-plex-sans@5.3.0)(@protomaps/basemaps@5.7.2))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(recharts@3.10.1(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react-is@18.3.1)(react@19.3.1)(redux@5.0.1))':
+  '@unitae/ui@0.9.0(@unitae/tokens@0.3.0(@fontsource/ibm-plex-sans@5.3.0)(@protomaps/basemaps@5.7.2))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(recharts@3.10.1(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react-is@18.3.1)(react@19.3.1)(redux@5.0.1))':
     dependencies:
-      '@unitae/tokens': 0.2.0(@fontsource/ibm-plex-sans@5.3.0)(@protomaps/basemaps@5.7.2)
+      '@unitae/tokens': 0.3.0(@fontsource/ibm-plex-sans@5.3.0)(@protomaps/basemaps@5.7.2)
       class-variance-authority: 0.7.1
       clsx: 2.1.1
       react: 19.3.1
@@ -13420,6 +13426,8 @@ snapshots:
     dependencies:
       safe-buffer: 5.2.1
     optional: true
+
+  tw-animate-css@1.4.0: {}
 
   type-check@0.4.0:
     dependencies:
