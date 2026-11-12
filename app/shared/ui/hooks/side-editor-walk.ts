@@ -1,3 +1,5 @@
+import type { KeyboardEvent } from 'react'
+
 /** One item back up the list, or one down. */
 export type WalkStep = -1 | 1
 
@@ -26,4 +28,40 @@ const FIELD =
 /** Whether a key event comes from inside a field, which keeps its arrow keys. */
 export function isInField(target: EventTarget | null): boolean {
   return target instanceof Element && target.closest(FIELD) != null
+}
+
+/** Where the open item stands in the list, and the way to its neighbours: what `SidePanel`'s `walk` shows. */
+export interface SideEditorWalk {
+  /** From 1. */
+  position: number
+  total: number
+  previous: () => void
+  next: () => void
+  /** On the panel, or a `contents` wrapper around it: ↑ and ↓ open the previous and next item, outside fields. */
+  onKeyDown: (event: KeyboardEvent<HTMLElement>) => void
+}
+
+/**
+ * The walk through `ids` (the list as the page shows it) from `current`; `open` opens a neighbour, asking first if the
+ * page asks before dropping changes. `null` when `current` is not in the list or is alone in it.
+ */
+export function listWalk(ids: readonly number[], current: number, open: (id: number) => void): SideEditorWalk | null {
+  const index = ids.indexOf(current)
+  if (index < 0 || ids.length < 2) return null
+  const go = (step: WalkStep) => {
+    const id = stepThrough(ids, current, step)
+    if (id != null) open(id)
+  }
+  return {
+    position: index + 1,
+    total: ids.length,
+    previous: () => go(-1),
+    next: () => go(1),
+    onKeyDown(event) {
+      const step = event.defaultPrevented ? null : arrowStep(event.key, isInField(event.target))
+      if (step == null) return
+      event.preventDefault()
+      go(step)
+    },
+  }
 }

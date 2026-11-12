@@ -1,3 +1,4 @@
+import { Callout } from '@unitae/ui'
 import { type ReactNode, type Ref, useRef, useState } from 'react'
 import { type FetcherWithComponents, Form } from 'react-router'
 import { renderShareMessage, SHARE_VARIABLES, type ShareMessageContext } from '~/features/events/model/share-message'
@@ -95,19 +96,19 @@ export function PartPresetForm({
     <FormElement method="post" id={id} ref={formRef} className="flex flex-col gap-5">
       {hidden}
       {isSystem && (
-        <div role="note" className="rounded-md bg-hover px-3 py-2 text-muted-foreground text-sm">
+        <Callout tone="neutral" role="note">
           {m.settings_presets_system_notice()}
-        </div>
+        </Callout>
       )}
 
       {errors && errors.length > 0 && (
-        <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm">
-          <ul className="flex list-inside list-disc flex-col gap-1">
+        <Callout tone="danger" role="alert">
+          <ul className="m-0 flex list-inside list-disc flex-col gap-1 p-0 text-foreground">
             {errors.map(message => (
               <li key={message}>{message}</li>
             ))}
           </ul>
-        </div>
+        </Callout>
       )}
 
       <div className="flex flex-col gap-2">

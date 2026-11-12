@@ -14,6 +14,7 @@ import { Button } from '~/shared/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
@@ -22,7 +23,9 @@ import { EmptyState } from '~/shared/ui/EmptyState'
 import { FilterChipBar } from '~/shared/ui/filters/FilterChipBar'
 import { FiltersPopover } from '~/shared/ui/filters/FiltersPopover'
 import { activeFilterChips, type FilterField } from '~/shared/ui/filters/filter-fields'
+import { listWalk } from '~/shared/ui/hooks/side-editor-walk'
 import { useMediaQuery } from '~/shared/ui/hooks/use-media-query'
+import { sidePanelWalk } from '~/shared/ui/ListWithPanel'
 import { PageTopbar } from '~/shared/ui/PageTopbar'
 import { QuickViews } from '~/shared/ui/QuickViews'
 import { SearchInput } from '~/shared/ui/SearchInput'
@@ -164,9 +167,22 @@ export function SpeakerDirectoryScreen({ page }: { page: SpeakerDirectoryPage })
       ? null
       : (directory.congregations.find(each => each.id === speaker.speakerCongregationId) ?? null)
 
+  // ↑ ↓ walk the speakers in the order the list shows them, asking first while the form holds changes.
+  const walk = speaker
+    ? listWalk(
+        groups.flatMap(group => group.speakers.map(each => each.id)),
+        speaker.id,
+        id => select({ speaker: id }),
+      )
+    : null
+
   const panel = speaker ? (
     <SpeakerPanel
       key={`speaker-${speaker.id}`}
+      walk={sidePanelWalk(walk, {
+        previous: m.external_speakers_panel_previous(),
+        next: m.external_speakers_panel_next(),
+      })}
       speaker={speaker}
       congregation={speakerCongregation}
       congregations={directory.congregations}
@@ -231,14 +247,32 @@ export function SpeakerDirectoryScreen({ page }: { page: SpeakerDirectoryPage })
         actions={
           canManage && (
             <>
-              <Button variant="outline" size="sm" onClick={() => setNewCongregation(true)}>
-                <Plus aria-hidden="true" />
-                {m.external_speakers_new_congregation()}
-              </Button>
-              <Button size="sm" onClick={() => select({ new: null })}>
-                <Plus aria-hidden="true" />
-                {m.external_speakers_new_speaker()}
-              </Button>
+              <span className="contents max-sm:hidden">
+                <Button variant="outline" size="sm" onClick={() => setNewCongregation(true)}>
+                  <Plus aria-hidden="true" />
+                  {m.external_speakers_new_congregation()}
+                </Button>
+                <Button size="sm" onClick={() => select({ new: null })}>
+                  <Plus aria-hidden="true" />
+                  {m.external_speakers_new_speaker()}
+                </Button>
+              </span>
+              {/* On a phone, one « + » holds both, as the phone board draws it. */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="icon-sm" className="sm:hidden" aria-label={m.external_speakers_new_menu()}>
+                    <Plus aria-hidden="true" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => select({ new: null })}>
+                    {m.external_speakers_new_speaker()}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setNewCongregation(true)}>
+                    {m.external_speakers_new_congregation()}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </>
           )
         }
@@ -342,7 +376,13 @@ export function SpeakerDirectoryScreen({ page }: { page: SpeakerDirectoryPage })
             </>
           )}
         </div>
-        {docked && panel}
+        {docked && panel != null && (
+          // `contents` keeps the panel a flex item of the row while its key presses reach the walk.
+          // biome-ignore lint/a11y/noStaticElementInteractions: the keys belong to the focusable panel inside
+          <div className="contents" onKeyDown={walk?.onKeyDown}>
+            {panel}
+          </div>
+        )}
       </div>
       {!docked && panel}
 

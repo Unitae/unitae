@@ -7,6 +7,7 @@ import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Input } from '~/shared/ui/input'
 import { cn } from '~/shared/utils/utils'
+import { TalkNumbersInput } from './TalkNumbersInput'
 import type { SpeakerListUpdateState } from './use-speaker-list-update'
 
 // The rows of a list update: each speaker as the new list gives him, editable, with what changed and the value
@@ -14,19 +15,6 @@ import type { SpeakerListUpdateState } from './use-speaker-list-update'
 
 const HEAD = 'h-10 whitespace-nowrap border-border border-b px-3 text-left font-medium text-faint text-sm'
 const CELL = 'border-border border-b px-3 py-2 align-top'
-const TALK_SEPARATORS = /[\s,;/]+/
-
-function parseTalks(text: string): number[] {
-  return [
-    ...new Set(
-      text
-        .split(TALK_SEPARATORS)
-        .map(Number)
-        .filter(n => Number.isInteger(n) && n > 0),
-    ),
-  ].sort((a, b) => a - b)
-}
-
 function statusOf(
   row: ListRow,
   changed: (keyof ListSpeakerFields)[],
@@ -185,15 +173,13 @@ export function SpeakerListRowsTable({ state }: { state: SpeakerListUpdateState 
                   </span>
                 </td>
                 <td className={CELL}>
-                  <Input
-                    key={`${row.key}-${row.fields.talks.join(',')}`}
-                    defaultValue={row.fields.talks.join(', ')}
+                  <TalkNumbersInput
+                    value={row.fields.talks}
+                    onChange={talks => state.setField(row.key, 'talks', talks)}
                     placeholder={m.external_speakers_update_talks_placeholder()}
-                    onBlur={event => state.setField(row.key, 'talks', parseTalks(event.target.value))}
                     disabled={locked}
-                    inputMode="numeric"
                     aria-label={m.external_speakers_field_talks()}
-                    className={cn('bg-card h-8 tabular-nums', out && 'line-through')}
+                    className={cn('min-w-40 bg-card', out && 'line-through')}
                   />
                   <Was show={changed.includes('talks')} value={row.before?.talks.join(', ') ?? ''} />
                 </td>

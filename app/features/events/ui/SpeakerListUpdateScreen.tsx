@@ -7,6 +7,7 @@ import type { SpeakerCongregationContacts } from '~/features/events/model/speake
 import type { CurrentListSpeaker, ElsewhereSpeaker } from '~/features/events/model/speaker-list-diff'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
+import { DateInput } from '~/shared/ui/DateInput'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageTopbar } from '~/shared/ui/PageTopbar'
@@ -172,13 +173,12 @@ export function SpeakerListUpdateScreen({ page }: { page: SpeakerListUpdatePage 
             </>
           ) : (
             <div className="flex flex-wrap items-end gap-3">
-              <div className="flex w-44 flex-col gap-1.5">
+              <div className="flex w-60 flex-col gap-1.5">
                 <Label htmlFor="list-date">{m.external_speakers_update_list_date()}</Label>
-                <Input
+                <DateInput
                   id="list-date"
-                  type="date"
-                  value={state.listDate}
-                  onChange={event => state.setListDate(event.target.value)}
+                  value={state.listDate || null}
+                  onChange={next => state.setListDate(next ?? '')}
                 />
               </div>
               <p className="text-muted-foreground pb-2 text-sm" aria-live="polite">

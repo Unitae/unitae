@@ -15,6 +15,7 @@ import { formatDay } from './PeriodMenu'
 import { ProgrammeBulkActions } from './ProgrammeBulkActions'
 import { ProgrammeWeekTable } from './ProgrammeWeekTable'
 import { periodWeeks, weekOf } from './period-weeks'
+import { WeeksHint } from './WeeksHint'
 
 type View = 'all' | 'drafts' | 'review'
 
@@ -91,11 +92,15 @@ export function ProgrammeList({
 
   return (
     <div className="flex flex-col gap-3">
-      <ViewFilters
-        view={view}
-        counts={{ all: programmes.length, drafts: drafts.length, review: toReview.length }}
-        onChoose={choose}
-      />
+      <div className="flex flex-wrap items-center gap-2">
+        <ViewFilters
+          view={view}
+          counts={{ all: programmes.length, drafts: drafts.length, review: toReview.length }}
+          onChoose={choose}
+        />
+        <span className="flex-1" />
+        <WeeksHint />
+      </div>
       {programmes.length === 0 ? (
         <NoneInPeriod period={period} preset={preset} canCreate={canCreate} />
       ) : shown.length === 0 ? (

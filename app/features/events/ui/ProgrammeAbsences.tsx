@@ -7,11 +7,13 @@ import type { ProgrammeAbsence } from '~/features/events/model/programme-absence
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
+import { ListToolbar } from '~/shared/ui/ListToolbar'
+import { QuickViews } from '~/shared/ui/QuickViews'
 import { SearchInput } from '~/shared/ui/SearchInput'
-import { cn } from '~/shared/utils/utils'
 import { AbsenceWeekList } from './AbsenceWeekList'
 import { formatDay } from './PeriodMenu'
 import { matchesName, periodWeeks, weekOf } from './period-weeks'
+import { WeeksHint } from './WeeksHint'
 
 interface ProgrammeAbsencesProps {
   absences: ProgrammeAbsence[]
@@ -54,41 +56,23 @@ export function ProgrammeAbsences({ absences, period, preset, hasAnyAbsence, tim
     )
   }
 
-  const filters: { value: string | null; label: string; count: number }[] = [
-    { value: null, label: m.programs_absences_filter_all(), count: matching.length },
-    { value: 'review', label: m.programs_absences_filter_review(), count: toReview.length },
-  ]
-
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="min-w-48 flex-[0_1_16rem]">
-          <SearchInput paramName="q" placeholder={m.programs_absences_search_placeholder()} />
-        </div>
-        <fieldset className="flex flex-wrap gap-1">
-          <legend className="sr-only">{m.programs_absences_filter_label()}</legend>
-          {filters.map(filter => {
-            const pressed = (filter.value === 'review') === review
-            return (
-              <button
-                key={filter.label}
-                type="button"
-                aria-pressed={pressed}
-                onClick={() => setParam('view', filter.value)}
-                className={cn(
-                  'inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 font-medium text-sm outline-none transition-colors duration-(--u-duration-fast) focus-visible:ring-2 focus-visible:ring-ring max-md:h-11',
-                  pressed
-                    ? 'border-foreground text-foreground'
-                    : 'border-border text-muted-foreground hover:bg-hover hover:text-foreground',
-                )}
-              >
-                {filter.label}
-                <span className="text-faint tabular-nums">{filter.count}</span>
-              </button>
-            )
-          })}
-        </fieldset>
-      </div>
+      <ListToolbar
+        search={<SearchInput paramName="q" placeholder={m.programs_absences_search_placeholder()} />}
+        views={
+          <QuickViews
+            label={m.programs_absences_filter_label()}
+            views={[
+              { value: 'all', label: m.programs_absences_filter_all(), count: matching.length },
+              { value: 'review', label: m.programs_absences_filter_review(), count: toReview.length },
+            ]}
+            value={review ? 'review' : 'all'}
+            onChoose={view => setParam('view', view === 'review' ? 'review' : null)}
+          />
+        }
+        sort={<WeeksHint />}
+      />
 
       {absences.length === 0 ? (
         <EmptyState

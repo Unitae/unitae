@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import type { useFetcher } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
+import { DateInput } from '~/shared/ui/DateInput'
 import { FormSaveBar } from '~/shared/ui/FormSaveBar'
 import { useFormChanges } from '~/shared/ui/hooks/use-form-changes'
 import { Input } from '~/shared/ui/input'
@@ -50,13 +51,7 @@ function EventInfoForm({
           </div>
           <div className="col-span-2 flex min-w-0 flex-col gap-1.5 @md:col-span-1">
             <Label htmlFor="date">{m.programs_edit_date_label()}</Label>
-            <Input
-              id="date"
-              name="date"
-              type="date"
-              defaultValue={formatDateForInput(event.startDate, timezone)}
-              required
-            />
+            <DateInput id="date" name="date" defaultValue={formatDateForInput(event.startDate, timezone)} required />
           </div>
           <div className="flex min-w-0 flex-col gap-1.5">
             <Label htmlFor="startTime">{m.programs_edit_start_time_label()}</Label>

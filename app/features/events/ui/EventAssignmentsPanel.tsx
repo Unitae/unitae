@@ -1,5 +1,5 @@
 import { Panel } from '@unitae/ui'
-import { Clock, UserPlus, X } from 'lucide-react'
+import { UserPlus, X } from 'lucide-react'
 import { Fragment } from 'react'
 import { resolvePartCapability } from '~/features/events/model/part-capability'
 import { partReaderLabel, partSpeakerLabel } from '~/features/events/model/part-labels'
@@ -198,10 +198,7 @@ function PartRow({
       </td>
       <td className="whitespace-nowrap px-1.5 text-right text-muted-foreground tabular-nums max-md:order-2 max-md:p-0">
         {part.durationMin != null ? (
-          <span className="inline-flex items-center gap-1.5">
-            <Clock aria-hidden="true" className="size-3.5 text-faint" />
-            {m.programme_section_total_min({ minutes: String(part.durationMin) })}
-          </span>
+          m.programme_section_total_min({ minutes: String(part.durationMin) })
         ) : (
           <>
             <span aria-hidden="true" className="text-faint">
@@ -241,7 +238,7 @@ function PartRow({
         )}
       </td>
       <td className="pr-4.5 max-md:order-3 max-md:p-0">
-        <div className={cn('flex justify-end gap-0.5', selected ? 'opacity-100' : ROW_REVEAL)}>
+        <div className={cn('flex justify-end gap-0.5 pointer-coarse:gap-2', selected ? 'opacity-100' : ROW_REVEAL)}>
           {canAssign && (
             <PartActions
               part={part}

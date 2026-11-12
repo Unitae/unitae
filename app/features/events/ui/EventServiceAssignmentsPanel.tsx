@@ -79,7 +79,12 @@ export function EventServiceAssignmentsPanel({
                     />
                   </td>
                   <td className="pr-4.5 max-md:order-2 max-md:p-0">
-                    <div className={cn('flex justify-end gap-0.5', selected ? 'opacity-100' : ROW_REVEAL)}>
+                    <div
+                      className={cn(
+                        'flex justify-end gap-0.5 pointer-coarse:gap-2',
+                        selected ? 'opacity-100' : ROW_REVEAL,
+                      )}
+                    >
                       {canAssign && (
                         <>
                           <Button

@@ -7,6 +7,7 @@ import { formatSpeakerDate } from '~/features/events/model/speaker-dates'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Checkbox } from '~/shared/ui/checkbox'
+import { DateInput } from '~/shared/ui/DateInput'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/shared/ui/dialog'
 import { useCloseOnSave } from '~/shared/ui/hooks/use-close-on-save'
 import { Input } from '~/shared/ui/input'
@@ -280,9 +281,9 @@ export function MarkOurListSentDialog({
               {refusal.error}
             </p>
           )}
-          <div className="flex w-44 flex-col gap-1.5">
+          <div className="flex w-60 flex-col gap-1.5">
             <Label htmlFor="mark-date">{m.external_speakers_mark_date()}</Label>
-            <Input id="mark-date" name="sentOn" type="date" defaultValue={today} max={today} required />
+            <DateInput id="mark-date" name="sentOn" defaultValue={today} max={today} required />
           </div>
           <div className="border-border overflow-hidden rounded-lg border">
             {recipients.map(recipient => (

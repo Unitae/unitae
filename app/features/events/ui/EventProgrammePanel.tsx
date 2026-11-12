@@ -15,7 +15,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Panel } from '@unitae/ui'
-import { Clock, GripVertical, Pencil, Plus, Trash2 } from 'lucide-react'
+import { GripVertical, Pencil, Plus, Trash2 } from 'lucide-react'
 import { Fragment, useId } from 'react'
 import { groupProgrammeParts, summarizeDurations } from '~/features/events/model/programme-grouping'
 import * as m from '~/i18n/paraglide/messages'
@@ -264,10 +264,7 @@ function PartRow({ part, kind, indented, selected, dragLocked, readOnly, onEdit,
       </span>
       <span className="inline-flex w-[70px] flex-none items-center justify-end gap-1.5 text-muted-foreground text-sm tabular-nums max-sm:hidden">
         {part.durationMin != null ? (
-          <>
-            <Clock aria-hidden="true" className="size-3.5 text-faint" />
-            {m.programme_section_total_min({ minutes: String(part.durationMin) })}
-          </>
+          m.programme_section_total_min({ minutes: String(part.durationMin) })
         ) : (
           <>
             <span aria-hidden="true" className="text-faint">
@@ -279,7 +276,8 @@ function PartRow({ part, kind, indented, selected, dragLocked, readOnly, onEdit,
       </span>
       <span
         className={cn(
-          'flex w-16 flex-none justify-end gap-0.5',
+          // On a touch screen the buttons are 44 px apart from each other: the slot grows with them.
+          'flex w-16 flex-none justify-end gap-0.5 pointer-coarse:w-auto pointer-coarse:gap-2',
           readOnly && 'invisible',
           selected ? 'opacity-100' : ROW_REVEAL,
         )}

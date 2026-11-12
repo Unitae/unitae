@@ -7,7 +7,7 @@ import { byWeek } from '~/features/events/model/programme-creation'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Checkbox } from '~/shared/ui/checkbox'
-import { Input } from '~/shared/ui/input'
+import { DateInput } from '~/shared/ui/DateInput'
 import { Label } from '~/shared/ui/label'
 import { cn } from '~/shared/utils/utils'
 import { contentLabel, monthName, shortDate, templateLine, weeksLabel } from './creation-labels'
@@ -163,13 +163,12 @@ export function DayField({
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={id}>{label}</Label>
-      <Input
+      <DateInput
         id={id}
         name={name}
-        type="date"
-        value={value}
+        value={value || null}
         min={min}
-        onChange={event => onChange(event.target.value)}
+        onChange={next => onChange(next ?? '')}
         aria-invalid={errors != null && errors.length > 0}
         aria-describedby={errors?.length ? `${id}-error` : undefined}
       />

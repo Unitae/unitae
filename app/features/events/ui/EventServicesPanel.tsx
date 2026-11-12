@@ -69,7 +69,11 @@ export function EventServicesPanel({
                   : allowed.map(role => getRoleDisplayName(role)).join(', ')}
               </span>
               <span
-                className={cn('flex flex-none gap-0.5', readOnly && 'hidden', selected ? 'opacity-100' : ROW_REVEAL)}
+                className={cn(
+                  'flex flex-none gap-0.5 pointer-coarse:gap-2',
+                  readOnly && 'hidden',
+                  selected ? 'opacity-100' : ROW_REVEAL,
+                )}
               >
                 <Button
                   variant="ghost"
