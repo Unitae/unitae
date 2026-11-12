@@ -22,27 +22,6 @@ export function downloadCardOverlaysGeoJson(overlays: CardOverlay[], perimeter: 
 
 export type PerimeterMode = 'new' | 'edit' | null
 
-export function computeInitialCenter(
-  perimeterMode: PerimeterMode,
-  perimeter: { paths: CardOverlayPath[] } | null,
-  editingOverlay: CardOverlay | null,
-  overlays: CardOverlay[],
-): { lat: number; lng: number } | undefined {
-  if (perimeterMode === 'edit' && perimeter?.paths[0] != null) {
-    return { lat: perimeter.paths[0].lat, lng: perimeter.paths[0].lng }
-  }
-  if (editingOverlay?.paths[0] != null) {
-    return { lat: editingOverlay.paths[0].lat, lng: editingOverlay.paths[0].lng }
-  }
-  if (perimeter?.paths[0] != null) {
-    return { lat: perimeter.paths[0].lat, lng: perimeter.paths[0].lng }
-  }
-  if (overlays[0]?.paths[0] != null) {
-    return { lat: overlays[0].paths[0].lat, lng: overlays[0].paths[0].lng }
-  }
-  return undefined
-}
-
 export function useCardOverlayEditor(
   overlays: CardOverlay[],
   perimeter: { paths: CardOverlayPath[] } | null,
@@ -62,8 +41,6 @@ export function useCardOverlayEditor(
   const editingOverlay = editingId == null ? null : (overlays.find(o => o.id === editingId) ?? null)
   const isDraftActive = isDrawing || editingId != null || perimeterMode != null
   const editingPerimeter = perimeterMode != null
-  const initialCenter = computeInitialCenter(perimeterMode, perimeter, editingOverlay, overlays)
-
   // Stable identity — handleDraftChange depends on it, and that identity feeds a useEffect
   // dep list in CardOverlayMap; a fresh function per render would churn that effect.
   const markDraftDirty = useCallback(() => {
@@ -176,7 +153,6 @@ export function useCardOverlayEditor(
     editingOverlay,
     isDraftActive,
     editingPerimeter,
-    initialCenter,
     blocker,
     markDirty,
     markDraftDirty,

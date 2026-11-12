@@ -2,6 +2,7 @@
 
 export { default as BuildingSyncDoneEmail } from './emails/buildings-sync-done'
 export { canEnterTerritoriesArea } from './model/area-access'
+export type { BaseMap } from './model/base-map.type'
 export {
   buildGeoJsonExport,
   type CardOverlay,
@@ -13,7 +14,7 @@ export {
   parseGeoJsonImport,
 } from './model/card-overlay'
 export type { EntranceKind } from './model/entrance-kind.type'
-export { type AreaFeature, areaFeature } from './model/map-area'
+export { type AreaFeature, areaFeature, reachAround } from './model/map-area'
 export type { TerritoryAttributionKind } from './model/territory-attribution-kind.type'
 export { TerritoryKindKey } from './model/territory-kind.type'
 export { default as CardOverlayMap } from './ui/CardOverlayMap'

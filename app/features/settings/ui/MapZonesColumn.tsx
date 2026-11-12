@@ -21,8 +21,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '~/shared/ui/tooltip'
 import { ConfirmDialog } from './ConfirmDialog'
 import { PERIMETER_DRAFT_COLOR } from './use-card-overlay-editor'
 
-const points = (count: number) =>
-  count === 1 ? m.settings_map_points_one() : m.settings_map_points_many({ count: String(count) })
+/** A shape's corners: its points, the closing one (the first, repeated, as stored) left out. */
+function points(paths: readonly { lat: number; lng: number }[]) {
+  const [first, last] = [paths[0], paths[paths.length - 1]]
+  const closed = paths.length > 1 && first.lat === last.lat && first.lng === last.lng
+  const count = closed ? paths.length - 1 : paths.length
+  return count === 1 ? m.settings_map_points_one() : m.settings_map_points_many({ count: String(count) })
+}
 
 const zoneName = (overlay: CardOverlay) =>
   overlay.name != null && overlay.name.length > 0 ? overlay.name : m.settings_territories_card_overlays_unnamed_zone()
@@ -78,7 +83,7 @@ export function ZonesPanel({ overlays, fetcher, canDraw, limitReached, onDraw, o
             />
             <span className="flex min-w-0 flex-1 flex-col">
               <span className="truncate font-medium text-sm">{zoneName(overlay)}</span>
-              <span className="text-faint text-xs">{points(overlay.paths.length)}</span>
+              <span className="text-faint text-xs">{points(overlay.paths)}</span>
             </span>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -206,7 +211,7 @@ export function PerimeterPanel({ perimeter, fetcher, canDraw, onEdit, onDefine }
             className="size-3 shrink-0 rounded-full border-2"
             style={{ borderColor: PERIMETER_DRAFT_COLOR }}
           />
-          <span className="flex-1 text-sm">{points(perimeter.paths.length)}</span>
+          <span className="flex-1 text-sm">{points(perimeter.paths)}</span>
           {canDraw && (
             <Button type="button" size="sm" variant="ghost" onClick={onEdit}>
               <Spline aria-hidden="true" />

@@ -50,24 +50,25 @@ export const CSP_REPORT_PATH = '/csp-report'
 
 /**
  * Builds the Content-Security-Policy value. Allow-lists the external origins the app
- * depends on (Google Maps SDK, Google Fonts) and locks down framing, base-uri, and
- * objects. Shipped in report mode first (per issue #284) — the header name that makes it
- * Report-Only is chosen in `applySecurityHeaders` — so real violations surface without
- * breaking Maps, Fonts, or hydration while the policy is tightened toward enforcement.
+ * depends on (Google Fonts; the maps come from the instance itself) and locks down framing,
+ * base-uri, and objects. Shipped in report mode first (per issue #284) — the header name that
+ * makes it Report-Only is chosen in `applySecurityHeaders` — so real violations surface without
+ * breaking Fonts or hydration while the policy is tightened toward enforcement.
  */
 export function buildContentSecurityPolicy(nonce: string): string {
   return [
     "default-src 'self'",
     // 'report-sample' puts the first characters of blocked inline code in the report.
-    `script-src 'self' 'nonce-${nonce}' 'report-sample' https://maps.googleapis.com https://maps.gstatic.com`,
-    // Tailwind + the maps SDK inject inline styles; fonts.googleapis.com serves the font CSS.
+    `script-src 'self' 'nonce-${nonce}' 'report-sample'`,
+    // Tailwind and MapLibre set inline styles; fonts.googleapis.com serves the font CSS.
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "img-src 'self' data: blob: https://*.googleapis.com https://*.gstatic.com https://*.ggpht.com",
+    "img-src 'self' data: blob:",
     // The UI typeface is self-hosted ('self'); Google Fonts still serves the board documents' typefaces.
     "font-src 'self' https://fonts.gstatic.com",
-    "connect-src 'self' https://maps.googleapis.com https://maps.gstatic.com",
-    // Maps vector/WebGL rendering spawns blob: web workers.
-    "worker-src 'self' blob:",
+    // Map tiles and glyphs are served by the instance.
+    "connect-src 'self'",
+    // MapLibre and pdf.js run their workers from the app's own files.
+    "worker-src 'self'",
     "frame-ancestors 'none'",
     "object-src 'none'",
     "base-uri 'self'",

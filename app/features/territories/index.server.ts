@@ -3,6 +3,7 @@
 export { findAttributablePublishers } from './server/attributable-publishers.queries'
 export * as attributionAggregate from './server/attribution.aggregate'
 export { findActiveAttributionsForPublisher } from './server/attributions.server'
+export { getBaseMap } from './server/base-map.server'
 export {
   createCardOverlay,
   deleteCardOverlay,
