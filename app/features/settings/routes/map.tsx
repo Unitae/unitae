@@ -6,8 +6,8 @@ import { ConfirmDialog } from '~/features/settings/ui/ConfirmDialog'
 import { PerimeterPanel, ZoneDraftPanel, ZonesPanel } from '~/features/settings/ui/MapZonesColumn'
 import { SettingsHeader } from '~/features/settings/ui/SettingsHeader'
 import { downloadCardOverlaysGeoJson, useCardOverlayEditor } from '~/features/settings/ui/use-card-overlay-editor'
-import { CardOverlayMap } from '~/features/territories'
-import { getPerimeter, listCardOverlays } from '~/features/territories/index.server'
+import { CardOverlayMap, reachAround } from '~/features/territories'
+import { getBaseMap, getPerimeter, listCardOverlays } from '~/features/territories/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -17,12 +17,12 @@ import {
 } from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'
 import { LimitReachedError } from '~/shared/errors/app-error.server'
+import { getMapTiles } from '~/shared/infra/map-tiles.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 import { TooltipProvider } from '~/shared/ui/tooltip'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
-import { getOptionalEnv } from '~/shared/utils/env.server'
 import { cn } from '~/shared/utils/utils'
 import { cardOverlayActionSchema, handleCardOverlayAction } from './_map-action.server'
 import { okWithToast } from './_toast.server'
@@ -34,12 +34,19 @@ export function loader({ context }: Route.LoaderArgs) {
   if (!context.get(permissionsContext).has(Permission.CanConfigureTerritorySettings)) throw redirect('/')
   const congregation = context.get(congregationContext)
 
-  return withScopeFromContext(context, async db => {
-    const [overlays, perimeter] = await Promise.all([listCardOverlays(db), getPerimeter(db)])
+  return withScopeFromContext(context, async (db, congregationId) => {
+    const [overlays, perimeter, baseMap] = await Promise.all([
+      listCardOverlays(db),
+      getPerimeter(db),
+      getBaseMap(db, congregationId),
+    ])
     return {
       overlays,
       perimeter,
-      googleMapsApiKey: getOptionalEnv('GOOGLE_MAPS_API_KEY'),
+      // The perimeter is drawn here and partly makes the area: the map reaches some ten kilometres beyond it.
+      map: baseMap == null ? null : { tiles: baseMap.tiles, area: reachAround(baseMap.area), home: baseMap.area },
+      // Without a map: no base map on the instance, or nothing drawn or placed yet to open it on.
+      noMap: baseMap != null ? null : getMapTiles() == null ? ('tiles' as const) : ('area' as const),
       maxOverlays: congregation.maxCardOverlays,
     }
   })
@@ -67,12 +74,12 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function CongregationMapPage({ loaderData }: Route.ComponentProps) {
-  const { overlays, perimeter, googleMapsApiKey, maxOverlays } = loaderData
+  const { overlays, perimeter, map, noMap, maxOverlays } = loaderData
   const fetcher = useFetcher<typeof action>()
   const draft = useFetcher<typeof action>()
   const [importOpen, setImportOpen] = useState(false)
   const editor = useCardOverlayEditor(overlays, perimeter, draft)
-  const canDraw = googleMapsApiKey != null && googleMapsApiKey.length > 0
+  const canDraw = map != null
   const limitReached = maxOverlays != null && overlays.length >= maxOverlays ? maxOverlays : null
   const errorOf = (result: typeof fetcher.data) => (result != null && !result.ok ? result.error : null)
   const error = errorOf(draft.data) ?? errorOf(fetcher.data)
@@ -109,10 +116,11 @@ export default function CongregationMapPage({ loaderData }: Route.ComponentProps
         <UnsavedChangesDialog blocker={editor.blocker} />
 
         <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
-          {canDraw ? (
+          {map != null ? (
             <div className={cn('rounded-lg', editor.isDraftActive && 'ring-2 ring-brand/40')}>
               <CardOverlayMap
-                apiKey={googleMapsApiKey}
+                map={map}
+                home={map.home}
                 overlays={overlays}
                 excludeOverlayId={editor.editingId}
                 perimeter={perimeter?.paths ?? null}
@@ -121,14 +129,12 @@ export default function CongregationMapPage({ loaderData }: Route.ComponentProps
                 draftPaths={editor.draftPaths}
                 draftColor={editor.draftColor}
                 onDraftChange={editor.handleDraftChange}
-                initialCenter={editor.initialCenter}
-                initialZoom={editor.initialCenter == null ? undefined : 13}
                 className="h-[560px] w-full overflow-hidden rounded-lg border max-lg:h-[420px]"
               />
             </div>
           ) : (
             <p className="rounded-lg border bg-card px-4.5 py-4 text-muted-foreground text-sm">
-              {m.settings_map_no_key()}
+              {noMap === 'area' ? m.settings_map_no_area() : m.settings_map_no_base_map()}
             </p>
           )}
 

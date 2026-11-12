@@ -393,8 +393,8 @@ Optional:
 
 ```ini
 UNITAE_MAP_TILES=""                    # Base map of the territory maps: PMTiles path, s3://bucket/key or https URL (docs/self-hosting/maps.md)
-GOOGLE_MAPS_API_KEY=""                 # PDF map exports, Carte de l'assemblée drawing, proximity search
-GOOGLE_MAPS_MAP_ID=""                  # Custom styled map
+GOOGLE_MAPS_API_KEY=""                 # Server only: PDF map page, proximity search
+GOOGLE_MAPS_MAP_ID=""                  # Style of the PDF map page
 S3_ENDPOINT=""                         # S3-compatible storage (fallback: local ./content/uploads/)
 S3_BUCKET=""
 S3_ACCESS_KEY=""

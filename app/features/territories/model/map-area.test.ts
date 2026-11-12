@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { areaAround, areaFeature, bboxesOverlap, tileBbox, tilesCovering } from './map-area'
+import { areaAround, areaFeature, bboxesOverlap, reachAround, tileBbox, tilesCovering } from './map-area'
 
 describe('areaAround', () => {
   it('has no area without a point', () => {
@@ -23,6 +23,26 @@ describe('areaAround', () => {
     expect(area?.swLat).toBeCloseTo(48.87)
     expect(area?.neLng).toBeCloseTo(2.425)
     expect(area?.swLng).toBeCloseTo(2.395)
+  })
+})
+
+describe('reachAround', () => {
+  const LES_LILAS = { swLat: 48.872, swLng: 2.405, neLat: 48.888, neLng: 2.43 }
+
+  it('reaches about ten kilometres beyond the area, for drawing the perimeter wider', () => {
+    const reach = reachAround(LES_LILAS)
+    expect(reach.neLat - LES_LILAS.neLat).toBeCloseTo(0.0898, 3)
+    expect(LES_LILAS.swLat - reach.swLat).toBeCloseTo(0.0898, 3)
+    // A degree of longitude is shorter at 48.9° than at the equator: ten kilometres take more of them.
+    expect(reach.neLng - LES_LILAS.neLng).toBeCloseTo(0.1366, 3)
+    expect(LES_LILAS.swLng - reach.swLng).toBeCloseTo(0.1366, 3)
+  })
+
+  it('stays within the map', () => {
+    expect(reachAround({ swLat: 84.9, swLng: 179.9, neLat: 85, neLng: 180 })).toMatchObject({
+      neLat: 85.0511,
+      neLng: 180,
+    })
   })
 })
 

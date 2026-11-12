@@ -4,8 +4,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 // congregation's area, and kept for good by the browser since the address names the archive's edition.
 
 const currentAccountContext = Symbol('currentAccountContext')
+const permissionsContext = Symbol('permissionsContext')
 vi.mock('~/shared/auth/route-context.server', () => ({
   currentAccountContext,
+  permissionsContext,
   withScopeFromContext: (_context: unknown, fn: (db: unknown, congregationId: number) => unknown) => fn({}, 10),
 }))
 
@@ -22,9 +24,11 @@ vi.mock('~/shared/infra/map-tiles.server', () => ({ getMapTiles: () => store }))
 vi.mock('~/shared/infra/logger.server', () => ({ default: { warn: vi.fn(), error: vi.fn(), info: vi.fn() } }))
 
 const { loader } = await import('./tile')
+const { Permission } = await import('~/shared/types/permission')
 
 let congregationId = 10
-const context = { get: () => ({ id: 1, congregationId }) }
+let permissions = new Set<string>()
+const context = { get: (key: symbol) => (key === permissionsContext ? permissions : { id: 1, congregationId }) }
 const LES_LILAS = { swLat: 48.872, swLng: 2.405, neLat: 48.888, neLng: 2.43 }
 
 const request = (z: string, x: string, y: string, edition = 'ed1') =>
@@ -37,6 +41,7 @@ const request = (z: string, x: string, y: string, edition = 'ed1') =>
 beforeEach(() => {
   asked.length = 0
   congregationId += 1 // a fresh congregation for each case: the area cache never carries over
+  permissions = new Set()
   area = { area: LES_LILAS, perimeter: null }
   store = {
     edition: async () => 'ed1',
@@ -62,6 +67,15 @@ describe('a map tile', () => {
     const response = await request('15', '1', '1')
     expect(response.status).toBe(204)
     expect(asked).toEqual([])
+  })
+
+  it('reaches about ten kilometres further for whoever draws the congregation’s map', async () => {
+    // Some 5 km east of the area: beyond it, within the reach of Réglages › Carte de l'assemblée.
+    expect((await request('15', '16611', '11269')).status).toBe(204)
+    permissions = new Set([Permission.CanConfigureTerritorySettings])
+    expect((await request('15', '16611', '11269')).status).toBe(200)
+    // Further still: outside the reach too.
+    expect((await request('15', '16700', '11269')).status).toBe(204)
   })
 
   it('is empty while the congregation has no area yet', async () => {

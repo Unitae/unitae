@@ -365,7 +365,7 @@ Named, colored shapes that **subdivide your assembly's territory** — for examp
 
 ### Editing the map
 
-The page shows a Google Map. To create a zone or the perimeter, click *Draw* — then click on the map to place each corner, and double-click to close the shape. To change an existing shape, click *Modifier la forme* on its row and drag any corner. To rename a zone or change its color, click *Renommer / changer la couleur* and pick from the palette (or use the custom color picker).
+The page shows the instance's base map, reaching about ten kilometres beyond the congregation's area so the perimeter can be drawn wider than the placed buildings. To create a zone or the perimeter, click *Draw*, then click on the map to place each corner; click the first corner (or press Enter) to close the shape, *Annuler le dernier point* takes the last corner back, and Escape starts over. A line in the map recalls this while you draw. To change an existing shape, click *Modifier la forme* on its row: drag a corner to move it, click a middle point to add one, right-click a corner to remove it. The other shapes fade while one is drawn or reshaped. To rename a zone or change its color, click *Renommer / changer la couleur* and pick from the palette (or use the custom color picker).
 
 Every delete action (a zone, or the perimeter) asks for confirmation first. If you're in the middle of drawing or editing and click somewhere that would lose your work, Unitae warns you before throwing it away.
 
@@ -376,7 +376,7 @@ Two buttons in the page header let you export and re-import everything:
 - **Télécharger une sauvegarde** — downloads a single `.geojson` file containing all your zones and your perimeter. Keep it as a backup, or use it to copy your assembly map to another congregation.
 - **Importer un fichier** — opens the file you exported earlier (or any GeoJSON file you've drawn in another tool like geojson.io, Google My Maps, or QGIS). Imported zones are added to your existing list; if the file includes a perimeter, it replaces the current one.
 
-If your assembly doesn't have a Google Maps API key configured, the visual editor on this page is hidden, but you can still use the import/export buttons to manage your assembly map by editing the `.geojson` file in another tool.
+Without a base map on the instance — or before the congregation has placed a building or imported a perimeter, since the map opens around them — the map is hidden, but you can still use the import/export buttons to manage your assembly map by editing the `.geojson` file in another tool.
 
 ## Statistics
 

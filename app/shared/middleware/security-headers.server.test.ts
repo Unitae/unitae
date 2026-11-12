@@ -36,13 +36,16 @@ describe('buildContentSecurityPolicy', () => {
     expect(csp).toContain("base-uri 'self'")
   })
 
-  it('allows the external origins the app depends on', () => {
+  it('allows the external origins the app depends on, and no map service', () => {
     const csp = buildContentSecurityPolicy('abc123')
 
-    // Google Maps JS SDK + Google Fonts
-    expect(csp).toContain('https://maps.googleapis.com')
+    // Google Fonts, for the board documents' typefaces.
     expect(csp).toContain('https://fonts.googleapis.com')
     expect(csp).toContain('https://fonts.gstatic.com')
+    // The maps come from the instance itself: nothing of Google Maps loads in the browser.
+    expect(csp).not.toContain('maps.googleapis.com')
+    expect(csp).not.toContain('maps.gstatic.com')
+    expect(csp).not.toContain('ggpht.com')
   })
 
   it('scopes each external origin to the correct directive', () => {
@@ -56,12 +59,11 @@ describe('buildContentSecurityPolicy', () => {
     )
 
     expect(directives.get('default-src')).toBe("'self'")
-    expect(directives.get('connect-src')).toContain('https://maps.googleapis.com')
-    expect(directives.get('img-src')).toContain('data:')
-    expect(directives.get('img-src')).toContain('blob:')
+    expect(directives.get('connect-src')).toBe("'self'")
+    expect(directives.get('img-src')).toBe("'self' data: blob:")
     expect(directives.get('form-action')).toBe("'self'")
-    // Maps vector rendering spawns blob: web workers.
-    expect(directives.get('worker-src')).toBe("'self' blob:")
+    // MapLibre and pdf.js run their workers from the app's own files.
+    expect(directives.get('worker-src')).toBe("'self'")
     // The UI typeface is self-hosted; Google Fonts still serves the board documents' typefaces.
     expect(directives.get('font-src')).toBe("'self' https://fonts.gstatic.com")
   })

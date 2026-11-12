@@ -28,6 +28,26 @@ export function areaAround(points: readonly CardOverlayPath[]): Bbox | null {
   }
 }
 
+/** How far the map reaches beyond the area where the congregation's map is drawn, so its perimeter can grow. */
+const REACH_KM = 10
+const KM_PER_DEGREE = 111.32
+
+/**
+ * The area widened by about ten kilometres on each side: the map of Réglages › Carte de l'assemblée, where the
+ * perimeter that partly makes the area is drawn, and the tiles served to whoever draws it.
+ */
+export function reachAround(area: Bbox): Bbox {
+  const lat = REACH_KM / KM_PER_DEGREE
+  const middle = (((area.swLat + area.neLat) / 2) * Math.PI) / 180
+  const lng = Math.min(REACH_KM / (KM_PER_DEGREE * Math.cos(middle)), 180)
+  return {
+    swLat: Math.max(area.swLat - lat, -85.0511),
+    swLng: Math.max(area.swLng - lng, -180),
+    neLat: Math.min(area.neLat + lat, 85.0511),
+    neLng: Math.min(area.neLng + lng, 180),
+  }
+}
+
 const latOfTileRow = (y: number, n: number) => (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n))) * 180) / Math.PI
 
 /** What a web-mercator tile covers, in degrees. */

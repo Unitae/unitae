@@ -1,14 +1,17 @@
-import { bboxesOverlap, tileBbox } from '~/features/territories/model/map-area'
+import { bboxesOverlap, reachAround, tileBbox } from '~/features/territories/model/map-area'
 import { getMapArea } from '~/features/territories/server/map-area.queries'
 import { createMapAreaCache } from '~/features/territories/server/map-tiles-area.server'
-import { currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { getMapTiles } from '~/shared/infra/map-tiles.server'
+import { Permission } from '~/shared/types/permission'
 import type { Route } from './+types/tile'
 
 // One base-map tile. The browser never reaches the archive: the instance serves its tiles itself, only to signed-in
 // accounts (the authenticated layout's middleware) and only inside their congregation's area, so the archive is not
-// a free map for anyone who finds its address. The edition in the address lets the browser keep a tile for good.
+// a free map for anyone who finds its address. Whoever draws the congregation's map (Réglages › Carte de l'assemblée)
+// reaches about ten kilometres further, so its perimeter can grow. The edition in the address lets the browser keep a
+// tile for good.
 
 const areas = createMapAreaCache()
 const KEEP = 'private, max-age=31536000, immutable'
@@ -38,8 +41,10 @@ export async function loader({ params, context }: Route.LoaderArgs) {
     if (z > (await store.maxZoom())) return empty(204, KEEP)
     const { congregationId } = context.get(currentAccountContext)
     const mapArea = await areas.get(congregationId, () => withScopeFromContext(context, db => getMapArea(db)))
+    const drawing = context.get(permissionsContext).has(Permission.CanConfigureTerritorySettings)
+    const bounds = mapArea == null ? null : drawing ? reachAround(mapArea.area) : mapArea.area
     // Outside the area: nothing to draw. A short cache, so a newly drawn perimeter shows within minutes.
-    if (mapArea == null || !bboxesOverlap(mapArea.area, tileBbox(z, x, y))) return empty(204, 'private, max-age=300')
+    if (bounds == null || !bboxesOverlap(bounds, tileBbox(z, x, y))) return empty(204, 'private, max-age=300')
 
     const found = await store.tile(z, x, y)
     if (found == null) return empty(204, KEEP)
