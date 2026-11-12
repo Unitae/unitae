@@ -2,6 +2,7 @@ import { SegmentedControl } from '@unitae/ui'
 import { type CSSProperties, useCallback, useId } from 'react'
 import { Form } from 'react-router'
 
+import type { BaseMap } from '~/features/territories/model/base-map.type'
 import type { EditorEntrance } from '~/features/territories/model/editor-entrance.type'
 import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
@@ -36,7 +37,8 @@ interface TerritoryEditorProps {
   saved: EditorEntrance[]
   /** The types a new territory can take. */
   kinds: TerritoryKindKey[]
-  apiKey: string | null
+  /** The instance's base map; without one, entrances are found by their address instead. */
+  map: BaseMap | null
   center: { lat: number; lng: number } | null
   cancelTo: string
   result: EditorActionData | undefined
@@ -50,11 +52,11 @@ const PHONE_MAP = 'h-[calc(100dvh-var(--map-top,16rem)-8rem-env(safe-area-inset-
  * the save bar at the bottom of the column. On a phone, « Carte » and « Entrées » take the screen in turn.
  */
 export function TerritoryEditor(props: TerritoryEditorProps) {
-  const { mode, territory, saved, kinds, apiKey, center, cancelTo, result } = props
+  const { mode, territory, saved, kinds, map, center, cancelTo, result } = props
   const formId = useId()
   const editor = useTerritoryEditor({ mode, territory, saved, refused: result?.taken ?? [] })
   const { draft, kind, selected } = editor
-  const mapShown = apiKey != null && editor.view === 'map'
+  const mapShown = map != null && editor.view === 'map'
   const { ref: mapRef, top } = useTopOnPhone(mapShown)
   // Stable: the zone loader is rebuilt, and its cache dropped, whenever it changes.
   const zoneUrl = useCallback(
@@ -68,7 +70,7 @@ export function TerritoryEditor(props: TerritoryEditorProps) {
       className="flex flex-col max-md:-mx-4 md:-mx-6 md:-mt-6 md:-mb-6 md:h-[calc(100dvh-3rem)] md:flex-row"
     >
       <UnsavedChangesDialog blocker={editor.blocker} />
-      {apiKey != null && (
+      {map != null && (
         <>
           <div className="border-border border-b px-4 pb-3 md:hidden">
             <SegmentedControl
@@ -88,7 +90,7 @@ export function TerritoryEditor(props: TerritoryEditorProps) {
             className={cn('min-w-0 md:h-full md:flex-1', mapShown ? PHONE_MAP : 'max-md:hidden')}
           >
             <EditorMap
-              apiKey={apiKey}
+              map={map}
               className="size-full"
               label={territoryMapLabel(mode, territory.number)}
               bboxUrl={zoneUrl}
@@ -125,7 +127,7 @@ export function TerritoryEditor(props: TerritoryEditorProps) {
         className={cn(
           'flex min-h-0 flex-col bg-surface md:border-border',
           // Beside the map, a column; without one, the page's readable measure.
-          apiKey != null ? 'md:w-100 md:shrink-0 md:border-l' : 'md:mx-auto md:w-full md:max-w-2xl md:border-x',
+          map != null ? 'md:w-100 md:shrink-0 md:border-l' : 'md:mx-auto md:w-full md:max-w-2xl md:border-x',
           mapShown && 'max-md:hidden',
         )}
       >
@@ -145,7 +147,7 @@ export function TerritoryEditor(props: TerritoryEditorProps) {
             streets={editor.streets}
           />
           <RefusalBanner message={result?.formError} taken={editor.taken} onDrop={editor.undo} />
-          {apiKey == null && (
+          {map == null && (
             <EditorSearch
               kind={kind}
               territoryId={territory.id}
@@ -161,7 +163,7 @@ export function TerritoryEditor(props: TerritoryEditorProps) {
             count={editor.kept.length}
             selectedId={selected?.id ?? null}
             hotId={editor.hotId}
-            empty={emptyText(mode, saved.length > 0, apiKey != null, territory.number)}
+            empty={emptyText(mode, saved.length > 0, map != null, territory.number)}
             onPick={editor.pick}
             onHover={editor.setHotId}
             onRemove={entrance => editor.change({ kind: 'remove', entrance })}
@@ -173,7 +175,7 @@ export function TerritoryEditor(props: TerritoryEditorProps) {
       </div>
 
       <EditorSaveBar
-        beside={apiKey != null}
+        beside={map != null}
         mode={mode}
         formId={formId}
         changes={editor.changes}

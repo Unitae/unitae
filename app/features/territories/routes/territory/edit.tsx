@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { updateTerritorySchema } from '~/features/territories/schemas/territory.schema'
+import { getBaseMap } from '~/features/territories/server/base-map.server'
 import { getEditorCenter, getTerritoryEditor } from '~/features/territories/server/territory-editor.queries'
 import { editorRefusal } from '~/features/territories/server/territory-editor-refusal.server'
 import { updateTerritory } from '~/features/territories/server/update-territory.server'
@@ -19,7 +20,6 @@ import {
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { PageTopbar } from '~/shared/ui/PageTopbar'
-import { getOptionalEnv } from '~/shared/utils/env.server'
 import { handleAppError } from '~/shared/utils/handle-app-error.server'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -33,20 +33,20 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.CanManageTerritories)
   const id = requireParamId(params.territoryId, '/territories')
-  const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY') ?? null
 
   return withScopeFromContext(context, async (db, congregationId) => {
     const territory = await getTerritoryEditor(db, congregationId, id)
     if (territory == null) throw redirect('/territories')
+    const map = await getBaseMap(db, congregationId)
     // Where the map opens when none of the territory's entrances has a position.
     const placed = territory.entrances.some(entrance => entrance.latitude != null)
-    const center = placed || apiKey == null ? null : await getEditorCenter(db, congregationId)
-    return { territory, apiKey, center }
+    const center = placed || map == null ? null : await getEditorCenter(db, congregationId)
+    return { territory, map, center }
   })
 }
 
 export default function EditTerritoryPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { territory, apiKey, center } = loaderData
+  const { territory, map, center } = loaderData
   const [deleting, setDeleting] = useState<TerritoryTarget | null>(null)
   const view = `/territories/territory/${territory.id}/view`
   const target: TerritoryTarget = {
@@ -82,7 +82,7 @@ export default function EditTerritoryPage({ loaderData, actionData }: Route.Comp
         territory={territory}
         saved={territory.entrances}
         kinds={[territory.type]}
-        apiKey={apiKey}
+        map={map}
         center={center}
         cancelTo={view}
         result={actionData}

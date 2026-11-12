@@ -1,4 +1,4 @@
-import { useMap } from '@vis.gl/react-google-maps'
+import { useMap } from '@vis.gl/react-maplibre'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Bbox } from '~/features/territories/model/bbox.type'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
@@ -97,7 +97,7 @@ export function useBboxEntrances({
   invalidateOnIds,
   refreshKey,
 }: UseBboxEntrancesOptions): UseBboxEntrancesResult {
-  const map = useMap()
+  const { current: map } = useMap()
   const fetchAbort = useRef<AbortController | null>(null)
   const cacheRef = useRef<Map<string, BboxEntrance[]>>(new Map())
   const entranceToKeysRef = useRef<Map<number, Set<string>>>(new Map())
@@ -191,17 +191,15 @@ export function useBboxEntrances({
     if (lastBboxRef.current != null) loadBbox(lastBboxRef.current)
   }, [loadBbox])
 
+  // When the map stops moving (a drag, a zoom, a fly to a row): the zone it shows, a moment later.
   const handleIdle = useCallback(() => {
     if (map == null) return
     const bounds = map.getBounds()
-    if (bounds == null) return
-    const sw = bounds.getSouthWest()
-    const ne = bounds.getNorthEast()
     const bbox = {
-      swLat: sw.lat(),
-      swLng: sw.lng(),
-      neLat: ne.lat(),
-      neLng: ne.lng(),
+      swLat: bounds.getSouth(),
+      swLng: bounds.getWest(),
+      neLat: bounds.getNorth(),
+      neLng: bounds.getEast(),
     }
     if (debounceRef.current != null) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => loadBbox(bbox), 300)
@@ -209,11 +207,13 @@ export function useBboxEntrances({
 
   useEffect(() => {
     if (map == null) return
-    const listener = map.addListener('idle', handleIdle)
-    return () => listener.remove()
+    map.on('moveend', handleIdle)
+    return () => {
+      map.off('moveend', handleIdle)
+    }
   }, [map, handleIdle])
 
-  // Trigger an initial load once the map is ready, in case `idle` already fired before the listener attached.
+  // The first zone: the map has not moved yet when it mounts.
   useEffect(() => {
     if (map != null) handleIdle()
   }, [map, handleIdle])

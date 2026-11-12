@@ -40,12 +40,12 @@ Manage the congregation's geographic territories and track assignments to publis
 - **Personal territory view** — Every member can view their assigned territories at `/me/territories` with HTML entrance cards, PDF download, and interactive map — no special role required
 - **Unified search** — A single search input across every territory list handles publisher names, territory numbers, building addresses, postal codes, and neighbourhoods. Case- and accent-insensitive. Type an address (or `@Bastille`) and, with a Google Maps API key configured, the results are ranked by distance from that point — with a *Distance* column and a *Sans coordonnées* tail for territories with no geocoded address. See [Search and Filtering](territories.md#search-and-filtering)
 - **Territory types** — Door to door, Universities, Businesses, Phones, Hotels
-- **Map-driven territory editing** — When a Google Maps API key is set, managers edit a territory by clicking markers on the map (add green, remove blue, reassign grey) with an in-place address search, marker clustering, and an atomic Save that audits each cross-territory reassignment
+- **Map-driven territory editing** — When the instance serves a base map, managers edit a territory by clicking its entrances on the map (free, on the territory, on another one, added, removed — told apart by shape, not colour alone) with an in-place address search, grouping while zoomed out, and an atomic Save that audits each cross-territory reassignment
 - **Attributions** — Assign territories to publishers with start, end, and late dates
 - **Publishing campaigns** — Plan special drives (memorial invitations, convention campaigns) with dates, a territory scope, and configurable start/end behavior for ongoing assignments; while a campaign runs, assignments go into the campaign and a banner announces it. See [Publishing campaigns](territories.md#publishing-campaigns)
 - **Building prospection** — Maintain a database of individual buildings with address, entrance type, and prospection data
 - **Open data sync** — Automatically import building addresses from the French national address database — see [Open Data Sync](../self-hosting/open-data-sync.md)
-- **Maps** — Territory maps on a base map served by the instance itself (no third-party service), light and dark; Google Maps for the territory editor and PDF map pages (optional)
+- **Maps** — Territory maps, the territory editor and *Créer en lot* on a base map served by the instance itself (no third-party service), light and dark; Google Maps for PDF map pages and the *Carte de l'assemblée* drawing (optional)
 - **Card overlays & perimeter** — Draw colored zones and a territory boundary that print on every territory card; useful for orienting publishers in unfamiliar areas
 - **Statistics** — Coverage metrics, attribution frequency, overdue rates, monthly evolution
 - **Exports** — S-13 report, PDF territory cards (with optional map page), CSV export
@@ -128,7 +128,7 @@ Unitae manages religious affiliation data, which is special category data under 
 - **Consent gate** — Users must explicitly consent to data processing on their first login before accessing the application
 - **Consent management** — Users can view and withdraw their consents at any time from My account → Privacy; a dialog first explains that the app cannot be used without the data-processing consent
 - **Privacy policy** — Built-in `/privacy` page explaining data collection, purposes, legal basis, retention periods, sub-processors, and data subject rights
-- **Cookie consent** — The Google Maps parts (territory editor, *Carte de l'assemblée* drawing) only load after explicit user consent (ePrivacy Directive); the territory maps need none
+- **Cookie consent** — The Google Maps part (the *Carte de l'assemblée* drawing) only loads after explicit user consent (ePrivacy Directive); the territory maps and the editor need none
 - **Audit logging** — Audit trail for login, data export, anonymization, consent changes, user creation, and password operations
 - **Log PII obfuscation** — Email addresses and personal data fields are automatically obfuscated in application logs
 - **Data retention** — Automated cleanup of expired password reset tokens and old withdrawn consent records on a recurring schedule

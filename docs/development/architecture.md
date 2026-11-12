@@ -195,21 +195,21 @@ Key structure: `{congregationId}/{feature}/{uuid}.pdf`
 
 ## Maps
 
-Two map stacks live side by side while the editors move over:
+Two map stacks live side by side until the *Carte de l'assemblée* drawing moves over:
 
-- **The base map (MapLibre)** — *Mes territoires* and a territory's page. Protomaps vector tiles from one PMTiles
+- **The base map (MapLibre)** — *Mes territoires*, a territory's page, the territory editor and *Créer en lot*. Protomaps vector tiles from one PMTiles
   archive named by `UNITAE_MAP_TILES` (a path or an `https://` URL), painted with `mapStyle()` from
   `@unitae/tokens/map-style`. The browser never reaches the archive: see [The base map](#the-base-map).
-- **Google Maps** — the territory editor, *Créer en lot*, the *Carte de l'assemblée* drawing, the PDF map page and the
-  proximity search, behind `GOOGLE_MAPS_API_KEY` (and the consent banner for the on-screen parts).
+- **Google Maps** — the *Carte de l'assemblée* drawing, the PDF map page and the proximity search, behind
+  `GOOGLE_MAPS_API_KEY` (and the consent banner for the drawing).
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `UNITAE_MAP_TILES` | No | The base map's PMTiles archive. Without it the territory maps are hidden |
-| `GOOGLE_MAPS_API_KEY` | No | Enables the territory editor's map, static maps in PDF exports, and the *Carte de l'assemblée* drawing editor |
+| `UNITAE_MAP_TILES` | No | The base map's PMTiles archive. Without it the territory maps are hidden and the editor finds entrances by address |
+| `GOOGLE_MAPS_API_KEY` | No | Enables static maps in PDF exports, the *Carte de l'assemblée* drawing editor and proximity search |
 | `GOOGLE_MAPS_MAP_ID` | No | Enables custom styled Google maps (requires API key) |
 
-When the Google key is not set, the editor falls back to a search, the PDF map page is skipped, and the *Carte de l'assemblée* page falls back to the GeoJSON import/export workflow only (no visual editor).
+When the Google key is not set, the PDF map page is skipped, and the *Carte de l'assemblée* page falls back to the GeoJSON import/export workflow only (no visual editor).
 
 ### The base map
 
@@ -222,22 +222,28 @@ When the Google key is not set, the editor falls back to a search, the PDF map p
   archive can't be read, and
   `Cache-Control: private, max-age=31536000, immutable` otherwise (the edition is in the address).
 - **`app/features/territories/server/map-area.queries.ts`** (`getMapArea`) — the congregation's area: around its
-  perimeter, else around its placed entrances, with a margin (`model/map-area.ts`). `map-tiles-area.server.ts` caches
-  it per congregation and warms its tiles; `holder-map.server.ts` (`getHolderMap`) gives a page its tile address and
-  area.
+  perimeter and its placed entrances together, so the editor can reach every entrance, with a margin
+  (`model/map-area.ts`). `map-tiles-area.server.ts` caches
+  it per congregation and warms its tiles; `base-map.server.ts` (`getBaseMap`) gives a page its tile address and area
+  (`BaseMap`, `model/base-map.type.ts`).
 - **Glyphs** — `public/map-fonts/` ships the label glyphs (« Unitae Map », IBM Plex renamed under its licence; see
   `scripts/map-fonts/README.md`); `app/shell/map-fonts.tsx` answers the other ranges with Noto Sans.
 - **`app/features/territories/ui/HolderTerritoryMap.tsx`** — the frame (caption, loading and failure, the entrance
   card), server-rendered; **`HolderMapCanvas.tsx`** — the map itself on `@vis.gl/react-maplibre`, loaded in the
-  browser only, as its own chunk (`holder-map-chunk.ts`; the *Mes territoires* list prefetches it while idle). MapLibre
-  is told its worker's address (`setWorkerUrl`), since bundling moves it away from its module.
+  browser only, as its own chunk (`holder-map-chunk.ts`; the *Mes territoires* list prefetches it while idle).
+- **`app/features/territories/ui/editor/EditorMap.tsx`** — the editor's frame (status, the picked entrance's card);
+  **`EditorMapCanvas.tsx`** — its map, as its own chunk: the zone's entrances (`map/use-bbox-entrances.ts`, fetched on
+  `moveend`, cached by a 0.01° grid), each a button around `MapDot` (`editor-map-layers.tsx`), grouped up to zoom 14
+  with `supercluster` (`editor-clusters.ts`; the former Google clusterer's values, one zoom level lower since MapLibre's
+  tiles are 512 px), the outline as a GeoJSON layer, the address search and status chips. Used by the territory editor
+  and *Créer en lot*.
+- **`app/features/territories/ui/map/maplibre-base.ts`** — what both canvases share: MapLibre is told its worker's
+  address (`setWorkerUrl`, since bundling moves it away from its module), the base style (`useBaseStyle`, light or dark
+  with the page) and what counts as the base map failing (`tileFailed`).
 - `server.js` compresses `/map-fonts/` responses (protobuf is not compressible by default).
 
 ### Google Maps components
 
-- **`app/features/territories/ui/BuildingEntranceMap.tsx`** — read-only Google Map (`@vis.gl/react-google-maps`) used by the territory view, the new-territory preview, the five split-tool variants, and the publisher dashboard. Renders `<AdvancedMarker>` + the shared `<EntranceMarkerPin>` (defaults to the in-territory blue + check variant). Accepts `className` / `mapClassName` overrides so the territory view can shrink the map to a 40/50% sticky sidebar without affecting other call sites.
-- **`app/features/territories/ui/BuildingEntranceMapEditor.tsx`** — the interactive map-driven territory editor. Uses the same `<EntranceMarkerPin>` with the relevant variant per state (in-territory / available / on-other / pending-add / pending-remove). Wires `@googlemaps/markerclusterer` for clustering, fetches viewport entrances on map idle (debounced + cached by a coarse 0.01° grid), and surfaces a search box, legend, retry chip, and empty-state overlay.
-- **`app/features/territories/ui/EntranceMarkerPin.tsx`** — single source of truth for the marker visual. Five variants. Used everywhere on screen.
 - **`app/features/territories/ui/TerritoryDocument.tsx`** — uses Google's Static Maps API for the printable territory card. Marker stays yellow on print intentionally. The map page renders the congregation's `TerritoryCardOverlay` zones (each a colored Polygon path) and falls back to the `TerritoryPerimeter` (drawn as a thin gray outline) when no zone is configured. The Static Maps URL is built by the pure `app/features/territories/model/static-map-url.ts` helper — there are zero hardcoded coordinates anywhere in the file (a snapshot test enforces this).
 - **`app/features/territories/ui/CardOverlayMap.tsx`** — the drawing-enabled Google Map shared by the *Carte de l'assemblée* settings page (`/settings/map`). Uses [Terra Draw](https://terradraw.io/) via `terra-draw-google-maps-adapter` for polygon drawing + vertex editing (Google removed `google.maps.drawing.DrawingManager` in Maps JS v3.65). One `TerraDraw` instance drives both the "draw new" (`TerraDrawPolygonMode`) and "edit existing" (`TerraDrawSelectMode`) flows; pure GeoJSON↔`CardOverlayPath` conversion is isolated in the colocated `card-overlay-map-bridge.ts` module. Renders existing zones + perimeter as read-only `google.maps.Polygon` (with an `excludeOverlayId` / `excludePerimeter` prop to hide whichever shape is currently being edited).
 - **`app/features/territories/ui/ColorPicker.tsx`** — small Popover with a curated 8-swatch palette + a custom-color tile. Used in the new-zone draft form and the per-zone metadata edit dialog.
@@ -249,7 +255,6 @@ When the Google key is not set, the editor falls back to a search, the PDF map p
 ### Notes
 
 - `BuildingEntrance` carries a stored centroid (`latitude` / `longitude`) recomputed on building add/remove and on a building's coord change. Maintained by `recalculateEntranceCentroid` in `update-buildings-in-entrance.server.ts` and called by `createBuilding`, `editBuilding` and `updateBuildingsInEntrance`. The address sync (`saveSyncedAddresses`) writes a new entrance's position directly, since it holds a single building.
-- Vite's SSR pipeline must bundle `@googlemaps/markerclusterer` (it ships a CommonJS main entry) — `vite.config.ts` has it in `ssr.noExternal`.
 - The editor's reassignment flow validates source territory + entrance link before disconnect/connect, runs everything in a single Prisma transaction, and audits each move as `EntranceReassigned` (see [Audit Logging](#audit-logging)).
 
 ## Territory Search & Geocoding

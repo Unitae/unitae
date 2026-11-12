@@ -4,6 +4,7 @@ import { commitSession, getSession } from '~/features/authentication/index.serve
 import { getPhoneTerritoryActive } from '~/features/settings/index.server'
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { createTerritorySchema } from '~/features/territories/schemas/territory.schema'
+import { getBaseMap } from '~/features/territories/server/base-map.server'
 import { createTerritory } from '~/features/territories/server/create-territory.server'
 import { getEditorCenter } from '~/features/territories/server/territory-editor.queries'
 import { editorRefusal } from '~/features/territories/server/territory-editor-refusal.server'
@@ -19,7 +20,6 @@ import {
 import { LimitService } from '~/shared/domain/limits.server'
 import { Permission } from '~/shared/types/permission'
 import { PageTopbar } from '~/shared/ui/PageTopbar'
-import { getOptionalEnv } from '~/shared/utils/env.server'
 import { handleAppError } from '~/shared/utils/handle-app-error.server'
 
 import type { Route } from './+types/new'
@@ -38,12 +38,12 @@ export const meta: Route.MetaFunction = () => [{ title: m.territories_new_meta_t
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.CanManageTerritories)
-  const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY') ?? null
 
   return withScopeFromContext(context, async (db, congregationId) => {
     const phone = await getPhoneTerritoryActive(db, congregationId)
-    const center = apiKey == null ? null : await getEditorCenter(db, congregationId)
-    return { kinds: KINDS.filter(kind => phone || kind !== TerritoryKindKey.Phone), apiKey, center }
+    const map = await getBaseMap(db, congregationId)
+    const center = map == null ? null : await getEditorCenter(db, congregationId)
+    return { kinds: KINDS.filter(kind => phone || kind !== TerritoryKindKey.Phone), map, center }
   })
 }
 
@@ -60,7 +60,7 @@ export default function NewTerritoryPage({ loaderData, actionData }: Route.Compo
         territory={{ id: null, number: '', type: TerritoryKindKey.Classical, notes: '' }}
         saved={[]}
         kinds={loaderData.kinds}
-        apiKey={loaderData.apiKey}
+        map={loaderData.map}
         center={loaderData.center}
         cancelTo="/territories"
         result={actionData}

@@ -1,3 +1,4 @@
+import { MapDot } from '@unitae/ui'
 import { Building2, Plus, Undo2, X } from 'lucide-react'
 import { Link } from 'react-router'
 import { type ShopKind, shopKindLabels } from '~/features/territories/model/shop-kind.type'
@@ -10,7 +11,6 @@ import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
 import { entranceAccessLabels } from '../entrance-access-labels'
-import { EditorPin } from './EditorPin'
 import { addressOf, contentText } from './editor-labels'
 import type { MapEntrance } from './editor-map-entrance'
 
@@ -74,7 +74,7 @@ export function EditorEntranceCard(props: EditorEntranceCardProps) {
         </Button>
       </div>
       <span className="flex items-center gap-2 text-sm">
-        <EditorPin state={pin} size="small" />
+        <MapDot state={pin} size="small" />
         {stateText(props, content?.holder ?? null)}
       </span>
       {other != null && content != null && (

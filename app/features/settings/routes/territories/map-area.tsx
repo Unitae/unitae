@@ -7,7 +7,8 @@ import { Permission } from '~/shared/types/permission'
 import type { Route } from './+types/map-area'
 
 // « Télécharger la zone à couvrir »: an instance without a base map hands its host the congregation's area as GeoJSON
-// — the perimeter when one is drawn, else the rectangle around the placed buildings — to cut a map file to it.
+// — the perimeter when one is drawn and holds the placed buildings, else the rectangle around both — to cut a map file
+// to it.
 
 const ACCENTS = /[̀-ͯ]/g
 const UNSAFE_FILENAME = /[/\\?%*:|"<>]/g

@@ -72,7 +72,8 @@ export default function MapSearchBox({ candidates, onSelect }: Props) {
     <div className="pointer-events-auto flex w-64 flex-col gap-1 max-sm:w-56">
       <div className="relative">
         <Search
-          className="-translate-y-1/2 absolute top-1/2 left-2.5 size-3.5 text-muted-foreground"
+          // Above the field: its blurred background would otherwise paint over the icon.
+          className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-2.5 z-10 size-3.5 text-muted-foreground"
           aria-hidden="true"
         />
         <Input

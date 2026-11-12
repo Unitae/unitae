@@ -1,3 +1,4 @@
+import { MapDot } from '@unitae/ui'
 import { ExternalLink } from 'lucide-react'
 import { Link } from 'react-router'
 
@@ -6,7 +7,6 @@ import type { Draft } from '~/features/territories/model/territory-draft'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
-import { EditorPin } from './EditorPin'
 import { addressOf } from './editor-labels'
 
 /** A territory made during this visit: « Créés ici » lists them, the newest first. */
@@ -115,11 +115,11 @@ export function BatchLegend({ number }: { number: string }) {
       className="flex max-w-md flex-wrap items-center gap-x-3.5 gap-y-1.5 rounded-md bg-surface px-3 py-2 text-muted-foreground text-xs shadow-md ring-1 ring-border"
     >
       <li className="flex items-center gap-1.5">
-        <EditorPin state="add" size="small" />
+        <MapDot state="add" size="small" />
         {number}
       </li>
       <li className="flex items-center gap-1.5">
-        <EditorPin state="free" size="small" />
+        <MapDot state="free" size="small" />
         {m.territory_editor_legend_free()}
       </li>
     </ul>

@@ -4,6 +4,7 @@ import { type CSSProperties, useCallback, useEffect, useId, useRef, useState } f
 import { useFetcher } from 'react-router'
 import { toast } from 'sonner'
 
+import type { BaseMap } from '~/features/territories/model/base-map.type'
 import type { EditorEntrance } from '~/features/territories/model/editor-entrance.type'
 import { contentOf } from '~/features/territories/model/territory-draft'
 import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
@@ -40,7 +41,8 @@ interface TerritoryBatchCreatorProps {
   zips: string[]
   /** The filters as the zone API reads them (`zip`, `access`, `street`). */
   filters: URLSearchParams
-  apiKey: string | null
+  /** The instance's base map; without one, entrances are found by their address instead. */
+  map: BaseMap | null
   center: { lat: number; lng: number } | null
   created: CreatedTerritory[]
   onCreated: (territory: CreatedTerritory) => void
@@ -54,14 +56,14 @@ const PHONE_MAP = 'h-[calc(100dvh-var(--map-top,16rem)-8rem-env(safe-area-inset-
  * creation the page stays: the selection starts again with the next number.
  */
 export function TerritoryBatchCreator(props: TerritoryBatchCreatorProps) {
-  const { kind, free, withoutPosition, apiKey, filters } = props
+  const { kind, free, withoutPosition, map, filters } = props
   const formId = useId()
   const filterKey = filters.toString()
   const batch = useTerritoryBatch({ kind, suggestedNumber: props.suggestedNumber, filterKey })
   const { draft, selected } = batch
   const fetcher = useFetcher<BatchActionData>()
   const [showWithoutPosition, setShowWithoutPosition] = useState(false)
-  const mapShown = apiKey != null && batch.view === 'map'
+  const mapShown = map != null && batch.view === 'map'
   const summary = summaryOf(kind, batch.kept)
 
   const zoneUrl = useCallback(
@@ -85,14 +87,14 @@ export function TerritoryBatchCreator(props: TerritoryBatchCreatorProps) {
       className="flex flex-col max-md:-mx-4 md:-mx-6 md:-mt-6 md:-mb-6 md:h-[calc(100dvh-3rem)] md:flex-row"
     >
       <UnsavedChangesDialog blocker={batch.blocker} />
-      {apiKey != null && (
-        <BatchMapPane batch={batch} kind={kind} free={free} apiKey={apiKey} center={props.center} zoneUrl={zoneUrl} />
+      {map != null && (
+        <BatchMapPane batch={batch} kind={kind} free={free} map={map} center={props.center} zoneUrl={zoneUrl} />
       )}
 
       <div
         className={cn(
           'flex min-h-0 flex-col bg-surface md:border-border',
-          apiKey != null ? 'md:w-100 md:shrink-0 md:border-l' : 'md:mx-auto md:w-full md:max-w-2xl md:border-x',
+          map != null ? 'md:w-100 md:shrink-0 md:border-l' : 'md:mx-auto md:w-full md:max-w-2xl md:border-x',
           mapShown && 'max-md:hidden',
         )}
       >
@@ -123,7 +125,7 @@ export function TerritoryBatchCreator(props: TerritoryBatchCreatorProps) {
               onAdd={entrance => batch.change({ kind: 'add', entrance })}
             />
           )}
-          {apiKey == null && (
+          {map == null && (
             <EditorSearch
               kind={kind}
               territoryId={null}
@@ -143,7 +145,7 @@ export function TerritoryBatchCreator(props: TerritoryBatchCreatorProps) {
               count={batch.kept.length}
               selectedId={selected?.id ?? null}
               hotId={batch.hotId}
-              empty={apiKey != null ? m.split_tool_entrances_empty() : m.split_tool_entrances_empty_search()}
+              empty={map != null ? m.split_tool_entrances_empty() : m.split_tool_entrances_empty_search()}
               onPick={batch.pick}
               onHover={batch.setHotId}
               onRemove={entrance => batch.undo(entrance.id)}
@@ -160,7 +162,7 @@ export function TerritoryBatchCreator(props: TerritoryBatchCreatorProps) {
       </div>
 
       <BatchSaveBar
-        beside={apiKey != null}
+        beside={map != null}
         formId={formId}
         summary={summary}
         number={batch.number}
@@ -214,14 +216,14 @@ function BatchMapPane({
   batch,
   kind,
   free,
-  apiKey,
+  map,
   center,
   zoneUrl,
 }: {
   batch: ReturnType<typeof useTerritoryBatch>
   kind: TerritoryKindKey
   free: number
-  apiKey: string
+  map: BaseMap
   center: { lat: number; lng: number } | null
   zoneUrl: (bbox: { swLat: number; swLng: number; neLat: number; neLng: number }) => string
 }) {
@@ -248,7 +250,7 @@ function BatchMapPane({
         className={cn('min-w-0 md:h-full md:flex-1', mapShown ? PHONE_MAP : 'max-md:hidden')}
       >
         <EditorMap
-          apiKey={apiKey}
+          map={map}
           className="size-full"
           label={m.split_tool_map_label()}
           bboxUrl={zoneUrl}
