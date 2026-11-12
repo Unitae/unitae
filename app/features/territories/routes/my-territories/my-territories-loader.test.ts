@@ -18,15 +18,16 @@ vi.mock('~/shared/auth/route-context.server', () => ({
   withScopeFromContext: (_context: unknown, fn: (db: unknown) => unknown) => fn(fakeDb),
 }))
 
-// What each test sets up: the Maps key, the congregation's map setting, the territory's entrances.
+// What each test sets up: the instance's base map, the congregation's map setting, the territory's entrances.
+const MAP = { tiles: '/map/tiles/ed/{z}/{x}/{y}', area: { swLat: 45, swLng: 4, neLat: 46, neLng: 5 } }
 const stub = {
-  mapsKey: undefined as string | undefined,
+  hasMap: false,
   mapTabActive: false,
   entrances: [] as unknown[],
 }
 
-vi.mock('~/shared/utils/env.server', () => ({
-  getOptionalEnv: (name: string) => (name === 'GOOGLE_MAPS_API_KEY' ? stub.mapsKey : undefined),
+vi.mock('~/features/territories/server/holder-map.server', () => ({
+  getHolderMap: async () => (stub.hasMap ? MAP : null),
 }))
 
 // One active attribution exists — held by the MEMBER, as in production data.
@@ -77,7 +78,7 @@ const entrance = (id: number, latitude: number | null) => ({
 })
 
 beforeEach(() => {
-  stub.mapsKey = undefined
+  stub.hasMap = false
   stub.mapTabActive = false
   stub.entrances = []
 })
@@ -128,26 +129,40 @@ describe('/me/territories/:territoryId loader', () => {
     expect(result.territory).not.toHaveProperty('notes')
   })
 
-  // Regression: with the key and the setting on, a territory none of whose buildings is placed
+  // Regression: with a base map and the setting on, a territory none of whose buildings is placed
   // got the map anyway: an empty column beside the list, and a « Carte » view with nothing in it.
   it('leaves the map out when none of the entrances is placed on it', async () => {
-    stub.mapsKey = 'maps-key'
+    stub.hasMap = true
     stub.mapTabActive = true
     stub.entrances = [entrance(3, null), entrance(5, null)]
 
     const result = await loadView()
 
     expect(result.streets).toHaveLength(1)
-    expect(result.mapKey).toBeNull()
+    expect(result.map).toBeNull()
   })
 
   it('shows the map once one entrance is placed on it', async () => {
-    stub.mapsKey = 'maps-key'
+    stub.hasMap = true
     stub.mapTabActive = true
     stub.entrances = [entrance(3, null), entrance(5, 45.76)]
 
     const result = await loadView()
 
-    expect(result.mapKey).toBe('maps-key')
+    expect(result.map).toEqual(MAP)
+  })
+
+  it('leaves the map out on an instance without a base map', async () => {
+    stub.mapTabActive = true
+    stub.entrances = [entrance(5, 45.76)]
+
+    expect((await loadView()).map).toBeNull()
+  })
+
+  it('leaves the map out when the congregation turned it off', async () => {
+    stub.hasMap = true
+    stub.entrances = [entrance(5, 45.76)]
+
+    expect((await loadView()).map).toBeNull()
   })
 })

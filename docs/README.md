@@ -43,6 +43,7 @@ Run Unitae on your own infrastructure with full control over your data.
 - [Cron Jobs](self-hosting/cron-jobs.md) — Set up recurring maintenance tasks
 - [Health Monitoring](self-hosting/health-monitoring.md) — Configure health check probes
 - [Open Data Sync](self-hosting/open-data-sync.md) — Import French national addresses for building prospection
+- [Maps](self-hosting/maps.md) — Serve the territory maps' base map from your instance
 
 ### Contribute to Unitae
 

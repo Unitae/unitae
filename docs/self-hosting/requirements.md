@@ -47,7 +47,8 @@ All other dependencies (Node.js, PostgreSQL, Redis) are included in the Docker i
 - **Outbound HTTPS** (optional, depending on features used):
   - BANO open data servers — for building address sync
   - Resend API (`api.resend.com`) — for email notifications
-  - Google Maps APIs (`maps.googleapis.com`) — for territory maps and proximity search geocoding
+  - Your base map file, when `UNITAE_MAP_TILES` is an `https://` URL (e.g. your S3 bucket) — for the territory maps
+  - Google Maps APIs (`maps.googleapis.com`) — for the territory editor's map, PDF map pages and proximity search geocoding
 
 ## Reverse Proxy
 

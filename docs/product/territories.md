@@ -38,7 +38,7 @@ Clicking a territory opens a detail page with two tabs:
   - *Phones*: address, phone count, notes
   - *Businesses*: address, shop type label, notes
   - PDF download button for offline use
-- **Map** — Full-width interactive Google Map with markers for each address (when configured). Shows a consent banner before loading the map. If no API key is set, a message indicates the map is unavailable. Markers use the same blue check pin as the admin views (see [Map markers](#map-markers)).
+- **Map** — The territory's entrances as numbered pins (the numbers of the list) on the base map the instance serves (when it has one and the congregation turned the map on). Pointing at an entrance raises its pins; picking one opens its card on the map. Nothing asks for consent: no third-party service is called. Without a base map the list takes the whole width. See [Maps](../self-hosting/maps.md).
 
 Assignment info (start date, return date with relative time, status, the *Phones* method pill and the campaign-name pill when applicable) is shown above the tabs.
 

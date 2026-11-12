@@ -6,6 +6,7 @@ import { groupByStreet, toHolderEntrance } from '~/features/territories/model/ho
 import { getTerritoryPmrStatus } from '~/features/territories/model/pmr-status'
 import { territoryStanding } from '~/features/territories/model/territory-standing'
 import { getActiveCampaign } from '~/features/territories/server/campaign.queries'
+import { getHolderMap } from '~/features/territories/server/holder-map.server'
 import { findAdjacentTerritories, getTerritoryPage } from '~/features/territories/server/territory-page.queries'
 import { ReturnAttributionDialog } from '~/features/territories/ui/AttributionDialogs'
 import { AttributionPanel, type AttributionTarget } from '~/features/territories/ui/AttributionPanel'
@@ -23,7 +24,6 @@ import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { formatLocalDate } from '~/shared/utils/date.server'
-import { getOptionalEnv } from '~/shared/utils/env.server'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/view'
@@ -45,12 +45,13 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
     const locale = getLocale()
     const today = formatLocalDate(new Date())
     const entrances = page.entrances.flatMap(entrance => toHolderEntrance(entrance, locale) ?? [])
-    const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
-    const [phoneTypeActive, pmrActive, campaign, adjacent] = await Promise.all([
+    const placed = entrances.some(entrance => entrance.points.length > 0)
+    const [phoneTypeActive, pmrActive, campaign, adjacent, holderMap] = await Promise.all([
       getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId),
       getBoolSetting(db, TerritorySettingKey.PmrActive, congregationId),
       getActiveCampaign(db, congregationId),
       findAdjacentTerritories(db, congregationId, page.territory, locale),
+      placed ? getHolderMap(db, congregationId) : null,
     ])
     // Who held it and when is the attributions' business: without their right, none of it leaves the server.
     const history = canViewAttributions ? page.history : []
@@ -72,7 +73,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
         phones: entrances.reduce((sum, entrance) => sum + entrance.phones, 0),
       },
       pmr,
-      mapKey: apiKey && entrances.some(entrance => entrance.points.length > 0) ? apiKey : null,
+      map: holderMap,
       showPhone: phoneTypeActive ?? false,
       adjacent,
       from: new URL(request.url).searchParams.get('from') ?? '',
@@ -145,7 +146,7 @@ export default function TerritoryView({ loaderData }: Route.ComponentProps) {
           </>
         }
         controls={
-          loaderData.mapKey != null ? (
+          loaderData.map != null ? (
             <div className="xl:hidden">
               <SegmentedControl
                 options={[
@@ -164,7 +165,7 @@ export default function TerritoryView({ loaderData }: Route.ComponentProps) {
         streets={loaderData.streets}
         territoryType={territory.type}
         showPhone={loaderData.showPhone}
-        map={loaderData.mapKey == null ? null : { apiKey: loaderData.mapKey, number: territory.number }}
+        map={loaderData.map == null ? null : { ...loaderData.map, number: territory.number }}
         view={view}
         onViewChange={setView}
         before={

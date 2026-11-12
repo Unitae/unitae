@@ -392,7 +392,8 @@ RESEND_API_KEY="re_..."                # Email sending
 Optional:
 
 ```ini
-GOOGLE_MAPS_API_KEY=""                 # Enables territory maps and PDF map exports
+UNITAE_MAP_TILES=""                    # Base map of the territory maps: PMTiles path or https URL (docs/self-hosting/maps.md)
+GOOGLE_MAPS_API_KEY=""                 # Territory editor map, PDF map exports, proximity search
 GOOGLE_MAPS_MAP_ID=""                  # Custom styled map
 S3_ENDPOINT=""                         # S3-compatible storage (fallback: local ./content/uploads/)
 S3_BUCKET=""

@@ -1,0 +1,11 @@
+Unitae Map Regular, Unitae Map Medium, Unitae Map Italic
+
+Map label glyphs (SDF) made from IBM Plex Sans, Google Fonts build (google/fonts commit
+0b58fb370093f9a9f4ff785d94405710b79de67c, ofl/ibmplexsans). They are a Modified Version under the
+SIL Open Font License 1.1 (OFL-IBM-Plex-Sans.txt) and carry another name because "Plex" is a
+Reserved Font Name. Copyright 2017 IBM Corp.
+
+Where IBM Plex Sans has no glyph in a range, glyphs from Noto Sans (GoNotoKurrent, through the
+smp-noto-glyphs 2.0.0 package) fill it in, under the SIL Open Font License 1.1 (OFL-Noto-Sans.txt).
+
+How to rebuild them: scripts/map-fonts/README.md in the Unitae repository.

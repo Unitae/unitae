@@ -3808,7 +3808,7 @@
     "settings_territories_display_title": "Affichage",
     "settings_territories_display_hint": "Ce que les pages des territoires montrent.",
     "settings_territories_map_tab_label": "Carte dans Mes territoires",
-    "settings_territories_map_tab_description": "Le proclamateur voit les entrées de son territoire sur une carte. Demande une clé Google Maps sur l’instance.",
+    "settings_territories_map_tab_description": "Le proclamateur voit les entrées de son territoire sur une carte. Demande un fond de carte sur l’instance.",
     "settings_territories_pmr_label": "Accessibilité (PMR)",
     "settings_territories_pmr_description": "Montrer, dans les listes et sur la page d’un territoire porte-à-porte, les entrées accessibles aux personnes à mobilité réduite.",
     "settings_duration_weeks_one": "1 semaine",
@@ -4681,5 +4681,14 @@
     "external_speakers_send_no_reply_to": "Sans responsable des discours, les réponses iraient à l’adresse de l’application, que personne ne lit.",
     "external_speakers_ours_record_value": "De sa fiche · {value}",
     "external_speakers_ours_row_up_to_date": "À jour · {date}",
-    "external_speakers_ours_row_changed": "Pas à jour · {date}"
+    "external_speakers_ours_row_changed": "Pas à jour · {date}",
+    "my_territories_map_unavailable": "Le fond de carte ne répond pas.",
+    "my_territories_map_retry": "Réessayer",
+    "settings_map_tiles_title": "Carte à l’écran",
+    "settings_map_tiles_missing": "Pas de fond de carte sur cette instance",
+    "settings_map_tiles_missing_description": "Les cartes à l’écran sont masquées. Votre hébergeur peut en ajouter une, découpée sur la zone de l’assemblée : donnez-lui ce fichier.",
+    "settings_map_tiles_download_area": "Télécharger la zone à couvrir",
+    "settings_map_tiles_no_area": "Pas encore de zone : tracez le périmètre de l’assemblée ou placez des bâtiments.",
+    "settings_map_tiles_docs": "Comment ajouter un fond de carte",
+    "settings_map_tiles_area_filename": "zone {name}"
 }

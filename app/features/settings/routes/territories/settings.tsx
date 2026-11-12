@@ -6,6 +6,7 @@ import { KIND_ROLES_FIELD_PREFIX, territorySettingsSchema } from '~/features/set
 import { loadTerritorySettings } from '~/features/settings/server/load-territory-settings.server'
 import { updateTerritorySettings } from '~/features/settings/server/territory-settings.server'
 import { DurationInput } from '~/features/settings/ui/DurationInput'
+import { MapTilesNotice } from '~/features/settings/ui/MapTilesNotice'
 import { SettingsField } from '~/features/settings/ui/SettingsField'
 import { SettingsForm } from '~/features/settings/ui/SettingsForm'
 import { SettingsHeader } from '~/features/settings/ui/SettingsHeader'
@@ -15,6 +16,7 @@ import { TerritoryKindKey } from '~/features/territories'
 import {
   banoUrlWriteError,
   getAllowedZips,
+  getMapArea,
   listTerritoryKindsWithRoles,
   parseZips,
   serializeZips,
@@ -23,6 +25,7 @@ import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { listRoles } from '~/shared/domain/roles.server'
 import { getSetting } from '~/shared/domain/settings.server'
+import { getMapTiles } from '~/shared/infra/map-tiles.server'
 import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Input } from '~/shared/ui/input'
@@ -52,11 +55,14 @@ export function loader({ context }: Route.LoaderArgs) {
   }
 
   return withScopeFromContext(context, async db => {
-    const [zips, settings, kinds, roles] = await Promise.all([
+    const hasMapTiles = getMapTiles() != null
+    const [zips, settings, kinds, roles, mapArea] = await Promise.all([
       getAllowedZips(db),
       loadTerritorySettings(db, currentUser.congregationId),
       listTerritoryKindsWithRoles(db, currentUser.congregationId),
       listRoles(db, currentUser.congregationId),
+      // Only an instance without a base map offers the area to cut one to.
+      hasMapTiles ? null : getMapArea(db),
     ])
 
     // Attribution default duration — fall back to legacy months×30 for pre-v2 congregations
@@ -82,6 +88,8 @@ export function loader({ context }: Route.LoaderArgs) {
       prospectionValidity: positiveOr(settings[TerritorySettingKey.ProspectionValidity], 24),
       phoneTypeActivated: settings[TerritorySettingKey.TerritoryTypePhoneActive] === 'true',
       mapTabActivated: settings[TerritorySettingKey.MapTabActive] === 'true',
+      hasMapTiles,
+      hasMapArea: mapArea != null,
       pmrActivated: settings[TerritorySettingKey.PmrActive] === 'true',
       attributionDefaultDuration,
       attributionPhoneDuration: positiveOr(settings[TerritorySettingKey.AttributionPhoneDurationDays], 14),
@@ -212,6 +220,7 @@ export default function TerritorySettingsPage({ loaderData, actionData }: Route.
             >
               <Switch id="map-tab-active" name="map-tab-active" defaultChecked={mapTabActivated} />
             </SettingRow>
+            {!loaderData.hasMapTiles && <MapTilesNotice hasArea={loaderData.hasMapArea} />}
             <SettingRow
               htmlFor="pmr-active"
               title={m.settings_territories_pmr_label()}

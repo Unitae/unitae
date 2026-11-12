@@ -9,6 +9,7 @@ export {
   listCardOverlays,
   updateCardOverlay,
 } from './server/card-overlays.server'
+export { getMapArea, type MapArea } from './server/map-area.queries'
 export { territoryNotifications } from './server/notifications.server'
 export { assertAllowedOpenDataUrl, banoUrlWriteError } from './server/open-data-allowlist.server'
 export { clearPerimeter, getPerimeter, setPerimeter } from './server/perimeter.server'

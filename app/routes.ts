@@ -19,8 +19,10 @@ export default [
   route('cron/process-notifications', 'shell/cron.process-notifications.tsx'),
   route('feed/:token/calendar.ics', 'features/events/routes/calendar-feed.ics.tsx'),
   ...authenticationRoutes,
+  route('map-fonts/:fontstack/:range', 'shell/map-fonts.tsx'),
   route('', 'shell/_authenticated-layout.tsx', [
     index('features/dashboard/routes/index.tsx'),
+    route('map/tiles/:edition/:z/:x/:y', 'features/territories/routes/map/tile.tsx'),
     route('onboarding/dismiss', 'features/dashboard/routes/dismiss-onboarding.tsx'),
     route('password/:userId/invalidate', 'features/authentication/routes/password-invalidation.tsx'),
     route('me', 'features/authentication/routes/user/_layout.tsx', [
@@ -93,6 +95,7 @@ export default [
         ]),
       ]),
       route('territories', 'features/settings/routes/territories/settings.tsx'),
+      route('territories/map-area.geojson', 'features/settings/routes/territories/map-area.tsx'),
       route('map', 'features/settings/routes/map.tsx'),
       route('territories/card-overlays', 'features/settings/routes/legacy.tsx', {
         id: 'settings-legacy-card-overlays',

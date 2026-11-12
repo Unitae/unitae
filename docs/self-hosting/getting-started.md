@@ -196,7 +196,7 @@ S3_SECRET_KEY=your-secret-key
 
 ### Maps
 
-Set `GOOGLE_MAPS_API_KEY` to enable interactive maps on territory pages and map images in PDF territory cards. The key needs the **Maps JavaScript API** and **Maps Static API** enabled.
+Set `UNITAE_MAP_TILES` to a base map file to show the territory maps (*Mes territoires*, a territory's page): see [Maps](maps.md) for cutting one to your area. With Docker Compose, put it in `maps/` and uncomment the `./maps` volume of the `web` service in `compose.yaml`. Set `GOOGLE_MAPS_API_KEY` for the territory editor's map and the map images in PDF territory cards; the key needs the **Maps JavaScript API** and **Maps Static API** enabled.
 
 ## Related
 

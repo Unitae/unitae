@@ -3808,7 +3808,7 @@
     "settings_territories_display_title": "Display",
     "settings_territories_display_hint": "What the territory pages show.",
     "settings_territories_map_tab_label": "Map in My territories",
-    "settings_territories_map_tab_description": "Publishers see the entrances of their territory on a map. Needs a Google Maps key on the instance.",
+    "settings_territories_map_tab_description": "Publishers see the entrances of their territory on a map. Needs a base map on the instance.",
     "settings_territories_pmr_label": "Accessibility (reduced mobility)",
     "settings_territories_pmr_description": "Show, in the lists and on a house-to-house territory’s page, the entrances accessible to people with reduced mobility.",
     "settings_duration_weeks_one": "1 week",
@@ -4681,5 +4681,14 @@
     "external_speakers_send_no_reply_to": "Without a public talk coordinator, replies would go to the app’s address, which nobody reads.",
     "external_speakers_ours_record_value": "From his record · {value}",
     "external_speakers_ours_row_up_to_date": "Up to date · {date}",
-    "external_speakers_ours_row_changed": "Not up to date · {date}"
+    "external_speakers_ours_row_changed": "Not up to date · {date}",
+    "my_territories_map_unavailable": "The base map isn’t responding.",
+    "my_territories_map_retry": "Retry",
+    "settings_map_tiles_title": "On-screen map",
+    "settings_map_tiles_missing": "No base map on this instance",
+    "settings_map_tiles_missing_description": "On-screen maps are hidden. Your host can add one, cut to the congregation’s area: give them this file.",
+    "settings_map_tiles_download_area": "Download the area to cover",
+    "settings_map_tiles_no_area": "No area yet: draw the congregation’s perimeter or place buildings.",
+    "settings_map_tiles_docs": "How to add a base map",
+    "settings_map_tiles_area_filename": "area {name}"
 }
