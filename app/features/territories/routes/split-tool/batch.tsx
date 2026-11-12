@@ -5,6 +5,7 @@ import { getPhoneTerritoryActive } from '~/features/settings/index.server'
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { parseFilters } from '~/features/territories/routes/api/entrances-in-bbox-params'
 import { createTerritorySchema } from '~/features/territories/schemas/territory.schema'
+import { getBaseMap } from '~/features/territories/server/base-map.server'
 import { countAvailableEntrances, getZips } from '~/features/territories/server/buildings.server'
 import { computeNextTerritoryNumber } from '~/features/territories/server/compute-next-territory-number.server'
 import { createTerritory } from '~/features/territories/server/create-territory.server'
@@ -26,7 +27,6 @@ import { LimitService } from '~/shared/domain/limits.server'
 import { AppError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
 import { PageTopbar } from '~/shared/ui/PageTopbar'
-import { getOptionalEnv } from '~/shared/utils/env.server'
 import { appErrorToClientMessage } from '~/shared/utils/handle-app-error.server'
 
 import type { Route } from './+types/batch'
@@ -50,7 +50,6 @@ export const middleware: Route.MiddlewareFunction[] = [
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.CanViewTerritories)
-  const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY') ?? null
 
   return withScopeFromContext(context, async (db, congregationId) => {
     const params = new URL(request.url).searchParams
@@ -65,6 +64,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
       counts.push({ kind: option, ...(await countAvailableEntrances(db, congregationId, option, ctx, filters)) })
     }
     const current = counts.find(count => count.kind === kind)
+    const map = await getBaseMap(db, congregationId)
     return {
       kind,
       kinds: counts.map(count => ({ kind: count.kind, free: count.total })),
@@ -72,8 +72,8 @@ export function loader({ request, context }: Route.LoaderArgs) {
       withoutPosition: await listFreeEntrancesWithoutPosition(db, congregationId, kind, ctx, filters),
       suggestedNumber: await computeNextTerritoryNumber(db, congregationId, kind),
       zips: (await getZips(db, congregationId)).map(row => row.zip).sort(),
-      center: apiKey == null ? null : await getEditorCenter(db, congregationId),
-      apiKey,
+      center: map == null ? null : await getEditorCenter(db, congregationId),
+      map,
     }
   })
 }
@@ -144,7 +144,7 @@ export default function SplitToolPage({ loaderData }: Route.ComponentProps) {
         suggestedNumber={loaderData.suggestedNumber}
         zips={loaderData.zips}
         filters={filters}
-        apiKey={loaderData.apiKey}
+        map={loaderData.map}
         center={loaderData.center}
         created={created}
         onCreated={onCreated}

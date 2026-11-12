@@ -12,7 +12,6 @@ const CREATED_TOAST_RE = /(créé|created) ·/i
 const CREATED_HERE_RE = /^(Créés ici|Created here)/
 const FREE_PIN_RE = /, (libre|free)$/i
 const ADD_RE = /Ajouter au territoire|Add to the territory/i
-const CONSENT_RE = /accepter et afficher la carte|accept and show the map/i
 
 test.describe('Split tool: create territories in bulk', () => {
   test.beforeEach(async ({ page }) => {
@@ -36,15 +35,13 @@ test.describe('Split tool: create territories in bulk', () => {
     await page.goto('/territories/buildings/split-territories?type=Commerces')
     await page.waitForLoadState('networkidle')
 
-    const consent = page.getByRole('button', { name: CONSENT_RE })
-    if (await consent.isVisible().catch(() => false)) await consent.click()
     const mapMounted = await page
-      .locator('.gm-style')
+      .locator('.maplibregl-map')
       .first()
       .waitFor({ state: 'attached', timeout: 5000 })
       .then(() => true)
       .catch(() => false)
-    if (!mapMounted) test.skip(true, 'Google Maps not configured')
+    if (!mapMounted) test.skip(true, 'No base map on this instance')
 
     const pin = page.getByRole('button', { name: FREE_PIN_RE }).first()
     const hasPin = await pin

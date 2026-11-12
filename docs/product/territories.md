@@ -98,29 +98,31 @@ The page header carries previous/next arrows to step through territories of the 
 
 ## Territory Editor
 
-When a Google Maps API key is configured, the territory edit page opens a map-driven editor. The map fills most of the page and a summary panel on the right tracks the changes you have not yet saved. Without an API key, the page falls back to a dropdown selector (postal code → street → address) so the editor stays fully usable.
+When the instance serves a base map (`UNITAE_MAP_TILES`, see [Maps](../self-hosting/maps.md)), the territory edit page opens with a map beside the territory's column: its entrances, the free ones and those of the other territories of the same type, loaded as you move the map. On a phone, *Carte* and *Entrées* take the screen in turn. Without a base map, the column offers an address search instead (number, street or postcode), so the editor stays fully usable.
 
 ### Map markers
 
-Each address shown on the map is a marker, color-coded so you can tell at a glance what state it is in.
+Each entrance is a dot. Its state shows by shape and icon, not by colour alone; clicking a dot opens its card with the one action that fits.
 
-| Marker | Meaning | What clicking does |
+| Dot | Meaning | On its card |
 |---|---|---|
-| **Blue with a check** | Already in this territory | Mark for removal |
-| **Blue with a plus and a ring** | Will be added when you save | Undo |
-| **Green with a plus** | Available — not on any other territory of this type | Add to this territory |
-| **Grey hollow** | On another territory of the same type | Start a reassignment (you confirm before it is applied) |
-| **Red with an ×** | Marked for removal when you save | Undo |
+| **Filled, with a check** | On this territory | Remove it |
+| **Filled, with a plus and a ring** | Will be added when you save | Undo |
+| **Dashed circle** | Free — on no territory of this type | Add it |
+| **Small grey dot** | On another territory of the same type | Take it, with what that territory will hold afterwards |
+| **Red ring with an ×** | Will be removed when you save | Undo |
 
-Red is reserved for "this will be removed", so you always know what is destructive. Reassignment asks for a confirmation because it takes the address away from another manager's territory.
+Red is reserved for "this will be removed", so you always know what is destructive.
 
 ### Tools around the map
 
-- **Address search** (top-left) — Type a number, street, or postal code to find an address. Use ↑/↓ to highlight a suggestion and Enter to jump to it.
-- **Legend** (top-left, collapsible) — A reminder of what each marker color means. Stays collapsed if you close it.
-- **Status hints** (top-right) — A spinner while addresses load, a *Zoom in to see more addresses* hint when there are too many to show at once, and a *Retry* button if a load fails.
-- **Empty state** — When a territory has no addresses yet, an overlay invites you to pan the map and click a green marker.
-- **Marker grouping** — When you zoom out, nearby markers are grouped into clusters so the map stays readable. Click a cluster to zoom into it.
+- **Address search** (top-left) — Type a number, street, or postal code to find an entrance on the map. Use ↑/↓ to highlight a suggestion and Enter to jump to it.
+- **Status** (under the search) — A spinner while entrances load, a hint when there are too many to show at once, and a *Retry* button if a load fails. Creating a territory, a line says to click a free entrance.
+- **Zoom and *Recentrer*** (top-right) — *Recentrer* brings the territory back into view.
+- **Legend** (bottom-left, on a wide screen) — What each dot means.
+- **Grouping** — Zoomed out, nearby entrances become a disc with their count; click it to zoom in. From the street level on, each entrance shows alone.
+- **Outline** — The territory's shape, drawn around its entrances as you add and remove them.
+- Picking an entrance in the column brings the map to it.
 
 ### Pending changes
 
@@ -326,16 +328,16 @@ The *Phones* category is only visible if phone territories are enabled in settin
 4. Click the free entrances of the next territory (or add, from the column, the free entrances no map can show). The column lists them by street with the territory's content.
 5. **Créer T16** creates the territory with the suggested number (it can be changed) and checks the plan's territory limit. The page stays: the selection starts again, the next number is suggested, and *Créés ici* lists the territories made during the visit.
 
-If someone else took one of the chosen entrances, or the number, in the meantime, the creation is refused and says so; the selection stays. Without a Google Maps key, the entrances are found by number, street or postcode.
+If someone else took one of the chosen entrances, or the number, in the meantime, the creation is refused and says so; the selection stays. Without a base map, the entrances are found by number, street or postcode.
 
 Only building entrances that are active, prospected, fit for the type and not already in a territory of that type are offered.
 
 ## Maps
 
-When a Google Maps API key is configured, Unitae displays:
+Unitae displays:
 
-- **Interactive maps** on the personal territory view, the admin view, the territory editor and the bulk creation tool
-- **Map images** in PDF territory card exports — overlaid with the assembly's perimeter and zones (see [Carte de l'assemblée](#carte-de-lassemblée))
+- **Interactive maps** on the personal territory view, a territory's page, the territory editor and the bulk creation tool — on a base map the instance serves itself (`UNITAE_MAP_TILES`, see [Maps](../self-hosting/maps.md)), with no third-party service
+- **Map images** in PDF territory card exports, when a Google Maps API key is configured — overlaid with the assembly's perimeter and zones (see [Carte de l'assemblée](#carte-de-lassemblée))
 
 Maps are optional — all territory features work without them. See [Environment Variables](../self-hosting/environment-variables.md) for configuration.
 

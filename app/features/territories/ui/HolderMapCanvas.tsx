@@ -1,20 +1,15 @@
-import 'maplibre-gl/dist/maplibre-gl.css'
-
-import { MAP_ATTRIBUTION, mapStyle } from '@unitae/tokens/map-style'
+import { MAP_ATTRIBUTION } from '@unitae/tokens/map-style'
 import { MapAttribution, MapControls, MapPin } from '@unitae/ui'
-import { type ErrorEvent, Map as MapLibreMap, Marker, useMap } from '@vis.gl/react-maplibre'
-import { type StyleSpecification, setWorkerUrl } from 'maplibre-gl'
-import maplibreWorker from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
+import { Map as MapLibreMap, Marker, useMap } from '@vis.gl/react-maplibre'
 import { useEffect, useMemo, useRef } from 'react'
 
 import type { Bbox } from '~/features/territories/model/bbox.type'
+import { tileFailed, useBaseStyle } from '~/features/territories/ui/map/maplibre-base'
 import * as m from '~/i18n/paraglide/messages'
-import { getLocale } from '~/i18n/paraglide/runtime'
-import { useDarkMode } from '~/shared/ui/hooks/use-dark-mode'
 
 // The territory's map itself, on MapLibre: loaded only in the browser, as its own chunk. Our pins, our controls, our
-// quiet base (`@unitae/tokens/map-style`), tiles and glyphs served by the instance. The frame around it (caption,
-// loading and failure, the entrance card) is HolderTerritoryMap's.
+// quiet base, tiles and glyphs served by the instance (map/maplibre-base). The frame around it (caption, loading and
+// failure, the entrance card) is HolderTerritoryMap's.
 
 export interface HolderMapPin {
   key: string
@@ -25,18 +20,10 @@ export interface HolderMapPin {
   lng: number
 }
 
-// MapLibre finds its worker next to its own module; bundled, it no longer is. The bundler hands the worker's address.
-setWorkerUrl(maplibreWorker)
-
 type LngLatBounds = [[number, number], [number, number]]
 
 const PADDING = 48
 const MAX_FIT_ZOOM = 17
-const GLYPHS = '/map-fonts/{fontstack}/{range}.pbf'
-
-/** MapLibre wants full addresses; the app gives paths on its own origin. */
-const absolute = (path: string) =>
-  new URL(path, window.location.origin).href.replaceAll('%7B', '{').replaceAll('%7D', '}')
 
 function boundsOf(pins: HolderMapPin[]): LngLatBounds {
   const lngs = pins.map(pin => pin.lng)
@@ -45,14 +32,6 @@ function boundsOf(pins: HolderMapPin[]): LngLatBounds {
     [Math.min(...lngs), Math.min(...lats)],
     [Math.max(...lngs), Math.max(...lats)],
   ]
-}
-
-/** A base tile the instance failed to serve — not a missing glyph, not an empty tile outside the area. */
-function tileFailed(event: ErrorEvent): boolean {
-  const error = event.error as Error & { status?: number; url?: string }
-  return (
-    error.url?.includes('/map/tiles/') === true && (error.status == null || error.status === 0 || error.status >= 500)
-  )
 }
 
 interface HolderMapCanvasProps {
@@ -80,19 +59,14 @@ export default function HolderMapCanvas({
   onReady,
   onFail,
 }: HolderMapCanvasProps) {
-  const dark = useDarkMode()
-  const style = useMemo(
-    () =>
-      mapStyle({ mode: dark ? 'dark' : 'light', tiles: absolute(tiles), glyphs: absolute(GLYPHS), lang: getLocale() }),
-    [dark, tiles],
-  )
+  const style = useBaseStyle(tiles)
   const bounds = useMemo(() => boundsOf(pins), [pins])
   const ready = useRef(false)
 
   return (
     <>
       <MapLibreMap
-        mapStyle={style as StyleSpecification}
+        mapStyle={style}
         initialViewState={{ bounds, fitBoundsOptions: { padding: PADDING, maxZoom: MAX_FIT_ZOOM } }}
         maxBounds={[area.swLng, area.swLat, area.neLng, area.neLat]}
         dragRotate={false}

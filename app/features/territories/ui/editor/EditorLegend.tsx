@@ -1,6 +1,5 @@
+import { MapDot } from '@unitae/ui'
 import * as m from '~/i18n/paraglide/messages'
-
-import { EditorPin } from './EditorPin'
 
 /** What the pins mean, in one line at the bottom of the map. */
 export function EditorLegend({ mode, number }: { mode: 'new' | 'edit'; number: string }) {
@@ -26,7 +25,7 @@ export function EditorLegend({ mode, number }: { mode: 'new' | 'edit'; number: s
     >
       {items.map(([state, label]) => (
         <li key={state} className="flex items-center gap-1.5">
-          <EditorPin state={state} size="small" />
+          <MapDot state={state} size="small" />
           {label}
         </li>
       ))}

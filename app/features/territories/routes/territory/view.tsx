@@ -5,8 +5,8 @@ import { Link, redirect } from 'react-router'
 import { groupByStreet, toHolderEntrance } from '~/features/territories/model/holder-territory'
 import { getTerritoryPmrStatus } from '~/features/territories/model/pmr-status'
 import { territoryStanding } from '~/features/territories/model/territory-standing'
+import { getBaseMap } from '~/features/territories/server/base-map.server'
 import { getActiveCampaign } from '~/features/territories/server/campaign.queries'
-import { getHolderMap } from '~/features/territories/server/holder-map.server'
 import { findAdjacentTerritories, getTerritoryPage } from '~/features/territories/server/territory-page.queries'
 import { ReturnAttributionDialog } from '~/features/territories/ui/AttributionDialogs'
 import { AttributionPanel, type AttributionTarget } from '~/features/territories/ui/AttributionPanel'
@@ -51,7 +51,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       getBoolSetting(db, TerritorySettingKey.PmrActive, congregationId),
       getActiveCampaign(db, congregationId),
       findAdjacentTerritories(db, congregationId, page.territory, locale),
-      placed ? getHolderMap(db, congregationId) : null,
+      placed ? getBaseMap(db, congregationId) : null,
     ])
     // Who held it and when is the attributions' business: without their right, none of it leaves the server.
     const history = canViewAttributions ? page.history : []

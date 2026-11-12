@@ -95,9 +95,6 @@ async function stubContentWith(page: Page, territoryId: number, body: Record<str
 }
 
 async function openFirstEditPage(page: Page): Promise<{ territoryId: string } | null> {
-  await page.addInitScript(() => {
-    window.localStorage.setItem('unitae_map_consent', 'true')
-  })
   const response = await page.goto('/territories')
   if ((response?.status() ?? 500) >= 500) return null
 
@@ -134,7 +131,7 @@ function shows(locator: Locator, timeout = 5000): Promise<boolean> {
 
 function waitForMapMounted(page: Page): Promise<boolean> {
   return page
-    .waitForSelector('.gm-style', { timeout: 5000 })
+    .waitForSelector('.maplibregl-map', { timeout: 5000 })
     .then(() => true)
     .catch(() => false)
 }
@@ -239,12 +236,6 @@ test.describe('Territory edit page', () => {
   })
 
   test('edit page stays interactive after the map loads many entrances', async ({ page }) => {
-    // Pre-grant map consent so the consent banner doesn't gate the map mount.
-    // The key matches CONSENT_KEY in app/shared/ui/MapConsentBanner.tsx.
-    await page.addInitScript(() => {
-      window.localStorage.setItem('unitae_map_consent', 'true')
-    })
-
     // 1500 stubbed entrances so the test doesn't depend on seed volume.
     await page.route('**/territories/api/entrances-in-bbox*', async route => {
       const entrances = Array.from({ length: 1500 }, (_, i) => ({
@@ -290,13 +281,13 @@ test.describe('Territory edit page', () => {
     const textarea = page.locator('textarea[name="notes"]')
     await expect(textarea).toBeVisible()
 
-    // Skip cleanly when Google Maps isn't configured — `.gm-style` only mounts once the Maps script loads.
+    // Skip cleanly when the instance has no base map (UNITAE_MAP_TILES): the map is then left out.
     const mapLoaded = await page
-      .waitForSelector('.gm-style', { timeout: 5000 })
+      .waitForSelector('.maplibregl-map', { timeout: 5000 })
       .then(() => true)
       .catch(() => false)
     if (!mapLoaded) {
-      test.skip(true, 'Google Maps not configured (.gm-style never mounted)')
+      test.skip(true, 'No base map on this instance (.maplibregl-map never mounted)')
       return
     }
 
@@ -316,7 +307,7 @@ test.describe('Territory edit page', () => {
       return
     }
     if (!(await waitForMapMounted(page))) {
-      test.skip(true, 'Google Maps not configured (.gm-style never mounted)')
+      test.skip(true, 'No base map on this instance (.maplibregl-map never mounted)')
       return
     }
 
@@ -353,9 +344,6 @@ test.describe('Territory edit page', () => {
     })
 
     // The impact counts the way the territory's type counts: homes, on a door-to-door territory.
-    await page.addInitScript(() => {
-      window.localStorage.setItem('unitae_map_consent', 'true')
-    })
     await page.goto('/territories')
     const doorToDoor = await findTerritoryOfKind(page, 'Classical')
     if (doorToDoor == null) {
@@ -364,7 +352,7 @@ test.describe('Territory edit page', () => {
     }
     await page.goto(`/territories/territory/${doorToDoor}/edit`)
     if (!(await waitForMapMounted(page))) {
-      test.skip(true, 'Google Maps not configured (.gm-style never mounted)')
+      test.skip(true, 'No base map on this instance (.maplibregl-map never mounted)')
       return
     }
 
@@ -384,9 +372,6 @@ test.describe('Territory edit page', () => {
 
   test('a shop entrance card shows the kind of shop', async ({ page }) => {
     // Prefer a Commerce territory if the fixture has one — else the edit page filters this entrance out.
-    await page.addInitScript(() => {
-      window.localStorage.setItem('unitae_map_consent', 'true')
-    })
     const goto = await page.goto('/territories')
     if ((goto?.status() ?? 500) >= 500) test.skip()
 
@@ -408,7 +393,7 @@ test.describe('Territory edit page', () => {
 
     await page.goto(`/territories/territory/${commerceTerritoryId}/edit`)
     if (!(await waitForMapMounted(page))) {
-      test.skip(true, 'Google Maps not configured (.gm-style never mounted)')
+      test.skip(true, 'No base map on this instance (.maplibregl-map never mounted)')
       return
     }
 
@@ -430,7 +415,7 @@ test.describe('Territory edit page', () => {
       return
     }
     if (!(await waitForMapMounted(page))) {
-      test.skip(true, 'Google Maps not configured (.gm-style never mounted)')
+      test.skip(true, 'No base map on this instance (.maplibregl-map never mounted)')
       return
     }
 
@@ -472,7 +457,7 @@ test.describe('Territory edit page', () => {
       return
     }
     if (!(await waitForMapMounted(page))) {
-      test.skip(true, 'Google Maps not configured (.gm-style never mounted)')
+      test.skip(true, 'No base map on this instance (.maplibregl-map never mounted)')
       return
     }
 

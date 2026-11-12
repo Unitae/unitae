@@ -26,8 +26,8 @@ const stub = {
   entrances: [] as unknown[],
 }
 
-vi.mock('~/features/territories/server/holder-map.server', () => ({
-  getHolderMap: async () => (stub.hasMap ? MAP : null),
+vi.mock('~/features/territories/server/base-map.server', () => ({
+  getBaseMap: async () => (stub.hasMap ? MAP : null),
 }))
 
 // One active attribution exists — held by the MEMBER, as in production data.

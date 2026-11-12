@@ -47,7 +47,7 @@ Optional variables:
 ```ini
 UNITAE_CRON_SECRET="your-cron-secret"          # Required for cron endpoints (/cron/retention, /cron/board-expirations, /cron/process-notifications)
 DB_POOL_MAX="10"                  # PostgreSQL connection pool size (default: 10)
-GOOGLE_MAPS_API_KEY=""                  # Enables maps on territory pages and PDF exports
+GOOGLE_MAPS_API_KEY=""                  # PDF map pages, Carte de l'assemblée drawing, proximity search
 GOOGLE_MAPS_MAP_ID=""                   # Enables custom styled maps
 ```
 

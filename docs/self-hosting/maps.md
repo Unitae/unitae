@@ -4,9 +4,10 @@ Unitae draws the territory maps itself: a quiet base map of streets and building
 congregation's numbered pins on top. The browser never calls a map service for it and nothing asks for consent. Until
 you configure a base map, these maps stay hidden.
 
-The base map shows on *Mes territoires* (a publisher's territory) and on a territory's page. The territory editor,
-*Créer en lot*, the drawing on *Carte de l'assemblée*, the PDF map page and the address proximity search still use
-Google Maps (`GOOGLE_MAPS_API_KEY`, see [Environment Variables](environment-variables.md#maps)).
+The base map shows on *Mes territoires* (a publisher's territory), on a territory's page, in the territory editor and
+in *Créer en lot*. The drawing on *Carte de l'assemblée*, the PDF map page and the address proximity search still use
+Google Maps (`GOOGLE_MAPS_API_KEY`, see [Environment Variables](environment-variables.md#maps)). Without a base map,
+the editor and *Créer en lot* find entrances by their address instead.
 
 ## The base map file
 
@@ -21,15 +22,16 @@ it:
 Protomaps' own daily builds are kept a week only: cut a file from one, don't point Unitae at it.
 
 Unitae reads the file in ranges — never whole — and serves the tiles itself at `/map/tiles/…`: only to signed-in
-accounts, and only inside each congregation's area (its perimeter, or else the rectangle around its placed buildings,
-with a margin). Recent tiles stay in memory, and each congregation's area is read ahead when one of its maps opens.
+accounts, and only inside each congregation's area (the rectangle around its perimeter and its placed buildings, with
+a margin). Recent tiles stay in memory, and each congregation's area is read ahead when one of its maps opens.
 
 ### Getting a file for your area
 
 You don't need the whole world (about 140 GB): cut out your congregation's area.
 
 1. In **Réglages › Territoires**, an instance without a base map offers **Télécharger la zone à couvrir**: a GeoJSON
-   file holding the congregation's perimeter, or the rectangle around its placed buildings.
+   file holding the congregation's perimeter, or the rectangle around it and its placed buildings when some lie
+   beyond it.
 2. Install the [`pmtiles` command-line tool](https://github.com/protomaps/go-pmtiles/releases) and cut that area out of
    a daily Protomaps build (the dates are listed at [maps.protomaps.com/builds](https://maps.protomaps.com/builds)).
    It reads the build in ranges; nothing else is downloaded:

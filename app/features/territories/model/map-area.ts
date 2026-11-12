@@ -2,8 +2,8 @@ import type { Bbox } from '~/features/territories/model/bbox.type'
 import type { CardOverlayPath } from '~/features/territories/model/card-overlay'
 
 // The congregation's part of the map: where its maps may go, and the only tiles the instance serves it. It is the
-// perimeter drawn in Réglages › Carte de l'assemblée, or else the rectangle around its placed buildings, with a margin
-// either way so the edges of the territories keep their surroundings.
+// rectangle around the perimeter drawn in Réglages › Carte de l'assemblée and its placed buildings together, so that
+// none is out of reach, with a margin so the edges of the territories keep their surroundings.
 
 /** A fifth of the area's size on each side… */
 const MARGIN_SHARE = 0.2
@@ -68,8 +68,8 @@ export interface AreaFeature {
 }
 
 /**
- * The area to cut a map file to, as GeoJSON: the perimeter itself when there is one (the tighter shape), else the
- * area's rectangle.
+ * The area to cut a map file to, as GeoJSON: the perimeter itself when it holds the placed buildings (the tighter
+ * shape), else the area's rectangle.
  */
 export function areaFeature({ perimeter, area }: { perimeter: CardOverlayPath[] | null; area: Bbox }): AreaFeature {
   const ring: [number, number][] =

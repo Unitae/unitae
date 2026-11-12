@@ -1,27 +1,20 @@
-import type { Bbox } from '~/features/territories/model/bbox.type'
+import type { BaseMap } from '~/features/territories/model/base-map.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 import { getMapTiles } from '~/shared/infra/map-tiles.server'
 import { getMapArea } from './map-area.queries'
 import { warmMapArea } from './map-tiles-area.server'
 
-export interface HolderMap {
-  /** The tile address template, with the archive's edition in it so the browser may keep the tiles. */
-  tiles: string
-  /** The congregation's area: the map stays within it, and only its tiles are served. */
-  area: Bbox
-}
-
 /** Congregations whose area was warmed, with the archive's edition: once per edition is enough. */
 const warmed = new Set<string>()
 
 /**
- * What a territory page needs to draw its map, or null when it has none (no archive on the instance, no area yet,
- * or an archive that cannot be read — the page then shows its list alone rather than fail). The first ask for a
- * congregation (per edition of the archive) also starts reading its area's tiles into memory, so its maps open from
- * there.
+ * What a territory map needs (a holder's, the editor's), or null when there can be none: no archive on the instance,
+ * no area yet, or an archive that cannot be read — the page then goes without its map rather than fail. The first ask
+ * for a congregation (per edition of the archive) also starts reading its area's tiles into memory, so its maps open
+ * from there.
  */
-export async function getHolderMap(db: TransactionClient, congregationId: number): Promise<HolderMap | null> {
+export async function getBaseMap(db: TransactionClient, congregationId: number): Promise<BaseMap | null> {
   const store = getMapTiles()
   if (store == null) return null
   const mapArea = await getMapArea(db)
