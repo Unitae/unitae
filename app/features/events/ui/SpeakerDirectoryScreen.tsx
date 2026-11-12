@@ -14,7 +14,6 @@ import { Button } from '~/shared/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
@@ -32,6 +31,7 @@ import { SearchInput } from '~/shared/ui/SearchInput'
 import { DiscardChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { NewSpeakerCongregationDialog } from './NewSpeakerCongregationDialog'
 import { SpeakerCongregationPanel } from './SpeakerCongregationPanel'
+import { SpeakerCreateActions } from './SpeakerCreateActions'
 import { SpeakerDirectoryTable } from './SpeakerDirectoryTable'
 import { SpeakerListsTabs } from './SpeakerListsTabs'
 import { SpeakerPanel } from './SpeakerPanel'
@@ -246,34 +246,10 @@ export function SpeakerDirectoryScreen({ page }: { page: SpeakerDirectoryPage })
         className="mb-0"
         actions={
           canManage && (
-            <>
-              <span className="contents max-sm:hidden">
-                <Button variant="outline" size="sm" onClick={() => setNewCongregation(true)}>
-                  <Plus aria-hidden="true" />
-                  {m.external_speakers_new_congregation()}
-                </Button>
-                <Button size="sm" onClick={() => select({ new: null })}>
-                  <Plus aria-hidden="true" />
-                  {m.external_speakers_new_speaker()}
-                </Button>
-              </span>
-              {/* On a phone, one « + » holds both, as the phone board draws it. */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="icon-sm" className="sm:hidden" aria-label={m.external_speakers_new_menu()}>
-                    <Plus aria-hidden="true" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={() => select({ new: null })}>
-                    {m.external_speakers_new_speaker()}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => setNewCongregation(true)}>
-                    {m.external_speakers_new_congregation()}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
+            <SpeakerCreateActions
+              onNewSpeaker={() => select({ new: null })}
+              onNewCongregation={() => setNewCongregation(true)}
+            />
           )
         }
       >
