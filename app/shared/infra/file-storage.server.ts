@@ -8,7 +8,8 @@ const LOCAL_STORAGE_ROOT = path.resolve(process.env.UNITAE_STORAGE_PATH ?? 'cont
 
 // --- S3 driver (lazy-loaded to avoid import errors when not used) ---
 
-async function getS3Client() {
+/** The S3 client of the instance's storage (S3_ENDPOINT, S3_REGION, S3_ACCESS_KEY, S3_SECRET_KEY). */
+export async function getS3Client() {
   const { S3Client } = await import('@aws-sdk/client-s3')
   return new S3Client({
     endpoint: process.env.S3_ENDPOINT,

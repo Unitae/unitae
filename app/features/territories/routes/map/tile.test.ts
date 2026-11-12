@@ -85,6 +85,12 @@ describe('a map tile', () => {
     expect(asked).toEqual([])
   })
 
+  it('is empty past the deepest zoom the archive holds, without reading it', async () => {
+    const response = await request('16', '33208', '22538')
+    expect(response.status).toBe(204)
+    expect(asked).toEqual([])
+  })
+
   it('refuses coordinates that are not a tile', async () => {
     expect((await request('31', '0', '0')).status).toBe(400)
     expect((await request('2', '4', '0')).status).toBe(400)

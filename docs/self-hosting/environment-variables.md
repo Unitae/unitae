@@ -97,7 +97,7 @@ By default, uploaded files are stored on the local filesystem. Set `S3_ENDPOINT`
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `UNITAE_MAP_TILES` | — | The base map of the territory maps (*Mes territoires*, a territory's page): a Protomaps PMTiles file, as a path on the server or an `https://` URL. The app serves its tiles itself. Without it those maps are hidden. See [Maps](maps.md) |
+| `UNITAE_MAP_TILES` | — | The base map of the territory maps (*Mes territoires*, a territory's page): a Protomaps PMTiles file, as a path on the server, `s3://bucket/key` (a private bucket, read with the `S3_*` credentials above) or a public `https://` URL. The app serves its tiles itself. Without it those maps are hidden. See [Maps](maps.md) |
 | `GOOGLE_MAPS_API_KEY` | — | Google Maps API key. Enables the territory editor's map, the map page of PDF exports, the visual drawing editor on the *Carte de l'assemblée* settings page, and **proximity ranking in the territory/attribution search** (typing an address ranks the matching territories by distance) |
 | `GOOGLE_MAPS_MAP_ID` | — | Google Maps Map ID for custom styled maps. Requires `GOOGLE_MAPS_API_KEY` |
 

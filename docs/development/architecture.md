@@ -213,11 +213,13 @@ When the Google key is not set, the editor falls back to a search, the PDF map p
 
 ### The base map
 
-- **`app/shared/infra/map-tiles.server.ts`** — opens the archive with `pmtiles` (a local file through one handle, or
-  ranges over HTTP), names its *edition* from the header, and keeps recent tiles in memory (gzipped, LRU, 64 MB). The
+- **`app/shared/infra/map-tiles.server.ts`** — opens the archive with `pmtiles` (a local file through one handle,
+  ranged GETs on a private bucket with the storage's S3 client, or ranges over HTTP), names its *edition* from the
+  header, and keeps recent tiles in memory (gzipped, LRU, 64 MB, each entry counted even when the tile is empty). The
   reader decompresses tiles itself, so the store gzips each one once.
 - **`app/features/territories/routes/map/tile.tsx`** — `GET /map/tiles/:edition/:z/:x/:y`, under the authenticated
-  layout: 204 outside the congregation's area, 404 for another edition, 503 when the archive can't be read, and
+  layout: 204 outside the congregation's area or past the archive's deepest zoom, 404 for another edition, 503 when the
+  archive can't be read, and
   `Cache-Control: private, max-age=31536000, immutable` otherwise (the edition is in the address).
 - **`app/features/territories/server/map-area.queries.ts`** (`getMapArea`) — the congregation's area: around its
   perimeter, else around its placed entrances, with a margin (`model/map-area.ts`). `map-tiles-area.server.ts` caches

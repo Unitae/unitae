@@ -13,8 +13,12 @@ Google Maps (`GOOGLE_MAPS_API_KEY`, see [Environment Variables](environment-vari
 The base map is [Protomaps](https://protomaps.com) vector tiles in a single PMTiles file. Point `UNITAE_MAP_TILES` at
 it:
 
-- a path on the server (a mounted volume), e.g. `/data/maps/area.pmtiles`;
-- or an `https://` URL, e.g. a file in your S3 bucket.
+- a path on the server (a mounted volume), e.g. `/app/maps/area.pmtiles`;
+- `s3://bucket/key`: a private bucket, read with the instance's storage credentials (`S3_ENDPOINT`, `S3_REGION`,
+  `S3_ACCESS_KEY`, `S3_SECRET_KEY`), which need read access to that object;
+- or a public `https://` URL. A public file can be used by anyone who finds its address: prefer a private bucket.
+
+Protomaps' own daily builds are kept a week only: cut a file from one, don't point Unitae at it.
 
 Unitae reads the file in ranges — never whole — and serves the tiles itself at `/map/tiles/…`: only to signed-in
 accounts, and only inside each congregation's area (its perimeter, or else the rectangle around its placed buildings,
@@ -41,8 +45,10 @@ You don't need the whole world (about 140 GB): cut out your congregation's area.
      `docker compose up -d`. The container runs as user 1001: the file only needs to be readable by everyone (the
      default).
    - **PM2 or any other process manager:** set `UNITAE_MAP_TILES` to the file's absolute path.
-   - **A bucket:** upload the file and set `UNITAE_MAP_TILES` to its `https://` URL; the server needs to reach it.
-4. Streets change slowly: run the extraction again once or twice a year, replace the file, restart.
+   - **A bucket:** upload the file (under a dated name, e.g. `area-20261111.pmtiles`) to a private bucket and set
+     `UNITAE_MAP_TILES` to `s3://your-bucket/area-20261111.pmtiles`; the storage credentials need read access to it.
+4. Streets change slowly: run the extraction again once or twice a year, replace the file (or upload a new dated
+   one and point the variable at it), restart.
 
 Several congregations on one instance: cut a region that covers them all (or a whole country).
 

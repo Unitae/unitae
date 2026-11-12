@@ -2,13 +2,15 @@ import { createHash } from 'node:crypto'
 import { type FileHandle, open } from 'node:fs/promises'
 import { promisify } from 'node:util'
 import { gzip } from 'node:zlib'
-import { Compression, PMTiles, type RangeResponse, type Source } from 'pmtiles'
+import { Compression, EtagMismatch, PMTiles, type RangeResponse, type Source } from 'pmtiles'
+import { getS3Client } from '~/shared/infra/file-storage.server'
 import logger from '~/shared/infra/logger.server'
 import { getOptionalEnv } from '~/shared/utils/env.server'
 
-// The map's base tiles: one PMTiles archive (Protomaps), named by `UNITAE_MAP_TILES` as a path on the server or an
-// http(s) URL (a bucket). The app serves its tiles itself — the browser never reaches the archive — and keeps the
-// recent ones in memory. Without the variable there is no on-screen map.
+// The map's base tiles: one PMTiles archive (Protomaps), named by `UNITAE_MAP_TILES`: a path on the server, an
+// `s3://bucket/key` read with the instance's storage credentials (a private bucket), or a public http(s) URL. The app
+// serves its tiles itself — the browser never reaches the archive — and keeps the recent ones in memory. Without the
+// variable there is no on-screen map.
 
 export interface MapTile {
   /** The vector tile, gzipped. */
@@ -43,7 +45,10 @@ export interface TileStore {
 }
 
 const DEFAULT_MAX_BYTES = 64 * 1024 * 1024
+/** What an entry costs beyond its bytes (key, map node, object): an empty tile is not free. */
+const ENTRY_COST = 256
 const REMOTE = /^https?:\/\//
+const S3_LOCATION = /^s3:\/\/([^/]+)\/(.+)$/
 
 const gzipped = promisify(gzip)
 
@@ -82,13 +87,14 @@ export function createTileStore(archive: TileArchive, { maxBytes = DEFAULT_MAX_B
   const reading = new Map<string, Promise<MapTile | null>>()
   let bytes = 0
 
+  const weight = (tile: MapTile | null) => ENTRY_COST + (tile?.data.byteLength ?? 0)
   const remember = (key: string, tile: MapTile | null) => {
     cache.set(key, tile)
-    bytes += tile?.data.byteLength ?? 0
+    bytes += weight(tile)
     for (const [oldest, old] of cache) {
       if (bytes <= maxBytes) break
       cache.delete(oldest)
-      bytes -= old?.data.byteLength ?? 0
+      bytes -= weight(old)
     }
   }
 
@@ -146,9 +152,53 @@ export class FileArchiveSource implements Source {
   }
 }
 
+/** The part of an S3 client the archive needs: ranged GETs. */
+interface RangeClient {
+  send(command: { input: unknown }): Promise<{
+    Body?: { transformToByteArray(): Promise<Uint8Array> }
+    ETag?: string
+  }>
+}
+
+/** Reads an archive kept in a private bucket, by ranges, with the instance's storage credentials. */
+export class S3ArchiveSource implements Source {
+  private client: Promise<RangeClient> | null = null
+
+  constructor(
+    private readonly bucket: string,
+    private readonly key: string,
+    private readonly createClient: () => Promise<RangeClient> = getS3Client as () => Promise<RangeClient>,
+  ) {}
+
+  getKey() {
+    return `s3://${this.bucket}/${this.key}`
+  }
+
+  async getBytes(offset: number, length: number, _signal?: AbortSignal, etag?: string): Promise<RangeResponse> {
+    const { GetObjectCommand } = await import('@aws-sdk/client-s3')
+    this.client ??= this.createClient()
+    const range = `bytes=${offset}-${offset + length - 1}`
+    try {
+      const response = await (await this.client).send(
+        new GetObjectCommand({ Bucket: this.bucket, Key: this.key, Range: range, ...(etag ? { IfMatch: etag } : {}) }),
+      )
+      const bytes = (await response.Body?.transformToByteArray()) ?? new Uint8Array()
+      return {
+        data: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+        etag: response.ETag,
+      }
+    } catch (error) {
+      // The object changed under the reader: it re-reads the header and the directories.
+      if (error instanceof Error && error.name === 'PreconditionFailed') throw new EtagMismatch()
+      throw error
+    }
+  }
+}
+
 function openArchive(location: string): TileArchive {
-  const source = REMOTE.test(location) ? location : new FileArchiveSource(location)
-  return new PMTiles(source)
+  const s3 = S3_LOCATION.exec(location)
+  if (s3 != null) return new PMTiles(new S3ArchiveSource(s3[1], s3[2]))
+  return new PMTiles(REMOTE.test(location) ? location : new FileArchiveSource(location))
 }
 
 let opened: { location: string; store: TileStore } | null = null
@@ -158,7 +208,10 @@ export function getMapTiles(): TileStore | null {
   const location = getOptionalEnv('UNITAE_MAP_TILES')?.trim()
   if (location == null || location === '') return null
   if (opened?.location !== location) {
-    logger.info('Map tiles: reading the archive', { tag: 'map-tiles', remote: REMOTE.test(location) })
+    logger.info('Map tiles: reading the archive', {
+      tag: 'map-tiles',
+      from: S3_LOCATION.test(location) ? 'bucket' : REMOTE.test(location) ? 'url' : 'file',
+    })
     opened = { location, store: createTileStore(openArchive(location)) }
   }
   return opened.store

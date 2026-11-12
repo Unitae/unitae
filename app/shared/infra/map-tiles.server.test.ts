@@ -11,7 +11,7 @@ const env: Record<string, string | undefined> = {}
 vi.mock('~/shared/utils/env.server', () => ({ getOptionalEnv: (name: string) => env[name] }))
 vi.mock('~/shared/infra/logger.server', () => ({ default: { warn: vi.fn(), error: vi.fn(), info: vi.fn() } }))
 
-const { createTileStore, FileArchiveSource, getMapTiles } = await import('./map-tiles.server')
+const { createTileStore, FileArchiveSource, getMapTiles, S3ArchiveSource } = await import('./map-tiles.server')
 
 const HEADER = {
   tileCompression: 2,
@@ -79,9 +79,18 @@ describe('the tile store', () => {
     expect(text(b)).toBe('14/1/1#1')
   })
 
+  it('counts the tiles it knows to be empty, so they cannot fill memory unseen', async () => {
+    const store = createTileStore(fakeArchive(), { maxBytes: 2000 })
+    await store.tile(14, 1, 1)
+    // Zoom 16 is past the fake archive: every answer is « nothing », and each one is remembered and counted.
+    for (let x = 0; x < 50; x++) await store.tile(16, x, 0)
+    // So the real tile read first had to make room: asking again reads it afresh.
+    expect(text(await store.tile(14, 1, 1))).toBe('14/1/1#2')
+  })
+
   it('lets the least recently used tiles go past its size', async () => {
-    // Each fake tile is 28 bytes once gzipped: room for two.
-    const store = createTileStore(fakeArchive(), { maxBytes: 70 })
+    // Each fake tile weighs 28 bytes once gzipped, plus what the store counts per entry: room for two.
+    const store = createTileStore(fakeArchive(), { maxBytes: 2 * (28 + 256) + 100 })
     await store.tile(14, 1, 1)
     await store.tile(14, 2, 2)
     await store.tile(14, 1, 1) // used again: 2/2 is now the oldest
@@ -129,5 +138,28 @@ describe('an archive on the server’s disk', () => {
   it('stops at the end of the file', async () => {
     const { data } = await new FileArchiveSource(path).getBytes(299_990, 100)
     expect(data.byteLength).toBe(10)
+  })
+})
+
+describe('an archive in a private bucket', () => {
+  it('asks the bucket for exactly the range, with the app’s credentials', async () => {
+    const sent: { Bucket?: string; Key?: string; Range?: string }[] = []
+    const client = {
+      send: async (command: { input: { Bucket?: string; Key?: string; Range?: string } }) => {
+        sent.push(command.input)
+        return { Body: { transformToByteArray: async () => new Uint8Array([1, 2, 3, 4]) }, ETag: '"abc"' }
+      },
+    }
+    const source = new S3ArchiveSource('unitae-maps', 'planet-20261111.pmtiles', async () => client)
+    const response = await source.getBytes(1000, 4)
+    expect(new Uint8Array(response.data)).toEqual(new Uint8Array([1, 2, 3, 4]))
+    expect(response.etag).toBe('"abc"')
+    expect(sent).toEqual([{ Bucket: 'unitae-maps', Key: 'planet-20261111.pmtiles', Range: 'bytes=1000-1003' }])
+    expect(source.getKey()).toBe('s3://unitae-maps/planet-20261111.pmtiles')
+  })
+
+  it('is what an s3:// address opens', () => {
+    env.UNITAE_MAP_TILES = 's3://unitae-maps/planet-20261111.pmtiles'
+    expect(getMapTiles()).not.toBeNull()
   })
 })

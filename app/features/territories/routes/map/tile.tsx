@@ -34,6 +34,8 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 
   try {
     if (params.edition !== (await store.edition())) return empty(404)
+    // Maps never ask past the deepest zoom the archive holds (they enlarge its tiles): nothing to read there.
+    if (z > (await store.maxZoom())) return empty(204, KEEP)
     const { congregationId } = context.get(currentAccountContext)
     const mapArea = await areas.get(congregationId, () => withScopeFromContext(context, db => getMapArea(db)))
     // Outside the area: nothing to draw. A short cache, so a newly drawn perimeter shows within minutes.
