@@ -202,7 +202,8 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
               <Button asChild variant="ghost">
                 <a href={`/publishers/emergency-roster/${group.id}`}>
                   <Siren />
-                  {m.publishers_emergency_roster_link()}
+                  {/* Icons alone on a phone, as the phone board draws the top bar. */}
+                  <span className="max-sm:sr-only">{m.publishers_emergency_roster_link()}</span>
                 </a>
               </Button>
             )}
@@ -210,7 +211,7 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
               <Button asChild variant="ghost">
                 <Link to={`/groups/${group.id}/edit`}>
                   <Pencil />
-                  {m.groups_view_edit_short()}
+                  <span className="max-sm:sr-only">{m.groups_view_edit_short()}</span>
                 </Link>
               </Button>
             )}

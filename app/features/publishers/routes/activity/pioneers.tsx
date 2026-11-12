@@ -1,4 +1,5 @@
 import { PeriodStepper } from '@unitae/ui'
+import { Target } from 'lucide-react'
 import { Link, redirect, type ShouldRevalidateFunctionArgs } from 'react-router'
 
 import { toServiceYear } from '~/features/publishers'
@@ -13,6 +14,7 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
+import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { zonedNow } from '~/shared/utils/zoned-now'
 
@@ -41,12 +43,13 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
   return withScopeFromContext(context, async db => {
     const summary = await getPioneerActivitySummary(db, currentUser.congregationId, serviceYear, now)
-    return { summary, serviceYear }
+    // The goals page's own right: the top bar offers it only to those who may set them.
+    return { summary, serviceYear, canSetGoals: permissions.has(Permission.CanSetPioneerGoals) }
   })
 }
 
 export default function PioneersRoster({ loaderData }: Route.ComponentProps) {
-  const { summary, serviceYear } = loaderData
+  const { summary, serviceYear, canSetGoals } = loaderData
 
   return (
     // The marker lets the app shell stop clipping as a scroll container, so the docked panel can stick.
@@ -54,6 +57,16 @@ export default function PioneersRoster({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={m.activity_page_title()}
         breadcrumbs={[{ label: m.activity_page_title() }]}
+        actions={
+          canSetGoals && (
+            <Button asChild variant="ghost">
+              <Link to="/settings/publishers">
+                <Target />
+                <span className="max-sm:sr-only">{m.settings_publishers_goals_title()}</span>
+              </Link>
+            </Button>
+          )
+        }
         controls={
           <>
             <ActivityViewSwitch value="pioneers" />

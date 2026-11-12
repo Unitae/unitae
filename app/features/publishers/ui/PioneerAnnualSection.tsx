@@ -1,4 +1,4 @@
-import { Avatar, ProgressBar, SectionHeading, Sparkline, Status, Tag } from '@unitae/ui'
+import { Avatar, ProgressRing, SectionHeading, Sparkline, Status, Tag } from '@unitae/ui'
 
 import type { PioneerAnnualRow } from '~/features/publishers'
 import * as m from '~/i18n/paraglide/messages'
@@ -120,11 +120,13 @@ function AnnualRow({
       </td>
       <td className={cn(cellClass, 'max-md:hidden')}>
         <span className="flex flex-col gap-1">
-          <span className="tabular-nums">
-            <b className="font-medium">{hoursText(pace.achievedToDate)}</b>{' '}
-            <span className="text-faint text-sm">{m.pioneers_of_goal({ goal: hoursText(goal) })}</span>
+          <span className="flex items-center gap-2 tabular-nums">
+            <ProgressRing value={pace.achievedToDate} max={goal} />
+            <span>
+              <b className="font-medium">{hoursText(pace.achievedToDate)}</b>{' '}
+              <span className="text-faint text-sm">{m.pioneers_of_goal({ goal: hoursText(goal) })}</span>
+            </span>
           </span>
-          <ProgressBar value={pace.achievedToDate} max={goal} tone="muted" className="w-24" />
           {pace.creditToDate > 0 && (
             <span className="text-faint text-xs">{m.pioneers_credit_included({ hours: pace.creditToDate })}</span>
           )}

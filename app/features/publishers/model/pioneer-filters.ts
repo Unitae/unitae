@@ -19,10 +19,6 @@ export function readPioneerFilters(params: URLSearchParams): PioneerFilters {
   }
 }
 
-export function pioneerFiltersAreEmpty(f: PioneerFilters): boolean {
-  return f.q === '' && f.risk === 'all' && f.type === 'all' && f.group === 'all'
-}
-
 function matchesBase(
   row: { firstname: string; lastname: string; type: PublisherType; groupName: string | null },
   f: PioneerFilters,

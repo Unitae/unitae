@@ -93,6 +93,20 @@ export function publisherListWhere(congregationId: number, filters: PublisherLis
   }
 }
 
+/** How many publishers each list holds (active, inactive, left) under the same search, groups and privilege. */
+export async function countPublishersByStatus(
+  db: TransactionClient,
+  congregationId: number,
+  filters: PublisherListFilters,
+): Promise<Record<PublisherListFilters['status'], number>> {
+  const [active, inactive, left] = await Promise.all(
+    (['active', 'inactive', 'left'] as const).map(status =>
+      db.member.count({ where: publisherListWhere(congregationId, { ...filters, status }) }),
+    ),
+  )
+  return { active, inactive, left }
+}
+
 /**
  * The publishers page: one row per publisher with their group, privileges, last part and, for
  * viewers allowed to see absences, their next one. Sorted by name; those who left, latest first.

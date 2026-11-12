@@ -35,6 +35,7 @@ import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { useSideEditor } from '~/shared/ui/hooks/use-side-editor'
+import { ListWithPanel } from '~/shared/ui/ListWithPanel'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { DiscardChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { zonedNow } from '~/shared/utils/zoned-now'
@@ -233,25 +234,22 @@ export default function ActivityReports({ loaderData }: Route.ComponentProps) {
         }
       />
 
-      <div className="flex flex-wrap items-start gap-6">
-        <div className="flex min-w-0 flex-[3_1_560px] flex-col gap-3">
-          <ActivityReportFilters filters={filters} rows={rows} groups={exportOptions.publisherGroups} />
-          {visible.length === 0 ? (
-            <EmptyState
-              icon={Users}
-              title={m.activity_filters_no_results_title()}
-              description={m.activity_filters_no_results_description()}
-            />
-          ) : (
-            <ActivityReportsTable
-              rows={visible}
-              selectedId={target?.id ?? null}
-              onOpen={(row, trigger) => panel.request({ kind: 'report', id: row.id, trigger })}
-            />
-          )}
-        </div>
-        {panel.docked && reportPanel}
-      </div>
+      <ListWithPanel panel={panel.docked ? reportPanel : null}>
+        <ActivityReportFilters filters={filters} rows={rows} groups={exportOptions.publisherGroups} />
+        {visible.length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title={m.activity_filters_no_results_title()}
+            description={m.activity_filters_no_results_description()}
+          />
+        ) : (
+          <ActivityReportsTable
+            rows={visible}
+            selectedId={target?.id ?? null}
+            onOpen={(row, trigger) => panel.request({ kind: 'report', id: row.id, trigger })}
+          />
+        )}
+      </ListWithPanel>
       {!panel.docked && reportPanel}
 
       <DiscardChangesDialog

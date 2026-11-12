@@ -7,8 +7,9 @@ import {
   type PublisherListFilters,
   parsePublisherListParams,
 } from '~/features/publishers/model/publisher-list-filters'
+import { sortPublisherRows } from '~/features/publishers/model/publisher-list-sort'
 import { getGroups } from '~/features/publishers/server/groups.server'
-import { listPublishers } from '~/features/publishers/server/list-publishers.server'
+import { countPublishersByStatus, listPublishers } from '~/features/publishers/server/list-publishers.server'
 import { MoveToGroupItems, useMoveToGroup } from '~/features/publishers/ui/move-to-group'
 import { PublisherListToolbar } from '~/features/publishers/ui/PublisherListToolbar'
 import { PublisherTable } from '~/features/publishers/ui/PublisherTable'
@@ -46,12 +47,14 @@ export function loader({ request, context }: Route.LoaderArgs) {
   }
 
   return withScopeFromContext(context, async db => {
-    const [rows, groups] = await Promise.all([
+    const [rows, groups, counts] = await Promise.all([
       listPublishers(db, currentUser.congregationId, filters, { includeAbsences: rights.canViewAbsences }),
       getGroups(db, currentUser.congregationId),
+      countPublishersByStatus(db, currentUser.congregationId, filters),
     ])
     return {
-      rows,
+      rows: sortPublisherRows(rows, filters.sort, getLocale()),
+      counts,
       groups: groups
         .map(({ id, name }) => ({ id, name }))
         .sort((a, b) => a.name.localeCompare(b.name, getLocale(), { numeric: true })),
@@ -65,7 +68,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
 }
 
 export default function PublisherListPage({ loaderData }: Route.ComponentProps) {
-  const { rows, groups, filters, timezone, rights, canViewEmergency } = loaderData
+  const { rows, counts, groups, filters, timezone, rights, canViewEmergency } = loaderData
   const [picked, setPicked] = useState<ReadonlySet<number>>(new Set())
   const move = useMoveToGroup()
 
@@ -105,7 +108,7 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
         }
       />
 
-      <PublisherListToolbar groups={groups} filters={filters} />
+      <PublisherListToolbar groups={groups} filters={filters} counts={counts} />
 
       {rows.length === 0 ? (
         <ListEmpty filters={filters} />

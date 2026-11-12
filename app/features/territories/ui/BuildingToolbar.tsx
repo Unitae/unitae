@@ -4,14 +4,14 @@ import * as m from '~/i18n/paraglide/messages'
 import { FilterChipBar } from '~/shared/ui/filters/FilterChipBar'
 import { FiltersPopover } from '~/shared/ui/filters/FiltersPopover'
 import { activeFilterChips, type FilterField } from '~/shared/ui/filters/filter-fields'
+import { ListToolbar } from '~/shared/ui/ListToolbar'
 import { QuickViews } from '~/shared/ui/QuickViews'
 import { SearchInput } from '~/shared/ui/SearchInput'
+import { SortMenu } from '~/shared/ui/SortMenu'
 import type { BuildingSort, BuildingView } from '../model/building-list'
 import { TerritoryAccess } from '../model/territory-access.type'
 import { TerritoryKindKey } from '../model/territory-kind.type'
 import { accessLabel } from './building-list-labels'
-import { ListToolbar } from './ListToolbar'
-import { SortMenu } from './SortMenu'
 
 interface BuildingToolbarProps {
   view: BuildingView

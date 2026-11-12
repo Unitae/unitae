@@ -12,12 +12,13 @@ const overseerOfNord = { id: 2, responsibleFor: { id: 10, name: 'Nord' }, deputy
 const deputyOfSud = { id: 3, responsibleFor: null, deputyFor: { id: 20, name: 'Sud' } }
 
 describe('groupLeaderAvailability', () => {
+  // The group's name reads as everywhere else on screen, in capitals.
   it('holds back the brothers who already lead a group, with the reason', () => {
     const { disabledIds, disabledReason } = groupLeaderAvailability([free, overseerOfNord, deputyOfSud])
 
     expect(disabledIds).toEqual([2, 3])
-    expect(disabledReason(2)).toBe('oversees Nord')
-    expect(disabledReason(3)).toBe('assists Sud')
+    expect(disabledReason(2)).toBe('oversees NORD')
+    expect(disabledReason(3)).toBe('assists SUD')
     expect(disabledReason(1)).toBeUndefined()
   })
 

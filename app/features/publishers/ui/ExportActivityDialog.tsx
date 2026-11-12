@@ -1,3 +1,4 @@
+import { SegmentedControl } from '@unitae/ui'
 import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import type { MemberOption } from '~/features/publishers/ui/MemberMultiSelect'
@@ -142,12 +143,20 @@ export function ExportActivityDialog({
             {m.activity_export_dialog_cancel()}
           </Button>
           <Button type="button" onClick={handleExport} disabled={isGenerating}>
-            {m.activity_export_dialog_submit()}
+            {submitLabel(singlePublisher || scopeDisabled ? null : scope, publisherIds.length)}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   )
+}
+
+/** « Exporter 3 fiches » once the people are picked by hand, the only scope whose count is known here. */
+function submitLabel(scope: ExportScope | null, picked: number): string {
+  if (scope !== 'members' || picked === 0) return m.activity_export_dialog_submit()
+  return picked === 1
+    ? m.activity_export_dialog_submit_one()
+    : m.activity_export_dialog_submit_many({ count: String(picked) })
 }
 
 function FormatField({ format, onFormatChange }: { format: ExportFormat; onFormatChange: (f: ExportFormat) => void }) {
@@ -197,7 +206,7 @@ function YearField({
         <SelectContent>
           {years.map(y => (
             <SelectItem key={y} value={String(y)}>
-              {m.activity_export_dialog_year_option({ start: String(y), end: String(y + 1) })}
+              {m.pioneers_service_year({ start: String(y), end: String(y + 1) })}
             </SelectItem>
           ))}
         </SelectContent>
@@ -222,25 +231,17 @@ function ScopeField(props: ScopeFieldProps) {
     props
   return (
     <div className="flex flex-col gap-2">
-      <Label>{m.activity_export_dialog_scope_label()}</Label>
-      <RadioGroup
+      <span className="font-medium text-sm">{m.activity_export_dialog_scope_label()}</span>
+      <SegmentedControl
+        aria-label={m.activity_export_dialog_scope_label()}
         value={scope}
-        onValueChange={value => onScopeChange(value as ExportScope)}
-        className="flex flex-col gap-2"
-      >
-        <label htmlFor="export-scope-all" className="flex cursor-pointer items-center gap-2 text-sm">
-          <RadioGroupItem value="all" id="export-scope-all" />
-          {m.activity_export_dialog_scope_all()}
-        </label>
-        <label htmlFor="export-scope-group" className="flex cursor-pointer items-center gap-2 text-sm">
-          <RadioGroupItem value="group" id="export-scope-group" />
-          {m.activity_export_dialog_scope_group()}
-        </label>
-        <label htmlFor="export-scope-members" className="flex cursor-pointer items-center gap-2 text-sm">
-          <RadioGroupItem value="members" id="export-scope-members" />
-          {m.activity_export_dialog_scope_members()}
-        </label>
-      </RadioGroup>
+        onValueChange={onScopeChange}
+        options={[
+          { value: 'all', label: m.activity_export_dialog_scope_all() },
+          { value: 'group', label: m.activity_export_dialog_scope_group() },
+          { value: 'members', label: m.activity_export_dialog_scope_members() },
+        ]}
+      />
       {scope === 'group' && (
         <Select
           value={groupId != null ? String(groupId) : ''}

@@ -7,7 +7,14 @@ describe('parsePublisherListParams', () => {
     const filters = parsePublisherListParams(
       new URLSearchParams('q=%20Mar%20&group=2&group=5&group=x&privilege=elder&status=inactive'),
     )
-    expect(filters).toEqual({ search: 'Mar', groupIds: [2, 5], noGroup: false, privilege: 'elder', status: 'inactive' })
+    expect(filters).toEqual({
+      search: 'Mar',
+      groupIds: [2, 5],
+      noGroup: false,
+      privilege: 'elder',
+      status: 'inactive',
+      sort: 'name',
+    })
   })
 
   // The groups list's banner links to the publishers in no group.
@@ -26,7 +33,16 @@ describe('parsePublisherListParams', () => {
       noGroup: false,
       privilege: null,
       status: 'active',
+      sort: 'name',
     })
+  })
+
+  it('reads the order: by name or by group, and for those who left by departure (the default) or by name', () => {
+    expect(parsePublisherListParams(new URLSearchParams('sort=group')).sort).toBe('group')
+    expect(parsePublisherListParams(new URLSearchParams('status=left')).sort).toBe('departure')
+    expect(parsePublisherListParams(new URLSearchParams('status=left&sort=name')).sort).toBe('name')
+    expect(parsePublisherListParams(new URLSearchParams('status=left&sort=group')).sort).toBe('departure')
+    expect(parsePublisherListParams(new URLSearchParams('sort=departure')).sort).toBe('name')
   })
 })
 

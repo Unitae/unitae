@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { PublisherType } from '~/shared/types/publisher-type'
 
-import { filterAnnual, filterAuxiliary, type PioneerFilters, pioneerFiltersAreEmpty } from './pioneer-filters'
+import { filterAnnual, filterAuxiliary, type PioneerFilters } from './pioneer-filters'
 
 const EMPTY: PioneerFilters = { q: '', risk: 'all', type: 'all', group: 'all' }
 
@@ -28,11 +28,6 @@ function annual(
 }
 
 describe('pioneer filters', () => {
-  it('treats the default filters as empty', () => {
-    expect(pioneerFiltersAreEmpty(EMPTY)).toBe(true)
-    expect(pioneerFiltersAreEmpty({ ...EMPTY, risk: 'red' })).toBe(false)
-  })
-
   it('filters annual rows by risk, name, type, and group', () => {
     const rows = [
       annual(1, { risk: 'red', firstname: 'Marie', groupName: 'Groupe 1' }),

@@ -20,7 +20,7 @@ export function SortMenu<V extends string>({ value, options }: { value: V; optio
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost">
-          <span className="text-faint">{m.attributions_sort_label()}</span>
+          <span className="text-faint">{m.common_sort_label()}</span>
           {current?.label}
           <ChevronDown className="text-faint" aria-hidden="true" />
         </Button>

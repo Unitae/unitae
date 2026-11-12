@@ -46,7 +46,7 @@ function pioneersFoot(summary: ReportMonthSummary): string {
 /** The month at a glance, above the list and its panel so the strip keeps the page's full width. */
 export function ActivityMonthSummary({ summary }: { summary: ReportMonthSummary }) {
   return (
-    <MetricStrip aria-label={m.activity_summary_label()} minTileWidth={190}>
+    <MetricStrip aria-label={m.activity_summary_label()} minTileWidth={150}>
       <StatTile
         label={m.activity_summary_filed_label()}
         value={summary.filed}
