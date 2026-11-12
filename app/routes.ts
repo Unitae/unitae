@@ -175,6 +175,8 @@ export default [
     ]),
     ...programsRoutes,
     ...territoryManagementRoutes,
+    // An unknown address inside the app: the layout's error boundary draws the 404 in the shell. Someone signed out
+    // is asked to sign in first, then lands on it.
+    route('*', 'shell/not-found.tsx'),
   ]),
-  route('*', 'shell/not-found.tsx'),
 ] satisfies RouteConfig
