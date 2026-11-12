@@ -1,11 +1,37 @@
 @import "tailwindcss";
+/* Enter and exit animations of the dialogs, sheets, menus and popovers (animate-in, fade-in, zoom-in, slide-in-from-*). */
+@import "tw-animate-css";
 /* Unitae design tokens: colours (light + dark), type, radius, shadows, motion, chart palettes. */
 @import "@unitae/tokens/fonts.css";
 @import "@unitae/tokens/theme.css";
 /* Unitae components ship Tailwind classes: let Tailwind see them. */
 @source "../node_modules/@unitae/ui/dist";
 
+/* tw-animate-css's enter and exit on the motion tokens: 120 ms on the standard curve, unless a `duration-*` or an
+   `ease-*` on the element says otherwise (the sheets take the 240 ms token). */
+@theme inline {
+  --animate-in: enter
+    var(--tw-animation-duration, var(--tw-duration, var(--u-duration-fast)))
+    var(--tw-ease, var(--u-ease)) var(--tw-animation-delay, 0s)
+    var(--tw-animation-iteration-count, 1) var(--tw-animation-direction, normal)
+    var(--tw-animation-fill-mode, none);
+  --animate-out: exit
+    var(--tw-animation-duration, var(--tw-duration, var(--u-duration-fast)))
+    var(--tw-ease, var(--u-ease)) var(--tw-animation-delay, 0s)
+    var(--tw-animation-iteration-count, 1) var(--tw-animation-direction, normal)
+    var(--tw-animation-fill-mode, none);
+}
+
 @custom-variant dark (&:is(.dark *));
+
+/* A list's docked column set: true while the list column (`ListWithPanel`, the `list` container) is under 50 rem,
+   beside the docked panel or on a tablet. A secondary cell takes `docked:hidden`; the state, the name and the row's
+   action stay. */
+@custom-variant docked {
+  @container list (width < 50rem) {
+    @slot;
+  }
+}
 
 @keyframes navigation-progress {
   0% {
@@ -29,7 +55,7 @@
 @keyframes fade-in-up {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
@@ -37,8 +63,9 @@
   }
 }
 
+/* A block arriving on the page, on the fast motion token. */
 @utility animate-fade-in-up {
-  animation: fade-in-up 0.3s ease-out both;
+  animation: fade-in-up var(--u-duration-fast) var(--u-ease) both;
 }
 
 @utility scrollbar-none {
@@ -86,10 +113,17 @@
 }
 
 @layer base {
-  /* The app's control height (inputs, buttons: h-9). @unitae/ui's medium controls read it, so a segmented
-     control beside a search field or a button lines up with them. */
+  /* The app's control height (inputs, buttons: h-9, h-11 on touch). @unitae/ui's medium controls read it, so a
+     segmented control beside a search field or a button lines up with them. */
   :root {
     --u-control-height: 2.25rem;
+  }
+
+  /* On a touch screen every control is a 44 px target: Button, Input and Select grow with it (pointer-coarse). */
+  @media (pointer: coarse) {
+    :root {
+      --u-control-height: 2.75rem;
+    }
   }
 
   *,
@@ -101,7 +135,7 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-body text-foreground antialiased;
     overscroll-behavior-y: contain;
   }
 }

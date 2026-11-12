@@ -30,10 +30,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       style={
         {
-          '--normal-bg': 'var(--popover)',
-          '--normal-text': 'var(--popover-foreground)',
-          '--normal-border': 'var(--border)',
-          '--border-radius': 'var(--radius)',
+          // A confirmation is an inverse strip, as on the boards: the text colour as its ground.
+          '--normal-bg': 'var(--u-fg)',
+          '--normal-text': 'var(--u-bg)',
+          '--normal-border': 'transparent',
+          '--border-radius': 'var(--u-radius)',
         } as React.CSSProperties
       }
       {...props}

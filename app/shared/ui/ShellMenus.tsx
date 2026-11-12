@@ -25,7 +25,7 @@ const THEMES: { value: ThemeChoice; label: () => string; icon: LucideIcon }[] = 
 ]
 
 const TRIGGER =
-  'flex h-8 w-full min-w-0 items-center gap-2 rounded-md text-left text-sm outline-hidden transition-colors hover:bg-hover focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:bg-hover'
+  'flex h-8 w-full min-w-0 items-center gap-2 rounded-md text-left text-sm outline-hidden pointer-coarse:h-11 transition-colors hover:bg-hover focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:bg-hover'
 
 /** The congregation's initials in an ink square: the workspace mark, Linear-style. */
 export function Monogram({ name, className }: { name: string; className?: string }) {
@@ -113,7 +113,7 @@ export function UserMenu({ name, compact = false }: { name: string; compact?: bo
       {compact ? (
         <DropdownMenuTrigger
           aria-label={name}
-          className="grid size-8 shrink-0 place-content-center rounded-md outline-hidden transition-colors hover:bg-hover focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:bg-hover"
+          className="grid size-8 shrink-0 place-content-center rounded-md outline-hidden pointer-coarse:size-11 transition-colors hover:bg-hover focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:bg-hover"
         >
           <Avatar name={name} size="md" />
         </DropdownMenuTrigger>

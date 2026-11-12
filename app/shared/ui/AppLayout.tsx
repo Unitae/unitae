@@ -1,3 +1,4 @@
+import { Kbd } from '@unitae/ui'
 import { Search } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Outlet } from 'react-router'
@@ -82,7 +83,7 @@ export function AppLayout({
             className="flex h-8 items-center gap-2 rounded-lg border px-2.5 text-muted-foreground text-xs transition-colors hover:bg-accent hover:text-accent-foreground"
           >
             <Search className="size-3.5" />
-            <kbd className="font-mono text-[10px]">⌘K</kbd>
+            <Kbd>⌘K</Kbd>
           </button>
         </div>
         {/* The extra max-sm padding reacts to a docked FormActions bar
@@ -109,7 +110,7 @@ export function AppLayout({
       {hasManagementSections(permissions) && (
         <MoreMenuSheet permissions={permissions} open={moreOpen} onOpenChange={setMoreOpen} />
       )}
-      <Toaster richColors position="top-right" />
+      <Toaster position="top-right" />
       <CommandPalette permissions={permissions} open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
     </SidebarProvider>
   )

@@ -138,6 +138,7 @@
     "common_unsaved_changes_leave": "Leave",
     "common_discard_changes_description": "Unsaved changes will be lost.",
     "common_discard_changes_confirm": "Discard",
+    "common_walk_position": "{position} of {total}",
     "common_offline_message": "You are offline. Some features may be unavailable.",
     "command_palette_placeholder": "Search for a page…",
     "command_palette_navigation": "Navigation",

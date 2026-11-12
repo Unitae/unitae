@@ -35,7 +35,7 @@ export function RouteErrorBoundary() {
           </span>
           <div className="flex flex-col gap-1">
             <p className="text-faint text-sm tabular-nums">{code}</p>
-            <h1 className="font-semibold text-2xl leading-tight tracking-tight">{title}</h1>
+            <h1 className="text-h1">{title}</h1>
           </div>
           <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
           <div className="flex flex-wrap gap-2">

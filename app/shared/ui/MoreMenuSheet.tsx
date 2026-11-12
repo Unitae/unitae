@@ -30,7 +30,7 @@ export function MoreMenuSheet({ permissions, open, onOpenChange }: MoreMenuSheet
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="max-h-[80dvh] gap-0 overflow-y-auto rounded-t-2xl pb-[max(env(safe-area-inset-bottom),1rem)] md:hidden"
+        className="max-h-[80dvh] gap-0 overflow-y-auto rounded-t-lg pb-[max(env(safe-area-inset-bottom),1rem)] md:hidden"
       >
         <SheetHeader className="pb-1">
           <SheetTitle>{m.nav_more()}</SheetTitle>

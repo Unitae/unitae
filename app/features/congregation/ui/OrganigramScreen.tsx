@@ -118,7 +118,7 @@ export function OrganigramScreen({ page }: { page: OrganigramPage & { canManage:
         }
       >
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">{m.org_title()}</h1>
+          <h1 className="text-h1">{m.org_title()}</h1>
           <p className="text-muted-foreground text-sm">{m.org_subtitle()}</p>
         </div>
       </PageTopbar>

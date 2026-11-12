@@ -16,10 +16,6 @@ import { displayFirstname } from '~/shared/utils/display-name'
 import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/password-invalidation'
 
-export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Unitae' }]
-}
-
 export function loader() {
   throw redirect('/')
 }

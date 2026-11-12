@@ -37,7 +37,7 @@ export function AuthShell({ congregation, title, eyebrow, icon: Icon, descriptio
             <Emblem congregation={congregation} icon={Icon} />
             <div className="flex flex-col gap-1">
               {over != null && <p className="text-faint text-sm">{over}</p>}
-              <h1 className="font-semibold text-2xl leading-tight tracking-tight">{title}</h1>
+              <h1 className="text-h1">{title}</h1>
             </div>
             {description != null && <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>}
           </div>
