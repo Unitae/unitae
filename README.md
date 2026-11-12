@@ -11,7 +11,7 @@ Built by [MindsersIT](https://mindsers.it/) and available as a managed service a
 - **Proclamateurs** — Track publisher profiles, groups, and monthly field service activity with Excel/PDF exports
 - **Prospection** — Maintain a building database with open data sync from French national addresses (BANO)
 - **Programmes** — Manage events, programs, and personal days off
-- **GDPR-ready** — Built-in privacy tools: user data export, anonymization, consent management, privacy policy page, cookie consent for third-party services
+- **GDPR-ready** — Built-in privacy tools: user data export, anonymization, consent management, privacy policy page, no third-party cookies
 
 ## Getting Started
 
@@ -31,7 +31,7 @@ Unitae processes religious affiliation data (special category data under GDPR Ar
 - **Right to erasure** — Admins can anonymize user records while preserving historical reports (Article 17)
 - **Consent management** — Consent gate on first login, user-facing consent management page
 - **Privacy policy** — Built-in `/privacy` page covering all RGPD requirements
-- **Cookie consent** — Third-party services (Google Maps) only load after explicit consent
+- **No third-party cookies** — The maps come from the instance itself (a base map it serves), so nothing third-party loads in the browser and no cookie consent is needed
 - **Audit logging** — Structured audit trail for all GDPR-sensitive operations (login, data export, anonymization, consent, password changes)
 - **Log PII redaction** — Personal data automatically hashed in application logs
 - **Data retention** — Automated cleanup of expired tokens and old consent records via cron endpoint

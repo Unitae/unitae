@@ -66,7 +66,7 @@ The link is per-user and protected by a long random token. Only people you give 
 
 ### Do I need a Google Maps API key?
 
-No. Maps are optional. The territory maps — *Mes territoires*, a territory's page, the territory editor and *Créer en lot* — use a base map your instance serves itself (`UNITAE_MAP_TILES`, see [Maps](../self-hosting/maps.md)), not Google. Without a Google key, territory management works normally — PDF exports have no map page, and *Carte de l'assemblée* is edited through GeoJSON import and export. See [Environment Variables](../self-hosting/environment-variables.md).
+No. Maps are optional. Every map on screen — *Mes territoires*, a territory's page, the territory editor, *Créer en lot* and *Carte de l'assemblée* — uses a base map your instance serves itself (`UNITAE_MAP_TILES`, see [Maps](../self-hosting/maps.md)), not Google. Without a Google key, territory management works normally: PDF exports have no map page, and searching by address doesn't rank territories by distance. See [Environment Variables](../self-hosting/environment-variables.md).
 
 ### Do I need a Resend API key for emails?
 

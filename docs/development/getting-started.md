@@ -47,8 +47,8 @@ Optional variables:
 ```ini
 UNITAE_CRON_SECRET="your-cron-secret"          # Required for cron endpoints (/cron/retention, /cron/board-expirations, /cron/process-notifications)
 DB_POOL_MAX="10"                  # PostgreSQL connection pool size (default: 10)
-GOOGLE_MAPS_API_KEY=""                  # PDF map pages, Carte de l'assemblée drawing, proximity search
-GOOGLE_MAPS_MAP_ID=""                   # Enables custom styled maps
+GOOGLE_MAPS_API_KEY=""                  # Server only: PDF map page, proximity search
+GOOGLE_MAPS_MAP_ID=""                   # Style of the PDF map page
 ```
 
 > **Running integration tests?** Add `DB_RUNTIME_URL="postgresql://unitae_app:unitae_app@localhost:5432/unitae_dev"` to `.env`. Without it, RLS isolation tests fail with cryptic auth errors because they connect as the superuser instead of the policy-bound `unitae_app` role.

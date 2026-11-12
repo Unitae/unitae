@@ -195,21 +195,23 @@ Key structure: `{congregationId}/{feature}/{uuid}.pdf`
 
 ## Maps
 
-Two map stacks live side by side until the *Carte de l'assemblée* drawing moves over:
+Every map on screen is MapLibre on the instance's base map; Google Maps is left to the server:
 
-- **The base map (MapLibre)** — *Mes territoires*, a territory's page, the territory editor and *Créer en lot*. Protomaps vector tiles from one PMTiles
+- **The base map (MapLibre)** — *Mes territoires*, a territory's page, the territory editor, *Créer en lot* and the
+  *Carte de l'assemblée* drawing. Protomaps vector tiles from one PMTiles
   archive named by `UNITAE_MAP_TILES` (a path or an `https://` URL), painted with `mapStyle()` from
   `@unitae/tokens/map-style`. The browser never reaches the archive: see [The base map](#the-base-map).
-- **Google Maps** — the *Carte de l'assemblée* drawing, the PDF map page and the proximity search, behind
-  `GOOGLE_MAPS_API_KEY` (and the consent banner for the drawing).
+- **Google Maps, server side** — the PDF map page (Static Maps) and the proximity search (Geocoding), behind
+  `GOOGLE_MAPS_API_KEY`. Nothing of Google loads in the browser: the CSP lists none of its map hosts and there is no
+  consent banner.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `UNITAE_MAP_TILES` | No | The base map's PMTiles archive. Without it the territory maps are hidden and the editor finds entrances by address |
-| `GOOGLE_MAPS_API_KEY` | No | Enables static maps in PDF exports, the *Carte de l'assemblée* drawing editor and proximity search |
-| `GOOGLE_MAPS_MAP_ID` | No | Enables custom styled Google maps (requires API key) |
+| `UNITAE_MAP_TILES` | No | The base map's PMTiles archive. Without it the maps are hidden: the editor finds entrances by address, *Carte de l'assemblée* goes through GeoJSON |
+| `GOOGLE_MAPS_API_KEY` | No | Enables static maps in PDF exports and proximity search |
+| `GOOGLE_MAPS_MAP_ID` | No | Styles the PDF map page (requires API key) |
 
-When the Google key is not set, the PDF map page is skipped, and the *Carte de l'assemblée* page falls back to the GeoJSON import/export workflow only (no visual editor).
+When the Google key is not set, the PDF map page is skipped and proximity search falls back to text matches.
 
 ### The base map
 
@@ -242,10 +244,10 @@ When the Google key is not set, the PDF map page is skipped, and the *Carte de l
   with the page) and what counts as the base map failing (`tileFailed`).
 - `server.js` compresses `/map-fonts/` responses (protobuf is not compressible by default).
 
-### Google Maps components
+### Google Maps (server) and the zones map
 
 - **`app/features/territories/ui/TerritoryDocument.tsx`** — uses Google's Static Maps API for the printable territory card. Marker stays yellow on print intentionally. The map page renders the congregation's `TerritoryCardOverlay` zones (each a colored Polygon path) and falls back to the `TerritoryPerimeter` (drawn as a thin gray outline) when no zone is configured. The Static Maps URL is built by the pure `app/features/territories/model/static-map-url.ts` helper — there are zero hardcoded coordinates anywhere in the file (a snapshot test enforces this).
-- **`app/features/territories/ui/CardOverlayMap.tsx`** — the drawing-enabled Google Map shared by the *Carte de l'assemblée* settings page (`/settings/map`). Uses [Terra Draw](https://terradraw.io/) via `terra-draw-google-maps-adapter` for polygon drawing + vertex editing (Google removed `google.maps.drawing.DrawingManager` in Maps JS v3.65). One `TerraDraw` instance drives both the "draw new" (`TerraDrawPolygonMode`) and "edit existing" (`TerraDrawSelectMode`) flows; pure GeoJSON↔`CardOverlayPath` conversion is isolated in the colocated `card-overlay-map-bridge.ts` module. Renders existing zones + perimeter as read-only `google.maps.Polygon` (with an `excludeOverlayId` / `excludePerimeter` prop to hide whichever shape is currently being edited).
+- **`app/features/territories/ui/CardOverlayMap.tsx`** — no longer Google: the *Carte de l'assemblée* map (`/settings/map`) is the frame, **`CardOverlayMapCanvas.tsx`** the MapLibre map (zones and perimeter as GeoJSON layers, the others faded while one shape is worked on), and **`card-overlay-draw.ts`** starts [Terra Draw](https://terradraw.io/) on it through `terra-draw-maplibre-gl-adapter`. One `TerraDraw` instance drives both "draw new" (`TerraDrawPolygonMode`, whose `undo()` backs *Annuler le dernier point*) and "edit existing" (`TerraDrawSelectMode`); GeoJSON↔`CardOverlayPath` conversion stays in `card-overlay-map-bridge.ts`. The map turns style diffing off so a theme switch fires `style.load`, on which terra-draw is started again (its layers are not in our style). Its bounds are `reachAround(area)` (about 10 km beyond the area), and the tile route serves that reach to `CanConfigureTerritorySettings` holders.
 - **`app/features/territories/ui/ColorPicker.tsx`** — small Popover with a curated 8-swatch palette + a custom-color tile. Used in the new-zone draft form and the per-zone metadata edit dialog.
 
 ### Bbox endpoint

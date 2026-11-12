@@ -48,7 +48,7 @@ All other dependencies (Node.js, PostgreSQL, Redis) are included in the Docker i
   - BANO open data servers — for building address sync
   - Resend API (`api.resend.com`) — for email notifications
   - Your base map file, when `UNITAE_MAP_TILES` is in a bucket (`s3://…`) or at an `https://` URL — for the territory maps
-  - Google Maps APIs (`maps.googleapis.com`) — for PDF map pages, the *Carte de l'assemblée* drawing and proximity search geocoding
+  - Google Maps APIs (`maps.googleapis.com`), from the server only — for PDF map pages and proximity search geocoding
 
 ## Reverse Proxy
 
