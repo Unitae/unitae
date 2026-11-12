@@ -98,7 +98,8 @@ export function CampaignTable({ rows }: { rows: CampaignListRow[] }) {
 }
 
 function State({ row }: { row: CampaignListRow }) {
-  const short = (day: string) => formatCampaignDay(day)
+  // « jusqu’au 29 nov. », « Terminée le 25 août »: the day is enough, its weekday is noise here.
+  const short = (day: string) => formatCampaignDay(day, { day: 'numeric', month: 'short' })
   if (row.status === 'active') {
     return (
       <Tag tone="brand" className="gap-1.5">

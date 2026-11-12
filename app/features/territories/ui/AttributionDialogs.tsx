@@ -11,8 +11,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '~/shared/ui/alert-dialog'
+import { DateInput } from '~/shared/ui/DateInput'
 import { useCloseOnSave } from '~/shared/ui/hooks/use-close-on-save'
-import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { addDays } from '~/shared/utils/calendar-day'
@@ -88,17 +88,16 @@ function ReturnForm({
       </AlertDialogHeader>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="return-day">{m.attributions_return_day()}</Label>
-        <Input
+        <DateInput
           id="return-day"
           name="end-date"
-          type="date"
           required
           min={attribution.startDay}
           max={today}
-          value={day}
-          onChange={event => setDay(event.target.value)}
+          value={day || null}
+          onChange={next => setDay(next ?? '')}
           aria-invalid={fieldErrors.length > 0 || undefined}
-          className="w-44 tabular-nums"
+          className="w-60"
         />
         {fieldErrors.length > 0 ? (
           <p role="alert" className="text-danger-text text-sm">
