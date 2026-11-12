@@ -137,6 +137,13 @@ export class FileArchiveSource implements Source {
     return this.path
   }
 
+  /** The server keeps its archive open for its whole life; this is for whoever opens one briefly. */
+  async close() {
+    const handle = this.handle
+    this.handle = null
+    await (await handle)?.close()
+  }
+
   async getBytes(offset: number, length: number): Promise<RangeResponse> {
     this.handle ??= open(this.path, 'r')
     const handle = await this.handle

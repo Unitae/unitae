@@ -129,6 +129,7 @@ describe('an archive on the server’s disk', () => {
   it('reads exactly the range asked for, however large', async () => {
     const source = new FileArchiveSource(path)
     const { data } = await source.getBytes(120_000, 150_000)
+    await source.close()
     const bytes = new Uint8Array(data)
     expect(bytes.byteLength).toBe(150_000)
     expect(bytes[0]).toBe(120_000 % 251)
@@ -136,7 +137,9 @@ describe('an archive on the server’s disk', () => {
   })
 
   it('stops at the end of the file', async () => {
-    const { data } = await new FileArchiveSource(path).getBytes(299_990, 100)
+    const source = new FileArchiveSource(path)
+    const { data } = await source.getBytes(299_990, 100)
+    await source.close()
     expect(data.byteLength).toBe(10)
   })
 })
