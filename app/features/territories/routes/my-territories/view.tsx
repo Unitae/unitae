@@ -5,7 +5,7 @@ import { redirect } from 'react-router'
 
 import { groupByStreet, toHolderEntrance } from '~/features/territories/model/holder-territory'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { getHolderMap } from '~/features/territories/server/holder-map.server'
+import { getBaseMap } from '~/features/territories/server/base-map.server'
 import { computeStatus, getUserTerritoryDetail } from '~/features/territories/server/my-territories.server'
 import { HolderTerritoryFacts, LoanStatus } from '~/features/territories/ui/HolderLoan'
 import { HolderTerritoryBody, type HolderView } from '~/features/territories/ui/HolderTerritoryBody'
@@ -45,7 +45,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     // The map needs the congregation's choice, a base map on the instance and one building placed on it: without
     // them there is nothing to show, and the list keeps the whole width.
     const placed = entrances.some(entrance => entrance.points.length > 0)
-    const holderMap = mapTabActive && placed ? await getHolderMap(db, currentUser.congregationId) : null
+    const holderMap = mapTabActive && placed ? await getBaseMap(db, currentUser.congregationId) : null
 
     return {
       territory: {

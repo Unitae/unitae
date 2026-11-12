@@ -17,7 +17,7 @@ vi.mock('./map-tiles-area.server', () => ({
   },
 }))
 
-const { getHolderMap } = await import('./holder-map.server')
+const { getBaseMap } = await import('./base-map.server')
 
 const AREA = { swLat: 48.872, swLng: 2.405, neLat: 48.888, neLng: 2.43 }
 let congregation = 100
@@ -29,9 +29,9 @@ beforeEach(() => {
   mapArea = { area: AREA, perimeter: null }
 })
 
-describe('getHolderMap', () => {
+describe('getBaseMap', () => {
   it('gives the tile address of the current edition and the area, and warms the area', async () => {
-    expect(await getHolderMap({} as never, congregation)).toEqual({
+    expect(await getBaseMap({} as never, congregation)).toEqual({
       tiles: '/map/tiles/a1b2c3d4e5/{z}/{x}/{y}',
       area: AREA,
     })
@@ -40,12 +40,12 @@ describe('getHolderMap', () => {
 
   it('has no map on an instance without tiles', async () => {
     store = null
-    expect(await getHolderMap({} as never, congregation)).toBeNull()
+    expect(await getBaseMap({} as never, congregation)).toBeNull()
   })
 
   it('has no map while the congregation has no area', async () => {
     mapArea = null
-    expect(await getHolderMap({} as never, congregation)).toBeNull()
+    expect(await getBaseMap({} as never, congregation)).toBeNull()
   })
 
   it('leaves the map out rather than fail the page when the archive cannot be read', async () => {
@@ -55,15 +55,15 @@ describe('getHolderMap', () => {
         throw new Error('bucket unreachable')
       },
     }
-    expect(await getHolderMap({} as never, congregation)).toBeNull()
+    expect(await getBaseMap({} as never, congregation)).toBeNull()
   })
 
   it('warms a congregation’s area once per edition of the archive', async () => {
-    await getHolderMap({} as never, congregation)
-    await getHolderMap({} as never, congregation)
+    await getBaseMap({} as never, congregation)
+    await getBaseMap({} as never, congregation)
     expect(warmed).toEqual([AREA])
     store = { ...(store as NonNullable<typeof store>), edition: async () => 'f6e5d4c3b2' }
-    await getHolderMap({} as never, congregation)
+    await getBaseMap({} as never, congregation)
     expect(warmed).toEqual([AREA, AREA])
   })
 })
