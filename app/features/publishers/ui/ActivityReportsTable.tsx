@@ -101,7 +101,9 @@ function ReportRow({
     <tr
       onClick={openRowOnClick}
       className={cn(
-        'group relative cursor-pointer transition-colors duration-(--u-duration-fast)',
+        'group relative transition-colors duration-(--u-duration-fast)',
+        // Only a row that opens something says so with the pointer.
+        row.editable && 'cursor-pointer',
         selected ? 'bg-selected' : row.editable && 'hover:bg-hover',
         status === 'inactive' && 'text-muted-foreground',
       )}

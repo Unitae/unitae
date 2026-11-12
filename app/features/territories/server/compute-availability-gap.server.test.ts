@@ -20,16 +20,16 @@ function makeAttribution(territoryId: number, startDate: Date, endDate: Date | n
 }
 
 describe('computeAvailabilityGap', () => {
-  it("retourne 0 quand il n'y a aucune attribution", () => {
-    expect(computeAvailabilityGap([])).toBe(0)
+  it("ne donne aucun délai quand il n'y a aucune attribution", () => {
+    expect(computeAvailabilityGap([])).toBeNull()
   })
 
-  it("retourne 0 quand il n'y a qu'une seule attribution par territoire", () => {
+  it("ne donne aucun délai quand il n'y a qu'une seule attribution par territoire", () => {
     const attributions = [
       makeAttribution(1, new Date(2025, 0, 1), new Date(2025, 1, 1)),
       makeAttribution(2, new Date(2025, 0, 1), new Date(2025, 1, 1)),
     ]
-    expect(computeAvailabilityGap(attributions)).toBe(0)
+    expect(computeAvailabilityGap(attributions)).toBeNull()
   })
 
   it('calcule le gap moyen entre attributions consécutives', () => {
@@ -51,7 +51,7 @@ describe('computeAvailabilityGap', () => {
       makeAttribution(1, new Date(2025, 2, 1), new Date(2025, 3, 1), 2),
     ]
     // On ne peut pas calculer de gap car la première attribution n'a pas de date de fin
-    expect(computeAvailabilityGap(attributions)).toBe(0)
+    expect(computeAvailabilityGap(attributions)).toBeNull()
   })
 
   it('ignore les gaps négatifs (attributions qui se chevauchent)', () => {

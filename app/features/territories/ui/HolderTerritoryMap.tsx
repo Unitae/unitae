@@ -5,6 +5,7 @@ import type { Bbox } from '~/features/territories/model/bbox.type'
 import type { HolderEntrance } from '~/features/territories/model/holder-territory'
 import { HolderEntranceCard } from '~/features/territories/ui/HolderEntranceCard'
 import { loadHolderMapCanvas, MAPLIBRE_WORKER_URL } from '~/features/territories/ui/holder-map-chunk'
+import { type MapState, mapStateAfter } from '~/features/territories/ui/map/map-state'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { cn } from '~/shared/utils/utils'
@@ -20,8 +21,6 @@ const HolderMapCanvas = lazy(loadHolderMapCanvas)
 const SIDE = 'h-[60vh] max-h-[720px] xl:h-[calc(100vh-10rem)]'
 const FILL =
   'h-[calc(100dvh-var(--map-top,16rem)-4.5rem-env(safe-area-inset-bottom))] min-h-72 md:h-[calc(100dvh-var(--map-top,16rem)-1.5rem)]'
-
-type MapState = 'loading' | 'ready' | 'failed'
 
 interface HolderTerritoryMapProps {
   /** Tile address template of the instance's base map. */
@@ -101,8 +100,8 @@ export function HolderTerritoryMap({
             selectedPoint={selected?.points[0] ?? null}
             onHover={onHover}
             onSelect={onSelect}
-            onReady={() => setState('ready')}
-            onFail={() => setState('failed')}
+            onReady={() => setState(current => mapStateAfter(current, 'ready'))}
+            onFail={() => setState(current => mapStateAfter(current, 'failed'))}
           />
         </Suspense>
       )}
@@ -117,7 +116,7 @@ export function HolderTerritoryMap({
               variant="outline"
               size="sm"
               onClick={() => {
-                setState('loading')
+                setState(current => mapStateAfter(current, 'retry'))
                 setAttempt(previous => previous + 1)
               }}
             >

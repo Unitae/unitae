@@ -5,6 +5,7 @@ import type { BaseMap } from '~/features/territories/model/base-map.type'
 import type { Bbox } from '~/features/territories/model/bbox.type'
 import type { CardOverlay, CardOverlayPath } from '~/features/territories/model/card-overlay'
 import { MAPLIBRE_WORKER_URL } from '~/features/territories/ui/holder-map-chunk'
+import { type MapState, mapStateAfter } from '~/features/territories/ui/map/map-state'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { cn } from '~/shared/utils/utils'
@@ -32,8 +33,6 @@ export interface CardOverlayMapProps {
   className?: string
 }
 
-type MapState = 'loading' | 'ready' | 'failed'
-
 export default function CardOverlayMap({ className, ...props }: CardOverlayMapProps) {
   const [state, setState] = useState<MapState>('loading')
   const [attempt, setAttempt] = useState(0)
@@ -49,8 +48,8 @@ export default function CardOverlayMap({ className, ...props }: CardOverlayMapPr
           <CardOverlayMapCanvas
             key={attempt}
             {...props}
-            onReady={() => setState('ready')}
-            onFail={() => setState('failed')}
+            onReady={() => setState(current => mapStateAfter(current, 'ready'))}
+            onFail={() => setState(current => mapStateAfter(current, 'failed'))}
           />
         </Suspense>
       )}
@@ -63,7 +62,7 @@ export default function CardOverlayMap({ className, ...props }: CardOverlayMapPr
               variant="outline"
               size="sm"
               onClick={() => {
-                setState('loading')
+                setState(current => mapStateAfter(current, 'retry'))
                 setAttempt(previous => previous + 1)
               }}
             >

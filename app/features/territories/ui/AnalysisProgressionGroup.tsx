@@ -4,7 +4,15 @@ import type { DurationStats } from '~/features/territories/server/compute-durati
 import type { FoyersReached } from '~/features/territories/server/compute-foyers-reached.server'
 import type { RankedTerritoriesResult } from '~/features/territories/server/compute-ranked-territories.server'
 import { StatLabel } from '~/features/territories/ui/StatLabel'
-import { currentMonthKey, formatNumber, formatPercent, statsViewLabels } from '~/features/territories/ui/stats-format'
+import {
+  currentMonthKey,
+  formatFigure,
+  formatNumber,
+  formatPercent,
+  formatPerTerritory,
+  NO_FIGURE,
+  statsViewLabels,
+} from '~/features/territories/ui/stats-format'
 import { TerritoryLink } from '~/features/territories/ui/TerritoryLink'
 import * as m from '~/i18n/paraglide/messages'
 import { formatMonthLabel, formatMonthLong } from '~/shared/utils/month-label'
@@ -14,9 +22,9 @@ interface AnalysisProgressionGroupProps {
   totalCoverage: number
   ranked: RankedTerritoriesResult
   durationStats: DurationStats
-  overdueRate: number
-  availabilityGap: number
-  restUtilization: number
+  overdueRate: number | null
+  availabilityGap: number | null
+  restUtilization: number | null
   foyersReached: FoyersReached
   attributionsPerMonth: MonthlyCount[]
 }
@@ -36,7 +44,8 @@ export default function AnalysisProgressionGroup({
     key: d.month,
     label: formatMonthLabel(d.month),
     title: formatMonthLong(d.month),
-    value: d.count,
+    // A month still to come is a gap, not a month without attributions.
+    value: d.count ?? ('future' as const),
   }))
   const current = months.findIndex(d => d.key === currentMonthKey())
 
@@ -46,7 +55,7 @@ export default function AnalysisProgressionGroup({
       <MetricStrip aria-label={m.stats_progression_heading()}>
         <StatTile
           label={<StatLabel label={m.stats_coverage()} help={m.stats_coverage_help()} />}
-          value={formatPercent(coverage)}
+          value={formatPerTerritory(coverage)}
         />
         <StatTile
           label={<StatLabel label={m.stats_total_coverage()} help={m.stats_total_coverage_help()} />}
@@ -63,22 +72,22 @@ export default function AnalysisProgressionGroup({
         />
         <StatTile
           label={<StatLabel label={m.stats_avg_duration()} help={m.stats_avg_duration_help()} />}
-          value={durationStats.averageDays}
-          unit="j"
+          value={formatFigure(durationStats.averageDays)}
+          unit={durationStats.averageDays == null ? undefined : 'j'}
         />
         <StatTile
           label={<StatLabel label={m.stats_overdue_rate()} help={m.stats_overdue_rate_help()} />}
-          value={formatPercent(overdueRate)}
+          value={formatFigure(overdueRate, formatPercent)}
         />
         <StatTile
           label={<StatLabel label={m.stats_availability_gap()} help={m.stats_availability_gap_help()} />}
-          value={availabilityGap}
-          unit="j"
+          value={formatFigure(availabilityGap)}
+          unit={availabilityGap == null ? undefined : 'j'}
         />
         <StatTile
           label={<StatLabel label={m.stats_rest_utilization()} help={m.stats_rest_utilization_help()} />}
-          value={restUtilization}
-          unit="j"
+          value={formatFigure(restUtilization)}
+          unit={restUtilization == null ? undefined : 'j'}
         />
       </MetricStrip>
       <MetricStrip aria-label={m.stats_territory_rankings_title()} minTileWidth={220}>
@@ -94,8 +103,12 @@ export default function AnalysisProgressionGroup({
         />
         <StatTile
           label={<StatLabel label={m.stats_longest_shortest()} help={m.stats_longest_shortest_help()} />}
-          value={`${durationStats.longestDays} / ${durationStats.shortestDays}`}
-          unit="j"
+          value={
+            durationStats.longestDays == null || durationStats.shortestDays == null
+              ? NO_FIGURE
+              : `${durationStats.longestDays} / ${durationStats.shortestDays}`
+          }
+          unit={durationStats.longestDays == null ? undefined : 'j'}
           foot={
             durationStats.longestTerritory != null || durationStats.shortestTerritory != null ? (
               <>
@@ -125,7 +138,7 @@ export default function AnalysisProgressionGroup({
                   { key: 'month', label: m.stats_table_month() },
                   { key: 'count', label: m.chart_attributions_label(), numeric: true },
                 ],
-                rows: months.map(d => ({ month: d.title, count: d.value })),
+                rows: months.map(d => ({ month: d.title, count: typeof d.value === 'number' ? d.value : NO_FIGURE })),
               }
             : undefined
         }

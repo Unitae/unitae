@@ -24,7 +24,16 @@ const HEAD = 'h-10 whitespace-nowrap border-border border-b px-3.5 text-left fon
 const CELL = 'h-12 whitespace-nowrap border-border border-b px-3.5 group-last:border-b-0'
 
 /** The campaign's attributions, newest first: who holds each territory, since when, and when it came back. */
-export function CampaignAttributionTable({ rows, today }: { rows: CampaignAttributionRow[]; today: string }) {
+export function CampaignAttributionTable({
+  rows,
+  today,
+  ended,
+}: {
+  rows: CampaignAttributionRow[]
+  today: string
+  /** An ended campaign says that nothing went out, not « pour le moment ». */
+  ended: boolean
+}) {
   const [filter, setFilter] = useState<Filter>('all')
   const out = rows.filter(row => row.endDay == null)
   const back = rows.filter(row => row.endDay != null)
@@ -58,7 +67,9 @@ export function CampaignAttributionTable({ rows, today }: { rows: CampaignAttrib
             ? m.campaigns_attr_none_out()
             : filter === 'back'
               ? m.campaigns_attr_none_back()
-              : m.campaigns_view_attributions_empty()}
+              : ended
+                ? m.campaigns_view_attributions_empty_ended()
+                : m.campaigns_view_attributions_empty()}
         </p>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border bg-card">

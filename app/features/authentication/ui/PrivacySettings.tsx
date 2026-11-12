@@ -19,7 +19,6 @@ import { SubmitButton } from '~/shared/ui/SubmitButton'
 
 const PURPOSE_LABELS: Record<string, () => string> = {
   DATA_PROCESSING: () => m.consent_purpose_data_processing(),
-  EMAIL_NOTIFICATIONS: () => m.consent_purpose_email_notifications(),
 }
 
 export interface ConsentView {

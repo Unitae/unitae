@@ -1,4 +1,5 @@
 import { mayReadSlotFacts } from '~/features/events/server/events-auth.server'
+import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
 import { resolveExternalSpeakerCadence } from '~/features/events/server/resolve-external-speaker-cadence.server'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import type { Permission } from '~/shared/types/permission'
@@ -25,7 +26,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
   return withScopeFromContext(context, async db => {
     const currentUser = context.get(currentAccountContext)
     const { congregationId } = currentUser
-    const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
+    const event = await findProgrammeEvent(db, eventId, congregationId)
     if (!event) return Response.json(null)
     // A speaker's contact details and visits are for whoever may assign this part of this event.
     const can = (role: Permission) => permissions.has(role)

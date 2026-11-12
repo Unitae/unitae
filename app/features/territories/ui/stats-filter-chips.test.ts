@@ -28,6 +28,18 @@ describe('buildStatsFilterChips', () => {
     expect(chips[0].label).toContain('31/08/2025')
   })
 
+  it('keeps the days of the window in a zone west of UTC', () => {
+    const zone = process.env.TZ
+    process.env.TZ = 'America/Toronto'
+    try {
+      const [window] = buildStatsFilterChips(baseInput())
+      expect(window.label).toContain('01/09/2024')
+      expect(window.label).toContain('31/08/2025')
+    } finally {
+      process.env.TZ = zone
+    }
+  })
+
   it('emits a single "all types" chip when kinds is empty', () => {
     const chips = buildStatsFilterChips(baseInput())
     const kindChips = chips.filter(c => c.tone === 'kind')

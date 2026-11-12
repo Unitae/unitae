@@ -121,7 +121,7 @@ export function PublisherActivityDocument({ publisher, serviceYear }: PublisherA
           </TableRow>
 
           {activities.map(activity => {
-            const month = new Date(activity.year, activity.month).toLocaleDateString('fr', { month: 'long' })
+            const month = new Date(activity.year, activity.month).toLocaleDateString(getLocale(), { month: 'long' })
 
             return (
               <TableRow key={activity.month}>

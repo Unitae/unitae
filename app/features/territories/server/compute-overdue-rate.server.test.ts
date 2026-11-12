@@ -23,13 +23,13 @@ const WINDOW_START = new Date(2025, 0, 1)
 const WINDOW_END = new Date(2025, 11, 31)
 
 describe('computeOverdueRate', () => {
-  it("retourne 0 quand il n'y a aucune attribution", () => {
-    expect(computeOverdueRate([], WINDOW_START, WINDOW_END)).toBe(0)
+  it("ne donne aucun taux quand il n'y a aucune attribution", () => {
+    expect(computeOverdueRate([], WINDOW_START, WINDOW_END)).toBeNull()
   })
 
-  it('retourne 0 quand toutes les attributions sont en cours', () => {
+  it('ne donne aucun taux quand toutes les attributions sont en cours', () => {
     const attributions = [makeAttribution(null, new Date(2025, 5, 1))]
-    expect(computeOverdueRate(attributions, WINDOW_START, WINDOW_END)).toBe(0)
+    expect(computeOverdueRate(attributions, WINDOW_START, WINDOW_END)).toBeNull()
   })
 
   it("retourne 0 quand aucune attribution n'est en retard", () => {

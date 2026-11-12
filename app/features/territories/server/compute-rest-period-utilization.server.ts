@@ -23,7 +23,7 @@ function getRestingPeriodMs(attribution: {
 }
 
 // Calcule le nombre moyen de jours d'inactivité après la fin du repos, avant la prochaine attribution
-export function computeRestPeriodUtilization(attributions: StatsAttribution[]): number {
+export function computeRestPeriodUtilization(attributions: StatsAttribution[]): number | null {
   // Regrouper par territoire (déjà triées par startDate)
   const byTerritory = new Map<number, StatsAttribution[]>()
   for (const a of attributions) {
@@ -33,6 +33,8 @@ export function computeRestPeriodUtilization(attributions: StatsAttribution[]): 
   }
 
   const idleDays: number[] = []
+  // Returns followed by another attribution: without any, there is no inactivity to measure (null, not 0 days).
+  let followed = 0
 
   for (const territoryAttributions of byTerritory.values()) {
     for (let i = 0; i < territoryAttributions.length - 1; i++) {
@@ -40,6 +42,7 @@ export function computeRestPeriodUtilization(attributions: StatsAttribution[]): 
       const next = territoryAttributions[i + 1]
 
       if (current.endDate == null) continue
+      followed += 1
 
       const restPeriodMs = getRestingPeriodMs(current)
       const restEndDate = new Date(current.endDate.getTime() + restPeriodMs)
@@ -52,6 +55,7 @@ export function computeRestPeriodUtilization(attributions: StatsAttribution[]): 
     }
   }
 
+  if (followed === 0) return null
   if (idleDays.length === 0) return 0
 
   const sum = idleDays.reduce((acc, d) => acc + d, 0)

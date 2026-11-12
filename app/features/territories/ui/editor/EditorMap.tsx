@@ -4,6 +4,7 @@ import { lazy, type ReactNode, Suspense, useEffect, useState } from 'react'
 import type { BaseMap } from '~/features/territories/model/base-map.type'
 import type { Draft } from '~/features/territories/model/territory-draft'
 import { MAPLIBRE_WORKER_URL } from '~/features/territories/ui/holder-map-chunk'
+import { type MapState, mapStateAfter } from '~/features/territories/ui/map/map-state'
 import type { Bbox } from '~/features/territories/ui/map/use-bbox-entrances'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
@@ -51,8 +52,6 @@ interface EditorMapProps extends EditorMapLayerProps {
   className?: string
 }
 
-type MapState = 'loading' | 'ready' | 'failed'
-
 /**
  * The editor's map: the territory's entrances, the free ones and those of the other territories of its type, loaded
  * by zone as it moves; the territory's outline; our zoom, « Recentrer » and address search; the picked entrance's card.
@@ -74,8 +73,8 @@ export function EditorMap({ map, label, card, className, ...layer }: EditorMapPr
             tiles={map.tiles}
             area={map.area}
             {...layer}
-            onReady={() => setState('ready')}
-            onFail={() => setState('failed')}
+            onReady={() => setState(current => mapStateAfter(current, 'ready'))}
+            onFail={() => setState(current => mapStateAfter(current, 'failed'))}
           />
         </Suspense>
       )}
@@ -88,7 +87,7 @@ export function EditorMap({ map, label, card, className, ...layer }: EditorMapPr
               variant="outline"
               size="sm"
               onClick={() => {
-                setState('loading')
+                setState(current => mapStateAfter(current, 'retry'))
                 setAttempt(previous => previous + 1)
               }}
             >

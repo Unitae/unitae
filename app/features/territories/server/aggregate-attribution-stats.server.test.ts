@@ -26,14 +26,14 @@ beforeEach(() => {
 })
 
 describe('aggregateAttributionStatsForWindow', () => {
-  it('returns zeros when there are no attributions', async () => {
+  it('gives no duration and no rate when no attribution was returned in the window', async () => {
     const result = await aggregateAttributionStatsForWindow(db, baseParams, 1)
 
     expect(result).toEqual({
       attributionCount: 0,
       distinctTerritoryCount: 0,
-      averageDurationDays: 0,
-      overdueRate: 0,
+      averageDurationDays: null,
+      overdueRate: null,
     })
   })
 

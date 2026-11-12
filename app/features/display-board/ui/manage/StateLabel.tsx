@@ -30,7 +30,7 @@ export function stateText(state: DisplayState, timeZone: string): string {
 /** Where a document stands: the colour on the mark, the words in ink. */
 export function StateLabel({ state, timeZone }: { state: DisplayState; timeZone: string }) {
   return (
-    <Status tone={TONE[state.kind]} className="text-foreground">
+    <Status tone={TONE[state.kind]} className="whitespace-normal text-foreground">
       {stateText(state, timeZone)}
     </Status>
   )

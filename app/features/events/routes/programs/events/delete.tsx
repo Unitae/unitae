@@ -2,6 +2,7 @@ import { redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { deleteEvent } from '~/features/events/server/event-parts.server'
 import { canEditEvent } from '~/features/events/server/events-auth.server'
+import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -30,7 +31,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
     const can = (role: Permission) => permissions.has(role)
-    const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
+    const event = await findProgrammeEvent(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
 
     if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
@@ -51,7 +52,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
     const can = (role: Permission) => permissions.has(role)
-    const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
+    const event = await findProgrammeEvent(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
 
     if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {

@@ -82,8 +82,9 @@ export function ManagedItemRow({
         isDragging && 'relative z-10 bg-surface shadow-sm',
       )}
     >
+      {/* Selection and reordering are desktop work: on a phone, no checkbox and no handle. */}
       {rights.canOrganise && (
-        <td className={cn(cellClass, 'pr-0 max-md:border-0')}>
+        <td className={cn(cellClass, 'pr-0 max-md:hidden')}>
           <span className="flex items-center gap-1.5">
             <button
               type="button"
@@ -120,7 +121,8 @@ export function ManagedItemRow({
           </span>
         </span>
       </td>
-      <td className={cn(cellClass, wideOnly)}>
+      {/* A long state (« Affiché · jusqu’au 20 nov. ») wraps instead of running under the next cell. */}
+      <td className={cn(cellClass, wideOnly, 'whitespace-normal py-2')}>
         <StateLabel state={item.state} timeZone={timeZone} />
       </td>
       <td className={cn(cellClass, wideOnly)}>

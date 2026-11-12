@@ -24,12 +24,12 @@ function makeAttribution(
 }
 
 describe('computeDurationStats', () => {
-  it('returns zeros and null territories when there are no attributions', () => {
+  it('returns no figures when there is no completed attribution', () => {
     expect(computeDurationStats([])).toEqual({
-      averageDays: 0,
-      longestDays: 0,
+      averageDays: null,
+      longestDays: null,
       longestTerritory: null,
-      shortestDays: 0,
+      shortestDays: null,
       shortestTerritory: null,
     })
   })
@@ -37,10 +37,10 @@ describe('computeDurationStats', () => {
   it('ignores ongoing attributions (endDate null)', () => {
     const attributions = [makeAttribution(new Date(2025, 9, 1), null)]
     expect(computeDurationStats(attributions)).toEqual({
-      averageDays: 0,
-      longestDays: 0,
+      averageDays: null,
+      longestDays: null,
       longestTerritory: null,
-      shortestDays: 0,
+      shortestDays: null,
       shortestTerritory: null,
     })
   })

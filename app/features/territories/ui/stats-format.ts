@@ -25,3 +25,19 @@ export function statsViewLabels() {
 export function currentMonthKey(now: Date = new Date()): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 }
+
+/** What a figure shows when there is nothing to measure (no attribution returned yet): never a 0 that reads as a result. */
+export const NO_FIGURE = '–'
+
+/** A figure, or « – » when there is nothing to measure. */
+export function formatFigure(value: number | null, format: (value: number) => string = formatNumber): string {
+  return value == null ? NO_FIGURE : format(value)
+}
+
+/**
+ * Attributions per territory, from the server's overlap figure (attributions that touched the period over the number
+ * of territories, as a percentage): « 1,9 », never a coverage above 100 %.
+ */
+export function formatPerTerritory(overlapPercent: number): string {
+  return formatNumber(overlapPercent / 100, 1)
+}

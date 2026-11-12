@@ -74,7 +74,7 @@ export default function SetupPage({ loaderData, actionData }: Route.ComponentPro
       title={m.auth_setup_title()}
       description={m.auth_setup_subtitle()}
     >
-      {error && <AuthMessage tone="error">{error}</AuthMessage>}
+      {(form.errors?.[0] ?? error) && <AuthMessage tone="error">{form.errors?.[0] ?? error}</AuthMessage>}
       <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)}>
         <AuthField
           id={fields['congregation-name'].id}
@@ -140,14 +140,9 @@ export async function action({ request }: Route.ActionArgs) {
     locale as (typeof locales)[number],
   )
 
+  // A refusal keeps what was typed, like the other refusals of this form.
   if (userId == null) {
-    session.flash('error', m.auth_setup_generic_error())
-
-    return redirect('/setup', {
-      headers: {
-        'Set-Cookie': await commitSession(session),
-      },
-    })
+    return data(submission.reply({ formErrors: [m.auth_setup_generic_error()] }), { status: 400 })
   }
 
   // The admin has just chosen this password: they come in straight away rather than type it again on the sign-in page.

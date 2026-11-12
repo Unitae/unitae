@@ -9,8 +9,10 @@ import type { StatsFilterParams } from './stats-filter-params.type'
 export interface AttributionStatsAggregate {
   attributionCount: number
   distinctTerritoryCount: number
-  averageDurationDays: number
-  overdueRate: number
+  /** Null when no attribution was returned in the window: no duration, not 0 days. */
+  averageDurationDays: number | null
+  /** Null when no attribution was due back in the window: no rate, not 0 %. */
+  overdueRate: number | null
 }
 
 function buildBaseWhere(params: StatsFilterParams, congregationId: number): Prisma.AttributionWhereInput {
@@ -52,8 +54,8 @@ export async function aggregateAttributionStatsForWindow(
 
   const distinctTerritoryCount = distinctTerritoryRows.length
 
-  let averageDurationDays = 0
-  let overdueRate = 0
+  let averageDurationDays: number | null = null
+  let overdueRate: number | null = null
   if (completedRows.length > 0) {
     let durationSum = 0
     let overdueCount = 0

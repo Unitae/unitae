@@ -2,6 +2,7 @@ import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { fireReleaseNotifications, releaseEvent } from '~/features/events/server/event-status.server'
 import { canEditEvent } from '~/features/events/server/events-auth.server'
+import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -32,7 +33,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   // this tx so a queue/Postgres error inside a notify cannot poison it.
   const result = await withScopeFromContext(context, async db => {
     const can = (p: Permission) => permissions.has(p)
-    const event = await db.event.findFirst({ where: { id: eventId, congregationId }, select: { templateId: true } })
+    const event = await findProgrammeEvent(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
     if (
       !(await canEditEvent(

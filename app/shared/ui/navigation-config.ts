@@ -65,9 +65,11 @@ export interface NavItem {
    * exclusive: `end` still controls NavLink's exact-match `aria-current`,
    * while `match` takes precedence for the VISUAL active state in
    * `isNavItemActive`. Without `match`, highlighting follows NavLink's own
-   * matching (`to` + `end`).
+   * matching (`to` + `end`). `also` names pages outside `prefix` that belong
+   * to the item all the same (« Créer en lot » sits under the buildings
+   * address but is reached from the territories list).
    */
-  match?: { prefix: string; exclude?: string[] }
+  match?: { prefix: string; exclude?: string[]; also?: string[] }
 }
 
 /**
@@ -81,9 +83,13 @@ function pathIsWithin(pathname: string, prefix: string): boolean {
   return rest === '' || rest.startsWith('/')
 }
 
+/** « Créer en lot »: under the buildings address, reached from the territories list. */
+const SPLIT_TOOL_PATH = '/territories/buildings/split-territories'
+
 /** Whether `item` should render as active for the current pathname. */
 export function isNavItemActive(item: NavItem, pathname: string, navLinkActive: boolean): boolean {
   if (!item.match) return navLinkActive
+  if (item.match.also?.some(path => pathIsWithin(pathname, path))) return true
   if (!pathIsWithin(pathname, item.match.prefix)) return false
   return !item.match.exclude?.some(prefix => pathIsWithin(pathname, prefix))
 }
@@ -245,6 +251,7 @@ export function buildManagementSections(permissions: NavigationPermissions): Nav
       match: {
         prefix: '/territories',
         exclude: ['/territories/attributions', '/territories/buildings', '/territories/stats'],
+        also: [SPLIT_TOOL_PATH],
       },
     })
   }
@@ -254,6 +261,7 @@ export function buildManagementSections(permissions: NavigationPermissions): Nav
       label: m.sidebar_prospection,
       icon: Building2,
       to: '/territories/buildings',
+      match: { prefix: '/territories/buildings', exclude: [SPLIT_TOOL_PATH] },
     })
   }
   if (permissions.canManageTerritories) {
@@ -313,7 +321,12 @@ const EVERY_PERMISSION: NavigationPermissions = {
   ledGroupId: null,
 }
 
-function itemCovers(item: NavItem, pathname: string): boolean {
+/**
+ * Whether `item` is the current entry for `pathname`: the one rule the sidebar, the « Plus » sheet and the trail
+ * use, so exactly one entry is current on a page (NavLink's own prefix matching would also light « Attributions » on
+ * a campaign page, which sits under its address).
+ */
+export function isNavItemCurrent(item: NavItem, pathname: string): boolean {
   if (item.match) return isNavItemActive(item, pathname, false)
   return item.end ? pathname === item.to : pathIsWithin(pathname, item.to)
 }
@@ -326,7 +339,7 @@ function itemCovers(item: NavItem, pathname: string): boolean {
 export function navGroupFor(pathname: string): string | null {
   for (const section of buildManagementSections(EVERY_PERMISSION)) {
     if (section.items.length < 2) continue
-    if (section.items.some(item => itemCovers(item, pathname))) return section.label()
+    if (section.items.some(item => isNavItemCurrent(item, pathname))) return section.label()
   }
   return null
 }
@@ -338,6 +351,6 @@ export function navGroupFor(pathname: string): string | null {
  */
 export function navItemFor(pathname: string, permissions: NavigationPermissions): NavItem | null {
   const items = [...buildManagementSections(permissions).flatMap(section => section.items), ...buildPersonalItems()]
-  const [best] = items.filter(item => itemCovers(item, pathname)).sort((a, b) => b.to.length - a.to.length)
+  const [best] = items.filter(item => isNavItemCurrent(item, pathname)).sort((a, b) => b.to.length - a.to.length)
   return best == null || best.to === pathname ? null : best
 }
