@@ -2,6 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { PublisherType } from '~/shared/types/publisher-type'
+import { zonedNow } from '~/shared/utils/zoned-now'
 
 // The pioneer board lists who is a pioneer *right now*: a member with a PioneerEnrolment stint
 // covering the current calendar month. This file proves the SQL "covers now" window
@@ -26,7 +27,10 @@ function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promi
 }
 
 const ts = Date.now()
-const now = new Date()
+// The month under way is the congregation's, not the server's: the fixture reads it on the same
+// wall clock as the query, or the two disagree around the turn of a month.
+const TIMEZONE = 'Pacific/Auckland'
+const now = zonedNow(TIMEZONE)
 const curMonth = now.getMonth()
 const curYear = now.getFullYear()
 const nextMonth = (curMonth + 1) % 12
@@ -43,7 +47,7 @@ let anonymizedId: number
 
 beforeAll(async () => {
   const cong = await testDb.congregation.create({
-    data: { name: `Pioneer Window ${ts}`, slug: `pioneer-window-${ts}`, active: true },
+    data: { name: `Pioneer Window ${ts}`, slug: `pioneer-window-${ts}`, active: true, timezone: TIMEZONE },
   })
   congregationId = cong.id
 
