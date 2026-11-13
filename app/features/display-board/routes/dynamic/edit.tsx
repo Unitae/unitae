@@ -139,6 +139,8 @@ export default function EditDynamicDocumentPage({ loaderData, actionData }: Rout
         templates={templates}
         highlightedOthers={highlightedOthers}
         data={preview}
+        now={loaderData.now}
+        timeZone={loaderData.timeZone}
         congregationName={loaderData.congregationName}
         lastResult={actionData}
         onCancel={() => setVersion(v => v + 1)}

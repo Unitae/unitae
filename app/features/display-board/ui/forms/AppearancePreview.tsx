@@ -15,6 +15,8 @@ interface AppearancePreviewProps {
   appearance: BoardAppearance
   title: string
   congregationName: string
+  now: Date
+  timeZone: string
   /** Its printable sheet; null on a document not added yet, which has none to render. */
   pdfUrl: string | null
 }
@@ -36,7 +38,15 @@ function useSettled<T>(value: T, delay: number): T {
  * The document with today's data, as the board screen shows it or as its PDF prints, following the
  * appearance chosen in the form before it is saved.
  */
-export function AppearancePreview({ data, appearance, title, congregationName, pdfUrl }: AppearancePreviewProps) {
+export function AppearancePreview({
+  data,
+  appearance,
+  title,
+  congregationName,
+  now,
+  timeZone,
+  pdfUrl,
+}: AppearancePreviewProps) {
   const [view, setView] = useState<'screen' | 'pdf'>('screen')
   const scroll = useRef<HTMLDivElement>(null)
   // Only the sheet waits for the choices to settle: switching to it asks at once for what is chosen.
@@ -85,6 +95,8 @@ export function AppearancePreview({ data, appearance, title, congregationName, p
                 layout={appearance.layout}
                 highlightQuery=""
                 scrollContainerRef={scroll}
+                now={now}
+                timeZone={timeZone}
               />
             ) : (
               <p className="px-6 py-8 text-muted-foreground">{m.board_preview_no_data()}</p>

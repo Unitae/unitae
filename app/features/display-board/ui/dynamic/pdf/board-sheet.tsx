@@ -7,6 +7,7 @@ import {
   type BoardLayout,
   isBoardLayout,
 } from '~/features/display-board/model/board-appearance'
+import { auxiliaryMonthLabel } from '~/features/display-board/model/board-roster'
 import { DynamicType, type ProgrammeDynamicConfig } from '~/features/display-board/model/dynamic-document.type'
 import { organigramSheetSize } from '~/features/display-board/model/organigram-sheet'
 import { fitPioneersSheet, type SheetPioneer } from '~/features/display-board/model/pioneers-sheet'
@@ -84,7 +85,10 @@ export async function buildBoardSheet(
     }
     case DynamicType.Pioneers: {
       const layout = layoutOf(data.type, appearance)
-      return <PioneersDocument {...common} plan={fitPioneersSheet(layout, data.pioneers, measurer)} layout={layout} />
+      const month = auxiliaryMonthLabel(options.asOf, options.timezone)
+      return (
+        <PioneersDocument {...common} plan={fitPioneersSheet(layout, data.pioneers, measurer, month)} layout={layout} />
+      )
     }
     case DynamicType.Programme: {
       // The board document's own template choices: which templates print parts and services.

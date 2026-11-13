@@ -44,6 +44,9 @@ interface DynamicDocumentFormProps {
   highlightedOthers: number
   data: DocumentData | null
   congregationName: string
+  /** When and where the preview is read: the pioneers’ month and the programme’s week follow them. */
+  now: Date
+  timeZone: string
   lastResult: SubmissionResult<string[]> | null | undefined
   onCancel?: () => void
   onDirtyChange?: (dirty: boolean) => void
@@ -64,6 +67,8 @@ export function DynamicDocumentForm({
   highlightedOthers,
   data,
   congregationName,
+  now,
+  timeZone,
   lastResult,
   onCancel,
   onDirtyChange,
@@ -155,6 +160,8 @@ export function DynamicDocumentForm({
           appearance={appearance}
           title={title}
           congregationName={congregationName}
+          now={now}
+          timeZone={timeZone}
           pdfUrl={id == null ? null : `/board/dynamic/${id}/pdf`}
         />
       </div>

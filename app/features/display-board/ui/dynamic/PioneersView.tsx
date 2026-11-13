@@ -1,5 +1,5 @@
 import { Star } from 'lucide-react'
-import { groupPioneersByType, pioneerTypeLabel } from '~/features/display-board/model/board-roster'
+import { groupPioneersByType, pioneerSectionLabel } from '~/features/display-board/model/board-roster'
 import type { PioneersLayout } from '~/features/display-board/model/pioneers-sheet'
 import { BoardPersonName } from '~/features/display-board/ui/dynamic/BoardPersonName'
 import * as m from '~/i18n/paraglide/messages'
@@ -20,9 +20,11 @@ interface Pioneer {
 interface PioneersViewData {
   pioneers: Pioneer[]
   layout: PioneersLayout
+  /** The month the auxiliary pioneers serve, in their heading as on the sheet. */
+  auxiliaryMonth: string
 }
 
-export function PioneersView({ pioneers, layout }: PioneersViewData) {
+export function PioneersView({ pioneers, layout, auxiliaryMonth }: PioneersViewData) {
   if (pioneers.length === 0) {
     return (
       <EmptyState
@@ -46,7 +48,7 @@ export function PioneersView({ pioneers, layout }: PioneersViewData) {
       {sections.map(({ type, pioneers: members }) => (
         <section key={type} className="border-foreground flex flex-col gap-3 border-t pt-3">
           <h2 className="flex items-baseline justify-between gap-3 text-xl leading-tight font-bold">
-            {pioneerTypeLabel(type)}
+            {pioneerSectionLabel(type, auxiliaryMonth)}
             <span className="text-muted-foreground text-base font-normal tabular-nums">{members.length}</span>
           </h2>
           <ul className={cn('gap-x-6 text-sm', !columns && 'columns-1 sm:columns-2 md:columns-3')}>

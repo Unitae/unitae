@@ -5,7 +5,7 @@ import {
   ORGANIGRAM_ROSTER_GAP,
 } from '~/features/display-board/model/organigram-sheet'
 import type { OrganigramHolder, OrganigramNode } from '~/shared/domain/organigram.queries'
-import { type RosterBlock, seatLabel, serviceParts } from '~/shared/domain/organigram-layout'
+import { deputiesLabel, type RosterBlock, seatLabel, serviceParts, teamsLabel } from '~/shared/domain/organigram-layout'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 import {
   BOARD_PDF_INK,
@@ -121,8 +121,7 @@ function Teams({ teams, styles }: { teams: OrganigramNode[]; styles: OrganigramS
   if (teams.length === 0) return null
   return (
     <SheetText style={styles.teams}>
-      {teams.length === 1 ? 'Équipe ' : 'Équipes '}
-      {teams.map(team => sanitizeText(team.name)).join(', ')}
+      {teamsLabel(teams.length)} {teams.map(team => sanitizeText(team.name)).join(', ')}
     </SheetText>
   )
 }
@@ -208,7 +207,7 @@ export function Post({ post, styles }: { post: OrganigramNode; styles: Organigra
       )}
       {deputies.map(deputy => (
         <SheetText key={deputy.memberId} style={styles.text}>
-          <BoardPdfLabel>Adjoint </BoardPdfLabel>
+          <BoardPdfLabel>{deputiesLabel(1)} </BoardPdfLabel>
           <NameRuns person={deputy} />
         </SheetText>
       ))}

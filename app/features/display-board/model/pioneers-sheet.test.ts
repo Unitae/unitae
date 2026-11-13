@@ -26,7 +26,7 @@ const usual = () => [
 
 describe('the pioneers sheet', () => {
   it.each(['sections', 'columns'] as const)('fits a usual month on one page in the largest size it can, %s', layout => {
-    const plan = fitPioneersSheet(layout, usual(), measurer)
+    const plan = fitPioneersSheet(layout, usual(), measurer, 'septembre')
 
     expect(plan.fitsOnePage).toBe(true)
     expect(plan.size).toBe(12)
@@ -40,7 +40,7 @@ describe('the pioneers sheet', () => {
   it('gives a type too long for one column a second one, rather than run over the page', () => {
     const memorialMonth = [...pioneers('PionnierPermanant', 14), ...pioneers('PionnierAuxiliaires', 70)]
 
-    const plan = fitPioneersSheet('columns', memorialMonth, measurer)
+    const plan = fitPioneersSheet('columns', memorialMonth, measurer, 'septembre')
 
     expect(plan.fitsOnePage).toBe(true)
     const auxiliaries = plan.sections.find(section => section.type === 'PionnierAuxiliaires')
@@ -49,13 +49,13 @@ describe('the pioneers sheet', () => {
   })
 
   it('reads each section down three balanced columns', () => {
-    const plan = fitPioneersSheet('sections', pioneers('PionnierAuxiliaires', 7), measurer)
+    const plan = fitPioneersSheet('sections', pioneers('PionnierAuxiliaires', 7), measurer, 'septembre')
 
     expect(plan.sections[0].columns.map(column => column.length)).toEqual([3, 2, 2])
   })
 
   it('flows onto a second page rather than drop a name when nothing else holds', () => {
-    const plan = fitPioneersSheet('sections', pioneers('PionnierAuxiliaires', 400), measurer)
+    const plan = fitPioneersSheet('sections', pioneers('PionnierAuxiliaires', 400), measurer, 'septembre')
 
     expect(plan.fitsOnePage).toBe(false)
     expect(plan.size).toBe(9)

@@ -7,7 +7,9 @@ interface BoardViewerHeaderProps {
   title: string
   actions?: React.ReactNode
   /** Dated facts under the bar: when it was added, replaced or updated, until when it is shown. */
-  facts: React.ReactNode[]
+  facts?: React.ReactNode[]
+  /** The document says its own title (a dynamic document's masthead): the bar then carries none. */
+  titleInDocument?: boolean
 }
 
 /** « 5 novembre », in the congregation's time zone. */
@@ -17,9 +19,16 @@ export function formatViewerDate(date: Date, timeZone: string): string {
 
 /**
  * The top of a board document: the shell's top bar with its trail and actions, then its dated
- * facts. On a phone the title shows under the trail; from md up it is the trail's last step.
+ * facts. On a phone the title shows under the trail; from md up it is the trail's last step. A
+ * document with its own masthead keeps the title there alone.
  */
-export function BoardViewerHeader({ sectionName, title, actions, facts }: BoardViewerHeaderProps) {
+export function BoardViewerHeader({
+  sectionName,
+  title,
+  actions,
+  facts = [],
+  titleInDocument = false,
+}: BoardViewerHeaderProps) {
   return (
     <>
       <PageTopbar
@@ -27,7 +36,7 @@ export function BoardViewerHeader({ sectionName, title, actions, facts }: BoardV
         trail={[{ label: m.board_page_title(), to: '/board' }, { label: sectionName }, { label: title }]}
         actions={actions}
       >
-        <h1 className="font-semibold text-base leading-snug md:sr-only">{title}</h1>
+        {!titleInDocument && <h1 className="font-semibold text-base leading-snug md:sr-only">{title}</h1>}
       </PageTopbar>
       {facts.length > 0 && (
         <p className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b px-4 py-2 text-muted-foreground text-sm md:px-6">

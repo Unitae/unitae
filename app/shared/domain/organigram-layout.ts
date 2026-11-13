@@ -1,3 +1,4 @@
+import * as m from '~/i18n/paraglide/messages'
 import type { OrganigramHolder, OrganigramNode } from '~/shared/domain/organigram.queries'
 
 // Turning the tree into the layout the printed sheet uses.
@@ -159,11 +160,21 @@ export function seatLabel(
 
   // A deputy stays labelled on « Responsable de l'accueil » — that node name carries the
   // leader's title, not the adjoint's.
-  if (holder.kind === 'deputy') return name.startsWith('adjoint') ? null : 'Adjoint'
+  if (holder.kind === 'deputy') return name.startsWith('adjoint') ? null : m.board_organigram_seat_deputy_one()
 
   if (holder.kind !== 'leader' || node.isSinglePerson) return null
   if (LEADER_TITLE_PREFIXES.some(prefix => name.startsWith(prefix))) return null
-  return holder.isElder ? 'Responsable' : 'Préposé'
+  return holder.isElder ? m.board_organigram_seat_responsible() : m.board_organigram_seat_servant()
+}
+
+/** « Équipe » or « Équipes », before the teams a service runs: shared by the board and its sheet. */
+export function teamsLabel(count: number): string {
+  return count === 1 ? m.board_organigram_teams_one() : m.board_organigram_teams_other()
+}
+
+/** « Adjoint » or « Adjoints », before a service's adjoints: shared by the board and its sheet. */
+export function deputiesLabel(count: number): string {
+  return count === 1 ? m.board_organigram_seat_deputy_one() : m.board_organigram_seat_deputy_other()
 }
 
 /**
@@ -266,9 +277,9 @@ const STARTS_WITH_VOWEL = /^[aeiouyhàâäéèêëîïôöùûü]/
  */
 export function responsibilityEyebrow(name: string): string {
   const first = (name.trim().match(FIRST_WORD)?.[0] ?? '').toLocaleLowerCase()
-  if (first.endsWith('s')) return 'Sous la responsabilité des'
-  if (STARTS_WITH_VOWEL.test(first)) return 'Sous la responsabilité de l’'
-  return 'Sous la responsabilité du'
+  if (first.endsWith('s')) return m.board_organigram_under_plural()
+  if (STARTS_WITH_VOWEL.test(first)) return m.board_organigram_under_vowel()
+  return m.board_organigram_under()
 }
 
 export interface FlatEntry {

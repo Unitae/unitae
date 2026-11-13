@@ -1,3 +1,4 @@
+import { isReader } from '~/features/display-board/model/board-reader'
 import { type BoardPerson, formatBoardPersonName } from '~/features/display-board/model/board-roster'
 import {
   type GroupsLayout,
@@ -7,6 +8,7 @@ import {
   type SheetPublisherGroup,
 } from '~/features/display-board/model/publisher-groups-sheet'
 import { BoardPersonName } from '~/features/display-board/ui/dynamic/BoardPersonName'
+import { DocLink, useBoardReading } from '~/features/display-board/ui/dynamic/board-reading'
 import * as m from '~/i18n/paraglide/messages'
 import { formatGroupName } from '~/shared/utils/format-group-name'
 import { cn } from '~/shared/utils/utils'
@@ -15,12 +17,42 @@ import { cn } from '~/shared/utils/utils'
 // three its printed sheet offers, reflowed for any screen: each collapses to one column on a
 // phone. As on paper, the responsable and the adjoint sit in the group's head, never in its list.
 
+/**
+ * The group's name — opening its page for a reader whose rights open it: the publisher records, or
+ * leading this very group — and « Votre groupe » on the reader's own.
+ */
+function GroupName({ group }: { group: SheetPublisherGroup }) {
+  const { reader } = useBoardReading()
+  const leads = reader != null && (isReader(group.responsible.id, reader) || isReader(group.deputy?.id, reader))
+  const mine = reader != null && (leads || group.members.some(member => isReader(member.id, reader)))
+  const name = formatGroupName(group.name)
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+      <h2 className="text-lg leading-tight font-bold">
+        {reader?.canViewPublishers || leads ? (
+          <DocLink to={`/groups/${group.id}/view`} title={m.board_viewer_open_group()}>
+            {name}
+          </DocLink>
+        ) : (
+          name
+        )}
+      </h2>
+      {mine && (
+        <span className="inline-flex items-center font-sans text-primary text-xs font-medium print:hidden">
+          <span aria-hidden="true" className="mr-1.5 size-1.5 rounded-full bg-primary" />
+          {m.board_viewer_your_group()}
+        </span>
+      )}
+    </div>
+  )
+}
+
 /** The group's name and head count — beside it in the directory, under it in a narrow head — and address. */
 function GroupHead({ group, countBeside }: { group: SheetPublisherGroup; countBeside: boolean }) {
   return (
     <header className="flex flex-col gap-0.5">
       <div className={cn('flex gap-x-3', countBeside ? 'items-baseline justify-between' : 'flex-col')}>
-        <h2 className="text-lg leading-tight font-bold">{formatGroupName(group.name)}</h2>
+        <GroupName group={group} />
         <span className="text-muted-foreground shrink-0 text-sm tabular-nums">{groupCountLabel(group)}</span>
       </div>
       <a

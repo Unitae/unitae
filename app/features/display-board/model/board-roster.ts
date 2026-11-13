@@ -1,5 +1,6 @@
 import type { TextRun } from '~/features/display-board/model/sheet-text'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 
 // Name and roster rules shared by the board screens and their PDF sheets, so the two cannot
@@ -78,4 +79,18 @@ export function pioneerTypeLabel(type: string): string {
   if (type === 'Missionnaire') return m.board_dynamic_pioneers_type_missionary()
   if (type === 'PionnierAuxiliaires') return m.board_dynamic_pioneers_type_auxiliary()
   return type
+}
+
+/** « novembre »: the month the auxiliary pioneers serve, read in the congregation’s time zone. */
+export function auxiliaryMonthLabel(now: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat(getLocale(), { month: 'long', timeZone }).format(now)
+}
+
+/**
+ * A pioneer section’s heading. Auxiliary pioneering is taken month by month, so its heading says
+ * which month: pinned up into the next one, the list would otherwise still read as current.
+ */
+export function pioneerSectionLabel(type: string, auxiliaryMonth: string): string {
+  if (type === 'PionnierAuxiliaires') return m.board_dynamic_pioneers_type_auxiliary_month({ month: auxiliaryMonth })
+  return pioneerTypeLabel(type)
 }
