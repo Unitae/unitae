@@ -7,56 +7,13 @@ import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
-import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/delete'
 
-export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Supprimer un document — Unitae' }]
-}
-
-export function loader({ params, context }: Route.LoaderArgs) {
-  const permissions = context.get(permissionsContext)
-  const currentUser = context.get(currentAccountContext)
-  const canUploadDocument = permissions.has(Permission.CanUploadBoardDocuments)
-  const canManageBoard = permissions.has(Permission.CanReviewBoardDocuments)
-
-  if (!canUploadDocument && !canManageBoard) {
-    throw redirect('/')
-  }
-
-  return withScopeFromContext(context, async db => {
-    const documentId = requireParamId(params.documentId, '/board')
-    const document = await db.boardDocument.findUnique({
-      where: {
-        id_congregationId: { id: documentId, congregationId: currentUser.congregationId },
-      },
-    })
-
-    if (document == null) {
-      throw redirect('/board/documents')
-    }
-
-    const ownsDocument = canUploadDocument && (await isDocumentOwnedByUploader(db, documentId, currentUser.id))
-    if (!canManageBoard && !ownsDocument) throw redirect('/board/documents')
-
-    return { document }
-  })
-}
-
-export default function DeleteDocumentPage({ loaderData }: Route.ComponentProps) {
-  const { document } = loaderData
-
-  return (
-    <DeleteConfirmation
-      title={m.board_documents_delete_confirmation({ name: document.title })}
-      submitLabel={m.board_documents_delete_button()}
-      cancelTo="/board/documents"
-    >
-      <p>{m.board_documents_delete_what()}</p>
-    </DeleteConfirmation>
-  )
+// Deleting is a dialog on the board's list and the edit page; an old link to this address lands on the viewer.
+export function loader({ params }: Route.LoaderArgs) {
+  throw redirect(`/board/documents/${params.documentId}/viewer`)
 }
 
 export async function action({ request, params, context }: Route.ActionArgs) {

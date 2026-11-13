@@ -106,28 +106,33 @@ export function AppearanceFields({ dynamicType, value, onChange }: AppearanceFie
         </RadioGroup>
       </Field>
 
-      <Field label={m.board_appearance_accent_label()} hint={m.board_appearance_accent_hint()}>
-        <RadioGroup
-          name="appearance.accent"
-          value={value.accent}
-          onValueChange={accent => set({ accent: accent as BoardAccent })}
-          className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-2"
-        >
+      {/* One row of swatches, the chosen one named in the label, as the board draws it. */}
+      <Field
+        label={`${m.board_appearance_accent_label()} · ${ACCENT_LABELS[value.accent]()}`}
+        hint={m.board_appearance_accent_hint()}
+      >
+        <fieldset className="m-0 flex flex-wrap gap-2 border-0 p-0">
+          <legend className="sr-only">{m.board_appearance_accent_label()}</legend>
           {BOARD_ACCENTS.map(accent => (
-            <Label
-              key={accent}
-              htmlFor={`appearance-accent-${accent}`}
-              className={`${OPTION} flex-row items-center py-2`}
-            >
-              <RadioGroupItem value={accent} id={`appearance-accent-${accent}`} />
+            <label key={accent} className="relative cursor-pointer" title={ACCENT_LABELS[accent]()}>
+              <input
+                id={`appearance-accent-${accent}`}
+                type="radio"
+                name="appearance.accent"
+                value={accent}
+                checked={value.accent === accent}
+                onChange={() => set({ accent })}
+                aria-label={ACCENT_LABELS[accent]()}
+                className="peer sr-only"
+              />
               <span
-                className="size-4 shrink-0 rounded-full ring-1 ring-border"
+                aria-hidden="true"
+                className="block size-7 rounded-full ring-1 ring-border ring-offset-2 ring-offset-background transition-shadow peer-checked:ring-2 peer-checked:ring-foreground peer-focus-visible:ring-2 peer-focus-visible:ring-ring pointer-coarse:size-11"
                 style={{ backgroundColor: BOARD_ACCENT_COLOR[accent] }}
               />
-              <span className="text-sm">{ACCENT_LABELS[accent]()}</span>
-            </Label>
+            </label>
           ))}
-        </RadioGroup>
+        </fieldset>
       </Field>
 
       {/* The programme has a single layout: nothing to choose, but it still submits. */}

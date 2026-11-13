@@ -462,7 +462,6 @@
     "board_manage_filter_section_all": "All sections",
     "board_manage_filter_state": "State",
     "board_manage_filter_state_all": "All states",
-    "board_manage_filter_state_any": "all",
     "board_manage_drag_hint": "Drag a row to change the order",
     "board_manage_col_document": "Document",
     "board_manage_col_state": "State",

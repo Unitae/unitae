@@ -346,7 +346,7 @@ describe('navGroupFor', () => {
     expect(navGroupFor('/programs/external-speakers/3/edit')).toBe('Programmes')
     expect(navGroupFor('/programs/days-off')).toBe('Programmes')
     expect(navGroupFor('/territories/buildings/8/view')).toBe('Territoires')
-    expect(navGroupFor('/board/documents')).toBe("Tableau d'affichage")
+    expect(navGroupFor('/board/documents')).toBe('Tableau d’affichage')
   })
 
   it('names no group for pages outside the groups', () => {

@@ -307,9 +307,10 @@ export function PdfViewer({ url, downloadUrl, downloadName }: PdfViewerProps) {
         )}
         {error != null && (
           <div className="flex flex-1 flex-col items-center justify-center gap-6 py-16 text-center">
-            <div className="flex size-16 items-center justify-center rounded-full bg-destructive/10">
-              <AlertCircle className="size-8 text-destructive" />
-            </div>
+            {/* The neutral tile the other error states use, not a tinted chip; the words say what went wrong. */}
+            <span className="grid size-10 place-content-center rounded-md border border-border bg-sidebar">
+              <AlertCircle className="size-5 text-danger-text" aria-hidden="true" />
+            </span>
             <div className="flex flex-col gap-2">
               <p className="font-semibold text-base">{m.board_viewer_error_title()}</p>
               <p className="max-w-sm text-muted-foreground text-sm">{m.board_viewer_error_description()}</p>
