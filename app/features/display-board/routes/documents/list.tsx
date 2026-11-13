@@ -110,7 +110,8 @@ export default function ManageBoardPage({ loaderData }: Route.ComponentProps) {
         title={m.sidebar_board_manage()}
         titleBadge={
           <span className="text-base text-faint tabular-nums">
-            {m.board_manage_counts({ documents: total, sections: sections.length })}
+            {m.board_manage_count_documents({ count: total })} ·{' '}
+            {m.board_manage_count_sections({ count: sections.length })}
           </span>
         }
         breadcrumbs={[{ label: m.board_page_title(), to: '/board' }, { label: m.sidebar_board_manage() }]}

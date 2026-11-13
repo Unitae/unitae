@@ -16,8 +16,9 @@ vi.mock('~/i18n/paraglide/messages', () => ({
   dashboard_urgent_responsible_conflict_extras: ({ count }: { count: string }) => ` (+${count} more)`,
   dashboard_urgent_open_slots: ({ count, eventName }: { count: string; eventName: string }) =>
     `${count} open — ${eventName}`,
-  dashboard_urgent_group_reports: ({ count, month }: { count: string; month: string }) => `${count} missing — ${month}`,
-  dashboard_urgent_group_report_one: ({ month }: { month: string }) => `1 missing report — ${month}`,
+  // A plural message: the real one picks its form from the count, as this stand-in does.
+  dashboard_urgent_group_reports: ({ count, month }: { count: number; month: string }) =>
+    count === 1 ? `1 missing report — ${month}` : `${count} missing — ${month}`,
   dashboard_origin_you: () => 'For you',
   dashboard_origin_programmes: () => 'Programmes',
 }))

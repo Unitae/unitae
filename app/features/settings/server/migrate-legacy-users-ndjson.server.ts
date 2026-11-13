@@ -133,9 +133,9 @@ export async function migrateLegacyUsersNdjson(zip: JsZip, manifestVersion: stri
   const warnings: string[] = [
     m.import_warning_legacy_users({
       version: `v${manifestVersion}`,
-      rows: String(legacy.length),
-      members: String(members.length),
-      accounts: String(accounts.length),
+      rows: m.import_warning_legacy_rows({ count: legacy.length }),
+      members: m.import_warning_legacy_records({ count: members.length }),
+      accounts: m.import_warning_legacy_accounts({ count: accounts.length }),
     }),
   ]
   if (placeholderDropped > 0) {

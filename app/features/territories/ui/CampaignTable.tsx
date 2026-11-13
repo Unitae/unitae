@@ -59,11 +59,7 @@ export function CampaignTable({ rows }: { rows: CampaignListRow[] }) {
                   </Link>
                 </td>
                 <td className={cn(CELL, 'text-muted-foreground max-md:hidden')}>
-                  {row.scopeCount === 0
-                    ? m.campaigns_scope_all()
-                    : row.scopeCount > 1
-                      ? m.campaigns_scope_count({ count: row.scopeCount })
-                      : m.campaigns_scope_one({ count: row.scopeCount })}
+                  {row.scopeCount === 0 ? m.campaigns_scope_all() : m.campaigns_scope_count({ count: row.scopeCount })}
                 </td>
                 <td className={cn(CELL, 'max-sm:hidden')}>
                   {row.coverage == null ? (

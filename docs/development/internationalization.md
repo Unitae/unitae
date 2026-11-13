@@ -95,6 +95,9 @@ m.groups_list_publishers({ count: publishers.length })
 - The count that picks the form can differ by language. English agrees with the total in « {filed} of
   {due} reports », French with the first number in « {filed} rapports sur {due} »: each language
   declares its own selector.
+- Two counts that each drive their own words (« 3 documents · 2 sections ») are two plural messages,
+  composed in code or passed into a frame message: see `campaigns_scope_change_flash`. One message
+  cannot carry two plural choices without multiplying its forms in every language.
 - Zero keeps its own message when the text is entirely different (« No one will see it »): branch on
   `count === 0` in code, and call the plural message otherwise.
 
