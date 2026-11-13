@@ -5,7 +5,7 @@ vi.mock('~/i18n/paraglide/runtime', async importOriginal => ({
   getLocale: () => 'fr',
 }))
 
-const { dueLabel, loanDay } = await import('./my-territory-labels')
+const { dueLabel, loanDay, territoryEntrancesLabel } = await import('./my-territory-labels')
 
 // Instants are built in UTC and read in the congregation's zone, so the runner's zone never leaks in.
 const PARIS = 'Europe/Paris'
@@ -33,5 +33,18 @@ describe('dueLabel', () => {
 
   it('says since when it is late', () => {
     expect(dueLabel('overdue', new Date(Date.UTC(2026, 8, 3, 10)), PARIS)).toMatch(LATE_SINCE)
+  })
+})
+
+describe('territoryEntrancesLabel', () => {
+  it('counts the entrances of a door-to-door territory, in the singular for one', () => {
+    expect(territoryEntrancesLabel('Classical', 5)).toBe('5 entrées')
+    expect(territoryEntrancesLabel('Classical', 1)).toBe('1 entrée')
+  })
+
+  it('says nothing when the count already is the entrances, or when there are none', () => {
+    expect(territoryEntrancesLabel('Commerces', 5)).toBeNull()
+    expect(territoryEntrancesLabel('Phone', 5)).toBeNull()
+    expect(territoryEntrancesLabel('Classical', 0)).toBeNull()
   })
 })

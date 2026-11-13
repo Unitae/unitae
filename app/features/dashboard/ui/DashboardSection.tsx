@@ -99,10 +99,13 @@ export function SectionAction({ to, icon: Icon, label }: { to: string; icon: Luc
   )
 }
 
-/** A responsibility's figures, side by side with hairlines, inside its panel. */
+/**
+ * A responsibility's figures, side by side with hairlines, inside its panel. On a phone, two to a row and an odd last
+ * one across the whole row, so no row ends on an empty half; the hairlines are the gaps, so they follow any layout.
+ */
 export function PanelFigures({ children }: { children: ReactNode }) {
   return (
-    <div className="grid border-border border-b last:border-b-0 [grid-template-columns:repeat(auto-fit,minmax(8.5rem,1fr))] [&>*+*]:border-border [&>*+*]:border-l">
+    <div className="grid grid-cols-2 gap-px border-border border-b bg-border last:border-b-0 sm:[grid-template-columns:repeat(auto-fit,minmax(8.5rem,1fr))] [&>*]:bg-card max-sm:[&>:last-child:nth-child(odd)]:col-span-2">
       {children}
     </div>
   )

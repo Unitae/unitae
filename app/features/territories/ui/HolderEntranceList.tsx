@@ -153,14 +153,19 @@ function EntranceRow({
       <span className="font-semibold tabular-nums">{entrance.numbers.join(', ')}</span>
       <span className="flex min-w-0 flex-col gap-1">
         {(lead !== '' || facts.length > 0) && (
-          <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-faint text-sm">
-            {lead !== '' && <span className="text-base text-foreground">{lead}</span>}
-            {isShops && <Tag>{shopKindLabel(entrance)}</Tag>}
-            {facts.map(fact => (
-              <span key={fact} className="tabular-nums">
-                {fact}
+          // One line from the tablet up; on a phone the way in, then what is behind the door under it.
+          <span className="flex flex-col gap-0.5 md:flex-row md:flex-wrap md:items-center md:gap-x-3">
+            {lead !== '' && <span className="text-base">{lead}</span>}
+            {(isShops || facts.length > 0) && (
+              <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-faint text-sm">
+                {isShops && <Tag>{shopKindLabel(entrance)}</Tag>}
+                {facts.map(fact => (
+                  <span key={fact} className="tabular-nums">
+                    {fact}
+                  </span>
+                ))}
               </span>
-            ))}
+            )}
           </span>
         )}
         {entrance.notes !== '' && <EntranceNote notes={entrance.notes} />}

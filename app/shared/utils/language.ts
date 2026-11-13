@@ -16,8 +16,13 @@ function nameOf(language: string, inLanguage: string): string {
   return capitalise(name, inLanguage)
 }
 
+/** A language in its own words, « Français », « English »: what a person picking their own language looks for. */
+export function languageName(locale: string): string {
+  return nameOf(locale, locale)
+}
+
 /**
- * How a language picker names `locale`: in that language, so its speakers find it, then in the
+ * How a picker for a congregation's language names `locale`: in that language, so its speakers find it, then in the
  * viewer's language, so everyone else can tell what it is — « Українська (Ukrainien) ».
  */
 export function languageLabel(locale: string, viewerLocale: string = getLocale()): string {

@@ -3,17 +3,10 @@ import { ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
 
-import type { RankedUrgentItem, UrgentTone } from '~/features/dashboard/ui/build-urgent-items'
+import type { RankedUrgentItem } from '~/features/dashboard/ui/build-urgent-items'
 import { DashboardSection } from '~/features/dashboard/ui/DashboardSection'
 import * as m from '~/i18n/paraglide/messages'
 import { RelativeTime } from '~/shared/ui/RelativeTime'
-import { cn } from '~/shared/utils/utils'
-
-const TONE_ICON_CLASS: Record<UrgentTone, string> = {
-  danger: 'text-danger-text',
-  warning: 'text-warning-text',
-  info: 'text-brand-text',
-}
 
 /** How many items show before the rest fold behind a button. */
 const SHOWN = 5
@@ -43,7 +36,8 @@ export function UrgentList({ items }: { items: RankedUrgentItem[] }) {
                   to={item.to}
                   className="group flex items-start gap-3 px-3.5 py-2.5 outline-none transition-colors duration-(--u-duration-fast) hover:bg-hover focus-visible:bg-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                 >
-                  <item.icon aria-hidden="true" className={cn('mt-0.5 size-4 shrink-0', TONE_ICON_CLASS[item.tone])} />
+                  {/* Neutral, as the board draws it: the label says how urgent (« en retard »), not the colour. */}
+                  <item.icon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="font-medium text-sm">{item.label}</span>
                     <span className="text-faint text-xs">

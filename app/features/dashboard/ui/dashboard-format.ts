@@ -20,12 +20,7 @@ export function formatMeetingWhen(date: Date | string, timeZone: string): string
   return `${day} · ${format(date, timeZone, { hour: '2-digit', minute: '2-digit' })}`
 }
 
-// « 24 déc. 2026 », for absence ranges that can span the new year.
-export function formatShortDate(date: Date | string, timeZone: string): string {
-  return format(date, timeZone, { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
-// The two lines of an assignment's date chip: « jeu. » over « 12 ».
+// The two parts of a short date: « jeu. » and « 12 ».
 export function dateChip(date: Date | string, timeZone: string): { weekday: string; day: string } {
   return { weekday: format(date, timeZone, { weekday: 'short' }), day: format(date, timeZone, { day: 'numeric' }) }
 }

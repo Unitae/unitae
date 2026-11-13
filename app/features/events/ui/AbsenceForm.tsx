@@ -106,10 +106,12 @@ export function AbsenceForm({ today, timeZone, lastResult, onDirtyChange }: Abse
             </span>
           </p>
         )}
+        {/* What comes after saving; in the save bar from the tablet up, whose label keeps to one line. */}
+        <p className="col-span-full text-faint text-xs md:hidden">{m.days_off_form_save_hint()}</p>
         {form.errors && <p className="col-span-full text-destructive text-sm">{form.errors[0]}</p>}
       </FormSection>
 
-      <FormSaveBar changes={null}>
+      <FormSaveBar changes={null} label={<span className="max-md:hidden">{m.days_off_form_save_hint()}</span>}>
         <Button variant="ghost" asChild>
           <Link to="/me/days-off">{m.common_cancel()}</Link>
         </Button>

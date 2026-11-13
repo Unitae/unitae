@@ -52,6 +52,18 @@ export function territoryQuantityLabel(type: string, counts: { homes: number; ph
   return m.my_territories_entrances_count({ count: counts.entrances })
 }
 
+/**
+ * Beside the households of a door-to-door territory, its entrances: what a walker plans the round with. Null for the
+ * kinds whose count already is the entrances (or phone numbers), and when there are none.
+ */
+export function territoryEntrancesLabel(type: string, entrances: number): string | null {
+  if (type !== TerritoryKindKey.Classical && type !== TerritoryKindKey.Univ) return null
+  if (entrances === 0) return null
+  return entrances > 1
+    ? m.territories_content_entrances_other({ count: entrances })
+    : m.territories_content_entrances_one({ count: entrances })
+}
+
 export function territoryCountLabel(count: number): string {
   return count > 1 ? m.my_territories_count_other({ count }) : m.my_territories_count_one({ count })
 }

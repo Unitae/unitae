@@ -9,7 +9,7 @@ import {
   panelLinkRowClass,
   SectionAction,
 } from '~/features/dashboard/ui/DashboardSection'
-import { formatShortDate } from '~/features/dashboard/ui/dashboard-format'
+import { absenceDays, absenceLength, formatAbsencePeriod } from '~/features/events'
 import * as m from '~/i18n/paraglide/messages'
 
 type Absences = Awaited<ReturnType<typeof getUpcomingAbsences>>['upcoming']
@@ -47,8 +47,12 @@ export function AbsencesSection({
             : absences.map(a => (
                 <Link key={a.id} to="/me/days-off" className={panelLinkRowClass}>
                   <CalendarOff aria-hidden="true" className="size-4 shrink-0 text-faint" />
-                  <span className="text-sm tabular-nums">
-                    {formatShortDate(a.startDate, timeZone)} — {formatShortDate(a.endDate, timeZone)}
+                  {/* As « Mes absences » writes it: the same absence reads the same everywhere. */}
+                  <span className="min-w-0 flex-1 truncate text-sm">
+                    {formatAbsencePeriod(a.startDate, a.endDate, timeZone)}
+                  </span>
+                  <span className="shrink-0 text-faint text-sm tabular-nums">
+                    {absenceLength(absenceDays(a.startDate, a.endDate, timeZone).count)}
                   </span>
                 </Link>
               ))}

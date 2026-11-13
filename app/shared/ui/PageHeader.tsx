@@ -57,8 +57,9 @@ export function PageHeader({
       {controls ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
           {heading}
-          {/* On a phone the controls wrap under each other rather than run past the edge. */}
-          <div className="flex max-w-full shrink-0 flex-wrap items-center gap-2">{controls}</div>
+          {/* On a phone the controls wrap under each other rather than run past the edge, on a row of their own that a
+          control may span (`max-md:w-full`). */}
+          <div className="flex max-w-full shrink-0 flex-wrap items-center gap-2 max-md:w-full">{controls}</div>
         </div>
       ) : (
         heading

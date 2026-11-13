@@ -1,4 +1,4 @@
-import { Status, type StatusTone, Tag } from '@unitae/ui'
+import { Avatar, Status, type StatusTone, Tag } from '@unitae/ui'
 
 import { Link } from 'react-router'
 
@@ -12,7 +12,6 @@ import { formatPersonName } from '~/shared/utils/format-person-name'
 import { cn } from '~/shared/utils/utils'
 
 type MeetingPart = MeetingForViewer['meeting']['eventParts'][number]
-type Person = NonNullable<MeetingPart['assignee']>
 
 /**
  * The next released meeting at a glance: its parts by section, who holds each one, and the two
@@ -98,7 +97,7 @@ function PartRow({ part, assignTo }: { part: MeetingPart; assignTo: string | nul
       <span className="flex min-w-0 flex-1 items-center gap-2 text-sm sm:w-56 sm:flex-none">
         {part.assignee != null ? (
           <>
-            <Initials person={part.assignee} />
+            <Avatar name={formatPersonName(part.assignee, '')} />
             <span className="flex min-w-0 flex-col">
               <span className={cn('truncate', part.viewerRole === 'speaker' && 'font-medium')}>
                 {formatPersonName(part.assignee)}
@@ -128,17 +127,5 @@ function PartRow({ part, assignTo }: { part: MeetingPart; assignTo: string | nul
         )}
       </span>
     </li>
-  )
-}
-
-function Initials({ person }: { person: Person }) {
-  const initials = `${person.firstname?.charAt(0) ?? ''}${person.lastname?.charAt(0) ?? ''}`.toLocaleUpperCase()
-  return (
-    <span
-      aria-hidden="true"
-      className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted font-semibold text-[9.5px] text-muted-foreground tracking-wide"
-    >
-      {initials}
-    </span>
   )
 }
