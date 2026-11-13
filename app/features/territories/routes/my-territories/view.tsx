@@ -84,7 +84,8 @@ export default function MyTerritoryView({ loaderData }: Route.ComponentProps) {
       <PageHeader
         // On a phone the map gets the screen: no icon tile above it.
         icon={view === 'map' ? undefined : MapPin}
-        title={m.territory_doc_title({ name: territory.number })}
+        // « Territoire T01 », as on the manager's page; the printed document keeps its « nº ».
+        title={m.territories_view_title({ number: territory.number })}
         titleBadge={<LoanStatus loan={attribution} timeZone={timeZone} form="long" relative="inline" />}
         meta={
           // The map alone on a phone leaves the header to the title and the due date.
@@ -118,9 +119,10 @@ export default function MyTerritoryView({ loaderData }: Route.ComponentProps) {
         }
         controls={
           map != null ? (
-            // Side by side from xl; below, one at a time.
-            <div className="xl:hidden">
+            // Side by side from xl; below, one at a time, the switch across the page on a phone.
+            <div className="max-md:w-full xl:hidden">
               <SegmentedControl
+                className="max-md:w-full"
                 options={[
                   { value: 'list' as const, label: m.my_territories_view_list() },
                   { value: 'map' as const, label: m.my_territories_tab_map() },

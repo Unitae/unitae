@@ -12,22 +12,26 @@ interface FormSaveBarProps {
 
 /**
  * The library save bar, pinned for this shell: the document scrolls, so it is fixed rather than sticky; it sits
- * beside the open sidebar on wide screens and above the tab bar on phones. Leave room for it at the end of the
- * form (`pb-24`).
+ * beside the open sidebar on wide screens. On a phone it takes the tab bar's place, one bar at the bottom rather than
+ * two stacked: its `data-bottom-sheet` marker hides the tab bar, as a bottom sheet does. Leave room for it at the end
+ * of the form (`pb-24`).
  */
 export function FormSaveBar({ changes, label, children }: FormSaveBarProps) {
   return (
-    <SaveBar
-      aria-label={m.form_save_bar()}
-      dirty={changes != null && changes > 0}
-      label={
-        changes == null || changes === 0
-          ? label
-          : (changes === 1 ? m.form_changes_one : m.form_changes_many)({ count: String(changes) })
-      }
-      className="fixed inset-x-0 bottom-0 z-30 max-md:bottom-[calc(56px+env(safe-area-inset-bottom))] md:group-has-data-[state=expanded]/sidebar-wrapper:left-(--sidebar-width)"
-    >
-      {children}
-    </SaveBar>
+    <>
+      <span data-bottom-sheet="" hidden />
+      <SaveBar
+        aria-label={m.form_save_bar()}
+        dirty={changes != null && changes > 0}
+        label={
+          changes == null || changes === 0
+            ? label
+            : (changes === 1 ? m.form_changes_one : m.form_changes_many)({ count: String(changes) })
+        }
+        className="fixed inset-x-0 bottom-0 z-30 max-md:pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:group-has-data-[state=expanded]/sidebar-wrapper:left-(--sidebar-width)"
+      >
+        {children}
+      </SaveBar>
+    </>
   )
 }

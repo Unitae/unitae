@@ -3,7 +3,11 @@ import { Download } from 'lucide-react'
 import { Link } from 'react-router'
 
 import { type HolderLoan, LoanBar, LoanStatus } from '~/features/territories/ui/HolderLoan'
-import { territoryKindLabel, territoryQuantityLabel } from '~/features/territories/ui/my-territory-labels'
+import {
+  territoryEntrancesLabel,
+  territoryKindLabel,
+  territoryQuantityLabel,
+} from '~/features/territories/ui/my-territory-labels'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { cn } from '~/shared/utils/utils'
@@ -55,7 +59,13 @@ export function MyTerritoryRow({ territory, timeZone }: { territory: MyTerritory
           )}
           <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-faint text-sm">
             <span className="tabular-nums">
-              {territoryKindLabel(territory.type)} · {territoryQuantityLabel(territory.type, territory)}
+              {[
+                territoryKindLabel(territory.type),
+                territoryQuantityLabel(territory.type, territory),
+                territoryEntrancesLabel(territory.type, territory.entrances),
+              ]
+                .filter(Boolean)
+                .join(' · ')}
             </span>
             {territory.campaignName != null && <Tag>{territory.campaignName || m.attributions_type_campaign()}</Tag>}
             {territory.byPhone && <Tag>{m.attributions_type_phone()}</Tag>}

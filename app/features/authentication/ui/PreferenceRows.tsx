@@ -6,7 +6,7 @@ import { type Locale, locales } from '~/i18n/paraglide/runtime'
 import { type ThemeChoice, useTheme } from '~/shared/ui/hooks/use-theme'
 import { SettingRow } from '~/shared/ui/SettingRow'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
-import { languageLabel } from '~/shared/utils/language'
+import { languageName } from '~/shared/utils/language'
 
 /**
  * The language of the app and of the emails the account gets: its own, or its congregation's. Choosing one saves
@@ -29,11 +29,11 @@ export function LanguageRow({ locale, congregationLocale }: { locale: Locale | n
         </SelectTrigger>
         <SelectContent align="end">
           <SelectItem value={FOLLOW_CONGREGATION}>
-            {m.account_language_congregation({ language: languageLabel(congregationLocale) })}
+            {m.account_language_congregation({ language: languageName(congregationLocale) })}
           </SelectItem>
           {locales.map(each => (
             <SelectItem key={each} value={each}>
-              {languageLabel(each)}
+              {languageName(each)}
             </SelectItem>
           ))}
         </SelectContent>

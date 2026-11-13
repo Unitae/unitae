@@ -1,5 +1,6 @@
 // Public client-safe surface of the events feature.
 
+export { absenceDays, absenceLength, formatAbsencePeriod } from './model/absence'
 export {
   MANAGED_ROLE_SLOTS_FIELD,
   type PartRoleSlot,

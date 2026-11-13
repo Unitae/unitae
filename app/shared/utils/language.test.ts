@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_LOCALE, languageLabel } from './language'
+import { DEFAULT_LOCALE, languageLabel, languageName } from './language'
 
 describe('DEFAULT_LOCALE', () => {
   it('is French, the language a congregation starts in', () => {
@@ -17,5 +17,13 @@ describe('languageLabel', () => {
   it('names the viewer’s own language once', () => {
     expect(languageLabel('fr', 'fr')).toBe('Français')
     expect(languageLabel('en', 'en')).toBe('English')
+  })
+})
+
+describe('languageName', () => {
+  it('names a language in itself only, capitalised', () => {
+    expect(languageName('en')).toBe('English')
+    expect(languageName('fr')).toBe('Français')
+    expect(languageName('uk')).toBe('Українська')
   })
 })

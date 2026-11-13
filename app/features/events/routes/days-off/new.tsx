@@ -39,8 +39,9 @@ export default function NewDayOffPage({ loaderData, actionData }: Route.Componen
     <>
       <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
-        title={m.days_off_new_page_title()}
-        breadcrumbs={[{ label: m.sidebar_my_absences(), to: '/me/days-off' }, { label: m.days_off_new_page_title() }]}
+        // The words of the button that led here.
+        title={m.days_off_new_button()}
+        breadcrumbs={[{ label: m.sidebar_my_absences(), to: '/me/days-off' }, { label: m.days_off_new_button() }]}
       />
       <AbsenceForm
         today={loaderData.today}

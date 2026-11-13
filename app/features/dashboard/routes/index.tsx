@@ -1,6 +1,9 @@
+import { dashboardCreations } from '~/features/dashboard/model/dashboard-creations'
+import { dashboardVisibility } from '~/features/dashboard/model/dashboard-visibility'
 import { loadDashboard } from '~/features/dashboard/server/load-dashboard.server'
 import { AbsencesSection } from '~/features/dashboard/ui/AbsencesSection'
 import { buildUrgentItems } from '~/features/dashboard/ui/build-urgent-items'
+import { DashboardNewMenu } from '~/features/dashboard/ui/DashboardNewMenu'
 import { formatMeetingWhen, formatTodayLabel } from '~/features/dashboard/ui/dashboard-format'
 import { MyTerritoriesSection } from '~/features/dashboard/ui/MyTerritoriesSection'
 import { SetupChecklist } from '~/features/dashboard/ui/SetupChecklist'
@@ -22,17 +25,19 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: 'Accueil - Unitae' }]
 }
 
-export function loader({ context }: Route.LoaderArgs) {
+export async function loader({ context }: Route.LoaderArgs) {
   const account = context.get(currentAccountContext)
   const permissions = context.get(permissionsContext)
   const congregation = context.get(congregationContext)
-  return withScopeFromContext(context, db =>
+  const data = await withScopeFromContext(context, db =>
     loadDashboard(db, {
       account,
       permissions,
       congregation: { id: account.congregationId, timezone: congregation.timezone },
     }),
   )
+  const creations = dashboardCreations(dashboardVisibility({ permissions, member: account.member }), permissions)
+  return { ...data, creations }
 }
 
 function summary(count: number): string {
@@ -78,19 +83,33 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-7">
-      <PageTopbar trail={[{ label: m.sidebar_home() }]} className="mb-0">
-        <div className="flex animate-fade-in-up flex-col gap-1">
-          <p className="font-medium text-faint text-xs">{formatTodayLabel(new Date(), timezone)}</p>
-          <h1 className="text-h1">
-            {data.firstname
-              ? `${m.dashboard_greeting_hello()} ${data.firstname}`
-              : // Sign-up asks for no name, so a fresh admin account has none.
-                m.dashboard_greeting_hello_standalone()}
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            {summary(urgentItems.length)}
-            {meeting && ` — ${meeting.meeting.name} ${formatMeetingWhen(meeting.meeting.startDate, timezone)}`}
-          </p>
+      <PageTopbar
+        trail={[{ label: m.sidebar_home() }]}
+        className="mb-0"
+        actions={
+          <div className="max-md:hidden">
+            <DashboardNewMenu creations={data.creations} />
+          </div>
+        }
+      >
+        <div className="flex animate-fade-in-up items-start gap-3">
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <p className="font-medium text-faint text-xs">{formatTodayLabel(new Date(), timezone)}</p>
+            <h1 className="text-h1">
+              {data.firstname
+                ? `${m.dashboard_greeting_hello()} ${data.firstname}`
+                : // Sign-up asks for no name, so a fresh admin account has none.
+                  m.dashboard_greeting_hello_standalone()}
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              {summary(urgentItems.length)}
+              {meeting && ` — ${meeting.meeting.name} ${formatMeetingWhen(meeting.meeting.startDate, timezone)}`}
+            </p>
+          </div>
+          {/* On a phone, « Nouveau » is a « + » beside the greeting rather than a button under it. */}
+          <div className="md:hidden">
+            <DashboardNewMenu creations={data.creations} compact />
+          </div>
         </div>
       </PageTopbar>
 

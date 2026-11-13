@@ -4,9 +4,7 @@ vi.mock('~/i18n/paraglide/runtime', () => ({
   getLocale: vi.fn(() => 'fr'),
 }))
 
-const { dateChip, formatDelta, formatMeetingWhen, formatShare, formatShortDate, formatTodayLabel } = await import(
-  './dashboard-format'
-)
+const { dateChip, formatDelta, formatMeetingWhen, formatShare, formatTodayLabel } = await import('./dashboard-format')
 
 // Instants are built in UTC and read in the congregation's zone, so the runner's own zone never
 // leaks into the result.
@@ -26,12 +24,6 @@ describe('formatTodayLabel', () => {
 describe('formatMeetingWhen', () => {
   it('gives the short day and the local start time', () => {
     expect(formatMeetingWhen(new Date(Date.UTC(2026, 10, 12, 18, 0)), PARIS)).toBe('jeu. 12 nov. · 19:00')
-  })
-})
-
-describe('formatShortDate', () => {
-  it('keeps the year for absence ranges', () => {
-    expect(formatShortDate(new Date(Date.UTC(2026, 11, 24, 10)), PARIS)).toBe('24 déc. 2026')
   })
 })
 

@@ -49,7 +49,8 @@ export default function DaysOffPage({ loaderData }: Route.ComponentProps) {
         subtitle={m.days_off_page_subtitle()}
         breadcrumbs={[{ label: m.sidebar_my_absences() }]}
         actions={
-          <Button asChild size="sm">
+          // The page's one action: across the screen on a phone, as the board draws it.
+          <Button asChild size="sm" className="max-sm:w-full">
             <Link to="/me/days-off/new">
               <CalendarPlus aria-hidden="true" />
               {m.days_off_new_button()}
