@@ -69,13 +69,13 @@ async function assertPublicHost(url: URL): Promise<void> {
   try {
     addresses = await lookup(url.hostname, { all: true })
   } catch (cause) {
-    const error = new ValidationError('bano-url', "Résolution DNS impossible pour l'hôte des données ouvertes")
+    const error = new ValidationError('bano-url', 'Résolution DNS impossible pour l’hôte des données ouvertes')
     error.cause = cause // preserve EAI_AGAIN vs ENOTFOUND for operators
     throw error
   }
 
   if (addresses.length === 0 || addresses.some(({ address }) => isBlockedAddress(address))) {
-    throw new ValidationError('bano-url', "L'hôte des données ouvertes résout vers une adresse interne")
+    throw new ValidationError('bano-url', 'L’hôte des données ouvertes résout vers une adresse interne')
   }
 }
 

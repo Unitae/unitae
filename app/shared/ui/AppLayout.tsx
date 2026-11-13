@@ -86,20 +86,16 @@ export function AppLayout({
             <Kbd>⌘K</Kbd>
           </button>
         </div>
-        {/* The extra max-sm padding reacts to a docked FormActions bar
-            anywhere on the page (its data-form-actions marker), reserving the
-            bar's height so content can scroll clear of it. Progressive
-            enhancement: browsers without :has() fall back to tab-bar-only
-            clearance. A page carrying data-sticky-content needs position:
-            sticky: the document scrolls, never this wrapper, yet its overflow
-            makes it the sticky containment root. Clipping instead still keeps
-            wide content from widening the page. It is also what a page's
+        {/* The bottom padding keeps content clear of the phone tab bar. A page carrying
+            data-sticky-content needs position: sticky: the document scrolls, never this
+            wrapper, yet its overflow makes it the sticky containment root. Clipping instead
+            still keeps wide content from widening the page. It is also what a page's
             PageTopbar is positioned against, to span the whole content area. */}
-        <div className="relative min-w-0 flex-1 overflow-y-auto overflow-x-hidden has-[[data-sticky-content]]:overflow-x-clip has-[[data-sticky-content]]:overflow-y-visible p-4 max-md:pb-[calc(4.5rem+env(safe-area-inset-bottom))] max-sm:has-[[data-form-actions]]:pb-[calc(8rem+env(safe-area-inset-bottom))] md:p-6">
+        <div className="relative min-w-0 flex-1 overflow-y-auto overflow-x-hidden has-[[data-sticky-content]]:overflow-x-clip has-[[data-sticky-content]]:overflow-y-visible p-4 max-md:pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:p-6">
           {/* Soft cap so pages keep a readable measure when the sidebar is
               collapsed or on very wide screens. Full-bleed pages — the two board viewers,
               which escape the padding with negative margins — opt out via `data-full-bleed`,
-              the same zero-JS has() trick as `data-form-actions`: a capped, centred viewer
+              the same zero-JS has() trick as `data-sticky-content`: a capped, centred viewer
               reads as a floating column with cream gutters on a wide monitor. */}
           <div className="mx-auto w-full max-w-7xl has-[[data-full-bleed]]:max-w-none">
             <ShellProvider value={shell}>{children ?? <Outlet />}</ShellProvider>

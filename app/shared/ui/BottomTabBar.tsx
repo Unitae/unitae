@@ -32,7 +32,7 @@ export function BottomTabBar({ permissions, onMoreClick, moreOpen }: BottomTabBa
       // Hidden while a page shows a bottom sheet (`data-bottom-sheet`): the sheet's action
       // buttons would otherwise sit one thumb-width above five navigation targets, and a
       // mis-tap there leaves the page mid-edit. Same zero-JS `has()` trick the layout uses
-      // for `data-form-actions`.
+      // for `data-sticky-content` and `data-full-bleed`.
       className="fixed inset-x-0 bottom-0 z-40 flex border-t bg-surface/95 px-1 pt-1 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm md:hidden [body:has([data-bottom-sheet])_&]:hidden"
     >
       {tabs.map(tab => (

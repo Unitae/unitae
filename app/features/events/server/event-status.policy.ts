@@ -9,7 +9,7 @@ import { ConflictError } from '~/shared/errors/app-error.server'
 // on the same event.
 
 export const EVENT_STATUS_ERRORS = {
-  releaseBlockedByConflicts: "Impossible de publier : cet événement a des conflits d'absence à résoudre.",
+  releaseBlockedByConflicts: 'Impossible de publier : cet événement a des conflits d’absence à résoudre.',
 } as const
 
 export type PartReleaseAssignment = { hasConflict: boolean }

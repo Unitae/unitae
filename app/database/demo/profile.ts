@@ -226,7 +226,7 @@ export const CUSTOM_ROLES: CustomRole[] = [
   { key: 'compte', name: 'Service Comptes', parent: 'secretary', holders: 2, eligibility: 'appointed' },
   {
     key: 'conducteur-tour-de-garde',
-    name: "Conducteur de l'étude de la Tour de Garde",
+    name: 'Conducteur de l’étude de la Tour de Garde',
     parent: 'elder',
     single: true,
     holders: 1,
@@ -240,7 +240,7 @@ export const CUSTOM_ROLES: CustomRole[] = [
   },
   {
     key: 'conseiller-enseignement',
-    name: "Conseiller pour l'enseignement",
+    name: 'Conseiller pour l’enseignement',
     parent: 'elder',
     single: true,
     holders: 1,
