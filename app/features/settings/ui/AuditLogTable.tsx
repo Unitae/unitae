@@ -26,17 +26,21 @@ interface AuditLogTableProps {
   onSelect: (row: AuditLogRow, trigger: HTMLElement) => void
 }
 
-/** The audit log: when, who, what, on which object. A row opens its detail; on a phone, the action over who and when. */
+/**
+ * The audit log: when, who, what, on which object, one line each; what does not fit is cut, and the row's detail
+ * says it in full. Beside the docked detail the object steps aside, the detail naming it. On a phone, the action over
+ * who and when.
+ */
 export function AuditLogTable({ rows, selectedId, onSelect }: AuditLogTableProps) {
   return (
     <div className="overflow-x-auto rounded-lg border border-border bg-card">
-      <table className="w-full border-collapse text-sm">
+      <table className="w-full border-collapse text-sm md:table-fixed">
         <thead className={wideOnly}>
           <tr>
             <th className={cn(headClass, 'w-36')}>{m.audit_log_col_when()}</th>
-            <th className={headClass}>{m.audit_log_col_person()}</th>
+            <th className={cn(headClass, 'w-[24%]')}>{m.audit_log_col_person()}</th>
             <th className={headClass}>{m.audit_log_col_action()}</th>
-            <th className={headClass}>{m.audit_log_col_object()}</th>
+            <th className={cn(headClass, 'w-[30%] docked:hidden')}>{m.audit_log_col_object()}</th>
           </tr>
         </thead>
         <tbody>
@@ -52,22 +56,22 @@ export function AuditLogTable({ rows, selectedId, onSelect }: AuditLogTableProps
               <td className={cn(cellClass, wideOnly, 'whitespace-nowrap text-muted-foreground tabular-nums')}>
                 {row.when}
               </td>
-              <td className={cn(cellClass, wideOnly, 'max-w-56 truncate')}>{row.person}</td>
+              <td className={cn(cellClass, wideOnly, 'truncate')}>{row.person}</td>
               <td className={cn(cellClass, 'max-md:py-2.5')}>
                 <button
                   type="button"
                   aria-pressed={row.id === selectedId}
                   onClick={event => onSelect(row, event.currentTarget)}
                   data-row-primary
-                  className="flex flex-col text-left outline-none rounded-sm focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex w-full min-w-0 flex-col text-left outline-none rounded-sm focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <span>{row.action}</span>
+                  <span className="md:truncate">{row.action}</span>
                   <span className="truncate text-faint text-xs md:hidden">
                     {row.person} · <span className="tabular-nums">{row.when}</span>
                   </span>
                 </button>
               </td>
-              <td className={cn(cellClass, wideOnly, 'whitespace-nowrap text-muted-foreground')}>{row.object}</td>
+              <td className={cn(cellClass, wideOnly, 'truncate text-muted-foreground docked:hidden')}>{row.object}</td>
             </tr>
           ))}
         </tbody>

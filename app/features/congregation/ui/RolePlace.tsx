@@ -8,7 +8,8 @@ import { Label } from '~/shared/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 
 // Where a role stands: up or down among its siblings, under which role, or out of the chart. Occasional, so folded.
-// The lists, the committee and its posts have a fixed place and only say so.
+// The lists, the committee and its posts have a fixed place and only say so, with why a built-in one has no
+// « Modifier ».
 
 export function RolePlace({ role }: { role: PanelRole }) {
   const fetcher = useFetcher()
@@ -20,10 +21,16 @@ export function RolePlace({ role }: { role: PanelRole }) {
 
   if (role.kind !== 'team' && role.kind !== 'personal') {
     return (
-      <section className="py-3.5 first:pt-0 last:pb-0">
+      <section className="flex flex-col gap-1.5 py-3.5 first:pt-0 last:pb-0">
         <p className="text-faint text-xs">
           {role.kind === 'roster' ? m.org_place_fixed_roster() : m.org_place_fixed_committee()}
         </p>
+        {/* Without it a built-in role shows no way to rename it and no reason why. */}
+        {!role.editable && (
+          <p className="text-faint text-xs">
+            {m.org_built_in_note({ settings: m.settings_title(), roles: m.settings_entry_roles() })}
+          </p>
+        )}
       </section>
     )
   }

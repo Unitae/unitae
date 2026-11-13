@@ -1,4 +1,5 @@
-import { AlertCircle, Download, MoreHorizontal, Upload } from 'lucide-react'
+import { Callout } from '@unitae/ui'
+import { Download, MoreHorizontal, Upload } from 'lucide-react'
 import { useState } from 'react'
 import { data, redirect, useFetcher } from 'react-router'
 import { CardOverlayImportDialog } from '~/features/settings/ui/CardOverlayImportDialog'
@@ -139,15 +140,7 @@ export default function CongregationMapPage({ loaderData }: Route.ComponentProps
           )}
 
           <div className="flex flex-col gap-4">
-            {error && (
-              <p
-                role="alert"
-                className="flex gap-2 rounded-md bg-destructive/10 px-3.5 py-2.5 text-destructive text-sm"
-              >
-                <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-                {error}
-              </p>
-            )}
+            {error && <Callout tone="danger" role="alert" title={error} />}
             {editor.isDraftActive ? (
               <ZoneDraftPanel
                 draft={draft}

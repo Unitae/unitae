@@ -4,10 +4,19 @@ import * as m from '~/i18n/paraglide/messages'
 import { getRoleDisplayName } from '~/shared/types/role'
 import { cn } from '~/shared/utils/utils'
 
-const GROUPS: { key: RoleGroup; title: () => string; hint: () => string }[] = [
-  { key: 'admin', title: m.settings_roles_group_admin, hint: m.settings_roles_group_admin_hint },
-  { key: 'congregation', title: m.settings_roles_group_congregation, hint: m.settings_roles_group_congregation_hint },
-  { key: 'record', title: m.settings_roles_group_record, hint: m.settings_roles_group_record_hint },
+interface GroupHeading {
+  title: () => string
+  hint: () => string
+}
+
+/** The admin group holds one role whose row already says it all (« Tous les droits »), so it has no heading. */
+const GROUPS: { key: RoleGroup; heading: GroupHeading | null }[] = [
+  { key: 'admin', heading: null },
+  {
+    key: 'congregation',
+    heading: { title: m.settings_roles_group_congregation, hint: m.settings_roles_group_congregation_hint },
+  },
+  { key: 'record', heading: { title: m.settings_roles_group_record, hint: m.settings_roles_group_record_hint } },
 ]
 
 export const peopleLabel = (count: number) =>
@@ -37,10 +46,12 @@ export function RoleList({ roles, selectedId, onSelect }: RoleListProps) {
           <Panel
             key={group.key}
             title={
-              <span className="flex flex-wrap items-baseline gap-x-2">
-                {group.title()}
-                <span className="font-normal text-faint text-sm">{group.hint()}</span>
-              </span>
+              group.heading && (
+                <span className="flex flex-wrap items-baseline gap-x-2">
+                  {group.heading.title()}
+                  <span className="font-normal text-faint text-sm">{group.heading.hint()}</span>
+                </span>
+              )
             }
           >
             {rows.map(role => {
@@ -56,11 +67,17 @@ export function RoleList({ roles, selectedId, onSelect }: RoleListProps) {
                     selected ? 'bg-selected' : 'hover:bg-hover',
                   )}
                 >
-                  <span className="min-w-0 flex-1 truncate font-medium text-sm">{getRoleDisplayName(role)}</span>
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate font-medium text-sm">{getRoleDisplayName(role)}</span>
+                    {/* On a phone the two figures go under the name rather than squeezing it. */}
+                    <span className="truncate text-muted-foreground text-xs tabular-nums sm:hidden">
+                      {peopleLabel(role.people)} · {permissionsLabel(role)}
+                    </span>
+                  </span>
                   <span className="w-28 shrink-0 text-faint text-sm tabular-nums max-sm:hidden">
                     {peopleLabel(role.people)}
                   </span>
-                  <span className="w-36 shrink-0 text-right text-muted-foreground text-sm tabular-nums">
+                  <span className="w-36 shrink-0 text-right text-muted-foreground text-sm tabular-nums max-sm:hidden">
                     {permissionsLabel(role)}
                   </span>
                 </button>

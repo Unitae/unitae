@@ -3,6 +3,7 @@ import { auditActionLabel } from '~/features/settings/model/audit-actions'
 import { auditDetails } from '~/features/settings/model/audit-details'
 import { auditEntityLabel } from '~/features/settings/model/audit-entities'
 import { auditPeriod } from '~/features/settings/model/audit-period'
+import { findAuditEntityNames } from '~/features/settings/server/audit-entity-names.server'
 import { findAuditLogsPaginated } from '~/features/settings/server/audit-log.server'
 import { AuditEntryDetail, type AuditLogRow, AuditLogTable } from '~/features/settings/ui/AuditLogTable'
 import { AuditLogToolbar } from '~/features/settings/ui/AuditLogToolbar'
@@ -49,6 +50,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     search: params.get('q')?.trim() || undefined,
   })
 
+  const names = await findAuditEntityNames(congregationId, result.logs)
   const locale = getLocale()
   const time = { timeZone: timezone, hour: '2-digit', minute: '2-digit' } as const
   const thisYear = new Intl.DateTimeFormat(locale, { ...time, day: 'numeric', month: 'short' })
@@ -64,7 +66,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     person: log.actorName ?? log.actorEmail ?? m.audit_log_system(),
     email: log.actorEmail,
     action: auditActionLabel(log.action),
-    object: auditEntityLabel(log.entityType, log.entityId),
+    object: auditEntityLabel(log.entityType, log.entityId, names.get(`${log.entityType}:${log.entityId}`)),
     details: auditDetails(log.metadata),
   }))
 
@@ -91,7 +93,8 @@ export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
       <SettingsHeader title={m.settings_entry_audit()} subtitle={m.audit_log_subtitle()} />
       <AuditLogToolbar count={count} period={period} from={from} to={to} today={today} />
       <div className="flex flex-wrap items-start gap-6">
-        <div className="flex min-w-0 flex-[3_1_480px] flex-col gap-4">
+        {/* The `list` container: beside the docked detail the table drops to its docked columns. */}
+        <div className="@container/list flex min-w-0 flex-[3_1_480px] flex-col gap-4">
           {rows.length === 0 ? (
             <p className="rounded-lg border bg-card px-4.5 py-6 text-center text-muted-foreground text-sm">
               {m.audit_log_empty()}

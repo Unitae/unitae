@@ -34,9 +34,13 @@ const ENTITY_LABEL: Record<string, () => string> = {
   UserAccount: m.audit_log_entity_user,
 }
 
-/** The object an audit row is about, as « Rôle #12 »; the congregation needs no number, a row about nothing a dash. */
-export function auditEntityLabel(entityType: string | null, entityId: number | null): string {
+/**
+ * The object an audit row is about: « Rôle · Chariots » when its name is known, else « Rôle #12 » (an object that is
+ * gone, or a kind without a name). The congregation needs no number, a row about nothing a dash.
+ */
+export function auditEntityLabel(entityType: string | null, entityId: number | null, name?: string | null): string {
   if (!entityType) return '—'
   const label = ENTITY_LABEL[entityType]?.() ?? entityType
-  return entityId == null || entityType === 'Congregation' ? label : `${label} #${entityId}`
+  if (entityId == null || entityType === 'Congregation') return label
+  return name ? `${label} · ${name}` : `${label} #${entityId}`
 }

@@ -1,3 +1,4 @@
+import { Callout } from '@unitae/ui'
 import { type ComponentProps, type ReactNode, useEffect, useState } from 'react'
 import { Form } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
@@ -49,11 +50,7 @@ function SettingsFormBody({
   return (
     <Form method="post" {...formProps} ref={ref} className={cn('flex flex-col pb-24', className)}>
       <UnsavedChangesDialog blocker={blocker} />
-      {errors && errors.length > 0 && (
-        <p role="alert" className="mb-2 rounded-md bg-destructive/10 px-3.5 py-2.5 text-destructive text-sm">
-          {errors.join(' ')}
-        </p>
-      )}
+      {errors && errors.length > 0 && <Callout tone="danger" role="alert" title={errors.join(' ')} className="mb-2" />}
       {children}
       {changes > 0 && (
         <FormSaveBar changes={changes}>
