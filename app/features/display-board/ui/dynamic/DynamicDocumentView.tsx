@@ -1,4 +1,3 @@
-import type { RefObject } from 'react'
 import { BOARD_LAYOUTS, type BoardLayout, isBoardLayout } from '~/features/display-board/model/board-appearance'
 import { auxiliaryMonthLabel } from '~/features/display-board/model/board-roster'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
@@ -20,15 +19,11 @@ function layoutOf<T extends DynamicType>(type: T, layout: string | undefined): B
 export function DynamicDocumentView({
   data,
   layout,
-  highlightQuery,
-  scrollContainerRef,
   now,
   timeZone,
 }: {
   data: DocumentData
   layout: string | undefined
-  highlightQuery: string
-  scrollContainerRef: RefObject<HTMLDivElement | null>
   /** When the document is read, from the server, so the month and the current week agree with the sheet. */
   now: Date
   timeZone: string
@@ -56,8 +51,8 @@ export function DynamicDocumentView({
           events={data.events}
           showServices={data.showServices}
           config={data.config}
-          highlightQuery={highlightQuery}
-          scrollContainerRef={scrollContainerRef}
+          now={now}
+          timeZone={timeZone}
         />
       )
     default:

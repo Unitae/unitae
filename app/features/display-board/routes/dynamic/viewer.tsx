@@ -1,6 +1,6 @@
 import { Callout } from '@unitae/ui'
 import { Download } from 'lucide-react'
-import { type CSSProperties, useRef, useState } from 'react'
+import { type CSSProperties, useState } from 'react'
 import { redirect } from 'react-router'
 import { BOARD_ACCENT_COLOR } from '~/features/display-board/model/board-appearance'
 import { type BoardReader, boardSearchQuery, countDocumentMatches } from '~/features/display-board/model/board-reader'
@@ -144,7 +144,6 @@ export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) 
   const [searchValue, setSearchValue] = useState('')
   const debouncedSearch = useDebouncedValue(searchValue, 200)
   const query = boardSearchQuery(debouncedSearch)
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   return (
     // The sheet prints alone (⌘P): the shell's chrome steps aside for `data-board-print`, and the page
@@ -188,7 +187,6 @@ export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) 
 
       <div
         className="flex-1 overflow-auto print:overflow-visible"
-        ref={scrollContainerRef}
         data-board-sheet=""
         data-layout={appearance?.layout}
         style={
@@ -228,14 +226,7 @@ export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) 
         </div>
         {data && (
           <BoardReadingProvider value={{ reader, query }}>
-            <DynamicDocumentView
-              data={data}
-              layout={appearance?.layout}
-              highlightQuery={debouncedSearch}
-              scrollContainerRef={scrollContainerRef}
-              now={now}
-              timeZone={timeZone}
-            />
+            <DynamicDocumentView data={data} layout={appearance?.layout} now={now} timeZone={timeZone} />
           </BoardReadingProvider>
         )}
       </div>

@@ -1,5 +1,5 @@
 import { SegmentedControl } from '@unitae/ui'
-import { type CSSProperties, useEffect, useRef, useState } from 'react'
+import { type CSSProperties, useEffect, useState } from 'react'
 import { BOARD_ACCENT_COLOR, type BoardAppearance } from '~/features/display-board/model/board-appearance'
 import type { getDynamicDocumentData } from '~/features/display-board/server/dynamic-documents.server'
 import { BoardMasthead } from '~/features/display-board/ui/dynamic/BoardMasthead'
@@ -48,7 +48,6 @@ export function AppearancePreview({
   pdfUrl,
 }: AppearancePreviewProps) {
   const [view, setView] = useState<'screen' | 'pdf'>('screen')
-  const scroll = useRef<HTMLDivElement>(null)
   // Only the sheet waits for the choices to settle: switching to it asks at once for what is chosen.
   const settled = useSettled(appearance, view === 'pdf' ? 600 : 0)
   const sheetUrl = pdfUrl && `${pdfUrl}?${new URLSearchParams({ ...settled }).toString()}`
@@ -72,7 +71,6 @@ export function AppearancePreview({
       </div>
       {view === 'screen' || sheetUrl == null ? (
         <div
-          ref={scroll}
           inert
           className="max-h-[70vh] overflow-auto rounded-lg border border-border bg-background"
           data-board-sheet=""
@@ -90,14 +88,7 @@ export function AppearancePreview({
               <BoardMasthead congregationName={congregationName} title={title || m.board_form_untitled()} />
             </div>
             {data ? (
-              <DynamicDocumentView
-                data={data}
-                layout={appearance.layout}
-                highlightQuery=""
-                scrollContainerRef={scroll}
-                now={now}
-                timeZone={timeZone}
-              />
+              <DynamicDocumentView data={data} layout={appearance.layout} now={now} timeZone={timeZone} />
             ) : (
               <p className="px-6 py-8 text-muted-foreground">{m.board_preview_no_data()}</p>
             )}

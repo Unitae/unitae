@@ -1,20 +1,41 @@
 import { Tag } from '@unitae/ui'
-import type { LucideIcon } from 'lucide-react'
 import { Calendar, ChevronRight } from 'lucide-react'
-import { type RefObject, useEffect, useMemo, useRef, useState } from 'react'
+import { useState } from 'react'
+import { personMatches } from '~/features/display-board/model/board-reader'
 import type { ProgrammeDynamicConfig } from '~/features/display-board/model/dynamic-document.type'
-import { formatName, getPartDisplay, nameMatches, partMatchesQuery } from '~/features/display-board/model/event-display'
-import { groupPartsBySlot, sectionColor, sectionIcon } from '~/features/events'
+import { programmePdfOptions } from '~/features/display-board/model/programme-pdf-options'
+import {
+  formatMeetingDate,
+  type ProgrammeUnit,
+  programmeUnits,
+  topicText,
+  trackLabel,
+} from '~/features/display-board/model/programme-sheet'
+import { programmeWeeks } from '~/features/display-board/model/programme-weeks'
+import { groupPartsBySlot, sectionColor } from '~/features/events'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
+import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { usePersistedState } from '~/shared/ui/hooks/use-persisted-state'
-import type { ExternalSpeakerLabelSource } from '~/shared/utils/external-speaker-label'
+import { dayOf } from '~/shared/utils/calendar-day'
+import { type ExternalSpeakerLabelSource, externalSpeakerLabel } from '~/shared/utils/external-speaker-label'
 import { cn } from '~/shared/utils/utils'
+import { BoardPersonName } from './BoardPersonName'
+import { DocLink, useBoardReading } from './board-reading'
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+// The board's programme on screen, composed as its printed sheet: each meeting under a rule, its
+// date and kind on one line, each part with its people at the right, the workbook's section
+// colours on their labels, the services underneath. It opens on the week under way, the weeks
+// already over folded above it, and shares the sheet's own pipeline (`programmeUnits`,
+// `formatMeetingDate`, `groupPartsBySlot`) so the two never disagree on what a meeting shows.
+
+interface Person {
+  id: number
+  firstname: string | null
+  lastname: string | null
+  anonymizedAt: Date | null
+}
 
 interface PartAssignment {
   id: number
@@ -25,278 +46,243 @@ interface PartAssignment {
   topic: string
   durationMin: number | null
   externalSpeaker: ExternalSpeakerLabelSource | null
-  assignee: {
-    id: number
-    firstname: string | null
-    lastname: string | null
-    anonymizedAt: Date | null
-  } | null
-  assistant: {
-    id: number
-    firstname: string | null
-    lastname: string | null
-    anonymizedAt: Date | null
-  } | null
-}
-
-interface ServicePartAssignment {
-  id: number
-  name: string
-  assignee?: {
-    id: number
-    firstname: string | null
-    lastname: string | null
-    anonymizedAt: Date | null
-  } | null
+  assignee: Person | null
+  assistant: Person | null
 }
 
 interface ProgrammeEvent {
   id: number
   name: string
   startDate: Date
-  templateId?: number | null
+  templateId: number | null
+  template?: { name: string } | null
   eventParts: PartAssignment[]
-  eventServiceParts?: ServicePartAssignment[]
+  eventServiceParts?: { id: number; name: string; assignee?: Person | null }[]
 }
 
 export interface ProgrammeViewData {
   events: ProgrammeEvent[]
   showServices: boolean
   config: ProgrammeDynamicConfig | null
-  highlightQuery?: string
-  scrollContainerRef?: RefObject<HTMLDivElement | null>
+  /** When the programme is read, from the server: the week under way and the past meetings follow it. */
+  now: Date
+  timeZone: string
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+type Unit = ProgrammeUnit<ProgrammeEvent>
 
-function formatDate(date: Date): string {
-  return new Date(date).toLocaleDateString(getLocale(), {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  })
+/** « 9 nov. » for the week rail, « 9 novembre » for the week's heading. */
+function mondayLabel(monday: string, month: 'short' | 'long'): string {
+  return new Intl.DateTimeFormat(getLocale(), { day: 'numeric', month, timeZone: 'UTC' }).format(
+    new Date(`${monday}T12:00:00Z`),
+  )
 }
 
-function getWeekKey(date: Date): string {
-  const d = new Date(date)
-  d.setDate(d.getDate() - ((d.getDay() + 6) % 7))
-  return d.toISOString().slice(0, 10)
-}
-
-function getWeekLabel(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString(getLocale(), {
-    day: 'numeric',
-    month: 'short',
-  })
-}
-
-function getMonth(date: Date): string {
-  return new Date(date).toLocaleDateString(getLocale(), {
-    month: 'long',
-    year: 'numeric',
-  })
-}
-
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
-
-function SectionHeader({ section, icon: Icon }: { section: string; icon?: LucideIcon }) {
-  const color = sectionColor(section)
+function Assignees({ part }: { part: PartAssignment }) {
+  if (part.externalSpeaker) {
+    return (
+      <>
+        {externalSpeakerLabel(part.externalSpeaker)}
+        <Tag className="ml-2 shrink-0 font-sans">{m.programs_view_external_badge()}</Tag>
+      </>
+    )
+  }
+  if (!part.assignee) return <span className="text-muted-foreground">—</span>
   return (
-    <div className="mb-1 flex items-center gap-2">
-      {Icon && <Icon className="size-3.5" style={{ color }} />}
-      <span className="font-bold text-xs uppercase tracking-wider" style={{ color }}>
-        {section}
+    <>
+      <BoardPersonName person={part.assignee} />
+      {part.assistant && (
+        <>
+          {' '}
+          {m.board_programme_and()} <BoardPersonName person={part.assistant} />
+        </>
+      )}
+    </>
+  )
+}
+
+/** The part's own name fades under a search that lights up none of its people; the names fade on their own. */
+function useTopicDimmed(parts: PartAssignment[]): boolean {
+  const { query } = useBoardReading()
+  if (query == null) return false
+  return !parts.some(part => personMatches(part.assignee, query) || personMatches(part.assistant, query))
+}
+
+function Topic({ part, dimmed }: { part: PartAssignment; dimmed: boolean }) {
+  return (
+    <span className={cn(dimmed && 'opacity-30 print:opacity-100')}>
+      {topicText(part)}
+      {part.durationMin != null && <span className="ml-1.5 text-muted-foreground text-sm">{part.durationMin} min</span>}
+    </span>
+  )
+}
+
+function PartRow({ part }: { part: PartAssignment }) {
+  const dimmed = useTopicDimmed([part])
+  return (
+    <div className="grid items-baseline gap-x-6 border-border border-b py-1.5 sm:grid-cols-[minmax(0,1fr)_auto]">
+      <Topic part={part} dimmed={dimmed} />
+      <span className="sm:text-right">
+        <Assignees part={part} />
       </span>
     </div>
   )
 }
 
-function PartRow({ part, highlighted, dimmed }: { part: PartAssignment; highlighted: boolean; dimmed: boolean }) {
-  const { text: rightText, isExternal } = getPartDisplay(part)
-  const displayName = part.topic !== '' ? part.topic : part.name
-
+/** A part held in several rooms at once: its name, then each room with its people. */
+function TrackedPart({ parts }: { parts: PartAssignment[] }) {
+  const dimmed = useTopicDimmed(parts)
   return (
-    <li
-      className={cn(
-        'grid grid-cols-[1fr_auto] items-baseline gap-x-4 py-0.5 max-sm:block max-sm:py-1',
-        dimmed && 'opacity-30 transition-opacity',
-      )}
-    >
-      <span className="min-w-0 truncate font-semibold text-foreground text-sm max-sm:block max-sm:whitespace-normal">
-        {displayName}
-        {part.durationMin != null && (
-          <span className="ml-1 font-normal text-muted-foreground text-xs">({part.durationMin} min)</span>
-        )}
-        {part.track !== '' && (
-          <span className="ml-1.5 font-normal text-muted-foreground text-xs uppercase tracking-wide">
-            · {part.track}
+    <div className="flex flex-col border-border border-b py-1.5">
+      <Topic part={parts[0]} dimmed={dimmed} />
+      {parts.map((part, index) => (
+        <div key={part.id} className="grid items-baseline gap-x-6 pt-0.5 pl-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+          <span className="text-muted-foreground text-sm">{trackLabel(part, index)}</span>
+          <span className="sm:text-right">
+            <Assignees part={part} />
           </span>
-        )}
-      </span>
-      {rightText ? (
-        <span
-          className={cn(
-            'flex shrink-0 items-center gap-1.5 text-foreground text-sm max-sm:flex-wrap max-sm:pl-3',
-            highlighted && 'rounded-sm bg-warning-soft px-1',
-          )}
-        >
-          {rightText}
-          {isExternal && <Tag className="shrink-0">{m.programs_view_external_badge()}</Tag>}
-        </span>
-      ) : (
-        <span className="shrink-0 text-muted-foreground/40 text-sm italic max-sm:hidden">&mdash;</span>
-      )}
-    </li>
-  )
-}
-
-// Below sm both row kinds trade their two-column grid for stacked block flow
-// (name, then people indented beneath); the hidden max-sm:inline dash bridges
-// a room label and its assignee into one wrapping line.
-function MultiTrackPart({ parts, query }: { parts: PartAssignment[]; query: string }) {
-  const representative = parts[0]
-  const hasQuery = query.length > 0
-
-  const displayName = representative.topic !== '' ? representative.topic : representative.name
-
-  return (
-    <div>
-      <div className="font-semibold text-foreground text-sm">
-        {displayName}
-        {representative.durationMin != null && (
-          <span className="ml-1 font-normal text-muted-foreground text-xs">({representative.durationMin} min)</span>
-        )}
-      </div>
-      {parts.map((part, idx) => {
-        const { text: rightText, isExternal } = getPartDisplay(part)
-        const trackName = part.track || `Salle ${idx + 1}`
-        const highlighted = hasQuery && partMatchesQuery(part, query)
-        const dimmed = hasQuery && !highlighted
-
-        return (
-          <li
-            key={part.id}
-            className={cn(
-              'ml-3 grid grid-cols-[1fr_auto] items-baseline gap-x-4 py-0.5 max-sm:block',
-              dimmed && 'opacity-30 transition-opacity',
-            )}
-          >
-            <span className="shrink-0 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-              {trackName}
-              <span className="hidden font-normal normal-case tracking-normal max-sm:inline"> — </span>
-            </span>
-            {rightText ? (
-              <span
-                className={cn(
-                  'flex shrink-0 items-center gap-1.5 text-foreground text-sm max-sm:inline-flex max-sm:flex-wrap',
-                  highlighted && 'rounded-sm bg-warning-soft px-1',
-                )}
-              >
-                {rightText}
-                {isExternal && <Tag className="shrink-0">{m.programs_view_external_badge()}</Tag>}
-              </span>
-            ) : (
-              <span className="shrink-0 text-muted-foreground/40 text-sm italic max-sm:hidden">&mdash;</span>
-            )}
-            {!rightText && (
-              <span className="hidden text-muted-foreground/70 text-sm italic max-sm:inline">
-                {m.programs_view_unassigned()}
-              </span>
-            )}
-          </li>
-        )
-      })}
+        </div>
+      ))}
     </div>
   )
 }
 
-function ServiceSection({
+/** The services in two columns; under a meeting's parts they fold away, a choice the reader's browser keeps. */
+function Services({
   services,
   hasParts,
-  query,
 }: {
-  services: ServicePartAssignment[]
+  services: NonNullable<ProgrammeEvent['eventServiceParts']>
   hasParts: boolean
-  query: string
 }) {
   const [collapsed, setCollapsed] = usePersistedState('programme-services-collapsed', false)
-  const canCollapse = hasParts
-  const hasQuery = query.length > 0
-
+  const label = m.board_viewer_services_label({ count: String(services.length) })
+  const folded = hasParts && collapsed
   return (
-    <div className={hasParts ? 'mt-3' : ''}>
-      {canCollapse ? (
+    <div className="mt-3 flex flex-col">
+      {hasParts ? (
         <button
           type="button"
           onClick={() => setCollapsed(!collapsed)}
-          className="mb-1 flex w-full cursor-pointer items-center gap-1.5 text-left"
+          aria-expanded={!folded}
+          className="flex items-center gap-1 self-start font-bold text-muted-foreground text-sm"
         >
           <ChevronRight
-            className={cn('size-4 text-muted-foreground transition-transform duration-200', !collapsed && 'rotate-90')}
+            aria-hidden="true"
+            className={cn('size-4 transition-transform print:hidden', !folded && 'rotate-90')}
           />
-          <span className="font-semibold text-muted-foreground text-xs uppercase tracking-wider">
-            {m.board_viewer_services_label({ count: String(services.length) })}
-          </span>
+          {label}
         </button>
       ) : (
-        <p className="mb-1 font-semibold text-muted-foreground text-xs uppercase tracking-wider">
-          {m.board_viewer_services_label({ count: String(services.length) })}
-        </p>
+        <p className="font-bold text-muted-foreground text-sm">{label}</p>
       )}
-
-      <div
-        className={cn(
-          canCollapse && 'grid transition-[grid-template-rows] duration-200 ease-in-out',
-          canCollapse && (collapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]'),
-        )}
-      >
-        <div className={cn(canCollapse && 'overflow-hidden')}>
-          <div className="grid grid-cols-1 gap-x-4 gap-y-0.5 sm:grid-cols-2">
-            {services.map(role => {
-              const name = formatName(role.assignee ?? null)
-              const highlighted = hasQuery && nameMatches(role.assignee ?? null, query)
-              const dimmed = hasQuery && !highlighted
-
-              return (
-                <div
-                  key={role.id}
-                  className={cn(
-                    'grid grid-cols-[1fr_auto] items-baseline gap-x-4',
-                    dimmed && 'opacity-30 transition-opacity',
-                  )}
-                >
-                  <span className="text-muted-foreground text-sm">{role.name}</span>
-                  {name ? (
-                    <span
-                      className={cn(
-                        'font-medium text-foreground text-sm',
-                        highlighted && 'rounded-sm bg-warning-soft px-1',
-                      )}
-                    >
-                      {name}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground/40 text-sm italic">&mdash;</span>
-                  )}
-                </div>
-              )
-            })}
+      <div className={cn('grid gap-x-8 sm:grid-cols-2', folded && 'hidden print:grid')}>
+        {services.map(service => (
+          <div
+            key={service.id}
+            className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 border-border border-b py-1 text-sm"
+          >
+            <span className="text-muted-foreground">{service.name}</span>
+            {service.assignee ? (
+              <BoardPersonName person={service.assignee} />
+            ) : (
+              <span className="text-muted-foreground">—</span>
+            )}
           </div>
-        </div>
+        ))}
       </div>
     </div>
   )
 }
 
-// ---------------------------------------------------------------------------
-// Main component
-// ---------------------------------------------------------------------------
+function Meeting({ unit, past, timeZone }: { unit: Unit; past: boolean; timeZone: string }) {
+  const { reader } = useBoardReading()
+  const date = formatMeetingDate(unit.event.startDate, timeZone)
+  return (
+    <section
+      className={cn('flex flex-col border-foreground border-t-[1.5px] pt-2', past && 'opacity-55 print:opacity-100')}
+    >
+      <div className="mb-1 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+        <h3 className="font-bold text-xl leading-snug">
+          {reader?.canViewPrograms ? (
+            <DocLink to={`/programs/events/${unit.event.id}`} title={m.board_viewer_open_programme()}>
+              {date}
+            </DocLink>
+          ) : (
+            date
+          )}
+        </h3>
+        {past && <span className="text-muted-foreground text-sm print:hidden">{m.board_programme_past()}</span>}
+        <span className="ml-auto text-muted-foreground text-sm">{unit.event.name}</span>
+      </div>
+      {unit.showParts &&
+        groupPartsBySlot(unit.event.eventParts).map(group => (
+          <div key={`${group.section}-${group.slots[0]?.parts[0]?.id ?? 0}`} className="flex flex-col">
+            {group.section !== '' && (
+              <p className="mt-3 font-bold text-sm" style={{ color: sectionColor(group.section) }}>
+                {group.section}
+              </p>
+            )}
+            {group.slots.map(slot =>
+              slot.parts.length === 1 ? (
+                <PartRow key={slot.parts[0].id} part={slot.parts[0]} />
+              ) : (
+                <TrackedPart key={slot.parts[0].id} parts={slot.parts} />
+              ),
+            )}
+          </div>
+        ))}
+      {unit.services.length > 0 && <Services services={unit.services} hasParts={unit.showParts} />}
+    </section>
+  )
+}
 
-export function ProgrammeView({ events, showServices, config, highlightQuery, scrollContainerRef }: ProgrammeViewData) {
+/** The week rail: a link per week, the one under way in ink and underlined; a folded week unfolds first. */
+function WeekRail({
+  weeks,
+  onOpenPast,
+}: {
+  weeks: { monday: string; current: boolean; past: boolean }[]
+  onOpenPast: () => void
+}) {
+  const go = (monday: string, past: boolean) => {
+    if (past) onOpenPast()
+    requestAnimationFrame(() => document.getElementById(`week-${monday}`)?.scrollIntoView({ block: 'start' }))
+  }
+  return (
+    <nav
+      aria-label={m.board_programme_weeks_label()}
+      className="sticky top-0 z-10 flex gap-x-4 gap-y-1 overflow-x-auto whitespace-nowrap border-border border-b bg-background/95 py-2 font-sans text-sm backdrop-blur-sm md:flex-wrap print:hidden"
+    >
+      {weeks.map(week => (
+        <a
+          key={week.monday}
+          href={`#week-${week.monday}`}
+          aria-current={week.current ? 'date' : undefined}
+          onClick={event => {
+            event.preventDefault()
+            go(week.monday, week.past)
+          }}
+          className={cn(
+            'underline-offset-[6px] hover:text-foreground hover:underline',
+            week.current
+              ? 'font-semibold text-foreground underline decoration-2'
+              : week.past
+                ? 'text-muted-foreground/80'
+                : 'text-muted-foreground',
+          )}
+        >
+          {mondayLabel(week.monday, 'short')}
+        </a>
+      ))}
+    </nav>
+  )
+}
+
+export function ProgrammeView({ events, showServices, config, now, timeZone }: ProgrammeViewData) {
+  const { query } = useBoardReading()
+  const [showPast, setShowPast] = useState(false)
+
   if (events.length === 0) {
     return (
       <EmptyState
@@ -307,199 +293,63 @@ export function ProgrammeView({ events, showServices, config, highlightQuery, sc
     )
   }
 
-  const query = highlightQuery?.toLowerCase().trim() ?? ''
-  const hasQuery = query.length > 0
+  const { configMap, groupBy } = programmePdfOptions({ events, config, showServices })
+  const units = programmeUnits(events, configMap, groupBy)
+  const today = dayOf(new Date(now), timeZone)
+  const isPast = (unit: Unit) => dayOf(unit.event.startDate, timeZone) < today
 
-  // Build per-template config map for filtering
-  const configMap = config
-    ? new Map(config.templates.map(t => [t.templateId, { parts: t.parts, services: t.services }]))
-    : null
-
-  // Order events
-  const orderedEvents =
-    config?.groupBy === 'template'
-      ? [...events].sort((a, b) => {
-          const nameA = a.name
-          const nameB = b.name
-          if (nameA !== nameB) return nameA.localeCompare(nameB)
-          return new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
-        })
-      : events
-
-  // Compute unique weeks
-  // biome-ignore lint/correctness/useHookAtTopLevel: orderedEvents is stable per render (derived from props)
-  const weekKeys = useMemo(() => {
-    const seen = new Set<string>()
-    const keys: string[] = []
-    for (const event of orderedEvents) {
-      const wk = getWeekKey(new Date(event.startDate))
-      if (!seen.has(wk)) {
-        seen.add(wk)
-        keys.push(wk)
-      }
-    }
-    return keys
-  }, [orderedEvents])
-
-  const showWeekNav = weekKeys.length > 1
-  // biome-ignore lint/correctness/useHookAtTopLevel: same reason as above
-  const weekRefs = useRef(new Map<string, HTMLDivElement | null>())
-  // biome-ignore lint/correctness/useHookAtTopLevel: same reason as above
-  const [activeWeek, setActiveWeek] = useState<string>(weekKeys[0] ?? '')
-
-  // Track first event id per week for ref attachment
-  // biome-ignore lint/correctness/useHookAtTopLevel: hooks are always called — the early return above is only for empty events
-  const firstEventIdPerWeek = useMemo(() => {
-    const map = new Set<number>()
-    const seen = new Set<string>()
-    for (const event of orderedEvents) {
-      const wk = getWeekKey(new Date(event.startDate))
-      if (!seen.has(wk)) {
-        seen.add(wk)
-        map.add(event.id)
-      }
-    }
-    return map
-  }, [orderedEvents])
-
-  // IntersectionObserver to track active week
-  // biome-ignore lint/correctness/useHookAtTopLevel: same reason as above
-  useEffect(() => {
-    const container = scrollContainerRef?.current
-    if (!container || !showWeekNav) return
-
-    const observer = new IntersectionObserver(
-      entries => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            const weekKey = entry.target.getAttribute('data-week')
-            if (weekKey) setActiveWeek(weekKey)
-          }
-        }
-      },
-      { root: container, rootMargin: '-10% 0px -80% 0px', threshold: 0 },
+  // Grouped by template, the meetings read template by template: no weeks to fold.
+  if (groupBy === 'template') {
+    return (
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 px-4 pt-4 pb-12 md:px-6">
+        {units.map(unit => (
+          <div key={unit.event.id} className="flex flex-col gap-3">
+            {unit.templateHeading && <h2 className="mt-4 font-bold text-2xl">{unit.templateHeading}</h2>}
+            <Meeting unit={unit} past={isPast(unit)} timeZone={timeZone} />
+          </div>
+        ))}
+      </div>
     )
+  }
 
-    for (const [, el] of weekRefs.current) {
-      if (el) observer.observe(el)
-    }
-
-    return () => observer.disconnect()
-  }, [scrollContainerRef, showWeekNav])
-
-  // Track month boundaries
-  let prevMonth = ''
+  const weeks = programmeWeeks(units, new Date(now), timeZone)
+  const pastWeeks = weeks.filter(week => week.past)
+  // The weeks already over fold away above the one under way — unless nothing is left after them
+  // (a deep link to an old meeting), or a search is looking through everything.
+  const foldable = pastWeeks.length > 0 && weeks.some(week => !week.past) && query == null
+  const folded = foldable && !showPast
+  const pastCount = pastWeeks.reduce((sum, week) => sum + week.units.length, 0)
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 p-4 md:p-6">
-      {/* Week navigation strip */}
-      {showWeekNav && (
-        <div className="sticky top-0 z-20 -mx-4 flex gap-1.5 overflow-x-auto bg-background/95 px-4 py-2 backdrop-blur-sm md:-mx-6 md:px-6">
-          {weekKeys.map(wk => (
-            <button
-              key={wk}
-              type="button"
-              onClick={() => {
-                const el = weekRefs.current.get(wk)
-                el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-              }}
-              className={cn(
-                'shrink-0 rounded-full border px-3 py-1 font-medium text-xs transition-colors',
-                activeWeek === wk
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border bg-card text-muted-foreground hover:bg-accent',
-              )}
-            >
-              {getWeekLabel(wk)}
-            </button>
-          ))}
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 px-4 pt-2 pb-12 md:px-6">
+      {weeks.length > 1 && <WeekRail weeks={weeks} onOpenPast={() => setShowPast(true)} />}
+      {foldable && (
+        <div className="flex items-center gap-3 border-border border-b pb-2 font-sans text-muted-foreground text-sm print:hidden">
+          <span className="flex-1">
+            {pastCount === 1
+              ? m.board_programme_past_meetings_one()
+              : m.board_programme_past_meetings_other({ count: String(pastCount) })}
+          </span>
+          <Button variant="ghost" size="sm" onClick={() => setShowPast(!showPast)} aria-expanded={!folded}>
+            {folded ? m.board_programme_show_past() : m.board_programme_hide_past()}
+          </Button>
         </div>
       )}
-
-      {/* Events */}
-      {orderedEvents.map(event => {
-        const templateConfig = event.templateId && configMap ? configMap.get(event.templateId) : null
-        const eventShowParts = templateConfig?.parts ?? true
-        const eventShowServices = templateConfig?.services ?? showServices
-
-        const sections = groupPartsBySlot(event.eventParts)
-        const isFirstOfWeek = firstEventIdPerWeek.has(event.id)
-        const weekKey = getWeekKey(new Date(event.startDate))
-
-        // Month boundary separator
-        const currentMonth = getMonth(event.startDate)
-        const showMonthSeparator = prevMonth !== '' && currentMonth !== prevMonth
-        prevMonth = currentMonth
-
-        return (
-          <div key={event.id}>
-            {/* Month separator */}
-            {showMonthSeparator && (
-              <div className="flex items-center gap-3 pb-4">
-                <div className="h-px flex-1 bg-border" />
-                <span className="font-medium text-muted-foreground text-xs capitalize">{currentMonth}</span>
-                <div className="h-px flex-1 bg-border" />
-              </div>
-            )}
-
-            {/* Event card */}
-            <div
-              className="rounded-lg border border-border/50 bg-card px-3 pb-3 shadow-sm md:px-4 md:pb-4"
-              ref={el => {
-                if (isFirstOfWeek) {
-                  weekRefs.current.set(weekKey, el)
-                  el?.setAttribute('data-week', weekKey)
-                }
-              }}
-              data-week={isFirstOfWeek ? weekKey : undefined}
-            >
-              {/* Sticky date header */}
-              <div
-                className={cn(
-                  'sticky z-10 -mx-3 mb-2 flex items-center justify-between rounded-t-lg bg-background/95 px-3 py-2 backdrop-blur-sm md:-mx-4 md:px-4',
-                  showWeekNav ? 'top-9' : 'top-0',
-                )}
-              >
-                <span className="font-bold text-base text-foreground capitalize">{formatDate(event.startDate)}</span>
-                <Tag>{event.name}</Tag>
-              </div>
-
-              {/* Parts grouped by section */}
-              {eventShowParts &&
-                sections.map(({ section, slots }) => {
-                  const color = sectionColor(section)
-                  const icon = sectionIcon(section)
-
-                  return (
-                    <ul
-                      key={`${section}-${slots[0]?.parts[0]?.id ?? 0}`}
-                      className="mt-2 list-none border-l-4 pl-3"
-                      style={{ borderColor: color }}
-                      aria-label={section || undefined}
-                    >
-                      {section && <SectionHeader section={section} icon={icon} />}
-                      {slots.map(slot => {
-                        if (slot.parts.length === 1) {
-                          const part = slot.parts[0]
-                          const highlighted = hasQuery && partMatchesQuery(part, query)
-                          const dimmed = hasQuery && !highlighted
-
-                          return <PartRow key={part.id} part={part} highlighted={highlighted} dimmed={dimmed} />
-                        }
-                        return <MultiTrackPart key={`slot-${slot.parts[0].id}`} parts={slot.parts} query={query} />
-                      })}
-                    </ul>
-                  )
-                })}
-
-              {/* Services */}
-              {eventShowServices && event.eventServiceParts && event.eventServiceParts.length > 0 && (
-                <ServiceSection services={event.eventServiceParts} hasParts={eventShowParts} query={query} />
-              )}
-            </div>
-          </div>
-        )
-      })}
+      {weeks
+        .filter(week => !(folded && week.past))
+        .map(week => (
+          <section key={week.monday} id={`week-${week.monday}`} className="flex scroll-mt-14 flex-col gap-5">
+            <h2 className="flex items-baseline gap-2 font-sans text-muted-foreground text-sm">
+              <span className="font-semibold text-base text-foreground">
+                {m.board_programme_week_of({ date: mondayLabel(week.monday, 'long') })}
+              </span>
+              {week.current && <span>{m.board_programme_this_week()}</span>}
+            </h2>
+            {week.units.map(unit => (
+              <Meeting key={unit.event.id} unit={unit} past={isPast(unit)} timeZone={timeZone} />
+            ))}
+          </section>
+        ))}
     </div>
   )
 }

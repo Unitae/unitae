@@ -58,7 +58,9 @@ export function assigneeRuns(part: ProgrammeSheetPart): TextRun[] {
   if (!part.assignee) return [{ text: UNASSIGNED, weight: 'regular' }]
   return [
     ...memberRuns(part.assignee),
-    ...(part.assistant ? [{ text: ' et ', weight: 'regular' as const }, ...memberRuns(part.assistant)] : []),
+    ...(part.assistant
+      ? [{ text: ` ${m.board_programme_and()} `, weight: 'regular' as const }, ...memberRuns(part.assistant)]
+      : []),
   ]
 }
 
@@ -87,19 +89,20 @@ export function trackLabel(part: ProgrammeSheetPart, index: number): string {
 
 // ── Meetings ───────────────────────────────────────────────────────────
 
-export interface ProgrammeUnit {
-  event: ProgrammeSheetEvent
+export interface ProgrammeUnit<E extends ProgrammeSheetEvent = ProgrammeSheetEvent> {
+  event: E
   /** Grouped by template, the template's first meeting opens with its name. */
   templateHeading: string | null
   showParts: boolean
-  services: { name: string; assignee?: ProgrammeSheetMember | null }[]
+  services: NonNullable<E['eventServiceParts']>
 }
 
-export function programmeUnits(
-  events: ProgrammeSheetEvent[],
+/** The meetings in reading order, each with what its template shows: the sheet's and the board screen's. */
+export function programmeUnits<E extends ProgrammeSheetEvent>(
+  events: E[],
   configMap: Map<number, ProgrammeSheetTemplateOptions>,
   groupBy: 'date' | 'template',
-): ProgrammeUnit[] {
+): ProgrammeUnit<E>[] {
   const ordered =
     groupBy === 'template'
       ? [...events].sort((a, b) => {
@@ -121,7 +124,9 @@ export function programmeUnits(
       event,
       templateHeading,
       showParts: config?.parts ?? true,
-      services: (config?.services ?? true) ? (event.eventServiceParts ?? []) : [],
+      services: ((config?.services ?? true) ? (event.eventServiceParts ?? []) : []) as NonNullable<
+        E['eventServiceParts']
+      >,
     }
   })
 }
