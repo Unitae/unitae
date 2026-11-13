@@ -320,7 +320,8 @@ export function ProgrammeView({ events, showServices, config, now, timeZone }: P
   const weeks = programmeWeeks(units, new Date(now), timeZone)
   const pastWeeks = weeks.filter(week => week.past)
   // The weeks already over fold away above the one under way — unless nothing is left after them
-  // (a deep link to an old meeting), or a search is looking through everything.
+  // (a deep link to an old meeting), or a search is looking through everything. Folded, they still
+  // print: ⌘P gives the month the PDF gives.
   const foldable = pastWeeks.length > 0 && weeks.some(week => !week.past) && query == null
   const folded = foldable && !showPast
   const pastCount = pastWeeks.reduce((sum, week) => sum + week.units.length, 0)
@@ -340,21 +341,23 @@ export function ProgrammeView({ events, showServices, config, now, timeZone }: P
           </Button>
         </div>
       )}
-      {weeks
-        .filter(week => !(folded && week.past))
-        .map(week => (
-          <section key={week.monday} id={`week-${week.monday}`} className="flex scroll-mt-14 flex-col gap-5">
-            <h2 className="flex items-baseline gap-2 font-sans text-muted-foreground text-sm">
-              <span className="font-semibold text-base text-foreground">
-                {m.board_programme_week_of({ date: mondayLabel(week.monday, 'long') })}
-              </span>
-              {week.current && <span>{m.board_programme_this_week()}</span>}
-            </h2>
-            {week.units.map(unit => (
-              <Meeting key={unit.event.id} unit={unit} past={isPast(unit)} timeZone={timeZone} />
-            ))}
-          </section>
-        ))}
+      {weeks.map(week => (
+        <section
+          key={week.monday}
+          id={`week-${week.monday}`}
+          className={cn('flex scroll-mt-14 flex-col gap-5', folded && week.past && 'hidden print:flex')}
+        >
+          <h2 className="flex items-baseline gap-2 font-sans text-muted-foreground text-sm">
+            <span className="font-semibold text-base text-foreground">
+              {m.board_programme_week_of({ date: mondayLabel(week.monday, 'long') })}
+            </span>
+            {week.current && <span>{m.board_programme_this_week()}</span>}
+          </h2>
+          {week.units.map(unit => (
+            <Meeting key={unit.event.id} unit={unit} past={isPast(unit)} timeZone={timeZone} />
+          ))}
+        </section>
+      ))}
     </div>
   )
 }
