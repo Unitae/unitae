@@ -1,5 +1,5 @@
 import { parseWithZod } from '@conform-to/zod/v4'
-import { SidePanel } from '@unitae/ui'
+import { Callout, SidePanel } from '@unitae/ui'
 import { useEffect } from 'react'
 import { data, Link, redirect, useFetcher, useSearchParams } from 'react-router'
 import { editPermissionsSchema } from '~/features/settings/schemas/permissions.schema'
@@ -140,11 +140,7 @@ export default function RolesPage({ loaderData }: Route.ComponentProps) {
           )
         }
       />
-      {refusal && (
-        <p role="alert" className="mb-4 rounded-md bg-destructive/10 px-3.5 py-2.5 text-destructive text-sm">
-          {refusal}
-        </p>
-      )}
+      {refusal && <Callout tone="danger" role="alert" title={refusal} className="mb-4" />}
       <div className="flex flex-wrap items-start gap-6">
         <div className="min-w-0 flex-[3_1_480px]">
           <RoleList

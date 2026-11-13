@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import type { MatrixGroup, MatrixMember } from '~/features/congregation/model/role-matrix.type'
 import type { BuiltInFilterKey } from '~/features/congregation/schemas/role.schema'
+import { OrgHeading } from '~/features/congregation/ui/OrgHeading'
 import { RolesTabs } from '~/features/congregation/ui/RolesTabs'
 import type { TeamToggleResult } from '~/features/congregation/ui/TeamCell'
 import { TeamsPhone } from '~/features/congregation/ui/TeamsPhone'
@@ -124,7 +125,7 @@ export function TeamsScreen({
         className="mb-0"
         actions={
           canManage && (
-            <Button asChild size="sm">
+            <Button asChild size="sm" className="max-md:hidden">
               <Link to="/congregation/roles/organigram?new=1">
                 <Plus aria-hidden="true" />
                 {m.org_new_role()}
@@ -133,10 +134,7 @@ export function TeamsScreen({
           )
         }
       >
-        <div className="flex flex-col gap-1">
-          <h1 className="text-h1">{m.org_title()}</h1>
-          <p className="text-muted-foreground text-sm">{m.org_subtitle()}</p>
-        </div>
+        <OrgHeading canCreate={canManage} newRole={{ to: '/congregation/roles/organigram?new=1' }} />
       </PageTopbar>
 
       <RolesTabs />

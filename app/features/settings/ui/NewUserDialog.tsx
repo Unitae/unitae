@@ -1,5 +1,6 @@
 import { getFormProps, getInputProps, type SubmissionResult, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod/v4'
+import { Callout } from '@unitae/ui'
 import { useFetcher } from 'react-router'
 import { createUserSchema } from '~/features/settings/schemas/user.schema'
 import * as m from '~/i18n/paraglide/messages'
@@ -38,11 +39,7 @@ export function NewUserDialog({ open, onOpenChange }: NewUserDialogProps) {
           {...getFormProps(form)}
           className="flex flex-col gap-4"
         >
-          {form.errors && (
-            <p role="alert" className="rounded-md bg-destructive/10 px-3.5 py-2.5 text-destructive text-sm">
-              {form.errors.join(' ')}
-            </p>
-          )}
+          {form.errors && <Callout tone="danger" role="alert" title={form.errors.join(' ')} />}
           <div className="grid gap-4 sm:grid-cols-2">
             <SettingsField
               id={fields.firstname.id}

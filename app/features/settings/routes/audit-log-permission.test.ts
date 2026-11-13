@@ -26,6 +26,11 @@ vi.mock('~/features/settings/server/audit-log.server', () => ({
   })),
 }))
 
+// The names are read from the database; the page only needs what they come back as.
+vi.mock('~/features/settings/server/audit-entity-names.server', () => ({
+  findAuditEntityNames: vi.fn(async () => new Map([['UserAccount:2', 'Bob BUILDER']])),
+}))
+
 const { Permission } = await import('~/shared/types/permission')
 const { respond, routeContext } = await import('~/tests/helpers/route-action')
 const { loader } = await import('./audit-log')
@@ -41,6 +46,7 @@ describe('audit-log loader', () => {
     } as never)
 
     expect(result.rows).toHaveLength(1)
+    expect(result.rows[0].object).toBe('Compte · Bob BUILDER')
   })
 
   it('refuses a caller admitted to settings for another reason', async () => {

@@ -215,7 +215,8 @@ export default function PartTypesPage({ loaderData }: Route.ComponentProps) {
         }
       />
       <div className="flex flex-wrap items-start gap-6">
-        <div className="min-w-0 flex-[3_1_480px]">
+        {/* The `list` container: beside the docked panel the table drops to its docked columns. */}
+        <div className="@container/list min-w-0 flex-[3_1_480px]">
           <PartTypeTable
             rows={rows}
             selectedId={preset?.id ?? null}
