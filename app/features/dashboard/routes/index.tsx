@@ -42,8 +42,7 @@ export async function loader({ context }: Route.LoaderArgs) {
 
 function summary(count: number): string {
   if (count === 0) return m.dashboard_summary_none()
-  if (count === 1) return m.dashboard_summary_one()
-  return m.dashboard_summary_many({ count: String(count) })
+  return m.dashboard_summary({ count })
 }
 
 export default function Dashboard({ loaderData }: Route.ComponentProps) {

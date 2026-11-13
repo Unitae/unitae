@@ -84,9 +84,7 @@ export function AttachRolePicker({
               >
                 <span className="min-w-0 flex-1 truncate">{role.name}</span>
                 <span className="text-faint shrink-0 text-xs tabular-nums">
-                  {role.holderCount === 1
-                    ? m.org_attach_holders_one()
-                    : m.org_attach_holders_many({ count: String(role.holderCount) })}
+                  {m.org_attach_holders({ count: role.holderCount })}
                 </span>
               </button>
             </li>

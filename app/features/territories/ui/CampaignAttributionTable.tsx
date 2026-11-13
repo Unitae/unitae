@@ -127,5 +127,5 @@ export function CampaignAttributionTable({
 function outSince(startDay: string, today: string): string {
   const count = Math.max(0, daysBetween(startDay, today))
   if (count === 0) return m.campaigns_attr_out_today()
-  return count > 1 ? m.campaigns_attr_out_since_other({ count }) : m.campaigns_attr_out_since_one({ count })
+  return m.campaigns_attr_out_since({ count })
 }

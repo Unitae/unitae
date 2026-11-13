@@ -25,13 +25,7 @@ export function BoardSection({ name, cards, collapsed, onToggle, timeZone }: Boa
         id={headingId}
         title={name}
         meta={cards.length}
-        badge={
-          unread > 0 && (
-            <Tag tone="brand">
-              {unread === 1 ? m.board_section_unread_one() : m.board_section_unread_other({ count: unread })}
-            </Tag>
-          )
-        }
+        badge={unread > 0 && <Tag tone="brand">{m.board_section_unread({ count: unread })}</Tag>}
         collapsible={{ expanded: !collapsed, onToggle, controls: contentId }}
         className="mb-2.5"
       />

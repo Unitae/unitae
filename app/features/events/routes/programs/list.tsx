@@ -124,15 +124,9 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
   const drafts = programmes.filter(row => row.status === EventStatus.Draft).length
   const review = programmes.reduce((total, row) => total + row.review, 0)
   const facts = [
-    programmes.length > 1
-      ? m.programs_count_other({ count: programmes.length })
-      : m.programs_count_one({ count: programmes.length }),
-    drafts > 0 &&
-      (drafts > 1 ? m.programs_drafts_count_other({ count: drafts }) : m.programs_drafts_count_one({ count: drafts })),
-    review > 0 &&
-      (review > 1
-        ? m.programs_absences_review_other({ count: review })
-        : m.programs_absences_review_one({ count: review })),
+    m.programs_count({ count: programmes.length }),
+    drafts > 0 && m.programs_drafts_count({ count: drafts }),
+    review > 0 && m.programs_absences_review({ count: review }),
   ].filter(Boolean)
 
   return (

@@ -86,11 +86,9 @@ export default function TemplatePage({ loaderData }: Route.ComponentProps) {
 
   const subtitle = builtIn
     ? m.settings_template_built_in_subtitle()
-    : page.eventCount === 1
-      ? m.settings_template_page_used_one()
-      : page.eventCount > 1
-        ? m.settings_template_page_used_many({ count: String(page.eventCount) })
-        : m.settings_template_page_subtitle()
+    : page.eventCount > 0
+      ? m.settings_template_page_used({ count: page.eventCount })
+      : m.settings_template_page_subtitle()
 
   return (
     // The marker lets the app shell stop clipping as a scroll container, so the docked editor can stick.
@@ -125,9 +123,7 @@ export default function TemplatePage({ loaderData }: Route.ComponentProps) {
                 </DropdownMenuItem>
                 {page.eventCount > 0 && (
                   <DropdownMenuLabel className="font-normal text-faint text-xs">
-                    {page.eventCount === 1
-                      ? m.settings_template_delete_in_use_one()
-                      : m.settings_template_delete_in_use_many({ count: String(page.eventCount) })}
+                    {m.settings_template_delete_in_use({ count: page.eventCount })}
                   </DropdownMenuLabel>
                 )}
               </DropdownMenuContent>

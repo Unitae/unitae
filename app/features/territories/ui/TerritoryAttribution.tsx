@@ -206,7 +206,7 @@ function historySpan(entry: TerritoryHistoryEntry, today: string): string {
 
 /** « 19 jours », « 5 semaines », « 4 mois »: the length of a loan as people say it. */
 export function durationLabel(days: number): string {
-  if (days < 14) return days === 1 ? m.territory_page_days_one() : m.territory_page_days_other({ count: days })
+  if (days < 14) return m.territory_page_days({ count: days })
   if (days < 60) return m.territory_page_weeks({ count: Math.round(days / 7) })
   return m.territory_page_months({ count: Math.round(days / 30.44) })
 }

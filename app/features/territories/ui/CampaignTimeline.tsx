@@ -80,15 +80,8 @@ export function CampaignTimeline({
         <Step state={steps.end} label={m.campaigns_step_end()} detail={day(endDay)}>
           {preview.end.map(endSentence).join(' ')}
         </Step>
-        <Step
-          state={steps.rest}
-          label={m.campaigns_step_rest()}
-          detail={
-            restDays > 1 ? m.campaigns_length_other({ count: restDays }) : m.campaigns_length_one({ count: restDays })
-          }
-          last
-        >
-          {restDays > 1 ? m.campaigns_tl_rest_other({ count: restDays }) : m.campaigns_tl_rest_one({ count: restDays })}
+        <Step state={steps.rest} label={m.campaigns_step_rest()} detail={m.campaigns_length({ count: restDays })} last>
+          {m.campaigns_tl_rest({ count: restDays })}
         </Step>
       </ol>
     </Panel>

@@ -182,10 +182,7 @@ export function SpeakerDirectoryTable({
             const key = String(group.congregation?.id ?? 'none')
             const open = !folded[key]
             const name = group.congregation?.name ?? m.external_speakers_group_none()
-            const count =
-              group.speakers.length === 1
-                ? m.external_speakers_count_one()
-                : m.external_speakers_count_many({ count: String(group.speakers.length) })
+            const count = m.external_speakers_count({ count: group.speakers.length })
             const congregation = group.congregation
             return (
               <Fragment key={key}>

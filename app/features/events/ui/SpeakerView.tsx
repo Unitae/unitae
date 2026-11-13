@@ -153,13 +153,7 @@ export function SpeakerView({
         </PanelSection>
         <PanelSection
           title={m.external_speakers_visits_title()}
-          aside={
-            count === 0
-              ? undefined
-              : count === 1
-                ? m.external_speakers_visits_one()
-                : m.external_speakers_visits_many({ count: String(count) })
-          }
+          aside={count === 0 ? undefined : m.external_speakers_visits({ count: count })}
         >
           {visits?.upcoming.map(visit => (
             <Link

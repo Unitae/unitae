@@ -160,7 +160,7 @@ export function seatLabel(
 
   // A deputy stays labelled on « Responsable de l'accueil » — that node name carries the
   // leader's title, not the adjoint's.
-  if (holder.kind === 'deputy') return name.startsWith('adjoint') ? null : m.board_organigram_seat_deputy_one()
+  if (holder.kind === 'deputy') return name.startsWith('adjoint') ? null : m.board_organigram_seat_deputy({ count: 1 })
 
   if (holder.kind !== 'leader' || node.isSinglePerson) return null
   if (LEADER_TITLE_PREFIXES.some(prefix => name.startsWith(prefix))) return null
@@ -169,12 +169,12 @@ export function seatLabel(
 
 /** « Équipe » or « Équipes », before the teams a service runs: shared by the board and its sheet. */
 export function teamsLabel(count: number): string {
-  return count === 1 ? m.board_organigram_teams_one() : m.board_organigram_teams_other()
+  return m.board_organigram_teams({ count })
 }
 
 /** « Adjoint » or « Adjoints », before a service's adjoints: shared by the board and its sheet. */
 export function deputiesLabel(count: number): string {
-  return count === 1 ? m.board_organigram_seat_deputy_one() : m.board_organigram_seat_deputy_other()
+  return m.board_organigram_seat_deputy({ count })
 }
 
 /**

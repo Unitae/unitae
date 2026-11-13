@@ -59,11 +59,9 @@ export function territoryQuantityLabel(type: string, counts: { homes: number; ph
 export function territoryEntrancesLabel(type: string, entrances: number): string | null {
   if (type !== TerritoryKindKey.Classical && type !== TerritoryKindKey.Univ) return null
   if (entrances === 0) return null
-  return entrances > 1
-    ? m.territories_content_entrances_other({ count: entrances })
-    : m.territories_content_entrances_one({ count: entrances })
+  return m.territories_content_entrances({ count: entrances })
 }
 
 export function territoryCountLabel(count: number): string {
-  return count > 1 ? m.my_territories_count_other({ count }) : m.my_territories_count_one({ count })
+  return m.my_territories_count({ count })
 }

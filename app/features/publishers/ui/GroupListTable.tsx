@@ -117,9 +117,7 @@ function GroupRow({
         {group.inactiveCount > 0 && (
           <span className="text-faint">
             {' · '}
-            {group.inactiveCount === 1
-              ? m.groups_list_inactive_one()
-              : m.groups_list_inactive_other({ count: String(group.inactiveCount) })}
+            {m.groups_list_inactive({ count: group.inactiveCount })}
           </span>
         )}
       </td>
@@ -156,9 +154,7 @@ function Reports({ reports }: { reports: NonNullable<GroupListRow['reports']> })
       </span>
       {reports.missing > 0 && (
         <span className="text-warning-text tabular-nums">
-          {reports.missing === 1
-            ? m.groups_list_reports_missing_one()
-            : m.groups_list_reports_missing_other({ count: String(reports.missing) })}
+          {m.groups_list_reports_missing({ count: reports.missing })}
         </span>
       )}
     </span>
@@ -169,9 +165,7 @@ function Reports({ reports }: { reports: NonNullable<GroupListRow['reports']> })
 function PhoneDetails({ group }: { group: GroupListRow }) {
   const parts = [
     formatPersonName(group.responsible),
-    group.publisherCount === 1
-      ? m.groups_list_publishers_one()
-      : m.groups_list_publishers_other({ count: String(group.publisherCount) }),
+    m.groups_list_publishers({ count: group.publisherCount }),
     group.reports && group.reports.expected > 0
       ? m.groups_list_phone_reports({ filed: group.reports.filed, total: group.reports.expected })
       : null,

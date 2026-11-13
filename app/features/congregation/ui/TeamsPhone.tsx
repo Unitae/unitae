@@ -58,9 +58,7 @@ export function TeamsPhone({
             ))}
           </SelectContent>
         </Select>
-        <p className="text-faint text-xs">
-          {count === 1 ? m.teams_members_one() : m.teams_members_many({ count: String(count) })}
-        </p>
+        <p className="text-faint text-xs">{m.teams_members({ count: count })}</p>
       </div>
       {members.length === 0 ? (
         <p className="text-muted-foreground py-6 text-center text-sm">{m.teams_none_match()}</p>

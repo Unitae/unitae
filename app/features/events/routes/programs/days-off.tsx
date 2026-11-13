@@ -120,11 +120,8 @@ export default function ProgrammeAbsencesPage({ loaderData }: Route.ComponentPro
         titleBadge={
           absences.length > 0 ? (
             <span className="text-base text-faint tabular-nums">
-              {absences.length > 1
-                ? m.programs_absences_count_other({ count: absences.length })
-                : m.programs_absences_count_one({ count: absences.length })}
-              {conflicts > 0 &&
-                ` · ${conflicts > 1 ? m.programs_absences_review_other({ count: conflicts }) : m.programs_absences_review_one({ count: conflicts })}`}
+              {m.programs_absences_count({ count: absences.length })}
+              {conflicts > 0 && ` · ${m.programs_absences_review({ count: conflicts })}`}
             </span>
           ) : undefined
         }

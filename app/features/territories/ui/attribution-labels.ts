@@ -70,12 +70,7 @@ export function dueText(row: DueInput, today: string): string {
 
 /** « 2 territoires · 1 en retard », to compare publishers before choosing one. */
 export function loadFacts(person: { held: number; late: number }): string {
-  const held =
-    person.held === 0
-      ? m.attributions_people_none()
-      : person.held === 1
-        ? m.attributions_people_held_one()
-        : m.attributions_people_held_other({ count: person.held })
+  const held = person.held === 0 ? m.attributions_people_none() : m.attributions_people_held({ count: person.held })
   return person.late > 0 ? `${held} · ${m.attributions_people_late({ count: person.late })}` : held
 }
 

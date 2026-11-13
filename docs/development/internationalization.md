@@ -66,6 +66,41 @@ Messages use the Inlang message format in JSON:
 - Typography, in both languages: the apostrophe `’` and the ellipsis `…`, never a straight `'` or three dots.
   `app/i18n/messages.test.ts` fails the unit suite on either.
 
+### Plurals
+
+A message that shows a count is **one plural message**, never a `_one` / `_other` pair picked in
+code: languages do not split numbers the same way (French puts 0 with 1; Ukrainian and Russian have
+one form for 1, 21, 31…, another for 2–4, another for 5–20). The language picks the form:
+
+```json
+"groups_list_publishers": [{
+  "declarations": ["input count", "local countPlural = count: plural"],
+  "selectors": ["countPlural"],
+  "match": {
+    "countPlural=one": "{count} publisher",
+    "countPlural=*": "{count} publishers"
+  }
+}]
+```
+
+```typescript
+m.groups_list_publishers({ count: publishers.length })
+```
+
+- Always end with the catch-all `=*` branch: a form a language does not define falls back to it.
+- Each language writes the forms it needs: `one` and `*` in English and French; `one`, `few`, `many`
+  and `*` in Ukrainian and Russian.
+- A different sentence for exactly one item (« Un document y est déjà ») is an exact `countExact=1`
+  branch before the plural ones: see `board_form_highlight_others`.
+- The count that picks the form can differ by language. English agrees with the total in « {filed} of
+  {due} reports », French with the first number in « {filed} rapports sur {due} »: each language
+  declares its own selector.
+- Zero keeps its own message when the text is entirely different (« No one will see it »): branch on
+  `count === 0` in code, and call the plural message otherwise.
+
+`app/i18n/plural-messages.test.ts` renders every plural message for 0, 1, 2, 5 and 21 in every
+language and fails on anything left unfilled.
+
 ## Adding or Modifying Translations
 
 1. Add or edit the key in `app/i18n/messages/fr.json`

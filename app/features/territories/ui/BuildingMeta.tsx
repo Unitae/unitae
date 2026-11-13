@@ -5,10 +5,6 @@ import type { DetailedBuilding } from '~/features/territories/model/detailed-bui
 import { uniqueTerritories } from '~/features/territories/model/unique-territories'
 import * as m from '~/i18n/paraglide/messages'
 
-function counted(count: number, one: (args: { count: string }) => string, many: (args: { count: string }) => string) {
-  return (count < 2 ? one : many)({ count: String(count) })
-}
-
 /**
  * The facts under a building's title, each shown only when the database has it: its territories (linked for
  * those who may open them), its own households and phones, and how many entrances it has.
@@ -23,8 +19,8 @@ export function BuildingMeta({
   const homes = building.residentialData?.homes
   const phones = building.residentialData?.phones
   const figures = [
-    homes != null ? counted(homes, m.building_header_homes_one, m.building_header_homes_many) : null,
-    phones != null ? counted(phones, m.building_header_phones_one, m.building_header_phones_many) : null,
+    homes != null ? m.building_header_homes({ count: homes }) : null,
+    phones != null ? m.building_header_phones({ count: phones }) : null,
   ].filter(Boolean)
 
   return (
@@ -32,9 +28,7 @@ export function BuildingMeta({
       <BuildingTerritories building={building} canViewTerritories={canViewTerritories} />
       {figures.length > 0 && <span className="tabular-nums">{figures.join(' · ')}</span>}
       {building.entrances.length > 0 && (
-        <span>
-          {counted(building.entrances.length, m.building_header_entrances_one, m.building_header_entrances_many)}
-        </span>
+        <span>{m.building_header_entrances({ count: building.entrances.length })}</span>
       )}
     </>
   )

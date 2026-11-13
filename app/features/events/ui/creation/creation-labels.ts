@@ -25,12 +25,8 @@ export function templateLine(template: CreationTemplate, usually = false): strin
 
 /** « 15 parties, 4 services ». */
 export function contentLabel(template: CreationTemplate): string {
-  const parts =
-    template.parts === 1 ? m.programs_new_parts_one() : m.programs_new_parts_many({ count: String(template.parts) })
-  const services =
-    template.services === 1
-      ? m.programs_new_services_one()
-      : m.programs_new_services_many({ count: String(template.services) })
+  const parts = m.programs_new_parts({ count: template.parts })
+  const services = m.programs_new_services({ count: template.services })
   return `${parts}, ${services}`
 }
 
@@ -53,28 +49,26 @@ export function chipDay(day: string): string {
 
 export function programmesCount(count: number): string {
   if (count === 0) return m.programs_new_count_none()
-  return count === 1 ? m.programs_new_count_one() : m.programs_new_count_many({ count: String(count) })
+  return m.programs_new_count({ count: count })
 }
 
 export function submitLabel(count: number): string {
   if (count === 0) return m.programs_new_count_none()
-  return count === 1 ? m.programs_new_submit_one() : m.programs_new_submit_many({ count: String(count) })
+  return m.programs_new_submit({ count: count })
 }
 
 /** « 1 existe déjà · 2 dates passées », or « Tous nouveaux ». */
 export function restLabel(existing: number, skipped: number): string {
   const parts: string[] = []
   if (existing > 0) {
-    parts.push(
-      existing === 1 ? m.programs_new_existing_one() : m.programs_new_existing_many({ count: String(existing) }),
-    )
+    parts.push(m.programs_new_existing({ count: existing }))
   }
   if (skipped > 0) {
-    parts.push(skipped === 1 ? m.programs_new_skipped_one() : m.programs_new_skipped_many({ count: String(skipped) }))
+    parts.push(m.programs_new_skipped({ count: skipped }))
   }
   return parts.length > 0 ? parts.join(' · ') : m.programs_new_all_new()
 }
 
 export function weeksLabel(count: number): string {
-  return count === 1 ? m.programs_new_weeks_one() : m.programs_new_weeks_many({ count: String(count) })
+  return m.programs_new_weeks({ count: count })
 }

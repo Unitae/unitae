@@ -36,9 +36,7 @@ export function RecordProgramme({
       actions={
         <>
           {count > 0 && (
-            <span className="text-faint text-sm tabular-nums">
-              {count === 1 ? m.publishers_record_assignments_one() : m.publishers_record_assignments_other({ count })}
-            </span>
+            <span className="text-faint text-sm tabular-nums">{m.publishers_record_assignments({ count })}</span>
           )}
           <Link to="/programs" className="text-brand-text text-sm hover:underline">
             {m.publishers_record_see_programs()}
@@ -84,7 +82,7 @@ function AbsenceRow({ absence, timeZone }: { absence: MemberAbsence; timeZone: s
         {shortDay(absence.startDate, timeZone)} – {shortDay(absence.endDate, timeZone)}
         <span className="text-faint tabular-nums">
           {' · '}
-          {days === 1 ? m.publishers_record_days_one() : m.publishers_record_days_other({ count: days })}
+          {m.publishers_record_days({ count: days })}
         </span>
       </span>
     </div>

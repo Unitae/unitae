@@ -55,10 +55,7 @@ export default function CampaignsList({ loaderData }: Route.ComponentProps) {
   const scheduled = campaigns.filter(campaign => campaign.status === 'scheduled').length
   const facts = [
     active > 0 && m.campaigns_count_active({ count: active }),
-    scheduled > 0 &&
-      (scheduled > 1
-        ? m.campaigns_count_scheduled_other({ count: scheduled })
-        : m.campaigns_count_scheduled_one({ count: scheduled })),
+    scheduled > 0 && m.campaigns_count_scheduled({ count: scheduled }),
   ].filter(Boolean)
   const create = (
     <Button asChild size="sm">

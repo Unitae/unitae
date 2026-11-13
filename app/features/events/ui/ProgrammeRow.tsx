@@ -137,11 +137,7 @@ function State({ draft }: { draft: boolean }) {
 
 function Review({ count, draft }: { count: number; draft: boolean }) {
   if (count === 0) return null
-  return (
-    <Status tone={draft ? 'warning' : 'danger'}>
-      {count > 1 ? m.programs_absent_other({ count }) : m.programs_absent_one({ count })}
-    </Status>
-  )
+  return <Status tone={draft ? 'warning' : 'danger'}>{m.programs_absent({ count })}</Status>
 }
 
 /** On a phone, the facts of the wide columns under the name. */

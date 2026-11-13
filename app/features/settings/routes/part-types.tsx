@@ -149,9 +149,7 @@ export default function PartTypesPage({ loaderData }: Route.ComponentProps) {
   const description = preset
     ? preset.usage === 0
       ? m.settings_part_types_used_none()
-      : preset.usage === 1
-        ? m.settings_part_types_used_one()
-        : m.settings_part_types_used_many({ count: String(preset.usage) })
+      : m.settings_part_types_used({ count: preset.usage })
     : undefined
   const open = preset != null || creating
   const form = open && (

@@ -115,14 +115,7 @@ async function create(
   if (input.mode === 'series') {
     const { created } = await createProgrammeSeries(db, input, ctx)
     const count = created.length
-    session.flash(
-      'success',
-      count === 0
-        ? m.programs_new_flash_none()
-        : count === 1
-          ? m.programs_new_flash_one()
-          : m.programs_new_flash_many({ count: String(count) }),
-    )
+    session.flash('success', count === 0 ? m.programs_new_flash_none() : m.programs_new_flash({ count: count }))
     const period = new URLSearchParams({ from: input.from, to: input.to })
     if (count > 0) period.set('view', 'drafts')
     return `/programs?${period.toString()}`

@@ -50,9 +50,7 @@ export function MyTerritoryRow({ territory, timeZone }: { territory: MyTerritory
               {streets}
               {territory.moreStreets > 0 && (
                 <span className="font-normal text-faint">
-                  {territory.moreStreets > 1
-                    ? m.my_territories_more_streets_other({ count: territory.moreStreets })
-                    : m.my_territories_more_streets_one({ count: territory.moreStreets })}
+                  {m.my_territories_more_streets({ count: territory.moreStreets })}
                 </span>
               )}
             </span>

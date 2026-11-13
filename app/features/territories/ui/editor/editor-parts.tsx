@@ -138,7 +138,7 @@ export function EditorSaveBar({ beside, mode, formId, changes, kind, kept, cance
 
 function changesLabel(changes: number): string | undefined {
   if (changes === 0) return undefined
-  return changes === 1 ? m.territory_editor_changes_one() : m.territory_editor_changes_many({ count: changes })
+  return m.territory_editor_changes_count({ count: changes })
 }
 
 function contentLabel(kind: TerritoryKindKey, kept: EditorEntrance[]): string {

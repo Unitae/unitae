@@ -37,11 +37,7 @@ export function PioneerSummary({ summary }: { summary: PioneerActivitySummary })
             <Status tone="success">{m.pioneers_count_on_time({ count: totals.onTrack })}</Status>
           </span>
           {totals.concluded > 0 && (
-            <span className="text-faint text-xs">
-              {totals.concluded === 1
-                ? m.pioneers_summary_concluded_one()
-                : m.pioneers_summary_concluded_other({ count: totals.concluded })}
-            </span>
+            <span className="text-faint text-xs">{m.pioneers_summary_concluded({ count: totals.concluded })}</span>
           )}
         </div>
       )}

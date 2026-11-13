@@ -61,13 +61,7 @@ export default function GroupListPage({ loaderData }: Route.ComponentProps) {
         titleBadge={groups.length > 0 && <span className="text-faint text-lg tabular-nums">{groups.length}</span>}
         breadcrumbs={[{ label: m.sidebar_publisher_groups() }]}
         meta={
-          groups.length > 0 && (
-            <span className="tabular-nums">
-              {publishers === 1
-                ? m.groups_list_publishers_one()
-                : m.groups_list_publishers_other({ count: String(publishers) })}
-            </span>
-          )
+          groups.length > 0 && <span className="tabular-nums">{m.groups_list_publishers({ count: publishers })}</span>
         }
         actions={
           canManagePublisher && (
@@ -81,9 +75,7 @@ export default function GroupListPage({ loaderData }: Route.ComponentProps) {
       {withoutGroup > 0 && (
         <p className="flex flex-wrap items-center gap-x-2 rounded-md border border-border bg-card px-3.5 py-2.5 text-sm">
           <UsersRound className="size-4 text-muted-foreground" aria-hidden />
-          {withoutGroup === 1
-            ? m.groups_list_without_group_one()
-            : m.groups_list_without_group_other({ count: String(withoutGroup) })}
+          {m.groups_list_without_group({ count: withoutGroup })}
           <Link to={`/publishers?group=${NO_GROUP_PARAM}`} className="font-medium text-brand-text hover:underline">
             {m.groups_list_without_group_link()}
           </Link>

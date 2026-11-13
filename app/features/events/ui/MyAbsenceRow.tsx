@@ -48,9 +48,7 @@ export function MyAbsenceRow({ absence, timeZone, now }: { absence: MyAbsenceRow
         {conflicts > 0 && (
           <div className="mt-1.5 flex flex-col gap-1">
             <Status tone="warning" className="whitespace-normal text-foreground">
-              {conflicts > 1
-                ? m.days_off_conflicts_other({ count: conflicts })
-                : m.days_off_conflicts_one({ count: conflicts })}
+              {m.days_off_conflicts({ count: conflicts })}
             </Status>
             <ul className="flex flex-col gap-0.5 pl-[1.125rem] text-muted-foreground text-sm">
               {absence.conflicts.map(conflict => (

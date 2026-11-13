@@ -181,12 +181,6 @@ function endConsequences(campaign: CampaignActionsProps['campaign'], out: number
     )
   }
   const rest = campaign.restDays
-  lines.push(
-    plural(
-      rest,
-      () => m.campaigns_end_item_rest_one({ count: rest }),
-      () => m.campaigns_end_item_rest_other({ count: rest }),
-    ),
-  )
+  lines.push(m.campaigns_end_item_rest({ count: rest }))
   return lines
 }

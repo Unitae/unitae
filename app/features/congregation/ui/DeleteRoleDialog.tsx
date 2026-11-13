@@ -33,12 +33,7 @@ export function DeleteRoleDialog({
     if (result?.ok) done.current()
   }, [result])
 
-  const people =
-    peopleCount === 0
-      ? m.org_delete_people_none()
-      : peopleCount === 1
-        ? m.org_delete_people_one()
-        : m.org_delete_people_many({ count: String(peopleCount) })
+  const people = peopleCount === 0 ? m.org_delete_people_none() : m.org_delete_people({ count: peopleCount })
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

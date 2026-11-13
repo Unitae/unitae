@@ -15,8 +15,7 @@ interface DocumentSearchProps {
 
 function countLabel(count: number): string {
   if (count === 0) return m.board_viewer_search_count_none()
-  if (count === 1) return m.board_viewer_search_count_one()
-  return m.board_viewer_search_count_other({ count: String(count) })
+  return m.board_viewer_search_count({ count })
 }
 
 /** Finding a name in any board document: always open from md up, behind a button on a phone. */

@@ -128,11 +128,7 @@ export function SendOurListDialog({
   const refusal = refusalOf(fetcher.data)
   const replyTo = responsible?.email ? mailbox(responsible.name, responsible.email) : null
   const sendLabel =
-    chosen.size === 0
-      ? m.external_speakers_send_choose()
-      : chosen.size === 1
-        ? m.external_speakers_send_one()
-        : m.external_speakers_send_many({ count: String(chosen.size) })
+    chosen.size === 0 ? m.external_speakers_send_choose() : m.external_speakers_send({ count: chosen.size })
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
@@ -302,9 +298,7 @@ export function MarkOurListSentDialog({
             {m.common_cancel()}
           </Button>
           <Button type="submit" form="mark-our-list" disabled={chosen.size === 0 || fetcher.state !== 'idle'}>
-            {chosen.size <= 1
-              ? m.external_speakers_mark_one()
-              : m.external_speakers_mark_many({ count: String(chosen.size) })}
+            {m.external_speakers_mark({ count: Math.max(chosen.size, 1) })}
           </Button>
         </DialogFooter>
       </DialogContent>

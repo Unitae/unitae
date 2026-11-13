@@ -148,9 +148,7 @@ export function BatchColumnHeader(props: BatchColumnHeaderProps) {
               aria-expanded={props.showingWithoutPosition}
               onClick={props.onToggleWithoutPosition}
             >
-              {withoutPosition === 1
-                ? m.split_tool_without_position_one()
-                : m.split_tool_without_position({ count: format.format(withoutPosition) })}
+              {m.split_tool_without_position({ count: format.format(withoutPosition) })}
             </Button>
           </>
         )}

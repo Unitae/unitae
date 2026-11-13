@@ -52,13 +52,7 @@ export function reservationLines(found: SoleReservations): string[] {
       m.org_reserves_kind({ name: kind.name ?? BUILT_IN_KIND_LABELS[kind.key]?.() ?? kind.key }),
     ),
     ...found.templateSlots.map(slot => m.org_reserves_slot({ name: slot.name, template: slot.template })),
-    ...(programmeSlots === 0
-      ? []
-      : [
-          programmeSlots === 1
-            ? m.org_reserves_programmes_one()
-            : m.org_reserves_programmes_many({ count: String(programmeSlots) }),
-        ]),
+    ...(programmeSlots === 0 ? [] : [m.org_reserves_programmes({ count: programmeSlots })]),
   ]
 }
 

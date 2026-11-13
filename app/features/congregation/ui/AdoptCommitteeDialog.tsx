@@ -17,11 +17,7 @@ function brings(candidate: CandidateBrings | undefined): string {
   const parts = [
     candidate.leader ? m.org_adopt_leader({ name: candidate.leader }) : null,
     candidate.children.length > 0 ? m.org_adopt_children({ names: candidate.children.join(', ') }) : null,
-    candidate.permissionCount === 0
-      ? null
-      : candidate.permissionCount === 1
-        ? m.org_adopt_permissions_one()
-        : m.org_adopt_permissions_many({ count: String(candidate.permissionCount) }),
+    candidate.permissionCount === 0 ? null : m.org_adopt_permissions({ count: candidate.permissionCount }),
   ]
   return parts.filter(Boolean).join(' · ')
 }

@@ -202,11 +202,7 @@ function EditFooter({ changes, busy, onCancel }: { changes: number; busy: boolea
   return (
     <div className="flex w-full items-center gap-2">
       <span className="text-muted-foreground flex-1 text-sm" aria-live="polite">
-        {changes === 0
-          ? null
-          : changes === 1
-            ? m.form_changes_one({ count: '1' })
-            : m.form_changes_many({ count: String(changes) })}
+        {changes === 0 ? null : m.form_changes({ count: changes })}
       </span>
       <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
         {m.common_cancel()}

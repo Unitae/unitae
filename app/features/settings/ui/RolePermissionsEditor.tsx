@@ -53,11 +53,7 @@ export function RolePermissionsEditor({
       <div className={cn('flex flex-col gap-3 text-sm', className)}>
         <p className="font-medium">{m.settings_roles_all()}</p>
         <p className="text-muted-foreground">{m.settings_roles_admin_text()}</p>
-        <p className="text-faint">
-          {adminCount === 1
-            ? m.settings_roles_admin_count_one()
-            : m.settings_roles_admin_count_many({ count: String(adminCount) })}
-        </p>
+        <p className="text-faint">{m.settings_roles_admin_count({ count: adminCount })}</p>
       </div>
     )
   }

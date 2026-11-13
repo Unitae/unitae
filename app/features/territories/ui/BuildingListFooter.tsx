@@ -32,9 +32,7 @@ export function BuildingListFooter({ page, pages, pageSize, total }: BuildingLis
           to: format.format(Math.min(total, page * pageSize)),
           total: format.format(total),
         })
-      : total === 1
-        ? m.prospection_count_one()
-        : m.prospection_count({ count: format.format(total) })
+      : m.prospection_count({ count: format.format(total) })
 
   return (
     <div className="flex items-center gap-1.5 px-1 text-faint text-sm tabular-nums">

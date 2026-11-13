@@ -68,7 +68,7 @@ export function DeleteSectionDialog({
 
 function holdsText(count: number) {
   if (count === 0) return m.board_section_delete_empty()
-  return count === 1 ? m.board_section_delete_holds_one() : m.board_section_delete_holds_many({ count })
+  return m.board_section_delete_holds({ count })
 }
 
 /** What happens to what it holds: moved to another section by default, or deleted with it. */

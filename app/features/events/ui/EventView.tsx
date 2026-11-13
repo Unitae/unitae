@@ -155,16 +155,16 @@ export function EventView({
               <Status tone="success">{m.programs_view_released()}</Status>
             )}
             <span>
-              {(assignedParts < 2 ? m.programs_view_parts_assigned_one : m.programs_view_parts_assigned_many)({
-                count: String(assignedParts),
-                total: String(event.eventParts.length),
+              {m.programs_view_parts_assigned({
+                count: assignedParts,
+                total: event.eventParts.length,
               })}
             </span>
             {event.eventServiceParts.length > 0 && (
               <span>
-                {(filledServices < 2 ? m.programs_view_services_filled_one : m.programs_view_services_filled_many)({
-                  count: String(filledServices),
-                  total: String(event.eventServiceParts.length),
+                {m.programs_view_services_filled({
+                  count: filledServices,
+                  total: event.eventServiceParts.length,
                 })}
               </span>
             )}

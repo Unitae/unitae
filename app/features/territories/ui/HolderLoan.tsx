@@ -93,11 +93,7 @@ export function HolderTerritoryFacts({
     <>
       <span>{territoryKindLabel(type)}</span>
       <span className="tabular-nums">{territoryQuantityLabel(type, totals)}</span>
-      <span className="tabular-nums">
-        {totals.entrances > 1
-          ? m.territories_content_entrances_other({ count: totals.entrances })
-          : m.territories_content_entrances_one({ count: totals.entrances })}
-      </span>
+      <span className="tabular-nums">{m.territories_content_entrances({ count: totals.entrances })}</span>
       <span>{m.my_territories_attributed_on({ date: loanDay(loan.startDate, timeZone, 'long') })}</span>
       {campaignName != null && <Tag>{campaignName || m.attributions_type_campaign()}</Tag>}
       {byPhone && <Tag>{m.attributions_type_phone()}</Tag>}
