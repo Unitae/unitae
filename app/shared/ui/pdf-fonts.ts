@@ -9,6 +9,9 @@ import { Font } from '@react-pdf/renderer'
  */
 export const PDF_FONT_FAMILY = 'Fira Sans'
 
+/** The serif the forms print their values in, where they used Times, which has no Cyrillic either. */
+export const PDF_SERIF_FAMILY = 'Source Serif 4'
+
 let registered = false
 
 /** Registers the typeface once per process; every document module calls it before declaring its styles. */
@@ -24,6 +27,15 @@ export function registerPdfFonts(): void {
       { src: path.join(fontsDir, 'FiraSans-Bold.ttf'), fontWeight: 'bold' },
       { src: path.join(fontsDir, 'FiraSans-Italic.ttf'), fontStyle: 'italic' },
       { src: path.join(fontsDir, 'FiraSans-BoldItalic.ttf'), fontWeight: 'bold', fontStyle: 'italic' },
+    ],
+  })
+  Font.register({
+    family: PDF_SERIF_FAMILY,
+    fonts: [
+      { src: path.join(fontsDir, 'SourceSerif4-Regular.ttf') },
+      { src: path.join(fontsDir, 'SourceSerif4-Bold.ttf'), fontWeight: 'bold' },
+      { src: path.join(fontsDir, 'SourceSerif4-It.ttf'), fontStyle: 'italic' },
+      { src: path.join(fontsDir, 'SourceSerif4-BoldIt.ttf'), fontWeight: 'bold', fontStyle: 'italic' },
     ],
   })
 }

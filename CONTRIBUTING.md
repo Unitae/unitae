@@ -57,7 +57,6 @@ lists the English and French terms; find the same publication in your language f
 
 - `{name}`, `{count}`, `{date}` are filled in by the app. Keep them exactly, in the place your sentence
   needs them. Do not translate the word between the braces.
-- Some messages are templates with `{{date}}`-style words: keep them too.
 - Keep line breaks (`\n`) where they are.
 
 ### Plurals

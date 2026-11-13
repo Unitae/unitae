@@ -3,7 +3,7 @@ import type { Attribution, Member, Territory } from '~/database/generated/client
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
-import { PDF_FONT_FAMILY, registerPdfFonts } from '~/shared/ui/pdf-fonts'
+import { PDF_FONT_FAMILY, PDF_SERIF_FAMILY, registerPdfFonts } from '~/shared/ui/pdf-fonts'
 
 registerPdfFonts()
 
@@ -45,7 +45,7 @@ export function TerritoryAttributionDocument({
   return (
     <Document>
       {territoryPages.map((territoriesOfPage, index) => (
-        <Page key={index} size={'A4'} orientation="portrait" style={{ padding: 20 }}>
+        <Page key={index} size={'A4'} orientation="portrait" style={{ padding: 20, fontFamily: PDF_FONT_FAMILY }}>
           <Text style={styles.title}>{m.territory_s13_title()}</Text>
           <Text style={[styles.text]}>
             <Text style={styles.label}>{m.territory_s13_service_year()}</Text> {year}
@@ -149,7 +149,10 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 11,
-    fontFamily: 'Times-Roman',
+    fontFamily: PDF_SERIF_FAMILY,
+    // Source Serif sits taller than the Times it replaces: without this, fifteen rows and the footnote no
+    // longer fit on the page.
+    lineHeight: 1.1,
   },
   containerCols: {
     display: 'flex',
@@ -374,7 +377,15 @@ function AttributionCell({
       <Text
         style={[
           styles.text,
-          { justifyContent: 'center', alignItems: 'center', padding: 4, fontSize: 8, minHeight: 20 },
+          // Source Serif is wider than the Times it replaces: a tighter cell keeps a full name on one line.
+          {
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingVertical: 4,
+            paddingHorizontal: 2,
+            fontSize: 7.5,
+            minHeight: 20,
+          },
         ]}
       >
         {publisherName}
