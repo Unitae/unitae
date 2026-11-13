@@ -3,9 +3,7 @@
     "sourceLanguageTag": "en",
     "languageTags": ["en", "fr"],
     "modules": [
-        "https://cdn.jsdelivr.net/npm/@inlang/message-lint-rule-empty-pattern@latest/dist/index.js",
-        "https://cdn.jsdelivr.net/npm/@inlang/message-lint-rule-missing-translation@latest/dist/index.js",
-        "https://cdn.jsdelivr.net/npm/@inlang/plugin-message-format@latest/dist/index.js"
+        "https://cdn.jsdelivr.net/npm/@inlang/plugin-message-format@4.5.0/dist/index.js"
     ],
     "plugin.inlang.messageFormat": {
         "pathPattern": "./messages/{languageTag}.json"
