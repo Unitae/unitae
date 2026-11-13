@@ -19,6 +19,8 @@ interface PageHeaderProps {
   meta?: React.ReactNode
   /** Controls over what the page shows (a filter, a period), on the title's row. Actions go in the top bar. */
   controls?: React.ReactNode
+  /** Right after the trail in the top bar: the arrows to the list's previous and next item. */
+  trailEnd?: React.ReactNode
 }
 
 export function PageHeader({
@@ -30,6 +32,7 @@ export function PageHeader({
   icon: Icon,
   meta,
   controls,
+  trailEnd,
 }: PageHeaderProps) {
   const heading = (
     <div className={cn('flex animate-fade-in-up', Icon ? 'items-start gap-4' : 'items-center gap-3')}>
@@ -50,7 +53,7 @@ export function PageHeader({
   )
 
   return (
-    <PageTopbar trail={breadcrumbs?.length ? breadcrumbs : [{ label: title }]} actions={actions}>
+    <PageTopbar trail={breadcrumbs?.length ? breadcrumbs : [{ label: title }]} trailEnd={trailEnd} actions={actions}>
       {controls ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
           {heading}

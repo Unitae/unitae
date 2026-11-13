@@ -24,8 +24,9 @@ export function TerritoryStandingStatus({
   today: string
 }) {
   if (current == null) return <Status tone="neutral">{availabilityLabel(availability, today)}</Status>
+  // It wraps rather than run off a phone screen: « En retard depuis le 13 sept. · chez Valérie RICHARD ».
   return (
-    <Status tone={STATE_TONE[current.state]}>
+    <Status tone={STATE_TONE[current.state]} className="whitespace-normal">
       {m.territory_page_status_held({ due: dueText(current, today), name: holderName(current.publisher) })}
     </Status>
   )

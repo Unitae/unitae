@@ -106,6 +106,13 @@ export default function TerritoryView({ loaderData }: Route.ComponentProps) {
     entrances: loaderData.totals.entrances,
   }
 
+  const neighbours = (
+    <>
+      <NeighbourLink to={adjacent.prev} query={query} label={m.territory_page_previous} icon={<ChevronLeft />} />
+      <NeighbourLink to={adjacent.next} query={query} label={m.territory_page_next} icon={<ChevronRight />} />
+    </>
+  )
+
   return (
     <div className="flex max-w-6xl flex-col">
       <PageHeader
@@ -125,10 +132,12 @@ export default function TerritoryView({ loaderData }: Route.ComponentProps) {
           />
         }
         breadcrumbs={[{ label: m.sidebar_territories(), to: back }, { label: territory.number }]}
+        // Beside the trail from the tablet up; on a phone, where a lone arrow would read as part of the trail, with the
+        // other actions.
+        trailEnd={<span className="contents max-md:hidden">{neighbours}</span>}
         actions={
           <>
-            <NeighbourLink to={adjacent.prev} query={query} label={m.territory_page_previous} icon={<ChevronLeft />} />
-            <NeighbourLink to={adjacent.next} query={query} label={m.territory_page_next} icon={<ChevronRight />} />
+            <span className="contents md:hidden">{neighbours}</span>
             <Button asChild variant="ghost" size="icon" title={m.territories_menu_pdf()}>
               <a href={`/territories/territory/${territory.id}/pdf`} aria-label={m.territories_menu_pdf()}>
                 <Download aria-hidden="true" />

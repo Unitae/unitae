@@ -4,7 +4,7 @@ import type { AttributionListRow } from '~/features/territories/model/attributio
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
-import { openRowOnClick } from '~/shared/ui/row-click'
+import { openRowOnClick, ROW_ACTION_REVEAL } from '~/shared/ui/row-click'
 import { shortDay } from '~/shared/utils/format-day'
 import { cn } from '~/shared/utils/utils'
 import { dueText, holderName, STATE_TONE, stateLabel } from './attribution-labels'
@@ -43,7 +43,8 @@ export function AttributionTable(props: AttributionTableProps) {
             <tr>
               <th className={HEAD}>{m.attributions_column_territory()}</th>
               <th className={HEAD}>{m.attributions_column_publisher()}</th>
-              <th className={cn(HEAD, 'max-md:hidden')}>{m.attributions_column_out()}</th>
+              {/* Beside the docked panel « Sorti le » steps aside (the panel shows it), so « Rentrer » stays in view. */}
+              <th className={cn(HEAD, 'max-md:hidden docked:hidden')}>{m.attributions_column_out()}</th>
               <th className={HEAD}>{m.attributions_column_due()}</th>
               {canManage && (
                 <th className={cn(HEAD, 'w-28')}>
@@ -141,12 +142,14 @@ function AttributionRow({
           </span>
         </span>
       </td>
-      <td className={cn(CELL, 'text-muted-foreground tabular-nums max-md:hidden')}>{shortDay(row.startDay, today)}</td>
+      <td className={cn(CELL, 'text-muted-foreground tabular-nums max-md:hidden docked:hidden')}>
+        {shortDay(row.startDay, today)}
+      </td>
       <td className={cn(CELL, 'text-muted-foreground tabular-nums')}>{dueText(row, today)}</td>
       {canManage && (
         <td className={cn(CELL, 'text-right')}>
           {/* Above the row's button: the action does not open the panel. */}
-          <span className="relative z-10 opacity-0 transition-opacity duration-(--u-duration-fast) focus-within:opacity-100 group-hover:opacity-100 max-md:opacity-100">
+          <span className={cn('relative z-10', ROW_ACTION_REVEAL)}>
             {row.state === 'paused' ? (
               <Button type="button" variant="outline" size="sm" onClick={() => onResume(row)}>
                 {m.attributions_row_resume()}

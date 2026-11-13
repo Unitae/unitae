@@ -25,6 +25,7 @@ import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { useOpenParam } from '~/shared/ui/hooks/use-open-param'
 import { useSideEditor } from '~/shared/ui/hooks/use-side-editor'
+import { ListWithPanel } from '~/shared/ui/ListWithPanel'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { DiscardChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { formatLocalDate } from '~/shared/utils/date.server'
@@ -74,6 +75,10 @@ export default function AssignTerritory({ loaderData }: Route.ComponentProps) {
   const visible = view === 'all' ? rows : rows.filter(row => isFreeToday(row.availability))
   const panel = useSideEditor<'territory'>(target => rows.some(row => row.id === target.id))
   const target = panel.target
+  const walk = panel.walk(
+    'territory',
+    visible.map(row => row.id),
+  )
 
   useOpenParam('open', value => {
     const id = Number(value)
@@ -88,7 +93,7 @@ export default function AssignTerritory({ loaderData }: Route.ComponentProps) {
       formRef={panel.formRef}
       onRequestClose={() => panel.request(null)}
       onClose={panel.close}
-      walk={null}
+      walk={walk}
     />
   )
 
@@ -106,49 +111,46 @@ export default function AssignTerritory({ loaderData }: Route.ComponentProps) {
       />
       <GeocodeNotice notice={loaderData.geocodeNotice} />
 
-      <div className="flex flex-wrap items-start gap-6">
-        <div className="flex min-w-0 flex-[3_1_560px] flex-col gap-3">
-          <AssignableToolbar
-            view={view}
-            counts={assignableCounts(rows)}
-            onView={next =>
-              setParams(
-                prev => {
-                  if (next === 'all') prev.set('view', 'all')
-                  else prev.delete('view')
-                  return prev
-                },
-                { replace: true, preventScrollReset: true },
-              )
-            }
-            sort={loaderData.sort}
-            proximity={loaderData.proximity}
-            kinds={Object.values(TerritoryKindKey)}
-          />
-          {visible.length === 0 ? (
-            loaderData.filtered ? (
-              <p className="rounded-lg border border-border bg-card px-4 py-5 text-muted-foreground text-sm">
-                {m.attributions_assign_filtered_empty()}
-              </p>
-            ) : (
-              <EmptyState
-                icon={MapIcon}
-                title={m.attributions_assign_empty_title()}
-                description={m.attributions_assign_empty_description()}
-              />
+      <ListWithPanel panel={panel.docked ? assignPanel : null} onPanelKeyDown={walk?.onKeyDown}>
+        <AssignableToolbar
+          view={view}
+          counts={assignableCounts(rows)}
+          onView={next =>
+            setParams(
+              prev => {
+                if (next === 'all') prev.set('view', 'all')
+                else prev.delete('view')
+                return prev
+              },
+              { replace: true, preventScrollReset: true },
             )
+          }
+          sort={loaderData.sort}
+          proximity={loaderData.proximity}
+          kinds={Object.values(TerritoryKindKey)}
+        />
+        {visible.length === 0 ? (
+          loaderData.filtered ? (
+            <p className="rounded-lg border border-border bg-card px-4 py-5 text-muted-foreground text-sm">
+              {m.attributions_assign_filtered_empty()}
+            </p>
           ) : (
-            <AssignableTerritoryTable
-              rows={visible}
-              today={today}
-              selectedId={target?.id ?? null}
-              pmrActive={loaderData.pmrActive}
-              onAssign={(row, trigger) => panel.request({ kind: 'territory', id: row.id, trigger })}
+            <EmptyState
+              icon={MapIcon}
+              title={m.attributions_assign_empty_title()}
+              description={m.attributions_assign_empty_description()}
             />
-          )}
-        </div>
-        {panel.docked && assignPanel}
-      </div>
+          )
+        ) : (
+          <AssignableTerritoryTable
+            rows={visible}
+            today={today}
+            selectedId={target?.id ?? null}
+            pmrActive={loaderData.pmrActive}
+            onAssign={(row, trigger) => panel.request({ kind: 'territory', id: row.id, trigger })}
+          />
+        )}
+      </ListWithPanel>
       {!panel.docked && assignPanel}
 
       <DiscardChangesDialog

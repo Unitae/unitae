@@ -11,6 +11,7 @@ import { previewCampaignLifecycle } from '~/features/territories/model/campaign-
 import type { CampaignSteps } from '~/features/territories/model/campaign-progress'
 import { RESTING_PERIOD_DAYS } from '~/features/territories/model/resting-periods'
 import * as m from '~/i18n/paraglide/messages'
+import { DateInput } from '~/shared/ui/DateInput'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 
@@ -110,23 +111,21 @@ export function CampaignForm({ defaults, territories, errors, lock = 'none' }: C
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="campaign-start-date">{m.campaigns_form_start_date_label()}</Label>
             {startLocked && <input type="hidden" name="start-date" value={defaults.startDate} />}
-            <Input
+            <DateInput
               id="campaign-start-date"
               name={startLocked ? undefined : 'start-date'}
-              type="date"
-              value={startDate}
-              onChange={event => setStartDate(event.target.value)}
+              value={startDate || null}
+              onChange={next => setStartDate(next ?? '')}
               disabled={startLocked}
             />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="campaign-end-date">{m.campaigns_form_end_date_label()}</Label>
-            <Input
+            <DateInput
               id="campaign-end-date"
               name="end-date"
-              type="date"
-              value={endDate}
-              onChange={event => setEndDate(event.target.value)}
+              value={endDate || null}
+              onChange={next => setEndDate(next ?? '')}
               aria-invalid={errors?.['end-date'] != null}
             />
             {errors?.['end-date'] && <p className="text-destructive text-sm">{errors['end-date']}</p>}

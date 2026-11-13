@@ -1,3 +1,4 @@
+import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { daysBetween } from '~/shared/utils/calendar-day'
 
@@ -18,17 +19,29 @@ export function formatCampaignDay(
   return new Intl.DateTimeFormat(getLocale(), { timeZone: 'UTC', ...options }).format(noon(day))
 }
 
-/** « lun. 2 – dim. 29 novembre 2026 ». */
-export function formatCampaignRange(startDay: string, endDay: string): string {
-  return new Intl.DateTimeFormat(getLocale(), {
-    timeZone: 'UTC',
+/**
+ * « Du lun. 2 au dim. 29 novembre »: the month once while the campaign stays in it, the year only for another year
+ * than `thisYear`.
+ */
+export function formatCampaignRange(
+  startDay: string,
+  endDay: string,
+  thisYear: number = new Date().getUTCFullYear(),
+): string {
+  const sameMonth = startDay.slice(0, 7) === endDay.slice(0, 7)
+  const otherYear = Number(endDay.slice(0, 4)) !== thisYear
+  const start = formatCampaignDay(startDay, {
+    weekday: 'short',
+    day: 'numeric',
+    ...(sameMonth ? {} : { month: 'short' }),
+  })
+  const end = formatCampaignDay(endDay, {
     weekday: 'short',
     day: 'numeric',
     month: 'long',
-    year: 'numeric',
+    ...(otherYear ? { year: 'numeric' } : {}),
   })
-    .formatRange(noon(startDay), noon(endDay))
-    .replace(SPACES, ' ')
+  return m.campaigns_range({ start, end }).replace(SPACES, ' ')
 }
 
 /** How many days a campaign lasts, both ends included. */

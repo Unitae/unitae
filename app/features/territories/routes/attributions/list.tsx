@@ -35,6 +35,7 @@ import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { useOpenParam } from '~/shared/ui/hooks/use-open-param'
 import { useSideEditor } from '~/shared/ui/hooks/use-side-editor'
+import { ListWithPanel } from '~/shared/ui/ListWithPanel'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import S13ExportButton from '~/shared/ui/S13ExportButton'
 import { DiscardChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
@@ -114,11 +115,10 @@ export default function AttributionList({ loaderData }: Route.ComponentProps) {
     )
 
   const target = panel.target
-  const index = target ? visible.findIndex(row => row.id === target.id) : -1
-  const step = (delta: number) => {
-    const next = visible[(index + delta + visible.length) % visible.length]
-    if (next) panel.request({ kind: 'attribution', id: next.id, trigger: null })
-  }
+  const walk = panel.walk(
+    'attribution',
+    visible.map(row => row.id),
+  )
   const attributionPanel = target && (
     <AttributionPanel
       key={target.id}
@@ -127,11 +127,7 @@ export default function AttributionList({ loaderData }: Route.ComponentProps) {
       formRef={panel.formRef}
       onRequestClose={() => panel.request(null)}
       onClose={panel.close}
-      walk={
-        index >= 0
-          ? { position: index + 1, total: visible.length, onPrevious: () => step(-1), onNext: () => step(1) }
-          : null
-      }
+      walk={walk}
     />
   )
 
@@ -167,39 +163,36 @@ export default function AttributionList({ loaderData }: Route.ComponentProps) {
           action={assign || undefined}
         />
       ) : (
-        <div className="flex flex-wrap items-start gap-6">
-          <div className="flex min-w-0 flex-[3_1_560px] flex-col gap-3">
-            <AttributionToolbar
-              view={view}
-              counts={viewCounts(rows.map(row => row.state))}
-              onView={chooseView}
-              sort={loaderData.sort}
-              proximity={loaderData.proximity}
-              phoneMethod={loaderData.phoneMethod}
-              groups={loaderData.groups}
-              campaigns={loaderData.campaigns}
+        <ListWithPanel panel={panel.docked ? attributionPanel : null} onPanelKeyDown={walk?.onKeyDown}>
+          <AttributionToolbar
+            view={view}
+            counts={viewCounts(rows.map(row => row.state))}
+            onView={chooseView}
+            sort={loaderData.sort}
+            proximity={loaderData.proximity}
+            phoneMethod={loaderData.phoneMethod}
+            groups={loaderData.groups}
+            campaigns={loaderData.campaigns}
+          />
+          {visible.length === 0 ? (
+            <p className="rounded-lg border border-border bg-card px-4 py-5 text-muted-foreground text-sm">
+              {emptyViewText(view, loaderData.filtered)}
+            </p>
+          ) : (
+            <AttributionTable
+              rows={visible}
+              today={today}
+              selectedId={target?.id ?? null}
+              canManage={canManage}
+              canViewTerritories={loaderData.canViewTerritories}
+              onOpen={(row, trigger) => panel.request({ kind: 'attribution', id: row.id, trigger })}
+              onReturn={row => setReturning(dialogOf(row))}
+              onResume={row =>
+                resumer.submit({ intent: 'resume', id: row.id }, { method: 'post', action: PANEL_ROUTE })
+              }
             />
-            {visible.length === 0 ? (
-              <p className="rounded-lg border border-border bg-card px-4 py-5 text-muted-foreground text-sm">
-                {emptyViewText(view, loaderData.filtered)}
-              </p>
-            ) : (
-              <AttributionTable
-                rows={visible}
-                today={today}
-                selectedId={target?.id ?? null}
-                canManage={canManage}
-                canViewTerritories={loaderData.canViewTerritories}
-                onOpen={(row, trigger) => panel.request({ kind: 'attribution', id: row.id, trigger })}
-                onReturn={row => setReturning(dialogOf(row))}
-                onResume={row =>
-                  resumer.submit({ intent: 'resume', id: row.id }, { method: 'post', action: PANEL_ROUTE })
-                }
-              />
-            )}
-          </div>
-          {panel.docked && attributionPanel}
-        </div>
+          )}
+        </ListWithPanel>
       )}
       {!panel.docked && attributionPanel}
 

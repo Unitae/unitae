@@ -7,6 +7,8 @@ import type { AssignPanelData, AttributionPanelData } from '~/features/territori
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { useCloseOnSave } from '~/shared/ui/hooks/use-close-on-save'
+import type { SideEditorWalk } from '~/shared/ui/hooks/use-side-editor'
+import { sidePanelWalk } from '~/shared/ui/ListWithPanel'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '~/shared/ui/sheet'
 import { Skeleton } from '~/shared/ui/skeleton'
@@ -35,14 +37,6 @@ export interface AttributionTarget {
   trigger: HTMLElement | null
 }
 
-/** The attributions around the open one, so ↑ and ↓ walk the list without going back to it. */
-export interface AttributionWalk {
-  position: number
-  total: number
-  onPrevious: () => void
-  onNext: () => void
-}
-
 interface AttributionPanelProps {
   target: AttributionTarget
   /** Docked beside the list from 1280 px; a sheet over the page below. */
@@ -52,7 +46,8 @@ interface AttributionPanelProps {
   onRequestClose: () => void
   /** Closes without asking: « Annuler », a save, a rentrer, a cancel. */
   onClose: () => void
-  walk: AttributionWalk | null
+  /** The attributions around the open one, so ↑ and ↓ walk the list without going back to it. */
+  walk: SideEditorWalk | null
 }
 
 /**
@@ -115,7 +110,13 @@ export function AttributionPanel({ target, docked, formRef, onRequestClose, onCl
   )
 
   const footer = data && (
-    <PanelFooter data={data} walk={walk} busy={busy} onReturn={() => setReturning(dialogTarget)} onClose={onClose} />
+    <PanelFooter
+      data={data}
+      walk={docked ? null : walk}
+      busy={busy}
+      onReturn={() => setReturning(dialogTarget)}
+      onClose={onClose}
+    />
   )
 
   const dialogs = data?.mode === 'edit' && (
@@ -146,6 +147,7 @@ export function AttributionPanel({ target, docked, formRef, onRequestClose, onCl
         onClose={onRequestClose}
         returnFocus={target.trigger}
         footer={footer}
+        walk={sidePanelWalk(walk, walkLabels(target.kind))}
       >
         {body}
         {dialogs}
@@ -200,7 +202,15 @@ function dialogAttribution(data: { mode: 'edit' } & AttributionPanelData): Dialo
   }
 }
 
-function WalkControls({ walk }: { walk: AttributionWalk }) {
+/** The walk's buttons name what they open: an attribution, or a territory to attribute. */
+function walkLabels(kind: AttributionTarget['kind']) {
+  return kind === 'territory'
+    ? { previous: m.attributions_panel_previous_territory(), next: m.attributions_panel_next_territory() }
+    : { previous: m.attributions_panel_previous(), next: m.attributions_panel_next() }
+}
+
+/** The walk in the sheet's footer; the docked panel shows it in its header. */
+function WalkControls({ walk }: { walk: SideEditorWalk }) {
   return (
     <span className="flex items-center gap-1 text-faint text-xs">
       <Button
@@ -208,18 +218,12 @@ function WalkControls({ walk }: { walk: AttributionWalk }) {
         variant="ghost"
         size="icon-sm"
         aria-label={m.attributions_panel_previous()}
-        onClick={walk.onPrevious}
+        onClick={walk.previous}
       >
         <ChevronUp />
       </Button>
-      <span className="tabular-nums">{m.attributions_panel_walk({ position: walk.position, total: walk.total })}</span>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-sm"
-        aria-label={m.attributions_panel_next()}
-        onClick={walk.onNext}
-      >
+      <span className="tabular-nums">{m.common_walk_position({ position: walk.position, total: walk.total })}</span>
+      <Button type="button" variant="ghost" size="icon-sm" aria-label={m.attributions_panel_next()} onClick={walk.next}>
         <ChevronDown />
       </Button>
     </span>
@@ -249,7 +253,7 @@ function PanelFooter({
   onClose,
 }: {
   data: Loaded
-  walk: AttributionWalk | null
+  walk: SideEditorWalk | null
   busy: boolean
   onReturn: () => void
   onClose: () => void
@@ -268,7 +272,7 @@ function PanelFooter({
   }
   return (
     <div className="flex w-full flex-wrap items-center gap-2">
-      {walk != null && walk.total > 1 && <WalkControls walk={walk} />}
+      {walk != null && <WalkControls walk={walk} />}
       <span className="flex-1" />
       {data.attribution.state !== 'paused' && (
         <Button type="button" variant="outline" onClick={onReturn} disabled={busy}>

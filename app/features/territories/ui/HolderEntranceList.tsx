@@ -128,7 +128,9 @@ export function shopKindLabel(entrance: HolderEntrance): string {
   return shopKindLabels()[entrance.shopKind as ShopKind] ?? m.territory_doc_shop_fallback()
 }
 
-const ROW = 'grid grid-cols-[3.75rem_minmax(0,1fr)] gap-3 px-3.5 py-2.5 md:grid-cols-[4.5rem_minmax(0,1fr)] md:px-4'
+// 40 px rows from the tablet up, as every list; a little taller on a phone, where a finger reads them.
+const ROW =
+  'grid grid-cols-[3.75rem_minmax(0,1fr)] gap-3 px-3.5 py-2.5 md:grid-cols-[4.5rem_minmax(0,1fr)] md:px-4 md:py-2'
 
 function EntranceRow({
   entrance,
@@ -168,7 +170,7 @@ function EntranceRow({
 
   // Beside the row's button, never inside it: a link cannot sit in a button.
   const corner = action != null && (
-    <span className="absolute top-1.5 right-2 opacity-0 transition-opacity duration-(--u-duration-fast) focus-within:opacity-100 group-hover/entrance:opacity-100">
+    <span className="absolute top-1.5 right-2 opacity-0 transition-opacity duration-(--u-duration-fast) focus-within:opacity-100 group-hover/entrance:opacity-100 pointer-coarse:opacity-100">
       {action}
     </span>
   )

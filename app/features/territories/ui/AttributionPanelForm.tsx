@@ -12,7 +12,7 @@ import type {
   AttributionPanelData,
 } from '~/features/territories/server/attribution-panel.queries'
 import * as m from '~/i18n/paraglide/messages'
-import { Input } from '~/shared/ui/input'
+import { DateInput } from '~/shared/ui/DateInput'
 import { Label } from '~/shared/ui/label'
 import { type PersonDescription, PersonDropdown } from '~/shared/ui/PersonDropdown'
 import { Textarea } from '~/shared/ui/textarea'
@@ -87,30 +87,22 @@ export function AttributionEditForm({
       />
       {phoneMethod && !campaign && <MethodField value={method} onChange={setMethod} />}
 
-      <div className="grid grid-cols-2 gap-2.5">
+      {/* One under the other: a date written out with its weekday needs the panel's width. */}
+      <div className="flex flex-col gap-2.5">
         <div className={fieldClass}>
           <Label htmlFor={`${formId}-start`}>{m.attributions_panel_start()}</Label>
-          <Input
+          <DateInput
             id={`${formId}-start`}
             name="start-date"
-            type="date"
             required
             max={today}
             defaultValue={attribution.startDay}
-            className="tabular-nums"
           />
           <FieldErrors errors={fields['start-date'].errors} />
         </div>
         <div className={fieldClass}>
           <Label htmlFor={`${formId}-due`}>{m.attributions_panel_due()}</Label>
-          <Input
-            id={`${formId}-due`}
-            name="late-date"
-            type="date"
-            required
-            defaultValue={attribution.lateDay}
-            className="tabular-nums"
-          />
+          <DateInput id={`${formId}-due`} name="late-date" required defaultValue={attribution.lateDay} />
           <FieldErrors errors={fields['late-date'].errors} />
         </div>
       </div>
@@ -178,15 +170,14 @@ export function AttributionAssignForm({
 
       <div className={fieldClass}>
         <Label htmlFor={`${formId}-start`}>{m.attributions_panel_start()}</Label>
-        <Input
+        <DateInput
           id={`${formId}-start`}
           name="start-date"
-          type="date"
           required
           max={today}
-          value={start}
-          onChange={event => setStart(event.target.value)}
-          className="w-44 tabular-nums"
+          value={start || null}
+          onChange={next => setStart(next ?? '')}
+          className="w-60"
         />
         <FieldErrors errors={fields['start-date'].errors} />
         {start !== '' && !(campaign?.closes ?? false) && (
