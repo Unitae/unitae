@@ -8,12 +8,19 @@ import { type PdfPage, readPdf } from '~/tests/helpers/pdf-text'
 // Renders a board sheet the way the download route does, and reads it back, for the tests that
 // check what every combination of look and layout actually prints.
 
-export async function renderSheet(data: BoardSheetData, appearance: BoardAppearance): Promise<PdfPage[]> {
+export const SHEET_TIMEZONE = 'Europe/Paris'
+
+/** `asOf` is the day the sheet is printed, which also names the auxiliary pioneers' month. */
+export async function renderSheet(
+  data: BoardSheetData,
+  appearance: BoardAppearance,
+  { asOf = new Date('2026-10-28T10:00:00Z') }: { asOf?: Date } = {},
+): Promise<PdfPage[]> {
   const sheet = await buildBoardSheet(data, appearance, {
     title: 'Feuille d’essai',
     congregationName: 'Assemblée de Paris Batignolles',
-    asOf: new Date('2026-10-28T10:00:00Z'),
-    timezone: 'Europe/Paris',
+    asOf,
+    timezone: SHEET_TIMEZONE,
   })
   const response = await renderPdfResponse(sheet, 'sheet.pdf')
   expect(response.status, 'the sheet renders').toBe(200)
