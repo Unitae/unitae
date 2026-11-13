@@ -2,13 +2,14 @@ import { getFormProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod/v4'
 import { Building2, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { data, Form, Link, redirect } from 'react-router'
+import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { updateBuildingSchema } from '~/features/territories/schemas/building.schema'
 import { editBuilding } from '~/features/territories/server/edit-building.server'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import { BuildingAddressSections } from '~/features/territories/ui/BuildingAddressSections'
 import { BuildingMeta } from '~/features/territories/ui/BuildingMeta'
+import { DeleteBuildingDialog } from '~/features/territories/ui/DeleteBuildingDialog'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, requirePermission, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
@@ -61,6 +62,7 @@ export default function EditBuildingPage({ loaderData, actionData }: Route.Compo
   const { building, rights } = loaderData
   const { blocker, setDirty } = useUnsavedChanges()
   const [version, setVersion] = useState(0)
+  const [deleting, setDeleting] = useState(false)
   const address = `${building.number} ${building.street}`
 
   return (
@@ -76,11 +78,9 @@ export default function EditBuildingPage({ loaderData, actionData }: Route.Compo
           { label: m.building_address_crumb() },
         ]}
         actions={
-          <Button asChild variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
-            <Link to={`/territories/building/${building.id}/delete`}>
-              <Trash2 />
-              {m.building_delete_button()}
-            </Link>
+          <Button variant="ghost" className="text-danger-text hover:bg-danger-soft" onClick={() => setDeleting(true)}>
+            <Trash2 />
+            {m.building_delete_button()}
           </Button>
         }
       />
@@ -91,6 +91,7 @@ export default function EditBuildingPage({ loaderData, actionData }: Route.Compo
         onDirtyChange={setDirty}
         onCancel={() => setVersion(current => current + 1)}
       />
+      <DeleteBuildingDialog building={deleting ? building : null} onClose={() => setDeleting(false)} />
     </div>
   )
 }

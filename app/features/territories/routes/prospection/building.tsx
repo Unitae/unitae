@@ -1,5 +1,6 @@
 import { parseWithZod } from '@conform-to/zod/v4'
-import { Pencil, Search } from 'lucide-react'
+import { FactList, Panel } from '@unitae/ui'
+import { Building2, ClipboardList, Pencil } from 'lucide-react'
 import { data, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { buildingNotesSchema } from '~/features/territories/schemas/building.schema'
@@ -19,7 +20,6 @@ import {
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
-import { Card, CardContent } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -73,31 +73,31 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
 export default function BuildingPage({ loaderData }: Route.ComponentProps) {
   const { building, roles } = loaderData
+  const address = `${building.number} ${building.street}`
 
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
-        title={`${building.number} ${building.street}, ${building.zip}`}
+        icon={Building2}
+        title={`${address}, ${building.zip}`}
         subtitle={m.prospection_building_subtitle()}
         meta={<BuildingTerritories building={building} canViewTerritories={roles.canViewTerritories} />}
-        breadcrumbs={[
-          { label: m.sidebar_prospection(), to: '/territories/buildings' },
-          { label: `${building.number} ${building.street}, ${building.zip}` },
-        ]}
-        backTo="/territories/buildings"
+        breadcrumbs={[{ label: m.sidebar_prospection(), to: '/territories/buildings' }, { label: address }]}
         actions={
           roles.canManageProspection && (
             <>
-              {roles.canManageTerritories && <ArchiveBuildingToggleButton building={building} />}
-              <Button variant="outline" size="icon" asChild>
-                <Link to="../edit-prospection" relative="path" title={m.prospection_building_edit_prospection_title()}>
-                  <Search className="size-4" />
+              {roles.canManageTerritories && <ArchiveBuildingToggleButton building={building} labelled />}
+              <Button variant="outline" size="sm" asChild>
+                <Link to="../edit-prospection" relative="path">
+                  <ClipboardList aria-hidden="true" />
+                  {m.prospection_action_survey()}
                 </Link>
               </Button>
               {roles.canManageTerritories && (
-                <Button variant="outline" size="icon" asChild>
-                  <Link to="../edit" relative="path" title={m.prospection_building_edit_title()}>
-                    <Pencil className="size-4" />
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="../edit" relative="path">
+                    <Pencil aria-hidden="true" />
+                    {m.prospection_action_edit_address()}
                   </Link>
                 </Button>
               )}
@@ -106,35 +106,19 @@ export default function BuildingPage({ loaderData }: Route.ComponentProps) {
         }
       />
 
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col gap-3">
-            <h2 className="mb-2 font-display text-xl">{m.prospection_building_identification()}</h2>
-            <p>
-              {m.prospection_building_address()}{' '}
-              <span className="font-medium text-primary">
-                {building.number} {building.street}
-              </span>
-            </p>
-            <p>
-              {m.prospection_building_zip()} <span className="font-medium text-primary">{building.zip}</span>
-            </p>
-            {(building.latitude != null || building.longitude != null) && (
-              <p>
-                {m.prospection_building_gps()}{' '}
-                <span className="font-medium text-primary">
-                  {building.latitude}, {building.longitude}
-                </span>
-              </p>
-            )}
-            <p className="pt-3 text-muted-foreground text-sm italic">{m.prospection_building_info_notice()}</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {roles.canViewProspection && <BuildingProspectionInfo building={building} />}
-
-      {roles.canManageTerritories && <BuildingTerritoryInfo building={building} />}
+      <div className="grid items-start gap-4 lg:grid-cols-2">
+        <Panel title={m.prospection_building_identification()} padded>
+          <FactList
+            facts={[
+              { label: m.building_fact_address(), value: address },
+              { label: m.building_fact_zip(), value: building.zip },
+            ]}
+          />
+          <p className="mt-3 mb-0 text-faint text-xs">{m.prospection_building_info_notice()}</p>
+        </Panel>
+        {roles.canViewProspection && <BuildingProspectionInfo building={building} />}
+        {roles.canManageTerritories && <BuildingTerritoryInfo building={building} />}
+      </div>
     </div>
   )
 }

@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { data, redirect, useFetcher } from 'react-router'
 import { CardOverlayImportDialog } from '~/features/settings/ui/CardOverlayImportDialog'
 import { ConfirmDialog } from '~/features/settings/ui/ConfirmDialog'
-import { PerimeterPanel, ZoneDraftPanel, ZonesPanel } from '~/features/settings/ui/MapZonesColumn'
+import { PerimeterRow, ZoneDraftPanel, ZonesPanel } from '~/features/settings/ui/MapZonesColumn'
 import { SettingsHeader } from '~/features/settings/ui/SettingsHeader'
 import { downloadCardOverlaysGeoJson, useCardOverlayEditor } from '~/features/settings/ui/use-card-overlay-editor'
 import { CardOverlayMap, reachAround } from '~/features/territories'
@@ -175,13 +175,15 @@ export default function CongregationMapPage({ loaderData }: Route.ComponentProps
                   limitReached={limitReached}
                   onDraw={editor.startDrawing}
                   onEditShape={editor.startEditing}
-                />
-                <PerimeterPanel
-                  perimeter={perimeter}
-                  fetcher={fetcher}
-                  canDraw={canDraw}
-                  onEdit={editor.startEditingPerimeter}
-                  onDefine={editor.startNewPerimeter}
+                  perimeter={
+                    <PerimeterRow
+                      perimeter={perimeter}
+                      fetcher={fetcher}
+                      canDraw={canDraw}
+                      onEdit={editor.startEditingPerimeter}
+                      onDefine={editor.startNewPerimeter}
+                    />
+                  }
                 />
               </>
             )}

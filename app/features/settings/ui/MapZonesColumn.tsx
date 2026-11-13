@@ -1,6 +1,6 @@
 import { Panel } from '@unitae/ui'
 import { MoreHorizontal, Pencil, Plus, Spline, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import type { MapFetcher } from '~/features/settings/ui/map-fetcher'
 import type { CardOverlay, CardOverlayPath } from '~/features/territories'
 import * as m from '~/i18n/paraglide/messages'
@@ -40,10 +40,23 @@ interface ZonesPanelProps {
   limitReached: number | null
   onDraw: () => void
   onEditShape: (overlay: CardOverlay) => void
+  /** The congregation's perimeter, the list's first row (`PerimeterRow`). */
+  perimeter?: ReactNode
 }
 
-/** The zones printed on the territory cards: each with its colour and its points, and what can be done with it. */
-export function ZonesPanel({ overlays, fetcher, canDraw, limitReached, onDraw, onEditShape }: ZonesPanelProps) {
+/**
+ * The perimeter, then the zones printed on the territory cards: each with its colour and its points, and what can be
+ * done with it.
+ */
+export function ZonesPanel({
+  overlays,
+  fetcher,
+  canDraw,
+  limitReached,
+  onDraw,
+  onEditShape,
+  perimeter,
+}: ZonesPanelProps) {
   const [renaming, setRenaming] = useState<CardOverlay | null>(null)
   const [deleting, setDeleting] = useState<CardOverlay | null>(null)
 
@@ -71,8 +84,11 @@ export function ZonesPanel({ overlays, fetcher, canDraw, limitReached, onDraw, o
         ))
       }
     >
+      {perimeter}
       {overlays.length === 0 ? (
-        <p className="px-4.5 py-4 text-muted-foreground text-sm">{m.settings_map_zones_empty()}</p>
+        <p className="border-t px-4.5 py-4 text-muted-foreground text-sm first:border-t-0">
+          {m.settings_map_zones_empty()}
+        </p>
       ) : (
         overlays.map(overlay => (
           <div key={overlay.id} className="flex items-center gap-3 border-t px-4.5 py-2.5 first:border-t-0">
@@ -190,7 +206,7 @@ function ZoneMetaDialog({
   )
 }
 
-interface PerimeterPanelProps {
+interface PerimeterRowProps {
   perimeter: { paths: CardOverlayPath[] } | null
   fetcher: MapFetcher
   canDraw: boolean
@@ -198,20 +214,28 @@ interface PerimeterPanelProps {
   onDefine: () => void
 }
 
-/** The boundary of the congregation's territory: addresses imported outside it are set apart. */
-export function PerimeterPanel({ perimeter, fetcher, canDraw, onEdit, onDefine }: PerimeterPanelProps) {
+/**
+ * The boundary of the congregation's territory, as the zone list's first row: addresses imported outside it are set
+ * apart. A dashed swatch, its points or the sentence saying there is none, and « Modifier » or « Définir ».
+ */
+export function PerimeterRow({ perimeter, fetcher, canDraw, onEdit, onDefine }: PerimeterRowProps) {
   const [clearing, setClearing] = useState(false)
 
   return (
-    <Panel title={m.settings_territories_card_overlays_perimeter_section_title()}>
+    <div className="flex items-center gap-3 border-t px-4.5 py-2.5 first:border-t-0">
+      <span
+        aria-hidden="true"
+        className="size-3 shrink-0 rounded-full border-2 border-dashed"
+        style={{ borderColor: PERIMETER_DRAFT_COLOR }}
+      />
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="font-medium text-sm">{m.settings_territories_card_overlays_perimeter_section_title()}</span>
+        <span className="text-faint text-xs">
+          {perimeter ? points(perimeter.paths) : m.settings_map_perimeter_none()}
+        </span>
+      </span>
       {perimeter ? (
-        <div className="flex items-center gap-3 px-4.5 py-2.5">
-          <span
-            aria-hidden="true"
-            className="size-3 shrink-0 rounded-full border-2"
-            style={{ borderColor: PERIMETER_DRAFT_COLOR }}
-          />
-          <span className="flex-1 text-sm">{points(perimeter.paths)}</span>
+        <>
           {canDraw && (
             <Button type="button" size="sm" variant="ghost" onClick={onEdit}>
               <Spline aria-hidden="true" />
@@ -231,17 +255,14 @@ export function PerimeterPanel({ perimeter, fetcher, canDraw, onEdit, onDefine }
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
+        </>
       ) : (
-        <div className="flex flex-col items-start gap-3 px-4.5 py-4">
-          <p className="text-muted-foreground text-sm">{m.settings_map_perimeter_none()}</p>
-          {canDraw && (
-            <Button type="button" size="sm" variant="outline" onClick={onDefine}>
-              <Plus aria-hidden="true" />
-              {m.settings_map_perimeter_define()}
-            </Button>
-          )}
-        </div>
+        canDraw && (
+          <Button type="button" size="sm" variant="ghost" onClick={onDefine}>
+            <Plus aria-hidden="true" />
+            {m.settings_map_perimeter_define()}
+          </Button>
+        )
       )}
       <ConfirmDialog
         open={clearing}
@@ -252,7 +273,7 @@ export function PerimeterPanel({ perimeter, fetcher, canDraw, onEdit, onDefine }
         destructive
         onConfirm={() => fetcher.submit({ intent: 'clear-perimeter' }, { method: 'post' })}
       />
-    </Panel>
+    </div>
   )
 }
 

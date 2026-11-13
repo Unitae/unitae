@@ -184,14 +184,6 @@ function EditorLayer({
         {hint != null && (
           <span className="rounded-md bg-foreground px-2.5 py-1.5 text-background text-xs shadow-md">{hint}</span>
         )}
-        {visibleOf != null && !zone.loading && (
-          <span className={cn(CHIP, 'text-muted-foreground tabular-nums')}>
-            {m.split_tool_visible_here({
-              visible: new Intl.NumberFormat(getLocale()).format(zone.viewportEntrances.length),
-              total: new Intl.NumberFormat(getLocale()).format(visibleOf),
-            })}
-          </span>
-        )}
         {zone.loading && (
           <span role="status" className={cn(CHIP, 'text-muted-foreground')}>
             <Loader2 className="size-3 animate-spin" aria-hidden="true" />
@@ -213,7 +205,18 @@ function EditorLayer({
           </button>
         )}
       </div>
-      <div className="pointer-events-none absolute bottom-7 left-3 z-[5] max-xl:hidden">{legend}</div>
+      {/* The key to the dots at every width, with how many entrances the view shows, as the boards place it. */}
+      <div className="pointer-events-none absolute bottom-7 left-3 z-[5] flex max-w-[calc(100%-1.5rem)] flex-wrap items-end gap-2">
+        {legend}
+        {visibleOf != null && !zone.loading && (
+          <span className={cn(CHIP, 'text-muted-foreground tabular-nums')}>
+            {m.split_tool_visible_here({
+              visible: new Intl.NumberFormat(getLocale()).format(zone.viewportEntrances.length),
+              total: new Intl.NumberFormat(getLocale()).format(visibleOf),
+            })}
+          </span>
+        )}
+      </div>
     </>
   )
 }

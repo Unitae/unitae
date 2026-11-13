@@ -48,7 +48,7 @@ interface TerritoryBatchCreatorProps {
   onCreated: (territory: CreatedTerritory) => void
 }
 
-const PHONE_MAP = 'h-[calc(100dvh-var(--map-top,16rem)-8rem-env(safe-area-inset-bottom))] min-h-72'
+const PHONE_MAP = 'h-[calc(100dvh-var(--map-top,16rem)-4.5rem-env(safe-area-inset-bottom))] min-h-72'
 
 /**
  * « Créer en lot »: the editor's create screen that chains territories. The map shows the free entrances of the type;
@@ -84,6 +84,8 @@ export function TerritoryBatchCreator(props: TerritoryBatchCreatorProps) {
   return (
     <div
       data-full-bleed=""
+      // Full screen on a phone: the save bar takes the tab bar's place, as the board draws it.
+      data-bottom-sheet=""
       className="flex flex-col max-md:-mx-4 md:-mx-6 md:-mt-6 md:-mb-6 md:h-[calc(100dvh-3rem)] md:flex-row"
     >
       <UnsavedChangesDialog blocker={batch.blocker} />
@@ -232,7 +234,12 @@ function BatchMapPane({
   const { ref: mapRef, top } = useTopOnPhone(mapShown)
   return (
     <>
-      <div className="border-border border-b px-4 pb-3 md:hidden">
+      <div className="flex flex-col gap-3 border-border border-b px-4 pb-3 md:hidden">
+        {/* The page's title on a phone, and the number the next territory takes, before the map. */}
+        <p className="m-0 flex items-baseline gap-2">
+          <span className="text-h1">{m.split_tool_heading()}</span>
+          <span className="text-faint text-sm tabular-nums">{m.split_tool_next_number({ number: batch.number })}</span>
+        </p>
         <SegmentedControl
           aria-label={m.territory_editor_views()}
           value={batch.view}
@@ -309,7 +316,8 @@ function BatchSaveBar({
       dirty={false}
       label={summary}
       className={cn(
-        'fixed z-30 max-md:inset-x-0 max-md:bottom-[calc(56px+env(safe-area-inset-bottom))] md:bottom-0',
+        // At the bottom of the screen: the editor hides the tab bar on a phone.
+        'fixed z-30 max-md:inset-x-0 max-md:bottom-0 max-md:pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:bottom-0',
         beside
           ? 'md:right-0 md:w-100 md:border-l'
           : 'md:inset-x-0 md:group-has-data-[state=expanded]/sidebar-wrapper:left-(--sidebar-width)',

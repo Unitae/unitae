@@ -82,7 +82,8 @@ export default function MyTerritoryView({ loaderData }: Route.ComponentProps) {
   return (
     <div className={cn('flex flex-col', map != null ? 'max-w-6xl' : 'max-w-4xl')}>
       <PageHeader
-        icon={MapPin}
+        // On a phone the map gets the screen: no icon tile above it.
+        icon={view === 'map' ? undefined : MapPin}
         title={m.territory_doc_title({ name: territory.number })}
         titleBadge={<LoanStatus loan={attribution} timeZone={timeZone} form="long" relative="inline" />}
         meta={
@@ -99,8 +100,16 @@ export default function MyTerritoryView({ loaderData }: Route.ComponentProps) {
           </div>
         }
         breadcrumbs={[{ label: m.sidebar_my_territories(), to: '/me/territories' }, { label: territory.number }]}
+        // The PDF: a labelled button from the tablet up, an icon on the trail's row on a phone.
+        trailEnd={
+          <Button asChild variant="ghost" size="icon-sm" className="md:hidden">
+            <a href={`/territories/territory/${territory.id}/pdf`} aria-label={m.my_territories_download_pdf()}>
+              <Download aria-hidden="true" />
+            </a>
+          </Button>
+        }
         actions={
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="outline" size="sm" className="max-md:hidden">
             <a href={`/territories/territory/${territory.id}/pdf`}>
               <Download aria-hidden="true" />
               {m.my_territories_download_pdf()}
