@@ -25,7 +25,7 @@ interface DisplayFieldsProps {
 
 function othersText(count: number): string {
   if (count === 0) return m.board_form_highlight_others_none()
-  return count === 1 ? m.board_form_highlight_others_one() : m.board_form_highlight_others_many({ count })
+  return m.board_form_highlight_others({ count })
 }
 
 function FieldError({ id, errors }: { id: string; errors?: string[] }) {

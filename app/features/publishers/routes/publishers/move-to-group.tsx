@@ -17,11 +17,9 @@ export function loader() {
 
 function movedMessage(moved: number, group: { name: string } | null): string {
   const count = String(moved)
-  if (group == null) return moved === 1 ? m.publishers_moved_out_one() : m.publishers_moved_out_many({ count })
+  if (group == null) return m.publishers_moved_out({ count })
   const name = formatGroupName(group.name)
-  return moved === 1
-    ? m.publishers_moved_to_group_one({ group: name })
-    : m.publishers_moved_to_group_many({ count, group: name })
+  return m.publishers_moved_to_group({ count, group: name })
 }
 
 /** « Changer de groupe » on the publishers list: the same right, and the same rules, as the group page. */

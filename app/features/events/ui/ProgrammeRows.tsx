@@ -58,9 +58,7 @@ export function ProgrammeTrackHead({ track, count, className }: { track: string;
     >
       <Users aria-hidden="true" className="size-3.5" />
       <span className="font-medium text-foreground">{track}</span>
-      <span className="text-faint">
-        · {count === 1 ? m.programme_track_parts_one() : m.programme_track_parts_other({ count: String(count) })}
-      </span>
+      <span className="text-faint">· {m.programme_track_parts({ count: count })}</span>
     </div>
   )
 }

@@ -12,15 +12,15 @@ export function addressOf(entrance: Pick<EditorEntrance, 'address'>): string {
 export function contentText(kind: TerritoryKindKey, count: number): string {
   if (kind === TerritoryKindKey.Phone) return m.territories_content_phones({ count })
   if (kind === TerritoryKindKey.Classical || kind === TerritoryKindKey.Univ) {
-    return count > 1 ? m.territories_content_homes_other({ count }) : m.territories_content_homes_one({ count })
+    return m.territories_content_homes({ count })
   }
   if (kind === TerritoryKindKey.Commerces) {
-    return count > 1 ? m.territories_content_commerces_other({ count }) : m.territories_content_commerces_one({ count })
+    return m.territories_content_commerces({ count })
   }
   if (kind === TerritoryKindKey.Hotel) {
-    return count > 1 ? m.territories_content_hotels_other({ count }) : m.territories_content_hotels_one({ count })
+    return m.territories_content_hotels({ count })
   }
-  return count > 1 ? m.territories_content_entrances_other({ count }) : m.territories_content_entrances_one({ count })
+  return m.territories_content_entrances({ count })
 }
 
 /** What a row's number counts, where the type counts something inside each entrance; nothing for shops. */
@@ -36,9 +36,9 @@ export function rowCount(kind: TerritoryKindKey, entrance: EditorEntrance): numb
 }
 
 export function entrancesCount(count: number): string {
-  return count === 1 ? m.territory_editor_entrances_count_one() : m.territory_editor_entrances_count({ count })
+  return m.territory_editor_entrances_count({ count })
 }
 
 export function streetsCount(count: number): string {
-  return count === 1 ? m.territory_editor_streets_count_one() : m.territory_editor_streets_count({ count })
+  return m.territory_editor_streets_count({ count })
 }

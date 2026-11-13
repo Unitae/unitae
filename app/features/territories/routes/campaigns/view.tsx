@@ -117,7 +117,7 @@ export default function CampaignView({ loaderData }: Route.ComponentProps) {
         titleBadge={<CampaignStateTag status={status} />}
         subtitle={[
           formatCampaignRange(campaign.startDay, campaign.endDay),
-          length > 1 ? m.campaigns_length_other({ count: length }) : m.campaigns_length_one({ count: length }),
+          m.campaigns_length({ count: length }),
           scope,
         ].join(' · ')}
         breadcrumbs={[
@@ -173,7 +173,7 @@ function CampaignMetrics({
   today,
 }: Pick<ViewData, 'status' | 'campaign' | 'metrics' | 'today'>) {
   const percent = metrics.total === 0 ? 0 : Math.round((metrics.worked / metrics.total) * 100)
-  const days = (count: number) => (count > 1 ? m.campaigns_metric_days_other() : m.campaigns_metric_days_one())
+  const days = (count: number) => m.campaigns_metric_days({ count })
   const left = daysBetween(today, campaign.endDay) + 1
   const until = daysBetween(today, campaign.startDay)
   const length = campaignLength(campaign.startDay, campaign.endDay)

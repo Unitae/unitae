@@ -84,13 +84,7 @@ export function DeleteSpeakerDialog({ speaker, congregationName, visits, timezon
         </AlertDialogHeader>
         {(upcoming.length > 0 || past > 0) && (
           <ul className="text-muted-foreground flex list-disc flex-col gap-1 pl-5 text-sm">
-            {upcoming.length > 0 && (
-              <li>
-                {upcoming.length === 1
-                  ? m.external_speakers_delete_freed_one({ dates })
-                  : m.external_speakers_delete_freed_many({ count: String(upcoming.length), dates })}
-              </li>
-            )}
+            {upcoming.length > 0 && <li>{m.external_speakers_delete_freed({ count: upcoming.length, dates })}</li>}
             {past > 0 && (
               <li>
                 {past === 1

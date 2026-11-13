@@ -28,12 +28,8 @@ function when(row: TemplateRow): string {
 }
 
 function content(row: TemplateRow): string {
-  const parts =
-    row.parts === 1 ? m.settings_templates_parts_one() : m.settings_templates_parts_many({ count: String(row.parts) })
-  const services =
-    row.services === 1
-      ? m.settings_templates_services_one()
-      : m.settings_templates_services_many({ count: String(row.services) })
+  const parts = m.settings_templates_parts({ count: row.parts })
+  const services = m.settings_templates_services({ count: row.services })
   return `${parts} · ${services}`
 }
 

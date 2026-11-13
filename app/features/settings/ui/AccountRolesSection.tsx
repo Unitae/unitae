@@ -14,8 +14,7 @@ interface AccountRolesSectionProps {
   canManageRoles: boolean
 }
 
-const people = (count: number) =>
-  count === 1 ? m.settings_account_role_people_one() : m.settings_account_role_people_many({ count: String(count) })
+const people = (count: number) => m.settings_account_role_people({ count: count })
 
 /** Why a role cannot be ticked or unticked here, or null when it can. */
 function lockReason(role: AccountPageRole, isSelf: boolean): string | null {

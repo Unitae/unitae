@@ -31,9 +31,7 @@ export function DayOffConflictModal({ conflicts, timezone, open, onClose }: DayO
           <Status tone="success" className="text-foreground">
             {m.days_off_saved_status()}
           </Status>
-          <AlertDialogTitle>
-            {count > 1 ? m.days_off_conflict_title_other({ count }) : m.days_off_conflict_title_one({ count })}
-          </AlertDialogTitle>
+          <AlertDialogTitle>{m.days_off_conflict_title({ count })}</AlertDialogTitle>
           <AlertDialogDescription>{m.days_off_conflict_description()}</AlertDialogDescription>
         </AlertDialogHeader>
 

@@ -6,10 +6,21 @@ import { describe, expect, it } from 'vitest'
 const STRAIGHT_APOSTROPHE = /'/
 const THREE_DOTS = /\.\.\./
 
+type Variant = { match: Record<string, string> }
+
+// A plural message holds one text per form: each is checked, under its own key, like any other message.
 function readMessages(locale: string): [string, string][] {
   const url = new URL(`./messages/${locale}.json`, import.meta.url)
-  const messages: Record<string, string> = JSON.parse(readFileSync(url, 'utf8'))
-  return Object.entries(messages).filter(([key]) => key !== '$schema')
+  const messages: Record<string, string | Variant[]> = JSON.parse(readFileSync(url, 'utf8'))
+  return Object.entries(messages)
+    .filter(([key]) => key !== '$schema')
+    .flatMap(([key, value]): [string, string][] =>
+      typeof value === 'string'
+        ? [[key, value]]
+        : value.flatMap(variant =>
+            Object.entries(variant.match).map(([form, text]): [string, string] => [`${key} (${form})`, text]),
+          ),
+    )
 }
 
 describe.each(['fr', 'en'])('the %s messages', locale => {

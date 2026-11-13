@@ -32,9 +32,7 @@ function RowHead({ node, extraMembers }: { node: OrganigramNode; extraMembers: n
       </span>
       {node.isRoster && <span className="text-faint text-sm tabular-nums">{node.holders.length}</span>}
       {extraMembers > 0 && (
-        <span className="text-faint text-sm tabular-nums">
-          {extraMembers === 1 ? m.org_members_more_one() : m.org_members_more_many({ count: String(extraMembers) })}
-        </span>
+        <span className="text-faint text-sm tabular-nums">{m.org_members_more({ count: extraMembers })}</span>
       )}
       {vacant && (
         <span className="bg-warning-soft text-warning-text rounded-sm px-1.5 text-xs leading-5 font-medium">

@@ -8,7 +8,7 @@ export function dayReadout(days: number): string | null {
   if (!Number.isFinite(days) || days < 7) return null
   if (days < 28) {
     const weeks = Math.round(days / 7)
-    return weeks === 1 ? m.settings_duration_weeks_one() : m.settings_duration_weeks_many({ count: String(weeks) })
+    return m.settings_duration_weeks({ count: weeks })
   }
   return m.settings_duration_months({ count: String(Math.round(days / 30)) })
 }
@@ -17,7 +17,7 @@ export function dayReadout(days: number): string | null {
 export function monthReadout(months: number): string | null {
   if (!Number.isFinite(months) || months < 12 || months % 12 !== 0) return null
   const years = months / 12
-  return years === 1 ? m.settings_duration_years_one() : m.settings_duration_years_many({ count: String(years) })
+  return m.settings_duration_years({ count: years })
 }
 
 interface DurationInputProps {

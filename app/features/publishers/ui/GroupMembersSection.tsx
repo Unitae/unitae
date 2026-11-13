@@ -70,9 +70,8 @@ export function GroupMembersSection({ draft, groupId }: { draft: Draft; groupId?
 /** « 21 proclamateurs », or « … une fois enregistré » while changes wait for the save. */
 function totalLine(total: number, changed: boolean) {
   const count = String(total)
-  if (changed)
-    return total === 1 ? m.groups_members_total_after_one({ count }) : m.groups_members_total_after_other({ count })
-  return total === 1 ? m.groups_list_publishers_one() : m.groups_list_publishers_other({ count })
+  if (changed) return m.groups_members_total_after({ count })
+  return m.groups_list_publishers({ count })
 }
 
 function MemberLine({ row, draft }: { row: MemberRow; draft: Draft }) {

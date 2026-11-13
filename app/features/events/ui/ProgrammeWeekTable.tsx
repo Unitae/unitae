@@ -130,17 +130,11 @@ export function ProgrammeWeekTable({
                       {week.monday === currentWeek && (
                         <span className="font-medium text-brand-text text-xs">{m.programs_this_week()}</span>
                       )}
-                      <span className="text-faint tabular-nums">
-                        {rows.length > 1
-                          ? m.programs_count_other({ count: rows.length })
-                          : m.programs_count_one({ count: rows.length })}
-                      </span>
+                      <span className="text-faint tabular-nums">{m.programs_count({ count: rows.length })}</span>
                       <span className="flex-1" />
                       {review > 0 && (
                         <Status tone={urgent ? 'danger' : 'warning'}>
-                          {review > 1
-                            ? m.programs_absences_week_review_other({ count: review })
-                            : m.programs_absences_week_review_one({ count: review })}
+                          {m.programs_absences_week_review({ count: review })}
                         </Status>
                       )}
                     </div>

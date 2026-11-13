@@ -142,11 +142,7 @@ export function EventProgrammePanel({
       footer={
         parts.length > 0 && (
           <>
-            <span>
-              {parts.length === 1
-                ? m.programs_edit_parts_one()
-                : m.programs_edit_parts_many({ count: String(parts.length) })}
-            </span>
+            <span>{m.programs_edit_parts({ count: parts.length })}</span>
             <span className="tabular-nums">{durationLabel(total, true)}</span>
           </>
         )

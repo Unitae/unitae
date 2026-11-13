@@ -19,14 +19,13 @@ const GROUPS: { key: RoleGroup; heading: GroupHeading | null }[] = [
   { key: 'record', heading: { title: m.settings_roles_group_record, hint: m.settings_roles_group_record_hint } },
 ]
 
-export const peopleLabel = (count: number) =>
-  count === 1 ? m.settings_account_role_people_one() : m.settings_account_role_people_many({ count: String(count) })
+export const peopleLabel = (count: number) => m.settings_account_role_people({ count: count })
 
 export function permissionsLabel(role: RoleWithPermissions): string {
   if (role.group === 'admin') return m.settings_roles_all()
   const count = role.permissionKeys.length
   if (count === 0) return m.settings_roles_permissions_none()
-  return count === 1 ? m.settings_roles_permissions_one() : m.settings_roles_permissions_many({ count: String(count) })
+  return m.settings_roles_permissions({ count: count })
 }
 
 interface RoleListProps {

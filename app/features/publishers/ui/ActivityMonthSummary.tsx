@@ -7,28 +7,22 @@ import { formatGroupName } from '~/shared/utils/format-group-name'
 import { cn } from '~/shared/utils/utils'
 
 /** One message for one, another for more, as the catalogues pair them. */
-const plural = (count: number, one: () => string, other: (input: { count: number }) => string) =>
-  count === 1 ? one() : other({ count })
-
 const PIONEER_PARTS: { type: PublisherType; label: (count: number) => string }[] = [
   {
     type: PublisherType.PionnierPermanant,
-    label: count =>
-      plural(count, m.activity_summary_pioneers_permanent_one, m.activity_summary_pioneers_permanent_other),
+    label: count => m.activity_summary_pioneers_permanent({ count: count }),
   },
   {
     type: PublisherType.PionnierAuxiliaires,
-    label: count =>
-      plural(count, m.activity_summary_pioneers_auxiliary_one, m.activity_summary_pioneers_auxiliary_other),
+    label: count => m.activity_summary_pioneers_auxiliary({ count: count }),
   },
   {
     type: PublisherType.PionnierSpecial,
-    label: count => plural(count, m.activity_summary_pioneers_special_one, m.activity_summary_pioneers_special_other),
+    label: count => m.activity_summary_pioneers_special({ count: count }),
   },
   {
     type: PublisherType.Missionnaire,
-    label: count =>
-      plural(count, m.activity_summary_pioneers_missionary_one, m.activity_summary_pioneers_missionary_other),
+    label: count => m.activity_summary_pioneers_missionary({ count: count }),
   },
 ]
 
@@ -39,7 +33,7 @@ function pioneersFoot(summary: ReportMonthSummary): string {
     const count = summary.pioneersByType[type] ?? 0
     return count > 0 ? [label(count)] : []
   })
-  const total = plural(summary.pioneers, m.activity_summary_pioneers_count_one, m.activity_summary_pioneers_count_other)
+  const total = m.activity_summary_pioneers_count({ count: summary.pioneers })
   return `${total} · ${parts.join(', ')}`
 }
 
@@ -50,7 +44,7 @@ export function ActivityMonthSummary({ summary }: { summary: ReportMonthSummary 
       <StatTile
         label={m.activity_summary_filed_label()}
         value={summary.filed}
-        unit={plural(summary.expected, m.activity_summary_filed_unit_one, m.activity_summary_filed_unit_other)}
+        unit={m.activity_summary_filed_unit({ count: summary.expected })}
         meter={<ProgressBar value={summary.filed} max={summary.expected} />}
         foot={
           summary.missing > 0 ? m.activity_summary_missing({ count: summary.missing }) : m.activity_summary_all_filed()
@@ -62,7 +56,7 @@ export function ActivityMonthSummary({ summary }: { summary: ReportMonthSummary 
         value={summary.preached}
         foot={
           summary.notPreached > 0
-            ? plural(summary.notPreached, m.activity_summary_not_preached_one, m.activity_summary_not_preached_other)
+            ? m.activity_summary_not_preached({ count: summary.notPreached })
             : m.activity_summary_everyone_preached()
         }
       />

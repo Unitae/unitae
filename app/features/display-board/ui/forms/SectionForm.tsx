@@ -34,7 +34,7 @@ interface SectionFormProps {
 
 function audienceText(count: number) {
   if (count === 0) return m.board_section_form_audience_none()
-  return count === 1 ? m.board_section_form_audience_one() : m.board_section_form_audience_many({ count })
+  return m.board_section_form_audience({ count })
 }
 
 /**

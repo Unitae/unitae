@@ -39,7 +39,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     const count = await withScopeFromContext(context, (db, congregationId) =>
       deactivateBuildings(db, { buildingIds, congregationId, actorId }),
     )
-    session.flash('success', count === 1 ? m.prospection_deactivated_one() : m.prospection_deactivated({ count }))
+    session.flash('success', m.prospection_deactivated({ count }))
   } catch (error) {
     logger.error('Buildings could not be deactivated', { error })
     session.flash('error', m.prospection_deactivate_error())

@@ -55,7 +55,7 @@ export function formatAbsencePeriod(
 
 /** « 4 jours », « 1 jour ». */
 export function absenceLength(count: number): string {
-  return count > 1 ? m.days_off_days_other({ count }) : m.days_off_days_one({ count })
+  return m.days_off_days({ count })
 }
 
 /** An assignment falling during an absence, with the person in charge of its programme when it has one. */

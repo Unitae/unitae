@@ -73,9 +73,7 @@ function Conflicts({ conflicts, timeZone }: { conflicts: ProgrammeAbsenceConflic
         tone={conflicts.some(conflict => conflict.published) ? 'danger' : 'warning'}
         className="whitespace-normal text-foreground"
       >
-        {conflicts.length > 1
-          ? m.days_off_conflicts_other({ count: conflicts.length })
-          : m.days_off_conflicts_one({ count: conflicts.length })}
+        {m.days_off_conflicts({ count: conflicts.length })}
       </Status>
       <ul className="flex flex-col gap-1 pl-[1.125rem] text-muted-foreground text-sm">
         {conflicts.map(conflict => {

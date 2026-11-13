@@ -239,11 +239,7 @@ export function OurBrotherPanel({
   const footer = canManage ? (
     <div className="flex w-full items-center gap-2">
       <span className="text-muted-foreground flex-1 text-sm" aria-live="polite">
-        {form.changes === 0
-          ? null
-          : form.changes === 1
-            ? m.form_changes_one({ count: '1' })
-            : m.form_changes_many({ count: String(form.changes) })}
+        {form.changes === 0 ? null : m.form_changes({ count: form.changes })}
       </span>
       <Button
         type="button"

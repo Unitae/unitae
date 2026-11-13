@@ -42,7 +42,7 @@ export function BuildingSelectionBar({ selected, onClear }: BuildingSelectionBar
   return (
     <>
       <SelectionBar
-        label={count === 1 ? m.prospection_selected_one() : m.prospection_selected({ count })}
+        label={m.prospection_selected({ count })}
         onClear={onClear}
         clearLabel={m.prospection_selection_clear()}
         aria-label={m.prospection_selection_actions()}
@@ -54,9 +54,7 @@ export function BuildingSelectionBar({ selected, onClear }: BuildingSelectionBar
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {count === 1 ? m.prospection_deactivate_title_one() : m.prospection_deactivate_title({ count })}
-            </AlertDialogTitle>
+            <AlertDialogTitle>{m.prospection_deactivate_title({ count })}</AlertDialogTitle>
             <AlertDialogDescription>{body}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

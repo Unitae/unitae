@@ -269,11 +269,7 @@ export function OurSpeakerListScreen({ data }: { data: OurSpeakerListData }) {
       >
         <div className="flex flex-wrap items-baseline gap-x-2.5">
           <h1 className="text-h1">{m.external_speakers_page_title()}</h1>
-          <span className="text-faint tabular-nums">
-            {onList.length === 1
-              ? m.external_speakers_ours_count_one()
-              : m.external_speakers_ours_count_many({ count: String(onList.length) })}
-          </span>
+          <span className="text-faint tabular-nums">{m.external_speakers_ours_count({ count: onList.length })}</span>
         </div>
       </PageTopbar>
       <SpeakerListsTabs received={data.receivedCount} ours={onList.length} />

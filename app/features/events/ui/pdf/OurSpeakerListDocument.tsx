@@ -133,10 +133,7 @@ function Addresses({ emails }: { emails: OurSpeakerListSheetRow['emails'] }) {
 
 export function OurSpeakerListDocument({ sheet }: { sheet: OurSpeakerListSheet }) {
   const count = sheet.brothers.length
-  const subtitle =
-    count === 1
-      ? m.external_speakers_pdf_subtitle_one({ date: sheet.date })
-      : m.external_speakers_pdf_subtitle_many({ date: sheet.date, count })
+  const subtitle = m.external_speakers_pdf_subtitle({ date: sheet.date, count })
   const congregationName = sanitizeText(sheet.congregationName)
   return (
     <Document title={`${m.external_speakers_pdf_title()} · ${congregationName}`}>

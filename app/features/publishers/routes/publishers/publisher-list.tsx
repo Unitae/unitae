@@ -128,11 +128,7 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
       {selected.size > 0 && (
         <SelectionBar
           aria-label={m.publishers_selection_toolbar()}
-          label={
-            selected.size === 1
-              ? m.publishers_selection_one()
-              : m.publishers_selection_many({ count: String(selected.size) })
-          }
+          label={m.publishers_selection({ count: selected.size })}
           clearLabel={m.publishers_selection_clear()}
           onClear={() => setPicked(new Set())}
           className="max-md:hidden"

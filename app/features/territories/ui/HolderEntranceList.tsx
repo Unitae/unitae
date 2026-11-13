@@ -79,7 +79,7 @@ function StreetSection({
   const phones = street.entrances.reduce((sum, entrance) => sum + entrance.phones, 0)
   const meta = [
     showZip ? street.zip : null,
-    count > 1 ? m.territories_content_entrances_other({ count }) : m.territories_content_entrances_one({ count }),
+    m.territories_content_entrances({ count }),
     isPhone
       ? m.my_territories_phones_count({ count: phones })
       : street.homes > 0

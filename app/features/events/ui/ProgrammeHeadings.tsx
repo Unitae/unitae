@@ -53,11 +53,7 @@ export function TrackHeading({ track, count, className }: TrackHeadingProps) {
     <span className={cn('flex items-center gap-1.5 pl-4 text-muted-foreground text-xs italic', className)}>
       <Users aria-hidden="true" className="size-3" />
       {track}
-      {count != null && count > 0 && (
-        <span className="not-italic">
-          · {count === 1 ? m.programme_track_parts_one() : m.programme_track_parts_other({ count: String(count) })}
-        </span>
-      )}
+      {count != null && count > 0 && <span className="not-italic">· {m.programme_track_parts({ count: count })}</span>}
     </span>
   )
 }

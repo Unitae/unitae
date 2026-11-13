@@ -56,9 +56,7 @@ async function send(intent: Extract<OurSpeakerIntent, { intent: 'send' }>, conte
   const message =
     failed.length > 0
       ? m.external_speakers_send_partial({ sent: String(sent.length), names: failed.map(each => each.name).join(', ') })
-      : sent.length === 1
-        ? m.external_speakers_send_done_one()
-        : m.external_speakers_send_done_many({ count: String(sent.length) })
+      : m.external_speakers_send_done({ count: sent.length })
   return { ok: true as const, message, extra: { failed: failed.map(each => each.speakerCongregationId) } }
 }
 
@@ -86,8 +84,7 @@ export async function runOurListIntent(intent: OurSpeakerIntent, context: OurLis
           digest,
         })
       })
-      const message =
-        count === 1 ? m.external_speakers_mark_done_one() : m.external_speakers_mark_done_many({ count: String(count) })
+      const message = m.external_speakers_mark_done({ count: count })
       return { ok: true, message }
     }
     case 'send':

@@ -80,16 +80,12 @@ export function AbsenceWeekList({ weeks, showEmptyWeeks, currentWeek, timeZone, 
                 <span className="font-medium text-brand-text text-xs">{m.programs_absences_this_week()}</span>
               )}
               <span className="text-faint tabular-nums">
-                {week.items.length > 1
-                  ? m.programs_absences_week_count_other({ count: week.items.length })
-                  : m.programs_absences_week_count_one({ count: week.items.length })}
+                {m.programs_absences_week_count({ count: week.items.length })}
               </span>
               <span className="flex-1" />
               {review > 0 && (
                 <Status tone={weekConflicts.some(conflict => conflict.published) ? 'danger' : 'warning'}>
-                  {review > 1
-                    ? m.programs_absences_week_review_other({ count: review })
-                    : m.programs_absences_week_review_one({ count: review })}
+                  {m.programs_absences_week_review({ count: review })}
                 </Status>
               )}
             </button>

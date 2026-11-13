@@ -235,9 +235,6 @@ export function SpeakerDirectoryScreen({ page }: { page: SpeakerDirectoryPage })
   ) : null
 
   const empty = directory.speakers.length === 0 && directory.congregations.length === 0
-  const countLabel = (count: number, one: () => string, many: (p: { count: string }) => string) =>
-    count === 1 ? one() : many({ count: String(count) })
-
   return (
     // The marker lets the app shell stop clipping as a scroll container, so the docked panel can stick.
     <div data-sticky-content="" className="flex flex-col gap-5">
@@ -256,12 +253,8 @@ export function SpeakerDirectoryScreen({ page }: { page: SpeakerDirectoryPage })
         <div className="flex flex-wrap items-baseline gap-x-2.5">
           <h1 className="text-h1">{m.external_speakers_page_title()}</h1>
           <span className="text-faint tabular-nums">
-            {countLabel(counts.onList, m.external_speakers_count_one, m.external_speakers_count_many)} ·{' '}
-            {countLabel(
-              counts.congregations,
-              m.external_speakers_congregations_one,
-              m.external_speakers_congregations_many,
-            )}
+            {m.external_speakers_count({ count: counts.onList })} ·{' '}
+            {m.external_speakers_congregations({ count: counts.congregations })}
           </span>
         </div>
       </PageTopbar>

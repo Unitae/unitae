@@ -289,8 +289,21 @@
     "board_sections_visibility_self_lockout_warning": "You will not be among the recipients of this section.",
     "board_section_delete_title": "Delete the section “{name}”?",
     "board_section_delete_empty": "It is empty.",
-    "board_section_delete_holds_one": "It holds one document.",
-    "board_section_delete_holds_many": "It holds {count} documents.",
+    "board_section_delete_holds": [
+        {
+            "declarations": [
+                "input count",
+                "local countExact = count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countExact", "countPlural"],
+            "match": {
+                "countExact=1, countPlural=*": "It holds one document.",
+                "countExact=*, countPlural=one": "It holds {count} document.",
+                "countExact=*, countPlural=*": "It holds {count} documents."
+            }
+        }
+    ],
     "board_section_delete_move": "Move its documents to",
     "board_section_delete_drop": "Delete them with it",
     "board_section_delete_drop_help": "Their files and history too. This cannot be undone.",
@@ -309,8 +322,21 @@
     "board_section_form_no_role": "No role chosen",
     "board_section_form_roles_required": "Choose at least one role, or “Everyone”.",
     "board_section_form_audience_none": "Nobody will see it: no account holds these roles.",
-    "board_section_form_audience_one": "One person will see it.",
-    "board_section_form_audience_many": "{count} people will see it.",
+    "board_section_form_audience": [
+        {
+            "declarations": [
+                "input count",
+                "local countExact = count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countExact", "countPlural"],
+            "match": {
+                "countExact=1, countPlural=*": "One person will see it.",
+                "countExact=*, countPlural=one": "{count} person will see it.",
+                "countExact=*, countPlural=*": "{count} people will see it."
+            }
+        }
+    ],
     "board_section_form_create": "Create the section",
     "board_sections_delete_button": "Delete section",
     "board_sections_delete_success": "Section “{name}” has been successfully deleted.",
@@ -356,8 +382,19 @@
     "board_programme_weeks_label": "Program weeks",
     "board_programme_week_of": "Week of {date}",
     "board_programme_this_week": "this week",
-    "board_programme_past_meetings_one": "1 past meeting",
-    "board_programme_past_meetings_other": "{count} past meetings",
+    "board_programme_past_meetings": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} past meeting",
+                "countPlural=*": "{count} past meetings"
+            }
+        }
+    ],
     "board_programme_show_past": "Show",
     "board_programme_hide_past": "Hide",
     "board_programme_past": "past",
@@ -365,17 +402,50 @@
     "board_viewer_you": "you",
     "board_viewer_your_group": "Your group",
     "board_viewer_search_count_none": "no names",
-    "board_viewer_search_count_one": "1 name",
-    "board_viewer_search_count_other": "{count} names",
+    "board_viewer_search_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} name",
+                "countPlural=*": "{count} names"
+            }
+        }
+    ],
     "board_viewer_open_group": "Open the group’s page",
     "board_viewer_open_role": "Open in the organigram",
     "board_viewer_open_programme": "Open this program",
     "board_organigram_seat_responsible": "In charge",
     "board_organigram_seat_servant": "Servant",
-    "board_organigram_seat_deputy_one": "Assistant",
-    "board_organigram_seat_deputy_other": "Assistants",
-    "board_organigram_teams_one": "Team",
-    "board_organigram_teams_other": "Teams",
+    "board_organigram_seat_deputy": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Assistant",
+                "countPlural=*": "Assistants"
+            }
+        }
+    ],
+    "board_organigram_teams": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Team",
+                "countPlural=*": "Teams"
+            }
+        }
+    ],
     "board_organigram_under_plural": "Under",
     "board_organigram_under_vowel": "Under",
     "board_organigram_under": "Under",
@@ -466,8 +536,19 @@
     "board_filter_label": "Shown documents",
     "board_filter_all": "All",
     "board_filter_unread": "Unread · {count}",
-    "board_section_unread_one": "1 unread",
-    "board_section_unread_other": "{count} unread",
+    "board_section_unread": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} unread",
+                "countPlural=*": "{count} unread"
+            }
+        }
+    ],
     "board_eyebrow_dynamic": "Live document",
     "board_eyebrow_pdf": "PDF",
     "board_meta_added": "Added",
@@ -575,8 +656,21 @@
     "board_form_highlight_label": "Featured",
     "board_form_highlight_help": "At the head of the board, above the sections.",
     "board_form_highlight_others_none": "No other document is there.",
-    "board_form_highlight_others_one": "One document is already there.",
-    "board_form_highlight_others_many": "{count} documents are already there.",
+    "board_form_highlight_others": [
+        {
+            "declarations": [
+                "input count",
+                "local countExact = count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countExact", "countPlural"],
+            "match": {
+                "countExact=1, countPlural=*": "One document is already there.",
+                "countExact=*, countPlural=one": "{count} document is already there.",
+                "countExact=*, countPlural=*": "{count} documents are already there."
+            }
+        }
+    ],
     "board_form_uploader_note_new": "A board reviewer will publish it: it reads “Not published” until then.",
     "board_form_uploader_note_edit": "A board reviewer decides when it appears.",
     "board_form_upload_submit": "Upload",
@@ -946,8 +1040,19 @@
     "publishers_no_recent_assignment": "No assignment in the last 12 months",
     "publishers_select_all": "Select all",
     "publishers_select_one": "Select {name}",
-    "publishers_selection_one": "1 selected",
-    "publishers_selection_many": "{count} selected",
+    "publishers_selection": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} selected",
+                "countPlural=*": "{count} selected"
+            }
+        }
+    ],
     "publishers_selection_toolbar": "Actions on the selection",
     "publishers_selection_clear": "Clear the selection",
     "publishers_move_to_group": "Change group",
@@ -955,10 +1060,32 @@
     "publishers_row_actions": "Actions for {name}",
     "publishers_row_edit": "Edit",
     "publishers_row_returned": "Mark as returned",
-    "publishers_moved_to_group_one": "1 publisher moved to {group}",
-    "publishers_moved_to_group_many": "{count} publishers moved to {group}",
-    "publishers_moved_out_one": "1 publisher taken out of their group",
-    "publishers_moved_out_many": "{count} publishers taken out of their group",
+    "publishers_moved_to_group": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} publisher moved to {group}",
+                "countPlural=*": "{count} publishers moved to {group}"
+            }
+        }
+    ],
+    "publishers_moved_out": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} publisher taken out of their group",
+                "countPlural=*": "{count} publishers taken out of their group"
+            }
+        }
+    ],
     "publishers_move_error_invalid": "Choose at least one publisher and a group.",
     "publishers_status_empty_inactive_title": "No inactive publishers",
     "publishers_status_empty_inactive_description": "A publisher with no field service report for six months appears here.",
@@ -1031,8 +1158,16 @@
     "publishers_visit_dialog_description": "{name} · only the date of the last visit is kept, without notes.",
     "publishers_visit_previous": "Previous: {date}",
     "publishers_record_activity": "Activity",
-    "publishers_record_reports_filed": "{filed} of {due} reports",
-    "publishers_record_reports_filed_one": "{filed} of {due} reports",
+    "publishers_record_reports_filed": [
+        {
+            "declarations": ["input due", "local duePlural = due: plural"],
+            "selectors": ["duePlural"],
+            "match": {
+                "duePlural=one": "{filed} of {due} report",
+                "duePlural=*": "{filed} of {due} reports"
+            }
+        }
+    ],
     "publishers_visit_meta_title": "Pastoral visit - Unitae",
     "publishers_visit_title": "Pastoral visit",
     "publishers_visit_subtitle": "The date of the last pastoral visit. Only the last date recorded is kept, with no other notes.",
@@ -1192,26 +1327,103 @@
     "activity_hours_value": "{hours} h",
     "activity_summary_label": "The month in figures",
     "activity_summary_filed_label": "Reports in",
-    "activity_summary_filed_unit_one": "of 1 expected",
-    "activity_summary_filed_unit_other": "of {count} expected",
+    "activity_summary_filed_unit": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "of {count} expected",
+                "countPlural=*": "of {count} expected"
+            }
+        }
+    ],
     "activity_summary_missing": "{count} to follow up",
     "activity_summary_all_filed": "Every report is in",
     "activity_summary_preached_label": "Preached",
-    "activity_summary_not_preached_one": "1 did not preach this month",
-    "activity_summary_not_preached_other": "{count} did not preach this month",
+    "activity_summary_not_preached": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} did not preach this month",
+                "countPlural=*": "{count} did not preach this month"
+            }
+        }
+    ],
     "activity_summary_everyone_preached": "Everyone preached this month",
     "activity_summary_pioneer_hours_label": "Pioneer hours",
     "activity_summary_pioneers_none": "No pioneers this month",
-    "activity_summary_pioneers_count_one": "1 pioneer",
-    "activity_summary_pioneers_count_other": "{count} pioneers",
-    "activity_summary_pioneers_permanent_one": "1 regular",
-    "activity_summary_pioneers_permanent_other": "{count} regular",
-    "activity_summary_pioneers_auxiliary_one": "1 auxiliary",
-    "activity_summary_pioneers_auxiliary_other": "{count} auxiliary",
-    "activity_summary_pioneers_special_one": "1 special",
-    "activity_summary_pioneers_special_other": "{count} special",
-    "activity_summary_pioneers_missionary_one": "1 missionary",
-    "activity_summary_pioneers_missionary_other": "{count} missionaries",
+    "activity_summary_pioneers_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} pioneer",
+                "countPlural=*": "{count} pioneers"
+            }
+        }
+    ],
+    "activity_summary_pioneers_permanent": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} regular",
+                "countPlural=*": "{count} regular"
+            }
+        }
+    ],
+    "activity_summary_pioneers_auxiliary": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} auxiliary",
+                "countPlural=*": "{count} auxiliary"
+            }
+        }
+    ],
+    "activity_summary_pioneers_special": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} special",
+                "countPlural=*": "{count} special"
+            }
+        }
+    ],
+    "activity_summary_pioneers_missionary": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} missionary",
+                "countPlural=*": "{count} missionaries"
+            }
+        }
+    ],
     "activity_summary_studies_label": "Bible studies",
     "activity_summary_pioneer_studies": "{count} of them by pioneers",
     "activity_groups_title": "By group",
@@ -1301,8 +1513,19 @@
     "activity_export_dialog_scope_members_search_placeholder": "Search for a publisher",
     "activity_export_dialog_scope_members_empty": "No publisher matches the search.",
     "activity_export_dialog_cancel": "Cancel",
-    "activity_export_dialog_submit_one": "Export 1 record",
-    "activity_export_dialog_submit_many": "Export {count} records",
+    "activity_export_dialog_submit_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Export {count} record",
+                "countPlural=*": "Export {count} records"
+            }
+        }
+    ],
     "activity_export_dialog_submit": "Export",
     "activity_export_dialog_generating": "Generating… this may take up to a minute depending on the number of publishers.",
     "activity_export_dialog_error_scope": "Please pick a group or at least one publisher.",
@@ -1405,11 +1628,33 @@
     "days_off_page_subtitle": "The people in charge of the program take them into account before assigning a part.",
     "days_off_new_button": "New absence",
     "days_off_upcoming_count": "{count} upcoming",
-    "days_off_days_one": "{count} day",
-    "days_off_days_other": "{count} days",
+    "days_off_days": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} day",
+                "countPlural=*": "{count} days"
+            }
+        }
+    ],
     "days_off_underway": "Under way",
-    "days_off_conflicts_one": "{count} assignment during this absence",
-    "days_off_conflicts_other": "{count} assignments during this absence",
+    "days_off_conflicts": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} assignment during this absence",
+                "countPlural=*": "{count} assignments during this absence"
+            }
+        }
+    ],
     "days_off_conflict_warn": "{date} · let {responsible} know",
     "days_off_conflict_warn_fallback": "{date} · let the person in charge of the program know",
     "days_off_delete_aria": "Delete the absence {period}",
@@ -1427,8 +1672,19 @@
     "days_off_form_last_required": "Pick the last day.",
     "days_off_form_last_before_first": "The last day can’t come before the first.",
     "days_off_saved_status": "Absence added",
-    "days_off_conflict_title_one": "{count} assignment falls on those days",
-    "days_off_conflict_title_other": "{count} assignments fall on those days",
+    "days_off_conflict_title": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} assignment falls on those days",
+                "countPlural=*": "{count} assignments fall on those days"
+            }
+        }
+    ],
     "days_off_conflict_description": "Let the people in charge know quickly so they can arrange a replacement.",
     "days_off_empty_title": "No planned absences",
     "days_off_empty_description": "Once you add an absence, it will appear here.",
@@ -1445,10 +1701,32 @@
     "programs_absences_meta_title": "Absences - Unitae",
     "programs_absences_title": "Absences",
     "programs_absences_subtitle": "What each person declares in “My absences”. An assignment that falls during an absence needs another look.",
-    "programs_absences_count_one": "{count} absence",
-    "programs_absences_count_other": "{count} absences",
-    "programs_absences_review_one": "{count} assignment to review",
-    "programs_absences_review_other": "{count} assignments to review",
+    "programs_absences_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} absence",
+                "countPlural=*": "{count} absences"
+            }
+        }
+    ],
+    "programs_absences_review": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} assignment to review",
+                "countPlural=*": "{count} assignments to review"
+            }
+        }
+    ],
     "programs_absences_filter_label": "Which absences",
     "programs_absences_filter_all": "All",
     "programs_absences_filter_review": "To review",
@@ -1456,11 +1734,33 @@
     "programs_absences_list_label": "Absences, week by week",
     "programs_absences_week_of": "Week of {date}",
     "programs_absences_this_week": "this week",
-    "programs_absences_week_count_one": "{count} absence",
-    "programs_absences_week_count_other": "{count} absences",
+    "programs_absences_week_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} absence",
+                "countPlural=*": "{count} absences"
+            }
+        }
+    ],
     "programs_absences_week_nobody": "nobody away",
-    "programs_absences_week_review_one": "{count} to review",
-    "programs_absences_week_review_other": "{count} to review",
+    "programs_absences_week_review": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} to review",
+                "countPlural=*": "{count} to review"
+            }
+        }
+    ],
     "programs_absences_continued": "Continued",
     "programs_absences_declared": "declared on {date}",
     "programs_absences_reassign": "Reassign",
@@ -1485,10 +1785,32 @@
     "programs_absences_nothing_to_review_title": "Nothing to review",
     "programs_absences_nothing_to_review_description": "No assignment falls during an absence in these weeks.",
     "programs_meta_title": "Programs - Unitae",
-    "programs_count_one": "{count} program",
-    "programs_count_other": "{count} programs",
-    "programs_drafts_count_one": "{count} draft",
-    "programs_drafts_count_other": "{count} drafts",
+    "programs_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} program",
+                "countPlural=*": "{count} programs"
+            }
+        }
+    ],
+    "programs_drafts_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} draft",
+                "countPlural=*": "{count} drafts"
+            }
+        }
+    ],
     "programs_new_button": "New",
     "programs_panel_previous_part": "Previous part",
     "programs_panel_next_part": "Next part",
@@ -1512,8 +1834,19 @@
     "programs_week_empty": "no program",
     "programs_week_create": "Create",
     "programs_week_create_aria": "Create the programs for the week of {date}",
-    "programs_absent_one": "{count} person away",
-    "programs_absent_other": "{count} people away",
+    "programs_absent": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} person away",
+                "countPlural=*": "{count} people away"
+            }
+        }
+    ],
     "programs_parts_short": "{filled}/{total} parts",
     "programs_services_short": "{filled}/{total} services",
     "programs_create_button": "Create programs",
@@ -1523,8 +1856,19 @@
     "programs_no_drafts_description": "Every program in the period is published.",
     "programs_nothing_to_review_title": "Nothing to review",
     "programs_nothing_to_review_description": "Nobody is away on a day they have a part or a service, in these weeks.",
-    "programs_selection_one": "1 selected",
-    "programs_selection_other": "{count} selected",
+    "programs_selection": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} selected",
+                "countPlural=*": "{count} selected"
+            }
+        }
+    ],
     "programs_selection_toolbar": "Actions on the selection",
     "programs_selection_clear": "Clear the selection",
     "programs_bulk_release_all": "Publish",
@@ -1534,10 +1878,32 @@
     "programs_bulk_unrelease_some_one": "Put the published one back to draft",
     "programs_bulk_unrelease_some_other": "Put the {count} published back to draft",
     "programs_bulk_delete_button": "Delete",
-    "programs_bulk_delete_title_one": "Delete 1 program?",
-    "programs_bulk_delete_title_other": "Delete {count} programs?",
-    "programs_bulk_delete_body_one": "Its parts and services go with it, along with the assignments already made.",
-    "programs_bulk_delete_body_other": "Their parts and services go with them, along with the assignments already made.",
+    "programs_bulk_delete_title": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Delete {count} program?",
+                "countPlural=*": "Delete {count} programs?"
+            }
+        }
+    ],
+    "programs_bulk_delete_body": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Its parts and services go with it, along with the assignments already made.",
+                "countPlural=*": "Their parts and services go with them, along with the assignments already made."
+            }
+        }
+    ],
     "programs_bulk_delete_submit_one": "Delete",
     "programs_bulk_delete_submit_other": "Delete the {count}",
     "programs_page_title": "Programs",
@@ -1566,10 +1932,32 @@
     "programs_new_meetings_description": "Tick the ones to create: each goes on its own day, with its parts and services.",
     "programs_new_every": "Every {weekday} · {hours}",
     "programs_new_usually": "Usually on {weekday} · {hours}",
-    "programs_new_parts_one": "1 part",
-    "programs_new_parts_many": "{count} parts",
-    "programs_new_services_one": "1 service",
-    "programs_new_services_many": "{count} services",
+    "programs_new_parts": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} part",
+                "countPlural=*": "{count} parts"
+            }
+        }
+    ],
+    "programs_new_services": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} service",
+                "countPlural=*": "{count} services"
+            }
+        }
+    ],
     "programs_new_created_until": "Created up to {date}",
     "programs_new_none_to_come": "No program to come",
     "programs_new_no_meetings_title": "No regular meeting yet",
@@ -1581,8 +1969,19 @@
     "programs_new_to_label": "Until",
     "programs_new_until_label": "Until",
     "programs_new_until_month": "End of {month}",
-    "programs_new_weeks_one": "1 week",
-    "programs_new_weeks_many": "{count} weeks",
+    "programs_new_weeks": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} week",
+                "countPlural=*": "{count} weeks"
+            }
+        }
+    ],
     "programs_new_follows_last": "Right after the last program created, on {date}.",
     "programs_new_template_title": "Template",
     "programs_new_template_description": "A regular meeting can also be created on its own, on another day than usual.",
@@ -1598,13 +1997,46 @@
     "programs_new_template_hours": "{hours}, as in the template",
     "programs_new_moved_hint": "On {weekday} instead of {usual}: this week’s meeting moves.",
     "programs_new_preview_title": "What will be created",
-    "programs_new_count_one": "1 program",
-    "programs_new_count_many": "{count} programs",
+    "programs_new_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} program",
+                "countPlural=*": "{count} programs"
+            }
+        }
+    ],
     "programs_new_count_none": "Nothing to create",
-    "programs_new_existing_one": "1 already exists",
-    "programs_new_existing_many": "{count} already exist",
-    "programs_new_skipped_one": "1 date skipped",
-    "programs_new_skipped_many": "{count} dates skipped",
+    "programs_new_existing": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} already exists",
+                "countPlural=*": "{count} already exist"
+            }
+        }
+    ],
+    "programs_new_skipped": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} date skipped",
+                "countPlural=*": "{count} dates skipped"
+            }
+        }
+    ],
     "programs_new_all_new": "All new",
     "programs_new_skip_hint": "Untick a date to skip it: circuit assembly week, convention…",
     "programs_new_row_create": "Create {name} on {date}",
@@ -1619,8 +2051,19 @@
     "programs_new_then_edit": "Then the program opens so you can complete it.",
     "programs_new_draft_note": "Created as drafts: only those who prepare programs see them until they are published.",
     "programs_new_draft_note_short": "As drafts",
-    "programs_new_submit_one": "Create 1 program",
-    "programs_new_submit_many": "Create {count} programs",
+    "programs_new_submit": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Create {count} program",
+                "countPlural=*": "Create {count} programs"
+            }
+        }
+    ],
     "programs_new_submit_single": "Create the program",
     "programs_new_error_day": "Pick a date.",
     "programs_new_error_past": "Not before today.",
@@ -1634,8 +2077,19 @@
     "programs_new_error_exists": "This template already has a program that day.",
     "programs_new_see_existing": "See that program",
     "programs_new_error_unavailable": "This template can no longer be used here: reload the page.",
-    "programs_new_flash_one": "1 program created, as a draft.",
-    "programs_new_flash_many": "{count} programs created, as drafts.",
+    "programs_new_flash": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} program created, as a draft.",
+                "countPlural=*": "{count} programs created, as drafts."
+            }
+        }
+    ],
     "programs_new_flash_none": "Nothing to create: these dates already have their programs.",
     "programs_new_flash_single": "Program created, as a draft.",
     "programs_view_meta_title": "Program - Unitae",
@@ -1648,10 +2102,32 @@
     "programs_view_role_col": "Role",
     "programs_view_publisher_col": "Publisher",
     "programs_view_released": "Published",
-    "programs_view_parts_assigned_one": "{count} of {total} part assigned",
-    "programs_view_parts_assigned_many": "{count} of {total} parts assigned",
-    "programs_view_services_filled_one": "{count} of {total} service filled",
-    "programs_view_services_filled_many": "{count} of {total} services filled",
+    "programs_view_parts_assigned": [
+        {
+            "declarations": [
+                "input total",
+                "local totalPlural = total: plural"
+            ],
+            "selectors": ["totalPlural"],
+            "match": {
+                "totalPlural=one": "{count} of {total} part assigned",
+                "totalPlural=*": "{count} of {total} parts assigned"
+            }
+        }
+    ],
+    "programs_view_services_filled": [
+        {
+            "declarations": [
+                "input total",
+                "local totalPlural = total: plural"
+            ],
+            "selectors": ["totalPlural"],
+            "match": {
+                "totalPlural=one": "{count} of {total} service filled",
+                "totalPlural=*": "{count} of {total} services filled"
+            }
+        }
+    ],
     "programs_view_open": "Unfilled",
     "programs_view_absent": "Absent",
     "programs_view_external": "Visiting",
@@ -1708,8 +2184,19 @@
     "programs_edit_not_in_event": "This item does not belong to this event.",
     "programs_edit_view_event": "View event",
     "programs_edit_crumb": "Edit",
-    "programs_edit_parts_one": "1 part",
-    "programs_edit_parts_many": "{count} parts",
+    "programs_edit_parts": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} part",
+                "countPlural=*": "{count} parts"
+            }
+        }
+    ],
     "programs_edit_programme_minutes": "{count} min of program",
     "programs_edit_missing_durations": "{count} without duration",
     "programs_edit_no_duration": "No duration",
@@ -1801,14 +2288,58 @@
     "territories_type_university_singular": "University",
     "territories_type_classical_capitalized": "Door to door",
     "territories_content_phones": "{count} phones",
-    "territories_content_homes_one": "{count} household",
-    "territories_content_homes_other": "{count} households",
-    "territories_content_commerces_one": "{count} business",
-    "territories_content_commerces_other": "{count} businesses",
-    "territories_content_hotels_one": "{count} hotel",
-    "territories_content_hotels_other": "{count} hotels",
-    "territories_content_entrances_one": "{count} entrance",
-    "territories_content_entrances_other": "{count} entrances",
+    "territories_content_homes": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} household",
+                "countPlural=*": "{count} households"
+            }
+        }
+    ],
+    "territories_content_commerces": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} business",
+                "countPlural=*": "{count} businesses"
+            }
+        }
+    ],
+    "territories_content_hotels": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} hotel",
+                "countPlural=*": "{count} hotels"
+            }
+        }
+    ],
+    "territories_content_entrances": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} entrance",
+                "countPlural=*": "{count} entrances"
+            }
+        }
+    ],
     "territories_assigned_until": "until {date}",
     "territories_available": "Available",
     "territories_delete_title_attr": "Permanently delete territory",
@@ -1957,10 +2488,32 @@
     "prospection_sync_running_button": "Syncing…",
     "prospection_sync_status_done": "Synced with the BANO on {date} by {name}",
     "prospection_sync_status_done_anonymous": "Synced with the BANO on {date}",
-    "prospection_sync_new_link_one": "1 new",
-    "prospection_sync_new_link": "{count} new",
-    "prospection_sync_missing_link_one": "1 missing",
-    "prospection_sync_missing_link": "{count} missing",
+    "prospection_sync_new_link": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} new",
+                "countPlural=*": "{count} new"
+            }
+        }
+    ],
+    "prospection_sync_missing_link": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} missing",
+                "countPlural=*": "{count} missing"
+            }
+        }
+    ],
     "prospection_sync_status_running": "Syncing with the BANO",
     "prospection_sync_status_running_hint": "You will be told when it ends, even if you leave the page.",
     "prospection_sync_status_failed": "The sync of {date} failed.",
@@ -2050,8 +2603,19 @@
     "prospection_action_delete": "Delete…",
     "prospection_actions_for": "More actions for {address}",
     "prospection_range": "{from}–{to} of {total}",
-    "prospection_count_one": "1 building",
-    "prospection_count": "{count} buildings",
+    "prospection_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} building",
+                "countPlural=*": "{count} buildings"
+            }
+        }
+    ],
     "prospection_previous_page": "Previous page",
     "prospection_next_page": "Next page",
     "prospection_empty_title": "No buildings yet",
@@ -2066,19 +2630,52 @@
     "prospection_save_and_next": "Save and next",
     "prospection_select_all": "Select the buildings on this page",
     "prospection_select_building": "Select {address}",
-    "prospection_selected_one": "1 selected",
-    "prospection_selected": "{count} selected",
+    "prospection_selected": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} selected",
+                "countPlural=*": "{count} selected"
+            }
+        }
+    ],
     "prospection_selection_clear": "Clear the selection",
     "prospection_selection_actions": "Actions on the selection",
     "prospection_deactivate_one": "Deactivate",
     "prospection_deactivate_many": "Deactivate the {count}",
-    "prospection_deactivate_title_one": "Deactivate 1 building?",
-    "prospection_deactivate_title": "Deactivate {count} buildings?",
+    "prospection_deactivate_title": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Deactivate {count} building?",
+                "countPlural=*": "Deactivate {count} buildings?"
+            }
+        }
+    ],
     "prospection_deactivate_body_one": "{address} will no longer count among the active buildings. Its survey and notes stay; you can reactivate it.",
     "prospection_deactivate_body": "{addresses} will no longer count among the active buildings. Their surveys and notes stay; you can reactivate them.",
     "prospection_deactivate_body_count": "These {count} buildings will no longer count among the active buildings. Their surveys and notes stay; you can reactivate them.",
-    "prospection_deactivated_one": "1 building deactivated.",
-    "prospection_deactivated": "{count} buildings deactivated.",
+    "prospection_deactivated": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} building deactivated.",
+                "countPlural=*": "{count} buildings deactivated."
+            }
+        }
+    ],
     "prospection_deactivate_error": "The buildings could not be deactivated. Try again in a moment.",
     "prospection_sync_meta_title": "Sync with the BANO - Unitae",
     "prospection_table_latitude": "Latitude",
@@ -2169,12 +2766,45 @@
     "building_header_description": "This information is used to organise the territory. Notes for publishers are printed on the territory card.",
     "building_header_territory": "Territory",
     "building_header_territories": "Territories",
-    "building_header_homes_one": "{count} home",
-    "building_header_homes_many": "{count} homes",
-    "building_header_phones_one": "{count} phone",
-    "building_header_phones_many": "{count} phones",
-    "building_header_entrances_one": "{count} entrance",
-    "building_header_entrances_many": "{count} entrances",
+    "building_header_homes": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} home",
+                "countPlural=*": "{count} homes"
+            }
+        }
+    ],
+    "building_header_phones": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} phone",
+                "countPlural=*": "{count} phones"
+            }
+        }
+    ],
+    "building_header_entrances": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} entrance",
+                "countPlural=*": "{count} entrances"
+            }
+        }
+    ],
     "building_prospection_crumb": "Survey data",
     "building_address_crumb": "Edit address",
     "building_disable_button": "Deactivate building",
@@ -2196,8 +2826,19 @@
     "building_section_position_title": "Position",
     "building_section_position_description": "The coordinates place the building on the territory map.",
     "form_save_bar": "Saving",
-    "form_changes_one": "{count} unsaved change",
-    "form_changes_many": "{count} unsaved changes",
+    "form_changes": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} unsaved change",
+                "countPlural=*": "{count} unsaved changes"
+            }
+        }
+    ],
     "prospection_selector_zip_label": "Postal code",
     "prospection_selector_zip_placeholder": "Select a postal code",
     "prospection_selector_street_label": "Street",
@@ -2243,8 +2884,19 @@
     "split_tool_number_field": "Next",
     "split_tool_free_count": "{count} free",
     "split_tool_free_line": "Free entrances: {count}",
-    "split_tool_without_position_one": "1 without a position",
-    "split_tool_without_position": "{count} without a position",
+    "split_tool_without_position": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} without a position",
+                "countPlural=*": "{count} without a position"
+            }
+        }
+    ],
     "split_tool_street_placeholder": "Street…",
     "split_tool_map_label": "Map: the free entrances of this type and those of the next territory",
     "split_tool_map_hint": "Click the free entrances of the next territory; click one again to take it out.",
@@ -2311,8 +2963,19 @@
     "stats_attributions_percentage": "({percentage}% of assignments)",
     "stats_never_worked_title": "Territories never worked",
     "stats_never_worked_all_worked_desc": "Each territory had at least one assignment during the period.",
-    "stats_never_worked_count_one": "{count} territory with no assignment during the period:",
-    "stats_never_worked_count_other": "{count} territories with no assignment during the period:",
+    "stats_never_worked_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} territory with no assignment during the period:",
+                "countPlural=*": "{count} territories with no assignment during the period:"
+            }
+        }
+    ],
     "stats_never_worked_more_capped": "And more",
     "stats_year_comparison_title": "{current} against {previous}",
     "stats_view_chart": "Chart",
@@ -2369,8 +3032,19 @@
     "stats_terrain_commerce_distribution_title": "Businesses — distribution by activity type",
     "stats_terrain_commerce_distribution_other": "Other businesses",
     "stats_terrain_no_commerces": "No business entrances registered",
-    "stats_terrain_gap_link_one": "{count} building missing demographic data",
-    "stats_terrain_gap_link_other": "{count} buildings missing demographic data",
+    "stats_terrain_gap_link": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} building missing demographic data",
+                "countPlural=*": "{count} buildings missing demographic data"
+            }
+        }
+    ],
     "stats_foyers_reached": "Homes reached",
     "stats_foyers_reached_help": "Estimated number of homes on residential territories assigned at least once during the selected period.",
     "stats_foyers_reached_subtitle": "≈ {percentage}% of the congregation’s homes",
@@ -2438,10 +3112,32 @@
     "my_territories_tab_map": "Map",
     "my_territories_attributed_on": "Assigned on {date}",
     "my_territories_download_pdf": "Download PDF",
-    "my_territories_count_one": "{count} territory",
-    "my_territories_count_other": "{count} territories",
-    "my_territories_more_streets_one": " + {count} street",
-    "my_territories_more_streets_other": " + {count} streets",
+    "my_territories_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} territory",
+                "countPlural=*": "{count} territories"
+            }
+        }
+    ],
+    "my_territories_more_streets": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": " + {count} street",
+                "countPlural=*": " + {count} streets"
+            }
+        }
+    ],
     "my_territories_due_on": "Due back on {date}",
     "my_territories_overdue_since": "Overdue since {date}",
     "my_territories_paused_since": "Paused since {date}",
@@ -2612,8 +3308,19 @@
     "pioneers_count_late": "{count} behind",
     "pioneers_count_at_risk": "{count} at risk",
     "pioneers_count_on_time": "{count} on time",
-    "pioneers_summary_concluded_one": "Plus 1 whose service ended this year.",
-    "pioneers_summary_concluded_other": "Plus {count} whose service ended this year.",
+    "pioneers_summary_concluded": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Plus {count} whose service ended this year.",
+                "countPlural=*": "Plus {count} whose service ended this year."
+            }
+        }
+    ],
     "pioneers_summary_hours": "Hours to date",
     "pioneers_summary_hours_foot": "of {goal} expected to date · {year} over the year",
     "pioneers_summary_hours_foot_credit": "of {goal} expected to date, {credit} of credit included · {year} over the year",
@@ -2983,8 +3690,19 @@
     "dashboard_meeting_part_conflict": "Absent",
     "dashboard_meeting_no_parts": "No parts on the program",
     "dashboard_summary_none": "Nothing to handle",
-    "dashboard_summary_one": "1 thing to handle",
-    "dashboard_summary_many": "{count} things to handle",
+    "dashboard_summary": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} thing to handle",
+                "countPlural=*": "{count} things to handle"
+            }
+        }
+    ],
     "dashboard_origin_you": "For you",
     "dashboard_origin_programmes": "Programs",
     "dashboard_urgent_open_slots": "{count} unassigned — {eventName}",
@@ -3119,14 +3837,36 @@
     "publishers_record_login_can_sign_in": "Can sign in to Unitae",
     "publishers_record_login_none": "No login",
     "publishers_record_programme": "Program",
-    "publishers_record_assignments_one": "1 upcoming assignment",
-    "publishers_record_assignments_other": "{count} upcoming assignments",
+    "publishers_record_assignments": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} upcoming assignment",
+                "countPlural=*": "{count} upcoming assignments"
+            }
+        }
+    ],
     "publishers_record_see_programs": "See the programs",
     "publishers_record_service_slot": "service",
     "publishers_record_absent_that_day": "Away that day",
     "publishers_record_planned_absences": "Planned absences",
-    "publishers_record_days_one": "1 day",
-    "publishers_record_days_other": "{count} days",
+    "publishers_record_days": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} day",
+                "countPlural=*": "{count} days"
+            }
+        }
+    ],
     "publishers_record_territories": "Territories",
     "publishers_record_territories_count": "{count} out",
     "publishers_record_out_since": "Out since {date}",
@@ -3162,8 +3902,19 @@
     "publishers_record_stop_note": "Their months of service stay in their history and in the pioneer follow-up; the year’s goal is reduced to their enrolled months. For an enrolment made by mistake, delete it instead.",
     "publishers_record_stop_submit": "Stop after {month}",
     "programme_section_total_min": "{minutes} min",
-    "programme_track_parts_one": "1 part",
-    "programme_track_parts_other": "{count} parts",
+    "programme_track_parts": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} part",
+                "countPlural=*": "{count} parts"
+            }
+        }
+    ],
     "attributions_paused_badge": "Paused",
     "attributions_campaign_mode_notice": "Campaign “{name}” running until {endDate}: regular territory assignments are suspended. This territory assignment will be created in the campaign.",
     "attributions_campaign_mode_error": "Regular territory assignments are suspended while a campaign is active.",
@@ -3171,8 +3922,19 @@
     "attributions_available_campaign_notice": "Campaign “{name}” in progress: territories picked here will be assigned within the campaign.",
     "campaigns_meta_title": "Campaigns - Unitae",
     "campaigns_count_active": "{count} running",
-    "campaigns_count_scheduled_one": "{count} planned",
-    "campaigns_count_scheduled_other": "{count} planned",
+    "campaigns_count_scheduled": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} planned",
+                "countPlural=*": "{count} planned"
+            }
+        }
+    ],
     "campaigns_table_campaign": "Campaign",
     "campaigns_table_coverage": "Coverage",
     "campaigns_scope_one": "{count} territory",
@@ -3182,8 +3944,19 @@
     "campaigns_state_scheduled_from": "Planned · starts on {date}",
     "campaigns_range": "{start} to {end}",
     "campaigns_state_ended_on": "Ended on {date}",
-    "campaigns_length_one": "{count} day",
-    "campaigns_length_other": "{count} days",
+    "campaigns_length": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} day",
+                "countPlural=*": "{count} days"
+            }
+        }
+    ],
     "campaigns_tag_active": "Running",
     "campaigns_tag_scheduled": "Planned",
     "campaigns_tag_ended": "Ended",
@@ -3199,8 +3972,19 @@
     "campaigns_metric_back": "Returned",
     "campaigns_metric_back_foot": "since the campaign started",
     "campaigns_metric_left": "Left",
-    "campaigns_metric_days_one": "day",
-    "campaigns_metric_days_other": "days",
+    "campaigns_metric_days": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "day",
+                "countPlural=*": "days"
+            }
+        }
+    ],
     "campaigns_metric_left_foot": "until {date}, today included",
     "campaigns_metric_starts": "Starts in",
     "campaigns_metric_starts_foot": "on {date}",
@@ -3215,8 +3999,19 @@
     "campaigns_attr_publisher": "Publisher",
     "campaigns_attr_out_on": "Out on",
     "campaigns_attr_back": "Returned",
-    "campaigns_attr_out_since_one": "out for {count} day",
-    "campaigns_attr_out_since_other": "out for {count} days",
+    "campaigns_attr_out_since": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "out for {count} day",
+                "countPlural=*": "out for {count} days"
+            }
+        }
+    ],
     "campaigns_attr_out_today": "out today",
     "campaigns_attr_none_out": "No territory is out for the campaign right now.",
     "campaigns_attr_none_back": "No territory has been returned yet.",
@@ -3259,8 +4054,19 @@
     "campaigns_tl_keep_done": "Paused assignments stayed paused.",
     "campaigns_tl_close_regulars_next": "Paused assignments will be returned.",
     "campaigns_tl_close_regulars_done": "Paused assignments were returned.",
-    "campaigns_tl_rest_one": "The campaign’s territories wait {count} day after coming back before being assigned again.",
-    "campaigns_tl_rest_other": "The campaign’s territories wait {count} days after coming back before being assigned again.",
+    "campaigns_tl_rest": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "The campaign’s territories wait {count} day after coming back before being assigned again.",
+                "countPlural=*": "The campaign’s territories wait {count} days after coming back before being assigned again."
+            }
+        }
+    ],
     "campaigns_end_title": "End the campaign today?",
     "campaigns_end_body": "Instead of {date}. What was planned for the end happens now:",
     "campaigns_end_item_return_one": "the territory still out for the campaign is returned",
@@ -3273,8 +4079,19 @@
     "campaigns_end_item_keep_other": "the {count} paused assignments stay paused",
     "campaigns_end_item_close_one": "the paused assignment is returned",
     "campaigns_end_item_close_other": "the {count} paused assignments are returned",
-    "campaigns_end_item_rest_one": "the campaign’s territories rest {count} day",
-    "campaigns_end_item_rest_other": "the campaign’s territories rest {count} days",
+    "campaigns_end_item_rest": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "the campaign’s territories rest {count} day",
+                "countPlural=*": "the campaign’s territories rest {count} days"
+            }
+        }
+    ],
     "campaigns_delete_dialog_title": "Delete “{name}”?",
     "campaigns_delete_dialog_body": "It has no assignment: nothing changes in the territory assignments. It leaves the list.",
     "campaigns_form_infos_description": "Its name in the list and in the banner of the territory pages.",
@@ -3461,8 +4278,19 @@
     "attributions_panel_title": "Territory {number}",
     "attributions_panel_unavailable": "This assignment is no longer available.",
     "attributions_paused_by": "Paused · {name}",
-    "attributions_people_held_one": "1 territory",
-    "attributions_people_held_other": "{count} territories",
+    "attributions_people_held": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} territory",
+                "countPlural=*": "{count} territories"
+            }
+        }
+    ],
     "attributions_people_late": "{count} overdue",
     "attributions_people_none": "no territory",
     "attributions_return_body": "This territory has been with {name} since {date}.",
@@ -3515,8 +4343,19 @@
     "territory_page_attribution_title": "Assignment",
     "territory_page_building": "View the building",
     "territory_page_by_phone": "by phone",
-    "territory_page_days_one": "1 day",
-    "territory_page_days_other": "{count} days",
+    "territory_page_days": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} day",
+                "countPlural=*": "{count} days"
+            }
+        }
+    ],
     "territory_page_door_to_door": "door to door",
     "territory_page_edit_attribution": "Edit the assignment",
     "territory_page_entrances_streets": "{entrances} entrances · {streets} streets",
@@ -3551,10 +4390,32 @@
     "territory_editor_number_field": "Number",
     "territory_editor_type_field": "Type",
     "territory_editor_type_hint": "The type decides which entrances are offered: an entrance can be on one territory of each type.",
-    "territory_editor_entrances_count": "{count} entrances",
-    "territory_editor_entrances_count_one": "1 entrance",
-    "territory_editor_streets_count": "{count} streets",
-    "territory_editor_streets_count_one": "1 street",
+    "territory_editor_entrances_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} entrance",
+                "countPlural=*": "{count} entrances"
+            }
+        }
+    ],
+    "territory_editor_streets_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} street",
+                "countPlural=*": "{count} streets"
+            }
+        }
+    ],
     "territory_editor_delta": "{delta} from {before}",
     "territory_editor_notes_label": "Notes",
     "territory_editor_notes_hint": "· for those in charge, not printed",
@@ -3578,8 +4439,19 @@
     "territory_editor_undo_all": "Undo all",
     "territory_editor_summary_take": "{address}: {territory} goes from {before} to {after}",
     "territory_editor_save_bar": "Saving the territory",
-    "territory_editor_changes_one": "1 change",
-    "territory_editor_changes_many": "{count} changes",
+    "territory_editor_changes_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} change",
+                "countPlural=*": "{count} changes"
+            }
+        }
+    ],
     "territory_editor_no_entrance": "No entrances",
     "territory_editor_new_summary": "{entrances} · {content}",
     "territory_editor_views": "View",
@@ -3631,17 +4503,61 @@
     "publishers_form_group_led_hint": "He leads group {name} and stays in it. To move him, first change that group’s overseer or assistant.",
     "publishers_form_group_led_elsewhere_hint": "He leads group {name}: he can only be placed in that group.",
     "groups_list_column_group": "Group",
-    "groups_list_publishers_one": "1 publisher",
-    "groups_list_publishers_other": "{count} publishers",
-    "groups_list_inactive_one": "1 inactive",
-    "groups_list_inactive_other": "{count} inactive",
-    "groups_list_reports_missing_one": "1 missing",
-    "groups_list_reports_missing_other": "{count} missing",
+    "groups_list_publishers": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} publisher",
+                "countPlural=*": "{count} publishers"
+            }
+        }
+    ],
+    "groups_list_inactive": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} inactive",
+                "countPlural=*": "{count} inactive"
+            }
+        }
+    ],
+    "groups_list_reports_missing": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} missing",
+                "countPlural=*": "{count} missing"
+            }
+        }
+    ],
     "groups_list_phone_reports": "{filed} of {total} reports",
     "groups_list_menu_aria": "Actions for group {name}",
     "groups_list_view": "Open the group",
-    "groups_list_without_group_one": "1 publisher is in no group.",
-    "groups_list_without_group_other": "{count} publishers are in no group.",
+    "groups_list_without_group": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} publisher is in no group.",
+                "countPlural=*": "{count} publishers are in no group."
+            }
+        }
+    ],
     "groups_list_without_group_link": "Show the list",
     "groups_delete_menu": "Delete the group…",
     "groups_form_section_group": "The group",
@@ -3654,8 +4570,19 @@
     "groups_member_added_from": "Added · from {name}",
     "groups_member_removed": "Removed",
     "groups_members_restore_aria": "Keep {name} in the group",
-    "groups_members_total_after_one": "1 publisher once saved",
-    "groups_members_total_after_other": "{count} publishers once saved",
+    "groups_members_total_after": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} publisher once saved",
+                "countPlural=*": "{count} publishers once saved"
+            }
+        }
+    ],
     "groups_delete_dialog_title": "Delete group {name}?",
     "groups_delete_dialog_members_one": "Its publisher will be left without a group: you can place them in another one. Their reports stay.",
     "groups_delete_dialog_members_other": "Its {count} publishers will be left without a group: you can place them in another one. Their reports stay.",
@@ -3812,8 +4739,19 @@
     "settings_publishers_continuous_hint": "An enrolment with no end date, besides the one-month enrolments.",
     "settings_publishers_continuous_label": "Offer enrolment as a continuous auxiliary pioneer",
     "settings_publishers_continuous_description": "On the publisher record. Turning it off ends the current enrolments.",
-    "settings_publishers_continuous_stops_one": "Saving ends {names}’s enrolment at the end of this month.",
-    "settings_publishers_continuous_stops_many": "Saving ends the enrolments of {names} at the end of this month.",
+    "settings_publishers_continuous_stops": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Saving ends {names}’s enrolment at the end of this month.",
+                "countPlural=*": "Saving ends the enrolments of {names} at the end of this month."
+            }
+        }
+    ],
     "settings_territories_prospection_hint": "The source of the addresses (BANO) and how long a building survey stays valid. The synchronisation is started from Building survey.",
     "settings_territories_zips_add": "Add",
     "settings_territories_zips_remove": "Remove {zip}",
@@ -3826,11 +4764,33 @@
     "settings_territories_map_tab_description": "Publishers see the entrances of their territory on a map. Needs a base map on the instance.",
     "settings_territories_pmr_label": "Accessibility (reduced mobility)",
     "settings_territories_pmr_description": "Show, in the lists and on a house-to-house territory’s page, the entrances accessible to people with reduced mobility.",
-    "settings_duration_weeks_one": "1 week",
-    "settings_duration_weeks_many": "{count} weeks",
+    "settings_duration_weeks": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} week",
+                "countPlural=*": "{count} weeks"
+            }
+        }
+    ],
     "settings_duration_months": "≈ {count} months",
-    "settings_duration_years_one": "1 year",
-    "settings_duration_years_many": "{count} years",
+    "settings_duration_years": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} year",
+                "countPlural=*": "{count} years"
+            }
+        }
+    ],
     "settings_validity_months_required": "Enter a duration, in months.",
     "settings_duration_days_required": "Enter a duration, in days.",
     "settings_bano_url_invalid": "Enter a file address starting with https://.",
@@ -3849,8 +4809,19 @@
     "settings_map_draw": "Draw",
     "settings_map_import": "Import a GeoJSON file",
     "settings_map_export": "Export as GeoJSON",
-    "settings_map_points_one": "1 point",
-    "settings_map_points_many": "{count} points",
+    "settings_map_points": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} point",
+                "countPlural=*": "{count} points"
+            }
+        }
+    ],
     "settings_map_zone_actions": "Actions on {name}",
     "settings_map_rename": "Name and colour",
     "settings_map_new_zone": "New zone",
@@ -3928,8 +4899,19 @@
     "settings_account_admin_notice": "An administrator’s account is changed by an administrator.",
     "settings_account_section_roles": "Roles",
     "settings_account_section_roles_hint": "What the account can do. The record’s roles follow what it says; single-person roles are given from the organization chart.",
-    "settings_account_role_people_one": "1 person",
-    "settings_account_role_people_many": "{count} people",
+    "settings_account_role_people": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} person",
+                "countPlural=*": "{count} people"
+            }
+        }
+    ],
     "settings_account_role_single": "Single-person role: given from the organization chart.",
     "settings_account_role_single_held": "Single-person role: given from the organization chart. Today: {names}.",
     "settings_account_role_admin_only": "Only an administrator gives or removes it.",
@@ -3979,15 +4961,37 @@
     "settings_roles_group_record": "Record roles",
     "settings_roles_group_record_hint": "follow what each person’s record says",
     "settings_roles_permissions_none": "no permission",
-    "settings_roles_permissions_one": "1 permission",
-    "settings_roles_permissions_many": "{count} permissions",
+    "settings_roles_permissions": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} permission",
+                "countPlural=*": "{count} permissions"
+            }
+        }
+    ],
     "settings_roles_all": "Every right",
     "settings_roles_kind_system": "System role",
     "settings_roles_kind_record": "Record role",
     "settings_roles_kind_congregation": "Congregation role",
     "settings_roles_admin_text": "The administrator can do everything, including giving this role. It is not restricted: to take a right away from someone, take this role away and give them a congregation role.",
-    "settings_roles_admin_count_one": "1 administrator. The app refuses to leave none.",
-    "settings_roles_admin_count_many": "{count} administrators. The app refuses to leave none.",
+    "settings_roles_admin_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} administrator. The app refuses to leave none.",
+                "countPlural=*": "{count} administrators. The app refuses to leave none."
+            }
+        }
+    ],
     "settings_roles_record_admin_only": "Record role: only an administrator changes what it permits.",
     "settings_roles_category_count": "{on} of {total}",
     "settings_roles_requires": "Also needs: {names}.",
@@ -3999,10 +5003,32 @@
     "settings_templates_col_content": "Content",
     "settings_templates_col_responsibles": "Run by",
     "settings_templates_when": "{day} · {start} – {end}",
-    "settings_templates_parts_one": "1 part",
-    "settings_templates_parts_many": "{count} parts",
-    "settings_templates_services_one": "1 service",
-    "settings_templates_services_many": "{count} services",
+    "settings_templates_parts": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} part",
+                "countPlural=*": "{count} parts"
+            }
+        }
+    ],
+    "settings_templates_services": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} service",
+                "countPlural=*": "{count} services"
+            }
+        }
+    ],
     "settings_templates_managers": "The program managers",
     "settings_templates_built_in": "Built-in templates",
     "settings_templates_built_in_hint": "their colour only",
@@ -4014,8 +5040,19 @@
     "settings_templates_new_submit": "Create the template",
     "settings_templates_name_required": "Enter the template’s name.",
     "settings_template_page_subtitle": "Program template",
-    "settings_template_page_used_one": "Program template · used by 1 program",
-    "settings_template_page_used_many": "Program template · used by {count} programs",
+    "settings_template_page_used": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Program template · used by {count} program",
+                "countPlural=*": "Program template · used by {count} programs"
+            }
+        }
+    ],
     "settings_template_built_in_subtitle": "Built-in template",
     "settings_template_info": "Details",
     "settings_template_color_hint": "A dot of this colour marks the template in lists and the calendar.",
@@ -4028,8 +5065,19 @@
     "settings_template_delete": "Delete…",
     "settings_template_delete_title": "Delete this template?",
     "settings_template_delete_description": "“{name}”, its parts, its services and who runs it are removed. No program created so far used it.",
-    "settings_template_delete_in_use_one": "Used by 1 program: it cannot be deleted.",
-    "settings_template_delete_in_use_many": "Used by {count} programs: it cannot be deleted.",
+    "settings_template_delete_in_use": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Used by {count} program: it cannot be deleted.",
+                "countPlural=*": "Used by {count} programs: it cannot be deleted."
+            }
+        }
+    ],
     "settings_template_saved": "Template saved.",
     "settings_template_read_only": "You see this template without being able to change it.",
     "settings_presets_form_has_reader_hint": "A second person on the part.",
@@ -4040,8 +5088,19 @@
     "settings_part_types_col_used": "Used",
     "settings_part_types_built_in": "built-in",
     "settings_part_types_used_none": "Not used yet",
-    "settings_part_types_used_one": "Used by 1 part",
-    "settings_part_types_used_many": "Used by {count} parts",
+    "settings_part_types_used": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Used by {count} part",
+                "countPlural=*": "Used by {count} parts"
+            }
+        }
+    ],
     "settings_part_types_new": "New part type",
     "settings_part_types_saved": "Part type saved.",
     "settings_part_types_created": "Part type created.",
@@ -4157,8 +5216,19 @@
     "audit_log_period_12m": "Last 12 months",
     "audit_log_period_all": "All time",
     "audit_log_period_custom": "Chosen dates",
-    "audit_log_count_one": "1 action",
-    "audit_log_count_many": "{count} actions",
+    "audit_log_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} action",
+                "countPlural=*": "{count} actions"
+            }
+        }
+    ],
     "audit_log_col_when": "When",
     "audit_log_col_person": "Person",
     "audit_log_col_object": "Object",
@@ -4201,8 +5271,19 @@
     "org_help_title": "How does the organigram work?",
     "org_help_body": "A box is a team (people in charge, assistants, members) or a personal role (one person; naming another replaces them). The organigram names the people in charge and their assistants; members are added in Teams. A role can be given to a publisher without an account. Rights are set in Settings › Roles and rights.",
     "org_vacant": "Vacant",
-    "org_members_more_one": "+ 1 member",
-    "org_members_more_many": "+ {count} members",
+    "org_members_more": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "+ {count} member",
+                "countPlural=*": "+ {count} members"
+            }
+        }
+    ],
     "org_close": "Close",
     "org_built_in_note": "Built-in role: its name cannot be changed. Its permissions are set in {settings} › {roles}.",
     "org_edit": "Edit",
@@ -4265,15 +5346,37 @@
     "org_delete_blocked": "First move the roles under it ({names}).",
     "org_delete_title": "Delete “{name}”?",
     "org_delete_people_none": "No one holds this role.",
-    "org_delete_people_one": "1 person loses this role and the rights it gives.",
-    "org_delete_people_many": "{count} people lose this role and the rights it gives.",
+    "org_delete_people": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} person loses this role and the rights it gives.",
+                "countPlural=*": "{count} people lose this role and the rights it gives."
+            }
+        }
+    ],
     "org_delete_final": "Deleting cannot be undone. To keep it without showing it, take it out of the organigram instead.",
     "org_reserves_title": "“{name}” still reserves:",
     "org_reserves_section": "the board section “{name}”",
     "org_reserves_kind": "the territory kind “{name}”",
     "org_reserves_slot": "“{name}” in the template “{template}”",
-    "org_reserves_programmes_one": "1 part of an upcoming program",
-    "org_reserves_programmes_many": "{count} parts of upcoming programs",
+    "org_reserves_programmes": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} part of an upcoming program",
+                "countPlural=*": "{count} parts of upcoming programs"
+            }
+        }
+    ],
     "org_reserves_body": "Deleted, they would be open to everyone. First choose other roles for them.",
     "org_reserves_ok": "Got it",
     "org_new_title": "New role",
@@ -4282,8 +5385,19 @@
     "org_new_off_chart_hint": "“Outside the organigram”: the role exists, with no box in the chart or on the board.",
     "org_new_create": "Create the role",
     "org_attach_search": "An existing role or a new name…",
-    "org_attach_holders_one": "1 person",
-    "org_attach_holders_many": "{count} people",
+    "org_attach_holders": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} person",
+                "countPlural=*": "{count} people"
+            }
+        }
+    ],
     "org_attach_create": "Create “{name}”",
     "org_adopt_title": "Take over the service committee",
     "org_adopt_body": "For each post, pick the role you had created. Its person in charge becomes the post’s holder, its rights are copied onto it and the roles under it move under the post. The old role leaves the organigram without being deleted.",
@@ -4291,8 +5405,19 @@
     "org_adopt_empty_hint": "You will name the holder afterwards.",
     "org_adopt_leader": "{name} becomes the holder",
     "org_adopt_children": "{names} moves under it",
-    "org_adopt_permissions_one": "1 right copied",
-    "org_adopt_permissions_many": "{count} rights copied",
+    "org_adopt_permissions": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} right copied",
+                "countPlural=*": "{count} rights copied"
+            }
+        }
+    ],
     "org_adopt_confirm": "Take over",
     "org_saved_seat": "{person}: {seat} of {role}",
     "org_saved_unseat": "{person} is no longer in {role}.",
@@ -4325,8 +5450,19 @@
     "teams_empty": "No team yet. Create one with “New role”.",
     "teams_none_match": "No one matches.",
     "teams_team": "Team",
-    "teams_members_one": "1 member",
-    "teams_members_many": "{count} members",
+    "teams_members": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} member",
+                "countPlural=*": "{count} members"
+            }
+        }
+    ],
     "teams_fold": "Fold {name}",
     "teams_unfold": "Unfold {name}",
     "teams_folded": "{count} roles",
@@ -4365,10 +5501,32 @@
     "external_speakers_error_congregation_not_empty": "First remove or move its speakers, retired ones included.",
     "external_speakers_error_delete_on_list": "Remove the speaker from the list first.",
     "external_speakers_open_sheet": "Open his sheet",
-    "external_speakers_count_one": "1 speaker",
-    "external_speakers_count_many": "{count} speakers",
-    "external_speakers_congregations_one": "1 congregation",
-    "external_speakers_congregations_many": "{count} congregations",
+    "external_speakers_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} speaker",
+                "countPlural=*": "{count} speakers"
+            }
+        }
+    ],
+    "external_speakers_congregations": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} congregation",
+                "countPlural=*": "{count} congregations"
+            }
+        }
+    ],
     "external_speakers_new_congregation": "New congregation",
     "external_speakers_new_speaker": "New speaker",
     "external_speakers_views_label": "Speakers shown",
@@ -4419,8 +5577,19 @@
     "external_speakers_fact_talks": "Talks",
     "external_speakers_fact_notes": "Notes",
     "external_speakers_visits_title": "Visits here",
-    "external_speakers_visits_one": "1 visit",
-    "external_speakers_visits_many": "{count} visits",
+    "external_speakers_visits": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} visit",
+                "countPlural=*": "{count} visits"
+            }
+        }
+    ],
     "external_speakers_never_here": "Never came to our congregation.",
     "external_speakers_on_list_of": "On {congregation}’s list of {date}.",
     "external_speakers_form_new_title": "New speaker",
@@ -4451,8 +5620,19 @@
     "external_speakers_retire_confirm": "Remove from the list",
     "external_speakers_delete_title": "Delete {name}?",
     "external_speakers_delete_body": "His record, contact details and talks disappear. This cannot be undone.",
-    "external_speakers_delete_freed_one": "1 planned talk is freed: {dates}. The part goes back to « to fill ».",
-    "external_speakers_delete_freed_many": "{count} planned talks are freed: {dates}. The parts go back to « to fill ».",
+    "external_speakers_delete_freed": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} planned talk is freed: {dates}. The part goes back to « to fill ».",
+                "countPlural=*": "{count} planned talks are freed: {dates}. The parts go back to « to fill »."
+            }
+        }
+    ],
     "external_speakers_delete_past_one": "His past visit stays in the programmes as « {label} », without his name.",
     "external_speakers_delete_past_many": "His {count} past visits stay in the programmes as « {label} », without his name.",
     "external_speakers_delete_confirm": "Delete permanently",
@@ -4498,8 +5678,19 @@
     "external_speakers_update_choose_file": "Choose the file",
     "external_speakers_update_no_pdf": "No PDF, or a single correction? Edit the rows below.",
     "external_speakers_update_reading": "Reading the PDF…",
-    "external_speakers_update_read_one": "Read in {file}: 1 speaker.",
-    "external_speakers_update_read_many": "Read in {file}: {count} speakers.",
+    "external_speakers_update_read": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Read in {file}: {count} speaker.",
+                "countPlural=*": "Read in {file}: {count} speakers."
+            }
+        }
+    ],
     "external_speakers_update_scanned": "This PDF is an image (a scan or a photo): no line could be read. Correct the list by hand with the PDF beside it; it will be kept on the congregation’s record.",
     "external_speakers_update_unreadable": "This file does not open as a PDF.",
     "external_speakers_update_list_date": "List of",
@@ -4542,16 +5733,71 @@
     "external_speakers_update_file_too_large": "This PDF is over 10 MB.",
     "external_speakers_update_stale": "The list changed in the meantime: reload the page and start again.",
     "external_speakers_update_back": "Back to the speakers",
-    "external_speakers_update_new_one": "1 new",
-    "external_speakers_update_new_many": "{count} new",
-    "external_speakers_update_changed_one": "1 changed",
-    "external_speakers_update_changed_many": "{count} changed",
-    "external_speakers_update_moved_one": "1 changes congregation",
-    "external_speakers_update_moved_many": "{count} change congregation",
-    "external_speakers_update_retired_one": "1 removed",
-    "external_speakers_update_retired_many": "{count} removed",
-    "external_speakers_update_ask_one": "1 to check",
-    "external_speakers_update_ask_many": "{count} to check",
+    "external_speakers_update_new": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} new",
+                "countPlural=*": "{count} new"
+            }
+        }
+    ],
+    "external_speakers_update_changed": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} changed",
+                "countPlural=*": "{count} changed"
+            }
+        }
+    ],
+    "external_speakers_update_moved": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} changes congregation",
+                "countPlural=*": "{count} change congregation"
+            }
+        }
+    ],
+    "external_speakers_update_retired": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} removed",
+                "countPlural=*": "{count} removed"
+            }
+        }
+    ],
+    "external_speakers_update_ask": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} to check",
+                "countPlural=*": "{count} to check"
+            }
+        }
+    ],
     "external_speakers_filter_record": "Record",
     "external_speakers_filter_record_all": "All",
     "external_speakers_filter_record_incomplete": "To complete",
@@ -4660,26 +5906,81 @@
     "external_speakers_send_message_default": "Hello,\n\nHere is the up-to-date list of speakers of the {name} congregation, attached.\n\nKind regards,\n{signature}",
     "external_speakers_send_attachment": "{count} speakers, headed by the coordinator and the public talk coordinator",
     "external_speakers_send_preview": "Preview",
-    "external_speakers_send_one": "Send 1 email",
-    "external_speakers_send_many": "Send {count} emails",
+    "external_speakers_send": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Send {count} email",
+                "countPlural=*": "Send {count} emails"
+            }
+        }
+    ],
     "external_speakers_send_choose": "Choose a congregation",
     "external_speakers_send_unavailable": "This installation does not send emails. Download the PDF, send it from your mailbox, then mark it sent to keep track.",
-    "external_speakers_send_done_one": "Our list went to 1 congregation.",
-    "external_speakers_send_done_many": "Our list went to {count} congregations.",
+    "external_speakers_send_done": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Our list went to {count} congregation.",
+                "countPlural=*": "Our list went to {count} congregations."
+            }
+        }
+    ],
     "external_speakers_send_partial": "Sent to {sent}; could not go to {names}.",
     "external_speakers_send_failed": "Our list could not go to any congregation. Download the PDF to send it yourself.",
     "external_speakers_mark_title": "Mark our list as sent",
     "external_speakers_mark_description": "For a list sent from your mailbox: « sent on … » stays right.",
     "external_speakers_mark_date": "Sent on",
-    "external_speakers_mark_one": "Mark 1 congregation",
-    "external_speakers_mark_many": "Mark {count} congregations",
-    "external_speakers_mark_done_one": "Our list is marked sent to 1 congregation.",
-    "external_speakers_mark_done_many": "Our list is marked sent to {count} congregations.",
+    "external_speakers_mark": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Mark {count} congregation",
+                "countPlural=*": "Mark {count} congregations"
+            }
+        }
+    ],
+    "external_speakers_mark_done": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Our list is marked sent to {count} congregation.",
+                "countPlural=*": "Our list is marked sent to {count} congregations."
+            }
+        }
+    ],
     "external_speakers_downloaded": "PDF downloaded.",
     "external_speakers_downloaded_mark": "Mark as sent…",
     "external_speakers_pdf_title": "Our speakers",
-    "external_speakers_pdf_subtitle_one": "List of {date} · 1 brother",
-    "external_speakers_pdf_subtitle_many": "List of {date} · {count} brothers",
+    "external_speakers_pdf_subtitle": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "List of {date} · {count} brother",
+                "countPlural=*": "List of {date} · {count} brothers"
+            }
+        }
+    ],
     "external_speakers_pdf_col_brother": "Brother",
     "external_speakers_pdf_col_phone": "Phone",
     "external_speakers_pdf_col_email": "Email",
@@ -4697,8 +5998,19 @@
     "external_speakers_ours_phone_none": "No phone",
     "external_speakers_ours_email_hidden": "Email not shared",
     "external_speakers_ours_modified_on": "Changed on {date}",
-    "external_speakers_ours_count_one": "1 brother on our list",
-    "external_speakers_ours_count_many": "{count} brothers on our list",
+    "external_speakers_ours_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} brother on our list",
+                "countPlural=*": "{count} brothers on our list"
+            }
+        }
+    ],
     "external_speakers_ours_candidates_count": "Candidates: the {count} brothers of the {role} organigram role. {on} are on our list.",
     "external_speakers_ours_state_never": "Never sent",
     "external_speakers_send_no_reply_to": "Without a public talk coordinator, replies would go to the app’s address, which nobody reads.",

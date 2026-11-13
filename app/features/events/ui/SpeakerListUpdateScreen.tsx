@@ -42,10 +42,6 @@ const CONTACT_ROWS = [
   { prefix: 'coordinator', label: m.external_speakers_coordinator },
 ] as const
 
-function one(count: number, single: () => string, many: (p: { count: string }) => string) {
-  return count === 1 ? single() : many({ count: String(count) })
-}
-
 export function SpeakerListUpdateScreen({ page }: { page: SpeakerListUpdatePage }) {
   const { congregation, current, elsewhere, timezone } = page
   const state = useSpeakerListUpdate({ current, elsewhere, contacts: congregation, listDate: congregation.listDate })
@@ -78,18 +74,13 @@ export function SpeakerListUpdateScreen({ page }: { page: SpeakerListUpdatePage 
 
   const { counts } = state
   const summary = [
-    counts.created > 0 &&
-      one(counts.created, () => m.external_speakers_update_new_one(), m.external_speakers_update_new_many),
-    counts.updated > 0 &&
-      one(counts.updated, () => m.external_speakers_update_changed_one(), m.external_speakers_update_changed_many),
-    counts.moved > 0 &&
-      one(counts.moved, () => m.external_speakers_update_moved_one(), m.external_speakers_update_moved_many),
-    counts.retired > 0 &&
-      one(counts.retired, () => m.external_speakers_update_retired_one(), m.external_speakers_update_retired_many),
-    counts.unanswered > 0 &&
-      one(counts.unanswered, () => m.external_speakers_update_ask_one(), m.external_speakers_update_ask_many),
+    counts.created > 0 && m.external_speakers_update_new({ count: counts.created }),
+    counts.updated > 0 && m.external_speakers_update_changed({ count: counts.updated }),
+    counts.moved > 0 && m.external_speakers_update_moved({ count: counts.moved }),
+    counts.retired > 0 && m.external_speakers_update_retired({ count: counts.retired }),
+    counts.unanswered > 0 && m.external_speakers_update_ask({ count: counts.unanswered }),
     state.contactsChanged && m.external_speakers_update_count_contacts(),
-  ].filter((part): part is string => typeof part === 'string')
+  ].filter((part): part is Exclude<typeof part, false> => typeof part === 'string')
   const pdfShown = fileUrl != null && showPdf
   const refusal = fetcher.state === 'idle' && fetcher.data?.ok === false ? fetcher.data.error : null
   const saveLabel = state.listDate
@@ -184,9 +175,7 @@ export function SpeakerListUpdateScreen({ page }: { page: SpeakerListUpdatePage 
               <p className="text-muted-foreground pb-2 text-sm" aria-live="polite">
                 {state.read.kind === 'reading' && m.external_speakers_update_reading()}
                 {state.read.kind === 'read' &&
-                  (state.read.count === 1
-                    ? m.external_speakers_update_read_one({ file: state.file.name })
-                    : m.external_speakers_update_read_many({ file: state.file.name, count: String(state.read.count) }))}
+                  m.external_speakers_update_read({ file: state.file.name, count: state.read.count })}
               </p>
             </div>
           )}

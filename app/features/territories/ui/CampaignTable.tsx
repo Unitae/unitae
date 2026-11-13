@@ -54,10 +54,7 @@ export function CampaignTable({ rows }: { rows: CampaignListRow[] }) {
                   >
                     <span className="font-medium">{row.name}</span>
                     <span className="text-faint text-sm tabular-nums">
-                      {formatCampaignRange(row.startDay, row.endDay)} ·{' '}
-                      {length > 1
-                        ? m.campaigns_length_other({ count: length })
-                        : m.campaigns_length_one({ count: length })}
+                      {formatCampaignRange(row.startDay, row.endDay)} · {m.campaigns_length({ count: length })}
                     </span>
                   </Link>
                 </td>

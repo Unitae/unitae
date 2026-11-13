@@ -154,9 +154,7 @@ export function ExportActivityDialog({
 /** « Exporter 3 fiches » once the people are picked by hand, the only scope whose count is known here. */
 function submitLabel(scope: ExportScope | null, picked: number): string {
   if (scope !== 'members' || picked === 0) return m.activity_export_dialog_submit()
-  return picked === 1
-    ? m.activity_export_dialog_submit_one()
-    : m.activity_export_dialog_submit_many({ count: String(picked) })
+  return m.activity_export_dialog_submit_count({ count: picked })
 }
 
 function FormatField({ format, onFormatChange }: { format: ExportFormat; onFormatChange: (f: ExportFormat) => void }) {

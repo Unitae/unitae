@@ -18,11 +18,7 @@ export default function TerritoriesNeverWorkedList({ territories, isCapped = fal
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="m-0 text-muted-foreground text-sm">
-        {territories.length > 1
-          ? m.stats_never_worked_count_other({ count: territories.length })
-          : m.stats_never_worked_count_one({ count: territories.length })}
-      </p>
+      <p className="m-0 text-muted-foreground text-sm">{m.stats_never_worked_count({ count: territories.length })}</p>
       <div className="flex flex-wrap gap-1.5">
         {territories.map(t => (
           <Link key={t.id} to={`/territories/territory/${t.id}/view`} className={CHIP}>

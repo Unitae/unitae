@@ -86,12 +86,7 @@ function describeResidentialCounts(entrance: BuildingEntrance): string[] {
   const liberals = entrance.liberals ?? 0
   const parts: string[] = []
 
-  if (homes > 0)
-    parts.push(
-      homes > 1
-        ? m.territories_content_homes_other({ count: homes })
-        : m.territories_content_homes_one({ count: homes }),
-    )
+  if (homes > 0) parts.push(m.territories_content_homes({ count: homes }))
   if (phones > 0) parts.push(m.prospection_info_phones_count({ count: phones }))
   if (liberals > 0) parts.push(m.prospection_info_liberals_count({ count: liberals }))
 

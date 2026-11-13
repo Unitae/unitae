@@ -125,9 +125,7 @@ export function AuditLogToolbar({ count, period, from, to, today }: AuditLogTool
         </div>
       )}
       <span className="ml-auto text-faint text-sm tabular-nums">
-        {count === 1
-          ? m.audit_log_count_one()
-          : m.audit_log_count_many({ count: new Intl.NumberFormat(getLocale()).format(count) })}
+        {m.audit_log_count({ count: new Intl.NumberFormat(getLocale()).format(count) })}
       </span>
     </div>
   )

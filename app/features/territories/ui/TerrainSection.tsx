@@ -62,9 +62,7 @@ export default function TerrainSection({
               to="/territories/buildings/need-check"
               className="flex items-center justify-between gap-2 px-4 py-3 font-medium text-brand-text text-sm outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
             >
-              {buildingsMissingDemographicsCount > 1
-                ? m.stats_terrain_gap_link_other({ count: buildingsMissingDemographicsCount })
-                : m.stats_terrain_gap_link_one({ count: buildingsMissingDemographicsCount })}
+              {m.stats_terrain_gap_link({ count: buildingsMissingDemographicsCount })}
               <ChevronRight className="size-4" aria-hidden="true" />
             </Link>
           )}

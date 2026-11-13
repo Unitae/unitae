@@ -34,8 +34,7 @@ export function RecordActivity({
       actions={
         <span className="text-faint text-sm tabular-nums">
           {m.pioneers_service_year({ start: String(serviceYear), end: String(serviceYear + 1) })}
-          {due.length > 0 &&
-            ` · ${(filed <= 1 ? m.publishers_record_reports_filed_one : m.publishers_record_reports_filed)({ filed, due: due.length })}`}
+          {due.length > 0 && ` · ${m.publishers_record_reports_filed({ filed, due: due.length })}`}
         </span>
       }
     >

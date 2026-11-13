@@ -23,11 +23,7 @@ export function FormSaveBar({ changes, label, children }: FormSaveBarProps) {
       <SaveBar
         aria-label={m.form_save_bar()}
         dirty={changes != null && changes > 0}
-        label={
-          changes == null || changes === 0
-            ? label
-            : (changes === 1 ? m.form_changes_one : m.form_changes_many)({ count: String(changes) })
-        }
+        label={changes == null || changes === 0 ? label : m.form_changes({ count: changes })}
         className="fixed inset-x-0 bottom-0 z-30 max-md:pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:group-has-data-[state=expanded]/sidebar-wrapper:left-(--sidebar-width)"
       >
         {children}

@@ -325,11 +325,7 @@ export function ProgrammeView({ events, showServices, config, now, timeZone }: P
       {weeks.length > 1 && <WeekRail weeks={weeks} onOpenPast={() => setShowPast(true)} />}
       {foldable && (
         <div className="flex items-center gap-3 border-border border-b pb-2 font-sans text-muted-foreground text-sm print:hidden">
-          <span className="flex-1">
-            {pastCount === 1
-              ? m.board_programme_past_meetings_one()
-              : m.board_programme_past_meetings_other({ count: String(pastCount) })}
-          </span>
+          <span className="flex-1">{m.board_programme_past_meetings({ count: pastCount })}</span>
           <Button variant="ghost" size="sm" onClick={() => setShowPast(!showPast)} aria-expanded={!folded}>
             {folded ? m.board_programme_show_past() : m.board_programme_hide_past()}
           </Button>

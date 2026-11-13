@@ -32,9 +32,7 @@ export function ContinuousAuxiliarySection({ name, defaultChecked, enrolled }: C
       {stopping && (
         <p role="status" className="flex gap-2 rounded-md bg-warning-soft px-3 py-2.5 text-sm">
           <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-warning" />
-          {(enrolled.length === 1
-            ? m.settings_publishers_continuous_stops_one
-            : m.settings_publishers_continuous_stops_many)({ names })}
+          {m.settings_publishers_continuous_stops({ count: enrolled.length, names })}
         </p>
       )}
     </div>

@@ -62,11 +62,7 @@ export function ProgrammeBulkActions({ selected, onClear, timeZone }: ProgrammeB
     <>
       <SelectionBar
         aria-label={m.programs_selection_toolbar()}
-        label={
-          selected.length > 1
-            ? m.programs_selection_other({ count: selected.length })
-            : m.programs_selection_one({ count: selected.length })
-        }
+        label={m.programs_selection({ count: selected.length })}
         clearLabel={m.programs_selection_clear()}
         onClear={onClear}
         className="max-md:hidden"
@@ -118,14 +114,8 @@ export function ProgrammeBulkActions({ selected, onClear, timeZone }: ProgrammeB
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent size="sm">
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {toDelete.length > 1
-                ? m.programs_bulk_delete_title_other({ count: toDelete.length })
-                : m.programs_bulk_delete_title_one({ count: toDelete.length })}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {toDelete.length > 1 ? m.programs_bulk_delete_body_other() : m.programs_bulk_delete_body_one()}
-            </AlertDialogDescription>
+            <AlertDialogTitle>{m.programs_bulk_delete_title({ count: toDelete.length })}</AlertDialogTitle>
+            <AlertDialogDescription>{m.programs_bulk_delete_body({ count: toDelete.length })}</AlertDialogDescription>
           </AlertDialogHeader>
           <ul className="flex max-h-56 flex-col gap-1.5 overflow-y-auto rounded-md bg-sidebar px-3 py-2.5 text-sm">
             {toDelete.map(row => (

@@ -107,20 +107,14 @@ export function BuildingSyncStatus({ run, today, canSync, onView }: BuildingSync
       {run.createdCount != null && (
         <>
           <span className="text-faint">·</span>
-          <ViewLink onClick={() => onView('new')}>
-            {run.createdCount === 1
-              ? m.prospection_sync_new_link_one()
-              : m.prospection_sync_new_link({ count: run.createdCount })}
-          </ViewLink>
+          <ViewLink onClick={() => onView('new')}>{m.prospection_sync_new_link({ count: run.createdCount })}</ViewLink>
         </>
       )}
       {run.missingCount != null && (
         <>
           <span className="text-faint">·</span>
           <ViewLink onClick={() => onView('missing')}>
-            {run.missingCount === 1
-              ? m.prospection_sync_missing_link_one()
-              : m.prospection_sync_missing_link({ count: run.missingCount })}
+            {m.prospection_sync_missing_link({ count: run.missingCount })}
           </ViewLink>
         </>
       )}

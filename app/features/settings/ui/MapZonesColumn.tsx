@@ -26,7 +26,7 @@ function points(paths: readonly { lat: number; lng: number }[]) {
   const [first, last] = [paths[0], paths[paths.length - 1]]
   const closed = paths.length > 1 && first.lat === last.lat && first.lng === last.lng
   const count = closed ? paths.length - 1 : paths.length
-  return count === 1 ? m.settings_map_points_one() : m.settings_map_points_many({ count: String(count) })
+  return m.settings_map_points({ count: count })
 }
 
 const zoneName = (overlay: CardOverlay) =>
