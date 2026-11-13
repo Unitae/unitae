@@ -1,3 +1,4 @@
+import * as m from '~/i18n/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import {
   APPOINTED_ROLE_KEYS,
@@ -184,11 +185,19 @@ export interface AdoptionChoice {
   fromRoleId: number | null
 }
 
+// Getters, so each message reads the language of the request that raises it, not the one the
+// module happened to load in.
 export const ADOPTION_ERRORS = {
-  unknownPost: 'Seuls le comité de service et ses trois fonctions peuvent être repris.',
-  duplicatePost: 'Chaque fonction du comité ne peut être reprise qu’une seule fois.',
-  alreadyAdopted: 'Le comité de service est déjà dans l’organigramme.',
-} as const
+  get unknownPost() {
+    return m.organigram_adoption_error_unknown_post()
+  },
+  get duplicatePost() {
+    return m.organigram_adoption_error_duplicate_post()
+  },
+  get alreadyAdopted() {
+    return m.organigram_adoption_error_already_adopted()
+  },
+}
 
 /**
  * Place the standard committee, carrying across whatever the congregation had built by hand.
@@ -242,7 +251,7 @@ export async function adoptServiceCommittee(
       const source = choice.fromRoleId == null ? undefined : byId.get(choice.fromRoleId)
       if (!target || !source) throw new NotFoundError('Role', choice.fromRoleId ?? 0)
       // Mapping one built-in post onto another is meaningless and would move seats between posts.
-      if (isAppointedRoleKey(source.key)) throw new ForbiddenError('Cet élément ne peut pas être repris.')
+      if (isAppointedRoleKey(source.key)) throw new ForbiddenError(m.organigram_adoption_error_not_adoptable())
       return { target, source }
     })
 

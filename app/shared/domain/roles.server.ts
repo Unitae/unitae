@@ -1,3 +1,4 @@
+import * as m from '~/i18n/paraglide/messages'
 import { requireAdminsRemainWithoutRole } from '~/shared/auth/permissions.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { BUILT_IN_ROLE_KEYS, SERVICE_COMMITTEE_KEY, SYSTEM_ROLE_KEYS } from '~/shared/domain/built-in-roles.server'
@@ -321,9 +322,7 @@ export async function deleteRole(
   })
   if (children.length > 0) {
     const names = children.map(child => child.name ?? child.key).join(', ')
-    throw new ConflictError(
-      `Des services de l’organigramme lui sont rattachés : ${names}. Déplacez-les avant de supprimer ce rôle.`,
-    )
+    throw new ConflictError(m.roles_error_has_children({ names }))
   }
 
   // Wherever this role is the only one allowed, deleting it would open the place to everyone: settle those first.

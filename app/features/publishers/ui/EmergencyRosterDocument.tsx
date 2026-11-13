@@ -1,5 +1,8 @@
 import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import * as m from '~/i18n/paraglide/messages'
+import { PDF_FONT_FAMILY, registerPdfFonts } from '~/shared/ui/pdf-fonts'
+
+registerPdfFonts()
 
 export type EmergencyRosterPublisher = {
   id: number
@@ -81,8 +84,8 @@ export function EmergencyRosterDocument({ title, publishers }: EmergencyRosterDo
 }
 
 const styles = StyleSheet.create({
-  page: { padding: 24, fontFamily: 'Helvetica' },
-  title: { fontSize: 16, fontFamily: 'Helvetica-Bold', textAlign: 'center' },
+  page: { padding: 24, fontFamily: PDF_FONT_FAMILY },
+  title: { fontSize: 16, fontFamily: PDF_FONT_FAMILY, fontWeight: 'bold', textAlign: 'center' },
   subtitle: { fontSize: 12, textAlign: 'center', marginBottom: 16, color: '#444444' },
   card: {
     borderWidth: 1,
@@ -93,10 +96,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  name: { fontSize: 12, fontFamily: 'Helvetica-Bold' },
+  name: { fontSize: 12, fontFamily: PDF_FONT_FAMILY, fontWeight: 'bold' },
   group: { fontSize: 10, color: '#666666' },
   line: { fontSize: 10, marginBottom: 2 },
-  contactsLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', marginTop: 4 },
+  contactsLabel: { fontSize: 10, fontFamily: PDF_FONT_FAMILY, fontWeight: 'bold', marginTop: 4 },
   contact: { fontSize: 10, marginLeft: 6 },
   contactEmpty: { fontSize: 10, marginLeft: 6, color: '#888888', fontStyle: 'italic' },
 })

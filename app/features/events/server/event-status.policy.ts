@@ -1,3 +1,4 @@
+import * as m from '~/i18n/paraglide/messages'
 import { ConflictError } from '~/shared/errors/app-error.server'
 
 // Pure release-time invariants. No DB access — callers load the assignments
@@ -8,9 +9,13 @@ import { ConflictError } from '~/shared/errors/app-error.server'
 // toast would just duplicate that and get unreadable with several conflicts
 // on the same event.
 
+// Getters, so each message reads the language of the request that raises it, not the one the
+// module happened to load in.
 export const EVENT_STATUS_ERRORS = {
-  releaseBlockedByConflicts: 'Impossible de publier : cet événement a des conflits d’absence à résoudre.',
-} as const
+  get releaseBlockedByConflicts() {
+    return m.event_status_error_release_blocked()
+  },
+}
 
 export type PartReleaseAssignment = { hasConflict: boolean }
 export type ServicePartReleaseAssignment = { hasConflict: boolean }

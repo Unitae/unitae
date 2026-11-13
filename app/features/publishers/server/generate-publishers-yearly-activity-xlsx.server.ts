@@ -1,6 +1,7 @@
 import excelJs from 'exceljs'
 
 import { wasInactiveDuring } from '~/features/publishers/model/inactive'
+import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { PublisherType, publisherTypeReportsHours } from '~/shared/types/publisher-type'
@@ -40,13 +41,13 @@ export async function buildPublishersYearlyActivityXlsx(months: MonthlyActivitie
 
     const worksheet = workbook.addWorksheet(sheetName)
     worksheet.columns = [
-      { header: 'Nom,Prénom', width: 25 },
-      { header: 'Groupes', width: 15 },
-      { header: 'Heures', width: 10 },
-      { header: 'Statut', width: 12 },
-      { header: 'Études', width: 6 },
-      { header: 'Pion', width: 6 },
-      { header: 'Observations', width: 40 },
+      { header: m.activity_xlsx_col_name(), width: 25 },
+      { header: m.activity_xlsx_col_groups(), width: 15 },
+      { header: m.activity_xlsx_col_hours(), width: 10 },
+      { header: m.activity_xlsx_col_status(), width: 12 },
+      { header: m.activity_xlsx_col_studies(), width: 6 },
+      { header: m.activity_xlsx_col_pioneer(), width: 6 },
+      { header: m.activity_xlsx_col_remarks(), width: 40 },
     ]
     for (let col = 1; col <= 7; col++) {
       worksheet.getColumn(col).alignment = { vertical: 'middle', horizontal: 'center' }
@@ -62,11 +63,11 @@ export async function buildPublishersYearlyActivityXlsx(months: MonthlyActivitie
 
     for (const activity of activities) {
       let type = ''
-      if (activity.type === PublisherType.PionnierPermanant) type = 'PP'
-      if (activity.type === PublisherType.PionnierAuxiliaires) type = 'PA'
+      if (activity.type === PublisherType.PionnierPermanant) type = m.activity_xlsx_type_regular()
+      if (activity.type === PublisherType.PionnierAuxiliaires) type = m.activity_xlsx_type_auxiliary()
 
       let hours = ''
-      if (activity.isPublisher) hours = 'A préché'
+      if (activity.isPublisher) hours = m.activity_xlsx_preached()
       if (publisherTypeReportsHours(activity.type)) hours = String(activity.hours)
 
       worksheet.addRow([
@@ -91,9 +92,10 @@ function computeStatut(
   month: number,
   year: number,
 ): string {
-  if (wasInactiveDuring(activity.publisher.inactiveAt, year, month)) return 'Inactif'
-  if (!activity.isPublisher && (activity.hours == null || activity.hours === 0)) return 'Irrégulier'
-  return 'Régulier'
+  if (wasInactiveDuring(activity.publisher.inactiveAt, year, month)) return m.activity_xlsx_status_inactive()
+  if (!activity.isPublisher && (activity.hours == null || activity.hours === 0))
+    return m.activity_xlsx_status_irregular()
+  return m.activity_xlsx_status_regular()
 }
 
 function getPublishersMonthlyActivity(db: TransactionClient, congregationId: number, month: number, year: number) {

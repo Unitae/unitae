@@ -43,7 +43,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     status: 200,
     headers: {
       'Content-Type': 'application/vnd.ms-excel',
-      'Content-Disposition': `attachment; filename="Activité-Proclamateurs-${year}.xlsx"`,
+      'Content-Disposition': `attachment; filename="${m.activity_export_filename_xlsx({ year: String(year) })}"`,
     },
   })
 }

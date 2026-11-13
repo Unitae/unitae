@@ -278,7 +278,11 @@ describe('the dynamic document PDF loader', () => {
 
   it.each([
     [DynamicType.Organigram, { type: DynamicType.Organigram, tree: [{ id: 1 }] }, 'organigramme.pdf'],
-    [DynamicType.PublisherGroups, { type: DynamicType.PublisherGroups, groups: [{ id: 1 }] }, 'groupes.pdf'],
+    [
+      DynamicType.PublisherGroups,
+      { type: DynamicType.PublisherGroups, groups: [{ id: 1 }] },
+      'groupes de prédication.pdf',
+    ],
     [DynamicType.Pioneers, { type: DynamicType.Pioneers, pioneers: [{ id: 1 }] }, 'pionniers.pdf'],
   ])('falls back to a per-type filename for a %s whose title sanitizes to nothing', async (type, data, expected) => {
     settingsFindFirst.mockResolvedValue(documentSettings(type, ''))

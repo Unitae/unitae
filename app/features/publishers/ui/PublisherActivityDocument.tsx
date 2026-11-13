@@ -5,6 +5,9 @@ import { buildServiceYearActivityRows } from '~/features/publishers/model/servic
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { PublisherType } from '~/shared/types/publisher-type'
+import { PDF_FONT_FAMILY, registerPdfFonts } from '~/shared/ui/pdf-fonts'
+
+registerPdfFonts()
 
 interface PublisherActivityDocumentProps {
   publisher: Member & { activities: PublisherActivity[]; pioneerEnrolments: EnrolmentPeriod[] }
@@ -176,16 +179,16 @@ export function PublisherActivityDocument({ publisher, serviceYear }: PublisherA
 const styles = StyleSheet.create({
   title: {
     fontSize: 16,
-    fontWeight: 900,
     textAlign: 'center',
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: PDF_FONT_FAMILY,
+    fontWeight: 'bold',
     marginBottom: 20,
     marginTop: 20,
   },
   label: {
     fontSize: 11,
-    fontWeight: 900,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: PDF_FONT_FAMILY,
+    fontWeight: 'bold',
     color: 'black',
   },
   containerLabel: {

@@ -30,7 +30,11 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
   if (!loaderData) return [{ title: 'Unitae' }]
   return [
     {
-      title: `Modification du ${loaderData.building.number} ${loaderData.building.street}, ${loaderData.building.zip} - Unitae`,
+      title: m.prospection_edit_building_meta_title({
+        number: loaderData.building.number,
+        street: loaderData.building.street,
+        zip: loaderData.building.zip,
+      }),
     },
   ]
 }

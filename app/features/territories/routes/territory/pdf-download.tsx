@@ -5,6 +5,7 @@ import { listCardOverlays } from '~/features/territories/server/card-overlays.se
 import { getPerimeterPaths } from '~/features/territories/server/perimeter.server'
 import { showPhoneOnTerritoryCard } from '~/features/territories/server/territory-pdf.server'
 import { TerritoryDocument } from '~/features/territories/ui/TerritoryDocument'
+import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { ForbiddenError } from '~/shared/errors/app-error.server'
@@ -13,7 +14,6 @@ import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { getOptionalEnv } from '~/shared/utils/env.server'
 import { requireParamId } from '~/shared/utils/params.server'
-
 import type { Route } from './+types/pdf-download'
 
 export function loader({ params, context }: Route.LoaderArgs) {
@@ -54,7 +54,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
       ? `${currentAttribution.publisher.firstname} ${currentAttribution.publisher.lastname?.toUpperCase().at(0)}.`
       : undefined
     const ownerFirstname = sanitizeFilename(currentAttribution?.publisher.firstname?.toLowerCase() ?? '')
-    const filename = `territoire-${sanitizeFilename(territory.number)}${ownerFirstname.length > 0 ? `__${ownerFirstname}` : ''}.pdf`
+    const filename = `${m.territory_pdf_filename({ number: sanitizeFilename(territory.number) })}${ownerFirstname.length > 0 ? `__${ownerFirstname}` : ''}.pdf`
 
     return renderPdfResponse(
       <TerritoryDocument

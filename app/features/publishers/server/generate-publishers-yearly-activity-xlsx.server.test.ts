@@ -110,13 +110,13 @@ describe('buildPublishersYearlyActivityXlsx', () => {
     expect(workbook.worksheets).toHaveLength(12)
   })
 
-  it('shows "A préché" for a normal publisher', async () => {
+  it('shows « A prêché » for a normal publisher', async () => {
     const workbook = await buildFromActivities([
       makeActivity(PublisherType.Normal, { isPublisher: true, hours: 0, studies: 1 }),
     ])
     const dataRow = workbook.worksheets[0].getRow(2)
 
-    expect(dataRow.getCell(3).value).toBe('A préché')
+    expect(dataRow.getCell(3).value).toBe('A prêché')
   })
 
   it('shows hours for a permanent pioneer', async () => {

@@ -50,47 +50,35 @@ const BUILT_IN_READER_LABELS: Record<string, MessageFn> = {
   [PartPresetKey.CongregationBibleStudy]: m.seed_preset_label_reader,
 }
 
-export const SHARE_MESSAGES: Record<Locale, Record<PartPresetKey, string>> = {
-  fr: {
-    [PartPresetKey.Prayer]:
-      'Bonjour {{assigneeFirstname}},\n\nTu as la prière le {{date}} à {{time}} ({{eventName}}).\n\n{{link}}',
-    [PartPresetKey.Chairman]:
-      'Bonjour {{assigneeFirstname}},\n\nTu présides la réunion du {{date}} à {{time}}.\n\n{{link}}',
-    [PartPresetKey.MidweekTalk]:
-      'Bonjour {{assigneeFirstname}},\n\nTu as un sujet à la réunion Vie chrétienne et ministère le {{date}} à {{time}}.\nPartie : {{partName}}\nSujet : {{topic}}\nDurée : {{duration}}\nNote : {{note}}\n\n{{link}}',
-    [PartPresetKey.BibleReading]:
-      'Bonjour {{assigneeFirstname}},\n\nTu as la lecture de la Bible le {{date}} à {{time}}.\nPassage : {{topic}}\nDurée : {{duration}}\nNote : {{note}}\n\n{{link}}',
-    [PartPresetKey.SchoolDemonstration]:
-      'Bonjour {{assigneeFirstname}},\n\nTu as un sujet de l’école le {{date}} à {{time}}.\nSujet : {{topic}}\nDurée : {{duration}}\nAvec : {{assistant}}\nNote : {{note}}\n\n{{link}}',
-    [PartPresetKey.SchoolTalk]:
-      'Bonjour {{assigneeFirstname}},\n\nTu as un discours de l’école le {{date}} à {{time}}.\nSujet : {{topic}}\nDurée : {{duration}}\nNote : {{note}}\n\n{{link}}',
-    [PartPresetKey.PublicTalk]:
-      'Bonjour {{assigneeFirstname}},\n\nTu donnes le discours public le {{date}} à {{time}}.\nThème : {{topic}}\nNote : {{note}}\n\n{{link}}',
-    [PartPresetKey.WatchtowerStudy]:
-      'Bonjour {{assigneeFirstname}},\n\nTu conduis l’Étude de La Tour de Garde le {{date}} à {{time}}.\nLecteur : {{assistant}}\nNote : {{note}}\n\n{{link}}',
-    [PartPresetKey.CongregationBibleStudy]:
-      'Bonjour {{assigneeFirstname}},\n\nTu conduis l’étude biblique de l’assemblée le {{date}} à {{time}}.\nLecteur : {{assistant}}\nNote : {{note}}\n\n{{link}}',
-  },
-  en: {
-    [PartPresetKey.Prayer]:
-      'Hi {{assigneeFirstname}},\n\nYou have the prayer on {{date}} at {{time}} ({{eventName}}).\n\n{{link}}',
-    [PartPresetKey.Chairman]:
-      'Hi {{assigneeFirstname}},\n\nYou are chairing the meeting on {{date}} at {{time}}.\n\n{{link}}',
-    [PartPresetKey.MidweekTalk]:
-      'Hi {{assigneeFirstname}},\n\nYou have a talk in the midweek meeting on {{date}} at {{time}}.\nPart: {{partName}}\nTopic: {{topic}}\nLength: {{duration}}\nNote: {{note}}\n\n{{link}}',
-    [PartPresetKey.BibleReading]:
-      'Hi {{assigneeFirstname}},\n\nYou have the Bible reading on {{date}} at {{time}}.\nPassage: {{topic}}\nLength: {{duration}}\nNote: {{note}}\n\n{{link}}',
-    [PartPresetKey.SchoolDemonstration]:
-      'Hi {{assigneeFirstname}},\n\nYou have a school demonstration on {{date}} at {{time}}.\nTopic: {{topic}}\nLength: {{duration}}\nWith: {{assistant}}\nNote: {{note}}\n\n{{link}}',
-    [PartPresetKey.SchoolTalk]:
-      'Hi {{assigneeFirstname}},\n\nYou have a school talk on {{date}} at {{time}}.\nTopic: {{topic}}\nLength: {{duration}}\nNote: {{note}}\n\n{{link}}',
-    [PartPresetKey.PublicTalk]:
-      'Hi {{assigneeFirstname}},\n\nYou are giving the public talk on {{date}} at {{time}}.\nTheme: {{topic}}\nNote: {{note}}\n\n{{link}}',
-    [PartPresetKey.WatchtowerStudy]:
-      'Hi {{assigneeFirstname}},\n\nYou are conducting the Watchtower Study on {{date}} at {{time}}.\nReader: {{assistant}}\nNote: {{note}}\n\n{{link}}',
-    [PartPresetKey.CongregationBibleStudy]:
-      'Hi {{assigneeFirstname}},\n\nYou are conducting the Congregation Bible Study on {{date}} at {{time}}.\nReader: {{assistant}}\nNote: {{note}}\n\n{{link}}',
-  },
+// The body sent to whoever is assigned a seeded kind, from the catalogue so it is translated like
+// the rest. The stored wording is a template whose tokens `renderShareMessage` fills in later, so
+// each token is passed in as itself: the message comes out with « {{date}} » where it says {date}.
+const SHARE_MESSAGE_TOKENS = {
+  assigneeFirstname: '{{assigneeFirstname}}',
+  assistant: '{{assistant}}',
+  date: '{{date}}',
+  duration: '{{duration}}',
+  eventName: '{{eventName}}',
+  link: '{{link}}',
+  note: '{{note}}',
+  partName: '{{partName}}',
+  time: '{{time}}',
+  topic: '{{topic}}',
+}
+
+const SHARE_MESSAGES: Record<
+  PartPresetKey,
+  (inputs: typeof SHARE_MESSAGE_TOKENS, options?: { locale?: Locale }) => string
+> = {
+  [PartPresetKey.Prayer]: m.share_message_default_prayer,
+  [PartPresetKey.Chairman]: m.share_message_default_chairman,
+  [PartPresetKey.MidweekTalk]: m.share_message_default_midweek_talk,
+  [PartPresetKey.BibleReading]: m.share_message_default_bible_reading,
+  [PartPresetKey.SchoolDemonstration]: m.share_message_default_school_demonstration,
+  [PartPresetKey.SchoolTalk]: m.share_message_default_school_talk,
+  [PartPresetKey.PublicTalk]: m.share_message_default_public_talk,
+  [PartPresetKey.WatchtowerStudy]: m.share_message_default_watchtower_study,
+  [PartPresetKey.CongregationBibleStudy]: m.share_message_default_congregation_bible_study,
 }
 
 /**
@@ -124,7 +112,7 @@ export function partPresetName(preset: { key: string; name: string | null }, loc
  */
 export function partPresetShareMessage(preset: { key: string; shareMessage: string | null }, locale: Locale): string {
   if (preset.shareMessage !== null) return preset.shareMessage
-  return SHARE_MESSAGES[locale]?.[preset.key as PartPresetKey] ?? SHARE_MESSAGES.en[preset.key as PartPresetKey] ?? ''
+  return SHARE_MESSAGES[preset.key as PartPresetKey]?.(SHARE_MESSAGE_TOKENS, { locale }) ?? ''
 }
 
 function resolveLabel(
@@ -164,5 +152,5 @@ export function partPresetReaderLabel(
  */
 export function hasPartPresetShareMessage(preset: { key: string; shareMessage: string | null }): boolean {
   if (preset.shareMessage !== null) return preset.shareMessage.trim() !== ''
-  return SHARE_MESSAGES.fr[preset.key as PartPresetKey] !== undefined
+  return SHARE_MESSAGES[preset.key as PartPresetKey] !== undefined
 }

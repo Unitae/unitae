@@ -1,3 +1,4 @@
+import * as m from '~/i18n/paraglide/messages'
 import { requireNotLastAdmin } from '~/shared/auth/permissions.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import {
@@ -28,10 +29,16 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 // Split from `organigram.server.ts` because the two answer different questions and the file was
 // within three lines of its budget: that one moves boxes, this one puts people in them.
 
+// Getters, so each message reads the language of the request that raises it, not the one the
+// module happened to load in.
 export const ORGANIGRAM_ERRORS = {
-  postRequiresElder: 'Le comité de service est composé de trois anciens : cette personne n’est pas ancien.',
-  rosterIsSynced: 'Cette liste est synchronisée automatiquement : on n’y place personne à la main.',
-} as const
+  get postRequiresElder() {
+    return m.organigram_error_post_requires_elder()
+  },
+  get rosterIsSynced() {
+    return m.organigram_error_roster_is_synced()
+  },
+}
 
 async function requireRole(db: TransactionClient, roleId: number, congregationId: number) {
   const role = await db.role.findFirst({

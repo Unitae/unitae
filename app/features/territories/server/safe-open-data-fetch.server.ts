@@ -1,5 +1,6 @@
 import { lookup } from 'node:dns/promises'
 import { BlockList, isIP } from 'node:net'
+import * as m from '~/i18n/paraglide/messages'
 import { ValidationError } from '~/shared/errors/app-error.server'
 import { assertAllowedOpenDataUrl } from './open-data-allowlist.server'
 
@@ -69,13 +70,13 @@ async function assertPublicHost(url: URL): Promise<void> {
   try {
     addresses = await lookup(url.hostname, { all: true })
   } catch (cause) {
-    const error = new ValidationError('bano-url', 'Résolution DNS impossible pour l’hôte des données ouvertes')
+    const error = new ValidationError('bano-url', m.open_data_error_dns())
     error.cause = cause // preserve EAI_AGAIN vs ENOTFOUND for operators
     throw error
   }
 
   if (addresses.length === 0 || addresses.some(({ address }) => isBlockedAddress(address))) {
-    throw new ValidationError('bano-url', 'L’hôte des données ouvertes résout vers une adresse interne')
+    throw new ValidationError('bano-url', m.open_data_error_internal_address())
   }
 }
 
@@ -116,5 +117,5 @@ export async function safeOpenDataFetch(
     target = assertAllowedOpenDataUrl(new URL(location, target).toString())
   }
 
-  throw new ValidationError('bano-url', 'Trop de redirections pour les données ouvertes')
+  throw new ValidationError('bano-url', m.open_data_error_too_many_redirects())
 }

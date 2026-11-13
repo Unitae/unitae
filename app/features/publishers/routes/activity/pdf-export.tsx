@@ -58,7 +58,10 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     status: 200,
     headers: {
       'Content-Type': 'application/zip',
-      'Content-Disposition': `attachment; filename="Activité-${year}_${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}.zip"`,
+      'Content-Disposition': `attachment; filename="${m.activity_export_filename_zip_dated({
+        year: String(year),
+        date: `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`,
+      })}"`,
     },
   })
 }

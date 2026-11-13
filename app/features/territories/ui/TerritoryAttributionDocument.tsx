@@ -3,6 +3,9 @@ import type { Attribution, Member, Territory } from '~/database/generated/client
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
+import { PDF_FONT_FAMILY, registerPdfFonts } from '~/shared/ui/pdf-fonts'
+
+registerPdfFonts()
 
 type TerritoryRepport = Territory & { attributions: (Attribution & { publisher: Member })[] }
 
@@ -51,18 +54,18 @@ export function TerritoryAttributionDocument({
           <Table>
             <TableRow>
               <TableHeaderCell width="7%" borderLeft={3}>
-                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>
+                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: PDF_FONT_FAMILY }}>
                   {m.territory_s13_territory_number()}
                 </Text>
               </TableHeaderCell>
               <TableHeaderCell width="13%">
-                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>
+                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: PDF_FONT_FAMILY }}>
                   {m.territory_s13_last_covered()}
                 </Text>
-                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>
+                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: PDF_FONT_FAMILY }}>
                   {m.territory_s13_last_covered_line2()}
                 </Text>
-                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>
+                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: PDF_FONT_FAMILY }}>
                   {m.territory_s13_last_covered_line3()}
                 </Text>
               </TableHeaderCell>
@@ -110,7 +113,7 @@ export function TerritoryAttributionDocument({
               )
             })}
           </Table>
-          <Text style={{ fontSize: 9, fontWeight: 500, fontFamily: 'Helvetica', color: 'black' }}>
+          <Text style={{ fontSize: 9, fontWeight: 500, fontFamily: PDF_FONT_FAMILY, color: 'black' }}>
             {m.territory_s13_footnote()}
           </Text>
 
@@ -126,16 +129,16 @@ export function TerritoryAttributionDocument({
 const styles = StyleSheet.create({
   title: {
     fontSize: 16,
-    fontWeight: 900,
     textAlign: 'center',
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: PDF_FONT_FAMILY,
+    fontWeight: 'bold',
     marginBottom: 20,
     marginTop: 20,
   },
   label: {
     fontSize: 9,
-    fontWeight: 900,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: PDF_FONT_FAMILY,
+    fontWeight: 'bold',
     color: 'black',
   },
   containerLabel: {
@@ -285,7 +288,7 @@ function AttributionHeaderCell({
         style={{
           fontSize: 8,
           fontWeight: 500,
-          fontFamily: 'Helvetica',
+          fontFamily: PDF_FONT_FAMILY,
           justifyContent: 'center',
           alignItems: 'center',
           padding: 4,
@@ -304,7 +307,7 @@ function AttributionHeaderCell({
             alignItems: 'center',
           }}
         >
-          <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>
+          <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: PDF_FONT_FAMILY }}>
             {m.territory_s13_assigned_date()}
           </Text>
         </View>
@@ -319,10 +322,10 @@ function AttributionHeaderCell({
             alignItems: 'center',
           }}
         >
-          <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>
+          <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: PDF_FONT_FAMILY }}>
             {m.territory_s13_fully_covered()}
           </Text>
-          <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>
+          <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: PDF_FONT_FAMILY }}>
             {m.territory_s13_fully_covered_line2()}
           </Text>
         </View>

@@ -1,3 +1,4 @@
+import * as m from '~/i18n/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { ancestorChainIds, subtreeHeight, type TreeLink } from '~/shared/domain/organigram.queries'
 import {
@@ -145,7 +146,7 @@ export async function setRoleSinglePerson(
   })
   if (!role) throw new NotFoundError('Role', roleId)
   if (role.isBuiltIn) {
-    throw new ForbiddenError('Les rôles intégrés gardent leur forme : elle ne se change pas ici.')
+    throw new ForbiddenError(m.organigram_error_built_in_shape())
   }
   // The edit form submits the checkbox on every save; an unchanged value must not churn the
   // row or fill the audit log with changes nobody made.
@@ -157,9 +158,7 @@ export async function setRoleSinglePerson(
       (await db.memberRoleAssignment.count({ where: { roleId, congregationId, kind: 'leader' } })) +
       (await db.userRoleAssignment.count({ where: { roleId, congregationId, kind: 'leader' } }))
     if (leaders > 1) {
-      throw new ConflictError(
-        'Ce service a plusieurs responsables. Retirez-en pour n’en garder qu’un avant d’en faire un rôle personnel.',
-      )
+      throw new ConflictError(m.organigram_error_several_leaders())
     }
   }
 
@@ -230,7 +229,7 @@ export async function setOrganigramParent(
   // otherwise attach an off-chart role — invisible on the page, yet enough to block deleting
   // its parent later. Entering the chart goes through `addRoleToOrganigram`.
   if (!role.showInOrganigram) {
-    throw new ValidationError('roleId', 'Ce service n’est pas dans l’organigramme.')
+    throw new ValidationError('roleId', m.organigram_error_not_in_chart())
   }
   const links = await treeLinks(db, congregationId)
 
