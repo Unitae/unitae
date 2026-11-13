@@ -51,15 +51,42 @@ describe('countDocumentMatches', () => {
     expect(countDocumentMatches({ type: 'publisher-groups', groups }, 'dupont')).toBe(2)
   })
 
-  it('counts on the organigram only the people it prints: rosters whole, elsewhere the leaders and adjoints', () => {
-    const holder = (firstname: string, lastname: string, kind: string) => ({ ...person(firstname, lastname), kind })
+  it('counts on the organigram only the people it prints: rosters whole, then who each row names', () => {
+    let nextId = 1
+    const holder = (firstname: string, lastname: string, kind: string) => ({
+      roleId: 0,
+      memberId: nextId++,
+      firstname,
+      lastname,
+      anonymizedAt: null,
+      kind,
+      isElder: true,
+    })
+    const node = (name: string, holders: ReturnType<typeof holder>[], children: unknown[] = [], isRoster = false) => ({
+      id: nextId++,
+      key: name,
+      name,
+      note: null,
+      isRoster,
+      isSinglePerson: false,
+      holders,
+      children: children as never[],
+    })
     const tree = [
-      { isRoster: true, holders: [holder('Marc', 'Dupont', 'member')], children: [] },
-      {
-        isRoster: false,
-        holders: [holder('Paul', 'Dupont', 'leader'), holder('Rose', 'Dupont', 'member')],
-        children: [{ isRoster: false, holders: [holder('Anne', 'Dupont', 'deputy')], children: [] }],
-      },
+      node('Anciens', [holder('Marc', 'Dupont', 'member')], [], true),
+      // The service's row names its leader and, as adjoints, the leaders of its teams; a team's own
+      // adjoint and its members never print, so a search must not count them.
+      node(
+        'Accueil',
+        [holder('Paul', 'Dupont', 'leader')],
+        [
+          node('Porte', [
+            holder('Rose', 'Dupont', 'leader'),
+            holder('Anne', 'Dupont', 'deputy'),
+            holder('Luc', 'Dupont', 'member'),
+          ]),
+        ],
+      ),
     ]
     expect(countDocumentMatches({ type: 'organigram', tree }, 'dupont')).toBe(3)
   })

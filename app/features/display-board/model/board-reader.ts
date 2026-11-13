@@ -1,3 +1,5 @@
+import type { OrganigramNode } from '~/shared/domain/organigram.queries'
+import { bandEntries, groupLayout, serviceParts, toLayout } from '~/shared/domain/organigram-layout'
 import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 import { type BoardPerson, formatBoardPersonName } from './board-roster'
 import { DynamicType } from './dynamic-document.type'
@@ -34,12 +36,6 @@ export function isReader(memberId: number | null | undefined, reader: BoardReade
   return reader.memberId != null && memberId === reader.memberId
 }
 
-interface SearchableNode {
-  isRoster: boolean
-  holders: (Person & { kind: string })[]
-  children: SearchableNode[]
-}
-
 interface SearchableEvent {
   templateId?: number | null
   eventParts: { assignee: Person | null; assistant: Person | null }[]
@@ -52,7 +48,7 @@ export type SearchableDocument =
       groups: { responsible: Person; deputy: Person | null; members: Person[] }[]
     }
   | { type: typeof DynamicType.Pioneers; pioneers: Person[] }
-  | { type: typeof DynamicType.Organigram; tree: SearchableNode[] }
+  | { type: typeof DynamicType.Organigram; tree: OrganigramNode[] }
   | {
       type: typeof DynamicType.Programme
       events: SearchableEvent[]
@@ -60,10 +56,21 @@ export type SearchableDocument =
       showServices: boolean
     }
 
-/** The people the organigram prints: a roster whole, elsewhere who to ask for, the leaders and their adjoints. */
-function printedHolders(node: SearchableNode): Person[] {
-  const own = node.isRoster ? node.holders : node.holders.filter(h => h.kind === 'leader' || h.kind === 'deputy')
-  return [...own, ...node.children.flatMap(printedHolders)]
+/**
+ * The people the organigram prints, read from the same layout its views draw: the rosters whole,
+ * each committee post's titulaire and adjoints, then who each service row names (`serviceParts`).
+ */
+function organigramPeople(tree: OrganigramNode[]): Person[] {
+  const { rosters, committee, sections, legacy } = groupLayout(toLayout(tree))
+  const rows = [
+    ...sections.flatMap(section => bandEntries(section.bands)),
+    ...legacy.flatMap(block => (block.kind === 'row' ? [{ node: block.node, rows: null }] : bandEntries([block]))),
+  ]
+  return [
+    ...rosters.flatMap(roster => roster.node.holders),
+    ...(committee?.posts.flatMap(post => post.holders.filter(h => h.kind === 'leader' || h.kind === 'deputy')) ?? []),
+    ...rows.flatMap(({ node, rows: children }) => serviceParts(node, children).holders),
+  ]
 }
 
 function programmePeople(document: Extract<SearchableDocument, { type: typeof DynamicType.Programme }>): Person[] {
@@ -88,7 +95,7 @@ function documentPeople(document: SearchableDocument): Person[] {
     case DynamicType.Pioneers:
       return document.pioneers
     case DynamicType.Organigram:
-      return document.tree.flatMap(printedHolders)
+      return organigramPeople(document.tree)
     case DynamicType.Programme:
       return programmePeople(document)
   }
