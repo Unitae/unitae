@@ -17,6 +17,7 @@ import { getLocale } from '~/i18n/paraglide/runtime'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { EXTERNAL_SPEAKER_LABEL_SELECT } from '~/shared/utils/external-speaker-label'
+import { zonedNow } from '~/shared/utils/zoned-now'
 
 // Section order on the board: auxiliaries (permanent + one-month) first, then the standing types.
 const PIONEER_TYPE_RANK: Record<string, number> = {
@@ -40,7 +41,8 @@ export function startOfCurrentMonth(): Date {
 // the publishers pioneer-enrolment model. This is the only correct
 // source: it captures one-month auxiliaries (whose Member.type stays Normal) and, by construction,
 // excludes future stints (start next month) and past ones (ended before this month). Pairs with a
-// `member: { leftAt/inactiveAt/anonymizedAt: null }` filter at every call site.
+// `member: { leftAt/inactiveAt/anonymizedAt: null }` filter at every call site. `now` is the
+// congregation's wall clock (`zonedNow`): only its local fields are read.
 function currentEnrolmentWhere(now: Date) {
   const month = now.getMonth()
   const year = now.getFullYear()
@@ -53,10 +55,16 @@ function currentEnrolmentWhere(now: Date) {
 }
 
 // A stint covers the current month, and its member is an active publisher (not left/inactive/scrubbed).
-function currentPioneerWhere(congregationId: number) {
+// The month is the congregation's, not the server's: at the turn of a month the list must agree
+// with the month the auxiliaries' heading names, which the sheet reads in the same time zone.
+async function currentPioneerWhere(db: TransactionClient, congregationId: number) {
+  const { timezone } = await db.congregation.findFirstOrThrow({
+    where: { id: congregationId },
+    select: { timezone: true },
+  })
   return {
     congregationId,
-    ...currentEnrolmentWhere(new Date()),
+    ...currentEnrolmentWhere(zonedNow(timezone)),
     member: { leftAt: null, inactiveAt: null, anonymizedAt: null },
   }
 }
@@ -98,7 +106,7 @@ export async function listAvailableDynamicTypes(
     })
   }
 
-  const pioneerCount = await db.pioneerEnrolment.count({ where: currentPioneerWhere(congregationId) })
+  const pioneerCount = await db.pioneerEnrolment.count({ where: await currentPioneerWhere(db, congregationId) })
   if (pioneerCount > 0) {
     available.push({
       dynamicType: DynamicType.Pioneers,
@@ -157,7 +165,7 @@ export async function getContentVersion(
     // Version tracks both the stint (created/closed/edited) and the member (identity, lifecycle),
     // so the board re-renders when either side of the current roster changes.
     const rows = await db.pioneerEnrolment.findMany({
-      where: currentPioneerWhere(congregationId),
+      where: await currentPioneerWhere(db, congregationId),
       select: { updatedAt: true, member: { select: { updatedAt: true } } },
     })
     return maxDate(...rows.flatMap(row => [row.updatedAt, row.member.updatedAt]))
@@ -246,7 +254,7 @@ export async function getDynamicPreview(
 
   if (dynamicType === DynamicType.Pioneers) {
     // No-overlap invariant → at most one covering stint per member, so this counts distinct pioneers.
-    const count = await db.pioneerEnrolment.count({ where: currentPioneerWhere(congregationId) })
+    const count = await db.pioneerEnrolment.count({ where: await currentPioneerWhere(db, congregationId) })
     return count > 0 ? `${count} pionniers` : null
   }
 
@@ -382,7 +390,7 @@ async function fetchPioneers(db: TransactionClient, congregationId: number) {
   // though Member.type is Normal). Ordering can't be done in SQL because section order follows the
   // custom PIONEER_TYPE_RANK (not the enum's own order), so we sort in JS by rank then name.
   const rows = await db.pioneerEnrolment.findMany({
-    where: currentPioneerWhere(congregationId),
+    where: await currentPioneerWhere(db, congregationId),
     select: { type: true, member: { select: userSelect } },
   })
   return rows
