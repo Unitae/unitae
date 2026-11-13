@@ -1,5 +1,5 @@
-import { Body, Container, Head, Heading, Hr, Html, Link, Preview, Section, Tailwind, Text } from 'react-email'
 import * as m from '~/i18n/paraglide/messages'
+import { EmailButton, EmailLayout, EmailText } from '~/shared/emails/EmailLayout'
 
 export default function BoardDocumentUpdated({
   email = 'test@email.com',
@@ -17,34 +17,17 @@ export default function BoardDocumentUpdated({
   platformName?: string
 }) {
   return (
-    <Html>
-      <Head />
-      <Preview>{m.email_board_updated_document_preview()}</Preview>
-      <Tailwind>
-        <Body className="mx-auto my-auto bg-white px-2 font-sans">
-          <Container className="mx-auto my-[40px] max-w-[465px] rounded border border-[#eaeaea] border-solid p-[20px]">
-            <Heading className="mx-0 my-[30px] p-0 text-center font-normal text-[24px] text-black">
-              <strong>{m.email_board_updated_document_heading()}</strong>
-            </Heading>
-            <Section>
-              <Text>{m.email_board_updated_document_greeting({ name: firstname ?? email })}</Text>
-              <Text>{m.email_board_updated_document_body({ filename: filename ?? '' })}</Text>
-              <Text className="text-center">
-                <Link
-                  href={`${baseUrl}/board/documents/${documentId}/edit`}
-                  className="inline-block rounded-md bg-teal-600 px-3 py-2 text-white"
-                >
-                  {m.email_new_document_button()}
-                </Link>
-              </Text>
-              <Text>{m.email_new_document_regards()}</Text>
-              <Text>{m.email_new_document_team({ platformName })}</Text>
-            </Section>
-            <Hr className="mx-0 my-[26px] w-full border border-[#eaeaea] border-solid" />
-            <Text className="text-[#666666] text-[12px] leading-[24px]">{m.email_new_document_footer({ email })}</Text>
-          </Container>
-        </Body>
-      </Tailwind>
-    </Html>
+    <EmailLayout
+      preview={m.email_board_updated_document_preview()}
+      heading={m.email_board_updated_document_heading()}
+      footer={m.email_new_document_footer({ email })}
+      platformName={platformName}
+    >
+      <EmailText>{m.email_board_updated_document_greeting({ name: firstname ?? email })}</EmailText>
+      <EmailText>{m.email_board_updated_document_body({ filename: filename ?? '' })}</EmailText>
+      <EmailButton href={`${baseUrl}/board/documents/${documentId}/edit`}>{m.email_new_document_button()}</EmailButton>
+      <EmailText>{m.email_new_document_regards()}</EmailText>
+      <EmailText>{m.email_new_document_team({ platformName })}</EmailText>
+    </EmailLayout>
   )
 }

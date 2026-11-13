@@ -1,5 +1,5 @@
-import { Body, Container, Head, Heading, Hr, Html, Link, Preview, Section, Tailwind, Text } from 'react-email'
 import * as m from '~/i18n/paraglide/messages'
+import { EmailLayout, EmailLink, EmailText } from '~/shared/emails/EmailLayout'
 
 export default function ResetPassword({
   email = 'test@email.com',
@@ -17,36 +17,21 @@ export default function ResetPassword({
   const resetLink = `${baseUrl}/password/${token}/reset/`
 
   return (
-    <Html>
-      <Head />
-      <Preview>{m.email_reset_password_preview()}</Preview>
-      <Tailwind>
-        <Body className="mx-auto my-auto bg-white px-2 font-sans">
-          <Container className="mx-auto my-[40px] max-w-[465px] rounded border border-[#eaeaea] border-solid p-[20px]">
-            <Heading className="mx-0 my-[30px] p-0 text-center font-normal text-[24px] text-black">
-              {m.email_reset_password_heading()}
-            </Heading>
-            <Section>
-              <Text>{m.email_reset_password_greeting({ name: firstname ?? email })}</Text>
-              <Text>
-                {m.email_reset_password_body()}{' '}
-                <Link
-                  href={resetLink}
-                  className="text-ellipsis text-wrap break-words break-all text-blue-600 no-underline"
-                >
-                  {resetLink}
-                </Link>
-              </Text>
-              <Text>{m.email_reset_password_regards()}</Text>
-              <Text>{m.email_reset_password_signature({ platformName: platformName ?? 'Unitae' })}</Text>
-            </Section>
-            <Hr className="mx-0 my-[26px] w-full border border-[#eaeaea] border-solid" />
-            <Text className="text-[#666666] text-[12px] leading-[24px]">
-              {m.email_reset_password_footer({ email })}
-            </Text>
-          </Container>
-        </Body>
-      </Tailwind>
-    </Html>
+    <EmailLayout
+      preview={m.email_reset_password_preview()}
+      heading={m.email_reset_password_heading()}
+      footer={m.email_reset_password_footer({ email })}
+      platformName={platformName}
+    >
+      <EmailText>{m.email_reset_password_greeting({ name: firstname ?? email })}</EmailText>
+      <EmailText>
+        {m.email_reset_password_body()}{' '}
+        <EmailLink href={resetLink} wrap>
+          {resetLink}
+        </EmailLink>
+      </EmailText>
+      <EmailText>{m.email_reset_password_regards()}</EmailText>
+      <EmailText>{m.email_reset_password_signature({ platformName: platformName ?? 'Unitae' })}</EmailText>
+    </EmailLayout>
   )
 }
