@@ -15,6 +15,7 @@ import {
 } from '~/features/display-board/server/document-form.queries'
 import { PdfDocumentForm } from '~/features/display-board/ui/forms/PdfDocumentForm'
 import { VersionsPanel } from '~/features/display-board/ui/forms/VersionsPanel'
+import { DeleteBoardItemDialog } from '~/features/display-board/ui/manage/DeleteBoardItemDialog'
 import { stateText } from '~/features/display-board/ui/manage/StateLabel'
 import { notify } from '~/features/notifications/index.server'
 import * as m from '~/i18n/paraglide/messages'
@@ -85,6 +86,7 @@ export default function EditDocumentPage({ loaderData, actionData }: Route.Compo
   const { blocker, setDirty } = useUnsavedChanges()
   const onDirtyChange = useCallback((dirty: boolean) => setDirty(dirty), [setDirty])
   const [version, setVersion] = useState(0)
+  const [deleting, setDeleting] = useState(false)
   const state = displayState({ ...document, now: new Date(now) })
   const section = sections.find(s => s.id === document.sectionId)?.name ?? ''
   const historyTo = '?historique'
@@ -140,11 +142,15 @@ export default function EditDocumentPage({ loaderData, actionData }: Route.Compo
                     {m.board_form_file_history()}
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild className="text-destructive">
-                  <Link to={`/board/documents/${document.id}/delete`}>{m.board_manage_delete()}</Link>
+                <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(true)}>
+                  {m.board_manage_delete()}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <DeleteBoardItemDialog
+              item={deleting ? { kind: 'pdf', id: document.id, title: document.title } : null}
+              onClose={() => setDeleting(false)}
+            />
           </>
         }
       />

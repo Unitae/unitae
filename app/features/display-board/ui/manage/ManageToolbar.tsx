@@ -1,8 +1,10 @@
-import { ListFilter } from 'lucide-react'
+import { useSearchParams } from 'react-router'
 import type { DisplayState } from '~/features/display-board/model/display-state'
 import * as m from '~/i18n/paraglide/messages'
-import { FilterBar } from '~/shared/ui/filters/FilterBar'
-import { FilterMenu } from '~/shared/ui/filters/FilterMenu'
+import { FilterChipBar } from '~/shared/ui/filters/FilterChipBar'
+import { FiltersPopover } from '~/shared/ui/filters/FiltersPopover'
+import { activeFilterChips, type FilterField } from '~/shared/ui/filters/filter-fields'
+import { ListToolbar } from '~/shared/ui/ListToolbar'
 import { SearchInput } from '~/shared/ui/SearchInput'
 
 export const MANAGE_PARAMS = ['q', 'section', 'etat'] as const
@@ -20,31 +22,32 @@ interface ManageToolbarProps {
   canReorder: boolean
 }
 
-/** Search, the section, the state. Everything lives in the URL, like the other lists. */
+/** The search and one « Filtres » (section, state) on one row, the reorder hint at its end; the active filters below. */
 export function ManageToolbar({ sections, canReorder }: ManageToolbarProps) {
+  const [params] = useSearchParams()
+  const fields: FilterField[] = [
+    {
+      param: 'section',
+      label: m.board_manage_filter_section(),
+      allLabel: m.board_manage_filter_section_all(),
+      options: sections.map(section => ({ value: String(section.id), label: section.name })),
+    },
+    {
+      param: 'etat',
+      label: m.board_manage_filter_state(),
+      allLabel: m.board_manage_filter_state_all(),
+      options: STATES.map(state => ({ value: state.value, label: state.label() })),
+    },
+  ]
+
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {/* Takes the row's free width: sized from its content, the search field's 280px would not fit and wrap. */}
-      <FilterBar paramNames={MANAGE_PARAMS} className="min-w-0 flex-1">
-        <div className="min-w-[200px] flex-[0_1_280px] max-md:basis-full">
-          <SearchInput paramName="q" placeholder={m.board_manage_search_placeholder()} />
-        </div>
-        <FilterMenu
-          paramName="section"
-          label={m.board_manage_filter_section()}
-          icon={ListFilter}
-          allLabel={m.board_manage_filter_section_all()}
-          options={sections.map(section => ({ value: String(section.id), label: section.name }))}
-        />
-        <FilterMenu
-          paramName="etat"
-          label={m.board_manage_filter_state()}
-          idleValue={m.board_manage_filter_state_any()}
-          allLabel={m.board_manage_filter_state_all()}
-          options={STATES.map(state => ({ value: state.value, label: state.label() }))}
-        />
-      </FilterBar>
-      {canReorder && <span className="ml-auto text-faint text-sm max-md:hidden">{m.board_manage_drag_hint()}</span>}
-    </div>
+    <ListToolbar
+      search={<SearchInput paramName="q" placeholder={m.board_manage_search_placeholder()} />}
+      filters={<FiltersPopover fields={fields} />}
+      sort={
+        canReorder ? <span className="text-faint text-sm max-md:hidden">{m.board_manage_drag_hint()}</span> : undefined
+      }
+      chips={<FilterChipBar chips={activeFilterChips(fields, params)} clearParams={fields.map(field => field.param)} />}
+    />
   )
 }

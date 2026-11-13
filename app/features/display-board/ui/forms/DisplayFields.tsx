@@ -4,7 +4,7 @@ import { useState } from 'react'
 import type { DisplayWindowInput, ShowChoice } from '~/features/display-board/model/display-window'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
-import { Input } from '~/shared/ui/input'
+import { DateInput } from '~/shared/ui/DateInput'
 import { Label } from '~/shared/ui/label'
 import { Switch } from '~/shared/ui/switch'
 
@@ -71,11 +71,10 @@ export function DisplayFields({ defaults, highlighted, highlightedOthers, errors
       {show === 'from' && (
         <div className="flex flex-col gap-2">
           <Label htmlFor="display-from">{m.board_form_from_label()}</Label>
-          <Input
+          <DateInput
             id="display-from"
             name="from"
-            type="date"
-            defaultValue={defaults.from}
+            defaultValue={defaults.from || null}
             aria-invalid={errors?.from ? true : undefined}
             aria-describedby={errors?.from ? 'display-from-error' : 'display-from-help'}
           />
@@ -88,12 +87,11 @@ export function DisplayFields({ defaults, highlighted, highlightedOthers, errors
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="display-until">{m.board_form_until_label()}</Label>
-        <Input
+        <DateInput
           id="display-until"
           name="until"
-          type="date"
-          value={until}
-          onChange={event => changeUntil(event.currentTarget.value)}
+          value={until || null}
+          onChange={next => changeUntil(next ?? '')}
           aria-invalid={errors?.until ? true : undefined}
           aria-describedby={errors?.until ? 'display-until-error' : 'display-until-help'}
         />

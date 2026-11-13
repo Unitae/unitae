@@ -166,7 +166,7 @@ export function Roster({ block }: { block: RosterBlock }) {
 function CommitteeBench({ block }: { block: CommitteeBlock }) {
   return (
     <section className="overflow-hidden rounded-lg border border-t-2 border-t-primary/60">
-      <h3 className="border-b bg-muted/30 px-4 py-2 font-display font-semibold text-base">{block.node.name}</h3>
+      <h3 className="border-b bg-muted/30 px-4 py-2 font-semibold text-base">{block.node.name}</h3>
       <div className="grid sm:grid-cols-3">
         {block.posts.map((post, index) => {
           const titular = post.holders.find(holder => holder.kind === 'leader')
@@ -181,7 +181,7 @@ function CommitteeBench({ block }: { block: CommitteeBlock }) {
               <span className="min-h-8 text-[0.65rem] text-muted-foreground uppercase tracking-[0.14em]">
                 {post.name}
               </span>
-              <span className={cn('font-display text-base', !titular && 'text-muted-foreground')}>
+              <span className={cn('text-base', !titular && 'text-muted-foreground')}>
                 {titular ? formatName(titular) : '—'}
               </span>
               {deputies.length > 0 && (
@@ -206,7 +206,7 @@ export function BranchSection({ under, bands }: { under: string; bands: BandBloc
         <p className="text-[0.65rem] text-muted-foreground uppercase tracking-[0.14em]">
           {responsibilityEyebrow(under)}
         </p>
-        <h3 className="font-display font-medium text-lg leading-snug">{under}</h3>
+        <h3 className="font-medium text-lg leading-snug">{under}</h3>
       </header>
       <div className="flex flex-col gap-1">
         {bands.map(band =>

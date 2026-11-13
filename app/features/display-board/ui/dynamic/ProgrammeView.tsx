@@ -141,7 +141,7 @@ function PartRow({ part, highlighted, dimmed }: { part: PartAssignment; highligh
         <span
           className={cn(
             'flex shrink-0 items-center gap-1.5 text-foreground text-sm max-sm:flex-wrap max-sm:pl-3',
-            highlighted && 'rounded-sm bg-amber-100 px-1 dark:bg-amber-900/40',
+            highlighted && 'rounded-sm bg-warning-soft px-1',
           )}
         >
           {rightText}
@@ -197,7 +197,7 @@ function MultiTrackPart({ parts, query }: { parts: PartAssignment[]; query: stri
               <span
                 className={cn(
                   'flex shrink-0 items-center gap-1.5 text-foreground text-sm max-sm:inline-flex max-sm:flex-wrap',
-                  highlighted && 'rounded-sm bg-amber-100 px-1 dark:bg-amber-900/40',
+                  highlighted && 'rounded-sm bg-warning-soft px-1',
                 )}
               >
                 {rightText}
@@ -282,7 +282,7 @@ function ServiceSection({
                     <span
                       className={cn(
                         'font-medium text-foreground text-sm',
-                        highlighted && 'rounded-sm bg-amber-100 px-1 dark:bg-amber-900/40',
+                        highlighted && 'rounded-sm bg-warning-soft px-1',
                       )}
                     >
                       {name}
