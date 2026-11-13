@@ -31,7 +31,8 @@ interface MetricRow {
   /** Null when one of the two years has nothing to measure. */
   delta: number | null
   unit: string
-  invertedBetter?: boolean // true si une baisse est positive (ex: taux de retard)
+  /** A fall is the good news, e.g. the overdue rate. */
+  invertedBetter?: boolean
 }
 
 // A change between two percentages is in points, not a percentage of the first.
@@ -84,54 +85,50 @@ export default function YearOverYearTable({ current, previous, currentLabel, pre
     },
   ]
 
+  const head = 'h-10 whitespace-nowrap border-border border-b px-3.5 font-medium text-faint text-sm'
+  const cell = 'h-10 border-border border-b px-3.5 group-last:border-b-0'
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+    // A minimum width keeps the columns apart on a phone: the table scrolls instead of running its headers together.
+    <div className="overflow-x-auto rounded-lg border border-border bg-card">
+      <table className="w-full min-w-[34rem] border-collapse text-sm">
         <thead>
-          <tr className="border-b text-left text-muted-foreground">
-            <th className="pb-3 font-medium">{m.stats_yoy_indicator()}</th>
-            <th className="pb-3 text-right font-medium">{currentLabel}</th>
-            <th className="pb-3 text-right font-medium">{previousLabel}</th>
-            <th className="pb-3 text-right font-medium">{m.stats_yoy_evolution()}</th>
+          <tr>
+            <th className={`${head} text-left`}>{m.stats_yoy_indicator()}</th>
+            <th className={`${head} text-right`}>{currentLabel}</th>
+            <th className={`${head} text-right`}>{previousLabel}</th>
+            <th className={`${head} text-right`}>{m.stats_yoy_evolution()}</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map(row => {
-            const { delta } = row
-            if (delta == null) {
-              return (
-                <tr key={row.label} className="border-b last:border-0">
-                  <td className="py-3 font-medium">{row.label}</td>
-                  <td className="py-3 text-right font-display font-semibold">{row.currentValue}</td>
-                  <td className="py-3 text-right text-muted-foreground">{row.previousValue}</td>
-                  <td className="py-3 text-right text-muted-foreground">{NO_FIGURE}</td>
-                </tr>
-              )
-            }
-            const isPositive = row.invertedBetter ? delta < 0 : delta > 0
-            const isNeutral = Math.abs(delta) < 0.1
-
-            return (
-              <tr key={row.label} className="border-b last:border-0">
-                <td className="py-3 font-medium">{row.label}</td>
-                <td className="py-3 text-right font-display font-semibold">{row.currentValue}</td>
-                <td className="py-3 text-right text-muted-foreground">{row.previousValue}</td>
-                <td className="py-3 text-right">
-                  <span
-                    className={`inline-flex items-center gap-1 ${
-                      isNeutral ? 'text-muted-foreground' : isPositive ? 'text-emerald-600' : 'text-red-500'
-                    }`}
-                  >
-                    {!isNeutral &&
-                      (isPositive ? <TrendingUp className="size-3.5" /> : <TrendingDown className="size-3.5" />)}
-                    {formatSignedDelta(delta, row.unit)}
-                  </span>
-                </td>
-              </tr>
-            )
-          })}
+          {rows.map(row => (
+            <tr key={row.label} className="group">
+              <td className={cell}>{row.label}</td>
+              <td className={`${cell} text-right font-semibold tabular-nums`}>{row.currentValue}</td>
+              <td className={`${cell} text-right text-muted-foreground tabular-nums`}>{row.previousValue}</td>
+              <td className={`${cell} text-right tabular-nums`}>
+                <Evolution delta={row.delta} unit={row.unit} invertedBetter={row.invertedBetter} />
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
+  )
+}
+
+/** « ↑ +6,2 pts »: the success text colour when it is good news, the danger one when not, an arrow either way. */
+function Evolution({ delta, unit, invertedBetter }: { delta: number | null; unit: string; invertedBetter?: boolean }) {
+  if (delta == null) return <span className="text-muted-foreground">{NO_FIGURE}</span>
+  if (Math.abs(delta) < 0.1) return <span className="text-muted-foreground">{formatSignedDelta(delta, unit)}</span>
+  const better = invertedBetter ? delta < 0 : delta > 0
+  return (
+    <span className={`inline-flex items-center gap-1 ${better ? 'text-success-text' : 'text-danger-text'}`}>
+      {delta > 0 ? (
+        <TrendingUp className="size-3.5" aria-hidden="true" />
+      ) : (
+        <TrendingDown className="size-3.5" aria-hidden="true" />
+      )}
+      {formatSignedDelta(delta, unit)}
+    </span>
   )
 }
