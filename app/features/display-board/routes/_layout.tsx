@@ -1,10 +1,11 @@
 import { Outlet } from 'react-router'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import type { Route } from './+types/_layout'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: `Tableau d'affichage - Unitae` }]
+  return [{ title: `${m.board_page_title()} - Unitae` }]
 }
 
 export function loader({ context }: Route.LoaderArgs) {

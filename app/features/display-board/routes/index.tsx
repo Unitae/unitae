@@ -21,7 +21,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import type { Route } from './+types/index'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: `Tableau d'affichage - Unitae` }]
+  return [{ title: `${m.board_page_title()} - Unitae` }]
 }
 
 export async function loader({ context }: Route.LoaderArgs) {

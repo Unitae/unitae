@@ -10,6 +10,9 @@ const DOCUMENT_ID = /\/board\/dynamic\/(\d+)\/edit/
 const SAVE_BUTTON = /^(Enregistrer|Save)$/i
 
 async function checkedValue(page: Page, name: string): Promise<string | null> {
+  // The accent is a row of native radios (swatches); the other choices are radio buttons.
+  const native = page.locator(`input[type="radio"][id^="appearance-${name}-"]:checked`)
+  if ((await native.count()) > 0) return (await native.getAttribute('value')) ?? null
   const checked = page.locator(`button[role="radio"][id^="appearance-${name}-"][data-state="checked"]`)
   if ((await checked.count()) === 0) return null
   return (await checked.getAttribute('value')) ?? null
@@ -17,7 +20,8 @@ async function checkedValue(page: Page, name: string): Promise<string | null> {
 
 async function choose(page: Page, choices: Record<string, string | null>) {
   for (const [name, value] of Object.entries(choices)) {
-    if (value) await page.locator(`#appearance-${name}-${value}`).click()
+    // `force`: a swatch's radio is visually hidden behind its colour.
+    if (value) await page.locator(`#appearance-${name}-${value}`).check({ force: true })
   }
   // The save bar shows only once something changed: choosing what is already saved leaves nothing to save.
   const save = page.getByRole('button', { name: SAVE_BUTTON })

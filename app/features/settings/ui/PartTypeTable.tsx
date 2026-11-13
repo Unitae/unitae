@@ -31,7 +31,7 @@ export function PartTypeTable({ rows, selectedId, onSelect }: PartTypeTableProps
           <tr>
             <th className={headClass}>{m.settings_part_types_col_type()}</th>
             <th className={headClass}>{m.settings_part_types_col_speaker()}</th>
-            <th className={headClass}>{m.settings_part_types_col_reader()}</th>
+            <th className={cn(headClass, 'docked:hidden')}>{m.settings_part_types_col_reader()}</th>
             <th className={cn(headClass, 'text-right')}>{m.settings_part_types_col_used()}</th>
           </tr>
         </thead>
@@ -57,8 +57,12 @@ export function PartTypeTable({ rows, selectedId, onSelect }: PartTypeTableProps
                   {row.isSystem && <Tag>{m.settings_part_types_built_in()}</Tag>}
                 </button>
               </td>
-              <td className={cn(cellClass, wideOnly, 'text-muted-foreground')}>{row.speaker}</td>
               <td className={cn(cellClass, wideOnly, 'text-muted-foreground')}>
+                {row.speaker}
+                {/* Beside the docked panel, the second person goes under the first so « Utilisé » stays in view. */}
+                {row.reader && <span className="hidden text-faint text-xs docked:block">+ {row.reader}</span>}
+              </td>
+              <td className={cn(cellClass, wideOnly, 'text-muted-foreground docked:hidden')}>
                 {row.reader ?? <span className="text-faint">—</span>}
               </td>
               <td className={cn(cellClass, wideOnly, 'text-right text-muted-foreground tabular-nums')}>{row.usage}</td>

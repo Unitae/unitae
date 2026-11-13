@@ -10,9 +10,10 @@ import {
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Tag } from '@unitae/ui'
 import { MoreHorizontal, Pencil } from 'lucide-react'
-import { useId } from 'react'
+import { useId, useState } from 'react'
 import { Link, useSubmit } from 'react-router'
 import type { ManagedItem } from '~/features/display-board/server/board-management.queries'
+import { DeleteSectionDialog } from '~/features/display-board/ui/manage/DeleteSectionDialog'
 import type { ItemCallbacks } from '~/features/display-board/ui/manage/ManagedItemMenu'
 import { ManagedItemRow } from '~/features/display-board/ui/manage/ManagedItemRow'
 import { itemKey, type ManageRights } from '~/features/display-board/ui/manage/manage-rights'
@@ -38,6 +39,7 @@ const headClass = 'h-10 whitespace-nowrap border-border border-b px-3.5 text-lef
 
 function SectionActions({ section, isFirst, isLast }: { section: ManageSection; isFirst: boolean; isLast: boolean }) {
   const submit = useSubmit()
+  const [deleting, setDeleting] = useState(false)
   return (
     <span className="ml-auto flex items-center gap-0.5">
       <Button variant="ghost" size="sm" asChild className="max-md:hidden">
@@ -72,11 +74,12 @@ function SectionActions({ section, isFirst, isLast }: { section: ManageSection; 
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />
-          <DropdownMenuItem asChild className="text-destructive">
-            <Link to={`/board/sections/${section.id}/delete`}>{m.board_sections_delete_button()}</Link>
+          <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(true)}>
+            {m.board_sections_delete_button()}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      <DeleteSectionDialog section={deleting ? section : null} onClose={() => setDeleting(false)} />
     </span>
   )
 }
@@ -153,7 +156,7 @@ export function ManageTable({
         <table
           className={cn(
             'w-full border-collapse text-sm max-md:block md:table-fixed',
-            compact ? 'md:min-w-[40rem]' : 'md:min-w-[52rem]',
+            compact ? 'md:min-w-[40rem]' : 'md:min-w-[40rem] xl:min-w-[52rem]',
           )}
         >
           <thead className="max-md:hidden">
@@ -166,7 +169,13 @@ export function ManageTable({
               <th className={headClass}>{m.board_manage_col_document()}</th>
               <th className={cn(headClass, 'w-40')}>{m.board_manage_col_state()}</th>
               <th className={cn(headClass, 'w-32')}>{m.board_manage_col_reads()}</th>
-              {!compact && <th className={cn(headClass, 'w-36')}>{m.board_manage_col_updated()}</th>}
+              {!compact && (
+                // The first column to step aside: below the docked width, the titles need its room. It
+                // narrows to nothing rather than going away, so the section rows' colSpan still holds.
+                <th className={cn(headClass, 'w-36 max-xl:w-0 max-xl:px-0')}>
+                  <span className="max-xl:hidden">{m.board_manage_col_updated()}</span>
+                </th>
+              )}
               <th className={cn(headClass, 'w-32')}>
                 <span className="sr-only">{m.board_manage_col_actions()}</span>
               </th>

@@ -37,11 +37,45 @@ function content(row: TemplateRow): string {
   return `${parts} · ${services}`
 }
 
+/** Both tables share their columns, so the built-in rows line up under the congregation's. */
+function Columns() {
+  return (
+    <colgroup>
+      <col className="md:w-[26%]" />
+      <col className="md:w-[22%]" />
+      <col className="md:w-[20%]" />
+      <col />
+    </colgroup>
+  )
+}
+
+/** A template's name and colour; on a phone, when it happens under the name. Its link is stretched over the row. */
+function TemplateName({ row, when }: { row: Pick<TemplateRow, 'id' | 'name' | 'color'>; when: string }) {
+  return (
+    <td className={cellClass}>
+      <Link
+        to={`/settings/templates/${row.id}`}
+        data-row-primary
+        className="flex items-center gap-2.5 font-medium outline-none rounded-sm focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <span aria-hidden="true" className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: row.color }} />
+        <span className="flex min-w-0 flex-col">
+          <span className="truncate">{row.name}</span>
+          <span className="font-normal text-faint text-xs md:hidden">{when}</span>
+        </span>
+      </Link>
+    </td>
+  )
+}
+
+const rowClass = 'group relative cursor-pointer transition-colors duration-(--u-duration-fast) hover:bg-hover'
+
 /** The congregation's templates: their colour, when they happen, what they hold and who runs them. */
 export function TemplateTable({ rows }: { rows: TemplateRow[] }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-border bg-card">
-      <table className="w-full border-collapse text-sm">
+      <table className="w-full border-collapse text-sm md:table-fixed">
+        <Columns />
         <thead className={wideOnly}>
           <tr>
             <th className={headClass}>{m.settings_templates_col_template()}</th>
@@ -52,32 +86,10 @@ export function TemplateTable({ rows }: { rows: TemplateRow[] }) {
         </thead>
         <tbody>
           {rows.map(row => (
-            <tr
-              key={row.id}
-              onClick={openRowOnClick}
-              className="group relative cursor-pointer transition-colors duration-(--u-duration-fast) hover:bg-hover"
-            >
-              <td className={cellClass}>
-                <Link
-                  to={`/settings/templates/${row.id}`}
-                  data-row-primary
-                  className="flex items-center gap-2.5 font-medium outline-none rounded-sm focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <span
-                    aria-hidden="true"
-                    className="size-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: row.color }}
-                  />
-                  <span className="flex min-w-0 flex-col">
-                    <span className="truncate">{row.name}</span>
-                    <span className="font-normal text-faint text-xs md:hidden">{when(row)}</span>
-                  </span>
-                </Link>
-              </td>
-              <td className={`${cellClass} ${wideOnly} whitespace-nowrap text-muted-foreground tabular-nums`}>
-                {when(row)}
-              </td>
-              <td className={`${cellClass} ${wideOnly} whitespace-nowrap text-muted-foreground`}>{content(row)}</td>
+            <tr key={row.id} onClick={openRowOnClick} className={rowClass}>
+              <TemplateName row={row} when={when(row)} />
+              <td className={`${cellClass} ${wideOnly} truncate text-muted-foreground tabular-nums`}>{when(row)}</td>
+              <td className={`${cellClass} ${wideOnly} truncate text-muted-foreground`}>{content(row)}</td>
               <td className={`${cellClass} ${wideOnly}`}>
                 {row.responsibles.length > 0 ? (
                   <span className="flex flex-wrap gap-1">
@@ -97,7 +109,11 @@ export function TemplateTable({ rows }: { rows: TemplateRow[] }) {
   )
 }
 
-/** The templates the app needs for its own concepts (absences, one-off events): only their colour changes. */
+/**
+ * The templates the app needs for its own concepts (absences, one-off events): only their colour changes. Their rows
+ * use the table's columns: an absence lasts one or more days and each person creates their own; a one-off event is
+ * dated by whoever creates it, with its own name and hours.
+ */
 export function BuiltInTemplates({ rows }: { rows: TemplateRow[] }) {
   if (rows.length === 0) return null
   return (
@@ -109,29 +125,27 @@ export function BuiltInTemplates({ rows }: { rows: TemplateRow[] }) {
         </span>
       }
     >
-      {rows.map(row => {
-        const dayOff = row.key === EventTemplateKey.DayOff
-        return (
-          <Link
-            key={row.id}
-            to={`/settings/templates/${row.id}`}
-            className="flex items-center gap-3 border-t px-4.5 py-2.5 outline-none transition-colors first:border-t-0 hover:bg-hover focus-visible:bg-hover"
-          >
-            <span
-              aria-hidden="true"
-              className="size-2.5 shrink-0 rounded-full"
-              style={{ backgroundColor: row.color }}
-            />
-            <span className="min-w-0 flex-1 font-medium text-sm">{row.name}</span>
-            <span className="text-faint text-sm max-sm:hidden">
-              {dayOff ? m.settings_templates_day_off_when() : m.settings_templates_one_time()}
-            </span>
-            <span className="w-40 text-right text-muted-foreground text-sm max-sm:hidden">
-              {dayOff ? m.settings_templates_day_off_content() : m.settings_templates_freeform_content()}
-            </span>
-          </Link>
-        )
-      })}
+      <table className="w-full border-collapse text-sm md:table-fixed">
+        <Columns />
+        <tbody>
+          {rows.map(row => {
+            const dayOff = row.key === EventTemplateKey.DayOff
+            const happens = dayOff ? m.settings_templates_day_off_when() : m.settings_templates_one_time()
+            return (
+              <tr key={row.id} onClick={openRowOnClick} className={rowClass}>
+                <TemplateName row={row} when={happens} />
+                <td className={`${cellClass} ${wideOnly} truncate text-muted-foreground`}>{happens}</td>
+                <td className={`${cellClass} ${wideOnly} truncate text-muted-foreground`}>
+                  {!dayOff && m.settings_templates_freeform_content()}
+                </td>
+                <td className={`${cellClass} ${wideOnly} truncate text-faint`}>
+                  {dayOff && m.settings_templates_day_off_content()}
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
     </Panel>
   )
 }

@@ -1,7 +1,8 @@
 import { MoreHorizontal } from 'lucide-react'
-import { Fragment, type ReactNode } from 'react'
+import { Fragment, type ReactNode, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import type { ManagedItem } from '~/features/display-board/server/board-management.queries'
+import { DeleteBoardItemDialog } from '~/features/display-board/ui/manage/DeleteBoardItemDialog'
 import {
   canEditItem,
   canHighlightItem,
@@ -59,6 +60,7 @@ export function ManagedItemMenu({
   callbacks,
 }: ManagedItemMenuProps) {
   const [searchParams] = useSearchParams()
+  const [deleting, setDeleting] = useState(false)
   const reads = new URLSearchParams(searchParams)
   reads.set('lectures', itemKey(item))
   const editable = canEditItem(item, rights)
@@ -155,8 +157,8 @@ export function ManagedItemMenu({
         editable && {
           key: 'delete',
           node: (
-            <DropdownMenuItem asChild className="text-destructive">
-              <Link to={to.remove}>{m.board_manage_delete()}</Link>
+            <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(true)}>
+              {m.board_manage_delete()}
             </DropdownMenuItem>
           ),
         },
@@ -169,26 +171,32 @@ export function ManagedItemMenu({
   if (shown.length === 0) return null
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon-sm" aria-label={m.board_manage_more({ title: item.title })}>
-          <MoreHorizontal className="size-4" aria-hidden="true" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {shown.map((group, index) => {
-          // Above a group, a rule; on a wide screen, none while everything before it is phone-only.
-          const phoneOnlyBefore = shown.slice(0, index).every(g => g.entries.every(entry => entry.phoneOnly))
-          return (
-            <Fragment key={group.key}>
-              {index > 0 && <DropdownMenuSeparator className={phoneOnlyBefore ? 'md:hidden' : undefined} />}
-              {group.entries.map(entry => (
-                <Fragment key={entry.key}>{entry.node}</Fragment>
-              ))}
-            </Fragment>
-          )
-        })}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon-sm" aria-label={m.board_manage_more({ title: item.title })}>
+            <MoreHorizontal className="size-4" aria-hidden="true" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {shown.map((group, index) => {
+            // Above a group, a rule; on a wide screen, none while everything before it is phone-only.
+            const phoneOnlyBefore = shown.slice(0, index).every(g => g.entries.every(entry => entry.phoneOnly))
+            return (
+              <Fragment key={group.key}>
+                {index > 0 && <DropdownMenuSeparator className={phoneOnlyBefore ? 'md:hidden' : undefined} />}
+                {group.entries.map(entry => (
+                  <Fragment key={entry.key}>{entry.node}</Fragment>
+                ))}
+              </Fragment>
+            )
+          })}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <DeleteBoardItemDialog
+        item={deleting ? { kind: item.kind, id: item.id, title: item.title } : null}
+        onClose={() => setDeleting(false)}
+      />
+    </>
   )
 }

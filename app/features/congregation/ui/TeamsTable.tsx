@@ -120,9 +120,11 @@ export function TeamsTable({
                   >
                     <Link
                       to={`/congregation/roles/organigram?role=${column.id}`}
-                      className="focus-visible:ring-ring inline-flex flex-col items-center gap-0.5 leading-tight outline-none hover:underline focus-visible:ring-2"
+                      title={column.name}
+                      className="focus-visible:ring-ring inline-flex max-w-28 flex-col items-center gap-0.5 leading-tight outline-none hover:underline focus-visible:ring-2"
                     >
-                      {column.name}
+                      {/* A long name stops at two lines, so the header keeps its height; the title gives it whole. */}
+                      <span className="line-clamp-2">{column.name}</span>
                       <span className="text-faint font-normal tabular-nums">{counts[column.id] ?? 0}</span>
                     </Link>
                   </th>

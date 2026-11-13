@@ -7,6 +7,7 @@ import { NewRoleDialog } from '~/features/congregation/ui/NewRoleDialog'
 import { OrganigramHelp } from '~/features/congregation/ui/OrganigramHelp'
 import { OrganigramRootAdd } from '~/features/congregation/ui/OrganigramRootAdd'
 import { OrganigramTree } from '~/features/congregation/ui/OrganigramTree'
+import { OrgHeading } from '~/features/congregation/ui/OrgHeading'
 import { RolePanel } from '~/features/congregation/ui/RolePanel'
 import { RolesTabs } from '~/features/congregation/ui/RolesTabs'
 import * as m from '~/i18n/paraglide/messages'
@@ -74,7 +75,8 @@ export function OrganigramScreen({ page }: { page: OrganigramPage & { canManage:
     else go(roleId)
   }
 
-  useOpenParam('new', () => canManage && setNewRole({ name: '', parentId: panel?.id ?? null }))
+  const openNewRole = () => setNewRole({ name: '', parentId: panel?.id ?? null })
+  useOpenParam('new', () => canManage && openNewRole())
   useOpenParam('adopt', () => manage?.committee != null && setAdopting(true))
 
   const rolePanel = panel && (
@@ -109,7 +111,7 @@ export function OrganigramScreen({ page }: { page: OrganigramPage & { canManage:
               </Button>
             )}
             {canManage && (
-              <Button size="sm" onClick={() => setNewRole({ name: '', parentId: panel?.id ?? null })}>
+              <Button size="sm" className="max-md:hidden" onClick={openNewRole}>
                 <Plus aria-hidden="true" />
                 {m.org_new_role()}
               </Button>
@@ -117,10 +119,7 @@ export function OrganigramScreen({ page }: { page: OrganigramPage & { canManage:
           </>
         }
       >
-        <div className="flex flex-col gap-1">
-          <h1 className="text-h1">{m.org_title()}</h1>
-          <p className="text-muted-foreground text-sm">{m.org_subtitle()}</p>
-        </div>
+        <OrgHeading canCreate={canManage} newRole={{ onClick: openNewRole }} />
       </PageTopbar>
 
       <RolesTabs />

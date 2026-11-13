@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Tag } from '@unitae/ui'
+import { ProgressRing, Tag } from '@unitae/ui'
 import { Eye, GripVertical, Pencil } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router'
 import type { ManagedItem } from '~/features/display-board/server/board-management.queries'
@@ -10,17 +10,16 @@ import { StateLabel } from '~/features/display-board/ui/manage/StateLabel'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { RelativeTime } from '~/shared/ui/RelativeTime'
+import { ROW_ACTION_REVEAL } from '~/shared/ui/row-click'
 import { cn } from '~/shared/utils/utils'
 
-const cellClass = 'h-11 whitespace-nowrap border-border border-b px-3.5'
+const cellClass = 'h-10 whitespace-nowrap border-border border-b px-3.5'
 const wideOnly = 'max-md:hidden'
 
 function ReadsButton({ item, open }: { item: ManagedItem; open: boolean }) {
   const [searchParams] = useSearchParams()
   const next = new URLSearchParams(searchParams)
   next.set('lectures', itemKey(item))
-  const share = item.audience > 0 ? Math.round((item.read / item.audience) * 100) : 0
-
   return (
     <Link
       to={{ search: next.toString() }}
@@ -30,12 +29,15 @@ function ReadsButton({ item, open }: { item: ManagedItem; open: boolean }) {
         open && 'bg-hover',
       )}
     >
+      {/* A share column: a ring before the figure, never a bar (decided 12 Nov). */}
+      <ProgressRing value={item.read} max={item.audience} />
       {m.board_reads_count({ read: item.read, audience: item.audience })}
-      <span aria-hidden="true" className="h-1 w-12 overflow-hidden rounded-full bg-border">
-        <span className="block h-full bg-brand" style={{ width: `${share}%` }} />
-      </span>
     </Link>
   )
+}
+
+function kindLabel(item: ManagedItem) {
+  return item.kind === 'pdf' ? m.board_manage_kind_pdf() : m.board_manage_kind_dynamic()
 }
 
 interface ManagedItemRowProps {
@@ -111,13 +113,19 @@ export function ManagedItemRow({
             <Link to={editable ? to.edit : to.view} className="min-w-0 truncate font-medium hover:underline">
               {item.title}
             </Link>
-            <span className="shrink-0 text-faint text-xs">
-              {item.kind === 'pdf' ? m.board_manage_kind_pdf() : m.board_manage_kind_dynamic()}
-            </span>
-            {item.isHighlighted && <Tag tone="brand">{m.board_highlighted_heading()}</Tag>}
+            <span className="shrink-0 text-faint text-xs max-md:hidden">{kindLabel(item)}</span>
+            {item.isHighlighted && (
+              <Tag tone="brand" className="max-md:hidden">
+                {m.board_highlighted_heading()}
+              </Tag>
+            )}
           </span>
-          <span className="md:hidden">
+          {/* On a phone the title has its line to itself; the rest, and the reads, come under it. */}
+          <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1 md:hidden">
             <StateLabel state={item.state} timeZone={timeZone} />
+            <span className="text-faint text-xs">{kindLabel(item)}</span>
+            {item.isHighlighted && <Tag tone="brand">{m.board_highlighted_heading()}</Tag>}
+            {rights.canReview && <ReadsButton item={item} open={readsOpen} />}
           </span>
         </span>
       </td>
@@ -135,12 +143,14 @@ export function ManagedItemRow({
         )}
       </td>
       {!compact && (
-        <td className={cn(cellClass, wideOnly, 'text-muted-foreground text-sm')}>
-          <RelativeTime date={item.updatedAt} />
+        <td className={cn(cellClass, wideOnly, 'text-muted-foreground text-sm max-xl:px-0')}>
+          <span className="max-xl:hidden">
+            <RelativeTime date={item.updatedAt} />
+          </span>
         </td>
       )}
       <td className={cn(cellClass, 'text-right max-md:w-auto max-md:border-0')}>
-        <span className="inline-flex items-center gap-0.5 opacity-60 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 max-md:opacity-100">
+        <span className={cn('inline-flex items-center gap-0.5', ROW_ACTION_REVEAL)}>
           <Button variant="ghost" size="icon-sm" asChild>
             <Link to={to.view} aria-label={m.board_manage_view({ title: item.title })}>
               <Eye className="size-4" aria-hidden="true" />

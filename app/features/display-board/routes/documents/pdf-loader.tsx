@@ -1,6 +1,7 @@
 import { redirect } from 'react-router'
 import { getFileStream } from '~/features/display-board/server/document.server'
 import { buildSectionVisibilityFilter } from '~/features/display-board/server/section-visibility.server'
+import * as m from '~/i18n/paraglide/messages'
 import {
   currentAccountContext,
   permissionsContext,
@@ -13,7 +14,7 @@ import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/pdf-loader'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: `Tableau d'affichage - Unitae` }]
+  return [{ title: `${m.board_page_title()} - Unitae` }]
 }
 
 export function loader({ params, context }: Route.LoaderArgs) {

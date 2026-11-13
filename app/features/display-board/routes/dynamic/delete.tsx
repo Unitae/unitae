@@ -9,46 +9,13 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
-import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/delete'
 
-export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Supprimer un document — Unitae' }]
-}
-
-export function loader({ params, context }: Route.LoaderArgs) {
-  const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.CanManageDynamicBoardDocuments)
-
-  const dynamicId = requireParamId(params.dynamicId, '/board')
-
-  return withScopeFromContext(context, async db => {
-    const { congregationId } = context.get(currentAccountContext)
-    const settings = await db.boardDynamicDocumentSettings.findUnique({
-      where: {
-        id_congregationId: { id: dynamicId, congregationId },
-      },
-    })
-
-    if (!settings) throw redirect('/board/documents')
-    return { settings }
-  })
-}
-
-export default function DeleteDynamicDocumentPage({ loaderData }: Route.ComponentProps) {
-  const { settings } = loaderData
-
-  return (
-    <DeleteConfirmation
-      title={m.board_dynamic_delete_confirmation({ name: settings.title })}
-      submitLabel={m.board_dynamic_delete_button()}
-      cancelTo="/board/documents"
-    >
-      <p>{m.board_dynamic_delete_what()}</p>
-    </DeleteConfirmation>
-  )
+// Deleting is a dialog on the board's list and the edit page; an old link to this address lands on the viewer.
+export function loader({ params }: Route.LoaderArgs) {
+  throw redirect(`/board/dynamic/${params.dynamicId}/viewer`)
 }
 
 export async function action({ request, params, context }: Route.ActionArgs) {

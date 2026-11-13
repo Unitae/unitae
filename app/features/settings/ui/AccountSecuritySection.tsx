@@ -1,4 +1,4 @@
-import { FormSection } from '@unitae/ui'
+import { Callout, FormSection } from '@unitae/ui'
 import { useState } from 'react'
 import { useFetcher } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
@@ -34,11 +34,7 @@ export function AccountSecuritySection({ account, allowed, timeZone }: AccountSe
   return (
     <FormSection title={m.settings_account_section_security()} description={m.settings_account_section_security_hint()}>
       <div className="col-span-full flex flex-col gap-2">
-        {refusal && (
-          <p role="alert" className="rounded-md bg-destructive/10 px-3.5 py-2.5 text-destructive text-sm">
-            {refusal}
-          </p>
-        )}
+        {refusal && <Callout tone="danger" role="alert" title={refusal} />}
         <div className="overflow-hidden rounded-lg border bg-card">
           <SettingRow
             title={m.settings_account_2fa()}

@@ -12,6 +12,7 @@ import { loadDynamicForm } from '~/features/display-board/server/dynamic-form.qu
 import { updateDynamicDocument } from '~/features/display-board/server/update-dynamic-document.server'
 import { BOARD_WEB_FONTS_HREF } from '~/features/display-board/ui/dynamic/board-web-fonts'
 import { DynamicDocumentForm } from '~/features/display-board/ui/forms/DynamicDocumentForm'
+import { DeleteBoardItemDialog } from '~/features/display-board/ui/manage/DeleteBoardItemDialog'
 import { stateText } from '~/features/display-board/ui/manage/StateLabel'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -66,6 +67,7 @@ export default function EditDynamicDocumentPage({ loaderData, actionData }: Rout
   const { blocker, setDirty } = useUnsavedChanges()
   const onDirtyChange = useCallback((dirty: boolean) => setDirty(dirty), [setDirty])
   const [version, setVersion] = useState(0)
+  const [deleting, setDeleting] = useState(false)
   const id = document.id ?? 0
   const state = displayState({ ...document, now: new Date(loaderData.now) })
   const section = sections.find(s => s.id === document.sectionId)?.name ?? ''
@@ -108,11 +110,15 @@ export default function EditDynamicDocumentPage({ loaderData, actionData }: Rout
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild className="text-destructive">
-                  <Link to={`/board/dynamic/${id}/delete`}>{m.board_manage_delete()}</Link>
+                <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(true)}>
+                  {m.board_manage_delete()}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <DeleteBoardItemDialog
+              item={deleting ? { kind: 'dynamic', id, title: document.title } : null}
+              onClose={() => setDeleting(false)}
+            />
           </>
         }
       />
