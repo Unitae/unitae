@@ -1,4 +1,4 @@
-import { ProgressBar, Status } from '@unitae/ui'
+import { ProgressRing, Status } from '@unitae/ui'
 import { Link } from 'react-router'
 
 import { EventStatus } from '~/features/events/model/event-status.type'
@@ -24,15 +24,15 @@ interface ProgrammeRowProps {
   timeZone: string
 }
 
-/** « jeu. 12 nov. · 19:00 », the time left out when the programme has none. */
-function when(programme: ProgrammeRowData, timeZone: string): string {
+/** « jeu. 12 nov. · 19:00 », and the time alone; the time is left out when the programme has none. */
+function when(programme: ProgrammeRowData, timeZone: string): { full: string; time: string | null } {
   const day = formatEventDate(programme.startDate, timeZone, getLocale(), {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
   })
   const time = formatEventTime(programme.startDate, timeZone)
-  return time === '00:00' ? day : `${day} · ${time}`
+  return time === '00:00' ? { full: day, time: null } : { full: `${day} · ${time}`, time }
 }
 
 /**
@@ -41,7 +41,7 @@ function when(programme: ProgrammeRowData, timeZone: string): string {
  */
 export function ProgrammeRow({ programme, selectionColumn, selected, onToggle, timeZone }: ProgrammeRowProps) {
   const draft = programme.status === EventStatus.Draft
-  const date = when(programme, timeZone)
+  const { full: date, time } = when(programme, timeZone)
   const selectable = programme.canEdit || programme.canPublish
 
   return (
@@ -72,17 +72,21 @@ export function ProgrammeRow({ programme, selectionColumn, selected, onToggle, t
           <DateChip date={programme.startDate} timeZone={timeZone} />
           <span className="flex min-w-0 flex-col gap-0.5">
             <span className="truncate font-medium">{programme.name}</span>
+            {/* On a phone the date chip already gives the day: the time alone, and the kind's whole name. */}
             <span className="flex items-center gap-1.5 text-faint text-sm">
-              <span className="tabular-nums">{date}</span>
+              <span className="tabular-nums max-md:hidden">{date}</span>
+              {time != null && <span className="tabular-nums md:hidden">{time}</span>}
               {programme.kind && (
                 <>
-                  <span aria-hidden="true">·</span>
+                  <span aria-hidden="true" className={cn(time == null && 'max-md:hidden')}>
+                    ·
+                  </span>
                   <span
                     aria-hidden="true"
                     className="size-2 shrink-0 rounded-full"
                     style={{ backgroundColor: programme.kind.color }}
                   />
-                  <span className="truncate">{programme.kind.name}</span>
+                  <span className="md:truncate">{programme.kind.name}</span>
                 </>
               )}
             </span>
@@ -110,7 +114,7 @@ function Fill({ counts }: { counts: { total: number; filled: number } }) {
   if (counts.total === 0) return <span className="text-faint">—</span>
   return (
     <span className="inline-flex items-center justify-end gap-2">
-      <ProgressBar value={counts.filled} max={counts.total} className="w-14" />
+      <ProgressRing value={counts.filled} max={counts.total} />
       <span
         className={cn(
           'min-w-9 text-right tabular-nums',

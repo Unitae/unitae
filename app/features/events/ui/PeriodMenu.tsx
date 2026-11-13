@@ -6,7 +6,7 @@ import { type ListPeriod, PERIOD_PRESETS, type PeriodPreset, presetEnd } from '~
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
-import { Input } from '~/shared/ui/input'
+import { DateInput } from '~/shared/ui/DateInput'
 import { Label } from '~/shared/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '~/shared/ui/popover'
 import { cn } from '~/shared/utils/utils'
@@ -98,22 +98,18 @@ export function PeriodMenu({ period, preset, today }: PeriodMenuProps) {
         <div key={`${period.from}-${period.to}`} className="grid grid-cols-2 gap-2 px-1 pt-1 pb-1.5">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="period-from">{m.list_period_from()}</Label>
-            <Input
+            <DateInput
               id="period-from"
-              type="date"
               defaultValue={period.from}
-              onChange={event => event.target.value && apply({ period: null, from: event.target.value, to: period.to })}
+              onChange={from => from && apply({ period: null, from, to: period.to })}
             />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="period-to">{m.list_period_to()}</Label>
-            <Input
+            <DateInput
               id="period-to"
-              type="date"
               defaultValue={period.to}
-              onChange={event =>
-                event.target.value && apply({ period: null, from: period.from, to: event.target.value })
-              }
+              onChange={to => to && apply({ period: null, from: period.from, to })}
             />
           </div>
         </div>

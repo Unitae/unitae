@@ -37,8 +37,9 @@ test.describe('Programme creation', () => {
   test('opens on the week asked for from the programmes list', async ({ page }) => {
     await page.goto('/programs/new?week=2030-01-09')
 
-    await expect(page.locator('#creation-from')).toHaveValue('2030-01-07')
-    await expect(page.locator('#creation-to')).toHaveValue('2030-01-13')
+    // The date fields post their day as YYYY-MM-DD through a hidden input; the visible one writes it out.
+    await expect(page.locator('input[type="hidden"][name="from"]')).toHaveValue('2030-01-07')
+    await expect(page.locator('input[type="hidden"][name="to"]')).toHaveValue('2030-01-13')
   })
 
   test('refuses another event that ends before it starts, keeping what was typed', async ({ page }) => {
@@ -46,7 +47,9 @@ test.describe('Programme creation', () => {
     await page.getByRole('button', { name: SINGLE_RE }).click()
     await page.getByText(OTHER_EVENT_RE).click()
     await page.locator('#creation-name').fill('Nettoyage de la salle')
-    await page.locator('#creation-day').fill('2030-01-12')
+    // Typed in the reader's order (day, month, year), committed when the field is left.
+    await page.locator('#creation-day').fill('12/01/2030')
+    await page.locator('#creation-day').press('Tab')
     await page.locator('#creation-start').fill('09:00')
     await page.locator('#creation-end').fill('08:30')
     await page.getByRole('button', { name: SUBMIT_SINGLE_RE }).click()

@@ -9,10 +9,10 @@ import { absenceDays, absenceLength, absenceWindow, formatAbsencePeriod } from '
 import { dayOffSchema } from '~/features/events/schemas/day-off.schema'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
+import { DateInput } from '~/shared/ui/DateInput'
 import { FormSaveBar } from '~/shared/ui/FormSaveBar'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
 import { useFormChanges } from '~/shared/ui/hooks/use-form-changes'
-import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 
@@ -49,17 +49,16 @@ export function AbsenceForm({ today, timeZone, lastResult, onDirtyChange }: Abse
       <FormSection title={m.days_off_form_period_title()} description={m.days_off_form_period_description()}>
         <div className="flex flex-col gap-2">
           <Label htmlFor={fields.first.id}>{m.days_off_form_first()}</Label>
-          <Input
+          <DateInput
             id={fields.first.id}
             name={fields.first.name}
-            type="date"
             min={today}
-            value={first}
+            value={first || null}
             required
             aria-invalid={fields.first.errors ? true : undefined}
             aria-describedby={fields.first.errors ? fields.first.errorId : undefined}
-            onChange={event => {
-              const value = event.target.value
+            onChange={next => {
+              const value = next ?? ''
               setFirst(value)
               // One day unless said otherwise: the last day follows a first day moved past it.
               if (last === '' || last < value) setLast(value)
@@ -73,16 +72,15 @@ export function AbsenceForm({ today, timeZone, lastResult, onDirtyChange }: Abse
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor={fields.last.id}>{m.days_off_form_last()}</Label>
-          <Input
+          <DateInput
             id={fields.last.id}
             name={fields.last.name}
-            type="date"
             min={first || today}
-            value={last}
+            value={last || null}
             required
             aria-invalid={fields.last.errors ? true : undefined}
             aria-describedby={fields.last.errors ? `${helpId} ${fields.last.errorId}` : helpId}
-            onChange={event => setLast(event.target.value)}
+            onChange={next => setLast(next ?? '')}
           />
           <p id={helpId} className="text-faint text-xs">
             {m.days_off_form_last_help()}

@@ -182,10 +182,11 @@ function EmptyWeek({
 }) {
   return (
     <tr>
-      <td colSpan={columns} className="h-9 border-border border-b bg-sidebar py-0 pr-3.5 pl-9 text-sm">
+      <td colSpan={columns} className="h-9 border-border border-b bg-sidebar py-0 pr-3.5 pl-9 text-sm max-md:pl-4">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-muted-foreground">{label}</span>
-          <span className="text-faint">· {m.programs_week_empty()}</span>
+          {/* One line on a phone too: the week and « Créer » stay, the empty note gives way. */}
+          <span className="shrink-0 whitespace-nowrap font-medium text-muted-foreground">{label}</span>
+          <span className="min-w-0 truncate text-faint">· {m.programs_week_empty()}</span>
           <span className="flex-1" />
           {canCreate && (
             <Link

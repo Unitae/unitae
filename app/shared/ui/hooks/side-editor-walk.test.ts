@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { arrowStep, stepThrough } from './side-editor-walk'
+import { arrowStep, listWalk, stepThrough } from './side-editor-walk'
 
 describe('stepThrough', () => {
   const ids = [12, 7, 30]
@@ -37,5 +37,22 @@ describe('arrowStep', () => {
   it('ignores every other key', () => {
     expect(arrowStep('ArrowLeft', false)).toBeNull()
     expect(arrowStep('j', false)).toBeNull()
+  })
+})
+
+describe('listWalk', () => {
+  it('places the open item and opens its neighbours', () => {
+    const opened: number[] = []
+    const walk = listWalk([12, 7, 30], 7, id => opened.push(id))
+
+    expect(walk).toMatchObject({ position: 2, total: 3 })
+    walk?.previous()
+    walk?.next()
+    expect(opened).toEqual([12, 30])
+  })
+
+  it('has no walk for an item outside the list, or alone in it', () => {
+    expect(listWalk([12, 7], 99, () => {})).toBeNull()
+    expect(listWalk([7], 7, () => {})).toBeNull()
   })
 })

@@ -22,13 +22,16 @@ import { EmptyState } from '~/shared/ui/EmptyState'
 import { FilterChipBar } from '~/shared/ui/filters/FilterChipBar'
 import { FiltersPopover } from '~/shared/ui/filters/FiltersPopover'
 import { activeFilterChips, type FilterField } from '~/shared/ui/filters/filter-fields'
+import { listWalk } from '~/shared/ui/hooks/side-editor-walk'
 import { useMediaQuery } from '~/shared/ui/hooks/use-media-query'
+import { sidePanelWalk } from '~/shared/ui/ListWithPanel'
 import { PageTopbar } from '~/shared/ui/PageTopbar'
 import { QuickViews } from '~/shared/ui/QuickViews'
 import { SearchInput } from '~/shared/ui/SearchInput'
 import { DiscardChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { NewSpeakerCongregationDialog } from './NewSpeakerCongregationDialog'
 import { SpeakerCongregationPanel } from './SpeakerCongregationPanel'
+import { SpeakerCreateActions } from './SpeakerCreateActions'
 import { SpeakerDirectoryTable } from './SpeakerDirectoryTable'
 import { SpeakerListsTabs } from './SpeakerListsTabs'
 import { SpeakerPanel } from './SpeakerPanel'
@@ -164,9 +167,22 @@ export function SpeakerDirectoryScreen({ page }: { page: SpeakerDirectoryPage })
       ? null
       : (directory.congregations.find(each => each.id === speaker.speakerCongregationId) ?? null)
 
+  // ↑ ↓ walk the speakers in the order the list shows them, asking first while the form holds changes.
+  const walk = speaker
+    ? listWalk(
+        groups.flatMap(group => group.speakers.map(each => each.id)),
+        speaker.id,
+        id => select({ speaker: id }),
+      )
+    : null
+
   const panel = speaker ? (
     <SpeakerPanel
       key={`speaker-${speaker.id}`}
+      walk={sidePanelWalk(walk, {
+        previous: m.external_speakers_panel_previous(),
+        next: m.external_speakers_panel_next(),
+      })}
       speaker={speaker}
       congregation={speakerCongregation}
       congregations={directory.congregations}
@@ -230,16 +246,10 @@ export function SpeakerDirectoryScreen({ page }: { page: SpeakerDirectoryPage })
         className="mb-0"
         actions={
           canManage && (
-            <>
-              <Button variant="outline" size="sm" onClick={() => setNewCongregation(true)}>
-                <Plus aria-hidden="true" />
-                {m.external_speakers_new_congregation()}
-              </Button>
-              <Button size="sm" onClick={() => select({ new: null })}>
-                <Plus aria-hidden="true" />
-                {m.external_speakers_new_speaker()}
-              </Button>
-            </>
+            <SpeakerCreateActions
+              onNewSpeaker={() => select({ new: null })}
+              onNewCongregation={() => setNewCongregation(true)}
+            />
           )
         }
       >
@@ -342,7 +352,13 @@ export function SpeakerDirectoryScreen({ page }: { page: SpeakerDirectoryPage })
             </>
           )}
         </div>
-        {docked && panel}
+        {docked && panel != null && (
+          // `contents` keeps the panel a flex item of the row while its key presses reach the walk.
+          // biome-ignore lint/a11y/noStaticElementInteractions: the keys belong to the focusable panel inside
+          <div className="contents" onKeyDown={walk?.onKeyDown}>
+            {panel}
+          </div>
+        )}
       </div>
       {!docked && panel}
 

@@ -1,4 +1,4 @@
-import { Status, Tag } from '@unitae/ui'
+import { type SidePanelWalk, Status, Tag } from '@unitae/ui'
 import { Copy, Ellipsis, UserMinus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useFetcher } from 'react-router'
@@ -40,6 +40,7 @@ export function SpeakerPanel({
   docked,
   startEditing,
   returnFocus,
+  walk,
   onClose,
   onOpenCongregation,
   onCreated,
@@ -56,6 +57,8 @@ export function SpeakerPanel({
   docked: boolean
   startEditing: boolean
   returnFocus: HTMLElement | null
+  /** The walk through the list as the page shows it. */
+  walk?: SidePanelWalk
   onClose: () => void
   onOpenCongregation: (id: number) => void
   onCreated: (speakerId: number) => void
@@ -175,6 +178,7 @@ export function SpeakerPanel({
         description={description}
         footer={footer}
         returnFocus={returnFocus}
+        walk={walk}
         onClose={onClose}
       >
         {editing ? (

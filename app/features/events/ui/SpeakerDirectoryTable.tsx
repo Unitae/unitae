@@ -225,8 +225,9 @@ export function SpeakerDirectoryTable({
                         <span className="font-semibold">{name}</span>
                       )}
                       <span className="text-faint tabular-nums">{count}</span>
+                      {/* The list's date says how fresh it is: on a phone too, where it may truncate. */}
                       {congregation?.listDate && (
-                        <span className="text-faint max-sm:hidden">
+                        <span className="min-w-0 truncate text-faint">
                           ·{' '}
                           {m.external_speakers_group_list_date({
                             date: formatSpeakerDate(congregation.listDate, timezone),

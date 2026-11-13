@@ -1,4 +1,4 @@
-import { SidePanel } from '@unitae/ui'
+import { SidePanel, type SidePanelWalk } from '@unitae/ui'
 import { type ReactNode, useRef } from 'react'
 import * as m from '~/i18n/paraglide/messages'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '~/shared/ui/sheet'
@@ -14,10 +14,13 @@ export function DirectoryPanelFrame({
   description,
   footer,
   returnFocus,
+  walk,
   onClose,
   children,
 }: {
   docked: boolean
+  /** ↑ ↓ and « 3 sur 12 » in the docked panel's header. */
+  walk?: SidePanelWalk
   title: ReactNode
   description?: ReactNode
   footer?: ReactNode
@@ -35,6 +38,7 @@ export function DirectoryPanelFrame({
         onClose={onClose}
         returnFocus={returnFocus}
         footer={footer}
+        walk={walk}
       >
         {children}
       </SidePanel>

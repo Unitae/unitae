@@ -43,10 +43,11 @@ export function AbsenceWeekList({ weeks, showEmptyWeeks, currentWeek, timeZone, 
           return (
             <div
               key={week.monday}
-              className="flex h-9 items-center gap-2 border-border border-b bg-sidebar pr-4 pl-10 text-faint text-sm last:border-b-0"
+              className="flex h-9 items-center gap-2 border-border border-b bg-sidebar pr-4 pl-10 text-faint text-sm last:border-b-0 max-md:pl-4"
             >
-              <span className="font-medium text-muted-foreground">{label}</span>
-              <span>· {m.programs_absences_week_nobody()}</span>
+              {/* One line on a phone too: the week stays whole, « personne d’absent » gives way. */}
+              <span className="shrink-0 whitespace-nowrap font-medium text-muted-foreground">{label}</span>
+              <span className="min-w-0 truncate">· {m.programs_absences_week_nobody()}</span>
             </div>
           )
         }

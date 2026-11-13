@@ -13,6 +13,7 @@ import { useCloseOnSave } from '~/shared/ui/hooks/use-close-on-save'
 import { useOpenParam } from '~/shared/ui/hooks/use-open-param'
 import { useSideEditor } from '~/shared/ui/hooks/use-side-editor'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
+import { sidePanelWalk } from '~/shared/ui/ListWithPanel'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { DiscardChangesDialog, UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
@@ -21,6 +22,7 @@ import { ASSIGN_PART_FORM_ID, AssignPartEditor, assignPartCopy, type PersonOptio
 import { AssignPartSheet } from './AssignPartSheet'
 import { ASSIGN_SERVICE_FORM_ID, AssignServiceEditor } from './AssignServiceEditor'
 import { AssignServiceSheet } from './AssignServiceSheet'
+import { DeleteEventDialog } from './DeleteEventDialog'
 import { type AssignedPart, EventAssignmentsPanel, type UnassignTarget } from './EventAssignmentsPanel'
 import { type AssignedService, EventServiceAssignmentsPanel } from './EventServiceAssignmentsPanel'
 import { UnassignConfirmDialog } from './UnassignConfirmDialog'
@@ -72,6 +74,7 @@ export function EventView({
   const partFetcher = useFetcher()
   const serviceFetcher = useFetcher()
   const [unassignTarget, setUnassignTarget] = useState<UnassignTarget | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const { blocker, setDirty } = useUnsavedChanges()
 
   const panel = useSideEditor<'part' | 'service'>(target =>
@@ -82,6 +85,16 @@ export function EventView({
   const target = panel.target
   const part = target?.kind === 'part' ? event.eventParts.find(item => item.id === target.id) : undefined
   const service = target?.kind === 'service' ? event.eventServiceParts.find(item => item.id === target.id) : undefined
+  // ↑ ↓ walk the parts, or the services, in the programme's order.
+  const walk = part
+    ? panel.walk(
+        'part',
+        event.eventParts.map(item => item.id),
+      )
+    : panel.walk(
+        'service',
+        event.eventServiceParts.map(item => item.id),
+      )
 
   // `?assign=part-12` opens that slot's panel: the absences page links here to reassign a part someone is away for.
   useOpenParam('assign', value => {
@@ -177,11 +190,12 @@ export function EventView({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild className="text-destructive focus:text-destructive">
-                        <Link to={`/programs/events/${event.id}/delete`}>
-                          <Trash2 />
-                          {m.common_delete()}
-                        </Link>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onSelect={() => setDeleting(true)}
+                      >
+                        <Trash2 />
+                        {m.common_delete()}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -214,35 +228,45 @@ export function EventView({
         </div>
 
         {panel.docked && target != null && (part != null || service != null) && (
-          <SidePanel
-            key={`${target.kind}-${target.id}`}
-            title={part ? partCopy?.title : service?.name}
-            description={partCopy?.description}
-            closeLabel={m.common_close()}
-            onClose={() => panel.request(null)}
-            returnFocus={target.trigger}
-            footer={
-              <>
-                <Button type="button" variant="ghost" onClick={panel.close}>
-                  {m.common_cancel()}
-                </Button>
-                <SubmitButton
-                  form={part ? ASSIGN_PART_FORM_ID : ASSIGN_SERVICE_FORM_ID}
-                  disabled={(part ? partFetcher : serviceFetcher).state !== 'idle'}
-                >
-                  {m.common_save()}
-                </SubmitButton>
-              </>
-            }
-          >
-            {part ? (
-              <AssignPartEditor key={part.id} part={part} {...partEditor} formRef={panel.formRef} />
-            ) : (
-              service && (
-                <AssignServiceEditor key={service.id} service={service} {...serviceEditor} formRef={panel.formRef} />
-              )
-            )}
-          </SidePanel>
+          // `contents` keeps the panel a flex item of the row while its key presses reach the walk.
+          // biome-ignore lint/a11y/noStaticElementInteractions: the keys belong to the focusable panel inside
+          <div className="contents" onKeyDown={walk?.onKeyDown}>
+            <SidePanel
+              key={`${target.kind}-${target.id}`}
+              title={part ? partCopy?.title : service?.name}
+              description={partCopy?.description}
+              closeLabel={m.common_close()}
+              onClose={() => panel.request(null)}
+              returnFocus={target.trigger}
+              walk={sidePanelWalk(
+                walk,
+                part
+                  ? { previous: m.programs_panel_previous_part(), next: m.programs_panel_next_part() }
+                  : { previous: m.programs_panel_previous_service(), next: m.programs_panel_next_service() },
+              )}
+              footer={
+                <>
+                  <Button type="button" variant="ghost" onClick={panel.close}>
+                    {m.common_cancel()}
+                  </Button>
+                  <SubmitButton
+                    form={part ? ASSIGN_PART_FORM_ID : ASSIGN_SERVICE_FORM_ID}
+                    disabled={(part ? partFetcher : serviceFetcher).state !== 'idle'}
+                  >
+                    {m.common_save()}
+                  </SubmitButton>
+                </>
+              }
+            >
+              {part ? (
+                <AssignPartEditor key={part.id} part={part} {...partEditor} formRef={panel.formRef} />
+              ) : (
+                service && (
+                  <AssignServiceEditor key={service.id} service={service} {...serviceEditor} formRef={panel.formRef} />
+                )
+              )}
+            </SidePanel>
+          </div>
         )}
       </div>
 
@@ -277,6 +301,13 @@ export function EventView({
         target={unassignTarget}
         eventId={event.id}
       />
+      {canEdit && (
+        <DeleteEventDialog
+          event={{ id: event.id, name: event.name, date }}
+          open={deleting}
+          onClose={() => setDeleting(false)}
+        />
+      )}
     </div>
   )
 }
