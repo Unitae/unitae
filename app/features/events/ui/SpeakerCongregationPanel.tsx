@@ -1,5 +1,5 @@
 import { FactList, Status } from '@unitae/ui'
-import { FileText, RefreshCw, Trash2 } from 'lucide-react'
+import { Ellipsis, FileText, Pencil, RefreshCw, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useFetcher } from 'react-router'
 import type { DirectoryCongregation } from '~/features/events/model/external-speaker.type'
@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
 } from '~/shared/ui/alert-dialog'
 import { Button } from '~/shared/ui/button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 import { useCloseOnSave } from '~/shared/ui/hooks/use-close-on-save'
 import { useFormChanges } from '~/shared/ui/hooks/use-form-changes'
 import { DirectoryPanelFrame, PanelSection } from './DirectoryPanelFrame'
@@ -130,20 +131,37 @@ export function SpeakerCongregationPanel({
         {m.common_save()}
       </Button>
     </div>
-  ) : canManage ? (
-    <div className="flex w-full items-center gap-2">
-      <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}>
-        {m.external_speakers_edit()}
-      </Button>
-      <span className="flex-1" />
-      {speakerCount.all === 0 && (
-        <Button type="button" variant="ghost" size="sm" className="text-danger-text" onClick={() => setDeleting(true)}>
-          <Trash2 aria-hidden="true" />
-          {m.external_speakers_congregation_delete()}
-        </Button>
-      )}
-    </div>
   ) : undefined
+  // Only a congregation with no speaker at all can go; until then the menu would be empty.
+  const actions =
+    !editing && canManage ? (
+      <>
+        <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(true)}>
+          <Pencil aria-hidden="true" />
+          {m.external_speakers_edit()}
+        </Button>
+        {speakerCount.all === 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={m.external_speakers_more_actions({ name: congregation.name })}
+              >
+                <Ellipsis aria-hidden="true" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(true)}>
+                <Trash2 aria-hidden="true" />
+                {m.external_speakers_congregation_delete()}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </>
+    ) : undefined
 
   const stale = isListStale(congregation.listDate)
   return (
@@ -154,6 +172,7 @@ export function SpeakerCongregationPanel({
         description={
           editing ? congregation.name : m.external_speakers_congregation_count({ count: String(speakerCount.onList) })
         }
+        actions={actions}
         footer={footer}
         returnFocus={returnFocus}
         onClose={onClose}
