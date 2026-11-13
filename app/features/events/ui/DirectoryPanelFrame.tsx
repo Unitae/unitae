@@ -6,12 +6,13 @@ import { cn } from '~/shared/utils/utils'
 
 /**
  * The external-speakers page's panel: beside the list from 1280 px (the design system's SidePanel), in a sheet below.
- * Same title, description, content and footer either way.
+ * Same title, description, header actions, content and footer either way.
  */
 export function DirectoryPanelFrame({
   docked,
   title,
   description,
+  actions,
   footer,
   returnFocus,
   walk,
@@ -23,6 +24,9 @@ export function DirectoryPanelFrame({
   walk?: SidePanelWalk
   title: ReactNode
   description?: ReactNode
+  /** The item's own actions (« Modifier », a « … » menu), in the header before the close button. */
+  actions?: ReactNode
+  /** A form's cancel and save. */
   footer?: ReactNode
   returnFocus?: HTMLElement | null
   onClose: () => void
@@ -37,6 +41,7 @@ export function DirectoryPanelFrame({
         closeLabel={m.external_speakers_close()}
         onClose={onClose}
         returnFocus={returnFocus}
+        actions={actions}
         footer={footer}
         walk={walk}
       >
@@ -55,13 +60,19 @@ export function DirectoryPanelFrame({
           sheet.current?.focus()
         }}
       >
-        <SheetHeader className="border-border border-b">
-          <SheetTitle>{title}</SheetTitle>
-          {description != null && (
-            <SheetDescription asChild>
-              <div>{description}</div>
-            </SheetDescription>
-          )}
+        {/* The right padding keeps the actions and the title clear of the sheet's close button. */}
+        <SheetHeader className="border-border border-b pr-12 pointer-coarse:pr-16">
+          <div className="flex items-start gap-2">
+            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+              <SheetTitle>{title}</SheetTitle>
+              {description != null && (
+                <SheetDescription asChild>
+                  <div>{description}</div>
+                </SheetDescription>
+              )}
+            </div>
+            {actions != null && <div className="flex flex-none items-center gap-1">{actions}</div>}
+          </div>
         </SheetHeader>
         <div className="flex-1 overflow-y-auto px-4 py-4">{children}</div>
         {footer && <SheetFooter className="border-border flex-row justify-end border-t">{footer}</SheetFooter>}

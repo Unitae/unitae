@@ -1,6 +1,6 @@
 import { SidePanel, Tag } from '@unitae/ui'
-import { ChevronRight } from 'lucide-react'
-import { type ReactNode, useEffect, useState } from 'react'
+import { ChevronRight, Pencil } from 'lucide-react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { Link, useFetcher } from 'react-router'
 import type { OffChartRole, PanelRole } from '~/features/congregation/model/organigram-page.type'
 import { AttachRolePicker } from '~/features/congregation/ui/AttachRolePicker'
@@ -135,6 +135,7 @@ function PanelFrame({
   docked,
   returnFocus,
   onClose,
+  actions,
   footer,
   children,
 }: {
@@ -142,9 +143,13 @@ function PanelFrame({
   docked: boolean
   returnFocus: HTMLElement | null
   onClose: () => void
+  /** « Modifier », in the header before the close button. */
+  actions: ReactNode
+  /** The edit form's cancel and save. */
   footer: ReactNode
   children: ReactNode
 }) {
+  const sheet = useRef<HTMLDivElement>(null)
   if (docked) {
     return (
       <SidePanel
@@ -153,6 +158,7 @@ function PanelFrame({
         closeLabel={m.org_close()}
         onClose={onClose}
         returnFocus={returnFocus}
+        actions={actions}
         footer={footer}
       >
         {children}
@@ -161,14 +167,29 @@ function PanelFrame({
   }
   return (
     <Sheet open onOpenChange={next => !next && onClose()}>
-      <SheetContent className="gap-0 sm:max-w-md" aria-label={m.org_panel_label({ name: role.name })}>
-        <SheetHeader className="border-border border-b">
-          <SheetTitle>{role.name}</SheetTitle>
-          <SheetDescription asChild>
-            <div>
-              <PanelDescription role={role} />
+      <SheetContent
+        ref={sheet}
+        className="gap-0 outline-none sm:max-w-md"
+        aria-label={m.org_panel_label({ name: role.name })}
+        // The sheet itself takes focus, not « Modifier »: nothing lights up as it opens, and Tab starts at the top.
+        onOpenAutoFocus={event => {
+          event.preventDefault()
+          sheet.current?.focus()
+        }}
+      >
+        {/* The right padding keeps the actions and the title clear of the sheet's close button. */}
+        <SheetHeader className="border-border border-b pr-12 pointer-coarse:pr-16">
+          <div className="flex items-start gap-2">
+            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+              <SheetTitle>{role.name}</SheetTitle>
+              <SheetDescription asChild>
+                <div>
+                  <PanelDescription role={role} />
+                </div>
+              </SheetDescription>
             </div>
-          </SheetDescription>
+            {actions != null && <div className="flex flex-none items-center gap-1">{actions}</div>}
+          </div>
         </SheetHeader>
         <div className="flex-1 overflow-y-auto px-4 py-4">{children}</div>
         {footer && <SheetFooter className="border-border flex-row justify-end border-t">{footer}</SheetFooter>}
@@ -236,17 +257,27 @@ export function RolePanel({
   }, [dirty, onDirtyChange])
 
   const canEdit = manage != null && role.editable
+  const actions =
+    canEdit && !editing ? (
+      <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(true)}>
+        <Pencil aria-hidden="true" />
+        {m.org_edit()}
+      </Button>
+    ) : undefined
   const footer = editing ? (
     <EditFooter changes={form.changes} busy={fetcher.state !== 'idle'} onCancel={() => setEditing(false)} />
-  ) : canEdit ? (
-    <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}>
-      {m.org_edit()}
-    </Button>
   ) : undefined
 
   return (
     <>
-      <PanelFrame role={role} docked={docked} returnFocus={returnFocus} onClose={onClose} footer={footer}>
+      <PanelFrame
+        role={role}
+        docked={docked}
+        returnFocus={returnFocus}
+        onClose={onClose}
+        actions={actions}
+        footer={footer}
+      >
         {editing ? (
           <RoleForm role={role} fetcher={fetcher} formRef={form.ref} onDelete={() => setDeleting(true)} />
         ) : (

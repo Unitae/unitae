@@ -1,5 +1,5 @@
 import { type SidePanelWalk, Status, Tag } from '@unitae/ui'
-import { Copy, Ellipsis, UserMinus } from 'lucide-react'
+import { Copy, Ellipsis, Pencil, UserMinus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useFetcher } from 'react-router'
 import { toast } from 'sonner'
@@ -28,6 +28,70 @@ import { SpeakerView } from './SpeakerView'
 
 // One speaker beside the list: how to reach him, his talks, his visits here. « Modifier » turns the panel into the
 // form; a new speaker opens straight on it. A reader sees the sheet without a single control.
+
+/**
+ * « Modifier » and the « … » menu, in the panel's header. Beside the walk the docked header has no room for the label:
+ * `compact` keeps it as the button's name and tooltip.
+ */
+function SpeakerActions({
+  speaker,
+  compact,
+  onEdit,
+  onRetire,
+}: {
+  speaker: DirectorySpeaker
+  compact: boolean
+  onEdit: () => void
+  onRetire: () => void
+}) {
+  const editLabel = m.external_speakers_edit()
+  return (
+    <>
+      <Button
+        type="button"
+        variant="ghost"
+        size={compact ? 'icon-sm' : 'sm'}
+        title={compact ? editLabel : undefined}
+        onClick={onEdit}
+      >
+        <Pencil aria-hidden="true" />
+        <span className={compact ? 'sr-only' : undefined}>{editLabel}</span>
+      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={m.external_speakers_more_actions({ name: speaker.name })}
+          >
+            <Ellipsis aria-hidden="true" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {speaker.phone && (
+            <>
+              <DropdownMenuItem
+                onSelect={() => {
+                  void navigator.clipboard?.writeText(speaker.phone ?? '')
+                  toast.success(m.external_speakers_phone_copied())
+                }}
+              >
+                <Copy aria-hidden="true" />
+                {m.external_speakers_copy_phone()}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
+          <DropdownMenuItem onSelect={onRetire}>
+            <UserMinus aria-hidden="true" />
+            {m.external_speakers_retire_action()}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
+  )
+}
 
 export function SpeakerPanel({
   speaker,
@@ -98,44 +162,16 @@ export function SpeakerPanel({
         {speaker == null ? m.external_speakers_form_submit_new() : m.common_save()}
       </Button>
     </div>
-  ) : canManage && speaker != null && speaker.retiredAt == null ? (
-    <div className="flex w-full items-center gap-2">
-      <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}>
-        {m.external_speakers_edit()}
-      </Button>
-      <span className="flex-1" />
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label={m.external_speakers_more_actions({ name: speaker.name })}
-          >
-            <Ellipsis aria-hidden="true" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {speaker.phone && (
-            <DropdownMenuItem
-              onSelect={() => {
-                void navigator.clipboard?.writeText(speaker.phone ?? '')
-                toast.success(m.external_speakers_phone_copied())
-              }}
-            >
-              <Copy aria-hidden="true" />
-              {m.external_speakers_copy_phone()}
-            </DropdownMenuItem>
-          )}
-          {speaker.phone && <DropdownMenuSeparator />}
-          <DropdownMenuItem onSelect={() => setDialog('retire')}>
-            <UserMinus aria-hidden="true" />
-            {m.external_speakers_retire_action()}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
   ) : undefined
+  const actions =
+    !editing && canManage && speaker != null && speaker.retiredAt == null ? (
+      <SpeakerActions
+        speaker={speaker}
+        compact={docked && walk != null}
+        onEdit={() => setEditing(true)}
+        onRetire={() => setDialog('retire')}
+      />
+    ) : undefined
 
   const title =
     speaker == null
@@ -176,6 +212,7 @@ export function SpeakerPanel({
         docked={docked}
         title={title}
         description={description}
+        actions={actions}
         footer={footer}
         returnFocus={returnFocus}
         walk={walk}
