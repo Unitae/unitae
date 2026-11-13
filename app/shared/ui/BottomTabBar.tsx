@@ -28,6 +28,7 @@ export function BottomTabBar({ permissions, onMoreClick, moreOpen }: BottomTabBa
 
   return (
     <nav
+      data-tab-bar=""
       aria-label={m.nav_primary()}
       // Hidden while a page shows a bottom sheet (`data-bottom-sheet`): the sheet's action
       // buttons would otherwise sit one thumb-width above five navigation targets, and a

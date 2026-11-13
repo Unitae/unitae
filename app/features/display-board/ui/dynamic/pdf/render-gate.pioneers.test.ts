@@ -22,7 +22,7 @@ describe.each(BOARD_TYPEFACES)('the pioneers sheet in %s', typeface => {
       const pioneers = pioneerList(permanent, special, auxiliary)
 
       const pages = await renderSheet({ type: DynamicType.Pioneers, pioneers }, { typeface, accent: 'plum', layout })
-      const plan = fitPioneersSheet(layout, pioneers, await loadBoardPdfTypeface(typeface))
+      const plan = fitPioneersSheet(layout, pioneers, await loadBoardPdfTypeface(typeface), 'septembre')
 
       expect(plan.fitsOnePage).toBe(true)
       expect(pages).toHaveLength(1)

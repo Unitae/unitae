@@ -1,5 +1,6 @@
 import type { RefObject } from 'react'
 import { BOARD_LAYOUTS, type BoardLayout, isBoardLayout } from '~/features/display-board/model/board-appearance'
+import { auxiliaryMonthLabel } from '~/features/display-board/model/board-roster'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
 import type { getDynamicDocumentData } from '~/features/display-board/server/dynamic-documents.server'
 import { OrganigramChartView } from './OrganigramChartView'
@@ -21,11 +22,16 @@ export function DynamicDocumentView({
   layout,
   highlightQuery,
   scrollContainerRef,
+  now,
+  timeZone,
 }: {
   data: DocumentData
   layout: string | undefined
   highlightQuery: string
   scrollContainerRef: RefObject<HTMLDivElement | null>
+  /** When the document is read, from the server, so the month and the current week agree with the sheet. */
+  now: Date
+  timeZone: string
 }) {
   switch (data.type) {
     case DynamicType.Organigram:
@@ -37,7 +43,13 @@ export function DynamicDocumentView({
     case DynamicType.PublisherGroups:
       return <PublisherGroupsView groups={data.groups} layout={layoutOf(data.type, layout)} />
     case DynamicType.Pioneers:
-      return <PioneersView pioneers={data.pioneers} layout={layoutOf(data.type, layout)} />
+      return (
+        <PioneersView
+          pioneers={data.pioneers}
+          layout={layoutOf(data.type, layout)}
+          auxiliaryMonth={auxiliaryMonthLabel(new Date(now), timeZone)}
+        />
+      )
     case DynamicType.Programme:
       return (
         <ProgrammeView

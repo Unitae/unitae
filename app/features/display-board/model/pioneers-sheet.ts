@@ -4,7 +4,7 @@ import {
   type BoardPerson,
   boardPersonNameRuns,
   groupPioneersByType,
-  pioneerTypeLabel,
+  pioneerSectionLabel,
 } from '~/features/display-board/model/board-roster'
 import type { DynamicType } from '~/features/display-board/model/dynamic-document.type'
 import {
@@ -86,11 +86,13 @@ function headingLines(label: string, measurer: TextMeasurer, s: number, width: n
   return lineCount([{ text: label, weight: 'bold' }], measurer, PIONEERS_HEADING_SCALE * s, width * 0.82)
 }
 
-function planSections(groups: { type: string; pioneers: SheetPioneer[] }[], measurer: TextMeasurer, s: number) {
+type LabelledGroup = { type: string; label: string; pioneers: SheetPioneer[] }
+
+function planSections(groups: LabelledGroup[], measurer: TextMeasurer, s: number) {
   const width = columnWidth(SECTION_COLUMNS)
-  const sections = groups.map(({ type, pioneers }) => ({
+  const sections = groups.map(({ type, label, pioneers }) => ({
     type,
-    label: pioneerTypeLabel(type),
+    label,
     pioneers,
     columns: split(pioneers, SECTION_COLUMNS, measurer, s, width),
   }))
@@ -114,14 +116,14 @@ function planSections(groups: { type: string; pioneers: SheetPioneer[] }[], meas
 }
 
 /** Columns: one per type, then a second for whichever type runs longest, while the page has room. */
-function planColumns(groups: { type: string; pioneers: SheetPioneer[] }[], measurer: TextMeasurer, s: number) {
+function planColumns(groups: LabelledGroup[], measurer: TextMeasurer, s: number) {
   const counts = groups.map(() => 1)
   const layoutAt = () => {
     const total = counts.reduce((sum, count) => sum + count, 0)
     const width = columnWidth(total)
-    const sections = groups.map(({ type, pioneers }, index) => ({
+    const sections = groups.map(({ type, label, pioneers }, index) => ({
       type,
-      label: pioneerTypeLabel(type),
+      label,
       pioneers,
       columns: split(pioneers, counts[index], measurer, s, width),
     }))
@@ -167,8 +169,13 @@ export function fitPioneersSheet(
   layout: PioneersLayout,
   pioneers: SheetPioneer[],
   measurer: TextMeasurer,
+  /** The month the auxiliary pioneers serve, in their heading: see `auxiliaryMonthLabel`. */
+  auxiliaryMonth: string,
 ): PioneersSheetPlan {
-  const groups = groupPioneersByType(pioneers)
+  const groups = groupPioneersByType(pioneers).map(group => ({
+    ...group,
+    label: pioneerSectionLabel(group.type, auxiliaryMonth),
+  }))
   const planAt = (s: number) =>
     layout === 'columns' ? planColumns(groups, measurer, s) : planSections(groups, measurer, s)
   const result = (size: number, fitsOnePage: boolean) => {

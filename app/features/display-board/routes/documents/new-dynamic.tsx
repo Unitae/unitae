@@ -83,7 +83,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
     })
     if (form == null) return { step: 'choose' as const, ...choices }
     const window = fromDisplayWindow(form.document, { timeZone: timezone, now })
-    return { step: 'form' as const, ...form, window, congregationName: displayName }
+    return { step: 'form' as const, ...form, window, now, timeZone: timezone, congregationName: displayName }
   })
 }
 
@@ -191,6 +191,8 @@ export default function NewDynamicDocumentPage({ loaderData, actionData }: Route
         highlightedOthers={highlightedOthers}
         data={preview}
         congregationName={loaderData.congregationName}
+        now={loaderData.now}
+        timeZone={loaderData.timeZone}
         lastResult={actionData}
         onDirtyChange={onDirtyChange}
       />

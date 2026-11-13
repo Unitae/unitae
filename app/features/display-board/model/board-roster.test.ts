@@ -6,11 +6,17 @@ vi.mock('~/i18n/paraglide/messages', () => ({
   board_dynamic_pioneers_type_special: () => 'Spéciaux',
   board_dynamic_pioneers_type_missionary: () => 'Missionnaires',
   board_dynamic_pioneers_type_auxiliary: () => 'Auxiliaires',
+  board_dynamic_pioneers_type_auxiliary_month: ({ month }: { month: string }) => `Auxiliaires · ${month}`,
 }))
 
-const { buildGroupRoster, formatBoardPersonName, groupPioneersByType, pioneerTypeLabel } = await import(
-  './board-roster'
-)
+const {
+  auxiliaryMonthLabel,
+  buildGroupRoster,
+  formatBoardPersonName,
+  groupPioneersByType,
+  pioneerSectionLabel,
+  pioneerTypeLabel,
+} = await import('./board-roster')
 
 function person(id: number, firstname: string | null, lastname: string | null, anonymizedAt: Date | null = null) {
   return { id, firstname, lastname, anonymizedAt }
@@ -94,5 +100,23 @@ describe('pioneerTypeLabel', () => {
 
   it('shows an unknown type as is rather than hiding it', () => {
     expect(pioneerTypeLabel('Autre')).toBe('Autre')
+  })
+})
+
+describe('auxiliaryMonthLabel', () => {
+  it('names the month the auxiliary pioneers serve, in the congregation’s time zone', () => {
+    // 30 November at 23:30 in Paris is already 1 December there.
+    expect(auxiliaryMonthLabel(new Date('2026-11-30T23:30:00Z'), 'Europe/Paris')).toBe('décembre')
+    expect(auxiliaryMonthLabel(new Date('2026-11-30T23:30:00Z'), 'America/Toronto')).toBe('novembre')
+  })
+})
+
+describe('pioneerSectionLabel', () => {
+  it('dates the auxiliary pioneers, who serve month by month', () => {
+    expect(pioneerSectionLabel('PionnierAuxiliaires', 'novembre')).toBe('Auxiliaires · novembre')
+  })
+
+  it('leaves the other kinds as they are', () => {
+    expect(pioneerSectionLabel('PionnierPermanant', 'novembre')).toBe('Permanents')
   })
 })

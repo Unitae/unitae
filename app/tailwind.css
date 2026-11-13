@@ -94,6 +94,45 @@
   font-family: inherit;
 }
 
+/* A board document prints alone (⌘P on its viewer): the shell steps aside, the page grows to its
+   content instead of scrolling inside the screen's height, and the sheet takes its light colours
+   whatever the reader's theme, since paper has no dark mode. The PDF stays the reference sheet. */
+@media print {
+  body:has([data-board-print]) [data-slot="sidebar"],
+  body:has([data-board-print])
+    [data-slot="sidebar-inset"]
+    > :not(:has([data-board-print])),
+  body:has([data-board-print]) [data-tab-bar] {
+    display: none;
+  }
+  body:has([data-board-print])
+    :is([data-slot="sidebar-wrapper"], [data-slot="sidebar-inset"]) {
+    min-height: 0;
+    height: auto;
+    overflow: visible;
+  }
+  body:has([data-board-print])
+    [data-slot="sidebar-inset"]
+    > :has([data-board-print]) {
+    overflow: visible;
+    padding: 0;
+  }
+  .dark [data-board-print] {
+    color-scheme: light;
+    color: var(--u-fg);
+    --u-bg: oklch(0.985 0.002 265);
+    --u-surface: oklch(1 0 0);
+    --u-border: oklch(0.912 0.004 265);
+    --u-border-strong: oklch(0.86 0.006 265);
+    --u-fg: oklch(0.23 0.012 265);
+    --u-fg-muted: oklch(0.44 0.012 265);
+    --u-fg-faint: oklch(0.52 0.01 265);
+  }
+  .dark [data-board-print] .board-accent {
+    color: var(--board-accent, var(--color-primary));
+  }
+}
+
 /* Respect prefers-reduced-motion. The `both` fill on our keyframes still
    settles elements on their final (visible) state. */
 @media (prefers-reduced-motion: reduce) {
