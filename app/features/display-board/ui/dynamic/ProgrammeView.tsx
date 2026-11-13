@@ -1,7 +1,7 @@
 import { Tag } from '@unitae/ui'
 import { Calendar, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
-import { personMatches } from '~/features/display-board/model/board-reader'
+import { partMatches } from '~/features/display-board/model/board-reader'
 import type { ProgrammeDynamicConfig } from '~/features/display-board/model/dynamic-document.type'
 import { programmePdfOptions } from '~/features/display-board/model/programme-pdf-options'
 import {
@@ -19,9 +19,9 @@ import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { usePersistedState } from '~/shared/ui/hooks/use-persisted-state'
 import { dayOf } from '~/shared/utils/calendar-day'
-import { type ExternalSpeakerLabelSource, externalSpeakerLabel } from '~/shared/utils/external-speaker-label'
+import type { ExternalSpeakerLabelSource } from '~/shared/utils/external-speaker-label'
 import { cn } from '~/shared/utils/utils'
-import { BoardPersonName } from './BoardPersonName'
+import { BoardPersonName, BoardSpeakerName } from './BoardPersonName'
 import { DocLink, useBoardReading } from './board-reading'
 
 // The board's programme on screen, composed as its printed sheet: each meeting under a rule, its
@@ -82,7 +82,7 @@ function Assignees({ part }: { part: PartAssignment }) {
   if (part.externalSpeaker) {
     return (
       <>
-        {externalSpeakerLabel(part.externalSpeaker)}
+        <BoardSpeakerName speaker={part.externalSpeaker} />
         <Tag className="ml-2 shrink-0 font-sans">{m.programs_view_external_badge()}</Tag>
       </>
     )
@@ -105,7 +105,7 @@ function Assignees({ part }: { part: PartAssignment }) {
 function useTopicDimmed(parts: PartAssignment[]): boolean {
   const { query } = useBoardReading()
   if (query == null) return false
-  return !parts.some(part => personMatches(part.assignee, query) || personMatches(part.assistant, query))
+  return !parts.some(part => partMatches(part, query))
 }
 
 function Topic({ part, dimmed }: { part: PartAssignment; dimmed: boolean }) {
@@ -147,7 +147,10 @@ function TrackedPart({ parts }: { parts: PartAssignment[] }) {
   )
 }
 
-/** The services in two columns; under a meeting's parts they fold away, a choice the reader's browser keeps. */
+/**
+ * The services in two columns; under a meeting's parts they fold away, a choice the reader's browser
+ * keeps. A search opens them, so every name it counts is in sight, and paper always prints them.
+ */
 function Services({
   services,
   hasParts,
@@ -155,9 +158,10 @@ function Services({
   services: NonNullable<ProgrammeEvent['eventServiceParts']>
   hasParts: boolean
 }) {
+  const { query } = useBoardReading()
   const [collapsed, setCollapsed] = usePersistedState('programme-services-collapsed', false)
   const label = m.board_viewer_services_label({ count: String(services.length) })
-  const folded = hasParts && collapsed
+  const folded = hasParts && collapsed && query == null
   return (
     <div className="mt-3 flex flex-col">
       {hasParts ? (
@@ -165,6 +169,7 @@ function Services({
           type="button"
           onClick={() => setCollapsed(!collapsed)}
           aria-expanded={!folded}
+          disabled={query != null}
           className="flex items-center gap-1 self-start font-bold text-muted-foreground text-sm"
         >
           <ChevronRight

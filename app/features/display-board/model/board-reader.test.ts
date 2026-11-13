@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { boardSearchQuery, countDocumentMatches, isReader, personMatches } from './board-reader'
+import { boardSearchQuery, countDocumentMatches, isReader, partNames, personMatches, textMatches } from './board-reader'
 
 const person = (firstname: string, lastname: string, id = 0) => ({ id, firstname, lastname, anonymizedAt: null })
 
@@ -26,6 +26,37 @@ describe('personMatches', () => {
   })
 })
 
+describe('textMatches', () => {
+  it('finds a written name whatever the accents or case, and nothing without a query', () => {
+    expect(textMatches('Hélène Clément', 'helene')).toBe(true)
+    expect(textMatches('Hélène Clément', 'paul')).toBe(false)
+    expect(textMatches('Hélène Clément', null)).toBe(false)
+  })
+})
+
+describe('partNames', () => {
+  const speaker = (name: string, anonymizedAt: Date | null = null) => ({ name, anonymizedAt })
+
+  it('names a visiting speaker by their name, as the part shows it', () => {
+    expect(partNames({ assignee: null, assistant: null, externalSpeaker: speaker('Paul Martin') })).toEqual([
+      'Paul Martin',
+    ])
+  })
+
+  it('names nobody for a deleted speaker: their name is no longer on the board', () => {
+    expect(partNames({ assignee: null, assistant: null, externalSpeaker: speaker('', new Date()) })).toEqual([])
+  })
+
+  it('names the assignee, then the assistant beside them', () => {
+    const part = { assignee: person('Marc', 'Dupont', 1), assistant: person('Léa', 'Garnier', 2) }
+    expect(partNames(part)).toEqual(['Marc DUPONT', 'Léa GARNIER'])
+  })
+
+  it('leaves out an assistant with no assignee, whom neither the screen nor the sheet shows', () => {
+    expect(partNames({ assignee: null, assistant: person('Léa', 'Garnier', 2) })).toEqual([])
+  })
+})
+
 describe('isReader', () => {
   const reader = { memberId: 7, canViewPublishers: false, canViewRoles: false, canViewPrograms: false }
 
@@ -40,15 +71,11 @@ describe('isReader', () => {
 })
 
 describe('countDocumentMatches', () => {
-  it('counts the names a search lights up in the groups, leaders included', () => {
-    const groups = [
-      {
-        responsible: person('Marc', 'Dupont'),
-        deputy: person('Julien', 'Girard'),
-        members: [person('Marie', 'Dupont')],
-      },
-    ]
-    expect(countDocumentMatches({ type: 'publisher-groups', groups }, 'dupont')).toBe(2)
+  it('counts the names a search lights up in the groups, each leader once though they belong to their group', () => {
+    const responsible = person('Marc', 'Dupont', 1)
+    const deputy = person('Julien', 'Dupont', 2)
+    const groups = [{ responsible, deputy, members: [responsible, deputy, person('Marie', 'Dupont', 3)] }]
+    expect(countDocumentMatches({ type: 'publisher-groups', groups }, 'dupont')).toBe(3)
   })
 
   it('counts on the organigram only the people it prints: rosters whole, then who each row names', () => {
@@ -95,10 +122,14 @@ describe('countDocumentMatches', () => {
     const events = [
       {
         templateId: 1,
-        eventParts: [{ assignee: person('Marc', 'Dupont'), assistant: person('Léa', 'Dupont') }],
-        eventServiceParts: [{ name: 'Sono', assignee: person('Paul', 'Dupont') }],
+        eventParts: [{ assignee: person('Marc', 'Dupont', 1), assistant: person('Léa', 'Dupont', 2) }],
+        eventServiceParts: [{ name: 'Sono', assignee: person('Paul', 'Dupont', 3) }],
       },
-      { templateId: 2, eventParts: [{ assignee: person('Rose', 'Dupont'), assistant: null }], eventServiceParts: [] },
+      {
+        templateId: 2,
+        eventParts: [{ assignee: person('Rose', 'Dupont', 4), assistant: null }],
+        eventServiceParts: [],
+      },
     ]
     const config = {
       templates: [
@@ -107,6 +138,18 @@ describe('countDocumentMatches', () => {
       ],
     }
     expect(countDocumentMatches({ type: 'programme', events, config, showServices: true }, 'dupont')).toBe(2)
+  })
+
+  it('counts the names a programme part shows: its visiting speaker, never an assistant left without an assignee', () => {
+    const programme = (part: Parameters<typeof partNames>[0]) => ({
+      type: 'programme' as const,
+      events: [{ templateId: null, eventParts: [part] }],
+      config: null,
+      showServices: false,
+    })
+    const speaker = { assignee: null, assistant: null, externalSpeaker: { name: 'Paul Dupont', anonymizedAt: null } }
+    expect(countDocumentMatches(programme(speaker), 'dupont')).toBe(1)
+    expect(countDocumentMatches(programme({ assignee: null, assistant: person('Léa', 'Dupont', 2) }), 'dupont')).toBe(0)
   })
 
   it('counts nothing without a query', () => {
