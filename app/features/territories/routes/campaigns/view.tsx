@@ -103,11 +103,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 export default function CampaignView({ loaderData }: Route.ComponentProps) {
   const { campaign, status, today, steps, tiles, attributions, metrics, pausedCount, canAssign, canDelete } = loaderData
   const length = campaignLength(campaign.startDay, campaign.endDay)
-  const scope = campaign.allTerritories
-    ? m.campaigns_scope_all()
-    : metrics.total > 1
-      ? m.campaigns_scope_count({ count: metrics.total })
-      : m.campaigns_scope_one({ count: metrics.total })
+  const scope = campaign.allTerritories ? m.campaigns_scope_all() : m.campaigns_scope_count({ count: metrics.total })
 
   return (
     <div className="flex max-w-6xl flex-col gap-5">

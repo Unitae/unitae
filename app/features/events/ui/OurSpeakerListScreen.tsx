@@ -106,11 +106,8 @@ function OurListMain({
     <p className="text-muted-foreground flex items-start gap-2 text-sm">
       <Users aria-hidden="true" className="text-faint mt-0.5 size-4 shrink-0" />
       <span className="flex-1">
-        {m.external_speakers_ours_candidates_count({
-          count: String(candidateCount),
-          role: role.name,
-          on: String(onList.length),
-        })}
+        {m.external_speakers_ours_candidates_count({ count: candidateCount, role: role.name })}{' '}
+        {m.external_speakers_ours_candidates_on_list({ count: onList.length })}
       </span>
       {canConfigure && (
         <Link to={SETTINGS} className="text-primary shrink-0 hover:underline max-sm:hidden">

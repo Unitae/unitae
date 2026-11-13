@@ -84,8 +84,8 @@ export default function SnapshotOverviewSection({ stats, attributionsByGroup }: 
             <StatLabel
               label={m.stats_resting_territories()}
               help={m.stats_resting_territories_help({
-                doorDays: RESTING_PERIOD_DAYS.doorsToDoors,
-                otherDays: RESTING_PERIOD_DAYS.campaign,
+                doorDays: m.stats_resting_days({ count: RESTING_PERIOD_DAYS.doorsToDoors }),
+                otherDays: m.stats_resting_days({ count: RESTING_PERIOD_DAYS.campaign }),
               })}
             />
           }

@@ -188,9 +188,7 @@ export function urgentOpenSlotItems(openSlots: OpenSlots[] | null, now: number =
 }
 
 function groupReportsLabel(count: number, month: string): string {
-  return count === 1
-    ? m.dashboard_urgent_group_report_one({ month })
-    : m.dashboard_urgent_group_reports({ count: String(count), month })
+  return m.dashboard_urgent_group_reports({ count, month })
 }
 
 // Reports still missing in the overseer's group for the month being collected.

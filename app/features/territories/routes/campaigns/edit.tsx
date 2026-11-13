@@ -168,7 +168,10 @@ export function action({ request, params, context }: Route.ActionArgs) {
       if (scopeResult.added > 0 || scopeResult.removed > 0) {
         session.flash(
           'success',
-          m.campaigns_scope_change_flash({ added: String(scopeResult.added), removed: String(scopeResult.removed) }),
+          m.campaigns_scope_change_flash({
+            added: m.campaigns_scope_change_added({ count: scopeResult.added }),
+            removed: m.campaigns_scope_change_removed({ count: scopeResult.removed }),
+          }),
         )
       }
       return redirect(`/territories/attributions/campaigns/${id}`, {

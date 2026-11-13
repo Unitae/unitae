@@ -48,7 +48,7 @@ export function TerritoryFacts({
   const facts = [
     territoryKindLabel(type),
     territoryQuantityLabel(type, totals),
-    m.territory_page_entrances_streets({ entrances: totals.entrances, streets: totals.streets }),
+    `${m.territory_page_count_entrances({ count: totals.entrances })} · ${m.territory_page_count_streets({ count: totals.streets })}`,
     pmr === 'full' ? m.attributions_assign_pmr() : pmr === 'partial' ? m.attributions_assign_pmr_partial() : null,
     attributed > 0 ? m.territory_page_attributed_times({ count: attributed }) : null,
   ].filter((fact): fact is string => fact != null)
