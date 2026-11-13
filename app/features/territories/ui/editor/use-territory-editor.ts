@@ -20,19 +20,22 @@ export interface TerritoryEditorInput {
   saved: EditorEntrance[]
   /** The entrances a refused save named: they stay listed while they are still in the draft. */
   refused: { id: number; address: string; territoryNumber: string }[]
+  /** Creating: the next free number of each type, offered in the field and followed while it is left as offered. */
+  suggestions?: Partial<Record<TerritoryKindKey, string>>
 }
 
 /**
  * The editor's state: the fields, the draft of entrance changes, the entrance picked on the map or in the list, the
  * one under the pointer, and what the column shows from them.
  */
-export function useTerritoryEditor({ mode, territory, saved, refused }: TerritoryEditorInput) {
+export function useTerritoryEditor({ mode, territory, saved, refused, suggestions = {} }: TerritoryEditorInput) {
   const [number, setNumber] = useState(territory.number)
   const [notes, setNotes] = useState(territory.notes)
   const [kind, setKind] = useState(territory.type)
   const fieldsChanged =
     mode === 'edit' ? Number(number.trim() !== territory.number) + Number(notes !== territory.notes) : 0
-  const draftState = useTerritoryDraft(fieldsChanged > 0 || (mode === 'new' && number !== ''))
+  // The number offered is not a change of the person's: only one they typed is.
+  const draftState = useTerritoryDraft(fieldsChanged > 0 || (mode === 'new' && number !== territory.number))
   const { draft, reset } = draftState
   const [selected, setSelected] = useState<MapEntrance | null>(null)
   const [hotId, setHotId] = useState<number | null>(null)
@@ -68,6 +71,8 @@ export function useTerritoryEditor({ mode, territory, saved, refused }: Territor
 
   /** Creating: another type offers other entrances, so the ones chosen go. */
   const changeKind = (next: TerritoryKindKey) => {
+    // A number left as offered follows the type; one the person typed stays.
+    if (number === (suggestions[kind] ?? '')) setNumber(suggestions[next] ?? '')
     setKind(next)
     reset()
     setSelected(null)

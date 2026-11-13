@@ -10,51 +10,13 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
-import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/delete-building'
 
-export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Supprimer un immeuble — Unitae' }]
-}
-
-export function loader({ params, context }: Route.LoaderArgs) {
-  const permissions = context.get(permissionsContext)
-
-  requirePermission(permissions, Permission.CanManageBuildings)
-
-  const { congregationId } = context.get(currentAccountContext)
-
-  return withScopeFromContext(context, async db => {
-    const building = await db.building.findUnique({
-      where: {
-        id_congregationId: { id: requireParamId(params.buildingId, '/territories/buildings'), congregationId },
-      },
-    })
-
-    if (building == null) {
-      throw redirect('/territories/attributions')
-    }
-
-    return { building }
-  })
-}
-
-export default function DeleteBuilding({ loaderData }: Route.ComponentProps) {
-  const { building } = loaderData
-
-  return (
-    <DeleteConfirmation
-      title={m.prospection_delete_building_title()}
-      submitLabel={m.prospection_delete_building_submit()}
-      cancelTo="/territories/buildings"
-    >
-      <p>
-        {building.number} {building.street}, {building.zip}
-      </p>
-    </DeleteConfirmation>
-  )
+// Deleting is a dialog on the building's pages and in the lists; an old link to this address lands on the building.
+export function loader({ params }: Route.LoaderArgs) {
+  throw redirect(`/territories/building/${params.buildingId}/view`)
 }
 
 export function action({ request, params, context }: Route.ActionArgs) {
@@ -79,8 +41,11 @@ export function action({ request, params, context }: Route.ActionArgs) {
       }),
     )
 
+    // Back where the reader was, unless that was one of the building's own pages, which are gone with it.
     const previousPage = request.headers.get('referer')
-    return redirect(previousPage ?? '/territories/buildings', {
+    const own =
+      previousPage != null && new URL(previousPage).pathname.startsWith(`/territories/building/${building.id}/`)
+    return redirect(previousPage != null && !own ? previousPage : '/territories/buildings', {
       headers: {
         'Set-Cookie': await commitSession(session),
       },

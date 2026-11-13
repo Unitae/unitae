@@ -39,7 +39,7 @@ export function EntranceMarker({ entrance, state, selected, hot, onSelect, onHov
         onFocus={() => onHover(entrance.id)}
         onBlur={() => onHover(null)}
         className={cn(
-          'relative grid cursor-pointer place-content-center rounded-full transition-transform duration-(--u-duration-fast) before:absolute before:-inset-1.5 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-3 max-xl:before:-inset-3',
+          'relative grid cursor-pointer place-content-center rounded-full transition-transform duration-(--u-duration-fast) before:absolute before:-inset-1.5 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-3 pointer-coarse:before:-inset-[13px]',
           hot && 'scale-120',
           selected && 'scale-125 outline-2 outline-foreground outline-offset-3',
         )}
@@ -83,7 +83,8 @@ export function OutlineLayer({ points }: { points: { lat: number; lng: number }[
       <Layer
         id="territory-outline-line"
         type="line"
-        paint={{ 'line-color': accent, 'line-opacity': 0.8, 'line-width': 1.5 }}
+        // Dashed, as the boards draw it: an outline of the entrances, not a drawn boundary.
+        paint={{ 'line-color': accent, 'line-opacity': 0.8, 'line-width': 1.5, 'line-dasharray': [3, 2] }}
       />
     </Source>
   )

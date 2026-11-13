@@ -5,6 +5,7 @@ import { getPhoneTerritoryActive } from '~/features/settings/index.server'
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { createTerritorySchema } from '~/features/territories/schemas/territory.schema'
 import { getBaseMap } from '~/features/territories/server/base-map.server'
+import { computeNextTerritoryNumber } from '~/features/territories/server/compute-next-territory-number.server'
 import { createTerritory } from '~/features/territories/server/create-territory.server'
 import { getEditorCenter } from '~/features/territories/server/territory-editor.queries'
 import { editorRefusal } from '~/features/territories/server/territory-editor-refusal.server'
@@ -43,7 +44,11 @@ export function loader({ context }: Route.LoaderArgs) {
     const phone = await getPhoneTerritoryActive(db, congregationId)
     const map = await getBaseMap(db, congregationId)
     const center = map == null ? null : await getEditorCenter(db, congregationId)
-    return { kinds: KINDS.filter(kind => phone || kind !== TerritoryKindKey.Phone), map, center }
+    const kinds = KINDS.filter(kind => phone || kind !== TerritoryKindKey.Phone)
+    // The next free number of each type, as « Créer en lot » offers it.
+    const numbers = await Promise.all(kinds.map(kind => computeNextTerritoryNumber(db, congregationId, kind)))
+    const suggestions = Object.fromEntries(kinds.map((kind, index) => [kind, numbers[index]]))
+    return { kinds, map, center, suggestions }
   })
 }
 
@@ -57,7 +62,13 @@ export default function NewTerritoryPage({ loaderData, actionData }: Route.Compo
       />
       <TerritoryEditor
         mode="new"
-        territory={{ id: null, number: '', type: TerritoryKindKey.Classical, notes: '' }}
+        territory={{
+          id: null,
+          number: loaderData.suggestions[TerritoryKindKey.Classical] ?? '',
+          type: TerritoryKindKey.Classical,
+          notes: '',
+        }}
+        suggestions={loaderData.suggestions}
         saved={[]}
         kinds={loaderData.kinds}
         map={loaderData.map}

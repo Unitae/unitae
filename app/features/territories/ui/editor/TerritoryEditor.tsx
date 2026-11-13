@@ -42,19 +42,21 @@ interface TerritoryEditorProps {
   center: { lat: number; lng: number } | null
   cancelTo: string
   result: EditorActionData | undefined
+  /** Creating: the next free number of each type. */
+  suggestions?: Partial<Record<TerritoryKindKey, string>>
 }
 
-/** On a phone the map fills what is left above the save bar and the tab bar. */
-const PHONE_MAP = 'h-[calc(100dvh-var(--map-top,16rem)-8rem-env(safe-area-inset-bottom))] min-h-72'
+/** On a phone the map fills what is left above the save bar. */
+const PHONE_MAP = 'h-[calc(100dvh-var(--map-top,16rem)-4.5rem-env(safe-area-inset-bottom))] min-h-72'
 
 /**
  * The territory editor, for creation and edition alike: the map on the left, the territory's column on the right,
  * the save bar at the bottom of the column. On a phone, « Carte » and « Entrées » take the screen in turn.
  */
 export function TerritoryEditor(props: TerritoryEditorProps) {
-  const { mode, territory, saved, kinds, map, center, cancelTo, result } = props
+  const { mode, territory, saved, kinds, map, center, cancelTo, result, suggestions } = props
   const formId = useId()
-  const editor = useTerritoryEditor({ mode, territory, saved, refused: result?.taken ?? [] })
+  const editor = useTerritoryEditor({ mode, territory, saved, refused: result?.taken ?? [], suggestions })
   const { draft, kind, selected } = editor
   const mapShown = map != null && editor.view === 'map'
   const { ref: mapRef, top } = useTopOnPhone(mapShown)
@@ -67,12 +69,20 @@ export function TerritoryEditor(props: TerritoryEditorProps) {
   return (
     <div
       data-full-bleed=""
+      // Full screen on a phone: the save bar takes the tab bar's place, as the board draws it.
+      data-bottom-sheet=""
       className="flex flex-col max-md:-mx-4 md:-mx-6 md:-mt-6 md:-mb-6 md:h-[calc(100dvh-3rem)] md:flex-row"
     >
       <UnsavedChangesDialog blocker={editor.blocker} />
       {map != null && (
         <>
-          <div className="border-border border-b px-4 pb-3 md:hidden">
+          <div className="flex flex-col gap-3 border-border border-b px-4 pb-3 md:hidden">
+            {/* The page's title on a phone, where the column with its header is a tab away. */}
+            <p className="m-0 text-h1">
+              {mode === 'new'
+                ? m.territory_editor_new_heading()
+                : m.territory_editor_edit_heading({ number: territory.number })}
+            </p>
             <SegmentedControl
               aria-label={m.territory_editor_views()}
               value={editor.view}

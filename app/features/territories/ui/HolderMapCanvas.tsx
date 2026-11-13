@@ -1,7 +1,7 @@
 import { MAP_ATTRIBUTION } from '@unitae/tokens/map-style'
 import { MapAttribution, MapControls, MapPin } from '@unitae/ui'
 import { Map as MapLibreMap, Marker, useMap } from '@vis.gl/react-maplibre'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import type { Bbox } from '~/features/territories/model/bbox.type'
 import { tileFailed, useBaseStyle } from '~/features/territories/ui/map/maplibre-base'
@@ -62,6 +62,8 @@ export default function HolderMapCanvas({
   const style = useBaseStyle(tiles)
   const bounds = useMemo(() => boundsOf(pins), [pins])
   const ready = useRef(false)
+  // The pins arrive with the base map, as the board says, not over an empty frame.
+  const [drawn, setDrawn] = useState(false)
 
   return (
     <>
@@ -78,13 +80,14 @@ export default function HolderMapCanvas({
         onIdle={() => {
           if (ready.current) return
           ready.current = true
+          setDrawn(true)
           onReady()
         }}
         onError={event => {
           if (tileFailed(event)) onFail()
         }}
       >
-        {pins.map(pin => {
+        {(drawn ? pins : []).map(pin => {
           const isSelected = pin.entranceId === selectedId
           const isHovered = pin.entranceId === hoveredId
           return (

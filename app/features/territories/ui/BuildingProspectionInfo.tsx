@@ -1,3 +1,4 @@
+import { Callout, Panel } from '@unitae/ui'
 import type { Building, BuildingEntrance } from '~/database/generated/client'
 import {
   EntranceKind,
@@ -7,7 +8,6 @@ import { shopKindLabels as getShopKindLabels, type ShopKind } from '~/features/t
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
-import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 
 type BuildingWithEntrances = Building & { entrances: BuildingEntrance[] }
 
@@ -30,26 +30,18 @@ export default function BuildingProspectionInfo({ building }: { building: Buildi
 
   if (!hasProspectionData) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{m.prospection_info_title()}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground italic">{m.prospection_info_no_data()}</p>
-        </CardContent>
-      </Card>
+      <Panel title={m.prospection_info_title()} padded>
+        <p className="m-0 text-muted-foreground text-sm">{m.prospection_info_no_data()}</p>
+      </Panel>
     )
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{m.prospection_info_title()}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-2">
+    <Panel title={m.prospection_info_title()} padded>
+      <div className="flex flex-col gap-2 text-sm">
         {residentialEntrance != null && <ResidentialSummary entrance={residentialEntrance} />}
 
-        {residentialEntrance == null && <p>{m.prospection_info_no_residential()}</p>}
+        {residentialEntrance == null && <p className="m-0">{m.prospection_info_no_residential()}</p>}
 
         {commerceEntrances.length > 0 && <CommerceSummary entrances={commerceEntrances} />}
 
@@ -58,18 +50,20 @@ export default function BuildingProspectionInfo({ building }: { building: Buildi
         ))}
 
         {allNotes.length > 0 && (
-          <div className="mt-2 flex flex-col gap-1 rounded-md border border-destructive/20 bg-destructive/5 p-3">
-            {allNotes.map(entrance => (
-              <p key={entrance.id} className="text-destructive text-sm">
-                <span className="font-medium">{getEntranceKindLabels()[entrance.kind] ?? entrance.kind} :</span>{' '}
-                {entrance.notes}
-              </p>
-            ))}
-          </div>
+          <Callout tone="warning" className="mt-1">
+            <ul className="m-0 flex list-none flex-col gap-1 p-0 text-foreground">
+              {allNotes.map(entrance => (
+                <li key={entrance.id}>
+                  <span className="font-medium">{getEntranceKindLabels()[entrance.kind] ?? entrance.kind} :</span>{' '}
+                  {entrance.notes}
+                </li>
+              ))}
+            </ul>
+          </Callout>
         )}
 
         {building.prospectionDate != null && (
-          <p className="mt-2 text-muted-foreground text-sm">
+          <p className="m-0 mt-1 text-muted-foreground">
             {m.prospection_info_last_prospection({
               date: building.prospectionDate.toLocaleDateString(getLocale(), {
                 year: 'numeric',
@@ -80,9 +74,9 @@ export default function BuildingProspectionInfo({ building }: { building: Buildi
           </p>
         )}
 
-        <p className="text-muted-foreground text-sm italic">{m.prospection_info_edit_hint()}</p>
-      </CardContent>
-    </Card>
+        <p className="m-0 text-faint text-xs">{m.prospection_info_edit_hint()}</p>
+      </div>
+    </Panel>
   )
 }
 
@@ -127,7 +121,7 @@ function ResidentialSummary({ entrance }: { entrance: BuildingEntrance }) {
 
   return (
     <p>
-      {m.prospection_info_building_contains()} <span className="font-medium text-primary">{counts.join(', ')}</span>
+      {m.prospection_info_building_contains()} <span className="font-medium">{counts.join(', ')}</span>
       {accessParts.length > 0 && (
         <>
           {' '}

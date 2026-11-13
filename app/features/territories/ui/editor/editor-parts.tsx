@@ -119,7 +119,8 @@ export function EditorSaveBar({ beside, mode, formId, changes, kind, kept, cance
       dirty={editing && changes > 0}
       label={editing ? changesLabel(changes) : contentLabel(kind, kept)}
       className={cn(
-        'fixed z-30 max-md:inset-x-0 max-md:bottom-[calc(56px+env(safe-area-inset-bottom))] md:bottom-0',
+        // At the bottom of the screen: the editor hides the tab bar on a phone.
+        'fixed z-30 max-md:inset-x-0 max-md:bottom-0 max-md:pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:bottom-0',
         beside
           ? 'md:right-0 md:w-100 md:border-l'
           : 'md:inset-x-0 md:group-has-data-[state=expanded]/sidebar-wrapper:left-(--sidebar-width)',
