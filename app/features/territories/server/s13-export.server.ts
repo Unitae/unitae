@@ -46,7 +46,7 @@ export function generateS13ExportExcel(
 }
 
 function addExportHeaders(worksheet: excelJs.Worksheet, serviceYear: string) {
-  worksheet.addRow([`REGISTRE D'ATTRIBUTION DES TERRITOIRES`])
+  worksheet.addRow([`REGISTRE D’ATTRIBUTION DES TERRITOIRES`])
   worksheet.addRow([])
   worksheet.addRow(['Année de service :', '', escapeSpreadsheetFormula(serviceYear)])
 

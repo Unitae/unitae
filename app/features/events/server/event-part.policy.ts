@@ -14,10 +14,10 @@ import { ConflictError } from '~/shared/errors/app-error.server'
 // is impossible.
 
 export const PROGRAMME_ASSIGNMENT_ERRORS = {
-  assignmentNotFound: "L'attribution n'existe pas.",
-  externalSpeakerInvalid: "Cet orateur extérieur n'existe pas ou n'est plus sur la liste de son assemblée.",
-  participantsNotDistinct: "L'orateur et le lecteur ne peuvent pas être la même personne.",
-  ineligibleSpeaker: "L'orateur sélectionné ne fait pas partie des rôles autorisés pour cette partie.",
+  assignmentNotFound: 'L’attribution n’existe pas.',
+  externalSpeakerInvalid: 'Cet orateur extérieur n’existe pas ou n’est plus sur la liste de son assemblée.',
+  participantsNotDistinct: 'L’orateur et le lecteur ne peuvent pas être la même personne.',
+  ineligibleSpeaker: 'L’orateur sélectionné ne fait pas partie des rôles autorisés pour cette partie.',
   ineligibleReader: 'Le deuxième orateur sélectionné ne fait pas partie des rôles autorisés pour cette partie.',
   ineligibleServant: 'Le proclamateur sélectionné ne fait pas partie des rôles autorisés pour ce service.',
   dayOffSpeaker: 'Ce proclamateur a une absence durant cette date.',

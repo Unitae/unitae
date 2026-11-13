@@ -63,6 +63,8 @@ Messages use the Inlang message format in JSON:
 - Parameters: `{variable}`
 - Rich text: `{#tagName}...{/tagName}` (requires custom renderers)
 - Keys are `snake_case`
+- Typography, in both languages: the apostrophe `’` and the ellipsis `…`, never a straight `'` or three dots.
+  `app/i18n/messages.test.ts` fails the unit suite on either.
 
 ## Adding or Modifying Translations
 
@@ -160,7 +162,8 @@ The only exceptions are formatters that read numbers back for a calculation (`fo
 time zones in `event-time.ts`, `zoned-now.ts`): they keep a fixed `'en-US'` on purpose.
 
 Name a language with `languageLabel(locale)` from `~/shared/utils/language`: « Українська
-(Ukrainien) », the language in itself and then in the viewer's.
+(Ukrainien) », the language in itself and then in the viewer's. Where each person picks their own
+language (Mon compte), `languageName(locale)` gives the language in itself alone: « Українська ».
 
 ## Testing with Translations
 

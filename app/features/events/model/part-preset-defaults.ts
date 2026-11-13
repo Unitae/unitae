@@ -61,15 +61,15 @@ export const SHARE_MESSAGES: Record<Locale, Record<PartPresetKey, string>> = {
     [PartPresetKey.BibleReading]:
       'Bonjour {{assigneeFirstname}},\n\nTu as la lecture de la Bible le {{date}} à {{time}}.\nPassage : {{topic}}\nDurée : {{duration}}\nNote : {{note}}\n\n{{link}}',
     [PartPresetKey.SchoolDemonstration]:
-      "Bonjour {{assigneeFirstname}},\n\nTu as un sujet de l'école le {{date}} à {{time}}.\nSujet : {{topic}}\nDurée : {{duration}}\nAvec : {{assistant}}\nNote : {{note}}\n\n{{link}}",
+      'Bonjour {{assigneeFirstname}},\n\nTu as un sujet de l’école le {{date}} à {{time}}.\nSujet : {{topic}}\nDurée : {{duration}}\nAvec : {{assistant}}\nNote : {{note}}\n\n{{link}}',
     [PartPresetKey.SchoolTalk]:
-      "Bonjour {{assigneeFirstname}},\n\nTu as un discours de l'école le {{date}} à {{time}}.\nSujet : {{topic}}\nDurée : {{duration}}\nNote : {{note}}\n\n{{link}}",
+      'Bonjour {{assigneeFirstname}},\n\nTu as un discours de l’école le {{date}} à {{time}}.\nSujet : {{topic}}\nDurée : {{duration}}\nNote : {{note}}\n\n{{link}}',
     [PartPresetKey.PublicTalk]:
       'Bonjour {{assigneeFirstname}},\n\nTu donnes le discours public le {{date}} à {{time}}.\nThème : {{topic}}\nNote : {{note}}\n\n{{link}}',
     [PartPresetKey.WatchtowerStudy]:
-      "Bonjour {{assigneeFirstname}},\n\nTu conduis l'Étude de La Tour de Garde le {{date}} à {{time}}.\nLecteur : {{assistant}}\nNote : {{note}}\n\n{{link}}",
+      'Bonjour {{assigneeFirstname}},\n\nTu conduis l’Étude de La Tour de Garde le {{date}} à {{time}}.\nLecteur : {{assistant}}\nNote : {{note}}\n\n{{link}}',
     [PartPresetKey.CongregationBibleStudy]:
-      "Bonjour {{assigneeFirstname}},\n\nTu conduis l'étude biblique de l'assemblée le {{date}} à {{time}}.\nLecteur : {{assistant}}\nNote : {{note}}\n\n{{link}}",
+      'Bonjour {{assigneeFirstname}},\n\nTu conduis l’étude biblique de l’assemblée le {{date}} à {{time}}.\nLecteur : {{assistant}}\nNote : {{note}}\n\n{{link}}',
   },
   en: {
     [PartPresetKey.Prayer]:

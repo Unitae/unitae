@@ -1,12 +1,12 @@
+import { Tag } from '@unitae/ui'
 import type { LucideIcon } from 'lucide-react'
-import { BookOpen, Calendar, ChevronRight, Gem, HeartHandshake } from 'lucide-react'
+import { Calendar, ChevronRight } from 'lucide-react'
 import { type RefObject, useEffect, useMemo, useRef, useState } from 'react'
 import type { ProgrammeDynamicConfig } from '~/features/display-board/model/dynamic-document.type'
 import { formatName, getPartDisplay, nameMatches, partMatchesQuery } from '~/features/display-board/model/event-display'
 import { groupPartsBySlot, sectionColor, sectionIcon } from '~/features/events'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
-import { Badge } from '~/shared/ui/badge'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { usePersistedState } from '~/shared/ui/hooks/use-persisted-state'
 import type { ExternalSpeakerLabelSource } from '~/shared/utils/external-speaker-label'
@@ -145,11 +145,7 @@ function PartRow({ part, highlighted, dimmed }: { part: PartAssignment; highligh
           )}
         >
           {rightText}
-          {isExternal && (
-            <Badge variant="secondary" className="text-[10px]">
-              {m.programs_view_external_badge()}
-            </Badge>
-          )}
+          {isExternal && <Tag className="shrink-0">{m.programs_view_external_badge()}</Tag>}
         </span>
       ) : (
         <span className="shrink-0 text-muted-foreground/40 text-sm italic max-sm:hidden">&mdash;</span>
@@ -201,11 +197,7 @@ function MultiTrackPart({ parts, query }: { parts: PartAssignment[]; query: stri
                 )}
               >
                 {rightText}
-                {isExternal && (
-                  <Badge variant="secondary" className="text-[10px]">
-                    {m.programs_view_external_badge()}
-                  </Badge>
-                )}
+                {isExternal && <Tag className="shrink-0">{m.programs_view_external_badge()}</Tag>}
               </span>
             ) : (
               <span className="shrink-0 text-muted-foreground/40 text-sm italic max-sm:hidden">&mdash;</span>
@@ -469,9 +461,7 @@ export function ProgrammeView({ events, showServices, config, highlightQuery, sc
                 )}
               >
                 <span className="font-bold text-base text-foreground capitalize">{formatDate(event.startDate)}</span>
-                <Badge variant="outline" className="text-xs">
-                  {event.name}
-                </Badge>
+                <Tag>{event.name}</Tag>
               </div>
 
               {/* Parts grouped by section */}

@@ -17,7 +17,7 @@ vi.mock('~/shared/infra/db.server', () => ({
   },
 }))
 
-const { findOwnDayOff, listCongregationAbsences, listMyAbsences } = await import('./days-off.queries')
+const { listCongregationAbsences, listMyAbsences } = await import('./days-off.queries')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 const NOW = new Date('2026-11-11T12:00:00Z')
@@ -65,22 +65,6 @@ describe('listMyAbsences', () => {
 
     expect(result[0].conflicts).toEqual([])
     expect(conflicts.calls).toEqual([])
-  })
-})
-
-describe('findOwnDayOff', () => {
-  it('finds only an absence the caller declared', async () => {
-    vi.mocked(db.event.findFirst).mockImplementation((({ where }: { where: Record<string, unknown> }) =>
-      Promise.resolve(
-        where.id === 1 &&
-          where.createdById === 12 &&
-          JSON.stringify(where.template) === JSON.stringify({ key: 'day-off' })
-          ? current
-          : null,
-      )) as never)
-
-    expect(await findOwnDayOff(db, { eventId: 1, accountId: 12, congregationId: 1 })).toEqual(current)
-    expect(await findOwnDayOff(db, { eventId: 1, accountId: 99, congregationId: 1 })).toBeNull()
   })
 })
 
