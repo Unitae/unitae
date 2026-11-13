@@ -125,7 +125,7 @@ export function toLayout(tree: OrganigramNode[]): LayoutBlock[] {
   for (const roster of rosters) {
     emitBranch(
       roster.children.filter(child => child.key !== COMMITTEE_KEY),
-      roster.key === 'elder' ? 'Collège des anciens' : roster.name,
+      roster.key === 'elder' ? m.board_organigram_elder_body() : roster.name,
     )
   }
 
