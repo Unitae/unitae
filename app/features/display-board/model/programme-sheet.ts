@@ -84,7 +84,7 @@ export function topicRuns(part: ProgrammeSheetPart): TextRun[] {
 }
 
 export function trackLabel(part: ProgrammeSheetPart, index: number): string {
-  return sanitizeText(part.track) || `Salle ${index + 1}`
+  return sanitizeText(part.track) || m.board_programme_room({ number: String(index + 1) })
 }
 
 // ── Meetings ───────────────────────────────────────────────────────────

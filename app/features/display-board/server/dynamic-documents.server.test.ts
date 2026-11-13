@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   getContentVersion,
@@ -8,6 +8,9 @@ import {
 } from './dynamic-documents.server'
 
 const mockDb = {
+  congregation: {
+    findFirstOrThrow: vi.fn(),
+  },
   publisherGroup: {
     count: vi.fn(),
     findFirst: vi.fn(),
@@ -34,6 +37,7 @@ const mockDb = {
 
 beforeEach(() => {
   vi.resetAllMocks()
+  mockDb.congregation.findFirstOrThrow.mockResolvedValue({ timezone: 'Europe/Paris' })
 })
 
 // --- getDynamicPreview ---
@@ -204,6 +208,40 @@ describe('getDynamicDocumentData pioneers', () => {
       member: { leftAt: null, inactiveAt: null, anonymizedAt: null },
     })
     expect(call.where.AND).toHaveLength(2)
+  })
+})
+
+// --- The current pioneers: the month under way where the congregation is ---
+
+describe('current pioneers month', () => {
+  // Noon on 31 October in UTC and in Paris is already 1 November in Auckland.
+  const AUCKLAND_NOVEMBER_FIRST = new Date('2026-10-31T12:00:00Z')
+  const NOVEMBER = { OR: [{ startYear: { lt: 2026 } }, { startYear: 2026, startMonth: { lte: 10 } }] }
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(AUCKLAND_NOVEMBER_FIRST)
+    mockDb.congregation.findFirstOrThrow.mockResolvedValue({ timezone: 'Pacific/Auckland' })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('lists the stints of the month under way in the congregation’s time zone, as the sheet’s heading names it', async () => {
+    mockDb.pioneerEnrolment.findMany.mockResolvedValue([])
+
+    await getDynamicDocumentData(mockDb as never, 'pioneers', null, 10)
+
+    expect(mockDb.pioneerEnrolment.findMany.mock.calls[0][0].where.AND[0]).toEqual(NOVEMBER)
+  })
+
+  it('counts the board’s preview on the same month', async () => {
+    mockDb.pioneerEnrolment.count.mockResolvedValue(0)
+
+    await getDynamicPreview(mockDb as never, 'pioneers', null, 10)
+
+    expect(mockDb.pioneerEnrolment.count.mock.calls[0][0].where.AND[0]).toEqual(NOVEMBER)
   })
 })
 

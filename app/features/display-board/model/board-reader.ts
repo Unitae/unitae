@@ -1,7 +1,8 @@
 import type { OrganigramNode } from '~/shared/domain/organigram.queries'
 import { bandEntries, groupLayout, serviceParts, toLayout } from '~/shared/domain/organigram-layout'
+import type { ExternalSpeakerLabelSource } from '~/shared/utils/external-speaker-label'
 import { stripDiacritics } from '~/shared/utils/strip-diacritics'
-import { type BoardPerson, formatBoardPersonName } from './board-roster'
+import { type BoardPerson, buildGroupRoster, formatBoardPersonName } from './board-roster'
 import { DynamicType } from './dynamic-document.type'
 
 // What a board document does for the person reading it on screen, and never prints: find a name,
@@ -24,11 +25,52 @@ export function boardSearchQuery(raw: string): string | null {
   return query.length >= 2 ? query : null
 }
 
-/** Whether the search lights up this name. An anonymized person never matches: their name is not on the board. */
-export function personMatches(person: Person | null | undefined, query: string | null): boolean {
-  if (query == null || person == null) return false
+/** Whether the search lights up a name as the document writes it. */
+export function textMatches(text: string, query: string | null): boolean {
+  return query != null && stripDiacritics(text).includes(query)
+}
+
+/** « Prénom NOM » as a search reads it; nothing for an anonymized person, whose name is not on the board. */
+function searchableName(person: Person | null | undefined): string | null {
+  if (person == null) return null
   const name = formatBoardPersonName(person)
-  return name.kind === 'named' && stripDiacritics(name.plain).includes(query)
+  return name.kind === 'named' ? name.plain : null
+}
+
+/** Whether the search lights up this person's name. */
+export function personMatches(person: Person | null | undefined, query: string | null): boolean {
+  const name = searchableName(person)
+  return name != null && textMatches(name, query)
+}
+
+/** A visiting speaker's name as a search reads it; nothing once they were deleted and their name erased. */
+export function speakerName(speaker: ExternalSpeakerLabelSource): string | null {
+  return speaker.anonymizedAt == null && speaker.name !== '' ? speaker.name : null
+}
+
+interface SearchablePart {
+  assignee: Person | null
+  assistant: Person | null
+  externalSpeaker?: ExternalSpeakerLabelSource | null
+}
+
+/**
+ * The names a programme part shows, as its row and its sheet write them (`assigneeRuns`): its
+ * visiting speaker, or its assignee then the assistant beside them. A deleted speaker's name is
+ * gone from the board, and an assistant left without an assignee shows nowhere.
+ */
+export function partNames(part: SearchablePart): string[] {
+  if (part.externalSpeaker) {
+    const name = speakerName(part.externalSpeaker)
+    return name != null ? [name] : []
+  }
+  if (!part.assignee) return []
+  return [part.assignee, part.assistant].map(searchableName).filter(name => name != null)
+}
+
+/** Whether the search lights up one of the names a programme part shows. */
+export function partMatches(part: SearchablePart, query: string | null): boolean {
+  return partNames(part).some(name => textMatches(name, query))
 }
 
 /** Whether this member is the person reading the document. */
@@ -38,14 +80,14 @@ export function isReader(memberId: number | null | undefined, reader: BoardReade
 
 interface SearchableEvent {
   templateId?: number | null
-  eventParts: { assignee: Person | null; assistant: Person | null }[]
+  eventParts: SearchablePart[]
   eventServiceParts?: { name: string; assignee?: Person | null }[]
 }
 
 export type SearchableDocument =
   | {
       type: typeof DynamicType.PublisherGroups
-      groups: { responsible: Person; deputy: Person | null; members: Person[] }[]
+      groups: { responsible: BoardPerson; deputy: BoardPerson | null; members: BoardPerson[] }[]
     }
   | { type: typeof DynamicType.Pioneers; pioneers: Person[] }
   | { type: typeof DynamicType.Organigram; tree: OrganigramNode[] }
@@ -73,36 +115,36 @@ function organigramPeople(tree: OrganigramNode[]): Person[] {
   ]
 }
 
-function programmePeople(document: Extract<SearchableDocument, { type: typeof DynamicType.Programme }>): Person[] {
+function programmeNames(document: Extract<SearchableDocument, { type: typeof DynamicType.Programme }>): string[] {
   const options = new Map(document.config?.templates.map(t => [t.templateId, t]) ?? [])
   return document.events.flatMap(event => {
     const shown = event.templateId != null ? options.get(event.templateId) : undefined
-    const parts = (shown?.parts ?? true) ? event.eventParts.flatMap(part => [part.assignee, part.assistant]) : []
+    const parts = (shown?.parts ?? true) ? event.eventParts.flatMap(partNames) : []
     const services =
-      (shown?.services ?? document.showServices) ? (event.eventServiceParts ?? []).map(s => s.assignee) : []
-    return [...parts, ...services].filter((person): person is Person => person != null)
+      (shown?.services ?? document.showServices)
+        ? (event.eventServiceParts ?? []).map(s => searchableName(s.assignee))
+        : []
+    return [...parts, ...services].filter(name => name != null)
   })
 }
 
-function documentPeople(document: SearchableDocument): Person[] {
+/** Every name the document shows, each as many times as it is written. */
+function documentNames(document: SearchableDocument): (string | null)[] {
   switch (document.type) {
     case DynamicType.PublisherGroups:
-      return document.groups.flatMap(group => [
-        group.responsible,
-        ...(group.deputy ? [group.deputy] : []),
-        ...group.members,
-      ])
+      // A group's leaders belong to it too, and print once, in its head.
+      return document.groups.flatMap(group => buildGroupRoster(group).map(searchableName))
     case DynamicType.Pioneers:
-      return document.pioneers
+      return document.pioneers.map(searchableName)
     case DynamicType.Organigram:
-      return organigramPeople(document.tree)
+      return organigramPeople(document.tree).map(searchableName)
     case DynamicType.Programme:
-      return programmePeople(document)
+      return programmeNames(document)
   }
 }
 
 /** How many names the search lights up in the document, as its viewer shows beside the search. */
 export function countDocumentMatches(document: SearchableDocument, query: string | null): number {
   if (query == null) return 0
-  return documentPeople(document).filter(person => personMatches(person, query)).length
+  return documentNames(document).filter(name => name != null && textMatches(name, query)).length
 }

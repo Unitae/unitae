@@ -23,11 +23,13 @@ function countLabel(count: number): string {
 export function DocumentSearch({ open, value, count, onOpenChange, onValueChange }: DocumentSearchProps) {
   return (
     <div className="flex items-center gap-2">
-      {count != null && (
-        <span className={cn('whitespace-nowrap text-muted-foreground text-sm tabular-nums', !open && 'max-md:hidden')}>
-          {countLabel(count)}
-        </span>
-      )}
+      {/* Mounted before the search starts, so screen readers announce each new count. */}
+      <span
+        aria-live="polite"
+        className={cn('whitespace-nowrap text-muted-foreground text-sm tabular-nums', !open && 'max-md:hidden')}
+      >
+        {count != null && countLabel(count)}
+      </span>
       <Button
         variant="ghost"
         size="icon-sm"

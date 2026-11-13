@@ -64,13 +64,18 @@ function Seat({ label, holders, last }: { label: string | null; holders: Organig
   )
 }
 
-/** A service's seats, labelled: each leader with their title, then its adjoints together. */
+/**
+ * A service's seats, labelled: each leader with their title, then its adjoints together. Adjoints
+ * go unlabelled where the role's own name already says « Adjoint », as on the sheet (`seatLabel`).
+ */
 function Seats({ node, holders }: { node: OrganigramNode; holders: OrganigramHolder[] }) {
   const leaders = holders.filter(holder => holder.kind !== 'deputy')
   const deputies = holders.filter(holder => holder.kind === 'deputy')
+  const deputyLabel =
+    deputies.length > 0 && seatLabel(deputies[0], node) != null ? deputiesLabel(deputies.length) : null
   const seats: { label: string | null; holders: OrganigramHolder[] }[] = [
     ...leaders.map(leader => ({ label: seatLabel(leader, node), holders: [leader] })),
-    ...(deputies.length > 0 ? [{ label: deputiesLabel(deputies.length), holders: deputies }] : []),
+    ...(deputies.length > 0 ? [{ label: deputyLabel, holders: deputies }] : []),
   ]
   if (seats.length === 0) return null
   return (

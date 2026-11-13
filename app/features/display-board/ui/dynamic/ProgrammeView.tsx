@@ -1,7 +1,7 @@
 import { Tag } from '@unitae/ui'
 import { Calendar, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
-import { personMatches } from '~/features/display-board/model/board-reader'
+import { partMatches } from '~/features/display-board/model/board-reader'
 import type { ProgrammeDynamicConfig } from '~/features/display-board/model/dynamic-document.type'
 import { programmePdfOptions } from '~/features/display-board/model/programme-pdf-options'
 import {
@@ -19,9 +19,9 @@ import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { usePersistedState } from '~/shared/ui/hooks/use-persisted-state'
 import { dayOf } from '~/shared/utils/calendar-day'
-import { type ExternalSpeakerLabelSource, externalSpeakerLabel } from '~/shared/utils/external-speaker-label'
+import type { ExternalSpeakerLabelSource } from '~/shared/utils/external-speaker-label'
 import { cn } from '~/shared/utils/utils'
-import { BoardPersonName } from './BoardPersonName'
+import { BoardPersonName, BoardSpeakerName } from './BoardPersonName'
 import { DocLink, useBoardReading } from './board-reading'
 
 // The board's programme on screen, composed as its printed sheet: each meeting under a rule, its
@@ -82,7 +82,7 @@ function Assignees({ part }: { part: PartAssignment }) {
   if (part.externalSpeaker) {
     return (
       <>
-        {externalSpeakerLabel(part.externalSpeaker)}
+        <BoardSpeakerName speaker={part.externalSpeaker} />
         <Tag className="ml-2 shrink-0 font-sans">{m.programs_view_external_badge()}</Tag>
       </>
     )
@@ -105,7 +105,7 @@ function Assignees({ part }: { part: PartAssignment }) {
 function useTopicDimmed(parts: PartAssignment[]): boolean {
   const { query } = useBoardReading()
   if (query == null) return false
-  return !parts.some(part => personMatches(part.assignee, query) || personMatches(part.assistant, query))
+  return !parts.some(part => partMatches(part, query))
 }
 
 function Topic({ part, dimmed }: { part: PartAssignment; dimmed: boolean }) {
@@ -147,7 +147,10 @@ function TrackedPart({ parts }: { parts: PartAssignment[] }) {
   )
 }
 
-/** The services in two columns; under a meeting's parts they fold away, a choice the reader's browser keeps. */
+/**
+ * The services in two columns; under a meeting's parts they fold away, a choice the reader's browser
+ * keeps. A search opens them, so every name it counts is in sight, and paper always prints them.
+ */
 function Services({
   services,
   hasParts,
@@ -155,9 +158,10 @@ function Services({
   services: NonNullable<ProgrammeEvent['eventServiceParts']>
   hasParts: boolean
 }) {
+  const { query } = useBoardReading()
   const [collapsed, setCollapsed] = usePersistedState('programme-services-collapsed', false)
   const label = m.board_viewer_services_label({ count: String(services.length) })
-  const folded = hasParts && collapsed
+  const folded = hasParts && collapsed && query == null
   return (
     <div className="mt-3 flex flex-col">
       {hasParts ? (
@@ -165,6 +169,7 @@ function Services({
           type="button"
           onClick={() => setCollapsed(!collapsed)}
           aria-expanded={!folded}
+          disabled={query != null}
           className="flex items-center gap-1 self-start font-bold text-muted-foreground text-sm"
         >
           <ChevronRight
@@ -315,7 +320,8 @@ export function ProgrammeView({ events, showServices, config, now, timeZone }: P
   const weeks = programmeWeeks(units, new Date(now), timeZone)
   const pastWeeks = weeks.filter(week => week.past)
   // The weeks already over fold away above the one under way — unless nothing is left after them
-  // (a deep link to an old meeting), or a search is looking through everything.
+  // (a deep link to an old meeting), or a search is looking through everything. Folded, they still
+  // print: ⌘P gives the month the PDF gives.
   const foldable = pastWeeks.length > 0 && weeks.some(week => !week.past) && query == null
   const folded = foldable && !showPast
   const pastCount = pastWeeks.reduce((sum, week) => sum + week.units.length, 0)
@@ -335,21 +341,23 @@ export function ProgrammeView({ events, showServices, config, now, timeZone }: P
           </Button>
         </div>
       )}
-      {weeks
-        .filter(week => !(folded && week.past))
-        .map(week => (
-          <section key={week.monday} id={`week-${week.monday}`} className="flex scroll-mt-14 flex-col gap-5">
-            <h2 className="flex items-baseline gap-2 font-sans text-muted-foreground text-sm">
-              <span className="font-semibold text-base text-foreground">
-                {m.board_programme_week_of({ date: mondayLabel(week.monday, 'long') })}
-              </span>
-              {week.current && <span>{m.board_programme_this_week()}</span>}
-            </h2>
-            {week.units.map(unit => (
-              <Meeting key={unit.event.id} unit={unit} past={isPast(unit)} timeZone={timeZone} />
-            ))}
-          </section>
-        ))}
+      {weeks.map(week => (
+        <section
+          key={week.monday}
+          id={`week-${week.monday}`}
+          className={cn('flex scroll-mt-14 flex-col gap-5', folded && week.past && 'hidden print:flex')}
+        >
+          <h2 className="flex items-baseline gap-2 font-sans text-muted-foreground text-sm">
+            <span className="font-semibold text-base text-foreground">
+              {m.board_programme_week_of({ date: mondayLabel(week.monday, 'long') })}
+            </span>
+            {week.current && <span>{m.board_programme_this_week()}</span>}
+          </h2>
+          {week.units.map(unit => (
+            <Meeting key={unit.event.id} unit={unit} past={isPast(unit)} timeZone={timeZone} />
+          ))}
+        </section>
+      ))}
     </div>
   )
 }

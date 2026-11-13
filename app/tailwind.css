@@ -102,7 +102,8 @@
   body:has([data-board-print])
     [data-slot="sidebar-inset"]
     > :not(:has([data-board-print])),
-  body:has([data-board-print]) [data-tab-bar] {
+  body:has([data-board-print]) [data-tab-bar],
+  body:has([data-board-print]) [data-sonner-toaster] {
     display: none;
   }
   body:has([data-board-print])
@@ -117,7 +118,9 @@
     overflow: visible;
     padding: 0;
   }
-  .dark [data-board-print] {
+  /* On the root itself, so the page behind the sheet turns light too, and the theme colours
+     declared there from these tokens (the workbook's section colours) take the light values. */
+  .dark:has([data-board-print]) {
     color-scheme: light;
     color: var(--u-fg);
     --u-bg: oklch(0.985 0.002 265);
@@ -127,6 +130,10 @@
     --u-fg: oklch(0.23 0.012 265);
     --u-fg-muted: oklch(0.44 0.012 265);
     --u-fg-faint: oklch(0.52 0.01 265);
+    --u-primary: oklch(0.5 0.085 222);
+    --u-section-treasures: #5b6770;
+    --u-section-ministry: #c18626;
+    --u-section-living: #942926;
   }
   .dark [data-board-print] .board-accent {
     color: var(--board-accent, var(--color-primary));
