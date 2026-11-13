@@ -310,8 +310,10 @@ function parseFilename(contentDisposition: string): string | null {
 }
 
 function fallbackFilename(kind: DownloadKind, year: number): string {
-  if (kind === 'pdf') return `S-21_F-${year}.pdf`
-  return kind === 'xlsx' ? `Activité-Proclamateurs-${year}.xlsx` : `Activité-${year}.zip`
+  if (kind === 'pdf') return m.activity_export_filename_s21({ year: String(year) })
+  return kind === 'xlsx'
+    ? m.activity_export_filename_xlsx({ year: String(year) })
+    : m.activity_export_filename_zip({ year: String(year) })
 }
 
 function triggerBlobDownload(blob: Blob, filename: string): void {

@@ -36,20 +36,22 @@ type PartPresetFormProps = {
 // Plausible values for the preview. Every slot is filled, so the author sees
 // the message at its longest — the line-drop rule only ever shortens it, and a
 // preview that quietly hid lines would understate what actually gets sent.
-const PREVIEW_CONTEXT: ShareMessageContext = {
-  assignee: 'Jean Dupont',
-  assigneeFirstname: 'Jean',
-  assistant: 'Marc Petit',
-  partName: '1re partie',
-  section: 'Appliquons-nous au ministère',
-  topic: 'Comment entamer une conversation',
-  duration: '4 min',
-  date: 'mardi 3 septembre',
-  time: '19:30',
-  eventName: 'Réunion de semaine',
-  note: 'Prévoir la vidéo',
-  congregation: 'Assemblée de Lyon',
-  link: 'https://unitae.example.com/board',
+function previewContext(): ShareMessageContext {
+  return {
+    assignee: m.part_preset_preview_assignee(),
+    assigneeFirstname: m.part_preset_preview_assignee_firstname(),
+    assistant: m.part_preset_preview_assistant(),
+    partName: m.part_preset_preview_part_name(),
+    section: m.part_preset_preview_section(),
+    topic: m.part_preset_preview_topic(),
+    duration: '4 min',
+    date: m.part_preset_preview_date(),
+    time: m.part_preset_preview_time(),
+    eventName: m.part_preset_preview_event_name(),
+    note: m.part_preset_preview_note(),
+    congregation: m.part_preset_preview_congregation(),
+    link: 'https://unitae.example.com/board',
+  }
 }
 
 export function PartPresetForm({
@@ -89,7 +91,7 @@ export function PartPresetForm({
   // preview and the sent message cannot diverge.
   const preview = renderShareMessage(
     message,
-    baseUrl ? { ...PREVIEW_CONTEXT, link: `${baseUrl}/board` } : PREVIEW_CONTEXT,
+    baseUrl ? { ...previewContext(), link: `${baseUrl}/board` } : previewContext(),
   )
 
   return (

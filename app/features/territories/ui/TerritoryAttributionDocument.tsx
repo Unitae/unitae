@@ -3,6 +3,9 @@ import type { Attribution, Member, Territory } from '~/database/generated/client
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
+import { PDF_FONT_FAMILY, PDF_SERIF_FAMILY, registerPdfFonts } from '~/shared/ui/pdf-fonts'
+
+registerPdfFonts()
 
 type TerritoryRepport = Territory & { attributions: (Attribution & { publisher: Member })[] }
 
@@ -42,7 +45,7 @@ export function TerritoryAttributionDocument({
   return (
     <Document>
       {territoryPages.map((territoriesOfPage, index) => (
-        <Page key={index} size={'A4'} orientation="portrait" style={{ padding: 20 }}>
+        <Page key={index} size={'A4'} orientation="portrait" style={{ padding: 20, fontFamily: PDF_FONT_FAMILY }}>
           <Text style={styles.title}>{m.territory_s13_title()}</Text>
           <Text style={[styles.text]}>
             <Text style={styles.label}>{m.territory_s13_service_year()}</Text> {year}
@@ -51,18 +54,18 @@ export function TerritoryAttributionDocument({
           <Table>
             <TableRow>
               <TableHeaderCell width="7%" borderLeft={3}>
-                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>
+                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: PDF_FONT_FAMILY }}>
                   {m.territory_s13_territory_number()}
                 </Text>
               </TableHeaderCell>
               <TableHeaderCell width="13%">
-                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>
+                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: PDF_FONT_FAMILY }}>
                   {m.territory_s13_last_covered()}
                 </Text>
-                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>
+                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: PDF_FONT_FAMILY }}>
                   {m.territory_s13_last_covered_line2()}
                 </Text>
-                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>
+                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: PDF_FONT_FAMILY }}>
                   {m.territory_s13_last_covered_line3()}
                 </Text>
               </TableHeaderCell>
@@ -110,7 +113,7 @@ export function TerritoryAttributionDocument({
               )
             })}
           </Table>
-          <Text style={{ fontSize: 9, fontWeight: 500, fontFamily: 'Helvetica', color: 'black' }}>
+          <Text style={{ fontSize: 9, fontWeight: 500, fontFamily: PDF_FONT_FAMILY, color: 'black' }}>
             {m.territory_s13_footnote()}
           </Text>
 
@@ -126,16 +129,16 @@ export function TerritoryAttributionDocument({
 const styles = StyleSheet.create({
   title: {
     fontSize: 16,
-    fontWeight: 900,
     textAlign: 'center',
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: PDF_FONT_FAMILY,
+    fontWeight: 'bold',
     marginBottom: 20,
     marginTop: 20,
   },
   label: {
     fontSize: 9,
-    fontWeight: 900,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: PDF_FONT_FAMILY,
+    fontWeight: 'bold',
     color: 'black',
   },
   containerLabel: {
@@ -146,7 +149,10 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 11,
-    fontFamily: 'Times-Roman',
+    fontFamily: PDF_SERIF_FAMILY,
+    // Source Serif sits taller than the Times it replaces: without this, fifteen rows and the footnote no
+    // longer fit on the page.
+    lineHeight: 1.1,
   },
   containerCols: {
     display: 'flex',
@@ -285,7 +291,7 @@ function AttributionHeaderCell({
         style={{
           fontSize: 8,
           fontWeight: 500,
-          fontFamily: 'Helvetica',
+          fontFamily: PDF_FONT_FAMILY,
           justifyContent: 'center',
           alignItems: 'center',
           padding: 4,
@@ -304,7 +310,7 @@ function AttributionHeaderCell({
             alignItems: 'center',
           }}
         >
-          <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>
+          <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: PDF_FONT_FAMILY }}>
             {m.territory_s13_assigned_date()}
           </Text>
         </View>
@@ -319,10 +325,10 @@ function AttributionHeaderCell({
             alignItems: 'center',
           }}
         >
-          <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>
+          <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: PDF_FONT_FAMILY }}>
             {m.territory_s13_fully_covered()}
           </Text>
-          <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>
+          <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: PDF_FONT_FAMILY }}>
             {m.territory_s13_fully_covered_line2()}
           </Text>
         </View>
@@ -371,7 +377,15 @@ function AttributionCell({
       <Text
         style={[
           styles.text,
-          { justifyContent: 'center', alignItems: 'center', padding: 4, fontSize: 8, minHeight: 20 },
+          // Source Serif is wider than the Times it replaces: a tighter cell keeps a full name on one line.
+          {
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingVertical: 4,
+            paddingHorizontal: 2,
+            fontSize: 7.5,
+            minHeight: 20,
+          },
         ]}
       >
         {publisherName}

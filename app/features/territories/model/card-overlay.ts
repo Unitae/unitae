@@ -13,9 +13,7 @@ export type CardOverlay = {
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
 const DEFAULT_OVERLAY_COLOR = '#C2175B'
 
-export const cardOverlayColorSchema = z
-  .string()
-  .regex(HEX_COLOR_PATTERN, 'La couleur doit être au format hexadécimal (ex: #C2175B)')
+export const cardOverlayColorSchema = z.string().regex(HEX_COLOR_PATTERN, { error: () => m.card_overlay_error_color() })
 
 const cardOverlayPointSchema = z.object({
   lat: z.number().gte(-90).lte(90),
@@ -27,7 +25,7 @@ const cardOverlayPointSchema = z.object({
 // isn't already closed, so callers don't have to think about it.
 export const cardOverlayPathsSchema = z
   .array(cardOverlayPointSchema)
-  .min(3, 'Un polygone doit contenir au moins 3 sommets')
+  .min(3, { error: () => m.card_overlay_error_min_vertices() })
   .transform(points => {
     const first = points[0]
     const last = points[points.length - 1]
@@ -38,7 +36,7 @@ export const cardOverlayPathsSchema = z
 export const cardOverlayNameSchema = z
   .string()
   .trim()
-  .max(80, 'Le nom ne peut pas dépasser 80 caractères')
+  .max(80, { error: () => m.card_overlay_error_name_too_long() })
   .nullable()
   .transform(value => (value == null || value.length === 0 ? null : value))
 

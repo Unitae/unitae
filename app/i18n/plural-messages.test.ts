@@ -51,9 +51,13 @@ describe('plural messages', () => {
     describe(locale, () => {
       it.each(pluralKeys)('%s renders every count with nothing left unfilled', key => {
         const value = messages[key]
-        expect(Array.isArray(value), `${key} is not a plural message in ${locale}`).toBe(true)
+        // French and English carry every plural. A later translation may lack a new one (it falls back to
+        // English) or write a word that never changes as plain text: both still render below.
+        if (locale === 'en' || locale === 'fr') {
+          expect(Array.isArray(value), `${key} is not a plural message in ${locale}`).toBe(true)
+        }
         const fn = (m as unknown as Record<string, MessageFn>)[key]
-        const names = inputsOf(value as Variant[])
+        const names = inputsOf((Array.isArray(value) ? value : catalogue('en')[key]) as Variant[])
 
         for (const count of COUNTS) {
           // Numeric inputs carry the count; the others get a recognisable word.

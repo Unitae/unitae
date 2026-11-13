@@ -8,6 +8,7 @@ import { getDynamicDocumentData } from '~/features/display-board/server/dynamic-
 import { filterDynamicDataToEvent, readEventIdParam } from '~/features/display-board/server/event-filter.server'
 import { buildSectionVisibilityFilter } from '~/features/display-board/server/section-visibility.server'
 import { buildBoardSheet } from '~/features/display-board/ui/dynamic/pdf/board-sheet'
+import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   currentAccountContext,
@@ -19,14 +20,14 @@ import logger from '~/shared/infra/logger.server'
 import { renderPdfResponse, sanitizeFilename } from '~/shared/infra/pdf.server'
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
-
 import type { Route } from './+types/pdf'
 
-const FALLBACK_FILENAMES: Record<DynamicType, string> = {
-  [DynamicType.Organigram]: 'organigramme',
-  [DynamicType.PublisherGroups]: 'groupes',
-  [DynamicType.Pioneers]: 'pionniers',
-  [DynamicType.Programme]: 'programme',
+// The document's kind names the file when its title gives nothing usable.
+const FALLBACK_FILENAMES: Record<DynamicType, () => string> = {
+  [DynamicType.Organigram]: m.board_dynamic_type_organigram,
+  [DynamicType.PublisherGroups]: m.board_dynamic_type_groups,
+  [DynamicType.Pioneers]: m.board_dynamic_type_pioneers,
+  [DynamicType.Programme]: m.board_dynamic_type_programme,
 }
 
 /**
@@ -90,6 +91,9 @@ export function loader({ params, request, context }: Route.LoaderArgs) {
       asOf,
       timezone,
     })
-    return renderPdfResponse(sheet, `${sanitizeFilename(title.toLowerCase()) || FALLBACK_FILENAMES[data.type]}.pdf`)
+    return renderPdfResponse(
+      sheet,
+      `${sanitizeFilename(title.toLowerCase()) || sanitizeFilename(FALLBACK_FILENAMES[data.type]().toLowerCase())}.pdf`,
+    )
   })
 }

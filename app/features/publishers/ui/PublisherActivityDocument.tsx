@@ -5,6 +5,9 @@ import { buildServiceYearActivityRows } from '~/features/publishers/model/servic
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { PublisherType } from '~/shared/types/publisher-type'
+import { PDF_FONT_FAMILY, PDF_SERIF_FAMILY, registerPdfFonts } from '~/shared/ui/pdf-fonts'
+
+registerPdfFonts()
 
 interface PublisherActivityDocumentProps {
   publisher: Member & { activities: PublisherActivity[]; pioneerEnrolments: EnrolmentPeriod[] }
@@ -20,7 +23,7 @@ export function PublisherActivityDocument({ publisher, serviceYear }: PublisherA
 
   return (
     <Document>
-      <Page size={'A4'} orientation="portrait" style={{ padding: 20 }}>
+      <Page size={'A4'} orientation="portrait" style={{ padding: 20, fontFamily: PDF_FONT_FAMILY }}>
         <Text style={styles.title}>{m.activity_pdf_title()}</Text>
         <Text style={[styles.text]}>
           <Text style={styles.label}>{m.activity_pdf_name_label()}</Text> {publisher.firstname} {publisher.lastname}
@@ -176,16 +179,16 @@ export function PublisherActivityDocument({ publisher, serviceYear }: PublisherA
 const styles = StyleSheet.create({
   title: {
     fontSize: 16,
-    fontWeight: 900,
     textAlign: 'center',
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: PDF_FONT_FAMILY,
+    fontWeight: 'bold',
     marginBottom: 20,
     marginTop: 20,
   },
   label: {
     fontSize: 11,
-    fontWeight: 900,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: PDF_FONT_FAMILY,
+    fontWeight: 'bold',
     color: 'black',
   },
   containerLabel: {
@@ -196,7 +199,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 11,
-    fontFamily: 'Times-Roman',
+    fontFamily: PDF_SERIF_FAMILY,
   },
   containerCols: {
     display: 'flex',

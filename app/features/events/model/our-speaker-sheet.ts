@@ -55,5 +55,5 @@ export function ourListFilename(congregationName: string, day: string): string {
     .replace(UNSAFE_FILENAME, '_')
     .toLowerCase()
     .slice(0, MAX_FILENAME)
-  return `${name || 'speakers'}.pdf`
+  return `${name || m.external_speakers_pdf_filename_fallback()}.pdf`
 }

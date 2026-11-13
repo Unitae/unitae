@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { Document, Font, Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
+import { Document, Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import { formatAccessSequence } from '~/features/territories/model/access-format'
 import type { CardOverlay } from '~/features/territories/model/card-overlay'
 import { shopKindLabels as getShopKindLabels, type ShopKind } from '~/features/territories/model/shop-kind.type'
@@ -9,18 +9,10 @@ import { TerritoryAttributionKind } from '~/features/territories/model/territory
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 import type { Entrance } from '~/shared/types/entrance'
+import { registerPdfFonts } from '~/shared/ui/pdf-fonts'
 
 const publicDir = path.join(process.cwd(), 'public')
-const fontsDir = path.join(publicDir, 'fonts')
-Font.register({
-  family: 'Fira Sans',
-  fonts: [
-    { src: path.join(fontsDir, 'FiraSans-Regular.ttf') },
-    { src: path.join(fontsDir, 'FiraSans-Bold.ttf'), fontWeight: 'bold' },
-    { src: path.join(fontsDir, 'FiraSans-Italic.ttf'), fontStyle: 'italic' },
-    { src: path.join(fontsDir, 'FiraSans-BoldItalic.ttf'), fontWeight: 'bold', fontStyle: 'italic' },
-  ],
-})
+registerPdfFonts()
 
 const styles = StyleSheet.create({
   page: {

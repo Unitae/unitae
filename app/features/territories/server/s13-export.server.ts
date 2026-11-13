@@ -1,4 +1,5 @@
 import excelJs from 'exceljs'
+import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { escapeSpreadsheetFormula } from '~/shared/utils/escape-spreadsheet-formula'
 import type { getTerritoriesExportData } from './territories-export-data.server'
@@ -37,25 +38,23 @@ export function generateS13ExportExcel(
     addEmptyAttributionColumns(nextColIndex, firstRow, lastRow, attributionMaxCount, isLastTerritorry)
   }
 
-  worksheet.addRow([
-    '* Lorsque vous commencez une nouvelle feuille, notez dans cette colonne la date à laquelle chaque territoire a été entièrement parcouru pour la dernière fois.',
-  ])
+  worksheet.addRow([m.s13_export_footnote()])
 
   // Return the workbook
   return workbook
 }
 
 function addExportHeaders(worksheet: excelJs.Worksheet, serviceYear: string) {
-  worksheet.addRow([`REGISTRE D’ATTRIBUTION DES TERRITOIRES`])
+  worksheet.addRow([m.s13_export_title()])
   worksheet.addRow([])
-  worksheet.addRow(['Année de service :', '', escapeSpreadsheetFormula(serviceYear)])
+  worksheet.addRow([m.s13_export_service_year(), '', escapeSpreadsheetFormula(serviceYear)])
 
   worksheet.getRow(1).font = { bold: true, size: 16 }
   worksheet.getCell('A3').font = { bold: true }
 }
 
 function addHeadersForTerritories(worksheet: excelJs.Worksheet) {
-  worksheet.addRow(['Terr. nº', 'Parcouru pour la dernière fois le*'])
+  worksheet.addRow([m.s13_export_col_number(), m.s13_export_col_last_completed()])
   worksheet.addRow(['', ''])
 
   worksheet.getCell('A4').alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
@@ -97,7 +96,7 @@ function addHeadersForAttributions(worksheet: excelJs.Worksheet, attributionMaxC
     worksheet.getColumn(colIndex + 1).width = 15
 
     const nameCell = worksheet.getCell(4, colIndex)
-    nameCell.value = 'Attribué à'
+    nameCell.value = m.s13_export_col_assigned_to()
     nameCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
     nameCell.border = {
       top: { style: 'thick' },
@@ -113,7 +112,7 @@ function addHeadersForAttributions(worksheet: excelJs.Worksheet, attributionMaxC
     worksheet.getCell(4, colIndex + 1).merge(nameCell)
 
     const dateCell = worksheet.getCell(5, colIndex)
-    dateCell.value = 'Attribué le'
+    dateCell.value = m.s13_export_col_date_assigned()
     dateCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
     dateCell.border = {
       top: { style: 'thin' },
@@ -128,7 +127,7 @@ function addHeadersForAttributions(worksheet: excelJs.Worksheet, attributionMaxC
     }
 
     const endDateCell = worksheet.getCell(5, colIndex + 1)
-    endDateCell.value = 'Entièrement parcouru le'
+    endDateCell.value = m.s13_export_col_date_completed()
     endDateCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
     endDateCell.border = {
       top: { style: 'thin' },

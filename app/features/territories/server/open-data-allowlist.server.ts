@@ -1,3 +1,4 @@
+import * as m from '~/i18n/paraglide/messages'
 import { ValidationError } from '~/shared/errors/app-error.server'
 import { getOptionalEnv } from '~/shared/utils/env.server'
 
@@ -27,21 +28,21 @@ export function assertAllowedOpenDataUrl(value: string): URL {
   try {
     url = new URL(value)
   } catch {
-    throw new ValidationError('bano-url', 'URL invalide')
+    throw new ValidationError('bano-url', m.open_data_error_invalid_url())
   }
 
   if (url.protocol !== 'https:') {
-    throw new ValidationError('bano-url', 'URL invalide (https requis)')
+    throw new ValidationError('bano-url', m.open_data_error_https_required())
   }
 
   if (!getOpenDataAllowedHosts().includes(url.hostname.toLowerCase())) {
-    throw new ValidationError('bano-url', 'Hôte non autorisé pour la synchronisation des données ouvertes')
+    throw new ValidationError('bano-url', m.open_data_error_host_not_allowed())
   }
 
   // Only the standard https port — an allowlisted host on an arbitrary port
   // could still reach an unintended service.
   if (url.port !== '' && url.port !== '443') {
-    throw new ValidationError('bano-url', 'Port non autorisé pour la synchronisation des données ouvertes')
+    throw new ValidationError('bano-url', m.open_data_error_port_not_allowed())
   }
 
   return url

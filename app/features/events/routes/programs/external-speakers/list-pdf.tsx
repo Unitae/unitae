@@ -1,5 +1,6 @@
 import { redirect } from 'react-router'
 import { getSpeakerListPdf } from '~/features/events/server/speaker-list-file.server'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
@@ -22,7 +23,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   )
   const file = kept?.listFileKey ? await getSpeakerListPdf(kept.listFileKey) : null
   if (!file) throw new Response(null, { status: 404 })
-  const name = (kept?.listFileName ?? 'liste.pdf').replace(UNSAFE_FILENAME, '_')
+  const name = (kept?.listFileName ?? m.external_speakers_list_pdf_filename_fallback()).replace(UNSAFE_FILENAME, '_')
   return new Response(file.body, {
     headers: {
       'Content-Type': 'application/pdf',

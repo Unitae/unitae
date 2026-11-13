@@ -118,6 +118,26 @@ English and French.
 French and English always carry every key. In another language, a missing key falls back to the
 `en.json` value.
 
+## Adding a Language
+
+A translator adds `app/i18n/messages/<code>.json` and the code to `languageTags` in
+`app/i18n/project.inlang/settings.json`: [Translating Unitae](../../CONTRIBUTING.md#translating-unitae)
+walks through it. Nothing else changes: language pickers, validation and formatting read Paraglide's
+`locales`.
+
+## Checks
+
+These run with the unit tests, so CI enforces them:
+
+- `app/i18n/catalogue.test.ts`: French and English hold the same keys; another language holds only
+  keys English has, with the same placeholders; every plural ends with its `=*` form; no message is
+  empty, none writes an optional plural such as « (s) », and every key is used by some code.
+- `app/i18n/plural-messages.test.ts`: every plural message renders for 0, 1, 2, 5 and 21 in every
+  language.
+- `app/i18n/messages.test.ts`: typographic apostrophe and ellipsis.
+- `app/i18n/no-french-in-code.test.ts`: no string or JSX text with a French accent outside the
+  messages. The few on purpose (sample data, stored identifiers) are listed in the test with a reason.
+
 ## Which Language Applies
 
 Paraglide's `getLocale()` is overridden once for the whole process, web server and worker alike, by

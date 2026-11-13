@@ -1,3 +1,4 @@
+import * as m from '~/i18n/paraglide/messages'
 import { ConflictError } from '~/shared/errors/app-error.server'
 
 // Programme assignment invariants. Pure functions, no DB access.
@@ -13,17 +14,37 @@ import { ConflictError } from '~/shared/errors/app-error.server'
 // so message drift between the two writers (assignPart / assignServicePart)
 // is impossible.
 
+// Getters, so each message reads the language of the request that raises it, not the one the
+// module happened to load in.
 export const PROGRAMME_ASSIGNMENT_ERRORS = {
-  assignmentNotFound: 'L’attribution n’existe pas.',
-  externalSpeakerInvalid: 'Cet orateur extérieur n’existe pas ou n’est plus sur la liste de son assemblée.',
-  participantsNotDistinct: 'L’orateur et le lecteur ne peuvent pas être la même personne.',
-  ineligibleSpeaker: 'L’orateur sélectionné ne fait pas partie des rôles autorisés pour cette partie.',
-  ineligibleReader: 'Le deuxième orateur sélectionné ne fait pas partie des rôles autorisés pour cette partie.',
-  ineligibleServant: 'Le proclamateur sélectionné ne fait pas partie des rôles autorisés pour ce service.',
-  dayOffSpeaker: 'Ce proclamateur a une absence durant cette date.',
-  dayOffReader: 'Le deuxième orateur a une absence durant cette date.',
-  dayOffServant: 'Ce proclamateur a une absence durant cette date.',
-} as const
+  get assignmentNotFound() {
+    return m.event_part_error_assignment_not_found()
+  },
+  get externalSpeakerInvalid() {
+    return m.event_part_error_external_speaker_invalid()
+  },
+  get participantsNotDistinct() {
+    return m.event_part_error_participants_not_distinct()
+  },
+  get ineligibleSpeaker() {
+    return m.event_part_error_ineligible_speaker()
+  },
+  get ineligibleReader() {
+    return m.event_part_error_ineligible_reader()
+  },
+  get ineligibleServant() {
+    return m.event_part_error_ineligible_servant()
+  },
+  get dayOffSpeaker() {
+    return m.event_part_error_day_off_publisher()
+  },
+  get dayOffReader() {
+    return m.event_part_error_day_off_reader()
+  },
+  get dayOffServant() {
+    return m.event_part_error_day_off_publisher()
+  },
+}
 
 export type ProgrammeRoleKind = 'speaker' | 'reader' | 'servant'
 export type Rejection = { error: string }

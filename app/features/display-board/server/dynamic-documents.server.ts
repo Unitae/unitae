@@ -13,6 +13,7 @@ import {
 // Cross-feature import via the events barrel (deep-importing another
 // feature's model directly is forbidden by the boundaries lint rule).
 import { EventStatus } from '~/features/events'
+import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { PublisherType } from '~/shared/types/publisher-type'
@@ -101,7 +102,7 @@ export async function listAvailableDynamicTypes(
     available.push({
       dynamicType: DynamicType.PublisherGroups,
       dynamicRef: null,
-      defaultTitle: 'Groupes de prédication',
+      defaultTitle: m.board_dynamic_type_groups(),
       alreadyAdded: isAlreadyAdded(DynamicType.PublisherGroups, null),
     })
   }

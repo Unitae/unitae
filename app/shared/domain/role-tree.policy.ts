@@ -1,3 +1,4 @@
+import * as m from '~/i18n/paraglide/messages'
 import { isAppointedRoleKey, isIdentityRoleKey, SYSTEM_ROLE_KEYS } from '~/shared/domain/built-in-roles.server'
 import { ForbiddenError, ValidationError } from '~/shared/errors/app-error.server'
 
@@ -27,17 +28,28 @@ export const MAX_ORGANIGRAM_DEPTH = 10
  */
 export const ORGANIGRAM_ROSTER_KEYS: readonly string[] = ['elder', 'assistant-servant']
 
+// Getters, so each message reads the language of the request that raises it, not the one the
+// module happened to load in.
 export const ROLE_TREE_ERRORS = {
-  cycle: 'Un service ne peut pas être rattaché à lui-même ni à l’un des services qui en dépendent.',
-  tooDeep: `L’organigramme ne peut pas dépasser ${MAX_ORGANIGRAM_DEPTH} niveaux.`,
-  rosterIsRoot: 'Les anciens et les assistants ministériels sont toujours au sommet de l’organigramme.',
-  serviceNeedsParent:
-    'Un service se place sous le collège des anciens ou sous un autre service — jamais au sommet de l’organigramme.',
-  notAnOrganigramRole: 'Cet élément ne peut pas figurer dans l’organigramme.',
-  fixedPosition:
-    'Le comité de service et ses trois fonctions occupent une place fixe dans l’organigramme : ' +
-    'le comité sous le collège des anciens, les trois fonctions dans le comité.',
-} as const
+  get cycle() {
+    return m.role_tree_error_cycle()
+  },
+  get tooDeep() {
+    return m.role_tree_error_too_deep({ max: String(MAX_ORGANIGRAM_DEPTH) })
+  },
+  get rosterIsRoot() {
+    return m.role_tree_error_roster_is_root()
+  },
+  get serviceNeedsParent() {
+    return m.role_tree_error_service_needs_parent()
+  },
+  get notAnOrganigramRole() {
+    return m.role_tree_error_not_an_organigram_role()
+  },
+  get fixedPosition() {
+    return m.role_tree_error_fixed_position()
+  },
+}
 
 export interface SetParentInput {
   roleId: number

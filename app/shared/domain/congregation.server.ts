@@ -143,6 +143,8 @@ export async function resolveCongregationFromRequest(request: Request): Promise<
   return null
 }
 
+// A marker, not a label: the seed and an old migration store this name to mean « not named yet »,
+// and branding falls back to the platform name when it sees it. It is never shown, so it is not translated.
 const DEFAULT_CONGREGATION_NAME = 'Ma Congrégation'
 
 export async function getBrandingName(request?: Request): Promise<string> {
