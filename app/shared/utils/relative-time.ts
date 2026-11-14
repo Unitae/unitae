@@ -1,3 +1,5 @@
+import { getLocale } from '~/i18n/paraglide/runtime'
+
 const MINUTE = 60
 const HOUR = 3600
 const DAY = 86400
@@ -5,7 +7,8 @@ const WEEK = 604800
 const MONTH = 2592000 // 30 days
 const YEAR = 31536000 // 365 days
 
-export function formatRelativeTime(date: Date | string, locale = 'fr'): string {
+/** The date from now (yesterday, in 3 days), in the reader's language unless told otherwise. */
+export function formatRelativeTime(date: Date | string, locale: string = getLocale()): string {
   const target = date instanceof Date ? date : new Date(date)
   const now = new Date()
   const diffSeconds = Math.round((target.getTime() - now.getTime()) / 1000)
@@ -24,7 +27,7 @@ export function formatRelativeTime(date: Date | string, locale = 'fr'): string {
   return target.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-export function formatAbsoluteDate(date: Date | string, locale = 'fr'): string {
+export function formatAbsoluteDate(date: Date | string, locale: string = getLocale()): string {
   const target = date instanceof Date ? date : new Date(date)
   return target.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })
 }

@@ -1,3 +1,4 @@
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { formatAbsoluteDate, formatRelativeTime } from '~/shared/utils/relative-time'
 
 interface RelativeTimeProps {
@@ -5,7 +6,7 @@ interface RelativeTimeProps {
   locale?: string
 }
 
-export function RelativeTime({ date, locale = 'fr' }: RelativeTimeProps) {
+export function RelativeTime({ date, locale = getLocale() }: RelativeTimeProps) {
   const target = date instanceof Date ? date : new Date(date)
 
   if (Number.isNaN(target.getTime())) {

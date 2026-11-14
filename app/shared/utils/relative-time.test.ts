@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { formatAbsoluteDate, formatRelativeTime } from './relative-time'
 
+// The reader's language, as the locale middleware sets it for the request.
+vi.mock('~/i18n/paraglide/runtime', () => ({ getLocale: () => 'en' }))
+
 beforeEach(() => {
   vi.useFakeTimers()
   vi.setSystemTime(new Date(2025, 3, 15, 12, 0, 0)) // 15 April 2025, noon
@@ -76,5 +79,17 @@ describe('formatAbsoluteDate', () => {
   it('formats a string date', () => {
     const result = formatAbsoluteDate('2025-04-15', 'en')
     expect(result).toContain('2025')
+  })
+})
+
+// An English reader once saw « hier » and « dans 6 jours » on their home page: the helpers fell back to French when
+// a caller passed no language, and most callers (the dashboard's dates among them) pass none.
+describe('without a language', () => {
+  it('writes the relative date in the reader’s language', () => {
+    expect(formatRelativeTime(new Date(2025, 3, 14, 12, 0, 0))).toBe('yesterday')
+  })
+
+  it('writes the absolute date in the reader’s language', () => {
+    expect(formatAbsoluteDate(new Date(2025, 3, 14, 12, 0, 0))).toBe('April 14, 2025')
   })
 })
