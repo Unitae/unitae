@@ -28,15 +28,28 @@ const territory = (over: Record<string, unknown> = {}) => ({
       publisher: { firstname: 'Damien', lastname: 'BLANCHARD', anonymizedAt: null },
     },
   ],
+  _count: { attributions: 0 },
   ...over,
 })
+
+const YEAR_START = new Date(2026, 8, 1)
 
 describe('listAssignableTerritories', () => {
   it('leaves out the territories held — during a campaign, only those actively worked', async () => {
     mockDb.territory.findMany.mockResolvedValue([])
 
-    await listAssignableTerritories(mockDb as never, 10, { where: {}, today: '2026-11-10', campaignMode: false })
-    await listAssignableTerritories(mockDb as never, 10, { where: {}, today: '2026-11-10', campaignMode: true })
+    await listAssignableTerritories(mockDb as never, 10, {
+      where: {},
+      today: '2026-11-10',
+      yearStart: YEAR_START,
+      campaignMode: false,
+    })
+    await listAssignableTerritories(mockDb as never, 10, {
+      where: {},
+      today: '2026-11-10',
+      yearStart: YEAR_START,
+      campaignMode: true,
+    })
 
     expect(mockDb.territory.findMany.mock.calls[0]?.[0].where).toEqual({
       congregationId: 10,
@@ -48,12 +61,29 @@ describe('listAssignableTerritories', () => {
     })
   })
 
+  it('counts the attributions worked this theocratic year — those still out or back since it began', async () => {
+    mockDb.territory.findMany.mockResolvedValue([territory({ _count: { attributions: 3 } })])
+
+    const [row] = await listAssignableTerritories(mockDb as never, 10, {
+      where: {},
+      today: '2026-11-10',
+      yearStart: YEAR_START,
+      campaignMode: false,
+    })
+
+    expect(mockDb.territory.findMany.mock.calls[0]?.[0].select._count).toEqual({
+      select: { attributions: { where: { OR: [{ endDate: null }, { endDate: { gte: YEAR_START } }] } } },
+    })
+    expect(row?.yearCount).toBe(3)
+  })
+
   it('gives each territory its content, its PMR access, its latest attribution and its availability', async () => {
     mockDb.territory.findMany.mockResolvedValue([territory()])
 
     const [row] = await listAssignableTerritories(mockDb as never, 10, {
       where: {},
       today: '2026-11-10',
+      yearStart: YEAR_START,
       campaignMode: false,
     })
 
@@ -64,6 +94,7 @@ describe('listAssignableTerritories', () => {
       quantity: { homes: 126, phones: 2, entrances: 2 },
       pmr: 'full',
       last: { firstname: 'Damien', lastname: 'BLANCHARD', startDay: '2025-11-03', endDay: '2026-03-03' },
+      yearCount: 0,
       availability: { kind: 'free' },
       distance: null,
     })
@@ -90,6 +121,7 @@ describe('listAssignableTerritories', () => {
     const [resting, fresh] = await listAssignableTerritories(mockDb as never, 10, {
       where: {},
       today: '2026-11-10',
+      yearStart: YEAR_START,
       campaignMode: false,
     })
 
@@ -117,6 +149,7 @@ describe('listAssignableTerritories', () => {
     const [row] = await listAssignableTerritories(mockDb as never, 10, {
       where: {},
       today: '2026-11-10',
+      yearStart: YEAR_START,
       campaignMode: false,
     })
 

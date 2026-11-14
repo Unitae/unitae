@@ -4646,6 +4646,22 @@
     "attributions_territory_occupied_error": "Ce territoire est déjà en cours de travail — il reste hors campagne.",
     "attributions_assign_column_content": "Contenu",
     "attributions_assign_column_last": "Dernière attribution",
+    "attributions_assign_column_returned": "Rentré le",
+    "attributions_assign_still_out": "Pas encore rentré",
+    "attributions_assign_sort_least_worked": "Les moins parcourus",
+    "attributions_assign_year_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "1 fois cette année",
+                "countPlural=*": "{count} fois cette année"
+            }
+        }
+    ],
     "attributions_assign_column_state": "État",
     "attributions_assign_empty_description": "Tous les territoires sont attribués ou au repos. Ceux au repos sont dans « Tous ».",
     "attributions_assign_empty_title": "Aucun territoire disponible",

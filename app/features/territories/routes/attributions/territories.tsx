@@ -13,6 +13,7 @@ import { getZips } from '~/features/territories/server/buildings.server'
 import { getActiveCampaign } from '~/features/territories/server/campaign.queries'
 import { resolveSearchPlace } from '~/features/territories/server/search-place.server'
 import { computeFilters } from '~/features/territories/server/territory-filters.server'
+import { getBeginingDateOfTheocraticYear } from '~/features/territories/server/theocratic-year.server'
 import { AssignableTerritoryTable } from '~/features/territories/ui/AssignableTerritoryTable'
 import { AssignableToolbar } from '~/features/territories/ui/AssignableToolbar'
 import { AttributionPanel } from '~/features/territories/ui/AttributionPanel'
@@ -54,6 +55,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
     const rows = await listAssignableTerritories(db, congregationId, {
       where: computeFilters(url.searchParams),
       today,
+      yearStart: getBeginingDateOfTheocraticYear(),
       campaignMode: campaign != null,
       origin: place.origin ?? undefined,
     })

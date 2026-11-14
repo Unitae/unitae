@@ -7,26 +7,41 @@ export type AssignableView = 'free' | 'all'
 
 interface Sortable {
   number: string
-  last: { startDay: string } | null
+  last: { startDay: string; endDay: string | null } | null
+  /** Its attributions worked this theocratic year. */
+  yearCount: number
   distance: number | null
 }
 
+/** For when `a` or `b` is missing: the missing one first. */
+function missingFirst(a: unknown, b: unknown): number {
+  if (a == null) return b == null ? 0 : -1
+  return 1
+}
+
+// The return day, not the day out: a territory kept out for months was worked until it came back. Never attributed
+// first; one still out (paused for the campaign) last.
+function byReturn(a: Sortable, b: Sortable): number {
+  if (a.last == null || b.last == null) return missingFirst(a.last, b.last)
+  const [aDay, bDay] = [a.last.endDay, b.last.endDay]
+  if (aDay == null || bDay == null) return -missingFirst(aDay, bDay)
+  return aDay.localeCompare(bDay)
+}
+
+function byDistance(a: Sortable, b: Sortable): number {
+  if (a.distance == null || b.distance == null) return -missingFirst(a.distance, b.distance)
+  return a.distance - b.distance
+}
+
 /**
- * The orders of « Attribuer un territoire »: the least recently attributed first (never attributed at the very top),
- * by number the way people count (T2 before T10), or the nearest to a searched place, the unplaced last.
+ * The orders of « Attribuer un territoire »: the least worked first — the fewest times out this theocratic year, then
+ * the longest since it came back (never attributed at the very top, one still out at the bottom) —, by number the way
+ * people count (T2 before T10), or the nearest to a searched place, the unplaced last.
  */
 export function sortAssignable<T extends Sortable>(rows: readonly T[], sort: AssignableSort, locale: string): T[] {
   const byNumber = (a: T, b: T) => a.number.localeCompare(b.number, locale, { numeric: true, sensitivity: 'base' })
-  const byLast = (a: T, b: T) => {
-    if (a.last == null || b.last == null) return a.last == null ? (b.last == null ? 0 : -1) : 1
-    return a.last.startDay.localeCompare(b.last.startDay)
-  }
-  const byDistance = (a: T, b: T) => {
-    if (a.distance == null || b.distance == null) return a.distance == null ? (b.distance == null ? 0 : 1) : -1
-    return a.distance - b.distance
-  }
   const compare: Record<AssignableSort, (a: T, b: T) => number> = {
-    last: (a, b) => byLast(a, b) || byNumber(a, b),
+    last: (a, b) => a.yearCount - b.yearCount || byReturn(a, b) || byNumber(a, b),
     number: byNumber,
     proximity: (a, b) => byDistance(a, b) || byNumber(a, b),
   }

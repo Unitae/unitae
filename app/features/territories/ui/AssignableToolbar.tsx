@@ -97,7 +97,7 @@ export function AssignableToolbar(props: AssignableToolbarProps) {
         <SortMenu
           value={sort}
           options={[
-            { value: 'last', label: m.attributions_assign_sort_last() },
+            { value: 'last', label: m.attributions_assign_sort_least_worked() },
             { value: 'number', label: m.attributions_sort_number() },
             ...(proximity ? [{ value: 'proximity' as const, label: m.attributions_sort_proximity() }] : []),
           ]}

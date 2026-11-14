@@ -4646,6 +4646,22 @@
     "attributions_territory_occupied_error": "This territory is already being worked — it stays outside the campaign.",
     "attributions_assign_column_content": "Content",
     "attributions_assign_column_last": "Last assignment",
+    "attributions_assign_column_returned": "Returned",
+    "attributions_assign_still_out": "Not returned yet",
+    "attributions_assign_sort_least_worked": "Least worked",
+    "attributions_assign_year_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "once this year",
+                "countPlural=*": "{count} times this year"
+            }
+        }
+    ],
     "attributions_assign_column_state": "State",
     "attributions_assign_empty_description": "Every territory is assigned or resting. The resting ones are under “All”.",
     "attributions_assign_empty_title": "No territory available",
