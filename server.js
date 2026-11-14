@@ -43,7 +43,23 @@ app.use('/assets', express.static(path.join(assetsDirectory, 'assets'), { immuta
 app.use(express.static(assetsDirectory))
 app.use(express.static('public', { maxAge: '1h' }))
 app.use('/.well-known', express.static(path.join(assetsDirectory, '.well-known')))
-app.use(morgan('tiny'))
+// `tiny`, minus what must not be kept in logs: the query string (search terms, names) and the secret
+// segment of the paths that carry one — a calendar feed's token is long-lived and its URL is polled
+// for as long as the subscription lives. Kubernetes probes, several a minute, are not logged.
+const SECRET_PATH_SEGMENTS = [
+  [/^\/feed\/[^/]+\/calendar\.ics$/, '/feed/:token/calendar.ics'],
+  [/^\/verify-email\/[^/]+$/, '/verify-email/:token'],
+  [/^\/password\/[^/]+\/reset(\.data)?$/, '/password/:userHash/reset'],
+]
+const PROBE_PATHS = new Set(['/health', '/livez'])
+morgan.token('path', req => {
+  const pathname = req.originalUrl.split('?')[0]
+  const secret = SECRET_PATH_SEGMENTS.find(([pattern]) => pattern.test(pathname))
+  return secret ? secret[1] : pathname
+})
+app.use(
+  morgan(':method :path :status :res[content-length] - :response-time ms', { skip: req => PROBE_PATHS.has(req.path) }),
+)
 
 // The client address, as resolved by `trust proxy` above: X-Forwarded-For walked from the right,
 // past trusted proxies. The leftmost entry is whatever the client sent, so the app must not key
