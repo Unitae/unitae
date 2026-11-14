@@ -287,30 +287,3 @@ export const SETTINGS: Record<string, string> = {
   'external-speakers-candidates-role': 'discours-publics',
   'external-speakers-responsible-role': 'coordinateur-discours-publics',
 }
-
-export const BOARD = {
-  sections: [
-    {
-      name: 'Annonces',
-      documents: ['Lettre du Collège central', 'Changement d’horaire des réunions', 'Rappel : don de sang'],
-    },
-    {
-      name: 'Programmes',
-      documents: [
-        'Programme Vie chrétienne et ministère',
-        'Programme des discours publics',
-        'Assemblée de circonscription',
-      ],
-    },
-    { name: 'Prédication', documents: ['Rendez-vous de prédication', 'Planning TPL', 'Campagne spéciale'] },
-    {
-      name: 'Entretien',
-      documents: ['Planning de nettoyage', 'Consignes de sécurité', 'Plan d’évacuation', 'Entretien des espaces verts'],
-    },
-    { name: 'Comptes', documents: ['Rapport des comptes'] },
-    {
-      name: 'Vie de l’assemblée',
-      documents: ['Mémorial : invitations', 'Visite du responsable de circonscription', 'Accueil des nouveaux'],
-    },
-  ],
-} as const

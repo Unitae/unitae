@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { PartPresetKey } from '../../features/events/model/part-preset.type'
+import { type BoardSection, boardDocuments } from './board'
 import { generateAttributions, generatePioneers, generateReports } from './history'
 import { classifyParts, generateAbsences, generateMeetings, partRoles, type TemplateSpec } from './meetings'
 import { FEMALE_FIRST_NAMES, MALE_FIRST_NAMES } from './names'
@@ -414,5 +415,50 @@ describe('classifyParts', () => {
         { preset: 'congregation-bible-study', section: life },
       ]),
     ).toEqual(['chairman', 'prayer', 'joyaux', 'perles', 'bible-reading', 'ministry', 'song', 'vcm', 'cbs'])
+  })
+})
+
+describe('the demo board', () => {
+  const talks = Array.from({ length: 8 }, (_, week) => ({
+    date: new Date(NOW.getTime() + (week * 7 + 5) * DAY),
+    title: `Discours ${week + 1}`,
+    speaker: `Orateur ${week + 1}`,
+  }))
+  const context = { host: 'Costa', talks }
+  const board = boardDocuments(NOW, context)
+  const documents = board.flatMap(section => section.documents)
+  const find = (sections: BoardSection[], title: string) =>
+    sections.flatMap(section => section.documents).find(document => document.title === title)
+
+  it('prints something on every page: no document is a title without a file', () => {
+    expect(board).toHaveLength(6)
+    expect(documents.length).toBeGreaterThan(0)
+    for (const document of documents) {
+      expect(document.blocks.length, document.title).toBeGreaterThan(0)
+      for (const block of document.blocks) {
+        if (block.kind === 'paragraph') expect(block.text.trim()).not.toBe('')
+        else expect(block.rows.length).toBeGreaterThan(0)
+      }
+    }
+  })
+
+  it('lists the coming public talks as the weekend programme gives them', () => {
+    const table = find(board, 'Programme des discours publics')?.blocks.find(block => block.kind === 'table')
+    if (table?.kind !== 'table') throw new Error('The public talks sheet has no table')
+    expect(table.rows.map(row => row.slice(1))).toEqual(talks.slice(0, 6).map(talk => [talk.title, talk.speaker]))
+  })
+
+  it('dates what it announces from today, like the rest of the demo', () => {
+    const later = boardDocuments(new Date(NOW.getTime() + 70 * DAY), context)
+    for (const title of [
+      'Changement d’horaire des réunions',
+      'Assemblée de circonscription',
+      'Visite du responsable de circonscription',
+      'Rapport des comptes',
+      'Planning de nettoyage',
+    ]) {
+      expect(find(board, title), title).toBeDefined()
+      expect(JSON.stringify(find(later, title)), title).not.toBe(JSON.stringify(find(board, title)))
+    }
   })
 })

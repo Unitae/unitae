@@ -12,6 +12,12 @@
 import 'dotenv/config'
 import { randomBytes, scrypt } from 'node:crypto'
 import { PrismaPg } from '@prisma/adapter-pg'
+import {
+  deleteBoardFile,
+  saveBoardFile,
+  saveThumbnailFile,
+} from '../features/display-board/server/document-storage.server'
+import { generateThumbnail } from '../features/display-board/server/thumbnail.server'
 import { EventTemplateKey } from '../features/events/model/event-template.type'
 import { PartPresetKey } from '../features/events/model/part-preset.type'
 import { normalizeCongregationName } from '../features/events/model/speaker-congregation-name'
@@ -19,6 +25,8 @@ import { seedDefaultTemplates } from '../features/events/server/seed-templates.s
 import { seedBuiltInTerritoryKinds } from '../features/territories/server/territory-kinds.server'
 import { syncBuiltInRoleAssignments } from '../shared/domain/built-in-roles.server'
 import { ensureAdminRole, placeDefaultOrganigram, seedBuiltInRoles } from '../shared/domain/setup.server'
+import { type BoardSection, boardDocuments } from './demo/board'
+import { boardPdf } from './demo/board-pdf'
 import { generateAttributions, generatePioneers, generateReports } from './demo/history'
 import {
   classifyParts,
@@ -32,7 +40,7 @@ import {
 } from './demo/meetings'
 import { type Congregation, generateCongregation } from './demo/people'
 import { generateArea } from './demo/places'
-import { BOARD, CUSTOM_ROLES, MEETINGS, SERVICE_ROLES, SETTINGS } from './demo/profile'
+import { CUSTOM_ROLES, MEETINGS, SERVICE_ROLES, SETTINGS } from './demo/profile'
 import { Random } from './demo/random'
 import { assignRoleHolders } from './demo/roles'
 import { writeArea, writeAttributions, writeHistory, writePeople } from './demo/write'
@@ -80,6 +88,12 @@ async function cleanCongregationData(congregationId: number) {
   await prisma.boardDynamicDocumentView.deleteMany({ where: { settings: { congregationId } } })
   await prisma.boardDynamicDocumentSettings.deleteMany({ where })
   await prisma.boardDocumentView.deleteMany({ where })
+  // The board's files go with their rows: each run would otherwise leave its PDFs and thumbnails behind.
+  const boardFiles = [
+    ...(await prisma.boardDocument.findMany({ where, select: { uri: true, thumbnailUri: true } })),
+    ...(await prisma.boardDocumentVersion.findMany({ where, select: { uri: true, thumbnailUri: true } })),
+  ].flatMap(file => [file.uri, file.thumbnailUri])
+  for (const key of new Set(boardFiles)) if (key) await deleteBoardFile(key)
   await prisma.boardDocumentVersion.deleteMany({ where })
   await prisma.boardDocument.deleteMany({ where })
   await prisma.boardSectionVisibilityRole.deleteMany({ where })
@@ -416,21 +430,52 @@ async function writeMeetings(
   return events.length
 }
 
-async function writeBoard(congregationId: number, templateIds: Record<MeetingKind, number>) {
+/**
+ * The board as a congregation keeps it: its sections, a PDF for each document (with the thumbnail the worker would
+ * make, where pdftoppm is installed), and the documents the app writes from its own data.
+ */
+async function writeBoard(
+  congregationId: number,
+  templateIds: Record<MeetingKind, number>,
+  board: { sections: BoardSection[]; congregation: string; uploadedById: number; now: Date },
+) {
   const sections: number[] = []
-  for (const [index, section] of BOARD.sections.entries()) {
+  let documents = 0
+  for (const [index, section] of board.sections.entries()) {
     const row = await prisma.boardSection.create({ data: { name: section.name, order: index + 1, congregationId } })
     sections.push(row.id)
-    await prisma.boardDocument.createMany({
-      data: section.documents.map((title, order) => ({
-        title,
-        sectionId: row.id,
-        order: order + 1,
-        isHighlighted: index === 0 && order === 0,
-        createdAt: new Date(Date.now() - (order + 1) * 9 * 24 * 60 * 60 * 1000),
-        congregationId,
-      })),
-    })
+    for (const [order, document] of section.documents.entries()) {
+      const pdf = await boardPdf(board.congregation, document)
+      const uri = await saveBoardFile(congregationId, new File([pdf], 'document.pdf', { type: 'application/pdf' }))
+      const thumbnail = await generateThumbnail(uri)
+      const thumbnailUri = thumbnail ? await saveThumbnailFile(congregationId, thumbnail) : null
+      const createdAt = new Date(board.now.getTime() - document.age * 24 * 60 * 60 * 1000)
+      await prisma.boardDocument.create({
+        data: {
+          title: document.title,
+          type: 'pdf',
+          uri,
+          thumbnailUri,
+          sectionId: row.id,
+          order: order + 1,
+          isHighlighted: document.highlighted,
+          createdAt,
+          visibleFrom: createdAt,
+          congregationId,
+          versions: {
+            create: {
+              uri,
+              thumbnailUri,
+              versionNumber: 1,
+              uploadedById: board.uploadedById,
+              createdAt,
+              congregationId,
+            },
+          },
+        },
+      })
+      documents++
+    }
   }
   const programme = (ids: number[]) => ({
     templates: ids.map(templateId => ({ templateId, parts: true, services: true })),
@@ -474,6 +519,13 @@ async function writeBoard(congregationId: number, templateIds: Record<MeetingKin
       { title: 'Organigramme', dynamicType: 'organigram', sectionId: life, order: 11, showServices: false },
     ].map(document => ({ ...document, isHighlighted: false, congregationId })),
   })
+  return documents
+}
+
+/** « É. Le Roux », as a programme names a speaker. */
+function shortName(name: string): string {
+  const [first = '', ...rest] = name.split(' ')
+  return `${first.charAt(0)}. ${rest.join(' ')}`
 }
 
 async function main() {
@@ -601,8 +653,34 @@ async function main() {
   })
   console.log(`  ✓ ${meetingCount} meetings, ${absences.length} absences, ${speakerRows.length} visiting speakers`)
 
-  await writeBoard(congregationId, templateIds)
-  console.log(`  ✓ ${BOARD.sections.length} board sections`)
+  // The public talks sheet lists the coming talks as the weekend programme gives them.
+  const publicTalks = new Set(
+    specs.flatMap(spec => spec.parts.filter(part => part.kind === 'public-talk').map(part => part.id)),
+  )
+  const talks = meetings
+    .filter(meeting => meeting.start >= now)
+    .flatMap(meeting =>
+      meeting.parts
+        .filter(part => publicTalks.has(part.templatePart))
+        .flatMap(part => {
+          const member = part.assignee == null ? null : people.people[part.assignee]
+          const speaker =
+            part.externalSpeaker == null
+              ? member && `${member.firstname} ${member.lastname}`
+              : speakerSeeds[part.externalSpeaker]?.name
+          return speaker ? [{ date: meeting.start, title: part.topic, speaker: shortName(speaker) }] : []
+        }),
+    )
+    .sort((a, b) => a.date.getTime() - b.date.getTime())
+  const host = people.people[people.groups[0]?.responsible ?? people.admin]?.lastname ?? ''
+  const sections = boardDocuments(now, { host, talks })
+  const documents = await writeBoard(congregationId, templateIds, {
+    sections,
+    congregation: congregation.name,
+    uploadedById: adminAccount,
+    now,
+  })
+  console.log(`  ✓ ${sections.length} board sections, ${documents} documents with their PDF`)
 
   console.log('\n✅ Demo seed complete!')
   console.log('   Login: marc.dupont@demo.unitae.app / demo1234')
