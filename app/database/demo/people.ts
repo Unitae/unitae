@@ -302,6 +302,41 @@ function formGroups(
   return groups
 }
 
+const ANYONE = [
+  ...MALE_FIRST_NAMES.map(firstname => ({ firstname, isMale: true })),
+  ...FEMALE_FIRST_NAMES.map(firstname => ({ firstname, isMale: false })),
+]
+
+/**
+ * A contact named as the relationship says: a wife is a woman, a son carries the family name. Three draws and a
+ * phone number whatever the relationship, so the rest of the congregation keeps its draws.
+ */
+function emergencyContact(random: Random, person: PersonSeed): EmergencyContactSeed {
+  const relationship = random.pick(RELATIONSHIPS)
+  const isMale =
+    relationship.kind === 'spouse' ? !person.isMale : relationship.kind === 'family' ? relationship.isMale : null
+  const named =
+    isMale == null
+      ? random.pick(ANYONE)
+      : { firstname: random.pick(isMale ? MALE_FIRST_NAMES : FEMALE_FIRST_NAMES), isMale }
+  const lastname = random.pick(LAST_NAMES)
+  const label =
+    relationship.kind === 'family'
+      ? relationship.label
+      : relationship.kind === 'spouse'
+        ? named.isMale
+          ? 'Époux'
+          : 'Épouse'
+        : named.isMale
+          ? 'Ami'
+          : 'Amie'
+  return {
+    name: `${named.firstname} ${relationship.kind === 'friend' ? lastname : person.lastname}`,
+    relationship: label,
+    phone: phoneNumber(random),
+  }
+}
+
 /** What only some publishers have: an arrival date, a visit, emergency information, a login. */
 function fillDetails(random: Random, people: PersonSeed[], now: Date) {
   const adults = people.filter(person => age(person, now) >= 18)
@@ -333,11 +368,7 @@ function fillDetails(random: Random, people: PersonSeed[], now: Date) {
   )
   for (const person of withContacts) {
     const count = random.weighted(PEOPLE.emergencyContacts)
-    person.emergencyContacts = Array.from({ length: count }, () => ({
-      name: `${random.pick([...MALE_FIRST_NAMES, ...FEMALE_FIRST_NAMES])} ${random.pick(LAST_NAMES)}`,
-      relationship: random.pick(RELATIONSHIPS),
-      phone: phoneNumber(random),
-    }))
+    person.emergencyContacts = Array.from({ length: count }, () => emergencyContact(random, person))
   }
 
   const ordinary = people.filter(person => !person.isHelder && !person.isServant && age(person, now) >= 25)

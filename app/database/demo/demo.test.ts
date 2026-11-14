@@ -1,15 +1,19 @@
 import { describe, expect, it } from 'vitest'
 
+import { PartPresetKey } from '../../features/events/model/part-preset.type'
+import { type BoardSection, boardDocuments } from './board'
 import { generateAttributions, generatePioneers, generateReports } from './history'
-import { classifyParts, generateAbsences, generateMeetings, type TemplateSpec } from './meetings'
+import { classifyParts, generateAbsences, generateMeetings, partRoles, type TemplateSpec } from './meetings'
+import { FEMALE_FIRST_NAMES, MALE_FIRST_NAMES } from './names'
 import { generateCongregation } from './people'
 import { generateArea } from './places'
-import { PEOPLE, TERRITORIES } from './profile'
+import { CUSTOM_ROLES, PEOPLE, TERRITORIES } from './profile'
 import { Random } from './random'
 import { assignRoleHolders } from './roles'
 
 const NOW = new Date(2026, 10, 10, 12)
-const YEAR = 365.25 * 24 * 60 * 60 * 1000
+const DAY = 24 * 60 * 60 * 1000
+const YEAR = 365.25 * DAY
 const ordinal = (date: Date) => date.getFullYear() * 12 + date.getMonth()
 
 function build(seed = 7) {
@@ -110,6 +114,49 @@ describe('the demo congregation', () => {
     expect(again.people.map(person => `${person.firstname} ${person.lastname}`)).toEqual(
       demo.people.map(person => `${person.firstname} ${person.lastname}`),
     )
+  })
+})
+
+// The relationships, as each contact's first name and last name must agree with them.
+const WOMEN = ['Épouse', 'Fille', 'Sœur', 'Mère', 'Amie']
+const MEN = ['Époux', 'Fils', 'Frère', 'Père', 'Ami']
+const startsWithOneOf = (name: string, firstnames: readonly string[]) =>
+  firstnames.some(firstname => name.startsWith(`${firstname} `))
+
+describe('the demo emergency contacts', () => {
+  const contacts = demo.people.flatMap(person => person.emergencyContacts.map(contact => ({ person, contact })))
+
+  it('names each contact as the relationship says: a wife is a woman, a son is a man', () => {
+    expect(contacts.length).toBeGreaterThan(0)
+    for (const { contact } of contacts) {
+      expect([...WOMEN, ...MEN]).toContain(contact.relationship)
+      const women = WOMEN.includes(contact.relationship)
+      expect(startsWithOneOf(contact.name, women ? FEMALE_FIRST_NAMES : MALE_FIRST_NAMES), contact.name).toBe(true)
+    }
+  })
+
+  it('gives family the publisher’s last name, and a spouse of the other sex', () => {
+    for (const { person, contact } of contacts) {
+      if (contact.relationship !== 'Ami' && contact.relationship !== 'Amie') {
+        expect(contact.name.endsWith(` ${person.lastname}`), `${contact.name}, ${contact.relationship}`).toBe(true)
+      }
+      if (contact.relationship === 'Épouse') expect(person.isMale).toBe(true)
+      if (contact.relationship === 'Époux') expect(person.isMale).toBe(false)
+    }
+  })
+})
+
+describe('the demo roles', () => {
+  it('gives a role held by one person to a brother: it reads as his to run', () => {
+    const soleHolderRoles = CUSTOM_ROLES.filter(role => role.single || role.holders === 1)
+    for (let seed = 1; seed <= 30; seed++) {
+      const holders = assignRoleHolders(new Random(seed), demo.people, NOW, [demo.admin])
+      for (const role of soleHolderRoles) {
+        for (const key of holders.get(role.key) ?? []) {
+          expect(demo.people[key]?.isMale, `${role.key}, seed ${seed}`).toBe(true)
+        }
+      }
+    }
   })
 })
 
@@ -306,6 +353,27 @@ describe('the demo meetings', () => {
     }
   })
 
+  it('opens the Bible reading to brothers only', () => {
+    expect(partRoles('bible-reading', 'midweek')).toEqual({ speaker: 'brother', reader: null })
+  })
+
+  it('gives the student talk to a brother alone, every other student part to a pair as a demonstration', () => {
+    const studentParts = meetings
+      .flatMap(meeting => meeting.parts)
+      .filter(part => (part.templatePart === 5 || part.templatePart === 6) && part.assignee != null)
+    const talks = studentParts.filter(part => part.preset === PartPresetKey.SchoolTalk)
+    expect(talks.length).toBeGreaterThan(0)
+    for (const part of talks) {
+      expect(part.topic).toBe('Discours')
+      expect(demo.people[part.assignee as number]?.isMale).toBe(true)
+      expect(part.assistant).toBeNull()
+    }
+    for (const part of studentParts.filter(each => each.preset !== PartPresetKey.SchoolTalk)) {
+      expect(part.preset).toBe(PartPresetKey.SchoolDemonstration)
+      expect(part.topic).not.toBe('Discours')
+    }
+  })
+
   it('assigns nobody on a day they said they were away', () => {
     for (const meeting of meetings) {
       const day = new Date(meeting.start)
@@ -347,5 +415,50 @@ describe('classifyParts', () => {
         { preset: 'congregation-bible-study', section: life },
       ]),
     ).toEqual(['chairman', 'prayer', 'joyaux', 'perles', 'bible-reading', 'ministry', 'song', 'vcm', 'cbs'])
+  })
+})
+
+describe('the demo board', () => {
+  const talks = Array.from({ length: 8 }, (_, week) => ({
+    date: new Date(NOW.getTime() + (week * 7 + 5) * DAY),
+    title: `Discours ${week + 1}`,
+    speaker: `Orateur ${week + 1}`,
+  }))
+  const context = { host: 'Costa', talks }
+  const board = boardDocuments(NOW, context)
+  const documents = board.flatMap(section => section.documents)
+  const find = (sections: BoardSection[], title: string) =>
+    sections.flatMap(section => section.documents).find(document => document.title === title)
+
+  it('prints something on every page: no document is a title without a file', () => {
+    expect(board).toHaveLength(6)
+    expect(documents.length).toBeGreaterThan(0)
+    for (const document of documents) {
+      expect(document.blocks.length, document.title).toBeGreaterThan(0)
+      for (const block of document.blocks) {
+        if (block.kind === 'paragraph') expect(block.text.trim()).not.toBe('')
+        else expect(block.rows.length).toBeGreaterThan(0)
+      }
+    }
+  })
+
+  it('lists the coming public talks as the weekend programme gives them', () => {
+    const table = find(board, 'Programme des discours publics')?.blocks.find(block => block.kind === 'table')
+    if (table?.kind !== 'table') throw new Error('The public talks sheet has no table')
+    expect(table.rows.map(row => row.slice(1))).toEqual(talks.slice(0, 6).map(talk => [talk.title, talk.speaker]))
+  })
+
+  it('dates what it announces from today, like the rest of the demo', () => {
+    const later = boardDocuments(new Date(NOW.getTime() + 70 * DAY), context)
+    for (const title of [
+      'Changement d’horaire des réunions',
+      'Assemblée de circonscription',
+      'Visite du responsable de circonscription',
+      'Rapport des comptes',
+      'Planning de nettoyage',
+    ]) {
+      expect(find(board, title), title).toBeDefined()
+      expect(JSON.stringify(find(later, title)), title).not.toBe(JSON.stringify(find(board, title)))
+    }
   })
 })
