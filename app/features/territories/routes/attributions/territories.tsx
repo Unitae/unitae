@@ -9,6 +9,7 @@ import {
 } from '~/features/territories/model/assignable-territories'
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { listAssignableTerritories } from '~/features/territories/server/assignable-territories.queries'
+import { getZips } from '~/features/territories/server/buildings.server'
 import { getActiveCampaign } from '~/features/territories/server/campaign.queries'
 import { resolveSearchPlace } from '~/features/territories/server/search-place.server'
 import { computeFilters } from '~/features/territories/server/territory-filters.server'
@@ -32,6 +33,8 @@ import { formatLocalDate } from '~/shared/utils/date.server'
 
 import type { Route } from './+types/territories'
 
+const FILTER_PARAMS = ['search', 'type', 'zip', 'access', 'pmr']
+
 export const meta: Route.MetaFunction = () => [{ title: m.attributions_new_meta_title() }]
 
 export function loader({ request, context }: Route.LoaderArgs) {
@@ -43,9 +46,10 @@ export function loader({ request, context }: Route.LoaderArgs) {
     const today = formatLocalDate(new Date())
     const place = await resolveSearchPlace(url.searchParams.get('search') ?? '')
     const sort = parseAssignableSort(url.searchParams, place.origin != null)
-    const [pmrActive, campaign] = await Promise.all([
+    const [pmrActive, campaign, zips] = await Promise.all([
       getBoolSetting(db, TerritorySettingKey.PmrActive, congregationId),
       getActiveCampaign(db, congregationId),
+      getZips(db, congregationId),
     ])
     const rows = await listAssignableTerritories(db, congregationId, {
       where: computeFilters(url.searchParams),
@@ -61,7 +65,8 @@ export function loader({ request, context }: Route.LoaderArgs) {
       proximity: place.origin != null,
       geocodeNotice: place.notice,
       pmrActive: pmrActive ?? false,
-      filtered: url.searchParams.has('search') || url.searchParams.has('type'),
+      zips: zips.map(row => row.zip).sort(),
+      filtered: FILTER_PARAMS.some(param => url.searchParams.has(param)),
       // The list of attributions is a right of its own: the way back goes there only for those who may read it.
       canViewAttributions: permissions.has(Permission.CanViewTerritoryAttributions),
     }
@@ -128,6 +133,8 @@ export default function AssignTerritory({ loaderData }: Route.ComponentProps) {
           sort={loaderData.sort}
           proximity={loaderData.proximity}
           kinds={Object.values(TerritoryKindKey)}
+          zips={loaderData.zips}
+          pmrActive={loaderData.pmrActive}
         />
         {visible.length === 0 ? (
           loaderData.filtered ? (
