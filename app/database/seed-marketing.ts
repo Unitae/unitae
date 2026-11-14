@@ -334,6 +334,12 @@ async function writeMeetings(
     (await prisma.templateServicePart.findMany({ where: { congregationId } })).map(part => [part.id, part]),
   )
   const serviceRoles = await prisma.templateServicePartAllowedRole.findMany({ where: { congregationId } })
+  const presetIds = new Map(
+    (await prisma.partPreset.findMany({ where: { congregationId }, select: { id: true, key: true } })).map(preset => [
+      preset.key,
+      preset.id,
+    ]),
+  )
   const names = { midweek: 'Réunion de semaine', weekend: 'Réunion du week-end' }
   const memberId = (key: number | null) => (key == null ? null : (members[key] as number))
 
@@ -366,7 +372,8 @@ async function writeMeetings(
           readerLabel: template.readerLabel,
           allowExternalSpeaker: template.allowExternalSpeaker,
           partId: template.id,
-          presetId: template.presetId,
+          // A student part's kind is the week's (the talk or a demonstration): the template leaves it open.
+          presetId: part.preset ? (presetIds.get(part.preset) ?? template.presetId) : template.presetId,
           eventId: events[index]?.id as number,
           assigneeId: memberId(part.assignee),
           assistantId: memberId(part.assistant),
@@ -490,7 +497,8 @@ async function main() {
   const attributions = generateAttributions(random, area.territories, people.people, stints, now)
 
   await prisma.setting.createMany({
-    data: [...Object.entries(SETTINGS), ['zips', area.zips.join(', ')]].map(([key, value]) => ({
+    // Postal codes are kept as a JSON list, as the territory settings save them.
+    data: [...Object.entries(SETTINGS), ['zips', JSON.stringify(area.zips)]].map(([key, value]) => ({
       key: key as string,
       value: value as string,
       congregationId,

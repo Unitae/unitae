@@ -508,4 +508,17 @@ export const TALK_TITLES = [
 /** Why someone is away: what an absence is called. */
 export const ABSENCE_NAMES = ['Vacances', 'Déplacement professionnel', 'Indisponible', 'Visite familiale', 'Congé']
 
-export const RELATIONSHIPS = ['Conjoint', 'Fille', 'Fils', 'Sœur', 'Frère', 'Mère', 'Père', 'Ami']
+/**
+ * Who an emergency contact is to the publisher. Family carries the publisher's name; a spouse is of the other sex
+ * and a friend of either, each named and labelled accordingly.
+ */
+export const RELATIONSHIPS = [
+  { kind: 'spouse' },
+  { kind: 'family', label: 'Fille', isMale: false },
+  { kind: 'family', label: 'Fils', isMale: true },
+  { kind: 'family', label: 'Sœur', isMale: false },
+  { kind: 'family', label: 'Frère', isMale: true },
+  { kind: 'family', label: 'Mère', isMale: false },
+  { kind: 'family', label: 'Père', isMale: true },
+  { kind: 'friend' },
+] as const

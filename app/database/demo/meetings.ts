@@ -38,6 +38,8 @@ export function partRoles(kind: PartKind, meeting: MeetingKind): { speaker: stri
       return { speaker: 'prieres-publiques', reader: null }
     case 'joyaux':
       return { speaker: 'joyaux', reader: null }
+    case 'bible-reading':
+      return { speaker: 'brother', reader: null }
     case 'perles':
       return { speaker: 'perles', reader: null }
     case 'vcm':
@@ -78,6 +80,11 @@ export interface PartSeed {
   assistant: number | null
   externalSpeaker: number | null
   topic: string
+  /**
+   * The kind of a student part, chosen for the week as the template leaves it: the talk or a demonstration. Null for
+   * the other parts, which keep their template's.
+   */
+  preset: PartPresetKey | null
 }
 
 export interface MeetingSeed {
@@ -89,12 +96,15 @@ export interface MeetingSeed {
   services: { templateService: number; assignee: number | null }[]
 }
 
+/** The student talk, given by a brother alone. */
+const SCHOOL_TALK = 'Discours'
+
 const MINISTRY_TOPICS = [
   'Engager la conversation',
   'Entretenir l’intérêt',
   'Faire des disciples',
   'Expliquer ses croyances',
-  'Discours',
+  SCHOOL_TALK,
 ]
 
 /** A wall-clock time in Paris as an instant, whatever the machine's own zone. */
@@ -202,7 +212,7 @@ function assignPart(
   day: Date,
   planned: boolean,
 ): Omit<PartSeed, 'templatePart'> {
-  const none = { assignee: null, assistant: null, externalSpeaker: null, topic: '' }
+  const none = { assignee: null, assistant: null, externalSpeaker: null, topic: '', preset: null }
   if (kind === 'song' || !planned) return none
   if (kind === 'public-talk' && ctx.random.chance(MEETINGS.externalTalkRate)) {
     return {
@@ -213,6 +223,11 @@ function assignPart(
   }
   if (kind === 'bible-reading') return { ...none, assignee: chooseFrom(ctx, students(ctx, day, true), used, day) }
   if (kind === 'ministry') {
+    const topic = ctx.random.pick(MINISTRY_TOPICS)
+    if (topic === SCHOOL_TALK) {
+      const assignee = chooseFrom(ctx, students(ctx, day, true), used, day)
+      return { ...none, assignee, topic, preset: PartPresetKey.SchoolTalk }
+    }
     const assignee = chooseFrom(ctx, students(ctx, day, false), used, day)
     const person = assignee == null ? null : ctx.people[assignee]
     const partners = students(ctx, day, false).filter(key => ctx.people[key]?.isMale === person?.isMale)
@@ -220,7 +235,8 @@ function assignPart(
       ...none,
       assignee,
       assistant: chooseFrom(ctx, partners, used, day),
-      topic: ctx.random.pick(MINISTRY_TOPICS),
+      topic,
+      preset: PartPresetKey.SchoolDemonstration,
     }
   }
   const { speaker, reader } = partRoles(kind, meeting)
@@ -231,8 +247,9 @@ function assignPart(
 
 /**
  * The meetings of the last six months and the next ones, week by week, Thursday evening and Saturday afternoon.
- * Each part goes to a holder of its role (the public talk most often to a visiting speaker), the student parts to
- * publishers with a partner of the same sex; nobody twice in a meeting, nobody on a day they said they were away.
+ * Each part goes to a holder of its role (the public talk most often to a visiting speaker), the Bible reading and the
+ * student talk to a brother, the demonstrations to publishers with a partner of the same sex; nobody twice in a
+ * meeting, nobody on a day they said they were away.
  * The programme is set two months ahead and the services four weeks ahead; public talks are booked further out.
  */
 export function generateMeetings(
