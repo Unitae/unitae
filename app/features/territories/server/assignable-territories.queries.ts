@@ -18,6 +18,8 @@ export interface AssignableTerritory {
   pmr: PmrStatus | null
   /** Its latest attribution; an anonymised publisher keeps no name. */
   last: { firstname: string | null; lastname: string | null; startDay: string; endDay: string | null } | null
+  /** Its attributions worked this theocratic year: still out, or back since `yearStart`. */
+  yearCount: number
   availability: Availability
   /** Metres from the searched place; null when nothing of it is placed, or no place was searched. */
   distance: number | null
@@ -33,9 +35,10 @@ export async function listAssignableTerritories(
   {
     where,
     today,
+    yearStart,
     campaignMode,
     origin,
-  }: { where: Prisma.TerritoryWhereInput; today: string; campaignMode: boolean; origin?: LatLng },
+  }: { where: Prisma.TerritoryWhereInput; today: string; yearStart: Date; campaignMode: boolean; origin?: LatLng },
 ): Promise<AssignableTerritory[]> {
   const territories = await db.territory.findMany({
     where: {
@@ -75,6 +78,9 @@ export async function listAssignableTerritories(
           publisher: { select: { firstname: true, lastname: true, anonymizedAt: true } },
         },
       },
+      // Every kind counts, campaign work included: one out in August and back in October was worked this year.
+      // biome-ignore lint/style/useNamingConvention: Prisma's relation count key
+      _count: { select: { attributions: { where: { OR: [{ endDate: null }, { endDate: { gte: yearStart } }] } } } },
     },
   })
 
@@ -95,6 +101,7 @@ export async function listAssignableTerritories(
         territory.entrances as { kind: EntranceKind; isPMR: boolean | null }[],
       ),
       last: last == null ? null : lastOf(last, endDay),
+      yearCount: territory._count.attributions,
       availability: territoryAvailability({
         last:
           last == null

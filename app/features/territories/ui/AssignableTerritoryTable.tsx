@@ -24,9 +24,9 @@ interface AssignableTerritoryTableProps {
 }
 
 /**
- * The territories nobody holds, one line each: the number, what there is to visit, whether it can go out today and its
- * latest attribution. Nothing runs on them, so their state is the neutral mark; a resting one reads faded but can still
- * be attributed.
+ * The territories nobody holds, one line each: the number, what there is to visit, whether it can go out today, the day
+ * its latest attribution came back and how many times it went out this theocratic year. Nothing runs on them, so their
+ * state is the neutral mark; a resting one reads faded but can still be attributed.
  */
 export function AssignableTerritoryTable({
   rows,
@@ -43,7 +43,7 @@ export function AssignableTerritoryTable({
             <th className={HEAD}>{m.attributions_column_territory()}</th>
             <th className={cn(HEAD, 'max-md:hidden')}>{m.attributions_assign_column_content()}</th>
             <th className={HEAD}>{m.attributions_assign_column_state()}</th>
-            <th className={cn(HEAD, 'max-sm:hidden')}>{m.attributions_assign_column_last()}</th>
+            <th className={cn(HEAD, 'max-sm:hidden')}>{m.attributions_assign_column_returned()}</th>
             <th className={cn(HEAD, 'w-28 max-md:hidden')}>
               <span className="sr-only">{m.common_actions()}</span>
             </th>
@@ -90,9 +90,14 @@ export function AssignableTerritoryTable({
                     <span className="text-faint">{m.attributions_assign_never()}</span>
                   ) : (
                     <>
-                      {shortDay(row.last.startDay, today)}{' '}
+                      {row.last.endDay == null ? (
+                        <span className="text-faint">{m.attributions_assign_still_out()}</span>
+                      ) : (
+                        shortDay(row.last.endDay, today)
+                      )}{' '}
                       <span className="text-faint">
                         · {formatPersonName(row.last, m.attributions_former_publisher())}
+                        {row.yearCount > 0 && <> · {m.attributions_assign_year_count({ count: row.yearCount })}</>}
                       </span>
                     </>
                   )}
