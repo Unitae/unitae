@@ -4,7 +4,7 @@ import { FormSection } from '@unitae/ui'
 import { data, redirect, redirectDocument } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { generalPageSchema } from '~/features/settings/schemas/general-settings.schema'
-import { updateGeneralSettings } from '~/features/settings/server/general-settings.server'
+import { getGeneralSettings, updateGeneralSettings } from '~/features/settings/server/general-settings.server'
 import {
   getPasswordSecurityScope,
   updatePasswordSecurityScope,
@@ -21,7 +21,6 @@ import {
   permissionsContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
-import { unscopedDb } from '~/shared/infra/db.server'
 import { type BreachedPasswordCheckScope, CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Permission } from '~/shared/types/permission'
 import { Input } from '~/shared/ui/input'
@@ -43,21 +42,14 @@ export async function loader({ context }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  const fullCongregation = await unscopedDb.congregation.findUniqueOrThrow({
-    where: { id: congregation.id },
-    select: { displayName: true, locale: true, timezone: true, domain: true },
-  })
+  const general = await getGeneralSettings(congregation.id)
 
   const breachedPasswordCheckScope = await withScopeFromContext(context, (db, congregationId) =>
     getPasswordSecurityScope(db, congregationId),
   )
 
   return {
-    displayName: fullCongregation.displayName ?? '',
-    locale: fullCongregation.locale ?? 'fr',
-    timezone: fullCongregation.timezone ?? 'Europe/Paris',
-    domain: fullCongregation.domain ?? '',
-    showDomain: process.env.UNITAE_MULTI_TENANT === 'true',
+    ...general,
     breachedPasswordCheckScope,
   }
 }
@@ -81,7 +73,7 @@ const PASSWORD_SECURITY_SCOPES = [
 ] as const satisfies readonly { value: BreachedPasswordCheckScope; label: () => string; hint: () => string }[]
 
 export default function GeneralSettingsPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { displayName, locale, timezone, domain, showDomain, breachedPasswordCheckScope } = loaderData
+  const { displayName, locale, timezone, domain, address, breachedPasswordCheckScope } = loaderData
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -111,11 +103,11 @@ export default function GeneralSettingsPage({ loaderData, actionData }: Route.Co
               defaultValue={displayName}
             />
           </SettingsField>
-          {showDomain && (
+          {address && (
             <SettingsField
               id={fields.domain.id}
               label={m.settings_general_custom_domain_label()}
-              hint={m.settings_general_custom_domain_hint()}
+              hint={m.settings_general_custom_domain_hint({ address })}
               error={fields.domain.errors?.[0]}
               className="col-span-full"
             >

@@ -11,7 +11,7 @@ function defaultEmailFrom(): string {
 }
 
 // A tenant's subdomain of the instance's address, keeping its scheme and port.
-function tenantUrl(slug: string): string {
+export function tenantUrl(slug: string): string {
   const base = new URL(getBaseUrl())
   return `${base.protocol}//${slug}.${base.host}`
 }
