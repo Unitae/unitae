@@ -932,7 +932,7 @@
     "settings_general_language_hint": "Chacun peut choisir la sienne dans Mon compte.",
     "settings_general_timezone_label": "Fuseau horaire",
     "settings_general_custom_domain_label": "Domaine personnalisé",
-    "settings_general_custom_domain_hint": "Une adresse à vous pour ouvrir l’application, par exemple app.mon-assemblee.org.",
+    "settings_general_custom_domain_hint": "L’application s’ouvre toujours à {address}. Vous pouvez y ajouter une adresse à vous, par exemple app.mon-assemblee.org.",
     "settings_general_custom_domain_placeholder": "app.mon-assemblee.org",
     "settings_data_meta_title": "Import et export - Réglages - Unitae",
     "settings_data_subtitle": "Une archive de toutes les données de l’assemblée, pour la garder ou la reprendre ailleurs.",

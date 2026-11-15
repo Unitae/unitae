@@ -930,7 +930,7 @@
     "settings_general_language_hint": "Everyone can choose their own in My account.",
     "settings_general_timezone_label": "Timezone",
     "settings_general_custom_domain_label": "Custom domain",
-    "settings_general_custom_domain_hint": "An address of your own to open the app, for example app.my-congregation.org.",
+    "settings_general_custom_domain_hint": "The app always opens at {address}. You can add an address of your own, for example app.my-congregation.org.",
     "settings_general_custom_domain_placeholder": "app.my-congregation.org",
     "settings_data_meta_title": "Import and export - Settings - Unitae",
     "settings_data_subtitle": "An archive of all the congregation’s data, to keep it or take it elsewhere.",
