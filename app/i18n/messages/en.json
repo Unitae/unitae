@@ -4815,6 +4815,7 @@
     "attributions_row_return": "Return…",
     "attributions_search_placeholder": "Name or number…",
     "attributions_sort_date": "Assigned",
+    "attributions_sort_late": "Overdue",
     "attributions_sort_number": "Number",
     "attributions_sort_proximity": "Distance",
     "attributions_state_due_soon": "Due soon",

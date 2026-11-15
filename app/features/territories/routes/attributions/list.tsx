@@ -59,8 +59,8 @@ export function loader({ request, context }: Route.LoaderArgs) {
     const near = place.origin != null
     const sort = sortFromUrl(
       url,
-      near ? ['date', 'number', 'proximity'] : ['date', 'number'],
-      near ? 'proximity' : 'date',
+      near ? ['late', 'date', 'number', 'proximity'] : ['late', 'date', 'number'],
+      near ? 'proximity' : 'late',
     )
     const [phoneTypeActive, groups, campaigns, rows] = await Promise.all([
       getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId),
