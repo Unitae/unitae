@@ -316,7 +316,7 @@ The three list routes (`territory/list.tsx`, `attributions/list.tsx`, `attributi
 
 1. `classifySearch(?search)` → `intent`
 2. If `intent.geoQuery != null`, call `geocode(intent.geoQuery)` → `geocodeResult`
-3. Default sort = `'proximity'` when `geocodeResult != null`, else `'number'` or `'date'` (per-route default); `sortFromUrl` clamps to the per-route allowlist
+3. Default sort = `'proximity'` when `geocodeResult != null`, else the route's own default (`'late'` on the attribution list); each route clamps `?sort=` to the modes it offers — `sortFromUrl` on the attribution list, `parseTerritorySort` / `parseAssignableSort` on the others
 4. `proximityActive = geocodeResult != null && sort === 'proximity'`
 5. `geocodeNotice` is the discriminated union `{ kind: 'failed', query } | { kind: 'missing-query' }` rendered by the `GeocodeNotice` component above the filters
 6. The `ProximityBanner` renders whenever `geocodeResult != null` — even when the user reverted to the default sort — so the resolved address stays visible

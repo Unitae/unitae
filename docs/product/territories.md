@@ -68,7 +68,7 @@ When you type an address or a place name and a Google Maps API key is configured
 - A confirmation banner shows the resolved address ("Résultats à proximité de 12 Rue de la Paix, 75002 Paris"). If Google returns several possibilities, up to two *Did you mean?* chips appear so you can pick another match in one click. The same banner has an *Effacer la proximité* link to drop the geographic ranking and return to the default sort.
 - A **Distance** column appears with the distance to each territory, right-aligned and formatted in metres or kilometres depending on locale.
 - Territories whose addresses haven't been geo-coded yet are pushed below the ranked rows behind a *Sans coordonnées* divider, so you can still see them but won't mistake them for "the closest". On pages past the boundary, a banner at the top of the table reminds you that you're browsing the un-coord tail.
-- A **sort selector** lets you flip between *Numéro / Date* and *Proximité*. Proximity is preselected the moment Google returns a result.
+- A **sort selector** lets you switch to *Proximité* from the page's usual orders. Proximity is preselected the moment Google returns a result.
 
 Geocoded addresses are cached for 90 days — repeating the same search doesn't re-query the API. When no API key is configured, proximity ranking is silently disabled, and a small warning banner explains the fallback (text-only search still works).
 
@@ -249,6 +249,10 @@ and show a grey *En pause* badge in the attribution list. A manager can release 
 row's **Reprendre** action — the due date is pushed back by the time spent paused. Each campaign
 only ever resumes the assignments *it* paused: leftovers kept paused by an earlier campaign are
 never touched by a later one.
+
+The attribution list opens sorted by **Retard**: territories whose holder has left come first, since nobody will bring
+them back, then the others by due date, most overdue first, and the paused ones last, since their clock is frozen.
+*Sortie*, *Numéro* and, after an address search, *Proximité* remain available.
 
 The campaign page shows the campaign's status, its configured behavior in prose, its scope, and the
 **territories worked** during the campaign — who holds each one, checkout and return dates, and the
