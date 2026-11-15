@@ -20,9 +20,7 @@ export function paginationFromUrl(url: URL, count: number) {
   }
 }
 
-// Known sort modes. Pages may accept a subset (territory list takes
-// `number | proximity`; attribution list takes `late | date | number | proximity`).
-// Callers decide which mode to apply.
+// Every mode `sortFromUrl` can return; each caller passes the subset it offers.
 export type SortMode = 'number' | 'date' | 'late' | 'proximity'
 
 /**

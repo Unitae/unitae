@@ -104,7 +104,8 @@ interface Sortable {
   distance?: number | null
 }
 
-// Without a holder first: nobody will bring the territory back. A paused one cannot be late, its clock is frozen.
+// Without a holder first: nobody will bring the territory back. A paused one cannot be late, its clock is frozen, so it
+// goes last. The running ones share a rank: their state follows from the due day, which orders them already.
 const LATENESS_RANK: Record<AttributionState, number> = {
   orphaned: 0,
   overdue: 1,
@@ -114,9 +115,9 @@ const LATENESS_RANK: Record<AttributionState, number> = {
 }
 
 /**
- * The orders of the list: the latest first (those without a holder before all), the longest out first, by number the
- * way people count (T2 before T10), or the nearest to a searched address first, the territories without a known place
- * last.
+ * The orders of the list: by lateness (those without a holder first, then by due day, most overdue first, the paused
+ * last), the longest out first, by number the way people count (T2 before T10), or the nearest to a searched address
+ * first, the territories without a known place last.
  */
 export function sortAttributions<T extends Sortable>(rows: readonly T[], sort: AttributionSort, locale: string): T[] {
   const byNumber = (a: T, b: T) =>

@@ -73,7 +73,7 @@ describe('sortAttributions', () => {
     expect(numbers(sortAttributions(rows, 'date', 'fr'))).toEqual(['T3', 'T2', 'T10'])
   })
 
-  it('puts those without a holder first, then the latest, then by due day; the paused, which cannot be late, last', () => {
+  it('puts those without a holder first, then the running ones by due day, most overdue first; the paused, which cannot be late, last', () => {
     const rows = [
       row('T1', '2026-01-01', null, '2026-12-20', 'on-time'),
       row('T2', '2026-01-01', null, '2026-08-01', 'paused'),
@@ -82,8 +82,9 @@ describe('sortAttributions', () => {
       row('T5', '2026-01-01', null, '2026-11-20', 'due-soon'),
       row('T6', '2026-01-01', null, '2026-06-01', 'overdue'),
       row('T7', '2026-01-01', null, '2026-09-01', 'orphaned'),
+      row('T8', '2026-01-01', null, '2026-07-01', 'paused'),
     ]
-    expect(numbers(sortAttributions(rows, 'late', 'fr'))).toEqual(['T7', 'T4', 'T6', 'T3', 'T5', 'T1', 'T2'])
+    expect(numbers(sortAttributions(rows, 'late', 'fr'))).toEqual(['T7', 'T4', 'T6', 'T3', 'T5', 'T1', 'T8', 'T2'])
   })
 
   it('breaks a tie in lateness by number', () => {
