@@ -93,23 +93,37 @@ export function parseAttributionView(params: URLSearchParams): AttributionView {
   return 'all'
 }
 
-export const ATTRIBUTION_SORTS = ['date', 'number', 'proximity'] as const
+export const ATTRIBUTION_SORTS = ['late', 'date', 'number', 'proximity'] as const
 export type AttributionSort = (typeof ATTRIBUTION_SORTS)[number]
 
 interface Sortable {
   territory: { number: string }
   startDay: string
+  lateDay: string
+  state: AttributionState
   distance?: number | null
 }
 
+// Without a holder first: nobody will bring the territory back. A paused one cannot be late, its clock is frozen.
+const LATENESS_RANK: Record<AttributionState, number> = {
+  orphaned: 0,
+  overdue: 1,
+  'due-soon': 1,
+  'on-time': 1,
+  paused: 2,
+}
+
 /**
- * The orders of the list: the longest out first, by number the way people count (T2 before T10), or the nearest to a
- * searched address first, the territories without a known place last.
+ * The orders of the list: the latest first (those without a holder before all), the longest out first, by number the
+ * way people count (T2 before T10), or the nearest to a searched address first, the territories without a known place
+ * last.
  */
 export function sortAttributions<T extends Sortable>(rows: readonly T[], sort: AttributionSort, locale: string): T[] {
   const byNumber = (a: T, b: T) =>
     a.territory.number.localeCompare(b.territory.number, locale, { numeric: true, sensitivity: 'base' })
   const compare: Record<AttributionSort, (a: T, b: T) => number> = {
+    late: (a, b) =>
+      LATENESS_RANK[a.state] - LATENESS_RANK[b.state] || a.lateDay.localeCompare(b.lateDay) || byNumber(a, b),
     date: (a, b) => a.startDay.localeCompare(b.startDay) || byNumber(a, b),
     number: byNumber,
     proximity: (a, b) => distanceOrder(a.distance, b.distance) || byNumber(a, b),

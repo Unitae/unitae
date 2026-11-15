@@ -51,6 +51,7 @@ export function AttributionToolbar(props: AttributionToolbarProps) {
         <SortMenu
           value={sort}
           options={[
+            { value: 'late', label: m.attributions_sort_late() },
             { value: 'date', label: m.attributions_sort_date() },
             { value: 'number', label: m.attributions_sort_number() },
             ...(proximity ? [{ value: 'proximity' as const, label: m.attributions_sort_proximity() }] : []),

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { attributionState, parseAttributionView, sortAttributions, viewCounts } from './attribution-list'
+import {
+  type AttributionState,
+  attributionState,
+  parseAttributionView,
+  sortAttributions,
+  viewCounts,
+} from './attribution-list'
 
 // An open attribution as the managers' list reads it: whose it is, whether its clock runs, how close its due day is;
 // the four views over those states; and the orders the list offers.
@@ -47,16 +53,45 @@ describe('parseAttributionView', () => {
 })
 
 describe('sortAttributions', () => {
-  const row = (number: string, startDay: string, distance?: number | null) => ({
+  const row = (
+    number: string,
+    startDay: string,
+    distance?: number | null,
+    lateDay = '2027-01-01',
+    state: AttributionState = 'on-time',
+  ) => ({
     territory: { number },
     startDay,
     distance,
+    lateDay,
+    state,
   })
   const numbers = (rows: { territory: { number: string } }[]) => rows.map(r => r.territory.number)
 
   it('puts the longest out first, then numbers in natural order on the same day', () => {
     const rows = [row('T10', '2026-05-12'), row('T2', '2026-05-12'), row('T3', '2026-04-25')]
     expect(numbers(sortAttributions(rows, 'date', 'fr'))).toEqual(['T3', 'T2', 'T10'])
+  })
+
+  it('puts those without a holder first, then the latest, then by due day; the paused, which cannot be late, last', () => {
+    const rows = [
+      row('T1', '2026-01-01', null, '2026-12-20', 'on-time'),
+      row('T2', '2026-01-01', null, '2026-08-01', 'paused'),
+      row('T3', '2026-01-01', null, '2026-10-01', 'overdue'),
+      row('T4', '2026-01-01', null, '2026-12-01', 'orphaned'),
+      row('T5', '2026-01-01', null, '2026-11-20', 'due-soon'),
+      row('T6', '2026-01-01', null, '2026-06-01', 'overdue'),
+      row('T7', '2026-01-01', null, '2026-09-01', 'orphaned'),
+    ]
+    expect(numbers(sortAttributions(rows, 'late', 'fr'))).toEqual(['T7', 'T4', 'T6', 'T3', 'T5', 'T1', 'T2'])
+  })
+
+  it('breaks a tie in lateness by number', () => {
+    const rows = [
+      row('T10', '2026-01-01', null, '2026-10-01', 'overdue'),
+      row('T2', '2026-01-01', null, '2026-10-01', 'overdue'),
+    ]
+    expect(numbers(sortAttributions(rows, 'late', 'fr'))).toEqual(['T2', 'T10'])
   })
 
   it('sorts numbers the way people count: T2 before T10', () => {
