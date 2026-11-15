@@ -160,7 +160,7 @@ model Event {
 ```
 
 - One attendance row per event, created on the first count. Deleting an event deletes its counts —
-  an event is the meeting; no meeting, no attendance (guarded, §6.4).
+  an event is the meeting; no meeting, no attendance. Deleting a *programme* never deletes counts (§6.4).
 - **Writes are atomic per count.** The hall count and the online count routinely arrive at the same
   moment, so a count is written by an upsert keyed on `eventId` that touches only that count's three
   columns, and the « set by someone else » rule (§6.3) is a conditional update
@@ -334,23 +334,26 @@ audited as `AttendanceCorrected` with old and new values. The rule lives in
 `canCorrectAnyActivity`; actions delegate to it, so it is registered in `DELEGATES`
 (`check-action-permissions`) and `POLICY_HELPERS` (`check-permission-coverage`).
 
-### 6.4 Deleting an event that has counts
+### 6.4 Deleting a programme never deletes attendance
 
-Until the schedule refactor (§11), deleting a programme deletes its `Event`, and the cascade would
-take its counts with it — a secretary tidying old programmes would wipe the S-88 history. The guard
-sits in the server functions (`deleteEvent`, `bulkDeleteEvents` in `events/server/event-parts.server.ts`),
-not the routes:
+Programmes and attendance are unrelated: programme rights must not decide the fate of counts, and
+attendance rights must not be needed to tidy programmes. Until the schedule refactor (§11), though,
+« delete the programme » deletes its `Event`, and the cascade would take the counts with it. So the
+server functions (`deleteEvent`, `bulkDeleteEvents` in `events/server/event-parts.server.ts`) split
+the two:
 
-- Deleting a single event with counts needs an explicit confirmation flag, and the dialog says the
-  counts go too (« Cette réunion a une assistance enregistrée (119). Elle sera supprimée avec la
-  réunion. »). The dialog is a new component, not more lines in `view.tsx`.
-- Bulk delete leaves out events with counts and returns how many were kept; the route says so.
-- Deleting an event writes an `EventDeleted` audit entry, with the counts in its metadata, so
-  destroyed attendance leaves a trace (today `deleteEvent` audits nothing).
-- Deleting a future event without counts (an assembly week) is unchanged.
+- **Event without counts:** unchanged — the event is deleted (that is also how a future assembly week
+  is removed).
+- **Event with counts:** only the programme goes — its parts and service parts are deleted, the event
+  stays as a bare event (« <template name> · Pas encore de programme ») with its attendance intact.
+  No confirmation and no attendance right involved: nothing of the attendance is touched.
+- Bulk delete applies the same rule per event and reports how many were deleted and how many were
+  emptied.
+- The event's deletion or emptying is audited (`EventDeleted` / `ProgrammeRemoved`), as today's
+  `deleteEvent` audits nothing.
 
-Who may confirm is an open question (§13). This is a stopgap: once schedules exist, deleting a
-programme removes a schedule and never touches the event or its attendance.
+This is exactly what the schedule refactor will make structural: deleting a programme removes a
+schedule and never touches the event or its attendance.
 
 ## 7. Data & code changes
 
@@ -358,7 +361,7 @@ programme removes a schedule and never touches the event or its attendance.
 |---|---|
 | `schema.prisma` + migration | `Attendance` (+ RLS, standard `CASE WHEN` policy), `EventTemplate.attendanceKind` (+ CHECK, backfill by key), `EventTemplate.generatedUntil` (string day), `Event.createdById` nullable **with `onDelete: Restrict` kept**, `isRecurring` realigned to `weekDay IS NOT NULL` |
 | `events/model/` | `attendance-stats.ts` (monthly, yearly, comparison, online share, « Pas de réunion » gaps), `attendance-access.ts` (§6.3), `attendance-kind.type.ts`, an exported calendar-month adder |
-| `events/server/` | `attendance.aggregate.ts` (atomic per-count writes, audited), `attendance.queries.ts` (service year, meetings under way, last week's totals), `recurring-events.server.ts` (§5.3, shared by the job and both seeding paths), `recurring-events-queue.server.ts`, `attach-template-programme.server.ts`, move-future-events on template save, `generatedUntil` raised by series creation, bare-event reuse in `createProgrammeSeries` / `createProgrammeOnDay`, template deletion ignoring bare future events, delete guard (§6.4); new exports in `events/index.server.ts` |
+| `events/server/` | `attendance.aggregate.ts` (atomic per-count writes, audited), `attendance.queries.ts` (service year, meetings under way, last week's totals), `recurring-events.server.ts` (§5.3, shared by the job and both seeding paths), `recurring-events-queue.server.ts`, `attach-template-programme.server.ts`, move-future-events on template save, `generatedUntil` raised by series creation, bare-event reuse in `createProgrammeSeries` / `createProgrammeOnDay`, template deletion ignoring bare future events, programme deletion that keeps an event with counts (§6.4); new exports in `events/index.server.ts` |
 | `events/jobs/` + worker | `handle-recurring-events-work.server.ts`; `QUEUE_NAMES` entry; scheduler and its readiness entry in `workers/worker.server.ts` |
 | `events/attendance.routes.ts` + `events/routes/attendance/` | page, record/correct actions, `s88.pdf`, `export.xlsx`; registered in `app/routes.ts` |
 | `events/server/seed-templates.server.ts`, `duplicate-template.server.ts` | set / copy `attendanceKind` |
@@ -370,7 +373,7 @@ programme removes a schedule and never touches the event or its attendance.
 | Absence code | every `createdBy` read on day-offs keeps working on a nullable relation (day-offs always have a creator — guaranteed by `Restrict`); typecheck flags each site |
 | Data transfer | see §7.1 |
 | Demo seed | attendance for every counted past event, from aggregate figures |
-| Audit | `AttendanceRecorded`, `AttendanceCorrected`, `RecurringEventsCreated`, `EventsMoved`, `EventDeleted` — rows in `settings/model/audit-actions.ts` (group `programmes`) with fr/en labels; `Attendance` in `audit-entities.ts` |
+| Audit | `AttendanceRecorded`, `AttendanceCorrected`, `RecurringEventsCreated`, `EventsMoved`, `EventDeleted`, `ProgrammeRemoved` — rows in `settings/model/audit-actions.ts` (group `programmes`) with fr/en labels; `Attendance` in `audit-entities.ts` |
 | CI scripts | `attendance` in `AGGREGATE_MODELS`; the access helper in `DELEGATES` / `POLICY_HELPERS`; queue and job handler covered by co-located tests |
 | Docs | `CLAUDE.md` and `permissions-and-roles.md` (45 → 48 permissions), `row-level-security.md` table list, `data-transfer.md` (version, files, the templates row that wrongly says « Skip ») |
 
@@ -428,7 +431,7 @@ new schema:
 
 | PR | Content |
 |---|---|
-| 1 | Schema + migration (incl. `isRecurring` realignment), stats and access model, attendance aggregate and queries (TDD), template « Assistance » select, seeding/duplicate of `attendanceKind`, data transfer of `attendance` and `attendanceKind` (archive 2.15), demo seed, delete guard |
+| 1 | Schema + migration (incl. `isRecurring` realignment), stats and access model, attendance aggregate and queries (TDD), template « Assistance » select, seeding/duplicate of `attendanceKind`, data transfer of `attendance` and `attendanceKind` (archive 2.15), demo seed, programme deletion that keeps counts (§6.4) |
 | 2 | Recurring-events job, queue and readiness, seeding of the first 2 months on both paths, `generatedUntil` raised by series creation, bare-event reuse, « Créer le programme », move future events on template save, template deletion with bare events, import of null/unmapped creators and bare-event replacement |
 | 3 | Permissions + category label « Réunions », dashboard card, « Assistance » page and side panel, recorder-only view, programme line + switch, sidebar « Réunions » |
 | 4 | S-88 PDF and Excel exports |
@@ -455,7 +458,7 @@ backfill (expand/contract over several releases); drop the old columns. **`Atten
 - **Service:** record/correct permissions, audit entries and the atomic write (two first counts
   arriving together both stick); attach-template-programme on a bare event; `createProgrammeOnDay`
   reusing a bare event; template-save move offer counts only bare future events; template deletion
-  with only bare events; delete guard (single needs confirmation, bulk keeps events with counts).
+  with only bare events; delete rule (an event with counts loses only its programme, single and bulk).
 - **Integration:** RLS on `Attendance`; job end to end on a scratch congregation; job and series
   creation concurrently on one template; account deletion with day-offs still refused
   (`Restrict`); import/export round-trip including null creators, a pre-2.15 archive, and an import
@@ -470,6 +473,7 @@ without programme reads « <template name> · Pas encore de programme » (§5.3)
 recurring-events job off: bare events are drafts, invisible outside the programme list, and they are
 what the attendance card records against.
 
-1. **Deleting an event with counts (§6.4):** a programme manager without `can-correct-attendance`
-   can today delete any event they manage. Should confirming the loss of counts require
-   `can-correct-attendance`, or is the confirmation dialog enough?
+Also decided: deleting a programme never deletes attendance — an event with counts loses only its
+programme (§6.4); programme and attendance rights stay unrelated.
+
+No open question remains.
