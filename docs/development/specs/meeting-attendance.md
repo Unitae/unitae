@@ -60,23 +60,33 @@ template settings nor the attendance page grant anything.
   gives every congregation `midweek-meeting` and `weekend-meeting` (recurring, with `weekDay`,
   `startTime`, `endTime`) and `memorial` (one-off, `weekDay: null`). `day-off` and `freeform` are
   system templates (`SYSTEM_TEMPLATE_KEYS`), read-only except their colour.
-- **`EventTemplate.isRecurring`** is not a separate control: saving a template sets it to
-  `data.weekDay != null` (`settings/server/event-template.server.ts:21`). « Recurring » means « has a
-  weekday ».
+- **`EventTemplate.isRecurring`** is not a separate control, and the column drifts: it is set to
+  `data.weekDay != null` **on create only** (`settings/server/event-template.server.ts:21`);
+  `updateTemplate` (`events/server/event-templates.server.ts`) never recomputes it, while seed,
+  duplicate and import copy whatever they are given. The code that decides recurrence ignores the
+  column and tests `weekDay != null` (`isRecurring()` in `events/model/programme-creation.ts:44`,
+  the series filter in `programme-creation.server.ts`). « Recurring » means « has a weekday ».
 - **Each meeting held is an `Event`** with its real `startDate`/`endDate`. Series creation
-  (`events/model/programme-creation.ts` → `plannedSeries`, `daysOnWeekday`; server
-  `programme-creation.server.ts` → `createProgramme`) creates one event per day **with its parts and
-  service parts copied from the template**. A day the person « passes » (a circuit assembly week)
-  leaves no row at all. Local times go through `combineLocalDateTime(day, time, timezone)` with
-  `Congregation.timezone`.
+  (`plannedSeries` in `events/model/programme-creation.ts`; `daysOnWeekday` and `programmeKey` in
+  `events/model/programme-dates.ts`; server `createProgrammeSeries` / `createProgrammeOnDay` →
+  private `createProgramme` in `programme-creation.server.ts`) creates one event per day **with its
+  parts and service parts copied from the template**, `createdById: ctx.actorId` (a required
+  `number`). A day the person « passes » (a circuit assembly week) leaves no row at all. There is no
+  unique key on `(templateId, day)`. Local times go through `combineLocalDateTime(day, time,
+  timezone)` with `Congregation.timezone`; days are `YYYY-MM-DD` strings (`dayOf`, `startOfDay`,
+  `endOfDay` in `shared/utils/calendar-day.ts`).
 - **`Event.status`** (`draft` | `released`) publishes the whole event. Drafts are invisible to the
   board, notifications and publisher-facing dashboards.
 - **`Event.createdById` is required** and points to a `UserAccount`. For meetings it is only
   provenance; for **day-offs it is the owner** — absences resolve to a person through
   `Event.createdBy.memberId` (`refresh-conflict-flags.server.ts`, `slot-candidate-facts.server.ts`,
   `event-part-assignments.server.ts`, `member-engagement.queries.ts`, `days-off.*`,
-  `personal-assignments.server.ts`). `import-events.server.ts` **skips** an event whose creator is
-  not in the archive.
+  `personal-assignments.server.ts`); no other app code reads `Event.createdBy`. The foreign key is
+  `ON DELETE RESTRICT` (init migration), and account deletion deletes the `UserAccount` row
+  (`delete-account.server.ts`, `unlink-account-from-member.server.ts`). `import-events.server.ts`
+  **skips** an event whose creator is not in the archive.
+- **Templates in use:** `deleteTemplate` refuses while the template has any event
+  (`delete-template.server.ts`), and the template page disables the button on the same count.
 - **Dashboard:** `getNextMeeting` (`dashboard/server/dashboard.server.ts`) selects
   `startDate >= now` and `status = released` — a meeting **under way** is never returned.
   `nextMeetingForViewer` trims it per viewer.
@@ -89,10 +99,16 @@ template settings nor the attendance page grant anything.
   receive new permissions without any grant.
 - **Background jobs:** daily schedules are registered with `upsertJobScheduler` in
   `app/workers/worker.server.ts` (retention at 03:00 UTC, campaigns at `CAMPAIGN_CRON_HOUR_UTC = 2`).
-  `audit()` accepts a missing `actorId` (system action).
+  Both iterate active, non-suspended congregations with a per-tenant try/catch and a
+  `SYSTEM_ACTOR_ID`, and are listed in the worker's readiness `schedulers`. `audit()` accepts a
+  missing `actorId` (system action).
 - **Exports:** `exceljs` already backs the yearly activity export and the territory S-13;
-  react-pdf backs the PDF exports. `serviceYearMonths()` lives in
-  `publishers/model/pioneer-pace.ts` (not importable from `events` across the feature boundary).
+  react-pdf backs the PDF exports. `serviceYearMonths()` and `toServiceYear()` live in
+  `publishers/model/pioneer-pace.ts` and are exported from the publishers barrel.
+- **CI gates that this spec touches:** `test:permission-coverage` fails on a permission nothing
+  enforces; `test:action-permissions` needs access helpers registered (`DELEGATES`); the audit
+  catalogue test requires a row per `AuditAction`; `test:service-test-coverage` covers queue files
+  and job handlers.
 
 ## 5. Design overview
 
@@ -106,9 +122,11 @@ model Attendance {
 
   // Null = not entered yet, never 0. Both must be set for the meeting to count in averages.
   inPerson         Int?
-  inPersonById     Int?        // UserAccount — who entered or last changed it
+  inPersonBy       UserAccount? @relation("attendanceInPerson", fields: [inPersonById], references: [id], onDelete: SetNull)
+  inPersonById     Int?        // who entered or last changed it; null once that account is deleted
   inPersonAt       DateTime?
   online           Int?
+  onlineBy         UserAccount? @relation("attendanceOnline", fields: [onlineById], references: [id], onDelete: SetNull)
   onlineById       Int?
   onlineAt         DateTime?
 
@@ -125,21 +143,30 @@ model EventTemplate {
   // …existing fields
   // 'none' | 'midweek' | 'weekend' | 'separate'. Constrained in SQL by a CHECK, like TemplateResponsible.scope.
   attendanceKind String    @default("none")
-  // How far the recurring-events job has created this template's events: a local day, inclusive.
-  // Date-only on purpose — a timestamp holding "a day" is the midnight-UTC trap absence.ts documents.
-  generatedUntil DateTime? @db.Date
+  // How far recurring events exist for this template: a local day `YYYY-MM-DD`, inclusive.
+  // A string like every other "day" in the events model — never a timestamp read through the zone
+  // helpers (the midnight-UTC trap absence.ts documents).
+  generatedUntil String?
 }
 
 model Event {
   // …existing fields
-  createdBy   UserAccount? @relation("createdBy", fields: [createdById], references: [id])
-  createdById Int?          // null = created by the recurring-events job
+  // onDelete stays Restrict, written out: an optional relation defaults to SetNull, which would
+  // empty the owner of every day-off when an account is deleted.
+  createdBy   UserAccount? @relation("createdBy", fields: [createdById], references: [id], onDelete: Restrict)
+  createdById Int?          // null = created by the recurring-events job; day-offs always have one
   attendance  Attendance?
 }
 ```
 
 - One attendance row per event, created on the first count. Deleting an event deletes its counts —
-  an event is the meeting; no meeting, no attendance.
+  an event is the meeting; no meeting, no attendance (guarded, §6.4).
+- **Writes are atomic per count.** The hall count and the online count routinely arrive at the same
+  moment, so a count is written by an upsert keyed on `eventId` that touches only that count's three
+  columns, and the « set by someone else » rule (§6.3) is a conditional update
+  (`… WHERE inPerson IS NULL OR inPersonById = actor`), never a read-modify-write.
+- `attendance` joins `AGGREGATE_MODELS` (`scripts/check-aggregate-boundaries.ts`), so writes outside
+  `attendance.aggregate.ts` fail CI.
 - **No `held` flag.** No meeting means no event. The greyed « Pas de réunion » row on the attendance
   page is **computed**: a week missing from a recurring counted template's run, between its first
   and last event of the period.
@@ -160,8 +187,9 @@ A new « Assistance » select on each template in Réglages › Programmes:
 | `separate` | Comptée à part | Entered and listed under « Comptées à part », kept out of averages and the S-88 (Mémorial) |
 
 The migration pre-fills it from the seeded keys: `midweek-meeting` → `midweek`, `weekend-meeting` →
-`weekend`, `memorial` → `separate`, everything else → `none`. System templates are forced to `none`
-(the field is not editable on them). A special talk is held at the weekend meeting, so it counts as
+`weekend`, `memorial` → `separate`, everything else → `none`. The backfill only covers existing rows,
+so `seedDefaultTemplates` sets the same values on the seeded keys and `duplicateTemplate` copies the
+field. System templates are forced to `none` (the field is not editable on them). A special talk is held at the weekend meeting, so it counts as
 an ordinary weekend meeting with no extra rule.
 
 ### 5.3 Recurring events are created automatically
@@ -169,38 +197,66 @@ an ordinary weekend meeting with no extra rule.
 A daily worker job (`recurring-events`, registered with `upsertJobScheduler`, at 01:00 UTC — before
 campaigns and retention) keeps every recurring template's events created **2 months ahead**.
 
-For each non-suspended congregation, inside `withScope`, for each template with
-`isRecurring = true` and `weekDay != null`:
+**The high-water mark.** `generatedUntil` means « events of this template exist, or were
+deliberately left out, up to this day ». It is the only thing that keeps the job from refilling a
+week someone removed, so **every path that creates a template's events raises it**:
 
-1. `from` = the day after `generatedUntil`; on the first run, the day after the template's last
-   existing event, or today if it has none. Never before today.
-2. `to` = today + 2 months (congregation's local day).
-3. For each `daysOnWeekday(weekDay, from, to)` with no event of that template that day
+- the job: `generatedUntil = to` after its run;
+- series creation (`createProgrammeSeries`, `createProgrammeOnDay`):
+  `generatedUntil = max(generatedUntil, last day of the series)` — so a day passed in a series
+  that runs beyond the horizon is never filled later;
+- first run, when `generatedUntil` is null: `max(to, the template's last existing event day)`.
+
+**The run.** For each congregation with `active: true, suspendedAt: null` (selecting its
+`timezone`), inside `withScope`, with a per-congregation try/catch and `SYSTEM_ACTOR_ID` like the
+retention and campaign jobs; for each template with `weekDay != null` and a key outside
+`SYSTEM_TEMPLATE_KEYS` (the same rule as series creation — the drifting `isRecurring` column is not
+used, §4):
+
+1. Lock the template row (`SELECT … FOR UPDATE`), so the job and a concurrent series creation
+   cannot both create the same day — there is no unique key on `(templateId, day)`.
+2. `today` = `dayOf(new Date(), timezone)`; `from` = the day after `generatedUntil` (or after the
+   last existing event, on the first run), never before `today`.
+3. `to` = `today` + 2 months, by calendar month (a small exported month adder next to `monthEnd`).
+4. For each `daysOnWeekday(weekDay, from, to)` with no event of that template that day
    (`programmeKey`), create a **bare event**: template name, template hours via
-   `combineLocalDateTime`, `status: draft`, `createdById: null`, no parts, no service parts.
-4. Set `generatedUntil = to`. One system `audit()` per template run (count in metadata).
+   `combineLocalDateTime`, `status: draft`, `createdById: null`, no parts, no service parts. The job
+   has its own create path; series creation keeps requiring an actor.
+5. Raise `generatedUntil` (above). One system `audit()` per template run (count in metadata).
+
+PR 1 also realigns the `isRecurring` column with the rule (`updateTemplate` recomputes it from
+`weekDay`; the migration sets it to `weekDay IS NOT NULL`), so the column stops contradicting
+behaviour.
 
 Consequences:
 
-- **A deleted event never comes back** — the job only moves forward past `generatedUntil`. Deleting
-  the assembly week's meeting is how a congregation says « no meeting ».
+- **A deleted event never comes back** — nothing creates a day at or below `generatedUntil`.
+  Deleting the assembly week's meeting is how a congregation says « no meeting ».
 - **A moved event stays moved** (a circuit overseer's Tuesday): the job never edits existing rows.
-- A new congregation gets its first 2 months at registration (run the same function once from the
-  seed path).
+- **New congregations** get their first 2 months from the same function, called from both seeding
+  paths in this repo (`register-congregation.server.ts`, `setup-first-account.server.ts`). Any other
+  provisioning path that seeds templates outside this repository must do the same, and set
+  `attendanceKind` on the seeded keys.
+- **Seeded weekdays** are Tuesday and Saturday; a congregation that never adjusted its templates gets
+  bare events on those days until it does — the move offer below fixes them in one step.
 - **Template weekday or hours change:** the save offers « Déplacer les N réunions à venir ». It
   moves each future event of the template that is still bare (no parts, no service parts, no
   attendance, `draft`) to the new weekday **within its own week** and to the new hours, so deleted
   weeks stay deleted. Events with a programme are never moved.
-- **Series creation and bare events:** `plannedSeries` treats an existing event as « already
-  there ». An existing **bare** event must instead receive the template's parts and service parts
-  (the event is reused, not duplicated). The same copy is exposed per event as « Créer le
-  programme » on an event with no parts — the programme list shows such events, never hides them,
-  labelled with the template's name and « Pas encore de programme » (e.g. « Réunion de semaine ·
-  Pas encore de programme ») instead of a draft status.
+- **Deleting a template:** bare future events do not count as « in use »; deleting the template
+  deletes them with it. Any other event still blocks the deletion, as today.
+- **Series creation and bare events:** both `createProgrammeSeries` (which counts an existing event
+  as « existing ») and `createProgrammeOnDay` (which throws `ProgrammeExistsError`) must instead
+  give an existing **bare** event the template's parts and service parts — the event is reused, not
+  duplicated. The same copy is exposed per event as « Créer le programme » on an event with no
+  parts. The programme list shows such events, never hides them, labelled with the template's name
+  and « Pas encore de programme » (e.g. « Réunion de semaine · Pas encore de programme ») instead of
+  a draft status.
 
 ### 5.4 Screens
 
-Mockups: design canvas, page « Assistance aux réunions » (three artboards).
+Mockups: design canvas, page « Assistance aux réunions » (three artboards). The examples below come
+from a congregation meeting on Thursday and Sunday; the seeded defaults are Tuesday and Saturday.
 
 - **Sidebar:** the « Programmes » group becomes **« Réunions »**: Programmes, Absences, Orateurs
   extérieurs, **Assistance**. Same rename for the permission category (§8).
@@ -208,8 +264,9 @@ Mockups: design canvas, page « Assistance aux réunions » (three artboards).
   `can-correct-attendance`: appears at the event's `startDate` and stays until the end of that local
   day, for every event of a counted template (any status — a draft programme's meeting still
   happens). Two large numeric fields, each saved on its own, with « Par vous à 10:44 » under a saved
-  one; a complete state (total, « modifiable jusqu’à minuit »). Needs a new query, « meetings under
-  way today », beside `getNextMeeting`.
+  one; a complete state (total, « modifiable jusqu’à minuit »). It reads « meetings under way
+  today » from `attendance.queries.ts` through the events server barrel — one query, used by the card
+  and the recorder-only page.
 - **« Assistance » page** (`/attendance`), with `can-view-attendance`:
   - title row: service-year stepper (« Année de service 2026–2027 »); top bar: « Exporter » menu
     (S-88 PDF, Excel);
@@ -246,7 +303,9 @@ Mockups: design canvas, page « Assistance aux réunions » (three artboards).
 
 - A meeting **counts** when its template is `midweek` or `weekend` **and** both counts are set.
 - A meeting belongs to the month of its **local** start date (congregation time zone).
-- Service year: September → August (`serviceYearMonths`, moved to `shared/` so both features use it).
+- Service year: September → August (`serviceYearMonths` / `toServiceYear`, already exported from the
+  publishers barrel; importing them is allowed. Moving them to `shared/` is optional tidying, to avoid
+  deepening the existing two-way coupling between `events` and `publishers`).
 
 ### 6.2 Figures
 
@@ -262,55 +321,84 @@ Mockups: design canvas, page « Assistance aux réunions » (three artboards).
 
 | Situation | `can-record-attendance` | `can-correct-attendance` |
 |---|---|---|
+| Before the meeting starts | nothing | set or change anything |
 | Meeting under way, count empty | set it | set it |
 | Meeting under way, count set by the same account | change it | change it |
 | Meeting under way, count set by someone else | read only | change it |
 | After local midnight of the meeting day | nothing | set or change anything |
 
-The entry window is `[event.startDate, end of the event's local day]`. Corrections outside the
-window, or of another account's count, are audited as `AttendanceCorrected` with old and new values.
+The entry window is `[event.startDate, endOfDay(dayOf(event.startDate, tz), tz)]` (helpers in
+`shared/utils/calendar-day.ts`). Corrections outside the window, or of another account's count, are
+audited as `AttendanceCorrected` with old and new values. The rule lives in
+`events/model/attendance-access.ts`, mirroring the activity pair `canRecordAnyActivity` /
+`canCorrectAnyActivity`; actions delegate to it, so it is registered in `DELEGATES`
+(`check-action-permissions`) and `POLICY_HELPERS` (`check-permission-coverage`).
 
 ### 6.4 Deleting an event that has counts
 
 Until the schedule refactor (§11), deleting a programme deletes its `Event`, and the cascade would
-take its counts with it — a secretary tidying old programmes (`programs/bulk-delete`) would wipe the
-S-88 history. So:
+take its counts with it — a secretary tidying old programmes would wipe the S-88 history. The guard
+sits in the server functions (`deleteEvent`, `bulkDeleteEvents` in `events/server/event-parts.server.ts`),
+not the routes:
 
-- Deleting a single event with counts asks for confirmation and says the counts are deleted too
-  (« Cette réunion a une assistance enregistrée (119). Elle sera supprimée avec la réunion. »).
-- Bulk delete leaves out events with counts and says how many were kept.
+- Deleting a single event with counts needs an explicit confirmation flag, and the dialog says the
+  counts go too (« Cette réunion a une assistance enregistrée (119). Elle sera supprimée avec la
+  réunion. »). The dialog is a new component, not more lines in `view.tsx`.
+- Bulk delete leaves out events with counts and returns how many were kept; the route says so.
+- Deleting an event writes an `EventDeleted` audit entry, with the counts in its metadata, so
+  destroyed attendance leaves a trace (today `deleteEvent` audits nothing).
 - Deleting a future event without counts (an assembly week) is unchanged.
 
-This is a stopgap: once schedules exist, deleting a programme removes a schedule and never touches
-the event or its attendance.
+Who may confirm is an open question (§13). This is a stopgap: once schedules exist, deleting a
+programme removes a schedule and never touches the event or its attendance.
 
 ## 7. Data & code changes
 
 | Area | Change |
 |---|---|
-| `schema.prisma` + migration | `Attendance` (+ RLS), `EventTemplate.attendanceKind` (+ CHECK, backfill by key), `EventTemplate.generatedUntil`, `Event.createdById` nullable, `Permission` rows for the three keys |
-| `events/model/` | `attendance-stats.ts` (monthly, yearly, comparison, online share, « Pas de réunion » gaps), `attendance-window.ts` (§6.3), `attendance-kind.type.ts` |
-| `events/server/` | `attendance.aggregate.ts` (record, correct — audited), `attendance.queries.ts` (service year, meetings under way), `recurring-events.server.ts` (§5.3, shared by the job and registration), `attach-template-programme.server.ts` (copy parts onto a bare event), move-future-events on template save |
-| `events/jobs/` | `handle-recurring-events-work.server.ts`; scheduler in `workers/worker.server.ts` |
+| `schema.prisma` + migration | `Attendance` (+ RLS, standard `CASE WHEN` policy), `EventTemplate.attendanceKind` (+ CHECK, backfill by key), `EventTemplate.generatedUntil` (string day), `Event.createdById` nullable **with `onDelete: Restrict` kept**, `isRecurring` realigned to `weekDay IS NOT NULL` |
+| `events/model/` | `attendance-stats.ts` (monthly, yearly, comparison, online share, « Pas de réunion » gaps), `attendance-access.ts` (§6.3), `attendance-kind.type.ts`, an exported calendar-month adder |
+| `events/server/` | `attendance.aggregate.ts` (atomic per-count writes, audited), `attendance.queries.ts` (service year, meetings under way, last week's totals), `recurring-events.server.ts` (§5.3, shared by the job and both seeding paths), `recurring-events-queue.server.ts`, `attach-template-programme.server.ts`, move-future-events on template save, `generatedUntil` raised by series creation, bare-event reuse in `createProgrammeSeries` / `createProgrammeOnDay`, template deletion ignoring bare future events, delete guard (§6.4); new exports in `events/index.server.ts` |
+| `events/jobs/` + worker | `handle-recurring-events-work.server.ts`; `QUEUE_NAMES` entry; scheduler and its readiness entry in `workers/worker.server.ts` |
 | `events/attendance.routes.ts` + `events/routes/attendance/` | page, record/correct actions, `s88.pdf`, `export.xlsx`; registered in `app/routes.ts` |
-| `events/routes/programs/` | delete and bulk delete guard events with counts (§6.4) |
-| `dashboard/` | meetings-under-way card + server function |
-| `display-board/` | programme document line (setting on) |
-| `settings/` | template « Assistance » select; programme switch; `CongregationSettingKey.ProgrammeShowsAttendance` |
-| `shared/` | `serviceYearMonths` moved out of `publishers/model`; permission enum, descriptions, category label « Réunions » / « Meetings » |
-| Absence code | every `createdBy.memberId` read on day-offs keeps working on a nullable relation (day-offs always have a creator); typecheck flags each site |
-| Data transfer | export/import `attendance.ndjson`; `attendanceKind` on templates; `import-events` accepts a null creator for non-day-off events instead of skipping them |
+| `events/server/seed-templates.server.ts`, `duplicate-template.server.ts` | set / copy `attendanceKind` |
+| `events/server/event-templates.server.ts` | `updateTemplate` recomputes `isRecurring` from `weekDay` |
+| `dashboard/` | meetings-under-way card (reads the events query) |
+| `display-board/` | programme document line (setting on), in a new file — `dynamic-documents.server.ts` is already large (exempt from the size check) |
+| `settings/` | template « Assistance » select (new component, not more lines in `templates/edit.tsx`); programme switch; `CongregationSettingKey.ProgrammeShowsAttendance` |
+| `shared/types/` | permission enum, `permission_desc_*` messages (fr + en), `PERMISSION_TO_CATEGORY`, category label « Réunions » / « Meetings » |
+| Absence code | every `createdBy` read on day-offs keeps working on a nullable relation (day-offs always have a creator — guaranteed by `Restrict`); typecheck flags each site |
+| Data transfer | see §7.1 |
 | Demo seed | attendance for every counted past event, from aggregate figures |
-| `CLAUDE.md` | permission count (45 → 48) |
-| Audit | `AttendanceRecorded`, `AttendanceCorrected`, `RecurringEventsCreated`, `EventsMoved`; entity name for `Attendance` in the journal |
+| Audit | `AttendanceRecorded`, `AttendanceCorrected`, `RecurringEventsCreated`, `EventsMoved`, `EventDeleted` — rows in `settings/model/audit-actions.ts` (group `programmes`) with fr/en labels; `Attendance` in `audit-entities.ts` |
+| CI scripts | `attendance` in `AGGREGATE_MODELS`; the access helper in `DELEGATES` / `POLICY_HELPERS`; queue and job handler covered by co-located tests |
+| Docs | `CLAUDE.md` and `permissions-and-roles.md` (45 → 48 permissions), `row-level-security.md` table list, `data-transfer.md` (version, files, the templates row that wrongly says « Skip ») |
+
+### 7.1 Data transfer
+
+- `ARCHIVE_VERSION` 2.14 → 2.15; 2.14 joins `SUPPORTED_ARCHIVE_VERSIONS`; `attendance` in
+  `ENTITY_FILES`; its export step comes after `events` in `buildExportSteps`.
+- `inPersonById` / `onlineById` are remapped through `idMap.getOptional('user-accounts', …)`; an
+  unmapped account becomes null.
+- Templates: `attendanceKind` is exported. Importing a pre-2.15 archive must not overwrite an existing
+  template's value (the same `record.x != null` guard as `color`), and templates it creates get the
+  key-based defaults. `generatedUntil` is **not** exported: a null mark makes the first run start after
+  the last imported event.
+- Events: a creator that is null **or unmapped** becomes null for non-day-off events instead of
+  skipping the event (day-offs without an owner are still skipped).
+- **No duplicates:** a fresh congregation already has bare events from seeding (§5.3). Importing an
+  event on the same `programmeKey` as a bare event replaces the bare event instead of adding a second
+  one.
+- `import-congregation.server.ts` is at 346 of 350 lines: the attendance step goes in its own
+  `import-attendance.server.ts`, like the other steps.
 
 ## 8. Permissions
 
-| Key | Label (FR) | Description |
-|---|---|---|
-| `can-record-attendance` | Saisir l’assistance | Les nombres de la réunion en cours, jusqu’à minuit. |
-| `can-correct-attendance` | Corriger l’assistance | Toute réunion, à tout moment. Chaque correction va au journal. |
-| `can-view-attendance` | Consulter l’assistance | Moyennes, historique, exports S-88 et Excel. |
+| Key | Description shown on « Rôles et autorisations » (`permission_desc_*`, fr) |
+|---|---|
+| `can-record-attendance` | Saisir l’assistance de la réunion en cours, jusqu’à minuit. |
+| `can-correct-attendance` | Corriger l’assistance de toute réunion, à tout moment. Chaque correction va au journal. |
+| `can-view-attendance` | Consulter l’assistance : moyennes, historique, exports S-88 et Excel. |
 
 - Category `programs`, relabelled **« Réunions »** (key unchanged — label only, no data change);
   11 permissions after this spec.
@@ -318,24 +406,31 @@ the event or its attendance.
   the attendance page).
 - The migration inserts the `Permission` rows only. Admins hold them through `can-do-anything`; each
   congregation then grants them to its own roles.
+- They ship with the first route that enforces them (PR 3): `test:permission-coverage` fails on a
+  permission nothing enforces.
 
 ## 9. Deployment safety
 
 The migration runs before the running image is replaced, so the old image must keep working on the
 new schema:
 
-- **PR 1** makes `createdById` nullable but writes no null; old code never meets one.
-- The recurring-events job (the first writer of null creators) ships in a **later PR**, once the image
-  that reads `createdBy` as optional is the one running.
+- **`onDelete: Restrict` is written out** on the now-optional `Event.createdBy`. Without it Prisma
+  emits `ON DELETE SET NULL`, and deleting an account would empty the owner of its day-offs — which
+  the absences list (old and new image alike) reads without a null check.
+- **PR 1** makes `createdById` nullable but nothing writes a null: the job, the import change for
+  null or unmapped creators and the seeding of bare events all ship in **PR 2**, once the image that
+  reads `createdBy` as optional is the one running.
+- Any other service that reads `Event` through its own copy of the schema must have that copy
+  refreshed and deployed before PR 2's first null creator is written.
 - `attendanceKind` and `generatedUntil` are additive with defaults; `Attendance` is a new table.
 
 ## 10. Phasing
 
 | PR | Content |
 |---|---|
-| 1 | Schema + migration, permissions + category label, `serviceYearMonths` move, stats/window model, attendance aggregate and queries (TDD), template « Assistance » select, data transfer, demo seed |
-| 2 | Recurring-events job + registration seeding, bare-event reuse in series creation, « Créer le programme », move future events on template save |
-| 3 | Dashboard card, « Assistance » page and side panel, recorder-only view, programme line + switch, sidebar « Réunions » |
+| 1 | Schema + migration (incl. `isRecurring` realignment), stats and access model, attendance aggregate and queries (TDD), template « Assistance » select, seeding/duplicate of `attendanceKind`, data transfer of `attendance` and `attendanceKind` (archive 2.15), demo seed, delete guard |
+| 2 | Recurring-events job, queue and readiness, seeding of the first 2 months on both paths, `generatedUntil` raised by series creation, bare-event reuse, « Créer le programme », move future events on template save, template deletion with bare events, import of null/unmapped creators and bare-event replacement |
+| 3 | Permissions + category label « Réunions », dashboard card, « Assistance » page and side panel, recorder-only view, programme line + switch, sidebar « Réunions » |
 | 4 | S-88 PDF and Excel exports |
 
 ## 11. Later: schedules (agreed direction, separate spec)
@@ -352,13 +447,19 @@ backfill (expand/contract over several releases); drop the old columns. **`Atten
 ## 12. Testing
 
 - **Unit (TDD):** stats (counted vs partial meetings, month by local date across a DST change,
-  year average vs average of averages, comparison window, gaps), entry window (before start, during,
-  after local midnight, other account), recurring-events planning (first run after last event,
-  deleted day not recreated, moved event untouched, suspended congregation skipped), move-in-week.
-- **Service:** record/correct permissions and audit entries; attach-template-programme on a bare
-  event; template-save move offer counts only bare future events.
-- **Integration:** RLS on `Attendance`; job end to end on a scratch congregation; import/export
-  round-trip including null creators.
+  year average vs average of averages, comparison window, gaps); access rule (before start, during,
+  after local midnight, other account's count); recurring-events planning (first run after the last
+  event, first run with programmes beyond the horizon, deleted day not recreated, a day passed in a
+  series past the horizon never refilled, moved event untouched, suspended or inactive congregation
+  skipped, system templates skipped); move-in-week; calendar-month adder.
+- **Service:** record/correct permissions, audit entries and the atomic write (two first counts
+  arriving together both stick); attach-template-programme on a bare event; `createProgrammeOnDay`
+  reusing a bare event; template-save move offer counts only bare future events; template deletion
+  with only bare events; delete guard (single needs confirmation, bulk keeps events with counts).
+- **Integration:** RLS on `Attendance`; job end to end on a scratch congregation; job and series
+  creation concurrently on one template; account deletion with day-offs still refused
+  (`Restrict`); import/export round-trip including null creators, a pre-2.15 archive, and an import
+  over seeded bare events.
 - **E2E:** recorder enters the hall count from the dashboard card and a second account the online
   count; corrector fixes a past meeting from the side panel.
 
@@ -369,4 +470,6 @@ without programme reads « <template name> · Pas encore de programme » (§5.3)
 recurring-events job off: bare events are drafts, invisible outside the programme list, and they are
 what the attendance card records against.
 
-No open question remains.
+1. **Deleting an event with counts (§6.4):** a programme manager without `can-correct-attendance`
+   can today delete any event they manage. Should confirming the loss of counts require
+   `can-correct-attendance`, or is the confirmation dialog enough?
