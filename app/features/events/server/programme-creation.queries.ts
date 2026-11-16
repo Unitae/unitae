@@ -39,15 +39,23 @@ export async function getProgrammeCreationData(
   if (rows.length === 0) return { templates: [], existing: [] }
 
   const ids = rows.map(row => row.id)
+  // Only events with a programme: a meeting the recurring-events job created ahead is a day still to prepare, which
+  // the series fills rather than starting after it.
+  const hasProgramme = { OR: [{ eventParts: { some: {} } }, { eventServiceParts: { some: {} } }] }
   const [latest, upcoming] = await Promise.all([
     db.event.groupBy({
       by: ['templateId'],
-      where: { congregationId, templateId: { in: ids } },
+      where: { congregationId, templateId: { in: ids }, ...hasProgramme },
       // biome-ignore lint/style/useNamingConvention: Prisma's aggregate key
       _max: { startDate: true },
     }),
     db.event.findMany({
-      where: { congregationId, templateId: { in: ids }, startDate: { gte: startOfDay(input.today, timezone) } },
+      where: {
+        congregationId,
+        templateId: { in: ids },
+        startDate: { gte: startOfDay(input.today, timezone) },
+        ...hasProgramme,
+      },
       select: { id: true, templateId: true, startDate: true },
     }),
   ])

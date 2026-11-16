@@ -98,6 +98,23 @@ describe('getProgrammeCreationData', () => {
     expect(existing).toEqual([{ templateId: 270, day: '2026-11-12', eventId: 4016 }])
   })
 
+  // A meeting created ahead with no programme is a day still to prepare: neither the latest programme nor « already
+  // there », or the series form would start after it and skip it.
+  it('ignores the meetings created ahead with no programme yet', async () => {
+    vi.mocked(db.eventTemplate.findMany).mockResolvedValue([template(270, 'Réunion de semaine', 4)] as never)
+
+    await getProgrammeCreationData(db, {
+      congregationId: 7,
+      timezone: MARTINIQUE,
+      today: '2026-11-16',
+      templateIds: null,
+    })
+
+    const hasProgramme = { OR: [{ eventParts: { some: {} } }, { eventServiceParts: { some: {} } }] }
+    expect(vi.mocked(db.event.groupBy).mock.calls[0]?.[0]).toMatchObject({ where: hasProgramme })
+    expect(vi.mocked(db.event.findMany).mock.calls[0]?.[0]).toMatchObject({ where: hasProgramme })
+  })
+
   it('asks nothing more when there is no template', async () => {
     vi.mocked(db.eventTemplate.findMany).mockResolvedValue([] as never)
 

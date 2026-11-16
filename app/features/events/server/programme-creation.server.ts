@@ -38,6 +38,8 @@ interface TemplateWithRelations {
   id: number
   name: string
   weekDay: number | null
+  /** How far the template's events exist or were left out on purpose (see recurring-events). */
+  generatedUntil?: string | null
   startTime: string
   endTime: string
   parts: {
@@ -85,6 +87,7 @@ export async function createProgrammeSeries(
   const recurring = templates.filter(template => template.weekDay != null)
   if (recurring.length !== ids.length) throw new NotFoundError('EventTemplate')
 
+  await lockTemplates(db, ids, ctx.congregationId)
   const taken = await existingProgrammes(db, ids, input.from, input.to, ctx)
   const skip = new Set(input.skip ?? [])
   const planned = recurring
@@ -94,11 +97,34 @@ export async function createProgrammeSeries(
   const result: SeriesResult = { created: [], existing: 0, skipped: 0 }
   for (const { template, day } of planned) {
     const key = programmeKey(template.id, day)
-    if (taken.has(key)) result.existing++
+    const event = taken.get(key)
+    if (event?.bare) result.created.push(await giveProgramme(db, template, event.id, day, ctx))
+    else if (event) result.existing++
     else if (skip.has(key)) result.skipped++
     else result.created.push(await createProgramme(db, template, day, ctx))
   }
+  for (const template of recurring) await raiseMark(db, template, input.to, ctx.congregationId)
   return result
+}
+
+/**
+ * Locks the templates' rows for the rest of the transaction, so a series and the recurring-events job cannot both
+ * create the same day: there is no unique key on (template, day).
+ */
+async function lockTemplates(db: TransactionClient, templateIds: number[], congregationId: number) {
+  await db.$queryRaw`SELECT "id" FROM "EventTemplate" WHERE "id" = ANY(${templateIds}) AND "congregationId" = ${congregationId} FOR UPDATE`
+}
+
+/**
+ * Moves a recurring template's high-water mark up to `day` when it lies beyond it, never back: a day passed in a series
+ * that runs past the recurring horizon must never be filled later by the recurring-events job.
+ */
+async function raiseMark(db: TransactionClient, template: TemplateWithRelations, day: string, congregationId: number) {
+  if (template.weekDay == null || (template.generatedUntil != null && template.generatedUntil >= day)) return
+  await db.eventTemplate.update({
+    where: { id_congregationId: { id: template.id, congregationId } },
+    data: { generatedUntil: day },
+  })
 }
 
 /**
@@ -116,38 +142,61 @@ export async function createProgrammeOnDay(
   })
   if (!template) throw new NotFoundError('EventTemplate', input.templateId)
 
+  await lockTemplates(db, [template.id], ctx.congregationId)
   const existing = await db.event.findFirst({
     where: {
       congregationId: ctx.congregationId,
       templateId: template.id,
       startDate: { gte: startOfDay(input.day, ctx.timezone), lte: endOfDay(input.day, ctx.timezone) },
     },
-    select: { id: true },
+    select: { id: true, _count: { select: { eventParts: true, eventServiceParts: true } } },
   })
-  if (existing) throw new ProgrammeExistsError(existing.id)
+  // A meeting created ahead with no programme yet takes this one; any other event that day is a programme already.
+  if (existing && !isBare(existing)) throw new ProgrammeExistsError(existing.id)
 
-  return createProgramme(db, template, input.day, ctx)
+  const created = existing
+    ? await giveProgramme(db, template, existing.id, input.day, ctx)
+    : await createProgramme(db, template, input.day, ctx)
+  await raiseMark(db, template, input.day, ctx.congregationId)
+  return created
 }
 
-/** The programmes the templates already have between two days, as `programmeKey`s. */
+/** An event with neither parts nor services: a meeting nobody has prepared yet. */
+function isBare(event: { _count?: { eventParts: number; eventServiceParts: number } }): boolean {
+  return event._count != null && event._count.eventParts === 0 && event._count.eventServiceParts === 0
+}
+
+/** The events the templates already have between two days, by `programmeKey`, and whether each is still bare. */
 async function existingProgrammes(
   db: TransactionClient,
   templateIds: number[],
   from: string,
   to: string,
   ctx: CreationContext,
-): Promise<Set<string>> {
+): Promise<Map<string, { id: number; bare: boolean }>> {
   const events = await db.event.findMany({
     where: {
       congregationId: ctx.congregationId,
       templateId: { in: templateIds },
       startDate: { gte: startOfDay(from, ctx.timezone), lte: endOfDay(to, ctx.timezone) },
     },
-    select: { templateId: true, startDate: true },
+    select: {
+      id: true,
+      templateId: true,
+      startDate: true,
+      _count: { select: { eventParts: true, eventServiceParts: true } },
+    },
   })
-  return new Set(
+  return new Map(
     events.flatMap(event =>
-      event.templateId == null ? [] : [programmeKey(event.templateId, dayOf(event.startDate, ctx.timezone))],
+      event.templateId == null
+        ? []
+        : [
+            [
+              programmeKey(event.templateId, dayOf(event.startDate, ctx.timezone)),
+              { id: event.id, bare: isBare(event) },
+            ],
+          ],
     ),
   )
 }
@@ -159,7 +208,6 @@ async function createProgramme(
   day: string,
   ctx: CreationContext,
 ): Promise<CreatedProgramme> {
-  const { congregationId } = ctx
   const event = await db.event.create({
     data: {
       name: template.name,
@@ -167,10 +215,26 @@ async function createProgramme(
       endDate: combineLocalDateTime(day, template.endTime, ctx.timezone),
       templateId: template.id,
       createdById: ctx.actorId,
-      congregationId,
+      congregationId: ctx.congregationId,
     },
   })
+  return giveProgramme(db, template, event.id, day, ctx)
+}
 
+/**
+ * Gives an event its template's programme: its parts in order and its services, with who may take each. Used on a new
+ * event, and on a meeting the recurring-events job created ahead with no programme yet, which is reused rather than
+ * doubled.
+ */
+export async function giveProgramme(
+  db: TransactionClient,
+  template: TemplateWithRelations,
+  eventId: number,
+  day: string,
+  ctx: CreationContext,
+): Promise<CreatedProgramme> {
+  const { congregationId } = ctx
+  const event = { id: eventId }
   for (const part of template.parts) {
     const assignment = await db.eventPart.create({
       data: {
