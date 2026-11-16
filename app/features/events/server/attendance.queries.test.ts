@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mockDb = { event: { findMany: vi.fn() }, attendance: { findFirst: vi.fn() } }
+const mockDb = { event: { findMany: vi.fn(), findFirst: vi.fn() }, attendance: { findFirst: vi.fn() } }
 
-const { eventHasAttendance, listMeetingsUnderWay, listServiceYearAttendance } = await import('./attendance.queries')
+const { eventHasAttendance, listMeetingsUnderWay, listServiceYearAttendance, nextCountedMeeting } = await import(
+  './attendance.queries'
+)
 
 const PARIS = 'Europe/Paris'
 
@@ -16,9 +18,11 @@ const row = (overrides: Record<string, unknown> = {}) => ({
     inPerson: 98,
     inPersonAt: new Date('2026-11-15T09:41:00Z'),
     inPersonBy: { firstname: 'Paul', lastname: 'MARTIN' },
+    inPersonById: 7,
     online: null,
     onlineAt: null,
     onlineBy: null,
+    onlineById: null,
   },
   ...overrides,
 })
@@ -57,9 +61,12 @@ describe('listServiceYearAttendance', () => {
       inPerson: 98,
       inPersonAt: new Date('2026-11-15T09:41:00Z'),
       inPersonBy: 'Paul MARTIN',
+      // Whose count it is: a recorder may change only their own.
+      inPersonById: 7,
       online: null,
       onlineAt: null,
       onlineBy: null,
+      onlineById: null,
     })
   })
 
@@ -117,5 +124,24 @@ describe('eventHasAttendance', () => {
       congregationId: 1,
       OR: [{ inPerson: { not: null } }, { online: { not: null } }],
     })
+  })
+})
+
+describe('nextCountedMeeting', () => {
+  // « La saisie s’ouvre au début de la prochaine, jeudi 19 novembre à 19:00. »
+  it('finds the first counted meeting still to start', async () => {
+    const now = new Date('2026-11-16T09:00:00Z')
+    mockDb.event.findFirst.mockResolvedValue({
+      name: 'Réunion de semaine',
+      startDate: new Date('2026-11-19T18:00:00Z'),
+    })
+
+    expect(await nextCountedMeeting(mockDb as never, { congregationId: 1, now })).toEqual({
+      name: 'Réunion de semaine',
+      startDate: new Date('2026-11-19T18:00:00Z'),
+    })
+    const [[{ where, orderBy }]] = mockDb.event.findFirst.mock.calls
+    expect(where).toEqual({ congregationId: 1, template: { attendanceKind: { not: 'none' } }, startDate: { gt: now } })
+    expect(orderBy).toEqual({ startDate: 'asc' })
   })
 })
