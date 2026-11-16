@@ -7,16 +7,19 @@ vi.mock('~/shared/domain/audit.server', () => ({
 }))
 
 const { moveEmptyMeetings } = await import('./move-empty-meetings.server')
+const { EMPTY_MEETING } = await import('./empty-meetings.queries')
 
 const db = {
   eventTemplate: { findFirst: vi.fn() },
-  event: { findMany: vi.fn(), update: vi.fn(), deleteMany: vi.fn() },
+  event: { findMany: vi.fn(), updateMany: vi.fn(), deleteMany: vi.fn() },
   $queryRaw: vi.fn(),
 }
 const CTX = { congregationId: 1, timeZone: 'Europe/Paris', now: new Date('2026-11-16T09:00:00Z'), actorId: 9 }
 
 beforeEach(() => {
   vi.resetAllMocks()
+  db.event.updateMany.mockResolvedValue({ count: 1 })
+  db.event.deleteMany.mockResolvedValue({ count: 1 })
   db.eventTemplate.findFirst.mockResolvedValue({ weekDay: 4, startTime: '19:00', endTime: '20:45' })
   db.event.findMany.mockImplementation(({ where }: { where: Record<string, unknown> }) =>
     Promise.resolve(
@@ -35,11 +38,14 @@ describe('moveEmptyMeetings', () => {
     const result = await moveEmptyMeetings(db as never, 6, CTX)
 
     expect(result).toEqual({ moved: 1, removed: 1 })
-    expect(db.event.update).toHaveBeenCalledWith({
-      where: { id_congregationId: { id: 1, congregationId: 1 } },
+    // Only while still empty: written as the plan was made, never over a programme or counts that came meanwhile.
+    expect(db.event.updateMany).toHaveBeenCalledWith({
+      where: { id: 1, congregationId: 1, ...EMPTY_MEETING },
       data: { startDate: new Date('2026-11-19T18:00:00Z'), endDate: new Date('2026-11-19T19:45:00Z') },
     })
-    expect(db.event.deleteMany).toHaveBeenCalledWith({ where: { id: { in: [2] }, congregationId: 1 } })
+    expect(db.event.deleteMany).toHaveBeenCalledWith({
+      where: { id: { in: [2] }, congregationId: 1, ...EMPTY_MEETING },
+    })
     expect(audit).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'event.recurring_moved',
@@ -51,10 +57,11 @@ describe('moveEmptyMeetings', () => {
     )
   })
 
-  it('locks the template before reading where its meetings are', async () => {
+  // The template, then its upcoming events: counts or parts written meanwhile wait, and are seen.
+  it('locks the template and its upcoming events before reading where its meetings are', async () => {
     const order: string[] = []
-    db.$queryRaw.mockImplementation(() => {
-      order.push('lock')
+    db.$queryRaw.mockImplementation((strings: TemplateStringsArray) => {
+      order.push(strings.join('?').includes('"Event"') ? 'lock events' : 'lock template')
       return Promise.resolve([])
     })
     db.eventTemplate.findFirst.mockImplementation(() => {
@@ -64,7 +71,7 @@ describe('moveEmptyMeetings', () => {
 
     await moveEmptyMeetings(db as never, 6, CTX)
 
-    expect(order).toEqual(['lock', 'read'])
+    expect(order).toEqual(['lock template', 'lock events', 'read'])
   })
 
   it('writes and records nothing when every meeting is already in place', async () => {

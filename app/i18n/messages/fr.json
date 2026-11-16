@@ -5788,7 +5788,33 @@
             }
         }
     ],
-    "settings_template_move_meetings_done": "Réunions à venir déplacées.",
+    "settings_template_move_meetings_moved": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} réunion déplacée.",
+                "countPlural=*": "{count} réunions déplacées."
+            }
+        }
+    ],
+    "settings_template_move_meetings_removed": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} réunion supprimée : sa semaine avait déjà la sienne.",
+                "countPlural=*": "{count} réunions supprimées : leur semaine avait déjà la sienne."
+            }
+        }
+    ],
+    "settings_template_move_meetings_none": "Les réunions à venir sont déjà au jour et à l’heure du modèle.",
     "settings_template_page_used": [
         {
             "declarations": [

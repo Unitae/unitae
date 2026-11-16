@@ -5788,7 +5788,33 @@
             }
         }
     ],
-    "settings_template_move_meetings_done": "Upcoming meetings moved.",
+    "settings_template_move_meetings_moved": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} meeting moved.",
+                "countPlural=*": "{count} meetings moved."
+            }
+        }
+    ],
+    "settings_template_move_meetings_removed": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} meeting deleted: its week already had one.",
+                "countPlural=*": "{count} meetings deleted: their week already had one."
+            }
+        }
+    ],
+    "settings_template_move_meetings_none": "The upcoming meetings are already on the template’s day and time.",
     "settings_template_page_used": [
         {
             "declarations": [

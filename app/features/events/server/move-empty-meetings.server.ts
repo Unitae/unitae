@@ -1,4 +1,4 @@
-import { planTemplateMeetingMoves } from '~/features/events/server/empty-meetings.queries'
+import { EMPTY_MEETING, planTemplateMeetingMoves } from '~/features/events/server/empty-meetings.queries'
 import { lockTemplates } from '~/features/events/server/give-programme.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -16,17 +16,25 @@ export async function moveEmptyMeetings(
 ): Promise<{ moved: number; removed: number }> {
   const { congregationId } = ctx
   await lockTemplates(db, [templateId], congregationId)
+  // Its upcoming events too, as deleting events does: a count or a part written meanwhile waits for this, or is seen.
+  await db.$queryRaw`SELECT "id" FROM "Event" WHERE "templateId" = ${templateId} AND "congregationId" = ${congregationId} AND "startDate" >= ${ctx.now} ORDER BY "id" FOR UPDATE`
   const plan = await planTemplateMeetingMoves(db, templateId, ctx)
   if (plan == null || plan.move.length + plan.remove.length === 0) return { moved: 0, removed: 0 }
 
+  // Each write asks again that the meeting be empty: never over a programme or counts.
+  let moved = 0
   for (const meeting of plan.move) {
-    await db.event.update({
-      where: { id_congregationId: { id: meeting.id, congregationId } },
+    const { count } = await db.event.updateMany({
+      where: { id: meeting.id, congregationId, ...EMPTY_MEETING },
       data: { startDate: meeting.startDate, endDate: meeting.endDate },
     })
+    moved += count
   }
-  if (plan.remove.length > 0) await db.event.deleteMany({ where: { id: { in: plan.remove }, congregationId } })
-  const result = { moved: plan.move.length, removed: plan.remove.length }
+  const removed =
+    plan.remove.length > 0
+      ? (await db.event.deleteMany({ where: { id: { in: plan.remove }, congregationId, ...EMPTY_MEETING } })).count
+      : 0
+  const result = { moved, removed }
   audit({
     action: AuditAction.RecurringEventsMoved,
     congregationId,

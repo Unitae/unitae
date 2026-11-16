@@ -172,8 +172,19 @@ export async function handleTemplateAction(
 
   // « Déplacer les N réunions à venir »: whoever may change the template's day may bring its meetings along.
   if (intent === 'move-meetings') {
-    await moveEmptyMeetings(db, templateId, { congregationId, timeZone: actor.timeZone, now: new Date(), actorId })
-    return { kind: 'saved', message: m.settings_template_move_meetings_done() }
+    const { moved, removed } = await moveEmptyMeetings(db, templateId, {
+      congregationId,
+      timeZone: actor.timeZone,
+      now: new Date(),
+      actorId,
+    })
+    const message = [
+      moved > 0 && m.settings_template_move_meetings_moved({ count: moved }),
+      removed > 0 && m.settings_template_move_meetings_removed({ count: removed }),
+    ]
+      .filter(Boolean)
+      .join(' ')
+    return { kind: 'saved', message: message || m.settings_template_move_meetings_none() }
   }
 
   if (!actor.isManager) return null

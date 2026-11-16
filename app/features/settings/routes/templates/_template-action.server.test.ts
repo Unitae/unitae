@@ -168,7 +168,7 @@ describe('handleTemplateAction', () => {
     const result = await handleTemplateAction(dbWith('study'), 4, form({ intent: 'move-meetings' }), RESPONSIBLE)
 
     expect(writes).toEqual(['move-meetings 4 Europe/Paris 8'])
-    expect(result).toMatchObject({ kind: 'saved' })
+    expect(result).toEqual({ kind: 'saved', message: '2 réunions déplacées.' })
   })
 
   it('never moves the meetings of a built-in template', async () => {
