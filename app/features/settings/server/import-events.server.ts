@@ -1,8 +1,20 @@
 import type JsZip from 'jszip'
+import { EventTemplateKey, programmeKey } from '~/features/events'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { createLogger } from '~/shared/infra/logger.server'
+import { dayOf } from '~/shared/utils/calendar-day'
 import type { EntityIdMap } from './data-transfer.type'
 import { readNdjsonFile } from './ndjson-archive'
 
+const logger = createLogger('import-events')
+
+/**
+ * Events. An event whose author is not in the archive (or was skipped) keeps going without one, as the events the
+ * recurring-events job creates do; an absence cannot — its author is the person away — so it is skipped, and counted.
+ *
+ * A fresh congregation already has its first two months of empty meetings from seeding: an archived event on the same
+ * template and day replaces that empty meeting rather than doubling it.
+ */
 export async function importEvents(
   zip: JsZip,
   db: TransactionClient,
@@ -16,21 +28,56 @@ export async function importEvents(
     startDate: string
     endDate: string
     templateId: number | null
-    createdById: number
+    createdById: number | null
     createdAt: string
   }>(zip, 'events')
+  if (records.length === 0) return
 
+  const congregation = await db.congregation.findFirst({ where: { id: congregationId }, select: { timezone: true } })
+  const timeZone = congregation?.timezone ?? 'Europe/Paris'
+  const dayOff = await db.eventTemplate.findFirst({
+    where: { key: EventTemplateKey.DayOff, congregationId },
+    select: { id: true },
+  })
+  const emptyMeetings = await db.event.findMany({
+    // Never one with attendance: replacing it would take its counts with it.
+    where: {
+      congregationId,
+      createdById: null,
+      eventParts: { none: {} },
+      eventServiceParts: { none: {} },
+      attendance: { is: null },
+    },
+    select: { id: true, templateId: true, startDate: true },
+  })
+  const emptyByDay = new Map(
+    emptyMeetings.flatMap(event =>
+      event.templateId == null ? [] : [[programmeKey(event.templateId, dayOf(event.startDate, timeZone)), event.id]],
+    ),
+  )
+
+  let ownerless = 0
   for (const record of records) {
-    const createdById = idMap.getOptional('user-accounts', record.createdById)
-    if (!createdById) continue
-
     const templateId = idMap.getOptional('programme-templates', record.templateId)
+    const createdById = idMap.getOptional('user-accounts', record.createdById)
+    if (createdById == null && templateId != null && templateId === dayOff?.id) {
+      ownerless++
+      continue
+    }
+
+    const startDate = new Date(record.startDate)
+    const replaced =
+      templateId == null ? undefined : emptyByDay.get(programmeKey(templateId, dayOf(startDate, timeZone)))
+    if (replaced != null) {
+      await db.event.deleteMany({ where: { id: { in: [replaced] }, congregationId } })
+      emptyByDay.delete(programmeKey(templateId as number, dayOf(startDate, timeZone)))
+    }
 
     const created = await db.event.create({
       data: {
         name: record.name,
         description: record.description,
-        startDate: new Date(record.startDate),
+        startDate,
         endDate: new Date(record.endDate),
         templateId,
         createdById,
@@ -38,6 +85,9 @@ export async function importEvents(
       },
     })
     idMap.set('events', record.id, created.id)
+  }
+  if (ownerless > 0) {
+    logger.warn(`Skipped ${ownerless} absence(s) whose owner was not imported`, { congregationId })
   }
 }
 
