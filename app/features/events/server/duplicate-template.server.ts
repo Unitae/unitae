@@ -33,6 +33,7 @@ export async function duplicateTemplate(
       description: source.description,
       weekDay: source.weekDay,
       isRecurring: source.isRecurring,
+      attendanceKind: source.attendanceKind,
       startTime: source.startTime,
       endTime: source.endTime,
       congregationId,

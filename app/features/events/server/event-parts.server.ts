@@ -40,38 +40,6 @@ export async function createFreeformEvent(
   return event
 }
 
-export async function bulkDeleteEvents(db: TransactionClient, ids: number[], congregationId: number, actorId: number) {
-  if (ids.length === 0) return { count: 0 }
-
-  const result = await db.event.deleteMany({
-    where: { id: { in: ids }, congregationId },
-  })
-
-  // auditInTransaction (not audit) so the audit rows roll back with the
-  // delete if the surrounding tx aborts. Matches release/unrelease. One row
-  // per requested id — even if the deleteMany count differs (some ids may
-  // not have existed), we log the intent.
-  for (const id of ids) {
-    await auditInTransaction(db, {
-      action: AuditAction.EventDeleted,
-      congregationId,
-      actorId,
-      entityType: 'Event',
-      entityId: id,
-    })
-  }
-
-  return result
-}
-
-export function deleteEvent(db: TransactionClient, id: number, congregationId: number) {
-  return db.event.delete({
-    where: {
-      id_congregationId: { id, congregationId },
-    },
-  })
-}
-
 // Explicit allowlist. Wider mutations (status, templateId, createdById) belong to
 // dedicated mutators (release/unrelease/applyTemplate) so their invariants and audit
 // trails live with the operation. Metadata logs field names only — no values.

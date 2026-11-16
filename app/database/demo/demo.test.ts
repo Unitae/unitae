@@ -3,7 +3,14 @@ import { describe, expect, it } from 'vitest'
 import { PartPresetKey } from '../../features/events/model/part-preset.type'
 import { type BoardSection, boardDocuments } from './board'
 import { generateAttributions, generatePioneers, generateReports } from './history'
-import { classifyParts, generateAbsences, generateMeetings, partRoles, type TemplateSpec } from './meetings'
+import {
+  classifyParts,
+  generateAbsences,
+  generateAttendance,
+  generateMeetings,
+  partRoles,
+  type TemplateSpec,
+} from './meetings'
 import { FEMALE_FIRST_NAMES, MALE_FIRST_NAMES } from './names'
 import { generateCongregation } from './people'
 import { generateArea } from './places'
@@ -393,6 +400,51 @@ describe('the demo meetings', () => {
         expect(meeting.services.every(service => service.assignee == null)).toBe(true)
       }
     }
+  })
+  const attendance = generateAttendance(meetings, NOW, 90)
+
+  it('counts every past meeting and none to come', () => {
+    meetings.forEach((meeting, index) => {
+      expect(attendance[index] == null).toBe(meeting.start > NOW)
+    })
+  })
+
+  it('draws plausible figures: more at the weekend, about a sixth online', () => {
+    const past = meetings.flatMap((meeting, index) => {
+      const counts = attendance[index]
+      if (counts?.online == null) return []
+      return [
+        {
+          kind: meeting.kind,
+          inPerson: counts.inPerson,
+          online: counts.online,
+          total: counts.inPerson + counts.online,
+        },
+      ]
+    })
+    const average = (kind: string) => {
+      const rows = past.filter(row => row.kind === kind)
+      return rows.reduce((sum, row) => sum + row.total, 0) / rows.length
+    }
+    expect(average('weekend')).toBeGreaterThan(average('midweek'))
+    expect(average('midweek')).toBeGreaterThan(70)
+    expect(average('weekend')).toBeLessThan(130)
+    const online = past.reduce((sum, row) => sum + row.online, 0) / past.reduce((sum, row) => sum + row.total, 0)
+    expect(online).toBeGreaterThan(0.1)
+    expect(online).toBeLessThan(0.25)
+  })
+
+  it('leaves the latest midweek meeting with its videoconference count still to enter', () => {
+    const past = meetings.map((meeting, index) => ({ meeting, index })).filter(({ meeting }) => meeting.start <= NOW)
+    const latest = past
+      .filter(({ meeting }) => meeting.kind === 'midweek')
+      .sort((a, b) => +b.meeting.start - +a.meeting.start)[0]
+    expect(attendance[latest?.index as number]).toMatchObject({ online: null })
+    expect(attendance.filter(counts => counts != null && counts.online == null)).toHaveLength(1)
+  })
+
+  it('draws the same figures on a rerun, whatever the rest of the congregation drew', () => {
+    expect(generateAttendance(meetings, NOW, 90)).toEqual(attendance)
   })
 })
 

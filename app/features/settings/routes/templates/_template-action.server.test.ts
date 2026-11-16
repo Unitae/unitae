@@ -12,8 +12,8 @@ const { writes, state } = vi.hoisted(() => ({
 vi.mock('~/features/events/index.server', async () => {
   const { ValidationError } = await import('~/shared/errors/app-error.server')
   return {
-    updateTemplate: vi.fn(async (_db: unknown, id: number, fields: { name?: string }) => {
-      writes.push(`update ${id} ${fields.name ?? ''}`.trim())
+    updateTemplate: vi.fn(async (_db: unknown, id: number, fields: { name?: string; attendanceKind?: string }) => {
+      writes.push(['update', id, fields.name, fields.attendanceKind].filter(Boolean).join(' '))
     }),
     saveTemplateResponsibles: vi.fn(async (_db: unknown, id: number, wanted: { programmeRoleId: number | null }) => {
       if (state.responsiblesRefused) throw new ValidationError('roleId', 'This role cannot run a template')
@@ -100,6 +100,36 @@ describe('handleTemplateAction', () => {
       RESPONSIBLE,
     )
     expect(writes).toEqual(['update 4 Semaine'])
+  })
+
+  it('saves how a template counts in attendance for a manager, never for a responsible', async () => {
+    await handleTemplateAction(
+      dbWith('midweek'),
+      4,
+      form({ intent: 'update-template', attendanceKind: 'midweek' }),
+      MANAGER,
+    )
+    expect(writes).toEqual(['update 4 midweek'])
+
+    writes.length = 0
+    await handleTemplateAction(
+      dbWith('midweek'),
+      4,
+      form({ intent: 'update-template', attendanceKind: 'weekend' }),
+      RESPONSIBLE,
+    )
+    expect(writes).toEqual(['update 4'])
+  })
+
+  it('refuses an attendance kind that does not exist', async () => {
+    const result = await handleTemplateAction(
+      dbWith('midweek'),
+      4,
+      form({ intent: 'update-template', attendanceKind: 'monthly' }),
+      MANAGER,
+    )
+    expect(result?.kind).toBe('refused')
+    expect(writes).toEqual([])
   })
 
   it('refuses a role that cannot run a template', async () => {

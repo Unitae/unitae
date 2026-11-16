@@ -1,7 +1,8 @@
 import { Panel } from '@unitae/ui'
 import { useEffect, useState } from 'react'
 import type { useFetcher } from 'react-router'
-import { dayLabel } from '~/features/events'
+import { dayLabel, parseAttendanceKind } from '~/features/events'
+import { AttendanceKindField } from '~/features/settings/ui/AttendanceKindField'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { ColorSwatches } from '~/shared/ui/ColorSwatches'
@@ -27,6 +28,7 @@ export interface TemplateInfo {
   startTime: string
   endTime: string
   color: string
+  attendanceKind: string
 }
 
 interface TemplateInfoPanelProps {
@@ -132,6 +134,11 @@ function TemplateInfoForm({
           )}
           <p className="text-faint text-xs">{m.settings_template_color_hint()}</p>
         </div>
+        {responsibles && !builtIn && (
+          <div className="grid gap-3 @md:grid-cols-2">
+            <AttendanceKindField value={parseAttendanceKind(template.attendanceKind)} />
+          </div>
+        )}
         {responsibles && !builtIn && (
           <div className="grid gap-3 border-t pt-4 @md:grid-cols-2">
             <ResponsibleField

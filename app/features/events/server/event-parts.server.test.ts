@@ -18,12 +18,12 @@ vi.mock('~/shared/domain/audit.server', () => ({
     ServicePartAllowedRolesChanged: 'service_role.allowed_roles.changed',
     EventDeleted: 'event.deleted',
     EventUpdated: 'event.updated',
+    ProgrammeRemoved: 'event.programme_removed',
   },
 }))
 
 const {
   createFreeformEvent,
-  deleteEvent,
   updateEvent,
   addPartAssignment,
   updatePartAssignment,
@@ -31,7 +31,6 @@ const {
   addServicePartAssignment,
   deleteServicePartAssignment,
   applyTemplateToEvent,
-  bulkDeleteEvents,
 } = await import('./event-parts.server')
 const { setPartAssignmentAllowedRoles } = await import('~/features/events/server/allowed-roles.server')
 
@@ -41,16 +40,28 @@ const mockDb = {
     delete: vi.fn(),
     deleteMany: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
   },
   eventPart: {
     create: vi.fn(),
     delete: vi.fn(),
+    deleteMany: vi.fn(),
+    findMany: vi.fn(),
     update: vi.fn(),
   },
   eventServicePart: {
     create: vi.fn(),
     delete: vi.fn(),
+    deleteMany: vi.fn(),
+    findMany: vi.fn(),
   },
+  attendance: {
+    findMany: vi.fn(),
+  },
+  notificationEvent: {
+    updateMany: vi.fn(),
+  },
+  $queryRaw: vi.fn(),
   eventPartAllowedRole: {
     createMany: vi.fn(),
   },
@@ -69,6 +80,11 @@ beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(allowedRoles.setPartAssignmentAllowedRoles).mockResolvedValue({ added: [], removed: [] })
   vi.mocked(allowedRoles.setServicePartAssignmentAllowedRoles).mockResolvedValue({ added: [], removed: [] })
+  mockDb.attendance.findMany.mockResolvedValue([])
+  mockDb.eventPart.deleteMany.mockResolvedValue({ count: 0 })
+  mockDb.eventServicePart.deleteMany.mockResolvedValue({ count: 0 })
+  mockDb.eventPart.findMany.mockResolvedValue([])
+  mockDb.eventServicePart.findMany.mockResolvedValue([])
 })
 
 describe('createFreeformEvent', () => {
@@ -137,79 +153,6 @@ describe('createFreeformEvent', () => {
 
     await expect(createFreeformEvent(mockDb as never, data)).rejects.toThrow('Freeform template')
     expect(mockDb.event.create).not.toHaveBeenCalled()
-  })
-})
-
-describe('bulkDeleteEvents', () => {
-  it('deletes every event in a single scoped deleteMany', async () => {
-    mockDb.event.deleteMany.mockResolvedValue({ count: 3 })
-
-    await bulkDeleteEvents(mockDb as never, [1, 2, 3], 42, 7)
-
-    expect(mockDb.event.deleteMany).toHaveBeenCalledWith({
-      where: { id: { in: [1, 2, 3] }, congregationId: 42 },
-    })
-  })
-
-  // Governance: the same auditInTransaction pattern release/unrelease use.
-  // Fire-and-forget audit (unscopedDb) would leave phantom rows if the
-  // deleteMany rolls back.
-  it('writes an auditInTransaction EventDeleted row for every deleted event', async () => {
-    mockDb.event.deleteMany.mockResolvedValue({ count: 2 })
-
-    await bulkDeleteEvents(mockDb as never, [10, 11], 42, 7)
-
-    expect(vi.mocked(auditModule.auditInTransaction)).toHaveBeenCalledTimes(2)
-    expect(vi.mocked(auditModule.auditInTransaction)).toHaveBeenCalledWith(
-      mockDb,
-      expect.objectContaining({
-        action: 'event.deleted',
-        congregationId: 42,
-        actorId: 7,
-        entityType: 'Event',
-        entityId: 10,
-      }),
-    )
-    expect(vi.mocked(auditModule.auditInTransaction)).toHaveBeenCalledWith(
-      mockDb,
-      expect.objectContaining({
-        action: 'event.deleted',
-        congregationId: 42,
-        actorId: 7,
-        entityType: 'Event',
-        entityId: 11,
-      }),
-    )
-  })
-
-  it('does not fire audit or deleteMany when the id list is empty', async () => {
-    await bulkDeleteEvents(mockDb as never, [], 42, 7)
-
-    expect(mockDb.event.deleteMany).not.toHaveBeenCalled()
-    expect(vi.mocked(auditModule.auditInTransaction)).not.toHaveBeenCalled()
-  })
-
-  it('returns the Prisma delete count so callers can log a truthful number', async () => {
-    mockDb.event.deleteMany.mockResolvedValue({ count: 2 })
-
-    const result = await bulkDeleteEvents(mockDb as never, [10, 11, 12], 42, 7)
-
-    // Truthful count from Prisma (12 didn't exist so only 2 were deleted).
-    expect(result).toEqual({ count: 2 })
-  })
-})
-
-describe('deleteEvent', () => {
-  it('deletes an event using compound key', async () => {
-    const expected = { id: 3 }
-    mockDb.event.delete.mockResolvedValue(expected)
-
-    const result = await deleteEvent(mockDb as never, 3, 10)
-
-    expect(result).toEqual(expected)
-    expect(mockDb.event.delete).toHaveBeenCalledWith({
-      where: { id_congregationId: { id: 3, congregationId: 10 } },
-    })
   })
 })
 

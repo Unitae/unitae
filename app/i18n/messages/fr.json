@@ -1890,6 +1890,32 @@
             }
         }
     ],
+    "programs_bulk_delete_success": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} évènement supprimé.",
+                "countPlural=*": "{count} évènements supprimés."
+            }
+        }
+    ],
+    "programs_bulk_delete_kept_attendance": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} réunion gardée pour son assistance : son programme a été retiré.",
+                "countPlural=*": "{count} réunions gardées pour leur assistance : leur programme a été retiré."
+            }
+        }
+    ],
     "programs_bulk_delete_button": "Supprimer",
     "programs_bulk_delete_title": [
         {
@@ -2235,6 +2261,7 @@
     "programs_delete_dialog_description": "« {name} » du {date} sera supprimé, avec ses parties, ses services et leurs attributions. Ce n’est pas réversible.",
     "programs_delete_submit": "Supprimer l’évènement",
     "programs_delete_success": "L’évènement « {name} » a été supprimé.",
+    "programs_delete_kept_attendance": "Le programme a été retiré ; « {name} » reste, avec son assistance.",
     "programs_assign_part_topic_label": "Sujet / Titre",
     "programs_assign_part_speaker_label": "Intervenant",
     "programs_assign_part_select_publisher": "Sélectionner un proclamateur",
@@ -5713,6 +5740,12 @@
     "settings_template_built_in_subtitle": "Modèle intégré",
     "settings_template_info": "Informations",
     "settings_template_color_hint": "Un point de cette couleur repère le modèle dans les listes et le calendrier.",
+    "settings_template_attendance_label": "Assistance",
+    "settings_template_attendance_none": "Non comptée",
+    "settings_template_attendance_midweek": "Réunion de semaine",
+    "settings_template_attendance_weekend": "Réunion de week-end",
+    "settings_template_attendance_separate": "Comptée à part",
+    "settings_template_attendance_hint": "Les moyennes et le S-88 ne prennent que les réunions de semaine et de week-end. « Comptée à part » enregistre l’assistance hors des moyennes et du S-88 (le Mémorial).",
     "settings_template_programme_responsible": "Responsable du programme",
     "settings_template_service_responsible": "Responsable des services",
     "settings_template_holders": "Aujourd’hui : {names}.",
@@ -6694,6 +6727,9 @@
     "external_speakers_pdf_filename": "orateurs {name} {date}",
     "audit_log_action_our_speaker_updated": "Orateur de notre liste modifié",
     "audit_log_action_our_speaker_list_sent": "Notre liste d’orateurs envoyée",
+    "audit_log_action_attendance_recorded": "Assistance saisie",
+    "audit_log_action_attendance_corrected": "Assistance corrigée",
+    "audit_log_action_event_programme_removed": "Programme retiré, réunion gardée",
     "settings_external_speakers_role_gone": "Ce rôle n’existe plus : choisissez-en un autre.",
     "settings_external_speakers_open_organigram": "Ouvrir l’organigramme",
     "external_speakers_ours_error_phone": "Saisissez le numéro à partager, ou choisissez « De sa fiche ».",

@@ -148,6 +148,7 @@ model Congregation {
   externalSpeakers                ExternalSpeaker[]
   speakerCongregations            SpeakerCongregation[]
   ourSpeakers                     OurSpeaker[]
+  attendances                     Attendance[]
 
   emergencyContacts EmergencyContact[]
 
@@ -338,6 +339,8 @@ model UserAccount {
   // Account-bound relations
   roleAssignments         UserRoleAssignment[] // management/access roles
   eventsCreated           Event[]                    @relation("createdBy")
+  attendanceInPerson      Attendance[]               @relation("attendanceInPerson")
+  attendanceOnline        Attendance[]               @relation("attendanceOnline")
   /// Deprecated: replaced by boardDocumentViews, which keeps when each read happened. Dropped in a later release.
   documentsViewed         BoardDocument[]            @relation("viewedBy")
   boardDocumentViews      BoardDocumentView[]
@@ -1021,11 +1024,15 @@ model Event {
 
   eventParts        EventPart[]
   eventServiceParts EventServicePart[]
+  attendance        Attendance?
 
-  createdBy   UserAccount @relation("createdBy", fields: [createdById], references: [id])
-  createdById Int
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  // Null = created by the recurring-events job. A day-off always has one: it is the absence's owner. onDelete is
+  // written out because an optional relation defaults to SetNull, which would empty the owner of every day-off when
+  // an account is deleted.
+  createdBy   UserAccount? @relation("createdBy", fields: [createdById], references: [id], onDelete: Restrict)
+  createdById Int?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
@@ -1045,6 +1052,13 @@ model EventTemplate {
   startTime   String  @default("19:00")
   endTime     String  @default("21:00")
   color       String  @default("#cfcfcf")
+
+  // How its events count in attendance: 'none' | 'midweek' | 'weekend' | 'separate' (kept apart from averages and
+  // the S-88, e.g. the Mémorial). Constrained in SQL by EventTemplate_attendanceKind_check.
+  attendanceKind String  @default("none")
+  // How far recurring events exist for this template: a local day `YYYY-MM-DD`, inclusive. A string like every other
+  // day in the events model, never a timestamp read through the zone helpers.
+  generatedUntil String?
 
   parts        TemplatePart[]
   serviceParts TemplateServicePart[]
@@ -1591,4 +1605,33 @@ model NotificationPreference {
 
   @@unique([userId, notificationType, congregationId])
   @@unique([id, congregationId])
+}
+
+// The two counts of one meeting, entered while it runs: in the hall, and by videoconference (Zoom and phone together, as
+// the branch report counts them). Null = not entered yet, never 0; the meeting counts in averages only once both are
+// set. Each count keeps who entered or last changed it.
+model Attendance {
+  id Int @id @default(autoincrement())
+
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId Int   @unique
+
+  inPerson     Int?
+  inPersonBy   UserAccount? @relation("attendanceInPerson", fields: [inPersonById], references: [id], onDelete: SetNull)
+  inPersonById Int?
+  inPersonAt   DateTime?
+
+  online     Int?
+  onlineBy   UserAccount? @relation("attendanceOnline", fields: [onlineById], references: [id], onDelete: SetNull)
+  onlineById Int?
+  onlineAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
+  @@unique([id, congregationId])
+  @@index([congregationId])
 }

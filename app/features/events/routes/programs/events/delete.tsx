@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { deleteEvent } from '~/features/events/server/event-parts.server'
+import { deleteEvent } from '~/features/events/server/delete-events.server'
 import { canEditEvent } from '~/features/events/server/events-auth.server'
 import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
 import * as m from '~/i18n/paraglide/messages'
@@ -33,10 +33,13 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       throw redirect('/programs')
     }
 
-    await deleteEvent(db, eventId, congregationId)
+    const { kept } = await deleteEvent(db, eventId, congregationId, currentUser.id)
 
-    logger.info(`Deleted event ${eventId}. User ID: ${currentUser.id}.`)
-    session.flash('success', m.programs_delete_success({ name: event.name }))
+    logger.info(`${kept ? 'Removed the programme of' : 'Deleted'} event ${eventId}. User ID: ${currentUser.id}.`)
+    session.flash(
+      'success',
+      kept ? m.programs_delete_kept_attendance({ name: event.name }) : m.programs_delete_success({ name: event.name }),
+    )
 
     return redirect('/programs', {
       headers: { 'Set-Cookie': await commitSession(session) },

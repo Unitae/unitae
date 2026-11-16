@@ -1885,6 +1885,32 @@
             }
         }
     ],
+    "programs_bulk_delete_success": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} event deleted.",
+                "countPlural=*": "{count} events deleted."
+            }
+        }
+    ],
+    "programs_bulk_delete_kept_attendance": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} meeting kept for its attendance: its program was removed.",
+                "countPlural=*": "{count} meetings kept for their attendance: their program was removed."
+            }
+        }
+    ],
     "programs_bulk_delete_button": "Delete",
     "programs_bulk_delete_title": [
         {
@@ -2230,6 +2256,7 @@
     "programs_delete_dialog_description": "“{name}” on {date} will be deleted, with its parts, its services and their assignments. This cannot be undone.",
     "programs_delete_submit": "Delete event",
     "programs_delete_success": "The event “{name}” has been deleted.",
+    "programs_delete_kept_attendance": "The program was removed; “{name}” stays, with its attendance.",
     "programs_assign_part_topic_label": "Topic / Title",
     "programs_assign_part_speaker_label": "Speaker",
     "programs_assign_part_select_publisher": "Choose a publisher",
@@ -5713,6 +5740,12 @@
     "settings_template_built_in_subtitle": "Built-in template",
     "settings_template_info": "Details",
     "settings_template_color_hint": "A dot of this colour marks the template in lists and the calendar.",
+    "settings_template_attendance_label": "Attendance",
+    "settings_template_attendance_none": "Not counted",
+    "settings_template_attendance_midweek": "Midweek meeting",
+    "settings_template_attendance_weekend": "Weekend meeting",
+    "settings_template_attendance_separate": "Counted separately",
+    "settings_template_attendance_hint": "Averages and the S-88 only take midweek and weekend meetings. “Counted separately” records the attendance outside the averages and the S-88 (the Memorial).",
     "settings_template_programme_responsible": "Program responsible",
     "settings_template_service_responsible": "Services responsible",
     "settings_template_holders": "Today: {names}.",
@@ -6694,6 +6727,9 @@
     "external_speakers_pdf_filename": "speakers {name} {date}",
     "audit_log_action_our_speaker_updated": "Speaker on our list changed",
     "audit_log_action_our_speaker_list_sent": "Our list of speakers sent",
+    "audit_log_action_attendance_recorded": "Attendance entered",
+    "audit_log_action_attendance_corrected": "Attendance corrected",
+    "audit_log_action_event_programme_removed": "Program removed, meeting kept",
     "settings_external_speakers_role_gone": "This role no longer exists: choose another one.",
     "settings_external_speakers_open_organigram": "Open the organigram",
     "external_speakers_ours_error_phone": "Enter the number to share, or choose « From his record ».",

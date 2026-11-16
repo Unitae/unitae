@@ -1,3 +1,4 @@
+import { AttendanceKind } from '~/features/events/model/attendance-kind.type'
 import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import { PartPresetKey } from '~/features/events/model/part-preset.type'
 import * as m from '~/i18n/paraglide/messages'
@@ -30,6 +31,7 @@ interface TemplateDefinition {
   key: string
   weekDay: number | null
   isRecurring: boolean
+  attendanceKind: AttendanceKind
   startTime: string
   endTime: string
   color: string
@@ -53,6 +55,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
     {
       name: m.seed_template_midweek({}, { locale }),
       key: EventTemplateKey.MidweekMeeting,
+      attendanceKind: AttendanceKind.Midweek,
       weekDay: 2, // Tuesday
       isRecurring: true,
       startTime: '19:00',
@@ -151,6 +154,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
     {
       name: m.seed_template_weekend({}, { locale }),
       key: EventTemplateKey.WeekendMeeting,
+      attendanceKind: AttendanceKind.Weekend,
       weekDay: 6, // Saturday
       isRecurring: true,
       startTime: '10:00',
@@ -196,6 +200,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
     {
       name: m.seed_template_memorial({}, { locale }),
       key: EventTemplateKey.Memorial,
+      attendanceKind: AttendanceKind.Separate,
       weekDay: null,
       isRecurring: false,
       startTime: '19:00',
@@ -247,6 +252,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
     {
       name: m.seed_template_day_off({}, { locale }),
       key: EventTemplateKey.DayOff,
+      attendanceKind: AttendanceKind.None,
       weekDay: null,
       isRecurring: false,
       startTime: '00:00',
@@ -258,6 +264,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
     {
       name: m.seed_template_freeform({}, { locale }),
       key: EventTemplateKey.Freeform,
+      attendanceKind: AttendanceKind.None,
       weekDay: null,
       isRecurring: false,
       startTime: '19:00',
@@ -295,6 +302,7 @@ export async function seedDefaultTemplates(db: any, congregationId: number, loca
         key: tpl.key,
         weekDay: tpl.weekDay,
         isRecurring: tpl.isRecurring,
+        attendanceKind: tpl.attendanceKind,
         startTime: tpl.startTime,
         endTime: tpl.endTime,
         color: tpl.color,

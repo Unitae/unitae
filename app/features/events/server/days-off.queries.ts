@@ -105,14 +105,21 @@ export async function listCongregationAbsences(
     },
     orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
   })
-  // Absences belong to the account that declared them; the person away is its member, when it has one.
-  const absences = rows.map(({ createdBy, createdAt, ...row }) => ({
-    ...row,
-    declaredAt: createdAt,
-    memberId: createdBy.member?.id ?? null,
-    firstname: createdBy.member?.firstname ?? createdBy.firstname,
-    lastname: createdBy.member?.lastname ?? createdBy.lastname,
-  }))
+  // Absences belong to the account that declared them; the person away is its member, when it has one. A day-off
+  // always has that account (Event.createdBy is Restrict); only events made by the recurring job have none.
+  const absences = rows.flatMap(({ createdBy, createdAt, ...row }) =>
+    createdBy == null
+      ? []
+      : [
+          {
+            ...row,
+            declaredAt: createdAt,
+            memberId: createdBy.member?.id ?? null,
+            firstname: createdBy.member?.firstname ?? createdBy.firstname,
+            lastname: createdBy.member?.lastname ?? createdBy.lastname,
+          },
+        ],
+  )
   const memberIds = [...new Set(absences.flatMap(absence => (absence.memberId == null ? [] : [absence.memberId])))]
   if (memberIds.length === 0) return absences.map(absence => ({ ...absence, conflicts: [] }))
 

@@ -1,3 +1,4 @@
+import type { AttendanceKind } from '~/features/events/model/attendance-kind.type'
 import { isSystemTemplate } from '~/features/events/model/event-template.type'
 import { ResponsibilityScope, scopesCovering } from '~/features/events/model/responsibility-scope.type'
 import {
@@ -51,6 +52,7 @@ export async function updateTemplate(
     color?: string
     startTime?: string
     endTime?: string
+    attendanceKind?: AttendanceKind
   },
   congregationId: number,
   actorId: number,
@@ -71,9 +73,12 @@ export async function updateTemplate(
       color: true,
       startTime: true,
       endTime: true,
+      attendanceKind: true,
     },
   })
-  const scoped = existing != null && isSystemTemplate(existing.key) ? { color: data.color } : data
+  // Recurrence is « has a weekday »: the column follows the day whenever the day is written.
+  const withRecurrence = data.weekDay !== undefined ? { ...data, isRecurring: data.weekDay != null } : data
+  const scoped = existing != null && isSystemTemplate(existing.key) ? { color: data.color } : withRecurrence
   // Only what differs from the saved template is written and logged: a save that changes nothing leaves no trace.
   const changed = Object.fromEntries(
     Object.entries(scoped).filter(

@@ -85,6 +85,26 @@ describe('seedDefaultTemplates', () => {
     ])
   })
 
+  it('makes the seeded meetings count in attendance, the Mémorial apart, and nothing else', async () => {
+    const db = makeDb()
+    db.eventTemplate.findFirst.mockResolvedValue(null as never)
+    db.eventTemplate.create.mockResolvedValue({} as never)
+
+    await seedDefaultTemplates(db, 1, 'fr')
+
+    const kinds = db.eventTemplate.create.mock.calls.map(([arg]) => {
+      const data = (arg as { data: { key: string; attendanceKind?: string } }).data
+      return [data.key, data.attendanceKind]
+    })
+    expect(kinds).toEqual([
+      ['midweek-meeting', 'midweek'],
+      ['weekend-meeting', 'weekend'],
+      ['memorial', 'separate'],
+      ['day-off', 'none'],
+      ['freeform', 'none'],
+    ])
+  })
+
   it('creates day-off and freeform templates with the right key, empty parts, and colour', async () => {
     const db = makeDb()
     db.eventTemplate.findFirst.mockResolvedValue(null as never)
