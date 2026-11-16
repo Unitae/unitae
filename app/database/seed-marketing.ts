@@ -31,6 +31,7 @@ import { generateAttributions, generatePioneers, generateReports } from './demo/
 import {
   classifyParts,
   generateAbsences,
+  generateAttendance,
   generateExternalSpeakers,
   generateMeetings,
   type MeetingKind,
@@ -427,7 +428,7 @@ async function writeMeetings(
         .map(role => ({ eventServicePartId: service.id, roleId: role.roleId, congregationId })),
     ),
   })
-  return events.length
+  return events.map(event => event.id)
 }
 
 /**
@@ -627,7 +628,7 @@ async function main() {
   const absences = generateAbsences(random, people.people, now)
   const meetings = generateMeetings(random, now, specs, people.people, holders, absences)
   const adminAccount = accounts.get(people.admin) as number
-  const meetingCount = await writeMeetings(
+  const eventIds = await writeMeetings(
     congregationId,
     meetings,
     templateIds,
@@ -635,6 +636,28 @@ async function main() {
     speakerRows.map(row => row.id),
     adminAccount,
   )
+  const meetingCount = eventIds.length
+  // Every past meeting counted, entered by the administrator; the publishers still here set the size.
+  const activePublishers = people.people.filter(person => person.leftAt == null && !person.goesInactive).length
+  const attendance = generateAttendance(meetings, now, activePublishers)
+  await prisma.attendance.createMany({
+    data: attendance.flatMap((counts, index) =>
+      counts == null
+        ? []
+        : [
+            {
+              eventId: eventIds[index] as number,
+              inPerson: counts.inPerson,
+              inPersonById: adminAccount,
+              inPersonAt: meetings[index]?.start,
+              online: counts.online,
+              onlineById: counts.online == null ? null : adminAccount,
+              onlineAt: counts.online == null ? null : meetings[index]?.start,
+              congregationId,
+            },
+          ],
+    ),
+  })
 
   const dayOff = await prisma.eventTemplate.findFirstOrThrow({
     where: { key: EventTemplateKey.DayOff, congregationId },

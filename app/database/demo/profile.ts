@@ -121,6 +121,11 @@ export const MEETINGS = {
   absenceAccountsRate: 0.6,
   absencesPerAccount: { 10: 1, 25: 2, 50: 4, 75: 8, 90: 13 } satisfies Percentiles,
   absenceDays: { 10: 2, 25: 2, 50: 5, 75: 14, 90: 24 } satisfies Percentiles,
+  /**
+   * Attendance per active publisher, and the part that follows by videoconference: typical ratios rather than a real
+   * congregation's figures, which the demo never imports.
+   */
+  attendance: { midweekPerPublisher: 0.95, weekendPerPublisher: 1.18, onlineShare: 0.17, spread: 0.06, summerDip: 0.9 },
 } as const
 
 /** The service roles of each meeting, as the congregation runs them. */

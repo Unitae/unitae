@@ -325,3 +325,42 @@ export function classifyParts(parts: { preset: string | null; section: string }[
     }
   })
 }
+
+export interface AttendanceSeed {
+  inPerson: number
+  online: number | null
+}
+
+/**
+ * Each past meeting's two counts, from `activePublishers` and the profile's ratios: more at the weekend, a little less
+ * in July and August, about a sixth online. The latest midweek meeting still waits for its videoconference count, as a
+ * real one would the morning after. Drawn from a source of its own, so the rest of the congregation keeps its draws.
+ * Aligned with `meetings`: null for a meeting still to come.
+ */
+export function generateAttendance(
+  meetings: MeetingSeed[],
+  now: Date,
+  activePublishers: number,
+): (AttendanceSeed | null)[] {
+  const random = new Random(0xa77e0)
+  const config = MEETINGS.attendance
+  let latestMidweek = -1
+  meetings.forEach((meeting, index) => {
+    if (
+      meeting.kind === 'midweek' &&
+      meeting.start <= now &&
+      (latestMidweek < 0 || meeting.start > (meetings[latestMidweek] as MeetingSeed).start)
+    ) {
+      latestMidweek = index
+    }
+  })
+  return meetings.map((meeting, index) => {
+    if (meeting.start > now) return null
+    const perPublisher = meeting.kind === 'midweek' ? config.midweekPerPublisher : config.weekendPerPublisher
+    const month = meeting.start.getMonth()
+    const season = month === 6 || month === 7 ? config.summerDip : 1
+    const total = Math.round(activePublishers * perPublisher * season * (1 + (random.next() * 2 - 1) * config.spread))
+    const online = Math.round(total * config.onlineShare * (1 + (random.next() * 2 - 1) * 0.25))
+    return { inPerson: total - online, online: index === latestMidweek ? null : online }
+  })
+}
