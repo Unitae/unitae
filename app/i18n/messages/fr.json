@@ -1890,6 +1890,32 @@
             }
         }
     ],
+    "programs_bulk_delete_success": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} évènement supprimé.",
+                "countPlural=*": "{count} évènements supprimés."
+            }
+        }
+    ],
+    "programs_bulk_delete_kept_attendance": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} réunion gardée pour son assistance : son programme a été retiré.",
+                "countPlural=*": "{count} réunions gardées pour leur assistance : leur programme a été retiré."
+            }
+        }
+    ],
     "programs_bulk_delete_button": "Supprimer",
     "programs_bulk_delete_title": [
         {

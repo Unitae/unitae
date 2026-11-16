@@ -42,24 +42,49 @@ export async function createFreeformEvent(
 }
 
 /**
- * The events among `ids` that have attendance counts. Programmes and attendance are unrelated: deleting a programme
+ * The events among `ids` that have an attendance count. Programmes and attendance are unrelated: deleting a programme
  * must never take a meeting's counts with it, so these events lose their programme and stay.
+ *
+ * The events are locked first. A count entered at the same moment holds a key-share lock on its event until it
+ * commits; without this lock the check could miss it and the delete would then cascade it away.
  */
 async function eventsWithCounts(db: TransactionClient, ids: number[], congregationId: number): Promise<Set<number>> {
+  await db.$queryRaw`SELECT "id" FROM "Event" WHERE "id" = ANY(${ids}) AND "congregationId" = ${congregationId} FOR UPDATE`
   const rows = await db.attendance.findMany({
-    where: { eventId: { in: ids }, congregationId },
+    where: { eventId: { in: ids }, congregationId, OR: [{ inPerson: { not: null } }, { online: { not: null } }] },
     select: { eventId: true },
   })
   return new Set(rows.map(row => row.eventId))
 }
 
 /**
- * Removes the programme of events that must stay: their parts and services go, and the event goes back to a draft, as
- * a meeting without a programme is, so nothing empty shows on the board. The event and its attendance remain.
+ * Removes the programme of events that must stay: their parts and services go — with the assignment notices still
+ * waiting to be sent, as unreleasing does — and the event goes back to a draft, as a meeting without a programme is,
+ * so nothing empty shows on the board. The event and its attendance remain.
  */
 async function removeProgrammes(db: TransactionClient, ids: number[], congregationId: number, actorId: number) {
   if (ids.length === 0) return
   const where = { eventId: { in: ids }, congregationId }
+  const [parts, services] = await Promise.all([
+    db.eventPart.findMany({ where, select: { id: true } }),
+    db.eventServicePart.findMany({ where, select: { id: true } }),
+  ])
+  const partIds = parts.map(part => part.id)
+  const serviceIds = services.map(service => service.id)
+  // Never an empty `in: []`: one refactor and it would cancel every pending notice of the congregation.
+  if (partIds.length > 0 || serviceIds.length > 0) {
+    await db.notificationEvent.updateMany({
+      where: {
+        congregationId,
+        status: 'pending',
+        OR: [
+          { entityType: 'EventPart', entityId: { in: partIds } },
+          { entityType: 'EventServicePart', entityId: { in: serviceIds } },
+        ],
+      },
+      data: { status: 'cancelled', processedAt: new Date() },
+    })
+  }
   await db.eventPart.deleteMany({ where })
   await db.eventServicePart.deleteMany({ where })
   await db.event.updateMany({ where: { id: { in: ids }, congregationId }, data: { status: EventStatus.Draft } })

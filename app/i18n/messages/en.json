@@ -1885,6 +1885,32 @@
             }
         }
     ],
+    "programs_bulk_delete_success": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} event deleted.",
+                "countPlural=*": "{count} events deleted."
+            }
+        }
+    ],
+    "programs_bulk_delete_kept_attendance": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} meeting kept for its attendance: its program was removed.",
+                "countPlural=*": "{count} meetings kept for their attendance: their program was removed."
+            }
+        }
+    ],
     "programs_bulk_delete_button": "Delete",
     "programs_bulk_delete_title": [
         {

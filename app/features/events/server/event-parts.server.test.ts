@@ -48,16 +48,22 @@ const mockDb = {
     create: vi.fn(),
     delete: vi.fn(),
     deleteMany: vi.fn(),
+    findMany: vi.fn(),
     update: vi.fn(),
   },
   eventServicePart: {
     create: vi.fn(),
     delete: vi.fn(),
     deleteMany: vi.fn(),
+    findMany: vi.fn(),
   },
   attendance: {
     findMany: vi.fn(),
   },
+  notificationEvent: {
+    updateMany: vi.fn(),
+  },
+  $queryRaw: vi.fn(),
   eventPartAllowedRole: {
     createMany: vi.fn(),
   },
@@ -77,6 +83,10 @@ beforeEach(() => {
   vi.mocked(allowedRoles.setPartAssignmentAllowedRoles).mockResolvedValue({ added: [], removed: [] })
   vi.mocked(allowedRoles.setServicePartAssignmentAllowedRoles).mockResolvedValue({ added: [], removed: [] })
   mockDb.attendance.findMany.mockResolvedValue([])
+  mockDb.eventPart.deleteMany.mockResolvedValue({ count: 0 })
+  mockDb.eventServicePart.deleteMany.mockResolvedValue({ count: 0 })
+  mockDb.eventPart.findMany.mockResolvedValue([])
+  mockDb.eventServicePart.findMany.mockResolvedValue([])
 })
 
 describe('createFreeformEvent', () => {
@@ -232,6 +242,54 @@ describe('bulkDeleteEvents', () => {
       mockDb,
       expect.objectContaining({ action: 'event.deleted', entityId: 11 }),
     )
+  })
+
+  // A count entered at the same moment must be seen: the events are locked before their counts are read.
+  it('locks the events before looking for their counts', async () => {
+    mockDb.event.deleteMany.mockResolvedValue({ count: 1 })
+    const order: string[] = []
+    mockDb.$queryRaw.mockImplementation(() => {
+      order.push('lock')
+      return Promise.resolve([])
+    })
+    mockDb.attendance.findMany.mockImplementation(() => {
+      order.push('counts')
+      return Promise.resolve([])
+    })
+
+    await bulkDeleteEvents(mockDb as never, [10], 42, 7)
+
+    expect(order).toEqual(['lock', 'counts'])
+  })
+
+  it('only keeps events whose attendance has a count', async () => {
+    mockDb.event.deleteMany.mockResolvedValue({ count: 1 })
+
+    await bulkDeleteEvents(mockDb as never, [10], 42, 7)
+
+    const [[{ where }]] = mockDb.attendance.findMany.mock.calls
+    expect(where.OR).toEqual([{ inPerson: { not: null } }, { online: { not: null } }])
+  })
+
+  it('cancels the pending assignment notices of the parts it removes', async () => {
+    mockDb.attendance.findMany.mockResolvedValue([{ eventId: 11 }])
+    mockDb.eventPart.findMany.mockResolvedValue([{ id: 100 }])
+    mockDb.eventServicePart.findMany.mockResolvedValue([{ id: 200 }])
+    mockDb.event.deleteMany.mockResolvedValue({ count: 0 })
+
+    await bulkDeleteEvents(mockDb as never, [11], 42, 7)
+
+    expect(mockDb.notificationEvent.updateMany).toHaveBeenCalledWith({
+      where: {
+        congregationId: 42,
+        status: 'pending',
+        OR: [
+          { entityType: 'EventPart', entityId: { in: [100] } },
+          { entityType: 'EventServicePart', entityId: { in: [200] } },
+        ],
+      },
+      data: { status: 'cancelled', processedAt: expect.any(Date) },
+    })
   })
 })
 

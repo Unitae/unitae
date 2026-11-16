@@ -1,7 +1,9 @@
-import { redirect } from 'react-router'
+import { data, redirect } from 'react-router'
+import { commitSession, getSession } from '~/features/authentication/index.server'
 import { bulkEventIdsSchema } from '~/features/events/schemas/bulk-event-ids.schema'
 import { bulkDeleteEvents } from '~/features/events/server/event-parts.server'
 import { canManageAnyProgram, filterToManageableEventIds } from '~/features/events/server/events-auth.server'
+import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import type { Permission } from '~/shared/types/permission'
@@ -35,6 +37,15 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     const { count, emptied } = await bulkDeleteEvents(db, allowedIds, congregationId, currentUser.id)
     logger.info(`Bulk deleted ${count} events; removed the programme of ${emptied} with attendance.`)
-    return { ok: true, deleted: count, emptied }
+    // One string per flash key: both outcomes go in the same toast.
+    const session = await getSession(request.headers.get('Cookie'))
+    const message = [
+      count > 0 ? m.programs_bulk_delete_success({ count }) : null,
+      emptied > 0 ? m.programs_bulk_delete_kept_attendance({ count: emptied }) : null,
+    ]
+      .filter(Boolean)
+      .join(' ')
+    if (message) session.flash('success', message)
+    return data({ ok: true, deleted: count, emptied }, { headers: { 'Set-Cookie': await commitSession(session) } })
   })
 }
