@@ -28,3 +28,16 @@ export function parseAttendanceKind(value: string): AttendanceKind {
 export function countsInAverages(kind: AttendanceKind): kind is 'midweek' | 'weekend' {
   return kind === AttendanceKind.Midweek || kind === AttendanceKind.Weekend
 }
+
+// The seeded meetings count from day one. The 20261116120000 migration applies this same rule in SQL; importing an
+// archive from before attendance existed must agree with it, or a restored backup counts differently.
+const DEFAULT_BY_KEY: Record<string, AttendanceKind> = {
+  'midweek-meeting': AttendanceKind.Midweek,
+  'weekend-meeting': AttendanceKind.Weekend,
+  memorial: AttendanceKind.Separate,
+}
+
+/** How a template with this key counts when nobody has chosen: the seeded meetings by key, anything else not at all. */
+export function defaultAttendanceKind(key: string): AttendanceKind {
+  return DEFAULT_BY_KEY[key] ?? AttendanceKind.None
+}

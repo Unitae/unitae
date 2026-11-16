@@ -10,6 +10,7 @@ export {
   ATTENDANCE_KINDS,
   AttendanceKind,
   countsInAverages,
+  defaultAttendanceKind,
   isAttendanceKind,
   parseAttendanceKind,
 } from './model/attendance-kind.type'

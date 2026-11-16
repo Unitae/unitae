@@ -1,5 +1,10 @@
 import type JsZip from 'jszip'
-import { RESPONSIBILITY_SCOPES, ResponsibilityScope } from '~/features/events'
+import {
+  defaultAttendanceKind,
+  parseAttendanceKind,
+  RESPONSIBILITY_SCOPES,
+  ResponsibilityScope,
+} from '~/features/events'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import type { EntityIdMap } from './data-transfer.type'
@@ -21,6 +26,8 @@ export async function importEventTemplates(
     weekDay: number | null
     isRecurring: boolean
     color?: string
+    /** From archive 2.15 on. */
+    attendanceKind?: string
   }>(zip, 'programme-templates')
 
   for (const record of records) {
@@ -34,6 +41,8 @@ export async function importEventTemplates(
           weekDay: record.weekDay,
           isRecurring: record.isRecurring,
           ...(record.color != null ? { color: record.color } : {}),
+          // An archive from before attendance says nothing: the template keeps how it counts here.
+          ...(record.attendanceKind != null ? { attendanceKind: parseAttendanceKind(record.attendanceKind) } : {}),
         },
       })
       idMap.set('programme-templates', record.id, existing.id)
@@ -46,6 +55,11 @@ export async function importEventTemplates(
           weekDay: record.weekDay,
           isRecurring: record.isRecurring,
           ...(record.color != null ? { color: record.color } : {}),
+          // Same default as the migration gave existing templates.
+          attendanceKind:
+            record.attendanceKind != null
+              ? parseAttendanceKind(record.attendanceKind)
+              : defaultAttendanceKind(record.key),
           congregationId,
         },
       })

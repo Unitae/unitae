@@ -13,6 +13,7 @@ import { getFileBuffer } from '~/shared/infra/file-storage.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { EntityIdMap } from './data-transfer.type'
 import type { DataTransferJobData } from './data-transfer-queue.server'
+import { importAttendance } from './import-attendance.server'
 import { importAuditLogs, importConsentRecords, importDataDeletionRecords } from './import-audit-consent.server'
 import {
   importBoardDocuments,
@@ -285,6 +286,7 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
       await progress()
 
       await importEvents(zip, db, idMap, congregationId)
+      await importAttendance(zip, db, idMap, congregationId)
       await progress()
 
       await importEventParts(zip, db, idMap, congregationId)

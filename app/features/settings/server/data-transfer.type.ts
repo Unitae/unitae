@@ -1,4 +1,4 @@
-export const ARCHIVE_VERSION = '2.14'
+export const ARCHIVE_VERSION = '2.15'
 
 // Older archive versions an import will still accept. v1.0 archives miss every
 // post-shipping feature table (custom roles, allowed-roles, external speakers,
@@ -52,6 +52,9 @@ export const ARCHIVE_VERSION = '2.14'
 // v2.14 adds « Notre liste », the speakers we send: `our-speakers.ndjson` (each brother's entry, keyed to his record),
 // and `speaker-congregations.ndjson` gains `ourListSentAt`, `ourListSentManually` and `ourListSentDigest`. Pre-2.14 archives import with no
 // entry and every congregation never sent to, which is where a congregation starts.
+// v2.15 adds meeting attendance: `attendance.ndjson` (each meeting's two counts and who entered them, keyed to its
+// event), and `programme-templates.ndjson` gains `attendanceKind`. Pre-2.15 archives import with no counts; an existing
+// template keeps its kind and a new one gets the default of its key, by the same rule as the migration.
 // v1.x archives are listed here so the import path reports
 // them with a warning rather than rejecting outright; a compatibility shim that
 // splits legacy `users.ndjson` is a deferred follow-up.
@@ -73,6 +76,7 @@ export const SUPPORTED_ARCHIVE_VERSIONS = [
   '2.12',
   '2.13',
   '2.14',
+  '2.15',
 ] as const
 
 export interface ManifestJson {
@@ -139,6 +143,7 @@ export const ENTITY_FILES = [
   'programme-template-service-role-allowed-roles',
   'programme-template-responsibles',
   'events',
+  'attendance',
   'programme-part-assignments',
   'programme-part-assignment-allowed-roles',
   'programme-service-role-assignments',

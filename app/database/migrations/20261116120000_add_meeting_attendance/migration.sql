@@ -20,6 +20,7 @@ ALTER TABLE "EventTemplate"
 
 -- The seeded meetings count from day one. Every other template, including a key this file does not know, keeps the
 -- default 'none' — nothing is dropped, and a congregation can change it in its settings.
+-- Same rule as defaultAttendanceKind() in app/features/events/model/attendance-kind.type.ts, which the archive import uses.
 UPDATE "EventTemplate" SET "attendanceKind" = 'midweek' WHERE "key" = 'midweek-meeting' AND "attendanceKind" = 'none';
 UPDATE "EventTemplate" SET "attendanceKind" = 'weekend' WHERE "key" = 'weekend-meeting' AND "attendanceKind" = 'none';
 UPDATE "EventTemplate" SET "attendanceKind" = 'separate' WHERE "key" = 'memorial' AND "attendanceKind" = 'none';
