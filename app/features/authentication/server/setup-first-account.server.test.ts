@@ -24,6 +24,11 @@ vi.mock('~/shared/infra/db.server', () => ({
   withScope: vi.fn((_id: number, fn: (db: unknown) => Promise<unknown>) => fn(scopedDb)),
 }))
 
+const extendRecurringEvents = vi.fn()
+vi.mock('~/features/events/server/recurring-events.server', () => ({
+  extendRecurringEvents: (...args: unknown[]) => extendRecurringEvents(...args),
+}))
+
 vi.mock('~/shared/auth/crypto.server', () => ({
   hash: vi.fn().mockResolvedValue('hashed-password' as never),
 }))
@@ -83,6 +88,17 @@ beforeEach(() => {
 })
 
 describe('setupFirstAccount', () => {
+  it('creates the first two months of recurring meetings for the congregation', async () => {
+    vi.mocked(db.congregation.findFirst).mockResolvedValue({ id: 9, name: 'Ma Congrégation', locale: 'fr' } as never)
+
+    await setupFirstAccount('admin@test.com', 'motdepasse', 'Assemblée des Lilas', 'default', 'fr')
+
+    expect(extendRecurringEvents).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ congregationId: 9 }),
+    )
+  })
+
   it('names a new congregation after what the admin typed', async () => {
     await setupFirstAccount('admin@test.com', 'motdepasse', 'Assemblée des Lilas', 'default', 'fr')
 

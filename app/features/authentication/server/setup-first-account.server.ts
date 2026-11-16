@@ -1,4 +1,4 @@
-import { seedDefaultTemplates } from '~/features/events/index.server'
+import { extendRecurringEvents, seedDefaultTemplates } from '~/features/events/index.server'
 import { seedBuiltInTerritoryKinds } from '~/features/territories/index.server'
 import type { locales } from '~/i18n/paraglide/runtime'
 import { hash } from '~/shared/auth/crypto.server'
@@ -50,6 +50,12 @@ export async function setupFirstAccount(
   // UserRoleAssignment are all RLS-scoped, unlike the direct grant this replaced.
   await withScope(congregation.id, async scopedDb => {
     await seedCongregationDefaults(scopedDb, congregation.id, locale, seedDefaultTemplates, seedBuiltInTerritoryKinds)
+    // The first two months of meetings, as the daily job will keep them.
+    await extendRecurringEvents(scopedDb, {
+      congregationId: congregation.id,
+      timeZone: congregation.timezone,
+      now: new Date(),
+    })
 
     const adminRoleId = await ensureAdminRole(scopedDb, congregation.id)
     if (adminRoleId != null) {

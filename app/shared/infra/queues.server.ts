@@ -5,4 +5,5 @@ export const QUEUE_NAMES = {
   dataTransfer: 'dataTransferQueue',
   retention: 'retentionQueue',
   campaign: 'campaignQueue',
+  recurringEvents: 'recurringEventsQueue',
 } as const
