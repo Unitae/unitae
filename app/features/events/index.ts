@@ -28,6 +28,7 @@ export {
   partPresetShareMessage,
   partPresetSpeakerLabel,
 } from './model/part-preset-defaults'
+export { programmeKey } from './model/programme-dates'
 export {
   groupProgrammeParts,
   type ProgrammePartLike,

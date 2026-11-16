@@ -2,7 +2,7 @@
 
 ## Overview
 
-Unitae uses a Redis-based background job processing system built on **BullMQ**. A single multi-queue worker process handles six job types: territory data sync, email notifications, PDF thumbnail generation, data transfer (export/import), data retention (daily auto-anonymisation), and the campaign lifecycle (daily date-driven activation/end of publishing campaigns). Jobs carry `congregationId` to maintain tenant isolation.
+Unitae uses a Redis-based background job processing system built on **BullMQ**. A single multi-queue worker process handles seven job types: territory data sync, email notifications, PDF thumbnail generation, data transfer (export/import), data retention (daily auto-anonymisation), the campaign lifecycle (daily date-driven activation/end of publishing campaigns), and recurring events (daily creation of meetings two months ahead). Jobs carry `congregationId` to maintain tenant isolation.
 
 ## Architecture
 
@@ -42,6 +42,7 @@ export const QUEUE_NAMES = {
   dataTransfer: 'dataTransferQueue',
   retention: 'retentionQueue',
   campaign: 'campaignQueue',
+  recurringEvents: 'recurringEventsQueue',
 } as const
 ```
 
@@ -126,6 +127,18 @@ campaign attributions, resume).
 - **Retries**: None (1 attempt only — transitions are idempotent and the next tick converges)
 - **Schedule**: A repeating job registered at worker startup via `campaignQueue.upsertJobScheduler('campaign-lifecycle-daily', { pattern: '0 <CAMPAIGN_CRON_HOUR_UTC> * * *', tz: 'UTC' })` — daily at 02:00 UTC by default, deliberately an hour before the retention sweep. The worker also enqueues one catch-up sweep at boot so a worker that was down over a start/end date converges immediately.
 - **Behaviour**: Iterates every active congregation with per-tenant error isolation and runs `runCampaignLifecycleSweep`, which delegates to the campaign lifecycle workflow (`campaign-lifecycle.workflow.ts`) as a synthetic system actor. Saving a campaign create/edit form also runs the sweep inline for that congregation, so a campaign that is already due activates without waiting for the cron.
+
+### Recurring Events Queue
+
+Keeps every template with a weekday (system templates excepted) created two months ahead, as bare draft events with
+no author that the people who prepare programmes fill in later.
+
+- **Producer**: `app/features/events/server/recurring-events-queue.server.ts`
+- **Handler**: `app/features/events/jobs/handle-recurring-events-work.server.ts`
+- **Concurrency**: 1
+- **Retries**: None (1 attempt only — the pass is idempotent and the next tick converges)
+- **Schedule**: `recurringEventsQueue.upsertJobScheduler('recurring-events-daily', { pattern: '0 <RECURRING_EVENTS_CRON_HOUR_UTC> * * *', tz: 'UTC' })` — daily at 01:00 UTC, before campaigns and retention, plus one catch-up sweep at boot.
+- **Behaviour**: For each active, non-suspended congregation, in its own time zone and with per-tenant error isolation, `extendRecurringEvents` locks each template row, then creates the missing days after the template's high-water mark (`EventTemplate.generatedUntil`, a local `YYYY-MM-DD` day) and raises it. It only ever goes forward from that mark, so a day someone removed — an assembly week — is never refilled. Registration and first-account setup run the same function once, so a new congregation starts with its first two months.
 
 ## Worker Locale Support
 

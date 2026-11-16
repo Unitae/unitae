@@ -4,6 +4,8 @@ import '~/shared/utils/worker-locale.server'
 import http from 'node:http'
 import { Worker } from 'bullmq'
 import { handleThumbnailWork } from '~/features/display-board/jobs/handle-thumbnail-work.server'
+import { handleRecurringEventsWork } from '~/features/events/jobs/handle-recurring-events-work.server'
+import { recurringEventsQueue } from '~/features/events/server/recurring-events-queue.server'
 import { handleEmailWork } from '~/features/notifications/jobs/handle-email-work.server'
 import { handleDataTransferWork } from '~/features/settings/jobs/handle-data-transfer-work.server'
 import { handleRetentionWork } from '~/features/settings/jobs/handle-retention-work.server'
@@ -11,7 +13,11 @@ import { retentionQueue } from '~/features/settings/server/retention-queue.serve
 import { handleCampaignLifecycleWork } from '~/features/territories/jobs/handle-campaign-lifecycle-work.server'
 import { handleSyncWork } from '~/features/territories/jobs/handle-sync-work.server'
 import { campaignQueue } from '~/features/territories/server/campaign-queue.server'
-import { CAMPAIGN_CRON_HOUR_UTC, RETENTION_CRON_HOUR_UTC } from '~/shared/constants/limits'
+import {
+  CAMPAIGN_CRON_HOUR_UTC,
+  RECURRING_EVENTS_CRON_HOUR_UTC,
+  RETENTION_CRON_HOUR_UTC,
+} from '~/shared/constants/limits'
 import { createLogger } from '~/shared/infra/logger.server'
 import { QUEUE_NAMES } from '~/shared/infra/queues.server'
 import { getBullMQConnection } from '~/shared/infra/redis.server'
@@ -32,14 +38,19 @@ const workerNames = [
   QUEUE_NAMES.dataTransfer,
   QUEUE_NAMES.retention,
   QUEUE_NAMES.campaign,
+  QUEUE_NAMES.recurringEvents,
 ]
 const RETENTION_SCHEDULER = 'retention-daily'
 const CAMPAIGN_SCHEDULER = 'campaign-lifecycle-daily'
+const RECURRING_EVENTS_SCHEDULER = 'recurring-events-daily'
 
-// Healthy only once every worker is connected and both daily schedulers are registered. Note that
+// Healthy only once every worker is connected and every daily scheduler is registered. Note that
 // BullMQ emits a worker's 'ready' once, not again after a Redis reconnect, so a later Redis loss
 // does not flip this back; the workers reconnect on their own.
-const readiness = createWorkerReadiness({ workers: workerNames, schedulers: [RETENTION_SCHEDULER, CAMPAIGN_SCHEDULER] })
+const readiness = createWorkerReadiness({
+  workers: workerNames,
+  schedulers: [RETENTION_SCHEDULER, CAMPAIGN_SCHEDULER, RECURRING_EVENTS_SCHEDULER],
+})
 let stopping = false
 
 function setupWorkerEvents(worker: Worker, name: string) {
@@ -107,6 +118,13 @@ const campaignWorker = new Worker(QUEUE_NAMES.campaign, handleCampaignLifecycleW
   removeOnFail: { count: 30 },
 })
 
+const recurringEventsWorker = new Worker(QUEUE_NAMES.recurringEvents, handleRecurringEventsWork, {
+  connection: getBullMQConnection(),
+  concurrency: 1,
+  removeOnComplete: { count: 30 },
+  removeOnFail: { count: 30 },
+})
+
 const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms).unref())
 
 // Registers a daily scheduler, retrying with backoff until it succeeds: a failed registration
@@ -156,7 +174,28 @@ campaignQueue
   .add('campaign-lifecycle-sweep', { triggeredAt: new Date().toISOString() })
   .catch(err => logger.error('Failed to enqueue campaign lifecycle catch-up', { error: err.message }))
 
-const workers = [syncWorker, emailWorker, thumbnailWorker, dataTransferWorker, retentionWorker, campaignWorker]
+// Daily recurring events — 01:00 UTC, before campaigns and retention. Same catch-up on boot as campaigns: a worker
+// that was down converges at once instead of waiting a day.
+registerScheduler(RECURRING_EVENTS_SCHEDULER, () =>
+  recurringEventsQueue.upsertJobScheduler(
+    RECURRING_EVENTS_SCHEDULER,
+    { pattern: `0 ${RECURRING_EVENTS_CRON_HOUR_UTC} * * *`, tz: 'UTC' },
+    { name: 'recurring-events-sweep', data: { triggeredAt: new Date().toISOString() } },
+  ),
+)
+recurringEventsQueue
+  .add('recurring-events-sweep', { triggeredAt: new Date().toISOString() })
+  .catch(err => logger.error('Failed to enqueue recurring events catch-up', { error: err.message }))
+
+const workers = [
+  syncWorker,
+  emailWorker,
+  thumbnailWorker,
+  dataTransferWorker,
+  retentionWorker,
+  campaignWorker,
+  recurringEventsWorker,
+]
 
 for (let i = 0; i < workers.length; i++) {
   setupWorkerEvents(workers[i], workerNames[i])

@@ -1,6 +1,7 @@
+import { reanchorEmptyMeetings } from '~/features/events/index.server'
 import type { GeneralSettingsInput } from '~/features/settings/schemas/general-settings.schema'
 import { tenantUrl } from '~/shared/domain/congregation.server'
-import { unscopedDb } from '~/shared/infra/db.server'
+import { unscopedDb, withScope } from '~/shared/infra/db.server'
 
 export type GeneralSettings = {
   displayName: string
@@ -33,9 +34,9 @@ export async function getGeneralSettings(congregationId: number): Promise<Genera
 // `id`), so it is not subject to that filter. Scoped Settings go through the scoped db instead (see
 // password-security.server.ts).
 export async function updateGeneralSettings(congregationId: number, input: GeneralSettingsInput): Promise<void> {
-  const { name } = await unscopedDb.congregation.findUniqueOrThrow({
+  const { name, timezone: previousTimeZone } = await unscopedDb.congregation.findUniqueOrThrow({
     where: { id: congregationId },
-    select: { name: true },
+    select: { name: true, timezone: true },
   })
   // The page shows `name` when there is no override: saving it unchanged must not turn it into one, or a later
   // rename by the control plane would no longer show.
@@ -49,4 +50,10 @@ export async function updateGeneralSettings(congregationId: number, input: Gener
       domain: input.domain,
     },
   })
+  // The meetings created ahead were set in the old zone: same local day, the template's hours in the new one.
+  if (previousTimeZone !== input.timezone) {
+    await withScope(congregationId, db =>
+      reanchorEmptyMeetings(db, { congregationId, previousTimeZone, timeZone: input.timezone, now: new Date() }),
+    )
+  }
 }

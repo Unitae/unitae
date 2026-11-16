@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { seedDefaultTemplates } from '~/features/events/index.server'
+import { extendRecurringEvents, seedDefaultTemplates } from '~/features/events/index.server'
 import { seedBuiltInTerritoryKinds } from '~/features/territories/index.server'
 import type { locales } from '~/i18n/paraglide/runtime'
 import { hash } from '~/shared/auth/crypto.server'
@@ -87,6 +87,20 @@ export async function registerCongregation(
 
     await syncBuiltInRoleAssignments(scopedDb, user.id, congregation.id, user.id)
   })
+
+  // The first two months of meetings, as the daily job will keep them. In a transaction of their own, after the
+  // congregation is provisioned: if this fails, sign-up still succeeds and the daily job catches up.
+  try {
+    await withScope(congregation.id, scopedDb =>
+      extendRecurringEvents(scopedDb, {
+        congregationId: congregation.id,
+        timeZone: congregation.timezone,
+        now: new Date(),
+      }),
+    )
+  } catch (error) {
+    logger.error('Could not create the first recurring meetings', { congregationId: congregation.id, error })
+  }
 
   // Enregistrer le consentement RGPD initial
   await recordConsentUnscoped(user.id, congregation.id, ConsentPurpose.DataProcessing)

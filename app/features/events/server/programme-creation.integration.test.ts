@@ -64,7 +64,8 @@ beforeAll(async () => {
       data: { name: 'Absence', key: 'day-off', isRecurring: false, congregationId: congId },
     })
     dayOffId = dayOff.id
-    // Thursday 19 November, 19:00 in Martinique: already Friday in UTC.
+    // Thursday 19 November, 19:00 in Martinique: already Friday in UTC. A programme already prepared — it has a part —
+    // unlike an empty meeting created ahead, which a series fills.
     await tx.event.create({
       data: {
         name: 'Réunion de semaine',
@@ -73,6 +74,7 @@ beforeAll(async () => {
         endDate: combineLocalDateTime('2026-11-19', '20:45', MARTINIQUE),
         createdById: account.id,
         congregationId: congId,
+        eventParts: { create: [{ name: 'Joyaux', congregationId: congId }] },
       },
     })
   })
