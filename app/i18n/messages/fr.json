@@ -1763,6 +1763,19 @@
             }
         }
     ],
+    "programs_awaiting_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} sans programme",
+                "countPlural=*": "{count} sans programme"
+            }
+        }
+    ],
     "programs_drafts_count": [
         {
             "declarations": [
@@ -1958,6 +1971,12 @@
         }
     ],
     "programs_page_title": "Programmes",
+    "programs_awaiting_badge": "Pas encore de programme",
+    "programs_create_programme_button": "Créer le programme",
+    "programs_create_programme_success": "Programme créé.",
+    "programs_create_programme_exists": "Cette réunion a déjà un programme.",
+    "programs_create_programme_nothing": "Le modèle de cette réunion n’a ni partie ni service à lui donner.",
+    "programs_awaiting_hint": "Cette réunion n’a pas encore de programme. « Créer le programme » lui donne les parties et les services de son modèle.",
     "programs_event_draft_badge": "Brouillon",
     "programs_event_release_button": "Publier",
     "programs_event_unrelease_button": "Repasser en brouillon",
@@ -1972,6 +1991,19 @@
             "match": {
                 "countPlural=one": "{count} évènement publié.",
                 "countPlural=*": "{count} évènements publiés."
+            }
+        }
+    ],
+    "programs_release_awaiting_bulk": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} réunion sans programme n’a pas été publiée.",
+                "countPlural=*": "{count} réunions sans programme n’ont pas été publiées."
             }
         }
     ],
@@ -2260,6 +2292,11 @@
     "programs_delete_dialog_title": "Supprimer ce programme ?",
     "programs_delete_dialog_description": "« {name} » du {date} sera supprimé, avec ses parties, ses services et leurs attributions. Ce n’est pas réversible.",
     "programs_delete_submit": "Supprimer l’évènement",
+    "programs_delete_meeting_title": "Supprimer cette réunion ?",
+    "programs_delete_meeting_description": "« {name} » du {date} sera supprimée et ne sera pas recréée : c’est ainsi qu’on indique une semaine sans réunion.",
+    "programs_delete_meeting_submit": "Supprimer la réunion",
+    "programs_delete_programme_only_description": "Les parties et les services de « {name} » du {date} seront supprimés, avec leurs attributions. La réunion reste, avec son assistance.",
+    "programs_delete_programme_submit": "Supprimer le programme",
     "programs_delete_success": "L’évènement « {name} » a été supprimé.",
     "programs_delete_kept_attendance": "Le programme a été retiré ; « {name} » reste, avec son assistance.",
     "programs_assign_part_topic_label": "Sujet / Titre",
@@ -5724,6 +5761,60 @@
     "settings_templates_new_submit": "Créer le modèle",
     "settings_templates_name_required": "Saisissez le nom du modèle.",
     "settings_template_page_subtitle": "Modèle de programme",
+    "settings_template_move_meetings_title": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} réunion à venir n’est pas au jour et à l’heure du modèle.",
+                "countPlural=*": "{count} réunions à venir ne sont pas au jour et à l’heure du modèle."
+            }
+        }
+    ],
+    "settings_template_move_meetings_body": "Chaque réunion sans programme va au jour du modèle dans sa propre semaine. Une semaine qui a déjà sa réunion ce jour-là garde la sienne, et les semaines supprimées le restent.",
+    "settings_template_move_meetings_button": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Déplacer la réunion à venir",
+                "countPlural=*": "Déplacer les {count} réunions à venir"
+            }
+        }
+    ],
+    "settings_template_move_meetings_moved": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} réunion déplacée.",
+                "countPlural=*": "{count} réunions déplacées."
+            }
+        }
+    ],
+    "settings_template_move_meetings_removed": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} réunion supprimée : sa semaine avait déjà la sienne.",
+                "countPlural=*": "{count} réunions supprimées : leur semaine avait déjà la sienne."
+            }
+        }
+    ],
+    "settings_template_move_meetings_none": "Les réunions à venir sont déjà au jour et à l’heure du modèle.",
     "settings_template_page_used": [
         {
             "declarations": [
@@ -6730,6 +6821,7 @@
     "audit_log_action_attendance_recorded": "Assistance saisie",
     "audit_log_action_attendance_corrected": "Assistance corrigée",
     "audit_log_action_event_recurring_created": "Réunions créées automatiquement",
+    "audit_log_action_event_recurring_moved": "Réunions à venir déplacées",
     "audit_log_action_event_programme_removed": "Programme retiré, réunion gardée",
     "settings_external_speakers_role_gone": "Ce rôle n’existe plus : choisissez-en un autre.",
     "settings_external_speakers_open_organigram": "Ouvrir l’organigramme",
@@ -6932,6 +7024,7 @@
     "event_part_error_day_off_publisher": "Ce proclamateur a une absence durant cette date.",
     "event_part_error_day_off_reader": "Le deuxième orateur a une absence durant cette date.",
     "event_status_error_release_blocked": "Impossible de publier : cet évènement a des conflits d’absence à résoudre.",
+    "event_status_error_release_awaiting": "Impossible de publier : cette réunion n’a pas encore de programme.",
     "role_tree_error_cycle": "Un service ne peut pas être rattaché à lui-même ni à l’un des services qui en dépendent.",
     "role_tree_error_too_deep": "L’organigramme ne peut pas dépasser {max} niveaux.",
     "role_tree_error_roster_is_root": "Les anciens et les assistants ministériels sont toujours au sommet de l’organigramme.",

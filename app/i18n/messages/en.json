@@ -1758,6 +1758,19 @@
             }
         }
     ],
+    "programs_awaiting_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} without a program",
+                "countPlural=*": "{count} without a program"
+            }
+        }
+    ],
     "programs_drafts_count": [
         {
             "declarations": [
@@ -1953,6 +1966,12 @@
         }
     ],
     "programs_page_title": "Programs",
+    "programs_awaiting_badge": "No program yet",
+    "programs_create_programme_button": "Create the program",
+    "programs_create_programme_success": "Program created.",
+    "programs_create_programme_exists": "This meeting already has a program.",
+    "programs_create_programme_nothing": "This meeting’s template has no part or service to give it.",
+    "programs_awaiting_hint": "This meeting has no program yet. “Create the program” gives it the parts and services of its template.",
     "programs_event_draft_badge": "Draft",
     "programs_event_release_button": "Publish",
     "programs_event_unrelease_button": "Move back to draft",
@@ -1967,6 +1986,19 @@
             "match": {
                 "countPlural=one": "{count} event published.",
                 "countPlural=*": "{count} events published."
+            }
+        }
+    ],
+    "programs_release_awaiting_bulk": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} meeting without a program was not published.",
+                "countPlural=*": "{count} meetings without a program were not published."
             }
         }
     ],
@@ -2255,6 +2287,11 @@
     "programs_delete_dialog_title": "Delete this program?",
     "programs_delete_dialog_description": "“{name}” on {date} will be deleted, with its parts, its services and their assignments. This cannot be undone.",
     "programs_delete_submit": "Delete event",
+    "programs_delete_meeting_title": "Delete this meeting?",
+    "programs_delete_meeting_description": "“{name}” on {date} will be deleted and not created again: this is how a week without a meeting is shown.",
+    "programs_delete_meeting_submit": "Delete meeting",
+    "programs_delete_programme_only_description": "The parts and services of “{name}” on {date} will be deleted, with their assignments. The meeting stays, with its attendance.",
+    "programs_delete_programme_submit": "Delete program",
     "programs_delete_success": "The event “{name}” has been deleted.",
     "programs_delete_kept_attendance": "The program was removed; “{name}” stays, with its attendance.",
     "programs_assign_part_topic_label": "Topic / Title",
@@ -5724,6 +5761,60 @@
     "settings_templates_new_submit": "Create the template",
     "settings_templates_name_required": "Enter the template’s name.",
     "settings_template_page_subtitle": "Program template",
+    "settings_template_move_meetings_title": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} upcoming meeting is not on the template’s day and time.",
+                "countPlural=*": "{count} upcoming meetings are not on the template’s day and time."
+            }
+        }
+    ],
+    "settings_template_move_meetings_body": "Each meeting without a program goes to the template’s day in its own week. A week that already has its meeting on that day keeps it, and deleted weeks stay deleted.",
+    "settings_template_move_meetings_button": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Move the upcoming meeting",
+                "countPlural=*": "Move the {count} upcoming meetings"
+            }
+        }
+    ],
+    "settings_template_move_meetings_moved": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} meeting moved.",
+                "countPlural=*": "{count} meetings moved."
+            }
+        }
+    ],
+    "settings_template_move_meetings_removed": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} meeting deleted: its week already had one.",
+                "countPlural=*": "{count} meetings deleted: their week already had one."
+            }
+        }
+    ],
+    "settings_template_move_meetings_none": "The upcoming meetings are already on the template’s day and time.",
     "settings_template_page_used": [
         {
             "declarations": [
@@ -6730,6 +6821,7 @@
     "audit_log_action_attendance_recorded": "Attendance entered",
     "audit_log_action_attendance_corrected": "Attendance corrected",
     "audit_log_action_event_recurring_created": "Meetings created automatically",
+    "audit_log_action_event_recurring_moved": "Upcoming meetings moved",
     "audit_log_action_event_programme_removed": "Program removed, meeting kept",
     "settings_external_speakers_role_gone": "This role no longer exists: choose another one.",
     "settings_external_speakers_open_organigram": "Open the organigram",
@@ -6932,6 +7024,7 @@
     "event_part_error_day_off_publisher": "This publisher has an absence on this date.",
     "event_part_error_day_off_reader": "The second speaker has an absence on this date.",
     "event_status_error_release_blocked": "Cannot publish: this event has absence conflicts to resolve.",
+    "event_status_error_release_awaiting": "Cannot publish: this meeting has no program yet.",
     "role_tree_error_cycle": "A service cannot sit under itself or under one of the services that depend on it.",
     "role_tree_error_too_deep": "The organization chart cannot go deeper than {max} levels.",
     "role_tree_error_roster_is_root": "Elders and ministerial servants are always at the top of the organization chart.",

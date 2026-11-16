@@ -6,6 +6,7 @@ import {
   deleteTemplatePart,
   deleteTemplateServicePart,
   duplicateTemplate,
+  moveEmptyMeetings,
   saveTemplateResponsibles,
   templateItemBelongsToTemplate,
   updateTemplate,
@@ -28,6 +29,8 @@ export interface TemplateActor {
   congregationId: number
   /** Manages every template: the template's own fields, who runs it, duplicating and deleting it. */
   isManager: boolean
+  /** The congregation's zone, where its meetings' days and hours are read. */
+  timeZone: string
 }
 
 /** What an intent did: a toast and, for a duplicate or a delete, where to go; or the form's refusal. */
@@ -165,6 +168,23 @@ export async function handleTemplateAction(
     }
     await deleteTemplateServicePart(db, submission.value.roleId, congregationId)
     return { kind: 'saved', message: m.settings_template_edit_service_role_deleted() }
+  }
+
+  // « Déplacer les N réunions à venir »: whoever may change the template's day may bring its meetings along.
+  if (intent === 'move-meetings') {
+    const { moved, removed } = await moveEmptyMeetings(db, templateId, {
+      congregationId,
+      timeZone: actor.timeZone,
+      now: new Date(),
+      actorId,
+    })
+    const message = [
+      moved > 0 && m.settings_template_move_meetings_moved({ count: moved }),
+      removed > 0 && m.settings_template_move_meetings_removed({ count: removed }),
+    ]
+      .filter(Boolean)
+      .join(' ')
+    return { kind: 'saved', message: message || m.settings_template_move_meetings_none() }
   }
 
   if (!actor.isManager) return null

@@ -40,6 +40,8 @@ interface EventAssignmentsPanelProps {
   selectedId: number | null
   onAssign: (part: AssignedPart, trigger: HTMLElement) => void
   onUnassign: (target: UnassignTarget) => void
+  /** What the empty table says instead of « Aucune partie au programme ». */
+  emptyHint?: string
 }
 
 /**
@@ -55,6 +57,7 @@ export function EventAssignmentsPanel({
   selectedId,
   onAssign,
   onUnassign,
+  emptyHint,
 }: EventAssignmentsPanelProps) {
   const sections = groupProgrammeParts(parts)
 
@@ -71,7 +74,7 @@ export function EventAssignmentsPanel({
       }
     >
       {parts.length === 0 ? (
-        <p className="px-4.5 py-6 text-muted-foreground text-sm">{m.dashboard_meeting_no_parts()}</p>
+        <p className="px-4.5 py-6 text-muted-foreground text-sm">{emptyHint ?? m.dashboard_meeting_no_parts()}</p>
       ) : (
         <table className="w-full table-fixed border-collapse text-sm max-md:block">
           <caption className="sr-only">{m.programs_view_spiritual_program()}</caption>

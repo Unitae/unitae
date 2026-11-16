@@ -72,6 +72,21 @@ describe('bulkReleaseEvents (per-event scope + post-tx notifications)', () => {
     expect(result.failed).toEqual([])
   })
 
+  // Not a conflict: the page says these meetings have no programme yet, not that someone is away.
+  it('keeps the meetings waiting for their programme apart from those blocked by an absence', async () => {
+    vi.mocked(db.event.findFirst).mockResolvedValue({
+      ...draftEvent,
+      id: 40,
+      template: { key: null, _count: { parts: 12, serviceParts: 4 } },
+    } as never)
+
+    const result = await bulkReleaseEvents([40], 1, 5, nctx)
+
+    expect(result.awaiting).toEqual([40])
+    expect(result.blocked).toEqual([])
+    expect(db.event.update).not.toHaveBeenCalled()
+  })
+
   // A Prisma error inside `withScope` (pool exhaustion, connection reset, tx
   // timeout) previously escaped the loop and 500'd the whole batch, silently
   // dropping partial progress. Now each event's release is caught and lands
@@ -111,7 +126,7 @@ describe('bulkReleaseEvents (per-event scope + post-tx notifications)', () => {
 
   it('returns empty buckets when the input list is empty', async () => {
     const result = await bulkReleaseEvents([], 1, 5, nctx)
-    expect(result).toEqual({ released: [], blocked: [], notFound: [], failed: [] })
+    expect(result).toEqual({ released: [], blocked: [], awaiting: [], notFound: [], failed: [] })
     expect(db.event.findFirst).not.toHaveBeenCalled()
   })
 })

@@ -37,6 +37,7 @@ const programme = (
   kind: templateId == null ? null : { name: `Modèle ${templateId}`, color: '#3b82f6' },
   parts: { total: 7, filled: 5, flagged: flagged.parts },
   services: { total: 4, filled: 3, flagged: flagged.services },
+  awaitingProgramme: id === 34,
 })
 
 vi.mock('~/features/events/server/programme-list.queries', () => ({
@@ -48,6 +49,8 @@ vi.mock('~/features/events/server/programme-list.queries', () => ({
       programme(31, 4, 'released', '2026-11-12', { parts: 1, services: 1 }),
       programme(32, 5, 'draft', '2026-11-15', { parts: 1, services: 2 }),
       programme(33, null, 'draft', '2026-11-19', { parts: 0, services: 0 }),
+      // Created ahead by the recurring-events job, its programme still to come.
+      programme(34, 4, 'draft', '2026-11-26', { parts: 0, services: 0 }),
     ]),
 }))
 
@@ -109,8 +112,10 @@ describe('/programs — what the list receives', () => {
       [31, { edit: true, publish: true, review: 2 }],
       [32, { edit: true, publish: true, review: 3 }],
       [33, { edit: true, publish: true, review: 0 }],
+      [34, { edit: true, publish: true, review: 0 }],
     ])
     expect(data.canCreate).toBe(true)
+    expect(data.programmes.filter(row => row.awaitingProgramme).map(row => row.id)).toEqual([34])
   })
 
   it('gives a responsible their own programmes, and a services responsible the services to review', async () => {
@@ -120,6 +125,7 @@ describe('/programs — what the list receives', () => {
       [30, { edit: true, publish: true, review: 0 }],
       [31, { edit: true, publish: true, review: 2 }],
       [32, { edit: false, publish: false, review: 2 }],
+      [34, { edit: true, publish: true, review: 0 }],
     ])
     expect(data.canCreate).toBe(true)
   })
@@ -132,6 +138,7 @@ describe('/programs — what the list receives', () => {
       [31, { edit: false, publish: true, review: 0 }],
       [32, { edit: false, publish: true, review: 0 }],
       [33, { edit: false, publish: true, review: 0 }],
+      [34, { edit: false, publish: true, review: 0 }],
     ])
     expect(data.canCreate).toBe(false)
   })

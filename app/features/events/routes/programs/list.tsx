@@ -87,6 +87,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
           kind: item.kind,
           parts: { total: item.parts.total, filled: item.parts.filled },
           services: { total: item.services.total, filled: item.services.filled },
+          awaitingProgramme: item.awaitingProgramme,
           review,
           canEdit: rights.canEdit,
           canPublish: rights.canPublish,
@@ -121,11 +122,14 @@ export function shouldRevalidate({
 
 export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
   const { programmes, period, preset, today, now, hasAnyProgramme, canCreate, timeZone } = loaderData
-  const drafts = programmes.filter(row => row.status === EventStatus.Draft).length
+  // A meeting waiting for its programme is neither a programme nor a draft yet: it is counted on its own.
+  const awaiting = programmes.filter(row => row.awaitingProgramme).length
+  const drafts = programmes.filter(row => row.status === EventStatus.Draft && !row.awaitingProgramme).length
   const review = programmes.reduce((total, row) => total + row.review, 0)
   const facts = [
-    m.programs_count({ count: programmes.length }),
+    programmes.length > awaiting && m.programs_count({ count: programmes.length - awaiting }),
     drafts > 0 && m.programs_drafts_count({ count: drafts }),
+    awaiting > 0 && m.programs_awaiting_count({ count: awaiting }),
     review > 0 && m.programs_absences_review({ count: review }),
   ].filter(Boolean)
 

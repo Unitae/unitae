@@ -3,6 +3,7 @@
 export { getNextDaysOffs } from './server/days-off.server'
 export { deleteTemplate } from './server/delete-template.server'
 export { duplicateTemplate } from './server/duplicate-template.server'
+export { countMeetingsToMove } from './server/empty-meetings.queries'
 export {
   deleteTemplatePart,
   deleteTemplateServicePart,
@@ -25,6 +26,7 @@ export {
   type LastAssignment,
   type NextAbsence,
 } from './server/member-engagement.queries'
+export { moveEmptyMeetings } from './server/move-empty-meetings.server'
 export { eventsNotifications } from './server/notifications.server'
 export { getOurSpeakerListPage } from './server/our-speakers.queries'
 export { removeOurSpeakerEntry } from './server/our-speakers.server'

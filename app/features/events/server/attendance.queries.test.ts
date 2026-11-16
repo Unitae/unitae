@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mockDb = { event: { findMany: vi.fn() } }
+const mockDb = { event: { findMany: vi.fn() }, attendance: { findFirst: vi.fn() } }
 
-const { listMeetingsUnderWay, listServiceYearAttendance } = await import('./attendance.queries')
+const { eventHasAttendance, listMeetingsUnderWay, listServiceYearAttendance } = await import('./attendance.queries')
 
 const PARIS = 'Europe/Paris'
 
@@ -101,5 +101,21 @@ describe('listMeetingsUnderWay', () => {
     expect(where.status).toBeUndefined()
     expect(where.startDate.gte.toISOString()).toBe('2026-11-14T23:00:00.000Z')
     expect(where.startDate.lte).toEqual(now)
+  })
+})
+
+describe('eventHasAttendance', () => {
+  // Deleting such a meeting only removes its programme: the dialog says so before.
+  it('says whether a meeting has counts, in its congregation', async () => {
+    mockDb.attendance.findFirst.mockResolvedValueOnce({ id: 3 }).mockResolvedValueOnce(null)
+
+    expect(await eventHasAttendance(mockDb as never, 40, 1)).toBe(true)
+    expect(await eventHasAttendance(mockDb as never, 41, 1)).toBe(false)
+    // A row whose counts were both cleared keeps nothing: deleting then removes the meeting, as deleteEvent decides.
+    expect(mockDb.attendance.findFirst.mock.calls[0]?.[0]?.where).toEqual({
+      eventId: 40,
+      congregationId: 1,
+      OR: [{ inPerson: { not: null } }, { online: { not: null } }],
+    })
   })
 })

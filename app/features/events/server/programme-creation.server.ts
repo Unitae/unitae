@@ -2,6 +2,7 @@ import { SYSTEM_TEMPLATE_KEYS } from '~/features/events/model/event-template.typ
 import { daysOnWeekday, programmeKey } from '~/features/events/model/programme-dates'
 import {
   giveProgramme,
+  lockTemplates,
   TEMPLATE_INCLUDE,
   type TemplateWithRelations,
 } from '~/features/events/server/give-programme.server'
@@ -117,11 +118,6 @@ async function coverUpTo(
  * Locks the templates' rows for the rest of the transaction, so a series and the recurring-events job cannot both
  * create the same day: there is no unique key on (template, day).
  */
-async function lockTemplates(db: TransactionClient, templateIds: number[], congregationId: number) {
-  // In id order, like the recurring-events job, so the two never wait on each other in a cycle.
-  await db.$queryRaw`SELECT "id" FROM "EventTemplate" WHERE "id" = ANY(${templateIds}) AND "congregationId" = ${congregationId} ORDER BY "id" FOR UPDATE`
-}
-
 /**
  * Moves a recurring template's high-water mark up to `day` when it lies beyond it, never back: a day passed in a series
  * that runs past the recurring horizon must never be filled later by the recurring-events job.

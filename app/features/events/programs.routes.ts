@@ -12,6 +12,7 @@ export const programsRoutes = [
       index('features/events/routes/programs/events/view.tsx'),
       route('edit', 'features/events/routes/programs/events/edit.tsx'),
       route('release', 'features/events/routes/programs/events/release.tsx'),
+      route('create-programme', 'features/events/routes/programs/events/create-programme.tsx'),
       route('unrelease', 'features/events/routes/programs/events/unrelease.tsx'),
       route('assign-part', 'features/events/routes/programs/events/assign-part.tsx'),
       route('assign-service', 'features/events/routes/programs/events/assign-service.tsx'),

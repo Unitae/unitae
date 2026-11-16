@@ -37,7 +37,8 @@ export function getEventProgramme(db: TransactionClient, eventId: number, congre
   return db.event.findFirst({
     where: { id: eventId, congregationId, ...PROGRAMME_EVENT },
     include: {
-      template: true,
+      // With the counts of its template: they say whether an empty event waits for its programme (isAwaitingProgramme).
+      template: { include: { _count: { select: { parts: true, serviceParts: true } } } },
       eventParts: {
         include: {
           assignee: true,

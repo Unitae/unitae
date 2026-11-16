@@ -1,8 +1,10 @@
 import { redirect } from 'react-router'
 import { resolveProgrammeLink } from '~/features/display-board/index.server'
+import { isAwaitingProgramme, programmeTemplate } from '~/features/events/model/empty-meetings'
 import { mayOpenEvent } from '~/features/events/model/programme-access'
 import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
 import { buildAssignmentCandidates } from '~/features/events/server/assignment-candidates.server'
+import { eventHasAttendance } from '~/features/events/server/attendance.queries'
 import { buildShareTextsForEvent } from '~/features/events/server/build-share-message.server'
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
 import { canEditEvent } from '~/features/events/server/events-auth.server'
@@ -57,6 +59,9 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const canAssignAnything = canAssign || canAssignService
     refuseDraft(event.status, { canEdit, canPublish, canAssign, canAssignService })
 
+    // The delete dialog says what deleting does: with counts, only the programme goes.
+    const hasAttendance = canEdit && (await eventHasAttendance(db, eventId, congregationId))
+
     const users = canAssignAnything
       ? await db.member.findMany({
           where: { congregationId, leftAt: null },
@@ -86,6 +91,13 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
     return {
       event,
+      // Created ahead and still empty: the page offers « Créer le programme » instead of publishing it.
+      awaitingProgramme: isAwaitingProgramme({
+        parts: event.eventParts.length,
+        services: event.eventServiceParts.length,
+        template: programmeTemplate(event.template),
+      }),
+      hasAttendance,
       canEdit,
       canPublish,
       canAssign,

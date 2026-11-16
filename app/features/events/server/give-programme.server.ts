@@ -30,10 +30,21 @@ export interface TemplateWithRelations {
   serviceParts: { id: number; name: string; allowedRoles: { roleId: number }[] }[]
 }
 
+/** The template counts isAwaitingProgramme needs: whether it has a programme to give. */
+export const TEMPLATE_PROGRAMME_COUNT = { _count: { select: { parts: true, serviceParts: true } } } as const
+
 export const TEMPLATE_INCLUDE = {
   parts: { orderBy: { order: 'asc' }, include: { allowedRoles: true } },
   serviceParts: { include: { allowedRoles: true } },
 } as const
+
+/**
+ * Locks template rows before reading which days already have their events: in id order, like the recurring-events job,
+ * so the two never wait on each other in a cycle. There is no unique key on (template, day).
+ */
+export async function lockTemplates(db: TransactionClient, templateIds: number[], congregationId: number) {
+  await db.$queryRaw`SELECT "id" FROM "EventTemplate" WHERE "id" = ANY(${templateIds}) AND "congregationId" = ${congregationId} ORDER BY "id" FOR UPDATE`
+}
 
 /**
  * Gives an event its template's programme: its parts in order and its services, with who may take each. Used on a new

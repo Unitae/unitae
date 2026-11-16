@@ -49,7 +49,8 @@ export function ProgrammeBulkActions({ selected, onClear, timeZone }: ProgrammeB
   const statusFetcher = useBulkFetcher(onClear)
   const deleteFetcher = useBulkFetcher(onClear)
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const toRelease = selected.filter(row => row.canPublish && row.status === EventStatus.Draft)
+  // A meeting with no programme yet has nothing to publish.
+  const toRelease = selected.filter(row => row.canPublish && row.status === EventStatus.Draft && !row.awaitingProgramme)
   const toUnrelease = selected.filter(row => row.canPublish && row.status === EventStatus.Released)
   const toDelete = selected.filter(row => row.canEdit)
   const busy = statusFetcher.state !== 'idle' || deleteFetcher.state !== 'idle'
