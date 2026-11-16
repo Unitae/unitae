@@ -102,6 +102,22 @@ describe('planMeetingMoves', () => {
     })
   })
 
+  // Clocks go back on Sunday 25 October 2026: 10:00 in Paris is 08:00 UTC on the Saturday, 09:00 UTC on the Sunday.
+  it('keeps the local hour across a change of time', () => {
+    const saturday = { id: 1, startDate: new Date('2026-10-24T08:00:00Z'), endDate: new Date('2026-10-24T09:45:00Z') }
+    const sunday = {
+      weekDay: 0,
+      startTime: '10:00',
+      endTime: '11:45',
+      timeZone: PARIS,
+      now: new Date('2026-10-19T09:00:00Z'),
+    }
+
+    expect(planMeetingMoves({ ...sunday, meetings: [saturday], taken: [] }).move).toEqual([
+      { id: 1, startDate: new Date('2026-10-25T09:00:00Z'), endDate: new Date('2026-10-25T10:45:00Z') },
+    ])
+  })
+
   it('plans nothing for a template that no longer has a day', () => {
     expect(planMeetingMoves({ ...rule, weekDay: null, meetings: [tuesday(1, '2026-11-17')], taken: [] })).toEqual({
       move: [],
