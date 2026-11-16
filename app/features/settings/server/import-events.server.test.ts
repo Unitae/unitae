@@ -9,9 +9,8 @@ const { importEvents } = await import('./import-events.server')
 const { EntityIdMap } = await import('./data-transfer.type')
 
 const db = {
-  congregation: { findFirst: vi.fn() },
-  eventTemplate: { findFirst: vi.fn() },
-  event: { findMany: vi.fn(), create: vi.fn(), deleteMany: vi.fn() },
+  eventTemplate: { findFirst: vi.fn(), updateMany: vi.fn() },
+  event: { create: vi.fn(), deleteMany: vi.fn() },
 }
 
 function record(overrides: Record<string, unknown> = {}) {
@@ -39,9 +38,7 @@ function idMap() {
 
 beforeEach(() => {
   vi.resetAllMocks()
-  db.congregation.findFirst.mockResolvedValue({ timezone: 'Europe/Paris' })
   db.eventTemplate.findFirst.mockResolvedValue({ id: 90 })
-  db.event.findMany.mockResolvedValue([])
   db.event.create.mockImplementation(({ data }) => Promise.resolve({ id: 500, ...data }))
 })
 
@@ -63,31 +60,13 @@ describe('importEvents', () => {
     expect(warn).toHaveBeenCalled()
   })
 
-  // A fresh congregation already has its first two months of empty meetings; the archive's meeting takes the day.
-  it('replaces a meeting created ahead with no programme on the same day instead of doubling it', async () => {
-    db.event.findMany.mockResolvedValue([{ id: 44, templateId: 30, startDate: new Date('2026-11-19T18:00:00Z') }])
+  // A fresh congregation already has empty meetings on the seeded weekdays; the archive's meetings replace them all.
+  it('clears the empty seeded meetings — never one with counts — and lets the job start again after the archive', async () => {
     readNdjsonFile.mockResolvedValue([record()])
 
     await importEvents({} as never, db as never, idMap(), 1)
 
-    expect(db.event.deleteMany).toHaveBeenCalledWith({ where: { id: { in: [44] }, congregationId: 1 } })
-    expect(db.event.create).toHaveBeenCalledTimes(1)
-  })
-
-  it('refuses to guess the time zone of a congregation it cannot read', async () => {
-    db.congregation.findFirst.mockResolvedValue(null)
-    readNdjsonFile.mockResolvedValue([record()])
-
-    await expect(importEvents({} as never, db as never, idMap(), 1)).rejects.toThrow()
-    expect(db.event.create).not.toHaveBeenCalled()
-  })
-
-  it('only replaces an empty meeting nobody created and nobody counted', async () => {
-    readNdjsonFile.mockResolvedValue([record()])
-
-    await importEvents({} as never, db as never, idMap(), 1)
-
-    expect(db.event.findMany.mock.calls[0]?.[0]).toMatchObject({
+    expect(db.event.deleteMany).toHaveBeenCalledWith({
       where: {
         congregationId: 1,
         createdById: null,
@@ -96,5 +75,19 @@ describe('importEvents', () => {
         attendance: { is: null },
       },
     })
+    expect(db.eventTemplate.updateMany).toHaveBeenCalledWith({
+      where: { congregationId: 1 },
+      data: { generatedUntil: null },
+    })
+    expect(db.event.create).toHaveBeenCalledTimes(1)
+  })
+
+  it('leaves everything alone when the archive has no events', async () => {
+    readNdjsonFile.mockResolvedValue([])
+
+    await importEvents({} as never, db as never, idMap(), 1)
+
+    expect(db.event.deleteMany).not.toHaveBeenCalled()
+    expect(db.eventTemplate.updateMany).not.toHaveBeenCalled()
   })
 })

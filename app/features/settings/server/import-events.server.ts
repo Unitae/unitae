@@ -1,9 +1,7 @@
 import type JsZip from 'jszip'
-import { EventTemplateKey, programmeKey } from '~/features/events'
-import { NotFoundError } from '~/shared/errors/app-error.server'
+import { EventTemplateKey } from '~/features/events'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
-import { dayOf } from '~/shared/utils/calendar-day'
 import type { EntityIdMap } from './data-transfer.type'
 import { readNdjsonFile } from './ndjson-archive'
 
@@ -13,8 +11,8 @@ const logger = createLogger('import-events')
  * Events. An event whose author is not in the archive (or was skipped) keeps going without one, as the events the
  * recurring-events job creates do; an absence cannot — its author is the person away — so it is skipped, and counted.
  *
- * A fresh congregation already has its first two months of empty meetings from seeding: an archived event on the same
- * template and day replaces that empty meeting rather than doubling it.
+ * A fresh congregation already has its first two months of empty meetings from seeding: the archive's meetings replace
+ * them, and the recurring-events job starts again after the last imported one.
  */
 export async function importEvents(
   zip: JsZip,
@@ -34,16 +32,15 @@ export async function importEvents(
   }>(zip, 'events')
   if (records.length === 0) return
 
-  const congregation = await db.congregation.findFirst({ where: { id: congregationId }, select: { timezone: true } })
-  if (!congregation) throw new NotFoundError('Congregation', congregationId)
-  const timeZone = congregation.timezone
   const dayOff = await db.eventTemplate.findFirst({
     where: { key: EventTemplateKey.DayOff, congregationId },
     select: { id: true },
   })
   if (!dayOff) logger.warn('No day-off template: absences without their owner cannot be told apart', { congregationId })
-  const emptyMeetings = await db.event.findMany({
-    // Never one with attendance: replacing it would take its counts with it.
+  // A fresh congregation already has empty meetings from seeding, on the seeded weekdays. The archive's meetings
+  // replace them all — never one with attendance — and every template's mark is reset, so the recurring-events job
+  // starts again after the last imported meeting, on the archive's own weekdays.
+  await db.event.deleteMany({
     where: {
       congregationId,
       createdById: null,
@@ -51,13 +48,8 @@ export async function importEvents(
       eventServiceParts: { none: {} },
       attendance: { is: null },
     },
-    select: { id: true, templateId: true, startDate: true },
   })
-  const emptyByDay = new Map(
-    emptyMeetings.flatMap(event =>
-      event.templateId == null ? [] : [[programmeKey(event.templateId, dayOf(event.startDate, timeZone)), event.id]],
-    ),
-  )
+  await db.eventTemplate.updateMany({ where: { congregationId }, data: { generatedUntil: null } })
 
   let ownerless = 0
   for (const record of records) {
@@ -69,13 +61,6 @@ export async function importEvents(
     }
 
     const startDate = new Date(record.startDate)
-    const replaced =
-      templateId == null ? undefined : emptyByDay.get(programmeKey(templateId, dayOf(startDate, timeZone)))
-    if (replaced != null) {
-      await db.event.deleteMany({ where: { id: { in: [replaced] }, congregationId } })
-      emptyByDay.delete(programmeKey(templateId as number, dayOf(startDate, timeZone)))
-    }
-
     const created = await db.event.create({
       data: {
         name: record.name,
