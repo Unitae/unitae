@@ -166,6 +166,8 @@ async function reuseMeeting(
       name: template.name,
       startDate: combineLocalDateTime(day, template.startTime, ctx.timezone),
       endDate: combineLocalDateTime(day, template.endTime, ctx.timezone),
+      // Whoever gives it its programme prepares it: the meeting is no longer one nobody created.
+      createdById: ctx.actorId,
     },
   })
   return giveProgramme(db, template, eventId, day, ctx, { reused: true })

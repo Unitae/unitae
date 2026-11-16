@@ -184,7 +184,7 @@ describe('bare events, edge cases', () => {
 
     expect(vi.mocked(db.event.update).mock.calls[0]?.[0]).toMatchObject({
       where: { id_congregationId: { id: 55, congregationId: 7 } },
-      data: { name: 'Réunion de semaine' },
+      data: { name: 'Réunion de semaine', createdById: 42 },
     })
     expect(hour(vi.mocked(db.event.update).mock.calls[0]?.[0]?.data?.startDate as Date)).toBe('19:00')
   })
