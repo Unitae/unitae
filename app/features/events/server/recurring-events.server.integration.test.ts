@@ -59,6 +59,7 @@ beforeAll(async () => {
 afterAll(async () => {
   if (congregationId) {
     await withScope(congregationId, async tx => {
+      await tx.auditLog.deleteMany({})
       await tx.event.deleteMany({})
       await tx.eventTemplate.deleteMany({})
     })
