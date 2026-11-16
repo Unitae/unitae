@@ -39,6 +39,8 @@ interface EventViewProps {
   }
   /** A meeting created ahead with no programme yet: « Créer le programme » replaces publishing it. */
   awaitingProgramme: boolean
+  /** The meeting has counts: deleting it removes only its programme. */
+  hasAttendance: boolean
   /** Each action follows the right its route checks. */
   canEdit: boolean
   canPublish: boolean
@@ -62,6 +64,7 @@ interface EventViewProps {
 export function EventView({
   event,
   awaitingProgramme,
+  hasAttendance,
   canEdit,
   canPublish,
   canAssign,
@@ -314,6 +317,7 @@ export function EventView({
       {canEdit && (
         <DeleteEventDialog
           event={{ id: event.id, name: event.name, date }}
+          outcome={hasAttendance ? 'programme-only' : awaitingProgramme ? 'empty-meeting' : 'everything'}
           open={deleting}
           onClose={() => setDeleting(false)}
         />

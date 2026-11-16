@@ -121,3 +121,9 @@ export async function listMeetingsUnderWay(
   })
   return events.map(event => toRow(event, timeZone))
 }
+
+/** Whether a meeting has attendance: deleting its programme then keeps the meeting and its counts. */
+export async function eventHasAttendance(db: TransactionClient, eventId: number, congregationId: number) {
+  const row = await db.attendance.findFirst({ where: { eventId, congregationId }, select: { id: true } })
+  return row != null
+}
