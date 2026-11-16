@@ -6,6 +6,13 @@ export {
   type PartRoleSlot,
   partAllowedRolesToWrite,
 } from './model/allowed-roles-write'
+export {
+  ATTENDANCE_KINDS,
+  AttendanceKind,
+  countsInAverages,
+  isAttendanceKind,
+  parseAttendanceKind,
+} from './model/attendance-kind.type'
 export { dayLabel, dayLabelShort } from './model/day-label'
 export { EventStatus } from './model/event-status.type'
 export { EventTemplateKey, isSystemTemplate } from './model/event-template.type'
