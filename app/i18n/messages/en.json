@@ -5745,7 +5745,7 @@
     "settings_template_attendance_midweek": "Midweek meeting",
     "settings_template_attendance_weekend": "Weekend meeting",
     "settings_template_attendance_separate": "Counted separately",
-    "settings_template_attendance_hint": "Averages and the S-88 only take midweek and weekend meetings; “Counted separately” keeps the attendance without counting it (the Memorial).",
+    "settings_template_attendance_hint": "Averages and the S-88 only take midweek and weekend meetings. “Counted separately” records the attendance outside the averages and the S-88 (the Memorial).",
     "settings_template_programme_responsible": "Program responsible",
     "settings_template_service_responsible": "Services responsible",
     "settings_template_holders": "Today: {names}.",

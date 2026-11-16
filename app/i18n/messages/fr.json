@@ -5745,7 +5745,7 @@
     "settings_template_attendance_midweek": "Réunion de semaine",
     "settings_template_attendance_weekend": "Réunion de week-end",
     "settings_template_attendance_separate": "Comptée à part",
-    "settings_template_attendance_hint": "Les moyennes et le S-88 ne prennent que les réunions de semaine et de week-end ; « Comptée à part » garde l’assistance sans la compter (le Mémorial).",
+    "settings_template_attendance_hint": "Les moyennes et le S-88 ne prennent que les réunions de semaine et de week-end. « Comptée à part » enregistre l’assistance hors des moyennes et du S-88 (le Mémorial).",
     "settings_template_programme_responsible": "Responsable du programme",
     "settings_template_service_responsible": "Responsable des services",
     "settings_template_holders": "Aujourd’hui : {names}.",
