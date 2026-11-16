@@ -9,7 +9,14 @@ vi.mock('~/shared/domain/audit.server', () => ({
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     eventTemplate: { findFirst: vi.fn(), findMany: vi.fn(), update: vi.fn() },
-    event: { findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn(), update: vi.fn(), deleteMany: vi.fn() },
+    event: {
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      create: vi.fn(),
+      createMany: vi.fn(),
+      update: vi.fn(),
+      deleteMany: vi.fn(),
+    },
     eventPart: { create: vi.fn() },
     eventServicePart: { create: vi.fn() },
     eventPartAllowedRole: { createMany: vi.fn() },
@@ -246,13 +253,26 @@ describe('the high-water mark', () => {
     expect(db.$executeRaw).not.toHaveBeenCalled()
   })
 
-  it('moves a recurring template’s mark to a single day created beyond it', async () => {
+  // A single day far ahead says nothing about the weeks before it: moving the mark there would leave them uncreated.
+  it('leaves the mark alone when one programme is created beyond it', async () => {
     vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({ ...MIDWEEK, generatedUntil: '2027-01-16' } as never)
     recordEvents()
 
     await createProgrammeOnDay(db, { templateId: 270, day: '2027-03-04' }, CTX)
 
-    expect(vi.mocked(db.$executeRaw).mock.calls[0]?.slice(1)).toEqual(['2027-03-04', '2027-03-04', 270, 7])
+    expect(db.$executeRaw).not.toHaveBeenCalled()
+  })
+
+  it('fills the weeks between the mark and a series that starts beyond it, then moves the mark', async () => {
+    vi.mocked(db.eventTemplate.findMany).mockResolvedValue([{ ...MIDWEEK, generatedUntil: '2027-01-16' }] as never)
+    recordEvents()
+
+    await createProgrammeSeries(db, { templateIds: [270], from: '2027-02-01', to: '2027-02-28' }, CTX)
+
+    const gap = vi.mocked(db.event.createMany).mock.calls[0]?.[0]?.data as { startDate: Date; createdById: null }[]
+    expect(gap.map(event => dayOf(event.startDate, MARTINIQUE))).toEqual(['2027-01-21', '2027-01-28'])
+    expect(gap.every(event => event.createdById === null)).toBe(true)
+    expect(vi.mocked(db.$executeRaw).mock.calls[0]?.slice(1)).toEqual(['2027-02-28', '2027-02-28', 270, 7])
   })
 
   it('locks the templates before reading which days they already have', async () => {

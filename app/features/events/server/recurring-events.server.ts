@@ -10,43 +10,78 @@ import { combineLocalDateTime } from '~/shared/utils/event-time'
 const logger = createLogger('recurring-events')
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/
 
-interface TemplateRow {
+interface MeetingTemplate {
   id: number
   name: string
-  weekDay: number | null
   startTime: string
   endTime: string
 }
 
 /**
- * Keeps one recurring template's events created ahead (see planRecurringEvents). The template row is locked first, so
- * this and a series being created at the same moment cannot both create the same day: there is no unique key on
- * (template, day). Returns how many events it created.
+ * Creates empty meetings of a template on the given local days: its name and hours in the congregation's zone, draft,
+ * no author — a meeting nobody has prepared yet. Shared by the job and by a series that starts beyond the horizon.
+ */
+export async function createEmptyMeetings(
+  db: TransactionClient,
+  template: MeetingTemplate,
+  days: string[],
+  { congregationId, timeZone }: { congregationId: number; timeZone: string },
+): Promise<void> {
+  if (days.length === 0) return
+  await db.event.createMany({
+    data: days.map(day => ({
+      name: template.name,
+      templateId: template.id,
+      startDate: combineLocalDateTime(day, template.startTime, timeZone),
+      endDate: combineLocalDateTime(day, template.endTime, timeZone),
+      status: EventStatus.Draft,
+      createdById: null,
+      congregationId,
+    })),
+  })
+}
+
+/**
+ * Keeps one recurring template's events created ahead (see planRecurringEvents). The template row is locked first and
+ * read again after the lock, so this and a series or an edit at the same moment cannot both create the same day, nor
+ * create it on a weekday that just changed: there is no unique key on (template, day). Returns how many it created.
  */
 async function extendTemplate(
   db: TransactionClient,
-  template: TemplateRow & { weekDay: number },
+  templateId: number,
   { congregationId, timeZone, today }: { congregationId: number; timeZone: string; today: string },
 ): Promise<number> {
-  await db.$queryRaw`SELECT "id" FROM "EventTemplate" WHERE "id" = ${template.id} AND "congregationId" = ${congregationId} FOR UPDATE`
-  const mark = await db.eventTemplate.findFirst({
-    where: { id: template.id, congregationId },
-    select: { generatedUntil: true },
+  await db.$queryRaw`SELECT "id" FROM "EventTemplate" WHERE "id" = ${templateId} AND "congregationId" = ${congregationId} FOR UPDATE`
+  const template = await db.eventTemplate.findFirst({
+    where: { id: templateId, congregationId },
+    select: { id: true, name: true, weekDay: true, startTime: true, endTime: true, generatedUntil: true },
   })
-  const generatedUntil = mark?.generatedUntil ?? null
+  if (template?.weekDay == null) return 0
+  // A template whose hours cannot be read (an old row, a hand edit) would fail every night and take the congregation's
+  // other templates with it: it is skipped, and named.
+  if (!(TIME.test(template.startTime) && TIME.test(template.endTime))) {
+    logger.error('Recurring template skipped: its hours are not HH:MM', {
+      congregationId,
+      templateId,
+      startTime: template.startTime,
+      endTime: template.endTime,
+    })
+    return 0
+  }
+
+  const { generatedUntil } = template
   const lastEvent =
     generatedUntil == null
       ? await db.event.findFirst({
-          where: { templateId: template.id, congregationId },
+          where: { templateId, congregationId },
           orderBy: { startDate: 'desc' },
           select: { startDate: true },
         })
       : null
   const upcoming = await db.event.findMany({
-    where: { templateId: template.id, congregationId, startDate: { gte: startOfDay(today, timeZone) } },
+    where: { templateId, congregationId, startDate: { gte: startOfDay(today, timeZone) } },
     select: { startDate: true },
   })
-
   const plan = planRecurringEvents({
     weekDay: template.weekDay,
     generatedUntil,
@@ -56,30 +91,19 @@ async function extendTemplate(
   })
 
   if (plan.days.length > 0) {
-    await db.event.createMany({
-      data: plan.days.map(day => ({
-        name: template.name,
-        templateId: template.id,
-        startDate: combineLocalDateTime(day, template.startTime, timeZone),
-        endDate: combineLocalDateTime(day, template.endTime, timeZone),
-        // A meeting nobody has prepared yet: no programme, nothing to publish, no author.
-        status: EventStatus.Draft,
-        createdById: null,
-        congregationId,
-      })),
-    })
+    await createEmptyMeetings(db, template, plan.days, { congregationId, timeZone })
     // In the transaction: the entry stands or falls with the events it counts.
     await auditInTransaction(db, {
       action: AuditAction.RecurringEventsCreated,
       congregationId,
       entityType: 'EventTemplate',
-      entityId: template.id,
+      entityId: templateId,
       metadata: { count: plan.days.length },
     })
   }
   if (plan.generatedUntil !== generatedUntil) {
     await db.eventTemplate.update({
-      where: { id_congregationId: { id: template.id, congregationId } },
+      where: { id_congregationId: { id: templateId, congregationId } },
       data: { generatedUntil: plan.generatedUntil },
     })
   }
@@ -97,26 +121,14 @@ export async function extendRecurringEvents(
 ): Promise<number> {
   const templates = await db.eventTemplate.findMany({
     where: { congregationId, weekDay: { not: null }, key: { notIn: [...SYSTEM_TEMPLATE_KEYS] } },
-    select: { id: true, name: true, weekDay: true, startTime: true, endTime: true },
+    select: { id: true },
     // In id order, like series creation locks them, so the two never wait on each other in a cycle.
     orderBy: { id: 'asc' },
   })
   const today = dayOf(now, timeZone)
   let created = 0
   for (const template of templates) {
-    if (template.weekDay == null) continue
-    // A template whose hours cannot be read (an old row, a hand edit) would fail every night and take the
-    // congregation's other templates with it: it is skipped, and named.
-    if (!(TIME.test(template.startTime) && TIME.test(template.endTime))) {
-      logger.error('Recurring template skipped: its hours are not HH:MM', {
-        congregationId,
-        templateId: template.id,
-        startTime: template.startTime,
-        endTime: template.endTime,
-      })
-      continue
-    }
-    created += await extendTemplate(db, { ...template, weekDay: template.weekDay }, { congregationId, timeZone, today })
+    created += await extendTemplate(db, template.id, { congregationId, timeZone, today })
   }
   return created
 }

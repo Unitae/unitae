@@ -20,11 +20,18 @@ const PARIS = 'Europe/Paris'
 // Monday 16 November 2026, 02:00 in Paris.
 const NOW = new Date('2026-11-16T01:00:00Z')
 const thursday = { id: 6, name: 'Réunion de semaine', weekDay: 4, startTime: '19:00', endTime: '20:45' }
+// The rows the job reads again after locking each template, and the mark they carry.
+let rows = new Map<number, object>([[6, thursday]])
+let mark: string | null = '2026-12-31'
 
 beforeEach(() => {
   vi.resetAllMocks()
+  rows = new Map<number, object>([[6, thursday]])
   mockDb.eventTemplate.findMany.mockResolvedValue([thursday])
-  mockDb.eventTemplate.findFirst.mockResolvedValue({ generatedUntil: '2026-12-31' })
+  mockDb.eventTemplate.findFirst.mockImplementation(({ where }: { where: { id: number } }) =>
+    Promise.resolve({ ...rows.get(where.id), generatedUntil: mark }),
+  )
+  mark = '2026-12-31'
   mockDb.event.findFirst.mockResolvedValue(null)
   mockDb.event.findMany.mockResolvedValue([])
   mockDb.event.createMany.mockResolvedValue({ count: 2 })
@@ -80,7 +87,7 @@ describe('extendRecurringEvents', () => {
     })
     mockDb.eventTemplate.findFirst.mockImplementation(() => {
       order.push('mark')
-      return Promise.resolve({ generatedUntil: '2026-12-31' })
+      return Promise.resolve({ ...thursday, generatedUntil: '2026-12-31' })
     })
 
     await extendRecurringEvents(mockDb as never, { congregationId: 1, timeZone: PARIS, now: NOW })
@@ -98,7 +105,7 @@ describe('extendRecurringEvents', () => {
   })
 
   it('starts after the last event on the first run', async () => {
-    mockDb.eventTemplate.findFirst.mockResolvedValue({ generatedUntil: null })
+    mark = null
     mockDb.event.findFirst.mockResolvedValue({ startDate: new Date('2027-01-07T18:00:00Z') })
 
     await extendRecurringEvents(mockDb as never, { congregationId: 1, timeZone: PARIS, now: NOW })
@@ -116,6 +123,14 @@ describe('extendRecurringEvents', () => {
     expect(data).toHaveLength(1)
   })
 
+  // An edit committed while the job waited on the lock wins: the job uses the row it reads after the lock.
+  it('creates on the weekday the template has after the lock, and nothing for a template that lost it', async () => {
+    rows = new Map<number, object>([[6, { ...thursday, weekDay: null }]])
+
+    expect(await extendRecurringEvents(mockDb as never, { congregationId: 1, timeZone: PARIS, now: NOW })).toBe(0)
+    expect(mockDb.event.createMany).not.toHaveBeenCalled()
+  })
+
   it('records one system entry per template that got events, and none otherwise', async () => {
     await extendRecurringEvents(mockDb as never, { congregationId: 1, timeZone: PARIS, now: NOW })
     expect(audit).toHaveBeenCalledWith(
@@ -130,14 +145,18 @@ describe('extendRecurringEvents', () => {
     expect(audit.mock.calls[0][0].actorId).toBeUndefined()
 
     audit.mockClear()
-    mockDb.eventTemplate.findFirst.mockResolvedValue({ generatedUntil: '2027-01-16' })
+    mark = '2027-01-16'
     await extendRecurringEvents(mockDb as never, { congregationId: 1, timeZone: PARIS, now: NOW })
     expect(audit).not.toHaveBeenCalled()
     expect(mockDb.event.createMany).toHaveBeenCalledTimes(1)
   })
 
   it('skips a template whose hours are not readable, says which, and still serves the others', async () => {
-    mockDb.eventTemplate.findMany.mockResolvedValue([{ ...thursday, id: 5, startTime: '7pm' }, thursday])
+    rows = new Map<number, object>([
+      [5, { ...thursday, id: 5, startTime: '7pm' }],
+      [6, thursday],
+    ])
+    mockDb.eventTemplate.findMany.mockResolvedValue([{ id: 5 }, { id: 6 }])
 
     const created = await extendRecurringEvents(mockDb as never, { congregationId: 1, timeZone: PARIS, now: NOW })
 

@@ -5,10 +5,11 @@ import {
   TEMPLATE_INCLUDE,
   type TemplateWithRelations,
 } from '~/features/events/server/give-programme.server'
+import { createEmptyMeetings } from '~/features/events/server/recurring-events.server'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
-import { dayOf, endOfDay, startOfDay } from '~/shared/utils/calendar-day'
+import { addDays, dayOf, endOfDay, startOfDay } from '~/shared/utils/calendar-day'
 import { combineLocalDateTime } from '~/shared/utils/event-time'
 
 /** Who creates, for which congregation, and the zone its days are counted in. */
@@ -82,8 +83,34 @@ export async function createProgrammeSeries(
     } else if (event) result.existing++
     else result.created.push(await createProgramme(db, template, day, ctx))
   }
-  for (const template of recurring) await raiseMark(db, template, input.to, ctx.congregationId)
+  for (const template of recurring) await coverUpTo(db, template, input, ctx)
   return result
+}
+
+/**
+ * After a series, a recurring template's events exist up to its end: its high-water mark moves there, so a day passed in
+ * it is never filled later by the recurring-events job. When the series starts beyond the mark, the weeks in between
+ * get their empty meetings first — otherwise moving the mark would leave them never created.
+ */
+async function coverUpTo(
+  db: TransactionClient,
+  template: TemplateWithRelations,
+  input: { from: string; to: string },
+  ctx: CreationContext,
+) {
+  if (template.weekDay == null || (template.generatedUntil != null && template.generatedUntil >= input.to)) return
+  const today = dayOf(new Date(), ctx.timezone)
+  const afterMark = template.generatedUntil == null ? today : addDays(template.generatedUntil, 1)
+  const gapFrom = afterMark > today ? afterMark : today
+  const gapTo = addDays(input.from, -1)
+  if (gapFrom <= gapTo) {
+    const taken = await existingProgrammes(db, [template.id], gapFrom, gapTo, ctx)
+    const days = daysOnWeekday(template.weekDay, gapFrom, gapTo).filter(
+      day => !taken.has(programmeKey(template.id, day)),
+    )
+    await createEmptyMeetings(db, template, days, { congregationId: ctx.congregationId, timeZone: ctx.timezone })
+  }
+  await raiseMark(db, template, input.to, ctx.congregationId)
 }
 
 /**
@@ -175,11 +202,10 @@ export async function createProgrammeOnDay(
   if (prepared) throw new ProgrammeExistsError(prepared.id)
 
   const empty = sameDay[0]
-  const created = empty
+  // The mark stays: one day far ahead says nothing about the weeks before it.
+  return empty
     ? await reuseMeeting(db, template, empty.id, input.day, ctx)
     : await createProgramme(db, template, input.day, ctx)
-  await raiseMark(db, template, input.day, ctx.congregationId)
-  return created
 }
 
 const EVENT_STATE = {
