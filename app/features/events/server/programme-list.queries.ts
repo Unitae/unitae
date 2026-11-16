@@ -1,3 +1,4 @@
+import { isAwaitingProgramme } from '~/features/events/model/empty-meetings'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { PROGRAMME_EVENT } from '~/features/events/server/programme-event.queries'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -20,6 +21,8 @@ export interface ProgrammeListItem {
   kind: { name: string; color: string } | null
   parts: SlotCounts
   services: SlotCounts
+  /** A meeting with no programme yet (see isAwaitingProgramme): never a draft to publish. */
+  awaitingProgramme: boolean
 }
 
 function counts(slots: { filled: boolean; hasConflict: boolean }[]): SlotCounts {
@@ -48,7 +51,7 @@ export async function listProgrammes(
       endDate: true,
       status: true,
       templateId: true,
-      template: { select: { name: true, color: true } },
+      template: { select: { name: true, color: true, key: true } },
       eventParts: { select: { assigneeId: true, externalSpeakerId: true, hasConflict: true } },
       eventServiceParts: { select: { assigneeId: true, hasConflict: true } },
     },
@@ -56,7 +59,12 @@ export async function listProgrammes(
   })
   return rows.map(({ template, eventParts, eventServiceParts, ...row }) => ({
     ...row,
-    kind: template,
+    kind: template && { name: template.name, color: template.color },
+    awaitingProgramme: isAwaitingProgramme({
+      parts: eventParts.length,
+      services: eventServiceParts.length,
+      template,
+    }),
     parts: counts(
       eventParts.map(part => ({
         filled: part.assigneeId != null || part.externalSpeakerId != null,

@@ -1758,6 +1758,19 @@
             }
         }
     ],
+    "programs_awaiting_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} without a program",
+                "countPlural=*": "{count} without a program"
+            }
+        }
+    ],
     "programs_drafts_count": [
         {
             "declarations": [
@@ -1953,6 +1966,7 @@
         }
     ],
     "programs_page_title": "Programs",
+    "programs_awaiting_badge": "No program yet",
     "programs_event_draft_badge": "Draft",
     "programs_event_release_button": "Publish",
     "programs_event_unrelease_button": "Move back to draft",
@@ -1967,6 +1981,19 @@
             "match": {
                 "countPlural=one": "{count} event published.",
                 "countPlural=*": "{count} events published."
+            }
+        }
+    ],
+    "programs_release_awaiting_bulk": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} meeting without a program was not published.",
+                "countPlural=*": "{count} meetings without a program were not published."
             }
         }
     ],
@@ -6932,6 +6959,7 @@
     "event_part_error_day_off_publisher": "This publisher has an absence on this date.",
     "event_part_error_day_off_reader": "The second speaker has an absence on this date.",
     "event_status_error_release_blocked": "Cannot publish: this event has absence conflicts to resolve.",
+    "event_status_error_release_awaiting": "Cannot publish: this meeting has no program yet.",
     "role_tree_error_cycle": "A service cannot sit under itself or under one of the services that depend on it.",
     "role_tree_error_too_deep": "The organization chart cannot go deeper than {max} levels.",
     "role_tree_error_roster_is_root": "Elders and ministerial servants are always at the top of the organization chart.",

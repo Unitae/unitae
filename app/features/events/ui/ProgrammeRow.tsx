@@ -101,7 +101,7 @@ export function ProgrammeRow({ programme, selectionColumn, selected, onToggle, t
         <Fill counts={programme.services} />
       </td>
       <td className={cn(PROGRAMME_CELL, WIDE_ONLY)}>
-        <State draft={draft} />
+        <State draft={draft} awaiting={programme.awaitingProgramme} />
       </td>
       <td className={cn(PROGRAMME_CELL, WIDE_ONLY)}>
         <Review count={programme.review} draft={draft} />
@@ -127,7 +127,9 @@ function Fill({ counts }: { counts: { total: number; filled: number } }) {
   )
 }
 
-function State({ draft }: { draft: boolean }) {
+// A meeting created ahead is not a draft someone forgot to publish: it waits for its programme, in a neutral state.
+function State({ draft, awaiting }: { draft: boolean; awaiting: boolean }) {
+  if (awaiting) return <Status tone="neutral">{m.programs_awaiting_badge()}</Status>
   return draft ? (
     <Status tone="warning">{m.programs_event_draft_badge()}</Status>
   ) : (
@@ -144,7 +146,7 @@ function Review({ count, draft }: { count: number; draft: boolean }) {
 function PhoneFacts({ programme, draft }: { programme: ProgrammeRowData; draft: boolean }) {
   return (
     <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground text-sm md:hidden">
-      <State draft={draft} />
+      <State draft={draft} awaiting={programme.awaitingProgramme} />
       {programme.parts.total > 0 && (
         <span className="tabular-nums">
           {m.programs_parts_short({ filled: programme.parts.filled, total: programme.parts.total })}

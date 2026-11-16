@@ -57,12 +57,17 @@ export async function action({ request, context }: Route.ActionArgs) {
   // Phase 2: per-event scoped release. Each event opens its own withScope
   // inside bulkReleaseEvents so a slow/failing event only rolls back itself,
   // and partial progress is preserved on batch failure.
-  const { released, blocked, notFound, failed } = await bulkReleaseEvents(allowedIds, congregationId, currentUser.id, {
-    locale: cong.locale,
-    timezone: cong.timezone,
-  })
+  const { released, blocked, awaiting, notFound, failed } = await bulkReleaseEvents(
+    allowedIds,
+    congregationId,
+    currentUser.id,
+    {
+      locale: cong.locale,
+      timezone: cong.timezone,
+    },
+  )
   logger.info(
-    `Bulk released ${released.length} events; ${blocked.length} blocked; ${notFound.length} not found; ${failed.length} failed.`,
+    `Bulk released ${released.length} events; ${blocked.length} blocked; ${awaiting.length} awaiting a programme; ${notFound.length} not found; ${failed.length} failed.`,
   )
 
   // session.flash stores one string per key, so multiple flash('error', ...)
@@ -71,6 +76,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   if (released.length > 0) session.flash('success', m.programs_release_success_bulk({ count: released.length }))
   const errorMessage = joinMessages([
     blocked.length > 0 && m.programs_release_blocked_bulk({ count: blocked.length }),
+    awaiting.length > 0 && m.programs_release_awaiting_bulk({ count: awaiting.length }),
     failed.length > 0 && m.programs_release_failed_bulk({ count: failed.length }),
     notFound.length > 0 && m.programs_bulk_not_found({ count: notFound.length }),
   ])

@@ -18,6 +18,8 @@ const logger = createLogger('event-status')
 export type BulkReleaseResult = {
   released: number[]
   blocked: { id: number; error: string }[]
+  /** Meetings with no programme yet: nothing to publish. */
+  awaiting: number[]
   notFound: number[]
   failed: { id: number; error: string }[]
 }
@@ -35,6 +37,7 @@ export async function bulkReleaseEvents(
 ): Promise<BulkReleaseResult> {
   const released: number[] = []
   const blocked: { id: number; error: string }[] = []
+  const awaiting: number[] = []
   const notFound: number[] = []
   const failed: { id: number; error: string }[] = []
 
@@ -53,7 +56,8 @@ export async function bulkReleaseEvents(
       continue
     }
     if ('error' in result) {
-      blocked.push({ id, error: result.error })
+      if (result.reason === 'awaiting') awaiting.push(id)
+      else blocked.push({ id, error: result.error })
       continue
     }
     released.push(id)
@@ -63,7 +67,7 @@ export async function bulkReleaseEvents(
     await fireReleaseNotifications(result.event, result.notifyTargets, congregationId, actorId, ctx)
   }
 
-  return { released, blocked, notFound, failed }
+  return { released, blocked, awaiting, notFound, failed }
 }
 
 export type BulkUnreleaseResult = {

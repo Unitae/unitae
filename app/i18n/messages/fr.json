@@ -1763,6 +1763,19 @@
             }
         }
     ],
+    "programs_awaiting_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} sans programme",
+                "countPlural=*": "{count} sans programme"
+            }
+        }
+    ],
     "programs_drafts_count": [
         {
             "declarations": [
@@ -1958,6 +1971,7 @@
         }
     ],
     "programs_page_title": "Programmes",
+    "programs_awaiting_badge": "Pas encore de programme",
     "programs_event_draft_badge": "Brouillon",
     "programs_event_release_button": "Publier",
     "programs_event_unrelease_button": "Repasser en brouillon",
@@ -1972,6 +1986,19 @@
             "match": {
                 "countPlural=one": "{count} évènement publié.",
                 "countPlural=*": "{count} évènements publiés."
+            }
+        }
+    ],
+    "programs_release_awaiting_bulk": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} réunion sans programme n’a pas été publiée.",
+                "countPlural=*": "{count} réunions sans programme n’ont pas été publiées."
             }
         }
     ],
@@ -6932,6 +6959,7 @@
     "event_part_error_day_off_publisher": "Ce proclamateur a une absence durant cette date.",
     "event_part_error_day_off_reader": "Le deuxième orateur a une absence durant cette date.",
     "event_status_error_release_blocked": "Impossible de publier : cet évènement a des conflits d’absence à résoudre.",
+    "event_status_error_release_awaiting": "Impossible de publier : cette réunion n’a pas encore de programme.",
     "role_tree_error_cycle": "Un service ne peut pas être rattaché à lui-même ni à l’un des services qui en dépendent.",
     "role_tree_error_too_deep": "L’organigramme ne peut pas dépasser {max} niveaux.",
     "role_tree_error_roster_is_root": "Les anciens et les assistants ministériels sont toujours au sommet de l’organigramme.",
