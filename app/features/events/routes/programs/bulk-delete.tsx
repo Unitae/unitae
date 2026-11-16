@@ -1,7 +1,7 @@
 import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { bulkEventIdsSchema } from '~/features/events/schemas/bulk-event-ids.schema'
-import { bulkDeleteEvents } from '~/features/events/server/event-parts.server'
+import { bulkDeleteEvents } from '~/features/events/server/delete-events.server'
 import { canManageAnyProgram, filterToManageableEventIds } from '~/features/events/server/events-auth.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'

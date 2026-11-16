@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { deleteEvent } from '~/features/events/server/event-parts.server'
+import { deleteEvent } from '~/features/events/server/delete-events.server'
 import { canEditEvent } from '~/features/events/server/events-auth.server'
 import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
 import * as m from '~/i18n/paraglide/messages'
