@@ -7112,7 +7112,19 @@
     "attendance_someone": "Quelqu’un",
     "attendance_waiting": "En attente",
     "attendance_nothing": "Rien de saisi",
-    "attendance_partial": "{count} nombre sur 2",
+    "attendance_partial": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} nombre sur 2",
+                "countPlural=*": "{count} nombres sur 2"
+            }
+        }
+    ],
     "attendance_done_split": "{inPerson} en salle · {online} en visio",
     "attendance_save": "Enregistrer",
     "attendance_edit": "Modifier",
@@ -7126,5 +7138,7 @@
     "attendance_next": "La saisie s’ouvre au début de la prochaine, {when}.",
     "sidebar_attendance": "Assistance",
     "sidebar_meetings": "Réunions",
-    "attendance_next_when": "{date} à {time}"
+    "attendance_next_when": "{date} à {time}",
+    "attendance_you": "vous",
+    "attendance_done_by": "Par {names}"
 }

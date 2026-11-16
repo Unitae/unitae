@@ -7112,7 +7112,19 @@
     "attendance_someone": "Someone",
     "attendance_waiting": "Waiting",
     "attendance_nothing": "Nothing entered",
-    "attendance_partial": "{count} number of 2",
+    "attendance_partial": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} number of 2",
+                "countPlural=*": "{count} numbers of 2"
+            }
+        }
+    ],
     "attendance_done_split": "{inPerson} in the hall · {online} online",
     "attendance_save": "Save",
     "attendance_edit": "Edit",
@@ -7126,5 +7138,7 @@
     "attendance_next": "Entry opens when the next one starts, {when}.",
     "sidebar_attendance": "Attendance",
     "sidebar_meetings": "Meetings",
-    "attendance_next_when": "{date} at {time}"
+    "attendance_next_when": "{date} at {time}",
+    "attendance_you": "you",
+    "attendance_done_by": "By {names}"
 }

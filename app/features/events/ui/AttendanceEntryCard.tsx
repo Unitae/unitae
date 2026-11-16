@@ -72,7 +72,10 @@ export function AttendanceEntryCard({ entry, viewer }: { entry: AttendanceEntry;
   }
 
   const time = (date: Date | string) => formatEventTime(date, viewer.timeZone, getLocale())
-  const authors = COUNTS.map(count => fields[count].by).filter((name): name is string => name != null)
+  // « Par vous », « Par Paul MARTIN et vous »: the viewer's own counts read as theirs, whatever their account's name.
+  const authors = [
+    ...new Set(COUNTS.map(count => (fields[count].mine ? m.attendance_you() : fields[count].by))),
+  ].filter((name): name is string => name != null)
 
   return (
     <Panel aria-label={m.attendance_card_title({ name: entry.name })} className="flex flex-col">
@@ -98,7 +101,10 @@ export function AttendanceEntryCard({ entry, viewer }: { entry: AttendanceEntry;
           </div>
           <div className="flex items-center gap-2 border-border border-t px-4 py-2.5">
             <span className="flex-1 truncate text-faint text-xs">
-              {new Intl.ListFormat(getLocale(), { type: 'conjunction' }).format([...new Set(authors)])}
+              {authors.length > 0 &&
+                m.attendance_done_by({
+                  names: new Intl.ListFormat(getLocale(), { type: 'conjunction' }).format(authors),
+                })}
             </span>
             {anyEditable && (
               <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
@@ -154,7 +160,7 @@ export function AttendanceEntryCard({ entry, viewer }: { entry: AttendanceEntry;
           </div>
           <div className="flex items-center gap-2 border-border border-t px-4 py-2.5">
             <span className="flex-1 text-faint text-xs">
-              {entered === 0 ? m.attendance_nothing() : m.attendance_partial({ count: String(entered) })}
+              {entered === 0 ? m.attendance_nothing() : m.attendance_partial({ count: entered })}
             </span>
             {editing && (
               <Button variant="ghost" size="sm" disabled={busy} onClick={() => setEditing(false)}>
