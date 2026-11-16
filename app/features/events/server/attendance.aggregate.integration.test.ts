@@ -68,8 +68,8 @@ beforeAll(async () => {
       })
     ).id
   })
-  // Started a few minutes ago: the entry window is open.
-  startDate = new Date(Date.now() - 5 * 60 * 1000)
+  // A fixed meeting and a fixed clock five minutes into it, so the entry window is open whatever the time the suite runs.
+  startDate = new Date('2026-11-19T18:00:00Z')
 })
 
 afterAll(async () => {
@@ -96,7 +96,7 @@ const write = (eventId: number, actorId: number, count: 'inPerson' | 'online', v
       canRecord: true,
       canCorrect: false,
       timeZone: PARIS,
-      now: new Date(),
+      now: new Date(startDate.getTime() + 5 * 60 * 1000),
     }),
   )
 
