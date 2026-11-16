@@ -3,6 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const readNdjsonFile = vi.fn()
 vi.mock('./ndjson-archive', () => ({ readNdjsonFile: (...args: unknown[]) => readNdjsonFile(...args) }))
 
+const warn = vi.fn()
+vi.mock('~/shared/infra/logger.server', () => ({ createLogger: () => ({ warn, info: vi.fn() }) }))
+
 const { importAttendance } = await import('./import-attendance.server')
 const { EntityIdMap } = await import('./data-transfer.type')
 
@@ -57,21 +60,44 @@ describe('importAttendance', () => {
     })
   })
 
-  it('skips the counts of an event that did not come with the archive', async () => {
+  it('skips the counts of an event that did not come with the archive, and says how many', async () => {
     readNdjsonFile.mockResolvedValue([record({ eventId: 41 })])
 
     await importAttendance({} as never, db as never, idMap(), 1)
 
     expect(db.attendance.createMany).not.toHaveBeenCalled()
+    expect(warn).toHaveBeenCalled()
   })
 
-  it('reads an empty count as empty and a count that is not a number of people as empty', async () => {
-    readNdjsonFile.mockResolvedValue([record({ inPerson: null, inPersonAt: null, online: -4 })])
+  it('reads an empty count as empty', async () => {
+    readNdjsonFile.mockResolvedValue([record({ inPerson: null, inPersonById: null, inPersonAt: null })])
 
     await importAttendance({} as never, db as never, idMap(), 1)
 
-    const [[{ data }]] = db.attendance.createMany.mock.calls
-    expect(data[0]).toMatchObject({ inPerson: null, inPersonAt: null, online: null })
+    expect(db.attendance.createMany.mock.calls[0][0].data[0]).toMatchObject({ inPerson: null, inPersonAt: null })
+    expect(warn).not.toHaveBeenCalled()
+  })
+
+  // Keeping the author and time of a rejected count would read as « cleared by X at T », a history that never happened.
+  it('drops a count that is not a number of people together with its author and time, and says so', async () => {
+    readNdjsonFile.mockResolvedValue([record({ online: -4 })])
+
+    await importAttendance({} as never, db as never, idMap(), 1)
+
+    expect(db.attendance.createMany.mock.calls[0][0].data[0]).toMatchObject({
+      online: null,
+      onlineById: null,
+      onlineAt: null,
+    })
+    expect(warn).toHaveBeenCalled()
+  })
+
+  it('reads a date it cannot parse as unknown instead of failing the whole import', async () => {
+    readNdjsonFile.mockResolvedValue([record({ inPersonAt: 'yesterday' })])
+
+    await importAttendance({} as never, db as never, idMap(), 1)
+
+    expect(db.attendance.createMany.mock.calls[0][0].data[0]).toMatchObject({ inPerson: 98, inPersonAt: null })
   })
 
   it('does nothing for an archive without attendance (before 2.15)', async () => {

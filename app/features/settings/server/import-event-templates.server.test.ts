@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const readNdjsonFile = vi.fn()
 vi.mock('./ndjson-archive', () => ({ readNdjsonFile: (...args: unknown[]) => readNdjsonFile(...args) }))
-vi.mock('~/shared/infra/logger.server', () => ({ createLogger: () => ({ warn: vi.fn(), info: vi.fn() }) }))
+const warn = vi.fn()
+vi.mock('~/shared/infra/logger.server', () => ({ createLogger: () => ({ warn, info: vi.fn() }) }))
 
 const { importEventTemplates } = await import('./import-event-templates.server')
 const { EntityIdMap } = await import('./data-transfer.type')
@@ -68,12 +69,24 @@ describe('importEventTemplates — attendance', () => {
     ])
   })
 
-  it('reads a kind it does not know as not counted', async () => {
-    db.eventTemplate.findFirst.mockResolvedValue(null)
-    readNdjsonFile.mockResolvedValue([template({ attendanceKind: 'monthly' })])
+  // A kind this version does not know (a newer archive, a hand edit) must not silently stop a meeting from counting.
+  it('keeps an existing template’s kind when the archive’s is unknown, and says so', async () => {
+    db.eventTemplate.findFirst.mockResolvedValue({ id: 30 })
+    readNdjsonFile.mockResolvedValue([template({ attendanceKind: 'circuit' })])
 
     await importEventTemplates({} as never, db as never, new EntityIdMap(), 1)
 
-    expect(db.eventTemplate.create.mock.calls[0][0].data.attendanceKind).toBe('none')
+    expect(db.eventTemplate.update.mock.calls[0][0].data).not.toHaveProperty('attendanceKind')
+    expect(warn).toHaveBeenCalled()
+  })
+
+  it('gives a new template with an unknown kind the default of its key, and says so', async () => {
+    db.eventTemplate.findFirst.mockResolvedValue(null)
+    readNdjsonFile.mockResolvedValue([template({ attendanceKind: 'circuit' })])
+
+    await importEventTemplates({} as never, db as never, new EntityIdMap(), 1)
+
+    expect(db.eventTemplate.create.mock.calls[0][0].data.attendanceKind).toBe('midweek')
+    expect(warn).toHaveBeenCalled()
   })
 })
