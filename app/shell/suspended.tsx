@@ -2,8 +2,7 @@ import { Ban } from 'lucide-react'
 import { getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/i18n/paraglide/messages'
 
-import { checkoutLink } from '~/shared/domain/billing-link.server'
-import { getHostSettings } from '~/shared/domain/host-settings.server'
+import { checkoutLink, suspendedSupportLink } from '~/shared/domain/billing-link.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 import { AuthShell } from '~/shared/ui/AuthShell'
@@ -17,13 +16,12 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const hostSettings = getHostSettings()
-
   // Read suspended reason from DB instead of query param to prevent phishing.
   // The slug is used to build the signed reactivation link (config-driven).
   let reason: string | null = null
   let reactivateUrl: string | null = null
   let congregation: string | null = null
+  let slug: string | null = null
   try {
     const session = await getSession(request.headers.get('Cookie'))
     const userId = Number(session.get('userId'))
@@ -34,7 +32,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       })
       reason = user?.congregation?.suspendedReason ?? null
       congregation = user?.congregation ? (user.congregation.displayName ?? user.congregation.name) : null
-      const slug = user?.congregation?.slug
+      slug = user?.congregation?.slug ?? null
       if (slug) reactivateUrl = checkoutLink(slug)
     }
   } catch (error) {
@@ -52,7 +50,8 @@ export async function loader({ request }: Route.LoaderArgs) {
     congregation,
     reason,
     reactivateUrl,
-    supportUrl: hostSettings.support?.url ?? null,
+    // The support page offers reactivation first when it arrives with the signed token.
+    supportUrl: suspendedSupportLink(slug),
   }
 }
 
