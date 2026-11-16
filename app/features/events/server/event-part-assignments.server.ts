@@ -12,7 +12,6 @@ import {
   DAY_OFF_MESSAGE,
   PROGRAMME_ASSIGNMENT_ERRORS,
 } from '~/features/events/server/event-part.policy'
-import { TEMPLATE_PROGRAMME_COUNT } from '~/features/events/server/give-programme.server'
 import { PROGRAMME_EVENT } from '~/features/events/server/programme-event.queries'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
@@ -38,8 +37,8 @@ export function getEventProgramme(db: TransactionClient, eventId: number, congre
   return db.event.findFirst({
     where: { id: eventId, congregationId, ...PROGRAMME_EVENT },
     include: {
-      // The template's counts say whether an empty event is waiting for its programme (isAwaitingProgramme).
-      template: { include: TEMPLATE_PROGRAMME_COUNT },
+      // With the counts of its template: they say whether an empty event waits for its programme (isAwaitingProgramme).
+      template: { include: { _count: { select: { parts: true, serviceParts: true } } } },
       eventParts: {
         include: {
           assignee: true,
