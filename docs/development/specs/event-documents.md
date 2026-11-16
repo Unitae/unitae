@@ -84,8 +84,15 @@ the masthead « À jour au … » like the other board documents.
 - One kind with several repetition rules (« Réunion pour la prédication »): a grid **weekday × part of
   day** (matin, midi, après-midi, soir), each rule in its cell with time, displayed fields and the
   duty assignees (conductors).
-- Built from the **rules**, not from dated events — the sheet describes an ordinary week. A day with a
-  free label (« Prédication par groupe ») comes from a rule-less note on that weekday.
+- Built from the **rules in force today**, not from dated events — the sheet describes an ordinary
+  week. A day with a free label (« Prédication par groupe ») comes from a rule-less note on that
+  weekday.
+- **Changes to come** (event schedules D20): a rule starting within the document's horizon appears in
+  its cell under the current one, marked « à partir du 1er déc. »; one that ends is marked
+  « jusqu’au 30 nov. ».
+- **One-time changes** (D21) within the horizon are listed under the grid: « Mer. 25 nov. : 9:30 à la
+  Salle du Royaume au lieu de chez un proclamateur », « Jeu. 24 déc. : pas de réunion ». A deleted
+  occurrence of a rule is listed as « pas de réunion ».
 - The format field's legend sits in the text block.
 
 ### 4.4 Text block
@@ -99,7 +106,7 @@ the layout. Plain paragraphs and lists, no formatting beyond that.
 |---|---|
 | Liste d’évènements | kinds; how far ahead (3, 6, 12 months, or « all created ») |
 | Tableau | kind; schedule; orientation (columns = duties or groups); row label (the week « 9 – 15 nov. » or the first day « 7 nov. »); range (current service year, next N weeks) |
-| Semaine type | kind; parts of day shown |
+| Semaine type | kind; parts of day shown; horizon for changes to come (4 or 8 weeks) |
 | All | text block; appearance as for the other documents |
 
 ## 6. Phasing
@@ -114,7 +121,5 @@ After event schedules' custom fields, rules and group assignees have landed.
 
 ## 7. Open questions
 
-Decided: the Tableau's row label is a document option (§5).
-
-1. **Semaine type when rules change mid-period:** show the rules as they are today only, or « à partir
-   du … » when a rule starts later?
+None. Decided: the Tableau's row label is a document option (§5); « Semaine type » shows changes to
+come and one-time changes (§4.3).

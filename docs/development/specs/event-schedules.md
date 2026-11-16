@@ -78,6 +78,8 @@ to filter out.
 | D17 | Printed layouts (events list by kind, tables, weekly timetable) are **board documents** built on events, specified separately. |
 | D18 | A **weekly calendar view** of events joins the list, which is redesigned. |
 | D19 | Word: « planning » (FR) / « schedule » (EN) for a schedule; « Programme » / « Program » for the spiritual one. |
+| D20 | **Rules have validity dates.** « Modifier à partir du … » ends the current rule the day before and starts a new one; the « Semaine type » sheet shows changes to come (« à partir du 1er déc. »). |
+| D21 | **One-time change**: an event created by a rule can be changed on its own (time, place, any field) or deleted, without touching the rule; a later rule change never overwrites it. |
 
 ## 4. Current implementation (verified)
 
@@ -124,6 +126,8 @@ model EventKindField {              // D15 — a custom field of a kind
 model RecurrenceRule {              // D16 — « Répéter chaque semaine »
   id, eventKindId, weekDay, startTime, endTime
   fieldValues    Json               // copied onto each event it creates (place, format…)
+  validFrom      String             // D20 — local day `YYYY-MM-DD`, inclusive
+  validUntil     String?            // D20 — null = open-ended
   generatedUntil String?            // the attendance spec's high-water mark, now per rule
 }
 
@@ -140,6 +144,7 @@ model EventKindScheduleTemplate {   // which schedule templates an event kind st
 
 model Event {                       // anything on the calendar, one day or several (D14)
   id, name, description, startDate, endDate, eventKindId?, recurrenceRuleId?, createdById?, congregationId
+  changedOnce Boolean @default(false) // D21 — edited on its own; later rule changes leave it alone
   fieldValues EventFieldValue[]     // D15
   schedules   Schedule[]
   attendance  Attendance?           // from the attendance spec, unchanged
@@ -224,6 +229,21 @@ model Absence {                     // « Mes absences »
   instead of filtering day-off events.
 - The `day-off` system template disappears once nothing writes day-off events.
 
+### 5.6 Changing a repetition
+
+Like a calendar application, an event that comes from a rule offers two ways to change it:
+
+- **« Cette réunion seulement »** (D21): the change applies to this event, which is marked
+  `changedOnce`. Deleting one occurrence is the same: it is gone and never recreated (high-water mark).
+  A date beyond the 2-month horizon can be created early by hand to change it; the job sees an event
+  of that rule on that day and leaves it.
+- **« Cette réunion et les suivantes »** (D20): the current rule gets `validUntil` = the day before,
+  a new rule starts on that day with the new values. Every future event of the old rule from that day
+  on that was not `changedOnce` moves to the new rule's weekday within its own week and takes its
+  times and field values; its schedules stay attached. Events with published schedules are moved
+  too, and their assignees are told (the notice the assignment change already sends).
+- The job creates events only inside each rule's validity.
+
 ## 6. Behaviour by surface
 
 | Surface | Change |
@@ -234,7 +254,7 @@ model Absence {                     // « Mes absences »
 | Creation (series, single day, recurring job) | By hand: creates the events with the kind's suggested schedules pre-selected (D12). The recurring job extends **rules** (D16) — same horizon and high-water-mark rules as the attendance spec §5.3, per rule instead of per template — creating bare events with the rule's field values. A bare event is reused, not duplicated. |
 | Deleting | Deleting a schedule never deletes the event (D6). Deleting the event deletes its schedules (and, guarded by the attendance rules, its counts). |
 | Settings (Réglages › Programmes) | Two lists: **event kinds** (name, colour, duration, default times, attendance, custom fields, repetition rules, suggested schedule templates) and **schedule templates** (name, kind, responsible role, parts or duties). |
-| Event form | The kind's custom fields; « Répéter chaque semaine » creates a rule from the event. |
+| Event form | The kind's custom fields; « Répéter chaque semaine » creates a rule from the event. On an event that comes from a rule, saving asks « Cette réunion seulement » (D21) or « Cette réunion et les suivantes » (D20, §5.6). |
 | Dashboard | « Prochaine réunion », open parts, upcoming assignments and responsible conflicts read published schedules and schedule-template responsibles. |
 | Board | Programme document as §5.2; event links resolve through published schedules. |
 | Notifications | Assignment notices fire on publishing a schedule, for its assignees. |
@@ -269,8 +289,9 @@ previous image working on the new schema.
      templates are **not** merged automatically — the congregation can merge them afterwards;
    - per event: a programme schedule if it has parts, a « Services » schedule if it has service parts,
      each with `status` copied from the event;
-   - per recurring template: one repetition rule (its weekday and times), carrying over its
-     `generatedUntil`; existing events link to it by weekday;
+   - per recurring template: one repetition rule (its weekday and times, `validFrom` = its first event's
+     day, open-ended), carrying over its `generatedUntil`; existing events link to it by weekday, none
+     marked `changedOnce`;
    - duties keep their person assignee (`assigneeId`); group and text assignees start empty.
    The new image writes both shapes (event status kept in sync: released when any schedule is
    published).
@@ -291,7 +312,7 @@ refreshed and deployed before each contract step.
 | 2 | Absences contract: day-off events and template removed |
 | 3 | Schedules expand: tables, backfill, dual write; archive format |
 | 4 | Schedules read switch + UI: programme list, event view, per-schedule publishing, event kinds and schedule templates in settings |
-| 4b | Custom fields, repetition rules (« Répéter chaque semaine »), multi-day kinds, group and text assignees |
+| 4b | Custom fields, repetition rules (« Répéter chaque semaine », validity dates, « cette réunion seulement » / « et les suivantes »), multi-day kinds, group and text assignees |
 | 4c | Weekly calendar view; redesigned list |
 | 5 | Schedules contract |
 
@@ -307,7 +328,9 @@ Each PR is followed by a deploy before the next one's migration ships.
 - **Responsibility:** a schedule template's responsible may fill and publish only schedules made from
   it; bulk publish skips the others and reports them.
 - **One programme per event:** a second programme schedule is refused by the database.
-- **Rules:** eight rules of one kind each extend their own events; a deleted event never returns; field
+- **Rules:** validity respected (no event before `validFrom` or after `validUntil`); « et les suivantes »
+  splits the rule and moves only the events not changed once; a one-time change survives a later rule
+  change; eight rules of one kind each extend their own events; a deleted event never returns; field
   values copy onto new events only; a multi-day rule creates Monday-to-Sunday events.
 - **Assignees:** a duty holds exactly one of person, group or text.
 - **Archive:** round-trip in the new format; import of a 2.x archive into schedules and absences.
