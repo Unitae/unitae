@@ -120,7 +120,7 @@ async function absencesOverEvent(
   })
   const absences: SlotCandidateFacts['absences'] = {}
   for (const row of rows) {
-    const memberId = row.createdBy.memberId
+    const memberId = row.createdBy?.memberId
     if (memberId != null && absences[memberId] == null) {
       absences[memberId] = { startDate: row.startDate.toISOString(), endDate: row.endDate.toISOString() }
     }
