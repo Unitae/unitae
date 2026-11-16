@@ -122,11 +122,14 @@ describe('20261116120000_add_meeting_attendance', () => {
   })
 
   it('refuses an attendance kind outside the enumeration', async () => {
-    const message = await expectFailure(tx =>
-      tx.$executeRawUnsafe(
-        `UPDATE "EventTemplate" SET "attendanceKind" = 'monthly' WHERE "id" = (SELECT MIN("id") FROM "EventTemplate")`,
-      ),
-    )
+    const message = await expectFailure(async tx => {
+      const stamp = `attkind-${process.pid}-${globalThis.performance.now().toString().replace('.', '')}`
+      const congregation = await tx.congregation.create({ data: { name: stamp, slug: stamp, active: true } })
+      const template = await tx.eventTemplate.create({
+        data: { name: stamp, key: stamp, congregationId: congregation.id },
+      })
+      await tx.$executeRawUnsafe(`UPDATE "EventTemplate" SET "attendanceKind" = 'monthly' WHERE "id" = ${template.id}`)
+    })
     expect(message).toMatch(KIND_CHECK)
   })
 
