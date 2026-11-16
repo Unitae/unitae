@@ -36,6 +36,14 @@ export const TEMPLATE_INCLUDE = {
 } as const
 
 /**
+ * Locks template rows before reading which days already have their events: in id order, like the recurring-events job,
+ * so the two never wait on each other in a cycle. There is no unique key on (template, day).
+ */
+export async function lockTemplates(db: TransactionClient, templateIds: number[], congregationId: number) {
+  await db.$queryRaw`SELECT "id" FROM "EventTemplate" WHERE "id" = ANY(${templateIds}) AND "congregationId" = ${congregationId} ORDER BY "id" FOR UPDATE`
+}
+
+/**
  * Gives an event its template's programme: its parts in order and its services, with who may take each. Used on a new
  * event, and on a meeting the recurring-events job created ahead with no programme yet, which is reused rather than
  * doubled.

@@ -1,5 +1,6 @@
 import { redirect } from 'react-router'
 import { resolveProgrammeLink } from '~/features/display-board/index.server'
+import { isAwaitingProgramme } from '~/features/events/model/empty-meetings'
 import { mayOpenEvent } from '~/features/events/model/programme-access'
 import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
 import { buildAssignmentCandidates } from '~/features/events/server/assignment-candidates.server'
@@ -86,6 +87,12 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
     return {
       event,
+      // Created ahead and still empty: the page offers « Créer le programme » instead of publishing it.
+      awaitingProgramme: isAwaitingProgramme({
+        parts: event.eventParts.length,
+        services: event.eventServiceParts.length,
+        template: event.template,
+      }),
       canEdit,
       canPublish,
       canAssign,
