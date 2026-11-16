@@ -6729,6 +6729,7 @@
     "audit_log_action_our_speaker_list_sent": "Our list of speakers sent",
     "audit_log_action_attendance_recorded": "Attendance entered",
     "audit_log_action_attendance_corrected": "Attendance corrected",
+    "audit_log_action_event_recurring_created": "Meetings created automatically",
     "audit_log_action_event_programme_removed": "Program removed, meeting kept",
     "settings_external_speakers_role_gone": "This role no longer exists: choose another one.",
     "settings_external_speakers_open_organigram": "Open the organigram",

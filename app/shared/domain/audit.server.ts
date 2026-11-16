@@ -180,6 +180,7 @@ export const AuditAction = {
   AttendanceRecorded: 'attendance.recorded',
   AttendanceCorrected: 'attendance.corrected',
   ProgrammeRemoved: 'event.programme_removed',
+  RecurringEventsCreated: 'event.recurring_created',
 
   // Programme events
   EventCreated: 'event.created',

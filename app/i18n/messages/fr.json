@@ -6729,6 +6729,7 @@
     "audit_log_action_our_speaker_list_sent": "Notre liste d’orateurs envoyée",
     "audit_log_action_attendance_recorded": "Assistance saisie",
     "audit_log_action_attendance_corrected": "Assistance corrigée",
+    "audit_log_action_event_recurring_created": "Réunions créées automatiquement",
     "audit_log_action_event_programme_removed": "Programme retiré, réunion gardée",
     "settings_external_speakers_role_gone": "Ce rôle n’existe plus : choisissez-en un autre.",
     "settings_external_speakers_open_organigram": "Ouvrir l’organigramme",
