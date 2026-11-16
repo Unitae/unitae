@@ -50,6 +50,19 @@ export function checkoutLink(slug: string): string | null {
 }
 
 /**
+ * The suspended shell's support link. The reactivation token rides along (`from=suspended`), so the support page can
+ * offer reactivation first and recognise the congregation without trusting a bare name. Without a congregation or
+ * a signing secret, the bare support URL; `null` when no support URL is configured (self-hosted).
+ */
+export function suspendedSupportLink(slug: string | null): string | null {
+  const supportUrl = getHostSettings().support?.url
+  if (!supportUrl) return null
+  if (!slug) return supportUrl
+  const separator = supportUrl.includes('?') ? '&' : '?'
+  return linkFor(`${supportUrl}${separator}from=suspended`, slug, 'checkout') ?? supportUrl
+}
+
+/**
  * Destination for the settings-hub « Abonnement » card (`/settings`), routed by state so there is
  * always a path: a congregation that already has a Stripe customer manages it in the portal; one
  * without (trial / never subscribed) goes to checkout to START a subscription (which creates the
