@@ -49,7 +49,8 @@ describe('handleRecurringEventsWork', () => {
     ] as never)
     vi.mocked(extendRecurringEvents).mockRejectedValueOnce(new Error('boom')).mockResolvedValueOnce(2)
 
-    await expect(handleRecurringEventsWork(job)).resolves.toBeUndefined()
+    // Every congregation is served, then the job fails so the failure shows where failed jobs are watched.
+    await expect(handleRecurringEventsWork(job)).rejects.toThrow('1 of 2')
     expect(extendRecurringEvents).toHaveBeenCalledTimes(2)
   })
 })

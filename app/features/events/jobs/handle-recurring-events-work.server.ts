@@ -38,4 +38,7 @@ export async function handleRecurringEventsWork(job: Job<RecurringEventsJobData>
   }
 
   logger.info('Recurring events sweep done', { congregations: congregations.length, created, failed })
+  // A failed job, not a completed one with a number in a log line: so it shows where failed jobs are watched.
+  if (failed > 0)
+    throw new Error(`Recurring events sweep failed for ${failed} of ${congregations.length} congregations`)
 }

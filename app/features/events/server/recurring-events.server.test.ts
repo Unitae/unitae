@@ -3,16 +3,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const audit = vi.fn()
 vi.mock('~/shared/domain/audit.server', () => ({
   AuditAction: { RecurringEventsCreated: 'event.recurring_created' },
-  audit: (...args: unknown[]) => audit(...args),
+  auditInTransaction: (_db: unknown, entry: unknown) => audit(entry),
 }))
+const logError = vi.fn()
+vi.mock('~/shared/infra/logger.server', () => ({ createLogger: () => ({ error: logError, info: vi.fn() }) }))
 
 const mockDb = {
   eventTemplate: { findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
-  event: { findFirst: vi.fn(), findMany: vi.fn(), createMany: vi.fn() },
+  event: { findFirst: vi.fn(), findMany: vi.fn(), createMany: vi.fn(), update: vi.fn() },
   $queryRaw: vi.fn(),
 }
 
-const { extendRecurringEvents } = await import('./recurring-events.server')
+const { extendRecurringEvents, reanchorEmptyMeetings } = await import('./recurring-events.server')
 
 const PARIS = 'Europe/Paris'
 // Monday 16 November 2026, 02:00 in Paris.
@@ -33,12 +35,14 @@ describe('extendRecurringEvents', () => {
   it('looks only at templates with a weekday, never at the system ones', async () => {
     await extendRecurringEvents(mockDb as never, { congregationId: 1, timeZone: PARIS, now: NOW })
 
-    const [[{ where }]] = mockDb.eventTemplate.findMany.mock.calls
+    const [[{ where, orderBy }]] = mockDb.eventTemplate.findMany.mock.calls
     expect(where).toEqual({
       congregationId: 1,
       weekDay: { not: null },
       key: { notIn: ['day-off', 'freeform'] },
     })
+    // In id order, like series creation, so the two never wait on each other in a cycle.
+    expect(orderBy).toEqual({ id: 'asc' })
   })
 
   it('creates bare draft events with no author at the template’s local hours, up to two months ahead', async () => {
@@ -130,5 +134,43 @@ describe('extendRecurringEvents', () => {
     await extendRecurringEvents(mockDb as never, { congregationId: 1, timeZone: PARIS, now: NOW })
     expect(audit).not.toHaveBeenCalled()
     expect(mockDb.event.createMany).toHaveBeenCalledTimes(1)
+  })
+
+  it('skips a template whose hours are not readable, says which, and still serves the others', async () => {
+    mockDb.eventTemplate.findMany.mockResolvedValue([{ ...thursday, id: 5, startTime: '7pm' }, thursday])
+
+    const created = await extendRecurringEvents(mockDb as never, { congregationId: 1, timeZone: PARIS, now: NOW })
+
+    expect(created).toBe(2)
+    expect(logError).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ templateId: 5 }))
+  })
+})
+
+describe('reanchorEmptyMeetings', () => {
+  it('moves the empty meetings created ahead to the same local day and hours in the new zone', async () => {
+    // Created at 19:00 Paris on Thursday 19 November; the congregation is in fact in Réunion (UTC+4).
+    mockDb.event.findMany.mockResolvedValue([
+      { id: 40, startDate: new Date('2026-11-19T18:00:00Z'), template: { startTime: '19:00', endTime: '20:45' } },
+    ])
+
+    await reanchorEmptyMeetings(mockDb as never, {
+      congregationId: 1,
+      previousTimeZone: PARIS,
+      timeZone: 'Indian/Reunion',
+      now: NOW,
+    })
+
+    const [[{ where }]] = mockDb.event.findMany.mock.calls
+    expect(where).toMatchObject({
+      congregationId: 1,
+      createdById: null,
+      eventParts: { none: {} },
+      eventServiceParts: { none: {} },
+      attendance: { is: null },
+    })
+    expect(mockDb.event.update).toHaveBeenCalledWith({
+      where: { id_congregationId: { id: 40, congregationId: 1 } },
+      data: { startDate: new Date('2026-11-19T15:00:00Z'), endDate: new Date('2026-11-19T16:45:00Z') },
+    })
   })
 })

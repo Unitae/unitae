@@ -4,6 +4,11 @@ vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     congregation: { findUniqueOrThrow: vi.fn(), update: vi.fn() },
   },
+  withScope: vi.fn((_id: number, fn: (db: unknown) => unknown) => fn({})),
+}))
+const reanchorEmptyMeetings = vi.fn()
+vi.mock('~/features/events/index.server', () => ({
+  reanchorEmptyMeetings: (...args: unknown[]) => reanchorEmptyMeetings(...args),
 }))
 
 const { getGeneralSettings, updateGeneralSettings } = await import('./general-settings.server')
@@ -11,7 +16,10 @@ const { unscopedDb } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(unscopedDb.congregation.findUniqueOrThrow).mockResolvedValue({ name: 'Les Lilas' } as never)
+  vi.mocked(unscopedDb.congregation.findUniqueOrThrow).mockResolvedValue({
+    name: 'Les Lilas',
+    timezone: 'Europe/Paris',
+  } as never)
   vi.mocked(unscopedDb.congregation.update).mockResolvedValue({} as never)
 })
 
@@ -89,6 +97,18 @@ describe('updateGeneralSettings', () => {
         domain: 'app.example.org',
       },
     })
+  })
+
+  it('moves the meetings created ahead to the new time zone when it changes, and only then', async () => {
+    const input = { displayName: 'Les Lilas', locale: 'fr' as const, domain: null }
+    await updateGeneralSettings(10, { ...input, timezone: 'Europe/Paris' })
+    expect(reanchorEmptyMeetings).not.toHaveBeenCalled()
+
+    await updateGeneralSettings(10, { ...input, timezone: 'Indian/Reunion' })
+    expect(reanchorEmptyMeetings).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ congregationId: 10, previousTimeZone: 'Europe/Paris', timeZone: 'Indian/Reunion' }),
+    )
   })
 
   it('coerces empty displayName to null', async () => {
