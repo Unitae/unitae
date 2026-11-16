@@ -32,7 +32,16 @@ const AGGREGATE_MODELS = [
   'campaignTerritory',
   'attendance',
 ] as const
-const WRITE_METHODS = ['create', 'update', 'updateMany', 'delete', 'deleteMany', 'upsert'] as const
+const WRITE_METHODS = [
+  'create',
+  'createMany',
+  'createManyAndReturn',
+  'update',
+  'updateMany',
+  'delete',
+  'deleteMany',
+  'upsert',
+] as const
 const UI_READ_METHODS = ['findMany', 'count', 'aggregate'] as const
 
 const WRITE_RE = new RegExp(`\\b(?:db|prisma)\\.(${AGGREGATE_MODELS.join('|')})\\.(${WRITE_METHODS.join('|')})\\b`)
