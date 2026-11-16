@@ -74,6 +74,14 @@ describe('importEvents', () => {
     expect(db.event.create).toHaveBeenCalledTimes(1)
   })
 
+  it('refuses to guess the time zone of a congregation it cannot read', async () => {
+    db.congregation.findFirst.mockResolvedValue(null)
+    readNdjsonFile.mockResolvedValue([record()])
+
+    await expect(importEvents({} as never, db as never, idMap(), 1)).rejects.toThrow()
+    expect(db.event.create).not.toHaveBeenCalled()
+  })
+
   it('only replaces an empty meeting nobody created and nobody counted', async () => {
     readNdjsonFile.mockResolvedValue([record()])
 

@@ -85,6 +85,14 @@ describe('registerCongregation', () => {
     expect('congregationSlug' in result && result.congregationSlug).not.toBe('test-congre')
   })
 
+  it('still signs up when the first meetings cannot be created: the daily job catches up', async () => {
+    extendRecurringEvents.mockRejectedValueOnce(new Error('boom'))
+
+    await expect(
+      registerCongregation('Ma Congrégation', 'test-congre', 'admin@test.com', 'motdepasse', 'fr'),
+    ).resolves.toBeDefined()
+  })
+
   it('creates the first two months of recurring meetings for the new congregation', async () => {
     await registerCongregation('Ma Congrégation', 'test-congre', 'admin@test.com', 'motdepasse', 'fr')
 

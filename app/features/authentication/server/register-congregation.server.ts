@@ -77,12 +77,6 @@ export async function registerCongregation(
   // UserRoleAssignment are all RLS-scoped, unlike the direct grant this replaced.
   await withScope(congregation.id, async scopedDb => {
     await seedCongregationDefaults(scopedDb, congregation.id, locale, seedDefaultTemplates, seedBuiltInTerritoryKinds)
-    // The first two months of meetings, as the daily job will keep them.
-    await extendRecurringEvents(scopedDb, {
-      congregationId: congregation.id,
-      timeZone: congregation.timezone,
-      now: new Date(),
-    })
 
     const adminRoleId = await ensureAdminRole(scopedDb, congregation.id)
     if (adminRoleId != null) {
@@ -93,6 +87,20 @@ export async function registerCongregation(
 
     await syncBuiltInRoleAssignments(scopedDb, user.id, congregation.id, user.id)
   })
+
+  // The first two months of meetings, as the daily job will keep them. In a transaction of their own, after the
+  // congregation is provisioned: if this fails, sign-up still succeeds and the daily job catches up.
+  try {
+    await withScope(congregation.id, scopedDb =>
+      extendRecurringEvents(scopedDb, {
+        congregationId: congregation.id,
+        timeZone: congregation.timezone,
+        now: new Date(),
+      }),
+    )
+  } catch (error) {
+    logger.error('Could not create the first recurring meetings', { congregationId: congregation.id, error })
+  }
 
   // Enregistrer le consentement RGPD initial
   await recordConsentUnscoped(user.id, congregation.id, ConsentPurpose.DataProcessing)

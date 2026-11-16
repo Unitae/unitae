@@ -36,7 +36,9 @@ async function snapshot(): Promise<{ first: Row[]; second: Row[] }> {
       const congregation = await tx.congregation.create({ data: { name: stamp, slug: stamp, active: true } })
       const finished = await tx.$queryRaw<{ finished_at: Date }[]>`
         SELECT "finished_at" FROM "_prisma_migrations" WHERE "migration_name" = '20261116120000_add_meeting_attendance'`
-      const after = new Date((finished[0]?.finished_at ?? new Date()).getTime() + 60_000)
+      // The repair keys on this row: a database without it would make the test prove nothing.
+      if (!finished[0]?.finished_at) throw new Error('20261116120000_add_meeting_attendance has not been applied')
+      const after = new Date(finished[0].finished_at.getTime() + 60_000)
       const before = new Date('2020-01-01T00:00:00Z')
       const template = (name: string, key: string, createdAt: Date, updatedAt: Date, extra: object = {}) =>
         tx.eventTemplate.create({

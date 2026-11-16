@@ -24,6 +24,10 @@ vi.mock('~/shared/infra/db.server', () => ({
   withScope: vi.fn((_id: number, fn: (db: unknown) => Promise<unknown>) => fn(scopedDb)),
 }))
 
+vi.mock('~/shared/infra/logger.server', () => ({
+  createLogger: () => ({ error: vi.fn(), warn: vi.fn(), info: vi.fn() }),
+}))
+
 const extendRecurringEvents = vi.fn()
 vi.mock('~/features/events/server/recurring-events.server', () => ({
   extendRecurringEvents: (...args: unknown[]) => extendRecurringEvents(...args),
@@ -88,6 +92,14 @@ beforeEach(() => {
 })
 
 describe('setupFirstAccount', () => {
+  it('still signs up when the first meetings cannot be created: the daily job catches up', async () => {
+    extendRecurringEvents.mockRejectedValueOnce(new Error('boom'))
+
+    await expect(
+      setupFirstAccount('admin@test.com', 'motdepasse', 'Assemblée des Lilas', 'default', 'fr'),
+    ).resolves.toBeDefined()
+  })
+
   it('creates the first two months of recurring meetings for the congregation', async () => {
     vi.mocked(db.congregation.findFirst).mockResolvedValue({ id: 9, name: 'Ma Congrégation', locale: 'fr' } as never)
 

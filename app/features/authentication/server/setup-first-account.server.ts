@@ -9,6 +9,9 @@ import { ensureAdminRole, seedCongregationDefaults, seedPermissions } from '~/sh
 type Locale = (typeof locales)[number]
 
 import { unscopedDb as db, withScope } from '~/shared/infra/db.server'
+import { createLogger } from '~/shared/infra/logger.server'
+
+const logger = createLogger('setup-first-account')
 
 export async function setupFirstAccount(
   email: string,
@@ -50,12 +53,6 @@ export async function setupFirstAccount(
   // UserRoleAssignment are all RLS-scoped, unlike the direct grant this replaced.
   await withScope(congregation.id, async scopedDb => {
     await seedCongregationDefaults(scopedDb, congregation.id, locale, seedDefaultTemplates, seedBuiltInTerritoryKinds)
-    // The first two months of meetings, as the daily job will keep them.
-    await extendRecurringEvents(scopedDb, {
-      congregationId: congregation.id,
-      timeZone: congregation.timezone,
-      now: new Date(),
-    })
 
     const adminRoleId = await ensureAdminRole(scopedDb, congregation.id)
     if (adminRoleId != null) {
@@ -66,6 +63,20 @@ export async function setupFirstAccount(
 
     await syncBuiltInRoleAssignments(scopedDb, user.id, congregation.id, user.id)
   })
+
+  // The first two months of meetings, as the daily job will keep them. In a transaction of their own, after the
+  // congregation is provisioned: if this fails, sign-up still succeeds and the daily job catches up.
+  try {
+    await withScope(congregation.id, scopedDb =>
+      extendRecurringEvents(scopedDb, {
+        congregationId: congregation.id,
+        timeZone: congregation.timezone,
+        now: new Date(),
+      }),
+    )
+  } catch (error) {
+    logger.error('Could not create the first recurring meetings', { congregationId: congregation.id, error })
+  }
 
   // Record the initial GDPR consent.
   await recordConsentUnscoped(user.id, congregation.id, ConsentPurpose.DataProcessing)

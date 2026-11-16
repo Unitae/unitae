@@ -17,9 +17,13 @@ SET "attendanceKind" = CASE t."key"
   END
 WHERE t."key" IN ('midweek-meeting', 'weekend-meeting', 'memorial')
   AND t."attendanceKind" = 'none'
+  -- max() over finished, not rolled-back rows: a migration that failed and was applied again leaves two rows. A
+  -- database with none (baselined history) gets no repair rather than a guess.
   AND t."createdAt" >= (
-    SELECT m."finished_at" FROM "_prisma_migrations" AS m
+    SELECT max(m."finished_at") FROM "_prisma_migrations" AS m
     WHERE m."migration_name" = '20261116120000_add_meeting_attendance'
+      AND m."finished_at" IS NOT NULL
+      AND m."rolled_back_at" IS NULL
   )
   AND t."updatedAt" <= t."createdAt" + INTERVAL '5 seconds';
 

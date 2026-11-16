@@ -1,5 +1,6 @@
 import type JsZip from 'jszip'
 import { EventTemplateKey, programmeKey } from '~/features/events'
+import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { dayOf } from '~/shared/utils/calendar-day'
@@ -34,11 +35,13 @@ export async function importEvents(
   if (records.length === 0) return
 
   const congregation = await db.congregation.findFirst({ where: { id: congregationId }, select: { timezone: true } })
-  const timeZone = congregation?.timezone ?? 'Europe/Paris'
+  if (!congregation) throw new NotFoundError('Congregation', congregationId)
+  const timeZone = congregation.timezone
   const dayOff = await db.eventTemplate.findFirst({
     where: { key: EventTemplateKey.DayOff, congregationId },
     select: { id: true },
   })
+  if (!dayOff) logger.warn('No day-off template: absences without their owner cannot be told apart', { congregationId })
   const emptyMeetings = await db.event.findMany({
     // Never one with attendance: replacing it would take its counts with it.
     where: {
