@@ -22,12 +22,12 @@ describe('dayInSameWeek', () => {
 })
 
 describe('isAwaitingProgramme', () => {
-  const midweek = { key: 'midweek-meeting' }
+  const midweek = { key: 'midweek-meeting', parts: 12, services: 4 }
 
-  it('is a meeting of a template with neither parts nor services yet', () => {
+  it('is a meeting of a template with a programme to give, with neither parts nor services yet', () => {
     expect(isAwaitingProgramme({ parts: 0, services: 0, template: midweek })).toBe(true)
-    // A template the congregation made itself has no key.
-    expect(isAwaitingProgramme({ parts: 0, services: 0, template: { key: null } })).toBe(true)
+    // A template the congregation made itself has no key; services alone are a programme to give.
+    expect(isAwaitingProgramme({ parts: 0, services: 0, template: { key: null, parts: 0, services: 2 } })).toBe(true)
   })
 
   it('is not a meeting with a part or a service', () => {
@@ -35,10 +35,15 @@ describe('isAwaitingProgramme', () => {
     expect(isAwaitingProgramme({ parts: 0, services: 2, template: midweek })).toBe(false)
   })
 
+  // A template that only puts an event on the calendar has nothing to wait for: its events are published as they are.
+  it('is not an event of a template with neither parts nor services', () => {
+    expect(isAwaitingProgramme({ parts: 0, services: 0, template: { key: null, parts: 0, services: 0 } })).toBe(false)
+  })
+
   // « Autre évènement » has no programme to wait for: empty, it is still an event that can be published.
   it('is never another event, nor an absence', () => {
-    expect(isAwaitingProgramme({ parts: 0, services: 0, template: { key: 'freeform' } })).toBe(false)
-    expect(isAwaitingProgramme({ parts: 0, services: 0, template: { key: 'day-off' } })).toBe(false)
+    expect(isAwaitingProgramme({ parts: 0, services: 0, template: { ...midweek, key: 'freeform' } })).toBe(false)
+    expect(isAwaitingProgramme({ parts: 0, services: 0, template: { ...midweek, key: 'day-off' } })).toBe(false)
   })
 
   it('is not an event without a template', () => {

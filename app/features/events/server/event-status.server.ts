@@ -1,5 +1,6 @@
-import { isAwaitingProgramme } from '~/features/events/model/empty-meetings'
+import { isAwaitingProgramme, programmeTemplate } from '~/features/events/model/empty-meetings'
 import { EventStatus } from '~/features/events/model/event-status.type'
+import { TEMPLATE_PROGRAMME_COUNT } from '~/features/events/server/give-programme.server'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import { ConflictError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -63,7 +64,7 @@ const eventWithAssignmentsInclude = {
       assigneeId: true,
     },
   },
-  template: { select: { key: true } },
+  template: { select: { key: true, ...TEMPLATE_PROGRAMME_COUNT } },
 }
 
 type PartRow = { id: number; name: string; hasConflict: boolean; assigneeId: number | null; assistantId: number | null }
@@ -131,7 +132,7 @@ export async function releaseEvent(
     isAwaitingProgramme({
       parts: event.eventParts.length,
       services: event.eventServiceParts.length,
-      template: event.template,
+      template: programmeTemplate(event.template),
     })
   ) {
     return { error: EVENT_STATUS_ERRORS.releaseAwaitingProgramme, reason: 'awaiting' }

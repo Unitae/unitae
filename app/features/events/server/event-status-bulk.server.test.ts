@@ -74,7 +74,11 @@ describe('bulkReleaseEvents (per-event scope + post-tx notifications)', () => {
 
   // Not a conflict: the page says these meetings have no programme yet, not that someone is away.
   it('keeps the meetings waiting for their programme apart from those blocked by an absence', async () => {
-    vi.mocked(db.event.findFirst).mockResolvedValue({ ...draftEvent, id: 40, template: { key: null } } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue({
+      ...draftEvent,
+      id: 40,
+      template: { key: null, _count: { parts: 12, serviceParts: 4 } },
+    } as never)
 
     const result = await bulkReleaseEvents([40], 1, 5, nctx)
 

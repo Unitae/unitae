@@ -3,18 +3,29 @@ import { addDays, dayOf } from '~/shared/utils/calendar-day'
 import { combineLocalDateTime } from '~/shared/utils/event-time'
 
 /**
- * A meeting waiting for its programme: an event of a template, with neither parts nor services yet — created ahead by
- * the recurring-events job, or emptied when its programme was deleted but its attendance kept. The programmes list
- * says « Pas encore de programme » instead of a draft status, and it cannot be published. « Autre évènement » and
- * absences, both system templates, never wait for one.
+ * A meeting waiting for its programme: an event with neither parts nor services yet, of a template that has some to
+ * give it — created ahead by the recurring-events job, or emptied when its programme was deleted but its attendance
+ * kept. The programmes list says « Pas encore de programme » instead of a draft status, and it cannot be published.
+ * « Autre évènement », absences and a template with nothing to give never wait for one: their events are published as
+ * they are.
  */
 export function isAwaitingProgramme(event: {
   parts: number
   services: number
-  template: { key: string | null } | null
+  /** The template's own parts and services: what « Créer le programme » would copy. */
+  template: { key: string | null; parts: number; services: number } | null
 }): boolean {
-  if (event.template == null || (event.template.key != null && isSystemTemplate(event.template.key))) return false
+  const { template } = event
+  if (template == null || (template.key != null && isSystemTemplate(template.key))) return false
+  if (template.parts === 0 && template.services === 0) return false
   return event.parts === 0 && event.services === 0
+}
+
+/** isAwaitingProgramme's template from a row selected with TEMPLATE_PROGRAMME_COUNT. */
+export function programmeTemplate(
+  template: { key: string | null; _count: { parts: number; serviceParts: number } } | null,
+): { key: string | null; parts: number; services: number } | null {
+  return template && { key: template.key, parts: template._count.parts, services: template._count.serviceParts }
 }
 
 /**

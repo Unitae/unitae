@@ -1,5 +1,6 @@
-import { isAwaitingProgramme } from '~/features/events/model/empty-meetings'
+import { isAwaitingProgramme, programmeTemplate } from '~/features/events/model/empty-meetings'
 import { EventStatus } from '~/features/events/model/event-status.type'
+import { TEMPLATE_PROGRAMME_COUNT } from '~/features/events/server/give-programme.server'
 import { PROGRAMME_EVENT } from '~/features/events/server/programme-event.queries'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -51,7 +52,7 @@ export async function listProgrammes(
       endDate: true,
       status: true,
       templateId: true,
-      template: { select: { name: true, color: true, key: true } },
+      template: { select: { name: true, color: true, key: true, ...TEMPLATE_PROGRAMME_COUNT } },
       eventParts: { select: { assigneeId: true, externalSpeakerId: true, hasConflict: true } },
       eventServiceParts: { select: { assigneeId: true, hasConflict: true } },
     },
@@ -63,7 +64,7 @@ export async function listProgrammes(
     awaitingProgramme: isAwaitingProgramme({
       parts: eventParts.length,
       services: eventServiceParts.length,
-      template,
+      template: programmeTemplate(template),
     }),
     parts: counts(
       eventParts.map(part => ({

@@ -30,6 +30,9 @@ export interface TemplateWithRelations {
   serviceParts: { id: number; name: string; allowedRoles: { roleId: number }[] }[]
 }
 
+/** The template counts isAwaitingProgramme needs: whether it has a programme to give. */
+export const TEMPLATE_PROGRAMME_COUNT = { _count: { select: { parts: true, serviceParts: true } } } as const
+
 export const TEMPLATE_INCLUDE = {
   parts: { orderBy: { order: 'asc' }, include: { allowedRoles: true } },
   serviceParts: { include: { allowedRoles: true } },
