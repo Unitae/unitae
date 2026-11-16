@@ -6694,6 +6694,8 @@
     "external_speakers_pdf_filename": "orateurs {name} {date}",
     "audit_log_action_our_speaker_updated": "Orateur de notre liste modifié",
     "audit_log_action_our_speaker_list_sent": "Notre liste d’orateurs envoyée",
+    "audit_log_action_attendance_recorded": "Assistance saisie",
+    "audit_log_action_attendance_corrected": "Assistance corrigée",
     "settings_external_speakers_role_gone": "Ce rôle n’existe plus : choisissez-en un autre.",
     "settings_external_speakers_open_organigram": "Ouvrir l’organigramme",
     "external_speakers_ours_error_phone": "Saisissez le numéro à partager, ou choisissez « De sa fiche ».",

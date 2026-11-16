@@ -6694,6 +6694,8 @@
     "external_speakers_pdf_filename": "speakers {name} {date}",
     "audit_log_action_our_speaker_updated": "Speaker on our list changed",
     "audit_log_action_our_speaker_list_sent": "Our list of speakers sent",
+    "audit_log_action_attendance_recorded": "Attendance entered",
+    "audit_log_action_attendance_corrected": "Attendance corrected",
     "settings_external_speakers_role_gone": "This role no longer exists: choose another one.",
     "settings_external_speakers_open_organigram": "Open the organigram",
     "external_speakers_ours_error_phone": "Enter the number to share, or choose « From his record ».",
