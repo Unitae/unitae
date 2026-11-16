@@ -193,6 +193,27 @@ describe('duplicateTemplate and the part kind', () => {
   // The kind is what gives a part its share message, its slot labels and its
   // external-speaker rule. A copy that loses it looks identical in the list
   // and behaves like an unclassified part everywhere else.
+  it('copies how the template counts in attendance', async () => {
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({
+      id: 5,
+      name: 'Reunion',
+      key: 'midweek',
+      description: '',
+      weekDay: 2,
+      isRecurring: true,
+      attendanceKind: 'midweek',
+      parts: [],
+      serviceParts: [],
+    } as never)
+    vi.mocked(db.eventTemplate.create).mockResolvedValue({ id: 6, parts: [], serviceParts: [] } as never)
+
+    await duplicateTemplate(db, 5, 1, 9)
+
+    expect(vi.mocked(db.eventTemplate.create).mock.calls[0]?.[0]?.data).toEqual(
+      expect.objectContaining({ attendanceKind: 'midweek' }),
+    )
+  })
+
   it('carries presetId onto the duplicated parts', async () => {
     vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({
       id: 5,

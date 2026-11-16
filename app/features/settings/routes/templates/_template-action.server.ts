@@ -66,8 +66,17 @@ export async function handleTemplateAction(
   if (intent === 'update-template') {
     const submission = parseWithZod(formData, { schema: updateTemplateSchema })
     if (submission.status !== 'success') return refused(submission.reply())
-    const { name, weekDay, color, startTime, endTime, programmeRoleId, serviceRoleId } = submission.value
-    await updateTemplate(db, templateId, { name, weekDay, color, startTime, endTime }, congregationId, actorId)
+    const { name, weekDay, color, startTime, endTime, attendanceKind, programmeRoleId, serviceRoleId } =
+      submission.value
+    // How a template counts in attendance is the managers' call, like who runs it.
+    const counting = actor.isManager ? { attendanceKind } : {}
+    await updateTemplate(
+      db,
+      templateId,
+      { name, weekDay, color, startTime, endTime, ...counting },
+      congregationId,
+      actorId,
+    )
     if (actor.isManager && programmeRoleId !== undefined && serviceRoleId !== undefined) {
       try {
         await saveTemplateResponsibles(db, templateId, { programmeRoleId, serviceRoleId }, congregationId, actorId)
