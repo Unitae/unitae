@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dayInSameWeek, isAwaitingProgramme } from './empty-meetings'
+import { dayInSameWeek, isAwaitingProgramme, planMeetingMoves } from './empty-meetings'
 
 describe('dayInSameWeek', () => {
   // Weeks run Monday to Sunday: a weekend meeting moved from Saturday to Sunday stays in its week.
@@ -43,5 +43,64 @@ describe('isAwaitingProgramme', () => {
 
   it('is not an event without a template', () => {
     expect(isAwaitingProgramme({ parts: 0, services: 0, template: null })).toBe(false)
+  })
+})
+
+describe('planMeetingMoves', () => {
+  const PARIS = 'Europe/Paris'
+  // Monday 16 November 2026, 10:00 in Paris.
+  const NOW = new Date('2026-11-16T09:00:00Z')
+  // Created on the seeded Tuesday at 19:00; the template now says Thursday 19:30–21:15.
+  const tuesday = (id: number, day: string) => ({
+    id,
+    startDate: new Date(`${day}T18:00:00Z`),
+    endDate: new Date(`${day}T19:45:00Z`),
+  })
+  const rule = { weekDay: 4, startTime: '19:30', endTime: '21:15', timeZone: PARIS, now: NOW }
+
+  it('moves each meeting to the template’s day of its own week, at the template’s hours', () => {
+    const plan = planMeetingMoves({
+      ...rule,
+      meetings: [tuesday(1, '2026-11-17'), tuesday(2, '2026-11-24')],
+      taken: [],
+    })
+
+    expect(plan.move).toEqual([
+      { id: 1, startDate: new Date('2026-11-19T18:30:00Z'), endDate: new Date('2026-11-19T20:15:00Z') },
+      { id: 2, startDate: new Date('2026-11-26T18:30:00Z'), endDate: new Date('2026-11-26T20:15:00Z') },
+    ])
+    expect(plan.remove).toEqual([])
+  })
+
+  // The week already has its meeting (a programme created on the new day): the empty one is redundant.
+  it('deletes a meeting whose week already has one on the new day', () => {
+    const plan = planMeetingMoves({ ...rule, meetings: [tuesday(1, '2026-11-17')], taken: ['2026-11-19'] })
+
+    expect(plan).toEqual({ move: [], remove: [1] })
+  })
+
+  it('leaves alone a meeting already at the right day and hours, and lets it hold its day', () => {
+    const inPlace = { id: 3, startDate: new Date('2026-11-19T18:30:00Z'), endDate: new Date('2026-11-19T20:15:00Z') }
+
+    const plan = planMeetingMoves({ ...rule, meetings: [tuesday(1, '2026-11-17'), inPlace], taken: [] })
+
+    expect(plan).toEqual({ move: [], remove: [1] })
+  })
+
+  it('never moves a meeting to an hour already past', () => {
+    // The template moves to Monday: this week's Monday at 19:30 is still ahead, but at 08:00 it is gone.
+    const early = { ...rule, weekDay: 1, startTime: '08:00', endTime: '09:00' }
+
+    expect(planMeetingMoves({ ...early, meetings: [tuesday(1, '2026-11-17')], taken: [] })).toEqual({
+      move: [],
+      remove: [],
+    })
+  })
+
+  it('plans nothing for a template that no longer has a day', () => {
+    expect(planMeetingMoves({ ...rule, weekDay: null, meetings: [tuesday(1, '2026-11-17')], taken: [] })).toEqual({
+      move: [],
+      remove: [],
+    })
   })
 })

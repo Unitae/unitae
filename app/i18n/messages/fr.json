@@ -5756,6 +5756,34 @@
     "settings_templates_new_submit": "Créer le modèle",
     "settings_templates_name_required": "Saisissez le nom du modèle.",
     "settings_template_page_subtitle": "Modèle de programme",
+    "settings_template_move_meetings_title": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} réunion à venir n’est pas au jour et à l’heure du modèle.",
+                "countPlural=*": "{count} réunions à venir ne sont pas au jour et à l’heure du modèle."
+            }
+        }
+    ],
+    "settings_template_move_meetings_body": "Chaque réunion sans programme va au jour du modèle dans sa propre semaine. Une semaine qui a déjà sa réunion ce jour-là garde la sienne, et les semaines supprimées le restent.",
+    "settings_template_move_meetings_button": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Déplacer la réunion à venir",
+                "countPlural=*": "Déplacer les {count} réunions à venir"
+            }
+        }
+    ],
+    "settings_template_move_meetings_done": "Réunions à venir déplacées.",
     "settings_template_page_used": [
         {
             "declarations": [
@@ -6762,6 +6790,7 @@
     "audit_log_action_attendance_recorded": "Assistance saisie",
     "audit_log_action_attendance_corrected": "Assistance corrigée",
     "audit_log_action_event_recurring_created": "Réunions créées automatiquement",
+    "audit_log_action_event_recurring_moved": "Réunions à venir déplacées",
     "audit_log_action_event_programme_removed": "Programme retiré, réunion gardée",
     "settings_external_speakers_role_gone": "Ce rôle n’existe plus : choisissez-en un autre.",
     "settings_external_speakers_open_organigram": "Ouvrir l’organigramme",

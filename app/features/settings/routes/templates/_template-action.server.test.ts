@@ -35,6 +35,10 @@ vi.mock('~/features/events/index.server', async () => {
       writes.push(`duplicate ${id}`)
       return { id: 99, name: 'Copie' }
     }),
+    moveEmptyMeetings: vi.fn(async (_db: unknown, id: number, ctx: { timeZone: string; actorId: number }) => {
+      writes.push(`move-meetings ${id} ${ctx.timeZone} ${ctx.actorId}`)
+      return { moved: 2, removed: 0 }
+    }),
     deleteTemplate: vi.fn(async (_db: unknown, id: number) => {
       writes.push(`delete ${id}`)
       return { ok: true, name: 'Réunion' }
@@ -44,8 +48,8 @@ vi.mock('~/features/events/index.server', async () => {
 
 const { handleTemplateAction } = await import('./_template-action.server')
 
-const MANAGER = { id: 7, congregationId: 1, isManager: true }
-const RESPONSIBLE = { id: 8, congregationId: 1, isManager: false }
+const MANAGER = { id: 7, congregationId: 1, isManager: true, timeZone: 'Europe/Paris' }
+const RESPONSIBLE = { id: 8, congregationId: 1, isManager: false, timeZone: 'Europe/Paris' }
 
 function dbWith(key: string | null) {
   return { eventTemplate: { findFirst: vi.fn(async () => (key == null ? null : { key })) } } as never
@@ -156,6 +160,19 @@ describe('handleTemplateAction', () => {
       RESPONSIBLE,
     )
     expect(result?.kind).toBe('refused')
+    expect(writes).toEqual([])
+  })
+
+  // Whoever may change the template's day — its responsible too — brings its empty meetings along.
+  it('moves the empty meetings ahead for a responsible, in the congregation’s zone', async () => {
+    const result = await handleTemplateAction(dbWith('study'), 4, form({ intent: 'move-meetings' }), RESPONSIBLE)
+
+    expect(writes).toEqual(['move-meetings 4 Europe/Paris 8'])
+    expect(result).toMatchObject({ kind: 'saved' })
+  })
+
+  it('never moves the meetings of a built-in template', async () => {
+    await handleTemplateAction(dbWith('day-off'), 4, form({ intent: 'move-meetings' }), MANAGER)
     expect(writes).toEqual([])
   })
 

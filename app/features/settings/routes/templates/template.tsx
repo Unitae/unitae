@@ -1,16 +1,21 @@
-import { Status } from '@unitae/ui'
+import { Callout, Status } from '@unitae/ui'
 import { Copy, MoreHorizontal, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { redirect, useFetcher } from 'react-router'
 import { isSystemTemplate } from '~/features/events'
-import { isTemplateResponsible } from '~/features/events/index.server'
+import { countMeetingsToMove, isTemplateResponsible } from '~/features/events/index.server'
 import { getTemplatePage } from '~/features/settings/server/template-page.queries'
 import { ConfirmDialog } from '~/features/settings/ui/ConfirmDialog'
 import { SettingsHeader } from '~/features/settings/ui/SettingsHeader'
 import { TemplateEditor } from '~/features/settings/ui/TemplateEditor'
 import { TemplateInfoPanel } from '~/features/settings/ui/TemplateInfoPanel'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import {
@@ -49,7 +54,18 @@ export async function loader({ params, context }: Route.LoaderArgs) {
     // A template's responsible and the managers change it; whoever reads the programmes may look at it.
     if (!isManager && !responsible && !permissions.has(Permission.CanViewPrograms))
       throw redirect('/settings/templates')
-    return { page, isManager, editable: isManager || responsible, builtIn: isSystemTemplate(page.template.key) }
+    const editable = isManager || responsible
+    const builtIn = isSystemTemplate(page.template.key)
+    // Empty meetings ahead still on the template's old day or hours, for whoever may bring them along.
+    const meetingsToMove =
+      editable && !builtIn
+        ? await countMeetingsToMove(db, templateId, {
+            congregationId,
+            timeZone: context.get(congregationContext).timezone,
+            now: new Date(),
+          })
+        : 0
+    return { page, isManager, editable, builtIn, meetingsToMove }
   })
 }
 
@@ -63,7 +79,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const result = await withScopeFromContext(context, async (db, congregationId) => {
     const responsible = await isTemplateResponsible(db, templateId, currentUser.id, congregationId)
     if (!isManager && !responsible) throw redirect('/settings/templates')
-    return handleTemplateAction(db, templateId, formData, { id: currentUser.id, congregationId, isManager })
+    const { timezone: timeZone } = context.get(congregationContext)
+    return handleTemplateAction(db, templateId, formData, { id: currentUser.id, congregationId, isManager, timeZone })
   })
 
   if (result == null) throw redirect(`/settings/templates/${templateId}`)
@@ -73,7 +90,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function TemplatePage({ loaderData }: Route.ComponentProps) {
-  const { page, isManager, editable, builtIn } = loaderData
+  const { page, isManager, editable, builtIn, meetingsToMove } = loaderData
+  const moveFetcher = useFetcher()
   const { template } = page
   const infoFetcher = useFetcher()
   const menuFetcher = useFetcher()
@@ -133,6 +151,25 @@ export default function TemplatePage({ loaderData }: Route.ComponentProps) {
       />
 
       <div className="flex flex-col gap-6">
+        {/* Hidden while the day or hours are being edited: the count is for what is saved. */}
+        {meetingsToMove > 0 && !infoDirty && (
+          <Callout
+            tone="info"
+            title={m.settings_template_move_meetings_title({ count: meetingsToMove })}
+            action={
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={moveFetcher.state !== 'idle'}
+                onClick={() => moveFetcher.submit({ intent: 'move-meetings' }, { method: 'post' })}
+              >
+                {m.settings_template_move_meetings_button({ count: meetingsToMove })}
+              </Button>
+            }
+          >
+            {m.settings_template_move_meetings_body()}
+          </Callout>
+        )}
         <TemplateInfoPanel
           template={template}
           builtIn={builtIn}

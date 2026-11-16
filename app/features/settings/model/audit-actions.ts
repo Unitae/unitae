@@ -123,6 +123,7 @@ export const AUDIT_ACTIONS: readonly { action: string; group: AuditGroup; label:
   { action: 'event.unreleased', group: 'programmes', label: m.audit_log_action_event_unreleased },
   { action: 'event.deleted', group: 'programmes', label: m.audit_log_action_event_deleted },
   { action: 'event.recurring_created', group: 'programmes', label: m.audit_log_action_event_recurring_created },
+  { action: 'event.recurring_moved', group: 'programmes', label: m.audit_log_action_event_recurring_moved },
   {
     action: 'event.programme_removed',
     group: 'programmes',

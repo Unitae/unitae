@@ -1,4 +1,5 @@
 import { isSystemTemplate } from '~/features/events/model/event-template.type'
+import { EMPTY_MEETING } from '~/features/events/server/empty-meetings.queries'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -6,15 +7,6 @@ export type DeleteTemplateResult =
   | { ok: true; name: string }
   | { ok: false; reason: 'not-found' | 'system' }
   | { ok: false; reason: 'in-use'; eventCount: number }
-
-// An empty meeting the recurring-events job created ahead: no author, no part, no service, no attendance. Every
-// recurring template has some, so they never make a template « in use »; they go with it.
-const EMPTY_MEETING = {
-  createdById: null,
-  eventParts: { none: {} },
-  eventServiceParts: { none: {} },
-  attendance: { is: null },
-}
 
 export async function deleteTemplate(
   db: TransactionClient,

@@ -5756,6 +5756,34 @@
     "settings_templates_new_submit": "Create the template",
     "settings_templates_name_required": "Enter the template’s name.",
     "settings_template_page_subtitle": "Program template",
+    "settings_template_move_meetings_title": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} upcoming meeting is not on the template’s day and time.",
+                "countPlural=*": "{count} upcoming meetings are not on the template’s day and time."
+            }
+        }
+    ],
+    "settings_template_move_meetings_body": "Each meeting without a program goes to the template’s day in its own week. A week that already has its meeting on that day keeps it, and deleted weeks stay deleted.",
+    "settings_template_move_meetings_button": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Move the upcoming meeting",
+                "countPlural=*": "Move the {count} upcoming meetings"
+            }
+        }
+    ],
+    "settings_template_move_meetings_done": "Upcoming meetings moved.",
     "settings_template_page_used": [
         {
             "declarations": [
@@ -6762,6 +6790,7 @@
     "audit_log_action_attendance_recorded": "Attendance entered",
     "audit_log_action_attendance_corrected": "Attendance corrected",
     "audit_log_action_event_recurring_created": "Meetings created automatically",
+    "audit_log_action_event_recurring_moved": "Upcoming meetings moved",
     "audit_log_action_event_programme_removed": "Program removed, meeting kept",
     "settings_external_speakers_role_gone": "This role no longer exists: choose another one.",
     "settings_external_speakers_open_organigram": "Open the organigram",
