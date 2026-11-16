@@ -7,6 +7,15 @@ export type DeleteTemplateResult =
   | { ok: false; reason: 'not-found' | 'system' }
   | { ok: false; reason: 'in-use'; eventCount: number }
 
+// An empty meeting the recurring-events job created ahead: no author, no part, no service, no attendance. Every
+// recurring template has some, so they never make a template « in use »; they go with it.
+const EMPTY_MEETING = {
+  createdById: null,
+  eventParts: { none: {} },
+  eventServiceParts: { none: {} },
+  attendance: { is: null },
+}
+
 export async function deleteTemplate(
   db: TransactionClient,
   templateId: number,
@@ -15,7 +24,7 @@ export async function deleteTemplate(
 ): Promise<DeleteTemplateResult> {
   const template = await db.eventTemplate.findFirst({
     where: { id: templateId, congregationId },
-    select: { key: true, name: true, _count: { select: { events: true } } },
+    select: { key: true, name: true, _count: { select: { events: { where: { NOT: EMPTY_MEETING } } } } },
   })
   if (!template) return { ok: false, reason: 'not-found' }
 
@@ -30,8 +39,9 @@ export async function deleteTemplate(
   // 20260720* migration series had to repair. Refuse rather than orphan.
   if (template._count.events > 0) return { ok: false, reason: 'in-use', eventCount: template._count.events }
 
-  // parts, serviceParts, responsibles and their allowed-role rows all cascade
-  // (onDelete: Cascade) from the template FK, so the single delete is enough.
+  // The empty meetings go first, or they would be orphaned like any other event. Then parts, serviceParts,
+  // responsibles and their allowed-role rows all cascade (onDelete: Cascade) from the template FK.
+  await db.event.deleteMany({ where: { templateId, congregationId, ...EMPTY_MEETING } })
   await db.eventTemplate.delete({
     where: { id_congregationId: { id: templateId, congregationId } },
   })

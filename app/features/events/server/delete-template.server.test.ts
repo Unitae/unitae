@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/infra/db.server', () => ({
-  unscopedDb: { eventTemplate: { findFirst: vi.fn(), delete: vi.fn() } },
+  unscopedDb: { eventTemplate: { findFirst: vi.fn(), delete: vi.fn() }, event: { deleteMany: vi.fn() } },
 }))
 vi.mock('~/shared/domain/audit.server', () => ({
   audit: vi.fn(),
@@ -39,6 +39,29 @@ describe('deleteTemplate', () => {
         metadata: { name: 'Réunion de semaine' },
       }),
     )
+  })
+
+  // Every recurring template has empty meetings created ahead: they say nothing about the template being in use.
+  it('counts only the events that are not empty meetings, and deletes those with the template', async () => {
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({
+      key: 'study',
+      name: 'Étude',
+      _count: { events: 0 },
+    } as never)
+
+    const result = await deleteTemplate(db, 7, 1, 9)
+
+    const empty = {
+      createdById: null,
+      eventParts: { none: {} },
+      eventServiceParts: { none: {} },
+      attendance: { is: null },
+    }
+    expect(vi.mocked(db.eventTemplate.findFirst).mock.calls[0]?.[0]?.select).toMatchObject({
+      _count: { select: { events: { where: { NOT: empty } } } },
+    })
+    expect(db.event.deleteMany).toHaveBeenCalledWith({ where: { templateId: 7, congregationId: 1, ...empty } })
+    expect(result).toEqual({ ok: true, name: 'Étude' })
   })
 
   it('returns not-found and never deletes when the template does not exist', async () => {
