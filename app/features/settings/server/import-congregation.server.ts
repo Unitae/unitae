@@ -69,6 +69,7 @@ import { importCongregationUserPermissions, importMembers, importUserAccounts } 
 import { migrateLegacyUsersNdjson } from './migrate-legacy-users-ndjson.server'
 import { readManifest } from './ndjson-archive'
 
+export { importAttendance } from './import-attendance.server'
 // Per-entity import functions re-exported so integration tests (and any future
 // per-module test suites) keep a single stable import surface.
 export {

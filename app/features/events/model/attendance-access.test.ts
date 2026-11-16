@@ -13,6 +13,25 @@ describe('entryWindow', () => {
   })
 })
 
+describe('entryWindow on the days the clocks change', () => {
+  it('closes at local midnight on the 25-hour day', () => {
+    // Sunday 25 October 2026, 10:00 in Paris, already back on UTC+1.
+    expect(entryWindow(new Date('2026-10-25T09:00:00Z'), PARIS).closes.toISOString()).toBe('2026-10-25T22:59:59.999Z')
+  })
+
+  it('closes at local midnight on the 23-hour day', () => {
+    // Sunday 28 March 2027, 10:00 in Paris, already on UTC+2.
+    expect(entryWindow(new Date('2027-03-28T08:00:00Z'), PARIS).closes.toISOString()).toBe('2027-03-28T21:59:59.999Z')
+  })
+
+  it('follows the congregation’s day when it ends after midnight UTC', () => {
+    // Thursday 19 November 2026, 19:00 in New York is already Friday in UTC.
+    const start = new Date('2026-11-20T00:00:00Z')
+    expect(entryWindow(start, 'America/New_York').closes.toISOString()).toBe('2026-11-20T04:59:59.999Z')
+    expect(isEntryOpen(start, 'America/New_York', new Date('2026-11-20T03:00:00Z'))).toBe(true)
+  })
+})
+
 describe('isEntryOpen', () => {
   it('is closed before the start', () => {
     expect(isEntryOpen(START, PARIS, new Date('2026-11-19T17:59:00Z'))).toBe(false)

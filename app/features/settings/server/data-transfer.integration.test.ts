@@ -199,6 +199,7 @@ beforeAll(async () => {
         key: `template-${ts}`,
         description: 'A test template',
         isRecurring: true,
+        attendanceKind: 'weekend',
         congregationId: sourceId,
       },
     })
@@ -240,6 +241,17 @@ beforeAll(async () => {
         startDate: new Date('2025-06-01T19:00:00Z'),
         endDate: new Date('2025-06-01T21:00:00Z'),
         createdById: alice.id,
+        congregationId: sourceId,
+      },
+    })
+
+    // Half entered: the hall count by Alice, the videoconference one still to come.
+    await tx.attendance.create({
+      data: {
+        eventId: event.id,
+        inPerson: 98,
+        inPersonById: alice.id,
+        inPersonAt: new Date('2025-06-01T19:40:00Z'),
         congregationId: sourceId,
       },
     })
@@ -627,6 +639,7 @@ async function importFromZip(buffer: Buffer, congregationId: number): Promise<vo
     await mod.importTemplateServicePartAllowedRoles(zip, db, idMap, congregationId)
     await mod.importTemplateResponsibles(zip, db, idMap, congregationId)
     await mod.importEvents(zip, db, idMap, congregationId)
+    await mod.importAttendance(zip, db, idMap, congregationId)
     await mod.importEventParts(zip, db, idMap, congregationId)
     await mod.importEventPartAllowedRoles(zip, db, idMap, congregationId)
     await mod.importEventServiceParts(zip, db, idMap, congregationId)
@@ -664,6 +677,7 @@ describe('Export/Import round-trip', () => {
     expect(entityCounts['emergency-contacts']).toBe(1)
     expect(entityCounts['pioneer-goals']).toBe(1)
     expect(entityCounts.events).toBe(1)
+    expect(entityCounts.attendance).toBe(1)
     expect(entityCounts['board-sections']).toBe(1)
     expect(entityCounts['board-documents']).toBe(1)
     expect(entityCounts['consent-records']).toBe(1)
@@ -910,6 +924,20 @@ describe('Export/Import round-trip', () => {
       const events = await tx.event.findMany({})
       expect(events).toHaveLength(1)
       expect(events[0].createdById).toBe(alice.id)
+      // Attendance follows its event and its author to their new ids; the missing count stays missing.
+      const attendance = await tx.attendance.findMany({})
+      expect(attendance).toEqual([
+        expect.objectContaining({
+          eventId: events[0].id,
+          inPerson: 98,
+          inPersonById: alice.id,
+          inPersonAt: new Date('2025-06-01T19:40:00Z'),
+          online: null,
+          onlineById: null,
+        }),
+      ])
+      const [counted] = await tx.eventTemplate.findMany({ where: { id: events[0].templateId ?? -1 } })
+      expect(counted?.attendanceKind).toBe('weekend')
       const eventParts = await tx.eventPart.findMany({})
       expect(eventParts).toHaveLength(1)
       expect(eventParts[0].assigneeId).toBe(aliceMember.id)
