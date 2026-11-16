@@ -63,6 +63,8 @@ const AUTH_HELPER_RE = new RegExp(`\\b(?:${AUTH_HELPERS.join('|')})\\s*\\(([^)]*
 // that is no longer declared in its file, or no longer names a permission, fails the check.
 export const POLICY_HELPERS: Record<string, string> = {
   reportAccess: 'app/features/publishers/model/group-activity-access.ts',
+  // The attendance page and its write action refuse whoever holds neither entry right.
+  attendanceRights: 'app/features/events/model/attendance-access.ts',
 }
 
 /**

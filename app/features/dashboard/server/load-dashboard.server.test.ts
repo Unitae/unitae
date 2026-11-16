@@ -23,6 +23,7 @@ vi.mock('./has-held-territory.server', () => ({ hasHeldTerritory: vi.fn() }))
 vi.mock('./has-calendar-feed.server', () => ({ hasCalendarFeed: vi.fn() }))
 vi.mock('~/features/publishers/server/groups.server', () => ({ getGroup: vi.fn() }))
 vi.mock('~/features/events/server/events-auth.server', () => ({ getResponsibleTemplateIds: vi.fn() }))
+vi.mock('~/features/events/index.server', () => ({ listMeetingsUnderWay: vi.fn() }))
 
 const { loadDashboard } = await import('./load-dashboard.server')
 const dashboard = await import('./dashboard.server')
@@ -38,6 +39,7 @@ const { hasHeldTerritory } = await import('./has-held-territory.server')
 const { hasCalendarFeed } = await import('./has-calendar-feed.server')
 const { getGroup } = await import('~/features/publishers/server/groups.server')
 const { getResponsibleTemplateIds } = await import('~/features/events/server/events-auth.server')
+const { listMeetingsUnderWay } = await import('~/features/events/index.server')
 
 const db = {} as never
 const congregation = { id: 1, timezone: 'Europe/Paris' }
@@ -81,6 +83,25 @@ beforeEach(() => {
 })
 
 describe('loadDashboard', () => {
+  // From the start of a meeting to midnight, the people who count get its card — nobody else, and nothing outside it.
+  it('gives the hall usher the meetings under way with what the card needs, and nothing outside a meeting', async () => {
+    const meeting = { eventId: 40, name: 'Réunion du week-end' }
+    vi.mocked(listMeetingsUnderWay).mockResolvedValue([meeting] as never)
+
+    const data = await load([Permission.CanRecordAttendance])
+    expect(data.attendance).toMatchObject({
+      meetings: [meeting],
+      viewer: { actorId: 3, canRecord: true, canCorrect: false, timeZone: 'Europe/Paris' },
+    })
+
+    vi.mocked(listMeetingsUnderWay).mockResolvedValue([])
+    expect((await load([Permission.CanRecordAttendance])).attendance).toBeNull()
+
+    vi.mocked(listMeetingsUnderWay).mockClear()
+    expect((await load([Permission.CanViewPrograms])).attendance).toBeNull()
+    expect(listMeetingsUnderWay).not.toHaveBeenCalled()
+  })
+
   it('gives a publisher their own blocks and documents, and no congregation block', async () => {
     const data = await load([Permission.CanViewBoard])
     expect(data.personal).not.toBeNull()

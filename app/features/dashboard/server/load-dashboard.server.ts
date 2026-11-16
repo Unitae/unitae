@@ -18,6 +18,8 @@ import { getUpcomingAssignments } from '~/features/dashboard/server/get-upcoming
 import { hasCalendarFeed } from '~/features/dashboard/server/has-calendar-feed.server'
 import { hasHeldTerritory } from '~/features/dashboard/server/has-held-territory.server'
 import { nextMeetingForViewer } from '~/features/dashboard/server/next-meeting-for-viewer.server'
+import { attendanceRights } from '~/features/events'
+import { listMeetingsUnderWay } from '~/features/events/index.server'
 import { getResponsibleTemplateIds } from '~/features/events/server/events-auth.server'
 import { getGroup } from '~/features/publishers/server/groups.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -96,6 +98,7 @@ export async function loadDashboard(db: TransactionClient, context: DashboardCon
     group,
     adminSetup,
     calendarFeed,
+    attendanceMeetings,
   ] = await Promise.all([
     forMember('territories', id => getUserTerritories(db, id)),
     forMember('territory-history', id => hasHeldTerritory(db, id, congregationId)),
@@ -134,6 +137,9 @@ export async function loadDashboard(db: TransactionClient, context: DashboardCon
       getOnboardingProgress(db, { accountId: account.id, memberId, congregationId }),
     ),
     when(memberId != null, 'calendar-feed', () => hasCalendarFeed(db, account.id)),
+    when(visibility.attendance, 'attendance', () =>
+      listMeetingsUnderWay(db, { congregationId, timeZone: congregation.timezone, now }),
+    ),
   ])
 
   // Programme assigners see every meeting; a responsible, only the meeting types they answer for.
@@ -178,6 +184,15 @@ export async function loadDashboard(db: TransactionClient, context: DashboardCon
     roll,
     group,
     setup: setupFor(visibility, adminSetup, account),
+    // The meetings under way, each with its attendance card; none outside a meeting.
+    attendance:
+      attendanceMeetings == null || attendanceMeetings.length === 0
+        ? null
+        : {
+            meetings: attendanceMeetings,
+            viewer: { actorId: account.id, ...attendanceRights(permissions), timeZone: congregation.timezone },
+            now,
+          },
   }
 }
 

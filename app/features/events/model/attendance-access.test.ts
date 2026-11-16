@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { canWriteCount, entryWindow, isEntryOpen } from './attendance-access'
+import { Permission } from '~/shared/types/permission'
+import { attendanceRights, canWriteCount, entryWindow, isEntryOpen } from './attendance-access'
 
 const PARIS = 'Europe/Paris'
 // Thursday 19 November 2026, 19:00 in Paris (UTC+1).
@@ -98,5 +99,13 @@ describe('canWriteCount', () => {
     expect(
       canWriteCount({ ...base, now: during, canRecord: false, canCorrect: false, recordedById: null, hasValue: false }),
     ).toBe(false)
+  })
+})
+
+describe('attendanceRights', () => {
+  it('reads the two entry rights from the caller’s permissions', () => {
+    expect(attendanceRights(new Set([Permission.CanRecordAttendance]))).toEqual({ canRecord: true, canCorrect: false })
+    expect(attendanceRights(new Set([Permission.CanCorrectAttendance]))).toEqual({ canRecord: false, canCorrect: true })
+    expect(attendanceRights(new Set([Permission.CanViewPrograms]))).toEqual({ canRecord: false, canCorrect: false })
   })
 })
