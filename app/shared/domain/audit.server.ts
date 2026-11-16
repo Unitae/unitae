@@ -179,6 +179,7 @@ export const AuditAction = {
   OurSpeakerListSent: 'our_speaker_list.sent',
   AttendanceRecorded: 'attendance.recorded',
   AttendanceCorrected: 'attendance.corrected',
+  ProgrammeRemoved: 'event.programme_removed',
 
   // Programme events
   EventCreated: 'event.created',

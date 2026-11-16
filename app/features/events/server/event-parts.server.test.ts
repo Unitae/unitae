@@ -18,6 +18,7 @@ vi.mock('~/shared/domain/audit.server', () => ({
     ServicePartAllowedRolesChanged: 'service_role.allowed_roles.changed',
     EventDeleted: 'event.deleted',
     EventUpdated: 'event.updated',
+    ProgrammeRemoved: 'event.programme_removed',
   },
 }))
 
@@ -41,15 +42,21 @@ const mockDb = {
     delete: vi.fn(),
     deleteMany: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
   },
   eventPart: {
     create: vi.fn(),
     delete: vi.fn(),
+    deleteMany: vi.fn(),
     update: vi.fn(),
   },
   eventServicePart: {
     create: vi.fn(),
     delete: vi.fn(),
+    deleteMany: vi.fn(),
+  },
+  attendance: {
+    findMany: vi.fn(),
   },
   eventPartAllowedRole: {
     createMany: vi.fn(),
@@ -69,6 +76,7 @@ beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(allowedRoles.setPartAssignmentAllowedRoles).mockResolvedValue({ added: [], removed: [] })
   vi.mocked(allowedRoles.setServicePartAssignmentAllowedRoles).mockResolvedValue({ added: [], removed: [] })
+  mockDb.attendance.findMany.mockResolvedValue([])
 })
 
 describe('createFreeformEvent', () => {
@@ -195,21 +203,66 @@ describe('bulkDeleteEvents', () => {
     const result = await bulkDeleteEvents(mockDb as never, [10, 11, 12], 42, 7)
 
     // Truthful count from Prisma (12 didn't exist so only 2 were deleted).
-    expect(result).toEqual({ count: 2 })
+    expect(result).toEqual({ count: 2, emptied: 0 })
+  })
+
+  // Programmes and attendance are unrelated: tidying programmes never wipes a meeting's counts.
+  it('keeps the events that have counts and removes only their programme', async () => {
+    mockDb.attendance.findMany.mockResolvedValue([{ eventId: 11 }])
+    mockDb.event.deleteMany.mockResolvedValue({ count: 2 })
+
+    const result = await bulkDeleteEvents(mockDb as never, [10, 11, 12], 42, 7)
+
+    expect(mockDb.event.deleteMany).toHaveBeenCalledWith({ where: { id: { in: [10, 12] }, congregationId: 42 } })
+    expect(mockDb.eventPart.deleteMany).toHaveBeenCalledWith({ where: { eventId: { in: [11] }, congregationId: 42 } })
+    expect(mockDb.eventServicePart.deleteMany).toHaveBeenCalledWith({
+      where: { eventId: { in: [11] }, congregationId: 42 },
+    })
+    // Back to a draft, as a meeting without a programme is: nothing empty shows on the board.
+    expect(mockDb.event.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: [11] }, congregationId: 42 },
+      data: { status: 'draft' },
+    })
+    expect(result).toEqual({ count: 2, emptied: 1 })
+    expect(vi.mocked(auditModule.auditInTransaction)).toHaveBeenCalledWith(
+      mockDb,
+      expect.objectContaining({ action: 'event.programme_removed', entityId: 11 }),
+    )
+    expect(vi.mocked(auditModule.auditInTransaction)).not.toHaveBeenCalledWith(
+      mockDb,
+      expect.objectContaining({ action: 'event.deleted', entityId: 11 }),
+    )
   })
 })
 
 describe('deleteEvent', () => {
-  it('deletes an event using compound key', async () => {
-    const expected = { id: 3 }
-    mockDb.event.delete.mockResolvedValue(expected)
+  it('deletes an event without counts using compound key, and audits it', async () => {
+    mockDb.event.delete.mockResolvedValue({ id: 3 })
 
-    const result = await deleteEvent(mockDb as never, 3, 10)
+    const result = await deleteEvent(mockDb as never, 3, 10, 7)
 
-    expect(result).toEqual(expected)
+    expect(result).toEqual({ kept: false })
     expect(mockDb.event.delete).toHaveBeenCalledWith({
       where: { id_congregationId: { id: 3, congregationId: 10 } },
     })
+    expect(vi.mocked(auditModule.auditInTransaction)).toHaveBeenCalledWith(
+      mockDb,
+      expect.objectContaining({ action: 'event.deleted', entityId: 3, actorId: 7 }),
+    )
+  })
+
+  it('keeps an event that has counts and removes only its programme', async () => {
+    mockDb.attendance.findMany.mockResolvedValue([{ eventId: 3 }])
+
+    const result = await deleteEvent(mockDb as never, 3, 10, 7)
+
+    expect(result).toEqual({ kept: true })
+    expect(mockDb.event.delete).not.toHaveBeenCalled()
+    expect(mockDb.eventPart.deleteMany).toHaveBeenCalledWith({ where: { eventId: { in: [3] }, congregationId: 10 } })
+    expect(vi.mocked(auditModule.auditInTransaction)).toHaveBeenCalledWith(
+      mockDb,
+      expect.objectContaining({ action: 'event.programme_removed', entityId: 3 }),
+    )
   })
 })
 

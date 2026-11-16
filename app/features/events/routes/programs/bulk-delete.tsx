@@ -31,10 +31,10 @@ export async function action({ request, context }: Route.ActionArgs) {
     if (!(await canManageAnyProgram(db, can, currentUser.id, congregationId))) throw redirect('/programs')
 
     const allowedIds = await filterToManageableEventIds(db, can, ids, currentUser.id, congregationId)
-    if (allowedIds.length === 0) return { ok: true, deleted: 0 }
+    if (allowedIds.length === 0) return { ok: true, deleted: 0, emptied: 0 }
 
-    const { count } = await bulkDeleteEvents(db, allowedIds, congregationId, currentUser.id)
-    logger.info(`Bulk deleted ${count} events.`)
-    return { ok: true, deleted: count }
+    const { count, emptied } = await bulkDeleteEvents(db, allowedIds, congregationId, currentUser.id)
+    logger.info(`Bulk deleted ${count} events; removed the programme of ${emptied} with attendance.`)
+    return { ok: true, deleted: count, emptied }
   })
 }
