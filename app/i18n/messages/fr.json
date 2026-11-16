@@ -7140,5 +7140,7 @@
     "sidebar_meetings": "Réunions",
     "attendance_next_when": "{date} à {time}",
     "attendance_you": "vous",
-    "attendance_done_by": "Par {names}"
+    "attendance_done_by": "Par {names}",
+    "attendance_card_saved": "Enregistrée",
+    "attendance_error_failed": "L’assistance n’a pas pu être enregistrée. Réessayez."
 }

@@ -58,3 +58,29 @@ export function entryProgress(entry: Pick<AttendanceEntry, 'inPerson' | 'online'
   const entered = (entry.inPerson != null ? 1 : 0) + (entry.online != null ? 1 : 0)
   return { entered, total: entry.inPerson != null && entry.online != null ? entry.inPerson + entry.online : null }
 }
+
+/** The most people a count may hold, as the server accepts. */
+export const MAX_COUNT = 100_000
+
+/**
+ * What « Enregistrer » sends from what was typed: only fields the viewer may still change, empty meaning cleared, and
+ * the fields whose text is not a whole number of people — named, and kept back, so the other field still goes.
+ */
+export function countsToSend(
+  typed: Partial<Record<CountKey, string>>,
+  fields: Record<CountKey, { editable: boolean }>,
+): { counts: Partial<Record<CountKey, number | null>>; invalid: CountKey[] } {
+  const counts: Partial<Record<CountKey, number | null>> = {}
+  const invalid: CountKey[] = []
+  for (const [count, text] of Object.entries(typed) as [CountKey, string][]) {
+    if (!fields[count].editable) continue
+    if (text.trim() === '') {
+      counts[count] = null
+      continue
+    }
+    const value = Number(text)
+    if (Number.isInteger(value) && value >= 0 && value <= MAX_COUNT) counts[count] = value
+    else invalid.push(count)
+  }
+  return { counts, invalid }
+}

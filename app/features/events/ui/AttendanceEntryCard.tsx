@@ -2,12 +2,14 @@ import { Panel, StatusIcon } from '@unitae/ui'
 import { Loader2, Pencil } from 'lucide-react'
 import { useEffect, useId, useState } from 'react'
 import { useFetcher } from 'react-router'
+import { toast } from 'sonner'
 
 import {
   type AttendanceEntry,
   type AttendanceViewer,
   type CountKey,
   countField,
+  countsToSend,
   entryProgress,
 } from '~/features/events/model/attendance-entry'
 import * as m from '~/i18n/paraglide/messages'
@@ -50,20 +52,39 @@ export function AttendanceEntryCard({ entry, viewer }: { entry: AttendanceEntry;
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reacts to the request settling only
   useEffect(() => {
-    if (fetcher.state !== 'idle' || fetcher.data == null || !fetcher.data.ok) return
+    if (fetcher.state !== 'idle' || fetcher.data == null) return
+    if (!fetcher.data.ok) {
+      toast.error(m.attendance_error_failed())
+      return
+    }
     const { outcomes } = fetcher.data
-    setRefusals(Object.fromEntries(Object.entries(outcomes).filter(([, outcome]) => outcome !== 'saved')))
-    // A saved field takes the stored value back; a refused one keeps what was typed, beside why.
+    const refused = Object.entries(outcomes).filter(([, outcome]) => outcome !== 'saved') as [
+      CountKey,
+      Exclude<Outcome, 'saved'>,
+    ][]
+    // A field kept back as « not a count » was not sent: the answer leaves its note alone.
+    setRefusals(current => ({
+      ...Object.fromEntries(Object.entries(current).filter(([count]) => !(count in outcomes))),
+      ...Object.fromEntries(refused),
+    }))
+    // A saved field takes the stored value back; a refused one keeps what was typed while it may still be changed.
     setTyped(current =>
       Object.fromEntries(Object.entries(current).filter(([count]) => outcomes[count as CountKey] !== 'saved')),
     )
-    if (Object.values(outcomes).every(outcome => outcome === 'saved')) setEditing(false)
+    if (refused.length === 0) setEditing(false)
+    // Also as a toast: at midnight the meeting leaves the list, and the card with its notes.
+    for (const [count, outcome] of refused) toast.error(`${label(count)} : ${REFUSAL[outcome]()}`)
   }, [fetcher.state, fetcher.data])
 
+  function reset(open: boolean) {
+    setTyped({})
+    setRefusals({})
+    setEditing(open)
+  }
+
   function save() {
-    const counts = Object.fromEntries(
-      Object.entries(typed).map(([count, text]) => [count, text.trim() === '' ? null : Number(text)]),
-    )
+    const { counts, invalid } = countsToSend(typed, fields)
+    setRefusals(Object.fromEntries(invalid.map(count => [count, 'invalid'])))
     if (Object.keys(counts).length === 0) return
     fetcher.submit(
       { eventId: entry.eventId, ...counts },
@@ -88,7 +109,12 @@ export function AttendanceEntryCard({ entry, viewer }: { entry: AttendanceEntry;
         <div className="flex min-w-0 flex-1 flex-col gap-px">
           <h2 className="truncate font-semibold text-[15px]">{m.attendance_card_title({ name: entry.name })}</h2>
           <span className="text-faint text-xs">
-            {done ? m.attendance_card_done() : m.attendance_card_live({ time: time(entry.startDate) })}
+            {done
+              ? // « Modifiable jusqu’à minuit » only for whom it is true: a recorder who may still change a count.
+                anyEditable && !viewer.canCorrect
+                ? m.attendance_card_done()
+                : m.attendance_card_saved()
+              : m.attendance_card_live({ time: time(entry.startDate) })}
           </span>
         </div>
       </div>
@@ -107,7 +133,7 @@ export function AttendanceEntryCard({ entry, viewer }: { entry: AttendanceEntry;
                 })}
             </span>
             {anyEditable && (
-              <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
+              <Button variant="ghost" size="sm" onClick={() => reset(true)}>
                 <Pencil />
                 {m.attendance_edit()}
               </Button>
@@ -134,7 +160,10 @@ export function AttendanceEntryCard({ entry, viewer }: { entry: AttendanceEntry;
                     readOnly={!field.editable}
                     aria-invalid={refusal != null}
                     aria-describedby={`${id}-${count}-note`}
-                    value={typed[count] ?? (field.value == null ? '' : String(field.value))}
+                    // A field the viewer may not change shows what is stored, never a number typed before it closed.
+                    value={
+                      (field.editable ? typed[count] : undefined) ?? (field.value == null ? '' : String(field.value))
+                    }
                     onChange={event => setTyped(current => ({ ...current, [count]: event.target.value }))}
                     className={cn(
                       'h-12 text-center font-medium text-xl tabular-nums md:text-xl pointer-coarse:h-14 pointer-coarse:text-2xl',
@@ -142,7 +171,7 @@ export function AttendanceEntryCard({ entry, viewer }: { entry: AttendanceEntry;
                     )}
                   />
                   <span id={`${id}-${count}-note`} className="min-h-4 text-faint text-xs" aria-live="polite">
-                    {refusal != null && refusal !== 'saved' ? (
+                    {refusal != null && refusal !== 'saved' && (field.editable || field.at == null) ? (
                       <span className="text-danger-text">{REFUSAL[refusal]()}</span>
                     ) : field.at != null ? (
                       field.mine ? (
@@ -163,7 +192,7 @@ export function AttendanceEntryCard({ entry, viewer }: { entry: AttendanceEntry;
               {entered === 0 ? m.attendance_nothing() : m.attendance_partial({ count: entered })}
             </span>
             {editing && (
-              <Button variant="ghost" size="sm" disabled={busy} onClick={() => setEditing(false)}>
+              <Button variant="ghost" size="sm" disabled={busy} onClick={() => reset(false)}>
                 {m.common_cancel()}
               </Button>
             )}

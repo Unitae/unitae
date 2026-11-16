@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { countField, entryProgress } from './attendance-entry'
+import { countField, countsToSend, entryProgress } from './attendance-entry'
 
 const PARIS = 'Europe/Paris'
 // Sunday 15 November 2026, the weekend meeting started at 10:00 in Paris.
@@ -50,5 +50,35 @@ describe('entryProgress', () => {
     expect(entryProgress(meeting)).toEqual({ entered: 1, total: null })
     expect(entryProgress({ ...meeting, online: 21 })).toEqual({ entered: 2, total: 119 })
     expect(entryProgress({ ...meeting, inPerson: null })).toEqual({ entered: 0, total: null })
+  })
+})
+
+describe('countsToSend', () => {
+  const open = { editable: true }
+  const closed = { editable: false }
+
+  it('sends each count typed in an editable field, empty meaning cleared', () => {
+    expect(countsToSend({ inPerson: '98', online: '' }, { inPerson: open, online: open })).toEqual({
+      counts: { inPerson: 98, online: null },
+      invalid: [],
+    })
+  })
+
+  // A field that became read-only (someone else entered it first) keeps no typed number to send again.
+  it('never sends a field the viewer may no longer change', () => {
+    expect(countsToSend({ inPerson: '87', online: '21' }, { inPerson: closed, online: open })).toEqual({
+      counts: { online: 21 },
+      invalid: [],
+    })
+  })
+
+  // The other field still goes: one wrong number never holds back the other.
+  it('names a number that is not a count and sends the other field', () => {
+    expect(countsToSend({ inPerson: '-3', online: '21' }, { inPerson: open, online: open })).toEqual({
+      counts: { online: 21 },
+      invalid: ['inPerson'],
+    })
+    expect(countsToSend({ inPerson: '1.5' }, { inPerson: open, online: open }).invalid).toEqual(['inPerson'])
+    expect(countsToSend({ inPerson: '250000' }, { inPerson: open, online: open }).invalid).toEqual(['inPerson'])
   })
 })
