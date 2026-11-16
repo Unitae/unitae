@@ -38,8 +38,9 @@ of it: the counts live on paper or in a spreadsheet, and the averages are comput
 - Weekly schedules (cleaning by group) — not designed yet.
 - Reminders and notifications about missing counts — a later addition on the existing
   notifications system.
-- A « monthly report to the branch » page combining activity and attendance — made possible by this
-  spec, not part of it.
+- A dedicated « monthly report to the branch » view. The monthly averages per meeting type on the
+  « Assistance » page (month headers, chart table) **are** the figures reported to the branch; a block
+  that isolates them, or a page combining them with the activity totals, waits for actual usage.
 - Counting attendance for anything other than events whose template is counted (§5.2).
 
 ## 3. Users & jobs-to-be-done
