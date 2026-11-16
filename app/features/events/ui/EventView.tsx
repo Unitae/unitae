@@ -195,22 +195,25 @@ export function EventView({
                       {m.common_edit()}
                     </Link>
                   </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" aria-label={m.common_more_actions()}>
-                        <MoreHorizontal />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onSelect={() => setDeleting(true)}
-                      >
-                        <Trash2 />
-                        {m.common_delete()}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {/* An empty meeting with counts has nothing left to delete: the meeting and its attendance stay. */}
+                  {!(awaitingProgramme && hasAttendance) && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" aria-label={m.common_more_actions()}>
+                          <MoreHorizontal />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onSelect={() => setDeleting(true)}
+                        >
+                          <Trash2 />
+                          {m.common_delete()}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </>
               )}
             </>

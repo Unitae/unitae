@@ -111,6 +111,11 @@ describe('eventHasAttendance', () => {
 
     expect(await eventHasAttendance(mockDb as never, 40, 1)).toBe(true)
     expect(await eventHasAttendance(mockDb as never, 41, 1)).toBe(false)
-    expect(mockDb.attendance.findFirst.mock.calls[0]?.[0]?.where).toEqual({ eventId: 40, congregationId: 1 })
+    // A row whose counts were both cleared keeps nothing: deleting then removes the meeting, as deleteEvent decides.
+    expect(mockDb.attendance.findFirst.mock.calls[0]?.[0]?.where).toEqual({
+      eventId: 40,
+      congregationId: 1,
+      OR: [{ inPerson: { not: null } }, { online: { not: null } }],
+    })
   })
 })

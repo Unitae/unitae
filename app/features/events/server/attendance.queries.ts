@@ -122,8 +122,14 @@ export async function listMeetingsUnderWay(
   return events.map(event => toRow(event, timeZone))
 }
 
-/** Whether a meeting has attendance: deleting its programme then keeps the meeting and its counts. */
+/**
+ * Whether a meeting has a count: deleting it then removes only its programme. The same rule as deleteEvent — a row
+ * whose two counts were cleared keeps nothing.
+ */
 export async function eventHasAttendance(db: TransactionClient, eventId: number, congregationId: number) {
-  const row = await db.attendance.findFirst({ where: { eventId, congregationId }, select: { id: true } })
+  const row = await db.attendance.findFirst({
+    where: { eventId, congregationId, OR: [{ inPerson: { not: null } }, { online: { not: null } }] },
+    select: { id: true },
+  })
   return row != null
 }
