@@ -1019,7 +1019,7 @@
     "settings_territories_zips_hint": "Les adresses de ces codes postaux seulement.",
     "settings_territories_prospection_validity_label": "Validité d’une prospection",
     "settings_territories_attributions_title": "Durée des attributions",
-    "settings_territories_attribution_default_duration_label": "Porte-à-porte, campus et hôtels",
+    "settings_territories_attribution_default_duration_label": "Porte à porte, campus et hôtels",
     "settings_territories_attribution_phone_duration_label": "Téléphone",
     "settings_territories_attribution_commerce_duration_label": "Commerces",
     "settings_territories_attribution_duration_days_unit": "jours",
@@ -2456,7 +2456,7 @@
     "territories_type_hotel_singular": "Hôtel",
     "territories_type_university": "Universités",
     "territories_type_university_singular": "Université",
-    "territories_type_classical_capitalized": "Porte à Porte",
+    "territories_type_classical_capitalized": "Porte à porte",
     "territories_content_phones": [
         {
             "declarations": [
@@ -7160,6 +7160,8 @@
     "attendance_card_saved": "Enregistrée",
     "attendance_error_failed": "L’assistance n’a pas pu être enregistrée. Réessayez.",
     "help_load_error": "Cet article n’a pas pu être chargé.",
+    "help_meta_title": "Aide - Unitae",
+    "help_article_meta_title": "{title} - Aide - Unitae",
     "attendance_year": "Année de service {label}",
     "attendance_year_previous": "Année de service précédente",
     "attendance_year_next": "Année de service suivante",

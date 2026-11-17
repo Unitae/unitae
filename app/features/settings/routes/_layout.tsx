@@ -13,6 +13,9 @@ import { billingEntryUrl } from '~/shared/domain/billing-link.server'
 import { Permission } from '~/shared/types/permission'
 import type { Route } from './+types/_layout'
 
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
+
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_layout_meta_title() }]
 }

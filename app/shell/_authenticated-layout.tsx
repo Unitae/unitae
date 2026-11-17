@@ -25,6 +25,9 @@ import { formatPersonName, resolveAccountName } from '~/shared/utils/format-pers
 
 import type { Route } from './+types/_authenticated-layout'
 
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
+
 /** The pattern React Router reports for the catch-all route of this layout. */
 const UNKNOWN_ADDRESS = '*'
 

@@ -8,6 +8,9 @@ import { Permission } from '~/shared/types/permission'
 import { formatLocalDate } from '~/shared/utils/date.server'
 import type { Route } from './+types/_layout'
 
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
+
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.territories_meta_title() }]
 }

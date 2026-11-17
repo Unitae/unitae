@@ -36,6 +36,9 @@ import { redirectWithToast } from '../_toast.server'
 
 import type { Route } from './+types/settings'
 
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
+
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_territories_meta_title() }]
 }
@@ -131,7 +134,7 @@ export default function TerritorySettingsPage({ loaderData, actionData }: Route.
       <SettingsHeader
         title={m.settings_territories_title()}
         subtitle={m.settings_territories_subtitle()}
-        actions={<HelpEntryButton slug="territories-settings" />}
+        help={<HelpEntryButton slug="territories-settings" />}
       />
 
       <SettingsForm {...getFormProps(form)} savedKey={JSON.stringify(loaderData)} errors={form.errors}>

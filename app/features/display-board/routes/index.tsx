@@ -21,6 +21,9 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 
 import type { Route } from './+types/index'
 
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
+
 export const meta: Route.MetaFunction = () => {
   return [{ title: `${m.board_page_title()} - Unitae` }]
 }
@@ -89,19 +92,17 @@ export default function BoardPage({ loaderData }: Route.ComponentProps) {
           )
         }
         actions={
-          <>
-            {canManage && (
-              // On a phone it lives in the « Plus » sheet.
-              <Button variant="outline" size="sm" asChild className="max-md:hidden">
-                <Link to="/board/documents">
-                  <FileText className="size-4" aria-hidden="true" />
-                  {m.sidebar_board_manage()}
-                </Link>
-              </Button>
-            )}
-            <HelpEntryButton slug="board-read" />
-          </>
+          canManage && (
+            // On a phone it lives in the « Plus » sheet.
+            <Button variant="outline" size="sm" asChild className="max-md:hidden">
+              <Link to="/board/documents">
+                <FileText className="size-4" aria-hidden="true" />
+                {m.sidebar_board_manage()}
+              </Link>
+            </Button>
+          )
         }
+        help={<HelpEntryButton slug="board-read" />}
       />
 
       {isEmpty ? (

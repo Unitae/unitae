@@ -14,6 +14,13 @@ import { RouteErrorBoundary } from '~/shared/ui/RouteErrorBoundary'
 
 import type { Route } from './+types/article'
 
+// A forbidden or missing article keeps the generic title: its own title never reaches the tab.
+export const meta: Route.MetaFunction = ({ loaderData }) => {
+  const title =
+    loaderData?.kind === 'found' ? m.help_article_meta_title({ title: loaderData.title }) : m.help_meta_title()
+  return [{ title }]
+}
+
 // The same loader serves the page and the side panel, which reads it as data. An article that cannot be read is
 // answered as an error rather than thrown: a thrown error would replace the page the panel was opened from.
 export function loader({ params, context }: Route.LoaderArgs): HelpArticleView {

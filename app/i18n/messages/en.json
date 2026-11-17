@@ -7160,6 +7160,8 @@
     "attendance_card_saved": "Saved",
     "attendance_error_failed": "The attendance could not be saved. Try again.",
     "help_load_error": "This article could not be loaded.",
+    "help_meta_title": "Help - Unitae",
+    "help_article_meta_title": "{title} - Help - Unitae",
     "attendance_year": "Service year {label}",
     "attendance_year_previous": "Previous service year",
     "attendance_year_next": "Next service year",
