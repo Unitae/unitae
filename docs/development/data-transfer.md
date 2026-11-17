@@ -41,7 +41,7 @@ The validator scans for natural-key collisions before any write. Decisions per e
 | User accounts | matching `email` | Update in place (link to imported member when present) | Skip with warning |
 | Members | (none — fresh ids per import) | Always insert | n/a |
 | Territories | matching `number` | Update in place | n/a (RLS-scoped) |
-| Event templates | matching compound key `(key, congregationId)` | Skip | n/a |
+| Event templates | matching compound key `(key, congregationId)` | Update in place (name, description, weekday, recurrence, colour, and how it counts in attendance when the archive says) | n/a |
 
 Other entities are inserted as-is; the import flow reassigns primary keys and stitches relationships through `EntityIdMap`.
 
