@@ -1,13 +1,13 @@
 import { HELP_FALLBACK_LOCALE, HELP_LOCALES, type HelpLocale } from '~/features/help/model/help.type'
 
-/** The address parameter that opens an article in the side panel: `?aide=absences`. */
-export const HELP_PANEL_PARAM = 'aide'
+/** The address parameter that opens an article in the side panel: `?help=absences`. */
+export const HELP_PANEL_PARAM = 'help'
 
 /** The fallback for every reader, managed or self-hosted: the repository is public, so no congregation data goes there. */
 export const HELP_ISSUES_URL = 'https://github.com/Unitae/unitae/issues'
 
 export function helpPagePath(slug?: string): string {
-  return slug ? `/aide/${encodeURIComponent(slug)}` : '/aide'
+  return slug ? `/help/${encodeURIComponent(slug)}` : '/help'
 }
 
 /** The language the articles are read in: English when the app is in English, French otherwise. */

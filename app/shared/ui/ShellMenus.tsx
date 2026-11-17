@@ -147,7 +147,7 @@ export function UserMenu({ name, compact = false }: { name: string; compact?: bo
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link to="/aide">
+          <Link to="/help">
             <CircleHelp className="size-4 text-faint" aria-hidden="true" />
             {m.help_menu_label()}
           </Link>
