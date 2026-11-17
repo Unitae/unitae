@@ -3810,6 +3810,7 @@
     "permission_desc_can_manage_external_speakers": "Can add and edit visiting speakers",
     "permission_desc_can_record_attendance": "Can enter the attendance of the meeting under way, until midnight",
     "permission_desc_can_correct_attendance": "Can correct the attendance of any meeting, at any time; every correction goes to the log",
+    "permission_desc_can_view_attendance": "Can view meeting attendance: averages, history and exports",
     "permission_desc_can_view_users": "Can view user accounts and their roles",
     "permission_desc_can_manage_users": "Can create, edit and remove user accounts",
     "permission_desc_can_view_roles": "Can view roles and their members",

@@ -43,6 +43,7 @@ export enum Permission {
   CanManageExternalSpeakers = 'can-manage-external-speakers',
   CanRecordAttendance = 'can-record-attendance',
   CanCorrectAttendance = 'can-correct-attendance',
+  CanViewAttendance = 'can-view-attendance',
   CanViewUsers = 'can-view-users',
   CanManageUsers = 'can-manage-users',
   CanViewRoles = 'can-view-roles',
@@ -70,6 +71,8 @@ export const PERMISSION_REQUIRES: Partial<Record<Permission, Permission[]>> = {
   [Permission.CanAssignProgramParts]: [Permission.CanViewPublishers],
   // The split tool lists territories to work from.
   [Permission.CanPlanTerritorySplits]: [Permission.CanViewTerritories],
+  // The correction screen is the attendance page.
+  [Permission.CanCorrectAttendance]: [Permission.CanViewAttendance],
   // The permission picker is reached from the role list.
   [Permission.CanConfigurePermissions]: [Permission.CanViewRoles],
 }

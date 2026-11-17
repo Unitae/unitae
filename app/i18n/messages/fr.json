@@ -3815,6 +3815,7 @@
     "permission_desc_can_manage_external_speakers": "Peut ajouter et modifier les orateurs extérieurs",
     "permission_desc_can_record_attendance": "Peut saisir l’assistance de la réunion en cours, jusqu’à minuit",
     "permission_desc_can_correct_attendance": "Peut corriger l’assistance de toute réunion, à tout moment ; chaque correction va au journal",
+    "permission_desc_can_view_attendance": "Peut consulter l’assistance aux réunions : moyennes, historique et exports",
     "permission_desc_can_view_users": "Peut voir les comptes utilisateurs et leurs rôles",
     "permission_desc_can_manage_users": "Peut créer, modifier et supprimer des comptes utilisateurs",
     "permission_desc_can_view_roles": "Peut voir les rôles et leurs membres",
