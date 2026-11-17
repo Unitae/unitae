@@ -118,6 +118,9 @@ English and French.
 French and English always carry every key. In another language, a missing key falls back to the
 `en.json` value.
 
+A change to a feature's help means editing both `<slug>.md` files in the same change. See
+[Help Articles](#help-articles).
+
 ## Adding a Language
 
 A translator adds `app/i18n/messages/<code>.json` and the code to `languageTags` in
@@ -125,10 +128,34 @@ A translator adds `app/i18n/messages/<code>.json` and the code to `languageTags`
 walks through it. Nothing else changes: language pickers, validation and formatting read Paraglide's
 `locales`.
 
+For the help articles, create `app/features/help/content/<code>/` with every article translated from
+`content/en/`, keeping its frontmatter values, and add the code to `HELP_LOCALES` in
+`app/features/help/model/help.type.ts`. Until then, readers of that language get the English articles.
+
+## Help Articles
+
+The « Aide » pages are not Paraglide messages. Their article bodies are Markdown files in
+`app/features/help/content/<locale>/<slug>.md`, one folder per language. Only the help's interface text (titles,
+buttons, the fallback line) is in the messages.
+
+- French and English always carry every article, under the same slug. Their frontmatter must match across the two:
+  `permission`, `module`, `order` and the `related` set. The loader refuses an article that breaks this, or that
+  relates to a missing article, so the build and the server start fail on it.
+- Word the articles with the [translation glossary](translation-glossary.md). French says « assemblée ».
+- Write Markdown only: raw HTML is escaped, not rendered.
+- A reader whose language has no folder gets the English articles, the same fallback as the messages
+  (`HELP_FALLBACK_LOCALE` in `app/features/help/model/help.type.ts`).
+
 ## Checks
 
 These run with the unit tests, so CI enforces them:
 
+- `app/features/help/server/help-content.server.test.ts`: every help article has its counterpart in the
+  other language, with the same permission, module, order and related set; every related slug exists;
+  a file is named after its slug; the shipped series is pinned.
+- `app/features/help/entry-points.test.ts`: every « ? » in the app opens an article that ships in both
+  languages, and the pages that show one are pinned.
+- `app/features/help/model/help-links.test.ts`: a language without articles reads the English ones.
 - `app/i18n/catalogue.test.ts`: French and English hold the same keys; another language holds only
   keys English has, with the same placeholders; every plural ends with its `=*` form; no message is
   empty, none writes an optional plural such as « (s) », and every key is used by some code.
@@ -241,6 +268,7 @@ This keeps tests independent of translation file changes and avoids Paraglide co
 
 ## Related
 
+- [Help Articles](#help-articles) — Markdown articles for the « Aide » pages
 - [Email Templates](email-templates.md) — All email content uses Paraglide messages
 - [Background Processing](background-processing.md) — Worker locale setup
 - [Testing](testing.md) — How to mock translations in tests

@@ -3,6 +3,9 @@ import type { Permission } from '~/shared/types/permission'
 export const HELP_LOCALES = ['fr', 'en'] as const
 export type HelpLocale = (typeof HELP_LOCALES)[number]
 
+/** The articles a reader gets when their language has no folder of its own, as messages fall back to en.json. */
+export const HELP_FALLBACK_LOCALE: HelpLocale = 'en'
+
 /**
  * The areas of the app the articles are grouped under, in the order the sidebar lists them. Each one is named by
  * the sidebar's own label, so the help speaks the same words as the page it is about.
@@ -34,7 +37,10 @@ export interface HelpArticle {
   body: string
 }
 
-/** What an article page or the side panel draws: the body already rendered, and nothing the reader may not see. */
+/**
+ * What an article page or the side panel draws. Every variant names the slug it answers for, so a panel never shows
+ * an answer for another article. A forbidden or missing article carries no title and no body.
+ */
 export type HelpArticleView =
   | {
       kind: 'found'
@@ -45,5 +51,7 @@ export type HelpArticleView =
       html: string
       related: { slug: string; title: string }[]
     }
-  | { kind: 'forbidden' }
-  | { kind: 'missing' }
+  | { kind: 'forbidden'; slug: string }
+  | { kind: 'missing'; slug: string }
+  /** The article could not be read on the server. Shown inside the panel or the page, never in place of the app. */
+  | { kind: 'error'; slug: string }

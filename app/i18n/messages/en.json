@@ -7157,5 +7157,6 @@
     "attendance_you": "you",
     "attendance_done_by": "By {names}",
     "attendance_card_saved": "Saved",
-    "attendance_error_failed": "The attendance could not be saved. Try again."
+    "attendance_error_failed": "The attendance could not be saved. Try again.",
+    "help_load_error": "This article could not be loaded."
 }

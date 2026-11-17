@@ -11,7 +11,8 @@ export function helpArticleView(
   permissions: ReadonlySet<Permission>,
 ): HelpArticleView {
   const lookup = findHelpArticle(articles, slug, locale, permissions)
-  if (lookup.kind !== 'found') return lookup
+  if (lookup.kind === 'forbidden') return { kind: 'forbidden', slug }
+  if (lookup.kind === 'missing') return { kind: 'missing', slug }
 
   const { article, related } = lookup
   return {

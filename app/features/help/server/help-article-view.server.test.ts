@@ -52,10 +52,16 @@ describe('helpArticleView', () => {
   })
 
   it('refuses an article the reader may not open, with no title in the answer', () => {
-    expect(helpArticleView(ARTICLES, 'prospection', 'fr', new Set())).toEqual({ kind: 'forbidden' })
+    expect(helpArticleView(ARTICLES, 'prospection', 'fr', new Set())).toStrictEqual({
+      kind: 'forbidden',
+      slug: 'prospection',
+    })
   })
 
   it('answers missing for an unknown slug', () => {
-    expect(helpArticleView(ARTICLES, 'inconnu', 'fr', new Set())).toEqual({ kind: 'missing' })
+    expect(helpArticleView(ARTICLES, 'inconnu', 'fr', new Set())).toStrictEqual({
+      kind: 'missing',
+      slug: 'inconnu',
+    })
   })
 })

@@ -47,6 +47,23 @@ describe('visibleHelpArticles', () => {
 
 describe('visibleHelpSlugs', () => {
   it('lists the slugs the reader may open, for the « ? » entry points', () => {
-    expect(visibleHelpSlugs(ARTICLES, new Set([Permission.CanViewProspection]))).toEqual(['open', 'prospection'])
+    expect(visibleHelpSlugs(ARTICLES, new Set([Permission.CanViewProspection]), 'fr')).toEqual(['open', 'prospection'])
+  })
+})
+
+describe('visibleHelpSlugs across the two languages', () => {
+  const BILINGUAL = [
+    { ...article('open', null), locale: 'fr' as const },
+    { ...article('open', null), locale: 'en' as const },
+    { ...article('board', 'CanViewBoard'), locale: 'fr' as const },
+  ]
+
+  it('lists a slug shared by both languages once, for the asked language', () => {
+    expect(visibleHelpSlugs(BILINGUAL, new Set(), 'en')).toEqual(['open'])
+  })
+
+  it('follows the asked language for the gated articles too', () => {
+    expect(visibleHelpSlugs(BILINGUAL, new Set([Permission.CanViewBoard]), 'fr')).toEqual(['open', 'board'])
+    expect(visibleHelpSlugs(BILINGUAL, new Set([Permission.CanViewBoard]), 'en')).toEqual(['open'])
   })
 })

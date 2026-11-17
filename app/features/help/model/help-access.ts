@@ -1,4 +1,4 @@
-import type { HelpArticle } from '~/features/help/model/help.type'
+import type { HelpArticle, HelpLocale } from '~/features/help/model/help.type'
 import { Permission } from '~/shared/types/permission'
 
 /**
@@ -17,7 +17,15 @@ export function visibleHelpArticles(
   return articles.filter(article => canReadHelpArticle(article, permissions))
 }
 
-/** The slugs a reader may open, in one list: what the « ? » entry points on each page check against. */
-export function visibleHelpSlugs(articles: readonly HelpArticle[], permissions: ReadonlySet<Permission>): string[] {
-  return visibleHelpArticles(articles, permissions).map(({ slug }) => slug)
+/**
+ * The slugs a reader may open in one language, each once: what the « ? » entry points check against. A slug that
+ * exists in both languages is listed once, since the « ? » picks the language itself.
+ */
+export function visibleHelpSlugs(
+  articles: readonly HelpArticle[],
+  permissions: ReadonlySet<Permission>,
+  locale: HelpLocale,
+): string[] {
+  const inLocale = articles.filter(article => article.locale === locale)
+  return [...new Set(visibleHelpArticles(inLocale, permissions).map(({ slug }) => slug))]
 }

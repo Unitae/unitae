@@ -24,7 +24,7 @@ Once the given time has passed, an assignment is late. Each kind has its own tim
 
 ## Territory kinds
 
-For each kind, the roles that may receive it. With no role chosen, any publisher may receive it. The **Telephone territories** switch turns the telephone kind on; it is off by default.
+For each kind, the roles that may receive it. With no role chosen, any publisher may receive it. On the **Phone** row, the switch turns the telephone kind on; it is off by default.
 
 ## Display
 

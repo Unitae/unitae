@@ -24,7 +24,7 @@ Après le délai indiqué, une attribution est en retard. Il y a un délai par t
 
 ## Types de territoires
 
-Pour chaque type, les rôles qui peuvent le recevoir. Sans rôle choisi, tout proclamateur peut le recevoir. Le switch **Territoires téléphone** active le type téléphone, désactivé par défaut.
+Pour chaque type, les rôles qui peuvent le recevoir. Sans rôle choisi, tout proclamateur peut le recevoir. Sur la ligne **Téléphone**, l’interrupteur active le type téléphone, désactivé par défaut.
 
 ## Affichage
 

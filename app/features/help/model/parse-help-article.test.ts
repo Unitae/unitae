@@ -95,3 +95,15 @@ describe('parseHelpArticle', () => {
     expect(() => parseHelpArticle(VALID.replace('order: 1', 'order: premier'), 'fr')).toThrow(HelpArticleFormatError)
   })
 })
+
+describe('parseHelpArticle: the frontmatter keys', () => {
+  it('refuses a key that is repeated, since the second value would silently win', () => {
+    expect(() => parseHelpArticle(VALID.replace('order: 1', 'order: 1\norder: 2'), 'fr')).toThrow(
+      'repeated the key « order »',
+    )
+  })
+
+  it('refuses a key the format does not know', () => {
+    expect(() => parseHelpArticle(VALID.replace('order: 1', 'order: 1\nauteur: Marc'), 'fr')).toThrow('auteur')
+  })
+})

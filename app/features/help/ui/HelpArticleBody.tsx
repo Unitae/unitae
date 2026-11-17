@@ -1,3 +1,4 @@
+import { Callout } from '@unitae/ui'
 import { Link } from 'react-router'
 
 import type { HelpArticleView } from '~/features/help/model/help.type'
@@ -25,9 +26,13 @@ export function HelpArticleBody({
   if (view.kind !== 'found') {
     return (
       <div className="flex flex-col gap-5">
-        <p className="text-muted-foreground text-sm">
-          {view.kind === 'forbidden' ? m.help_unavailable() : m.help_missing()}
-        </p>
+        {view.kind === 'error' ? (
+          <Callout tone="danger" role="alert" title={m.help_load_error()} />
+        ) : (
+          <p className="text-muted-foreground text-sm">
+            {view.kind === 'forbidden' ? m.help_unavailable() : m.help_missing()}
+          </p>
+        )}
         <HelpFallback />
       </div>
     )

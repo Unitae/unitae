@@ -7157,5 +7157,6 @@
     "attendance_you": "vous",
     "attendance_done_by": "Par {names}",
     "attendance_card_saved": "Enregistrée",
-    "attendance_error_failed": "L’assistance n’a pas pu être enregistrée. Réessayez."
+    "attendance_error_failed": "L’assistance n’a pas pu être enregistrée. Réessayez.",
+    "help_load_error": "Cet article n’a pas pu être chargé."
 }

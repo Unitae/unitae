@@ -14,11 +14,12 @@ const FRONTMATTER_PATTERN = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/
 const LINE_BREAK = /\r?\n/
 
 const REQUIRED_KEYS = ['slug', 'title', 'summary', 'module', 'permission', 'order'] as const
+const KNOWN_KEYS: readonly string[] = [...REQUIRED_KEYS, 'keywords', 'related']
 
 /**
  * Reads one article file: a frontmatter block of `key: value` lines between two `---` lines, then the Markdown body.
  * Values are taken whole, after the first colon. Lists (`keywords`, `related`) are comma-separated and may be empty.
- * The permission is the name of a `Permission` member, or `none`.
+ * The permission is the name of a `Permission` member, or `none`. A key may appear once, and only the known keys.
  */
 export function parseHelpArticle(source: string, locale: HelpLocale): HelpArticle {
   const { fields, body } = splitFrontmatter(source)
@@ -64,7 +65,11 @@ function splitFrontmatter(source: string): { fields: Map<string, string>; body: 
     if (line.trim() === '') continue
     const separator = line.indexOf(':')
     if (separator === -1) throw new HelpArticleFormatError(`Help article frontmatter line has no colon: « ${line} ».`)
-    fields.set(line.slice(0, separator).trim(), line.slice(separator + 1).trim())
+    const key = line.slice(0, separator).trim()
+    if (!KNOWN_KEYS.includes(key))
+      throw new HelpArticleFormatError(`Help article frontmatter has an unknown key « ${key} ».`)
+    if (fields.has(key)) throw new HelpArticleFormatError(`Help article frontmatter repeated the key « ${key} ».`)
+    fields.set(key, line.slice(separator + 1).trim())
   }
 
   return { fields, body: match[2].trim() }
