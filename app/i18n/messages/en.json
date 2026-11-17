@@ -7202,7 +7202,7 @@
     "attendance_measure_in_person_long": "in the hall",
     "attendance_measure_online_long": "online",
     "attendance_col_month": "Month",
-    "attendance_col_meetings": "Meetings",
+    "attendance_col_meetings": "Complete meetings",
     "attendance_view_group": "View",
     "attendance_view_all": "All",
     "attendance_view_todo": "To complete · {count}",
@@ -7252,5 +7252,6 @@
     "attendance_empty_body": "Choose in your program templates which meetings are counted.",
     "attendance_empty_action": "Open the program templates",
     "attendance_history_cleared": "{count}: cleared by {name} on {date} at {time}",
-    "attendance_col_actions": "Actions"
+    "attendance_col_actions": "Actions",
+    "attendance_error_count_failed": "Not saved, try again"
 }

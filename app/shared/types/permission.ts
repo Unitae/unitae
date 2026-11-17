@@ -71,7 +71,8 @@ export const PERMISSION_REQUIRES: Partial<Record<Permission, Permission[]>> = {
   [Permission.CanAssignProgramParts]: [Permission.CanViewPublishers],
   // The split tool lists territories to work from.
   [Permission.CanPlanTerritorySplits]: [Permission.CanViewTerritories],
-  // The correction screen is the attendance page.
+  // Past meetings are corrected from the year view, which only « Consulter l’assistance » opens: without it, a
+  // corrector reaches today's meetings only.
   [Permission.CanCorrectAttendance]: [Permission.CanViewAttendance],
   // The permission picker is reached from the role list.
   [Permission.CanConfigurePermissions]: [Permission.CanViewRoles],

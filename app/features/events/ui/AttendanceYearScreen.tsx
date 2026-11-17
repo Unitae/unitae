@@ -7,9 +7,11 @@ import type { AttendanceEntry, AttendanceViewer } from '~/features/events/model/
 import {
   type AttendanceView,
   attendanceMonths,
+  countToComplete,
+  FIRST_SERVICE_YEAR,
   type OverviewMeeting,
 } from '~/features/events/model/attendance-overview'
-import { AttendanceMeetingList, monthKey } from '~/features/events/ui/AttendanceMeetingList'
+import { AttendanceMeetingList } from '~/features/events/ui/AttendanceMeetingList'
 import { AttendanceOverview } from '~/features/events/ui/AttendanceOverview'
 import { AttendancePanel } from '~/features/events/ui/AttendancePanel'
 import * as m from '~/i18n/paraglide/messages'
@@ -40,9 +42,6 @@ interface AttendanceYearScreenProps {
 
 const yearLabel = (serviceYear: number) => `${serviceYear}–${serviceYear + 1}`
 
-/** The earliest service year the address accepts (the route's own bound). */
-const FIRST_SERVICE_YEAR = 2000
-
 /**
  * The attendance page for whoever may read it: the service year's figures, its meetings by month, and one meeting's
  * counts beside the list — editable for whoever may change them.
@@ -53,8 +52,8 @@ export function AttendanceYearScreen(props: AttendanceYearScreenProps) {
   const viewer = { ...props.viewer, now }
   const [view, setView] = useState<AttendanceView>('all')
   const months = attendanceMonths({ meetings, now, timeZone, view })
-  // The month under way open, the past ones folded. The route keys this screen by year: another year starts afresh.
-  const [open, setOpen] = useState<Set<string>>(() => new Set(months[0] ? [monthKey(months[0])] : []))
+  // The most recent month open, the others folded. The route keys this screen by year: another year starts afresh.
+  const [open, setOpen] = useState<Set<string>>(() => new Set(months[0] ? [months[0].key] : []))
   const toggle = (key: string) =>
     setOpen(current => {
       const next = new Set(current)
@@ -62,15 +61,12 @@ export function AttendanceYearScreen(props: AttendanceYearScreenProps) {
       else next.add(key)
       return next
     })
-  const toComplete = attendanceMonths({ meetings, now, timeZone, view: 'todo' }).reduce(
-    (total, month) => total + month.rows.length,
-    0,
-  )
+  const toComplete = countToComplete(meetings, now, timeZone)
   const panel = useSideEditor<'meeting'>(target => meetings.some(meeting => meeting.eventId === target.id))
   const selected = panel.target ? meetings.find(meeting => meeting.eventId === panel.target?.id) : undefined
   // ↑ ↓ walk the meetings the list shows, in its order: never into a folded month.
   const order = months
-    .filter(month => view !== 'all' || open.has(monthKey(month)))
+    .filter(month => view !== 'all' || open.has(month.key))
     .flatMap(month => month.rows.flatMap(row => (row.type === 'meeting' ? [row.eventId] : [])))
   const walk = panel.walk('meeting', order)
   const locale = getLocale()

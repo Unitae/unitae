@@ -7202,7 +7202,7 @@
     "attendance_measure_in_person_long": "en salle",
     "attendance_measure_online_long": "en visioconférence",
     "attendance_col_month": "Mois",
-    "attendance_col_meetings": "Réunions",
+    "attendance_col_meetings": "Réunions complètes",
     "attendance_view_group": "Vue",
     "attendance_view_all": "Toutes",
     "attendance_view_todo": "À compléter · {count}",
@@ -7252,5 +7252,6 @@
     "attendance_empty_body": "Choisissez dans vos modèles de programme quelles réunions le sont.",
     "attendance_empty_action": "Ouvrir les modèles de programme",
     "attendance_history_cleared": "{count} : effacé par {name} le {date} à {time}",
-    "attendance_col_actions": "Actions"
+    "attendance_col_actions": "Actions",
+    "attendance_error_count_failed": "Pas enregistré, réessayez"
 }

@@ -1,5 +1,7 @@
 import { redirect } from 'react-router'
 import { attendanceRights } from '~/features/events/model/attendance-access'
+import type { AttendanceViewer } from '~/features/events/model/attendance-entry'
+import { serviceYearFrom } from '~/features/events/model/attendance-overview'
 import {
   countsAnyMeeting,
   listMeetingsUnderWay,
@@ -26,12 +28,6 @@ import type { Route } from './+types/index'
 
 export const meta: Route.MetaFunction = () => [{ title: m.attendance_page_meta_title() }]
 
-/** The service year asked for in the address, never one still to come; the current one by default. */
-function serviceYearOf(request: Request, current: number): number {
-  const asked = Number(new URL(request.url).searchParams.get('year'))
-  return Number.isInteger(asked) && asked >= 2000 && asked <= current ? asked : current
-}
-
 /**
  * Whoever may read attendance gets the service year: figures, meetings by month, one meeting's counts beside the
  * list. Whoever may only enter it gets the meetings under way today, as on the dashboard, or when the entry opens.
@@ -43,14 +39,21 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const account = context.get(currentAccountContext)
   const { timezone } = context.get(congregationContext)
   const now = new Date()
-  const viewer = { actorId: account.id, canRecord: rights.canRecord, canCorrect: rights.canCorrect, timeZone: timezone }
+  const viewer = {
+    actorId: account.id,
+    canRecord: rights.canRecord,
+    canCorrect: rights.canCorrect,
+    timeZone: timezone,
+  } satisfies Omit<AttendanceViewer, 'now'>
 
   return withScopeFromContext(context, async db => {
     const congregationId = account.congregationId
     if (rights.canView) {
       const today = dayOf(now, timezone)
       const currentServiceYear = toServiceYear(Number(today.slice(5, 7)) - 1, Number(today.slice(0, 4)))
-      const serviceYear = serviceYearOf(request, currentServiceYear)
+      const serviceYear = serviceYearFrom(new URL(request.url).searchParams.get('year'), currentServiceYear)
+      // A year still to come, or no year at all: the address goes back to the current year rather than lie.
+      if (serviceYear == null) throw redirect('/attendance')
       const [meetings, previous, counting] = await Promise.all([
         listServiceYearAttendance(db, { congregationId, serviceYear, timeZone: timezone }),
         listServiceYearAttendance(db, { congregationId, serviceYear: serviceYear - 1, timeZone: timezone }),

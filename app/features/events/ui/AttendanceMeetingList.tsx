@@ -20,20 +20,17 @@ interface AttendanceMeetingListProps {
   months: AttendanceMonth[]
   view: AttendanceView
   onViewChange: (view: AttendanceView) => void
-  /** Meetings held with a count missing, for the view's label. */
+  /** Meetings to complete (entry closed, a count missing, never one counted apart), for the view's label. */
   toComplete: number
   selectedId: number | null
   onSelect: (meeting: OverviewMeeting, trigger: HTMLElement) => void
   timeZone: string
-  /** The months unfolded in « Toutes », by `monthKey`; a filtered view shows every month open. */
+  /** The months unfolded in « Toutes », by their `key`; a filtered view shows every month open. */
   open: ReadonlySet<string>
   onToggle: (key: string) => void
   /** Holds « Corriger l’assistance »: a meeting to complete offers « Compléter ». */
   canComplete: boolean
 }
-
-/** A month's key in the unfolded set. */
-export const monthKey = (month: Pick<AttendanceMonth, 'year' | 'month'>) => `${month.year}-${month.month}`
 
 const CELL = 'h-10 px-3 text-sm'
 const NUMBER = cn(CELL, 'text-right tabular-nums')
@@ -75,8 +72,9 @@ const kindLabel = (kind: string) =>
   kind === 'midweek' ? m.attendance_kind_midweek() : kind === 'weekend' ? m.attendance_kind_weekend() : null
 
 /**
- * The meetings of the service year by month, the most recent first: the month under way open, past months folded,
- * each with its averages. A row opens the meeting's counts beside the list; a week without a meeting reads as such.
+ * The meetings of the service year by month, the most recent first, each month with its averages: in « Toutes » the
+ * most recent month open and the others folded, a week without a meeting read as such. A row opens the meeting's
+ * counts beside the list.
  */
 export function AttendanceMeetingList({
   months,
@@ -125,8 +123,7 @@ export function AttendanceMeetingList({
       ) : (
         <Panel aria-label={m.attendance_page_title()}>
           {months.map((month, index) => {
-            const key = monthKey(month)
-            // Every month of a filtered view is open: it holds only what the view is for, and folds nothing.
+            const key = month.key
             const foldable = view === 'all'
             const isOpen = !foldable || open.has(key)
             const averages = [
@@ -281,6 +278,8 @@ function Row({
       <td className={NUMBER}>{count(row.online)}</td>
       <td className={cn(NUMBER, 'font-medium')}>{count(total)}</td>
       <td className={cn(CELL, 'w-28 text-right max-md:hidden')}>
+        {/* A shortcut to the row's own click, which opens the panel; out of the tab order, the date button being the
+            keyboard path. */}
         {row.state === 'todo' && canComplete ? (
           <Button size="sm" variant="outline" tabIndex={-1} onClick={event => event.currentTarget.blur()}>
             {m.attendance_complete_button()}

@@ -7,8 +7,10 @@ import {
   type AttendanceEntry,
   type AttendanceViewer,
   type CountKey,
+  type CountOutcome,
   countField,
   countsToSend,
+  type RecordResult,
 } from '~/features/events/model/attendance-entry'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
@@ -17,8 +19,7 @@ import { Input } from '~/shared/ui/input'
 import { formatEventDate, formatEventTime } from '~/shared/utils/event-time'
 import { cn } from '~/shared/utils/utils'
 
-type Outcome = 'saved' | 'taken' | 'refused' | 'invalid' | 'missing'
-type RecordResult = { ok: true; outcomes: Partial<Record<CountKey, Outcome>> } | { ok: false }
+type Outcome = CountOutcome
 
 const COUNTS: CountKey[] = ['inPerson', 'online']
 
@@ -27,6 +28,7 @@ const REFUSAL: Record<Exclude<Outcome, 'saved'>, () => string> = {
   refused: () => m.attendance_error_refused(),
   invalid: () => m.attendance_error_invalid(),
   missing: () => m.attendance_error_missing(),
+  failed: () => m.attendance_error_count_failed(),
 }
 
 const LABEL = { inPerson: () => m.attendance_in_person(), online: () => m.attendance_online_long() }
@@ -34,7 +36,8 @@ const HISTORY = { inPerson: () => m.attendance_history_in_person(), online: () =
 
 /**
  * One meeting's counts in the attendance page's side panel: the two numbers, the total as typed, who entered each
- * and when. Whoever may change a count (a corrector, or a recorder on today's meeting) changes it here, through the
+ * and when. Whoever may change a count (a corrector; a recorder until midnight, on an empty count or their own) changes
+ * it here, through the
  * same writer as the dashboard card — only the fields typed in, each on its own. Key it by the meeting.
  */
 export function AttendancePanel({
@@ -59,6 +62,9 @@ export function AttendancePanel({
   const [refusals, setRefusals] = useState<Partial<Record<CountKey, Exclude<Outcome, 'saved'>>>>({})
   const busy = fetcher.state !== 'idle'
   const anyEditable = fields.inPerson.editable || fields.online.editable
+  // A typed number in a field that closed meanwhile is never sent: « Enregistrer » has nothing to do then.
+  const pending = countsToSend(typed, fields)
+  const nothingToSend = Object.keys(pending.counts).length === 0 && pending.invalid.length === 0
   const locale = getLocale()
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reacts to the request settling only
@@ -80,7 +86,8 @@ export function AttendancePanel({
     setTyped(current =>
       Object.fromEntries(Object.entries(current).filter(([count]) => outcomes[count as CountKey] !== 'saved')),
     )
-    if (Object.values(outcomes).includes('saved')) setVersion(current => current + 1)
+    // Only once nothing typed is left: a refused number kept in its field is still a change to ask about.
+    if (refused.length === 0) setVersion(current => current + 1)
     for (const [count, outcome] of refused) toast.error(`${LABEL[count]()} : ${REFUSAL[outcome]()}`)
   }, [fetcher.state, fetcher.data])
 
@@ -128,11 +135,12 @@ export function AttendancePanel({
               <Input
                 id={`${id}-${count}`}
                 name={count}
-                type="number"
+                // Text, not « number »: a number field reports « 85 pers. » as empty, which would read as cleared.
+                type="text"
                 inputMode="numeric"
-                min={0}
+                autoComplete="off"
                 placeholder="—"
-                readOnly={!field.editable}
+                readOnly={!field.editable || busy}
                 aria-invalid={refusal != null}
                 aria-describedby={refusal != null ? `${id}-${count}-refusal` : undefined}
                 value={shown(count)}
@@ -185,7 +193,7 @@ export function AttendancePanel({
     </form>
   )
   const footer = anyEditable ? (
-    <Button disabled={busy || Object.keys(typed).length === 0} onClick={save}>
+    <Button disabled={busy || nothingToSend} onClick={save}>
       {busy && <Loader2 className="animate-spin" />}
       {m.attendance_save()}
     </Button>

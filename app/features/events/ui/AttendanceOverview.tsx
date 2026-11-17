@@ -68,7 +68,7 @@ const percent = (share: number | null) => (share == null ? null : Math.round(sha
 
 /**
  * The service year at a glance: each kind's average against the same months last year, the online share and the
- * meetings still to complete; then the monthly averages, the year shown over the one before, by kind and count.
+ * meetings still to complete; then the monthly averages, the year shown over the one before, by kind and measure (total, in person, online).
  */
 export function AttendanceOverview({ meetings, previous, serviceYear, today, now, timeZone }: AttendanceOverviewProps) {
   const [kind, setKind] = useState<AveragedKind>('weekend')
