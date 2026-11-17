@@ -17,4 +17,6 @@ The file downloads as a PDF, named after the title of the document.
 1. Open the document from the **Information board**.
 2. Click **Download** for a PDF document, or **Download as PDF** for a dynamic document.
 
+   ![The “Download” button, at the top of the viewer](capture:board-download-button)
+
 Then you can print the file from your device.

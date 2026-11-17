@@ -18,4 +18,6 @@ The building survey lists the buildings of the territories: one building per row
 2. To add a building by hand, click **New building**, then **Create building**.
 3. To import the addresses, click **Sync…**, then **Start the sync**.
 
+   ![The “Sync…” and “New building” buttons, at the top of the Building survey](capture:prospection-actions)
+
 Seeing the building survey requires the right to see the buildings and the survey lists. Adding a building or starting the sync requires the right to manage the buildings. The article on the address source explains how to set it.

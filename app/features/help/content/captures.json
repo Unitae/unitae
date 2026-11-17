@@ -1,0 +1,116 @@
+{
+    "fr": {
+        "absences-new": {
+            "width": 210,
+            "height": 47,
+            "captured": "2026-11-17"
+        },
+        "board-download-button": {
+            "width": 130,
+            "height": 43,
+            "captured": "2026-11-17"
+        },
+        "board-read-filter": {
+            "width": 248,
+            "height": 108,
+            "captured": "2026-11-17"
+        },
+        "board-versions-history": {
+            "width": 684,
+            "height": 196,
+            "captured": "2026-11-17"
+        },
+        "board-versions-panel": {
+            "width": 400,
+            "height": 245,
+            "captured": "2026-11-17"
+        },
+        "campaign-start-end": {
+            "width": 678,
+            "height": 789,
+            "captured": "2026-11-17"
+        },
+        "my-territories-row": {
+            "width": 808,
+            "height": 71,
+            "captured": "2026-11-17"
+        },
+        "prospection-actions": {
+            "width": 317,
+            "height": 43,
+            "captured": "2026-11-17"
+        },
+        "settings-bano": {
+            "width": 509,
+            "height": 208,
+            "captured": "2026-11-17"
+        },
+        "settings-phone-switch": {
+            "width": 473,
+            "height": 81,
+            "captured": "2026-11-17"
+        },
+        "territory-new-header": {
+            "width": 646,
+            "height": 72,
+            "captured": "2026-11-17"
+        }
+    },
+    "en": {
+        "absences-new": {
+            "width": 182,
+            "height": 47,
+            "captured": "2026-11-17"
+        },
+        "board-download-button": {
+            "width": 119,
+            "height": 43,
+            "captured": "2026-11-17"
+        },
+        "board-read-filter": {
+            "width": 233,
+            "height": 108,
+            "captured": "2026-11-17"
+        },
+        "board-versions-history": {
+            "width": 684,
+            "height": 196,
+            "captured": "2026-11-17"
+        },
+        "board-versions-panel": {
+            "width": 400,
+            "height": 245,
+            "captured": "2026-11-17"
+        },
+        "campaign-start-end": {
+            "width": 678,
+            "height": 769,
+            "captured": "2026-11-17"
+        },
+        "my-territories-row": {
+            "width": 808,
+            "height": 71,
+            "captured": "2026-11-17"
+        },
+        "prospection-actions": {
+            "width": 231,
+            "height": 43,
+            "captured": "2026-11-17"
+        },
+        "settings-bano": {
+            "width": 509,
+            "height": 208,
+            "captured": "2026-11-17"
+        },
+        "settings-phone-switch": {
+            "width": 473,
+            "height": 81,
+            "captured": "2026-11-17"
+        },
+        "territory-new-header": {
+            "width": 646,
+            "height": 72,
+            "captured": "2026-11-17"
+        }
+    }
+}

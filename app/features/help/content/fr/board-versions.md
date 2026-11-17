@@ -17,12 +17,16 @@ Un document PDF garde chaque fichier qu’il a montré. Vous retrouvez l’histo
 1. Dans la barre latérale, ouvrez **Tableau d’affichage**, puis **Gérer le tableau**.
 2. Ouvrez le document, puis cliquez sur **Historique** à côté du fichier actuel. Vous pouvez aussi cliquer sur le nombre affiché à côté de **Versions**.
 
+   ![Le fichier actuel du document et le lien « Historique »](capture:board-versions-history)
+
 ## Télécharger
 
 Dans le panneau **Historique** :
 
 - le **fichier d’origine** se télécharge avec l’icône « Télécharger le fichier d’origine », tant que le document n’a jamais été remplacé ;
 - chaque **version** se télécharge avec son icône « Télécharger la version N ».
+
+![Le panneau Historique : chaque version, son téléchargement et « Remettre »](capture:board-versions-panel)
 
 ## Remettre une version
 

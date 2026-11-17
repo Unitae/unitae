@@ -1,5 +1,6 @@
 import type { HelpArticle, HelpArticleView, HelpLocale } from '~/features/help/model/help.type'
 import { findHelpArticle } from '~/features/help/server/find-help-article.server'
+import { HELP_CAPTURES } from '~/features/help/server/help-captures.server'
 import { renderHelpMarkdown } from '~/features/help/server/render-help-markdown.server'
 import type { Permission } from '~/shared/types/permission'
 
@@ -21,7 +22,7 @@ export function helpArticleView(
     title: article.title,
     summary: article.summary,
     module: article.module,
-    html: renderHelpMarkdown(article.body),
+    html: renderHelpMarkdown(article.body, { locale: article.locale, captures: HELP_CAPTURES[article.locale] }),
     related: related.map(({ slug: relatedSlug, title }) => ({ slug: relatedSlug, title })),
   }
 }

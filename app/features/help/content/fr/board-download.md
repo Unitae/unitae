@@ -17,4 +17,6 @@ Le fichier se télécharge au format PDF, sous le titre du document.
 1. Ouvrez le document depuis le **Tableau d’affichage**.
 2. Cliquez sur **Télécharger** pour un document PDF, ou sur **Télécharger en PDF** pour un document dynamique.
 
+   ![Le bouton « Télécharger », en haut de la visionneuse](capture:board-download-button)
+
 Ensuite, vous pouvez imprimer le fichier depuis votre appareil.

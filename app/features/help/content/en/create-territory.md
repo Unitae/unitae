@@ -17,6 +17,9 @@ A territory is made of a number, a type and the entrances that make it up.
 1. In the sidebar, open **Territories**, then click **New territory**.
 2. Fill in the **Number**.
 3. Choose the **Type**: **Door to door**, **Businesses**, **Hotel** or **University**. The **Phone** type is offered only when it is turned on.
+
+   ![The Number and Type fields, above the map of the new territory](capture:territory-new-header)
+
 4. On the map, click a free entrance to add it to the territory.
 5. Click **Create territory**.
 

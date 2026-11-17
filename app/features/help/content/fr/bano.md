@@ -17,6 +17,9 @@ La BANO, la base d’adresses nationale ouverte, fournit les adresses des bâtim
 1. Dans la barre latérale, ouvrez **Réglages**, puis **Territoires**, et allez à la section **Prospection**.
 2. Collez dans **Fichier de la BANO** l’adresse `https` du fichier CSV de votre département. Cette adresse doit venir d’un site autorisé par votre instance.
 3. Renseignez les **Codes postaux** : seules les adresses de ces codes sont importées.
+
+   ![Les champs « Fichier de la BANO » et « Codes postaux », dans Réglages › Territoires](capture:settings-bano)
+
 4. Cliquez sur **Enregistrer**.
 5. Dans **Prospection**, cliquez sur **Synchroniser…**, puis sur **Lancer la synchronisation**. Le bouton n’apparaît qu’une fois le fichier de la BANO enregistré.
 

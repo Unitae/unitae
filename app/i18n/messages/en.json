@@ -7162,6 +7162,7 @@
     "help_load_error": "This article could not be loaded.",
     "help_meta_title": "Help - Unitae",
     "help_article_meta_title": "{title} - Help - Unitae",
+    "help_capture_enlarge": "Enlarge: {alt}",
     "attendance_year": "Service year {label}",
     "attendance_year_previous": "Previous service year",
     "attendance_year_next": "Next service year",

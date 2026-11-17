@@ -17,6 +17,9 @@ BANO, the French national open address base, provides the addresses of the build
 1. In the sidebar, open **Settings**, then **Territories**, and go to the **Building survey** section.
 2. Paste the `https` address of the CSV file of your department into **BANO file**. That address must come from a site your instance allows.
 3. Fill in the **Postal codes**: only the addresses of these codes are imported.
+
+   ![The “BANO file” and “Postal codes” fields, in Settings › Territories](capture:settings-bano)
+
 4. Click **Save**.
 5. In **Building survey**, click **Sync…**, then **Start the sync**. The button appears only once the BANO file is saved.
 

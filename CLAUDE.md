@@ -37,7 +37,7 @@ Core features: territory management with building prospection, publisher activit
 9. **TypeScript strict mode** — Never use `any`; always define proper interfaces
 10. **Mutations to aggregate-owned entities go through the aggregate** — `Member`, `Attribution`, and `PioneerEnrolment` invariants live in `*.aggregate.ts` / `*.policy.ts` files (see `AGGREGATE_MODELS` in `scripts/check-aggregate-boundaries.ts` for the enforced list). Direct `db.member.update`/`db.attribution.create` outside those files fails `pnpm test:aggregate-boundaries`.
 11. **Follow TDD when the architecture-conventions doc requires it** — for new service functions (`app/features/*/server/`) and bug regressions, **write the failing test first**, run it, **watch it fail**, then implement. Do not author the test and the code in the same save. See [Architecture Conventions › TDD Discipline](docs/development/architecture-conventions.md#tdd-discipline) — colocation is enforced by `pnpm test:service-test-coverage`, coverage floor by the vitest threshold.
-12. **Review the help when a feature changes** — creating or changing a feature means re-reading its help articles in the same change, not later. Articles live in `app/features/help/content/{fr,en}/<slug>.md`, one per task, and follow the permission of their feature (see the table under [In-app help](#in-app-help)). A feature with no article yet gets one, or a reviewed reason why not.
+12. **Review the help when a feature changes** — creating or changing a feature means re-reading its help articles in the same change, not later. Articles live in `app/features/help/content/{fr,en}/<slug>.md`, one per task, and follow the permission of their feature (see the table under [In-app help](#in-app-help)). A feature with no article yet gets one, or a reviewed reason why not. A change to a screen an article captures means retaking that capture (`pnpm build:help-captures --only <id>`, see `scripts/help-captures/README.md`).
 
 ### After Making Changes
 
@@ -445,6 +445,8 @@ A « ? » goes in the header's `help` slot (`<PageHeader help={<HelpEntryButton 
 Articles without a « ? » are reached from the index, the search and related links only: `phone-territories` and `bano` (`CanConfigureTerritorySettings`), `board-download` (`CanViewBoard`), `board-versions` (`CanReviewBoardDocuments, CanUploadBoardDocuments`: the document history on `/board/documents/:id/edit`, which an uploader opens on the documents they uploaded).
 
 Each module in `app/features/help/model/help.type.ts` (`HELP_MODULES`) groups its articles under the sidebar label of that module. Articles are read as data: the body is rendered on the server with raw HTML disabled, so an article cannot inject markup.
+
+An article shows captures of the app as `![what it shows](capture:<id>)`, and no other image. Each capture exists per language and per theme (`public/help-captures/<locale>/<id>.webp` and `<id>.dark.webp`); the page shows the one matching the `.dark` class, and only that one downloads. Each capture is a button that opens it at its own size in a dialog (`HelpCaptureDialog`), since the side panel and a phone shrink it. `scripts/capture-help.ts` takes them from the demo congregation and records each one's size and date in `app/features/help/content/captures.json`. The loader refuses a capture without alt text or missing in either language, and a test refuses a capture no article shows.
 
 ## Commit Message Format
 
