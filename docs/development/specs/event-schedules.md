@@ -1,12 +1,11 @@
 # Spec: Event schedules — programmes and duty schedules, each published on its own
 
-**Status:** Draft — direction agreed with the author; design level. The implementation plan (file by
-file) is written once [meeting attendance](./meeting-attendance.md) has landed, since both touch
-programme creation and deletion.
+**Status:** Draft — direction agreed with the author; design level. Meeting attendance has shipped
+([Meeting Attendance](../meeting-attendance.md)); the file-by-file implementation plan comes next.
 **Author:** Nathanaël Cherrier
 **Feature area:** `features/events` (events, templates, programmes, absences) + `features/dashboard` +
 `features/display-board` + `features/settings` (templates, data transfer)
-**Related:** [Meeting attendance](./meeting-attendance.md), [Permissions & Roles](../permissions-and-roles.md),
+**Related:** [Meeting Attendance](../meeting-attendance.md), [Permissions & Roles](../permissions-and-roles.md),
 [Architecture Conventions](../architecture-conventions.md), [Data Transfer](../data-transfer.md)
 
 > This is a proposal, not documentation of current behavior. Once built, the steady-state behavior
@@ -53,7 +52,7 @@ to filter out.
 - Events organised by other congregations sharing the building, visible cancellations, room booking —
   later.
 - New permissions — the existing programme permissions cover every schedule (§3).
-- Attendance — it stays on `Event` and is unaffected ([meeting attendance](./meeting-attendance.md)).
+- Attendance — it stays on `Event` and is unaffected ([Meeting Attendance](../meeting-attendance.md)).
 
 ## 3. Decisions already taken
 
@@ -64,13 +63,13 @@ to filter out.
 | D3 | The congregation-wide programme permissions (« Gérer », « Attribuer », « Publier les programmes ») keep covering **every** schedule. Rights specific to one kind of schedule go through the schedule's template (its responsible role), as today. |
 | D4 | The board's programme document keeps showing the duties under the meeting, as it already shows the service parts — now schedule by schedule, published ones only. |
 | D5 | ~~Weekly schedules stay out of scope.~~ Superseded by D14: a week is a multi-day event. |
-| D6 | Deleting a programme never deletes the event or its attendance (already applied early by the attendance spec, §6.4 there). |
+| D6 | Deleting a programme never deletes the event or its attendance. Shipped with attendance: today an event with counts loses its parts and services and goes back to draft; with schedules, deleting a schedule simply never touches the event. |
 | D7 | **Templates describe schedules, not events.** One template per schedule (« Programme de la réunion de semaine », « Services », « Nettoyage »…), each with **one responsible role**. There is no whole-event responsible any more. |
 | D8 | Publishing respects the template's rights: a responsible may publish the schedules of their template only; bulk publish acts only on the selected schedules the person may publish and says how many it skipped. |
 | D9 | **At most one programme schedule per event**; duty schedules are unlimited. |
 | D10 | Absences stay owned by a **user account**, as today. |
 | D11 | Event kinds and shared schedule templates (§5): confirmed. |
-| D12 | Creating events by hand (single day or series): the schedules suggested by the kind are **pre-selected** in the creation form and can be unticked — today's « create a programme » keeps creating it in one step. Recurring events stay bare. To revisit with usage. |
+| D12 | Creating events by hand (single day or series): the schedules suggested by the kind are **pre-selected** in the creation form and can be unticked — today's « create a programme » keeps creating it in one step. Recurring events stay empty meetings (§5.1a). To revisit with usage. |
 | D13 | A duty is assigned to a **person, a publisher group or free text** (another congregation, an outside body). |
 | D14 | **Multi-day events**: an event kind can last several days (« Semaine de nettoyage », Monday to Sunday). Weekly schedules are duty schedules on such events. |
 | D15 | **Custom fields** defined on the event kind (« Lieu », « Salle », « Format »…), values on each event; no dedicated place model. A field decides once whether it shows on documents — **including on print**: people without an account rely on the printed sheet (e.g. the videoconference access details). |
@@ -80,36 +79,67 @@ to filter out.
 | D19 | Word: « planning » (FR) / « schedule » (EN) for a schedule; « Programme » / « Program » for the spiritual one. |
 | D20 | **Rules have validity dates.** « Modifier à partir du … » ends the current rule the day before and starts a new one; the « Semaine type » sheet shows changes to come (« à partir du 1er déc. »). |
 | D21 | **One-time change**: an event created by a rule can be changed on its own (time, place, any field) or deleted, without touching the rule; a later rule change never overwrites it. |
+| D22 | **« Cette réunion et les suivantes » keeps the rule shipped with attendance**: empty meetings move by themselves; prepared ones are offered (« Déplacer aussi les N réunions préparées »), and their assignees are told; a meeting with attendance counts never moves. |
+| D23 | **Attendance only on one-day kinds**: a kind lasting several days is always « Non comptée » (`attendanceKind = 'none'`). |
 
 ## 4. Current implementation (verified)
 
-- `Event` has `status`, `eventParts`, `eventServiceParts`, `templateId`, `createdById`. Both item
-  tables hang off `eventId` with `onDelete: Cascade`.
+- `Event` has `status`, `eventParts`, `eventServiceParts`, `templateId`, `createdById` (null = created
+  by the recurring-events job) and `attendance`. Both item tables hang off `eventId` with
+  `onDelete: Cascade`.
 - `EventTemplate` has `parts` (`TemplatePart`), `serviceParts` (`TemplateServicePart`) and
   `responsibles` (`TemplateResponsible`, one row per `scope`: `programme` | `service`). The scopes are
   not peers: `programme` covers the whole event including service parts, `service` covers only the
-  service parts (`events/model/responsibility-scope.type.ts`, `scopesCovering`).
+  service parts (`events/model/responsibility-scope.type.ts`, `scopesCovering`). It also carries
+  what attendance added: `attendanceKind` (`none` | `midweek` | `weekend` | `separate`) and
+  `generatedUntil`, the high-water mark of its recurring events. `isRecurring` is kept equal to
+  `weekDay != null`.
 - **Publication** is `releaseEvent` / `unreleaseEvent` (`events/server/event-status.server.ts`), which
   compute notification targets from both part lists at once. About 26 files read `Event.status`
   (dashboard queries, board documents and links, programme list, conflicts, share messages, cadence).
+  Attendance deliberately ignores it: the dashboard card, the attendance page, its exports and the
+  programme's « last week » line read every event of a counted template, draft or not.
 - **Items:** `eventParts` / `eventPart.*` appear in ~25–29 files, `eventServiceParts` /
   `eventServicePart.*` in ~18–22.
+- **Meetings created ahead** ([Meeting Attendance](../meeting-attendance.md)): a daily job
+  (`extendRecurringEvents`) keeps every recurring template's events created two months ahead as
+  **empty meetings** — no author, no part, no service, no attendance (`EMPTY_MEETING`,
+  `events/server/empty-meetings.queries.ts`). It only creates after the template's `generatedUntil`,
+  which every creation path raises, so a deleted or passed week never comes back. Nothing keys an event
+  on (template, day): the job, series creation and moving empty meetings all lock the template row
+  first (`lockTemplates`), and `recurring-events-race.integration.test.ts` proves the job and a series
+  together never create a day twice.
+- **Only empty meetings are touched automatically.** They move with their template's weekday or hours
+  through the explicit « Déplacer les N réunions à venir » (`moveEmptyMeetings`, each to the new day of
+  its own week), take the new zone's hours when the congregation's time zone changes
+  (`reanchorEmptyMeetings`), are deleted with their template and on a day a series passes on purpose.
+  Meetings with a programme, an author or counts are never moved or deleted that way.
+- **Creation** (`programme-creation.server.ts`): `createProgrammeSeries` and `createProgrammeOnDay`
+  give an existing event without a programme the template's parts and services (`fillMeeting`)
+  instead of creating a second one; an empty meeting takes the person as author. The programme list
+  shows such events as « <template name> · Pas encore de programme ».
+- **Deletion** (`delete-events.server.ts`): an event without counts is deleted; an event with counts
+  only loses its parts and services and goes back to draft (D6), its attendance intact.
 - **Absences:** day-off events, owned through `Event.createdBy` (an account, resolved to a member
   through `createdBy.memberId`); ~17 files reference the `day-off` template key.
-- **Board:** `ProgrammeView` renders an event's parts, then its services in two foldable columns.
-- **Archive:** version 2.14; events, templates, parts and service parts are separate files.
+- **Board:** `ProgrammeView` renders an event's parts, then its services in two foldable columns, and
+  the « Assistance la semaine passée » line when the congregation turned it on.
+- **Archive:** version 2.15; events, templates, parts, service parts and attendance are separate
+  files.
 
 ## 5. Target model
 
 Today's `EventTemplate` mixes two things that D7 separates:
 
 - **what an event is** — name, weekday, start and end times, colour, attendance kind, recurrence:
-  an **event kind** (the « event kind name » the attendance spec already shows on a bare event);
+  an **event kind** (the « event kind name » the programme list already shows on a meeting without
+  a programme);
 - **what a schedule contains** — parts or duties and who fills them: a **schedule template**.
 
 ```prisma
 model EventKind {                   // today's EventTemplate, minus its content and its single weekday
-  id, key, name, colour, attendanceKind
+  id, key, name, colour
+  attendanceKind String @default("none") // as shipped; 'none' whenever durationDays > 1 (D23, CHECK)
   durationDays Int @default(1)      // D14: 7 for « Semaine de nettoyage », Monday to Sunday
   defaultStartTime, defaultEndTime  // prefilled on new events and rules
   fields                    EventKindField[]               // D15
@@ -128,7 +158,7 @@ model RecurrenceRule {              // D16 — « Répéter chaque semaine »
   fieldValues    Json               // copied onto each event it creates (place, format…)
   validFrom      String             // D20 — local day `YYYY-MM-DD`, inclusive
   validUntil     String?            // D20 — null = open-ended
-  generatedUntil String?            // the attendance spec's high-water mark, now per rule
+  generatedUntil String?            // today's template high-water mark, now per rule
 }
 
 model ScheduleTemplate {            // one per schedule, shared by any event kind
@@ -147,8 +177,8 @@ model Event {                       // anything on the calendar, one day or seve
   changedOnce Boolean @default(false) // D21 — edited on its own; later rule changes leave it alone
   fieldValues EventFieldValue[]     // D15
   schedules   Schedule[]
-  attendance  Attendance?           // from the attendance spec, unchanged
-  // no status: an event is visible where it has at least one published schedule
+  attendance  Attendance?           // as shipped, unchanged
+  // no status: an event is visible where it has at least one published schedule (exceptions: §5.3)
 }
 
 model EventFieldValue { eventId, fieldId, value }
@@ -190,8 +220,17 @@ model Absence {                     // « Mes absences »
 - An event kind lists the schedule templates its events start with (e.g. « Réunion de week-end » →
   « Programme du week-end », « Services »). They are suggestions: « Ajouter un planning » on an event
   offers them first, then any other schedule template, then a blank one.
-- Recurring events are still created bare (attendance spec); their schedules are added when someone
+- Recurring events are still created as empty meetings; their schedules are added when someone
   prepares them, from the kind's suggestions.
+
+### 5.1a Empty meetings
+
+Today's `EMPTY_MEETING` becomes: **no author, no schedule, no attendance, not `changedOnce`**, and no
+field value other than the ones its rule copied. It stays the single definition of what may be moved,
+re-anchored or deleted without asking — on a rule change (§5.6), a time zone change, a series passing
+the day, or the kind's deletion — and what a creation fills instead of duplicating: adding the kind's
+suggested schedules to an empty meeting gives it the person as author, exactly as `fillMeeting` does
+today.
 
 ### 5.2 Kinds of schedule
 
@@ -207,6 +246,11 @@ model Absence {                     // « Mes absences »
   assignees only**.
 - An event « appears » (board, dashboard, calendar feed, publisher views) through its **published
   schedules**; a draft schedule stays invisible exactly as a draft event is today.
+- **Exceptions, as today:** attendance reads every event of a counted kind whether or not it has a
+  published schedule — the dashboard card, the attendance page and side panel, the S-88 and spreadsheet
+  exports, and the programme's « Assistance la semaine passée » line. A meeting whose programme is a
+  draft still takes place. The programme list and the calendar show events without a published
+  schedule to the people who prepare them, as the list shows « Pas encore de programme » today.
 - Who may publish a schedule: holders of « Publier les programmes » (every schedule, D3), or holders of
   its template's responsible role (that template's schedules only, D8) — today's
   `filterToManageableEventIds` rule, applied per schedule.
@@ -237,26 +281,34 @@ Like a calendar application, an event that comes from a rule offers two ways to 
   `changedOnce`. Deleting one occurrence is the same: it is gone and never recreated (high-water mark).
   A date beyond the 2-month horizon can be created early by hand to change it; the job sees an event
   of that rule on that day and leaves it.
-- **« Cette réunion et les suivantes »** (D20): the current rule gets `validUntil` = the day before,
-  a new rule starts on that day with the new values. Every future event of the old rule from that day
-  on that was not `changedOnce` moves to the new rule's weekday within its own week and takes its
-  times and field values; its schedules stay attached. Events with published schedules are moved
-  too, and their assignees are told (the notice the assignment change already sends).
+- **« Cette réunion et les suivantes »** (D20, D22): the current rule gets `validUntil` = the day
+  before, a new rule starts on that day with the new values. The future events of the old rule from
+  that day on that were not `changedOnce` go to the new rule, each to the new weekday within its own
+  week, with its times and field values — so a deleted week stays deleted. What moves is today's
+  « Déplacer les N réunions à venir » rule, extended to prepared meetings:
+  - **empty meetings** (§5.1a) move by themselves; one whose week already has its meeting on the new
+    day is deleted;
+  - **prepared meetings** (with a schedule or an author) are offered: « Déplacer aussi les N réunions
+    préparées ». Moved, they keep their schedules, and the assignees of their published schedules are
+    told (the notice the assignment change already sends). Left, they stay where they are, linked to
+    the old rule, and are marked `changedOnce`;
+  - **a meeting with attendance counts never moves**, even on the day the rule is split.
 - The job creates events only inside each rule's validity.
 
 ## 6. Behaviour by surface
 
 | Surface | Change |
 |---|---|
-| Programme list | Redesigned (§6.1): one row per event, filtered by kind; each schedule shows as a chip with its status. Publish / unpublish act on schedules, within the person's rights (§5.3). An event without schedules offers « Ajouter un planning ». |
+| Programme list | Redesigned (§6.1): one row per event, filtered by kind; each schedule shows as a chip with its status. Publish / unpublish act on schedules, within the person's rights (§5.3). An event without schedules — an empty meeting included — stays listed and offers « Ajouter un planning » (today's « Pas encore de programme » row). |
 | Calendar (new) | Weekly view of every event (§6.1). |
 | Event view | One section per schedule, each with its own « Publier » and its responsible. |
-| Creation (series, single day, recurring job) | By hand: creates the events with the kind's suggested schedules pre-selected (D12). The recurring job extends **rules** (D16) — same horizon and high-water-mark rules as the attendance spec §5.3, per rule instead of per template — creating bare events with the rule's field values. A bare event is reused, not duplicated. |
-| Deleting | Deleting a schedule never deletes the event (D6). Deleting the event deletes its schedules (and, guarded by the attendance rules, its counts). |
-| Settings (Réglages › Programmes) | Two lists: **event kinds** (name, colour, duration, default times, attendance, custom fields, repetition rules, suggested schedule templates) and **schedule templates** (name, kind, responsible role, parts or duties). |
+| Creation (series, single day, recurring job) | By hand: creates the events with the kind's suggested schedules pre-selected (D12). The recurring job extends **rules** (D16) — today's two-month horizon and high-water mark, per rule instead of per template — creating empty meetings with the rule's field values. An existing event without schedules is filled, not duplicated; a day passed in a series deletes its empty meeting and raises the mark. |
+| Deleting | Deleting a schedule never deletes the event (D6). Deleting the event deletes its schedules and its counts; bulk « delete the programmes » on events with counts removes their schedules only, as today. Deleting a kind deletes its empty meetings; any other event keeps blocking it. |
+| Settings (Réglages › Programmes) | Two lists: **event kinds** (name, colour, duration, default times, attendance — offered on one-day kinds only, D23 —, custom fields, repetition rules, suggested schedule templates) and **schedule templates** (name, kind, responsible role, parts or duties). The « Afficher l’assistance sur le programme » switch stays. |
 | Event form | The kind's custom fields; « Répéter chaque semaine » creates a rule from the event. On an event that comes from a rule, saving asks « Cette réunion seulement » (D21) or « Cette réunion et les suivantes » (D20, §5.6). |
-| Dashboard | « Prochaine réunion », open parts, upcoming assignments and responsible conflicts read published schedules and schedule-template responsibles. |
-| Board | Programme document as §5.2; event links resolve through published schedules. |
+| Dashboard | « Prochaine réunion », open parts, upcoming assignments and responsible conflicts read published schedules and schedule-template responsibles. The attendance card reads events of counted kinds under way, whatever their schedules (§5.3). |
+| Attendance | Page, side panel, S-88 and spreadsheet exports read `attendanceKind` from the event kind instead of the template; nothing else changes. « Pas de réunion » weeks are computed from the events of a kind's rules, as from a template's run today. |
+| Board | Programme document as §5.3; event links resolve through published schedules. The « Assistance la semaine passée » line reads last week's events of counted kinds, published or not. |
 | Notifications | Assignment notices fire on publishing a schedule, for its assignees. |
 | Calendar feed | Assignments from published schedules. |
 | Absences | « Mes absences », absence list, conflicts read `Absence`. |
@@ -290,19 +342,31 @@ previous image working on the new schema.
    - per event: a programme schedule if it has parts, a « Services » schedule if it has service parts,
      each with `status` copied from the event;
    - per recurring template: one repetition rule (its weekday and times, `validFrom` = its first event's
-     day, open-ended), carrying over its `generatedUntil`; existing events link to it by weekday, none
-     marked `changedOnce`;
+     day, open-ended), carrying over its `generatedUntil`; existing events link to it by weekday — the
+     empty meetings created ahead included — none marked `changedOnce`;
+   - `attendanceKind` stays where it is (the template becomes the kind); the D23 CHECK is added with
+     the duration, which every existing kind starts at 1;
    - duties keep their person assignee (`assigneeId`); group and text assignees start empty.
    The new image writes both shapes (event status kept in sync: released when any schedule is
    published).
+
+   **Recurring events during the rollout.** The previous image's job locks the template row and reads
+   the template's `generatedUntil`; nothing in the database stops two writers from creating the same
+   day. Until the contract step, the new image therefore keeps both: it locks the **kind's row** (today's
+   template row, which covers all its rules) before creating any event of the kind — job, series or
+   move — and raises the template's `generatedUntil` along with each rule's mark, so an old worker
+   still running never refills a day the new one passed. `recurring-events-race.integration.test.ts`
+   is extended to run the old and the new path together.
 3. **Schedules — switch reads.** Every reader moves to schedules and per-schedule status; per-schedule
    publishing becomes available in the UI.
-4. **Contract.** Drop `Event.status`, the parts' and duties' direct `eventId`, `TemplateResponsible`
-   and the old template relations, rename the event kind table, once the image from step 3 is the one
-   running.
+4. **Contract.** Drop `Event.status`, the parts' and duties' direct `eventId`, `TemplateResponsible`,
+   the old template relations and the kind-level `generatedUntil`, rename the event kind table, once
+   the image from step 3 is the one running. The kind's row stays the lock for its rules. (A table
+   named `EventKind` existed until July 2026 and was dropped; nothing of it remains.)
 
 Any other service that reads these tables through its own copy of the schema must have that copy
-refreshed and deployed before each contract step.
+refreshed and deployed before each contract step — including readers of `Event.createdById`, whose
+« null = created by the job » meaning must survive the absences contract, and of `Attendance`.
 
 ## 8. Phasing
 
@@ -328,12 +392,22 @@ Each PR is followed by a deploy before the next one's migration ships.
 - **Responsibility:** a schedule template's responsible may fill and publish only schedules made from
   it; bulk publish skips the others and reports them.
 - **One programme per event:** a second programme schedule is refused by the database.
+- **Recurring events:** the job and a series, and the previous image's job and the new one, never
+  create a day twice (extend `recurring-events-race.integration.test.ts`); a day passed in a series
+  deletes its empty meeting and is never refilled.
+- **Empty meetings:** the definition of §5.1a decides alone what moves, re-anchors or is deleted
+  without asking; adding schedules to an empty meeting fills it and makes the person its author.
+- **Attendance:** deleting a schedule, or bulk-deleting programmes, never takes counts; attendance
+  surfaces list events of counted kinds without a published schedule; a multi-day kind refuses an
+  attendance kind (D23).
 - **Rules:** validity respected (no event before `validFrom` or after `validUntil`); « et les suivantes »
-  splits the rule and moves only the events not changed once; a one-time change survives a later rule
+  splits the rule, moves the empty meetings, offers the prepared ones and never moves one with counts
+  (D22); a one-time change survives a later rule
   change; eight rules of one kind each extend their own events; a deleted event never returns; field
   values copy onto new events only; a multi-day rule creates Monday-to-Sunday events.
 - **Assignees:** a duty holds exactly one of person, group or text.
-- **Archive:** round-trip in the new format; import of a 2.x archive into schedules and absences.
+- **Archive:** round-trip in the new format (version bump from 2.15); import of a 2.x archive into
+  schedules and absences, attendance kept on its events.
 - **E2E:** prepare and publish the duties before the programme; the board shows the duties alone, then
   both.
 

@@ -6,7 +6,7 @@ rules).
 **Author:** Nathanaël Cherrier
 **Feature area:** `features/display-board` (dynamic documents) reading `features/events` through its
 barrels
-**Related:** [Event schedules](./event-schedules.md), [Meeting attendance](./meeting-attendance.md)
+**Related:** [Event schedules](./event-schedules.md), [Meeting Attendance](../meeting-attendance.md)
 
 > This is a proposal, not documentation of current behavior. Once built, the steady-state behavior
 > should be folded into the relevant `docs/` pages and this file archived.
@@ -92,7 +92,8 @@ the masthead « À jour au … » like the other board documents.
   « jusqu’au 30 nov. ».
 - **One-time changes** (D21) within the horizon are listed under the grid: « Mer. 25 nov. : 9:30 à la
   Salle du Royaume au lieu de chez un proclamateur », « Jeu. 24 déc. : pas de réunion ». A deleted
-  occurrence of a rule is listed as « pas de réunion ».
+  occurrence of a rule is listed as « pas de réunion ». A prepared meeting left on its old day when the
+  rule changed (event schedules D22) is a one-time change like any other.
 - The format field's legend sits in the text block.
 
 ### 4.4 Text block
