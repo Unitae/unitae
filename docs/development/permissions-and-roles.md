@@ -6,7 +6,7 @@ For the end-user view of the same system, see the product doc: [Roles and Permis
 
 ## Two layers, distinct concepts
 
-- **Permission** — the unit of access. A finite, code-defined enum (45 entries) declared in `app/shared/types/permission.ts`. New permissions require code + migration changes.
+- **Permission** — the unit of access. A finite, code-defined enum (48 entries) declared in `app/shared/types/permission.ts`. New permissions require code + migration changes.
 - **Role** — a named bundle of permissions. Lives in the database (`Role` table), scoped to a congregation. Roles can be **built-in** (seeded, identity-stable, auto-synced from `Member` flags) or **custom** (created at runtime by a Roles Manager and given to people).
 
 A role belongs to the **person**: everyone in the congregation holds their roles on their record (`Member`, via `MemberRoleAssignment`), whether or not they can sign in — identity roles synced from the record's flags, and roles given by hand with their seat (`kind`: leader, deputy, member). A publisher without an account can therefore be on a team, sit in the organigram, or be picked for a part reserved to a role. Only two cases sit on the login (`UserAccount`, via `UserRoleAssignment`): an account without a record (a circuit overseer, an outside administrator) and system roles such as `admin`, which are access rather than a qualification. Permissions act only through a login: a person's roles grant theirs the day a login is created for them.

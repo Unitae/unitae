@@ -10,7 +10,7 @@ Unitae is an open-source web application for managing Jehovah's Witnesses congre
 
 ## Business Context
 
-Core features: territory management with building prospection, publisher activity tracking, information board with document management, meeting programme scheduling, and congregation settings.
+Core features: territory management with building prospection, publisher activity tracking, information board with document management, meeting programme scheduling, meeting attendance (counts entered during each meeting, the S-88 card), and congregation settings.
 
 **Multi-tenancy model:** All data rows carry a `congregationId` FK. Tenant isolation is enforced at the database level via PostgreSQL Row-Level Security (RLS) policies — not at the application layer. The `SET LOCAL app.congregation_id` session variable activates scoped queries inside `withScope()`. Without it (login, health, setup), all rows are visible.
 
@@ -78,7 +78,7 @@ app/
 │   ├── congregation/         # Custom role CRUD (congregation/roles/*)
 │   ├── dashboard/            # Dashboard stats and urgent items
 │   ├── display-board/        # Document management, PDF upload, dynamic docs
-│   ├── events/               # Days off, meeting events, programme assignments
+│   ├── events/               # Days off, meeting events, programme assignments, attendance, recurring meetings
 │   ├── notifications/        # Notification events, preferences, flush worker
 │   ├── publishers/           # Publisher CRUD, groups, activity reports
 │   ├── settings/             # User management, congregation config, data transfer
@@ -279,7 +279,7 @@ const permissions = context.get(permissionsContext)
 if (!permissions.has(Permission.TerritoriesManager)) throw redirect('/dashboard')
 ```
 
-**Auth model:** `Permission` (45 entries, in `app/shared/types/permission.ts`) is the unit of access. **Roles** (DB table) bundle permissions and are assigned to users. Three kinds: **identity** roles synced from `Member` flags (`BUILT_IN_ROLE_KEYS`), **system** roles granted by hand (`SYSTEM_ROLE_KEYS`, currently just `admin`), and **custom** roles a Roles Manager creates. Identity and system roles both carry `isBuiltIn` — use `isIdentityRoleKey()` when the question is which side a role attaches to, since `isBuiltIn` only means "undeletable". A role is the *only* way a permission reaches an account: the direct `CongregationUserPermission` edge was dropped in #149, so never reintroduce a user→permission write. `requireAuth()` runs `resolveEffectivePermissions` and stores the user's full granted set in `permissionsContext`; the legacy `_required` parameter is retained for call-site compatibility but no longer filters anything. See `docs/development/permissions-and-roles.md`.
+**Auth model:** `Permission` (48 entries, in `app/shared/types/permission.ts`) is the unit of access. **Roles** (DB table) bundle permissions and are assigned to users. Three kinds: **identity** roles synced from `Member` flags (`BUILT_IN_ROLE_KEYS`), **system** roles granted by hand (`SYSTEM_ROLE_KEYS`, currently just `admin`), and **custom** roles a Roles Manager creates. Identity and system roles both carry `isBuiltIn` — use `isIdentityRoleKey()` when the question is which side a role attaches to, since `isBuiltIn` only means "undeletable". A role is the *only* way a permission reaches an account: the direct `CongregationUserPermission` edge was dropped in #149, so never reintroduce a user→permission write. `requireAuth()` runs `resolveEffectivePermissions` and stores the user's full granted set in `permissionsContext`; the legacy `_required` parameter is retained for call-site compatibility but no longer filters anything. See `docs/development/permissions-and-roles.md`.
 
 **Two-factor (TOTP):** opt-in per user. `UserAccount.twoFactorSecret` stores the AES-256-GCM ciphertext of the base32 seed (`null` = never enrolled) and `twoFactorEnabledAt` stays `null` while enrollment is pending. An enrolled user's login lands on `authentication/routes/two-factor-challenge.tsx` before the session is issued — anything that changes the login path must keep that hop intact. Server side: `totp.server.ts`, `start-two-factor-enrollment.server.ts`, `verify-two-factor-challenge.server.ts`.
 
