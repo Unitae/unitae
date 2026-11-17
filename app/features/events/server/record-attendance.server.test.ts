@@ -12,7 +12,8 @@ const writeAttendanceCount = vi.fn()
 vi.mock('~/features/events/server/attendance.aggregate', () => ({
   writeAttendanceCount: (...args: unknown[]) => writeAttendanceCount(...args),
 }))
-vi.mock('~/shared/infra/logger.server', () => ({ createLogger: () => ({ error: vi.fn(), warn: vi.fn() }) }))
+const logError = vi.fn()
+vi.mock('~/shared/infra/logger.server', () => ({ createLogger: () => ({ error: logError, warn: vi.fn() }) }))
 
 const { recordAttendance } = await import('./record-attendance.server')
 
@@ -70,6 +71,19 @@ describe('recordAttendance', () => {
       inPerson: 'refused',
       online: 'invalid',
     })
+  })
+
+  // The page must not turn into an error screen: the count that saved says so, the other is « not saved ».
+  it('reports an unexpected failure on one count without losing the other', async () => {
+    writeAttendanceCount.mockImplementation((_db: unknown, write: { count: string }) =>
+      write.count === 'online' ? Promise.reject(new Error('connection reset')) : Promise.resolve(),
+    )
+
+    expect(await recordAttendance(40, { inPerson: 98, online: 21 }, CTX)).toEqual({
+      inPerson: 'saved',
+      online: 'failed',
+    })
+    expect(logError).toHaveBeenCalled()
   })
 
   it('clears a count sent empty', async () => {

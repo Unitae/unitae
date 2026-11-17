@@ -61,6 +61,14 @@ export function entryProgress(entry: Pick<AttendanceEntry, 'inPerson' | 'online'
 
 /** The most people a count may hold, as the server accepts. */
 export const MAX_COUNT = 100_000
+const DIGITS = /^\d+$/
+
+/** What became of one count: saved, entered by someone else first, refused (no right, entry closed), not a count, its
+ * meeting gone, or not saved for an unexpected reason (worth trying again). */
+export type CountOutcome = 'saved' | 'taken' | 'refused' | 'invalid' | 'missing' | 'failed'
+
+/** What the attendance writer answers: each count's outcome, or a request it refused whole. */
+export type RecordResult = { ok: true; outcomes: Partial<Record<CountKey, CountOutcome>> } | { ok: false }
 
 /**
  * What « Enregistrer » sends from what was typed: only fields the viewer may still change, empty meaning cleared, and
@@ -78,8 +86,9 @@ export function countsToSend(
       counts[count] = null
       continue
     }
-    const value = Number(text)
-    if (Number.isInteger(value) && value >= 0 && value <= MAX_COUNT) counts[count] = value
+    // Plain digits only: « 85 pers. », « 85, » or « 0x10 » are named, never read as a number — or as cleared.
+    const value = DIGITS.test(text.trim()) ? Number(text.trim()) : Number.NaN
+    if (value <= MAX_COUNT) counts[count] = value
     else invalid.push(count)
   }
   return { counts, invalid }

@@ -70,9 +70,9 @@ export function monthlyStats(meetings: AttendanceMeeting[], serviceYear: number)
 }
 
 /**
- * The meetings of `serviceYear` in the months that `shown` — the service year on screen — has had so far, as of
- * `today`: the same months whatever the year, so the year shown and the one before it compare month for month. A year
- * that is over has had all twelve.
+ * The meetings of `serviceYear` in the months the year on screen (`shown`) has had so far, as of `today`, so the year
+ * shown and the one before it compare month for month. A year that is over has had all twelve. Pass `shown` whenever
+ * `serviceYear` is the comparison year: left out, it defaults to `serviceYear`, and a past year then comes back whole.
  */
 export function serviceYearToDate(
   meetings: AttendanceMeeting[],

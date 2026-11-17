@@ -50,7 +50,8 @@ export interface AttendanceRights {
 /**
  * The caller's attendance rights, named from their permissions: « Saisir l’assistance » enters the meeting under way,
  * « Corriger l’assistance » changes any count at any time, « Consulter l’assistance » reads the averages and the
- * history. What a route hands canWriteCount and the attendance writer, and what opens the attendance page.
+ * history. The first two are what a route hands canWriteCount and the attendance writer; any of the three opens the
+ * attendance page, and « Consulter » alone opens its service-year view.
  */
 export function attendanceRights(permissions: ReadonlySet<Permission>): AttendanceRights {
   return {

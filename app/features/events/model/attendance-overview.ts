@@ -24,10 +24,31 @@ export type AttendanceView = 'all' | 'todo' | 'apart'
 /** Entered (both counts), to complete (its entry closed with a count missing), or under way. */
 export type MeetingState = 'entered' | 'todo' | 'live'
 
-/** Held: started. The meetings the job created ahead are not, and appear in no figure, row or gap. */
+/** The earliest service year the attendance page opens. */
+export const FIRST_SERVICE_YEAR = 2000
+const FOUR_DIGITS = /^\d{4}$/
+
+/**
+ * The service year an address asks for: none asked is the current one; a year still to come, before the first, or not
+ * four digits is no year at all (null) — the page sends such an address back rather than show another year under it.
+ */
+export function serviceYearFrom(asked: string | null, current: number): number | null {
+  if (asked == null) return current
+  if (!FOUR_DIGITS.test(asked)) return null
+  const year = Number(asked)
+  return year >= FIRST_SERVICE_YEAR && year <= current ? year : null
+}
+
+/** Held: started. Future meetings (the recurring-events job creates them weeks ahead) are not, and appear in no figure,
+ * row or gap. */
 const held = (meetings: OverviewMeeting[], now: Date) =>
   meetings.filter(meeting => new Date(meeting.startDate).getTime() <= now.getTime())
 
+/**
+ * The figures at the top of the page: each kind's average against the same months of the year before, the online
+ * share, and the meetings entered and still to complete. `today` is the congregation's local day (which months
+ * count), `now` the instant (which meetings are held).
+ */
 export function attendanceMetrics(input: {
   meetings: OverviewMeeting[]
   previous: OverviewMeeting[]
@@ -42,14 +63,18 @@ export function attendanceMetrics(input: {
   const before = serviceYearToDate(held(input.previous, input.now), serviceYear - 1, today, serviceYear)
   const averaged = meetings.filter(meeting => countsInAverages(meeting.kind))
   const complete = averaged.filter(isComplete).length
-  // The change from last year is computed on the exact averages; only what is shown is rounded (§6.2).
+  // The change from last year is computed on the exact averages; only what is shown is rounded.
   const kindFigures = (kind: AveragedKind) => {
     const now = periodStats(current, kind)
     const then = periodStats(before, kind)
     return {
       average: now.average,
       previous: then.average,
-      change: now.count > 0 && then.count > 0 ? now.total / now.count / (then.total / then.count) - 1 : null,
+      // None when last year has nothing to compare with — no meeting, or only meetings entered as zero.
+      change:
+        now.count > 0 && then.count > 0 && then.total > 0
+          ? now.total / now.count / (then.total / then.count) - 1
+          : null,
     }
   }
   return {
@@ -59,8 +84,7 @@ export function attendanceMetrics(input: {
     entered: {
       complete,
       held: averaged.length,
-      // A meeting under way is not late yet.
-      toComplete: averaged.filter(meeting => stateOf(meeting, input.now, input.timeZone) === 'todo').length,
+      toComplete: countToComplete(input.meetings, input.now, input.timeZone),
     },
   }
 }
@@ -68,7 +92,7 @@ export function attendanceMetrics(input: {
 const averageFor = (stats: ReturnType<typeof periodStats>, measure: Measure) =>
   measure === 'total' ? stats.average : averageOf(stats[measure], stats.count)
 
-/** Month by month, September to August: the average of one kind and measure, this year over the year before. */
+/** Month by month, September to August: the average of one kind and measure, the year shown over the one before. */
 export function attendanceChart(input: {
   meetings: OverviewMeeting[]
   previous: OverviewMeeting[]
@@ -97,11 +121,24 @@ function stateOf(meeting: OverviewMeeting, now: Date, timeZone: string): Meeting
   return isEntryOpen(new Date(meeting.startDate), timeZone, now) ? 'live' : 'todo'
 }
 
+/** A meeting the averages wait for: held, its entry closed with a count missing — never one under way, nor one
+ * counted apart. The one rule behind the « à compléter » figure and view. */
+function awaitsCompletion(meeting: OverviewMeeting, now: Date, timeZone: string): boolean {
+  return countsInAverages(meeting.kind) && stateOf(meeting, now, timeZone) === 'todo'
+}
+
+/** How many meetings held are « à compléter ». */
+export function countToComplete(meetings: OverviewMeeting[], now: Date, timeZone: string): number {
+  return held(meetings, now).filter(meeting => awaitsCompletion(meeting, now, timeZone)).length
+}
+
 export type MonthRow =
   | ({ type: 'meeting'; state: MeetingState } & OverviewMeeting)
   | { type: 'off'; monday: string; kind: AveragedKind }
 
 export interface AttendanceMonth {
+  /** `YYYY-MM`: which month is unfolded. */
+  key: string
   year: number
   /** 0 = January. */
   month: number
@@ -115,9 +152,10 @@ export interface AttendanceMonth {
 const monthKey = (day: string) => day.slice(0, 7)
 
 /**
- * The months held, the most recent first, each with its meetings newest first and its averages. A week without a
- * meeting inside the run of a kind reads « Pas de réunion »; a view keeps only the meetings to complete, or only those
- * counted apart (the Memorial).
+ * The months held, the most recent first, each with its meetings newest first. « Toutes » lists the meetings in the
+ * averages and the weeks without one inside each kind's run (never the Memorial); « À compléter » only those to
+ * complete; « Comptées à part » only those counted apart. A month's averages and entered count are the whole month's,
+ * whatever the view.
  */
 export function attendanceMonths(input: {
   meetings: OverviewMeeting[]
@@ -139,10 +177,9 @@ export function attendanceMonths(input: {
     }
   }
   const kept = rows.filter(row => {
-    // The meetings the averages wait for, as the « à compléter » figure counts them: never one counted apart.
-    if (input.view === 'todo') return row.type === 'meeting' && row.state === 'todo' && countsInAverages(row.kind)
+    if (input.view === 'todo') return row.type === 'meeting' && awaitsCompletion(row, input.now, input.timeZone)
     if (input.view === 'apart') return row.type === 'meeting' && row.kind === 'separate'
-    return row.type === 'off' || countsInAverages(row.kind as AttendanceKind)
+    return row.type === 'off' || countsInAverages(row.kind)
   })
 
   const byMonth = new Map<string, (MonthRow & { sortDay: string })[]>()
@@ -152,6 +189,7 @@ export function attendanceMonths(input: {
     .map(([key, monthRows]) => {
       const inMonth = meetings.filter(meeting => monthKey(meeting.day) === key)
       return {
+        key,
         year: Number(key.slice(0, 4)),
         month: Number(key.slice(5, 7)) - 1,
         rows: monthRows
