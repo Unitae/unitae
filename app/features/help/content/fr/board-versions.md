@@ -10,7 +10,7 @@ related: board-download
 order: 3
 ---
 
-Un document PDF garde chaque fichier qu’il a montré. Cet article s’adresse aux personnes qui gèrent le tableau d’affichage, et à celles qui y déposent des documents : elles retrouvent l’historique des documents qu’elles ont déposés.
+Un document PDF garde chaque fichier qu’il a montré. Vous retrouvez l’historique des documents que vous gérez ou que vous avez déposés.
 
 ## Ouvrir l’historique
 

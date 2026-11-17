@@ -10,7 +10,7 @@ related: board-download
 order: 3
 ---
 
-A PDF document keeps every file it has shown. This article is for the people who manage the information board, and for those who upload documents to it: they find the history of the documents they uploaded.
+A PDF document keeps every file it has shown. You find the history of the documents you manage or have uploaded.
 
 ## Open the history
 
