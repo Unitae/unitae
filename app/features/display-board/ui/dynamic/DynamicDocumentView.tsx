@@ -53,6 +53,7 @@ export function DynamicDocumentView({
           config={data.config}
           now={now}
           timeZone={timeZone}
+          attendance={data.attendance}
         />
       )
     default:

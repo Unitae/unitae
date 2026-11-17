@@ -1,4 +1,5 @@
 import { PartPresetKey } from '../../features/events/model/part-preset.type'
+import { dayOf } from '../../shared/utils/calendar-day'
 import { ABSENCE_NAMES, LAST_NAMES, MALE_FIRST_NAMES, NEARBY_TOWNS, TALK_TITLES } from './names'
 import type { PersonSeed } from './people'
 import { MEETINGS } from './profile'
@@ -323,5 +324,44 @@ export function classifyParts(parts: { preset: string | null; section: string }[
       default:
         return part.section === '' ? 'song' : 'ministry'
     }
+  })
+}
+
+export interface AttendanceSeed {
+  inPerson: number
+  online: number | null
+}
+
+/**
+ * Each past meeting's two counts, from `activePublishers` and the profile's ratios: more at the weekend, a little less
+ * in July and August (Paris months), about a sixth online. The latest midweek meeting is missing its videoconference
+ * count, for a corrector to fill in. Drawn from a source of its own, so the rest of the congregation keeps its draws.
+ * Aligned with `meetings`: null for a meeting still to come.
+ */
+export function generateAttendance(
+  meetings: MeetingSeed[],
+  now: Date,
+  activePublishers: number,
+): (AttendanceSeed | null)[] {
+  const random = new Random(0xa77e0)
+  const config = MEETINGS.attendance
+  let latestMidweek = -1
+  meetings.forEach((meeting, index) => {
+    if (
+      meeting.kind === 'midweek' &&
+      meeting.start <= now &&
+      (latestMidweek < 0 || meeting.start > (meetings[latestMidweek] as MeetingSeed).start)
+    ) {
+      latestMidweek = index
+    }
+  })
+  return meetings.map((meeting, index) => {
+    if (meeting.start > now) return null
+    const perPublisher = meeting.kind === 'midweek' ? config.midweekPerPublisher : config.weekendPerPublisher
+    const month = Number(dayOf(meeting.start, 'Europe/Paris').slice(5, 7)) - 1
+    const season = month === 6 || month === 7 ? config.summerDip : 1
+    const total = Math.round(activePublishers * perPublisher * season * (1 + (random.next() * 2 - 1) * config.spread))
+    const online = Math.round(total * config.onlineShare * (1 + (random.next() * 2 - 1) * 0.25))
+    return { inPerson: total - online, online: index === latestMidweek ? null : online }
   })
 }

@@ -75,8 +75,8 @@ describe('EntityIdMap', () => {
 })
 
 describe('ARCHIVE_VERSION', () => {
-  it('is the current 2.14 schema version', () => {
-    expect(ARCHIVE_VERSION).toBe('2.14')
+  it('is the current 2.15 schema version', () => {
+    expect(ARCHIVE_VERSION).toBe('2.15')
   })
 })
 
@@ -90,6 +90,12 @@ describe('ENTITY_FILES', () => {
     expect(ENTITY_FILES).toContain('member-role-assignments')
     expect(ENTITY_FILES).toContain('territories')
     expect(ENTITY_FILES).toContain('board-documents')
+  })
+
+  it('has attendance after the events it belongs to and the accounts that entered it', () => {
+    const at = (file: EntityFile) => ENTITY_FILES.indexOf(file)
+    expect(at('attendance')).toBeGreaterThan(at('events'))
+    expect(at('attendance')).toBeGreaterThan(at('user-accounts'))
   })
 
   it('has members before publisher-groups (dependency order)', () => {

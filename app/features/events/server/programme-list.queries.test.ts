@@ -29,7 +29,12 @@ describe('listProgrammes', () => {
         endDate: new Date('2026-11-12T19:45:00Z'),
         status: 'released',
         templateId: 4,
-        template: { name: 'Réunion de semaine', color: '#3b82f6' },
+        template: {
+          name: 'Réunion de semaine',
+          color: '#3b82f6',
+          key: 'midweek-meeting',
+          _count: { parts: 12, serviceParts: 4 },
+        },
         eventParts: [part(5), part(null, 2), part(null), part(7, null, true)],
         eventServiceParts: [service(9), service(null), service(5, true)],
       },
@@ -47,7 +52,34 @@ describe('listProgrammes', () => {
       kind: { name: 'Réunion de semaine', color: '#3b82f6' },
       parts: { total: 4, filled: 3, flagged: 1 },
       services: { total: 3, filled: 2, flagged: 1 },
+      awaitingProgramme: false,
     })
+  })
+
+  // The recurring-events job creates the meetings ahead; their programme comes later.
+  it('says which meetings are still waiting for their programme, never another event', async () => {
+    const empty = { startDate: new Date(), endDate: new Date(), status: 'draft', eventParts: [], eventServiceParts: [] }
+    vi.mocked(db.event.findMany).mockResolvedValue([
+      {
+        ...empty,
+        id: 1,
+        name: 'Réunion',
+        templateId: 4,
+        template: { name: 'R', color: '#000', key: null, _count: { parts: 12, serviceParts: 4 } },
+      },
+      {
+        ...empty,
+        id: 2,
+        name: 'Nettoyage',
+        templateId: 9,
+        template: { name: 'A', color: '#000', key: 'freeform', _count: { parts: 0, serviceParts: 0 } },
+      },
+    ] as never)
+
+    const rows = await listProgrammes(db, { congregationId: 1, from: FROM, to: TO })
+
+    expect(rows.map(row => row.awaitingProgramme)).toEqual([true, false])
+    expect(rows[0]?.kind).toEqual({ name: 'R', color: '#000' })
   })
 
   it('names no kind for a programme without a template', async () => {

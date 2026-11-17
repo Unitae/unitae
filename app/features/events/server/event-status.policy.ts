@@ -15,6 +15,9 @@ export const EVENT_STATUS_ERRORS = {
   get releaseBlockedByConflicts() {
     return m.event_status_error_release_blocked()
   },
+  get releaseAwaitingProgramme() {
+    return m.event_status_error_release_awaiting()
+  },
 }
 
 export type PartReleaseAssignment = { hasConflict: boolean }

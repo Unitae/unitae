@@ -41,6 +41,10 @@ translate it.
    text on the left) exactly as it is.
 4. **Add your language code** to `languageTags` in `app/i18n/project.inlang/settings.json`, for example
    `["en", "fr", "uk"]`.
+5. **Translate the help articles**: create `app/features/help/content/<code>/` with every `.md` file from
+   `app/features/help/content/en/`, keeping the values of its frontmatter (`slug`, `permission`, `module`,
+   `order`, `related`), and add your code to `HELP_LOCALES` in `app/features/help/model/help.type.ts`.
+   Until then, the help reads in English.
 
 The first pull request for a language must translate **every** message, so nobody sees a mix of
 languages. After that, new features may add English messages before they are translated: a message

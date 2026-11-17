@@ -177,6 +177,11 @@ export const AuditAction = {
   SpeakerListUpdated: 'speaker_congregation.list_updated',
   OurSpeakerUpdated: 'our_speaker.updated',
   OurSpeakerListSent: 'our_speaker_list.sent',
+  AttendanceRecorded: 'attendance.recorded',
+  AttendanceCorrected: 'attendance.corrected',
+  ProgrammeRemoved: 'event.programme_removed',
+  RecurringEventsCreated: 'event.recurring_created',
+  RecurringEventsMoved: 'event.recurring_moved',
 
   // Programme events
   EventCreated: 'event.created',

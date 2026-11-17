@@ -5,6 +5,9 @@ export enum CongregationSettingKey {
   // and of the role whose holder is our public talk coordinator (printed at its head, replies go to him).
   ExternalSpeakersCandidatesRole = 'external-speakers-candidates-role',
   ExternalSpeakersResponsibleRole = 'external-speakers-responsible-role',
+  // « Afficher l’assistance sur le programme »: last week's attendance, total only, on the programme's week under way.
+  // Off (unset) by default.
+  ProgrammeShowsAttendance = 'programme-shows-attendance',
 }
 
 // Scope of the optional HaveIBeenPwned breached-password check. `off` (or unset)

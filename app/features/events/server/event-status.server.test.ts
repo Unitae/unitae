@@ -79,8 +79,43 @@ describe('releaseEvent (tx-only)', () => {
 
     const result = await releaseEvent(db, 42, 1, 5)
 
-    expect(result).toEqual({ error: expect.stringContaining(EVENT_STATUS_ERRORS.releaseBlockedByConflicts) })
+    expect(result).toEqual({
+      error: expect.stringContaining(EVENT_STATUS_ERRORS.releaseBlockedByConflicts),
+      reason: 'conflicts',
+    })
     expect(db.event.update).not.toHaveBeenCalled()
+  })
+
+  // A meeting created ahead has nothing to publish yet; « Autre évènement » may be published empty.
+  it('refuses a meeting still waiting for its programme, but not an empty other event', async () => {
+    vi.mocked(db.event.findFirst).mockResolvedValue({
+      ...draftEvent,
+      template: { key: 'midweek-meeting', _count: { parts: 12, serviceParts: 4 } },
+    } as never)
+
+    expect(await releaseEvent(db, 42, 1, 5)).toEqual({
+      error: EVENT_STATUS_ERRORS.releaseAwaitingProgramme,
+      reason: 'awaiting',
+    })
+    expect(db.event.update).not.toHaveBeenCalled()
+
+    vi.mocked(db.event.findFirst).mockResolvedValue({
+      ...draftEvent,
+      template: { key: 'freeform', _count: { parts: 12, serviceParts: 4 } },
+    } as never)
+    vi.mocked(db.event.update).mockResolvedValue(releasedEvent as never)
+    expect(await releaseEvent(db, 42, 1, 5)).toMatchObject({ event: releasedEvent })
+  })
+
+  // A template that only puts an event on the calendar: its events are published empty, as before.
+  it('publishes an empty event of a template with neither parts nor services', async () => {
+    vi.mocked(db.event.findFirst).mockResolvedValue({
+      ...draftEvent,
+      template: { key: null, _count: { parts: 0, serviceParts: 0 } },
+    } as never)
+    vi.mocked(db.event.update).mockResolvedValue(releasedEvent as never)
+
+    expect(await releaseEvent(db, 42, 1, 5)).toMatchObject({ event: releasedEvent })
   })
 
   it('flips status to released and returns the updated event + notifyTargets when nothing conflicts', async () => {

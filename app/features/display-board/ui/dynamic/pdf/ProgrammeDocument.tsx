@@ -1,4 +1,5 @@
 import { Document, StyleSheet, Text, View } from '@react-pdf/renderer'
+import { type AttendanceLineMeeting, attendanceLineItems } from '~/features/display-board/model/attendance-line'
 import type { BoardTypeface } from '~/features/display-board/model/board-appearance'
 import {
   assigneeRuns,
@@ -24,6 +25,8 @@ import type {
 import { sheetContentBox } from '~/features/display-board/model/sheet-page'
 import type { TextMeasurer } from '~/features/display-board/model/sheet-text'
 import { groupPartsBySlot } from '~/features/events'
+import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 import {
   BOARD_PDF_MUTED,
@@ -57,6 +60,7 @@ function makeStyles(s: number) {
       marginBottom: 8 * k,
     },
     meeting: { marginBottom: 12 * k },
+    attendance: { ...text, color: BOARD_PDF_MUTED, marginBottom: 10 * k },
     heading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 2 * k },
     date: { fontSize: 1.4 * s, lineHeight: PROGRAMME_LINE_HEIGHT, fontWeight: 'bold' },
     eventName: { ...text, color: BOARD_PDF_MUTED, marginLeft: 8, flexShrink: 1, textAlign: 'right' },
@@ -176,7 +180,10 @@ export function ProgrammeDocument({
   typeface,
   accentColor,
   measurer,
+  attendance,
 }: {
+  /** Last week's attendance, when the congregation shows it on the programme: a line at the head of the sheet. */
+  attendance?: AttendanceLineMeeting[] | null
   events: ProgrammeSheetEvent[]
   configMap: Map<number, ProgrammeSheetTemplateOptions>
   groupBy: 'date' | 'template'
@@ -193,6 +200,17 @@ export function ProgrammeDocument({
     <Document title={sanitizeText(title)}>
       <BoardPdfPage typeface={typeface} accentColor={accentColor}>
         <BoardPdfMasthead congregationName={congregationName} title={title} asOf={asOf} />
+        {attendance && (
+          <SheetText style={fit.styles.attendance}>
+            {sanitizeText(
+              m.board_programme_attendance({
+                meetings: attendanceLineItems(attendance, getLocale(), (day, total) =>
+                  m.board_programme_attendance_item({ day, total }),
+                ),
+              }),
+            )}
+          </SheetText>
+        )}
         {programmeUnits(events, configMap, groupBy).map((unit, index) => (
           <View key={index}>
             {unit.templateHeading && (

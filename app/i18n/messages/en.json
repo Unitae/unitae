@@ -1758,6 +1758,19 @@
             }
         }
     ],
+    "programs_awaiting_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} without a program",
+                "countPlural=*": "{count} without a program"
+            }
+        }
+    ],
     "programs_drafts_count": [
         {
             "declarations": [
@@ -1885,6 +1898,32 @@
             }
         }
     ],
+    "programs_bulk_delete_success": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} event deleted.",
+                "countPlural=*": "{count} events deleted."
+            }
+        }
+    ],
+    "programs_bulk_delete_kept_attendance": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} meeting kept for its attendance: its program was removed.",
+                "countPlural=*": "{count} meetings kept for their attendance: their program was removed."
+            }
+        }
+    ],
     "programs_bulk_delete_button": "Delete",
     "programs_bulk_delete_title": [
         {
@@ -1927,6 +1966,12 @@
         }
     ],
     "programs_page_title": "Programs",
+    "programs_awaiting_badge": "No program yet",
+    "programs_create_programme_button": "Create the program",
+    "programs_create_programme_success": "Program created.",
+    "programs_create_programme_exists": "This meeting already has a program.",
+    "programs_create_programme_nothing": "This meeting’s template has no part or service to give it.",
+    "programs_awaiting_hint": "This meeting has no program yet. “Create the program” gives it the parts and services of its template.",
     "programs_event_draft_badge": "Draft",
     "programs_event_release_button": "Publish",
     "programs_event_unrelease_button": "Move back to draft",
@@ -1941,6 +1986,19 @@
             "match": {
                 "countPlural=one": "{count} event published.",
                 "countPlural=*": "{count} events published."
+            }
+        }
+    ],
+    "programs_release_awaiting_bulk": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} meeting without a program was not published.",
+                "countPlural=*": "{count} meetings without a program were not published."
             }
         }
     ],
@@ -2229,7 +2287,13 @@
     "programs_delete_dialog_title": "Delete this program?",
     "programs_delete_dialog_description": "“{name}” on {date} will be deleted, with its parts, its services and their assignments. This cannot be undone.",
     "programs_delete_submit": "Delete event",
+    "programs_delete_meeting_title": "Delete this meeting?",
+    "programs_delete_meeting_description": "“{name}” on {date} will be deleted and not created again: this is how a week without a meeting is shown.",
+    "programs_delete_meeting_submit": "Delete meeting",
+    "programs_delete_programme_only_description": "The parts and services of “{name}” on {date} will be deleted, with their assignments. The meeting stays, with its attendance.",
+    "programs_delete_programme_submit": "Delete program",
     "programs_delete_success": "The event “{name}” has been deleted.",
+    "programs_delete_kept_attendance": "The program was removed; “{name}” stays, with its attendance.",
     "programs_assign_part_topic_label": "Topic / Title",
     "programs_assign_part_speaker_label": "Speaker",
     "programs_assign_part_select_publisher": "Choose a publisher",
@@ -3744,6 +3808,9 @@
     "permission_desc_can_view_absences": "Can see when others are unavailable",
     "permission_desc_can_view_external_speakers": "Can view the visiting speakers registry",
     "permission_desc_can_manage_external_speakers": "Can add and edit visiting speakers",
+    "permission_desc_can_record_attendance": "Can enter the attendance of the meeting under way, until midnight",
+    "permission_desc_can_correct_attendance": "Can correct the attendance of any meeting, at any time; every correction goes to the log",
+    "permission_desc_can_view_attendance": "Can view meeting attendance: averages, history and exports",
     "permission_desc_can_view_users": "Can view user accounts and their roles",
     "permission_desc_can_manage_users": "Can create, edit and remove user accounts",
     "permission_desc_can_view_roles": "Can view roles and their members",
@@ -3759,7 +3826,7 @@
     "permission_category_territories": "Territories",
     "permission_category_publishers": "Publishers",
     "permission_category_emergency": "Emergency",
-    "permission_category_programs": "Programs",
+    "permission_category_programs": "Meetings",
     "permission_category_settings": "Settings",
     "sidebar_assembly_organigram": "Organization chart",
     "role_name_member": "Members",
@@ -5697,6 +5764,60 @@
     "settings_templates_new_submit": "Create the template",
     "settings_templates_name_required": "Enter the template’s name.",
     "settings_template_page_subtitle": "Program template",
+    "settings_template_move_meetings_title": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} upcoming meeting is not on the template’s day and time.",
+                "countPlural=*": "{count} upcoming meetings are not on the template’s day and time."
+            }
+        }
+    ],
+    "settings_template_move_meetings_body": "Each meeting without a program goes to the template’s day in its own week. A week that already has its meeting on that day keeps it, and deleted weeks stay deleted.",
+    "settings_template_move_meetings_button": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Move the upcoming meeting",
+                "countPlural=*": "Move the {count} upcoming meetings"
+            }
+        }
+    ],
+    "settings_template_move_meetings_moved": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} meeting moved.",
+                "countPlural=*": "{count} meetings moved."
+            }
+        }
+    ],
+    "settings_template_move_meetings_removed": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} meeting deleted: its week already had one.",
+                "countPlural=*": "{count} meetings deleted: their week already had one."
+            }
+        }
+    ],
+    "settings_template_move_meetings_none": "The upcoming meetings are already on the template’s day and time.",
     "settings_template_page_used": [
         {
             "declarations": [
@@ -5713,6 +5834,12 @@
     "settings_template_built_in_subtitle": "Built-in template",
     "settings_template_info": "Details",
     "settings_template_color_hint": "A dot of this colour marks the template in lists and the calendar.",
+    "settings_template_attendance_label": "Attendance",
+    "settings_template_attendance_none": "Not counted",
+    "settings_template_attendance_midweek": "Midweek meeting",
+    "settings_template_attendance_weekend": "Weekend meeting",
+    "settings_template_attendance_separate": "Counted separately",
+    "settings_template_attendance_hint": "Averages and the S-88 only take midweek and weekend meetings. “Counted separately” records the attendance outside the averages and the S-88 (the Memorial).",
     "settings_template_programme_responsible": "Program responsible",
     "settings_template_service_responsible": "Services responsible",
     "settings_template_holders": "Today: {names}.",
@@ -6694,6 +6821,11 @@
     "external_speakers_pdf_filename": "speakers {name} {date}",
     "audit_log_action_our_speaker_updated": "Speaker on our list changed",
     "audit_log_action_our_speaker_list_sent": "Our list of speakers sent",
+    "audit_log_action_attendance_recorded": "Attendance entered",
+    "audit_log_action_attendance_corrected": "Attendance corrected",
+    "audit_log_action_event_recurring_created": "Meetings created automatically",
+    "audit_log_action_event_recurring_moved": "Upcoming meetings moved",
+    "audit_log_action_event_programme_removed": "Program removed, meeting kept",
     "settings_external_speakers_role_gone": "This role no longer exists: choose another one.",
     "settings_external_speakers_open_organigram": "Open the organigram",
     "external_speakers_ours_error_phone": "Enter the number to share, or choose « From his record ».",
@@ -6895,6 +7027,7 @@
     "event_part_error_day_off_publisher": "This publisher has an absence on this date.",
     "event_part_error_day_off_reader": "The second speaker has an absence on this date.",
     "event_status_error_release_blocked": "Cannot publish: this event has absence conflicts to resolve.",
+    "event_status_error_release_awaiting": "Cannot publish: this meeting has no program yet.",
     "role_tree_error_cycle": "A service cannot sit under itself or under one of the services that depend on it.",
     "role_tree_error_too_deep": "The organization chart cannot go deeper than {max} levels.",
     "role_tree_error_roster_is_root": "Elders and ministerial servants are always at the top of the organization chart.",
@@ -6969,5 +7102,215 @@
     "share_message_default_school_talk": "Hi {assigneeFirstname},\n\nYou have a school talk on {date} at {time}.\nTopic: {topic}\nLength: {duration}\nNote: {note}\n\n{link}",
     "share_message_default_public_talk": "Hi {assigneeFirstname},\n\nYou are giving the public talk on {date} at {time}.\nTheme: {topic}\nNote: {note}\n\n{link}",
     "share_message_default_watchtower_study": "Hi {assigneeFirstname},\n\nYou are conducting the Watchtower Study on {date} at {time}.\nReader: {assistant}\nNote: {note}\n\n{link}",
-    "share_message_default_congregation_bible_study": "Hi {assigneeFirstname},\n\nYou are conducting the Congregation Bible Study on {date} at {time}.\nReader: {assistant}\nNote: {note}\n\n{link}"
+    "share_message_default_congregation_bible_study": "Hi {assigneeFirstname},\n\nYou are conducting the Congregation Bible Study on {date} at {time}.\nReader: {assistant}\nNote: {note}\n\n{link}",
+    "help_menu_label": "Help",
+    "help_page_title": "Help",
+    "help_page_intro": "Short articles, one per task. Only those that concern your account are listed.",
+    "help_search_label": "Search the help text",
+    "help_search_empty": "No article contains “{query}”.",
+    "help_search_try": "Try a shorter word.",
+    "help_browse_all": "Browse all articles",
+    "help_related_title": "Related articles",
+    "help_back_to_help": "Back to help",
+    "help_open_page": "Open the page",
+    "help_entry_label": "Help for this page",
+    "help_unavailable": "This article is not available for this account.",
+    "help_missing": "This article does not exist.",
+    "help_fallback_question": "Can’t find what you need? Ask on GitHub",
+    "help_fallback_privacy": "The repository is public: do not paste any congregation data into it.",
+    "attendance_card_title": "Attendance · {name}",
+    "attendance_card_live": "Under way since {time} · open until midnight",
+    "attendance_card_done": "Saved · can be changed until midnight",
+    "attendance_in_person": "In the hall",
+    "attendance_online": "Online",
+    "attendance_saved_by_you": "By you at {time}",
+    "attendance_saved_by": "{name} at {time}",
+    "attendance_someone": "Someone",
+    "attendance_waiting": "Waiting",
+    "attendance_nothing": "Nothing entered",
+    "attendance_partial": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} of 2 counts entered",
+                "countPlural=*": "{count} of 2 counts entered"
+            }
+        }
+    ],
+    "attendance_done_split": "{inPerson} in the hall · {online} online",
+    "attendance_save": "Save",
+    "attendance_edit": "Edit",
+    "attendance_error_taken": "Already entered by someone else",
+    "attendance_error_refused": "Entry is closed",
+    "attendance_error_invalid": "A whole number of people",
+    "attendance_error_missing": "This meeting no longer exists",
+    "attendance_page_title": "Attendance",
+    "attendance_page_meta_title": "Attendance",
+    "attendance_none": "No meeting under way.",
+    "attendance_next": "Entry opens when the next one starts, {when}.",
+    "sidebar_attendance": "Attendance",
+    "sidebar_meetings": "Meetings",
+    "attendance_next_when": "{date} at {time}",
+    "attendance_you": "you",
+    "attendance_done_by": "By {names}",
+    "attendance_card_saved": "Saved",
+    "attendance_error_failed": "The attendance could not be saved. Try again.",
+    "help_load_error": "This article could not be loaded.",
+    "help_meta_title": "Help - Unitae",
+    "help_article_meta_title": "{title} - Help - Unitae",
+    "help_capture_enlarge": "Enlarge: {alt}",
+    "attendance_year": "Service year {label}",
+    "attendance_year_previous": "Previous service year",
+    "attendance_year_next": "Next service year",
+    "attendance_metrics": "Attendance for the service year",
+    "attendance_metric_midweek": "Average · midweek meeting",
+    "attendance_metric_weekend": "Average · weekend meeting",
+    "attendance_metric_online": "Online",
+    "attendance_metric_entered": "Meetings entered",
+    "attendance_metric_held": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "of {count} held",
+                "countPlural=*": "of {count} held"
+            }
+        }
+    ],
+    "attendance_metric_vs": "{delta} on the same period last year ({previous})",
+    "attendance_metric_no_previous": "Nothing to compare with last year",
+    "attendance_metric_online_foot": "of total attendance, {previous} last year",
+    "attendance_metric_online_foot_alone": "of total attendance",
+    "attendance_metric_to_complete": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} to complete",
+                "countPlural=*": "{count} to complete"
+            }
+        }
+    ],
+    "attendance_metric_all_entered": "All entered",
+    "attendance_chart_title": "Average by month",
+    "attendance_chart_subtitle": "{kind} · {measure} · a meeting counts in the average only once complete",
+    "attendance_chart_aria": "Monthly average attendance, {kind}",
+    "attendance_chart_view": "View",
+    "attendance_chart_chart": "Chart",
+    "attendance_chart_table": "Table",
+    "attendance_kind_group": "Meeting",
+    "attendance_kind_midweek": "Midweek",
+    "attendance_kind_weekend": "Weekend",
+    "attendance_kind_midweek_full": "Midweek meeting",
+    "attendance_kind_weekend_full": "Weekend meeting",
+    "attendance_measure_group": "Measure",
+    "attendance_measure_total": "Total",
+    "attendance_measure_in_person": "In the hall",
+    "attendance_measure_online": "Online",
+    "attendance_measure_total_long": "total attendance",
+    "attendance_measure_in_person_long": "in the hall",
+    "attendance_measure_online_long": "online",
+    "attendance_col_month": "Month",
+    "attendance_col_meetings": "Complete meetings",
+    "attendance_view_group": "View",
+    "attendance_view_all": "All",
+    "attendance_view_todo": "To complete · {count}",
+    "attendance_view_apart": "Counted apart",
+    "attendance_newest_first": "Most recent first",
+    "attendance_month_summary": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} meeting entered",
+                "countPlural=*": "{count} meetings entered"
+            }
+        }
+    ],
+    "attendance_month_midweek": "midweek {average}",
+    "attendance_month_weekend": "weekend {average}",
+    "attendance_col_state": "State",
+    "attendance_col_meeting": "Meeting",
+    "attendance_col_in_person": "In the hall",
+    "attendance_col_online": "Online",
+    "attendance_col_total": "Total",
+    "attendance_state_entered": "Entered",
+    "attendance_state_todo": "To complete",
+    "attendance_state_live": "Under way",
+    "attendance_state_off": "No meeting",
+    "attendance_week_of": "Week of {date}",
+    "attendance_complete_button": "Complete",
+    "attendance_open_label": "See the attendance of {date}",
+    "attendance_list_empty": "No meeting held yet this service year.",
+    "attendance_todo_empty": "Every meeting held has been entered.",
+    "attendance_apart_empty": "No meeting counted apart this service year.",
+    "attendance_online_long": "Online",
+    "attendance_online_help": "Videoconference and telephone together, as in the report to the branch.",
+    "attendance_total_label": "Total attendance",
+    "attendance_partial_help": "While one of the two numbers is missing, the meeting does not count in the averages.",
+    "attendance_history": "{count}: entered by {name} on {date} at {time}",
+    "attendance_history_in_person": "In the hall",
+    "attendance_history_online": "Online",
+    "attendance_history_never": "{count}: never entered",
+    "attendance_panel_previous": "More recent meeting",
+    "attendance_panel_next": "Older meeting",
+    "attendance_empty_title": "No meeting is counted yet.",
+    "attendance_empty_body": "Choose in your program templates which meetings are counted.",
+    "attendance_empty_action": "Open the program templates",
+    "attendance_history_cleared": "{count}: cleared by {name} on {date} at {time}",
+    "attendance_col_actions": "Actions",
+    "attendance_error_count_failed": "Not saved, try again",
+    "board_programme_attendance": "Attendance last week: {meetings}",
+    "settings_programme_attendance": "Show attendance on the program",
+    "settings_programme_attendance_description": "Everyone who sees the program reads last week’s attendance, total only. Averages and history stay restricted.",
+    "board_programme_attendance_item": "{day}: {total}",
+    "attendance_xlsx_meetings_sheet": "Meetings",
+    "attendance_xlsx_summary_sheet": "By month",
+    "attendance_xlsx_col_date": "Date",
+    "attendance_xlsx_col_meeting": "Meeting",
+    "attendance_xlsx_col_in_person": "In the hall",
+    "attendance_xlsx_col_online": "Online",
+    "attendance_xlsx_col_total": "Total",
+    "attendance_xlsx_col_month": "Month",
+    "attendance_xlsx_col_midweek_count": "Midweek · meetings",
+    "attendance_xlsx_col_midweek_total": "Midweek · total",
+    "attendance_xlsx_col_midweek_average": "Midweek · average",
+    "attendance_xlsx_col_weekend_count": "Weekend · meetings",
+    "attendance_xlsx_col_weekend_total": "Weekend · total",
+    "attendance_xlsx_col_weekend_average": "Weekend · average",
+    "attendance_xlsx_year": "Service year",
+    "attendance_record_title": "Congregation meeting attendance record",
+    "attendance_record_col_meetings": "Number of meetings",
+    "attendance_record_col_total": "Total attendance",
+    "attendance_record_col_average": "Average attendance each week",
+    "attendance_record_year_average": "Average attendance for the year",
+    "attendance_record_filename_pdf": "attendance-{year}.pdf",
+    "attendance_record_filename_xlsx": "attendance-{year}.xlsx",
+    "attendance_export": "Export",
+    "attendance_export_pdf": "S-88 card (PDF)",
+    "attendance_export_xlsx": "Spreadsheet (Excel)",
+    "attendance_record_col_year": "Service year",
+    "attendance_record_form_reference": "S-88-E 12/18",
+    "attendance_export_title": "Export attendance",
+    "attendance_export_description": "Choose the format and the service year.",
+    "attendance_export_format": "Format",
+    "attendance_export_pdf_hint": "The chosen year and the one before side by side, as on the printed card.",
+    "attendance_export_xlsx_hint": "Every meeting held, and the year month by month.",
+    "attendance_export_year": "Service year",
+    "attendance_export_generating": "Preparing the file…",
+    "attendance_export_error_redirected": "You no longer have access to attendance.",
+    "attendance_export_error_generic": "The export failed. Try again."
 }

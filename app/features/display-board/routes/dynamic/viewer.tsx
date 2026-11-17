@@ -86,6 +86,7 @@ export function loader({ params, request, context }: Route.LoaderArgs) {
     const rawData = await getDynamicDocumentData(db, settings.dynamicType, settings.dynamicRef, congregationId, {
       showServices: settings.showServices,
       dynamicConfig: settings.dynamicConfig,
+      attendance: { timeZone: timezone, now: new Date() },
     })
     const { data, requestedEventMissing } = filterDynamicDataToEvent(rawData, eventIdFilter)
 

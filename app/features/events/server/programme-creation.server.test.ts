@@ -8,12 +8,21 @@ vi.mock('~/shared/domain/audit.server', () => ({
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
-    eventTemplate: { findFirst: vi.fn(), findMany: vi.fn() },
-    event: { findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn() },
+    eventTemplate: { findFirst: vi.fn(), findMany: vi.fn(), update: vi.fn() },
+    event: {
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      create: vi.fn(),
+      createMany: vi.fn(),
+      update: vi.fn(),
+      deleteMany: vi.fn(),
+    },
     eventPart: { create: vi.fn() },
     eventServicePart: { create: vi.fn() },
     eventPartAllowedRole: { createMany: vi.fn() },
     eventServicePartAllowedRole: { createMany: vi.fn() },
+    $queryRaw: vi.fn(),
+    $executeRaw: vi.fn(),
   },
 }))
 
@@ -75,6 +84,259 @@ beforeEach(() => {
   vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
   vi.mocked(db.eventPart.create).mockResolvedValue({ id: 700 } as never)
   vi.mocked(db.eventServicePart.create).mockResolvedValue({ id: 800 } as never)
+})
+
+const WITH_PART = {
+  ...MIDWEEK,
+  parts: [
+    {
+      id: 11,
+      name: 'Discours',
+      section: '',
+      track: '',
+      trackOrder: null,
+      order: 1,
+      durationMin: 10,
+      allowExternalSpeaker: false,
+      speakerLabel: null,
+      readerLabel: null,
+      presetId: null,
+      allowedRoles: [],
+    },
+  ],
+}
+const BARE = { createdById: null, attendance: null, _count: { eventParts: 0, eventServiceParts: 0 } }
+
+describe('bare events', () => {
+  it('gives a bare event of the series its programme instead of creating a second one', async () => {
+    vi.mocked(db.eventTemplate.findMany).mockResolvedValue([WITH_PART] as never)
+    vi.mocked(db.event.findMany).mockResolvedValue([
+      { id: 55, templateId: 270, startDate: new Date('2026-11-19T23:00:00Z'), ...BARE },
+    ] as never)
+    const events = recordEvents()
+
+    const result = await createProgrammeSeries(db, { templateIds: [270], from: '2026-11-16', to: '2026-11-22' }, CTX)
+
+    expect(events).toEqual([])
+    expect(vi.mocked(db.eventPart.create).mock.calls[0]?.[0]).toMatchObject({ data: { eventId: 55, partId: 11 } })
+    expect(result.created).toEqual([{ id: 55, templateId: 270, day: '2026-11-19' }])
+    expect(result.existing).toBe(0)
+  })
+
+  it('leaves a day alone when its event already has a programme', async () => {
+    vi.mocked(db.eventTemplate.findMany).mockResolvedValue([WITH_PART] as never)
+    vi.mocked(db.event.findMany).mockResolvedValue([
+      {
+        id: 55,
+        templateId: 270,
+        startDate: new Date('2026-11-19T23:00:00Z'),
+        _count: { eventParts: 3, eventServiceParts: 0 },
+      },
+    ] as never)
+    recordEvents()
+
+    const result = await createProgrammeSeries(db, { templateIds: [270], from: '2026-11-16', to: '2026-11-22' }, CTX)
+
+    expect(db.eventPart.create).not.toHaveBeenCalled()
+    expect(result.existing).toBe(1)
+  })
+
+  it('gives a bare event its programme when created on its day', async () => {
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue(WITH_PART as never)
+    vi.mocked(db.event.findMany).mockResolvedValue([{ id: 77, ...BARE }] as never)
+    recordEvents()
+
+    const created = await createProgrammeOnDay(db, { templateId: 270, day: '2026-11-26' }, CTX)
+
+    expect(created).toEqual({ id: 77, templateId: 270, day: '2026-11-26' })
+    expect(db.event.create).not.toHaveBeenCalled()
+    expect(vi.mocked(db.eventPart.create).mock.calls[0]?.[0]).toMatchObject({ data: { eventId: 77 } })
+  })
+})
+
+describe('bare events, edge cases', () => {
+  it('deletes an empty meeting on a day the series passes on purpose, and counts it skipped', async () => {
+    vi.mocked(db.eventTemplate.findMany).mockResolvedValue([WITH_PART] as never)
+    vi.mocked(db.event.findMany).mockResolvedValue([
+      { id: 55, templateId: 270, startDate: new Date('2026-11-19T23:00:00Z'), ...BARE },
+    ] as never)
+    recordEvents()
+
+    const result = await createProgrammeSeries(
+      db,
+      { templateIds: [270], from: '2026-11-16', to: '2026-11-22', skip: ['270:2026-11-19'] },
+      CTX,
+    )
+
+    expect(db.event.deleteMany).toHaveBeenCalledWith({ where: { id: 55, congregationId: 7 } })
+    expect(db.eventPart.create).not.toHaveBeenCalled()
+    expect(result).toMatchObject({ created: [], skipped: 1 })
+  })
+
+  it('sets a reused meeting’s hours and name from the template again', async () => {
+    vi.mocked(db.eventTemplate.findMany).mockResolvedValue([WITH_PART] as never)
+    vi.mocked(db.event.findMany).mockResolvedValue([
+      { id: 55, templateId: 270, startDate: new Date('2026-11-19T23:00:00Z'), ...BARE },
+    ] as never)
+    recordEvents()
+
+    await createProgrammeSeries(db, { templateIds: [270], from: '2026-11-16', to: '2026-11-22' }, CTX)
+
+    expect(vi.mocked(db.event.update).mock.calls[0]?.[0]).toMatchObject({
+      where: { id_congregationId: { id: 55, congregationId: 7 } },
+      data: { name: 'Réunion de semaine', createdById: 42 },
+    })
+    expect(hour(vi.mocked(db.event.update).mock.calls[0]?.[0]?.data?.startDate as Date)).toBe('19:00')
+  })
+
+  // Asked for a programme, a meeting without one gets it — even one someone emptied, or one already counted.
+  it('fills a meeting whose programme was removed, and one with counts, when asked for the series', async () => {
+    vi.mocked(db.eventTemplate.findMany).mockResolvedValue([WITH_PART] as never)
+    vi.mocked(db.event.findMany).mockResolvedValue([
+      { id: 55, templateId: 270, startDate: new Date('2026-11-19T23:00:00Z'), ...BARE, createdById: 9 },
+      { id: 56, templateId: 270, startDate: new Date('2026-11-26T23:00:00Z'), ...BARE, attendance: { id: 1 } },
+    ] as never)
+    recordEvents()
+
+    const result = await createProgrammeSeries(db, { templateIds: [270], from: '2026-11-16', to: '2026-11-29' }, CTX)
+
+    expect(result.created.map(created => created.id)).toEqual([55, 56])
+    expect(result.existing).toBe(0)
+  })
+
+  it('keeps the author, name and hours of a meeting someone prepared before', async () => {
+    vi.mocked(db.eventTemplate.findMany).mockResolvedValue([WITH_PART] as never)
+    vi.mocked(db.event.findMany).mockResolvedValue([
+      { id: 55, templateId: 270, startDate: new Date('2026-11-19T23:00:00Z'), ...BARE, createdById: 9 },
+    ] as never)
+    recordEvents()
+
+    await createProgrammeSeries(db, { templateIds: [270], from: '2026-11-16', to: '2026-11-22' }, CTX)
+
+    expect(db.event.update).not.toHaveBeenCalled()
+    expect(db.eventPart.create).toHaveBeenCalled()
+  })
+
+  it('never deletes a meeting with counts on a day the series passes, though it has no programme', async () => {
+    vi.mocked(db.eventTemplate.findMany).mockResolvedValue([WITH_PART] as never)
+    vi.mocked(db.event.findMany).mockResolvedValue([
+      { id: 56, templateId: 270, startDate: new Date('2026-11-19T23:00:00Z'), ...BARE, attendance: { id: 1 } },
+    ] as never)
+    recordEvents()
+
+    const result = await createProgrammeSeries(
+      db,
+      { templateIds: [270], from: '2026-11-16', to: '2026-11-22', skip: ['270:2026-11-19'] },
+      CTX,
+    )
+
+    expect(db.event.deleteMany).not.toHaveBeenCalled()
+    expect(db.eventPart.create).not.toHaveBeenCalled()
+    expect(result).toMatchObject({ created: [], skipped: 1 })
+  })
+
+  it('fills a counted meeting without a programme when created on its day', async () => {
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue(WITH_PART as never)
+    vi.mocked(db.event.findMany).mockResolvedValue([
+      { id: 56, ...BARE, createdById: 9, attendance: { id: 1 } },
+    ] as never)
+    recordEvents()
+
+    const created = await createProgrammeOnDay(db, { templateId: 270, day: '2026-11-26' }, CTX)
+
+    expect(created.id).toBe(56)
+    expect(db.eventPart.create).toHaveBeenCalled()
+  })
+
+  it('never reports a programme created when the template has nothing to give', async () => {
+    vi.mocked(db.eventTemplate.findMany).mockResolvedValue([MIDWEEK] as never)
+    vi.mocked(db.event.findMany).mockResolvedValue([
+      { id: 55, templateId: 270, startDate: new Date('2026-11-19T23:00:00Z'), ...BARE },
+    ] as never)
+    recordEvents()
+
+    const result = await createProgrammeSeries(db, { templateIds: [270], from: '2026-11-16', to: '2026-11-22' }, CTX)
+
+    expect(result).toMatchObject({ created: [], existing: 1 })
+  })
+
+  it('lets a prepared programme decide when a day also has an empty meeting', async () => {
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue(WITH_PART as never)
+    vi.mocked(db.event.findMany).mockResolvedValue([
+      { id: 55, ...BARE },
+      { id: 77, createdById: 42, attendance: null, _count: { eventParts: 4, eventServiceParts: 1 } },
+    ] as never)
+
+    const refusal = await createProgrammeOnDay(db, { templateId: 270, day: '2026-11-26' }, CTX).catch(error => error)
+
+    expect(refusal).toBeInstanceOf(ProgrammeExistsError)
+    expect(refusal.eventId).toBe(77)
+  })
+})
+
+describe('the high-water mark', () => {
+  it('moves a template’s mark to the end of a series that reaches past it, so a passed day is never refilled', async () => {
+    vi.mocked(db.eventTemplate.findMany).mockResolvedValue([{ ...MIDWEEK, generatedUntil: '2026-11-30' }] as never)
+    recordEvents()
+
+    await createProgrammeSeries(
+      db,
+      { templateIds: [270], from: '2026-11-16', to: '2027-02-28', skip: ['270:2027-02-25'] },
+      CTX,
+    )
+
+    expect(db.$executeRaw).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(db.$executeRaw).mock.calls[0]?.slice(1)).toEqual(['2027-02-28', '2027-02-28', 270, 7])
+  })
+
+  it('never moves the mark back', async () => {
+    vi.mocked(db.eventTemplate.findMany).mockResolvedValue([{ ...MIDWEEK, generatedUntil: '2027-06-30' }] as never)
+    recordEvents()
+
+    await createProgrammeSeries(db, { templateIds: [270], from: '2026-11-16', to: '2026-11-30' }, CTX)
+
+    expect(db.$executeRaw).not.toHaveBeenCalled()
+  })
+
+  // A single day far ahead says nothing about the weeks before it: moving the mark there would leave them uncreated.
+  it('leaves the mark alone when one programme is created beyond it', async () => {
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({ ...MIDWEEK, generatedUntil: '2027-01-16' } as never)
+    recordEvents()
+
+    await createProgrammeOnDay(db, { templateId: 270, day: '2027-03-04' }, CTX)
+
+    expect(db.$executeRaw).not.toHaveBeenCalled()
+  })
+
+  it('fills the weeks between the mark and a series that starts beyond it, then moves the mark', async () => {
+    vi.mocked(db.eventTemplate.findMany).mockResolvedValue([{ ...MIDWEEK, generatedUntil: '2027-01-16' }] as never)
+    recordEvents()
+
+    await createProgrammeSeries(db, { templateIds: [270], from: '2027-02-01', to: '2027-02-28' }, CTX)
+
+    const gap = vi.mocked(db.event.createMany).mock.calls[0]?.[0]?.data as { startDate: Date; createdById: null }[]
+    expect(gap.map(event => dayOf(event.startDate, MARTINIQUE))).toEqual(['2027-01-21', '2027-01-28'])
+    expect(gap.every(event => event.createdById === null)).toBe(true)
+    expect(vi.mocked(db.$executeRaw).mock.calls[0]?.slice(1)).toEqual(['2027-02-28', '2027-02-28', 270, 7])
+  })
+
+  it('locks the templates before reading which days they already have', async () => {
+    vi.mocked(db.eventTemplate.findMany).mockResolvedValue([MIDWEEK] as never)
+    const order: string[] = []
+    vi.mocked(db.$queryRaw).mockImplementation((() => {
+      order.push('lock')
+      return Promise.resolve([])
+    }) as never)
+    vi.mocked(db.event.findMany).mockImplementation((() => {
+      order.push('existing')
+      return Promise.resolve([])
+    }) as never)
+    recordEvents()
+
+    await createProgrammeSeries(db, { templateIds: [270], from: '2026-11-16', to: '2026-11-22' }, CTX)
+
+    expect(order).toEqual(['lock', 'existing'])
+  })
 })
 
 describe('createProgrammeSeries', () => {
@@ -238,7 +500,9 @@ describe('createProgrammeOnDay', () => {
 
   it('refuses a day the template already has a programme on, naming it', async () => {
     vi.mocked(db.eventTemplate.findFirst).mockResolvedValue(MIDWEEK as never)
-    vi.mocked(db.event.findFirst).mockResolvedValue({ id: 77 } as never)
+    vi.mocked(db.event.findMany).mockResolvedValue([
+      { id: 77, createdById: 42, attendance: null, _count: { eventParts: 4, eventServiceParts: 1 } },
+    ] as never)
 
     const refusal = await createProgrammeOnDay(db, { templateId: 270, day: '2026-11-26' }, CTX).catch(error => error)
 

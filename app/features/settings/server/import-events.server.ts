@@ -1,8 +1,19 @@
 import type JsZip from 'jszip'
+import { EventTemplateKey } from '~/features/events'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { createLogger } from '~/shared/infra/logger.server'
 import type { EntityIdMap } from './data-transfer.type'
 import { readNdjsonFile } from './ndjson-archive'
 
+const logger = createLogger('import-events')
+
+/**
+ * Events. An event whose author is not in the archive (or was skipped) keeps going without one, as the events the
+ * recurring-events job creates do; an absence cannot — its author is the person away — so it is skipped, and counted.
+ *
+ * A fresh congregation already has its first two months of empty meetings from seeding: the archive's meetings replace
+ * them, and the recurring-events job starts again after the last imported one.
+ */
 export async function importEvents(
   zip: JsZip,
   db: TransactionClient,
@@ -16,21 +27,45 @@ export async function importEvents(
     startDate: string
     endDate: string
     templateId: number | null
-    createdById: number
+    createdById: number | null
     createdAt: string
   }>(zip, 'events')
+  if (records.length === 0) return
 
+  const dayOff = await db.eventTemplate.findFirst({
+    where: { key: EventTemplateKey.DayOff, congregationId },
+    select: { id: true },
+  })
+  if (!dayOff) logger.warn('No day-off template: absences without their owner cannot be told apart', { congregationId })
+  // A fresh congregation already has empty meetings from seeding, on the seeded weekdays. The archive's meetings
+  // replace them all — never one with attendance — and every template's mark is reset, so the recurring-events job
+  // starts again after the last imported meeting, on the archive's own weekdays.
+  await db.event.deleteMany({
+    where: {
+      congregationId,
+      createdById: null,
+      eventParts: { none: {} },
+      eventServiceParts: { none: {} },
+      attendance: { is: null },
+    },
+  })
+  await db.eventTemplate.updateMany({ where: { congregationId }, data: { generatedUntil: null } })
+
+  let ownerless = 0
   for (const record of records) {
-    const createdById = idMap.getOptional('user-accounts', record.createdById)
-    if (!createdById) continue
-
     const templateId = idMap.getOptional('programme-templates', record.templateId)
+    const createdById = idMap.getOptional('user-accounts', record.createdById)
+    if (createdById == null && templateId != null && templateId === dayOff?.id) {
+      ownerless++
+      continue
+    }
 
+    const startDate = new Date(record.startDate)
     const created = await db.event.create({
       data: {
         name: record.name,
         description: record.description,
-        startDate: new Date(record.startDate),
+        startDate,
         endDate: new Date(record.endDate),
         templateId,
         createdById,
@@ -38,6 +73,9 @@ export async function importEvents(
       },
     })
     idMap.set('events', record.id, created.id)
+  }
+  if (ownerless > 0) {
+    logger.warn(`Skipped ${ownerless} absence(s) whose owner was not imported`, { congregationId })
   }
 }
 

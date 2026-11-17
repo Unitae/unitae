@@ -30,6 +30,7 @@ function permissions(overrides: Partial<NavigationPermissions> = {}): Navigation
     canViewAbsences: false,
     canViewActivity: false,
     canViewExternalSpeakers: false,
+    canEnterAttendance: false,
     canManageExternalSpeakers: false,
     canViewRoles: false,
     canManageRoles: false,
@@ -134,6 +135,21 @@ describe('buildManagementSections', () => {
     // Viewing programmes does not grant seeing other people's absences: the page would turn them away.
     expect(programsOf({ canViewPrograms: true })).toEqual(['programs'])
     expect(programsOf({})).toBeUndefined()
+  })
+
+  // The section reads « Réunions » and takes the attendance page, for whoever may enter the counts.
+  it('names the section « Réunions » and adds the attendance page for those who enter it', () => {
+    const section = buildManagementSections(permissions({ canViewPrograms: true, canEnterAttendance: true })).find(
+      s => s.id === 'programs',
+    )
+
+    expect(section?.label()).toBe('Réunions')
+    expect(section?.items.map(item => item.id)).toEqual(['programs', 'attendance'])
+    expect(
+      buildManagementSections(permissions({ canEnterAttendance: true }))
+        .find(s => s.id === 'programs')
+        ?.items.map(item => item.id),
+    ).toEqual(['attendance'])
   })
 
   it('assembles every section for a full administrator, in stable order', () => {
@@ -342,9 +358,10 @@ describe('navGroupFor', () => {
   it('names the group a page belongs to, for the start of its trail', () => {
     expect(navGroupFor('/publishers')).toBe('Assemblée')
     expect(navGroupFor('/publishers/12/view')).toBe('Assemblée')
-    expect(navGroupFor('/programs/events/421')).toBe('Programmes')
-    expect(navGroupFor('/programs/external-speakers/3/edit')).toBe('Programmes')
-    expect(navGroupFor('/programs/days-off')).toBe('Programmes')
+    expect(navGroupFor('/programs/events/421')).toBe('Réunions')
+    expect(navGroupFor('/programs/external-speakers/3/edit')).toBe('Réunions')
+    expect(navGroupFor('/programs/days-off')).toBe('Réunions')
+    expect(navGroupFor('/attendance')).toBe('Réunions')
     expect(navGroupFor('/territories/buildings/8/view')).toBe('Territoires')
     expect(navGroupFor('/board/documents')).toBe('Tableau d’affichage')
   })

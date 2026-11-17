@@ -64,7 +64,14 @@ export async function getTemplatePage(
       where: { servicePartId: { in: template.serviceParts.map(service => service.id) }, congregationId },
       select: { servicePartId: true, roleId: true },
     }),
-    db.event.count({ where: { templateId, congregationId } }),
+    // Empty meetings created ahead do not make a template « in use » (see deleteTemplate).
+    db.event.count({
+      where: {
+        templateId,
+        congregationId,
+        NOT: { createdById: null, eventParts: { none: {} }, eventServiceParts: { none: {} }, attendance: { is: null } },
+      },
+    }),
     listRoles(db, congregationId),
     listPartPresets(db, congregationId),
   ])

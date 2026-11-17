@@ -69,6 +69,15 @@ describe('dashboardVisibility', () => {
     expect(v.group).toEqual({ groupId: 9, canRecord: true })
   })
 
+  // The hall usher and the Zoom host: the attendance card from the start of the meeting, with nothing else to see.
+  it('gives whoever enters or corrects attendance the attendance card, and nobody else', () => {
+    expect(dashboardVisibility(viewer([Permission.CanRecordAttendance])).attendance).toBe(true)
+    expect(dashboardVisibility(viewer([Permission.CanCorrectAttendance])).attendance).toBe(true)
+    expect(dashboardVisibility(viewer([Permission.CanViewPrograms, Permission.CanManagePrograms])).attendance).toBe(
+      false,
+    )
+  })
+
   it('gives the territory servant the territory figures and the assign shortcut, nothing about publishers', () => {
     const v = dashboardVisibility(
       viewer([

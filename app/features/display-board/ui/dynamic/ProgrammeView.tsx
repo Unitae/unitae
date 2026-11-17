@@ -1,6 +1,7 @@
 import { Tag } from '@unitae/ui'
 import { Calendar, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
+import { type AttendanceLineMeeting, attendanceLineItems } from '~/features/display-board/model/attendance-line'
 import { partMatches } from '~/features/display-board/model/board-reader'
 import type { ProgrammeDynamicConfig } from '~/features/display-board/model/dynamic-document.type'
 import { programmePdfOptions } from '~/features/display-board/model/programme-pdf-options'
@@ -67,6 +68,8 @@ export interface ProgrammeViewData {
   /** When the programme is read, from the server: the week under way and the past meetings follow it. */
   now: Date
   timeZone: string
+  /** Last week's attendance, when the congregation shows it on the programme: a line under the week under way. */
+  attendance?: AttendanceLineMeeting[] | null
 }
 
 type Unit = ProgrammeUnit<ProgrammeEvent>
@@ -284,7 +287,7 @@ function WeekRail({
   )
 }
 
-export function ProgrammeView({ events, showServices, config, now, timeZone }: ProgrammeViewData) {
+export function ProgrammeView({ events, showServices, config, now, timeZone, attendance }: ProgrammeViewData) {
   const { query } = useBoardReading()
   const [showPast, setShowPast] = useState(false)
 
@@ -349,6 +352,15 @@ export function ProgrammeView({ events, showServices, config, now, timeZone }: P
             </span>
             {week.current && <span>{m.board_programme_this_week()}</span>}
           </h2>
+          {week.current && attendance && (
+            <p className="-mt-3 font-sans text-muted-foreground text-sm">
+              {m.board_programme_attendance({
+                meetings: attendanceLineItems(attendance, getLocale(), (day, total) =>
+                  m.board_programme_attendance_item({ day, total }),
+                ),
+              })}
+            </p>
+          )}
           {week.units.map(unit => (
             <Meeting key={unit.event.id} unit={unit} past={isPast(unit)} timeZone={timeZone} />
           ))}

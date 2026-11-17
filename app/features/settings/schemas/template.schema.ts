@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { MANAGED_ROLE_SLOTS_FIELD } from '~/features/events'
+import { ATTENDANCE_KINDS, type AttendanceKind, MANAGED_ROLE_SLOTS_FIELD } from '~/features/events'
 import * as m from '~/i18n/paraglide/messages'
 
 const TIME_REGEX = /^\d{2}:\d{2}$/
@@ -38,6 +38,8 @@ export const updateTemplateSchema = z.object({
     .optional(),
   startTime: z.string().regex(TIME_REGEX).optional(),
   endTime: z.string().regex(TIME_REGEX).optional(),
+  /** How its meetings count in attendance: sent by the managers' form only. */
+  attendanceKind: z.enum(ATTENDANCE_KINDS as [AttendanceKind, ...AttendanceKind[]]).optional(),
   /** Who runs the programme and the services: sent by the managers' form only. */
   programmeRoleId: z
     .string()

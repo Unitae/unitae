@@ -1,6 +1,7 @@
 import { CalendarRange, Plus } from 'lucide-react'
 import { Link } from 'react-router'
 
+import { HelpEntryButton } from '~/features/help'
 import { getCampaignStatus } from '~/features/territories/model/campaign-status'
 import { listCampaigns } from '~/features/territories/server/campaign.queries'
 import { listCampaignCoverage } from '~/features/territories/server/campaign-progress.queries'
@@ -14,6 +15,9 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import { formatLocalDate } from '~/shared/utils/date.server'
 
 import type { Route } from './+types/list'
+
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.campaigns_meta_title() }]
@@ -78,7 +82,8 @@ export default function CampaignsList({ loaderData }: Route.ComponentProps) {
           { label: m.sidebar_attributions(), to: '/territories/attributions' },
           { label: m.campaigns_title() },
         ]}
-        actions={campaigns.length > 0 ? create : undefined}
+        actions={campaigns.length > 0 ? create : null}
+        help={<HelpEntryButton slug="campaign-create" />}
       />
 
       {campaigns.length === 0 ? (

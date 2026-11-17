@@ -1,6 +1,7 @@
 import { MapIcon, Plus, Scissors } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
+import { HelpEntryButton } from '~/features/help'
 import {
   inTerritoryView,
   parseTerritorySort,
@@ -29,6 +30,9 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import { formatLocalDate } from '~/shared/utils/date.server'
 
 import type { Route } from './+types/list'
+
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 export const meta: Route.MetaFunction = () => [{ title: m.territories_list_meta_title() }]
 
@@ -138,7 +142,8 @@ export default function TerritoryList({ loaderData }: Route.ComponentProps) {
           ) : undefined
         }
         breadcrumbs={[{ label: m.sidebar_territories() }]}
-        actions={actions || undefined}
+        actions={actions}
+        help={<HelpEntryButton slug="create-territory" />}
       />
       <GeocodeNotice notice={loaderData.geocodeNotice} />
 

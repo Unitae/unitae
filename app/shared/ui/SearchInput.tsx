@@ -10,10 +10,12 @@ import { Input } from '~/shared/ui/input'
 interface SearchInputProps {
   paramName?: string
   placeholder?: string
+  /** The field's accessible name. A placeholder alone is not one: it disappears as soon as something is typed. */
+  label?: string
   delay?: number
 }
 
-export function SearchInput({ paramName = 'q', placeholder, delay = 300 }: SearchInputProps) {
+export function SearchInput({ paramName = 'q', placeholder, label, delay = 300 }: SearchInputProps) {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigation = useNavigation()
   const initialValue = searchParams.get(paramName) ?? ''
@@ -61,6 +63,7 @@ export function SearchInput({ paramName = 'q', placeholder, delay = 300 }: Searc
         value={value}
         onChange={e => setValue(e.target.value)}
         placeholder={placeholder}
+        aria-label={label}
         className="pr-9 pl-9"
       />
       {isSearching ? (

@@ -24,6 +24,11 @@ vi.mock('~/shared/infra/db.server', () => ({
   withScope: vi.fn((_id: number, fn: (db: unknown) => Promise<unknown>) => fn(scopedDb)),
 }))
 
+const extendRecurringEvents = vi.fn()
+vi.mock('~/features/events/server/recurring-events.server', () => ({
+  extendRecurringEvents: (...args: unknown[]) => extendRecurringEvents(...args),
+}))
+
 vi.mock('~/shared/auth/crypto.server', () => ({
   hash: vi.fn().mockResolvedValue('hashed-password' as never),
 }))
@@ -78,6 +83,23 @@ describe('registerCongregation', () => {
     // The subdomain must never be derivable from the name: a random suffix is mandatory.
     expect('congregationSlug' in result && result.congregationSlug).toMatch(SUFFIXED_SLUG)
     expect('congregationSlug' in result && result.congregationSlug).not.toBe('test-congre')
+  })
+
+  it('still signs up when the first meetings cannot be created: the daily job catches up', async () => {
+    extendRecurringEvents.mockRejectedValueOnce(new Error('boom'))
+
+    await expect(
+      registerCongregation('Ma Congrégation', 'test-congre', 'admin@test.com', 'motdepasse', 'fr'),
+    ).resolves.toBeDefined()
+  })
+
+  it('creates the first two months of recurring meetings for the new congregation', async () => {
+    await registerCongregation('Ma Congrégation', 'test-congre', 'admin@test.com', 'motdepasse', 'fr')
+
+    expect(extendRecurringEvents).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ congregationId: 1 }),
+    )
   })
 
   it('donne les droits admin au premier compte via un rôle, pas un octroi direct', async () => {

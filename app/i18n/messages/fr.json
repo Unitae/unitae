@@ -1019,7 +1019,7 @@
     "settings_territories_zips_hint": "Les adresses de ces codes postaux seulement.",
     "settings_territories_prospection_validity_label": "Validité d’une prospection",
     "settings_territories_attributions_title": "Durée des attributions",
-    "settings_territories_attribution_default_duration_label": "Porte-à-porte, campus et hôtels",
+    "settings_territories_attribution_default_duration_label": "Porte à porte, campus et hôtels",
     "settings_territories_attribution_phone_duration_label": "Téléphone",
     "settings_territories_attribution_commerce_duration_label": "Commerces",
     "settings_territories_attribution_duration_days_unit": "jours",
@@ -1763,6 +1763,19 @@
             }
         }
     ],
+    "programs_awaiting_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} sans programme",
+                "countPlural=*": "{count} sans programme"
+            }
+        }
+    ],
     "programs_drafts_count": [
         {
             "declarations": [
@@ -1890,6 +1903,32 @@
             }
         }
     ],
+    "programs_bulk_delete_success": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} évènement supprimé.",
+                "countPlural=*": "{count} évènements supprimés."
+            }
+        }
+    ],
+    "programs_bulk_delete_kept_attendance": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} réunion gardée pour son assistance : son programme a été retiré.",
+                "countPlural=*": "{count} réunions gardées pour leur assistance : leur programme a été retiré."
+            }
+        }
+    ],
     "programs_bulk_delete_button": "Supprimer",
     "programs_bulk_delete_title": [
         {
@@ -1932,6 +1971,12 @@
         }
     ],
     "programs_page_title": "Programmes",
+    "programs_awaiting_badge": "Pas encore de programme",
+    "programs_create_programme_button": "Créer le programme",
+    "programs_create_programme_success": "Programme créé.",
+    "programs_create_programme_exists": "Cette réunion a déjà un programme.",
+    "programs_create_programme_nothing": "Le modèle de cette réunion n’a ni partie ni service à lui donner.",
+    "programs_awaiting_hint": "Cette réunion n’a pas encore de programme. « Créer le programme » lui donne les parties et les services de son modèle.",
     "programs_event_draft_badge": "Brouillon",
     "programs_event_release_button": "Publier",
     "programs_event_unrelease_button": "Repasser en brouillon",
@@ -1946,6 +1991,19 @@
             "match": {
                 "countPlural=one": "{count} évènement publié.",
                 "countPlural=*": "{count} évènements publiés."
+            }
+        }
+    ],
+    "programs_release_awaiting_bulk": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} réunion sans programme n’a pas été publiée.",
+                "countPlural=*": "{count} réunions sans programme n’ont pas été publiées."
             }
         }
     ],
@@ -2234,7 +2292,13 @@
     "programs_delete_dialog_title": "Supprimer ce programme ?",
     "programs_delete_dialog_description": "« {name} » du {date} sera supprimé, avec ses parties, ses services et leurs attributions. Ce n’est pas réversible.",
     "programs_delete_submit": "Supprimer l’évènement",
+    "programs_delete_meeting_title": "Supprimer cette réunion ?",
+    "programs_delete_meeting_description": "« {name} » du {date} sera supprimée et ne sera pas recréée : c’est ainsi qu’on indique une semaine sans réunion.",
+    "programs_delete_meeting_submit": "Supprimer la réunion",
+    "programs_delete_programme_only_description": "Les parties et les services de « {name} » du {date} seront supprimés, avec leurs attributions. La réunion reste, avec son assistance.",
+    "programs_delete_programme_submit": "Supprimer le programme",
     "programs_delete_success": "L’évènement « {name} » a été supprimé.",
+    "programs_delete_kept_attendance": "Le programme a été retiré ; « {name} » reste, avec son assistance.",
     "programs_assign_part_topic_label": "Sujet / Titre",
     "programs_assign_part_speaker_label": "Intervenant",
     "programs_assign_part_select_publisher": "Sélectionner un proclamateur",
@@ -2392,7 +2456,7 @@
     "territories_type_hotel_singular": "Hôtel",
     "territories_type_university": "Universités",
     "territories_type_university_singular": "Université",
-    "territories_type_classical_capitalized": "Porte à Porte",
+    "territories_type_classical_capitalized": "Porte à porte",
     "territories_content_phones": [
         {
             "declarations": [
@@ -3749,6 +3813,9 @@
     "permission_desc_can_view_absences": "Peut voir les absences des autres",
     "permission_desc_can_view_external_speakers": "Peut consulter le registre des orateurs extérieurs",
     "permission_desc_can_manage_external_speakers": "Peut ajouter et modifier les orateurs extérieurs",
+    "permission_desc_can_record_attendance": "Peut saisir l’assistance de la réunion en cours, jusqu’à minuit",
+    "permission_desc_can_correct_attendance": "Peut corriger l’assistance de toute réunion, à tout moment ; chaque correction va au journal",
+    "permission_desc_can_view_attendance": "Peut consulter l’assistance aux réunions : moyennes, historique et exports",
     "permission_desc_can_view_users": "Peut voir les comptes utilisateurs et leurs rôles",
     "permission_desc_can_manage_users": "Peut créer, modifier et supprimer des comptes utilisateurs",
     "permission_desc_can_view_roles": "Peut voir les rôles et leurs membres",
@@ -3764,7 +3831,7 @@
     "permission_category_territories": "Territoires",
     "permission_category_publishers": "Proclamateurs",
     "permission_category_emergency": "Urgence",
-    "permission_category_programs": "Programmes",
+    "permission_category_programs": "Réunions",
     "permission_category_settings": "Réglages",
     "sidebar_assembly_organigram": "Organigramme",
     "role_name_member": "Membres",
@@ -5697,6 +5764,60 @@
     "settings_templates_new_submit": "Créer le modèle",
     "settings_templates_name_required": "Saisissez le nom du modèle.",
     "settings_template_page_subtitle": "Modèle de programme",
+    "settings_template_move_meetings_title": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} réunion à venir n’est pas au jour et à l’heure du modèle.",
+                "countPlural=*": "{count} réunions à venir ne sont pas au jour et à l’heure du modèle."
+            }
+        }
+    ],
+    "settings_template_move_meetings_body": "Chaque réunion sans programme va au jour du modèle dans sa propre semaine. Une semaine qui a déjà sa réunion ce jour-là garde la sienne, et les semaines supprimées le restent.",
+    "settings_template_move_meetings_button": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Déplacer la réunion à venir",
+                "countPlural=*": "Déplacer les {count} réunions à venir"
+            }
+        }
+    ],
+    "settings_template_move_meetings_moved": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} réunion déplacée.",
+                "countPlural=*": "{count} réunions déplacées."
+            }
+        }
+    ],
+    "settings_template_move_meetings_removed": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} réunion supprimée : sa semaine avait déjà la sienne.",
+                "countPlural=*": "{count} réunions supprimées : leur semaine avait déjà la sienne."
+            }
+        }
+    ],
+    "settings_template_move_meetings_none": "Les réunions à venir sont déjà au jour et à l’heure du modèle.",
     "settings_template_page_used": [
         {
             "declarations": [
@@ -5713,6 +5834,12 @@
     "settings_template_built_in_subtitle": "Modèle intégré",
     "settings_template_info": "Informations",
     "settings_template_color_hint": "Un point de cette couleur repère le modèle dans les listes et le calendrier.",
+    "settings_template_attendance_label": "Assistance",
+    "settings_template_attendance_none": "Non comptée",
+    "settings_template_attendance_midweek": "Réunion de semaine",
+    "settings_template_attendance_weekend": "Réunion de week-end",
+    "settings_template_attendance_separate": "Comptée à part",
+    "settings_template_attendance_hint": "Les moyennes et le S-88 ne prennent que les réunions de semaine et de week-end. « Comptée à part » enregistre l’assistance hors des moyennes et du S-88 (le Mémorial).",
     "settings_template_programme_responsible": "Responsable du programme",
     "settings_template_service_responsible": "Responsable des services",
     "settings_template_holders": "Aujourd’hui : {names}.",
@@ -6694,6 +6821,11 @@
     "external_speakers_pdf_filename": "orateurs {name} {date}",
     "audit_log_action_our_speaker_updated": "Orateur de notre liste modifié",
     "audit_log_action_our_speaker_list_sent": "Notre liste d’orateurs envoyée",
+    "audit_log_action_attendance_recorded": "Assistance saisie",
+    "audit_log_action_attendance_corrected": "Assistance corrigée",
+    "audit_log_action_event_recurring_created": "Réunions créées automatiquement",
+    "audit_log_action_event_recurring_moved": "Réunions à venir déplacées",
+    "audit_log_action_event_programme_removed": "Programme retiré, réunion gardée",
     "settings_external_speakers_role_gone": "Ce rôle n’existe plus : choisissez-en un autre.",
     "settings_external_speakers_open_organigram": "Ouvrir l’organigramme",
     "external_speakers_ours_error_phone": "Saisissez le numéro à partager, ou choisissez « De sa fiche ».",
@@ -6895,6 +7027,7 @@
     "event_part_error_day_off_publisher": "Ce proclamateur a une absence durant cette date.",
     "event_part_error_day_off_reader": "Le deuxième orateur a une absence durant cette date.",
     "event_status_error_release_blocked": "Impossible de publier : cet évènement a des conflits d’absence à résoudre.",
+    "event_status_error_release_awaiting": "Impossible de publier : cette réunion n’a pas encore de programme.",
     "role_tree_error_cycle": "Un service ne peut pas être rattaché à lui-même ni à l’un des services qui en dépendent.",
     "role_tree_error_too_deep": "L’organigramme ne peut pas dépasser {max} niveaux.",
     "role_tree_error_roster_is_root": "Les anciens et les assistants ministériels sont toujours au sommet de l’organigramme.",
@@ -6969,5 +7102,215 @@
     "share_message_default_school_talk": "Bonjour {assigneeFirstname},\n\nTu as un discours de l’école le {date} à {time}.\nSujet : {topic}\nDurée : {duration}\nNote : {note}\n\n{link}",
     "share_message_default_public_talk": "Bonjour {assigneeFirstname},\n\nTu donnes le discours public le {date} à {time}.\nThème : {topic}\nNote : {note}\n\n{link}",
     "share_message_default_watchtower_study": "Bonjour {assigneeFirstname},\n\nTu conduis l’Étude de La Tour de Garde le {date} à {time}.\nLecteur : {assistant}\nNote : {note}\n\n{link}",
-    "share_message_default_congregation_bible_study": "Bonjour {assigneeFirstname},\n\nTu conduis l’étude biblique de l’assemblée le {date} à {time}.\nLecteur : {assistant}\nNote : {note}\n\n{link}"
+    "share_message_default_congregation_bible_study": "Bonjour {assigneeFirstname},\n\nTu conduis l’étude biblique de l’assemblée le {date} à {time}.\nLecteur : {assistant}\nNote : {note}\n\n{link}",
+    "help_menu_label": "Aide",
+    "help_page_title": "Aide",
+    "help_page_intro": "Des articles courts, un par tâche. Seuls ceux qui concernent votre compte sont listés.",
+    "help_search_label": "Rechercher dans le texte de l’aide",
+    "help_search_empty": "Aucun article ne contient « {query} ».",
+    "help_search_try": "Essayez un mot plus court.",
+    "help_browse_all": "Parcourir tous les articles",
+    "help_related_title": "Articles liés",
+    "help_back_to_help": "Retour à l’aide",
+    "help_open_page": "Ouvrir la page",
+    "help_entry_label": "Aide sur cette page",
+    "help_unavailable": "Cet article n’est pas disponible pour ce compte.",
+    "help_missing": "Cet article n’existe pas.",
+    "help_fallback_question": "Vous ne trouvez pas ? Posez la question sur GitHub",
+    "help_fallback_privacy": "Le dépôt est public : ne collez aucune donnée de votre assemblée.",
+    "attendance_card_title": "Assistance · {name}",
+    "attendance_card_live": "En cours depuis {time} · saisie ouverte jusqu’à minuit",
+    "attendance_card_done": "Enregistrée · modifiable jusqu’à minuit",
+    "attendance_in_person": "En salle",
+    "attendance_online": "En visio",
+    "attendance_saved_by_you": "Par vous à {time}",
+    "attendance_saved_by": "{name} à {time}",
+    "attendance_someone": "Quelqu’un",
+    "attendance_waiting": "En attente",
+    "attendance_nothing": "Rien de saisi",
+    "attendance_partial": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} nombre sur 2",
+                "countPlural=*": "{count} nombres sur 2"
+            }
+        }
+    ],
+    "attendance_done_split": "{inPerson} en salle · {online} en visio",
+    "attendance_save": "Enregistrer",
+    "attendance_edit": "Modifier",
+    "attendance_error_taken": "Déjà saisi par quelqu’un d’autre",
+    "attendance_error_refused": "La saisie est close",
+    "attendance_error_invalid": "Un nombre entier de personnes",
+    "attendance_error_missing": "Cette réunion n’existe plus",
+    "attendance_page_title": "Assistance",
+    "attendance_page_meta_title": "Assistance",
+    "attendance_none": "Aucune réunion en cours.",
+    "attendance_next": "La saisie s’ouvre au début de la prochaine, {when}.",
+    "sidebar_attendance": "Assistance",
+    "sidebar_meetings": "Réunions",
+    "attendance_next_when": "{date} à {time}",
+    "attendance_you": "vous",
+    "attendance_done_by": "Par {names}",
+    "attendance_card_saved": "Enregistrée",
+    "attendance_error_failed": "L’assistance n’a pas pu être enregistrée. Réessayez.",
+    "help_load_error": "Cet article n’a pas pu être chargé.",
+    "help_meta_title": "Aide - Unitae",
+    "help_article_meta_title": "{title} - Aide - Unitae",
+    "help_capture_enlarge": "Agrandir : {alt}",
+    "attendance_year": "Année de service {label}",
+    "attendance_year_previous": "Année de service précédente",
+    "attendance_year_next": "Année de service suivante",
+    "attendance_metrics": "Assistance de l’année de service",
+    "attendance_metric_midweek": "Moyenne · réunion de semaine",
+    "attendance_metric_weekend": "Moyenne · réunion de week-end",
+    "attendance_metric_online": "En visioconférence",
+    "attendance_metric_entered": "Réunions saisies",
+    "attendance_metric_held": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "sur {count} tenue",
+                "countPlural=*": "sur {count} tenues"
+            }
+        }
+    ],
+    "attendance_metric_vs": "{delta} sur la même période l’an dernier ({previous})",
+    "attendance_metric_no_previous": "Rien à comparer l’an dernier",
+    "attendance_metric_online_foot": "de l’assistance totale, {previous} l’an dernier",
+    "attendance_metric_online_foot_alone": "de l’assistance totale",
+    "attendance_metric_to_complete": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} à compléter",
+                "countPlural=*": "{count} à compléter"
+            }
+        }
+    ],
+    "attendance_metric_all_entered": "Toutes saisies",
+    "attendance_chart_title": "Moyenne par mois",
+    "attendance_chart_subtitle": "{kind} · {measure} · une réunion n’entre dans la moyenne que complète",
+    "attendance_chart_aria": "Moyenne mensuelle de l’assistance, {kind}",
+    "attendance_chart_view": "Affichage",
+    "attendance_chart_chart": "Graphique",
+    "attendance_chart_table": "Tableau",
+    "attendance_kind_group": "Réunion",
+    "attendance_kind_midweek": "Semaine",
+    "attendance_kind_weekend": "Week-end",
+    "attendance_kind_midweek_full": "Réunion de semaine",
+    "attendance_kind_weekend_full": "Réunion de week-end",
+    "attendance_measure_group": "Mesure",
+    "attendance_measure_total": "Total",
+    "attendance_measure_in_person": "En salle",
+    "attendance_measure_online": "Visio",
+    "attendance_measure_total_long": "assistance totale",
+    "attendance_measure_in_person_long": "en salle",
+    "attendance_measure_online_long": "en visioconférence",
+    "attendance_col_month": "Mois",
+    "attendance_col_meetings": "Réunions complètes",
+    "attendance_view_group": "Vue",
+    "attendance_view_all": "Toutes",
+    "attendance_view_todo": "À compléter · {count}",
+    "attendance_view_apart": "Comptées à part",
+    "attendance_newest_first": "La plus récente en premier",
+    "attendance_month_summary": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} réunion saisie",
+                "countPlural=*": "{count} réunions saisies"
+            }
+        }
+    ],
+    "attendance_month_midweek": "semaine {average}",
+    "attendance_month_weekend": "week-end {average}",
+    "attendance_col_state": "État",
+    "attendance_col_meeting": "Réunion",
+    "attendance_col_in_person": "En salle",
+    "attendance_col_online": "Visio",
+    "attendance_col_total": "Total",
+    "attendance_state_entered": "Saisie",
+    "attendance_state_todo": "À compléter",
+    "attendance_state_live": "En cours",
+    "attendance_state_off": "Pas de réunion",
+    "attendance_week_of": "Semaine du {date}",
+    "attendance_complete_button": "Compléter",
+    "attendance_open_label": "Voir l’assistance du {date}",
+    "attendance_list_empty": "Aucune réunion tenue pour l’instant cette année de service.",
+    "attendance_todo_empty": "Toutes les réunions tenues sont saisies.",
+    "attendance_apart_empty": "Aucune réunion comptée à part cette année de service.",
+    "attendance_online_long": "En visioconférence",
+    "attendance_online_help": "Visioconférence et téléphone ensemble, comme dans le rapport à la filiale.",
+    "attendance_total_label": "Assistance totale",
+    "attendance_partial_help": "Tant qu’un des deux nombres manque, la réunion ne compte pas dans les moyennes.",
+    "attendance_history": "{count} : saisi par {name} le {date} à {time}",
+    "attendance_history_in_person": "En salle",
+    "attendance_history_online": "En visioconférence",
+    "attendance_history_never": "{count} : jamais saisi",
+    "attendance_panel_previous": "Réunion plus récente",
+    "attendance_panel_next": "Réunion plus ancienne",
+    "attendance_empty_title": "Aucune réunion n’est encore comptée.",
+    "attendance_empty_body": "Choisissez dans vos modèles de programme quelles réunions le sont.",
+    "attendance_empty_action": "Ouvrir les modèles de programme",
+    "attendance_history_cleared": "{count} : effacé par {name} le {date} à {time}",
+    "attendance_col_actions": "Actions",
+    "attendance_error_count_failed": "Pas enregistré, réessayez",
+    "board_programme_attendance": "Assistance la semaine passée : {meetings}",
+    "settings_programme_attendance": "Afficher l’assistance sur le programme",
+    "settings_programme_attendance_description": "Tous ceux qui voient le programme lisent l’assistance de la semaine passée, total seulement. Les moyennes et l’historique restent réservés.",
+    "board_programme_attendance_item": "{day} {total}",
+    "attendance_xlsx_meetings_sheet": "Réunions",
+    "attendance_xlsx_summary_sheet": "Par mois",
+    "attendance_xlsx_col_date": "Date",
+    "attendance_xlsx_col_meeting": "Réunion",
+    "attendance_xlsx_col_in_person": "En salle",
+    "attendance_xlsx_col_online": "Visio",
+    "attendance_xlsx_col_total": "Total",
+    "attendance_xlsx_col_month": "Mois",
+    "attendance_xlsx_col_midweek_count": "Semaine · réunions",
+    "attendance_xlsx_col_midweek_total": "Semaine · total",
+    "attendance_xlsx_col_midweek_average": "Semaine · moyenne",
+    "attendance_xlsx_col_weekend_count": "Week-end · réunions",
+    "attendance_xlsx_col_weekend_total": "Week-end · total",
+    "attendance_xlsx_col_weekend_average": "Week-end · moyenne",
+    "attendance_xlsx_year": "Année de service",
+    "attendance_record_title": "Relevé de l’assistance aux réunions de l’assemblée",
+    "attendance_record_col_meetings": "Nombre de réunions",
+    "attendance_record_col_total": "Assistance totale",
+    "attendance_record_col_average": "Assistance moyenne par semaine",
+    "attendance_record_year_average": "Assistance moyenne pour l’année",
+    "attendance_record_filename_pdf": "assistance-{year}.pdf",
+    "attendance_record_filename_xlsx": "assistance-{year}.xlsx",
+    "attendance_export": "Exporter",
+    "attendance_export_pdf": "Carte S-88 (PDF)",
+    "attendance_export_xlsx": "Tableur (Excel)",
+    "attendance_record_col_year": "Année de service",
+    "attendance_record_form_reference": "S-88-F 12/18",
+    "attendance_export_title": "Exporter l’assistance",
+    "attendance_export_description": "Choisissez le format et l’année de service.",
+    "attendance_export_format": "Format",
+    "attendance_export_pdf_hint": "L’année choisie et la précédente côte à côte, comme la carte imprimée.",
+    "attendance_export_xlsx_hint": "Chaque réunion tenue, et l’année mois par mois.",
+    "attendance_export_year": "Année de service",
+    "attendance_export_generating": "Préparation du fichier…",
+    "attendance_export_error_redirected": "Vous n’avez plus accès à l’assistance.",
+    "attendance_export_error_generic": "L’export a échoué. Réessayez."
 }

@@ -10,7 +10,7 @@ Unitae is an open-source web application for managing Jehovah's Witnesses congre
 
 ## Business Context
 
-Core features: territory management with building prospection, publisher activity tracking, information board with document management, meeting programme scheduling, and congregation settings.
+Core features: territory management with building prospection, publisher activity tracking, information board with document management, meeting programme scheduling, meeting attendance (counts entered during each meeting, the S-88 card), and congregation settings.
 
 **Multi-tenancy model:** All data rows carry a `congregationId` FK. Tenant isolation is enforced at the database level via PostgreSQL Row-Level Security (RLS) policies — not at the application layer. The `SET LOCAL app.congregation_id` session variable activates scoped queries inside `withScope()`. Without it (login, health, setup), all rows are visible.
 
@@ -37,6 +37,7 @@ Core features: territory management with building prospection, publisher activit
 9. **TypeScript strict mode** — Never use `any`; always define proper interfaces
 10. **Mutations to aggregate-owned entities go through the aggregate** — `Member`, `Attribution`, and `PioneerEnrolment` invariants live in `*.aggregate.ts` / `*.policy.ts` files (see `AGGREGATE_MODELS` in `scripts/check-aggregate-boundaries.ts` for the enforced list). Direct `db.member.update`/`db.attribution.create` outside those files fails `pnpm test:aggregate-boundaries`.
 11. **Follow TDD when the architecture-conventions doc requires it** — for new service functions (`app/features/*/server/`) and bug regressions, **write the failing test first**, run it, **watch it fail**, then implement. Do not author the test and the code in the same save. See [Architecture Conventions › TDD Discipline](docs/development/architecture-conventions.md#tdd-discipline) — colocation is enforced by `pnpm test:service-test-coverage`, coverage floor by the vitest threshold.
+12. **Review the help when a feature changes** — creating or changing a feature means re-reading its help articles in the same change, not later. Articles live in `app/features/help/content/{fr,en}/<slug>.md`, one per task, and follow the permission of their feature (see the table under [In-app help](#in-app-help)). A feature with no article yet gets one, or a reviewed reason why not. A change to a screen an article captures means retaking that capture (`pnpm build:help-captures --only <id>`, see `scripts/help-captures/README.md`).
 
 ### After Making Changes
 
@@ -77,7 +78,7 @@ app/
 │   ├── congregation/         # Custom role CRUD (congregation/roles/*)
 │   ├── dashboard/            # Dashboard stats and urgent items
 │   ├── display-board/        # Document management, PDF upload, dynamic docs
-│   ├── events/               # Days off, meeting events, programme assignments
+│   ├── events/               # Days off, meeting events, programme assignments, attendance, recurring meetings
 │   ├── notifications/        # Notification events, preferences, flush worker
 │   ├── publishers/           # Publisher CRUD, groups, activity reports
 │   ├── settings/             # User management, congregation config, data transfer
@@ -278,7 +279,7 @@ const permissions = context.get(permissionsContext)
 if (!permissions.has(Permission.TerritoriesManager)) throw redirect('/dashboard')
 ```
 
-**Auth model:** `Permission` (45 entries, in `app/shared/types/permission.ts`) is the unit of access. **Roles** (DB table) bundle permissions and are assigned to users. Three kinds: **identity** roles synced from `Member` flags (`BUILT_IN_ROLE_KEYS`), **system** roles granted by hand (`SYSTEM_ROLE_KEYS`, currently just `admin`), and **custom** roles a Roles Manager creates. Identity and system roles both carry `isBuiltIn` — use `isIdentityRoleKey()` when the question is which side a role attaches to, since `isBuiltIn` only means "undeletable". A role is the *only* way a permission reaches an account: the direct `CongregationUserPermission` edge was dropped in #149, so never reintroduce a user→permission write. `requireAuth()` runs `resolveEffectivePermissions` and stores the user's full granted set in `permissionsContext`; the legacy `_required` parameter is retained for call-site compatibility but no longer filters anything. See `docs/development/permissions-and-roles.md`.
+**Auth model:** `Permission` (48 entries, in `app/shared/types/permission.ts`) is the unit of access. **Roles** (DB table) bundle permissions and are assigned to users. Three kinds: **identity** roles synced from `Member` flags (`BUILT_IN_ROLE_KEYS`), **system** roles granted by hand (`SYSTEM_ROLE_KEYS`, currently just `admin`), and **custom** roles a Roles Manager creates. Identity and system roles both carry `isBuiltIn` — use `isIdentityRoleKey()` when the question is which side a role attaches to, since `isBuiltIn` only means "undeletable". A role is the *only* way a permission reaches an account: the direct `CongregationUserPermission` edge was dropped in #149, so never reintroduce a user→permission write. `requireAuth()` runs `resolveEffectivePermissions` and stores the user's full granted set in `permissionsContext`; the legacy `_required` parameter is retained for call-site compatibility but no longer filters anything. See `docs/development/permissions-and-roles.md`.
 
 **Two-factor (TOTP):** opt-in per user. `UserAccount.twoFactorSecret` stores the AES-256-GCM ciphertext of the base32 seed (`null` = never enrolled) and `twoFactorEnabledAt` stays `null` while enrollment is pending. An enrolled user's login lands on `authentication/routes/two-factor-challenge.tsx` before the session is issued — anything that changes the login path must keep that hop intact. Server side: `totp.server.ts`, `start-two-factor-enrollment.server.ts`, `verify-two-factor-challenge.server.ts`.
 
@@ -422,6 +423,30 @@ LOGIN_RATE_LIMIT_GLOBAL_MAX="100"      # Max failed login attempts instance-wide
 | Worker not processing jobs | Start with `pnpm start:worker`; check Redis connection via `REDIS_HOST`/`REDIS_PORT` |
 | `compound key` TypeScript error | Pass `congregationId` explicitly in the `data` of the create call; for `where` on a compound unique use the generated key (e.g. `id_congregationId: { id, congregationId }`) |
 | Flash toast appearing twice | Remove `session.flash()` reads from individual route loaders — layout handles it |
+
+## In-app help
+
+« Aide » (`/help`, from the account menu) ships with the app, in French and English. The articles are Markdown files in `app/features/help/content/{fr,en}/`, one per task, with a frontmatter block: `slug`, `title`, `summary`, `module`, `permission`, `keywords`, `related`, `order`. `permission` is the name of the `Permission` member the feature needs, several comma-separated when the feature opens to any of them, or `none`. A reader without it never sees the article, nor its search hits or links, and no permission is ever changed to show help.
+
+A « ? » goes in the header's `help` slot (`<PageHeader help={<HelpEntryButton slug="…" />} />`, or `SettingsHeader`), which puts it at the far right of the top bar and at the end of the title's row on a phone. Its page and every layout with a loader above it export `skipRevalidationForHelpPanel as shouldRevalidate` from `~/features/help`, so opening the panel fetches the article only.
+
+`app/features/help/entry-points.test.ts` is the authoritative wiring: it scans the app source for every `<HelpEntryButton slug="…" />` and fails unless each one is pinned there and ships in both languages. Keep this table in step with it.
+
+| « ? » on | Route | Opens | Permission |
+|---|---|---|---|
+| Mes absences | `/me/days-off` | `absences` | none |
+| Mes territoires | `/me/territories` | `my-territories` | none |
+| Territoires | `/territories` | `create-territory` | `CanManageTerritories` |
+| Tableau d’affichage | `/board` | `board-read` | `CanViewBoard` |
+| Campagnes | `/territories/attributions/campaigns` | `campaign-create` | `CanManageTerritoryCampaigns` |
+| Prospection | `/territories/buildings` | `prospection` | `CanViewProspection` |
+| Réglages › Territoires | `/settings/territories` | `territories-settings` | `CanConfigureTerritorySettings` |
+
+Articles without a « ? » are reached from the index, the search and related links only: `phone-territories` and `bano` (`CanConfigureTerritorySettings`), `board-download` (`CanViewBoard`), `board-versions` (`CanReviewBoardDocuments, CanUploadBoardDocuments`: the document history on `/board/documents/:id/edit`, which an uploader opens on the documents they uploaded).
+
+Each module in `app/features/help/model/help.type.ts` (`HELP_MODULES`) groups its articles under the sidebar label of that module. Articles are read as data: the body is rendered on the server with raw HTML disabled, so an article cannot inject markup.
+
+An article shows captures of the app as `![what it shows](capture:<id>)`, and no other image. Each capture exists per language and per theme (`public/help-captures/<locale>/<id>.webp` and `<id>.dark.webp`); the page shows the one matching the `.dark` class, and only that one downloads. Each capture is a button that opens it at its own size in a dialog (`HelpCaptureDialog`), since the side panel and a phone shrink it. `scripts/capture-help.ts` takes them from the demo congregation and records each one's size and date in `app/features/help/content/captures.json`. The loader refuses a capture without alt text or missing in either language, and a test refuses a capture no article shows.
 
 ## Commit Message Format
 

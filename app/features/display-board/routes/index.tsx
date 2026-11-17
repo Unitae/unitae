@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router'
 import { type BoardCard as BoardCardData, loadBoardHome } from '~/features/display-board/server/board-home.queries'
 import { BoardCard } from '~/features/display-board/ui/BoardCard'
 import { BoardSection } from '~/features/display-board/ui/BoardSection'
+import { HelpEntryButton } from '~/features/help'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -19,6 +20,9 @@ import { usePersistedState } from '~/shared/ui/hooks/use-persisted-state'
 import { PageHeader } from '~/shared/ui/PageHeader'
 
 import type { Route } from './+types/index'
+
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: `${m.board_page_title()} - Unitae` }]
@@ -98,6 +102,7 @@ export default function BoardPage({ loaderData }: Route.ComponentProps) {
             </Button>
           )
         }
+        help={<HelpEntryButton slug="board-read" />}
       />
 
       {isEmpty ? (

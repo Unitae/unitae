@@ -30,6 +30,13 @@ describe('filterDynamicDataToEvent', () => {
     expect(result.requestedEventMissing).toBe(false)
   })
 
+  // One meeting, opened from a notification weeks ahead: last week's attendance is not about it.
+  it('drops the attendance line from a document narrowed to one meeting', () => {
+    const withLine = { ...PROGRAMME_DATA, attendance: [{ day: '2026-11-15', total: 119 }] }
+    const result = filterDynamicDataToEvent(withLine as never, 200)
+    expect((result.data as typeof withLine).attendance).toBeNull()
+  })
+
   it('says so when the requested event is not in this document', () => {
     // Silently rendering the whole programme leaves the reader hunting a list
     // for something that is not in it. The viewer needs to be able to say why.

@@ -53,7 +53,7 @@ export function ProgrammeList({
   const [params, setParams] = useSearchParams()
   const [picked, setPicked] = useState<Set<number>>(new Set())
   const view = viewOf(params)
-  const drafts = programmes.filter(row => row.status === EventStatus.Draft)
+  const drafts = programmes.filter(row => row.status === EventStatus.Draft && !row.awaitingProgramme)
   const toReview = programmes.filter(row => row.review > 0)
   const shown = view === 'drafts' ? drafts : view === 'review' ? toReview : programmes
   // A selection outlives a filter only for the rows still shown.

@@ -130,7 +130,7 @@ export function ProgrammeWeekTable({
                       {week.monday === currentWeek && (
                         <span className="font-medium text-brand-text text-xs">{m.programs_this_week()}</span>
                       )}
-                      <span className="text-faint tabular-nums">{m.programs_count({ count: rows.length })}</span>
+                      <span className="text-faint tabular-nums">{weekCount(rows)}</span>
                       <span className="flex-1" />
                       {review > 0 && (
                         <Status tone={urgent ? 'danger' : 'warning'}>
@@ -195,4 +195,15 @@ function EmptyWeek({
       </td>
     </tr>
   )
+}
+
+/** « 2 programmes », « 1 programme · 1 sans programme »: a meeting waiting for its programme is counted on its own. */
+function weekCount(rows: ProgrammeRowData[]): string {
+  const awaiting = rows.filter(row => row.awaitingProgramme).length
+  return [
+    rows.length > awaiting && m.programs_count({ count: rows.length - awaiting }),
+    awaiting > 0 && m.programs_awaiting_count({ count: awaiting }),
+  ]
+    .filter(Boolean)
+    .join(' · ')
 }

@@ -1,11 +1,31 @@
 import type JsZip from 'jszip'
-import { RESPONSIBILITY_SCOPES, ResponsibilityScope } from '~/features/events'
+import {
+  type AttendanceKind,
+  defaultAttendanceKind,
+  isAttendanceKind,
+  RESPONSIBILITY_SCOPES,
+  ResponsibilityScope,
+} from '~/features/events'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import type { EntityIdMap } from './data-transfer.type'
 import { readNdjsonFile } from './ndjson-archive'
 
 const logger = createLogger('import-event-templates')
+
+/**
+ * The attendance kind an archived template carries, or null when it says nothing usable: absent (before 2.15), or a
+ * kind this version does not know — then an existing template keeps its own and a new one gets its key's default,
+ * never a silent « not counted ».
+ */
+function archivedKind(value: string | undefined, key: string, congregationId: number): AttendanceKind | null {
+  if (value == null) return null
+  if (isAttendanceKind(value)) return value
+  logger.warn(`Unknown attendance kind "${value}" on template "${key}": kept the template's own or its default`, {
+    congregationId,
+  })
+  return null
+}
 
 export async function importEventTemplates(
   zip: JsZip,
@@ -21,9 +41,12 @@ export async function importEventTemplates(
     weekDay: number | null
     isRecurring: boolean
     color?: string
+    /** From archive 2.15 on. */
+    attendanceKind?: string
   }>(zip, 'programme-templates')
 
   for (const record of records) {
+    const kind = archivedKind(record.attendanceKind, record.key, congregationId)
     const existing = await db.eventTemplate.findFirst({ where: { key: record.key, congregationId } })
     if (existing) {
       await db.eventTemplate.update({
@@ -34,6 +57,8 @@ export async function importEventTemplates(
           weekDay: record.weekDay,
           isRecurring: record.isRecurring,
           ...(record.color != null ? { color: record.color } : {}),
+          // An archive from before attendance says nothing: the template keeps how it counts here.
+          ...(kind != null ? { attendanceKind: kind } : {}),
         },
       })
       idMap.set('programme-templates', record.id, existing.id)
@@ -46,6 +71,8 @@ export async function importEventTemplates(
           weekDay: record.weekDay,
           isRecurring: record.isRecurring,
           ...(record.color != null ? { color: record.color } : {}),
+          // Same default as the migration gave existing templates.
+          attendanceKind: kind ?? defaultAttendanceKind(record.key),
           congregationId,
         },
       })

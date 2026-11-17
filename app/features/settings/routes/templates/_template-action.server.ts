@@ -6,6 +6,7 @@ import {
   deleteTemplatePart,
   deleteTemplateServicePart,
   duplicateTemplate,
+  moveEmptyMeetings,
   saveTemplateResponsibles,
   templateItemBelongsToTemplate,
   updateTemplate,
@@ -28,6 +29,8 @@ export interface TemplateActor {
   congregationId: number
   /** Manages every template: the template's own fields, who runs it, duplicating and deleting it. */
   isManager: boolean
+  /** The congregation's zone, where its meetings' days and hours are read. */
+  timeZone: string
 }
 
 /** What an intent did: a toast and, for a duplicate or a delete, where to go; or the form's refusal. */
@@ -66,8 +69,17 @@ export async function handleTemplateAction(
   if (intent === 'update-template') {
     const submission = parseWithZod(formData, { schema: updateTemplateSchema })
     if (submission.status !== 'success') return refused(submission.reply())
-    const { name, weekDay, color, startTime, endTime, programmeRoleId, serviceRoleId } = submission.value
-    await updateTemplate(db, templateId, { name, weekDay, color, startTime, endTime }, congregationId, actorId)
+    const { name, weekDay, color, startTime, endTime, attendanceKind, programmeRoleId, serviceRoleId } =
+      submission.value
+    // How a template counts in attendance is the managers' call, like who runs it.
+    const counting = actor.isManager ? { attendanceKind } : {}
+    await updateTemplate(
+      db,
+      templateId,
+      { name, weekDay, color, startTime, endTime, ...counting },
+      congregationId,
+      actorId,
+    )
     if (actor.isManager && programmeRoleId !== undefined && serviceRoleId !== undefined) {
       try {
         await saveTemplateResponsibles(db, templateId, { programmeRoleId, serviceRoleId }, congregationId, actorId)
@@ -156,6 +168,23 @@ export async function handleTemplateAction(
     }
     await deleteTemplateServicePart(db, submission.value.roleId, congregationId)
     return { kind: 'saved', message: m.settings_template_edit_service_role_deleted() }
+  }
+
+  // « Déplacer les N réunions à venir »: whoever may change the template's day may bring its meetings along.
+  if (intent === 'move-meetings') {
+    const { moved, removed } = await moveEmptyMeetings(db, templateId, {
+      congregationId,
+      timeZone: actor.timeZone,
+      now: new Date(),
+      actorId,
+    })
+    const message = [
+      moved > 0 && m.settings_template_move_meetings_moved({ count: moved }),
+      removed > 0 && m.settings_template_move_meetings_removed({ count: removed }),
+    ]
+      .filter(Boolean)
+      .join(' ')
+    return { kind: 'saved', message: message || m.settings_template_move_meetings_none() }
   }
 
   if (!actor.isManager) return null

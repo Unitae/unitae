@@ -1,10 +1,12 @@
+import { isAwaitingProgramme, programmeTemplate } from '~/features/events/model/empty-meetings'
 import { EventStatus } from '~/features/events/model/event-status.type'
+import { TEMPLATE_PROGRAMME_COUNT } from '~/features/events/server/give-programme.server'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import { ConflictError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { withScope } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
-import { assertCanRelease } from './event-status.policy'
+import { assertCanRelease, EVENT_STATUS_ERRORS } from './event-status.policy'
 import { PROGRAMME_ASSIGNMENT_TYPE } from './notifications.server'
 import { buildAssignmentContext, notifyAssignment } from './notify-assignment.server'
 
@@ -34,7 +36,10 @@ type EventWithStatus = {
   templateId: number | null
 }
 
-export type ReleaseResult = { event: EventWithStatus; notifyTargets: NotifyTarget[] } | { error: string }
+export type ReleaseResult =
+  | { event: EventWithStatus; notifyTargets: NotifyTarget[] }
+  // Absence conflicts to resolve, or a meeting with no programme yet: the bulk page tells them apart.
+  | { error: string; reason: 'conflicts' | 'awaiting' }
 // No policy currently blocks an un-release — the only ways it can not-succeed
 // are "event doesn't exist" (returns null) or a raw Prisma throw (caught by
 // the bulk caller). Keep this shape narrow; widen it the day an unrelease
@@ -59,6 +64,7 @@ const eventWithAssignmentsInclude = {
       assigneeId: true,
     },
   },
+  template: { select: { key: true, ...TEMPLATE_PROGRAMME_COUNT } },
 }
 
 type PartRow = { id: number; name: string; hasConflict: boolean; assigneeId: number | null; assistantId: number | null }
@@ -121,6 +127,17 @@ export async function releaseEvent(
   // not re-fire notifications on every retry.
   if (event.status === EventStatus.Released) return { event, notifyTargets: [] }
 
+  // A meeting created ahead has nothing to publish until it has its programme.
+  if (
+    isAwaitingProgramme({
+      parts: event.eventParts.length,
+      services: event.eventServiceParts.length,
+      template: programmeTemplate(event.template),
+    })
+  ) {
+    return { error: EVENT_STATUS_ERRORS.releaseAwaitingProgramme, reason: 'awaiting' }
+  }
+
   try {
     assertCanRelease({ eventParts: event.eventParts, eventServiceParts: event.eventServiceParts })
   } catch (e) {
@@ -134,7 +151,7 @@ export async function releaseEvent(
         conflictingParts,
         conflictingServices,
       })
-      return { error: e.message }
+      return { error: e.message, reason: 'conflicts' }
     }
     throw e
   }

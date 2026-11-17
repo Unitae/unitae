@@ -15,6 +15,7 @@ const ORATEUR_RE = /Orateur/i
 const SAVE_BUTTON_RE = /Enregistrer|Save/i
 const EDIT_PART_RE = /^Modifier /
 const EVENT_LINK_RE = /Réunion|Memorial|Mémorial/i
+const PARTS_FILLED_RE = /\d+\/\d+/
 
 // A template opens as one page, its parts editable in place by a programme manager.
 async function openFirstTemplatePage(page: Page): Promise<boolean> {
@@ -121,7 +122,12 @@ test.describe('Role-gated assignees — UI surface', () => {
     await page.goto('/programs')
     await page.waitForLoadState('networkidle')
 
-    const firstEvent = page.getByRole('link', { name: EVENT_LINK_RE }).first()
+    // A meeting with a programme: the empty meetings created ahead have no parts, so no table (« — » in the row).
+    const firstEvent = page
+      .getByRole('row')
+      .filter({ hasText: PARTS_FILLED_RE })
+      .getByRole('link', { name: EVENT_LINK_RE })
+      .first()
     if (!(await firstEvent.isVisible({ timeout: 3000 }).catch(() => false))) {
       test.skip(true, 'No events visible — skipping')
       return

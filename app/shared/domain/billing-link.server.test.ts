@@ -7,7 +7,7 @@ vi.mock('~/shared/infra/logger.server', () => ({ default: { error: vi.fn(), warn
 import { verifyBillingToken } from '~/shared/auth/billing-token.server'
 import logger from '~/shared/infra/logger.server'
 import { getOptionalEnv } from '~/shared/utils/env.server'
-import { billingEntryUrl, billingPortalLink, checkoutLink } from './billing-link.server'
+import { billingEntryUrl, billingPortalLink, checkoutLink, suspendedSupportLink } from './billing-link.server'
 import { getHostSettings } from './host-settings.server'
 
 const SECRET = 'test-secret'
@@ -112,5 +112,32 @@ describe('billingEntryUrl (sidebar « Abonnement » routing by state)', () => {
     mockedSettings.mockReturnValue({})
     expect(billingEntryUrl({ isAdmin: true, stripeCustomerId: null, slug: 'grace-community' })).toBeNull()
     expect(billingEntryUrl({ isAdmin: true, stripeCustomerId: 'cus_1', slug: 'grace-community' })).toBeNull()
+  })
+})
+
+describe('suspendedSupportLink (the suspended shell’s « Contacter le support »)', () => {
+  const SUPPORT = { ...MANAGED, support: { url: 'https://www.unitae.app/support' } }
+
+  it('carries the signed reactivation token, so the support page can offer it and recognise the congregation', () => {
+    mockedSettings.mockReturnValue(SUPPORT)
+    mockedEnv.mockReturnValue(SECRET)
+
+    const link = suspendedSupportLink('grace-community') ?? ''
+
+    expect(link.startsWith('https://www.unitae.app/support?from=suspended&token=')).toBe(true)
+    const verified = verifyBillingToken(tokenOf(link), SECRET, { purpose: 'checkout', now: Date.now() })
+    expect(verified).toMatchObject({ valid: true, payload: { slug: 'grace-community' } })
+  })
+
+  it('falls back to the bare support URL without a congregation', () => {
+    mockedSettings.mockReturnValue(SUPPORT)
+    mockedEnv.mockReturnValue(SECRET)
+    expect(suspendedSupportLink(null)).toBe('https://www.unitae.app/support')
+  })
+
+  it('is null when no support URL is configured (self-hosted)', () => {
+    mockedSettings.mockReturnValue({})
+    mockedEnv.mockReturnValue(SECRET)
+    expect(suspendedSupportLink('grace-community')).toBeNull()
   })
 })

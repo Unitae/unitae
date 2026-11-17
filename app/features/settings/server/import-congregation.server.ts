@@ -13,6 +13,7 @@ import { getFileBuffer } from '~/shared/infra/file-storage.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { EntityIdMap } from './data-transfer.type'
 import type { DataTransferJobData } from './data-transfer-queue.server'
+import { importAttendance } from './import-attendance.server'
 import { importAuditLogs, importConsentRecords, importDataDeletionRecords } from './import-audit-consent.server'
 import {
   importBoardDocuments,
@@ -68,6 +69,7 @@ import { importCongregationUserPermissions, importMembers, importUserAccounts } 
 import { migrateLegacyUsersNdjson } from './migrate-legacy-users-ndjson.server'
 import { readManifest } from './ndjson-archive'
 
+export { importAttendance } from './import-attendance.server'
 // Per-entity import functions re-exported so integration tests (and any future
 // per-module test suites) keep a single stable import surface.
 export {
@@ -285,6 +287,7 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
       await progress()
 
       await importEvents(zip, db, idMap, congregationId)
+      await importAttendance(zip, db, idMap, congregationId)
       await progress()
 
       await importEventParts(zip, db, idMap, congregationId)

@@ -42,5 +42,7 @@ export function filterDynamicDataToEvent<T extends DynamicData>(
   const match = data.events?.find(e => e.id === eventId)
   if (!match) return { data, requestedEventMissing: true }
 
-  return { data: { ...data, events: [match] } as T, requestedEventMissing: false }
+  // One meeting, often weeks ahead: last week's attendance line is not about it.
+  const narrowed = { ...data, events: [match], ...('attendance' in data ? { attendance: null } : {}) }
+  return { data: narrowed as T, requestedEventMissing: false }
 }

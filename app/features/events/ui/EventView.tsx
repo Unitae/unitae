@@ -1,5 +1,5 @@
 import { SidePanel, Status } from '@unitae/ui'
-import { CalendarDays, FileText, Loader2, MoreHorizontal, Pencil, Send, Trash2 } from 'lucide-react'
+import { CalendarDays, FileText, ListPlus, Loader2, MoreHorizontal, Pencil, Send, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useFetcher } from 'react-router'
 import { EventStatus } from '~/features/events/model/event-status.type'
@@ -37,6 +37,10 @@ interface EventViewProps {
     eventParts: AssignedPart[]
     eventServiceParts: AssignedService[]
   }
+  /** A meeting created ahead with no programme yet: « Créer le programme » replaces publishing it. */
+  awaitingProgramme: boolean
+  /** The meeting has counts: deleting it removes only its programme. */
+  hasAttendance: boolean
   /** Each action follows the right its route checks. */
   canEdit: boolean
   canPublish: boolean
@@ -59,6 +63,8 @@ interface EventViewProps {
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: the page wires two panels, a docked or sheet editor and their guards
 export function EventView({
   event,
+  awaitingProgramme,
+  hasAttendance,
   canEdit,
   canPublish,
   canAssign,
@@ -149,17 +155,21 @@ export function EventView({
         subtitle={`${date} · ${times}`}
         meta={
           <>
-            {event.status === EventStatus.Draft ? (
+            {awaitingProgramme ? (
+              <Status tone="neutral">{m.programs_awaiting_badge()}</Status>
+            ) : event.status === EventStatus.Draft ? (
               <Status tone="warning">{m.programs_event_draft_badge()}</Status>
             ) : (
               <Status tone="success">{m.programs_view_released()}</Status>
             )}
-            <span>
-              {m.programs_view_parts_assigned({
-                count: assignedParts,
-                total: event.eventParts.length,
-              })}
-            </span>
+            {!awaitingProgramme && (
+              <span>
+                {m.programs_view_parts_assigned({
+                  count: assignedParts,
+                  total: event.eventParts.length,
+                })}
+              </span>
+            )}
             {event.eventServiceParts.length > 0 && (
               <span>
                 {m.programs_view_services_filled({
@@ -174,7 +184,9 @@ export function EventView({
         actions={
           (canPublish || canEdit) && (
             <>
-              {canPublish && <ReleaseToggleButton status={event.status} eventId={event.id} />}
+              {awaitingProgramme
+                ? canEdit && <CreateProgrammeButton eventId={event.id} />
+                : canPublish && <ReleaseToggleButton status={event.status} eventId={event.id} />}
               {canEdit && (
                 <>
                   <Button variant="outline" asChild>
@@ -183,22 +195,25 @@ export function EventView({
                       {m.common_edit()}
                     </Link>
                   </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" aria-label={m.common_more_actions()}>
-                        <MoreHorizontal />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onSelect={() => setDeleting(true)}
-                      >
-                        <Trash2 />
-                        {m.common_delete()}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {/* An empty meeting with counts has nothing left to delete: the meeting and its attendance stay. */}
+                  {!(awaitingProgramme && hasAttendance) && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" aria-label={m.common_more_actions()}>
+                          <MoreHorizontal />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onSelect={() => setDeleting(true)}
+                        >
+                          <Trash2 />
+                          {m.common_delete()}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </>
               )}
             </>
@@ -216,6 +231,7 @@ export function EventView({
             selectedId={target?.kind === 'part' ? target.id : null}
             onAssign={(item, trigger) => panel.request({ kind: 'part', id: item.id, trigger })}
             onUnassign={setUnassignTarget}
+            emptyHint={awaitingProgramme ? m.programs_awaiting_hint() : undefined}
           />
           <EventServiceAssignmentsPanel
             services={event.eventServiceParts}
@@ -304,11 +320,26 @@ export function EventView({
       {canEdit && (
         <DeleteEventDialog
           event={{ id: event.id, name: event.name, date }}
+          outcome={hasAttendance ? 'programme-only' : awaitingProgramme ? 'empty-meeting' : 'everything'}
           open={deleting}
           onClose={() => setDeleting(false)}
         />
       )}
     </div>
+  )
+}
+
+function CreateProgrammeButton({ eventId }: { eventId: number }) {
+  const fetcher = useFetcher<{ ok: boolean }>()
+  const inFlight = fetcher.state !== 'idle'
+  return (
+    <Button
+      onClick={() => fetcher.submit({}, { method: 'POST', action: `/programs/events/${eventId}/create-programme` })}
+      disabled={inFlight}
+    >
+      {inFlight ? <Loader2 className="animate-spin" /> : <ListPlus />}
+      {m.programs_create_programme_button()}
+    </Button>
   )
 }
 

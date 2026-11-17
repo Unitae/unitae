@@ -4,6 +4,7 @@ import { Link } from 'react-router'
 
 import { listMyAbsences } from '~/features/events/server/days-off.queries'
 import { MyAbsenceRow } from '~/features/events/ui/MyAbsenceRow'
+import { HelpEntryButton } from '~/features/help'
 import * as m from '~/i18n/paraglide/messages'
 import { congregationContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Button } from '~/shared/ui/button'
@@ -11,6 +12,9 @@ import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 
 import type { Route } from './+types/list'
+
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.days_off_meta_title() }]
@@ -57,6 +61,7 @@ export default function DaysOffPage({ loaderData }: Route.ComponentProps) {
             </Link>
           </Button>
         }
+        help={<HelpEntryButton slug="absences" />}
       />
 
       {absences.length > 0 ? (

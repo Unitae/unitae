@@ -118,6 +118,48 @@ describe('updateTemplate', () => {
     expect((call[0] as { data: { color: string } }).data.color).toBe('#ff00aa')
   })
 
+  it('saves how the template counts in attendance', async () => {
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({ key: 'midweek-meeting', attendanceKind: 'none' } as never)
+    vi.mocked(db.eventTemplate.update).mockResolvedValue({ id: 1 } as never)
+
+    await updateTemplate(db, 1, { attendanceKind: 'midweek' }, 1, 9)
+
+    const call = vi.mocked(db.eventTemplate.update).mock.calls[0]
+    expect((call[0] as { data: Record<string, unknown> }).data).toEqual({ attendanceKind: 'midweek' })
+  })
+
+  // Recurrence has always meant « has a weekday »; the column used to keep its create-time value forever.
+  it('keeps isRecurring in step with the weekday', async () => {
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({
+      key: 'study',
+      weekDay: null,
+      isRecurring: false,
+    } as never)
+    vi.mocked(db.eventTemplate.update).mockResolvedValue({ id: 1 } as never)
+    await updateTemplate(db, 1, { weekDay: 3 }, 1, 9)
+    expect((vi.mocked(db.eventTemplate.update).mock.calls[0][0] as { data: Record<string, unknown> }).data).toEqual({
+      weekDay: 3,
+      isRecurring: true,
+    })
+
+    vi.mocked(db.eventTemplate.update).mockClear()
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({ key: 'study', weekDay: 3, isRecurring: true } as never)
+    await updateTemplate(db, 1, { weekDay: null }, 1, 9)
+    expect((vi.mocked(db.eventTemplate.update).mock.calls[0][0] as { data: Record<string, unknown> }).data).toEqual({
+      weekDay: null,
+      isRecurring: false,
+    })
+  })
+
+  it('never lets a system template count attendance', async () => {
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({ key: 'day-off', attendanceKind: 'none' } as never)
+
+    const result = await updateTemplate(db, 1, { attendanceKind: 'weekend' }, 1, 9)
+
+    expect(result).toBeNull()
+    expect(db.eventTemplate.update).not.toHaveBeenCalled()
+  })
+
   // System templates back domain concepts — the day-off writer looks them up
   // by `key`, so renaming or restructuring them from the settings UI would
   // silently break the feature. The server enforces that even if the form

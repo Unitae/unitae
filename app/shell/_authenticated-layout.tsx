@@ -2,6 +2,9 @@ import { useEffect } from 'react'
 import { data } from 'react-router'
 import { toast } from 'sonner'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { HelpAccessProvider, HelpPanel } from '~/features/help'
+import { visibleHelpSlugsFor } from '~/features/help/index.server'
+import { helpLocaleFor } from '~/features/help/model/help-links'
 import { settingsLinksFor } from '~/features/settings'
 import { loadSettingsAccess } from '~/features/settings/index.server'
 import { getLocale } from '~/i18n/paraglide/runtime'
@@ -21,6 +24,9 @@ import { readSidebarOpenFromCookie } from '~/shared/ui/sidebar/sidebar-cookie'
 import { formatPersonName, resolveAccountName } from '~/shared/utils/format-person-name'
 
 import type { Route } from './+types/_authenticated-layout'
+
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 /** The pattern React Router reports for the catch-all route of this layout. */
 const UNKNOWN_ADDRESS = '*'
@@ -102,6 +108,10 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         canViewActivity: can(Permission.CanViewActivity),
         canViewExternalSpeakers: can(Permission.CanViewExternalSpeakers) || can(Permission.CanManageExternalSpeakers),
         canManageExternalSpeakers: can(Permission.CanManageExternalSpeakers),
+        canEnterAttendance:
+          can(Permission.CanRecordAttendance) ||
+          can(Permission.CanCorrectAttendance) ||
+          can(Permission.CanViewAttendance),
         canViewRoles: can(Permission.CanViewRoles) || can(Permission.CanManageRoles),
         canManageRoles: can(Permission.CanManageRoles),
         settingsLinks,
@@ -116,6 +126,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       }),
       messages,
       sidebarOpen,
+      helpSlugs: visibleHelpSlugsFor(permissions, helpLocaleFor(getLocale())),
     },
     {
       headers: {
@@ -126,7 +137,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 }
 
 export default function AuthenticatedLayout({ loaderData }: Route.ComponentProps) {
-  const { permissions, congregationName, userName, trial, messages, sidebarOpen } = loaderData
+  const { permissions, congregationName, userName, trial, messages, sidebarOpen, helpSlugs } = loaderData
 
   useEffect(() => {
     if (messages.success) {
@@ -138,13 +149,16 @@ export default function AuthenticatedLayout({ loaderData }: Route.ComponentProps
   }, [messages])
 
   return (
-    <AppLayout
-      permissions={permissions}
-      congregationName={congregationName}
-      userName={userName}
-      trial={trial}
-      sidebarOpen={sidebarOpen}
-    />
+    <HelpAccessProvider slugs={helpSlugs}>
+      <AppLayout
+        permissions={permissions}
+        congregationName={congregationName}
+        userName={userName}
+        trial={trial}
+        sidebarOpen={sidebarOpen}
+        helpPanel={<HelpPanel />}
+      />
+    </HelpAccessProvider>
   )
 }
 

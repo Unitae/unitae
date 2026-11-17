@@ -2,6 +2,7 @@ import { Panel, SectionHeading } from '@unitae/ui'
 import { MapPin } from 'lucide-react'
 import { useEffect, useId } from 'react'
 
+import { HelpEntryButton } from '~/features/help'
 import { mainStreets } from '~/features/territories/model/holder-territory'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { getActiveCampaign } from '~/features/territories/server/campaign.queries'
@@ -20,6 +21,9 @@ import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { formatLocalDate } from '~/shared/utils/date.server'
 import type { Route } from './+types/list'
+
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.my_territories_meta_title() }]
@@ -108,6 +112,7 @@ export default function MyTerritoriesList({ loaderData }: Route.ComponentProps) 
           ) : undefined
         }
         breadcrumbs={[{ label: m.sidebar_my_territories() }]}
+        help={<HelpEntryButton slug="my-territories" />}
       />
 
       <CampaignModeBanner campaign={bannerCampaign} variant="publisher" />

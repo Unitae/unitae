@@ -41,6 +41,7 @@ export const EXEMPT_FILES = new Set<string>([
   'app/features/settings/server/retention-queue.server.ts',
   'app/features/territories/server/sync-queue.server.ts',
   'app/features/territories/server/campaign-queue.server.ts',
+  'app/features/events/server/recurring-events-queue.server.ts',
 
   // Route action helpers — glue code, TDD-exempt per the doc.
   'app/features/events/routes/programs/events/_edit-event-intents.server.ts',

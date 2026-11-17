@@ -41,3 +41,5 @@ export const DEFAULT_RETENTION_MONTHS = 6
 // most subscribers).
 export const RETENTION_CRON_HOUR_UTC = 3
 export const CAMPAIGN_CRON_HOUR_UTC = 2
+// Recurring events are created at 01:00 UTC, before campaigns and retention run.
+export const RECURRING_EVENTS_CRON_HOUR_UTC = 1
