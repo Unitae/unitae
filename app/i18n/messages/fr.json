@@ -7256,5 +7256,6 @@
     "attendance_error_count_failed": "Pas enregistré, réessayez",
     "board_programme_attendance": "Assistance la semaine passée : {meetings}",
     "settings_programme_attendance": "Afficher l’assistance sur le programme",
-    "settings_programme_attendance_description": "Tous ceux qui voient le programme lisent l’assistance de la semaine passée, total seulement. Les moyennes et l’historique restent réservés."
+    "settings_programme_attendance_description": "Tous ceux qui voient le programme lisent l’assistance de la semaine passée, total seulement. Les moyennes et l’historique restent réservés.",
+    "board_programme_attendance_item": "{day} {total}"
 }

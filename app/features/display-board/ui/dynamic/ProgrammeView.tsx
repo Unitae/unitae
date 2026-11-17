@@ -354,7 +354,11 @@ export function ProgrammeView({ events, showServices, config, now, timeZone, att
           </h2>
           {week.current && attendance && (
             <p className="-mt-3 font-sans text-muted-foreground text-sm">
-              {m.board_programme_attendance({ meetings: attendanceLineItems(attendance, getLocale()) })}
+              {m.board_programme_attendance({
+                meetings: attendanceLineItems(attendance, getLocale(), (day, total) =>
+                  m.board_programme_attendance_item({ day, total }),
+                ),
+              })}
             </p>
           )}
           {week.units.map(unit => (

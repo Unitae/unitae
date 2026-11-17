@@ -356,7 +356,7 @@ export async function getDynamicDocumentData(
         type: DynamicType.Programme,
         events,
         config,
-        attendance: await attendanceLine(db, congregationId, options.attendance),
+        attendance: await attendanceLine(db, congregationId, options.attendance, templateIds),
         // Legacy compat fields
         templateKey: null,
         showServices: anyServices,
@@ -370,7 +370,12 @@ export async function getDynamicDocumentData(
         type: DynamicType.Programme,
         events,
         config: null,
-        attendance: await attendanceLine(db, congregationId, options.attendance),
+        attendance: await attendanceLine(
+          db,
+          congregationId,
+          options.attendance,
+          events.flatMap(event => (event.templateId == null ? [] : [event.templateId])),
+        ),
         templateKey: dynamicRef,
         showServices: options.showServices ?? false,
       } as const
@@ -381,17 +386,22 @@ export async function getDynamicDocumentData(
 }
 
 /**
- * Last week's attendance for the programme's line, when the congregation shows it there (off by default) and a
- * meeting was counted; null otherwise, and the programme says nothing about attendance.
+ * Last week's attendance for the programme's line, when the congregation shows it there (off by default): the
+ * meetings of the templates this document lists — a cleaning-duties document says nothing about attendance. Null when
+ * the setting is off or none of them was counted, and the programme says nothing about attendance.
  */
 async function attendanceLine(
   db: TransactionClient,
   congregationId: number,
   read: { timeZone: string; now: Date } | undefined,
+  templateIds: number[],
 ): Promise<LastWeekMeeting[] | null> {
   if (read == null) return null
   if (!(await getBoolSetting(db, CongregationSettingKey.ProgrammeShowsAttendance, congregationId))) return null
-  const week = await listLastWeekAttendance(db, { congregationId, ...read })
+  const listed = new Set(templateIds)
+  const week = (await listLastWeekAttendance(db, { congregationId, ...read })).filter(
+    meeting => meeting.templateId != null && listed.has(meeting.templateId),
+  )
   return week.length > 0 ? week : null
 }
 

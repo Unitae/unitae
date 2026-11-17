@@ -202,7 +202,13 @@ export function ProgrammeDocument({
         <BoardPdfMasthead congregationName={congregationName} title={title} asOf={asOf} />
         {attendance && (
           <SheetText style={fit.styles.attendance}>
-            {sanitizeText(m.board_programme_attendance({ meetings: attendanceLineItems(attendance, getLocale()) }))}
+            {sanitizeText(
+              m.board_programme_attendance({
+                meetings: attendanceLineItems(attendance, getLocale(), (day, total) =>
+                  m.board_programme_attendance_item({ day, total }),
+                ),
+              }),
+            )}
           </SheetText>
         )}
         {programmeUnits(events, configMap, groupBy).map((unit, index) => (

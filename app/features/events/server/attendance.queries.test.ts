@@ -182,8 +182,8 @@ describe('listLastWeekAttendance', () => {
     const week = await listLastWeekAttendance(mockDb as never, { congregationId: 1, timeZone: PARIS, now })
 
     expect(week).toEqual([
-      { eventId: 41, day: '2026-11-12', name: 'Réunion du week-end', total: null },
-      { eventId: 42, day: '2026-11-15', name: 'Réunion du week-end', total: 119 },
+      { templateId: 2, day: '2026-11-12', total: null },
+      { templateId: 2, day: '2026-11-15', total: 119 },
     ])
     const [[{ where, orderBy }]] = mockDb.event.findMany.mock.calls
     expect(where).toMatchObject({ congregationId: 1, template: { attendanceKind: { not: 'none' } } })

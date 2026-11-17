@@ -51,7 +51,7 @@ export async function loader({ context }: Route.LoaderArgs) {
       isManager,
       // The congregation's choice, the template managers'.
       showsAttendance: isManager
-        ? ((await getBoolSetting(db, CongregationSettingKey.ProgrammeShowsAttendance, congregationId)) ?? false)
+        ? await getBoolSetting(db, CongregationSettingKey.ProgrammeShowsAttendance, congregationId)
         : null,
     }
   })

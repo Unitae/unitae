@@ -163,10 +163,10 @@ export async function countsAnyMeeting(db: TransactionClient, congregationId: nu
 
 /** One meeting of last week as the programme's attendance line shows it: its total only once both counts are in. */
 export interface LastWeekMeeting {
-  eventId: number
+  /** Which template it is: a programme document shows the meetings of its own templates only. */
+  templateId: number | null
   /** Local day, `YYYY-MM-DD`. */
   day: string
-  name: string
   total: number | null
 }
 
@@ -191,6 +191,6 @@ export async function listLastWeekAttendance(
   return events.map(event => {
     const row = toRow(event, timeZone)
     const total = row.inPerson != null && row.online != null ? row.inPerson + row.online : null
-    return { eventId: row.eventId, day: row.day, name: row.name, total }
+    return { templateId: row.templateId, day: row.day, total }
   })
 }

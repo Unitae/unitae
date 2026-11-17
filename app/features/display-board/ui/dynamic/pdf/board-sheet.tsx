@@ -1,6 +1,6 @@
 import type { DocumentProps } from '@react-pdf/renderer'
 import type { ReactElement } from 'react'
-import type { AttendanceLineMeeting } from '~/features/display-board/model/attendance-line'
+import { type AttendanceLineMeeting, sheetShowsAttendance } from '~/features/display-board/model/attendance-line'
 import {
   BOARD_ACCENT_COLOR,
   BOARD_LAYOUTS,
@@ -104,7 +104,11 @@ export async function buildBoardSheet(
           groupBy={groupBy}
           timezone={options.timezone}
           measurer={measurer}
-          attendance={data.attendance}
+          attendance={
+            sheetShowsAttendance({ events: data.events, groupBy, asOf: options.asOf, timeZone: options.timezone })
+              ? data.attendance
+              : null
+          }
         />
       )
     }
