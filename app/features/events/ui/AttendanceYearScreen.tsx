@@ -1,5 +1,5 @@
 import { PeriodStepper, SidePanel } from '@unitae/ui'
-import { Eye } from 'lucide-react'
+import { ChevronDown, Download, Eye, FileSpreadsheet, FileText } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
 
@@ -17,6 +17,7 @@ import { AttendancePanel } from '~/features/events/ui/AttendancePanel'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { useSideEditor } from '~/shared/ui/hooks/use-side-editor'
 import { ListWithPanel, sidePanelWalk } from '~/shared/ui/ListWithPanel'
@@ -41,6 +42,37 @@ interface AttendanceYearScreenProps {
 }
 
 const yearLabel = (serviceYear: number) => `${serviceYear}–${serviceYear + 1}`
+
+/** The year shown as the S-88 card (PDF) or a spreadsheet: plain links, the files download without leaving the page. */
+function ExportMenu({ serviceYear }: { serviceYear: number }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm">
+          <Download aria-hidden="true" />
+          <span className="max-sm:sr-only">{m.attendance_export()}</span>
+          <ChevronDown aria-hidden="true" className="text-faint" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-60">
+        <DropdownMenuItem asChild>
+          <a href={`/attendance/record.pdf?year=${serviceYear}`}>
+            <FileText aria-hidden="true" />
+            <span className="flex-1">{m.attendance_export_pdf()}</span>
+            <span className="text-faint text-xs tabular-nums">{yearLabel(serviceYear)}</span>
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <a href={`/attendance/attendance.xlsx?year=${serviceYear}`}>
+            <FileSpreadsheet aria-hidden="true" />
+            <span className="flex-1">{m.attendance_export_xlsx()}</span>
+            <span className="text-faint text-xs tabular-nums">{yearLabel(serviceYear)}</span>
+          </a>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
 
 /**
  * The attendance page for whoever may read it: the service year's figures, its meetings by month, and one meeting's
@@ -77,6 +109,7 @@ export function AttendanceYearScreen(props: AttendanceYearScreenProps) {
     <PageHeader
       title={m.attendance_page_title()}
       breadcrumbs={[{ label: m.attendance_page_title() }]}
+      actions={counting && <ExportMenu serviceYear={serviceYear} />}
       controls={
         <PeriodStepper
           label={m.attendance_year({ label: yearLabel(serviceYear) })}
