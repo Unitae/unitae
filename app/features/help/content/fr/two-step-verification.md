@@ -16,7 +16,10 @@ Avec la vérification en deux étapes, la connexion demande, en plus du mot de p
 
 1. Cliquez sur votre nom, en bas de la barre latérale, puis sur **Mon compte**. Sur un téléphone, touchez vos initiales en haut de l’écran.
 2. Ouvrez **Sécurité**.
-3. Sur la ligne **Vérification en deux étapes**, cliquez sur **Activer…**.
+3. Sur la ligne **Vérification en deux étapes**, cliquez sur **Activer…**
+
+   ![La ligne Vérification en deux étapes, marquée Désactivée, et son bouton « Activer… »](capture:account-two-step-row)
+
 4. Dans votre application d’authentification, ajoutez un compte en scannant le code QR. Sans appareil photo, saisissez plutôt la clé affichée à côté ; le bouton de copie la copie.
 5. Dans **Code**, saisissez le code à 6 chiffres que l’application affiche. Il est vérifié dès le sixième chiffre.
 
@@ -28,7 +31,7 @@ Après le mot de passe, la page **Vérification en deux étapes** demande le cod
 
 ## La désactiver
 
-Dans **Sécurité**, sur la ligne **Vérification en deux étapes**, cliquez sur **Désactiver…**. Saisissez un code de votre application, puis cliquez sur **Désactiver**. Votre mot de passe suffit de nouveau pour vous connecter.
+Dans **Sécurité**, sur la ligne **Vérification en deux étapes**, cliquez sur **Désactiver…** Saisissez un code de votre application, puis cliquez sur **Désactiver**. Votre mot de passe suffit de nouveau pour vous connecter.
 
 Vous changez de téléphone ? Tant que vous avez l’ancien, désactivez la vérification, puis activez-la de nouveau avec le nouveau téléphone.
 

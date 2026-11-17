@@ -17,6 +17,9 @@ Vos parties et vos services des programmes publiés, et vos absences, peuvent s�
 1. Cliquez sur votre nom, en bas de la barre latérale, puis sur **Mon compte**. Sur un téléphone, touchez vos initiales en haut de l’écran.
 2. Sur la page **Profil**, descendez jusqu’à **Agenda**.
 3. Cliquez sur **Créer mon lien**.
+
+   ![La section Agenda de la page Profil, avant la création du lien, et son bouton « Créer mon lien »](capture:account-calendar-create)
+
 4. Cliquez sur **Copier**.
 5. Dans votre application d’agenda, ajoutez un agenda à partir d’une adresse (un abonnement), puis collez le lien.
 

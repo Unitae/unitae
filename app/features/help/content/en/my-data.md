@@ -18,6 +18,9 @@ You can download at any time everything the app keeps about you: your account, y
 2. Open **Privacy**.
 3. In **Your data**, on the **Download my data** row, click **Download**.
 
+   ![The Your data section of the Privacy page and its “Download” button](capture:account-data)
+
+
 You get a JSON file, a format other software can read.
 
 ## Have your data erased

@@ -184,4 +184,63 @@ export const HELP_SHOTS: HelpShot[] = [
     ],
     margin: -1,
   },
+  {
+    // password: « Sur la ligne Mot de passe, cliquez sur Changer le mot de passe… ».
+    id: 'account-password-row',
+    account: MAXIME,
+    path: '/me/security',
+    frame: (page, locale) => [
+      closest(
+        page.getByRole('button', { name: m.account_password_change({}, { locale }) }),
+        'contains(@class, "border-t")',
+      ),
+    ],
+    margin: -1,
+    viewport: { width: 1000 },
+  },
+  {
+    // two-step-verification: « Sur la ligne Vérification en deux étapes, cliquez sur Activer… ». The row only: the
+    // dialog shows a QR code and a key, which a capture never publishes.
+    id: 'account-two-step-row',
+    account: MAXIME,
+    path: '/me/security',
+    frame: (page, locale) => [
+      closest(page.getByRole('button', { name: m.account_2fa_enable({}, { locale }) }), 'contains(@class, "border-t")'),
+    ],
+    margin: -1,
+    viewport: { width: 1000 },
+  },
+  {
+    // calendar-feed: « Cliquez sur Créer mon lien ». Before the link exists: a capture never shows a feed address.
+    id: 'account-calendar-create',
+    account: MAXIME,
+    path: '/me/profile',
+    frame: (page, locale) => [section(page, m.account_calendar_title({}, { locale }))],
+    viewport: { width: 1000 },
+  },
+  {
+    // notifications: the emails of a subject, one switch each.
+    id: 'account-notifications',
+    account: MAXIME,
+    path: '/me/notifications',
+    frame: page => [page.locator('section[aria-labelledby^="notifications-"]').first()],
+    viewport: { width: 1000 },
+  },
+  {
+    // language: the Langue and Thème rows of Préférences.
+    id: 'account-preferences',
+    account: MAXIME,
+    path: '/me/preferences',
+    frame: (page, locale) => [page.locator(`[aria-label="${m.account_section_preferences({}, { locale })}"]`)],
+    margin: -1,
+    viewport: { width: 1000 },
+  },
+  {
+    // my-data: « Dans Vos données, sur la ligne Télécharger mes données, cliquez sur Télécharger ».
+    id: 'account-data',
+    account: MAXIME,
+    path: '/me/privacy',
+    frame: (page, locale) => [section(page, m.account_data_title({}, { locale }))],
+    viewport: { width: 1000 },
+  },
 ]

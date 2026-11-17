@@ -17,6 +17,9 @@ Your parts and services in published programs, and your absences, can show in yo
 1. Click your name, at the foot of the sidebar, then **My account**. On a phone, tap your initials at the top of the screen.
 2. On the **Profile** page, scroll down to **Calendar**.
 3. Click **Create my link**.
+
+   ![The Calendar section of the Profile page, before the link exists, and its “Create my link” button](capture:account-calendar-create)
+
 4. Click **Copy**.
 5. In your calendar app, add a calendar from an address (a subscription), then paste the link.
 

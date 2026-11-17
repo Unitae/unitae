@@ -18,6 +18,9 @@ Each person chooses their own language: it applies to the app and to the emails 
 2. Open **Preferences**.
 3. On the **Language** row, choose a language.
 
+   ![The Language and Theme rows of the Preferences page](capture:account-preferences)
+
+
 The page reloads in the language you chose. By default, it is **The congregation’s**: you then follow the congregation’s language.
 
 ## Choose the light or dark theme

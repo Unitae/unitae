@@ -18,6 +18,9 @@ Chacun choisit sa langue : elle vaut pour l’application et pour les e-mails qu
 2. Ouvrez **Préférences**.
 3. Sur la ligne **Langue**, choisissez une langue.
 
+   ![Les lignes Langue et Thème de la page Préférences](capture:account-preferences)
+
+
 La page se recharge dans la langue choisie. Par défaut, c’est **Celle de l’assemblée** : vous suivez alors la langue de l’assemblée.
 
 ## Choisir le thème clair ou sombre

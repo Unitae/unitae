@@ -16,7 +16,10 @@ You change your password in **My account**. If you have forgotten it, the sign-i
 
 1. Click your name, at the foot of the sidebar, then **My account**. On a phone, tap your initials at the top of the screen.
 2. Open **Security**.
-3. On the **Password** row, click **Change password…**.
+3. On the **Password** row, click **Change password…**
+
+   ![The Password row of the Security page and its “Change password…” button](capture:account-password-row)
+
 4. Type your **Current password**, then the **New password** and, to confirm it, a second time. It has at least 8 characters: a phrase of a few words is both safer and easier to remember.
 5. Click **Save password**.
 
@@ -24,7 +27,7 @@ Your other devices are signed out: you will need to sign in there again with the
 
 ## You have forgotten your password
 
-1. On the sign-in page, click **Forgot password?**.
+1. On the sign-in page, click **Forgot password?**
 2. Type your account’s email, then click **Send the link**.
 3. Open the email you receive and follow its link. Nothing after a few minutes? Check your spam folder, or try again.
 4. Type the **New password**, confirm it, then click **Save the password**.

@@ -18,6 +18,9 @@ Vous pouvez télécharger à tout moment tout ce que l’application garde sur v
 2. Ouvrez **Confidentialité**.
 3. Dans **Vos données**, sur la ligne **Télécharger mes données**, cliquez sur **Télécharger**.
 
+   ![La section Vos données de la page Confidentialité et son bouton « Télécharger »](capture:account-data)
+
+
 Vous recevez un fichier JSON, un format que d’autres logiciels peuvent lire.
 
 ## Faire effacer vos données

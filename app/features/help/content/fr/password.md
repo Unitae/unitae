@@ -16,7 +16,10 @@ Votre mot de passe se change dans **Mon compte**. Si vous l’avez oublié, la p
 
 1. Cliquez sur votre nom, en bas de la barre latérale, puis sur **Mon compte**. Sur un téléphone, touchez vos initiales en haut de l’écran.
 2. Ouvrez **Sécurité**.
-3. Sur la ligne **Mot de passe**, cliquez sur **Changer le mot de passe…**.
+3. Sur la ligne **Mot de passe**, cliquez sur **Changer le mot de passe…**
+
+   ![La ligne Mot de passe de la page Sécurité et son bouton « Changer le mot de passe… »](capture:account-password-row)
+
 4. Saisissez votre **Mot de passe actuel**, puis le **Nouveau mot de passe** et, pour le confirmer, une seconde fois. Il compte au moins 8 caractères : une phrase de quelques mots est à la fois plus sûre et plus facile à retenir.
 5. Cliquez sur **Enregistrer le mot de passe**.
 
@@ -24,7 +27,7 @@ Vos autres appareils sont déconnectés : il faudra vous y reconnecter avec le n
 
 ## Vous avez oublié votre mot de passe
 
-1. Sur la page de connexion, cliquez sur **Mot de passe oublié ?**.
+1. Sur la page de connexion, cliquez sur **Mot de passe oublié ?**
 2. Saisissez l’e-mail de votre compte, puis cliquez sur **Envoyer le lien**.
 3. Ouvrez l’e-mail reçu et suivez son lien. Rien reçu après quelques minutes ? Regardez dans les courriers indésirables, ou recommencez.
 4. Saisissez le **Nouveau mot de passe**, confirmez-le, puis cliquez sur **Enregistrer le mot de passe**.
