@@ -102,6 +102,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         canViewActivity: can(Permission.CanViewActivity),
         canViewExternalSpeakers: can(Permission.CanViewExternalSpeakers) || can(Permission.CanManageExternalSpeakers),
         canManageExternalSpeakers: can(Permission.CanManageExternalSpeakers),
+        canEnterAttendance: can(Permission.CanRecordAttendance) || can(Permission.CanCorrectAttendance),
         canViewRoles: can(Permission.CanViewRoles) || can(Permission.CanManageRoles),
         canManageRoles: can(Permission.CanManageRoles),
         settingsLinks,

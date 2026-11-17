@@ -1,3 +1,4 @@
+import { Permission } from '~/shared/types/permission'
 import { dayOf, endOfDay } from '~/shared/utils/calendar-day'
 
 /**
@@ -38,4 +39,20 @@ export function canWriteCount(request: CountWriteRequest): boolean {
   if (!request.canRecord) return false
   if (!isEntryOpen(request.startDate, request.timeZone, request.now)) return false
   return !request.hasValue || request.recordedById === request.actorId
+}
+
+export interface AttendanceRights {
+  canRecord: boolean
+  canCorrect: boolean
+}
+
+/**
+ * The caller's two entry rights, named from their permissions: « Saisir l’assistance » enters the meeting under way,
+ * « Corriger l’assistance » changes any count at any time. What a route hands canWriteCount and the attendance writer.
+ */
+export function attendanceRights(permissions: ReadonlySet<Permission>): AttendanceRights {
+  return {
+    canRecord: permissions.has(Permission.CanRecordAttendance),
+    canCorrect: permissions.has(Permission.CanCorrectAttendance),
+  }
 }

@@ -5,6 +5,7 @@ import {
   CalendarDays,
   CalendarOff,
   CalendarRange,
+  Eye,
   FileText,
   Home,
   LayoutGrid,
@@ -42,6 +43,8 @@ export interface NavigationPermissions {
   canViewAbsences: boolean
   canViewActivity: boolean
   canViewExternalSpeakers: boolean
+  /** Enters or corrects meeting attendance: the attendance page opens to them. */
+  canEnterAttendance: boolean
   canManageExternalSpeakers: boolean
   canViewRoles: boolean
   canManageRoles: boolean
@@ -216,8 +219,12 @@ export function buildManagementSections(permissions: NavigationPermissions): Nav
       to: '/programs/external-speakers',
     })
   }
+  if (permissions.canEnterAttendance) {
+    programItems.push({ id: 'attendance', label: m.sidebar_attendance, icon: Eye, to: '/attendance' })
+  }
+  // Everything about the meetings: the programmes and what they need, and attendance.
   if (programItems.length > 0) {
-    sections.push({ id: 'programs', label: m.sidebar_programs, items: programItems })
+    sections.push({ id: 'programs', label: m.sidebar_meetings, items: programItems })
   }
 
   const territoryItems: NavItem[] = []
@@ -315,6 +322,7 @@ const EVERY_PERMISSION: NavigationPermissions = {
   canViewActivity: true,
   canViewExternalSpeakers: true,
   canManageExternalSpeakers: true,
+  canEnterAttendance: true,
   canViewRoles: true,
   canManageRoles: true,
   settingsLinks: [{ key: 'general', href: '/settings/general' }],
