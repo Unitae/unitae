@@ -8,9 +8,11 @@ import {
   type AttendanceEntry,
   type AttendanceViewer,
   type CountKey,
+  type CountOutcome,
   countField,
   countsToSend,
   entryProgress,
+  type RecordResult,
 } from '~/features/events/model/attendance-entry'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
@@ -19,8 +21,7 @@ import { Input } from '~/shared/ui/input'
 import { formatEventTime } from '~/shared/utils/event-time'
 import { cn } from '~/shared/utils/utils'
 
-type Outcome = 'saved' | 'taken' | 'refused' | 'invalid' | 'missing'
-type RecordResult = { ok: true; outcomes: Partial<Record<CountKey, Outcome>> } | { ok: false }
+type Outcome = CountOutcome
 
 const COUNTS: CountKey[] = ['inPerson', 'online']
 
@@ -29,6 +30,7 @@ const REFUSAL: Record<Exclude<Outcome, 'saved'>, () => string> = {
   refused: () => m.attendance_error_refused(),
   invalid: () => m.attendance_error_invalid(),
   missing: () => m.attendance_error_missing(),
+  failed: () => m.attendance_error_count_failed(),
 }
 
 const label = (count: CountKey) => (count === 'inPerson' ? m.attendance_in_person() : m.attendance_online())
@@ -48,6 +50,8 @@ export function AttendanceEntryCard({ entry, viewer }: { entry: AttendanceEntry;
   const [refusals, setRefusals] = useState<Partial<Record<CountKey, Outcome>>>({})
   const busy = fetcher.state !== 'idle'
   const anyEditable = fields.inPerson.editable || fields.online.editable
+  const pending = countsToSend(typed, fields)
+  const nothingToSend = Object.keys(pending.counts).length === 0 && pending.invalid.length === 0
   const done = total != null && !editing
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reacts to the request settling only
@@ -153,9 +157,10 @@ export function AttendanceEntryCard({ entry, viewer }: { entry: AttendanceEntry;
                   </label>
                   <Input
                     id={`${id}-${count}`}
-                    type="number"
+                    // Text, not « number »: a number field reports « 85 pers. » as empty, which would read as cleared.
+                    type="text"
                     inputMode="numeric"
-                    min={0}
+                    autoComplete="off"
                     placeholder="—"
                     readOnly={!field.editable}
                     aria-invalid={refusal != null}
@@ -200,7 +205,7 @@ export function AttendanceEntryCard({ entry, viewer }: { entry: AttendanceEntry;
               <Button
                 size="sm"
                 className="pointer-coarse:h-11 max-md:flex-1"
-                disabled={busy || Object.keys(typed).length === 0}
+                disabled={busy || nothingToSend}
                 onClick={save}
               >
                 {busy && <Loader2 className="animate-spin" />}

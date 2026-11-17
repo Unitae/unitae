@@ -70,17 +70,22 @@ export function monthlyStats(meetings: AttendanceMeeting[], serviceYear: number)
 }
 
 /**
- * The meetings of `serviceYear` in the months it has had so far, as of `today` — the same months whatever the year,
- * so the current year and the previous one compare month for month.
+ * The meetings of `serviceYear` in the months the year on screen (`shown`) has had so far, as of `today`, so the year
+ * shown and the one before it compare month for month. A year that is over has had all twelve. Pass `shown` whenever
+ * `serviceYear` is the comparison year: left out, it defaults to `serviceYear`, and a past year then comes back whole.
  */
 export function serviceYearToDate(
   meetings: AttendanceMeeting[],
   serviceYear: number,
   today: string,
+  shown: number = serviceYear,
 ): AttendanceMeeting[] {
   const now = monthOf(today)
   const currentServiceYear = toServiceYear(now.month, now.year)
-  const elapsed = serviceYearMonths(currentServiceYear).findIndex(m => m.month === now.month && m.year === now.year)
+  const elapsed =
+    shown < currentServiceYear
+      ? 11
+      : serviceYearMonths(currentServiceYear).findIndex(m => m.month === now.month && m.year === now.year)
   const months = serviceYearMonths(serviceYear).slice(0, elapsed + 1)
   return meetings.filter(meeting => {
     const at = monthOf(meeting.day)

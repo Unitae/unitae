@@ -1,5 +1,6 @@
 import { data, redirect } from 'react-router'
 import { attendanceRights } from '~/features/events/model/attendance-access'
+import type { RecordResult } from '~/features/events/model/attendance-entry'
 import { attendanceRecordSchema } from '~/features/events/schemas/attendance-record.schema'
 import { recordAttendance } from '~/features/events/server/record-attendance.server'
 import { congregationContext, currentAccountContext, permissionsContext } from '~/shared/auth/route-context.server'
@@ -24,9 +25,10 @@ export async function action({ request, context }: Route.ActionArgs) {
   const outcomes = await recordAttendance(eventId, counts, {
     congregationId: context.get(currentAccountContext).congregationId,
     actorId: context.get(currentAccountContext).id,
-    ...rights,
+    canRecord: rights.canRecord,
+    canCorrect: rights.canCorrect,
     timeZone: context.get(congregationContext).timezone,
     now: new Date(),
   })
-  return { ok: true as const, outcomes }
+  return { ok: true as const, outcomes } satisfies RecordResult
 }

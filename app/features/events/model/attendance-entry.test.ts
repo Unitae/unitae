@@ -81,4 +81,15 @@ describe('countsToSend', () => {
     expect(countsToSend({ inPerson: '1.5' }, { inPerson: open, online: open }).invalid).toEqual(['inPerson'])
     expect(countsToSend({ inPerson: '250000' }, { inPerson: open, online: open }).invalid).toEqual(['inPerson'])
   })
+
+  // Typed text that is not a number must never read as « cleared » and erase a stored count.
+  it('takes only plain digits as a count: anything else is named, never cleared', () => {
+    for (const text of ['85 pers.', '~85', '85,', '1e', '0x10', '+3']) {
+      expect(countsToSend({ inPerson: text }, { inPerson: open, online: open })).toEqual({
+        counts: {},
+        invalid: ['inPerson'],
+      })
+    }
+    expect(countsToSend({ inPerson: ' 85 ' }, { inPerson: open, online: open }).counts).toEqual({ inPerson: 85 })
+  })
 })

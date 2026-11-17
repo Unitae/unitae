@@ -106,8 +106,20 @@ describe('serviceYearToDate', () => {
   })
 
   it('compares with the same months of the previous service year', () => {
-    const previous = serviceYearToDate(meetings, 2025, '2026-11-16')
+    const previous = serviceYearToDate(meetings, 2025, '2026-11-16', 2026)
     expect(previous.map(m => m.day)).toEqual(['2025-09-07', '2025-11-09'])
+  })
+
+  // A year that is over is seen whole, and compared with the whole year before it — never with three months.
+  it('takes every month of a year that is over, and of the year before it', () => {
+    expect(serviceYearToDate(meetings, 2025, '2026-11-16').map(m => m.day)).toEqual([
+      '2025-09-07',
+      '2025-11-09',
+      '2025-12-07',
+    ])
+    // The year before a year that is over: all twelve months as well.
+    const older = [meeting('2024-09-08', 'weekend', 90, 9), meeting('2025-06-01', 'weekend', 91, 9)]
+    expect(serviceYearToDate(older, 2024, '2026-11-16', 2025).map(m => m.day)).toEqual(['2024-09-08', '2025-06-01'])
   })
 })
 
