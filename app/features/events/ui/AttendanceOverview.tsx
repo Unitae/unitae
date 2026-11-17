@@ -31,15 +31,25 @@ interface AttendanceOverviewProps {
 
 const yearLabel = (serviceYear: number) => `${serviceYear}–${serviceYear + 1}`
 
-/** « +5 % », « −3 % »: the change from last year's figure, whole percent. */
-function delta(current: number, previous: number): { text: string; tone: StatTone } {
-  const change = Math.round(((current - previous) / previous) * 100)
-  if (change === 0) return { text: '0 %', tone: 'neutral' }
-  return { text: `${change > 0 ? '+' : '−'}${Math.abs(change)} %`, tone: change > 0 ? 'positive' : 'negative' }
+/** « +5 % », « −3 % »: the change from last year, whole percent, from the exact averages. */
+function delta(change: number): { text: string; tone: StatTone } {
+  const rounded = Math.round(change * 100)
+  if (rounded === 0) return { text: '0 %', tone: 'neutral' }
+  return { text: `${rounded > 0 ? '+' : '−'}${Math.abs(rounded)} %`, tone: rounded > 0 ? 'positive' : 'negative' }
 }
 
-function AverageTile({ label, average, previous }: { label: string; average: number | null; previous: number | null }) {
-  const compared = average != null && previous != null && previous > 0 ? delta(average, previous) : null
+function AverageTile({
+  label,
+  average,
+  previous,
+  change,
+}: {
+  label: string
+  average: number | null
+  previous: number | null
+  change: number | null
+}) {
+  const compared = change != null && previous != null ? delta(change) : null
   return (
     <StatTile
       label={label}
@@ -64,7 +74,7 @@ export function AttendanceOverview({ meetings, previous, serviceYear, today, now
   const [kind, setKind] = useState<AveragedKind>('weekend')
   const [measure, setMeasure] = useState<Measure>('total')
   const metrics = attendanceMetrics({ meetings, previous, serviceYear, today, now, timeZone })
-  const points = attendanceChart({ meetings, previous, serviceYear, kind, measure })
+  const points = attendanceChart({ meetings, previous, serviceYear, kind, measure, now })
   const monthName = new Intl.DateTimeFormat(getLocale(), { month: 'short', timeZone: 'UTC' })
   const label = (month: number) => monthName.format(new Date(Date.UTC(2026, month, 1)))
   const share = percent(metrics.onlineShare.current)

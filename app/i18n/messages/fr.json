@@ -7242,13 +7242,15 @@
     "attendance_online_help": "Visioconférence et téléphone ensemble, comme dans le rapport à la filiale.",
     "attendance_total_label": "Assistance totale",
     "attendance_partial_help": "Tant qu’un des deux nombres manque, la réunion ne compte pas dans les moyennes.",
-    "attendance_history": "{count} saisi par {name} le {date} à {time}",
+    "attendance_history": "{count} : saisi par {name} le {date} à {time}",
     "attendance_history_in_person": "En salle",
-    "attendance_history_online": "Visioconférence",
-    "attendance_history_never": "{count} jamais saisi",
+    "attendance_history_online": "En visioconférence",
+    "attendance_history_never": "{count} : jamais saisi",
     "attendance_panel_previous": "Réunion plus récente",
     "attendance_panel_next": "Réunion plus ancienne",
     "attendance_empty_title": "Aucune réunion n’est encore comptée.",
     "attendance_empty_body": "Choisissez dans vos modèles de programme quelles réunions le sont.",
-    "attendance_empty_action": "Ouvrir les modèles de programme"
+    "attendance_empty_action": "Ouvrir les modèles de programme",
+    "attendance_history_cleared": "{count} : effacé par {name} le {date} à {time}",
+    "attendance_col_actions": "Actions"
 }

@@ -56,8 +56,10 @@ describe('attendanceMetrics', () => {
 
   it('averages the complete meetings of each kind, against the same months last year', () => {
     // (85 + 88 + 88) / 3 = 87, against (80 + 84) / 2 = 82.
-    expect(metrics.midweek).toEqual({ average: 87, previous: 82 })
-    expect(metrics.weekend).toEqual({ average: 117, previous: 110 })
+    expect(metrics.midweek).toMatchObject({ average: 87, previous: 82 })
+    expect(metrics.weekend).toMatchObject({ average: 117, previous: 110 })
+    // The change is the exact averages' (261 / 3 against 164 / 2), not the rounded figures'.
+    expect(metrics.midweek.change).toBeCloseTo(87 / 82 - 1)
   })
 
   it('counts the meetings held and those to complete, never one still to come', () => {
@@ -78,6 +80,7 @@ describe('attendanceChart', () => {
       serviceYear: 2026,
       kind: 'midweek',
       measure: 'total',
+      now: NOW,
     })
 
     expect(points).toHaveLength(12)
@@ -97,6 +100,7 @@ describe('attendanceChart', () => {
       serviceYear: 2026,
       kind: 'weekend',
       measure: 'online',
+      now: NOW,
     })
     expect(september).toMatchObject({ current: 12, previous: 15 })
   })
@@ -138,6 +142,16 @@ describe('attendanceMonths', () => {
   it('keeps only the meetings to complete, or only those counted apart', () => {
     const todo = attendanceMonths({ meetings: year, now: NOW, timeZone: PARIS, view: 'todo' })
     expect(todo.flatMap(month => month.rows)).toEqual([expect.objectContaining({ day: '2026-11-12', state: 'todo' })])
+
+    // An incomplete Memorial is not « à compléter »: the averages do not wait for it, as the figure says.
+    const halfMemorial = meeting('2026-04-02', 'separate', 181, null)
+    const withMemorial = attendanceMonths({
+      meetings: [...year, halfMemorial],
+      now: NOW,
+      timeZone: PARIS,
+      view: 'todo',
+    })
+    expect(withMemorial.flatMap(month => month.rows)).toHaveLength(1)
 
     const memorial = meeting('2026-04-02', 'separate', 181, 43)
     const apart = attendanceMonths({ meetings: [...year, memorial], now: NOW, timeZone: PARIS, view: 'apart' })

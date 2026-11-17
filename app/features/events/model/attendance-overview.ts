@@ -42,9 +42,19 @@ export function attendanceMetrics(input: {
   const before = serviceYearToDate(held(input.previous, input.now), serviceYear - 1, today, serviceYear)
   const averaged = meetings.filter(meeting => countsInAverages(meeting.kind))
   const complete = averaged.filter(isComplete).length
+  // The change from last year is computed on the exact averages; only what is shown is rounded (§6.2).
+  const kindFigures = (kind: AveragedKind) => {
+    const now = periodStats(current, kind)
+    const then = periodStats(before, kind)
+    return {
+      average: now.average,
+      previous: then.average,
+      change: now.count > 0 && then.count > 0 ? now.total / now.count / (then.total / then.count) - 1 : null,
+    }
+  }
   return {
-    midweek: { average: periodStats(current, 'midweek').average, previous: periodStats(before, 'midweek').average },
-    weekend: { average: periodStats(current, 'weekend').average, previous: periodStats(before, 'weekend').average },
+    midweek: kindFigures('midweek'),
+    weekend: kindFigures('weekend'),
     onlineShare: { current: onlineShare(current), previous: onlineShare(before) },
     entered: {
       complete,
@@ -65,9 +75,10 @@ export function attendanceChart(input: {
   serviceYear: number
   kind: AveragedKind
   measure: Measure
+  now: Date
 }) {
-  const current = monthlyStats(input.meetings, input.serviceYear)
-  const before = monthlyStats(input.previous, input.serviceYear - 1)
+  const current = monthlyStats(held(input.meetings, input.now), input.serviceYear)
+  const before = monthlyStats(held(input.previous, input.now), input.serviceYear - 1)
   return current.map((month, index) => {
     const stats = month[input.kind]
     const previousStats = before[index]?.[input.kind]
@@ -128,7 +139,8 @@ export function attendanceMonths(input: {
     }
   }
   const kept = rows.filter(row => {
-    if (input.view === 'todo') return row.type === 'meeting' && row.state === 'todo'
+    // The meetings the averages wait for, as the « à compléter » figure counts them: never one counted apart.
+    if (input.view === 'todo') return row.type === 'meeting' && row.state === 'todo' && countsInAverages(row.kind)
     if (input.view === 'apart') return row.type === 'meeting' && row.kind === 'separate'
     return row.type === 'off' || countsInAverages(row.kind as AttendanceKind)
   })

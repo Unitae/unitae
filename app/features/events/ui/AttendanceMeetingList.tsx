@@ -1,6 +1,6 @@
 import { Panel, SegmentedControl, Status, StatusIcon } from '@unitae/ui'
 import { ChevronRight, Pencil } from 'lucide-react'
-import { type ReactNode, useState } from 'react'
+import type { ReactNode } from 'react'
 
 import type {
   AttendanceMonth,
@@ -25,13 +25,28 @@ interface AttendanceMeetingListProps {
   selectedId: number | null
   onSelect: (meeting: OverviewMeeting, trigger: HTMLElement) => void
   timeZone: string
+  /** The months unfolded in « Toutes », by `monthKey`; a filtered view shows every month open. */
+  open: ReadonlySet<string>
+  onToggle: (key: string) => void
+  /** Holds « Corriger l’assistance »: a meeting to complete offers « Compléter ». */
+  canComplete: boolean
 }
+
+/** A month's key in the unfolded set. */
+export const monthKey = (month: Pick<AttendanceMonth, 'year' | 'month'>) => `${month.year}-${month.month}`
 
 const CELL = 'h-10 px-3 text-sm'
 const NUMBER = cn(CELL, 'text-right tabular-nums')
 
 function StateShape({ state }: { state: MeetingState }) {
-  if (state === 'live') return <span aria-hidden="true" className="size-2 rounded-full bg-brand ring-3 ring-selected" />
+  if (state === 'live')
+    return (
+      <span
+        role="img"
+        aria-label={m.attendance_state_live()}
+        className="size-2 rounded-full bg-brand ring-3 ring-selected"
+      />
+    )
   const label = state === 'entered' ? m.attendance_state_entered() : m.attendance_state_todo()
   return (
     <span role="img" aria-label={label} className="inline-flex">
@@ -71,10 +86,10 @@ export function AttendanceMeetingList({
   selectedId,
   onSelect,
   timeZone,
+  open,
+  onToggle,
+  canComplete,
 }: AttendanceMeetingListProps) {
-  const [open, setOpen] = useState<Set<string>>(
-    () => new Set(months[0] ? [`${months[0].year}-${months[0].month}`] : []),
-  )
   const locale = getLocale()
   const monthName = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' })
   const day = (date: Date | string) =>
@@ -110,9 +125,10 @@ export function AttendanceMeetingList({
       ) : (
         <Panel aria-label={m.attendance_page_title()}>
           {months.map((month, index) => {
-            const key = `${month.year}-${month.month}`
-            // Every month of a filtered view is open: it holds only what the view is for.
-            const isOpen = view !== 'all' || open.has(key)
+            const key = monthKey(month)
+            // Every month of a filtered view is open: it holds only what the view is for, and folds nothing.
+            const foldable = view === 'all'
+            const isOpen = !foldable || open.has(key)
             const averages = [
               m.attendance_month_summary({ count: month.entered }),
               month.midweek != null && m.attendance_month_midweek({ average: String(month.midweek) }),
@@ -120,33 +136,14 @@ export function AttendanceMeetingList({
             ].filter(Boolean)
             return (
               <div key={key} className={cn(index > 0 && 'border-border border-t')}>
-                <button
-                  type="button"
-                  aria-expanded={isOpen}
-                  onClick={() =>
-                    setOpen(current => {
-                      const next = new Set(current)
-                      if (next.has(key)) next.delete(key)
-                      else next.add(key)
-                      return next
-                    })
-                  }
-                  className="flex h-10 w-full items-center gap-2 bg-subtle px-3 text-left font-semibold text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <ChevronRight
-                    aria-hidden="true"
-                    className={cn(
-                      'size-4 shrink-0 text-faint transition-transform duration-(--u-duration-fast) motion-reduce:transition-none',
-                      isOpen && 'rotate-90',
-                    )}
-                  />
+                <MonthHeader foldable={foldable} open={isOpen} onToggle={() => onToggle(key)}>
                   <span className="first-letter:uppercase">
                     {monthName.format(new Date(Date.UTC(month.year, month.month, 1)))}
                   </span>
                   <span className="ml-auto truncate font-normal text-faint tabular-nums max-md:hidden">
                     {averages.join(' · ')}
                   </span>
-                </button>
+                </MonthHeader>
                 {isOpen && (
                   <table className="w-full border-collapse">
                     <thead className="sr-only">
@@ -156,7 +153,7 @@ export function AttendanceMeetingList({
                         <th>{m.attendance_col_in_person()}</th>
                         <th>{m.attendance_col_online()}</th>
                         <th>{m.attendance_col_total()}</th>
-                        <th />
+                        <th>{m.attendance_col_actions()}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -168,6 +165,7 @@ export function AttendanceMeetingList({
                           onSelect={onSelect}
                           day={day}
                           count={count}
+                          canComplete={canComplete}
                         />
                       ))}
                     </tbody>
@@ -182,14 +180,48 @@ export function AttendanceMeetingList({
   )
 }
 
+function MonthHeader({
+  foldable,
+  open,
+  onToggle,
+  children,
+}: {
+  foldable: boolean
+  open: boolean
+  onToggle: () => void
+  children: ReactNode
+}) {
+  const className = 'flex h-10 w-full items-center gap-2 bg-subtle px-3 text-left font-semibold text-sm'
+  if (!foldable) return <div className={className}>{children}</div>
+  return (
+    <button
+      type="button"
+      aria-expanded={open}
+      onClick={onToggle}
+      className={cn(className, 'outline-none focus-visible:ring-2 focus-visible:ring-ring')}
+    >
+      <ChevronRight
+        aria-hidden="true"
+        className={cn(
+          'size-4 shrink-0 text-faint transition-transform duration-(--u-duration-fast) motion-reduce:transition-none',
+          open && 'rotate-90',
+        )}
+      />
+      {children}
+    </button>
+  )
+}
+
 function Row({
   row,
   selected,
   onSelect,
   day,
   count,
+  canComplete,
 }: {
   row: MonthRow
+  canComplete: boolean
   selected: boolean
   onSelect: AttendanceMeetingListProps['onSelect']
   day: (date: Date | string) => string
@@ -204,7 +236,7 @@ function Row({
         <td className={cn(CELL, 'w-40 max-md:hidden')}>
           <StateCell state="off" />
         </td>
-        <td className={CELL} colSpan={4}>
+        <td className={CELL} colSpan={5}>
           {m.attendance_week_of({ date: weekOf(`${row.monday}T12:00:00Z`) })}
           <span> · {kindLabel(row.kind)}</span>
         </td>
@@ -249,7 +281,7 @@ function Row({
       <td className={NUMBER}>{count(row.online)}</td>
       <td className={cn(NUMBER, 'font-medium')}>{count(total)}</td>
       <td className={cn(CELL, 'w-28 text-right max-md:hidden')}>
-        {row.state === 'todo' ? (
+        {row.state === 'todo' && canComplete ? (
           <Button size="sm" variant="outline" tabIndex={-1} onClick={event => event.currentTarget.blur()}>
             {m.attendance_complete_button()}
           </Button>

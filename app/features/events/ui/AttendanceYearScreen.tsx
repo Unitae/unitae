@@ -9,7 +9,7 @@ import {
   attendanceMonths,
   type OverviewMeeting,
 } from '~/features/events/model/attendance-overview'
-import { AttendanceMeetingList } from '~/features/events/ui/AttendanceMeetingList'
+import { AttendanceMeetingList, monthKey } from '~/features/events/ui/AttendanceMeetingList'
 import { AttendanceOverview } from '~/features/events/ui/AttendanceOverview'
 import { AttendancePanel } from '~/features/events/ui/AttendancePanel'
 import * as m from '~/i18n/paraglide/messages'
@@ -20,6 +20,7 @@ import { useSideEditor } from '~/shared/ui/hooks/use-side-editor'
 import { ListWithPanel, sidePanelWalk } from '~/shared/ui/ListWithPanel'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '~/shared/ui/sheet'
+import { DiscardChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { formatEventDate, formatEventTime } from '~/shared/utils/event-time'
 
 export type YearMeeting = OverviewMeeting & AttendanceEntry
@@ -39,6 +40,9 @@ interface AttendanceYearScreenProps {
 
 const yearLabel = (serviceYear: number) => `${serviceYear}–${serviceYear + 1}`
 
+/** The earliest service year the address accepts (the route's own bound). */
+const FIRST_SERVICE_YEAR = 2000
+
 /**
  * The attendance page for whoever may read it: the service year's figures, its meetings by month, and one meeting's
  * counts beside the list — editable for whoever may change them.
@@ -49,14 +53,25 @@ export function AttendanceYearScreen(props: AttendanceYearScreenProps) {
   const viewer = { ...props.viewer, now }
   const [view, setView] = useState<AttendanceView>('all')
   const months = attendanceMonths({ meetings, now, timeZone, view })
+  // The month under way open, the past ones folded. The route keys this screen by year: another year starts afresh.
+  const [open, setOpen] = useState<Set<string>>(() => new Set(months[0] ? [monthKey(months[0])] : []))
+  const toggle = (key: string) =>
+    setOpen(current => {
+      const next = new Set(current)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
   const toComplete = attendanceMonths({ meetings, now, timeZone, view: 'todo' }).reduce(
     (total, month) => total + month.rows.length,
     0,
   )
   const panel = useSideEditor<'meeting'>(target => meetings.some(meeting => meeting.eventId === target.id))
   const selected = panel.target ? meetings.find(meeting => meeting.eventId === panel.target?.id) : undefined
-  // ↑ ↓ walk the meetings in the order the list shows them.
-  const order = months.flatMap(month => month.rows.flatMap(row => (row.type === 'meeting' ? [row.eventId] : [])))
+  // ↑ ↓ walk the meetings the list shows, in its order: never into a folded month.
+  const order = months
+    .filter(month => view !== 'all' || open.has(monthKey(month)))
+    .flatMap(month => month.rows.flatMap(row => (row.type === 'meeting' ? [row.eventId] : [])))
   const walk = panel.walk('meeting', order)
   const locale = getLocale()
   const when = (meeting: YearMeeting) =>
@@ -69,7 +84,11 @@ export function AttendanceYearScreen(props: AttendanceYearScreenProps) {
       controls={
         <PeriodStepper
           label={m.attendance_year({ label: yearLabel(serviceYear) })}
-          previous={{ label: m.attendance_year_previous(), href: `?year=${serviceYear - 1}` }}
+          previous={{
+            label: m.attendance_year_previous(),
+            href: `?year=${serviceYear - 1}`,
+            disabled: serviceYear <= FIRST_SERVICE_YEAR,
+          }}
           next={{
             label: m.attendance_year_next(),
             href: `?year=${serviceYear + 1}`,
@@ -122,6 +141,7 @@ export function AttendanceYearScreen(props: AttendanceYearScreenProps) {
               key={selected.eventId}
               entry={selected}
               viewer={viewer}
+              formRef={panel.formRef}
               frame={(body, footer) => (
                 <SidePanel
                   title={selected.name}
@@ -150,8 +170,16 @@ export function AttendanceYearScreen(props: AttendanceYearScreenProps) {
           selectedId={selected?.eventId ?? null}
           onSelect={(meeting, trigger) => panel.request({ kind: 'meeting', id: meeting.eventId, trigger })}
           timeZone={timeZone}
+          open={open}
+          onToggle={toggle}
+          canComplete={props.viewer.canCorrect}
         />
       </ListWithPanel>
+      <DiscardChangesDialog
+        {...panel.discard}
+        description={m.common_discard_changes_description()}
+        discardLabel={m.common_discard_changes_confirm()}
+      />
       {!panel.docked && (
         <Sheet open={selected != null} onOpenChange={next => !next && panel.close()}>
           <SheetContent className="sm:max-w-md">

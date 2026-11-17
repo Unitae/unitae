@@ -76,7 +76,10 @@ export function loader({ request, context }: Route.LoaderArgs) {
 }
 
 export default function AttendancePage({ loaderData }: Route.ComponentProps) {
-  if (loaderData.mode === 'year') return <AttendanceYearScreen {...loaderData} now={new Date(loaderData.now)} />
+  if (loaderData.mode === 'year') {
+    // Keyed by year: folded months, the view and the open meeting belong to the year they were chosen in.
+    return <AttendanceYearScreen key={loaderData.serviceYear} {...loaderData} now={new Date(loaderData.now)} />
+  }
 
   const { meetings, next, viewer, now } = loaderData
   const locale = getLocale()
