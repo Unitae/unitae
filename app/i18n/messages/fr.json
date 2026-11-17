@@ -7300,5 +7300,14 @@
     "attendance_export_pdf": "Carte S-88 (PDF)",
     "attendance_export_xlsx": "Tableur (Excel)",
     "attendance_record_col_year": "Année de service",
-    "attendance_record_form_reference": "S-88-F 12/18"
+    "attendance_record_form_reference": "S-88-F 12/18",
+    "attendance_export_title": "Exporter l’assistance",
+    "attendance_export_description": "Choisissez le format et l’année de service.",
+    "attendance_export_format": "Format",
+    "attendance_export_pdf_hint": "L’année choisie et la précédente côte à côte, comme la carte imprimée.",
+    "attendance_export_xlsx_hint": "Chaque réunion tenue, et l’année mois par mois.",
+    "attendance_export_year": "Année de service",
+    "attendance_export_generating": "Préparation du fichier…",
+    "attendance_export_error_redirected": "Vous n’avez plus accès à l’assistance.",
+    "attendance_export_error_generic": "L’export a échoué. Réessayez."
 }

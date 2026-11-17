@@ -6,6 +6,7 @@ import { MemberMultiSelect } from '~/features/publishers/ui/MemberMultiSelect'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/shared/ui/dialog'
+import { filenameFromDisposition, saveBlob } from '~/shared/ui/download-file'
 import { Label } from '~/shared/ui/label'
 import { RadioGroup, RadioGroupItem } from '~/shared/ui/radio-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
@@ -92,9 +93,9 @@ export function ExportActivityDialog({
 
       const kind: DownloadKind = singlePublisher ? 'pdf' : format
       const disposition = response.headers.get('Content-Disposition') ?? ''
-      const filename = parseFilename(disposition) ?? fallbackFilename(kind, year)
+      const filename = filenameFromDisposition(disposition) ?? fallbackFilename(kind, year)
       const blob = await response.blob()
-      triggerBlobDownload(blob, filename)
+      saveBlob(blob, filename)
       handleClose(false)
     } catch (_error) {
       setError(m.activity_export_dialog_error_generic())
@@ -302,27 +303,9 @@ export function buildExportUrl(args: BuildExportUrlArgs): string | null {
   return `/publishers/activity/export/${args.format}?${params.toString()}`
 }
 
-const CONTENT_DISPOSITION_FILENAME_RE = /filename="?([^"]+)"?/
-
-function parseFilename(contentDisposition: string): string | null {
-  const match = contentDisposition.match(CONTENT_DISPOSITION_FILENAME_RE)
-  return match?.[1] ?? null
-}
-
 function fallbackFilename(kind: DownloadKind, year: number): string {
   if (kind === 'pdf') return m.activity_export_filename_s21({ year: String(year) })
   return kind === 'xlsx'
     ? m.activity_export_filename_xlsx({ year: String(year) })
     : m.activity_export_filename_zip({ year: String(year) })
-}
-
-function triggerBlobDownload(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
 }

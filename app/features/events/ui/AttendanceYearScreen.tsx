@@ -1,5 +1,5 @@
 import { PeriodStepper, SidePanel } from '@unitae/ui'
-import { ChevronDown, Download, Eye, FileSpreadsheet, FileText } from 'lucide-react'
+import { Download, Eye } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
 
@@ -11,13 +11,13 @@ import {
   FIRST_SERVICE_YEAR,
   type OverviewMeeting,
 } from '~/features/events/model/attendance-overview'
+import { AttendanceExportDialog } from '~/features/events/ui/AttendanceExportDialog'
 import { AttendanceMeetingList } from '~/features/events/ui/AttendanceMeetingList'
 import { AttendanceOverview } from '~/features/events/ui/AttendanceOverview'
 import { AttendancePanel } from '~/features/events/ui/AttendancePanel'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { useSideEditor } from '~/shared/ui/hooks/use-side-editor'
 import { ListWithPanel, sidePanelWalk } from '~/shared/ui/ListWithPanel'
@@ -39,40 +39,11 @@ interface AttendanceYearScreenProps {
   /** Some template counts its attendance; without one the page says how to start. */
   counting: boolean
   canManageTemplates: boolean
+  /** The service years the export dialog offers, newest first. */
+  exportYears: number[]
 }
 
 const yearLabel = (serviceYear: number) => `${serviceYear}–${serviceYear + 1}`
-
-/** The year shown as the S-88 card (PDF) or a spreadsheet: plain links, the files download without leaving the page. */
-function ExportMenu({ serviceYear }: { serviceYear: number }) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Download aria-hidden="true" />
-          <span className="max-sm:sr-only">{m.attendance_export()}</span>
-          <ChevronDown aria-hidden="true" className="text-faint" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-60">
-        <DropdownMenuItem asChild>
-          <a href={`/attendance/record.pdf?year=${serviceYear}`}>
-            <FileText aria-hidden="true" />
-            <span className="flex-1">{m.attendance_export_pdf()}</span>
-            <span className="text-faint text-xs tabular-nums">{yearLabel(serviceYear)}</span>
-          </a>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <a href={`/attendance/attendance.xlsx?year=${serviceYear}`}>
-            <FileSpreadsheet aria-hidden="true" />
-            <span className="flex-1">{m.attendance_export_xlsx()}</span>
-            <span className="text-faint text-xs tabular-nums">{yearLabel(serviceYear)}</span>
-          </a>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
 
 /**
  * The attendance page for whoever may read it: the service year's figures, its meetings by month, and one meeting's
@@ -83,6 +54,7 @@ export function AttendanceYearScreen(props: AttendanceYearScreenProps) {
   const timeZone = props.viewer.timeZone
   const viewer = { ...props.viewer, now }
   const [view, setView] = useState<AttendanceView>('all')
+  const [exporting, setExporting] = useState(false)
   const months = attendanceMonths({ meetings, now, timeZone, view })
   // The most recent month open, the others folded. The route keys this screen by year: another year starts afresh.
   const [open, setOpen] = useState<Set<string>>(() => new Set(months[0] ? [months[0].key] : []))
@@ -109,7 +81,14 @@ export function AttendanceYearScreen(props: AttendanceYearScreenProps) {
     <PageHeader
       title={m.attendance_page_title()}
       breadcrumbs={[{ label: m.attendance_page_title() }]}
-      actions={counting && <ExportMenu serviceYear={serviceYear} />}
+      actions={
+        counting && (
+          <Button variant="outline" size="sm" onClick={() => setExporting(true)}>
+            <Download aria-hidden="true" />
+            <span className="max-sm:sr-only">{m.attendance_export()}</span>
+          </Button>
+        )
+      }
       controls={
         <PeriodStepper
           label={m.attendance_year({ label: yearLabel(serviceYear) })}
@@ -204,6 +183,12 @@ export function AttendanceYearScreen(props: AttendanceYearScreenProps) {
           canComplete={props.viewer.canCorrect}
         />
       </ListWithPanel>
+      <AttendanceExportDialog
+        open={exporting}
+        onOpenChange={setExporting}
+        years={props.exportYears}
+        defaultYear={serviceYear}
+      />
       <DiscardChangesDialog
         {...panel.discard}
         description={m.common_discard_changes_description()}

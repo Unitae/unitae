@@ -9,6 +9,7 @@ const mockDb = {
 const {
   countsAnyMeeting,
   eventHasAttendance,
+  listAttendanceServiceYears,
   listLastWeekAttendance,
   listMeetingsUnderWay,
   listServiceYearAttendance,
@@ -190,5 +191,32 @@ describe('listLastWeekAttendance', () => {
     expect(where.startDate.gte.toISOString()).toBe('2026-11-08T23:00:00.000Z')
     expect(where.startDate.lt.toISOString()).toBe('2026-11-15T23:00:00.000Z')
     expect(orderBy).toEqual({ startDate: 'asc' })
+  })
+})
+
+describe('listAttendanceServiceYears', () => {
+  // The export dialog offers every service year since the first counted meeting, the current one first.
+  it('lists the service years from the first counted meeting held to the current one, newest first', async () => {
+    mockDb.event.findFirst.mockResolvedValue({ startDate: new Date('2024-10-03T17:00:00Z') })
+    const now = new Date('2026-11-17T09:00:00Z')
+
+    expect(await listAttendanceServiceYears(mockDb as never, { congregationId: 1, timeZone: PARIS, now })).toEqual([
+      2026, 2025, 2024,
+    ])
+    const [[{ where, orderBy }]] = mockDb.event.findFirst.mock.calls
+    expect(where).toMatchObject({
+      congregationId: 1,
+      template: { attendanceKind: { not: 'none' } },
+      startDate: { lte: now },
+    })
+    expect(orderBy).toEqual({ startDate: 'asc' })
+  })
+
+  it('offers the current year alone before any meeting is held', async () => {
+    mockDb.event.findFirst.mockResolvedValue(null)
+    const now = new Date('2026-08-31T22:30:00Z') // already September 1st in Paris
+    expect(await listAttendanceServiceYears(mockDb as never, { congregationId: 1, timeZone: PARIS, now })).toEqual([
+      2026,
+    ])
   })
 })

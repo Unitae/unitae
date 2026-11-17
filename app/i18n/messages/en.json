@@ -7300,5 +7300,14 @@
     "attendance_export_pdf": "S-88 card (PDF)",
     "attendance_export_xlsx": "Spreadsheet (Excel)",
     "attendance_record_col_year": "Service year",
-    "attendance_record_form_reference": "S-88-E 12/18"
+    "attendance_record_form_reference": "S-88-E 12/18",
+    "attendance_export_title": "Export attendance",
+    "attendance_export_description": "Choose the format and the service year.",
+    "attendance_export_format": "Format",
+    "attendance_export_pdf_hint": "The chosen year and the one before side by side, as on the printed card.",
+    "attendance_export_xlsx_hint": "Every meeting held, and the year month by month.",
+    "attendance_export_year": "Service year",
+    "attendance_export_generating": "Preparing the file…",
+    "attendance_export_error_redirected": "You no longer have access to attendance.",
+    "attendance_export_error_generic": "The export failed. Try again."
 }

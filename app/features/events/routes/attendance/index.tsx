@@ -4,6 +4,7 @@ import type { AttendanceViewer } from '~/features/events/model/attendance-entry'
 import { serviceYearFrom } from '~/features/events/model/attendance-overview'
 import {
   countsAnyMeeting,
+  listAttendanceServiceYears,
   listMeetingsUnderWay,
   listServiceYearAttendance,
   nextCountedMeeting,
@@ -54,10 +55,11 @@ export function loader({ request, context }: Route.LoaderArgs) {
       const serviceYear = serviceYearFrom(new URL(request.url).searchParams.get('year'), currentServiceYear)
       // A year still to come, or no year at all: the address goes back to the current year rather than lie.
       if (serviceYear == null) throw redirect('/attendance')
-      const [meetings, previous, counting] = await Promise.all([
+      const [meetings, previous, counting, exportYears] = await Promise.all([
         listServiceYearAttendance(db, { congregationId, serviceYear, timeZone: timezone }),
         listServiceYearAttendance(db, { congregationId, serviceYear: serviceYear - 1, timeZone: timezone }),
         countsAnyMeeting(db, congregationId),
+        listAttendanceServiceYears(db, { congregationId, timeZone: timezone, now }),
       ])
       return {
         mode: 'year' as const,
@@ -69,6 +71,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
         now,
         viewer,
         counting,
+        exportYears,
         canManageTemplates: permissions.has(Permission.CanManageProgramTemplates),
       }
     }
