@@ -7253,5 +7253,8 @@
     "attendance_empty_action": "Open the program templates",
     "attendance_history_cleared": "{count}: cleared by {name} on {date} at {time}",
     "attendance_col_actions": "Actions",
-    "attendance_error_count_failed": "Not saved, try again"
+    "attendance_error_count_failed": "Not saved, try again",
+    "board_programme_attendance": "Attendance last week: {meetings}",
+    "settings_programme_attendance": "Show attendance on the program",
+    "settings_programme_attendance_description": "Everyone who sees the program reads last week’s attendance, total only. Averages and history stay restricted."
 }

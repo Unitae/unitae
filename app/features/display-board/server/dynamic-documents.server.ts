@@ -13,9 +13,12 @@ import {
 // Cross-feature import via the events barrel (deep-importing another
 // feature's model directly is forbidden by the boundaries lint rule).
 import { EventStatus } from '~/features/events'
+import { type LastWeekMeeting, listLastWeekAttendance } from '~/features/events/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
+import { getBoolSetting } from '~/shared/domain/settings.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { EXTERNAL_SPEAKER_LABEL_SELECT } from '~/shared/utils/external-speaker-label'
 import { zonedNow } from '~/shared/utils/zoned-now'
@@ -316,7 +319,12 @@ export async function getDynamicDocumentData(
   dynamicType: string,
   dynamicRef: string | null,
   congregationId: number,
-  options: { showServices?: boolean; dynamicConfig?: unknown } = {},
+  options: {
+    showServices?: boolean
+    dynamicConfig?: unknown
+    /** When the programme is read: last week, for its attendance line. */
+    attendance?: { timeZone: string; now: Date }
+  } = {},
 ) {
   if (dynamicType === DynamicType.Organigram) {
     return { type: DynamicType.Organigram, tree: await fetchOrganigramDocument(db, congregationId) } as const
@@ -348,6 +356,7 @@ export async function getDynamicDocumentData(
         type: DynamicType.Programme,
         events,
         config,
+        attendance: await attendanceLine(db, congregationId, options.attendance),
         // Legacy compat fields
         templateKey: null,
         showServices: anyServices,
@@ -361,6 +370,7 @@ export async function getDynamicDocumentData(
         type: DynamicType.Programme,
         events,
         config: null,
+        attendance: await attendanceLine(db, congregationId, options.attendance),
         templateKey: dynamicRef,
         showServices: options.showServices ?? false,
       } as const
@@ -368,6 +378,21 @@ export async function getDynamicDocumentData(
   }
 
   return null
+}
+
+/**
+ * Last week's attendance for the programme's line, when the congregation shows it there (off by default) and a
+ * meeting was counted; null otherwise, and the programme says nothing about attendance.
+ */
+async function attendanceLine(
+  db: TransactionClient,
+  congregationId: number,
+  read: { timeZone: string; now: Date } | undefined,
+): Promise<LastWeekMeeting[] | null> {
+  if (read == null) return null
+  if (!(await getBoolSetting(db, CongregationSettingKey.ProgrammeShowsAttendance, congregationId))) return null
+  const week = await listLastWeekAttendance(db, { congregationId, ...read })
+  return week.length > 0 ? week : null
 }
 
 function fetchPublisherGroups(db: TransactionClient, congregationId: number) {

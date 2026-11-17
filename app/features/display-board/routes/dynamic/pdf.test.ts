@@ -256,6 +256,8 @@ describe('the dynamic document PDF loader', () => {
     expect(getDynamicDocumentData).toHaveBeenCalledWith(fakeDb, DynamicType.PublisherGroups, 'ref', 10, {
       showServices: true,
       dynamicConfig: { any: 'config' },
+      // The sheet reads last week as the viewer does, for the programme's attendance line.
+      attendance: { timeZone: expect.any(String), now: expect.any(Date) },
     })
   })
 

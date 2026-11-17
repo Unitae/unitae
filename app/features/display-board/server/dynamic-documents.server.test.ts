@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+const listLastWeekAttendance = vi.fn()
+vi.mock('~/features/events/index.server', async importOriginal => ({
+  ...(await importOriginal<typeof import('~/features/events/index.server')>()),
+  listLastWeekAttendance: (...args: unknown[]) => listLastWeekAttendance(...args),
+}))
+
 import {
   getContentVersion,
   getDynamicDocumentData,
@@ -32,6 +38,9 @@ const mockDb = {
   },
   boardDynamicDocumentView: {
     upsert: vi.fn(),
+  },
+  setting: {
+    findFirst: vi.fn(),
   },
 }
 
@@ -275,6 +284,42 @@ describe('getDynamicDocumentData programme draft filter', () => {
         where: expect.objectContaining({ status: 'released' }),
       }),
     )
+  })
+})
+
+// The congregation's choice: off by default, the programme then says nothing about attendance.
+describe('getDynamicDocumentData attendance line', () => {
+  const read = { timeZone: 'Europe/Paris', now: new Date('2026-11-17T09:00:00Z') }
+  const week = [{ eventId: 42, day: '2026-11-15', name: 'Réunion du week-end', total: 119 }]
+
+  it('carries last week’s attendance when the congregation shows it on the programme', async () => {
+    mockDb.event.findMany.mockResolvedValue([])
+    mockDb.setting.findFirst.mockResolvedValue({ value: 'true' })
+    listLastWeekAttendance.mockResolvedValue(week)
+
+    const data = await getDynamicDocumentData(mockDb as never, 'programme', 'midweek', 10, { attendance: read })
+
+    expect(data).toMatchObject({ attendance: week })
+    expect(listLastWeekAttendance).toHaveBeenCalledWith(mockDb, { congregationId: 10, ...read })
+  })
+
+  it('carries none when the setting is off, or no meeting was counted last week', async () => {
+    mockDb.event.findMany.mockResolvedValue([])
+    mockDb.setting.findFirst.mockResolvedValue(null)
+    expect(
+      await getDynamicDocumentData(mockDb as never, 'programme', 'midweek', 10, { attendance: read }),
+    ).toMatchObject({
+      attendance: null,
+    })
+    expect(listLastWeekAttendance).not.toHaveBeenCalled()
+
+    mockDb.setting.findFirst.mockResolvedValue({ value: 'true' })
+    listLastWeekAttendance.mockResolvedValue([])
+    expect(
+      await getDynamicDocumentData(mockDb as never, 'programme', 'midweek', 10, { attendance: read }),
+    ).toMatchObject({
+      attendance: null,
+    })
   })
 })
 
