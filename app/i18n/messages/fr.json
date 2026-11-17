@@ -7143,5 +7143,112 @@
     "attendance_you": "vous",
     "attendance_done_by": "Par {names}",
     "attendance_card_saved": "Enregistrée",
-    "attendance_error_failed": "L’assistance n’a pas pu être enregistrée. Réessayez."
+    "attendance_error_failed": "L’assistance n’a pas pu être enregistrée. Réessayez.",
+    "attendance_year": "Année de service {label}",
+    "attendance_year_previous": "Année de service précédente",
+    "attendance_year_next": "Année de service suivante",
+    "attendance_metrics": "Assistance de l’année de service",
+    "attendance_metric_midweek": "Moyenne · réunion de semaine",
+    "attendance_metric_weekend": "Moyenne · réunion de week-end",
+    "attendance_metric_online": "En visioconférence",
+    "attendance_metric_entered": "Réunions saisies",
+    "attendance_metric_held": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "sur {count} tenue",
+                "countPlural=*": "sur {count} tenues"
+            }
+        }
+    ],
+    "attendance_metric_vs": "{delta} sur la même période l’an dernier ({previous})",
+    "attendance_metric_no_previous": "Rien à comparer l’an dernier",
+    "attendance_metric_online_foot": "de l’assistance totale, {previous} l’an dernier",
+    "attendance_metric_online_foot_alone": "de l’assistance totale",
+    "attendance_metric_to_complete": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} à compléter",
+                "countPlural=*": "{count} à compléter"
+            }
+        }
+    ],
+    "attendance_metric_all_entered": "Toutes saisies",
+    "attendance_chart_title": "Moyenne par mois",
+    "attendance_chart_subtitle": "{kind} · {measure} · une réunion n’entre dans la moyenne que complète",
+    "attendance_chart_aria": "Moyenne mensuelle de l’assistance, {kind}",
+    "attendance_chart_view": "Affichage",
+    "attendance_chart_chart": "Graphique",
+    "attendance_chart_table": "Tableau",
+    "attendance_kind_group": "Réunion",
+    "attendance_kind_midweek": "Semaine",
+    "attendance_kind_weekend": "Week-end",
+    "attendance_kind_midweek_full": "Réunion de semaine",
+    "attendance_kind_weekend_full": "Réunion de week-end",
+    "attendance_measure_group": "Mesure",
+    "attendance_measure_total": "Total",
+    "attendance_measure_in_person": "En salle",
+    "attendance_measure_online": "Visio",
+    "attendance_measure_total_long": "assistance totale",
+    "attendance_measure_in_person_long": "en salle",
+    "attendance_measure_online_long": "en visioconférence",
+    "attendance_col_month": "Mois",
+    "attendance_col_meetings": "Réunions",
+    "attendance_view_group": "Vue",
+    "attendance_view_all": "Toutes",
+    "attendance_view_todo": "À compléter · {count}",
+    "attendance_view_apart": "Comptées à part",
+    "attendance_newest_first": "La plus récente en premier",
+    "attendance_month_summary": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} réunion saisie",
+                "countPlural=*": "{count} réunions saisies"
+            }
+        }
+    ],
+    "attendance_month_midweek": "semaine {average}",
+    "attendance_month_weekend": "week-end {average}",
+    "attendance_col_state": "État",
+    "attendance_col_meeting": "Réunion",
+    "attendance_col_in_person": "En salle",
+    "attendance_col_online": "Visio",
+    "attendance_col_total": "Total",
+    "attendance_state_entered": "Saisie",
+    "attendance_state_todo": "À compléter",
+    "attendance_state_live": "En cours",
+    "attendance_state_off": "Pas de réunion",
+    "attendance_week_of": "Semaine du {date}",
+    "attendance_complete_button": "Compléter",
+    "attendance_open_label": "Voir l’assistance du {date}",
+    "attendance_list_empty": "Aucune réunion tenue pour l’instant cette année de service.",
+    "attendance_todo_empty": "Toutes les réunions tenues sont saisies.",
+    "attendance_apart_empty": "Aucune réunion comptée à part cette année de service.",
+    "attendance_online_long": "En visioconférence",
+    "attendance_online_help": "Visioconférence et téléphone ensemble, comme dans le rapport à la filiale.",
+    "attendance_total_label": "Assistance totale",
+    "attendance_partial_help": "Tant qu’un des deux nombres manque, la réunion ne compte pas dans les moyennes.",
+    "attendance_history": "{count} saisi par {name} le {date} à {time}",
+    "attendance_history_in_person": "En salle",
+    "attendance_history_online": "Visioconférence",
+    "attendance_history_never": "{count} jamais saisi",
+    "attendance_panel_previous": "Réunion plus récente",
+    "attendance_panel_next": "Réunion plus ancienne",
+    "attendance_empty_title": "Aucune réunion n’est encore comptée.",
+    "attendance_empty_body": "Choisissez dans vos modèles de programme quelles réunions le sont.",
+    "attendance_empty_action": "Ouvrir les modèles de programme"
 }

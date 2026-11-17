@@ -1,7 +1,14 @@
 import { redirect } from 'react-router'
 import { attendanceRights } from '~/features/events/model/attendance-access'
-import { listMeetingsUnderWay, nextCountedMeeting } from '~/features/events/server/attendance.queries'
+import {
+  countsAnyMeeting,
+  listMeetingsUnderWay,
+  listServiceYearAttendance,
+  nextCountedMeeting,
+} from '~/features/events/server/attendance.queries'
 import { AttendanceEntryCard } from '~/features/events/ui/AttendanceEntryCard'
+import { AttendanceYearScreen } from '~/features/events/ui/AttendanceYearScreen'
+import { toServiceYear } from '~/features/publishers'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import {
@@ -10,36 +17,69 @@ import {
   permissionsContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import { Permission } from '~/shared/types/permission'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { dayOf } from '~/shared/utils/calendar-day'
 import { formatEventDate, formatEventTime } from '~/shared/utils/event-time'
 
 import type { Route } from './+types/index'
 
 export const meta: Route.MetaFunction = () => [{ title: m.attendance_page_meta_title() }]
 
+/** The service year asked for in the address, never one still to come; the current one by default. */
+function serviceYearOf(request: Request, current: number): number {
+  const asked = Number(new URL(request.url).searchParams.get('year'))
+  return Number.isInteger(asked) && asked >= 2000 && asked <= current ? asked : current
+}
+
 /**
- * The meetings under way today, for whoever enters or corrects attendance: the same card as on the dashboard. Outside
- * a meeting, when the entry opens next.
+ * Whoever may read attendance gets the service year: figures, meetings by month, one meeting's counts beside the
+ * list. Whoever may only enter it gets the meetings under way today, as on the dashboard, or when the entry opens.
  */
-export function loader({ context }: Route.LoaderArgs) {
-  const rights = attendanceRights(context.get(permissionsContext))
-  if (!(rights.canRecord || rights.canCorrect)) throw redirect('/')
+export function loader({ request, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const rights = attendanceRights(permissions)
+  if (!(rights.canRecord || rights.canCorrect || rights.canView)) throw redirect('/')
   const account = context.get(currentAccountContext)
   const { timezone } = context.get(congregationContext)
   const now = new Date()
+  const viewer = { actorId: account.id, canRecord: rights.canRecord, canCorrect: rights.canCorrect, timeZone: timezone }
 
   return withScopeFromContext(context, async db => {
     const congregationId = account.congregationId
+    if (rights.canView) {
+      const today = dayOf(now, timezone)
+      const currentServiceYear = toServiceYear(Number(today.slice(5, 7)) - 1, Number(today.slice(0, 4)))
+      const serviceYear = serviceYearOf(request, currentServiceYear)
+      const [meetings, previous, counting] = await Promise.all([
+        listServiceYearAttendance(db, { congregationId, serviceYear, timeZone: timezone }),
+        listServiceYearAttendance(db, { congregationId, serviceYear: serviceYear - 1, timeZone: timezone }),
+        countsAnyMeeting(db, congregationId),
+      ])
+      return {
+        mode: 'year' as const,
+        meetings,
+        previous,
+        serviceYear,
+        currentServiceYear,
+        today,
+        now,
+        viewer,
+        counting,
+        canManageTemplates: permissions.has(Permission.CanManageProgramTemplates),
+      }
+    }
     const meetings = await listMeetingsUnderWay(db, { congregationId, timeZone: timezone, now })
     const next = meetings.length === 0 ? await nextCountedMeeting(db, { congregationId, now }) : null
-    return { meetings, next, viewer: { actorId: account.id, ...rights, timeZone: timezone }, now }
+    return { mode: 'today' as const, meetings, next, viewer, now }
   })
 }
 
 export default function AttendancePage({ loaderData }: Route.ComponentProps) {
+  if (loaderData.mode === 'year') return <AttendanceYearScreen {...loaderData} now={new Date(loaderData.now)} />
+
   const { meetings, next, viewer, now } = loaderData
   const locale = getLocale()
-
   return (
     <div className="flex max-w-xl flex-col gap-4">
       <PageHeader title={m.attendance_page_title()} breadcrumbs={[{ label: m.attendance_page_title() }]} />
