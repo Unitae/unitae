@@ -7289,15 +7289,15 @@
     "attendance_xlsx_col_weekend_total": "Weekend · total",
     "attendance_xlsx_col_weekend_average": "Weekend · average",
     "attendance_xlsx_year": "Service year",
-    "attendance_record_title": "Congregation meeting attendance",
-    "attendance_record_col_month": "Month",
-    "attendance_record_col_meetings": "Meetings",
+    "attendance_record_title": "Congregation meeting attendance record",
+    "attendance_record_col_meetings": "Number of meetings",
     "attendance_record_col_total": "Total attendance",
-    "attendance_record_col_average": "Average per meeting",
-    "attendance_record_year_average": "Service year",
+    "attendance_record_col_average": "Average attendance each week",
+    "attendance_record_year_average": "Average attendance for the year",
     "attendance_record_filename_pdf": "attendance-{year}.pdf",
     "attendance_record_filename_xlsx": "attendance-{year}.xlsx",
     "attendance_export": "Export",
     "attendance_export_pdf": "S-88 card (PDF)",
-    "attendance_export_xlsx": "Spreadsheet (Excel)"
+    "attendance_export_xlsx": "Spreadsheet (Excel)",
+    "attendance_record_col_year": "Service year"
 }

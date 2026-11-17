@@ -13,10 +13,9 @@ const meetings = [
 
 describe('AttendanceRecordDocument', () => {
   // What the card prints: both years on one landscape page, each month, the figures and the year's average.
-  it('prints the two service years side by side on one page, with their figures', async () => {
+  it('prints the card on one portrait page: each meeting with its two years side by side, and their figures', async () => {
     const response = await renderPdfResponse(
       createElement(AttendanceRecordDocument, {
-        congregationName: 'Assemblée des Lilas',
         years: [
           { serviceYear: 2025, ...attendanceReport(meetings.slice(0, 1), 2025) },
           { serviceYear: 2026, ...attendanceReport(meetings.slice(1), 2026) },
@@ -28,10 +27,10 @@ describe('AttendanceRecordDocument', () => {
     const text = pages[0]?.items.map(item => item.str).join(' ') ?? ''
 
     expect(pages).toHaveLength(1)
-    expect(text).toContain('Assemblée des Lilas')
+    expect(text).toContain('RELEVÉ DE L’ASSISTANCE AUX RÉUNIONS DE L’ASSEMBLÉE')
     expect(text).toContain('2025–2026')
     expect(text).toContain('2026–2027')
-    expect(text).toContain('septembre')
+    expect(text).toContain('Septembre')
     expect(text).toContain('85')
     expect(text).toContain('112')
   })

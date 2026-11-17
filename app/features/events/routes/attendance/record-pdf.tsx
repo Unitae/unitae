@@ -8,10 +8,9 @@ import type { Route } from './+types/record-pdf'
 
 /** The S-88 card for the service year shown and the one before it, as a PDF. */
 export async function loader({ request, context }: Route.LoaderArgs) {
-  const { meetings, previous, serviceYear, congregationName } = await loadAttendanceExport(request, context)
+  const { meetings, previous, serviceYear } = await loadAttendanceExport(request, context)
   return renderPdfResponse(
     <AttendanceRecordDocument
-      congregationName={congregationName}
       years={[
         { serviceYear: serviceYear - 1, ...attendanceReport(previous, serviceYear - 1) },
         { serviceYear, ...attendanceReport(meetings, serviceYear) },
