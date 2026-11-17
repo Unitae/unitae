@@ -2,12 +2,16 @@ import { parseWithZod } from '@conform-to/zod/v4'
 import { data, redirect } from 'react-router'
 import { consentSchema } from '~/features/authentication/schemas/login.schema'
 import { PrivacySettings } from '~/features/authentication/ui/PrivacySettings'
+import { HelpEntryButton } from '~/features/help'
 import * as m from '~/i18n/paraglide/messages'
 import { congregationContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { ConsentPurpose, getActiveConsents, withdrawConsent } from '~/shared/domain/consent.server'
 import { AccountPage } from '~/shared/ui/AccountPage'
 import type { Route } from './+types/privacy'
+
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: `${m.account_section_privacy()} - Unitae` }]
@@ -60,7 +64,11 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 export default function PrivacyPage({ loaderData }: Route.ComponentProps) {
   return (
-    <AccountPage title={m.account_section_privacy()} subtitle={m.account_privacy_subtitle()}>
+    <AccountPage
+      help={<HelpEntryButton slug="my-data" />}
+      title={m.account_section_privacy()}
+      subtitle={m.account_privacy_subtitle()}
+    >
       <PrivacySettings consents={loaderData.consents} timezone={loaderData.timezone} />
     </AccountPage>
   )

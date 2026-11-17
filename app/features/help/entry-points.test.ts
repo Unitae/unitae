@@ -13,6 +13,11 @@ const PINS: Record<string, string> = {
   'features/territories/routes/campaigns/list.tsx': 'campaign-create',
   'features/territories/routes/prospection/list.tsx': 'prospection',
   'features/settings/routes/territories/settings.tsx': 'territories-settings',
+  'features/authentication/routes/user/profile.tsx': 'calendar-feed',
+  'features/authentication/routes/user/preferences.tsx': 'language',
+  'features/authentication/routes/user/security.tsx': 'password',
+  'features/notifications/routes/preferences.tsx': 'notifications',
+  'features/authentication/routes/user/privacy.tsx': 'my-data',
 }
 
 // The routes with a loader matched above the pinned pages (see app/routes.ts).

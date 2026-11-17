@@ -27,6 +27,8 @@ const CHIP =
 interface AccountPageProps {
   title: string
   subtitle?: string
+  /** The « ? » that opens this part's help article, in the header's help slot. */
+  help?: ReactNode
   children: ReactNode
 }
 
@@ -34,7 +36,7 @@ interface AccountPageProps {
  * One part of « Mon compte »: the column of its parts on the left (pills that scroll sideways on a phone), the
  * part's title, then its blocks.
  */
-export function AccountPage({ title, subtitle, children }: AccountPageProps) {
+export function AccountPage({ title, subtitle, help, children }: AccountPageProps) {
   return (
     <div className="md:grid md:grid-cols-[11.5rem_minmax(0,1fr)] md:items-start md:gap-10">
       <SectionRail
@@ -52,6 +54,7 @@ export function AccountPage({ title, subtitle, children }: AccountPageProps) {
         <PageHeader
           title={title}
           subtitle={subtitle}
+          help={help}
           breadcrumbs={[{ label: m.account_title(), to: '/me/profile' }, { label: title }]}
         />
         <nav

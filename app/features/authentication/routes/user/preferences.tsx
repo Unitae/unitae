@@ -1,11 +1,15 @@
 import { Panel } from '@unitae/ui'
 import { LanguageRow, ThemeRow } from '~/features/authentication/ui/PreferenceRows'
+import { HelpEntryButton } from '~/features/help'
 import * as m from '~/i18n/paraglide/messages'
 import { isLocale } from '~/i18n/paraglide/runtime'
 import { congregationContext, currentAccountContext } from '~/shared/auth/route-context.server'
 import { AccountPage } from '~/shared/ui/AccountPage'
 import { DEFAULT_LOCALE } from '~/shared/utils/language'
 import type { Route } from './+types/preferences'
+
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: `${m.account_section_preferences()} - Unitae` }]
@@ -24,7 +28,11 @@ export function loader({ context }: Route.LoaderArgs) {
 
 export default function PreferencesPage({ loaderData }: Route.ComponentProps) {
   return (
-    <AccountPage title={m.account_section_preferences()} subtitle={m.account_preferences_subtitle()}>
+    <AccountPage
+      help={<HelpEntryButton slug="language" />}
+      title={m.account_section_preferences()}
+      subtitle={m.account_preferences_subtitle()}
+    >
       <Panel aria-label={m.account_section_preferences()}>
         <LanguageRow locale={loaderData.locale} congregationLocale={loaderData.congregationLocale} />
         <ThemeRow />

@@ -3,10 +3,14 @@ import { getAccountProfile } from '~/features/authentication/server/account-prof
 import { getCalendarFeedToken } from '~/features/authentication/server/calendar-feed-token.server'
 import { CalendarFeedPanel } from '~/features/authentication/ui/CalendarFeedPanel'
 import { ProfileRecord } from '~/features/authentication/ui/ProfileRecord'
+import { HelpEntryButton } from '~/features/help'
 import * as m from '~/i18n/paraglide/messages'
 import { congregationContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { AccountPage } from '~/shared/ui/AccountPage'
 import type { Route } from './+types/profile'
+
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: `${m.account_section_profile()} - Unitae` }]
@@ -38,7 +42,11 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
   const { profile, congregationName, calendar } = loaderData
 
   return (
-    <AccountPage title={m.account_section_profile()} subtitle={m.account_profile_subtitle()}>
+    <AccountPage
+      help={<HelpEntryButton slug="calendar-feed" />}
+      title={m.account_section_profile()}
+      subtitle={m.account_profile_subtitle()}
+    >
       <ProfileRecord profile={profile} congregation={congregationName} />
       <CalendarFeedPanel calendar={calendar} />
     </AccountPage>

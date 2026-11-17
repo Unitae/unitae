@@ -12,12 +12,18 @@ const SHIPPED_SLUGS = [
   'board-download',
   'board-read',
   'board-versions',
+  'calendar-feed',
   'campaign-create',
   'create-territory',
+  'language',
+  'my-data',
   'my-territories',
+  'notifications',
+  'password',
   'phone-territories',
   'prospection',
   'territories-settings',
+  'two-step-verification',
 ].sort()
 
 interface ArticleOptions {
@@ -226,6 +232,9 @@ describe('loadHelpArticles: the articles as shipped', () => {
     expect(fr.get('bano')?.permission).toEqual(['CanConfigureTerritorySettings'])
     expect(fr.get('campaign-create')?.permission).toEqual(['CanManageTerritoryCampaigns'])
     expect(fr.get('prospection')?.permission).toEqual(['CanViewProspection'])
+    for (const slug of ['password', 'two-step-verification', 'calendar-feed', 'notifications', 'language', 'my-data']) {
+      expect(fr.get(slug)?.permission, slug).toBeNull()
+    }
   })
 
   it('writes no raw HTML in an article body', () => {

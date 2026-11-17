@@ -441,8 +441,13 @@ A « ? » goes in the header's `help` slot (`<PageHeader help={<HelpEntryButton 
 | Campagnes | `/territories/attributions/campaigns` | `campaign-create` | `CanManageTerritoryCampaigns` |
 | Prospection | `/territories/buildings` | `prospection` | `CanViewProspection` |
 | Réglages › Territoires | `/settings/territories` | `territories-settings` | `CanConfigureTerritorySettings` |
+| Mon compte › Profil | `/me/profile` | `calendar-feed` | none |
+| Mon compte › Préférences | `/me/preferences` | `language` | none |
+| Mon compte › Sécurité | `/me/security` | `password` | none |
+| Mon compte › Notifications | `/me/notifications` | `notifications` | none |
+| Mon compte › Confidentialité | `/me/privacy` | `my-data` | none |
 
-Articles without a « ? » are reached from the index, the search and related links only: `phone-territories` and `bano` (`CanConfigureTerritorySettings`), `board-download` (`CanViewBoard`), `board-versions` (`CanReviewBoardDocuments, CanUploadBoardDocuments`: the document history on `/board/documents/:id/edit`, which an uploader opens on the documents they uploaded).
+Articles without a « ? » are reached from the index, the search and related links only: `two-step-verification` (none: the Sécurité page's « ? » opens `password`, which links to it), `phone-territories` and `bano` (`CanConfigureTerritorySettings`), `board-download` (`CanViewBoard`), `board-versions` (`CanReviewBoardDocuments, CanUploadBoardDocuments`: the document history on `/board/documents/:id/edit`, which an uploader opens on the documents they uploaded).
 
 Each module in `app/features/help/model/help.type.ts` (`HELP_MODULES`) groups its articles under the sidebar label of that module. Articles are read as data: the body is rendered on the server with raw HTML disabled, so an article cannot inject markup.
 
