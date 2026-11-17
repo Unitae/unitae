@@ -1,0 +1,17 @@
+import type { HelpModule } from '~/features/help/model/help.type'
+import * as m from '~/i18n/paraglide/messages'
+
+// Each module is named by the sidebar entry it belongs to, so the help uses the words the page shows.
+const LABELS: Record<HelpModule, () => string> = {
+  absences: m.sidebar_my_absences,
+  board: m.sidebar_board,
+  'my-territories': m.sidebar_my_territories,
+  territories: m.sidebar_territories,
+  campaigns: m.sidebar_campaigns,
+  prospection: m.sidebar_prospection,
+  settings: m.sidebar_settings,
+}
+
+export function helpModuleLabel(module: HelpModule): string {
+  return LABELS[module]()
+}

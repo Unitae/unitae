@@ -1,0 +1,63 @@
+import { Link } from 'react-router'
+
+import type { HelpArticleView } from '~/features/help/model/help.type'
+import { HelpFallback } from '~/features/help/ui/HelpFallback'
+import * as m from '~/i18n/paraglide/messages'
+
+// The body is written in Markdown; these arbitrary variants give its elements the app's type scale and colours.
+const BODY =
+  'text-sm leading-relaxed text-foreground [&_h2]:mt-6 [&_h2]:mb-1 [&_h2]:font-semibold [&_h2]:text-base [&_h2]:text-foreground [&_p]:mt-3 [&_ol]:mt-3 [&_ol]:list-decimal [&_ol]:space-y-2 [&_ol]:pl-5 [&_ul]:mt-3 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-5 [&_strong]:font-semibold [&_a]:text-brand-text [&_a]:underline [&_a]:underline-offset-2 [&_code]:rounded-sm [&_code]:bg-subtle [&_code]:px-1 [&_code]:text-[0.85em]'
+
+/**
+ * The reading part of an article, shared by its page and the side panel. The page or the panel draws the title and
+ * the summary; this draws the body, the related articles and the fallback. `relatedTo` gives the address each related
+ * article opens at.
+ */
+export function HelpArticleBody({
+  view,
+  relatedTo,
+}: {
+  view: HelpArticleView | undefined
+  relatedTo: (slug: string) => string
+}) {
+  if (view == null) return null
+
+  if (view.kind !== 'found') {
+    return (
+      <div className="flex flex-col gap-5">
+        <p className="text-muted-foreground text-sm">
+          {view.kind === 'forbidden' ? m.help_unavailable() : m.help_missing()}
+        </p>
+        <HelpFallback />
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div
+        className={BODY}
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: rendered from repo Markdown with raw HTML disabled, never user input
+        // biome-ignore lint/style/useNamingConvention: React's own prop shape for raw HTML
+        dangerouslySetInnerHTML={{ __html: view.html }}
+      />
+      {view.related.length > 0 && (
+        <section aria-labelledby="help-related-title" className="border-border border-t pt-4">
+          <h2 id="help-related-title" className="font-medium text-muted-foreground text-sm">
+            {m.help_related_title()}
+          </h2>
+          <ul className="mt-2 flex flex-col gap-1.5 text-sm">
+            {view.related.map(related => (
+              <li key={related.slug}>
+                <Link to={relatedTo(related.slug)} className="text-brand-text underline underline-offset-2">
+                  {related.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      <HelpFallback />
+    </div>
+  )
+}

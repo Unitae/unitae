@@ -1,5 +1,6 @@
 import { Building2, Plus } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router'
+import { HelpEntryButton } from '~/features/help'
 import {
   type BuildingView,
   checkDates,
@@ -160,12 +161,11 @@ export default function ProspectionList({ loaderData }: Route.ComponentProps) {
         title={m.prospection_title()}
         breadcrumbs={[{ label: m.sidebar_prospection() }]}
         actions={
-          syncButton || create ? (
-            <>
-              {syncButton}
-              {create}
-            </>
-          ) : undefined
+          <>
+            {syncButton}
+            {create}
+            <HelpEntryButton slug="prospection" />
+          </>
         }
         meta={
           sync && (

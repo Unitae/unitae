@@ -2,6 +2,7 @@ import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod/v4'
 import { FormSection } from '@unitae/ui'
 import { data, redirect } from 'react-router'
+import { HelpEntryButton } from '~/features/help'
 import { KIND_ROLES_FIELD_PREFIX, territorySettingsSchema } from '~/features/settings/schemas/territory-settings.schema'
 import { loadTerritorySettings } from '~/features/settings/server/load-territory-settings.server'
 import { updateTerritorySettings } from '~/features/settings/server/territory-settings.server'
@@ -127,7 +128,11 @@ export default function TerritorySettingsPage({ loaderData, actionData }: Route.
 
   return (
     <div className="flex max-w-4xl flex-col">
-      <SettingsHeader title={m.settings_territories_title()} subtitle={m.settings_territories_subtitle()} />
+      <SettingsHeader
+        title={m.settings_territories_title()}
+        subtitle={m.settings_territories_subtitle()}
+        actions={<HelpEntryButton slug="territories-settings" />}
+      />
 
       <SettingsForm {...getFormProps(form)} savedKey={JSON.stringify(loaderData)} errors={form.errors}>
         <FormSection

@@ -7099,5 +7099,20 @@
     "share_message_default_school_talk": "Bonjour {assigneeFirstname},\n\nTu as un discours de l’école le {date} à {time}.\nSujet : {topic}\nDurée : {duration}\nNote : {note}\n\n{link}",
     "share_message_default_public_talk": "Bonjour {assigneeFirstname},\n\nTu donnes le discours public le {date} à {time}.\nThème : {topic}\nNote : {note}\n\n{link}",
     "share_message_default_watchtower_study": "Bonjour {assigneeFirstname},\n\nTu conduis l’Étude de La Tour de Garde le {date} à {time}.\nLecteur : {assistant}\nNote : {note}\n\n{link}",
-    "share_message_default_congregation_bible_study": "Bonjour {assigneeFirstname},\n\nTu conduis l’étude biblique de l’assemblée le {date} à {time}.\nLecteur : {assistant}\nNote : {note}\n\n{link}"
+    "share_message_default_congregation_bible_study": "Bonjour {assigneeFirstname},\n\nTu conduis l’étude biblique de l’assemblée le {date} à {time}.\nLecteur : {assistant}\nNote : {note}\n\n{link}",
+    "help_menu_label": "Aide",
+    "help_page_title": "Aide",
+    "help_page_intro": "Des articles courts, un par tâche. Seuls ceux qui concernent votre compte sont listés.",
+    "help_search_label": "Rechercher dans le texte de l’aide",
+    "help_search_empty": "Aucun article ne contient « {query} ».",
+    "help_search_try": "Essayez un mot plus court.",
+    "help_browse_all": "Parcourir tous les articles",
+    "help_related_title": "Articles liés",
+    "help_back_to_help": "Retour à l’aide",
+    "help_open_page": "Ouvrir la page",
+    "help_entry_label": "Aide sur cette page",
+    "help_unavailable": "Cet article n’est pas disponible pour ce compte.",
+    "help_missing": "Cet article n’existe pas.",
+    "help_fallback_question": "Vous ne trouvez pas ? Posez la question sur GitHub",
+    "help_fallback_privacy": "Le dépôt est public : ne collez aucune donnée de votre assemblée."
 }

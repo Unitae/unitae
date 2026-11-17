@@ -2,6 +2,7 @@ import { Panel, SectionHeading } from '@unitae/ui'
 import { MapPin } from 'lucide-react'
 import { useEffect, useId } from 'react'
 
+import { HelpEntryButton } from '~/features/help'
 import { mainStreets } from '~/features/territories/model/holder-territory'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { getActiveCampaign } from '~/features/territories/server/campaign.queries'
@@ -108,6 +109,7 @@ export default function MyTerritoriesList({ loaderData }: Route.ComponentProps) 
           ) : undefined
         }
         breadcrumbs={[{ label: m.sidebar_my_territories() }]}
+        actions={<HelpEntryButton slug="my-territories" />}
       />
 
       <CampaignModeBanner campaign={bannerCampaign} variant="publisher" />

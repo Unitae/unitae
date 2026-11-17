@@ -27,6 +27,8 @@ interface AppLayoutProps {
   sidebarOpen?: boolean
   /** Drawn in place of the page: the error a page threw, inside the shell. */
   children?: React.ReactNode
+  /** Drawn beside the page, after its column: the help article's side panel, which docks as a row-opened one does. */
+  helpPanel?: React.ReactNode
 }
 
 /**
@@ -42,6 +44,7 @@ export function AppLayout({
   trial = null,
   sidebarOpen = true,
   children,
+  helpPanel,
 }: AppLayoutProps) {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
@@ -102,6 +105,7 @@ export function AppLayout({
           </div>
         </div>
       </SidebarInset>
+      {helpPanel}
       <BottomTabBar permissions={permissions} onMoreClick={() => setMoreOpen(open => !open)} moreOpen={moreOpen} />
       {hasManagementSections(permissions) && (
         <MoreMenuSheet permissions={permissions} open={moreOpen} onOpenChange={setMoreOpen} />

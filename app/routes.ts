@@ -3,6 +3,7 @@ import { index, layout, prefix, type RouteConfig, route } from '@react-router/de
 import { authenticationRoutes } from './features/authentication/authentication.routes'
 import { daysOffRoutes } from './features/events/days-off.routes'
 import { programsRoutes } from './features/events/programs.routes'
+import { helpRoutes } from './features/help/help.routes'
 import { territoryManagementRoutes } from './features/territories/territory-management.routes'
 
 export default [
@@ -173,6 +174,7 @@ export default [
         route('delete', 'features/publishers/routes/publishers/delete-group.tsx'),
       ]),
     ]),
+    ...helpRoutes,
     ...programsRoutes,
     ...territoryManagementRoutes,
     // An unknown address inside the app: the layout's error boundary draws the 404 in the shell. Someone signed out

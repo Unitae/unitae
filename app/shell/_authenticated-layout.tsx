@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 import { data } from 'react-router'
 import { toast } from 'sonner'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { HelpAccessProvider, HelpPanel } from '~/features/help'
+import { visibleHelpSlugsFor } from '~/features/help/index.server'
 import { settingsLinksFor } from '~/features/settings'
 import { loadSettingsAccess } from '~/features/settings/index.server'
 import { getLocale } from '~/i18n/paraglide/runtime'
@@ -116,6 +118,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       }),
       messages,
       sidebarOpen,
+      helpSlugs: visibleHelpSlugsFor(permissions),
     },
     {
       headers: {
@@ -126,7 +129,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 }
 
 export default function AuthenticatedLayout({ loaderData }: Route.ComponentProps) {
-  const { permissions, congregationName, userName, trial, messages, sidebarOpen } = loaderData
+  const { permissions, congregationName, userName, trial, messages, sidebarOpen, helpSlugs } = loaderData
 
   useEffect(() => {
     if (messages.success) {
@@ -138,13 +141,16 @@ export default function AuthenticatedLayout({ loaderData }: Route.ComponentProps
   }, [messages])
 
   return (
-    <AppLayout
-      permissions={permissions}
-      congregationName={congregationName}
-      userName={userName}
-      trial={trial}
-      sidebarOpen={sidebarOpen}
-    />
+    <HelpAccessProvider slugs={helpSlugs}>
+      <AppLayout
+        permissions={permissions}
+        congregationName={congregationName}
+        userName={userName}
+        trial={trial}
+        sidebarOpen={sidebarOpen}
+        helpPanel={<HelpPanel />}
+      />
+    </HelpAccessProvider>
   )
 }
 
