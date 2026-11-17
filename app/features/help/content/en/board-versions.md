@@ -17,12 +17,16 @@ A PDF document keeps every file it has shown. You find the history of the docume
 1. In the sidebar, open **Information board**, then **Manage the board**.
 2. Open the document, then click **History** next to the current file. You can also click the number shown next to **Versions**.
 
+   ![The document’s current file and the “History” link](capture:board-versions-history)
+
 ## Download
 
 In the **History** panel:
 
 - the **original file** downloads with the button labelled “Download the original file”, for as long as the document has never been replaced;
 - each **version** downloads with its own button labelled “Download version N”.
+
+![The History panel: each version, its download and “Bring back”](capture:board-versions-panel)
 
 ## Bring back a version
 

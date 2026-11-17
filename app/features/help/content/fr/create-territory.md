@@ -17,6 +17,9 @@ Un territoire se compose d’un numéro, d’un type et des entrées qui le form
 1. Dans la barre latérale, ouvrez **Territoires**, puis cliquez sur **Nouveau territoire**.
 2. Renseignez le **Numéro**.
 3. Choisissez le **Type** : **Porte à porte**, **Commerces**, **Hôtel** ou **Université**. Le type **Téléphone** n’est proposé que s’il est activé.
+
+   ![Les champs Numéro et Type, au-dessus de la carte du nouveau territoire](capture:territory-new-header)
+
 4. Sur la carte, cliquez une entrée libre pour l’ajouter au territoire.
 5. Cliquez sur **Créer le territoire**.
 

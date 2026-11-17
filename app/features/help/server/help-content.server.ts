@@ -1,19 +1,26 @@
 import { HELP_LOCALES, type HelpArticle, type HelpLocale } from '~/features/help/model/help.type'
+import { HELP_CAPTURE_SCHEME, type HelpCaptureManifest, helpImagesIn } from '~/features/help/model/help-captures'
 import { HelpArticleFormatError, parseHelpArticle } from '~/features/help/model/parse-help-article'
+import { HELP_CAPTURES } from '~/features/help/server/help-captures.server'
 import { logger } from '~/shared/infra/logger.server'
 
 // The article files ship inside the app bundle (read at build time), so self-hosted instances carry the help of their own version.
 const SOURCES = import.meta.glob<string>('../content/*/*.md', { query: '?raw', import: 'default', eager: true })
 
 const MARKDOWN_EXTENSION = /\.md$/
+const NO_CAPTURES: HelpCaptureManifest = { fr: {}, en: {} }
 
 /**
  * Turns a set of article files, keyed by their path `…/<locale>/<slug>.md`, into the articles, and checks what must
  * hold across them: a file is named after its slug and lives in a known language folder; each slug exists in both
- * languages with the same permission, module, order and related set; every related slug exists and is not the article
- * itself. Any breach is a {@link HelpArticleFormatError}.
+ * languages with the same permission, module, order, related set and captures; every related slug exists and is not
+ * the article itself; every image is a described capture its language has. Any breach is a
+ * {@link HelpArticleFormatError}.
  */
-export function assembleHelpArticles(sources: Record<string, string>): HelpArticle[] {
+export function assembleHelpArticles(
+  sources: Record<string, string>,
+  captures: HelpCaptureManifest = NO_CAPTURES,
+): HelpArticle[] {
   const articles: HelpArticle[] = []
   const seen = new Set<string>()
 
@@ -39,6 +46,7 @@ export function assembleHelpArticles(sources: Record<string, string>): HelpArtic
 
   for (const article of articles) {
     checkRelated(article, articles)
+    checkCaptures(article, captures)
     for (const locale of HELP_LOCALES) {
       if (locale !== article.locale) checkCounterpart(article, articleInLocale(articles, locale, article.slug))
     }
@@ -64,6 +72,32 @@ function checkRelated(article: HelpArticle, articles: readonly HelpArticle[]): v
   }
 }
 
+function checkCaptures(article: HelpArticle, captures: HelpCaptureManifest): void {
+  for (const { alt, src } of helpImagesIn(article.body)) {
+    if (!src.startsWith(HELP_CAPTURE_SCHEME)) {
+      throw new HelpArticleFormatError(
+        `Help article « ${article.locale}/${article.slug} » shows « ${src} »: an image must be a ${HELP_CAPTURE_SCHEME}<id>.`,
+      )
+    }
+    if (alt.trim() === '') {
+      throw new HelpArticleFormatError(
+        `Help article « ${article.locale}/${article.slug} » has a capture without alt text.`,
+      )
+    }
+    const id = src.slice(HELP_CAPTURE_SCHEME.length)
+    if (captures[article.locale][id] == null) {
+      throw new HelpArticleFormatError(
+        `Help article « ${article.locale}/${article.slug} » shows the capture « ${id} », which that language does not have.`,
+      )
+    }
+  }
+}
+
+/** The ids of an article's captures as one comparable value: the same set in any order compares equal. */
+function captureKey(article: HelpArticle): string {
+  return [...new Set(helpImagesIn(article.body).map(({ src }) => src))].sort().join('|')
+}
+
 function checkCounterpart(article: HelpArticle, counterpart: HelpArticle | undefined): void {
   if (counterpart == null) {
     throw new HelpArticleFormatError(
@@ -73,6 +107,11 @@ function checkCounterpart(article: HelpArticle, counterpart: HelpArticle | undef
   if (permissionKey(counterpart) !== permissionKey(article)) {
     throw new HelpArticleFormatError(
       `Help article « ${article.slug} » has a permission that differs between the languages.`,
+    )
+  }
+  if (captureKey(counterpart) !== captureKey(article)) {
+    throw new HelpArticleFormatError(
+      `Help article « ${article.slug} » shows captures that differ between the languages.`,
     )
   }
   if (counterpart.module !== article.module) {
@@ -105,7 +144,7 @@ const LOADED: Loaded = loadAtStartup()
 
 function loadAtStartup(): Loaded {
   try {
-    return { articles: assembleHelpArticles(SOURCES) }
+    return { articles: assembleHelpArticles(SOURCES, HELP_CAPTURES) }
   } catch (error) {
     if (error instanceof HelpArticleFormatError) {
       logger.error(`In-app help is unavailable: ${error.message}`)

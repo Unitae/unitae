@@ -130,7 +130,9 @@ walks through it. Nothing else changes: language pickers, validation and formatt
 
 For the help articles, create `app/features/help/content/<code>/` with every article translated from
 `content/en/`, keeping its frontmatter values, and add the code to `HELP_LOCALES` in
-`app/features/help/model/help.type.ts`. Until then, readers of that language get the English articles.
+`app/features/help/model/help.type.ts`. Until then, readers of that language get the English articles. The language
+also needs its own captures: a translated copy of the demo data, an app on it, and a run of the capture script for
+that language (`scripts/help-captures/README.md`); the loader refuses an article whose captures the language lacks.
 
 ## Help Articles
 

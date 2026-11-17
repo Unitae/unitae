@@ -19,6 +19,9 @@ A preaching campaign sets a period and the territories it covers. During the cam
 3. Enter the **Rest after the campaign**, in days: the wait before its territories can be assigned again.
 4. At the start, choose what happens to the **Ongoing regular territory assignments**.
 5. At end, tick **Return the territories still out for the campaign** if you want them back the day after the last day. If you pause the assignments at the start, also choose what happens to the **Paused assignments**: resume them, keep them paused or return them.
+
+   ![The “At the start” and “At end” sections of the campaign form](capture:campaign-start-end)
+
 6. Choose the scope: **All territories**, or **Some** that you select.
 7. Click **Create the campaign**.
 

@@ -18,4 +18,6 @@ La prospection recense les immeubles des territoires : un bâtiment par ligne, a
 2. Pour ajouter un bâtiment à la main, cliquez sur **Nouveau bâtiment**, puis sur **Créer le bâtiment**.
 3. Pour importer les adresses, cliquez sur **Synchroniser…**, puis sur **Lancer la synchronisation**.
 
+   ![Les boutons « Synchroniser… » et « Nouveau bâtiment », en haut de la Prospection](capture:prospection-actions)
+
 Voir la prospection demande le droit de voir les immeubles et les listes de prospection. Ajouter un bâtiment ou lancer la synchronisation demande le droit de gérer les immeubles. L’article sur la source des adresses explique comment la régler.

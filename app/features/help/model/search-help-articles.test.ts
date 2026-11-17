@@ -55,6 +55,14 @@ describe('searchHelpArticles', () => {
     expect(searchHelpArticles(ARTICLES, 'csv territoire')).toEqual([])
   })
 
+  it('finds a capture by its description, never by its source', () => {
+    const illustrated = [article({ slug: 'absences', body: '![Le bouton Nouvelle absence](capture:absences-new)' })]
+
+    expect(searchHelpArticles(illustrated, 'bouton').map(({ slug }) => slug)).toEqual(['absences'])
+    expect(searchHelpArticles(illustrated, 'capture')).toEqual([])
+    expect(searchHelpArticles(illustrated, 'absences-new')).toEqual([])
+  })
+
   it('returns nothing for a blank query or one with no match', () => {
     expect(searchHelpArticles(ARTICLES, '   ')).toEqual([])
     expect(searchHelpArticles(ARTICLES, 'hélicoptère')).toEqual([])

@@ -16,6 +16,9 @@ Telephone territories are **turned off by default**. While they are off, the **P
 
 1. In the sidebar, open **Settings**, then **Territories**.
 2. Under **Territory kinds**, on the **Phone** row, turn the switch on.
+
+   ![The “Phone” row of the territory kinds, with its switch](capture:settings-phone-switch)
+
 3. Choose the roles that may receive these territories. With no role chosen, any publisher may receive them.
 
 The kind then appears under **New territory**.

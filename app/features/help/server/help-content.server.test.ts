@@ -26,10 +26,18 @@ interface ArticleOptions {
   permission?: string
   order?: number
   related?: string[]
+  body?: string
 }
 
 function articleFile(slug: string, options: ArticleOptions = {}): string {
-  const { title = `Titre ${slug}`, module = 'absences', permission = 'none', order = 1, related = [] } = options
+  const {
+    title = `Titre ${slug}`,
+    module = 'absences',
+    permission = 'none',
+    order = 1,
+    related = [],
+    body = 'Texte.',
+  } = options
   return `---
 slug: ${slug}
 title: ${title}
@@ -41,7 +49,7 @@ related: ${related.join(', ')}
 order: ${order}
 ---
 
-Texte.
+${body}
 `
 }
 
@@ -52,6 +60,41 @@ function pair(slug: string, options: ArticleOptions = {}): Record<string, string
     [`content/en/${slug}.md`]: articleFile(slug, options),
   }
 }
+
+const CAPTURE = { width: 320, height: 120, captured: '2026-11-17' }
+const BOTH_CAPTURED = { fr: { 'absences-new': CAPTURE }, en: { 'absences-new': CAPTURE } }
+const WITH_CAPTURE = { body: 'Texte.\n\n![Le bouton](capture:absences-new)' }
+
+// An article shows only the app's own captures, described, and the same ones in both languages.
+describe('assembleHelpArticles: the captures in a body', () => {
+  it('accepts a described capture that both languages have', () => {
+    expect(assembleHelpArticles(pair('a', WITH_CAPTURE), BOTH_CAPTURED).map(({ slug }) => slug)).toContain('a')
+  })
+
+  it('refuses a capture without alt text, which a screen reader could not describe', () => {
+    expect(() => assembleHelpArticles(pair('a', { body: '![](capture:absences-new)' }), BOTH_CAPTURED)).toThrow(
+      'alt text',
+    )
+  })
+
+  it('refuses an image that is not one of the app’s captures', () => {
+    expect(() =>
+      assembleHelpArticles(pair('a', { body: '![Logo](https://example.org/logo.png)' }), BOTH_CAPTURED),
+    ).toThrow('capture:')
+  })
+
+  it('refuses a capture the language does not have', () => {
+    const frOnly = { fr: { 'absences-new': CAPTURE }, en: {} }
+
+    expect(() => assembleHelpArticles(pair('a', WITH_CAPTURE), frOnly)).toThrow('absences-new')
+  })
+
+  it('refuses captures that differ between the languages', () => {
+    const sources = { 'content/fr/a.md': articleFile('a', WITH_CAPTURE), 'content/en/a.md': articleFile('a') }
+
+    expect(() => assembleHelpArticles(sources, BOTH_CAPTURED)).toThrow('captures')
+  })
+})
 
 describe('assembleHelpArticles: the shape of each file', () => {
   it('orders the articles by language, then by order, then by slug', () => {
