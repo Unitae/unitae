@@ -6,8 +6,14 @@ const mockDb = {
   eventTemplate: { findFirst: vi.fn() },
 }
 
-const { countsAnyMeeting, eventHasAttendance, listMeetingsUnderWay, listServiceYearAttendance, nextCountedMeeting } =
-  await import('./attendance.queries')
+const {
+  countsAnyMeeting,
+  eventHasAttendance,
+  listLastWeekAttendance,
+  listMeetingsUnderWay,
+  listServiceYearAttendance,
+  nextCountedMeeting,
+} = await import('./attendance.queries')
 
 const PARIS = 'Europe/Paris'
 
@@ -160,5 +166,29 @@ describe('countsAnyMeeting', () => {
       congregationId: 1,
       attendanceKind: { not: 'none' },
     })
+  })
+})
+
+describe('listLastWeekAttendance', () => {
+  // Tuesday 17 November 2026 in Paris: last week ran from Monday 9 to Sunday 15.
+  const now = new Date('2026-11-17T09:00:00Z')
+
+  it('reads the counted meetings of last week, Monday to Sunday, with their total once complete', async () => {
+    mockDb.event.findMany.mockResolvedValue([
+      row({ id: 41, startDate: new Date('2026-11-12T18:00:00Z'), template: { attendanceKind: 'midweek' } }),
+      row({ id: 42, startDate: new Date('2026-11-15T09:00:00Z'), attendance: { ...row().attendance, online: 21 } }),
+    ])
+
+    const week = await listLastWeekAttendance(mockDb as never, { congregationId: 1, timeZone: PARIS, now })
+
+    expect(week).toEqual([
+      { templateId: 2, day: '2026-11-12', total: null },
+      { templateId: 2, day: '2026-11-15', total: 119 },
+    ])
+    const [[{ where, orderBy }]] = mockDb.event.findMany.mock.calls
+    expect(where).toMatchObject({ congregationId: 1, template: { attendanceKind: { not: 'none' } } })
+    expect(where.startDate.gte.toISOString()).toBe('2026-11-08T23:00:00.000Z')
+    expect(where.startDate.lt.toISOString()).toBe('2026-11-15T23:00:00.000Z')
+    expect(orderBy).toEqual({ startDate: 'asc' })
   })
 })

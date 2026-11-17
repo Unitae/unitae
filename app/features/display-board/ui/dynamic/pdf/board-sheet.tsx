@@ -1,5 +1,6 @@
 import type { DocumentProps } from '@react-pdf/renderer'
 import type { ReactElement } from 'react'
+import { type AttendanceLineMeeting, sheetShowsAttendance } from '~/features/display-board/model/attendance-line'
 import {
   BOARD_ACCENT_COLOR,
   BOARD_LAYOUTS,
@@ -36,6 +37,8 @@ export type BoardSheetData =
       events: (ProgrammeSheetEvent & { templateId: number | null })[]
       config: ProgrammeDynamicConfig | null
       showServices: boolean
+      /** Last week's attendance, when the congregation shows it on the programme. */
+      attendance?: AttendanceLineMeeting[] | null
     }
 
 export interface BoardSheetOptions {
@@ -101,6 +104,11 @@ export async function buildBoardSheet(
           groupBy={groupBy}
           timezone={options.timezone}
           measurer={measurer}
+          attendance={
+            sheetShowsAttendance({ events: data.events, groupBy, asOf: options.asOf, timeZone: options.timezone })
+              ? data.attendance
+              : null
+          }
         />
       )
     }

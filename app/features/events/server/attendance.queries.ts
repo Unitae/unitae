@@ -1,6 +1,6 @@
 import { type AttendanceKind, parseAttendanceKind } from '~/features/events/model/attendance-kind.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
-import { dayOf, endOfDay, startOfDay } from '~/shared/utils/calendar-day'
+import { addDays, dayOf, endOfDay, mondayOf, startOfDay } from '~/shared/utils/calendar-day'
 
 // Reads of meeting attendance. Writes live in attendance.aggregate.ts.
 
@@ -159,4 +159,38 @@ export async function eventHasAttendance(db: TransactionClient, eventId: number,
 export async function countsAnyMeeting(db: TransactionClient, congregationId: number) {
   const template = await db.eventTemplate.findFirst({ where: { congregationId, ...COUNTED }, select: { id: true } })
   return template != null
+}
+
+/** One meeting of last week as the programme's attendance line shows it: its total only once both counts are in. */
+export interface LastWeekMeeting {
+  /** Which template it is: a programme document shows the meetings of its own templates only. */
+  templateId: number | null
+  /** Local day, `YYYY-MM-DD`. */
+  day: string
+  total: number | null
+}
+
+/**
+ * The counted meetings of last week (Monday to Sunday, local time), for the line « Assistance la semaine passée » on
+ * the programme: the total only, and only for a complete meeting — a half-entered one reads « — ».
+ */
+export async function listLastWeekAttendance(
+  db: TransactionClient,
+  { congregationId, timeZone, now }: { congregationId: number; timeZone: string; now: Date },
+): Promise<LastWeekMeeting[]> {
+  const thisMonday = mondayOf(dayOf(now, timeZone))
+  const events = await db.event.findMany({
+    where: {
+      congregationId,
+      template: COUNTED,
+      startDate: { gte: startOfDay(addDays(thisMonday, -7), timeZone), lt: startOfDay(thisMonday, timeZone) },
+    },
+    select: SELECT,
+    orderBy: { startDate: 'asc' },
+  })
+  return events.map(event => {
+    const row = toRow(event, timeZone)
+    const total = row.inPerson != null && row.online != null ? row.inPerson + row.online : null
+    return { templateId: row.templateId, day: row.day, total }
+  })
 }
