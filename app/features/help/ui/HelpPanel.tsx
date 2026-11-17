@@ -15,7 +15,7 @@ import { Skeleton } from '~/shared/ui/skeleton'
 const DOCKED = '(min-width: 1280px)'
 
 /**
- * The article named by `?aide=<slug>`, opened beside the page. It reads the article from the article route, so the
+ * The article named by `?help=<slug>`, opened beside the page. It reads the article from the article route, so the
  * panel and the article page show the same text, and the access check is the server's. A failed load stays in the
  * panel: the page behind it is never replaced.
  */

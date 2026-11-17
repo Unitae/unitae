@@ -426,7 +426,7 @@ LOGIN_RATE_LIMIT_GLOBAL_MAX="100"      # Max failed login attempts instance-wide
 
 ## In-app help
 
-« Aide » (`/aide`, from the account menu) ships with the app, in French and English. The articles are Markdown files in `app/features/help/content/{fr,en}/`, one per task, with a frontmatter block: `slug`, `title`, `summary`, `module`, `permission`, `keywords`, `related`, `order`. `permission` is the name of the `Permission` member the feature needs, or `none`. A reader without it never sees the article, nor its search hits or links, and no permission is ever changed to show help.
+« Aide » (`/help`, from the account menu) ships with the app, in French and English. The articles are Markdown files in `app/features/help/content/{fr,en}/`, one per task, with a frontmatter block: `slug`, `title`, `summary`, `module`, `permission`, `keywords`, `related`, `order`. `permission` is the name of the `Permission` member the feature needs, or `none`. A reader without it never sees the article, nor its search hits or links, and no permission is ever changed to show help.
 
 `app/features/help/entry-points.test.ts` is the authoritative wiring: it scans the app source for every `<HelpEntryButton slug="…" />` and fails unless each one is pinned there and ships in both languages. Keep this table in step with it.
 
