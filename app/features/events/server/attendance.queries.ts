@@ -1,4 +1,5 @@
 import { type AttendanceKind, parseAttendanceKind } from '~/features/events/model/attendance-kind.type'
+import { toServiceYear } from '~/features/publishers'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { addDays, dayOf, endOfDay, mondayOf, startOfDay } from '~/shared/utils/calendar-day'
 
@@ -193,4 +194,24 @@ export async function listLastWeekAttendance(
     const total = row.inPerson != null && row.online != null ? row.inPerson + row.online : null
     return { templateId: row.templateId, day: row.day, total }
   })
+}
+
+const serviceYearOf = (day: string) => toServiceYear(Number(day.slice(5, 7)) - 1, Number(day.slice(0, 4)))
+
+/**
+ * The service years attendance can be exported for: from the one of the first counted meeting held to the current
+ * one, newest first — the current year alone before any meeting is held.
+ */
+export async function listAttendanceServiceYears(
+  db: TransactionClient,
+  { congregationId, timeZone, now }: { congregationId: number; timeZone: string; now: Date },
+): Promise<number[]> {
+  const current = serviceYearOf(dayOf(now, timeZone))
+  const first = await db.event.findFirst({
+    where: { congregationId, template: COUNTED, startDate: { lte: now } },
+    orderBy: { startDate: 'asc' },
+    select: { startDate: true },
+  })
+  const oldest = first ? serviceYearOf(dayOf(first.startDate, timeZone)) : current
+  return Array.from({ length: current - oldest + 1 }, (_, index) => current - index)
 }
