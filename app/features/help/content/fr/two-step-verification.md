@@ -35,6 +35,6 @@ Dans **Sécurité**, sur la ligne **Vérification en deux étapes**, cliquez sur
 
 Vous changez de téléphone ? Tant que vous avez l’ancien, désactivez la vérification, puis activez-la de nouveau avec le nouveau téléphone.
 
-## Vous n’avez plus accès à l’application
+## Vous n’avez plus accès à votre application d’authentification
 
 Demandez à un administrateur de l’assemblée de réinitialiser la vérification en deux étapes de votre compte. Vous vous connectez ensuite avec votre seul mot de passe, et vous pouvez l’activer de nouveau.

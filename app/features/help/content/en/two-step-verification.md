@@ -35,6 +35,6 @@ In **Security**, on the **Two-step verification** row, click **Turn off…** Typ
 
 Changing phones? While you still have the old one, turn verification off, then turn it on again with the new phone.
 
-## You no longer have the app
+## You no longer have your authenticator app
 
 Ask an administrator of the congregation to reset two-step verification for your account. You then sign in with your password alone, and you can turn it on again.
