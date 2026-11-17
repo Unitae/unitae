@@ -31,6 +31,7 @@ describe('AttendanceRecordDocument', () => {
     expect(text).toContain('2025–2026')
     expect(text).toContain('2026–2027')
     expect(text).toContain('Septembre')
+    expect(text).toContain('S-88-F 12/18')
     expect(text).toContain('85')
     expect(text).toContain('112')
   })

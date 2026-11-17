@@ -127,6 +127,10 @@ export function AttendanceRecordDocument({ years }: AttendanceRecordDocumentProp
             </View>
           </View>
         ))}
+        {/* The card's own reference, bottom left: the sheet is laid out exactly as it. */}
+        <Text style={styles.formReference} fixed>
+          {m.attendance_record_form_reference()}
+        </Text>
       </Page>
     </Document>
   )
@@ -163,4 +167,5 @@ const styles = StyleSheet.create({
   },
   footLabel: { fontSize: 9.5, fontWeight: 'bold', textAlign: 'center' },
   footValue: { fontWeight: 'bold' },
+  formReference: { position: 'absolute', bottom: 24, left: 32, fontSize: 6.5 },
 })

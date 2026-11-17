@@ -7299,5 +7299,6 @@
     "attendance_export": "Exporter",
     "attendance_export_pdf": "Carte S-88 (PDF)",
     "attendance_export_xlsx": "Tableur (Excel)",
-    "attendance_record_col_year": "Année de service"
+    "attendance_record_col_year": "Année de service",
+    "attendance_record_form_reference": "S-88-F 12/18"
 }
