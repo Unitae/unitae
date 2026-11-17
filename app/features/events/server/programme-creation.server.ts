@@ -75,12 +75,12 @@ export async function createProgrammeSeries(
   for (const { template, day } of planned) {
     const key = programmeKey(template.id, day)
     const event = taken.get(key)
-    if (skip.has(key) && (event == null || event.bare)) {
-      // A day passed on purpose has no meeting: an empty one created ahead goes too.
-      if (event) await removeEmptyMeeting(db, event.id, ctx)
+    if (skip.has(key) && (event == null || !event.programme)) {
+      // A day passed on purpose has no meeting: an empty one created ahead goes too. One with counts stays.
+      if (event?.empty) await removeEmptyMeeting(db, event.id, ctx)
       result.skipped++
-    } else if (event?.bare && hasProgramme(template)) {
-      result.created.push(await reuseMeeting(db, template, event.id, day, ctx))
+    } else if (event && !event.programme && hasProgramme(template)) {
+      result.created.push(await fillMeeting(db, template, event, day, ctx))
     } else if (event) result.existing++
     else result.created.push(await createProgramme(db, template, day, ctx))
   }
@@ -146,16 +146,19 @@ async function removeEmptyMeeting(db: TransactionClient, eventId: number, ctx: C
 }
 
 /**
- * Gives an empty meeting created ahead its template's programme. Its hours and name are set again from the template
- * and the congregation's zone first: they may have changed since the meeting was created.
+ * Gives a meeting without a programme its template's programme. One the recurring-events job created ahead gets its
+ * hours and name from the template and the congregation's zone first — they may have changed since — and the person as
+ * its author. One someone prepared before, then emptied, keeps its author, name and hours.
  */
-async function reuseMeeting(
+async function fillMeeting(
   db: TransactionClient,
   template: TemplateWithRelations,
-  eventId: number,
+  event: { id: number; createdById?: number | null },
   day: string,
   ctx: CreationContext,
 ): Promise<CreatedProgramme> {
+  const eventId = event.id
+  if (event.createdById != null) return giveProgramme(db, template, eventId, day, ctx, { reused: true })
   await db.event.update({
     where: { id_congregationId: { id: eventId, congregationId: ctx.congregationId } },
     data: {
@@ -194,15 +197,15 @@ export async function createProgrammeOnDay(
     select: EVENT_STATE,
     orderBy: { id: 'asc' },
   })
-  // Any event of the template that day that is not an empty meeting is a programme already; so is an empty meeting
+  // Any event of the template that day with parts or services is a programme already; so is a meeting without one when
   // the template has nothing to give.
-  const prepared = sameDay.find(event => !isBare(event)) ?? (hasProgramme(template) ? undefined : sameDay[0])
+  const prepared = sameDay.find(hasParts) ?? (hasProgramme(template) ? undefined : sameDay[0])
   if (prepared) throw new ProgrammeExistsError(prepared.id)
 
-  const empty = sameDay[0]
+  const unprepared = sameDay[0]
   // The mark stays: one day far ahead says nothing about the weeks before it.
-  return empty
-    ? await reuseMeeting(db, template, empty.id, input.day, ctx)
+  return unprepared
+    ? await fillMeeting(db, template, unprepared, input.day, ctx)
     : await createProgramme(db, template, input.day, ctx)
 }
 
@@ -219,28 +222,37 @@ interface EventState {
   _count?: { eventParts: number; eventServiceParts: number }
 }
 
-/**
- * An empty meeting the recurring-events job created ahead: no author, no part, no service, no attendance. Only those are
- * filled by a series — an event someone emptied on purpose, or one with counts, is left as it is.
- */
-function isBare(event: EventState): boolean {
-  return (
-    event.createdById === null &&
-    event.attendance == null &&
-    event._count != null &&
-    event._count.eventParts === 0 &&
-    event._count.eventServiceParts === 0
-  )
+/** The event has a programme: parts or services. One without is filled when someone asks for its programme. */
+function hasParts(event: EventState): boolean {
+  return event._count == null || event._count.eventParts > 0 || event._count.eventServiceParts > 0
 }
 
-/** The events the templates already have between two days, by `programmeKey`, and whether each is still bare. */
+/**
+ * An empty meeting the recurring-events job created ahead: no author, no programme, no attendance. Only those may be
+ * deleted when a series passes their day — one someone prepared, or one with counts, stays.
+ */
+function isEmptyMeeting(event: EventState): boolean {
+  return event.createdById === null && event.attendance == null && !hasParts(event)
+}
+
+/** The events the templates already have between two days, by `programmeKey`: whether each has a programme, and whether
+ * it is an empty meeting created ahead. */
+interface ExistingEvent {
+  id: number
+  createdById: number | null
+  /** It has parts or services. */
+  programme: boolean
+  /** An empty meeting created ahead, which a passed day deletes. */
+  empty: boolean
+}
+
 async function existingProgrammes(
   db: TransactionClient,
   templateIds: number[],
   from: string,
   to: string,
   ctx: CreationContext,
-): Promise<Map<string, { id: number; bare: boolean }>> {
+): Promise<Map<string, ExistingEvent>> {
   const events = await db.event.findMany({
     where: {
       congregationId: ctx.congregationId,
@@ -250,13 +262,18 @@ async function existingProgrammes(
     select: { ...EVENT_STATE, templateId: true, startDate: true },
     orderBy: { id: 'asc' },
   })
-  const byDay = new Map<string, { id: number; bare: boolean }>()
+  const byDay = new Map<string, ExistingEvent>()
   for (const event of events) {
     if (event.templateId == null) continue
     const key = programmeKey(event.templateId, dayOf(event.startDate, ctx.timezone))
-    // Two events of the template on a day: the prepared one decides, never the empty one.
-    if (byDay.get(key)?.bare === false) continue
-    byDay.set(key, { id: event.id, bare: isBare(event) })
+    // Two events of the template on a day: the one with a programme decides, never the one without.
+    if (byDay.get(key)?.programme) continue
+    byDay.set(key, {
+      id: event.id,
+      createdById: event.createdById,
+      programme: hasParts(event),
+      empty: isEmptyMeeting(event),
+    })
   }
   return byDay
 }
