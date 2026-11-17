@@ -1,5 +1,5 @@
 import { Avatar, initials } from '@unitae/ui'
-import { ChevronsUpDown, LogOut, type LucideIcon, Monitor, Moon, PanelLeft, Sun, User } from 'lucide-react'
+import { ChevronsUpDown, CircleHelp, LogOut, type LucideIcon, Monitor, Moon, PanelLeft, Sun, User } from 'lucide-react'
 import { Link, useLocation, useSubmit } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
 import { ACCOUNT_SECTIONS } from '~/shared/ui/AccountPage'
@@ -144,6 +144,12 @@ export function UserMenu({ name, compact = false }: { name: string; compact?: bo
           <Link to="/me/profile">
             <User className="size-4 text-faint" aria-hidden="true" />
             {m.account_title()}
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/aide">
+            <CircleHelp className="size-4 text-faint" aria-hidden="true" />
+            {m.help_menu_label()}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

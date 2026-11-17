@@ -7,7 +7,8 @@ consistent source text.
 The English and French terms follow the official wording on [jw.org](https://www.jw.org) and the
 [Watchtower Online Library](https://wol.jw.org). When you add or change a message, use these terms.
 When you translate Unitae into a new language, use the official term for your language from the
-same sources, and translate from `en.json`.
+same sources, and translate from `en.json`. The same terms apply to the help articles in
+`app/features/help/content/`, not only to messages.
 
 ## Congregation and roles
 

@@ -37,6 +37,7 @@ Core features: territory management with building prospection, publisher activit
 9. **TypeScript strict mode** — Never use `any`; always define proper interfaces
 10. **Mutations to aggregate-owned entities go through the aggregate** — `Member`, `Attribution`, and `PioneerEnrolment` invariants live in `*.aggregate.ts` / `*.policy.ts` files (see `AGGREGATE_MODELS` in `scripts/check-aggregate-boundaries.ts` for the enforced list). Direct `db.member.update`/`db.attribution.create` outside those files fails `pnpm test:aggregate-boundaries`.
 11. **Follow TDD when the architecture-conventions doc requires it** — for new service functions (`app/features/*/server/`) and bug regressions, **write the failing test first**, run it, **watch it fail**, then implement. Do not author the test and the code in the same save. See [Architecture Conventions › TDD Discipline](docs/development/architecture-conventions.md#tdd-discipline) — colocation is enforced by `pnpm test:service-test-coverage`, coverage floor by the vitest threshold.
+12. **Review the help when a feature changes** — creating or changing a feature means re-reading its help articles in the same change, not later. Articles live in `app/features/help/content/{fr,en}/<slug>.md`, one per task, and follow the permission of their feature (see the table under [In-app help](#in-app-help)). A feature with no article yet gets one, or a reviewed reason why not.
 
 ### After Making Changes
 
@@ -422,6 +423,26 @@ LOGIN_RATE_LIMIT_GLOBAL_MAX="100"      # Max failed login attempts instance-wide
 | Worker not processing jobs | Start with `pnpm start:worker`; check Redis connection via `REDIS_HOST`/`REDIS_PORT` |
 | `compound key` TypeScript error | Pass `congregationId` explicitly in the `data` of the create call; for `where` on a compound unique use the generated key (e.g. `id_congregationId: { id, congregationId }`) |
 | Flash toast appearing twice | Remove `session.flash()` reads from individual route loaders — layout handles it |
+
+## In-app help
+
+« Aide » (`/aide`, from the account menu) ships with the app, in French and English. The articles are Markdown files in `app/features/help/content/{fr,en}/`, one per task, with a frontmatter block: `slug`, `title`, `summary`, `module`, `permission`, `keywords`, `related`, `order`. `permission` is the name of the `Permission` member the feature needs, or `none`. A reader without it never sees the article, nor its search hits or links, and no permission is ever changed to show help.
+
+`app/features/help/entry-points.test.ts` is the authoritative wiring: it scans the app source for every `<HelpEntryButton slug="…" />` and fails unless each one is pinned there and ships in both languages. Keep this table in step with it.
+
+| « ? » on | Route | Opens | Permission |
+|---|---|---|---|
+| Mes absences | `/me/days-off` | `absences` | none |
+| Mes territoires | `/me/territories` | `my-territories` | none |
+| Territoires | `/territories` | `create-territory` | `CanManageTerritories` |
+| Tableau d’affichage | `/board` | `board-read` | `CanViewBoard` |
+| Campagnes | `/territories/attributions/campaigns` | `campaign-create` | `CanManageTerritoryCampaigns` |
+| Prospection | `/territories/buildings` | `prospection` | `CanViewProspection` |
+| Réglages › Territoires | `/settings/territories` | `territories-settings` | `CanConfigureTerritorySettings` |
+
+Articles without a « ? » are reached from the index, the search and related links only: `phone-territories` and `bano` (`CanConfigureTerritorySettings`), `board-download` (`CanViewBoard`), `board-versions` (`CanReviewBoardDocuments`, the document history on `/board/documents/:id/edit`).
+
+Each module in `app/features/help/model/help.type.ts` (`HELP_MODULES`) groups its articles under the sidebar label of that module. Articles are read as data: the body is rendered on the server with raw HTML disabled, so an article cannot inject markup.
 
 ## Commit Message Format
 

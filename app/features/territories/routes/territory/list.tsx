@@ -1,6 +1,7 @@
 import { MapIcon, Plus, Scissors } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
+import { HelpEntryButton } from '~/features/help'
 import {
   inTerritoryView,
   parseTerritorySort,
@@ -138,7 +139,12 @@ export default function TerritoryList({ loaderData }: Route.ComponentProps) {
           ) : undefined
         }
         breadcrumbs={[{ label: m.sidebar_territories() }]}
-        actions={actions || undefined}
+        actions={
+          <>
+            {actions}
+            <HelpEntryButton slug="create-territory" />
+          </>
+        }
       />
       <GeocodeNotice notice={loaderData.geocodeNotice} />
 

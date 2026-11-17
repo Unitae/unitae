@@ -14,6 +14,7 @@
 
 - [ ] J'ai formaté mon code avant de pousser (`pnpm build:format`)
 - [ ] J'ai mis à jour la documentation si nécessaire
+- [ ] Si une fonctionnalité est créée ou modifiée, j'ai relu ses articles d'aide (`app/features/help/content/`, FR et EN)
 
 ## Issue liée
 

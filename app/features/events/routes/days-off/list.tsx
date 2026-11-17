@@ -4,6 +4,7 @@ import { Link } from 'react-router'
 
 import { listMyAbsences } from '~/features/events/server/days-off.queries'
 import { MyAbsenceRow } from '~/features/events/ui/MyAbsenceRow'
+import { HelpEntryButton } from '~/features/help'
 import * as m from '~/i18n/paraglide/messages'
 import { congregationContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Button } from '~/shared/ui/button'
@@ -49,13 +50,16 @@ export default function DaysOffPage({ loaderData }: Route.ComponentProps) {
         subtitle={m.days_off_page_subtitle()}
         breadcrumbs={[{ label: m.sidebar_my_absences() }]}
         actions={
-          // The page's one action: across the screen on a phone, as the board draws it.
-          <Button asChild size="sm" className="max-sm:w-full">
-            <Link to="/me/days-off/new">
-              <CalendarPlus aria-hidden="true" />
-              {m.days_off_new_button()}
-            </Link>
-          </Button>
+          <>
+            {/* The page's one action: across the screen on a phone, as the board draws it. */}
+            <Button asChild size="sm" className="max-sm:w-full">
+              <Link to="/me/days-off/new">
+                <CalendarPlus aria-hidden="true" />
+                {m.days_off_new_button()}
+              </Link>
+            </Button>
+            <HelpEntryButton slug="absences" />
+          </>
         }
       />
 

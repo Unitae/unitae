@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router'
 import { type BoardCard as BoardCardData, loadBoardHome } from '~/features/display-board/server/board-home.queries'
 import { BoardCard } from '~/features/display-board/ui/BoardCard'
 import { BoardSection } from '~/features/display-board/ui/BoardSection'
+import { HelpEntryButton } from '~/features/help'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -88,15 +89,18 @@ export default function BoardPage({ loaderData }: Route.ComponentProps) {
           )
         }
         actions={
-          canManage && (
-            // On a phone it lives in the « Plus » sheet.
-            <Button variant="outline" size="sm" asChild className="max-md:hidden">
-              <Link to="/board/documents">
-                <FileText className="size-4" aria-hidden="true" />
-                {m.sidebar_board_manage()}
-              </Link>
-            </Button>
-          )
+          <>
+            {canManage && (
+              // On a phone it lives in the « Plus » sheet.
+              <Button variant="outline" size="sm" asChild className="max-md:hidden">
+                <Link to="/board/documents">
+                  <FileText className="size-4" aria-hidden="true" />
+                  {m.sidebar_board_manage()}
+                </Link>
+              </Button>
+            )}
+            <HelpEntryButton slug="board-read" />
+          </>
         }
       />
 

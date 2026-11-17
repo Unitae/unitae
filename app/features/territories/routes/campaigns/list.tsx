@@ -1,6 +1,7 @@
 import { CalendarRange, Plus } from 'lucide-react'
 import { Link } from 'react-router'
 
+import { HelpEntryButton } from '~/features/help'
 import { getCampaignStatus } from '~/features/territories/model/campaign-status'
 import { listCampaigns } from '~/features/territories/server/campaign.queries'
 import { listCampaignCoverage } from '~/features/territories/server/campaign-progress.queries'
@@ -78,7 +79,12 @@ export default function CampaignsList({ loaderData }: Route.ComponentProps) {
           { label: m.sidebar_attributions(), to: '/territories/attributions' },
           { label: m.campaigns_title() },
         ]}
-        actions={campaigns.length > 0 ? create : undefined}
+        actions={
+          <>
+            {campaigns.length > 0 ? create : null}
+            <HelpEntryButton slug="campaign-create" />
+          </>
+        }
       />
 
       {campaigns.length === 0 ? (
