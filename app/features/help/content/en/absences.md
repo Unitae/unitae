@@ -14,7 +14,7 @@ Record the days when you will not be available. Program overseers see them befor
 
 ## Add an absence
 
-1. In the sidebar, open **My absences**. You see your absences there.
+1. In the sidebar, open **My absences**. You see your current and upcoming absences there; a past absence no longer shows.
 2. Click **New absence**, at the top right of the page.
 3. Fill in **First day** and **Last day**. For a single day, use the same date in both fields.
 4. Click **Add the absence**.

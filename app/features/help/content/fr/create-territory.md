@@ -20,4 +20,4 @@ Un territoire se compose d’un numéro, d’un type et des entrées qui le form
 4. Sur la carte, cliquez une entrée libre pour l’ajouter au territoire.
 5. Cliquez sur **Créer le territoire**.
 
-Pour en créer plusieurs à la fois, le bouton **Créer en lot** apparaît si vous avez aussi le droit de répartir les territoires.
+Pour en créer plusieurs à la fois, le bouton **Créer en lot** apparaît si vous avez le droit de répartir les territoires.

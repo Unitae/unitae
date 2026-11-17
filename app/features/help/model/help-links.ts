@@ -10,7 +10,7 @@ export function helpPagePath(slug?: string): string {
   return slug ? `/help/${encodeURIComponent(slug)}` : '/help'
 }
 
-/** The language the articles are read in: English when the app is in English, French otherwise. */
+/** The language the articles are read in: the app's own when it has a folder of articles, English otherwise. */
 export function helpLocaleFor(locale: string): HelpLocale {
   return (HELP_LOCALES as readonly string[]).includes(locale) ? (locale as HelpLocale) : HELP_FALLBACK_LOCALE
 }

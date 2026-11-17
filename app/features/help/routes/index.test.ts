@@ -28,7 +28,7 @@ describe('the /help index loader', () => {
     const result = await run('?q=bano', new Set())
 
     expect(result.results).toEqual([])
-    expect(groupedSlugs(result.groups)).toEqual(['absences', 'my-territories'])
+    expect(groupedSlugs(result.groups)).toEqual(['my-territories', 'absences'])
   })
 
   it('finds a gated article once the reader holds its permission', async () => {

@@ -139,7 +139,7 @@ The « Aide » pages are not Paraglide messages. Their article bodies are Markdo
 buttons, the fallback line) is in the messages.
 
 - French and English always carry every article, under the same slug. Their frontmatter must match across the two:
-  `permission`, `module`, `order` and the `related` set. The loader refuses an article that breaks this, or that
+  `permission` (the same set, in any order), `module`, `order` and the `related` set. The loader refuses an article that breaks this, or that
   relates to a missing article, so the build and the server start fail on it.
 - Word the articles with the [translation glossary](translation-glossary.md). French says « assemblée ».
 - Write Markdown only: raw HTML is escaped, not rendered.

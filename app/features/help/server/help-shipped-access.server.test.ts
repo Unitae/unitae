@@ -13,6 +13,12 @@ describe('the shipped help articles, opened by a reader', () => {
     })
   })
 
+  it('opens the board history for a member who may upload documents, since they keep the history of their own', () => {
+    const result = findHelpArticle(ARTICLES, 'board-versions', 'en', new Set([Permission.CanUploadBoardDocuments]))
+
+    expect(result).toMatchObject({ kind: 'found', article: { slug: 'board-versions' } })
+  })
+
   it('opens the board history for a board manager', () => {
     const result = findHelpArticle(ARTICLES, 'board-versions', 'fr', new Set([Permission.CanReviewBoardDocuments]))
 

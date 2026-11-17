@@ -20,9 +20,9 @@ function article(overrides: Partial<HelpArticle> & Pick<HelpArticle, 'slug'>): H
 
 const ARTICLES = [
   article({ slug: 'open', related: ['phone', 'absent-slug'] }),
-  article({ slug: 'phone', permission: 'CanConfigureTerritorySettings', related: ['open'] }),
-  article({ slug: 'prospection', permission: 'CanViewProspection' }),
-  article({ slug: 'prospection', locale: 'en', permission: 'CanViewProspection' }),
+  article({ slug: 'phone', permission: ['CanConfigureTerritorySettings'], related: ['open'] }),
+  article({ slug: 'prospection', permission: ['CanViewProspection'] }),
+  article({ slug: 'prospection', locale: 'en', permission: ['CanViewProspection'] }),
 ]
 
 describe('findHelpArticle', () => {

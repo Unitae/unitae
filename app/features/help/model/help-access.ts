@@ -2,12 +2,13 @@ import type { HelpArticle, HelpLocale } from '~/features/help/model/help.type'
 import { Permission } from '~/shared/types/permission'
 
 /**
- * An article follows the permission of its feature. A reader who does not hold it does not see the article in the
- * list, in the search, or as a related link, and cannot open it. No permission is changed to show help.
+ * An article follows the permission of its feature, or any one of its permissions when the feature opens to several
+ * rights. A reader who holds none of them does not see the article in the list, in the search, or as a related link,
+ * and cannot open it. No permission is changed to show help.
  */
 export function canReadHelpArticle(article: HelpArticle, permissions: ReadonlySet<Permission>): boolean {
   if (article.permission == null) return true
-  return permissions.has(Permission[article.permission])
+  return article.permission.some(name => permissions.has(Permission[name]))
 }
 
 export function visibleHelpArticles(

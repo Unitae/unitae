@@ -2,11 +2,6 @@ import MarkdownIt from 'markdown-it'
 
 const EXTERNAL_LINK = /^https?:\/\//i
 
-/**
- * Renders an article body to HTML. Raw HTML in the source is escaped, never passed through (`html: false`), and
- * markdown-it's own link check refuses `javascript:` and similar addresses. External links open in a new tab without
- * giving the new page a handle back to the app.
- */
 const markdown = new MarkdownIt({ html: false, linkify: false, typographer: false })
 
 const defaultLinkOpen =
@@ -22,6 +17,11 @@ markdown.renderer.rules.link_open = (tokens, index, options, env, self) => {
   return defaultLinkOpen(tokens, index, options, env, self)
 }
 
+/**
+ * Renders an article body to HTML. Raw HTML in the source is escaped, never passed through (`html: false`), and
+ * markdown-it's own link check refuses `javascript:` and similar addresses. External links open in a new tab without
+ * giving the new page a handle back to the app; links inside the app stay in the same tab.
+ */
 export function renderHelpMarkdown(body: string): string {
   return markdown.render(body)
 }
