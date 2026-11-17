@@ -12,6 +12,11 @@ interface PageTopbarProps {
   /** Right after the trail, e.g. the arrows to the previous and next item of the list the page belongs to. */
   trailEnd?: React.ReactNode
   actions?: React.ReactNode
+  /**
+   * The page's « ? », after the actions at the bar's far right. A phone has no bar: the heading draws it there
+   * instead (`PageHeader`), so it never takes a row of its own.
+   */
+  help?: React.ReactNode
   /** The page's heading, under the bar; on a phone, between the trail and the actions. */
   children?: React.ReactNode
   className?: string
@@ -28,7 +33,7 @@ interface PageTopbarProps {
  * Its `data-page-topbar` marker tells the shell to drop its own collapsed-sidebar
  * row, which only pages without a top bar still need.
  */
-export function PageTopbar({ trail, trailEnd, actions, children, className }: PageTopbarProps) {
+export function PageTopbar({ trail, trailEnd, actions, help, children, className }: PageTopbarProps) {
   return (
     <header data-page-topbar className={cn('mb-6 flex flex-col gap-3 md:pt-12', className)}>
       <div className="max-md:contents md:absolute md:inset-x-0 md:top-0 md:flex md:h-12 md:items-center md:gap-2 md:border-b md:px-6">
@@ -44,6 +49,8 @@ export function PageTopbar({ trail, trailEnd, actions, children, className }: Pa
         {actions && (
           <div className="flex flex-wrap items-center gap-2 max-md:order-3 max-sm:w-full md:shrink-0">{actions}</div>
         )}
+        {/* Empty when the reader may not open the article: it then takes no room, nor the bar's gap. */}
+        {help && <div className="flex shrink-0 items-center empty:hidden max-md:hidden">{help}</div>}
       </div>
       {children && <div className="max-md:order-2">{children}</div>}
     </header>

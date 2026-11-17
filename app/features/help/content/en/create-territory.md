@@ -20,4 +20,4 @@ A territory is made of a number, a type and the entrances that make it up.
 4. On the map, click a free entrance to add it to the territory.
 5. Click **Create territory**.
 
-To create several at once, the **Create in bulk** button appears if you also have the right to plan territory splits.
+To create several at once, the **Create in bulk** button appears if you have the right to plan territory splits.

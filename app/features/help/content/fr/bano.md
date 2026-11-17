@@ -18,6 +18,6 @@ La BANO, la base d’adresses nationale ouverte, fournit les adresses des bâtim
 2. Collez dans **Fichier de la BANO** l’adresse `https` du fichier CSV de votre département. Cette adresse doit venir d’un site autorisé par votre instance.
 3. Renseignez les **Codes postaux** : seules les adresses de ces codes sont importées.
 4. Cliquez sur **Enregistrer**.
-5. Dans **Prospection**, cliquez sur **Synchroniser…**, puis sur **Lancer la synchronisation**.
+5. Dans **Prospection**, cliquez sur **Synchroniser…**, puis sur **Lancer la synchronisation**. Le bouton n’apparaît qu’une fois le fichier de la BANO enregistré.
 
 Vider le champ **Fichier de la BANO** arrête la synchronisation. Régler la source demande le droit de configurer les territoires ; lancer la synchronisation demande le droit de gérer les immeubles.

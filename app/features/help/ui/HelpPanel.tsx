@@ -20,18 +20,23 @@ const DOCKED = '(min-width: 1280px)'
  * panel: the page behind it is never replaced.
  */
 export function HelpPanel() {
-  const [params, setParams] = useSearchParams()
-  const { pathname, search } = useLocation()
+  const [params] = useSearchParams()
   const slug = params.get(HELP_PANEL_PARAM)
+  // The fetcher lives only while the panel is open: a closed panel holds no article for React Router to reload after
+  // every form sent elsewhere in the app.
+  return slug ? <OpenHelpPanel slug={slug} /> : null
+}
+
+function OpenHelpPanel({ slug }: { slug: string }) {
+  const [, setParams] = useSearchParams()
+  const { pathname, search } = useLocation()
   const docked = useMediaQuery(DOCKED) === true
   const fetcher = useFetcher<HelpArticleView>()
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: loads once per opened article; the fetcher is fresh each render
   useEffect(() => {
-    if (slug) fetcher.load(helpPagePath(slug))
+    fetcher.load(helpPagePath(slug))
   }, [slug])
-
-  if (!slug) return null
 
   const state = helpPanelState(slug, fetcher.data, fetcher.state)
   const view = state.kind === 'ready' ? state.view : undefined

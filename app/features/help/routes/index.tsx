@@ -28,6 +28,8 @@ function toListItem({ slug, title, summary, module }: HelpArticle): HelpListItem
   return { slug, title, summary, module }
 }
 
+export const meta: Route.MetaFunction = () => [{ title: m.help_meta_title() }]
+
 // Only the articles the reader may see are listed, grouped or searched: the rest does not exist for them.
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
@@ -60,7 +62,7 @@ export default function HelpIndexPage({ loaderData }: Route.ComponentProps) {
         breadcrumbs={[{ label: m.help_page_title() }]}
       />
 
-      <SearchInput placeholder={m.help_search_label()} />
+      <SearchInput placeholder={m.help_search_label()} label={m.help_search_label()} />
 
       {searching ? (
         results.length > 0 ? (

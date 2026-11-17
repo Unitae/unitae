@@ -10,6 +10,9 @@ import { DEFAULT_LOCALE } from '~/shared/utils/language'
 import type { Route } from './+types/root'
 import './tailwind.css'
 
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
+
 // securityHeaders stays outer so the 403 originCheck may return is also hardened. requestLocale comes
 // after originCheck: a request originCheck rejects never pays for the locale lookup.
 export const middleware: Route.MiddlewareFunction[] = [securityHeaders(), originCheck(), requestLocale()]

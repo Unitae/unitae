@@ -15,8 +15,20 @@ const PINS: Record<string, string> = {
   'features/settings/routes/territories/settings.tsx': 'territories-settings',
 }
 
+// The routes with a loader matched above the pinned pages (see app/routes.ts).
+const LAYOUTS_ABOVE_ENTRY_POINTS = [
+  'root.tsx',
+  'shell/_authenticated-layout.tsx',
+  'features/authentication/routes/user/_layout.tsx',
+  'features/display-board/routes/_layout.tsx',
+  'features/territories/routes/_layout.tsx',
+  'features/settings/routes/_layout.tsx',
+]
+
 const APP_ROOT = resolve(import.meta.dirname, '../..')
 const ENTRY_POINT = /HelpEntryButton slug="([a-z0-9-]+)"/g
+const HELP_SLOT = /help=\{<HelpEntryButton slug="/
+const PANEL_REVALIDATION = 'export { skipRevalidationForHelpPanel as shouldRevalidate }'
 const ARTICLES = loadHelpArticles()
 
 function scanEntryPoints(): Map<string, Set<string>> {
@@ -48,6 +60,19 @@ describe('the « ? » entry points, wired from the app source', () => {
       expect([...(scanned.get(file) ?? [])]).toEqual([slug])
     })
   }
+
+  it('puts each « ? » in the header’s help slot, which keeps it off a row of its own on a phone', () => {
+    for (const file of Object.keys(PINS)) {
+      expect(readFileSync(resolve(APP_ROOT, file), 'utf8')).toMatch(HELP_SLOT)
+    }
+  })
+
+  // One route that reloads is enough to send the request: the page and every layout above it keep their data.
+  it('keeps the page data when the panel opens, on each page and every layout above it', () => {
+    for (const file of [...Object.keys(PINS), ...LAYOUTS_ABOVE_ENTRY_POINTS]) {
+      expect(readFileSync(resolve(APP_ROOT, file), 'utf8'), file).toContain(PANEL_REVALIDATION)
+    }
+  })
 
   it('opens only articles that ship in both languages', () => {
     for (const slug of new Set(Object.values(PINS))) {

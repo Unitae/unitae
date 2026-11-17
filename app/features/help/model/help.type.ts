@@ -11,11 +11,11 @@ export const HELP_FALLBACK_LOCALE: HelpLocale = 'en'
  * the sidebar's own label, so the help speaks the same words as the page it is about.
  */
 export const HELP_MODULES = [
+  'my-territories',
   'absences',
   'board',
-  'my-territories',
-  'territories',
   'campaigns',
+  'territories',
   'prospection',
   'settings',
 ] as const
@@ -28,8 +28,8 @@ export interface HelpArticle {
   /** One line for the home page and the search results. */
   summary: string
   module: HelpModule
-  /** The permission the feature needs. `null` when anyone may read the article. */
-  permission: keyof typeof Permission | null
+  /** The permissions of the feature, any one of which opens the article. `null` when anyone may read it. */
+  permission: readonly (keyof typeof Permission)[] | null
   keywords: string[]
   related: string[]
   order: number

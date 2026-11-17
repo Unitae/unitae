@@ -9,8 +9,9 @@ export function normaliseHelpText(text: string): string {
 }
 
 /**
- * The articles whose title, summary, keywords or body contain every word of the query, in the order given. Matching
- * is on the words of the text, not on markup: the body is searched as written in the file.
+ * The articles whose title, summary, keywords or body contain every word of the query, in the order given. Each word
+ * matches as a substring, accents and case aside, of the body as written in the file, Markdown included: « crée »
+ * finds « créer », and a word inside a link's address matches too.
  */
 export function searchHelpArticles(articles: readonly HelpArticle[], query: string): HelpArticle[] {
   const words = normaliseHelpText(query)

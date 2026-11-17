@@ -426,7 +426,9 @@ LOGIN_RATE_LIMIT_GLOBAL_MAX="100"      # Max failed login attempts instance-wide
 
 ## In-app help
 
-« Aide » (`/help`, from the account menu) ships with the app, in French and English. The articles are Markdown files in `app/features/help/content/{fr,en}/`, one per task, with a frontmatter block: `slug`, `title`, `summary`, `module`, `permission`, `keywords`, `related`, `order`. `permission` is the name of the `Permission` member the feature needs, or `none`. A reader without it never sees the article, nor its search hits or links, and no permission is ever changed to show help.
+« Aide » (`/help`, from the account menu) ships with the app, in French and English. The articles are Markdown files in `app/features/help/content/{fr,en}/`, one per task, with a frontmatter block: `slug`, `title`, `summary`, `module`, `permission`, `keywords`, `related`, `order`. `permission` is the name of the `Permission` member the feature needs, several comma-separated when the feature opens to any of them, or `none`. A reader without it never sees the article, nor its search hits or links, and no permission is ever changed to show help.
+
+A « ? » goes in the header's `help` slot (`<PageHeader help={<HelpEntryButton slug="…" />} />`, or `SettingsHeader`), which puts it at the far right of the top bar and at the end of the title's row on a phone. Its page and every layout with a loader above it export `skipRevalidationForHelpPanel as shouldRevalidate` from `~/features/help`, so opening the panel fetches the article only.
 
 `app/features/help/entry-points.test.ts` is the authoritative wiring: it scans the app source for every `<HelpEntryButton slug="…" />` and fails unless each one is pinned there and ships in both languages. Keep this table in step with it.
 
@@ -440,7 +442,7 @@ LOGIN_RATE_LIMIT_GLOBAL_MAX="100"      # Max failed login attempts instance-wide
 | Prospection | `/territories/buildings` | `prospection` | `CanViewProspection` |
 | Réglages › Territoires | `/settings/territories` | `territories-settings` | `CanConfigureTerritorySettings` |
 
-Articles without a « ? » are reached from the index, the search and related links only: `phone-territories` and `bano` (`CanConfigureTerritorySettings`), `board-download` (`CanViewBoard`), `board-versions` (`CanReviewBoardDocuments`, the document history on `/board/documents/:id/edit`).
+Articles without a « ? » are reached from the index, the search and related links only: `phone-territories` and `bano` (`CanConfigureTerritorySettings`), `board-download` (`CanViewBoard`), `board-versions` (`CanReviewBoardDocuments, CanUploadBoardDocuments`: the document history on `/board/documents/:id/edit`, which an uploader opens on the documents they uploaded).
 
 Each module in `app/features/help/model/help.type.ts` (`HELP_MODULES`) groups its articles under the sidebar label of that module. Articles are read as data: the body is rendered on the server with raw HTML disabled, so an article cannot inject markup.
 

@@ -85,6 +85,24 @@ describe('assembleHelpArticles: the invariants across the two languages', () => 
     expect(() => assembleHelpArticles(sources)).toThrow('permission')
   })
 
+  it('accepts the same permissions listed in another order in each language', () => {
+    const sources = {
+      'content/fr/a.md': articleFile('a', { permission: 'CanViewBoard, CanReviewBoardDocuments' }),
+      'content/en/a.md': articleFile('a', { permission: 'CanReviewBoardDocuments, CanViewBoard' }),
+    }
+
+    expect(() => assembleHelpArticles(sources)).not.toThrow()
+  })
+
+  it('refuses a permission list that differs between the languages', () => {
+    const sources = {
+      'content/fr/a.md': articleFile('a', { permission: 'CanViewBoard, CanReviewBoardDocuments' }),
+      'content/en/a.md': articleFile('a', { permission: 'CanViewBoard' }),
+    }
+
+    expect(() => assembleHelpArticles(sources)).toThrow('permission')
+  })
+
   it('refuses a module that differs between the languages', () => {
     const sources = { 'content/fr/a.md': articleFile('a', { module: 'board' }), 'content/en/a.md': articleFile('a') }
 
@@ -148,7 +166,7 @@ describe('loadHelpArticles: the articles as shipped', () => {
     const names = new Set(Object.keys(Permission))
 
     for (const article of ARTICLES) {
-      if (article.permission != null) expect(names.has(article.permission)).toBe(true)
+      for (const permission of article.permission ?? []) expect(names.has(permission)).toBe(true)
     }
   })
 
@@ -157,14 +175,14 @@ describe('loadHelpArticles: the articles as shipped', () => {
 
     expect(fr.get('absences')?.permission).toBeNull()
     expect(fr.get('my-territories')?.permission).toBeNull()
-    expect(fr.get('board-read')?.permission).toBe('CanViewBoard')
-    expect(fr.get('board-download')?.permission).toBe('CanViewBoard')
-    expect(fr.get('board-versions')?.permission).toBe('CanReviewBoardDocuments')
-    expect(fr.get('phone-territories')?.permission).toBe('CanConfigureTerritorySettings')
-    expect(fr.get('territories-settings')?.permission).toBe('CanConfigureTerritorySettings')
-    expect(fr.get('bano')?.permission).toBe('CanConfigureTerritorySettings')
-    expect(fr.get('campaign-create')?.permission).toBe('CanManageTerritoryCampaigns')
-    expect(fr.get('prospection')?.permission).toBe('CanViewProspection')
+    expect(fr.get('board-read')?.permission).toEqual(['CanViewBoard'])
+    expect(fr.get('board-download')?.permission).toEqual(['CanViewBoard'])
+    expect(fr.get('board-versions')?.permission).toEqual(['CanReviewBoardDocuments', 'CanUploadBoardDocuments'])
+    expect(fr.get('phone-territories')?.permission).toEqual(['CanConfigureTerritorySettings'])
+    expect(fr.get('territories-settings')?.permission).toEqual(['CanConfigureTerritorySettings'])
+    expect(fr.get('bano')?.permission).toEqual(['CanConfigureTerritorySettings'])
+    expect(fr.get('campaign-create')?.permission).toEqual(['CanManageTerritoryCampaigns'])
+    expect(fr.get('prospection')?.permission).toEqual(['CanViewProspection'])
   })
 
   it('writes no raw HTML in an article body', () => {

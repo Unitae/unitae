@@ -18,6 +18,19 @@ describe('renderHelpMarkdown', () => {
     expect(html).toContain('&lt;script&gt;')
   })
 
+  it('shows escaped HTML as the text it was, attributes included, so nothing of the source is lost', () => {
+    const html = renderHelpMarkdown('Écrivez <b>gras</b> et <img src=x onerror=alert(1)>')
+
+    expect(html).toContain('&lt;b&gt;gras&lt;/b&gt;')
+    expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;')
+  })
+
+  it('keeps a link inside the app in the same tab', () => {
+    const html = renderHelpMarkdown('[Mes absences](/me/days-off)')
+
+    expect(html).toBe('<p><a href="/me/days-off">Mes absences</a></p>\n')
+  })
+
   it('never makes a javascript: address into a link', () => {
     const html = renderHelpMarkdown('[cliquer](javascript:alert(1))')
 

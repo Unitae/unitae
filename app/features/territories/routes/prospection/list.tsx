@@ -36,6 +36,9 @@ import { formatLocalDate } from '~/shared/utils/date.server'
 
 import type { Route } from './+types/list'
 
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
+
 const PAGE_SIZE = 50
 const FILTER_PARAMS = ['search', 'zip', 'type', 'access', 'position', 'shops']
 
@@ -161,12 +164,14 @@ export default function ProspectionList({ loaderData }: Route.ComponentProps) {
         title={m.prospection_title()}
         breadcrumbs={[{ label: m.sidebar_prospection() }]}
         actions={
-          <>
-            {syncButton}
-            {create}
-            <HelpEntryButton slug="prospection" />
-          </>
+          (syncButton || create) && (
+            <>
+              {syncButton}
+              {create}
+            </>
+          )
         }
+        help={<HelpEntryButton slug="prospection" />}
         meta={
           sync && (
             <BuildingSyncStatus

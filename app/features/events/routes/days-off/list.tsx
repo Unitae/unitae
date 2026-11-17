@@ -13,6 +13,9 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 
 import type { Route } from './+types/list'
 
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
+
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.days_off_meta_title() }]
 }
@@ -50,17 +53,15 @@ export default function DaysOffPage({ loaderData }: Route.ComponentProps) {
         subtitle={m.days_off_page_subtitle()}
         breadcrumbs={[{ label: m.sidebar_my_absences() }]}
         actions={
-          <>
-            {/* The page's one action: across the screen on a phone, as the board draws it. */}
-            <Button asChild size="sm" className="max-sm:w-full">
-              <Link to="/me/days-off/new">
-                <CalendarPlus aria-hidden="true" />
-                {m.days_off_new_button()}
-              </Link>
-            </Button>
-            <HelpEntryButton slug="absences" />
-          </>
+          // The page's one action: across the screen on a phone, as the board draws it.
+          <Button asChild size="sm" className="max-sm:w-full">
+            <Link to="/me/days-off/new">
+              <CalendarPlus aria-hidden="true" />
+              {m.days_off_new_button()}
+            </Link>
+          </Button>
         }
+        help={<HelpEntryButton slug="absences" />}
       />
 
       {absences.length > 0 ? (

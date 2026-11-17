@@ -20,7 +20,7 @@ Cette page règle les territoires de toute l’assemblée. Elle a quatre section
 
 ## Durée des attributions
 
-Après le délai indiqué, une attribution est en retard. Il y a un délai par type : **Porte-à-porte, campus et hôtels**, **Commerces** et **Téléphone**, en jours. Une campagne a ses propres dates.
+Après le délai indiqué, une attribution est en retard. Il y a un délai par type : **Porte à porte, campus et hôtels**, **Commerces** et **Téléphone**, en jours. Une campagne a ses propres dates.
 
 ## Types de territoires
 

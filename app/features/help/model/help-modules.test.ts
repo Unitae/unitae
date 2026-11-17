@@ -18,18 +18,20 @@ function article(slug: string, module: HelpArticle['module'], order: number): He
 }
 
 describe('groupHelpArticlesByModule', () => {
-  it('groups articles under their module, modules in the app order and articles by order', () => {
+  it('groups articles under their module, modules in the sidebar order and articles by order', () => {
     const groups = groupHelpArticlesByModule([
       article('campaign', 'campaigns', 1),
       article('territory-b', 'territories', 2),
       article('absences', 'absences', 1),
       article('territory-a', 'territories', 1),
+      article('mine', 'my-territories', 1),
     ])
 
     expect(groups.map(({ module, articles }) => [module, articles.map(({ slug }) => slug)])).toEqual([
+      ['my-territories', ['mine']],
       ['absences', ['absences']],
-      ['territories', ['territory-a', 'territory-b']],
       ['campaigns', ['campaign']],
+      ['territories', ['territory-a', 'territory-b']],
     ])
   })
 

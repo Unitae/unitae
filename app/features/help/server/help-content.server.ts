@@ -70,7 +70,7 @@ function checkCounterpart(article: HelpArticle, counterpart: HelpArticle | undef
       `Help article « ${article.slug} » is missing in one language: both languages must carry it.`,
     )
   }
-  if (counterpart.permission !== article.permission) {
+  if (permissionKey(counterpart) !== permissionKey(article)) {
     throw new HelpArticleFormatError(
       `Help article « ${article.slug} » has a permission that differs between the languages.`,
     )
@@ -119,4 +119,9 @@ function loadAtStartup(): Loaded {
 export function loadHelpArticles(): HelpArticle[] {
   if ('error' in LOADED) throw LOADED.error
   return LOADED.articles
+}
+
+/** The permissions of an article as one comparable value: the same set in any order compares equal. */
+function permissionKey(article: HelpArticle): string {
+  return article.permission == null ? 'none' : [...article.permission].sort().join('|')
 }

@@ -18,7 +18,8 @@ Une campagne de prédication fixe une période et les territoires qu’elle couv
 2. Donnez-lui un **Nom**, puis choisissez le **Premier jour** et le **Dernier jour**.
 3. Indiquez le **Repos après la campagne**, en jours : le délai avant que ses territoires puissent être attribués de nouveau.
 4. Au début, choisissez ce que deviennent les **Attributions régulières en cours**.
-5. Choisissez le périmètre : **Tous les territoires**, ou **Une partie** que vous sélectionnez.
-6. Cliquez sur **Créer la campagne**.
+5. À la fin, cochez **Rendre les territoires encore sortis pour la campagne** si vous voulez qu’ils reviennent le lendemain du dernier jour. Si vous mettez les attributions en pause au début, choisissez aussi ce que deviennent **Les attributions mises en pause** : les reprendre, les laisser en pause ou les rendre.
+6. Choisissez le périmètre : **Tous les territoires**, ou **Une partie** que vous sélectionnez.
+7. Cliquez sur **Créer la campagne**.
 
 Le formulaire est une page à part. Une campagne dont le premier jour est aujourd’hui commence dès l’enregistrement.

@@ -9,6 +9,8 @@ interface PageHeaderProps {
   titleBadge?: React.ReactNode
   subtitle?: string
   actions?: React.ReactNode
+  /** The page's « ? »: at the top bar's far right, and at the end of the title's row on a phone. */
+  help?: React.ReactNode
   /** The page's crumbs, ending with the page itself. Without them the trail is the page's sidebar group and title. */
   breadcrumbs?: BreadcrumbEntry[]
   /** @deprecated The trail is the way back now; this is no longer drawn. */
@@ -25,6 +27,7 @@ interface PageHeaderProps {
 
 export function PageHeader({
   actions,
+  help,
   title,
   titleBadge,
   subtitle,
@@ -34,7 +37,7 @@ export function PageHeader({
   controls,
   trailEnd,
 }: PageHeaderProps) {
-  const heading = (
+  const titleBlock = (
     <div className={cn('flex animate-fade-in-up', Icon ? 'items-start gap-4' : 'items-center gap-3')}>
       {Icon && (
         <span className="grid size-11 shrink-0 place-content-center rounded-lg border border-border bg-sidebar">
@@ -51,9 +54,23 @@ export function PageHeader({
       </div>
     </div>
   )
+  // On a phone the « ? » ends the title's row; from md up it sits in the top bar.
+  const heading = help ? (
+    <div className="flex items-start justify-between gap-3 max-md:w-full">
+      {titleBlock}
+      <div className="-mr-2 shrink-0 empty:hidden md:hidden">{help}</div>
+    </div>
+  ) : (
+    titleBlock
+  )
 
   return (
-    <PageTopbar trail={breadcrumbs?.length ? breadcrumbs : [{ label: title }]} trailEnd={trailEnd} actions={actions}>
+    <PageTopbar
+      trail={breadcrumbs?.length ? breadcrumbs : [{ label: title }]}
+      trailEnd={trailEnd}
+      actions={actions}
+      help={help}
+    >
       {controls ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
           {heading}

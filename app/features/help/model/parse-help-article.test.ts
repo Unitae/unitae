@@ -41,8 +41,26 @@ describe('parseHelpArticle', () => {
   it('reads a permission by the name of its enum member', () => {
     const article = parseHelpArticle(VALID.replace('permission: none', 'permission: CanViewProspection'), 'en')
 
-    expect(article.permission).toBe('CanViewProspection')
+    expect(article.permission).toEqual(['CanViewProspection'])
     expect(article.locale).toBe('en')
+  })
+
+  it('reads several permissions, comma-separated, any one of which opens the article', () => {
+    const source = VALID.replace('permission: none', 'permission: CanReviewBoardDocuments, CanUploadBoardDocuments')
+
+    expect(parseHelpArticle(source, 'fr').permission).toEqual(['CanReviewBoardDocuments', 'CanUploadBoardDocuments'])
+  })
+
+  it('refuses none listed beside a permission, since it would mean both anyone and only them', () => {
+    expect(() => parseHelpArticle(VALID.replace('permission: none', 'permission: none, CanViewBoard'), 'fr')).toThrow(
+      HelpArticleFormatError,
+    )
+  })
+
+  it('refuses a permission listed twice', () => {
+    expect(() =>
+      parseHelpArticle(VALID.replace('permission: none', 'permission: CanViewBoard, CanViewBoard'), 'fr'),
+    ).toThrow(HelpArticleFormatError)
   })
 
   it('accepts empty keyword and related lists', () => {
@@ -77,6 +95,9 @@ describe('parseHelpArticle', () => {
 
   it('refuses a permission that is neither none nor a Permission member', () => {
     expect(() => parseHelpArticle(VALID.replace('permission: none', 'permission: CanFly'), 'fr')).toThrow(
+      HelpArticleFormatError,
+    )
+    expect(() => parseHelpArticle(VALID.replace('permission: none', 'permission: CanViewBoard, CanFly'), 'fr')).toThrow(
       HelpArticleFormatError,
     )
   })

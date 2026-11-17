@@ -9,17 +9,20 @@ interface SettingsHeaderProps {
   /** The crumbs between Réglages and the page, e.g. the templates list before a template. */
   trail?: BreadcrumbEntry[]
   actions?: ReactNode
+  /** The page's « ? », see `PageHeader`. */
+  help?: ReactNode
   titleBadge?: ReactNode
 }
 
 /** A part of Réglages: its trail from Réglages (the way back to the list on a phone), its title and its actions. */
-export function SettingsHeader({ title, subtitle, trail = [], actions, titleBadge }: SettingsHeaderProps) {
+export function SettingsHeader({ title, subtitle, trail = [], actions, help, titleBadge }: SettingsHeaderProps) {
   return (
     <PageHeader
       title={title}
       subtitle={subtitle}
       titleBadge={titleBadge}
       actions={actions}
+      help={help}
       breadcrumbs={[{ label: m.settings_title(), to: '/settings' }, ...trail, { label: title }]}
     />
   )

@@ -14,7 +14,7 @@ Déclarez les jours où vous ne serez pas disponible. Les responsables des progr
 
 ## Ajouter une absence
 
-1. Dans la barre latérale, ouvrez **Mes absences**. Vous y voyez vos absences.
+1. Dans la barre latérale, ouvrez **Mes absences**. Vous y voyez vos absences en cours et à venir ; une absence passée n’y figure plus.
 2. Cliquez sur **Nouvelle absence**, en haut à droite de la page.
 3. Renseignez **Premier jour** et **Dernier jour**. Pour un seul jour, mettez la même date dans les deux champs.
 4. Cliquez sur **Ajouter l’absence**.

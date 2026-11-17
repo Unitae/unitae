@@ -26,8 +26,8 @@ function article(
 const ARTICLES = [
   article('fr', 'open'),
   article('en', 'open'),
-  article('fr', 'bano', 'CanConfigureTerritorySettings'),
-  article('en', 'bano', 'CanConfigureTerritorySettings'),
+  article('fr', 'bano', ['CanConfigureTerritorySettings']),
+  article('en', 'bano', ['CanConfigureTerritorySettings']),
   article('en', 'only-english'),
 ]
 

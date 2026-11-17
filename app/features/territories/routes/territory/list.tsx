@@ -31,6 +31,9 @@ import { formatLocalDate } from '~/shared/utils/date.server'
 
 import type { Route } from './+types/list'
 
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
+
 export const meta: Route.MetaFunction = () => [{ title: m.territories_list_meta_title() }]
 
 export function loader({ request, context }: Route.LoaderArgs) {
@@ -139,12 +142,8 @@ export default function TerritoryList({ loaderData }: Route.ComponentProps) {
           ) : undefined
         }
         breadcrumbs={[{ label: m.sidebar_territories() }]}
-        actions={
-          <>
-            {actions}
-            <HelpEntryButton slug="create-territory" />
-          </>
-        }
+        actions={actions}
+        help={<HelpEntryButton slug="create-territory" />}
       />
       <GeocodeNotice notice={loaderData.geocodeNotice} />
 
