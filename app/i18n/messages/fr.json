@@ -3813,6 +3813,8 @@
     "permission_desc_can_view_absences": "Peut voir les absences des autres",
     "permission_desc_can_view_external_speakers": "Peut consulter le registre des orateurs extérieurs",
     "permission_desc_can_manage_external_speakers": "Peut ajouter et modifier les orateurs extérieurs",
+    "permission_desc_can_record_attendance": "Peut saisir l’assistance de la réunion en cours, jusqu’à minuit",
+    "permission_desc_can_correct_attendance": "Peut corriger l’assistance de toute réunion, à tout moment ; chaque correction va au journal",
     "permission_desc_can_view_users": "Peut voir les comptes utilisateurs et leurs rôles",
     "permission_desc_can_manage_users": "Peut créer, modifier et supprimer des comptes utilisateurs",
     "permission_desc_can_view_roles": "Peut voir les rôles et leurs membres",
@@ -3828,7 +3830,7 @@
     "permission_category_territories": "Territoires",
     "permission_category_publishers": "Proclamateurs",
     "permission_category_emergency": "Urgence",
-    "permission_category_programs": "Programmes",
+    "permission_category_programs": "Réunions",
     "permission_category_settings": "Réglages",
     "sidebar_assembly_organigram": "Organigramme",
     "role_name_member": "Membres",
@@ -7114,5 +7116,46 @@
     "help_unavailable": "Cet article n’est pas disponible pour ce compte.",
     "help_missing": "Cet article n’existe pas.",
     "help_fallback_question": "Vous ne trouvez pas ? Posez la question sur GitHub",
-    "help_fallback_privacy": "Le dépôt est public : ne collez aucune donnée de votre assemblée."
+    "help_fallback_privacy": "Le dépôt est public : ne collez aucune donnée de votre assemblée.",
+    "attendance_card_title": "Assistance · {name}",
+    "attendance_card_live": "En cours depuis {time} · saisie ouverte jusqu’à minuit",
+    "attendance_card_done": "Enregistrée · modifiable jusqu’à minuit",
+    "attendance_in_person": "En salle",
+    "attendance_online": "En visio",
+    "attendance_saved_by_you": "Par vous à {time}",
+    "attendance_saved_by": "{name} à {time}",
+    "attendance_someone": "Quelqu’un",
+    "attendance_waiting": "En attente",
+    "attendance_nothing": "Rien de saisi",
+    "attendance_partial": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} nombre sur 2",
+                "countPlural=*": "{count} nombres sur 2"
+            }
+        }
+    ],
+    "attendance_done_split": "{inPerson} en salle · {online} en visio",
+    "attendance_save": "Enregistrer",
+    "attendance_edit": "Modifier",
+    "attendance_error_taken": "Déjà saisi par quelqu’un d’autre",
+    "attendance_error_refused": "La saisie est close",
+    "attendance_error_invalid": "Un nombre entier de personnes",
+    "attendance_error_missing": "Cette réunion n’existe plus",
+    "attendance_page_title": "Assistance",
+    "attendance_page_meta_title": "Assistance",
+    "attendance_none": "Aucune réunion en cours.",
+    "attendance_next": "La saisie s’ouvre au début de la prochaine, {when}.",
+    "sidebar_attendance": "Assistance",
+    "sidebar_meetings": "Réunions",
+    "attendance_next_when": "{date} à {time}",
+    "attendance_you": "vous",
+    "attendance_done_by": "Par {names}",
+    "attendance_card_saved": "Enregistrée",
+    "attendance_error_failed": "L’assistance n’a pas pu être enregistrée. Réessayez."
 }

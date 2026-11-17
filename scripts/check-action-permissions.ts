@@ -59,6 +59,11 @@ export const DELEGATES: Record<string, { file: string; enforces: RegExp }> = {
     file: 'app/features/publishers/model/group-activity-access.ts',
     enforces: ENFORCES_PERMISSION,
   },
+  // Names the two rights to enter a meeting's attendance; the attendance writer applies them to each count.
+  attendanceRights: {
+    file: 'app/features/events/model/attendance-access.ts',
+    enforces: ENFORCES_PERMISSION,
+  },
   // The report panel's rule: what the caller may do with one publisher's report, from the activity permissions and
   // the group he leads. The panel refuses with a 403 rather than a thrown redirect, which would move the page away.
   reportAccess: {

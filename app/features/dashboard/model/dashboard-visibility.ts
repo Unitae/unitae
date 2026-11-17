@@ -1,3 +1,4 @@
+import { attendanceRights } from '~/features/events'
 import { canEnterPublishersArea, canRecordAnyActivity } from '~/features/publishers'
 import { canEnterTerritoriesArea } from '~/features/territories'
 import { Permission } from '~/shared/types/permission'
@@ -27,6 +28,8 @@ export interface DashboardVisibility {
    * server). Acting on it (conflicts, filling a slot) is decided per meeting on the server.
    */
   meetingAudience: 'programmes' | 'board' | null
+  /** The attendance card of the meetings under way, for whoever enters or corrects the counts. */
+  attendance: boolean
   /** Absence conflicts on meetings the viewer answers for: only where the programmes open. */
   responsibleConflicts: boolean
   /** Open slots in the coming weeks, for meetings the viewer may fill (resolved on the server). */
@@ -49,10 +52,12 @@ export function dashboardVisibility({ permissions, member }: DashboardViewer): D
   const inPublishersArea = canEnterPublishersArea(permissions, member)
   const inTerritoriesArea = canEnterTerritoriesArea(permissions)
   const ledGroupId = member?.responsibleFor?.id ?? member?.deputyFor?.id ?? null
+  const attendance = attendanceRights(permissions)
 
   return {
     personal: member != null,
     meetingAudience: has(Permission.CanViewPrograms) ? 'programmes' : has(Permission.CanViewBoard) ? 'board' : null,
+    attendance: attendance.canRecord || attendance.canCorrect,
     responsibleConflicts: has(Permission.CanViewPrograms),
     programmes: has(Permission.CanViewPrograms) ? { canCreate: has(Permission.CanManagePrograms) } : null,
     territories:

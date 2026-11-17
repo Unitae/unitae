@@ -16,9 +16,12 @@ export interface AttendanceMeetingRow {
   inPersonAt: Date | null
   /** « Prénom NOM » of who entered or last changed it; null when empty or that account is gone. */
   inPersonBy: string | null
+  /** The account that entered it: a recorder may change only their own. */
+  inPersonById: number | null
   online: number | null
   onlineAt: Date | null
   onlineBy: string | null
+  onlineById: number | null
 }
 
 // Events whose template counts attendance. Events without a template never do.
@@ -35,9 +38,11 @@ const SELECT = {
       inPerson: true,
       inPersonAt: true,
       inPersonBy: { select: { firstname: true, lastname: true } },
+      inPersonById: true,
       online: true,
       onlineAt: true,
       onlineBy: { select: { firstname: true, lastname: true } },
+      onlineById: true,
     },
   },
 } as const
@@ -53,9 +58,11 @@ type EventRow = {
     inPerson: number | null
     inPersonAt: Date | null
     inPersonBy: Person
+    inPersonById: number | null
     online: number | null
     onlineAt: Date | null
     onlineBy: Person
+    onlineById: number | null
   } | null
 }
 
@@ -76,9 +83,11 @@ function toRow(event: EventRow, timeZone: string): AttendanceMeetingRow {
     inPerson: attendance?.inPerson ?? null,
     inPersonAt: attendance?.inPersonAt ?? null,
     inPersonBy: nameOf(attendance?.inPersonBy ?? null),
+    inPersonById: attendance?.inPersonById ?? null,
     online: attendance?.online ?? null,
     onlineAt: attendance?.onlineAt ?? null,
     onlineBy: nameOf(attendance?.onlineBy ?? null),
+    onlineById: attendance?.onlineById ?? null,
   }
 }
 
@@ -120,6 +129,18 @@ export async function listMeetingsUnderWay(
     orderBy: { startDate: 'asc' },
   })
   return events.map(event => toRow(event, timeZone))
+}
+
+/** The first counted meeting still to start: when the entry opens next. */
+export function nextCountedMeeting(
+  db: TransactionClient,
+  { congregationId, now }: { congregationId: number; now: Date },
+) {
+  return db.event.findFirst({
+    where: { congregationId, template: COUNTED, startDate: { gt: now } },
+    orderBy: { startDate: 'asc' },
+    select: { name: true, startDate: true },
+  })
 }
 
 /**

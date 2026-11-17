@@ -41,6 +41,8 @@ export enum Permission {
   CanViewAbsences = 'can-view-absences',
   CanViewExternalSpeakers = 'can-view-external-speakers',
   CanManageExternalSpeakers = 'can-manage-external-speakers',
+  CanRecordAttendance = 'can-record-attendance',
+  CanCorrectAttendance = 'can-correct-attendance',
   CanViewUsers = 'can-view-users',
   CanManageUsers = 'can-manage-users',
   CanViewRoles = 'can-view-roles',

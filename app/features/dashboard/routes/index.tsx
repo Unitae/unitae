@@ -10,6 +10,7 @@ import { SetupChecklist } from '~/features/dashboard/ui/SetupChecklist'
 import { UpcomingAssignmentsSection } from '~/features/dashboard/ui/UpcomingAssignmentsSection'
 import { UrgentList } from '~/features/dashboard/ui/UrgentList'
 import { hasWideColumn, WideColumn } from '~/features/dashboard/ui/WideColumn'
+import { AttendanceEntryCard } from '~/features/events'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -47,7 +48,7 @@ function summary(count: number): string {
 
 export default function Dashboard({ loaderData }: Route.ComponentProps) {
   const data = loaderData
-  const { personal, timezone } = data
+  const { personal, timezone, attendance } = data
   const meeting = data.meeting?.showCard ? data.meeting : null
 
   const urgentItems = buildUrgentItems({
@@ -111,6 +112,19 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           </div>
         </div>
       </PageTopbar>
+
+      {/* From the start of a meeting to midnight, for those who count: first, before anything else. */}
+      {attendance && (
+        <div className="grid animate-fade-in-up gap-4 md:grid-cols-2" style={{ animationDelay: '30ms' }}>
+          {attendance.meetings.map(meeting => (
+            <AttendanceEntryCard
+              key={meeting.eventId}
+              entry={meeting}
+              viewer={{ ...attendance.viewer, now: new Date(attendance.now) }}
+            />
+          ))}
+        </div>
+      )}
 
       {data.setup && (
         <div className="animate-fade-in-up" style={{ animationDelay: '60ms' }}>

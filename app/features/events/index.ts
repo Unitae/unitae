@@ -6,6 +6,8 @@ export {
   type PartRoleSlot,
   partAllowedRolesToWrite,
 } from './model/allowed-roles-write'
+export { attendanceRights } from './model/attendance-access'
+export type { AttendanceEntry, AttendanceViewer } from './model/attendance-entry'
 export {
   ATTENDANCE_KINDS,
   AttendanceKind,
@@ -52,11 +54,13 @@ export {
 } from './model/share-message'
 export { normalizeCongregationName, tidyCongregationName } from './model/speaker-congregation-name'
 export { type PartPresetFormValues, partPresetSchema } from './schemas/part-preset.schema'
+export { AttendanceEntryCard } from './ui/AttendanceEntryCard'
 export {
   EventProgrammePanel,
   type PartAssignment,
   reorderPartIds,
 } from './ui/EventProgrammePanel'
+
 export { EventServicesPanel, type ServicePartAssignment } from './ui/EventServicesPanel'
 export { InlineDeleteDialog } from './ui/InlineDeleteDialog'
 export { PART_FORM_ID, type PartData, PartEditor, type PartPresetOption, partEditorCopy } from './ui/PartEditor'
