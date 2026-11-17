@@ -104,8 +104,22 @@ describe('canWriteCount', () => {
 
 describe('attendanceRights', () => {
   it('reads the two entry rights from the caller’s permissions', () => {
-    expect(attendanceRights(new Set([Permission.CanRecordAttendance]))).toEqual({ canRecord: true, canCorrect: false })
-    expect(attendanceRights(new Set([Permission.CanCorrectAttendance]))).toEqual({ canRecord: false, canCorrect: true })
-    expect(attendanceRights(new Set([Permission.CanViewPrograms]))).toEqual({ canRecord: false, canCorrect: false })
+    expect(attendanceRights(new Set([Permission.CanRecordAttendance]))).toEqual({
+      canRecord: true,
+      canCorrect: false,
+      canView: false,
+    })
+    expect(attendanceRights(new Set([Permission.CanCorrectAttendance]))).toMatchObject({ canCorrect: true })
+    // « Consulter l’assistance »: the averages, the history and, later, the exports.
+    expect(attendanceRights(new Set([Permission.CanViewAttendance]))).toEqual({
+      canRecord: false,
+      canCorrect: false,
+      canView: true,
+    })
+    expect(attendanceRights(new Set([Permission.CanViewPrograms]))).toEqual({
+      canRecord: false,
+      canCorrect: false,
+      canView: false,
+    })
   })
 })

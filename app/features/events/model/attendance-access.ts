@@ -44,15 +44,19 @@ export function canWriteCount(request: CountWriteRequest): boolean {
 export interface AttendanceRights {
   canRecord: boolean
   canCorrect: boolean
+  canView: boolean
 }
 
 /**
- * The caller's two entry rights, named from their permissions: « Saisir l’assistance » enters the meeting under way,
- * « Corriger l’assistance » changes any count at any time. What a route hands canWriteCount and the attendance writer.
+ * The caller's attendance rights, named from their permissions: « Saisir l’assistance » enters the meeting under way,
+ * « Corriger l’assistance » changes any count at any time, « Consulter l’assistance » reads the averages and the
+ * history. The first two are what a route hands canWriteCount and the attendance writer; any of the three opens the
+ * attendance page, and « Consulter » alone opens its service-year view.
  */
 export function attendanceRights(permissions: ReadonlySet<Permission>): AttendanceRights {
   return {
     canRecord: permissions.has(Permission.CanRecordAttendance),
     canCorrect: permissions.has(Permission.CanCorrectAttendance),
+    canView: permissions.has(Permission.CanViewAttendance),
   }
 }

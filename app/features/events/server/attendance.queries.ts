@@ -154,3 +154,9 @@ export async function eventHasAttendance(db: TransactionClient, eventId: number,
   })
   return row != null
 }
+
+/** Whether any template counts its attendance: without one, the attendance page has nothing to show yet. */
+export async function countsAnyMeeting(db: TransactionClient, congregationId: number) {
+  const template = await db.eventTemplate.findFirst({ where: { congregationId, ...COUNTED }, select: { id: true } })
+  return template != null
+}

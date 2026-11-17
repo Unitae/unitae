@@ -1,12 +1,10 @@
+import type { CountOutcome } from '~/features/events/model/attendance-entry'
 import { type AttendanceCount, writeAttendanceCount } from '~/features/events/server/attendance.aggregate'
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '~/shared/errors/app-error.server'
 import { withScope } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 
 const logger = createLogger('attendance')
-
-/** What became of one count: saved, entered by someone else first, refused (no right, entry closed), or not a count. */
-export type CountOutcome = 'saved' | 'taken' | 'refused' | 'invalid' | 'missing'
 
 export interface RecordContext {
   congregationId: number
@@ -22,7 +20,9 @@ function outcomeOf(error: unknown): CountOutcome {
   if (error instanceof ForbiddenError) return 'refused'
   if (error instanceof ValidationError) return 'invalid'
   if (error instanceof NotFoundError) return 'missing'
-  throw error
+  // Anything else (the database unreachable, a timeout) is this count not saved: said beside it, never a page error
+  // that hides a count already saved.
+  return 'failed'
 }
 
 /**
@@ -45,7 +45,8 @@ export async function recordAttendance(
       result[count] = 'saved'
     } catch (error) {
       result[count] = outcomeOf(error)
-      logger.warn('Attendance count not saved', { eventId, count, outcome: result[count], actorId: ctx.actorId })
+      const log = result[count] === 'failed' ? logger.error : logger.warn
+      log('Attendance count not saved', { eventId, count, outcome: result[count], actorId: ctx.actorId, error })
     }
   }
   return result

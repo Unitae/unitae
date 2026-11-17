@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mockDb = { event: { findMany: vi.fn(), findFirst: vi.fn() }, attendance: { findFirst: vi.fn() } }
+const mockDb = {
+  event: { findMany: vi.fn(), findFirst: vi.fn() },
+  attendance: { findFirst: vi.fn() },
+  eventTemplate: { findFirst: vi.fn() },
+}
 
-const { eventHasAttendance, listMeetingsUnderWay, listServiceYearAttendance, nextCountedMeeting } = await import(
-  './attendance.queries'
-)
+const { countsAnyMeeting, eventHasAttendance, listMeetingsUnderWay, listServiceYearAttendance, nextCountedMeeting } =
+  await import('./attendance.queries')
 
 const PARIS = 'Europe/Paris'
 
@@ -143,5 +146,19 @@ describe('nextCountedMeeting', () => {
     const [[{ where, orderBy }]] = mockDb.event.findFirst.mock.calls
     expect(where).toEqual({ congregationId: 1, template: { attendanceKind: { not: 'none' } }, startDate: { gt: now } })
     expect(orderBy).toEqual({ startDate: 'asc' })
+  })
+})
+
+describe('countsAnyMeeting', () => {
+  // « Aucune réunion n’est encore comptée » until one template counts its attendance.
+  it('says whether any template of the congregation counts attendance', async () => {
+    mockDb.eventTemplate.findFirst.mockResolvedValueOnce({ id: 3 }).mockResolvedValueOnce(null)
+
+    expect(await countsAnyMeeting(mockDb as never, 1)).toBe(true)
+    expect(await countsAnyMeeting(mockDb as never, 1)).toBe(false)
+    expect(mockDb.eventTemplate.findFirst.mock.calls[0]?.[0]?.where).toEqual({
+      congregationId: 1,
+      attendanceKind: { not: 'none' },
+    })
   })
 })

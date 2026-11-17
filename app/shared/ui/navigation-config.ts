@@ -43,7 +43,7 @@ export interface NavigationPermissions {
   canViewAbsences: boolean
   canViewActivity: boolean
   canViewExternalSpeakers: boolean
-  /** Enters or corrects meeting attendance: the attendance page opens to them. */
+  /** Enters, corrects or reads meeting attendance: the attendance page opens to them. */
   canEnterAttendance: boolean
   canManageExternalSpeakers: boolean
   canViewRoles: boolean

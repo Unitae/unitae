@@ -3810,6 +3810,7 @@
     "permission_desc_can_manage_external_speakers": "Can add and edit visiting speakers",
     "permission_desc_can_record_attendance": "Can enter the attendance of the meeting under way, until midnight",
     "permission_desc_can_correct_attendance": "Can correct the attendance of any meeting, at any time; every correction goes to the log",
+    "permission_desc_can_view_attendance": "Can view meeting attendance: averages, history and exports",
     "permission_desc_can_view_users": "Can view user accounts and their roles",
     "permission_desc_can_manage_users": "Can create, edit and remove user accounts",
     "permission_desc_can_view_roles": "Can view roles and their members",
@@ -7142,5 +7143,115 @@
     "attendance_you": "you",
     "attendance_done_by": "By {names}",
     "attendance_card_saved": "Saved",
-    "attendance_error_failed": "The attendance could not be saved. Try again."
+    "attendance_error_failed": "The attendance could not be saved. Try again.",
+    "attendance_year": "Service year {label}",
+    "attendance_year_previous": "Previous service year",
+    "attendance_year_next": "Next service year",
+    "attendance_metrics": "Attendance for the service year",
+    "attendance_metric_midweek": "Average · midweek meeting",
+    "attendance_metric_weekend": "Average · weekend meeting",
+    "attendance_metric_online": "Online",
+    "attendance_metric_entered": "Meetings entered",
+    "attendance_metric_held": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "of {count} held",
+                "countPlural=*": "of {count} held"
+            }
+        }
+    ],
+    "attendance_metric_vs": "{delta} on the same period last year ({previous})",
+    "attendance_metric_no_previous": "Nothing to compare with last year",
+    "attendance_metric_online_foot": "of total attendance, {previous} last year",
+    "attendance_metric_online_foot_alone": "of total attendance",
+    "attendance_metric_to_complete": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} to complete",
+                "countPlural=*": "{count} to complete"
+            }
+        }
+    ],
+    "attendance_metric_all_entered": "All entered",
+    "attendance_chart_title": "Average by month",
+    "attendance_chart_subtitle": "{kind} · {measure} · a meeting counts in the average only once complete",
+    "attendance_chart_aria": "Monthly average attendance, {kind}",
+    "attendance_chart_view": "View",
+    "attendance_chart_chart": "Chart",
+    "attendance_chart_table": "Table",
+    "attendance_kind_group": "Meeting",
+    "attendance_kind_midweek": "Midweek",
+    "attendance_kind_weekend": "Weekend",
+    "attendance_kind_midweek_full": "Midweek meeting",
+    "attendance_kind_weekend_full": "Weekend meeting",
+    "attendance_measure_group": "Measure",
+    "attendance_measure_total": "Total",
+    "attendance_measure_in_person": "In the hall",
+    "attendance_measure_online": "Online",
+    "attendance_measure_total_long": "total attendance",
+    "attendance_measure_in_person_long": "in the hall",
+    "attendance_measure_online_long": "online",
+    "attendance_col_month": "Month",
+    "attendance_col_meetings": "Complete meetings",
+    "attendance_view_group": "View",
+    "attendance_view_all": "All",
+    "attendance_view_todo": "To complete · {count}",
+    "attendance_view_apart": "Counted apart",
+    "attendance_newest_first": "Most recent first",
+    "attendance_month_summary": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} meeting entered",
+                "countPlural=*": "{count} meetings entered"
+            }
+        }
+    ],
+    "attendance_month_midweek": "midweek {average}",
+    "attendance_month_weekend": "weekend {average}",
+    "attendance_col_state": "State",
+    "attendance_col_meeting": "Meeting",
+    "attendance_col_in_person": "In the hall",
+    "attendance_col_online": "Online",
+    "attendance_col_total": "Total",
+    "attendance_state_entered": "Entered",
+    "attendance_state_todo": "To complete",
+    "attendance_state_live": "Under way",
+    "attendance_state_off": "No meeting",
+    "attendance_week_of": "Week of {date}",
+    "attendance_complete_button": "Complete",
+    "attendance_open_label": "See the attendance of {date}",
+    "attendance_list_empty": "No meeting held yet this service year.",
+    "attendance_todo_empty": "Every meeting held has been entered.",
+    "attendance_apart_empty": "No meeting counted apart this service year.",
+    "attendance_online_long": "Online",
+    "attendance_online_help": "Videoconference and telephone together, as in the report to the branch.",
+    "attendance_total_label": "Total attendance",
+    "attendance_partial_help": "While one of the two numbers is missing, the meeting does not count in the averages.",
+    "attendance_history": "{count}: entered by {name} on {date} at {time}",
+    "attendance_history_in_person": "In the hall",
+    "attendance_history_online": "Online",
+    "attendance_history_never": "{count}: never entered",
+    "attendance_panel_previous": "More recent meeting",
+    "attendance_panel_next": "Older meeting",
+    "attendance_empty_title": "No meeting is counted yet.",
+    "attendance_empty_body": "Choose in your program templates which meetings are counted.",
+    "attendance_empty_action": "Open the program templates",
+    "attendance_history_cleared": "{count}: cleared by {name} on {date} at {time}",
+    "attendance_col_actions": "Actions",
+    "attendance_error_count_failed": "Not saved, try again"
 }
