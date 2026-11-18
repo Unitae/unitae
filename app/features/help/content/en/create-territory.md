@@ -6,7 +6,7 @@ summary: Number, type and entrances on the map.
 module: territories
 permission: CanManageTerritories
 keywords: create, new, territory, territories, number, type, door to door, businesses, hotel, university, phone, entrances, map, bulk
-related: phone-territories, my-territories
+related: split-territory, batch-territories, phone-territories, my-territories
 order: 1
 ---
 

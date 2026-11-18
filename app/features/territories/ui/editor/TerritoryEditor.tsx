@@ -1,5 +1,5 @@
 import { SegmentedControl } from '@unitae/ui'
-import { type CSSProperties, useCallback, useId } from 'react'
+import { type CSSProperties, type ReactNode, useCallback, useId } from 'react'
 import { Form } from 'react-router'
 
 import type { BaseMap } from '~/features/territories/model/base-map.type'
@@ -44,6 +44,8 @@ interface TerritoryEditorProps {
   result: EditorActionData | undefined
   /** Creating: the next free number of each type. */
   suggestions?: Partial<Record<TerritoryKindKey, string>>
+  /** The page's « ? »: the top bar shows it from md, the column's title row on a phone. */
+  help?: ReactNode
 }
 
 /** On a phone the map fills what is left above the save bar. */
@@ -155,6 +157,7 @@ export function TerritoryEditor(props: TerritoryEditorProps) {
             content={editor.content}
             entrances={editor.kept.length}
             streets={editor.streets}
+            help={props.help}
           />
           <RefusalBanner message={result?.formError} taken={editor.taken} onDrop={editor.undo} />
           {map == null && (

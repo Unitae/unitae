@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { type ReactNode, useId } from 'react'
 import { useSearchParams } from 'react-router'
 
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
@@ -30,6 +30,8 @@ interface BatchColumnHeaderProps {
   withoutPosition: number
   showingWithoutPosition: boolean
   onToggleWithoutPosition: () => void
+  /** The page's « ? », at the end of the title row on a phone; the top bar carries it from md. */
+  help?: ReactNode
 }
 
 /**
@@ -74,7 +76,10 @@ export function BatchColumnHeader(props: BatchColumnHeaderProps) {
   return (
     <section className="flex flex-col gap-3 border-border border-b px-5 py-4.5">
       <div className="flex flex-col gap-0.5">
-        <h1 className="font-semibold text-xl tracking-tight">{m.split_tool_heading()}</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="font-semibold text-xl tracking-tight">{m.split_tool_heading()}</h1>
+          <div className="-mr-2 ml-auto shrink-0 empty:hidden md:hidden">{props.help}</div>
+        </div>
         <p className="text-muted-foreground text-sm">{m.split_tool_intro()}</p>
       </div>
       <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3">

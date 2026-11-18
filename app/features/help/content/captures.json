@@ -130,10 +130,35 @@
             "height": 81,
             "captured": "2026-11-17"
         },
+        "territory-assign-panel": {
+            "width": 398,
+            "height": 602,
+            "captured": "2026-11-18"
+        },
+        "territory-batch-header": {
+            "width": 668,
+            "height": 233,
+            "captured": "2026-11-18"
+        },
+        "territory-card-menu": {
+            "width": 248,
+            "height": 175,
+            "captured": "2026-11-18"
+        },
         "territory-new-header": {
             "width": 646,
             "height": 72,
             "captured": "2026-11-17"
+        },
+        "territory-split-take": {
+            "width": 668,
+            "height": 225,
+            "captured": "2026-11-18"
+        },
+        "territory-stats-global": {
+            "width": 844,
+            "height": 222,
+            "captured": "2026-11-18"
         }
     },
     "en": {
@@ -267,47 +292,72 @@
             "height": 81,
             "captured": "2026-11-17"
         },
+        "territory-assign-panel": {
+            "width": 398,
+            "height": 602,
+            "captured": "2026-11-18"
+        },
+        "territory-batch-header": {
+            "width": 668,
+            "height": 233,
+            "captured": "2026-11-18"
+        },
+        "territory-card-menu": {
+            "width": 248,
+            "height": 175,
+            "captured": "2026-11-18"
+        },
         "territory-new-header": {
             "width": 646,
             "height": 72,
             "captured": "2026-11-17"
+        },
+        "territory-split-take": {
+            "width": 668,
+            "height": 225,
+            "captured": "2026-11-18"
+        },
+        "territory-stats-global": {
+            "width": 844,
+            "height": 222,
+            "captured": "2026-11-18"
         }
     },
     "pt-PT": {
         "absences-new": {
-            "width": 182,
+            "width": 190,
             "height": 47,
-            "captured": "2026-11-17"
+            "captured": "2026-11-18"
         },
         "account-calendar-create": {
             "width": 520,
-            "height": 181,
-            "captured": "2026-11-17"
+            "height": 204,
+            "captured": "2026-11-18"
         },
         "account-data": {
             "width": 520,
             "height": 278,
-            "captured": "2026-11-17"
+            "captured": "2026-11-18"
         },
         "account-notifications": {
             "width": 520,
             "height": 232,
-            "captured": "2026-11-17"
+            "captured": "2026-11-18"
         },
         "account-password-row": {
             "width": 484,
-            "height": 94,
-            "captured": "2026-11-17"
+            "height": 139,
+            "captured": "2026-11-18"
         },
         "account-preferences": {
             "width": 486,
-            "height": 283,
-            "captured": "2026-11-17"
+            "height": 329,
+            "captured": "2026-11-18"
         },
         "account-two-step-row": {
             "width": 484,
             "height": 118,
-            "captured": "2026-11-17"
+            "captured": "2026-11-18"
         },
         "activity-export": {
             "width": 510,
@@ -316,7 +366,7 @@
         },
         "attendance-entry-card": {
             "width": 346,
-            "height": 244,
+            "height": 228,
             "captured": "2026-11-18"
         },
         "attendance-export": {
@@ -325,29 +375,29 @@
             "captured": "2026-11-18"
         },
         "board-download-button": {
-            "width": 119,
+            "width": 117,
             "height": 43,
-            "captured": "2026-11-17"
+            "captured": "2026-11-18"
         },
         "board-read-filter": {
-            "width": 233,
+            "width": 249,
             "height": 108,
-            "captured": "2026-11-17"
+            "captured": "2026-11-18"
         },
         "board-versions-history": {
             "width": 684,
-            "height": 196,
-            "captured": "2026-11-17"
+            "height": 216,
+            "captured": "2026-11-18"
         },
         "board-versions-panel": {
             "width": 400,
             "height": 245,
-            "captured": "2026-11-17"
+            "captured": "2026-11-18"
         },
         "campaign-start-end": {
             "width": 678,
-            "height": 769,
-            "captured": "2026-11-17"
+            "height": 789,
+            "captured": "2026-11-18"
         },
         "emergency-info": {
             "width": 398,
@@ -356,7 +406,7 @@
         },
         "external-speakers-update": {
             "width": 398,
-            "height": 342,
+            "height": 382,
             "captured": "2026-11-18"
         },
         "field-service-report-panel": {
@@ -366,13 +416,13 @@
         },
         "group-form": {
             "width": 564,
-            "height": 405,
+            "height": 445,
             "captured": "2026-11-18"
         },
         "my-territories-row": {
             "width": 808,
             "height": 71,
-            "captured": "2026-11-17"
+            "captured": "2026-11-18"
         },
         "pioneers-summary": {
             "width": 644,
@@ -385,9 +435,9 @@
             "captured": "2026-11-18"
         },
         "prospection-actions": {
-            "width": 231,
+            "width": 270,
             "height": 43,
-            "captured": "2026-11-17"
+            "captured": "2026-11-18"
         },
         "publisher-departure": {
             "width": 486,
@@ -397,17 +447,42 @@
         "settings-bano": {
             "width": 509,
             "height": 208,
-            "captured": "2026-11-17"
+            "captured": "2026-11-18"
         },
         "settings-phone-switch": {
             "width": 473,
             "height": 81,
-            "captured": "2026-11-17"
+            "captured": "2026-11-18"
+        },
+        "territory-assign-panel": {
+            "width": 398,
+            "height": 618,
+            "captured": "2026-11-18"
+        },
+        "territory-batch-header": {
+            "width": 668,
+            "height": 233,
+            "captured": "2026-11-18"
+        },
+        "territory-card-menu": {
+            "width": 248,
+            "height": 175,
+            "captured": "2026-11-18"
         },
         "territory-new-header": {
             "width": 646,
             "height": 72,
-            "captured": "2026-11-17"
+            "captured": "2026-11-18"
+        },
+        "territory-split-take": {
+            "width": 668,
+            "height": 225,
+            "captured": "2026-11-18"
+        },
+        "territory-stats-global": {
+            "width": 844,
+            "height": 238,
+            "captured": "2026-11-18"
         }
     }
 }

@@ -1,6 +1,6 @@
 import { SaveBar, SegmentedControl } from '@unitae/ui'
 import { Loader2 } from 'lucide-react'
-import { type CSSProperties, useCallback, useEffect, useId, useRef, useState } from 'react'
+import { type CSSProperties, type ReactNode, useCallback, useEffect, useId, useRef, useState } from 'react'
 import { useFetcher } from 'react-router'
 import { toast } from 'sonner'
 
@@ -46,6 +46,8 @@ interface TerritoryBatchCreatorProps {
   center: { lat: number; lng: number } | null
   created: CreatedTerritory[]
   onCreated: (territory: CreatedTerritory) => void
+  /** The page's « ? »: the top bar shows it from md, the column's title row on a phone. */
+  help?: ReactNode
 }
 
 const PHONE_MAP = 'h-[calc(100dvh-var(--map-top,16rem)-4.5rem-env(safe-area-inset-bottom))] min-h-72'
@@ -113,6 +115,7 @@ export function TerritoryBatchCreator(props: TerritoryBatchCreatorProps) {
             withoutPosition={withoutPosition.total}
             showingWithoutPosition={showWithoutPosition}
             onToggleWithoutPosition={() => setShowWithoutPosition(shown => !shown)}
+            help={props.help}
           />
           <RefusalBanner
             message={refusal?.formError}

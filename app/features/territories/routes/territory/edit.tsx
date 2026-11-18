@@ -3,6 +3,7 @@ import { Download } from 'lucide-react'
 import { useState } from 'react'
 import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
+import { HelpEntryButton } from '~/features/help'
 import { updateTerritorySchema } from '~/features/territories/schemas/territory.schema'
 import { getBaseMap } from '~/features/territories/server/base-map.server'
 import { getEditorCenter, getTerritoryEditor } from '~/features/territories/server/territory-editor.queries'
@@ -24,6 +25,8 @@ import { handleAppError } from '~/shared/utils/handle-app-error.server'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
+
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 export const meta: Route.MetaFunction = ({ loaderData }) => [
   { title: loaderData ? m.territory_editor_meta_edit({ number: loaderData.territory.number }) : 'Unitae' },
@@ -61,6 +64,7 @@ export default function EditTerritoryPage({ loaderData, actionData }: Route.Comp
     <div>
       <PageTopbar
         className="mb-3 md:mb-0"
+        help={<HelpEntryButton slug="split-territory" />}
         trail={[
           { label: m.sidebar_territories(), to: '/territories' },
           { label: territory.number, to: view },
@@ -78,6 +82,7 @@ export default function EditTerritoryPage({ loaderData, actionData }: Route.Comp
         }
       />
       <TerritoryEditor
+        help={<HelpEntryButton slug="split-territory" />}
         mode="edit"
         territory={territory}
         saved={territory.entrances}

@@ -2,6 +2,7 @@ import { SegmentedControl } from '@unitae/ui'
 import { Building2, ChevronLeft, ChevronRight, Download, MapIcon, Pencil } from 'lucide-react'
 import { useState } from 'react'
 import { Link, redirect } from 'react-router'
+import { HelpEntryButton } from '~/features/help'
 import { groupByStreet, toHolderEntrance } from '~/features/territories/model/holder-territory'
 import { getTerritoryPmrStatus } from '~/features/territories/model/pmr-status'
 import { territoryStanding } from '~/features/territories/model/territory-standing'
@@ -31,6 +32,8 @@ import type { Route } from './+types/view'
 export const meta: Route.MetaFunction = ({ loaderData }) => [
   { title: loaderData ? m.territories_view_meta_title({ number: loaderData.territory.number }) : 'Unitae' },
 ]
+
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 export function loader({ request, params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
@@ -118,6 +121,7 @@ export default function TerritoryView({ loaderData }: Route.ComponentProps) {
       <PageHeader
         icon={MapIcon}
         title={m.territories_view_title({ number: territory.number })}
+        help={<HelpEntryButton slug="territory-card" />}
         titleBadge={
           canViewAttributions ? (
             <TerritoryStandingStatus current={current} availability={loaderData.availability} today={today} />

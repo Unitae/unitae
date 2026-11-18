@@ -1,6 +1,7 @@
 import { ClipboardList, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { Link, redirect, useFetcher, useSearchParams } from 'react-router'
+import { HelpEntryButton } from '~/features/help'
 import { getGroups } from '~/features/publishers/index.server'
 import {
   type AttributionListRow,
@@ -45,6 +46,8 @@ import { sortFromUrl } from '~/shared/utils/pagination.server'
 import type { Route } from './+types/list'
 
 export const meta: Route.MetaFunction = () => [{ title: m.attributions_meta_title() }]
+
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
@@ -145,6 +148,7 @@ export default function AttributionList({ loaderData }: Route.ComponentProps) {
     <div data-sticky-content="" className="flex flex-col gap-4">
       <PageHeader
         title={m.attributions_title()}
+        help={<HelpEntryButton slug="territory-attributions" />}
         breadcrumbs={[{ label: m.sidebar_attributions() }]}
         actions={
           <>

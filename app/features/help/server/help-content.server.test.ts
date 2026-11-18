@@ -14,6 +14,7 @@ const SHIPPED_SLUGS = [
   'attendance-entry',
   'attendance-s88',
   'bano',
+  'batch-territories',
   'board-download',
   'board-read',
   'board-versions',
@@ -34,7 +35,11 @@ const SHIPPED_SLUGS = [
   'pioneers',
   'prospection',
   'publisher-arrivals-departures',
+  'split-territory',
   'territories-settings',
+  'territory-attributions',
+  'territory-card',
+  'territory-stats',
   'two-step-verification',
 ].sort()
 
@@ -284,6 +289,12 @@ describe('loadHelpArticles: the articles as shipped', () => {
       'CanManagePublisherLifecycle',
     ])
     expect(fr.get('groups')?.permission).toEqual(['CanManagePublisherGroups'])
+    expect(fr.get('territory-attributions')?.permission).toEqual(['CanManageTerritoryAttributions'])
+    expect(fr.get('territory-card')?.permission).toEqual(['CanViewTerritories'])
+    expect(fr.get('split-territory')?.permission).toEqual(['CanManageTerritories'])
+    // The page needs CanViewTerritories as well, but naming it would open the article to every reader of the list.
+    expect(fr.get('batch-territories')?.permission).toEqual(['CanPlanTerritorySplits'])
+    expect(fr.get('territory-stats')?.permission).toEqual(['CanManageTerritories'])
     for (const slug of [
       'my-parts',
       'password',

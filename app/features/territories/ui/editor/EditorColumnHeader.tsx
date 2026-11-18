@@ -1,5 +1,5 @@
 import { Tag } from '@unitae/ui'
-import { useId } from 'react'
+import { type ReactNode, useId } from 'react'
 
 import type { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { territoryKindLabel } from '~/features/territories/ui/my-territory-labels'
@@ -25,6 +25,13 @@ interface EditorColumnHeaderProps {
   content: { before: number; after: number }
   entrances: number
   streets: number
+  /** The page's « ? », at the end of the title row on a phone; the top bar carries it from md. */
+  help?: ReactNode
+}
+
+/** The « ? » on a phone: the top bar hides it below md. */
+function PhoneHelp({ help }: { help: ReactNode }) {
+  return <div className="-mr-2 ml-auto shrink-0 empty:hidden md:hidden">{help}</div>
 }
 
 /**
@@ -40,7 +47,10 @@ export function EditorColumnHeader(props: EditorColumnHeaderProps) {
   if (mode === 'new') {
     return (
       <section className="flex flex-col gap-3 border-border border-b px-5 py-4.5">
-        <h1 className="font-semibold text-xl tracking-tight">{m.territory_editor_new_heading()}</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="font-semibold text-xl tracking-tight">{m.territory_editor_new_heading()}</h1>
+          <PhoneHelp help={props.help} />
+        </div>
         <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={numberId}>{m.territory_editor_number_field()}</Label>
@@ -107,6 +117,7 @@ export function EditorColumnHeader(props: EditorColumnHeaderProps) {
         />
         <span className="flex-1" />
         <Tag>{territoryKindLabel(kind)}</Tag>
+        <PhoneHelp help={props.help} />
       </div>
       {invalid && (
         <p id={errorId} className="-mt-1.5 text-destructive text-xs">

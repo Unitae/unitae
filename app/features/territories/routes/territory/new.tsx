@@ -1,6 +1,7 @@
 import { parseWithZod } from '@conform-to/zod/v4'
 import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
+import { HelpEntryButton } from '~/features/help'
 import { getPhoneTerritoryActive } from '~/features/settings/index.server'
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { createTerritorySchema } from '~/features/territories/schemas/territory.schema'
@@ -34,6 +35,8 @@ const KINDS = [
   TerritoryKindKey.Univ,
 ]
 
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
+
 export const meta: Route.MetaFunction = () => [{ title: m.territories_new_meta_title() }]
 
 export function loader({ context }: Route.LoaderArgs) {
@@ -58,9 +61,11 @@ export default function NewTerritoryPage({ loaderData, actionData }: Route.Compo
     <div>
       <PageTopbar
         className="mb-3 md:mb-0"
+        help={<HelpEntryButton slug="create-territory" />}
         trail={[{ label: m.sidebar_territories(), to: '/territories' }, { label: m.territory_editor_new_heading() }]}
       />
       <TerritoryEditor
+        help={<HelpEntryButton slug="create-territory" />}
         mode="new"
         territory={{
           id: null,

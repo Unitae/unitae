@@ -6,7 +6,7 @@ summary: Número, tipo e entradas no mapa.
 module: territories
 permission: CanManageTerritories
 keywords: criar, novo, território, territórios, número, tipo, casa em casa, comércio, hotel, universidade, telefone, entradas, mapa, lote
-related: phone-territories, my-territories
+related: split-territory, batch-territories, phone-territories, my-territories
 order: 1
 ---
 

@@ -384,6 +384,84 @@ export const HELP_SHOTS: HelpShot[] = [
     frame: page => [page.getByRole('dialog')],
     margin: -1,
   },
+  {
+    // territory-attributions: « Attribuer » on a row of « Attribuer un territoire » opens the panel.
+    id: 'territory-assign-panel',
+    account: MARC,
+    path: '/territories/attributions/new/available-territories',
+    prepare: async (page, locale) => {
+      await page
+        .getByRole('button', { name: m.attributions_assign_row_button({}, { locale }), exact: true })
+        .first()
+        .click()
+      await settledPanel(page)
+      await sidePanel(page).getByText(m.attributions_panel_publisher({}, { locale }), { exact: true }).waitFor()
+    },
+    frame: page => [sidePanel(page)],
+    margin: -1,
+    viewport: { width: 1600, height: 900 },
+  },
+  {
+    // territory-card: a territory's « … » menu, open on « Télécharger le PDF ».
+    id: 'territory-card-menu',
+    account: MARC,
+    path: '/territories',
+    prepare: async (page, locale) => {
+      await menuButton(page, locale).click()
+      await page.getByRole('menu').waitFor()
+    },
+    // The button and its menu: the territories table is wider than the window, so its row would take in the sidebar.
+    frame: page => [page.locator('button[aria-haspopup="menu"][data-state="open"]'), page.getByRole('menu')],
+    margin: 12,
+    viewport: { width: 1100 },
+  },
+  {
+    // split-territory: a new territory takes entrances from others; the changes say what becomes of them. The capture
+    // app has no base map, so the entrances are found by their address, as the article's last step says.
+    id: 'territory-split-take',
+    account: MARC,
+    path: '/territories/territory/new',
+    prepare: async (page, locale) => {
+      const search = page.getByLabel(m.territory_editor_search_label({}, { locale }), { exact: true })
+      await search.fill('Pyrénées')
+      const take = page.getByRole('button', { name: m.territory_editor_search_take({}, { locale }), exact: true })
+      await take.first().click()
+      await page.getByRole('region', { name: m.territory_editor_changes({}, { locale }), exact: true }).waitFor()
+      // The results would push the lists below the fold.
+      await search.fill('')
+      await take.first().waitFor({ state: 'detached' })
+    },
+    frame: (page, locale) => [
+      page.getByRole('region', { name: m.territory_editor_entrances({}, { locale }), exact: true }),
+      page.getByRole('region', { name: m.territory_editor_changes({}, { locale }), exact: true }),
+    ],
+    margin: -1,
+    viewport: { height: 1100 },
+  },
+  {
+    // batch-territories: the top of « Créer en lot »: the next number, the type, the filters, the free entrances.
+    id: 'territory-batch-header',
+    account: MARC,
+    path: '/territories/buildings/split-territories',
+    frame: (page, locale) => [
+      closest(
+        page.getByRole('heading', { name: m.split_tool_heading({}, { locale }), exact: true, level: 1 }),
+        'self::section',
+      ),
+    ],
+    margin: -1,
+  },
+  {
+    // territory-stats: « État global », the figures of today.
+    id: 'territory-stats-global',
+    account: MARC,
+    path: '/territories/stats',
+    frame: (page, locale) => [
+      closest(page.getByRole('heading', { name: m.stats_global_heading({}, { locale }), exact: true }), 'self::div'),
+      page.getByLabel(m.stats_global_heading({}, { locale }), { exact: true }),
+    ],
+    viewport: { width: 1100 },
+  },
 ]
 
 /** Waits for the docked side panel to finish sliding in: framed before, the crop would cut its right side. */
@@ -396,4 +474,10 @@ async function settledPanel(page: Page): Promise<void> {
 /** The docked side panel that a row or a block opens: labelled by its title, unlike the page's other asides. */
 function sidePanel(page: Page): Locator {
   return page.locator('aside[aria-labelledby]')
+}
+
+/** The « … » of the first territory in the list, named after its number. */
+function menuButton(page: Page, locale: HelpLocale): Locator {
+  const prefix = m.territories_menu_label({ number: '' }, { locale })
+  return page.getByRole('button', { name: new RegExp(`^${prefix}`) }).first()
 }
