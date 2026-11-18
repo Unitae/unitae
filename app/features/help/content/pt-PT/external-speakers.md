@@ -10,7 +10,7 @@ related:
 order: 1
 ---
 
-De vez em quando, as congregações vizinhas enviam-lhe a lista dos seus oradores e você envia-lhes a sua. **Reuniões › Oradores visitantes** mantém uma lista por congregação em **Listas recebidas** e a sua lista em **A nossa lista**.
+De vez em quando, as congregações vizinhas enviam-lhe a lista dos seus oradores e envia-lhes a sua. **Reuniões › Oradores visitantes** mantém uma lista por congregação em **Listas recebidas** e a sua lista em **A nossa lista**.
 
 Com a permissão para consultar oradores visitantes, pode ver as listas, os oradores e os dados de contacto. Para alterar as listas ou enviar a nossa lista, precisa da permissão para os gerir.
 

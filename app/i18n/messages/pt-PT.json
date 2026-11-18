@@ -5900,7 +5900,7 @@
     "import_warning_permission_rename": "O arquivo é anterior à mudança dos nomes das permissões: estas serão convertidas automaticamente.",
     "import_warning_account_elsewhere": "O endereço {email} não pode receber uma conta aqui: esta conta será ignorada.",
     "import_warning_preset_eligibility": "Este arquivo guarda a elegibilidade (quem pode apresentar uma parte) no tipo de parte. Essa definição já não existe e não será importada: será mantida a elegibilidade definida em cada parte.",
-    "import_warning_preset_merge": "Os tipos “Joias espirituais”, “Procurar pérolas espirituais” e “Discurso da reunião de semana” são reunidos num único tipo “Discurso da reunião de semana”. As partes mantêm-se associadas, mas os nomes ou mensagens personalizados desses três tipos são substituídos pelos textos predefinidos.",
+    "import_warning_preset_merge": "Os tipos “Pérolas espirituais”, “Procurar pérolas espirituais” e “Discurso da reunião de semana” são reunidos num único tipo “Discurso da reunião de semana”. As partes mantêm-se associadas, mas os nomes ou mensagens personalizados desses três tipos são substituídos pelos textos predefinidos.",
     "import_warning_legacy_users": "Arquivo {version}: {rows} em {members} e {accounts}.",
     "import_warning_placeholder_accounts": [
         {
@@ -6589,7 +6589,7 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "{count} modou de congregação",
+                "countPlural=one": "{count} mudou de congregação",
                 "countPlural=*": "{count} mudaram de congregação"
             }
         }
