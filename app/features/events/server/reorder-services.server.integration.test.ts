@@ -1,5 +1,5 @@
 import { PrismaPg } from '@prisma/adapter-pg'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 
 const adapter = new PrismaPg({
@@ -85,18 +85,32 @@ afterAll(async () => {
   await testDb.$disconnect()
 })
 
+/** Sono, Estrade, Accueil at 0, 5, 10 before each test: every test starts from the same order. */
+beforeEach(async () => {
+  await withScope(congregationId, async tx => {
+    for (const [index, id] of eventServices.entries()) {
+      await tx.eventServicePart.update({ where: { id }, data: { order: index * 5 } })
+    }
+    for (const [index, id] of templateServices.entries()) {
+      await tx.templateServicePart.update({ where: { id }, data: { order: index * 5 } })
+    }
+  })
+})
+
+/** The orders of these three services, in the order they were created. */
 const eventOrder = () =>
   withScope(congregationId, tx =>
-    tx.eventServicePart.findMany({ orderBy: { id: 'asc' }, select: { id: true, order: true } }),
-  )
+    tx.eventServicePart.findMany({ where: { eventId }, orderBy: { id: 'asc' }, select: { order: true } }),
+  ).then(rows => rows.map(row => row.order))
 const templateOrder = () =>
   withScope(congregationId, tx =>
-    tx.templateServicePart.findMany({ orderBy: { id: 'asc' }, select: { id: true, order: true } }),
-  )
+    tx.templateServicePart.findMany({ where: { templateId }, orderBy: { id: 'asc' }, select: { order: true } }),
+  ).then(rows => rows.map(row => row.order))
 
 // The routes authorise the caller on one event or template; the ids come from the request. A service of another event
-// or template must not move on the strength of that check, and a list that leaves one of this event's services out
-// would leave it tied with the moved ones: in both cases nothing moves.
+// or template must not move on the strength of that check, and a list that leaves one of this event's services out, or
+// names one twice, would leave services tied: in every case nothing moves. Each refused list puts Accueil first, so
+// writing it would show.
 describe('reorderServiceAssignments', () => {
   it("puts the event's services in the given order", async () => {
     const [sono, estrade, accueil] = eventServices
@@ -104,30 +118,34 @@ describe('reorderServiceAssignments', () => {
       reorderServiceAssignments(tx, congregationId, eventId, [accueil, sono, estrade]),
     )
     expect(done).toBe(true)
-    const orders = new Map((await eventOrder()).map(service => [service.id, service.order]))
-    expect([orders.get(accueil), orders.get(sono), orders.get(estrade)]).toEqual([0, 5, 10])
+    expect(await eventOrder()).toEqual([5, 10, 0])
   })
 
   it('refuses, moving nothing, when a service of another event is among the ids', async () => {
-    const before = await eventOrder()
+    const [sono, estrade, accueil] = eventServices
     const done = await withScope(congregationId, tx =>
-      reorderServiceAssignments(tx, congregationId, eventId, [otherEventService, ...eventServices]),
+      reorderServiceAssignments(tx, congregationId, eventId, [accueil, otherEventService, sono, estrade]),
     )
     expect(done).toBe(false)
-    expect(await eventOrder()).toEqual(before)
+    expect(await eventOrder()).toEqual([0, 5, 10])
   })
 
-  it('refuses, moving nothing, a list that leaves one of the services out or names one twice', async () => {
-    const before = await eventOrder()
-    const [sono, estrade] = eventServices
-    const partial = await withScope(congregationId, tx =>
-      reorderServiceAssignments(tx, congregationId, eventId, [estrade, sono]),
-    )
-    const doubled = await withScope(congregationId, tx =>
-      reorderServiceAssignments(tx, congregationId, eventId, [estrade, sono, sono]),
-    )
-    expect([partial, doubled]).toEqual([false, false])
-    expect(await eventOrder()).toEqual(before)
+  it('refuses, moving nothing, a list that leaves one of the services out, names one twice or is not ids', async () => {
+    const [sono, estrade, accueil] = eventServices
+    const results = []
+    for (const orderedIds of [
+      [accueil, estrade],
+      [accueil, sono, sono],
+      [String(accueil), sono, estrade],
+    ]) {
+      results.push(
+        await withScope(congregationId, tx =>
+          reorderServiceAssignments(tx, congregationId, eventId, orderedIds as number[]),
+        ),
+      )
+    }
+    expect(results).toEqual([false, false, false])
+    expect(await eventOrder()).toEqual([0, 5, 10])
   })
 })
 
@@ -138,25 +156,30 @@ describe('reorderTemplateServices', () => {
       reorderTemplateServices(tx, congregationId, templateId, [estrade, accueil, sono]),
     )
     expect(done).toBe(true)
-    const orders = new Map((await templateOrder()).map(service => [service.id, service.order]))
-    expect([orders.get(estrade), orders.get(accueil), orders.get(sono)]).toEqual([0, 5, 10])
+    expect(await templateOrder()).toEqual([10, 0, 5])
   })
 
   it('refuses, moving nothing, when a service of another template is among the ids', async () => {
-    const before = await templateOrder()
+    const [sono, estrade, accueil] = templateServices
     const done = await withScope(congregationId, tx =>
-      reorderTemplateServices(tx, congregationId, templateId, [...templateServices, otherTemplateService]),
+      reorderTemplateServices(tx, congregationId, templateId, [accueil, sono, estrade, otherTemplateService]),
     )
     expect(done).toBe(false)
-    expect(await templateOrder()).toEqual(before)
+    expect(await templateOrder()).toEqual([0, 5, 10])
   })
 
-  it('refuses, moving nothing, a list that leaves one of the services out', async () => {
-    const before = await templateOrder()
-    const done = await withScope(congregationId, tx =>
-      reorderTemplateServices(tx, congregationId, templateId, templateServices.slice(1)),
-    )
-    expect(done).toBe(false)
-    expect(await templateOrder()).toEqual(before)
+  it('refuses, moving nothing, a list that leaves one of the services out or names one twice', async () => {
+    const [sono, estrade, accueil] = templateServices
+    const results = []
+    for (const orderedIds of [
+      [accueil, estrade],
+      [accueil, sono, sono],
+    ]) {
+      results.push(
+        await withScope(congregationId, tx => reorderTemplateServices(tx, congregationId, templateId, orderedIds)),
+      )
+    }
+    expect(results).toEqual([false, false])
+    expect(await templateOrder()).toEqual([0, 5, 10])
   })
 })
