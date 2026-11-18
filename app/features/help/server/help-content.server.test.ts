@@ -168,6 +168,48 @@ describe('assembleHelpArticles: the invariants across the two languages', () => 
     expect(assembleHelpArticles(sources).map(({ locale, slug }) => `${locale}/${slug}`)).toEqual(['en/a', 'fr/a'])
   })
 
+  // A translation that fell behind its English article is set aside, never a reason to take the whole help down.
+  describe('a translated article that no longer matches English', () => {
+    const translatedKeys = (sources: Record<string, string>, onStale?: (error: HelpArticleFormatError) => void) =>
+      assembleHelpArticles(sources, BOTH_CAPTURED, onStale)
+        .filter(({ locale }) => locale === 'pt-PT')
+        .map(({ slug }) => slug)
+
+    it('is left out when its related set differs, and reported', () => {
+      const reported: string[] = []
+      const sources = { ...pair('b'), ...pair('a', { related: ['b'] }), 'content/pt-PT/a.md': articleFile('a') }
+
+      expect(translatedKeys(sources, error => reported.push(error.message))).toEqual(['b'])
+      expect(reported).toEqual([expect.stringContaining('related')])
+    })
+
+    it('is left out when its permission, module or order differs', () => {
+      for (const options of [{ permission: 'CanViewBoard' }, { module: 'board' }, { order: 2 }]) {
+        const sources = { ...pair('a'), 'content/pt-PT/a.md': articleFile('a', options) }
+
+        expect(translatedKeys(sources)).toEqual([])
+      }
+    })
+
+    it('is left out when it shows other captures than English', () => {
+      const sources = { ...pair('a', WITH_CAPTURE), 'content/pt-PT/a.md': articleFile('a') }
+
+      expect(translatedKeys(sources)).toEqual([])
+    })
+
+    it('is left out when it shows a capture its language does not have yet', () => {
+      const captures = { ...BOTH_CAPTURED, 'pt-PT': {} }
+
+      expect(
+        assembleHelpArticles(pair('a', WITH_CAPTURE), captures).map(({ locale, slug }) => `${locale}/${slug}`),
+      ).toEqual(['en/a', 'fr/a'])
+    })
+
+    it('is left out when English has no such article', () => {
+      expect(translatedKeys({ ...pair('a'), 'content/pt-PT/orphan.md': articleFile('orphan') })).toEqual(['a'])
+    })
+  })
+
   it('accepts a related article that another language reads in English', () => {
     const sources = {
       ...pair('a', { related: ['b'] }),

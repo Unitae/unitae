@@ -19,15 +19,39 @@ const NO_CAPTURES: HelpCaptureManifest = { fr: {}, en: {}, 'pt-PT': {} }
 /**
  * Turns a set of article files, keyed by their path `…/<locale>/<slug>.md`, into the articles, and checks what must
  * hold across them: a file is named after its slug and lives in a known language folder; each slug exists in French
- * and English, and in every language that has it, with the same permission, module, order, related set and captures;
- * every related slug exists, in the article's language or in English, and is not the article itself; every image is a
- * described capture its language has. Any breach is a {@link HelpArticleFormatError}. Another language may lack an
- * article: its readers get the English one, and only the shipped-set test fails on it.
+ * and English with the same permission, module, order, related set and captures; every related slug exists and is
+ * not the article itself; every image is a described capture its language has. Any breach in French or English is a
+ * {@link HelpArticleFormatError}.
+ *
+ * A translation may trail behind. A translated article that breaks one of these rules against French and English, or
+ * that they do not have, is left out and handed to `onStale`: its readers get the English article, as for one never
+ * translated, and the shipped-set test fails the build until it is brought up to date.
  */
 export function assembleHelpArticles(
   sources: Record<string, string>,
   captures: HelpCaptureManifest = NO_CAPTURES,
+  onStale: (error: HelpArticleFormatError) => void = () => {},
 ): HelpArticle[] {
+  const articles = parseArticles(sources)
+
+  const kept = articles.filter(article => HELP_SOURCE_LOCALES.includes(article.locale))
+  for (const article of kept) checkArticle(article, articles, captures)
+
+  for (const article of articles.filter(candidate => !HELP_SOURCE_LOCALES.includes(candidate.locale))) {
+    try {
+      checkArticle(article, articles, captures)
+      kept.push(article)
+    } catch (error) {
+      if (!(error instanceof HelpArticleFormatError)) throw error
+      onStale(error)
+    }
+  }
+
+  return kept.sort((a, b) => a.locale.localeCompare(b.locale) || a.order - b.order || a.slug.localeCompare(b.slug))
+}
+
+/** Each file as an article: in a known language folder, named after its slug, its slug used once per language. */
+function parseArticles(sources: Record<string, string>): HelpArticle[] {
   const articles: HelpArticle[] = []
   const seen = new Set<string>()
 
@@ -51,25 +75,19 @@ export function assembleHelpArticles(
     articles.push(article)
   }
 
-  for (const article of articles) {
-    checkRelated(article, articles)
-    checkCaptures(article, captures)
-    checkCounterparts(article, articles)
-  }
-
-  return articles.sort((a, b) => a.locale.localeCompare(b.locale) || a.order - b.order || a.slug.localeCompare(b.slug))
+  return articles
 }
 
 function articleInLocale(articles: readonly HelpArticle[], locale: HelpLocale, slug: string): HelpArticle | undefined {
   return articles.find(candidate => candidate.locale === locale && candidate.slug === slug)
 }
 
-/** Checks the article against itself in every other language that has it, and in French and English, which must. */
-function checkCounterparts(article: HelpArticle, articles: readonly HelpArticle[]): void {
-  for (const locale of HELP_LOCALES) {
-    if (locale === article.locale) continue
-    const counterpart = articleInLocale(articles, locale, article.slug)
-    if (counterpart != null || HELP_SOURCE_LOCALES.includes(locale)) checkCounterpart(article, counterpart)
+/** Its related slugs and captures, then the same article in French and English, which every language follows. */
+function checkArticle(article: HelpArticle, articles: readonly HelpArticle[], captures: HelpCaptureManifest): void {
+  checkRelated(article, articles)
+  checkCaptures(article, captures)
+  for (const locale of HELP_SOURCE_LOCALES) {
+    if (locale !== article.locale) checkCounterpart(article, articleInLocale(articles, locale, article.slug))
   }
 }
 
@@ -158,9 +176,14 @@ type Loaded = { articles: HelpArticle[] } | { error: HelpArticleFormatError }
 // fail the build on the same error.
 const LOADED: Loaded = loadAtStartup()
 
+// Its readers get the English article meanwhile; the shipped-set test fails the build on the same article.
+function reportStaleTranslation(error: HelpArticleFormatError): void {
+  logger.warn(`A translated help article is left out, its readers get the English one: ${error.message}`)
+}
+
 function loadAtStartup(): Loaded {
   try {
-    return { articles: assembleHelpArticles(SOURCES, HELP_CAPTURES) }
+    return { articles: assembleHelpArticles(SOURCES, HELP_CAPTURES, reportStaleTranslation) }
   } catch (error) {
     if (error instanceof HelpArticleFormatError) {
       logger.error(`In-app help is unavailable: ${error.message}`)
