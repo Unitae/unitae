@@ -3,6 +3,7 @@ import { MoreHorizontal, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
+import { HelpEntryButton } from '~/features/help'
 import { updateGroupSchema } from '~/features/publishers/schemas/group.schema'
 import { changeGroupMembers } from '~/features/publishers/server/group-members.server'
 import { groupSaveRefusal } from '~/features/publishers/server/group-save-refusal.server'
@@ -67,6 +68,7 @@ export default function EditGroup({ loaderData, actionData }: Route.ComponentPro
     <div className="flex flex-col">
       <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
+        help={<HelpEntryButton slug="groups" />}
         title={name}
         subtitle={m.groups_edit_subtitle()}
         breadcrumbs={[
@@ -151,3 +153,6 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   session.flash('success', m.groups_edit_success({ name: formatGroupName(group.name) }))
   return redirect(`/groups/${groupId}/view`, { headers: { 'Set-Cookie': await commitSession(session) } })
 }
+
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'

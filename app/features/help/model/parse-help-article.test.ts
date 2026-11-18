@@ -51,6 +51,12 @@ describe('parseHelpArticle', () => {
     expect(parseHelpArticle(source, 'fr').permission).toEqual(['CanReviewBoardDocuments', 'CanUploadBoardDocuments'])
   })
 
+  it('reads GroupLeader beside the permissions, for a feature that leading a group opens too', () => {
+    const source = VALID.replace('permission: none', 'permission: CanRecordActivity, GroupLeader')
+
+    expect(parseHelpArticle(source, 'fr').permission).toEqual(['CanRecordActivity', 'GroupLeader'])
+  })
+
   it('refuses none listed beside a permission, since it would mean both anyone and only them', () => {
     expect(() => parseHelpArticle(VALID.replace('permission: none', 'permission: none, CanViewBoard'), 'fr')).toThrow(
       HelpArticleFormatError,

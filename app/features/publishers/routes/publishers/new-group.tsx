@@ -1,6 +1,7 @@
 import { parseWithZod } from '@conform-to/zod/v4'
 import { data, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
+import { HelpEntryButton } from '~/features/help'
 import { createGroupSchema } from '~/features/publishers/schemas/group.schema'
 import { changeGroupMembers } from '~/features/publishers/server/group-members.server'
 import { groupSaveRefusal } from '~/features/publishers/server/group-save-refusal.server'
@@ -48,6 +49,7 @@ export default function NewGroup({ loaderData, actionData }: Route.ComponentProp
     <div className="flex flex-col">
       <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
+        help={<HelpEntryButton slug="groups" />}
         title={m.groups_new_title()}
         subtitle={m.groups_new_subtitle()}
         breadcrumbs={[{ label: m.sidebar_publisher_groups(), to: '/groups' }, { label: m.groups_new_title() }]}
@@ -110,3 +112,6 @@ export async function action({ request, context }: Route.ActionArgs) {
   session.flash('success', m.groups_new_success({ name: formatGroupName(group.name) }))
   return redirect(`/groups/${group.id}/view`, { headers: { 'Set-Cookie': await commitSession(session) } })
 }
+
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'

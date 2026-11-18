@@ -3,7 +3,7 @@ import { data } from 'react-router'
 import { toast } from 'sonner'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { HelpAccessProvider, HelpPanel } from '~/features/help'
-import { visibleHelpSlugsFor } from '~/features/help/index.server'
+import { helpReaderFor, visibleHelpSlugsFor } from '~/features/help/index.server'
 import { helpLocaleFor } from '~/features/help/model/help-links'
 import { settingsLinksFor } from '~/features/settings'
 import { loadSettingsAccess } from '~/features/settings/index.server'
@@ -126,7 +126,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       }),
       messages,
       sidebarOpen,
-      helpSlugs: visibleHelpSlugsFor(permissions, helpLocaleFor(getLocale())),
+      helpSlugs: visibleHelpSlugsFor(helpReaderFor(permissions, currentUser), helpLocaleFor(getLocale())),
     },
     {
       headers: {

@@ -1,6 +1,7 @@
 import { UsersRound } from 'lucide-react'
 import { useState } from 'react'
 import { Link, redirect } from 'react-router'
+import { HelpEntryButton } from '~/features/help'
 import { NO_GROUP_PARAM } from '~/features/publishers/model/publisher-list-filters'
 import { countPublishersWithoutGroup, listGroups } from '~/features/publishers/server/groups.server'
 import { type DeletableGroup, DeleteGroupDialog } from '~/features/publishers/ui/DeleteGroupDialog'
@@ -57,6 +58,7 @@ export default function GroupListPage({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
+        help={<HelpEntryButton slug="groups" />}
         title={m.groups_list_title()}
         titleBadge={groups.length > 0 && <span className="text-faint text-lg tabular-nums">{groups.length}</span>}
         breadcrumbs={[{ label: m.sidebar_publisher_groups() }]}
@@ -92,3 +94,6 @@ export default function GroupListPage({ loaderData }: Route.ComponentProps) {
     </div>
   )
 }
+
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'

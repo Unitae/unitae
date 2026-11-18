@@ -2,6 +2,7 @@ import { SelectionBar } from '@unitae/ui'
 import { Download, UserMinus, Users, UsersRound } from 'lucide-react'
 import { useState } from 'react'
 import { Link, redirect } from 'react-router'
+import { HelpEntryButton } from '~/features/help'
 import {
   hasNarrowingFilters,
   type PublisherListFilters,
@@ -85,6 +86,7 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
+        help={<HelpEntryButton slug="publisher-arrivals-departures" />}
         title={m.publishers_list_title()}
         titleBadge={<span className="text-faint text-lg tabular-nums">{rows.length}</span>}
         breadcrumbs={[{ label: m.sidebar_publishers() }]}
@@ -193,3 +195,6 @@ function ListEmpty({ filters }: { filters: PublisherListFilters }) {
   }
   return <EmptyState icon={Users} title={m.publishers_empty_title()} description={m.publishers_empty_description()} />
 }
+
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'

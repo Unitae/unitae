@@ -3,7 +3,11 @@ import { Permission } from '~/shared/types/permission'
 
 // The index of /help, run as the loader runs it: only the articles the reader may see, in the reader's language.
 const permissionsContext = Symbol('permissionsContext')
-vi.mock('~/shared/auth/route-context.server', () => ({ permissionsContext }))
+const currentAccountContext = Symbol('currentAccountContext')
+vi.mock('~/shared/auth/route-context.server', () => ({ permissionsContext, currentAccountContext }))
+
+// An account whose record leads no group.
+const ACCOUNT = { member: null }
 
 let currentLocale = 'fr'
 vi.mock('~/i18n/paraglide/runtime', async importOriginal => ({
@@ -14,7 +18,11 @@ vi.mock('~/i18n/paraglide/runtime', async importOriginal => ({
 const { loader } = await import('./index')
 
 function run(search: string, permissions: ReadonlySet<Permission>) {
-  const context = { get: (key: symbol) => (key === permissionsContext ? permissions : undefined) }
+  const values = new Map<symbol, unknown>([
+    [permissionsContext, permissions],
+    [currentAccountContext, ACCOUNT],
+  ])
+  const context = { get: (key: symbol) => values.get(key) }
   return loader({ request: new Request(`http://localhost/help${search}`), context } as never)
 }
 

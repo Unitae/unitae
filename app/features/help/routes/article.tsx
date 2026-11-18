@@ -3,10 +3,11 @@ import type { HelpArticleView } from '~/features/help/model/help.type'
 import { helpLocaleFor, helpPagePath } from '~/features/help/model/help-links'
 import { helpArticleView } from '~/features/help/server/help-article-view.server'
 import { loadHelpArticles } from '~/features/help/server/help-content.server'
+import { helpReaderFor } from '~/features/help/server/help-reader.server'
 import { HelpArticleBody } from '~/features/help/ui/HelpArticleBody'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
-import { permissionsContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext } from '~/shared/auth/route-context.server'
 import { logger } from '~/shared/infra/logger.server'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -25,7 +26,8 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
 // answered as an error rather than thrown: a thrown error would replace the page the panel was opened from.
 export function loader({ params, context }: Route.LoaderArgs): HelpArticleView {
   try {
-    return helpArticleView(loadHelpArticles(), params.slug, helpLocaleFor(getLocale()), context.get(permissionsContext))
+    const reader = helpReaderFor(context.get(permissionsContext), context.get(currentAccountContext))
+    return helpArticleView(loadHelpArticles(), params.slug, helpLocaleFor(getLocale()), reader)
   } catch (error) {
     logger.error(`In-app help article « ${params.slug} » could not be read: ${String(error)}`)
     return { kind: 'error', slug: params.slug }

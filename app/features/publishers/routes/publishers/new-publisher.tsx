@@ -1,6 +1,7 @@
 import { parseWithZod } from '@conform-to/zod/v4'
 import { data, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
+import { HelpEntryButton } from '~/features/help'
 import { publisherFormSchema } from '~/features/publishers/schemas/publisher.schema'
 import { createMember } from '~/features/publishers/server/create-member.server'
 import { PublisherForm } from '~/features/publishers/ui/PublisherForm'
@@ -48,6 +49,7 @@ export default function NewPublisher({ loaderData, actionData }: Route.Component
     <div className="flex flex-col">
       <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
+        help={<HelpEntryButton slug="publisher-arrivals-departures" />}
         title={m.publishers_new_title()}
         subtitle={m.publishers_new_subtitle()}
         breadcrumbs={[{ label: m.sidebar_publishers(), to: '/publishers' }, { label: m.publishers_new_title() }]}
@@ -129,3 +131,6 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
   })
 }
+
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'

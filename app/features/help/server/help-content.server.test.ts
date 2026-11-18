@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { GROUP_LEADER } from '~/features/help/model/help.type'
 import { HelpArticleFormatError } from '~/features/help/model/parse-help-article'
 import { assembleHelpArticles, loadHelpArticles } from '~/features/help/server/help-content.server'
 import { Permission } from '~/shared/types/permission'
@@ -8,6 +9,7 @@ const HTML_TAG = /<\/?[a-z][^>]*>/i
 // The first series, pinned: adding or removing an article is a deliberate change to this list.
 const SHIPPED_SLUGS = [
   'absences',
+  'activity-exports',
   'attendance-entry',
   'attendance-s88',
   'bano',
@@ -17,7 +19,10 @@ const SHIPPED_SLUGS = [
   'calendar-feed',
   'campaign-create',
   'create-territory',
+  'emergency-roster',
   'external-speakers',
+  'field-service-reports',
+  'groups',
   'language',
   'my-data',
   'my-parts',
@@ -25,7 +30,9 @@ const SHIPPED_SLUGS = [
   'notifications',
   'password',
   'phone-territories',
+  'pioneers',
   'prospection',
+  'publisher-arrivals-departures',
   'territories-settings',
   'two-step-verification',
 ].sort()
@@ -215,8 +222,8 @@ describe('loadHelpArticles: the articles as shipped', () => {
     }
   })
 
-  it('gives every article a permission that exists, or none', () => {
-    const names = new Set(Object.keys(Permission))
+  it('gives every article a permission that exists, leading a group, or none', () => {
+    const names = new Set<string>([...Object.keys(Permission), GROUP_LEADER])
 
     for (const article of ARTICLES) {
       for (const permission of article.permission ?? []) expect(names.has(permission)).toBe(true)
@@ -239,6 +246,25 @@ describe('loadHelpArticles: the articles as shipped', () => {
     expect(fr.get('external-speakers')?.permission).toEqual(['CanViewExternalSpeakers', 'CanManageExternalSpeakers'])
     expect(fr.get('attendance-entry')?.permission).toEqual(['CanRecordAttendance', 'CanCorrectAttendance'])
     expect(fr.get('attendance-s88')?.permission).toEqual(['CanViewAttendance'])
+    // A group's overseer and assistant enter its reports and keep its emergency information without any right.
+    expect(fr.get('field-service-reports')?.permission).toEqual([
+      'CanRecordActivity',
+      'CanCorrectActivity',
+      'CanManagePublishers',
+      'GroupLeader',
+    ])
+    expect(fr.get('emergency-roster')?.permission).toEqual([
+      'CanViewEmergencyInfo',
+      'CanManageEmergencyInfo',
+      'GroupLeader',
+    ])
+    expect(fr.get('pioneers')?.permission).toEqual(['CanViewActivity', 'CanManagePublishers'])
+    expect(fr.get('activity-exports')?.permission).toEqual(['CanViewActivity', 'CanRecordActivity'])
+    expect(fr.get('publisher-arrivals-departures')?.permission).toEqual([
+      'CanManagePublishers',
+      'CanManagePublisherLifecycle',
+    ])
+    expect(fr.get('groups')?.permission).toEqual(['CanManagePublisherGroups'])
     for (const slug of [
       'my-parts',
       'password',

@@ -1,5 +1,6 @@
 import { Avatar, Status, Tag } from '@unitae/ui'
 import { Mail, MessageSquare, Phone } from 'lucide-react'
+import type { ReactNode } from 'react'
 
 import type { PublisherRecord } from '~/features/publishers/server/publisher-record.queries'
 import * as m from '~/i18n/paraglide/messages'
@@ -9,7 +10,16 @@ import { formatGroupName } from '~/shared/utils/format-group-name'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 
 /** The person: their initials, their name, and what they are in the congregation, as quiet tags. */
-export function RecordHeader({ record, pioneerLabel }: { record: PublisherRecord; pioneerLabel: string | null }) {
+export function RecordHeader({
+  record,
+  pioneerLabel,
+  help,
+}: {
+  record: PublisherRecord
+  pioneerLabel: string | null
+  /** The page's « ? »: the top bar draws it from md up, this row on a phone, where there is no bar. */
+  help?: ReactNode
+}) {
   const name = formatPersonName(record)
   const tags = [
     record.isPublisher
@@ -41,6 +51,7 @@ export function RecordHeader({ record, pioneerLabel }: { record: PublisherRecord
           </div>
         )}
       </div>
+      <div className="-mr-2 ml-auto shrink-0 self-start empty:hidden md:hidden">{help}</div>
     </div>
   )
 }
