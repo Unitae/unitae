@@ -18,6 +18,9 @@ With the right to enter attendance:
 
 1. As soon as the meeting starts, an **Attendance** card with its name shows at the top of **Home**, and on the **Meetings › Attendance** page.
 2. Type the number **In the hall**, the one **Online**, or both.
+
+   ![The Attendance card of a meeting under way: the hall count entered by someone else, the online one still waiting](capture:attendance-entry-card)
+
 3. Click **Save**.
 
 Two people can share the entry: each saves their number, and the card shows who entered what. Until midnight, **Edit** lets you change the numbers you entered; a number entered by someone else stays as it is.

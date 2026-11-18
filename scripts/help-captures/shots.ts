@@ -274,7 +274,19 @@ export const HELP_SHOTS: HelpShot[] = [
     viewport: { width: 1600 },
   },
   {
-    // attendance: « cliquez sur Exporter » opens the export dialog, the S-88 card among its formats.
+    // attendance-entry: the card of a meeting under way, on the home page (stage-demo.sql starts one): the hall count
+    // entered by someone else, the online count still to enter.
+    id: 'attendance-entry-card',
+    account: MARC,
+    path: '/',
+    frame: (page, locale) => [
+      page.locator(`section[aria-label^="${m.attendance_card_title({ name: '' }, { locale })}"]`).first(),
+    ],
+    margin: -1,
+    viewport: { width: 1000 },
+  },
+  {
+    // attendance-s88: « cliquez sur Exporter » opens the export dialog, the S-88 card among its formats.
     id: 'attendance-export',
     account: MARC,
     path: '/attendance',

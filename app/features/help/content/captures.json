@@ -35,6 +35,11 @@
             "height": 118,
             "captured": "2026-11-17"
         },
+        "attendance-entry-card": {
+            "width": 346,
+            "height": 228,
+            "captured": "2026-11-18"
+        },
         "attendance-export": {
             "width": 510,
             "height": 402,
@@ -136,6 +141,11 @@
             "width": 484,
             "height": 118,
             "captured": "2026-11-17"
+        },
+        "attendance-entry-card": {
+            "width": 346,
+            "height": 244,
+            "captured": "2026-11-18"
         },
         "attendance-export": {
             "width": 510,

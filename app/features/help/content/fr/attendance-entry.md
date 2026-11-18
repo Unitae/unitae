@@ -18,6 +18,9 @@ Avec le droit de saisir l’assistance :
 
 1. Dès le début de la réunion, une carte **Assistance** à son nom s’affiche en haut de **Accueil**, et sur la page **Réunions › Assistance**.
 2. Saisissez le nombre **En salle**, celui **En visio**, ou les deux.
+
+   ![La carte Assistance d’une réunion en cours : le nombre en salle saisi par quelqu’un d’autre, celui en visio encore en attente](capture:attendance-entry-card)
+
 3. Cliquez sur **Enregistrer**.
 
 Deux personnes peuvent se partager la saisie : chacune enregistre son nombre, et la carte indique qui a saisi quoi. Jusqu’à minuit, **Modifier** vous laisse changer les nombres que vous avez saisis ; un nombre saisi par quelqu’un d’autre reste tel quel.
