@@ -183,8 +183,8 @@ describe('updateEvent', () => {
     await updateEvent(mockDb as never, 2, 10, { startDate: new Date('2026-11-17T18:00:00Z') }, 99)
 
     expect(mockDb.event.updateMany).toHaveBeenCalledWith({
-      where: { id: 2, congregationId: 10, createdById: null },
-      data: { createdById: 99 },
+      where: { id: 2, congregationId: 10, origin: 'job' },
+      data: { origin: 'manual', createdById: 99 },
     })
   })
 

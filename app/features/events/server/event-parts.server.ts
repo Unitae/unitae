@@ -1,3 +1,4 @@
+import { EventOrigin } from '~/features/events/model/event-origin.type'
 import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import {
   setPartAssignmentAllowedRoles,
@@ -60,7 +61,10 @@ export async function updateEvent(
   // A meeting created ahead that someone moves is theirs from then on: the template's offer to move its upcoming
   // meetings, and the clean-ups of meetings nobody created, leave it where it was put.
   if (data.startDate !== undefined || data.endDate !== undefined) {
-    await db.event.updateMany({ where: { id, congregationId, createdById: null }, data: { createdById: actorId } })
+    await db.event.updateMany({
+      where: { id, congregationId, origin: EventOrigin.Job },
+      data: { origin: EventOrigin.Manual, createdById: actorId },
+    })
   }
   const event = await db.event.update({ where: { id_congregationId: { id, congregationId } }, data })
   audit({

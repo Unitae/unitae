@@ -1,3 +1,4 @@
+import { EventOrigin } from '~/features/events/model/event-origin.type'
 import { SYSTEM_TEMPLATE_KEYS } from '~/features/events/model/event-template.type'
 import { daysOnWeekday, programmeKey } from '~/features/events/model/programme-dates'
 import {
@@ -153,20 +154,21 @@ async function removeEmptyMeeting(db: TransactionClient, eventId: number, ctx: C
 async function fillMeeting(
   db: TransactionClient,
   template: TemplateWithRelations,
-  event: { id: number; createdById?: number | null },
+  event: { id: number; origin?: string },
   day: string,
   ctx: CreationContext,
 ): Promise<CreatedProgramme> {
   const eventId = event.id
-  if (event.createdById != null) return giveProgramme(db, template, eventId, day, ctx, { reused: true })
+  if (event.origin !== EventOrigin.Job) return giveProgramme(db, template, eventId, day, ctx, { reused: true })
   await db.event.update({
     where: { id_congregationId: { id: eventId, congregationId: ctx.congregationId } },
     data: {
       name: template.name,
       startDate: combineLocalDateTime(day, template.startTime, ctx.timezone),
       endDate: combineLocalDateTime(day, template.endTime, ctx.timezone),
-      // Whoever gives it its programme prepares it: the meeting is no longer one nobody created.
+      // Whoever gives it its programme prepares it: the meeting is no longer the job’s.
       createdById: ctx.actorId,
+      origin: EventOrigin.Manual,
     },
   })
   return giveProgramme(db, template, eventId, day, ctx, { reused: true })
@@ -212,12 +214,14 @@ export async function createProgrammeOnDay(
 const EVENT_STATE = {
   id: true,
   createdById: true,
+  origin: true,
   attendance: { select: { id: true } },
   _count: { select: { eventParts: true, eventServiceParts: true } },
 } as const
 
 interface EventState {
   createdById?: number | null
+  origin?: string
   attendance?: { id: number } | null
   _count?: { eventParts: number; eventServiceParts: number }
 }
@@ -228,11 +232,11 @@ function hasParts(event: EventState): boolean {
 }
 
 /**
- * An empty meeting the recurring-events job created ahead: no author, no programme, no attendance. Only those may be
- * deleted when a series passes their day — one someone prepared, or one with counts, stays.
+ * An empty meeting the recurring-events job created ahead (EMPTY_MEETING): its origin, no programme, no attendance. Only
+ * those may be deleted when a series passes their day — one someone made or prepared, or one with counts, stays.
  */
 function isEmptyMeeting(event: EventState): boolean {
-  return event.createdById === null && event.attendance == null && !hasParts(event)
+  return event.origin === EventOrigin.Job && event.attendance == null && !hasParts(event)
 }
 
 /** The events the templates already have between two days, by `programmeKey`: whether each has a programme, and whether
@@ -240,6 +244,7 @@ function isEmptyMeeting(event: EventState): boolean {
 interface ExistingEvent {
   id: number
   createdById: number | null
+  origin: string
   /** It has parts or services. */
   programme: boolean
   /** An empty meeting created ahead, which a passed day deletes. */
@@ -271,6 +276,7 @@ async function existingProgrammes(
     byDay.set(key, {
       id: event.id,
       createdById: event.createdById,
+      origin: event.origin,
       programme: hasParts(event),
       empty: isEmptyMeeting(event),
     })

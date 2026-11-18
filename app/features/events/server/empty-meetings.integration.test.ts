@@ -32,6 +32,7 @@ const { moveEmptyMeetings } = await import('./move-empty-meetings.server')
 const { createMeetingProgramme } = await import('./create-meeting-programme.server')
 const { listProgrammes } = await import('./programme-list.queries')
 const { ProgrammeExistsError } = await import('./programme-creation.server')
+const { updateEvent } = await import('./event-parts.server')
 
 const PARIS = 'Europe/Paris'
 // Monday 16 November 2026, 10:00 in Paris.
@@ -66,9 +67,18 @@ beforeAll(async () => {
         },
       })
     ).id
+    // The job's meetings: no author, nothing on them.
     const meeting = (day: string, extra: object = {}) =>
       tx.event.create({
-        data: { name: 'Réunion de semaine', templateId, status: 'draft', congregationId, ...tuesday(day), ...extra },
+        data: {
+          name: 'Réunion de semaine',
+          templateId,
+          status: 'draft',
+          origin: 'job',
+          congregationId,
+          ...tuesday(day),
+          ...extra,
+        },
       })
     ids.week1 = (await meeting('2026-11-17')).id
     ids.week2 = (await meeting('2026-11-24')).id
@@ -76,6 +86,8 @@ beforeAll(async () => {
     // Counted already: attendance keeps a meeting where it is.
     ids.counted = (await meeting('2026-12-08')).id
     await tx.attendance.create({ data: { eventId: ids.counted, inPerson: 80, congregationId } })
+    // Made by hand, its author's account since deleted: empty and without an author, but nobody's to move or delete.
+    ids.handMade = (await meeting('2026-12-15', { origin: 'manual' })).id
     // The week of 30 November already has its programme on the Thursday.
     ids.prepared = (
       await tx.event.create({
@@ -121,6 +133,22 @@ const days = () =>
   )
 
 describe('empty meetings against the database', () => {
+  it('makes a meeting the job created someone’s once they move it by hand', async () => {
+    const id = await withScope(congregationId, async tx => {
+      const meeting = await tx.event.create({
+        data: { name: 'Réunion', templateId, status: 'draft', origin: 'job', congregationId, ...tuesday('2027-01-05') },
+      })
+      await updateEvent(tx, meeting.id, congregationId, tuesday('2027-01-06'), actorId)
+      return meeting.id
+    })
+
+    const moved = await withScope(congregationId, tx =>
+      tx.event.findFirst({ where: { id }, select: { origin: true, createdById: true } }),
+    )
+    expect(moved).toEqual({ origin: 'manual', createdById: actorId })
+    await withScope(congregationId, tx => tx.event.delete({ where: { id } }))
+  })
+
   it('lists the empty meetings as waiting for their programme, and not the prepared or counted ones', async () => {
     const rows = await withScope(congregationId, tx =>
       listProgrammes(tx, { congregationId, from: NOW, to: new Date('2026-12-31T00:00:00Z') }),
@@ -142,6 +170,7 @@ describe('empty meetings against the database', () => {
     expect(after[ids.week3]).toBeUndefined()
     expect(after[ids.counted]).toBe('2026-12-08')
     expect(after[ids.prepared]).toBe('2026-12-03')
+    expect(after[ids.handMade]).toBe('2026-12-15')
     expect(await withScope(congregationId, tx => countMeetingsToMove(tx, templateId, ctx()))).toBe(0)
   })
 
@@ -154,10 +183,11 @@ describe('empty meetings against the database', () => {
     const event = await withScope(congregationId, tx =>
       tx.event.findFirst({
         where: { id: ids.week1 },
-        select: { createdById: true, _count: { select: { eventParts: true } } },
+        select: { createdById: true, origin: true, _count: { select: { eventParts: true } } },
       }),
     )
-    expect(event).toEqual({ createdById: actorId, _count: { eventParts: 1 } })
+    // Prepared by someone: theirs from now on, even emptied again or once their account goes.
+    expect(event).toEqual({ createdById: actorId, origin: 'manual', _count: { eventParts: 1 } })
 
     await expect(
       withScope(congregationId, tx =>

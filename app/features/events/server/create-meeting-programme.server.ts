@@ -1,3 +1,4 @@
+import { EventOrigin } from '~/features/events/model/event-origin.type'
 import { isSystemTemplate } from '~/features/events/model/event-template.type'
 import { giveProgramme, lockTemplates, TEMPLATE_INCLUDE } from '~/features/events/server/give-programme.server'
 import {
@@ -33,6 +34,7 @@ export async function createMeetingProgramme(
       templateId: true,
       startDate: true,
       createdById: true,
+      origin: true,
       _count: { select: { eventParts: true, eventServiceParts: true } },
     },
   })
@@ -45,10 +47,11 @@ export async function createMeetingProgramme(
   if (template.parts.length === 0 && template.serviceParts.length === 0) return null
   if (event._count.eventParts > 0 || event._count.eventServiceParts > 0) throw new ProgrammeExistsError(event.id)
 
-  if (event.createdById == null) {
+  // Whoever gives it its programme prepares it; a meeting the job made is theirs from then on.
+  if (event.createdById == null || event.origin === EventOrigin.Job) {
     await db.event.update({
       where: { id_congregationId: { id: event.id, congregationId } },
-      data: { createdById: ctx.actorId },
+      data: { createdById: event.createdById ?? ctx.actorId, origin: EventOrigin.Manual },
     })
   }
   return giveProgramme(db, template, event.id, dayOf(event.startDate, ctx.timezone), ctx, { reused: true })

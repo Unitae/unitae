@@ -105,7 +105,7 @@ const WITH_PART = {
     },
   ],
 }
-const BARE = { createdById: null, attendance: null, _count: { eventParts: 0, eventServiceParts: 0 } }
+const BARE = { createdById: null, origin: 'job', attendance: null, _count: { eventParts: 0, eventServiceParts: 0 } }
 
 describe('bare events', () => {
   it('gives a bare event of the series its programme instead of creating a second one', async () => {
@@ -184,7 +184,7 @@ describe('bare events, edge cases', () => {
 
     expect(vi.mocked(db.event.update).mock.calls[0]?.[0]).toMatchObject({
       where: { id_congregationId: { id: 55, congregationId: 7 } },
-      data: { name: 'Réunion de semaine', createdById: 42 },
+      data: { name: 'Réunion de semaine', createdById: 42, origin: 'manual' },
     })
     expect(hour(vi.mocked(db.event.update).mock.calls[0]?.[0]?.data?.startDate as Date)).toBe('19:00')
   })
@@ -193,7 +193,14 @@ describe('bare events, edge cases', () => {
   it('fills a meeting whose programme was removed, and one with counts, when asked for the series', async () => {
     vi.mocked(db.eventTemplate.findMany).mockResolvedValue([WITH_PART] as never)
     vi.mocked(db.event.findMany).mockResolvedValue([
-      { id: 55, templateId: 270, startDate: new Date('2026-11-19T23:00:00Z'), ...BARE, createdById: 9 },
+      {
+        id: 55,
+        templateId: 270,
+        startDate: new Date('2026-11-19T23:00:00Z'),
+        ...BARE,
+        createdById: 9,
+        origin: 'manual',
+      },
       { id: 56, templateId: 270, startDate: new Date('2026-11-26T23:00:00Z'), ...BARE, attendance: { id: 1 } },
     ] as never)
     recordEvents()
@@ -207,7 +214,14 @@ describe('bare events, edge cases', () => {
   it('keeps the author, name and hours of a meeting someone prepared before', async () => {
     vi.mocked(db.eventTemplate.findMany).mockResolvedValue([WITH_PART] as never)
     vi.mocked(db.event.findMany).mockResolvedValue([
-      { id: 55, templateId: 270, startDate: new Date('2026-11-19T23:00:00Z'), ...BARE, createdById: 9 },
+      {
+        id: 55,
+        templateId: 270,
+        startDate: new Date('2026-11-19T23:00:00Z'),
+        ...BARE,
+        createdById: 9,
+        origin: 'manual',
+      },
     ] as never)
     recordEvents()
 
@@ -238,7 +252,7 @@ describe('bare events, edge cases', () => {
   it('fills a counted meeting without a programme when created on its day', async () => {
     vi.mocked(db.eventTemplate.findFirst).mockResolvedValue(WITH_PART as never)
     vi.mocked(db.event.findMany).mockResolvedValue([
-      { id: 56, ...BARE, createdById: 9, attendance: { id: 1 } },
+      { id: 56, ...BARE, createdById: 9, origin: 'manual', attendance: { id: 1 } },
     ] as never)
     recordEvents()
 

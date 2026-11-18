@@ -4,7 +4,7 @@ export { type LastWeekMeeting, listLastWeekAttendance, listMeetingsUnderWay } fr
 export { getNextDaysOffs } from './server/days-off.server'
 export { deleteTemplate } from './server/delete-template.server'
 export { duplicateTemplate } from './server/duplicate-template.server'
-export { countMeetingsToMove } from './server/empty-meetings.queries'
+export { countMeetingsToMove, EMPTY_MEETING } from './server/empty-meetings.queries'
 export {
   deleteTemplatePart,
   deleteTemplateServicePart,

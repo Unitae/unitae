@@ -1,14 +1,16 @@
 import { planMeetingMoves } from '~/features/events/model/empty-meetings'
+import { EventOrigin } from '~/features/events/model/event-origin.type'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { addDays, dayOf, startOfDay } from '~/shared/utils/calendar-day'
 
 /**
- * An empty meeting the recurring-events job created ahead: no author, no part, no service, no attendance. Every
- * recurring template has some; they are the only events that move with it, or go with it.
+ * An empty meeting the recurring-events job created ahead: its origin, no part, no service, no attendance. Every
+ * recurring template has some; they are the only events that move with it, or go with it. Not its author: deleting an
+ * account clears the author of what it made, which must never turn into something a template may move or delete.
  */
 export const EMPTY_MEETING = {
-  createdById: null,
+  origin: EventOrigin.Job,
   eventParts: { none: {} },
   eventServiceParts: { none: {} },
   attendance: { is: null },

@@ -64,6 +64,7 @@ describe('extendRecurringEvents', () => {
         endDate: new Date('2027-01-07T19:45:00Z'),
         status: 'draft',
         createdById: null,
+        origin: 'job',
         congregationId: 1,
       },
       {
@@ -73,6 +74,7 @@ describe('extendRecurringEvents', () => {
         endDate: new Date('2027-01-14T19:45:00Z'),
         status: 'draft',
         createdById: null,
+        origin: 'job',
         congregationId: 1,
       },
     ])
@@ -182,7 +184,7 @@ describe('reanchorEmptyMeetings', () => {
     const [[{ where }]] = mockDb.event.findMany.mock.calls
     expect(where).toMatchObject({
       congregationId: 1,
-      createdById: null,
+      origin: 'job',
       eventParts: { none: {} },
       eventServiceParts: { none: {} },
       attendance: { is: null },

@@ -55,7 +55,7 @@ describe('createMeetingProgramme', () => {
 
     expect(db.event.update).toHaveBeenCalledWith({
       where: { id_congregationId: { id: 55, congregationId: 7 } },
-      data: { createdById: 42 },
+      data: { createdById: 42, origin: 'manual' },
     })
   })
 
