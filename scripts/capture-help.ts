@@ -1,12 +1,12 @@
 /**
- * Takes the captures of the in-app help: every shot of `scripts/help-captures/shots.ts`, in French and in English, in
- * the light and the dark theme, at twice the pixel density, framed on what the article's step names. It writes
+ * Takes every in-app help shot from `scripts/help-captures/shots.ts` in every supported help locale, in the light and
+ * dark themes, at twice the pixel density, framed on what the article's step names. It writes
  * `public/help-captures/<locale>/<id>.webp` and `<id>.dark.webp`, and records each capture's size and date in
  * `app/features/help/content/captures.json`.
  *
  *   HELP_CAPTURE_PASSWORD=… pnpm build:help-captures [--locale fr] [--only a,b] [--raw <dir>]
  *
- * It drives two running apps whose databases hold the demo congregation, French and English: the steps are in
+ * It drives one running app per locale whose database holds the demo congregation: the steps are in
  * `scripts/help-captures/README.md`. Never point it at a database you care about. `--only` retakes some captures and
  * leaves the others as they are: the demo is dated from today, so a full run changes every file. `--raw` also keeps
  * each whole page in a folder, to frame a new shot.
@@ -33,6 +33,7 @@ const SETTLE_TIMEOUT = 10_000
 const APP_URLS: Record<HelpLocale, string> = {
   fr: process.env.HELP_CAPTURE_URL_FR ?? 'http://127.0.0.1:5182',
   en: process.env.HELP_CAPTURE_URL_EN ?? 'http://127.0.0.1:5183',
+  'pt-PT': process.env.HELP_CAPTURE_URL_PT_PT ?? 'http://127.0.0.1:5184',
 }
 
 interface Options {

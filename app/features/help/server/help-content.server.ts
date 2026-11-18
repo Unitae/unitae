@@ -8,7 +8,7 @@ import { logger } from '~/shared/infra/logger.server'
 const SOURCES = import.meta.glob<string>('../content/*/*.md', { query: '?raw', import: 'default', eager: true })
 
 const MARKDOWN_EXTENSION = /\.md$/
-const NO_CAPTURES: HelpCaptureManifest = { fr: {}, en: {} }
+const NO_CAPTURES: HelpCaptureManifest = { fr: {}, en: {}, 'pt-PT': {} }
 
 /**
  * Turns a set of article files, keyed by their path `…/<locale>/<slug>.md`, into the articles, and checks what must

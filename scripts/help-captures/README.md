@@ -1,17 +1,18 @@
 # Captures of the in-app help
 
-An article shows a capture of the app as `![what it shows](capture:<id>)`. Each capture exists in French and in
-English, in the light and the dark theme: `public/help-captures/<locale>/<id>.webp` and `<id>.dark.webp`. Their size
-and date are in `app/features/help/content/captures.json`. All of it is written by `scripts/capture-help.ts`, from the
-demo congregation, never from real data.
+An article shows a capture of the app as `![what it shows](capture:<id>)`. Captures are stored per locale and theme in
+`public/help-captures/<locale>/<id>.webp` and `<id>.dark.webp`. Their size and date are in
+`app/features/help/content/captures.json`. All of it is written by `scripts/capture-help.ts`, from the demo
+congregation, never from real data. The `pt-PT` captures in this change still need to be regenerated from a running
+Portuguese demo app; for now, they are copies of the English captures.
 
 The tests refuse an image that is not a capture, a capture without alt text or missing in one language, and a
 capture that no article shows. A new capture is a shot in `shots.ts` (the account, the page, what to do there, the
-elements to frame) and a line in the article, in both languages.
+elements to frame) and a line in the article, in every language.
 
 Run everything on the same day: the demo is dated from today.
 
-## 1. Two scratch databases
+## 1. Scratch databases
 
 ```bash
 docker exec docker-postgres-1 psql -U unitae -d postgres -c "CREATE DATABASE unitae_help_captures OWNER unitae"
@@ -34,7 +35,7 @@ data, not messages; it points at the same files, hence the copied uploads. Both 
 name does not say `captures`. `docker-postgres-1` is an example: `docker ps` shows the name of your Postgres
 container.
 
-## 2. Two apps on them
+## 2. One app per locale
 
 Each app has its own Redis (the app caches the congregation there) and its own uploads:
 
@@ -51,7 +52,7 @@ DB_URL="${DB_URL%/*}/unitae_help_captures_en" DB_RUNTIME_URL="${DB_RUNTIME_URL%/
   ./node_modules/.bin/react-router dev --host 127.0.0.1 --port 5183 --strictPort &
 ```
 
-`HELP_CAPTURE_URL_FR` and `HELP_CAPTURE_URL_EN` point the script elsewhere.
+`HELP_CAPTURE_URL_FR`, `HELP_CAPTURE_URL_EN` and `HELP_CAPTURE_URL_PT_PT` point the script elsewhere.
 
 ## 3. Capture
 
@@ -68,8 +69,8 @@ A shot frames the elements its step names. Keep the crop narrow: the side panel 
 shrinks there. A shot can set its own window (`viewport`), narrower for a row or a title with its control, taller for
 a long form; `margin: -1` trims an element's own border line.
 
-Look at each new image before committing it, in both languages: the English copy translates the demo data a
-capture was made for, so a new screen can still show a French name.
+Look at each new image before committing it, in all three languages: the English and Portuguese copies use the same
+demo data as the French capture, so a new screen can still show a French name.
 
 ## 4. Clean up
 

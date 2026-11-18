@@ -272,5 +272,112 @@
             "height": 72,
             "captured": "2026-11-17"
         }
+    },
+    "pt-PT": {
+        "absences-new": {
+            "width": 182,
+            "height": 47,
+            "captured": "2026-11-17"
+        },
+        "account-calendar-create": {
+            "width": 520,
+            "height": 181,
+            "captured": "2026-11-17"
+        },
+        "account-data": {
+            "width": 520,
+            "height": 278,
+            "captured": "2026-11-17"
+        },
+        "account-notifications": {
+            "width": 520,
+            "height": 232,
+            "captured": "2026-11-17"
+        },
+        "account-password-row": {
+            "width": 484,
+            "height": 94,
+            "captured": "2026-11-17"
+        },
+        "account-preferences": {
+            "width": 486,
+            "height": 283,
+            "captured": "2026-11-17"
+        },
+        "account-two-step-row": {
+            "width": 484,
+            "height": 118,
+            "captured": "2026-11-17"
+        },
+        "attendance-entry-card": {
+            "width": 346,
+            "height": 244,
+            "captured": "2026-11-18"
+        },
+        "attendance-export": {
+            "width": 510,
+            "height": 402,
+            "captured": "2026-11-18"
+        },
+        "board-download-button": {
+            "width": 119,
+            "height": 43,
+            "captured": "2026-11-17"
+        },
+        "board-read-filter": {
+            "width": 233,
+            "height": 108,
+            "captured": "2026-11-17"
+        },
+        "board-versions-history": {
+            "width": 684,
+            "height": 196,
+            "captured": "2026-11-17"
+        },
+        "board-versions-panel": {
+            "width": 400,
+            "height": 245,
+            "captured": "2026-11-17"
+        },
+        "campaign-start-end": {
+            "width": 678,
+            "height": 769,
+            "captured": "2026-11-17"
+        },
+        "external-speakers-update": {
+            "width": 398,
+            "height": 342,
+            "captured": "2026-11-18"
+        },
+        "my-territories-row": {
+            "width": 808,
+            "height": 71,
+            "captured": "2026-11-17"
+        },
+        "programs-my-assignments": {
+            "width": 744,
+            "height": 306,
+            "captured": "2026-11-18"
+        },
+        "prospection-actions": {
+            "width": 231,
+            "height": 43,
+            "captured": "2026-11-17"
+        },
+        "settings-bano": {
+            "width": 509,
+            "height": 208,
+            "captured": "2026-11-17"
+        },
+        "settings-phone-switch": {
+            "width": 473,
+            "height": 81,
+            "captured": "2026-11-17"
+        },
+        "territory-new-header": {
+            "width": 646,
+            "height": 72,
+            "captured": "2026-11-17"
+        }
     }
 }
