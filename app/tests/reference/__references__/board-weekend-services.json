@@ -1,0 +1,291 @@
+{
+  "type": "programme",
+  "events": [
+    {
+      "id": "<id>",
+      "name": "Réunion du week-end",
+      "description": "",
+      "startDate": "2027-03-13T09:00:00.000Z",
+      "endDate": "2027-03-13T10:45:00.000Z",
+      "status": "released",
+      "templateId": "<id>",
+      "createdById": "<id>",
+      "createdAt": "<time>",
+      "updatedAt": "<time>",
+      "congregationId": "<id>",
+      "template": {
+        "id": "<id>",
+        "name": "Réunion du week-end",
+        "key": "weekend-meeting",
+        "description": "",
+        "weekDay": 6,
+        "isRecurring": true,
+        "startTime": "10:00",
+        "endTime": "11:45",
+        "color": "#10b981",
+        "attendanceKind": "weekend",
+        "generatedUntil": "2027-05-03",
+        "congregationId": "<id>",
+        "createdAt": "<time>",
+        "updatedAt": "<time>"
+      },
+      "eventParts": [
+        {
+          "id": "<id>",
+          "topic": "",
+          "note": "",
+          "hasConflict": false,
+          "name": "Cantique et prière",
+          "section": "",
+          "track": "",
+          "trackOrder": null,
+          "order": 1,
+          "durationMin": null,
+          "speakerLabel": null,
+          "readerLabel": null,
+          "eventId": "<id>",
+          "partId": "<id>",
+          "presetId": "<id>",
+          "assigneeId": "<id>",
+          "assistantId": null,
+          "allowExternalSpeaker": false,
+          "externalSpeakerId": null,
+          "createdAt": "<time>",
+          "updatedAt": "<time>",
+          "congregationId": "<id>",
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Paul",
+            "lastname": "MARTIN",
+            "anonymizedAt": null
+          },
+          "assistant": null,
+          "externalSpeaker": null
+        },
+        {
+          "id": "<id>",
+          "topic": "Sujet de référence",
+          "note": "",
+          "hasConflict": false,
+          "name": "Discours public",
+          "section": "",
+          "track": "",
+          "trackOrder": null,
+          "order": 2,
+          "durationMin": null,
+          "speakerLabel": null,
+          "readerLabel": null,
+          "eventId": "<id>",
+          "partId": "<id>",
+          "presetId": "<id>",
+          "assigneeId": null,
+          "assistantId": null,
+          "allowExternalSpeaker": true,
+          "externalSpeakerId": "<id>",
+          "createdAt": "<time>",
+          "updatedAt": "<time>",
+          "congregationId": "<id>",
+          "assignee": null,
+          "assistant": null,
+          "externalSpeaker": {
+            "name": "Antoine ROUSSEAU",
+            "anonymizedAt": null,
+            "speakerCongregation": null
+          }
+        },
+        {
+          "id": "<id>",
+          "topic": "",
+          "note": "",
+          "hasConflict": false,
+          "name": "Cantique",
+          "section": "",
+          "track": "",
+          "trackOrder": null,
+          "order": 3,
+          "durationMin": null,
+          "speakerLabel": null,
+          "readerLabel": null,
+          "eventId": "<id>",
+          "partId": "<id>",
+          "presetId": null,
+          "assigneeId": "<id>",
+          "assistantId": null,
+          "allowExternalSpeaker": false,
+          "externalSpeakerId": null,
+          "createdAt": "<time>",
+          "updatedAt": "<time>",
+          "congregationId": "<id>",
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Luc",
+            "lastname": "BERNARD",
+            "anonymizedAt": null
+          },
+          "assistant": null,
+          "externalSpeaker": null
+        },
+        {
+          "id": "<id>",
+          "topic": "",
+          "note": "",
+          "hasConflict": false,
+          "name": "Étude de La Tour de Garde",
+          "section": "",
+          "track": "",
+          "trackOrder": null,
+          "order": 4,
+          "durationMin": null,
+          "speakerLabel": null,
+          "readerLabel": null,
+          "eventId": "<id>",
+          "partId": "<id>",
+          "presetId": "<id>",
+          "assigneeId": "<id>",
+          "assistantId": null,
+          "allowExternalSpeaker": false,
+          "externalSpeakerId": null,
+          "createdAt": "<time>",
+          "updatedAt": "<time>",
+          "congregationId": "<id>",
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Pierre",
+            "lastname": "MOREAU",
+            "anonymizedAt": null
+          },
+          "assistant": null,
+          "externalSpeaker": null
+        },
+        {
+          "id": "<id>",
+          "topic": "",
+          "note": "",
+          "hasConflict": false,
+          "name": "Cantique et prière de conclusion",
+          "section": "",
+          "track": "",
+          "trackOrder": null,
+          "order": 5,
+          "durationMin": null,
+          "speakerLabel": null,
+          "readerLabel": null,
+          "eventId": "<id>",
+          "partId": "<id>",
+          "presetId": "<id>",
+          "assigneeId": "<id>",
+          "assistantId": "<id>",
+          "allowExternalSpeaker": false,
+          "externalSpeakerId": null,
+          "createdAt": "<time>",
+          "updatedAt": "<time>",
+          "congregationId": "<id>",
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Paul",
+            "lastname": "MARTIN",
+            "anonymizedAt": null
+          },
+          "assistant": {
+            "id": "<id>",
+            "firstname": "Marc",
+            "lastname": "PETIT",
+            "anonymizedAt": null
+          },
+          "externalSpeaker": null
+        }
+      ],
+      "eventServiceParts": [
+        {
+          "id": "<id>",
+          "note": "",
+          "hasConflict": false,
+          "name": "Audio-vidéo",
+          "eventId": "<id>",
+          "servicePartId": "<id>",
+          "presetId": null,
+          "assigneeId": "<id>",
+          "createdAt": "<time>",
+          "updatedAt": "<time>",
+          "congregationId": "<id>",
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Luc",
+            "lastname": "BERNARD",
+            "anonymizedAt": null
+          }
+        },
+        {
+          "id": "<id>",
+          "note": "",
+          "hasConflict": false,
+          "name": "Estrade",
+          "eventId": "<id>",
+          "servicePartId": "<id>",
+          "presetId": null,
+          "assigneeId": "<id>",
+          "createdAt": "<time>",
+          "updatedAt": "<time>",
+          "congregationId": "<id>",
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Marc",
+            "lastname": "PETIT",
+            "anonymizedAt": null
+          }
+        },
+        {
+          "id": "<id>",
+          "note": "",
+          "hasConflict": false,
+          "name": "Nettoyage",
+          "eventId": "<id>",
+          "servicePartId": "<id>",
+          "presetId": null,
+          "assigneeId": "<id>",
+          "createdAt": "<time>",
+          "updatedAt": "<time>",
+          "congregationId": "<id>",
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Paul",
+            "lastname": "MARTIN",
+            "anonymizedAt": null
+          }
+        },
+        {
+          "id": "<id>",
+          "note": "",
+          "hasConflict": false,
+          "name": "Préposés à l’accueil",
+          "eventId": "<id>",
+          "servicePartId": "<id>",
+          "presetId": null,
+          "assigneeId": "<id>",
+          "createdAt": "<time>",
+          "updatedAt": "<time>",
+          "congregationId": "<id>",
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Pierre",
+            "lastname": "MOREAU",
+            "anonymizedAt": null
+          }
+        }
+      ]
+    }
+  ],
+  "config": {
+    "templates": [
+      {
+        "templateId": "<id>",
+        "parts": false,
+        "services": true
+      }
+    ],
+    "groupBy": "date"
+  },
+  "attendance": null,
+  "templateKey": null,
+  "showServices": true
+}
