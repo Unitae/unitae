@@ -20,6 +20,9 @@ On a computer or a tablet:
 
 1. Open **Meetings › Visiting speakers**.
 2. Click the congregation’s name, then **Update the list**.
+
+   ![A congregation’s panel: its contacts, the date of its latest list and the “Update the list” button](capture:external-speakers-update)
+
 3. Drop the PDF you received, or click **Choose the file**. Its rows are read and compared with the speakers you have: each is marked **New**, **Changed** (with the value before), **Back**, or **Removed** when the speaker is no longer on the list.
 4. Check the rows beside the PDF and correct them if needed. A name already known in another congregation asks whether it is the same brother: **Yes, he changes congregation** or **No, another brother**.
 5. Click **Save the list of …** Nothing is saved before: everything applies at once, and the PDF stays on the congregation’s record.

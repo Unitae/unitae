@@ -243,4 +243,46 @@ export const HELP_SHOTS: HelpShot[] = [
     frame: (page, locale) => [section(page, m.account_data_title({}, { locale }))],
     viewport: { width: 1000 },
   },
+  {
+    // my-parts: « Mes prochaines affectations » on the home page, a publisher's parts and services.
+    id: 'programs-my-assignments',
+    account: MAXIME,
+    path: '/',
+    frame: (page, locale) => [section(page, m.dashboard_upcoming_assignments({}, { locale }))],
+    viewport: { width: 1000 },
+  },
+  {
+    // external-speakers: « Cliquez sur le nom de l’assemblée, puis sur Mettre à jour la liste. »
+    id: 'external-speakers-update',
+    account: MARC,
+    path: '/programs/external-speakers',
+    prepare: async (page, locale) => {
+      await page.locator('table button.font-semibold').first().click()
+      await page
+        .locator('aside')
+        .getByRole('link', { name: m.external_speakers_update_list({}, { locale }) })
+        .waitFor()
+      // The panel slides in: framed before it settles, the crop would cut its right side.
+      await page
+        .locator('aside')
+        .evaluate(panel => Promise.all(panel.getAnimations({ subtree: true }).map(animation => animation.finished)))
+    },
+    // The congregation's panel: its contacts, its latest list and the button.
+    frame: page => [page.locator('aside')],
+    margin: -1,
+    // At 1280 px the docked panel runs past the window's edge, and the crop would cut it.
+    viewport: { width: 1600 },
+  },
+  {
+    // attendance: « cliquez sur Exporter » opens the export dialog, the S-88 card among its formats.
+    id: 'attendance-export',
+    account: MARC,
+    path: '/attendance',
+    prepare: async (page, locale) => {
+      await page.getByRole('button', { name: m.attendance_export({}, { locale }) }).click()
+      await page.getByRole('dialog').waitFor()
+    },
+    frame: page => [page.getByRole('dialog')],
+    margin: -1,
+  },
 ]

@@ -36,6 +36,9 @@ With the right to view attendance, **Meetings › Attendance** shows the service
 
 1. On **Meetings › Attendance**, click **Export**.
 2. Choose **S-88 card (PDF)**: the chosen year and the previous one side by side, like the printed card. **Spreadsheet (Excel)** gives each meeting instead, and the year month by month.
+
+   ![The Export attendance window: the format, S-88 card (PDF) or Spreadsheet (Excel), and the service year](capture:attendance-export)
+
 3. Choose the **Service year**, then click **Export**.
 
 ## Choose which meetings are counted

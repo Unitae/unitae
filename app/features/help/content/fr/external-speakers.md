@@ -20,6 +20,9 @@ Sur un ordinateur ou une tablette :
 
 1. Ouvrez **Réunions › Orateurs extérieurs**.
 2. Cliquez sur le nom de l’assemblée, puis sur **Mettre à jour la liste**.
+
+   ![Le volet d’une assemblée : ses contacts, la date de sa dernière liste et le bouton « Mettre à jour la liste »](capture:external-speakers-update)
+
 3. Déposez le PDF reçu, ou cliquez sur **Choisir le fichier**. Ses lignes sont lues et comparées aux orateurs que vous avez : chacune est marquée **Nouveau**, **Modifié** (avec la valeur d’avant), **Revient**, ou **Retiré** quand l’orateur n’est plus sur la liste.
 4. Vérifiez les lignes à côté du PDF et corrigez-les au besoin. Un nom déjà connu dans une autre assemblée demande s’il s’agit du même frère : **Oui, il change d’assemblée** ou **Non, un autre frère**.
 5. Cliquez sur **Enregistrer la liste du …** Rien n’est enregistré avant : tout s’applique d’un coup, et le PDF reste sur la fiche de l’assemblée.

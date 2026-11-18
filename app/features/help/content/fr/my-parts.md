@@ -16,6 +16,8 @@ Vos parties et vos services s’affichent dès que le programme de la réunion e
 
 Sur **Accueil**, **Mes prochaines affectations** liste vos cinq prochaines parties et services des quatre semaines à venir : la réunion, sa date et, pour une partie à deux, le nom de l’autre personne, pour la préparer ensemble.
 
+![Mes prochaines affectations sur l’accueil : trois parties et services, chacun avec sa date et sa réunion](capture:programs-my-assignments)
+
 Cliquez sur une ligne, ou sur **Voir le programme**, pour ouvrir le programme sur le tableau d’affichage.
 
 Quand vous avez une partie à la prochaine réunion, dans les trois jours qui la précèdent, **À traiter** vous la rappelle. Il vous signale aussi une partie qui tombe pendant une absence que vous avez indiquée : prévenez alors le responsable du programme.

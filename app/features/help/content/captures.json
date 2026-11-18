@@ -35,6 +35,11 @@
             "height": 118,
             "captured": "2026-11-17"
         },
+        "attendance-export": {
+            "width": 510,
+            "height": 402,
+            "captured": "2026-11-18"
+        },
         "board-download-button": {
             "width": 130,
             "height": 43,
@@ -60,10 +65,20 @@
             "height": 789,
             "captured": "2026-11-17"
         },
+        "external-speakers-update": {
+            "width": 398,
+            "height": 362,
+            "captured": "2026-11-18"
+        },
         "my-territories-row": {
             "width": 808,
             "height": 71,
             "captured": "2026-11-17"
+        },
+        "programs-my-assignments": {
+            "width": 744,
+            "height": 306,
+            "captured": "2026-11-18"
         },
         "prospection-actions": {
             "width": 317,
@@ -122,6 +137,11 @@
             "height": 118,
             "captured": "2026-11-17"
         },
+        "attendance-export": {
+            "width": 510,
+            "height": 402,
+            "captured": "2026-11-18"
+        },
         "board-download-button": {
             "width": 119,
             "height": 43,
@@ -147,10 +167,20 @@
             "height": 769,
             "captured": "2026-11-17"
         },
+        "external-speakers-update": {
+            "width": 398,
+            "height": 342,
+            "captured": "2026-11-18"
+        },
         "my-territories-row": {
             "width": 808,
             "height": 71,
             "captured": "2026-11-17"
+        },
+        "programs-my-assignments": {
+            "width": 744,
+            "height": 306,
+            "captured": "2026-11-18"
         },
         "prospection-actions": {
             "width": 231,

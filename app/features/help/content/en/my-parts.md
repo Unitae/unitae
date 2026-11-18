@@ -16,6 +16,8 @@ Your parts and services show as soon as the meeting’s program is published. Wh
 
 On **Home**, **My upcoming assignments** lists your next five parts and services over the coming four weeks: the meeting, its date and, for a part held by two, the other person’s name, so you can prepare it together.
 
+![My upcoming assignments on the home page: three parts and services, each with its date and meeting](capture:programs-my-assignments)
+
 Click a row, or **View the program**, to open the program on the information board.
 
 When you have a part at the next meeting, in the three days before it, **Needs attention** reminds you of it. It also points out a part that falls during an absence you entered: let the person in charge of the program know.

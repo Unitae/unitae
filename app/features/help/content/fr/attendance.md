@@ -36,6 +36,9 @@ Avec le droit de consulter l’assistance, **Réunions › Assistance** montre l
 
 1. Sur **Réunions › Assistance**, cliquez sur **Exporter**.
 2. Choisissez **Carte S-88 (PDF)** : l’année choisie et la précédente côte à côte, comme la carte imprimée. **Tableur (Excel)** donne plutôt chaque réunion, et l’année mois par mois.
+
+   ![La fenêtre Exporter l’assistance : le format, Carte S-88 (PDF) ou Tableur (Excel), et l’année de service](capture:attendance-export)
+
 3. Choisissez l’**Année de service**, puis cliquez sur **Exporter**.
 
 ## Choisir les réunions comptées
