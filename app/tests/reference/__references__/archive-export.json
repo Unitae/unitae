@@ -117,6 +117,8 @@
       "description": "",
       "weekDay": null,
       "isRecurring": false,
+      "startTime": "00:00",
+      "endTime": "23:59",
       "color": "#cfcfcf",
       "attendanceKind": "none"
     },
@@ -127,6 +129,8 @@
       "description": "",
       "weekDay": null,
       "isRecurring": false,
+      "startTime": "19:00",
+      "endTime": "21:00",
       "color": "#6366f1",
       "attendanceKind": "none"
     },
@@ -137,6 +141,8 @@
       "description": "",
       "weekDay": null,
       "isRecurring": false,
+      "startTime": "19:00",
+      "endTime": "20:30",
       "color": "#f59e0b",
       "attendanceKind": "separate"
     },
@@ -147,6 +153,8 @@
       "description": "",
       "weekDay": 2,
       "isRecurring": true,
+      "startTime": "19:00",
+      "endTime": "20:45",
       "color": "#3b82f6",
       "attendanceKind": "midweek"
     },
@@ -157,6 +165,8 @@
       "description": "",
       "weekDay": 6,
       "isRecurring": true,
+      "startTime": "10:00",
+      "endTime": "11:45",
       "color": "#10b981",
       "attendanceKind": "weekend"
     }
@@ -356,30 +366,6 @@
     },
     {
       "id": "<id>",
-      "name": "Étude biblique de l’assemblée",
-      "section": "Vie chrétienne",
-      "track": "",
-      "trackOrder": null,
-      "order": 11,
-      "durationMin": 30,
-      "allowExternalSpeaker": false,
-      "templateId": "<template:midweek>",
-      "presetId": "<preset:congregation-bible-study>"
-    },
-    {
-      "id": "<id>",
-      "name": "Étude de La Tour de Garde",
-      "section": "",
-      "track": "",
-      "trackOrder": null,
-      "order": 4,
-      "durationMin": 60,
-      "allowExternalSpeaker": false,
-      "templateId": "<template:weekend>",
-      "presetId": "<preset:watchtower-study>"
-    },
-    {
-      "id": "<id>",
       "name": "Lecture de la Bible",
       "section": "Perles spirituelles",
       "track": "",
@@ -425,6 +411,30 @@
       "allowExternalSpeaker": false,
       "templateId": "<template:memorial>",
       "presetId": "<preset:prayer>"
+    },
+    {
+      "id": "<id>",
+      "name": "Étude biblique de l’assemblée",
+      "section": "Vie chrétienne",
+      "track": "",
+      "trackOrder": null,
+      "order": 11,
+      "durationMin": 30,
+      "allowExternalSpeaker": false,
+      "templateId": "<template:midweek>",
+      "presetId": "<preset:congregation-bible-study>"
+    },
+    {
+      "id": "<id>",
+      "name": "Étude de La Tour de Garde",
+      "section": "",
+      "track": "",
+      "trackOrder": null,
+      "order": 4,
+      "durationMin": 60,
+      "allowExternalSpeaker": false,
+      "templateId": "<template:weekend>",
+      "presetId": "<preset:watchtower-study>"
     }
   ],
   "programme-template-part-allowed-roles": [
@@ -553,7 +563,8 @@
       "endDate": "2027-03-17T22:59:00.000Z",
       "templateId": "<template:day-off>",
       "createdById": "<account:hugo>",
-      "createdAt": "<time>"
+      "createdAt": "<time>",
+      "status": "released"
     },
     {
       "id": "<id>",
@@ -563,7 +574,8 @@
       "endDate": "2027-03-22T19:30:00.000Z",
       "templateId": "<template:memorial>",
       "createdById": "<account:admin>",
-      "createdAt": "<time>"
+      "createdAt": "<time>",
+      "status": "draft"
     },
     {
       "id": "<id>",
@@ -573,7 +585,8 @@
       "endDate": "2027-03-09T19:45:00.000Z",
       "templateId": "<template:midweek>",
       "createdById": "<account:admin>",
-      "createdAt": "<time>"
+      "createdAt": "<time>",
+      "status": "released"
     },
     {
       "id": "<id>",
@@ -583,7 +596,8 @@
       "endDate": "2027-03-16T19:45:00.000Z",
       "templateId": "<template:midweek>",
       "createdById": "<account:admin>",
-      "createdAt": "<time>"
+      "createdAt": "<time>",
+      "status": "draft"
     },
     {
       "id": "<id>",
@@ -593,7 +607,8 @@
       "endDate": "2027-03-23T19:45:00.000Z",
       "templateId": "<template:midweek>",
       "createdById": "<account:admin>",
-      "createdAt": "<time>"
+      "createdAt": "<time>",
+      "status": "draft"
     },
     {
       "id": "<id>",
@@ -603,7 +618,8 @@
       "endDate": "2027-03-30T18:45:00.000Z",
       "templateId": "<template:midweek>",
       "createdById": null,
-      "createdAt": "<time>"
+      "createdAt": "<time>",
+      "status": "draft"
     },
     {
       "id": "<id>",
@@ -613,7 +629,8 @@
       "endDate": "2027-04-06T18:45:00.000Z",
       "templateId": "<template:midweek>",
       "createdById": null,
-      "createdAt": "<time>"
+      "createdAt": "<time>",
+      "status": "draft"
     },
     {
       "id": "<id>",
@@ -623,7 +640,8 @@
       "endDate": "2027-04-13T18:45:00.000Z",
       "templateId": "<template:midweek>",
       "createdById": null,
-      "createdAt": "<time>"
+      "createdAt": "<time>",
+      "status": "draft"
     },
     {
       "id": "<id>",
@@ -633,7 +651,8 @@
       "endDate": "2027-04-20T18:45:00.000Z",
       "templateId": "<template:midweek>",
       "createdById": null,
-      "createdAt": "<time>"
+      "createdAt": "<time>",
+      "status": "draft"
     },
     {
       "id": "<id>",
@@ -643,7 +662,8 @@
       "endDate": "2027-04-27T18:45:00.000Z",
       "templateId": "<template:midweek>",
       "createdById": null,
-      "createdAt": "<time>"
+      "createdAt": "<time>",
+      "status": "draft"
     },
     {
       "id": "<id>",
@@ -653,7 +673,8 @@
       "endDate": "2027-03-06T10:45:00.000Z",
       "templateId": "<template:weekend>",
       "createdById": null,
-      "createdAt": "<time>"
+      "createdAt": "<time>",
+      "status": "draft"
     },
     {
       "id": "<id>",
@@ -663,7 +684,8 @@
       "endDate": "2027-03-13T10:45:00.000Z",
       "templateId": "<template:weekend>",
       "createdById": "<account:admin>",
-      "createdAt": "<time>"
+      "createdAt": "<time>",
+      "status": "released"
     },
     {
       "id": "<id>",
@@ -673,7 +695,8 @@
       "endDate": "2027-03-20T10:45:00.000Z",
       "templateId": "<template:weekend>",
       "createdById": "<account:admin>",
-      "createdAt": "<time>"
+      "createdAt": "<time>",
+      "status": "draft"
     },
     {
       "id": "<id>",
@@ -683,7 +706,8 @@
       "endDate": "2027-03-27T10:45:00.000Z",
       "templateId": "<template:weekend>",
       "createdById": "<account:admin>",
-      "createdAt": "<time>"
+      "createdAt": "<time>",
+      "status": "draft"
     },
     {
       "id": "<id>",
@@ -693,7 +717,8 @@
       "endDate": "2027-04-03T09:45:00.000Z",
       "templateId": "<template:weekend>",
       "createdById": null,
-      "createdAt": "<time>"
+      "createdAt": "<time>",
+      "status": "draft"
     },
     {
       "id": "<id>",
@@ -703,7 +728,8 @@
       "endDate": "2027-04-10T09:45:00.000Z",
       "templateId": "<template:weekend>",
       "createdById": null,
-      "createdAt": "<time>"
+      "createdAt": "<time>",
+      "status": "draft"
     },
     {
       "id": "<id>",
@@ -713,7 +739,8 @@
       "endDate": "2027-04-17T09:45:00.000Z",
       "templateId": "<template:weekend>",
       "createdById": null,
-      "createdAt": "<time>"
+      "createdAt": "<time>",
+      "status": "draft"
     },
     {
       "id": "<id>",
@@ -723,7 +750,8 @@
       "endDate": "2027-04-24T09:45:00.000Z",
       "templateId": "<template:weekend>",
       "createdById": null,
-      "createdAt": "<time>"
+      "createdAt": "<time>",
+      "status": "draft"
     },
     {
       "id": "<id>",
@@ -733,7 +761,8 @@
       "endDate": "2027-05-01T09:45:00.000Z",
       "templateId": "<template:weekend>",
       "createdById": null,
-      "createdAt": "<time>"
+      "createdAt": "<time>",
+      "status": "draft"
     }
   ],
   "attendance": [
@@ -1455,120 +1484,6 @@
       "topic": "",
       "note": "",
       "hasConflict": false,
-      "name": "Étude biblique de l’assemblée",
-      "section": "Vie chrétienne",
-      "track": "",
-      "trackOrder": null,
-      "order": 11,
-      "durationMin": 30,
-      "eventId": "<event:midweek-3>",
-      "partId": "<templatePart:midweek/part-11>",
-      "presetId": "<preset:congregation-bible-study>",
-      "assigneeId": null,
-      "assistantId": null,
-      "allowExternalSpeaker": false,
-      "externalSpeakerId": null
-    },
-    {
-      "id": "<id>",
-      "topic": "",
-      "note": "",
-      "hasConflict": false,
-      "name": "Étude biblique de l’assemblée",
-      "section": "Vie chrétienne",
-      "track": "",
-      "trackOrder": null,
-      "order": 11,
-      "durationMin": null,
-      "eventId": "<event:midweek-1>",
-      "partId": "<templatePart:midweek/part-11>",
-      "presetId": "<preset:congregation-bible-study>",
-      "assigneeId": "<member:luc>",
-      "assistantId": null,
-      "allowExternalSpeaker": false,
-      "externalSpeakerId": null
-    },
-    {
-      "id": "<id>",
-      "topic": "",
-      "note": "",
-      "hasConflict": false,
-      "name": "Étude biblique de l’assemblée",
-      "section": "Vie chrétienne",
-      "track": "",
-      "trackOrder": null,
-      "order": 11,
-      "durationMin": null,
-      "eventId": "<event:midweek-2>",
-      "partId": "<templatePart:midweek/part-11>",
-      "presetId": "<preset:congregation-bible-study>",
-      "assigneeId": "<member:luc>",
-      "assistantId": null,
-      "allowExternalSpeaker": false,
-      "externalSpeakerId": null
-    },
-    {
-      "id": "<id>",
-      "topic": "",
-      "note": "",
-      "hasConflict": false,
-      "name": "Étude de La Tour de Garde",
-      "section": "",
-      "track": "",
-      "trackOrder": null,
-      "order": 4,
-      "durationMin": 60,
-      "eventId": "<event:weekend-3>",
-      "partId": "<templatePart:weekend/part-4>",
-      "presetId": "<preset:watchtower-study>",
-      "assigneeId": null,
-      "assistantId": null,
-      "allowExternalSpeaker": false,
-      "externalSpeakerId": null
-    },
-    {
-      "id": "<id>",
-      "topic": "",
-      "note": "",
-      "hasConflict": false,
-      "name": "Étude de La Tour de Garde",
-      "section": "",
-      "track": "",
-      "trackOrder": null,
-      "order": 4,
-      "durationMin": null,
-      "eventId": "<event:weekend-1>",
-      "partId": "<templatePart:weekend/part-4>",
-      "presetId": "<preset:watchtower-study>",
-      "assigneeId": "<member:pierre>",
-      "assistantId": null,
-      "allowExternalSpeaker": false,
-      "externalSpeakerId": null
-    },
-    {
-      "id": "<id>",
-      "topic": "",
-      "note": "",
-      "hasConflict": false,
-      "name": "Étude de La Tour de Garde",
-      "section": "",
-      "track": "",
-      "trackOrder": null,
-      "order": 4,
-      "durationMin": null,
-      "eventId": "<event:weekend-2>",
-      "partId": "<templatePart:weekend/part-4>",
-      "presetId": "<preset:watchtower-study>",
-      "assigneeId": "<member:hugo>",
-      "assistantId": null,
-      "allowExternalSpeaker": false,
-      "externalSpeakerId": null
-    },
-    {
-      "id": "<id>",
-      "topic": "",
-      "note": "",
-      "hasConflict": false,
       "name": "Lecture de la Bible",
       "section": "Perles spirituelles",
       "track": "",
@@ -1693,6 +1608,120 @@
       "partId": "<templatePart:memorial/part-4>",
       "presetId": "<preset:prayer>",
       "assigneeId": null,
+      "assistantId": null,
+      "allowExternalSpeaker": false,
+      "externalSpeakerId": null
+    },
+    {
+      "id": "<id>",
+      "topic": "",
+      "note": "",
+      "hasConflict": false,
+      "name": "Étude biblique de l’assemblée",
+      "section": "Vie chrétienne",
+      "track": "",
+      "trackOrder": null,
+      "order": 11,
+      "durationMin": 30,
+      "eventId": "<event:midweek-3>",
+      "partId": "<templatePart:midweek/part-11>",
+      "presetId": "<preset:congregation-bible-study>",
+      "assigneeId": null,
+      "assistantId": null,
+      "allowExternalSpeaker": false,
+      "externalSpeakerId": null
+    },
+    {
+      "id": "<id>",
+      "topic": "",
+      "note": "",
+      "hasConflict": false,
+      "name": "Étude biblique de l’assemblée",
+      "section": "Vie chrétienne",
+      "track": "",
+      "trackOrder": null,
+      "order": 11,
+      "durationMin": null,
+      "eventId": "<event:midweek-1>",
+      "partId": "<templatePart:midweek/part-11>",
+      "presetId": "<preset:congregation-bible-study>",
+      "assigneeId": "<member:luc>",
+      "assistantId": null,
+      "allowExternalSpeaker": false,
+      "externalSpeakerId": null
+    },
+    {
+      "id": "<id>",
+      "topic": "",
+      "note": "",
+      "hasConflict": false,
+      "name": "Étude biblique de l’assemblée",
+      "section": "Vie chrétienne",
+      "track": "",
+      "trackOrder": null,
+      "order": 11,
+      "durationMin": null,
+      "eventId": "<event:midweek-2>",
+      "partId": "<templatePart:midweek/part-11>",
+      "presetId": "<preset:congregation-bible-study>",
+      "assigneeId": "<member:luc>",
+      "assistantId": null,
+      "allowExternalSpeaker": false,
+      "externalSpeakerId": null
+    },
+    {
+      "id": "<id>",
+      "topic": "",
+      "note": "",
+      "hasConflict": false,
+      "name": "Étude de La Tour de Garde",
+      "section": "",
+      "track": "",
+      "trackOrder": null,
+      "order": 4,
+      "durationMin": 60,
+      "eventId": "<event:weekend-3>",
+      "partId": "<templatePart:weekend/part-4>",
+      "presetId": "<preset:watchtower-study>",
+      "assigneeId": null,
+      "assistantId": null,
+      "allowExternalSpeaker": false,
+      "externalSpeakerId": null
+    },
+    {
+      "id": "<id>",
+      "topic": "",
+      "note": "",
+      "hasConflict": false,
+      "name": "Étude de La Tour de Garde",
+      "section": "",
+      "track": "",
+      "trackOrder": null,
+      "order": 4,
+      "durationMin": null,
+      "eventId": "<event:weekend-1>",
+      "partId": "<templatePart:weekend/part-4>",
+      "presetId": "<preset:watchtower-study>",
+      "assigneeId": "<member:pierre>",
+      "assistantId": null,
+      "allowExternalSpeaker": false,
+      "externalSpeakerId": null
+    },
+    {
+      "id": "<id>",
+      "topic": "",
+      "note": "",
+      "hasConflict": false,
+      "name": "Étude de La Tour de Garde",
+      "section": "",
+      "track": "",
+      "trackOrder": null,
+      "order": 4,
+      "durationMin": null,
+      "eventId": "<event:weekend-2>",
+      "partId": "<templatePart:weekend/part-4>",
+      "presetId": "<preset:watchtower-study>",
+      "assigneeId": "<member:hugo>",
       "assistantId": null,
       "allowExternalSpeaker": false,
       "externalSpeakerId": null
@@ -2168,7 +2197,22 @@
       "visibleUntil": null,
       "isHighlighted": false,
       "showServices": true,
-      "appearance": null
+      "appearance": null,
+      "dynamicConfig": {
+        "groupBy": "date",
+        "templates": [
+          {
+            "parts": true,
+            "services": true,
+            "templateId": "<template:midweek>"
+          },
+          {
+            "parts": true,
+            "services": true,
+            "templateId": "<template:weekend>"
+          }
+        ]
+      }
     },
     {
       "id": "<id>",
@@ -2181,7 +2225,22 @@
       "visibleUntil": null,
       "isHighlighted": false,
       "showServices": true,
-      "appearance": null
+      "appearance": null,
+      "dynamicConfig": {
+        "groupBy": "template",
+        "templates": [
+          {
+            "parts": true,
+            "services": true,
+            "templateId": "<template:midweek>"
+          },
+          {
+            "parts": true,
+            "services": true,
+            "templateId": "<template:weekend>"
+          }
+        ]
+      }
     },
     {
       "id": "<id>",
@@ -2194,7 +2253,16 @@
       "visibleUntil": null,
       "isHighlighted": false,
       "showServices": false,
-      "appearance": null
+      "appearance": null,
+      "dynamicConfig": {
+        "templates": [
+          {
+            "parts": true,
+            "services": false,
+            "templateId": "<template:midweek>"
+          }
+        ]
+      }
     },
     {
       "id": "<id>",
@@ -2207,7 +2275,16 @@
       "visibleUntil": null,
       "isHighlighted": false,
       "showServices": true,
-      "appearance": null
+      "appearance": null,
+      "dynamicConfig": {
+        "templates": [
+          {
+            "parts": false,
+            "services": true,
+            "templateId": "<template:weekend>"
+          }
+        ]
+      }
     }
   ]
 }

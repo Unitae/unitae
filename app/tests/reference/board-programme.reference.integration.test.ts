@@ -13,7 +13,7 @@ import {
   referenceDb,
   withScope,
 } from '~/tests/fixtures/events-reference'
-import { reference } from '~/tests/fixtures/reference-normalise'
+import { compareText, reference } from '~/tests/fixtures/reference-normalise'
 
 // What the board's programme documents show today, on screen and on paper, for every configuration: the reference the
 // schedules refactor must keep. A change here is a change of what congregations read on their board.
@@ -57,7 +57,7 @@ function withServicesByName<T>(data: T): T {
     events: events.map(event => ({
       ...event,
       eventServiceParts: event.eventServiceParts
-        ? [...event.eventServiceParts].sort((a, b) => a.name.localeCompare(b.name))
+        ? [...event.eventServiceParts].sort((a, b) => compareText(a.name, b.name))
         : event.eventServiceParts,
     })),
   }

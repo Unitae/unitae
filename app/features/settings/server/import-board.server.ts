@@ -1,10 +1,18 @@
 import type JsZip from 'jszip'
 import { Prisma } from '~/database/generated/client'
-import { isDynamicType, parseAppearance } from '~/features/display-board/index.server'
+import {
+  DynamicType,
+  isDynamicType,
+  parseAppearance,
+  parseProgrammeDynamicConfig,
+} from '~/features/display-board/index.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { buildStorageKey, uploadFile } from '~/shared/infra/file-storage.server'
+import { createLogger } from '~/shared/infra/logger.server'
 import type { EntityIdMap } from './data-transfer.type'
 import { readNdjsonFile } from './ndjson-archive'
+
+const logger = createLogger('import-board')
 
 export async function importBoardSections(
   zip: JsZip,
@@ -162,6 +170,15 @@ function importedAppearance(dynamicType: string, appearance: unknown) {
   return { ...parseAppearance(dynamicType, appearance) }
 }
 
+/**
+ * The board's dynamic documents. They have no natural key — several programme documents share a type and an empty
+ * ref — so each archived document is created in its imported section, like the sections themselves, never matched to
+ * an existing one: importing into a congregation that already has documents adds to them.
+ *
+ * The configuration travels from v2.16 on: a programme's templates are re-pointed at the imported ones, a template the
+ * archive did not bring leaves the list, and a configuration that no longer parses is dropped whole — both said in the
+ * log. An older archive carries none, and the document imports without one.
+ */
 export async function importBoardDynamicDocumentSettings(
   zip: JsZip,
   db: TransactionClient,
@@ -181,44 +198,63 @@ export async function importBoardDynamicDocumentSettings(
     showServices: boolean
     // Since v2.9.
     appearance?: unknown
+    // Since v2.16.
+    dynamicConfig?: unknown
   }>(zip, 'board-dynamic-document-settings')
 
   for (const record of records) {
     const sectionId = idMap.getOptional('board-sections', record.sectionId)
     if (!sectionId) continue
 
-    // Upsert by (congregationId, dynamicType, dynamicRef)
-    const existing = await db.boardDynamicDocumentSettings.findFirst({
-      where: { dynamicType: record.dynamicType, dynamicRef: record.dynamicRef, congregationId },
+    const created = await db.boardDynamicDocumentSettings.create({
+      data: {
+        title: record.title,
+        dynamicType: record.dynamicType,
+        dynamicRef: record.dynamicRef,
+        dynamicConfig: importedConfig(record, idMap, congregationId),
+        sectionId,
+        order: record.order,
+        visibleFrom: record.visibleFrom ? new Date(record.visibleFrom) : null,
+        visibleUntil: record.visibleUntil ? new Date(record.visibleUntil) : null,
+        isHighlighted: record.isHighlighted,
+        showServices: record.showServices,
+        appearance: importedAppearance(record.dynamicType, record.appearance),
+        congregationId,
+      },
     })
-
-    const data = {
-      title: record.title,
-      sectionId,
-      order: record.order,
-      visibleFrom: record.visibleFrom ? new Date(record.visibleFrom) : null,
-      visibleUntil: record.visibleUntil ? new Date(record.visibleUntil) : null,
-      isHighlighted: record.isHighlighted,
-      showServices: record.showServices,
-      appearance: importedAppearance(record.dynamicType, record.appearance),
-    }
-
-    if (existing) {
-      await db.boardDynamicDocumentSettings.update({
-        where: { id_congregationId: { id: existing.id, congregationId } },
-        data,
-      })
-      idMap.set('board-dynamic-document-settings', record.id, existing.id)
-    } else {
-      const created = await db.boardDynamicDocumentSettings.create({
-        data: {
-          ...data,
-          dynamicType: record.dynamicType,
-          dynamicRef: record.dynamicRef,
-          congregationId,
-        },
-      })
-      idMap.set('board-dynamic-document-settings', record.id, created.id)
-    }
+    idMap.set('board-dynamic-document-settings', record.id, created.id)
   }
+}
+
+/** A document's configuration in the imported congregation: a programme's templates by their new ids. */
+function importedConfig(
+  record: { title: string; dynamicType: string; dynamicConfig?: unknown },
+  idMap: EntityIdMap,
+  congregationId: number,
+): Prisma.InputJsonValue | undefined {
+  const config = record.dynamicConfig
+  if (config == null) return undefined
+  if (record.dynamicType !== DynamicType.Programme) return config as Prisma.InputJsonValue
+  const programme = parseProgrammeDynamicConfig(config)
+  if (!programme) {
+    logger.warn('Unreadable programme configuration: document imported without one', {
+      congregationId,
+      title: record.title,
+    })
+    return undefined
+  }
+  const templates = programme.templates.flatMap(template => {
+    const templateId = idMap.getOptional('programme-templates', template.templateId)
+    return templateId == null ? [] : [{ ...template, templateId }]
+  })
+  const dropped = programme.templates.length - templates.length
+  if (dropped > 0) {
+    // A template deleted in the source congregation: its id fetched nothing there either.
+    const log = templates.length === 0 ? logger.warn : logger.info
+    log(`Programme document lost ${dropped} template(s) the archive does not carry`, {
+      congregationId,
+      title: record.title,
+    })
+  }
+  return { ...programme, templates }
 }

@@ -32,7 +32,7 @@ import {
   referenceDb,
   withScope,
 } from '~/tests/fixtures/events-reference'
-import { reference, relabelLinks } from '~/tests/fixtures/reference-normalise'
+import { compareText, reference, relabelLinks } from '~/tests/fixtures/reference-normalise'
 
 // Assigning, unassigning, publishing and unpublishing, step by step, the way the routes chain the service functions:
 // what each step returns, the conflict flags it leaves, every notice it queues — to whom, for what, with which link —
@@ -132,7 +132,7 @@ async function newNotices() {
     payload: payloadOf(row.payload),
   }))
   const key = (notice: (typeof delayed)[number]) => `${notice.type} ${notice.entity} ${String(notice.recipient)}`
-  return [...delayed.sort((a, b) => key(a).localeCompare(key(b))), ...sent]
+  return [...delayed.sort((a, b) => compareText(key(a), key(b))), ...sent]
 }
 
 /** The status of every notice so far, sorted: what unpublishing cancels shows here. */

@@ -84,9 +84,17 @@ function normaliseList(value: unknown[], key: string, labels: Labels): unknown[]
   return items.map(item => normalise(item, '', labels))
 }
 
+/**
+ * Orders two texts by their code units: the same on every machine, unlike `localeCompare`, whose order follows the
+ * process's locale — and a reference sorted one way locally and another on CI would fail for nothing.
+ */
+export function compareText(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0
+}
+
 function byName(a: unknown, b: unknown): number {
   const name = (item: unknown) => String((item as { name?: unknown } | null)?.name ?? '')
-  return name(a).localeCompare(name(b))
+  return compareText(name(a), name(b))
 }
 
 /** A reference file's content: stable JSON, two-space indented, ending with a newline. */

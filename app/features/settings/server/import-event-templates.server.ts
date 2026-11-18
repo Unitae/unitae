@@ -27,6 +27,14 @@ function archivedKind(value: string | undefined, key: string, congregationId: nu
   return null
 }
 
+/** The template's hours when the archive carries them; an older archive leaves them as they are. */
+function hours(record: { startTime?: string; endTime?: string }) {
+  return {
+    ...(record.startTime != null ? { startTime: record.startTime } : {}),
+    ...(record.endTime != null ? { endTime: record.endTime } : {}),
+  }
+}
+
 export async function importEventTemplates(
   zip: JsZip,
   db: TransactionClient,
@@ -43,6 +51,9 @@ export async function importEventTemplates(
     color?: string
     /** From archive 2.15 on. */
     attendanceKind?: string
+    /** From archive 2.16 on. An older archive has none: an existing template keeps its hours, a new one the default. */
+    startTime?: string
+    endTime?: string
   }>(zip, 'programme-templates')
 
   for (const record of records) {
@@ -57,6 +68,7 @@ export async function importEventTemplates(
           weekDay: record.weekDay,
           isRecurring: record.isRecurring,
           ...(record.color != null ? { color: record.color } : {}),
+          ...hours(record),
           // An archive from before attendance says nothing: the template keeps how it counts here.
           ...(kind != null ? { attendanceKind: kind } : {}),
         },
@@ -71,6 +83,7 @@ export async function importEventTemplates(
           weekDay: record.weekDay,
           isRecurring: record.isRecurring,
           ...(record.color != null ? { color: record.color } : {}),
+          ...hours(record),
           // Same default as the migration gave existing templates.
           attendanceKind: kind ?? defaultAttendanceKind(record.key),
           congregationId,

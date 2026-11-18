@@ -20,6 +20,7 @@ import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 import { seedCongregationDefaults, seedPermissions } from '~/shared/domain/setup.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { combineLocalDateTime } from '~/shared/utils/event-time'
+import { compareText } from '~/tests/fixtures/reference-normalise'
 
 // The congregation every reference test reads: programmes published and draft, services, parts with an assistant and
 // an external speaker, allowed roles, an absence that conflicts, responsibles of both scopes, the meetings created
@@ -354,7 +355,7 @@ export async function buildReferenceCongregation(suffix: string): Promise<Refere
     account,
     template: templates,
     document: lookup(ids.get('document') ?? new Map(), 'document'),
-    members: () => [...(ids.get('member') ?? new Map())].sort(([a], [b]) => a.localeCompare(b)),
+    members: () => [...(ids.get('member') ?? new Map())].sort(([a], [b]) => compareText(a, b)),
   }
   await labelItems(fixture)
   return fixture
@@ -519,7 +520,7 @@ export function byLabel<V>(
 ): Record<string, V> {
   const pairs = entries instanceof Map ? [...entries] : Object.entries(entries).map(([k, v]) => [Number(k), v] as const)
   return Object.fromEntries(
-    pairs.map(([id, value]) => [labelOf(fixture, table, id), value] as const).sort(([a], [b]) => a.localeCompare(b)),
+    pairs.map(([id, value]) => [labelOf(fixture, table, id), value] as const).sort(([a], [b]) => compareText(a, b)),
   )
 }
 

@@ -82,6 +82,35 @@ describe('importEvents', () => {
     expect(db.event.create).toHaveBeenCalledTimes(1)
   })
 
+  // Before v2.16 every restored programme came back a draft.
+  it('keeps each event published or draft as the archive says', async () => {
+    readNdjsonFile.mockResolvedValue([record({ status: 'released' }), record({ id: 2, status: 'draft' })])
+
+    await importEvents({} as never, db as never, idMap(), 1)
+
+    expect(db.event.create.mock.calls.map(([{ data }]) => data.status)).toEqual(['released', 'draft'])
+  })
+
+  it('imports an event as a draft when the archive has no status (before v2.16) or one it does not know', async () => {
+    readNdjsonFile.mockResolvedValue([record(), record({ id: 2, status: 'archived' })])
+
+    await importEvents({} as never, db as never, idMap(), 1)
+
+    expect(db.event.create.mock.calls.map(([{ data }]) => data.status)).toEqual(['draft', 'draft'])
+  })
+
+  it('says how many events had a status it did not know, never for an archive with none', async () => {
+    readNdjsonFile.mockResolvedValue([
+      record(),
+      record({ id: 2, status: 'archived' }),
+      record({ id: 3, status: 'draft' }),
+    ])
+
+    await importEvents({} as never, db as never, idMap(), 1)
+
+    expect(warn).toHaveBeenCalledTimes(1)
+  })
+
   it('leaves everything alone when the archive has no events', async () => {
     readNdjsonFile.mockResolvedValue([])
 

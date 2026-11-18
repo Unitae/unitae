@@ -37,7 +37,7 @@ import {
   referenceDb,
   withScope,
 } from '~/tests/fixtures/events-reference'
-import { reference } from '~/tests/fixtures/reference-normalise'
+import { compareText, normalise, reference } from '~/tests/fixtures/reference-normalise'
 
 // What each person reads about meetings, wherever they read it: the dashboard, their calendar feed, their publisher
 // record, the facts and cadence shown when someone is picked for a slot, the share messages, the absences pages, a
@@ -75,6 +75,16 @@ async function event(name: string) {
   return programme
 }
 
+/**
+ * Assignments as the dashboard and the record list them: by meeting date, and — since the readers order by date only,
+ * so the parts of one meeting come in no defined order — by their content within a meeting.
+ */
+function byDateThenContent<T extends { eventStartDate: Date }>(assignments: T[]): T[] {
+  const order = (item: T) =>
+    `${item.eventStartDate.toISOString()} ${JSON.stringify(normalise(item, '', fixture.labels))}`
+  return [...assignments].sort((a, b) => compareText(order(a), order(b)))
+}
+
 /** The facts with their maps keyed by labels: people by member, the external speakers by speaker. */
 function factsByLabel(facts: SlotCandidateFacts) {
   return {
@@ -110,7 +120,7 @@ describe('what each person reads', () => {
         permissions: new Set([Permission.CanViewBoard]),
         audience: 'board',
       }),
-      upcomingAssignments: await getUpcomingAssignments(db, memberId, congregationId, REFERENCE_NOW),
+      upcomingAssignments: byDateThenContent(await getUpcomingAssignments(db, memberId, congregationId, REFERENCE_NOW)),
       conflictingAssignments: await getConflictingAssignments(db, memberId),
       upcomingAbsences: await getUpcomingAbsences(db, accountId, congregationId),
       responsibleConflicts: await getResponsibleConflicts(db, accountId, congregationId, false),
@@ -125,7 +135,7 @@ describe('what each person reads', () => {
 
     // The items come in no defined order, which calendars ignore: by start, kind and title here.
     const order = (item: (typeof items)[number]) => `${item.start.toISOString()} ${item.kind} ${item.summary}`
-    const sorted = [...items].sort((a, b) => order(a).localeCompare(order(b)))
+    const sorted = [...items].sort((a, b) => compareText(order(a), order(b)))
     const ics = buildPersonalCalendarIcs({ items: sorted, userLabel: person, uidDomain: 'reference.test' })
 
     await expect(ics.replace(UID_ID, '$1<id>')).toMatchFileSnapshot(`./__references__/feed-${person}.ics`)
@@ -137,11 +147,8 @@ describe('what each person reads', () => {
       const upcoming: Record<string, unknown> = {}
       const absences: Record<string, unknown> = {}
       for (const [person, memberId] of fixture.members()) {
-        upcoming[person] = await findUpcomingAssignmentsForMember(
-          db,
-          memberId as MemberId,
-          congregationId,
-          REFERENCE_NOW,
+        upcoming[person] = byDateThenContent(
+          await findUpcomingAssignmentsForMember(db, memberId as MemberId, congregationId, REFERENCE_NOW),
         )
         absences[person] = await findUpcomingAbsencesForMember(db, memberId as MemberId, congregationId, REFERENCE_NOW)
       }

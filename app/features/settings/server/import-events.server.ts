@@ -1,5 +1,5 @@
 import type JsZip from 'jszip'
-import { EventTemplateKey } from '~/features/events'
+import { EventStatus, EventTemplateKey } from '~/features/events'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import type { EntityIdMap } from './data-transfer.type'
@@ -13,6 +13,9 @@ const logger = createLogger('import-events')
  *
  * A fresh congregation already has its first two months of empty meetings from seeding: the archive's meetings replace
  * them, and the recurring-events job starts again after the last imported one.
+ *
+ * Each event keeps its status from v2.16 on; an archive without one, or with a status this version does not know,
+ * imports it as a draft — the latter said in the log.
  */
 export async function importEvents(
   zip: JsZip,
@@ -29,6 +32,8 @@ export async function importEvents(
     templateId: number | null
     createdById: number | null
     createdAt: string
+    // Since v2.16.
+    status?: string
   }>(zip, 'events')
   if (records.length === 0) return
 
@@ -52,6 +57,7 @@ export async function importEvents(
   await db.eventTemplate.updateMany({ where: { congregationId }, data: { generatedUntil: null } })
 
   let ownerless = 0
+  let unknownStatus = 0
   for (const record of records) {
     const templateId = idMap.getOptional('programme-templates', record.templateId)
     const createdById = idMap.getOptional('user-accounts', record.createdById)
@@ -69,14 +75,25 @@ export async function importEvents(
         endDate: new Date(record.endDate),
         templateId,
         createdById,
+        status: importedStatus(record.status, () => unknownStatus++),
         congregationId,
       },
     })
     idMap.set('events', record.id, created.id)
   }
+  if (unknownStatus > 0) {
+    logger.warn(`Imported ${unknownStatus} event(s) with an unknown status as drafts`, { congregationId })
+  }
   if (ownerless > 0) {
     logger.warn(`Skipped ${ownerless} absence(s) whose owner was not imported`, { congregationId })
   }
+}
+
+/** The status an event takes: the archive's when this version knows it, a draft otherwise. */
+function importedStatus(status: string | undefined, onUnknown: () => void): string {
+  if (status === EventStatus.Released || status === EventStatus.Draft) return status
+  if (status != null) onUnknown()
+  return EventStatus.Draft
 }
 
 export async function importEventParts(
