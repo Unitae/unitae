@@ -21,13 +21,6 @@
     "luc": [
       {
         "key": "part-<id>",
-        "partName": "Perles spirituelles",
-        "eventId": "<event:midweek-1>",
-        "eventName": "Réunion de semaine",
-        "eventStartDate": "2027-03-09T18:00:00.000Z"
-      },
-      {
-        "key": "part-<id>",
         "partName": "3e partie",
         "eventId": "<event:midweek-1>",
         "eventName": "Réunion de semaine",
@@ -36,6 +29,13 @@
       {
         "key": "part-<id>",
         "partName": "Étude biblique de l’assemblée",
+        "eventId": "<event:midweek-1>",
+        "eventName": "Réunion de semaine",
+        "eventStartDate": "2027-03-09T18:00:00.000Z"
+      },
+      {
+        "key": "part-<id>",
+        "partName": "Perles spirituelles",
         "eventId": "<event:midweek-1>",
         "eventName": "Réunion de semaine",
         "eventStartDate": "2027-03-09T18:00:00.000Z"
@@ -89,6 +89,20 @@
     "paul": [
       {
         "key": "part-<id>",
+        "partName": "1re partie",
+        "eventId": "<event:midweek-1>",
+        "eventName": "Réunion de semaine",
+        "eventStartDate": "2027-03-09T18:00:00.000Z"
+      },
+      {
+        "key": "part-<id>",
+        "partName": "1re partie",
+        "eventId": "<event:midweek-1>",
+        "eventName": "Réunion de semaine",
+        "eventStartDate": "2027-03-09T18:00:00.000Z"
+      },
+      {
+        "key": "part-<id>",
         "partName": "Cantique et prière",
         "eventId": "<event:midweek-1>",
         "eventName": "Réunion de semaine",
@@ -97,20 +111,6 @@
       {
         "key": "part-<id>",
         "partName": "Discours",
-        "eventId": "<event:midweek-1>",
-        "eventName": "Réunion de semaine",
-        "eventStartDate": "2027-03-09T18:00:00.000Z"
-      },
-      {
-        "key": "part-<id>",
-        "partName": "1re partie",
-        "eventId": "<event:midweek-1>",
-        "eventName": "Réunion de semaine",
-        "eventStartDate": "2027-03-09T18:00:00.000Z"
-      },
-      {
-        "key": "part-<id>",
-        "partName": "1re partie",
         "eventId": "<event:midweek-1>",
         "eventName": "Réunion de semaine",
         "eventStartDate": "2027-03-09T18:00:00.000Z"
@@ -126,7 +126,7 @@
     "pierre": [
       {
         "key": "part-<id>",
-        "partName": "Lecture de la Bible",
+        "partName": "Cantique et prière de conclusion",
         "eventId": "<event:midweek-1>",
         "eventName": "Réunion de semaine",
         "eventStartDate": "2027-03-09T18:00:00.000Z"
@@ -140,7 +140,7 @@
       },
       {
         "key": "part-<id>",
-        "partName": "Cantique et prière de conclusion",
+        "partName": "Lecture de la Bible",
         "eventId": "<event:midweek-1>",
         "eventName": "Réunion de semaine",
         "eventStartDate": "2027-03-09T18:00:00.000Z"

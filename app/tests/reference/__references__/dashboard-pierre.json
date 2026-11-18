@@ -745,10 +745,13 @@
     {
       "key": "part-<id>",
       "role": "speaker",
-      "partner": null,
-      "name": "Lecture de la Bible",
+      "partner": {
+        "firstname": "Marc",
+        "lastname": "PETIT"
+      },
+      "name": "Cantique et prière de conclusion",
       "topic": null,
-      "speakerLabel": "Lecteur",
+      "speakerLabel": "Frère",
       "readerLabel": null,
       "eventName": "Réunion de semaine",
       "eventStartDate": "2027-03-09T18:00:00.000Z",
@@ -769,13 +772,10 @@
     {
       "key": "part-<id>",
       "role": "speaker",
-      "partner": {
-        "firstname": "Marc",
-        "lastname": "PETIT"
-      },
-      "name": "Cantique et prière de conclusion",
+      "partner": null,
+      "name": "Lecture de la Bible",
       "topic": null,
-      "speakerLabel": "Frère",
+      "speakerLabel": "Lecteur",
       "readerLabel": null,
       "eventName": "Réunion de semaine",
       "eventStartDate": "2027-03-09T18:00:00.000Z",
