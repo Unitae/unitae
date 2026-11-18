@@ -21,10 +21,14 @@ const { isAccountAdmin } = await import('~/shared/auth/permissions.server')
 
 const mockDb = {
   userAccount: { findFirst: vi.fn(), delete: vi.fn() },
+  event: { count: vi.fn(), deleteMany: vi.fn(), updateMany: vi.fn() },
 }
 
 beforeEach(() => {
   vi.resetAllMocks()
+  mockDb.event.count.mockResolvedValue(0)
+  mockDb.event.deleteMany.mockResolvedValue({ count: 0 })
+  mockDb.event.updateMany.mockResolvedValue({ count: 0 })
 })
 
 describe('deleteAccount', () => {
@@ -64,7 +68,7 @@ describe('deleteAccount', () => {
         actorId: 99,
         entityType: 'UserAccount',
         entityId: 1,
-        metadata: { email: 'a@b.test', memberId: 42 },
+        metadata: { email: 'a@b.test', memberId: 42, absencesDeleted: 0 },
       }),
     )
   })
