@@ -1,0 +1,2 @@
+# Calendar feeds end their lines with CRLF, as the format requires: never let git convert them.
+*.ics -text

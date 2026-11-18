@@ -1,0 +1,60 @@
+{
+  "mine": [
+    {
+      "id": "<id>",
+      "startDate": "2027-03-14T23:00:00.000Z",
+      "endDate": "2027-03-17T22:59:00.000Z",
+      "conflicts": []
+    }
+  ],
+  "congregation": [
+    {
+      "id": "<id>",
+      "startDate": "2027-03-14T23:00:00.000Z",
+      "endDate": "2027-03-17T22:59:00.000Z",
+      "declaredAt": "2027-03-03T09:00:00.000Z",
+      "memberId": "<member:hugo>",
+      "firstname": "Hugo",
+      "lastname": "LEROY",
+      "conflicts": [
+        {
+          "kind": "part",
+          "id": "<id>",
+          "name": "Lecture de la Bible",
+          "eventId": "<event:midweek-2>",
+          "eventDate": "2027-03-16T18:00:00.000Z",
+          "templateId": "<template:midweek>",
+          "published": false
+        },
+        {
+          "kind": "part",
+          "id": "<id>",
+          "name": "Cantique",
+          "eventId": "<event:midweek-2>",
+          "eventDate": "2027-03-16T18:00:00.000Z",
+          "templateId": "<template:midweek>",
+          "published": false
+        },
+        {
+          "kind": "part",
+          "id": "<id>",
+          "name": "Cantique et prière de conclusion",
+          "eventId": "<event:midweek-2>",
+          "eventDate": "2027-03-16T18:00:00.000Z",
+          "templateId": "<template:midweek>",
+          "published": false
+        },
+        {
+          "kind": "service",
+          "id": "<id>",
+          "name": "Préposés à l’accueil",
+          "eventId": "<event:midweek-2>",
+          "eventDate": "2027-03-16T18:00:00.000Z",
+          "templateId": "<template:midweek>",
+          "published": false
+        }
+      ]
+    }
+  ],
+  "conflictsOfHugo": []
+}
