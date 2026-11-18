@@ -37,7 +37,7 @@ import {
   referenceDb,
   withScope,
 } from '~/tests/fixtures/events-reference'
-import { normalise, reference } from '~/tests/fixtures/reference-normalise'
+import { compareText, normalise, reference } from '~/tests/fixtures/reference-normalise'
 
 // What each person reads about meetings, wherever they read it: the dashboard, their calendar feed, their publisher
 // record, the facts and cadence shown when someone is picked for a slot, the share messages, the absences pages, a
@@ -82,7 +82,7 @@ async function event(name: string) {
 function byDateThenContent<T extends { eventStartDate: Date }>(assignments: T[]): T[] {
   const order = (item: T) =>
     `${item.eventStartDate.toISOString()} ${JSON.stringify(normalise(item, '', fixture.labels))}`
-  return [...assignments].sort((a, b) => order(a).localeCompare(order(b)))
+  return [...assignments].sort((a, b) => compareText(order(a), order(b)))
 }
 
 /** The facts with their maps keyed by labels: people by member, the external speakers by speaker. */
@@ -135,7 +135,7 @@ describe('what each person reads', () => {
 
     // The items come in no defined order, which calendars ignore: by start, kind and title here.
     const order = (item: (typeof items)[number]) => `${item.start.toISOString()} ${item.kind} ${item.summary}`
-    const sorted = [...items].sort((a, b) => order(a).localeCompare(order(b)))
+    const sorted = [...items].sort((a, b) => compareText(order(a), order(b)))
     const ics = buildPersonalCalendarIcs({ items: sorted, userLabel: person, uidDomain: 'reference.test' })
 
     await expect(ics.replace(UID_ID, '$1<id>')).toMatchFileSnapshot(`./__references__/feed-${person}.ics`)

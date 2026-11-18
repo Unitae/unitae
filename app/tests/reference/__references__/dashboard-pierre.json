@@ -745,21 +745,6 @@
     {
       "key": "part-<id>",
       "role": "speaker",
-      "partner": {
-        "firstname": "Marc",
-        "lastname": "PETIT"
-      },
-      "name": "Cantique et prière de conclusion",
-      "topic": null,
-      "speakerLabel": "Frère",
-      "readerLabel": null,
-      "eventName": "Réunion de semaine",
-      "eventStartDate": "2027-03-09T18:00:00.000Z",
-      "link": "/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>"
-    },
-    {
-      "key": "part-<id>",
-      "role": "speaker",
       "partner": null,
       "name": "Cantique",
       "topic": null,
@@ -776,6 +761,21 @@
       "name": "Lecture de la Bible",
       "topic": null,
       "speakerLabel": "Lecteur",
+      "readerLabel": null,
+      "eventName": "Réunion de semaine",
+      "eventStartDate": "2027-03-09T18:00:00.000Z",
+      "link": "/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>"
+    },
+    {
+      "key": "part-<id>",
+      "role": "speaker",
+      "partner": {
+        "firstname": "Marc",
+        "lastname": "PETIT"
+      },
+      "name": "Cantique et prière de conclusion",
+      "topic": null,
+      "speakerLabel": "Frère",
       "readerLabel": null,
       "eventName": "Réunion de semaine",
       "eventStartDate": "2027-03-09T18:00:00.000Z",

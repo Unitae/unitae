@@ -28,14 +28,14 @@
       },
       {
         "key": "part-<id>",
-        "partName": "Étude biblique de l’assemblée",
+        "partName": "Perles spirituelles",
         "eventId": "<event:midweek-1>",
         "eventName": "Réunion de semaine",
         "eventStartDate": "2027-03-09T18:00:00.000Z"
       },
       {
         "key": "part-<id>",
-        "partName": "Perles spirituelles",
+        "partName": "Étude biblique de l’assemblée",
         "eventId": "<event:midweek-1>",
         "eventName": "Réunion de semaine",
         "eventStartDate": "2027-03-09T18:00:00.000Z"
