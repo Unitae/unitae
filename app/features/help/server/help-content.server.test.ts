@@ -15,8 +15,12 @@ const SHIPPED_SLUGS = [
   'attendance-s88',
   'bano',
   'batch-territories',
+  'board-add-pdf',
   'board-download',
+  'board-dynamic',
   'board-read',
+  'board-reads',
+  'board-sections',
   'board-versions',
   'calendar-feed',
   'campaign-create',
@@ -364,6 +368,10 @@ describe('loadHelpArticles: the articles as shipped', () => {
     expect(fr.get('split-territory')?.permission).toEqual(['CanManageTerritories'])
     // The page needs CanViewTerritories as well, but naming it would open the article to every reader of the list.
     expect(fr.get('batch-territories')?.permission).toEqual(['CanPlanTerritorySplits'])
+    expect(fr.get('board-add-pdf')?.permission).toEqual(['CanUploadBoardDocuments'])
+    expect(fr.get('board-dynamic')?.permission).toEqual(['CanManageDynamicBoardDocuments'])
+    expect(fr.get('board-sections')?.permission).toEqual(['CanConfigureBoardSections', 'CanOrganiseBoardDocuments'])
+    expect(fr.get('board-reads')?.permission).toEqual(['CanReviewBoardDocuments'])
     expect(fr.get('territory-stats')?.permission).toEqual(['CanManageTerritories'])
     for (const slug of [
       'my-parts',

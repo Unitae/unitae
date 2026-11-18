@@ -45,3 +45,15 @@ WITH midweek AS (
 INSERT INTO "Attendance" ("eventId", "inPerson", "inPersonById", "inPersonAt", "congregationId", "updatedAt")
 SELECT meeting.id, 84, u.id, now() - interval '5 minutes', meeting."congregationId", now()
 FROM meeting JOIN "UserAccount" u ON u.email = 'maxime.mensah@demo.unitae.app';
+
+-- board-reads-panel: about two readers in three have opened « Changement d’horaire des réunions », the first document of
+-- « Gérer le tableau », so its « Lectures » panel shows both lists.
+INSERT INTO "BoardDocumentView" ("documentId", "userId", "viewedAt", "congregationId")
+SELECT d.id, u.id, now() - interval '1 day', d."congregationId"
+FROM "BoardDocument" d
+JOIN "UserAccount" u ON u."congregationId" = d."congregationId"
+WHERE d.title IN ('Changement d’horaire des réunions', 'Change of meeting times', 'Mudança do horário das reuniões')
+  AND u.id % 3 <> 0
+  -- Not the capture accounts: their own unread counts show in other captures (board-read-filter).
+  AND u.email NOT IN ('marc.dupont@demo.unitae.app', 'maxime.mensah@demo.unitae.app')
+ON CONFLICT ("documentId", "userId") DO NOTHING;

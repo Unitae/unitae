@@ -14,6 +14,7 @@ import { BOARD_WEB_FONTS_HREF } from '~/features/display-board/ui/dynamic/board-
 import { DynamicDocumentForm } from '~/features/display-board/ui/forms/DynamicDocumentForm'
 import { DeleteBoardItemDialog } from '~/features/display-board/ui/manage/DeleteBoardItemDialog'
 import { stateText } from '~/features/display-board/ui/manage/StateLabel'
+import { HelpEntryButton } from '~/features/help'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -35,6 +36,8 @@ import type { Route } from './+types/edit'
 export const meta: Route.MetaFunction = ({ loaderData }) => [
   { title: `${loaderData?.document.title ?? m.board_dynamic_edit_meta_title()} - Unitae` },
 ]
+
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 // The typeface samples and the preview are set in the board's faces.
 export const links: Route.LinksFunction = () => [{ rel: 'stylesheet', href: BOARD_WEB_FONTS_HREF }]
@@ -85,6 +88,7 @@ export default function EditDynamicDocumentPage({ loaderData, actionData }: Rout
       <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={document.title}
+        help={<HelpEntryButton slug="board-dynamic" />}
         meta={
           <Status tone={TONE[state.kind]} className="text-foreground">
             {stateText(state, loaderData.timeZone)} · {m.board_form_in_section({ section })}

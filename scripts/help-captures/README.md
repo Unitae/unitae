@@ -35,7 +35,7 @@ cp -R /tmp/help-captures-uploads/. /tmp/help-captures-uploads-pt/
 ```
 
 `stage-demo.sql` adds what some captures need beyond the seed, each line saying which capture it is for: a BANO
-file, a document with two versions. The English copy exists because names, parts, sections and document titles are
+file, a document with two versions, a document some people have read. The English copy exists because names, parts, sections and document titles are
 data, not messages; it points at the same files, hence the copied uploads. The European Portuguese copy is made
 the same way. The SQL files refuse a database whose
 name does not say `captures`. `docker-postgres-1` is an example: `docker ps` shows the name of your Postgres

@@ -462,6 +462,65 @@ export const HELP_SHOTS: HelpShot[] = [
     ],
     viewport: { width: 1100 },
   },
+  {
+    // board-add-pdf: « Affichage » on the upload form: when it shows, when it goes, « À la une ».
+    id: 'board-pdf-display',
+    account: MARC,
+    path: '/board/documents/new',
+    frame: (page, locale) => [section(page, m.board_form_display_title({}, { locale }))],
+    margin: 8,
+    viewport: { width: 1000, height: 1000 },
+  },
+  {
+    // board-dynamic: the kinds of live document, on « Document dynamique ».
+    id: 'board-dynamic-types',
+    account: MARC,
+    path: '/board/documents/new-dynamic',
+    frame: (page, locale) => [
+      page.locator('ul').filter({ has: page.getByText(m.board_dynamic_type_programme_description({}, { locale })) }),
+    ],
+    margin: -1,
+    viewport: { width: 1000 },
+  },
+  {
+    // board-sections: a section's « … » menu on « Gérer le tableau ».
+    id: 'board-section-menu',
+    account: MARC,
+    path: '/board/documents',
+    prepare: async (page, locale) => {
+      const prefix = m.board_manage_section_more({ name: '' }, { locale })
+      // The second section: the first one cannot move up.
+      const row = page
+        .locator('tr')
+        .filter({ has: page.getByRole('button', { name: new RegExp(`^${prefix}`) }) })
+        .nth(1)
+      // Scrolled under the top bar first: the open menu would not follow the page when the framing scrolls it.
+      const box = await row.boundingBox()
+      if (box != null) await page.evaluate(by => window.scrollBy(0, by), box.y - 72)
+      await row.getByRole('button', { name: new RegExp(`^${prefix}`) }).click()
+      // Framed once in place: the menu opens at the window's corner, then moves under its button.
+      const menu = page.getByRole('menu')
+      await menu.waitFor()
+      await menu.evaluate(element => Promise.all(element.getAnimations().map(({ finished }) => finished)))
+    },
+    // The section's row, with its name and who sees it, and the menu below it.
+    frame: page => [page.locator('tr:has(button[aria-haspopup="menu"][data-state="open"])'), page.getByRole('menu')],
+    margin: 10,
+    viewport: { width: 1100 },
+  },
+  {
+    // board-reads: the « Lectures » panel of a document, opened from its « Lu par » figure.
+    id: 'board-reads-panel',
+    account: MARC,
+    path: '/board/documents',
+    prepare: async page => {
+      await page.locator('a[href*="lectures="]:visible').first().click()
+      await settledPanel(page)
+    },
+    frame: page => [sidePanel(page)],
+    margin: -1,
+    viewport: { width: 1600, height: 900 },
+  },
 ]
 
 /** Waits for the docked side panel to finish sliding in: framed before, the crop would cut its right side. */
