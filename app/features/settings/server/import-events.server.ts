@@ -168,17 +168,23 @@ export async function importEventServiceParts(
     servicePartId: number | null
     presetId?: number | null
     assigneeId: number | null
+    order?: number
   }>(zip, 'programme-service-role-assignments')
 
+  // Pre-2.17 archives carry no order: each event's services keep the order the file lists them in.
+  const position = new Map<number, number>()
   for (const record of records) {
     const eventId = idMap.getOptional('events', record.eventId)
     if (!eventId) continue
+    const index = position.get(eventId) ?? 0
+    position.set(eventId, index + 1)
 
     const created = await db.eventServicePart.create({
       data: {
         note: record.note,
         hasConflict: record.hasConflict,
         name: record.name,
+        order: record.order ?? index * 5,
         eventId,
         servicePartId: idMap.getOptional('programme-template-service-roles', record.servicePartId),
         presetId: idMap.getOptional('part-presets', record.presetId),

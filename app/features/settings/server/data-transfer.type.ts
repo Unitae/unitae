@@ -1,4 +1,4 @@
-export const ARCHIVE_VERSION = '2.16'
+export const ARCHIVE_VERSION = '2.17'
 
 // Older archive versions an import will still accept. v1.0 archives miss every
 // post-shipping feature table (custom roles, allowed-roles, external speakers,
@@ -61,6 +61,9 @@ export const ARCHIVE_VERSION = '2.16'
 // document is now created rather than matched on its type and ref, which folded the programme documents into one.
 // Pre-2.16 events import as drafts, templates keep their hours (a new one gets the defaults) and documents have no
 // configuration, as before.
+// v2.17 gives services an order: `programme-template-service-roles.ndjson` and
+// `programme-service-role-assignments.ndjson` gain `order`. Pre-2.17 services keep the order their file lists them in,
+// each template and each event counting from 0.
 // v1.x archives are listed here so the import path reports them with a warning rather than rejecting outright;
 // `migrateLegacyUsersNdjson` splits their `users.ndjson` before the import runs.
 export const SUPPORTED_ARCHIVE_VERSIONS = [
@@ -83,6 +86,7 @@ export const SUPPORTED_ARCHIVE_VERSIONS = [
   '2.14',
   '2.15',
   '2.16',
+  '2.17',
 ] as const
 
 export interface ManifestJson {

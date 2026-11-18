@@ -148,16 +148,22 @@ export async function importTemplateServiceParts(
     key: string
     templateId: number
     presetId?: number | null
+    order?: number
   }>(zip, 'programme-template-service-roles')
 
+  // Pre-2.17 archives carry no order: each template's services keep the order the file lists them in.
+  const position = new Map<number, number>()
   for (const record of records) {
     const templateId = idMap.getOptional('programme-templates', record.templateId)
     if (!templateId) continue
+    const index = position.get(templateId) ?? 0
+    position.set(templateId, index + 1)
 
     const created = await db.templateServicePart.create({
       data: {
         name: record.name,
         key: record.key,
+        order: record.order ?? index * 5,
         templateId,
         presetId: idMap.getOptional('part-presets', record.presetId),
         congregationId,
