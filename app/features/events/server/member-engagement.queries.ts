@@ -1,3 +1,4 @@
+import type { Prisma } from '~/database/generated/client'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import type { MemberAbsence, MemberAssignment } from '~/features/events/model/member-engagement.type'
@@ -5,6 +6,15 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 import type { CongregationId, MemberId } from '~/shared/types/branded'
 
 const MAX_ASSIGNMENTS = 5
+
+/**
+ * One meeting's assignments in the programme's order, so a record reads the same every time: the date sort below is
+ * stable, so parts then services, each in theirs; the last assignment done keeps the first of a meeting's.
+ */
+const PROGRAMME_ORDER = [{ event: { startDate: 'asc' } }, { order: 'asc' }, { id: 'asc' }] as const satisfies (
+  | Prisma.EventPartOrderByWithRelationInput
+  | Prisma.EventServicePartOrderByWithRelationInput
+)[]
 
 /**
  * Upcoming released parts and service parts a member holds (as assignee or
@@ -34,13 +44,13 @@ export async function findUpcomingAssignmentsForMember(
     db.eventPart.findMany({
       where: { OR: [{ assigneeId: memberId }, { assistantId: memberId }], event: eventFilter },
       select,
-      orderBy: { event: { startDate: 'asc' } },
+      orderBy: PROGRAMME_ORDER,
       take: MAX_ASSIGNMENTS,
     }),
     db.eventServicePart.findMany({
       where: { assigneeId: memberId, event: eventFilter },
       select,
-      orderBy: { event: { startDate: 'asc' } },
+      orderBy: PROGRAMME_ORDER,
       take: MAX_ASSIGNMENTS,
     }),
   ])
@@ -118,10 +128,12 @@ export async function findLastAssignmentsForMembers(
     db.eventPart.findMany({
       where: { OR: [{ assigneeId: { in: memberIds } }, { assistantId: { in: memberIds } }], event },
       select: { name: true, assigneeId: true, assistantId: true, event: { select: { startDate: true } } },
+      orderBy: PROGRAMME_ORDER,
     }),
     db.eventServicePart.findMany({
       where: { assigneeId: { in: memberIds }, event },
       select: { name: true, assigneeId: true, event: { select: { startDate: true } } },
+      orderBy: PROGRAMME_ORDER,
     }),
   ])
 
