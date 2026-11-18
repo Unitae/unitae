@@ -1,7 +1,7 @@
 {
   "nextMeeting": {
     "id": "<id>",
-    "templateId": "<id>",
+    "templateId": "<template:midweek>",
     "name": "Réunion de semaine",
     "startDate": "2027-03-09T18:00:00.000Z",
     "endDate": "2027-03-09T19:45:00.000Z",
@@ -134,7 +134,7 @@
         },
         "assistant": null,
         "externalSpeaker": null,
-        "viewerRole": null
+        "viewerRole": "speaker"
       },
       {
         "id": "<id>",
@@ -218,7 +218,7 @@
         },
         "assistant": null,
         "externalSpeaker": null,
-        "viewerRole": null
+        "viewerRole": "speaker"
       },
       {
         "id": "<id>",
@@ -305,14 +305,17 @@
         }
       }
     ],
-    "userPartIds": [],
+    "userPartIds": [
+      "<eventPart:midweek-1/part-6>",
+      "<eventPart:midweek-1/part-10>"
+    ],
     "userServicePartIds": [],
-    "link": "/board/dynamic/<midweek-parts>/viewer?eventId=<midweek-1>"
+    "link": "/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>"
   },
   "nextMeetingForViewer": {
     "meeting": {
       "id": "<id>",
-      "templateId": "<id>",
+      "templateId": "<template:midweek>",
       "name": "Réunion de semaine",
       "startDate": "2027-03-09T18:00:00.000Z",
       "endDate": "2027-03-09T19:45:00.000Z",
@@ -617,17 +620,109 @@
         }
       ],
       "userPartIds": [
-        "<id>",
-        "<id>"
+        "<eventPart:midweek-1/part-6>",
+        "<eventPart:midweek-1/part-10>"
       ],
       "userServicePartIds": [],
-      "link": "/board/dynamic/<midweek-parts>/viewer?eventId=<midweek-1>"
+      "link": "/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>"
     },
     "showCard": true,
     "canAct": true,
-    "link": "/programs/events/<midweek-1>"
+    "link": "/programs/events/<event:midweek-1>"
   },
-  "upcomingAssignments": [],
+  "nextMeetingOnTheBoard": {
+    "meeting": {
+      "id": "<id>",
+      "templateId": "<template:midweek>",
+      "name": "Réunion de semaine",
+      "startDate": "2027-03-09T18:00:00.000Z",
+      "endDate": "2027-03-09T19:45:00.000Z",
+      "template": {
+        "name": "Réunion de semaine",
+        "color": "#3b82f6"
+      },
+      "eventParts": [
+        {
+          "id": "<id>",
+          "name": "2e partie",
+          "section": "Appliquons-nous au ministère",
+          "track": "",
+          "trackOrder": null,
+          "durationMin": null,
+          "hasConflict": false,
+          "topic": "",
+          "order": 6,
+          "speakerLabel": null,
+          "readerLabel": null,
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Jean",
+            "lastname": "DURAND"
+          },
+          "assistant": null,
+          "externalSpeaker": null,
+          "viewerRole": "speaker"
+        },
+        {
+          "id": "<id>",
+          "name": "2e partie",
+          "section": "Vie chrétienne",
+          "track": "",
+          "trackOrder": null,
+          "durationMin": null,
+          "hasConflict": false,
+          "topic": "",
+          "order": 10,
+          "speakerLabel": null,
+          "readerLabel": null,
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Jean",
+            "lastname": "DURAND"
+          },
+          "assistant": null,
+          "externalSpeaker": null,
+          "viewerRole": "speaker"
+        }
+      ],
+      "eventServiceParts": [],
+      "userPartIds": [
+        "<eventPart:midweek-1/part-6>",
+        "<eventPart:midweek-1/part-10>"
+      ],
+      "userServicePartIds": [],
+      "link": "/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>"
+    },
+    "showCard": false,
+    "canAct": false,
+    "link": "/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>"
+  },
+  "upcomingAssignments": [
+    {
+      "key": "part-<id>",
+      "role": "speaker",
+      "partner": null,
+      "name": "2e partie",
+      "topic": null,
+      "speakerLabel": null,
+      "readerLabel": null,
+      "eventName": "Réunion de semaine",
+      "eventStartDate": "2027-03-09T18:00:00.000Z",
+      "link": "/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>"
+    },
+    {
+      "key": "part-<id>",
+      "role": "speaker",
+      "partner": null,
+      "name": "2e partie",
+      "topic": null,
+      "speakerLabel": "Orateur",
+      "readerLabel": null,
+      "eventName": "Réunion de semaine",
+      "eventStartDate": "2027-03-09T18:00:00.000Z",
+      "link": "/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>"
+    }
+  ],
   "conflictingAssignments": null,
   "upcomingAbsences": {
     "upcoming": [],

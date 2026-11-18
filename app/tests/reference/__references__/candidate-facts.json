@@ -1,21 +1,110 @@
 {
-  "forTalk": {
+  "forReading": {
     "lastAssignedAt": {
-      "paul": "2027-03-16T18:00:00.000Z"
+      "pierre": "2027-03-09T18:00:00.000Z"
     },
-    "absences": {},
-    "elsewhere": {},
+    "absences": {
+      "hugo": {
+        "startDate": "2027-03-14T23:00:00.000Z",
+        "endDate": "2027-03-17T22:59:00.000Z"
+      }
+    },
+    "elsewhere": {
+      "hugo": [
+        "Cantique",
+        "Cantique et prière de conclusion",
+        "Préposés à l’accueil"
+      ],
+      "jean": [
+        "2e partie"
+      ],
+      "luc": [
+        "Perles spirituelles",
+        "3e partie",
+        "Étude biblique de l’assemblée",
+        "Audio-vidéo"
+      ],
+      "marc": [
+        "Cantique et prière de conclusion",
+        "Estrade"
+      ],
+      "paul": [
+        "Cantique et prière",
+        "Discours",
+        "1re partie",
+        "Nettoyage"
+      ]
+    },
     "speakers": {
       "lastAssignedAt": {},
       "elsewhere": {}
     }
   },
+  "forTalk": {
+    "lastAssignedAt": {},
+    "absences": {},
+    "elsewhere": {
+      "hugo": [
+        "Étude de La Tour de Garde",
+        "Préposés à l’accueil"
+      ],
+      "luc": [
+        "Cantique",
+        "Audio-vidéo"
+      ],
+      "marc": [
+        "Cantique et prière de conclusion",
+        "Estrade"
+      ],
+      "paul": [
+        "Cantique et prière",
+        "Cantique et prière de conclusion",
+        "Nettoyage"
+      ]
+    },
+    "speakers": {
+      "lastAssignedAt": {
+        "rousseau": "2027-03-13T09:00:00.000Z"
+      },
+      "elsewhere": {}
+    }
+  },
   "forSound": {
     "lastAssignedAt": {
-      "luc": "2027-03-16T18:00:00.000Z"
+      "luc": "2027-03-09T18:00:00.000Z"
     },
-    "absences": {},
-    "elsewhere": {},
+    "absences": {
+      "hugo": {
+        "startDate": "2027-03-14T23:00:00.000Z",
+        "endDate": "2027-03-17T22:59:00.000Z"
+      }
+    },
+    "elsewhere": {
+      "hugo": [
+        "Lecture de la Bible",
+        "Cantique",
+        "Cantique et prière de conclusion",
+        "Préposés à l’accueil"
+      ],
+      "jean": [
+        "2e partie"
+      ],
+      "luc": [
+        "Perles spirituelles",
+        "3e partie",
+        "Étude biblique de l’assemblée"
+      ],
+      "marc": [
+        "Cantique et prière de conclusion",
+        "Estrade"
+      ],
+      "paul": [
+        "Cantique et prière",
+        "Discours",
+        "1re partie",
+        "Nettoyage"
+      ]
+    },
     "speakers": {
       "lastAssignedAt": {},
       "elsewhere": {}
@@ -24,53 +113,59 @@
   "cadenceOfPaul": {
     "past": [
       {
-        "date": "2027-03-09T18:00:00.000Z",
-        "assigned": true,
-        "personName": "Paul MARTIN",
-        "status": "released"
+        "date": "2027-03-06T09:00:00.000Z",
+        "assigned": false,
+        "personName": null,
+        "status": "draft"
       },
       {
-        "date": "2027-03-16T18:00:00.000Z",
-        "assigned": true,
-        "personName": "Paul MARTIN",
-        "status": "draft"
+        "date": "2027-03-13T09:00:00.000Z",
+        "assigned": false,
+        "personName": null,
+        "status": "released"
       }
     ],
     "future": [
       {
-        "date": "2027-03-30T17:00:00.000Z",
+        "date": "2027-03-27T09:00:00.000Z",
         "assigned": false,
         "personName": null,
         "status": "draft"
       },
       {
-        "date": "2027-04-06T17:00:00.000Z",
+        "date": "2027-04-03T08:00:00.000Z",
         "assigned": false,
         "personName": null,
         "status": "draft"
       },
       {
-        "date": "2027-04-13T17:00:00.000Z",
+        "date": "2027-04-10T08:00:00.000Z",
         "assigned": false,
         "personName": null,
         "status": "draft"
       },
       {
-        "date": "2027-04-20T17:00:00.000Z",
+        "date": "2027-04-17T08:00:00.000Z",
         "assigned": false,
         "personName": null,
         "status": "draft"
       },
       {
-        "date": "2027-04-27T17:00:00.000Z",
+        "date": "2027-04-24T08:00:00.000Z",
+        "assigned": false,
+        "personName": null,
+        "status": "draft"
+      },
+      {
+        "date": "2027-05-01T08:00:00.000Z",
         "assigned": false,
         "personName": null,
         "status": "draft"
       }
     ],
-    "hasHistory": true,
-    "lastAssignedAt": "2027-03-16T18:00:00.000Z",
+    "hasHistory": false,
+    "lastAssignedAt": null,
     "anchored": true,
-    "savedMatchesSelection": false
+    "savedMatchesSelection": true
   }
 }

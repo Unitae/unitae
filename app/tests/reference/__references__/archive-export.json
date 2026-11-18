@@ -171,7 +171,7 @@
       "order": 5,
       "durationMin": null,
       "allowExternalSpeaker": true,
-      "templateId": "<id>",
+      "templateId": "<template:midweek>",
       "presetId": null
     },
     {
@@ -183,8 +183,8 @@
       "order": 9,
       "durationMin": null,
       "allowExternalSpeaker": true,
-      "templateId": "<id>",
-      "presetId": "<id>"
+      "templateId": "<template:midweek>",
+      "presetId": "<preset:midweek-talk>"
     },
     {
       "id": "<id>",
@@ -195,7 +195,7 @@
       "order": 6,
       "durationMin": null,
       "allowExternalSpeaker": true,
-      "templateId": "<id>",
+      "templateId": "<template:midweek>",
       "presetId": null
     },
     {
@@ -207,8 +207,8 @@
       "order": 10,
       "durationMin": null,
       "allowExternalSpeaker": true,
-      "templateId": "<id>",
-      "presetId": "<id>"
+      "templateId": "<template:midweek>",
+      "presetId": "<preset:midweek-talk>"
     },
     {
       "id": "<id>",
@@ -219,7 +219,7 @@
       "order": 7,
       "durationMin": null,
       "allowExternalSpeaker": true,
-      "templateId": "<id>",
+      "templateId": "<template:midweek>",
       "presetId": null
     },
     {
@@ -231,8 +231,8 @@
       "order": 12,
       "durationMin": 5,
       "allowExternalSpeaker": false,
-      "templateId": "<id>",
-      "presetId": "<id>"
+      "templateId": "<template:midweek>",
+      "presetId": "<preset:prayer>"
     },
     {
       "id": "<id>",
@@ -243,8 +243,8 @@
       "order": 5,
       "durationMin": 5,
       "allowExternalSpeaker": false,
-      "templateId": "<id>",
-      "presetId": "<id>"
+      "templateId": "<template:memorial>",
+      "presetId": "<preset:prayer>"
     },
     {
       "id": "<id>",
@@ -255,8 +255,8 @@
       "order": 5,
       "durationMin": 5,
       "allowExternalSpeaker": false,
-      "templateId": "<id>",
-      "presetId": "<id>"
+      "templateId": "<template:weekend>",
+      "presetId": "<preset:prayer>"
     },
     {
       "id": "<id>",
@@ -267,8 +267,8 @@
       "order": 1,
       "durationMin": 5,
       "allowExternalSpeaker": false,
-      "templateId": "<id>",
-      "presetId": "<id>"
+      "templateId": "<template:memorial>",
+      "presetId": "<preset:prayer>"
     },
     {
       "id": "<id>",
@@ -279,8 +279,8 @@
       "order": 1,
       "durationMin": 5,
       "allowExternalSpeaker": false,
-      "templateId": "<id>",
-      "presetId": "<id>"
+      "templateId": "<template:midweek>",
+      "presetId": "<preset:prayer>"
     },
     {
       "id": "<id>",
@@ -291,8 +291,8 @@
       "order": 1,
       "durationMin": 5,
       "allowExternalSpeaker": false,
-      "templateId": "<id>",
-      "presetId": "<id>"
+      "templateId": "<template:weekend>",
+      "presetId": "<preset:prayer>"
     },
     {
       "id": "<id>",
@@ -303,7 +303,7 @@
       "order": 3,
       "durationMin": 5,
       "allowExternalSpeaker": false,
-      "templateId": "<id>",
+      "templateId": "<template:weekend>",
       "presetId": null
     },
     {
@@ -315,7 +315,7 @@
       "order": 8,
       "durationMin": 5,
       "allowExternalSpeaker": false,
-      "templateId": "<id>",
+      "templateId": "<template:midweek>",
       "presetId": null
     },
     {
@@ -327,7 +327,7 @@
       "order": 2,
       "durationMin": 45,
       "allowExternalSpeaker": true,
-      "templateId": "<id>",
+      "templateId": "<template:memorial>",
       "presetId": null
     },
     {
@@ -339,8 +339,8 @@
       "order": 2,
       "durationMin": 30,
       "allowExternalSpeaker": true,
-      "templateId": "<id>",
-      "presetId": "<id>"
+      "templateId": "<template:weekend>",
+      "presetId": "<preset:public-talk>"
     },
     {
       "id": "<id>",
@@ -351,8 +351,8 @@
       "order": 2,
       "durationMin": 10,
       "allowExternalSpeaker": true,
-      "templateId": "<id>",
-      "presetId": "<id>"
+      "templateId": "<template:midweek>",
+      "presetId": "<preset:midweek-talk>"
     },
     {
       "id": "<id>",
@@ -363,8 +363,8 @@
       "order": 11,
       "durationMin": 30,
       "allowExternalSpeaker": false,
-      "templateId": "<id>",
-      "presetId": "<id>"
+      "templateId": "<template:midweek>",
+      "presetId": "<preset:congregation-bible-study>"
     },
     {
       "id": "<id>",
@@ -375,8 +375,8 @@
       "order": 4,
       "durationMin": 60,
       "allowExternalSpeaker": false,
-      "templateId": "<id>",
-      "presetId": "<id>"
+      "templateId": "<template:weekend>",
+      "presetId": "<preset:watchtower-study>"
     },
     {
       "id": "<id>",
@@ -387,8 +387,8 @@
       "order": 4,
       "durationMin": 4,
       "allowExternalSpeaker": false,
-      "templateId": "<id>",
-      "presetId": "<id>"
+      "templateId": "<template:midweek>",
+      "presetId": "<preset:bible-reading>"
     },
     {
       "id": "<id>",
@@ -399,8 +399,8 @@
       "order": 3,
       "durationMin": 10,
       "allowExternalSpeaker": false,
-      "templateId": "<id>",
-      "presetId": "<id>"
+      "templateId": "<template:midweek>",
+      "presetId": "<preset:midweek-talk>"
     },
     {
       "id": "<id>",
@@ -411,8 +411,8 @@
       "order": 3,
       "durationMin": null,
       "allowExternalSpeaker": false,
-      "templateId": "<id>",
-      "presetId": "<id>"
+      "templateId": "<template:memorial>",
+      "presetId": "<preset:prayer>"
     },
     {
       "id": "<id>",
@@ -423,14 +423,14 @@
       "order": 4,
       "durationMin": null,
       "allowExternalSpeaker": false,
-      "templateId": "<id>",
-      "presetId": "<id>"
+      "templateId": "<template:memorial>",
+      "presetId": "<preset:prayer>"
     }
   ],
   "programme-template-part-allowed-roles": [
     {
-      "partId": "<id>",
-      "roleId": "<id>",
+      "partId": "<templatePart:midweek/part-2>",
+      "roleId": "<role:elder>",
       "asKind": "speaker"
     }
   ],
@@ -439,108 +439,108 @@
       "id": "<id>",
       "name": "Audio-vidéo",
       "key": "sono",
-      "templateId": "<id>",
+      "templateId": "<template:memorial>",
       "presetId": null
     },
     {
       "id": "<id>",
       "name": "Audio-vidéo",
       "key": "sono",
-      "templateId": "<id>",
+      "templateId": "<template:midweek>",
       "presetId": null
     },
     {
       "id": "<id>",
       "name": "Audio-vidéo",
       "key": "sono",
-      "templateId": "<id>",
+      "templateId": "<template:weekend>",
       "presetId": null
     },
     {
       "id": "<id>",
       "name": "Estrade",
       "key": "stage",
-      "templateId": "<id>",
+      "templateId": "<template:memorial>",
       "presetId": null
     },
     {
       "id": "<id>",
       "name": "Estrade",
       "key": "stage",
-      "templateId": "<id>",
+      "templateId": "<template:midweek>",
       "presetId": null
     },
     {
       "id": "<id>",
       "name": "Estrade",
       "key": "stage",
-      "templateId": "<id>",
+      "templateId": "<template:weekend>",
       "presetId": null
     },
     {
       "id": "<id>",
       "name": "Nettoyage",
       "key": "cleaning",
-      "templateId": "<id>",
+      "templateId": "<template:memorial>",
       "presetId": null
     },
     {
       "id": "<id>",
       "name": "Nettoyage",
       "key": "cleaning",
-      "templateId": "<id>",
+      "templateId": "<template:midweek>",
       "presetId": null
     },
     {
       "id": "<id>",
       "name": "Nettoyage",
       "key": "cleaning",
-      "templateId": "<id>",
+      "templateId": "<template:weekend>",
       "presetId": null
     },
     {
       "id": "<id>",
       "name": "Préposés à l’accueil",
       "key": "welcome",
-      "templateId": "<id>",
+      "templateId": "<template:memorial>",
       "presetId": null
     },
     {
       "id": "<id>",
       "name": "Préposés à l’accueil",
       "key": "welcome",
-      "templateId": "<id>",
+      "templateId": "<template:midweek>",
       "presetId": null
     },
     {
       "id": "<id>",
       "name": "Préposés à l’accueil",
       "key": "welcome",
-      "templateId": "<id>",
+      "templateId": "<template:weekend>",
       "presetId": null
     }
   ],
   "programme-template-service-role-allowed-roles": [
     {
-      "servicePartId": "<id>",
-      "roleId": "<id>"
+      "servicePartId": "<templateServicePart:weekend/service-sono>",
+      "roleId": "<role:assistant-servant>"
     },
     {
-      "servicePartId": "<id>",
-      "roleId": "<id>"
+      "servicePartId": "<templateServicePart:weekend/service-sono>",
+      "roleId": "<role:elder>"
     }
   ],
   "programme-template-responsibles": [
     {
       "id": "<id>",
-      "templateId": "<id>",
-      "roleId": "<id>",
+      "templateId": "<template:midweek>",
+      "roleId": "<role:elder>",
       "scope": "programme"
     },
     {
       "id": "<id>",
-      "templateId": "<id>",
-      "roleId": "<id>",
+      "templateId": "<template:weekend>",
+      "roleId": "<role:assistant-servant>",
       "scope": "service"
     }
   ],
@@ -551,8 +551,8 @@
       "description": "",
       "startDate": "2027-03-14T23:00:00.000Z",
       "endDate": "2027-03-17T22:59:00.000Z",
-      "templateId": "<id>",
-      "createdById": "<id>",
+      "templateId": "<template:day-off>",
+      "createdById": "<account:hugo>",
       "createdAt": "<time>"
     },
     {
@@ -561,8 +561,8 @@
       "description": "",
       "startDate": "2027-03-22T18:00:00.000Z",
       "endDate": "2027-03-22T19:30:00.000Z",
-      "templateId": "<id>",
-      "createdById": "<id>",
+      "templateId": "<template:memorial>",
+      "createdById": "<account:admin>",
       "createdAt": "<time>"
     },
     {
@@ -571,8 +571,8 @@
       "description": "",
       "startDate": "2027-03-09T18:00:00.000Z",
       "endDate": "2027-03-09T19:45:00.000Z",
-      "templateId": "<id>",
-      "createdById": "<id>",
+      "templateId": "<template:midweek>",
+      "createdById": "<account:admin>",
       "createdAt": "<time>"
     },
     {
@@ -581,8 +581,8 @@
       "description": "",
       "startDate": "2027-03-16T18:00:00.000Z",
       "endDate": "2027-03-16T19:45:00.000Z",
-      "templateId": "<id>",
-      "createdById": "<id>",
+      "templateId": "<template:midweek>",
+      "createdById": "<account:admin>",
       "createdAt": "<time>"
     },
     {
@@ -591,8 +591,8 @@
       "description": "",
       "startDate": "2027-03-23T18:00:00.000Z",
       "endDate": "2027-03-23T19:45:00.000Z",
-      "templateId": "<id>",
-      "createdById": "<id>",
+      "templateId": "<template:midweek>",
+      "createdById": "<account:admin>",
       "createdAt": "<time>"
     },
     {
@@ -601,7 +601,7 @@
       "description": "",
       "startDate": "2027-03-30T17:00:00.000Z",
       "endDate": "2027-03-30T18:45:00.000Z",
-      "templateId": "<id>",
+      "templateId": "<template:midweek>",
       "createdById": null,
       "createdAt": "<time>"
     },
@@ -611,7 +611,7 @@
       "description": "",
       "startDate": "2027-04-06T17:00:00.000Z",
       "endDate": "2027-04-06T18:45:00.000Z",
-      "templateId": "<id>",
+      "templateId": "<template:midweek>",
       "createdById": null,
       "createdAt": "<time>"
     },
@@ -621,7 +621,7 @@
       "description": "",
       "startDate": "2027-04-13T17:00:00.000Z",
       "endDate": "2027-04-13T18:45:00.000Z",
-      "templateId": "<id>",
+      "templateId": "<template:midweek>",
       "createdById": null,
       "createdAt": "<time>"
     },
@@ -631,7 +631,7 @@
       "description": "",
       "startDate": "2027-04-20T17:00:00.000Z",
       "endDate": "2027-04-20T18:45:00.000Z",
-      "templateId": "<id>",
+      "templateId": "<template:midweek>",
       "createdById": null,
       "createdAt": "<time>"
     },
@@ -641,7 +641,7 @@
       "description": "",
       "startDate": "2027-04-27T17:00:00.000Z",
       "endDate": "2027-04-27T18:45:00.000Z",
-      "templateId": "<id>",
+      "templateId": "<template:midweek>",
       "createdById": null,
       "createdAt": "<time>"
     },
@@ -651,7 +651,7 @@
       "description": "",
       "startDate": "2027-03-06T09:00:00.000Z",
       "endDate": "2027-03-06T10:45:00.000Z",
-      "templateId": "<id>",
+      "templateId": "<template:weekend>",
       "createdById": null,
       "createdAt": "<time>"
     },
@@ -661,8 +661,8 @@
       "description": "",
       "startDate": "2027-03-13T09:00:00.000Z",
       "endDate": "2027-03-13T10:45:00.000Z",
-      "templateId": "<id>",
-      "createdById": "<id>",
+      "templateId": "<template:weekend>",
+      "createdById": "<account:admin>",
       "createdAt": "<time>"
     },
     {
@@ -671,8 +671,8 @@
       "description": "",
       "startDate": "2027-03-20T09:00:00.000Z",
       "endDate": "2027-03-20T10:45:00.000Z",
-      "templateId": "<id>",
-      "createdById": "<id>",
+      "templateId": "<template:weekend>",
+      "createdById": "<account:admin>",
       "createdAt": "<time>"
     },
     {
@@ -681,8 +681,8 @@
       "description": "",
       "startDate": "2027-03-27T09:00:00.000Z",
       "endDate": "2027-03-27T10:45:00.000Z",
-      "templateId": "<id>",
-      "createdById": "<id>",
+      "templateId": "<template:weekend>",
+      "createdById": "<account:admin>",
       "createdAt": "<time>"
     },
     {
@@ -691,7 +691,7 @@
       "description": "",
       "startDate": "2027-04-03T08:00:00.000Z",
       "endDate": "2027-04-03T09:45:00.000Z",
-      "templateId": "<id>",
+      "templateId": "<template:weekend>",
       "createdById": null,
       "createdAt": "<time>"
     },
@@ -701,7 +701,7 @@
       "description": "",
       "startDate": "2027-04-10T08:00:00.000Z",
       "endDate": "2027-04-10T09:45:00.000Z",
-      "templateId": "<id>",
+      "templateId": "<template:weekend>",
       "createdById": null,
       "createdAt": "<time>"
     },
@@ -711,7 +711,7 @@
       "description": "",
       "startDate": "2027-04-17T08:00:00.000Z",
       "endDate": "2027-04-17T09:45:00.000Z",
-      "templateId": "<id>",
+      "templateId": "<template:weekend>",
       "createdById": null,
       "createdAt": "<time>"
     },
@@ -721,7 +721,7 @@
       "description": "",
       "startDate": "2027-04-24T08:00:00.000Z",
       "endDate": "2027-04-24T09:45:00.000Z",
-      "templateId": "<id>",
+      "templateId": "<template:weekend>",
       "createdById": null,
       "createdAt": "<time>"
     },
@@ -731,12 +731,40 @@
       "description": "",
       "startDate": "2027-05-01T08:00:00.000Z",
       "endDate": "2027-05-01T09:45:00.000Z",
-      "templateId": "<id>",
+      "templateId": "<template:weekend>",
       "createdById": null,
       "createdAt": "<time>"
     }
   ],
-  "attendance": [],
+  "attendance": [
+    {
+      "eventId": "<event:memorial-1>",
+      "inPerson": 163,
+      "inPersonById": "<account:admin>",
+      "inPersonAt": "2027-03-03T09:00:00.000Z",
+      "online": 21,
+      "onlineById": "<account:admin>",
+      "onlineAt": "2027-03-03T09:00:00.000Z"
+    },
+    {
+      "eventId": "<event:midweek-1>",
+      "inPerson": 84,
+      "inPersonById": "<account:admin>",
+      "inPersonAt": "2027-03-03T09:00:00.000Z",
+      "online": 12,
+      "onlineById": "<account:admin>",
+      "onlineAt": "2027-03-03T09:00:00.000Z"
+    },
+    {
+      "eventId": "<event:weekend-1>",
+      "inPerson": 101,
+      "inPersonById": "<account:admin>",
+      "inPersonAt": "2027-03-03T09:00:00.000Z",
+      "online": 9,
+      "onlineById": "<account:admin>",
+      "onlineAt": "2027-03-03T09:00:00.000Z"
+    }
+  ],
   "programme-part-assignments": [
     {
       "id": "<id>",
@@ -749,10 +777,10 @@
       "trackOrder": null,
       "order": 5,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
+      "eventId": "<event:midweek-1>",
+      "partId": "<templatePart:midweek/part-5>",
       "presetId": null,
-      "assigneeId": "<id>",
+      "assigneeId": "<member:paul>",
       "assistantId": null,
       "allowExternalSpeaker": true,
       "externalSpeakerId": null
@@ -768,10 +796,10 @@
       "trackOrder": null,
       "order": 5,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
+      "eventId": "<event:midweek-2>",
+      "partId": "<templatePart:midweek/part-5>",
       "presetId": null,
-      "assigneeId": "<id>",
+      "assigneeId": "<member:paul>",
       "assistantId": null,
       "allowExternalSpeaker": true,
       "externalSpeakerId": null
@@ -787,8 +815,8 @@
       "trackOrder": null,
       "order": 5,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
+      "eventId": "<event:midweek-3>",
+      "partId": "<templatePart:midweek/part-5>",
       "presetId": null,
       "assigneeId": null,
       "assistantId": null,
@@ -806,10 +834,10 @@
       "trackOrder": null,
       "order": 9,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
-      "assigneeId": "<id>",
+      "eventId": "<event:midweek-1>",
+      "partId": "<templatePart:midweek/part-9>",
+      "presetId": "<preset:midweek-talk>",
+      "assigneeId": "<member:paul>",
       "assistantId": null,
       "allowExternalSpeaker": true,
       "externalSpeakerId": null
@@ -825,10 +853,10 @@
       "trackOrder": null,
       "order": 9,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
-      "assigneeId": "<id>",
+      "eventId": "<event:midweek-2>",
+      "partId": "<templatePart:midweek/part-9>",
+      "presetId": "<preset:midweek-talk>",
+      "assigneeId": "<member:paul>",
       "assistantId": null,
       "allowExternalSpeaker": true,
       "externalSpeakerId": null
@@ -844,9 +872,9 @@
       "trackOrder": null,
       "order": 9,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
+      "eventId": "<event:midweek-3>",
+      "partId": "<templatePart:midweek/part-9>",
+      "presetId": "<preset:midweek-talk>",
       "assigneeId": null,
       "assistantId": null,
       "allowExternalSpeaker": true,
@@ -863,10 +891,10 @@
       "trackOrder": null,
       "order": 6,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
+      "eventId": "<event:midweek-1>",
+      "partId": "<templatePart:midweek/part-6>",
       "presetId": null,
-      "assigneeId": "<id>",
+      "assigneeId": "<member:jean>",
       "assistantId": null,
       "allowExternalSpeaker": true,
       "externalSpeakerId": null
@@ -882,10 +910,10 @@
       "trackOrder": null,
       "order": 6,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
+      "eventId": "<event:midweek-2>",
+      "partId": "<templatePart:midweek/part-6>",
       "presetId": null,
-      "assigneeId": "<id>",
+      "assigneeId": "<member:jean>",
       "assistantId": null,
       "allowExternalSpeaker": true,
       "externalSpeakerId": null
@@ -901,8 +929,8 @@
       "trackOrder": null,
       "order": 6,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
+      "eventId": "<event:midweek-3>",
+      "partId": "<templatePart:midweek/part-6>",
       "presetId": null,
       "assigneeId": null,
       "assistantId": null,
@@ -920,10 +948,10 @@
       "trackOrder": null,
       "order": 10,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
-      "assigneeId": "<id>",
+      "eventId": "<event:midweek-1>",
+      "partId": "<templatePart:midweek/part-10>",
+      "presetId": "<preset:midweek-talk>",
+      "assigneeId": "<member:jean>",
       "assistantId": null,
       "allowExternalSpeaker": true,
       "externalSpeakerId": null
@@ -939,10 +967,10 @@
       "trackOrder": null,
       "order": 10,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
-      "assigneeId": "<id>",
+      "eventId": "<event:midweek-2>",
+      "partId": "<templatePart:midweek/part-10>",
+      "presetId": "<preset:midweek-talk>",
+      "assigneeId": "<member:jean>",
       "assistantId": null,
       "allowExternalSpeaker": true,
       "externalSpeakerId": null
@@ -958,9 +986,9 @@
       "trackOrder": null,
       "order": 10,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
+      "eventId": "<event:midweek-3>",
+      "partId": "<templatePart:midweek/part-10>",
+      "presetId": "<preset:midweek-talk>",
       "assigneeId": null,
       "assistantId": null,
       "allowExternalSpeaker": true,
@@ -977,10 +1005,10 @@
       "trackOrder": null,
       "order": 7,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
+      "eventId": "<event:midweek-1>",
+      "partId": "<templatePart:midweek/part-7>",
       "presetId": null,
-      "assigneeId": "<id>",
+      "assigneeId": "<member:luc>",
       "assistantId": null,
       "allowExternalSpeaker": true,
       "externalSpeakerId": null
@@ -996,10 +1024,10 @@
       "trackOrder": null,
       "order": 7,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
+      "eventId": "<event:midweek-2>",
+      "partId": "<templatePart:midweek/part-7>",
       "presetId": null,
-      "assigneeId": "<id>",
+      "assigneeId": "<member:luc>",
       "assistantId": null,
       "allowExternalSpeaker": true,
       "externalSpeakerId": null
@@ -1015,8 +1043,8 @@
       "trackOrder": null,
       "order": 7,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
+      "eventId": "<event:midweek-3>",
+      "partId": "<templatePart:midweek/part-7>",
       "presetId": null,
       "assigneeId": null,
       "assistantId": null,
@@ -1034,9 +1062,9 @@
       "trackOrder": null,
       "order": 12,
       "durationMin": 5,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
+      "eventId": "<event:midweek-3>",
+      "partId": "<templatePart:midweek/part-12>",
+      "presetId": "<preset:prayer>",
       "assigneeId": null,
       "assistantId": null,
       "allowExternalSpeaker": false,
@@ -1053,11 +1081,11 @@
       "trackOrder": null,
       "order": 12,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
-      "assigneeId": "<id>",
-      "assistantId": "<id>",
+      "eventId": "<event:midweek-1>",
+      "partId": "<templatePart:midweek/part-12>",
+      "presetId": "<preset:prayer>",
+      "assigneeId": "<member:pierre>",
+      "assistantId": "<member:marc>",
       "allowExternalSpeaker": false,
       "externalSpeakerId": null
     },
@@ -1072,28 +1100,9 @@
       "trackOrder": null,
       "order": 5,
       "durationMin": 5,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
-      "assigneeId": null,
-      "assistantId": null,
-      "allowExternalSpeaker": false,
-      "externalSpeakerId": null
-    },
-    {
-      "id": "<id>",
-      "topic": "",
-      "note": "",
-      "hasConflict": false,
-      "name": "Cantique et prière de conclusion",
-      "section": "",
-      "track": "",
-      "trackOrder": null,
-      "order": 5,
-      "durationMin": 5,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
+      "eventId": "<event:memorial-1>",
+      "partId": "<templatePart:memorial/part-5>",
+      "presetId": "<preset:prayer>",
       "assigneeId": null,
       "assistantId": null,
       "allowExternalSpeaker": false,
@@ -1109,12 +1118,12 @@
       "track": "",
       "trackOrder": null,
       "order": 5,
-      "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
-      "assigneeId": "<id>",
-      "assistantId": "<id>",
+      "durationMin": 5,
+      "eventId": "<event:weekend-3>",
+      "partId": "<templatePart:weekend/part-5>",
+      "presetId": "<preset:prayer>",
+      "assigneeId": null,
+      "assistantId": null,
       "allowExternalSpeaker": false,
       "externalSpeakerId": null
     },
@@ -1129,11 +1138,30 @@
       "trackOrder": null,
       "order": 5,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
-      "assigneeId": "<id>",
-      "assistantId": "<id>",
+      "eventId": "<event:weekend-1>",
+      "partId": "<templatePart:weekend/part-5>",
+      "presetId": "<preset:prayer>",
+      "assigneeId": "<member:paul>",
+      "assistantId": "<member:marc>",
+      "allowExternalSpeaker": false,
+      "externalSpeakerId": null
+    },
+    {
+      "id": "<id>",
+      "topic": "",
+      "note": "",
+      "hasConflict": false,
+      "name": "Cantique et prière de conclusion",
+      "section": "",
+      "track": "",
+      "trackOrder": null,
+      "order": 5,
+      "durationMin": null,
+      "eventId": "<event:weekend-2>",
+      "partId": "<templatePart:weekend/part-5>",
+      "presetId": "<preset:prayer>",
+      "assigneeId": "<member:paul>",
+      "assistantId": "<member:marc>",
       "allowExternalSpeaker": false,
       "externalSpeakerId": null
     },
@@ -1148,9 +1176,9 @@
       "trackOrder": null,
       "order": 1,
       "durationMin": 5,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
+      "eventId": "<event:memorial-1>",
+      "partId": "<templatePart:memorial/part-1>",
+      "presetId": "<preset:prayer>",
       "assigneeId": null,
       "assistantId": null,
       "allowExternalSpeaker": false,
@@ -1167,9 +1195,9 @@
       "trackOrder": null,
       "order": 1,
       "durationMin": 5,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
+      "eventId": "<event:midweek-3>",
+      "partId": "<templatePart:midweek/part-1>",
+      "presetId": "<preset:prayer>",
       "assigneeId": null,
       "assistantId": null,
       "allowExternalSpeaker": false,
@@ -1186,9 +1214,9 @@
       "trackOrder": null,
       "order": 1,
       "durationMin": 5,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
+      "eventId": "<event:weekend-3>",
+      "partId": "<templatePart:weekend/part-1>",
+      "presetId": "<preset:prayer>",
       "assigneeId": null,
       "assistantId": null,
       "allowExternalSpeaker": false,
@@ -1205,10 +1233,10 @@
       "trackOrder": null,
       "order": 1,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
-      "assigneeId": "<id>",
+      "eventId": "<event:midweek-1>",
+      "partId": "<templatePart:midweek/part-1>",
+      "presetId": "<preset:prayer>",
+      "assigneeId": "<member:paul>",
       "assistantId": null,
       "allowExternalSpeaker": false,
       "externalSpeakerId": null
@@ -1224,10 +1252,10 @@
       "trackOrder": null,
       "order": 1,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
-      "assigneeId": "<id>",
+      "eventId": "<event:midweek-2>",
+      "partId": "<templatePart:midweek/part-1>",
+      "presetId": "<preset:prayer>",
+      "assigneeId": "<member:paul>",
       "assistantId": null,
       "allowExternalSpeaker": false,
       "externalSpeakerId": null
@@ -1243,10 +1271,10 @@
       "trackOrder": null,
       "order": 1,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
-      "assigneeId": "<id>",
+      "eventId": "<event:weekend-1>",
+      "partId": "<templatePart:weekend/part-1>",
+      "presetId": "<preset:prayer>",
+      "assigneeId": "<member:paul>",
       "assistantId": null,
       "allowExternalSpeaker": false,
       "externalSpeakerId": null
@@ -1262,10 +1290,10 @@
       "trackOrder": null,
       "order": 1,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
-      "assigneeId": "<id>",
+      "eventId": "<event:weekend-2>",
+      "partId": "<templatePart:weekend/part-1>",
+      "presetId": "<preset:prayer>",
+      "assigneeId": "<member:paul>",
       "assistantId": null,
       "allowExternalSpeaker": false,
       "externalSpeakerId": null
@@ -1281,8 +1309,8 @@
       "trackOrder": null,
       "order": 3,
       "durationMin": 5,
-      "eventId": "<id>",
-      "partId": "<id>",
+      "eventId": "<event:weekend-3>",
+      "partId": "<templatePart:weekend/part-3>",
       "presetId": null,
       "assigneeId": null,
       "assistantId": null,
@@ -1300,10 +1328,10 @@
       "trackOrder": null,
       "order": 3,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
+      "eventId": "<event:weekend-1>",
+      "partId": "<templatePart:weekend/part-3>",
       "presetId": null,
-      "assigneeId": "<id>",
+      "assigneeId": "<member:luc>",
       "assistantId": null,
       "allowExternalSpeaker": false,
       "externalSpeakerId": null
@@ -1319,10 +1347,10 @@
       "trackOrder": null,
       "order": 3,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
+      "eventId": "<event:weekend-2>",
+      "partId": "<templatePart:weekend/part-3>",
       "presetId": null,
-      "assigneeId": "<id>",
+      "assigneeId": "<member:luc>",
       "assistantId": null,
       "allowExternalSpeaker": false,
       "externalSpeakerId": null
@@ -1338,8 +1366,8 @@
       "trackOrder": null,
       "order": 8,
       "durationMin": 5,
-      "eventId": "<id>",
-      "partId": "<id>",
+      "eventId": "<event:midweek-3>",
+      "partId": "<templatePart:midweek/part-8>",
       "presetId": null,
       "assigneeId": null,
       "assistantId": null,
@@ -1357,10 +1385,10 @@
       "trackOrder": null,
       "order": 8,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
+      "eventId": "<event:midweek-1>",
+      "partId": "<templatePart:midweek/part-8>",
       "presetId": null,
-      "assigneeId": "<id>",
+      "assigneeId": "<member:pierre>",
       "assistantId": null,
       "allowExternalSpeaker": false,
       "externalSpeakerId": null
@@ -1376,8 +1404,8 @@
       "trackOrder": null,
       "order": 2,
       "durationMin": 45,
-      "eventId": "<id>",
-      "partId": "<id>",
+      "eventId": "<event:memorial-1>",
+      "partId": "<templatePart:memorial/part-2>",
       "presetId": null,
       "assigneeId": null,
       "assistantId": null,
@@ -1395,9 +1423,9 @@
       "trackOrder": null,
       "order": 2,
       "durationMin": 30,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
+      "eventId": "<event:weekend-3>",
+      "partId": "<templatePart:weekend/part-2>",
+      "presetId": "<preset:public-talk>",
       "assigneeId": null,
       "assistantId": null,
       "allowExternalSpeaker": true,
@@ -1414,9 +1442,9 @@
       "trackOrder": null,
       "order": 2,
       "durationMin": 10,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
+      "eventId": "<event:midweek-3>",
+      "partId": "<templatePart:midweek/part-2>",
+      "presetId": "<preset:midweek-talk>",
       "assigneeId": null,
       "assistantId": null,
       "allowExternalSpeaker": true,
@@ -1433,9 +1461,9 @@
       "trackOrder": null,
       "order": 11,
       "durationMin": 30,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
+      "eventId": "<event:midweek-3>",
+      "partId": "<templatePart:midweek/part-11>",
+      "presetId": "<preset:congregation-bible-study>",
       "assigneeId": null,
       "assistantId": null,
       "allowExternalSpeaker": false,
@@ -1452,10 +1480,10 @@
       "trackOrder": null,
       "order": 11,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
-      "assigneeId": "<id>",
+      "eventId": "<event:midweek-1>",
+      "partId": "<templatePart:midweek/part-11>",
+      "presetId": "<preset:congregation-bible-study>",
+      "assigneeId": "<member:luc>",
       "assistantId": null,
       "allowExternalSpeaker": false,
       "externalSpeakerId": null
@@ -1471,10 +1499,10 @@
       "trackOrder": null,
       "order": 11,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
-      "assigneeId": "<id>",
+      "eventId": "<event:midweek-2>",
+      "partId": "<templatePart:midweek/part-11>",
+      "presetId": "<preset:congregation-bible-study>",
+      "assigneeId": "<member:luc>",
       "assistantId": null,
       "allowExternalSpeaker": false,
       "externalSpeakerId": null
@@ -1490,9 +1518,9 @@
       "trackOrder": null,
       "order": 4,
       "durationMin": 60,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
+      "eventId": "<event:weekend-3>",
+      "partId": "<templatePart:weekend/part-4>",
+      "presetId": "<preset:watchtower-study>",
       "assigneeId": null,
       "assistantId": null,
       "allowExternalSpeaker": false,
@@ -1509,10 +1537,10 @@
       "trackOrder": null,
       "order": 4,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
-      "assigneeId": "<id>",
+      "eventId": "<event:weekend-1>",
+      "partId": "<templatePart:weekend/part-4>",
+      "presetId": "<preset:watchtower-study>",
+      "assigneeId": "<member:pierre>",
       "assistantId": null,
       "allowExternalSpeaker": false,
       "externalSpeakerId": null
@@ -1528,10 +1556,10 @@
       "trackOrder": null,
       "order": 4,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
-      "assigneeId": "<id>",
+      "eventId": "<event:weekend-2>",
+      "partId": "<templatePart:weekend/part-4>",
+      "presetId": "<preset:watchtower-study>",
+      "assigneeId": "<member:hugo>",
       "assistantId": null,
       "allowExternalSpeaker": false,
       "externalSpeakerId": null
@@ -1547,9 +1575,9 @@
       "trackOrder": null,
       "order": 4,
       "durationMin": 4,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
+      "eventId": "<event:midweek-3>",
+      "partId": "<templatePart:midweek/part-4>",
+      "presetId": "<preset:bible-reading>",
       "assigneeId": null,
       "assistantId": null,
       "allowExternalSpeaker": false,
@@ -1566,10 +1594,10 @@
       "trackOrder": null,
       "order": 4,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
-      "assigneeId": "<id>",
+      "eventId": "<event:midweek-1>",
+      "partId": "<templatePart:midweek/part-4>",
+      "presetId": "<preset:bible-reading>",
+      "assigneeId": "<member:pierre>",
       "assistantId": null,
       "allowExternalSpeaker": false,
       "externalSpeakerId": null
@@ -1585,9 +1613,9 @@
       "trackOrder": null,
       "order": 3,
       "durationMin": 10,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
+      "eventId": "<event:midweek-3>",
+      "partId": "<templatePart:midweek/part-3>",
+      "presetId": "<preset:midweek-talk>",
       "assigneeId": null,
       "assistantId": null,
       "allowExternalSpeaker": false,
@@ -1604,10 +1632,10 @@
       "trackOrder": null,
       "order": 3,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
-      "assigneeId": "<id>",
+      "eventId": "<event:midweek-1>",
+      "partId": "<templatePart:midweek/part-3>",
+      "presetId": "<preset:midweek-talk>",
+      "assigneeId": "<member:luc>",
       "assistantId": null,
       "allowExternalSpeaker": false,
       "externalSpeakerId": null
@@ -1623,10 +1651,10 @@
       "trackOrder": null,
       "order": 3,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
-      "assigneeId": "<id>",
+      "eventId": "<event:midweek-2>",
+      "partId": "<templatePart:midweek/part-3>",
+      "presetId": "<preset:midweek-talk>",
+      "assigneeId": "<member:luc>",
       "assistantId": null,
       "allowExternalSpeaker": false,
       "externalSpeakerId": null
@@ -1642,9 +1670,9 @@
       "trackOrder": null,
       "order": 3,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
+      "eventId": "<event:memorial-1>",
+      "partId": "<templatePart:memorial/part-3>",
+      "presetId": "<preset:prayer>",
       "assigneeId": null,
       "assistantId": null,
       "allowExternalSpeaker": false,
@@ -1661,9 +1689,9 @@
       "trackOrder": null,
       "order": 4,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
+      "eventId": "<event:memorial-1>",
+      "partId": "<templatePart:memorial/part-4>",
+      "presetId": "<preset:prayer>",
       "assigneeId": null,
       "assistantId": null,
       "allowExternalSpeaker": false,
@@ -1680,11 +1708,11 @@
       "trackOrder": null,
       "order": 12,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
-      "assigneeId": "<id>",
-      "assistantId": "<id>",
+      "eventId": "<event:midweek-2>",
+      "partId": "<templatePart:midweek/part-12>",
+      "presetId": "<preset:prayer>",
+      "assigneeId": "<member:hugo>",
+      "assistantId": "<member:marc>",
       "allowExternalSpeaker": false,
       "externalSpeakerId": null
     },
@@ -1699,10 +1727,10 @@
       "trackOrder": null,
       "order": 8,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
+      "eventId": "<event:midweek-2>",
+      "partId": "<templatePart:midweek/part-8>",
       "presetId": null,
-      "assigneeId": "<id>",
+      "assigneeId": "<member:hugo>",
       "assistantId": null,
       "allowExternalSpeaker": false,
       "externalSpeakerId": null
@@ -1718,10 +1746,10 @@
       "trackOrder": null,
       "order": 4,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
-      "assigneeId": "<id>",
+      "eventId": "<event:midweek-2>",
+      "partId": "<templatePart:midweek/part-4>",
+      "presetId": "<preset:bible-reading>",
+      "assigneeId": "<member:hugo>",
       "assistantId": null,
       "allowExternalSpeaker": false,
       "externalSpeakerId": null
@@ -1737,13 +1765,13 @@
       "trackOrder": null,
       "order": 2,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
-      "assigneeId": "<id>",
+      "eventId": "<event:weekend-1>",
+      "partId": "<templatePart:weekend/part-2>",
+      "presetId": "<preset:public-talk>",
+      "assigneeId": null,
       "assistantId": null,
       "allowExternalSpeaker": true,
-      "externalSpeakerId": null
+      "externalSpeakerId": "<speaker:rousseau>"
     },
     {
       "id": "<id>",
@@ -1756,29 +1784,10 @@
       "trackOrder": null,
       "order": 2,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
-      "assigneeId": null,
-      "assistantId": null,
-      "allowExternalSpeaker": true,
-      "externalSpeakerId": "<id>"
-    },
-    {
-      "id": "<id>",
-      "topic": "Sujet de référence",
-      "note": "",
-      "hasConflict": false,
-      "name": "Discours",
-      "section": "Perles spirituelles",
-      "track": "",
-      "trackOrder": null,
-      "order": 2,
-      "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
-      "assigneeId": "<id>",
+      "eventId": "<event:weekend-2>",
+      "partId": "<templatePart:weekend/part-2>",
+      "presetId": "<preset:public-talk>",
+      "assigneeId": "<member:paul>",
       "assistantId": null,
       "allowExternalSpeaker": true,
       "externalSpeakerId": null
@@ -1794,10 +1803,29 @@
       "trackOrder": null,
       "order": 2,
       "durationMin": null,
-      "eventId": "<id>",
-      "partId": "<id>",
-      "presetId": "<id>",
-      "assigneeId": "<id>",
+      "eventId": "<event:midweek-1>",
+      "partId": "<templatePart:midweek/part-2>",
+      "presetId": "<preset:midweek-talk>",
+      "assigneeId": "<member:paul>",
+      "assistantId": null,
+      "allowExternalSpeaker": true,
+      "externalSpeakerId": null
+    },
+    {
+      "id": "<id>",
+      "topic": "Sujet de référence",
+      "note": "",
+      "hasConflict": false,
+      "name": "Discours",
+      "section": "Perles spirituelles",
+      "track": "",
+      "trackOrder": null,
+      "order": 2,
+      "durationMin": null,
+      "eventId": "<event:midweek-2>",
+      "partId": "<templatePart:midweek/part-2>",
+      "presetId": "<preset:midweek-talk>",
+      "assigneeId": "<member:paul>",
       "assistantId": null,
       "allowExternalSpeaker": true,
       "externalSpeakerId": null
@@ -1806,17 +1834,17 @@
   "programme-part-assignment-allowed-roles": [
     {
       "assignmentId": "<id>",
-      "roleId": "<id>",
+      "roleId": "<role:elder>",
       "asKind": "speaker"
     },
     {
       "assignmentId": "<id>",
-      "roleId": "<id>",
+      "roleId": "<role:elder>",
       "asKind": "speaker"
     },
     {
       "assignmentId": "<id>",
-      "roleId": "<id>",
+      "roleId": "<role:elder>",
       "asKind": "speaker"
     }
   ],
@@ -1826,48 +1854,8 @@
       "note": "",
       "hasConflict": false,
       "name": "Audio-vidéo",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
-      "presetId": null,
-      "assigneeId": "<id>"
-    },
-    {
-      "id": "<id>",
-      "note": "",
-      "hasConflict": false,
-      "name": "Audio-vidéo",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
-      "presetId": null,
-      "assigneeId": "<id>"
-    },
-    {
-      "id": "<id>",
-      "note": "",
-      "hasConflict": false,
-      "name": "Audio-vidéo",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
-      "presetId": null,
-      "assigneeId": "<id>"
-    },
-    {
-      "id": "<id>",
-      "note": "",
-      "hasConflict": false,
-      "name": "Audio-vidéo",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
-      "presetId": null,
-      "assigneeId": "<id>"
-    },
-    {
-      "id": "<id>",
-      "note": "",
-      "hasConflict": false,
-      "name": "Audio-vidéo",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
+      "eventId": "<event:memorial-1>",
+      "servicePartId": "<templateServicePart:memorial/service-sono>",
       "presetId": null,
       "assigneeId": null
     },
@@ -1876,8 +1864,28 @@
       "note": "",
       "hasConflict": false,
       "name": "Audio-vidéo",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
+      "eventId": "<event:midweek-1>",
+      "servicePartId": "<templateServicePart:midweek/service-sono>",
+      "presetId": null,
+      "assigneeId": "<member:luc>"
+    },
+    {
+      "id": "<id>",
+      "note": "",
+      "hasConflict": false,
+      "name": "Audio-vidéo",
+      "eventId": "<event:midweek-2>",
+      "servicePartId": "<templateServicePart:midweek/service-sono>",
+      "presetId": null,
+      "assigneeId": "<member:luc>"
+    },
+    {
+      "id": "<id>",
+      "note": "",
+      "hasConflict": false,
+      "name": "Audio-vidéo",
+      "eventId": "<event:midweek-3>",
+      "servicePartId": "<templateServicePart:midweek/service-sono>",
       "presetId": null,
       "assigneeId": null
     },
@@ -1886,8 +1894,28 @@
       "note": "",
       "hasConflict": false,
       "name": "Audio-vidéo",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
+      "eventId": "<event:weekend-1>",
+      "servicePartId": "<templateServicePart:weekend/service-sono>",
+      "presetId": null,
+      "assigneeId": "<member:luc>"
+    },
+    {
+      "id": "<id>",
+      "note": "",
+      "hasConflict": false,
+      "name": "Audio-vidéo",
+      "eventId": "<event:weekend-2>",
+      "servicePartId": "<templateServicePart:weekend/service-sono>",
+      "presetId": null,
+      "assigneeId": "<member:luc>"
+    },
+    {
+      "id": "<id>",
+      "note": "",
+      "hasConflict": false,
+      "name": "Audio-vidéo",
+      "eventId": "<event:weekend-3>",
+      "servicePartId": "<templateServicePart:weekend/service-sono>",
       "presetId": null,
       "assigneeId": null
     },
@@ -1896,48 +1924,8 @@
       "note": "",
       "hasConflict": false,
       "name": "Estrade",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
-      "presetId": null,
-      "assigneeId": "<id>"
-    },
-    {
-      "id": "<id>",
-      "note": "",
-      "hasConflict": false,
-      "name": "Estrade",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
-      "presetId": null,
-      "assigneeId": "<id>"
-    },
-    {
-      "id": "<id>",
-      "note": "",
-      "hasConflict": false,
-      "name": "Estrade",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
-      "presetId": null,
-      "assigneeId": "<id>"
-    },
-    {
-      "id": "<id>",
-      "note": "",
-      "hasConflict": false,
-      "name": "Estrade",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
-      "presetId": null,
-      "assigneeId": "<id>"
-    },
-    {
-      "id": "<id>",
-      "note": "",
-      "hasConflict": false,
-      "name": "Estrade",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
+      "eventId": "<event:memorial-1>",
+      "servicePartId": "<templateServicePart:memorial/service-stage>",
       "presetId": null,
       "assigneeId": null
     },
@@ -1946,8 +1934,28 @@
       "note": "",
       "hasConflict": false,
       "name": "Estrade",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
+      "eventId": "<event:midweek-1>",
+      "servicePartId": "<templateServicePart:midweek/service-stage>",
+      "presetId": null,
+      "assigneeId": "<member:marc>"
+    },
+    {
+      "id": "<id>",
+      "note": "",
+      "hasConflict": false,
+      "name": "Estrade",
+      "eventId": "<event:midweek-2>",
+      "servicePartId": "<templateServicePart:midweek/service-stage>",
+      "presetId": null,
+      "assigneeId": "<member:marc>"
+    },
+    {
+      "id": "<id>",
+      "note": "",
+      "hasConflict": false,
+      "name": "Estrade",
+      "eventId": "<event:midweek-3>",
+      "servicePartId": "<templateServicePart:midweek/service-stage>",
       "presetId": null,
       "assigneeId": null
     },
@@ -1956,8 +1964,28 @@
       "note": "",
       "hasConflict": false,
       "name": "Estrade",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
+      "eventId": "<event:weekend-1>",
+      "servicePartId": "<templateServicePart:weekend/service-stage>",
+      "presetId": null,
+      "assigneeId": "<member:marc>"
+    },
+    {
+      "id": "<id>",
+      "note": "",
+      "hasConflict": false,
+      "name": "Estrade",
+      "eventId": "<event:weekend-2>",
+      "servicePartId": "<templateServicePart:weekend/service-stage>",
+      "presetId": null,
+      "assigneeId": "<member:marc>"
+    },
+    {
+      "id": "<id>",
+      "note": "",
+      "hasConflict": false,
+      "name": "Estrade",
+      "eventId": "<event:weekend-3>",
+      "servicePartId": "<templateServicePart:weekend/service-stage>",
       "presetId": null,
       "assigneeId": null
     },
@@ -1966,48 +1994,8 @@
       "note": "",
       "hasConflict": false,
       "name": "Nettoyage",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
-      "presetId": null,
-      "assigneeId": "<id>"
-    },
-    {
-      "id": "<id>",
-      "note": "",
-      "hasConflict": false,
-      "name": "Nettoyage",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
-      "presetId": null,
-      "assigneeId": "<id>"
-    },
-    {
-      "id": "<id>",
-      "note": "",
-      "hasConflict": false,
-      "name": "Nettoyage",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
-      "presetId": null,
-      "assigneeId": "<id>"
-    },
-    {
-      "id": "<id>",
-      "note": "",
-      "hasConflict": false,
-      "name": "Nettoyage",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
-      "presetId": null,
-      "assigneeId": "<id>"
-    },
-    {
-      "id": "<id>",
-      "note": "",
-      "hasConflict": false,
-      "name": "Nettoyage",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
+      "eventId": "<event:memorial-1>",
+      "servicePartId": "<templateServicePart:memorial/service-cleaning>",
       "presetId": null,
       "assigneeId": null
     },
@@ -2016,8 +2004,28 @@
       "note": "",
       "hasConflict": false,
       "name": "Nettoyage",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
+      "eventId": "<event:midweek-1>",
+      "servicePartId": "<templateServicePart:midweek/service-cleaning>",
+      "presetId": null,
+      "assigneeId": "<member:paul>"
+    },
+    {
+      "id": "<id>",
+      "note": "",
+      "hasConflict": false,
+      "name": "Nettoyage",
+      "eventId": "<event:midweek-2>",
+      "servicePartId": "<templateServicePart:midweek/service-cleaning>",
+      "presetId": null,
+      "assigneeId": "<member:paul>"
+    },
+    {
+      "id": "<id>",
+      "note": "",
+      "hasConflict": false,
+      "name": "Nettoyage",
+      "eventId": "<event:midweek-3>",
+      "servicePartId": "<templateServicePart:midweek/service-cleaning>",
       "presetId": null,
       "assigneeId": null
     },
@@ -2026,8 +2034,28 @@
       "note": "",
       "hasConflict": false,
       "name": "Nettoyage",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
+      "eventId": "<event:weekend-1>",
+      "servicePartId": "<templateServicePart:weekend/service-cleaning>",
+      "presetId": null,
+      "assigneeId": "<member:paul>"
+    },
+    {
+      "id": "<id>",
+      "note": "",
+      "hasConflict": false,
+      "name": "Nettoyage",
+      "eventId": "<event:weekend-2>",
+      "servicePartId": "<templateServicePart:weekend/service-cleaning>",
+      "presetId": null,
+      "assigneeId": "<member:paul>"
+    },
+    {
+      "id": "<id>",
+      "note": "",
+      "hasConflict": false,
+      "name": "Nettoyage",
+      "eventId": "<event:weekend-3>",
+      "servicePartId": "<templateServicePart:weekend/service-cleaning>",
       "presetId": null,
       "assigneeId": null
     },
@@ -2036,38 +2064,8 @@
       "note": "",
       "hasConflict": false,
       "name": "Préposés à l’accueil",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
-      "presetId": null,
-      "assigneeId": "<id>"
-    },
-    {
-      "id": "<id>",
-      "note": "",
-      "hasConflict": false,
-      "name": "Préposés à l’accueil",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
-      "presetId": null,
-      "assigneeId": "<id>"
-    },
-    {
-      "id": "<id>",
-      "note": "",
-      "hasConflict": false,
-      "name": "Préposés à l’accueil",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
-      "presetId": null,
-      "assigneeId": "<id>"
-    },
-    {
-      "id": "<id>",
-      "note": "",
-      "hasConflict": false,
-      "name": "Préposés à l’accueil",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
+      "eventId": "<event:memorial-1>",
+      "servicePartId": "<templateServicePart:memorial/service-welcome>",
       "presetId": null,
       "assigneeId": null
     },
@@ -2076,8 +2074,18 @@
       "note": "",
       "hasConflict": false,
       "name": "Préposés à l’accueil",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
+      "eventId": "<event:midweek-1>",
+      "servicePartId": "<templateServicePart:midweek/service-welcome>",
+      "presetId": null,
+      "assigneeId": "<member:pierre>"
+    },
+    {
+      "id": "<id>",
+      "note": "",
+      "hasConflict": false,
+      "name": "Préposés à l’accueil",
+      "eventId": "<event:midweek-3>",
+      "servicePartId": "<templateServicePart:midweek/service-welcome>",
       "presetId": null,
       "assigneeId": null
     },
@@ -2086,8 +2094,28 @@
       "note": "",
       "hasConflict": false,
       "name": "Préposés à l’accueil",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
+      "eventId": "<event:weekend-1>",
+      "servicePartId": "<templateServicePart:weekend/service-welcome>",
+      "presetId": null,
+      "assigneeId": "<member:pierre>"
+    },
+    {
+      "id": "<id>",
+      "note": "",
+      "hasConflict": false,
+      "name": "Préposés à l’accueil",
+      "eventId": "<event:weekend-2>",
+      "servicePartId": "<templateServicePart:weekend/service-welcome>",
+      "presetId": null,
+      "assigneeId": "<member:hugo>"
+    },
+    {
+      "id": "<id>",
+      "note": "",
+      "hasConflict": false,
+      "name": "Préposés à l’accueil",
+      "eventId": "<event:weekend-3>",
+      "servicePartId": "<templateServicePart:weekend/service-welcome>",
       "presetId": null,
       "assigneeId": null
     },
@@ -2096,36 +2124,36 @@
       "note": "",
       "hasConflict": true,
       "name": "Préposés à l’accueil",
-      "eventId": "<id>",
-      "servicePartId": "<id>",
+      "eventId": "<event:midweek-2>",
+      "servicePartId": "<templateServicePart:midweek/service-welcome>",
       "presetId": null,
-      "assigneeId": "<id>"
+      "assigneeId": "<member:hugo>"
     }
   ],
   "programme-service-role-assignment-allowed-roles": [
     {
       "assignmentId": "<id>",
-      "roleId": "<id>"
+      "roleId": "<role:assistant-servant>"
     },
     {
       "assignmentId": "<id>",
-      "roleId": "<id>"
+      "roleId": "<role:assistant-servant>"
     },
     {
       "assignmentId": "<id>",
-      "roleId": "<id>"
+      "roleId": "<role:assistant-servant>"
     },
     {
       "assignmentId": "<id>",
-      "roleId": "<id>"
+      "roleId": "<role:elder>"
     },
     {
       "assignmentId": "<id>",
-      "roleId": "<id>"
+      "roleId": "<role:elder>"
     },
     {
       "assignmentId": "<id>",
-      "roleId": "<id>"
+      "roleId": "<role:elder>"
     }
   ],
   "board-dynamic-document-settings": [
@@ -2134,7 +2162,7 @@
       "title": "Programme by-date",
       "dynamicType": "programme",
       "dynamicRef": null,
-      "sectionId": "<id>",
+      "sectionId": "<section:meetings>",
       "order": 1,
       "visibleFrom": null,
       "visibleUntil": null,
@@ -2147,7 +2175,7 @@
       "title": "Programme by-template",
       "dynamicType": "programme",
       "dynamicRef": null,
-      "sectionId": "<id>",
+      "sectionId": "<section:meetings>",
       "order": 2,
       "visibleFrom": null,
       "visibleUntil": null,
@@ -2160,7 +2188,7 @@
       "title": "Programme midweek-parts",
       "dynamicType": "programme",
       "dynamicRef": null,
-      "sectionId": "<id>",
+      "sectionId": "<section:meetings>",
       "order": 3,
       "visibleFrom": null,
       "visibleUntil": null,
@@ -2173,7 +2201,7 @@
       "title": "Programme weekend-services",
       "dynamicType": "programme",
       "dynamicRef": null,
-      "sectionId": "<id>",
+      "sectionId": "<section:meetings>",
       "order": 4,
       "visibleFrom": null,
       "visibleUntil": null,

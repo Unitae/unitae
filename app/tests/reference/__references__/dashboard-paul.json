@@ -1,7 +1,7 @@
 {
   "nextMeeting": {
     "id": "<id>",
-    "templateId": "<id>",
+    "templateId": "<template:midweek>",
     "name": "Réunion de semaine",
     "startDate": "2027-03-09T18:00:00.000Z",
     "endDate": "2027-03-09T19:45:00.000Z",
@@ -29,7 +29,7 @@
         },
         "assistant": null,
         "externalSpeaker": null,
-        "viewerRole": null
+        "viewerRole": "speaker"
       },
       {
         "id": "<id>",
@@ -50,7 +50,7 @@
         },
         "assistant": null,
         "externalSpeaker": null,
-        "viewerRole": null
+        "viewerRole": "speaker"
       },
       {
         "id": "<id>",
@@ -113,7 +113,7 @@
         },
         "assistant": null,
         "externalSpeaker": null,
-        "viewerRole": null
+        "viewerRole": "speaker"
       },
       {
         "id": "<id>",
@@ -197,7 +197,7 @@
         },
         "assistant": null,
         "externalSpeaker": null,
-        "viewerRole": null
+        "viewerRole": "speaker"
       },
       {
         "id": "<id>",
@@ -305,14 +305,21 @@
         }
       }
     ],
-    "userPartIds": [],
-    "userServicePartIds": [],
-    "link": "/board/dynamic/<midweek-parts>/viewer?eventId=<midweek-1>"
+    "userPartIds": [
+      "<eventPart:midweek-1/part-1>",
+      "<eventPart:midweek-1/part-2>",
+      "<eventPart:midweek-1/part-5>",
+      "<eventPart:midweek-1/part-9>"
+    ],
+    "userServicePartIds": [
+      "<eventServicePart:midweek-1/service-Nettoyage>"
+    ],
+    "link": "/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>"
   },
   "nextMeetingForViewer": {
     "meeting": {
       "id": "<id>",
-      "templateId": "<id>",
+      "templateId": "<template:midweek>",
       "name": "Réunion de semaine",
       "startDate": "2027-03-09T18:00:00.000Z",
       "endDate": "2027-03-09T19:45:00.000Z",
@@ -617,21 +624,205 @@
         }
       ],
       "userPartIds": [
-        "<id>",
-        "<id>",
-        "<id>",
-        "<id>"
+        "<eventPart:midweek-1/part-1>",
+        "<eventPart:midweek-1/part-2>",
+        "<eventPart:midweek-1/part-5>",
+        "<eventPart:midweek-1/part-9>"
       ],
       "userServicePartIds": [
-        "<id>"
+        "<eventServicePart:midweek-1/service-Nettoyage>"
       ],
-      "link": "/board/dynamic/<midweek-parts>/viewer?eventId=<midweek-1>"
+      "link": "/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>"
     },
     "showCard": true,
     "canAct": true,
-    "link": "/programs/events/<midweek-1>"
+    "link": "/programs/events/<event:midweek-1>"
   },
-  "upcomingAssignments": [],
+  "nextMeetingOnTheBoard": {
+    "meeting": {
+      "id": "<id>",
+      "templateId": "<template:midweek>",
+      "name": "Réunion de semaine",
+      "startDate": "2027-03-09T18:00:00.000Z",
+      "endDate": "2027-03-09T19:45:00.000Z",
+      "template": {
+        "name": "Réunion de semaine",
+        "color": "#3b82f6"
+      },
+      "eventParts": [
+        {
+          "id": "<id>",
+          "name": "Cantique et prière",
+          "section": "",
+          "track": "",
+          "trackOrder": null,
+          "durationMin": null,
+          "hasConflict": false,
+          "topic": "",
+          "order": 1,
+          "speakerLabel": null,
+          "readerLabel": null,
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Paul",
+            "lastname": "MARTIN"
+          },
+          "assistant": null,
+          "externalSpeaker": null,
+          "viewerRole": "speaker"
+        },
+        {
+          "id": "<id>",
+          "name": "Discours",
+          "section": "Perles spirituelles",
+          "track": "",
+          "trackOrder": null,
+          "durationMin": null,
+          "hasConflict": false,
+          "topic": "Sujet de référence",
+          "order": 2,
+          "speakerLabel": null,
+          "readerLabel": null,
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Paul",
+            "lastname": "MARTIN"
+          },
+          "assistant": null,
+          "externalSpeaker": null,
+          "viewerRole": "speaker"
+        },
+        {
+          "id": "<id>",
+          "name": "1re partie",
+          "section": "Appliquons-nous au ministère",
+          "track": "",
+          "trackOrder": null,
+          "durationMin": null,
+          "hasConflict": false,
+          "topic": "",
+          "order": 5,
+          "speakerLabel": null,
+          "readerLabel": null,
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Paul",
+            "lastname": "MARTIN"
+          },
+          "assistant": null,
+          "externalSpeaker": null,
+          "viewerRole": "speaker"
+        },
+        {
+          "id": "<id>",
+          "name": "1re partie",
+          "section": "Vie chrétienne",
+          "track": "",
+          "trackOrder": null,
+          "durationMin": null,
+          "hasConflict": false,
+          "topic": "",
+          "order": 9,
+          "speakerLabel": null,
+          "readerLabel": null,
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Paul",
+            "lastname": "MARTIN"
+          },
+          "assistant": null,
+          "externalSpeaker": null,
+          "viewerRole": "speaker"
+        }
+      ],
+      "eventServiceParts": [
+        {
+          "id": "<id>",
+          "name": "Nettoyage",
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Paul",
+            "lastname": "MARTIN"
+          }
+        }
+      ],
+      "userPartIds": [
+        "<eventPart:midweek-1/part-1>",
+        "<eventPart:midweek-1/part-2>",
+        "<eventPart:midweek-1/part-5>",
+        "<eventPart:midweek-1/part-9>"
+      ],
+      "userServicePartIds": [
+        "<eventServicePart:midweek-1/service-Nettoyage>"
+      ],
+      "link": "/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>"
+    },
+    "showCard": false,
+    "canAct": false,
+    "link": "/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>"
+  },
+  "upcomingAssignments": [
+    {
+      "key": "part-<id>",
+      "role": "speaker",
+      "partner": null,
+      "name": "Cantique et prière",
+      "topic": null,
+      "speakerLabel": "Frère",
+      "readerLabel": null,
+      "eventName": "Réunion de semaine",
+      "eventStartDate": "2027-03-09T18:00:00.000Z",
+      "link": "/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>"
+    },
+    {
+      "key": "part-<id>",
+      "role": "speaker",
+      "partner": null,
+      "name": "Discours",
+      "topic": "Sujet de référence",
+      "speakerLabel": "Orateur",
+      "readerLabel": null,
+      "eventName": "Réunion de semaine",
+      "eventStartDate": "2027-03-09T18:00:00.000Z",
+      "link": "/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>"
+    },
+    {
+      "key": "part-<id>",
+      "role": "speaker",
+      "partner": null,
+      "name": "1re partie",
+      "topic": null,
+      "speakerLabel": null,
+      "readerLabel": null,
+      "eventName": "Réunion de semaine",
+      "eventStartDate": "2027-03-09T18:00:00.000Z",
+      "link": "/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>"
+    },
+    {
+      "key": "part-<id>",
+      "role": "speaker",
+      "partner": null,
+      "name": "1re partie",
+      "topic": null,
+      "speakerLabel": "Orateur",
+      "readerLabel": null,
+      "eventName": "Réunion de semaine",
+      "eventStartDate": "2027-03-09T18:00:00.000Z",
+      "link": "/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>"
+    },
+    {
+      "key": "service-<id>",
+      "role": "service",
+      "partner": null,
+      "name": "Nettoyage",
+      "topic": null,
+      "speakerLabel": null,
+      "readerLabel": null,
+      "eventName": "Réunion de semaine",
+      "eventStartDate": "2027-03-09T18:00:00.000Z",
+      "link": "/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>"
+    }
+  ],
   "conflictingAssignments": null,
   "upcomingAbsences": {
     "upcoming": [],

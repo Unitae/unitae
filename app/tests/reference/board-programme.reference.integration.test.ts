@@ -39,7 +39,7 @@ function readDocument(name: (typeof DOCUMENTS)[number]) {
   const { congregationId } = fixture
   return withScope(congregationId, async db => {
     const settings = await db.boardDynamicDocumentSettings.findFirstOrThrow({
-      where: { id: fixture.documents[name], congregationId },
+      where: { id: fixture.document(name), congregationId },
     })
     return getDynamicDocumentData(db, settings.dynamicType, settings.dynamicRef, congregationId, {
       showServices: settings.showServices,
@@ -74,8 +74,8 @@ describe.each(DOCUMENTS)('the programme document « %s »', name => {
   it('prints the same sheet', async () => {
     const data = await readDocument(name)
 
-    // Today the services print in the order the database returns them, which is not defined: sorted by name here so
-    // the reference does not depend on it (the schedules refactor gives duties an order of their own).
+    // The services print in the order the database returns them, which is not defined: sorted by name here so the
+    // reference does not depend on it, until services carry an order of their own.
     const pages = await renderSheet(
       withServicesByName(data) as BoardSheetData,
       { typeface: 'fira', accent: 'teal', layout: 'list' },

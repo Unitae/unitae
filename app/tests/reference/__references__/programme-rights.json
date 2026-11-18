@@ -1,0 +1,188 @@
+{
+  "paul, an elder: midweek programme responsible": {
+    "responsibleFor": {
+      "programme": [
+        "midweek"
+      ],
+      "service": [
+        "midweek"
+      ]
+    },
+    "templates": {
+      "midweek": {
+        "manageAsProgramme": true,
+        "assignAsProgramme": true,
+        "assignAsService": true
+      },
+      "weekend": {
+        "manageAsProgramme": false,
+        "assignAsProgramme": false,
+        "assignAsService": false
+      },
+      "memorial": {
+        "manageAsProgramme": false,
+        "assignAsProgramme": false,
+        "assignAsService": false
+      }
+    },
+    "applicableTemplates": [
+      "midweek"
+    ],
+    "managesAnyProgramme": true,
+    "manageableEvents": [
+      "midweek-1",
+      "midweek-2",
+      "midweek-3",
+      "midweek-ahead-1",
+      "midweek-ahead-2",
+      "midweek-ahead-3",
+      "midweek-ahead-4",
+      "midweek-ahead-5"
+    ],
+    "assignableEvents": [
+      "midweek-1",
+      "midweek-2",
+      "midweek-3",
+      "midweek-ahead-1",
+      "midweek-ahead-2",
+      "midweek-ahead-3",
+      "midweek-ahead-4",
+      "midweek-ahead-5"
+    ],
+    "readsFactsOfAMidweekPart": true,
+    "readsFactsOfAWeekendService": false
+  },
+  "luc, a servant: weekend services responsible": {
+    "responsibleFor": {
+      "programme": [],
+      "service": [
+        "weekend"
+      ]
+    },
+    "templates": {
+      "midweek": {
+        "manageAsProgramme": false,
+        "assignAsProgramme": false,
+        "assignAsService": false
+      },
+      "weekend": {
+        "manageAsProgramme": false,
+        "assignAsProgramme": false,
+        "assignAsService": true
+      },
+      "memorial": {
+        "manageAsProgramme": false,
+        "assignAsProgramme": false,
+        "assignAsService": false
+      }
+    },
+    "applicableTemplates": [],
+    "managesAnyProgramme": false,
+    "manageableEvents": [],
+    "assignableEvents": [],
+    "readsFactsOfAMidweekPart": false,
+    "readsFactsOfAWeekendService": true
+  },
+  "pierre, neither": {
+    "responsibleFor": {
+      "programme": [],
+      "service": []
+    },
+    "templates": {
+      "midweek": {
+        "manageAsProgramme": false,
+        "assignAsProgramme": false,
+        "assignAsService": false
+      },
+      "weekend": {
+        "manageAsProgramme": false,
+        "assignAsProgramme": false,
+        "assignAsService": false
+      },
+      "memorial": {
+        "manageAsProgramme": false,
+        "assignAsProgramme": false,
+        "assignAsService": false
+      }
+    },
+    "applicableTemplates": [],
+    "managesAnyProgramme": false,
+    "manageableEvents": [],
+    "assignableEvents": [],
+    "readsFactsOfAMidweekPart": false,
+    "readsFactsOfAWeekendService": false
+  },
+  "pierre, holding every permission": {
+    "responsibleFor": {
+      "programme": [],
+      "service": []
+    },
+    "templates": {
+      "midweek": {
+        "manageAsProgramme": true,
+        "assignAsProgramme": true,
+        "assignAsService": true
+      },
+      "weekend": {
+        "manageAsProgramme": true,
+        "assignAsProgramme": true,
+        "assignAsService": true
+      },
+      "memorial": {
+        "manageAsProgramme": true,
+        "assignAsProgramme": true,
+        "assignAsService": true
+      }
+    },
+    "applicableTemplates": [
+      "day-off",
+      "freeform",
+      "memorial",
+      "midweek",
+      "weekend"
+    ],
+    "managesAnyProgramme": true,
+    "manageableEvents": [
+      "memorial-1",
+      "midweek-1",
+      "midweek-2",
+      "midweek-3",
+      "midweek-ahead-1",
+      "midweek-ahead-2",
+      "midweek-ahead-3",
+      "midweek-ahead-4",
+      "midweek-ahead-5",
+      "weekend-1",
+      "weekend-2",
+      "weekend-3",
+      "weekend-ahead-1",
+      "weekend-ahead-2",
+      "weekend-ahead-3",
+      "weekend-ahead-4",
+      "weekend-ahead-5",
+      "weekend-ahead-6"
+    ],
+    "assignableEvents": [
+      "memorial-1",
+      "midweek-1",
+      "midweek-2",
+      "midweek-3",
+      "midweek-ahead-1",
+      "midweek-ahead-2",
+      "midweek-ahead-3",
+      "midweek-ahead-4",
+      "midweek-ahead-5",
+      "weekend-1",
+      "weekend-2",
+      "weekend-3",
+      "weekend-ahead-1",
+      "weekend-ahead-2",
+      "weekend-ahead-3",
+      "weekend-ahead-4",
+      "weekend-ahead-5",
+      "weekend-ahead-6"
+    ],
+    "readsFactsOfAMidweekPart": true,
+    "readsFactsOfAWeekendService": true
+  }
+}

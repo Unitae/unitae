@@ -14,12 +14,15 @@ import {
 } from '~/tests/fixtures/events-reference'
 import { normalise, reference } from '~/tests/fixtures/reference-normalise'
 
-// The congregation exported, then imported into a new, empty one (as the data-transfer round trip does): what the archive carries
-// for meetings, and what the new congregation's board and programmes read after the import. Today's archive drops
-// the events' status and the board documents' configuration, so the import comes back with every programme a draft —
-// pinned here as it is; the fix changes this reference on purpose.
+// The congregation exported, then imported into a new, empty one (as the data-transfer round trip does): what the
+// archive carries for meetings, and what the new congregation reads after the import, with its ids labelled as the
+// fixture's so both references say who holds what. Today's archive drops the events' status and the board documents'
+// configuration, and the four programme documents, which share a type and an empty ref, fold into one on import — so
+// every programme comes back a draft and the board shows nothing. Pinned as it is; the fix changes this on purpose.
 
 vi.setConfig({ testTimeout: 180_000, hookTimeout: 240_000 })
+
+const IMPORTED_LOGIN = /^imported-/
 
 /** The archive files about meetings: what the schedules refactor rewrites. */
 const MEETING_FILES = [
@@ -78,13 +81,14 @@ async function exportArchive(congregationId: number): Promise<Record<string, unk
 async function zipOf(files: Record<string, unknown[]>): Promise<JsZip> {
   const zip = new JsZip()
   const data = zip.folder('data')
+  if (!data) throw new Error('could not create the archive’s data folder')
   for (const [name, lines] of Object.entries(files)) {
-    data?.file(`${name}.ndjson`, lines.map(line => JSON.stringify(line)).join('\n') + (lines.length > 0 ? '\n' : ''))
+    data.file(`${name}.ndjson`, lines.map(line => JSON.stringify(line)).join('\n') + (lines.length > 0 ? '\n' : ''))
   }
   return JsZip.loadAsync(await zip.generateAsync({ type: 'nodebuffer' }))
 }
 
-/** The import as `runImport` chains it, for the steps up to meetings and the board. Keep the two in step. */
+/** The `runImport` steps that meetings and the board depend on, in `runImport`'s order. Keep the order in step. */
 async function importArchive(zip: JsZip, congregationId: number) {
   const mod = await import('~/features/settings/server/import-congregation.server')
   const idMap = new EntityIdMap()
@@ -120,35 +124,184 @@ async function importArchive(zip: JsZip, congregationId: number) {
   })
 }
 
-/** The meeting files, each file's rows sorted by their content once ids are blanked: an archive's row order means nothing. */
-function meetingFiles(files: Record<string, unknown[]>) {
-  const content = (line: unknown) => JSON.stringify(normalise(line))
+/** The meeting files, each file's rows sorted by their labelled content: an archive's row order means nothing. */
+function meetingFiles(files: Record<string, unknown[]>, labels: ReadonlyMap<string, string>) {
+  const missing = MEETING_FILES.filter(name => !(name in files))
+  if (missing.length > 0) throw new Error(`the archive no longer has ${missing.join(', ')}`)
+  const content = (line: unknown) => JSON.stringify(normalise(line, '', labels))
   return Object.fromEntries(
-    MEETING_FILES.map(name => [
-      name,
-      files[name] ? [...files[name]].sort((a, b) => content(a).localeCompare(content(b))) : null,
-    ]),
+    MEETING_FILES.map(name => [name, [...files[name]].sort((a, b) => content(a).localeCompare(content(b)))]),
   )
 }
 
+/**
+ * The imported congregation's ids labelled as the fixture's: people by first name, accounts by login, templates,
+ * roles and presets by key, events by template and start, parts by meeting and order, services by meeting and name.
+ * So the reference after the import says who holds what, as the one before it does.
+ */
+async function labelsOfImport(congregationId: number): Promise<Map<string, string>> {
+  const labels = new Map<string, string>()
+  const sourceLabel = (table: string, id: number) => fixture.labels.get(`${table}:${id}`)
+  const byNaturalKey = async (cid: number) =>
+    withScope(cid, async db => ({
+      members: await db.member.findMany({ where: { congregationId: cid }, select: { id: true, firstname: true } }),
+      accounts: await db.userAccount.findMany({ where: { congregationId: cid }, select: { id: true, email: true } }),
+      roles: await db.role.findMany({ where: { congregationId: cid }, select: { id: true, key: true } }),
+      presets: await db.partPreset.findMany({ where: { congregationId: cid }, select: { id: true, key: true } }),
+      speakers: await db.externalSpeaker.findMany({ where: { congregationId: cid }, select: { id: true, name: true } }),
+      sections: await db.boardSection.findMany({ where: { congregationId: cid }, select: { id: true, name: true } }),
+      templates: await db.eventTemplate.findMany({
+        where: { congregationId: cid },
+        select: {
+          id: true,
+          key: true,
+          parts: { select: { id: true, order: true } },
+          serviceParts: { select: { id: true, key: true } },
+        },
+      }),
+      events: await db.event.findMany({
+        where: { congregationId: cid },
+        select: {
+          id: true,
+          startDate: true,
+          template: { select: { key: true } },
+          eventParts: { select: { id: true, order: true } },
+          eventServiceParts: { select: { id: true, name: true } },
+        },
+      }),
+    }))
+  const source = await byNaturalKey(fixture.congregationId)
+  const target = await byNaturalKey(congregationId)
+
+  const match = <S extends { id: number }, T extends { id: number }>(
+    table: string,
+    sources: S[],
+    targets: T[],
+    keyOfSource: (row: S) => string,
+    keyOfTarget: (row: T) => string,
+  ) => {
+    const byKey = new Map(sources.map(row => [keyOfSource(row), sourceLabel(table, row.id)]))
+    for (const row of targets) {
+      const name = byKey.get(keyOfTarget(row))
+      if (name) labels.set(`${table}:${row.id}`, name)
+    }
+  }
+  match(
+    'member',
+    source.members,
+    target.members,
+    row => row.firstname,
+    row => row.firstname,
+  )
+  match(
+    'account',
+    source.accounts,
+    target.accounts,
+    row => row.email,
+    row => row.email.replace(IMPORTED_LOGIN, ''),
+  )
+  match(
+    'role',
+    source.roles,
+    target.roles,
+    row => row.key,
+    row => row.key,
+  )
+  match(
+    'preset',
+    source.presets,
+    target.presets,
+    row => row.key,
+    row => row.key,
+  )
+  match(
+    'speaker',
+    source.speakers,
+    target.speakers,
+    row => row.name,
+    row => row.name,
+  )
+  match(
+    'section',
+    source.sections,
+    target.sections,
+    row => row.name,
+    row => row.name,
+  )
+  match(
+    'template',
+    source.templates,
+    target.templates,
+    row => row.key,
+    row => row.key,
+  )
+  const eventKey = (row: (typeof source.events)[number]) => `${row.template?.key} ${row.startDate.toISOString()}`
+  match('event', source.events, target.events, eventKey, eventKey)
+  const templatePartKey = (template: { key: string }, part: { order: number }) => `${template.key} ${part.order}`
+  match(
+    'templatePart',
+    source.templates.flatMap(template =>
+      template.parts.map(part => ({ id: part.id, key: templatePartKey(template, part) })),
+    ),
+    target.templates.flatMap(template =>
+      template.parts.map(part => ({ id: part.id, key: templatePartKey(template, part) })),
+    ),
+    row => row.key,
+    row => row.key,
+  )
+  const templateServiceKey = (template: { key: string }, service: { key: string | null }) =>
+    `${template.key} ${service.key}`
+  match(
+    'templateServicePart',
+    source.templates.flatMap(t =>
+      t.serviceParts.map(service => ({ id: service.id, key: templateServiceKey(t, service) })),
+    ),
+    target.templates.flatMap(t =>
+      t.serviceParts.map(service => ({ id: service.id, key: templateServiceKey(t, service) })),
+    ),
+    row => row.key,
+    row => row.key,
+  )
+  const items = (events: typeof source.events) => ({
+    parts: events.flatMap(e => e.eventParts.map(part => ({ id: part.id, key: `${eventKey(e)} ${part.order}` }))),
+    services: events.flatMap(e =>
+      e.eventServiceParts.map(service => ({ id: service.id, key: `${eventKey(e)} ${service.name}` })),
+    ),
+  })
+  match(
+    'eventPart',
+    items(source.events).parts,
+    items(target.events).parts,
+    row => row.key,
+    row => row.key,
+  )
+  match(
+    'eventServicePart',
+    items(source.events).services,
+    items(target.events).services,
+    row => row.key,
+    row => row.key,
+  )
+  return labels
+}
+
 describe('the archive', () => {
-  let exported: Record<string, unknown[]>
-
-  it('carries the same meetings', async () => {
-    exported = await exportArchive(fixture.congregationId)
-
-    await expect(reference(meetingFiles(exported), fixture.labels)).toMatchFileSnapshot(
+  it('carries the same meetings, and a new congregation reads them back', async () => {
+    const exported = await exportArchive(fixture.congregationId)
+    await expect(reference(Object.keys(exported).sort())).toMatchFileSnapshot('./__references__/archive-files.json')
+    await expect(reference(meetingFiles(exported, fixture.labels), fixture.labels)).toMatchFileSnapshot(
       './__references__/archive-export.json',
     )
-  })
 
-  it('imports into a new congregation, which then reads the same', async () => {
     // Logins are unique across the database, and an import usually lands on another instance: renamed here.
-    const accounts = (exported['user-accounts'] ?? []).map(line => {
-      const account = line as { email?: string }
-      return { ...account, email: `imported-${account.email}` }
-    })
-    await importArchive(await zipOf({ ...exported, 'user-accounts': accounts }), targetId)
+    const accounts = exported['user-accounts']
+    if (!accounts || accounts.length === 0) throw new Error('the archive carries no account')
+    const renamed = accounts.map(line => ({
+      ...(line as object),
+      email: `imported-${(line as { email: string }).email}`,
+    }))
+    await importArchive(await zipOf({ ...exported, 'user-accounts': renamed }), targetId)
+    const imported = await labelsOfImport(targetId)
 
     const reimported = await exportArchive(targetId)
     const programmeDocuments = await withScope(targetId, async db => {
@@ -156,19 +309,19 @@ describe('the archive', () => {
         where: { congregationId: targetId },
         orderBy: { order: 'asc' },
       })
-      const documents: Record<string, unknown> = {}
+      // Known defect, pinned on purpose: the import matches documents on (type, ref), every programme document has an
+      // empty ref, so the four fold into the last one.
+      expect(settings).toHaveLength(1)
+      const documents: { title: string; data: unknown }[] = []
       for (const document of settings) {
-        documents[document.title] = await getDynamicDocumentData(
-          db,
-          document.dynamicType,
-          document.dynamicRef,
-          targetId,
-          {
+        documents.push({
+          title: document.title,
+          data: await getDynamicDocumentData(db, document.dynamicType, document.dynamicRef, targetId, {
             showServices: document.showServices,
             dynamicConfig: document.dynamicConfig,
             attendance: { timeZone: REFERENCE_TIMEZONE, now: REFERENCE_NOW },
-          },
-        )
+          }),
+        })
       }
       return documents
     })
@@ -182,7 +335,7 @@ describe('the archive', () => {
     )
 
     await expect(
-      reference({ archive: meetingFiles(reimported), eventStatuses: statuses, programmeDocuments }, fixture.labels),
+      reference({ archive: meetingFiles(reimported, imported), eventStatuses: statuses, programmeDocuments }, imported),
     ).toMatchFileSnapshot('./__references__/archive-after-import.json')
   })
 })

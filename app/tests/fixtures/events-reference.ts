@@ -6,6 +6,7 @@ import {
   setTemplatePartAllowedRoles,
   setTemplateServicePartAllowedRoles,
 } from '~/features/events/server/allowed-roles.server'
+import { writeAttendanceCount } from '~/features/events/server/attendance.aggregate'
 import { createDayOff } from '~/features/events/server/days-off.server'
 import { assignPart, assignServicePart } from '~/features/events/server/event-part-assignments.server'
 import { releaseEvent } from '~/features/events/server/event-status.server'
@@ -15,17 +16,19 @@ import { createProgrammeOnDay, createProgrammeSeries } from '~/features/events/s
 import { extendRecurringEvents } from '~/features/events/server/recurring-events.server'
 import { seedDefaultTemplates } from '~/features/events/server/seed-templates.server'
 import { createDirect } from '~/features/publishers/server/member.aggregate'
+import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 import { seedCongregationDefaults, seedPermissions } from '~/shared/domain/setup.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { combineLocalDateTime } from '~/shared/utils/event-time'
 
 // The congregation every reference test reads: programmes published and draft, services, parts with an assistant and
 // an external speaker, allowed roles, an absence that conflicts, responsibles of both scopes, the meetings created
-// ahead, and the board's programme documents. Built only through the service functions the app uses, on a fixed
-// clock, so what the readers return today is what they must return after the schedules refactor.
+// ahead, attendance counts and the board's programme documents. Built through the app's service functions wherever
+// one exists; the congregation, its accounts and its board rows are written directly.
 //
-// Nothing here is random: names, days and the order of every write are fixed, and the tests compare what the readers
-// return — never ids or creation timestamps — to committed reference files.
+// It must be built with `Date` faked to REFERENCE_NOW: series creation reads the clock to fill the days before it.
+// Nothing here is random — names, days and the order of every write are fixed — and the tests compare what the readers
+// return, with ids turned into these labels, to committed reference files.
 
 /** The moment every reference test runs at: a Wednesday morning, the week before the first programmes. */
 export const REFERENCE_NOW = new Date('2027-03-03T09:00:00Z')
@@ -62,30 +65,45 @@ const PEOPLE: PersonSpec[] = [
   { key: 'paul', firstname: 'Paul', lastname: 'MARTIN', isMale: true, isHelder: true, account: true },
   { key: 'jean', firstname: 'Jean', lastname: 'DURAND', isMale: true, isHelder: true, account: true },
   { key: 'luc', firstname: 'Luc', lastname: 'BERNARD', isMale: true, isServant: true, account: true },
-  { key: 'marc', firstname: 'Marc', lastname: 'PETIT', isMale: true, isServant: true },
+  { key: 'marc', firstname: 'Marc', lastname: 'PETIT', isMale: true, isServant: true, account: true },
   { key: 'pierre', firstname: 'Pierre', lastname: 'MOREAU', isMale: true, account: true },
   { key: 'hugo', firstname: 'Hugo', lastname: 'LEROY', isMale: true, account: true },
   { key: 'marie', firstname: 'Marie', lastname: 'DUBOIS', isMale: false, account: true },
   { key: 'claire', firstname: 'Claire', lastname: 'FAURE', isMale: false },
 ]
 
+/** Who holds each service in a filled week, by the service's name: never by the order the database returns them. */
+const SERVANTS: Record<string, string> = {
+  'Audio-vidéo': 'luc',
+  Estrade: 'marc',
+  'Préposés à l’accueil': 'pierre',
+  Nettoyage: 'paul',
+}
+
 export interface ReferenceCongregation {
   congregationId: number
   adminId: number
-  members: Record<string, number>
-  accounts: Record<string, number>
-  templates: { midweek: number; weekend: number; memorial: number }
-  /** The programmes by name, e.g. `midweek-1` for the first week's midweek meeting. */
-  events: Record<string, number>
   speakerId: number
-  /** The board's programme documents by name. */
-  documents: Record<string, number>
-  /** Every id the fixture wrote, by table and label: what the normalisers turn back into labels. */
+  /** The fixture's label for each id it wrote, keyed `table:id`: what the normalisers write in an id's place. */
   labels: Map<string, string>
+  /** An event's id by its label (`midweek-2`, `weekend-ahead-1`); throws for a label the fixture never wrote. */
+  event(name: string): number
+  member(key: string): number
+  account(key: string): number
+  template(key: 'midweek' | 'weekend' | 'memorial'): number
+  document(name: string): number
+  /** Every member, by key. */
+  members(): [string, number][]
 }
 
-/** The four weeks of programmes, Monday to Sunday. */
-const WEEKS = ['2027-03-08', '2027-03-15', '2027-03-22', '2027-03-29']
+/** Reads a label's id back, failing loudly on a typo rather than reading `undefined` — which Prisma drops from a filter. */
+function lookup(byName: Map<string, number>, table: string) {
+  return (name: string): number => {
+    const id = byName.get(name)
+    if (id == null) throw new Error(`the reference fixture has no ${table} « ${name} »`)
+    return id
+  }
+}
 
 export async function buildReferenceCongregation(suffix: string): Promise<ReferenceCongregation> {
   await seedPermissions(referenceDb)
@@ -100,7 +118,12 @@ export async function buildReferenceCongregation(suffix: string): Promise<Refere
   })
   const congregationId = congregation.id
   const labels = new Map<string, string>()
-  const label = (table: string, id: number, name: string) => labels.set(`${table}:${id}`, name)
+  const ids = new Map<string, Map<string, number>>()
+  const label = (table: string, id: number, name: string) => {
+    labels.set(`${table}:${id}`, name)
+    if (!ids.has(table)) ids.set(table, new Map())
+    ids.get(table)?.set(name, id)
+  }
 
   const admin = await withScope(congregationId, async db => {
     await seedCongregationDefaults(db, congregationId, 'fr', seedDefaultTemplates)
@@ -111,8 +134,6 @@ export async function buildReferenceCongregation(suffix: string): Promise<Refere
   const adminId = admin.id
   label('account', adminId, 'admin')
 
-  const members: Record<string, number> = {}
-  const accounts: Record<string, number> = {}
   await withScope(congregationId, async db => {
     for (const person of PEOPLE) {
       const member = await createDirect(db, congregationId, adminId, {
@@ -129,7 +150,6 @@ export async function buildReferenceCongregation(suffix: string): Promise<Refere
         phone: '',
         address: '',
       })
-      members[person.key] = member.id
       label('member', member.id, person.key)
       if (person.account) {
         const account = await db.userAccount.create({
@@ -141,26 +161,19 @@ export async function buildReferenceCongregation(suffix: string): Promise<Refere
             congregationId,
           },
         })
-        accounts[person.key] = account.id
         label('account', account.id, person.key)
       }
     }
   })
+  const member = lookup(ids.get('member') ?? new Map(), 'member')
+  const account = lookup(ids.get('account') ?? new Map(), 'account')
 
   const templates = await withScope(congregationId, async db => {
-    const byKey = async (key: string) =>
-      (await db.eventTemplate.findFirstOrThrow({ where: { key, congregationId }, select: { id: true } })).id
-    const midweek = await byKey(EventTemplateKey.MidweekMeeting)
-    const weekend = await byKey(EventTemplateKey.WeekendMeeting)
-    const memorial = await byKey(EventTemplateKey.Memorial)
-    label('template', midweek, 'midweek')
-    label('template', weekend, 'weekend')
-    label('template', memorial, 'memorial')
-
-    const role = async (key: string) =>
-      (await db.role.findFirstOrThrow({ where: { key, congregationId }, select: { id: true } })).id
-    const elder = await role('elder')
-    const servant = await role('assistant-servant')
+    await labelSeededRows(db, congregationId, label)
+    const template = lookup(ids.get('template') ?? new Map(), 'template')
+    const role = lookup(ids.get('role') ?? new Map(), 'role')
+    const midweek = template('midweek')
+    const weekend = template('weekend')
 
     // Allowed roles: the midweek talk to elders, the weekend sound to elders and servants.
     const talk = await db.templatePart.findFirstOrThrow({
@@ -168,17 +181,24 @@ export async function buildReferenceCongregation(suffix: string): Promise<Refere
       orderBy: { order: 'asc' },
       select: { id: true },
     })
-    await setTemplatePartAllowedRoles(db, talk.id, 'speaker', [elder], congregationId)
+    const talkRoles = await setTemplatePartAllowedRoles(db, talk.id, 'speaker', [role('elder')], congregationId)
+    if (talkRoles.added.length !== 1) throw new Error('the fixture could not restrict the midweek talk to elders')
     const sound = await db.templateServicePart.findFirstOrThrow({
       where: { templateId: weekend, key: 'sono', congregationId },
       select: { id: true },
     })
-    await setTemplateServicePartAllowedRoles(db, sound.id, [elder, servant], congregationId)
+    const soundRoles = await setTemplateServicePartAllowedRoles(
+      db,
+      sound.id,
+      [role('elder'), role('assistant-servant')],
+      congregationId,
+    )
+    if (soundRoles.added.length !== 2) throw new Error('the fixture could not restrict the weekend sound')
 
     // Responsibles of both scopes: elders for the midweek programme, servants for the weekend services.
-    await setTemplateResponsible(db, midweek, elder, congregationId, ResponsibilityScope.Programme)
-    await setTemplateResponsible(db, weekend, servant, congregationId, ResponsibilityScope.Service)
-    return { midweek, weekend, memorial }
+    await setTemplateResponsible(db, midweek, role('elder'), congregationId, ResponsibilityScope.Programme)
+    await setTemplateResponsible(db, weekend, role('assistant-servant'), congregationId, ResponsibilityScope.Service)
+    return template
   })
 
   const speakerId = await withScope(congregationId, async db => {
@@ -197,72 +217,117 @@ export async function buildReferenceCongregation(suffix: string): Promise<Refere
   label('speaker', speakerId, 'rousseau')
 
   const ctx = { congregationId, timezone: REFERENCE_TIMEZONE, actorId: adminId }
-  const events: Record<string, number> = {}
   await withScope(congregationId, async db => {
-    await createProgrammeSeries(
+    // Three weeks of programmes, from Monday 8 March.
+    const series = await createProgrammeSeries(
       db,
-      { templateIds: [templates.midweek, templates.weekend], from: WEEKS[0], to: '2027-03-28' },
+      { templateIds: [templates('midweek'), templates('weekend')], from: '2027-03-08', to: '2027-03-28' },
       ctx,
     )
-    await createProgrammeOnDay(db, { templateId: templates.memorial, day: '2027-03-22' }, ctx)
-    // The meetings created ahead, past the programmes, as the daily job keeps them.
-    await extendRecurringEvents(db, { congregationId, timeZone: REFERENCE_TIMEZONE, now: REFERENCE_NOW })
+    if (series.created.length !== 6 || series.existing !== 0) {
+      throw new Error(`the fixture expected 6 new programmes, the series made ${series.created.length}`)
+    }
+    await createProgrammeOnDay(db, { templateId: templates('memorial'), day: '2027-03-22' }, ctx)
+    // The empty meetings created ahead: the one the series fills in before its first day, then the daily job's, two
+    // months past today.
+    const created = await extendRecurringEvents(db, {
+      congregationId,
+      timeZone: REFERENCE_TIMEZONE,
+      now: REFERENCE_NOW,
+    })
+    if (created === 0) throw new Error('the fixture expected the recurring job to create meetings ahead')
 
+    const names = new Map<number | null, string>([
+      [templates('midweek'), 'midweek'],
+      [templates('weekend'), 'weekend'],
+      [templates('memorial'), 'memorial'],
+    ])
     const all = await db.event.findMany({
       where: { congregationId },
-      select: { id: true, templateId: true, startDate: true, createdById: true },
-      orderBy: { startDate: 'asc' },
+      select: { id: true, templateId: true, createdById: true },
+      orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
     })
-    const names = new Map<number | null, string>([
-      [templates.midweek, 'midweek'],
-      [templates.weekend, 'weekend'],
-      [templates.memorial, 'memorial'],
-    ])
     const counters: Record<string, number> = {}
     for (const event of all) {
-      const name = names.get(event.templateId) ?? 'other'
+      const name = names.get(event.templateId)
+      if (!name) throw new Error(`the fixture did not expect an event of template ${event.templateId}`)
       const prefix = event.createdById == null ? `${name}-ahead` : name
       counters[prefix] = (counters[prefix] ?? 0) + 1
-      events[`${prefix}-${counters[prefix]}`] = event.id
       label('event', event.id, `${prefix}-${counters[prefix]}`)
     }
   })
+  const event = lookup(ids.get('event') ?? new Map(), 'event')
 
   // An absence for Hugo over the second midweek meeting.
   await withScope(congregationId, async db => {
-    await createDayOff(
+    const absence = await createDayOff(
       db,
-      accounts.hugo,
-      members.hugo,
+      account('hugo'),
+      member('hugo'),
       combineLocalDateTime('2027-03-15', '00:00', REFERENCE_TIMEZONE),
       combineLocalDateTime('2027-03-17', '23:59', REFERENCE_TIMEZONE),
       congregationId,
     )
+    if (!absence) throw new Error('the fixture could not create Hugo’s absence')
+    label('event', absence.id, 'absence-hugo')
   })
 
   // Week 1 filled and published; week 2 filled, with Hugo on his absence, left a draft.
-  await fillWeek(congregationId, events['midweek-1'], events['weekend-1'], members, speakerId)
-  await fillWeek(congregationId, events['midweek-2'], events['weekend-2'], { ...members, pierre: members.hugo }, null)
+  const people =
+    (override: Record<string, string> = {}) =>
+    (key: string) =>
+      member(override[key] ?? key)
+  await fillWeek(congregationId, event('midweek-1'), event('weekend-1'), people(), speakerId)
+  await fillWeek(congregationId, event('midweek-2'), event('weekend-2'), people({ pierre: 'hugo' }), null)
   await withScope(congregationId, async db => {
     for (const name of ['midweek-1', 'weekend-1']) {
-      const result = await releaseEvent(db, events[name], congregationId, adminId)
-      if (!result || 'error' in result) throw new Error(`the fixture could not publish ${name}`)
+      const result = await releaseEvent(db, event(name), congregationId, adminId)
+      if (!result || 'error' in result) {
+        throw new Error(`the fixture could not publish ${name}: ${result ? result.error : 'not found'}`)
+      }
     }
   })
 
-  const documents = await withScope(congregationId, async db => {
+  // Attendance counted on the first week and the Memorial, as a corrector enters it.
+  await withScope(congregationId, async db => {
+    const counts: [string, number, number][] = [
+      ['midweek-1', 84, 12],
+      ['weekend-1', 101, 9],
+      ['memorial-1', 163, 21],
+    ]
+    for (const [name, inPerson, online] of counts) {
+      for (const [count, value] of [
+        ['inPerson', inPerson],
+        ['online', online],
+      ] as const) {
+        await writeAttendanceCount(db, {
+          congregationId,
+          actorId: adminId,
+          eventId: event(name),
+          count,
+          value,
+          canRecord: false,
+          canCorrect: true,
+          timeZone: REFERENCE_TIMEZONE,
+          now: REFERENCE_NOW,
+        })
+      }
+    }
+  })
+
+  await withScope(congregationId, async db => {
     const section = await db.boardSection.create({ data: { name: 'Réunions', order: 1, congregationId } })
+    label('section', section.id, 'meetings')
     const both = [
-      { templateId: templates.midweek, parts: true, services: true },
-      { templateId: templates.weekend, parts: true, services: true },
+      { templateId: templates('midweek'), parts: true, services: true },
+      { templateId: templates('weekend'), parts: true, services: true },
     ]
     const specs: [string, unknown, boolean][] = [
       ['by-date', { templates: both, groupBy: 'date' }, true],
       ['by-template', { templates: both, groupBy: 'template' }, true],
-      ['midweek-parts', { templates: [{ templateId: templates.midweek, parts: true, services: false }] }, false],
-      ['weekend-services', { templates: [{ templateId: templates.weekend, parts: false, services: true }] }, true],
+      ['midweek-parts', { templates: [{ templateId: templates('midweek'), parts: true, services: false }] }, false],
+      ['weekend-services', { templates: [{ templateId: templates('weekend'), parts: false, services: true }] }, true],
     ]
-    const ids: Record<string, number> = {}
     for (const [index, [name, dynamicConfig, showServices]] of specs.entries()) {
       const document = await db.boardDynamicDocumentSettings.create({
         data: {
@@ -275,31 +340,73 @@ export async function buildReferenceCongregation(suffix: string): Promise<Refere
           congregationId,
         },
       })
-      ids[name] = document.id
       label('document', document.id, name)
     }
-    return ids
   })
 
-  return { congregationId, adminId, members, accounts, templates, events, speakerId, documents, labels }
+  const fixture: ReferenceCongregation = {
+    congregationId,
+    adminId,
+    speakerId,
+    labels,
+    event,
+    member,
+    account,
+    template: templates,
+    document: lookup(ids.get('document') ?? new Map(), 'document'),
+    members: () => [...(ids.get('member') ?? new Map())].sort(([a], [b]) => a.localeCompare(b)),
+  }
+  await labelItems(fixture)
+  return fixture
+}
+
+type Label = (table: string, id: number, name: string) => void
+
+/** Labels what congregation seeding wrote: roles and presets by key, templates and their parts and services. */
+async function labelSeededRows(db: TransactionClient, congregationId: number, label: Label) {
+  for (const role of await db.role.findMany({ where: { congregationId }, select: { id: true, key: true } })) {
+    label('role', role.id, role.key)
+  }
+  for (const preset of await db.partPreset.findMany({ where: { congregationId }, select: { id: true, key: true } })) {
+    label('preset', preset.id, preset.key)
+  }
+  const byKey = new Map<string, string>([
+    [EventTemplateKey.MidweekMeeting, 'midweek'],
+    [EventTemplateKey.WeekendMeeting, 'weekend'],
+    [EventTemplateKey.Memorial, 'memorial'],
+    [EventTemplateKey.DayOff, 'day-off'],
+    [EventTemplateKey.Freeform, 'freeform'],
+  ])
+  const all = await db.eventTemplate.findMany({
+    where: { congregationId },
+    include: { parts: { select: { id: true, order: true } }, serviceParts: { select: { id: true, key: true } } },
+  })
+  for (const template of all) {
+    const name = byKey.get(template.key)
+    if (!name) throw new Error(`the reference fixture does not know the seeded template « ${template.key} »`)
+    label('template', template.id, name)
+    for (const part of template.parts) label('templatePart', part.id, `${name}/part-${part.order}`)
+    for (const service of template.serviceParts)
+      label('templateServicePart', service.id, `${name}/service-${service.key}`)
+  }
 }
 
 /**
  * Assigns every part and service of a week: the parts in turn to the brothers, the weekend talk to the external
- * speaker when there is one, a reader on the closing part.
+ * speaker when there is one, a reader on the closing part; each service to its servant.
  */
 async function fillWeek(
   congregationId: number,
   midweekId: number,
   weekendId: number,
-  members: Record<string, number>,
+  person: (key: string) => number,
   speakerId: number | null,
 ) {
   await withScope(congregationId, async db => {
-    await fillParts(db, congregationId, midweekId, members, null)
-    await fillParts(db, congregationId, weekendId, members, speakerId)
-    await fillServices(db, congregationId, midweekId, members)
-    await fillServices(db, congregationId, weekendId, members)
+    await fillParts(db, congregationId, midweekId, person, null)
+    await fillParts(db, congregationId, weekendId, person, speakerId)
+    await fillServices(db, congregationId, midweekId, person)
+    await fillServices(db, congregationId, weekendId, person)
   })
 }
 
@@ -307,30 +414,48 @@ async function fillParts(
   db: TransactionClient,
   congregationId: number,
   eventId: number,
-  members: Record<string, number>,
+  person: (key: string) => number,
   speakerId: number | null,
 ) {
-  const speakers = [members.paul, members.jean, members.luc, members.pierre]
+  const speakers = ['paul', 'jean', 'luc', 'pierre'].map(person)
   const parts = await db.eventPart.findMany({
     where: { eventId, congregationId },
-    orderBy: { order: 'asc' },
+    orderBy: [{ order: 'asc' }, { id: 'asc' }],
     select: { id: true, allowExternalSpeaker: true },
   })
+  if (parts.length === 0) throw new Error(`the fixture found no part on event ${eventId}`)
   for (const [index, part] of parts.entries()) {
-    const external = part.allowExternalSpeaker && speakerId != null
-    // The second part is the talk, for elders on a midweek meeting: Paul gives it.
-    const speaker = index === 1 ? members.paul : speakers[index % speakers.length]
-    const assistant = !external && index === parts.length - 1 ? members.marc : null
+    const slot = slotFor(index, parts.length, part.allowExternalSpeaker ? speakerId : null, speakers, person)
     const result = await assignPart(
       db,
       part.id,
-      external ? null : speaker,
-      assistant,
-      external ? speakerId : null,
-      index === 1 ? 'Sujet de référence' : '',
+      slot.speaker,
+      slot.assistant,
+      slot.externalSpeakerId,
+      slot.topic,
       congregationId,
     )
     if ('error' in result) throw new Error(`the fixture could not assign part ${part.id}: ${result.error}`)
+  }
+}
+
+/**
+ * Who takes the part at `index`: the external speaker on the talk he may give, else the brothers in turn — the second
+ * part is the talk, which Paul gives — with Marc reading on the closing part.
+ */
+function slotFor(
+  index: number,
+  count: number,
+  externalSpeakerId: number | null,
+  speakers: number[],
+  person: (key: string) => number,
+) {
+  const external = externalSpeakerId != null
+  return {
+    speaker: external ? null : index === 1 ? person('paul') : speakers[index % speakers.length],
+    assistant: !external && index === count - 1 ? person('marc') : null,
+    externalSpeakerId,
+    topic: index === 1 ? 'Sujet de référence' : '',
   }
 }
 
@@ -338,43 +463,55 @@ async function fillServices(
   db: TransactionClient,
   congregationId: number,
   eventId: number,
-  members: Record<string, number>,
+  person: (key: string) => number,
 ) {
-  const servants = [members.luc, members.marc, members.pierre, members.paul]
   const services = await db.eventServicePart.findMany({
     where: { eventId, congregationId },
-    orderBy: { id: 'asc' },
-    select: { id: true },
+    select: { id: true, name: true },
   })
-  for (const [index, service] of services.entries()) {
-    const result = await assignServicePart(db, service.id, servants[index % servants.length], congregationId)
+  if (services.length === 0) throw new Error(`the fixture found no service on event ${eventId}`)
+  for (const service of services) {
+    const servant = SERVANTS[service.name]
+    if (!servant) throw new Error(`the fixture has no servant for « ${service.name} »`)
+    const result = await assignServicePart(db, service.id, person(servant), congregationId)
     if ('error' in result) throw new Error(`the fixture could not assign service ${service.id}: ${result.error}`)
   }
 }
 
-/** The label of every part and service: its meeting's label and its place in it (`midweek-2/part-3`). */
-export async function itemLabels(fixture: ReferenceCongregation): Promise<Map<string, string>> {
-  const { congregationId } = fixture
-  const event = (id: number) => fixture.labels.get(`event:${id}`) ?? 'event-?'
-  const labels = new Map<string, string>()
+/**
+ * Labels every part and service of the fixture's events: its meeting's label and its order for a part
+ * (`midweek-2/part-3`), its name for a service (`midweek-2/service-Audio-vidéo`).
+ */
+async function labelItems(fixture: ReferenceCongregation) {
+  const { congregationId, labels } = fixture
+  const event = (id: number) => {
+    const name = labels.get(`event:${id}`)
+    if (!name) throw new Error(`the reference fixture has no label for event ${id}`)
+    return name
+  }
   await withScope(congregationId, async db => {
     const parts = await db.eventPart.findMany({
       where: { congregationId },
       select: { id: true, eventId: true, order: true },
     })
-    for (const part of parts) labels.set(`EventPart:${part.id}`, `${event(part.eventId)}/part-${part.order}`)
+    for (const part of parts) labels.set(`eventPart:${part.id}`, `${event(part.eventId)}/part-${part.order}`)
     const services = await db.eventServicePart.findMany({
       where: { congregationId },
       select: { id: true, eventId: true, name: true },
     })
-    for (const service of services) {
-      labels.set(`EventServicePart:${service.id}`, `${event(service.eventId)}/service-${service.name}`)
-    }
+    for (const service of services)
+      labels.set(`eventServicePart:${service.id}`, `${event(service.eventId)}/service-${service.name}`)
   })
-  return labels
 }
 
-/** A map keyed by ids as an object keyed by the fixture's labels for that table. */
+/** A label by table and id, failing loudly when the fixture never labelled it. */
+export function labelOf(fixture: ReferenceCongregation, table: string, id: number): string {
+  const name = fixture.labels.get(`${table}:${id}`)
+  if (!name) throw new Error(`the reference fixture has no label for ${table} ${id}`)
+  return name
+}
+
+/** A map or record keyed by ids, as an object keyed by the fixture's labels for that table, sorted by label. */
 export function byLabel<V>(
   fixture: ReferenceCongregation,
   table: string,
@@ -382,20 +519,21 @@ export function byLabel<V>(
 ): Record<string, V> {
   const pairs = entries instanceof Map ? [...entries] : Object.entries(entries).map(([k, v]) => [Number(k), v] as const)
   return Object.fromEntries(
-    pairs
-      .map(([id, value]) => [fixture.labels.get(`${table}:${id}`) ?? `${table}:?`, value] as const)
-      .sort(([a], [b]) => a.localeCompare(b)),
+    pairs.map(([id, value]) => [labelOf(fixture, table, id), value] as const).sort(([a], [b]) => a.localeCompare(b)),
   )
 }
 
-/** Deletes everything the fixture wrote, children first; the congregation's built-in rows go with it. */
+/**
+ * Deletes everything the fixture wrote, children before parents, then the congregation itself — also what an import
+ * into an empty congregation wrote, which the archive suite cleans with it.
+ */
 export async function deleteReferenceCongregation(congregationId: number) {
   await withScope(congregationId, async db => {
     const where = { congregationId }
     await db.notificationEvent.deleteMany({ where })
-    await db.auditLog.deleteMany({ where })
     await db.boardDynamicDocumentView.deleteMany({ where: { settings: { congregationId } } })
     await db.boardDynamicDocumentSettings.deleteMany({ where })
+    await db.boardSectionVisibilityRole.deleteMany({ where })
     await db.boardSection.deleteMany({ where })
     await db.attendance.deleteMany({ where })
     await db.eventServicePartAllowedRole.deleteMany({ where })
@@ -411,5 +549,21 @@ export async function deleteReferenceCongregation(congregationId: number) {
     await db.eventTemplate.deleteMany({ where })
     await db.partPreset.deleteMany({ where })
     await db.externalSpeaker.deleteMany({ where })
+    await db.speakerCongregation.deleteMany({ where })
+    await db.setting.deleteMany({ where })
+    await db.memberRoleAssignment.deleteMany({ where })
+    await db.userRoleAssignment.deleteMany({ where })
+    await db.rolePermission.deleteMany({ where })
+    await db.role.deleteMany({ where })
+    await db.consentRecord.deleteMany({ where })
+    await db.member.updateMany({ where, data: { publisherGroupId: null } })
+    await db.publisherGroup.deleteMany({ where })
+    await db.userAccount.deleteMany({ where })
+    await db.member.deleteMany({ where })
+    // Audit writes are fire-and-forget: drain them first, or one lands after the delete and holds the congregation.
+    await flushPendingAuditWrites()
+    await db.auditLog.deleteMany({ where })
   })
+  const deleted = await referenceDb.congregation.deleteMany({ where: { id: congregationId } })
+  if (deleted.count !== 1) throw new Error(`the reference congregation ${congregationId} was not deleted`)
 }

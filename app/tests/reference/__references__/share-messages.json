@@ -1,13 +1,13 @@
 {
   "published": {
-    "midweek-1/part-1": "Bonjour Paul,\n\nTu as la prière le mardi 9 mars à 19:00 (Réunion de semaine).\n\nhttps://reference.unitae.app/board/dynamic/<midweek-parts>/viewer?eventId=<midweek-1>",
-    "midweek-1/part-10": "Bonjour Jean,\n\nTu as un sujet à la réunion Vie chrétienne et ministère le mardi 9 mars à 19:00.\nPartie : 2e partie\n\nhttps://reference.unitae.app/board/dynamic/<midweek-parts>/viewer?eventId=<midweek-1>",
-    "midweek-1/part-11": "Bonjour Luc,\n\nTu conduis l’étude biblique de l’assemblée le mardi 9 mars à 19:00.\n\nhttps://reference.unitae.app/board/dynamic/<midweek-parts>/viewer?eventId=<midweek-1>",
-    "midweek-1/part-12": "Bonjour Pierre,\n\nTu as la prière le mardi 9 mars à 19:00 (Réunion de semaine).\n\nhttps://reference.unitae.app/board/dynamic/<midweek-parts>/viewer?eventId=<midweek-1>",
-    "midweek-1/part-2": "Bonjour Paul,\n\nTu as un sujet à la réunion Vie chrétienne et ministère le mardi 9 mars à 19:00.\nPartie : Discours\nSujet : Sujet de référence\n\nhttps://reference.unitae.app/board/dynamic/<midweek-parts>/viewer?eventId=<midweek-1>",
-    "midweek-1/part-3": "Bonjour Luc,\n\nTu as un sujet à la réunion Vie chrétienne et ministère le mardi 9 mars à 19:00.\nPartie : Perles spirituelles\n\nhttps://reference.unitae.app/board/dynamic/<midweek-parts>/viewer?eventId=<midweek-1>",
-    "midweek-1/part-4": "Bonjour Pierre,\n\nTu as la lecture de la Bible le mardi 9 mars à 19:00.\n\nhttps://reference.unitae.app/board/dynamic/<midweek-parts>/viewer?eventId=<midweek-1>",
-    "midweek-1/part-9": "Bonjour Paul,\n\nTu as un sujet à la réunion Vie chrétienne et ministère le mardi 9 mars à 19:00.\nPartie : 1re partie\n\nhttps://reference.unitae.app/board/dynamic/<midweek-parts>/viewer?eventId=<midweek-1>"
+    "midweek-1/part-1": "Bonjour Paul,\n\nTu as la prière le mardi 9 mars à 19:00 (Réunion de semaine).\n\nhttps://reference.unitae.app/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>",
+    "midweek-1/part-10": "Bonjour Jean,\n\nTu as un sujet à la réunion Vie chrétienne et ministère le mardi 9 mars à 19:00.\nPartie : 2e partie\n\nhttps://reference.unitae.app/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>",
+    "midweek-1/part-11": "Bonjour Luc,\n\nTu conduis l’étude biblique de l’assemblée le mardi 9 mars à 19:00.\n\nhttps://reference.unitae.app/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>",
+    "midweek-1/part-12": "Bonjour Pierre,\n\nTu as la prière le mardi 9 mars à 19:00 (Réunion de semaine).\n\nhttps://reference.unitae.app/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>",
+    "midweek-1/part-2": "Bonjour Paul,\n\nTu as un sujet à la réunion Vie chrétienne et ministère le mardi 9 mars à 19:00.\nPartie : Discours\nSujet : Sujet de référence\n\nhttps://reference.unitae.app/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>",
+    "midweek-1/part-3": "Bonjour Luc,\n\nTu as un sujet à la réunion Vie chrétienne et ministère le mardi 9 mars à 19:00.\nPartie : Perles spirituelles\n\nhttps://reference.unitae.app/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>",
+    "midweek-1/part-4": "Bonjour Pierre,\n\nTu as la lecture de la Bible le mardi 9 mars à 19:00.\n\nhttps://reference.unitae.app/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>",
+    "midweek-1/part-9": "Bonjour Paul,\n\nTu as un sujet à la réunion Vie chrétienne et ministère le mardi 9 mars à 19:00.\nPartie : 1re partie\n\nhttps://reference.unitae.app/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>"
   },
   "draft": {}
 }

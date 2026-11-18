@@ -1,7 +1,7 @@
 {
   "nextMeeting": {
     "id": "<id>",
-    "templateId": "<id>",
+    "templateId": "<template:midweek>",
     "name": "Réunion de semaine",
     "startDate": "2027-03-09T18:00:00.000Z",
     "endDate": "2027-03-09T19:45:00.000Z",
@@ -307,12 +307,12 @@
     ],
     "userPartIds": [],
     "userServicePartIds": [],
-    "link": "/board/dynamic/<midweek-parts>/viewer?eventId=<midweek-1>"
+    "link": "/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>"
   },
   "nextMeetingForViewer": {
     "meeting": {
       "id": "<id>",
-      "templateId": "<id>",
+      "templateId": "<template:midweek>",
       "name": "Réunion de semaine",
       "startDate": "2027-03-09T18:00:00.000Z",
       "endDate": "2027-03-09T19:45:00.000Z",
@@ -618,11 +618,32 @@
       ],
       "userPartIds": [],
       "userServicePartIds": [],
-      "link": "/board/dynamic/<midweek-parts>/viewer?eventId=<midweek-1>"
+      "link": "/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>"
     },
     "showCard": true,
     "canAct": false,
-    "link": "/programs/events/<midweek-1>"
+    "link": "/programs/events/<event:midweek-1>"
+  },
+  "nextMeetingOnTheBoard": {
+    "meeting": {
+      "id": "<id>",
+      "templateId": "<template:midweek>",
+      "name": "Réunion de semaine",
+      "startDate": "2027-03-09T18:00:00.000Z",
+      "endDate": "2027-03-09T19:45:00.000Z",
+      "template": {
+        "name": "Réunion de semaine",
+        "color": "#3b82f6"
+      },
+      "eventParts": [],
+      "eventServiceParts": [],
+      "userPartIds": [],
+      "userServicePartIds": [],
+      "link": "/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>"
+    },
+    "showCard": false,
+    "canAct": false,
+    "link": "/board/dynamic/<document:midweek-parts>/viewer?eventId=<event:midweek-1>"
   },
   "upcomingAssignments": [],
   "conflictingAssignments": null,

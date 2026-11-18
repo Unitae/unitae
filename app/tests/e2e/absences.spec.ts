@@ -1,8 +1,8 @@
 import { expect, type Locator, test } from '@playwright/test'
 import { E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, login } from './helpers/auth'
 
-// Declaring an absence in « Mes absences », reading it on the congregation's absences page, deleting it. Each run
-// picks its own days far ahead, so a second run never meets the first one's absence.
+// Declaring an absence in « Mes absences », reading it on the congregation's absences page, deleting it. Each run picks
+// its week far ahead from the clock, so runs rarely share days.
 
 const TIME_ZONE = 'Europe/Paris'
 const MY_ABSENCES_URL_RE = /\/me\/days-off$/
@@ -80,7 +80,7 @@ test.describe('Absences', () => {
     await page.goto('/me/days-off')
     await page.getByRole('button', { name: `Supprimer l’absence ${written}` }).click()
     await page.getByRole('alertdialog').getByRole('button', { name: 'Supprimer l’absence' }).click()
-    // The row leaves at once; reading the page again proves the deletion was saved, not only shown.
+    // The dialog closes on submit; reloading until the row is gone proves the deletion was saved.
     await expect(page.getByRole('alertdialog')).toHaveCount(0)
     await expect(async () => {
       await page.goto('/me/days-off')
@@ -90,6 +90,7 @@ test.describe('Absences', () => {
     }).toPass()
 
     await page.goto(`/programs/days-off?from=${first.iso}&to=${last.iso}`)
+    await expect(page.getByRole('heading', { level: 1, name: 'Absences' })).toBeVisible()
     await expect(page.getByText(written)).toHaveCount(0)
   })
 })

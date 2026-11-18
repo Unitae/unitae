@@ -1,7 +1,7 @@
 {
   "upcoming": [
     {
-      "eventId": "<id>",
+      "eventId": "<event:weekend-1>",
       "date": "2027-03-13T09:00:00.000Z",
       "partName": "Discours public",
       "topic": "Sujet de référence",

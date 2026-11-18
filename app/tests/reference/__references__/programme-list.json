@@ -1,0 +1,397 @@
+{
+  "hasProgrammes": true,
+  "hasProgrammesWithDrafts": true,
+  "march": [
+    {
+      "id": "<id>",
+      "name": "Réunion du week-end",
+      "startDate": "2027-03-06T09:00:00.000Z",
+      "endDate": "2027-03-06T10:45:00.000Z",
+      "status": "draft",
+      "templateId": "<template:weekend>",
+      "kind": {
+        "name": "Réunion du week-end",
+        "color": "#10b981"
+      },
+      "awaitingProgramme": true,
+      "parts": {
+        "total": 0,
+        "filled": 0,
+        "flagged": 0
+      },
+      "services": {
+        "total": 0,
+        "filled": 0,
+        "flagged": 0
+      }
+    },
+    {
+      "id": "<id>",
+      "name": "Réunion de semaine",
+      "startDate": "2027-03-09T18:00:00.000Z",
+      "endDate": "2027-03-09T19:45:00.000Z",
+      "status": "released",
+      "templateId": "<template:midweek>",
+      "kind": {
+        "name": "Réunion de semaine",
+        "color": "#3b82f6"
+      },
+      "awaitingProgramme": false,
+      "parts": {
+        "total": 12,
+        "filled": 12,
+        "flagged": 0
+      },
+      "services": {
+        "total": 4,
+        "filled": 4,
+        "flagged": 0
+      }
+    },
+    {
+      "id": "<id>",
+      "name": "Réunion du week-end",
+      "startDate": "2027-03-13T09:00:00.000Z",
+      "endDate": "2027-03-13T10:45:00.000Z",
+      "status": "released",
+      "templateId": "<template:weekend>",
+      "kind": {
+        "name": "Réunion du week-end",
+        "color": "#10b981"
+      },
+      "awaitingProgramme": false,
+      "parts": {
+        "total": 5,
+        "filled": 5,
+        "flagged": 0
+      },
+      "services": {
+        "total": 4,
+        "filled": 4,
+        "flagged": 0
+      }
+    },
+    {
+      "id": "<id>",
+      "name": "Réunion de semaine",
+      "startDate": "2027-03-16T18:00:00.000Z",
+      "endDate": "2027-03-16T19:45:00.000Z",
+      "status": "draft",
+      "templateId": "<template:midweek>",
+      "kind": {
+        "name": "Réunion de semaine",
+        "color": "#3b82f6"
+      },
+      "awaitingProgramme": false,
+      "parts": {
+        "total": 12,
+        "filled": 12,
+        "flagged": 3
+      },
+      "services": {
+        "total": 4,
+        "filled": 4,
+        "flagged": 1
+      }
+    },
+    {
+      "id": "<id>",
+      "name": "Réunion du week-end",
+      "startDate": "2027-03-20T09:00:00.000Z",
+      "endDate": "2027-03-20T10:45:00.000Z",
+      "status": "draft",
+      "templateId": "<template:weekend>",
+      "kind": {
+        "name": "Réunion du week-end",
+        "color": "#10b981"
+      },
+      "awaitingProgramme": false,
+      "parts": {
+        "total": 5,
+        "filled": 5,
+        "flagged": 0
+      },
+      "services": {
+        "total": 4,
+        "filled": 4,
+        "flagged": 0
+      }
+    },
+    {
+      "id": "<id>",
+      "name": "Mémorial",
+      "startDate": "2027-03-22T18:00:00.000Z",
+      "endDate": "2027-03-22T19:30:00.000Z",
+      "status": "draft",
+      "templateId": "<template:memorial>",
+      "kind": {
+        "name": "Mémorial",
+        "color": "#f59e0b"
+      },
+      "awaitingProgramme": false,
+      "parts": {
+        "total": 5,
+        "filled": 0,
+        "flagged": 0
+      },
+      "services": {
+        "total": 4,
+        "filled": 0,
+        "flagged": 0
+      }
+    },
+    {
+      "id": "<id>",
+      "name": "Réunion de semaine",
+      "startDate": "2027-03-23T18:00:00.000Z",
+      "endDate": "2027-03-23T19:45:00.000Z",
+      "status": "draft",
+      "templateId": "<template:midweek>",
+      "kind": {
+        "name": "Réunion de semaine",
+        "color": "#3b82f6"
+      },
+      "awaitingProgramme": false,
+      "parts": {
+        "total": 12,
+        "filled": 0,
+        "flagged": 0
+      },
+      "services": {
+        "total": 4,
+        "filled": 0,
+        "flagged": 0
+      }
+    },
+    {
+      "id": "<id>",
+      "name": "Réunion du week-end",
+      "startDate": "2027-03-27T09:00:00.000Z",
+      "endDate": "2027-03-27T10:45:00.000Z",
+      "status": "draft",
+      "templateId": "<template:weekend>",
+      "kind": {
+        "name": "Réunion du week-end",
+        "color": "#10b981"
+      },
+      "awaitingProgramme": false,
+      "parts": {
+        "total": 5,
+        "filled": 0,
+        "flagged": 0
+      },
+      "services": {
+        "total": 4,
+        "filled": 0,
+        "flagged": 0
+      }
+    },
+    {
+      "id": "<id>",
+      "name": "Réunion de semaine",
+      "startDate": "2027-03-30T17:00:00.000Z",
+      "endDate": "2027-03-30T18:45:00.000Z",
+      "status": "draft",
+      "templateId": "<template:midweek>",
+      "kind": {
+        "name": "Réunion de semaine",
+        "color": "#3b82f6"
+      },
+      "awaitingProgramme": true,
+      "parts": {
+        "total": 0,
+        "filled": 0,
+        "flagged": 0
+      },
+      "services": {
+        "total": 0,
+        "filled": 0,
+        "flagged": 0
+      }
+    },
+    {
+      "id": "<id>",
+      "name": "Réunion du week-end",
+      "startDate": "2027-04-03T08:00:00.000Z",
+      "endDate": "2027-04-03T09:45:00.000Z",
+      "status": "draft",
+      "templateId": "<template:weekend>",
+      "kind": {
+        "name": "Réunion du week-end",
+        "color": "#10b981"
+      },
+      "awaitingProgramme": true,
+      "parts": {
+        "total": 0,
+        "filled": 0,
+        "flagged": 0
+      },
+      "services": {
+        "total": 0,
+        "filled": 0,
+        "flagged": 0
+      }
+    },
+    {
+      "id": "<id>",
+      "name": "Réunion de semaine",
+      "startDate": "2027-04-06T17:00:00.000Z",
+      "endDate": "2027-04-06T18:45:00.000Z",
+      "status": "draft",
+      "templateId": "<template:midweek>",
+      "kind": {
+        "name": "Réunion de semaine",
+        "color": "#3b82f6"
+      },
+      "awaitingProgramme": true,
+      "parts": {
+        "total": 0,
+        "filled": 0,
+        "flagged": 0
+      },
+      "services": {
+        "total": 0,
+        "filled": 0,
+        "flagged": 0
+      }
+    },
+    {
+      "id": "<id>",
+      "name": "Réunion du week-end",
+      "startDate": "2027-04-10T08:00:00.000Z",
+      "endDate": "2027-04-10T09:45:00.000Z",
+      "status": "draft",
+      "templateId": "<template:weekend>",
+      "kind": {
+        "name": "Réunion du week-end",
+        "color": "#10b981"
+      },
+      "awaitingProgramme": true,
+      "parts": {
+        "total": 0,
+        "filled": 0,
+        "flagged": 0
+      },
+      "services": {
+        "total": 0,
+        "filled": 0,
+        "flagged": 0
+      }
+    },
+    {
+      "id": "<id>",
+      "name": "Réunion de semaine",
+      "startDate": "2027-04-13T17:00:00.000Z",
+      "endDate": "2027-04-13T18:45:00.000Z",
+      "status": "draft",
+      "templateId": "<template:midweek>",
+      "kind": {
+        "name": "Réunion de semaine",
+        "color": "#3b82f6"
+      },
+      "awaitingProgramme": true,
+      "parts": {
+        "total": 0,
+        "filled": 0,
+        "flagged": 0
+      },
+      "services": {
+        "total": 0,
+        "filled": 0,
+        "flagged": 0
+      }
+    },
+    {
+      "id": "<id>",
+      "name": "Réunion du week-end",
+      "startDate": "2027-04-17T08:00:00.000Z",
+      "endDate": "2027-04-17T09:45:00.000Z",
+      "status": "draft",
+      "templateId": "<template:weekend>",
+      "kind": {
+        "name": "Réunion du week-end",
+        "color": "#10b981"
+      },
+      "awaitingProgramme": true,
+      "parts": {
+        "total": 0,
+        "filled": 0,
+        "flagged": 0
+      },
+      "services": {
+        "total": 0,
+        "filled": 0,
+        "flagged": 0
+      }
+    },
+    {
+      "id": "<id>",
+      "name": "Réunion de semaine",
+      "startDate": "2027-04-20T17:00:00.000Z",
+      "endDate": "2027-04-20T18:45:00.000Z",
+      "status": "draft",
+      "templateId": "<template:midweek>",
+      "kind": {
+        "name": "Réunion de semaine",
+        "color": "#3b82f6"
+      },
+      "awaitingProgramme": true,
+      "parts": {
+        "total": 0,
+        "filled": 0,
+        "flagged": 0
+      },
+      "services": {
+        "total": 0,
+        "filled": 0,
+        "flagged": 0
+      }
+    },
+    {
+      "id": "<id>",
+      "name": "Réunion du week-end",
+      "startDate": "2027-04-24T08:00:00.000Z",
+      "endDate": "2027-04-24T09:45:00.000Z",
+      "status": "draft",
+      "templateId": "<template:weekend>",
+      "kind": {
+        "name": "Réunion du week-end",
+        "color": "#10b981"
+      },
+      "awaitingProgramme": true,
+      "parts": {
+        "total": 0,
+        "filled": 0,
+        "flagged": 0
+      },
+      "services": {
+        "total": 0,
+        "filled": 0,
+        "flagged": 0
+      }
+    },
+    {
+      "id": "<id>",
+      "name": "Réunion de semaine",
+      "startDate": "2027-04-27T17:00:00.000Z",
+      "endDate": "2027-04-27T18:45:00.000Z",
+      "status": "draft",
+      "templateId": "<template:midweek>",
+      "kind": {
+        "name": "Réunion de semaine",
+        "color": "#3b82f6"
+      },
+      "awaitingProgramme": true,
+      "parts": {
+        "total": 0,
+        "filled": 0,
+        "flagged": 0
+      },
+      "services": {
+        "total": 0,
+        "filled": 0,
+        "flagged": 0
+      }
+    }
+  ]
+}
