@@ -22,6 +22,7 @@ export const programsRoutes = [
       route('candidate-facts', 'features/events/routes/programs/events/candidate-facts.tsx'),
       route('external-speaker-info', 'features/events/routes/programs/events/external-speaker-info.tsx'),
       route('reorder-parts', 'features/events/routes/programs/events/reorder-parts.tsx'),
+      route('reorder-services', 'features/events/routes/programs/events/reorder-services.tsx'),
     ]),
     ...prefix('external-speakers', [
       index('features/events/routes/programs/external-speakers/list.tsx'),

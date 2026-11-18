@@ -112,6 +112,7 @@ export default [
         route('new', 'features/settings/routes/templates/new.tsx'),
         route(':templateId', 'features/settings/routes/templates/template.tsx'),
         route(':templateId/reorder-parts', 'features/settings/routes/templates/reorder-parts.tsx'),
+        route(':templateId/reorder-services', 'features/settings/routes/templates/reorder-services.tsx'),
       ]),
       route('part-types', 'features/settings/routes/part-types.tsx'),
       route('external-speakers', 'features/settings/routes/external-speakers.tsx'),
