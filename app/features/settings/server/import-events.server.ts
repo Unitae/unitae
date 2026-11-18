@@ -55,8 +55,8 @@ export async function importEvents(
 
   let ownerless = 0
   let unknownStatus = 0
-  // Restored from an archive without origins (before v2.18): settleImportedEventOrigins decides them once their parts and
-  // services are in. One whose origin this version does not know stays « import ».
+  // Restored from an archive without origins (before v2.18): settleImportedEventOrigins decides them once their parts,
+  // services and counts are in. One whose origin this version does not know stays « import ».
   let unknownOrigin = 0
   const withoutOrigin: number[] = []
   for (const record of records) {

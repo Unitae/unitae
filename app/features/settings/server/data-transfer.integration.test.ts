@@ -638,11 +638,12 @@ async function importFromZip(buffer: Buffer, congregationId: number): Promise<vo
     await mod.importTemplateServiceParts(zip, db, idMap, congregationId)
     await mod.importTemplateServicePartAllowedRoles(zip, db, idMap, congregationId)
     await mod.importTemplateResponsibles(zip, db, idMap, congregationId)
-    await mod.importEvents(zip, db, idMap, congregationId)
+    const withoutOrigin = await mod.importEvents(zip, db, idMap, congregationId)
     await mod.importAttendance(zip, db, idMap, congregationId)
     await mod.importEventParts(zip, db, idMap, congregationId)
     await mod.importEventPartAllowedRoles(zip, db, idMap, congregationId)
     await mod.importEventServiceParts(zip, db, idMap, congregationId)
+    await (await import('./import-events.server')).settleImportedEventOrigins(db, withoutOrigin, congregationId)
     await mod.importEventServicePartAllowedRoles(zip, db, idMap, congregationId)
     await mod.importBoardSections(zip, db, idMap, congregationId)
     await mod.importBoardSectionVisibilityRoles(zip, db, idMap, congregationId)
@@ -1831,7 +1832,10 @@ describe('the order of services on import', () => {
 // what an empty meeting was — comes back as the job's, so it still moves with its template; any other as « import ».
 describe('the origin of restored events', () => {
   it('keeps a 2.18 archive’s origin and gives an older one’s by the migration’s rule', async () => {
-    const { importEvents, importEventParts, settleImportedEventOrigins } = await import('./import-events.server')
+    const { importEvents, importEventParts, importEventServiceParts, settleImportedEventOrigins } = await import(
+      './import-events.server'
+    )
+    const { importAttendance } = await import('./import-attendance.server')
     const cong = await testDb.congregation.create({
       data: { name: `Origins ${ts}`, slug: `origins-${ts}`, active: true },
     })
@@ -1863,6 +1867,8 @@ describe('the origin of restored events', () => {
             event(1, 'old, empty, no author'),
             event(2, 'old, an author', { createdById: 70 }),
             event(3, 'old, a part'),
+            event(7, 'old, a service'),
+            event(8, 'old, counts'),
             event(4, 'new, made by hand', { origin: 'manual' }),
             event(5, 'new, the job’s', { origin: 'job' }),
             event(6, 'new, unknown', { origin: 'bogus' }),
@@ -1878,8 +1884,20 @@ describe('the origin of restored events', () => {
           })}\n`,
         )
 
+        dataDir.file(
+          'programme-service-role-assignments.ndjson',
+          `${JSON.stringify({ id: 1, note: '', hasConflict: false, name: 'Sono', eventId: 7, servicePartId: null, assigneeId: null })}\n`,
+        )
+        dataDir.file(
+          'attendance.ndjson',
+          `${JSON.stringify({ eventId: 8, inPerson: 40, inPersonById: null, inPersonAt: null, online: null, onlineById: null, onlineAt: null })}\n`,
+        )
+
+        // In runImport's order: the events, their counts, parts and services, then the origins left to decide.
         const withoutOrigin = await importEvents(zip, tx, idMap, cong.id)
+        await importAttendance(zip, tx, idMap, cong.id)
         await importEventParts(zip, tx, idMap, cong.id)
+        await importEventServiceParts(zip, tx, idMap, cong.id)
         await settleImportedEventOrigins(tx, withoutOrigin, cong.id)
 
         const rows = await tx.event.findMany({ select: { name: true, origin: true } })
@@ -1890,6 +1908,8 @@ describe('the origin of restored events', () => {
         'old, empty, no author': 'job',
         'old, an author': 'import',
         'old, a part': 'import',
+        'old, a service': 'import',
+        'old, counts': 'import',
         'new, made by hand': 'manual',
         'new, the job’s': 'job',
         'new, unknown': 'import',

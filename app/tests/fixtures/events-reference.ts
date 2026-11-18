@@ -245,14 +245,14 @@ export async function buildReferenceCongregation(suffix: string): Promise<Refere
     ])
     const all = await db.event.findMany({
       where: { congregationId },
-      select: { id: true, templateId: true, createdById: true },
+      select: { id: true, templateId: true, origin: true },
       orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
     })
     const counters: Record<string, number> = {}
     for (const event of all) {
       const name = names.get(event.templateId)
       if (!name) throw new Error(`the fixture did not expect an event of template ${event.templateId}`)
-      const prefix = event.createdById == null ? `${name}-ahead` : name
+      const prefix = event.origin === 'job' ? `${name}-ahead` : name
       counters[prefix] = (counters[prefix] ?? 0) + 1
       label('event', event.id, `${prefix}-${counters[prefix]}`)
     }

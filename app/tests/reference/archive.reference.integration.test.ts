@@ -125,11 +125,16 @@ async function importArchive(zip: JsZip, congregationId: number) {
     await mod.importTemplateServiceParts(zip, db, idMap, congregationId)
     await mod.importTemplateServicePartAllowedRoles(zip, db, idMap, congregationId)
     await mod.importTemplateResponsibles(zip, db, idMap, congregationId)
-    await mod.importEvents(zip, db, idMap, congregationId)
+    const withoutOrigin = await mod.importEvents(zip, db, idMap, congregationId)
     await mod.importAttendance(zip, db, idMap, congregationId)
     await mod.importEventParts(zip, db, idMap, congregationId)
     await mod.importEventPartAllowedRoles(zip, db, idMap, congregationId)
     await mod.importEventServiceParts(zip, db, idMap, congregationId)
+    await (await import('~/features/settings/server/import-events.server')).settleImportedEventOrigins(
+      db,
+      withoutOrigin,
+      congregationId,
+    )
     await mod.importEventServicePartAllowedRoles(zip, db, idMap, congregationId)
     await mod.importBoardSections(zip, db, idMap, congregationId)
     await mod.importBoardDynamicDocumentSettings(zip, db, idMap, congregationId)
