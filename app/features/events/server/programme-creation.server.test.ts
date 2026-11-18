@@ -211,6 +211,21 @@ describe('bare events, edge cases', () => {
     expect(result.existing).toBe(0)
   })
 
+  // Made by hand, its author's account since deleted: whoever fills it prepares it, as « Créer le programme » does.
+  it('names whoever fills a hand-made meeting without an author, leaving its name and hours', async () => {
+    vi.mocked(db.eventTemplate.findMany).mockResolvedValue([WITH_PART] as never)
+    vi.mocked(db.event.findMany).mockResolvedValue([
+      { id: 55, templateId: 270, startDate: new Date('2026-11-19T23:00:00Z'), ...BARE, origin: 'manual' },
+    ] as never)
+    recordEvents()
+
+    await createProgrammeSeries(db, { templateIds: [270], from: '2026-11-16', to: '2026-11-22' }, CTX)
+
+    expect(vi.mocked(db.event.update).mock.calls.map(([args]) => args)).toEqual([
+      { where: { id_congregationId: { id: 55, congregationId: 7 } }, data: { createdById: 42 } },
+    ])
+  })
+
   it('keeps the author, name and hours of a meeting someone prepared before', async () => {
     vi.mocked(db.eventTemplate.findMany).mockResolvedValue([WITH_PART] as never)
     vi.mocked(db.event.findMany).mockResolvedValue([

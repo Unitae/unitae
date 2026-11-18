@@ -149,17 +149,28 @@ async function removeEmptyMeeting(db: TransactionClient, eventId: number, ctx: C
 /**
  * Gives a meeting without a programme its template's programme. One the recurring-events job created ahead gets its
  * hours and name from the template and the congregation's zone first — they may have changed since — and the person as
- * its author. One someone prepared before, then emptied, keeps its author, name and hours.
+ * its author. One made by hand, or prepared before and then emptied, keeps its name and hours, and its author unless
+ * it has none.
  */
 async function fillMeeting(
   db: TransactionClient,
   template: TemplateWithRelations,
-  event: { id: number; origin?: string },
+  event: { id: number; createdById?: number | null; origin?: string },
   day: string,
   ctx: CreationContext,
 ): Promise<CreatedProgramme> {
   const eventId = event.id
-  if (event.origin !== EventOrigin.Job) return giveProgramme(db, template, eventId, day, ctx, { reused: true })
+  if (event.origin !== EventOrigin.Job) {
+    // Made by hand: its name and hours stay. Whoever fills it prepares it when nobody is named — its author's account
+    // may have gone — as « Créer le programme » does.
+    if (event.createdById == null) {
+      await db.event.update({
+        where: { id_congregationId: { id: eventId, congregationId: ctx.congregationId } },
+        data: { createdById: ctx.actorId },
+      })
+    }
+    return giveProgramme(db, template, eventId, day, ctx, { reused: true })
+  }
   await db.event.update({
     where: { id_congregationId: { id: eventId, congregationId: ctx.congregationId } },
     data: {

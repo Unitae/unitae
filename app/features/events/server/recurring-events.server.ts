@@ -21,7 +21,8 @@ interface MeetingTemplate {
 
 /**
  * Creates empty meetings of a template on the given local days: its name and hours in the congregation's zone, draft,
- * no author — a meeting nobody has prepared yet. Shared by the job and by a series that starts beyond the horizon.
+ * no author, origin « job » — a meeting nobody has prepared yet. Shared by the job and by a series that starts beyond
+ * the horizon.
  */
 export async function createEmptyMeetings(
   db: TransactionClient,
