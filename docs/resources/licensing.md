@@ -59,7 +59,7 @@ Community contributions to the Unitae project are welcome and encouraged. Contri
 
 ---
 
-*This trademark policy may be updated. For questions about trademark usage, contact MindsersIT.*
+_This trademark policy may be updated. For questions about trademark usage, contact MindsersIT._
 
 ## Common Questions
 

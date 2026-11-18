@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { GROUP_LEADER } from '~/features/help/model/help.type'
+import { GROUP_LEADER, HELP_LOCALES } from '~/features/help/model/help.type'
+import type { HelpCaptureManifest } from '~/features/help/model/help-captures'
 import { HelpArticleFormatError } from '~/features/help/model/parse-help-article'
 import { assembleHelpArticles, loadHelpArticles } from '~/features/help/server/help-content.server'
 import { Permission } from '~/shared/types/permission'
@@ -70,16 +71,27 @@ ${body}
 `
 }
 
-// The same article in both languages, as the repository ships it.
+// The same article in every language, as the repository ships it.
 function pair(slug: string, options: ArticleOptions = {}): Record<string, string> {
-  return {
-    [`content/fr/${slug}.md`]: articleFile(slug, options),
-    [`content/en/${slug}.md`]: articleFile(slug, options),
-  }
+  return Object.fromEntries(HELP_LOCALES.map(locale => [`content/${locale}/${slug}.md`, articleFile(slug, options)]))
+}
+
+// The article in every language but French, so a test can set the French one apart.
+function besidesFrench(slug: string, options: ArticleOptions = {}): Record<string, string> {
+  return Object.fromEntries(
+    HELP_LOCALES.filter(locale => locale !== 'fr').map(locale => [
+      `content/${locale}/${slug}.md`,
+      articleFile(slug, options),
+    ]),
+  )
 }
 
 const CAPTURE = { width: 320, height: 120, captured: '2026-11-17' }
-const BOTH_CAPTURED = { fr: { 'absences-new': CAPTURE }, en: { 'absences-new': CAPTURE } }
+const BOTH_CAPTURED: HelpCaptureManifest = {
+  fr: { 'absences-new': CAPTURE },
+  en: { 'absences-new': CAPTURE },
+  'pt-PT': { 'absences-new': CAPTURE },
+}
 const WITH_CAPTURE = { body: 'Texte.\n\n![Le bouton](capture:absences-new)' }
 
 // An article shows only the app's own captures, described, and the same ones in both languages.
@@ -101,13 +113,13 @@ describe('assembleHelpArticles: the captures in a body', () => {
   })
 
   it('refuses a capture the language does not have', () => {
-    const frOnly = { fr: { 'absences-new': CAPTURE }, en: {} }
+    const frOnly = { ...BOTH_CAPTURED, en: {} }
 
     expect(() => assembleHelpArticles(pair('a', WITH_CAPTURE), frOnly)).toThrow('absences-new')
   })
 
   it('refuses captures that differ between the languages', () => {
-    const sources = { 'content/fr/a.md': articleFile('a', WITH_CAPTURE), 'content/en/a.md': articleFile('a') }
+    const sources = { 'content/fr/a.md': articleFile('a', WITH_CAPTURE), ...besidesFrench('a') }
 
     expect(() => assembleHelpArticles(sources, BOTH_CAPTURED)).toThrow('captures')
   })
@@ -117,7 +129,14 @@ describe('assembleHelpArticles: the shape of each file', () => {
   it('orders the articles by language, then by order, then by slug', () => {
     const articles = assembleHelpArticles({ ...pair('a'), ...pair('b', { order: 2 }) })
 
-    expect(articles.map(({ locale, slug }) => `${locale}/${slug}`)).toEqual(['en/a', 'en/b', 'fr/a', 'fr/b'])
+    expect(articles.map(({ locale, slug }) => `${locale}/${slug}`)).toEqual([
+      'en/a',
+      'en/b',
+      'fr/a',
+      'fr/b',
+      'pt-PT/a',
+      'pt-PT/b',
+    ])
   })
 
   it('refuses a file outside a known language folder', () => {
@@ -125,9 +144,9 @@ describe('assembleHelpArticles: the shape of each file', () => {
   })
 
   it('refuses a file whose name is not its slug', () => {
-    expect(() =>
-      assembleHelpArticles({ 'content/fr/other.md': articleFile('a'), 'content/en/a.md': articleFile('a') }),
-    ).toThrow('file name')
+    expect(() => assembleHelpArticles({ 'content/fr/other.md': articleFile('a'), ...besidesFrench('a') })).toThrow(
+      'file name',
+    )
   })
 })
 
@@ -139,7 +158,7 @@ describe('assembleHelpArticles: the invariants across the two languages', () => 
   it('refuses a permission that differs between the languages', () => {
     const sources = {
       'content/fr/a.md': articleFile('a', { permission: 'CanViewBoard' }),
-      'content/en/a.md': articleFile('a'),
+      ...besidesFrench('a'),
     }
 
     expect(() => assembleHelpArticles(sources)).toThrow('permission')
@@ -148,7 +167,7 @@ describe('assembleHelpArticles: the invariants across the two languages', () => 
   it('accepts the same permissions listed in another order in each language', () => {
     const sources = {
       'content/fr/a.md': articleFile('a', { permission: 'CanViewBoard, CanReviewBoardDocuments' }),
-      'content/en/a.md': articleFile('a', { permission: 'CanReviewBoardDocuments, CanViewBoard' }),
+      ...besidesFrench('a', { permission: 'CanReviewBoardDocuments, CanViewBoard' }),
     }
 
     expect(() => assembleHelpArticles(sources)).not.toThrow()
@@ -157,20 +176,20 @@ describe('assembleHelpArticles: the invariants across the two languages', () => 
   it('refuses a permission list that differs between the languages', () => {
     const sources = {
       'content/fr/a.md': articleFile('a', { permission: 'CanViewBoard, CanReviewBoardDocuments' }),
-      'content/en/a.md': articleFile('a', { permission: 'CanViewBoard' }),
+      ...besidesFrench('a', { permission: 'CanViewBoard' }),
     }
 
     expect(() => assembleHelpArticles(sources)).toThrow('permission')
   })
 
   it('refuses a module that differs between the languages', () => {
-    const sources = { 'content/fr/a.md': articleFile('a', { module: 'board' }), 'content/en/a.md': articleFile('a') }
+    const sources = { 'content/fr/a.md': articleFile('a', { module: 'board' }), ...besidesFrench('a') }
 
     expect(() => assembleHelpArticles(sources)).toThrow('module')
   })
 
   it('refuses an order that differs between the languages', () => {
-    const sources = { 'content/fr/a.md': articleFile('a', { order: 2 }), 'content/en/a.md': articleFile('a') }
+    const sources = { 'content/fr/a.md': articleFile('a', { order: 2 }), ...besidesFrench('a') }
 
     expect(() => assembleHelpArticles(sources)).toThrow('order')
   })
@@ -179,7 +198,7 @@ describe('assembleHelpArticles: the invariants across the two languages', () => 
     const sources = {
       ...pair('b'),
       'content/fr/a.md': articleFile('a', { related: ['b'] }),
-      'content/en/a.md': articleFile('a'),
+      ...besidesFrench('a'),
     }
 
     expect(() => assembleHelpArticles(sources)).toThrow('related')
@@ -190,7 +209,7 @@ describe('assembleHelpArticles: the invariants across the two languages', () => 
       ...pair('b'),
       ...pair('c'),
       'content/fr/a.md': articleFile('a', { related: ['b', 'c'] }),
-      'content/en/a.md': articleFile('a', { related: ['c', 'b'] }),
+      ...besidesFrench('a', { related: ['c', 'b'] }),
     }
 
     expect(assembleHelpArticles(sources).map(({ slug }) => slug)).toContain('a')
@@ -212,8 +231,8 @@ describe('assembleHelpArticles: the invariants across the two languages', () => 
 describe('loadHelpArticles: the articles as shipped', () => {
   const ARTICLES = loadHelpArticles()
 
-  it('ships the first series in both languages, and only that series', () => {
-    for (const locale of ['fr', 'en'] as const) {
+  it('ships the first series in every language, and only that series', () => {
+    for (const locale of HELP_LOCALES) {
       expect(
         ARTICLES.filter(article => article.locale === locale)
           .map(({ slug }) => slug)

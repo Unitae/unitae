@@ -12,6 +12,7 @@ Set up your development environment by following the [Development Setup](docs/de
 2. **Fork** the repository and create a branch from `main`
 3. **Implement** your changes following the [coding conventions](docs/development/coding-conventions.md)
 4. **Verify** everything passes:
+
    ```bash
    pnpm build:format
    pnpm test:typecheck
@@ -119,6 +120,7 @@ See [Coding Conventions](docs/development/coding-conventions.md) for the full gu
 
 - The Prisma schema is in `app/database/schema.prisma`
 - After modifying the schema, generate a migration:
+
   ```bash
   pnpm prisma migrate diff \
     --from-config-datasource \

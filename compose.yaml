@@ -18,7 +18,8 @@ services:
     networks:
       - app
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-unitae} -d ${DB_NAME:-unitae}']
+      test:
+        ["CMD-SHELL", "pg_isready -U ${DB_USER:-unitae} -d ${DB_NAME:-unitae}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -33,7 +34,7 @@ services:
     networks:
       - app
     healthcheck:
-      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', 'ping']
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -53,7 +54,7 @@ services:
     # When fronting the app with the `caddy` service below, remove this public port
     # mapping so the app is only reachable through the TLS-terminating proxy.
     ports:
-      - '${UNITAE_WEB_PORT:-8080}:8080'
+      - "${UNITAE_WEB_PORT:-8080}:8080"
     env_file: .env
     environment:
       PORT: ${UNITAE_WEB_PORT:-8080}
@@ -61,7 +62,7 @@ services:
       # The superuser connection belongs to `migrate` alone, but env_file hands all of .env to every
       # service: point DB_URL at the runtime role here and drop the superuser password.
       DB_URL: *runtime-db-url
-      DB_PASSWORD: ''
+      DB_PASSWORD: ""
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -81,9 +82,9 @@ services:
       # package purely for the probe.
       test:
         [
-          'CMD',
-          'node',
-          '-e',
+          "CMD",
+          "node",
+          "-e",
           "fetch('http://localhost:8080/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
         ]
       interval: 30s
@@ -117,7 +118,7 @@ services:
       DB_RUNTIME_URL: *runtime-db-url
       # Same as web: no superuser credentials outside `migrate`.
       DB_URL: *runtime-db-url
-      DB_PASSWORD: ''
+      DB_PASSWORD: ""
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -134,9 +135,9 @@ services:
       # reports health, it does not restart, so this shows when the daily schedulers are missing.
       test:
         [
-          'CMD',
-          'node',
-          '-e',
+          "CMD",
+          "node",
+          "-e",
           "fetch('http://localhost:9090/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
         ]
       interval: 30s

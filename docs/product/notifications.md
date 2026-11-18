@@ -4,15 +4,15 @@ Unitae sends email notifications to keep congregation members informed about eve
 
 ## Notification Types
 
-| Type | Trigger | Recipients | Delay |
-|------|---------|-----------|-------|
-| **New document on board** | A document is uploaded to the display board | Members with Board Validator | 10 minutes |
-| **Document updated** | A document is edited by a non-validator | Members with Board Validator | 10 minutes |
-| **Document deletion** | A document is removed from the board | Members with Board Validator | Instant (cancels pending "new document" or "updated" notifications) |
-| **Document expiring soon** | Board documents are approaching their visibility end date | Members with Board Validator | Instant |
-| **Open data sync completed** | The open-data import finishes | The member who triggered the sync | Instant |
-| **Programme assignment** | A publisher is assigned to a programme part or service role on a released event | The assigned publisher | 30 minutes |
-| **Programme un-assignment** | A publisher is removed from a programme part or service role on a released event | The un-assigned publisher | Instant (cancels a pending "assignment" if not yet sent) |
+| Type                         | Trigger                                                                          | Recipients                        | Delay                                                               |
+| ---------------------------- | -------------------------------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------- |
+| **New document on board**    | A document is uploaded to the display board                                      | Members with Board Validator      | 10 minutes                                                          |
+| **Document updated**         | A document is edited by a non-validator                                          | Members with Board Validator      | 10 minutes                                                          |
+| **Document deletion**        | A document is removed from the board                                             | Members with Board Validator      | Instant (cancels pending "new document" or "updated" notifications) |
+| **Document expiring soon**   | Board documents are approaching their visibility end date                        | Members with Board Validator      | Instant                                                             |
+| **Open data sync completed** | The open-data import finishes                                                    | The member who triggered the sync | Instant                                                             |
+| **Programme assignment**     | A publisher is assigned to a programme part or service role on a released event  | The assigned publisher            | 30 minutes                                                          |
+| **Programme un-assignment**  | A publisher is removed from a programme part or service role on a released event | The un-assigned publisher         | Instant (cancels a pending "assignment" if not yet sent)            |
 
 All types respect user notification preferences and can be individually toggled off.
 

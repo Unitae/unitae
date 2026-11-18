@@ -1,6 +1,6 @@
 # Settings
 
-The **Settings** area (*Réglages*) is where the people responsible for the platform configure the congregation, manage who can sign in and what they can do, and run data-level tasks like exports and imports. Most members never need to open it.
+The **Settings** area (_Réglages_) is where the people responsible for the platform configure the congregation, manage who can sign in and what they can do, and run data-level tasks like exports and imports. Most members never need to open it.
 
 Settings is one area with a column of parts on the left, grouped as **Congregation**, **Access**, **Data** and, on the hosted service, **Account**. Each person sees only the parts their permissions open (named below as the roles page describes them), and the area opens on the first of them. Settings appears in the sidebar and the command palette only for someone who can open at least one part. On a phone, Settings stays a list of its parts, and each part has a way back to it.
 
@@ -10,14 +10,14 @@ Every part that saves a form shows a save bar once something changed, and confir
 
 The congregation's name, its language, its time zone, and the password rules for its accounts.
 
-Permission required: *Can edit congregation settings*.
+Permission required: _Can edit congregation settings_.
 
 ## Publishers
 
-- **Pioneer goals** — the monthly hour goal for each pioneer type (regular, auxiliary, special, missionary), per service year. This is the target the [pioneer activity monitoring](publishers.md#pioneer-activity-monitoring) roster measures pioneers against. Each type has a built-in default (50, 30, 100 and 100 h/month). Change a type to override it for the chosen service year, or *Rétablir* to go back to the default. Only the types you changed are saved, and past service years are read-only.
+- **Pioneer goals** — the monthly hour goal for each pioneer type (regular, auxiliary, special, missionary), per service year. This is the target the [pioneer activity monitoring](publishers.md#pioneer-activity-monitoring) roster measures pioneers against. Each type has a built-in default (50, 30, 100 and 100 h/month). Change a type to override it for the chosen service year, or _Rétablir_ to go back to the default. Only the types you changed are saved, and past service years are read-only.
 - **Continuous auxiliary pioneer** — enables the standing auxiliary appointment. When it is off, only month-to-month auxiliary enrolment is offered (see [Publishers → Pioneer service](publishers.md#pioneer-service)). Turning it off while people are enrolled tells you who they are first.
 
-Permission required: *Can edit congregation settings*, or *Can set annual pioneer hour goals* for the goals.
+Permission required: _Can edit congregation settings_, or _Can set annual pioneer hour goals_ for the goals.
 
 ## Programme templates
 
@@ -30,13 +30,13 @@ The meetings that repeat from one week to the next: their day, their hours, thei
 
 Built-in templates are listed apart. They can be adjusted but not deleted. A template can be duplicated from its page.
 
-Permission required: *Can create and configure meeting templates*. A person whose role runs a template sees that template in the list and can change its information and programme; who runs it, duplicating and deleting stay with the template managers.
+Permission required: _Can create and configure meeting templates_. A person whose role runs a template sees that template in the list and can change its information and programme; who runs it, duplicating and deleting stay with the template managers.
 
 ## Part types
 
 The kinds of part a programme is made of: what the person doing it is called, whether a second person (reader, assistant) takes part, whether a visiting speaker may give it, and the message used to share the assignment. A built-in type keeps its catalogue wording until you change it. A custom type can be deleted while no part uses it.
 
-Permission required: *Can create, edit and delete meetings* to edit; *Can create and configure meeting templates* is enough to see them.
+Permission required: _Can create, edit and delete meetings_ to edit; _Can create and configure meeting templates_ is enough to see them.
 
 ## Territories
 
@@ -45,15 +45,15 @@ How the territory module behaves:
 - **Allowed postal codes** for the open-data sync (which addresses get imported).
 - **Durations**: how long an assignment lasts by default, for the commerce and phone kinds, and how long a building survey stays valid.
 - **Territory kinds**: which roles may take each kind.
-- **Phone territories** toggle: show or hide the *Phones* kind.
+- **Phone territories** toggle: show or hide the _Phones_ kind.
 
-Permission required: *Can configure territory kinds and card overlays*.
+Permission required: _Can configure territory kinds and card overlays_.
 
 ## Congregation map
 
-*Carte de l'assemblée*: draw the congregation's preaching perimeter and its named, coloured zones, or import them from a GeoJSON file (see [Territories](territories.md) for what they print on). The perimeter decides which addresses are inside the congregation's territory. Importing a file warns before it replaces a perimeter already drawn.
+_Carte de l'assemblée_: draw the congregation's preaching perimeter and its named, coloured zones, or import them from a GeoJSON file (see [Territories](territories.md) for what they print on). The perimeter decides which addresses are inside the congregation's territory. Importing a file warns before it replaces a perimeter already drawn.
 
-Permission required: *Can configure territory kinds and card overlays*.
+Permission required: _Can configure territory kinds and card overlays_.
 
 ## Users
 
@@ -68,7 +68,7 @@ An account opens as a page:
 
 A new user is created with a name and an email address only; roles are given afterwards. An administrator's account can only be changed by an administrator. Nobody can deactivate, demote, anonymise or delete their own account. The last administrator can never be removed.
 
-Permission required: *Can create, edit and remove user accounts* to change; *Can view user accounts and their roles* to read them.
+Permission required: _Can create, edit and remove user accounts_ to change; _Can view user accounts and their roles_ to read them.
 
 ## Roles and permissions
 
@@ -76,7 +76,7 @@ What each role allows. Pick a role in the list to tick its permissions, grouped 
 
 For the full conceptual picture, see [Roles and Permissions](roles-and-permissions.md).
 
-Permission required: *Can choose which permissions a role grants*.
+Permission required: _Can choose which permissions a role grants_.
 
 ## Import and export
 
@@ -84,13 +84,13 @@ A full backup of the congregation in a `.unitae` file, and its restoration: usef
 
 See [Data Transfer](data-transfer.md) for what's included and the import-conflict workflow.
 
-Permission required: *Can export a full congregation archive* to export; importing needs *Can import a congregation archive* and *Can do anything in the congregation*.
+Permission required: _Can export a full congregation archive_ to export; importing needs _Can import a congregation archive_ and _Can do anything in the congregation_.
 
 ## Audit log
 
 Sensitive actions in the congregation are recorded with who did them, when, and what they touched: sign-ins, rights, data, deletions and changes across every module. The log shows the last 30 days by default. You can also pick the last 7 days, 3 or 12 months, all time, or chosen dates, always counted in the congregation's time zone. Filter by action (grouped as the modules are) or search for a person by name or email address. A line opens its detail, with the full date and what the action recorded.
 
-Permission required: *Can edit congregation settings*.
+Permission required: _Can edit congregation settings_.
 
 ## Subscription
 

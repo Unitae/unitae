@@ -16,10 +16,10 @@ pre-commit:
   parallel: true
   commands:
     lint:
-      glob: '*.{ts,tsx,js,jsx,json}'
+      glob: "*.{ts,tsx,js,jsx,json}"
       run: pnpm biome check --no-errors-on-unmatched {staged_files}
     unit-tests:
-      glob: '*.{ts,tsx}'
+      glob: "*.{ts,tsx}"
       run: pnpm test:unit --changed
 
 pre-push:

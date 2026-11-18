@@ -67,17 +67,17 @@ app/shared/
 
 ### File Naming
 
-| Pattern | Purpose |
-|---------|---------|
-| `*.server.ts` | Server-side only code (tree-shaken from client bundles) |
-| `*.routes.ts` | Route configuration files |
-| `*.type.ts` | TypeScript type definitions |
-| `*.server.test.ts` | Unit tests (co-located next to source) |
-| `*.integration.test.ts` | Integration tests (run against real database) |
-| `PascalCase.tsx` | React components |
-| `camelCase.ts` | Utility functions |
-| `*-queue.server.ts` | BullMQ queue definitions |
-| `handle-*-work.server.ts` | Background job handlers |
+| Pattern                   | Purpose                                                 |
+| ------------------------- | ------------------------------------------------------- |
+| `*.server.ts`             | Server-side only code (tree-shaken from client bundles) |
+| `*.routes.ts`             | Route configuration files                               |
+| `*.type.ts`               | TypeScript type definitions                             |
+| `*.server.test.ts`        | Unit tests (co-located next to source)                  |
+| `*.integration.test.ts`   | Integration tests (run against real database)           |
+| `PascalCase.tsx`          | React components                                        |
+| `camelCase.ts`            | Utility functions                                       |
+| `*-queue.server.ts`       | BullMQ queue definitions                                |
+| `handle-*-work.server.ts` | Background job handlers                                 |
 
 **Important**: All files in `features/*/server/` directories must use the `.server.ts` suffix. This tells React Router's bundler to exclude them from client bundles. The only exception is pure functions that are intentionally shared with client route components (e.g., `compute-territory-quantity.ts`).
 
@@ -85,16 +85,16 @@ app/shared/
 
 Enforced by [Biome](https://biomejs.dev/). Run `pnpm build:format` to auto-fix.
 
-| Rule | Value |
-|------|-------|
-| Quotes (JS) | Single quotes |
-| Quotes (JSX) | Double quotes |
-| Line width | 120 characters |
-| Trailing commas | Everywhere |
-| Semicolons | As needed (ASI) |
-| Indentation | Spaces |
-| Naming | `useNamingConvention` enforced |
-| Console | `noConsole` — use the Winston logger |
+| Rule            | Value                                |
+| --------------- | ------------------------------------ |
+| Quotes (JS)     | Single quotes                        |
+| Quotes (JSX)    | Double quotes                        |
+| Line width      | 120 characters                       |
+| Trailing commas | Everywhere                           |
+| Semicolons      | As needed (ASI)                      |
+| Indentation     | Spaces                               |
+| Naming          | `useNamingConvention` enforced       |
+| Console         | `noConsole` — use the Winston logger |
 
 **Biome suppression**: Prisma compound keys (e.g., `key_congregationId`) and AWS SDK properties (e.g., `Bucket`, `Key`) violate naming conventions. Suppress with `biome-ignore lint/style/useNamingConvention`.
 
@@ -102,7 +102,7 @@ Enforced by [Biome](https://biomejs.dev/). Run `pnpm build:format` to auto-fix.
 
 Business logic belongs in **service functions** (`features/*/server/*.server.ts`), not in route loaders or actions.
 
-For the *structural* rules — per-feature folder shape, `index.ts` boundaries between features, aggregate doctrine for `Member`/`Attribution`/`PioneerEnrolment`/`EventPart`, CQRS-lite read/write split, and file-size budgets — see [Architecture Conventions](architecture-conventions.md). This section covers the mechanics of an individual service function; the architecture doc covers where the file lives and what it's allowed to touch.
+For the _structural_ rules — per-feature folder shape, `index.ts` boundaries between features, aggregate doctrine for `Member`/`Attribution`/`PioneerEnrolment`/`EventPart`, CQRS-lite read/write split, and file-size budgets — see [Architecture Conventions](architecture-conventions.md). This section covers the mechanics of an individual service function; the architecture doc covers where the file lives and what it's allowed to touch.
 
 ### Rules
 
@@ -215,12 +215,12 @@ Tests are **black-box**: assert on observable outcomes (return values, thrown er
 
 ### Test Types
 
-| Type | Pattern | Runner | When to use |
-|------|---------|--------|-------------|
-| Unit | `*.server.test.ts` | `pnpm test:unit` | Service functions, utilities, pure logic |
-| Integration | `*.integration.test.ts` | `pnpm test:integration` | Database interactions, RLS isolation, multi-step workflows |
-| E2E | `tests/e2e/*.spec.ts` | `pnpm test:e2e` | Critical user flows (login, create publisher, upload document) |
-| Boundaries | n/a | `pnpm test:boundaries` | Cross-feature import rule enforcement |
+| Type        | Pattern                 | Runner                  | When to use                                                    |
+| ----------- | ----------------------- | ----------------------- | -------------------------------------------------------------- |
+| Unit        | `*.server.test.ts`      | `pnpm test:unit`        | Service functions, utilities, pure logic                       |
+| Integration | `*.integration.test.ts` | `pnpm test:integration` | Database interactions, RLS isolation, multi-step workflows     |
+| E2E         | `tests/e2e/*.spec.ts`   | `pnpm test:e2e`         | Critical user flows (login, create publisher, upload document) |
+| Boundaries  | n/a                     | `pnpm test:boundaries`  | Cross-feature import rule enforcement                          |
 
 ### Conventions
 
@@ -245,14 +245,14 @@ test('returns null when territory not found', () => {
 
 ## Language Conventions
 
-| Context | Language |
-|---------|----------|
+| Context                            | Language                        |
+| ---------------------------------- | ------------------------------- |
 | UI text (labels, messages, errors) | French (as default translation) |
-| Code comments | English |
-| Test descriptions | English |
-| Commit messages | English |
-| Pull request descriptions | English |
-| Documentation | English |
+| Code comments                      | English                         |
+| Test descriptions                  | English                         |
+| Commit messages                    | English                         |
+| Pull request descriptions          | English                         |
+| Documentation                      | English                         |
 
 ### Commits
 

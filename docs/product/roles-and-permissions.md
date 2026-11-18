@@ -2,8 +2,8 @@
 
 Unitae lets you decide, precisely, who in the congregation can see what and who can change what. Two ideas work together:
 
-- **Permissions** are the small units of access — for example, *manage territories*, *upload documents to the board*, *view publishers*. There are 24 of them, each tied to one feature.
-- **Roles** are named bundles of permissions you assign to a person — for example, *Elder*, *Pioneer team lead*, or anything else you want to call it. A user can hold several roles, and gets the union of their permissions.
+- **Permissions** are the small units of access — for example, _manage territories_, _upload documents to the board_, _view publishers_. There are 24 of them, each tied to one feature.
+- **Roles** are named bundles of permissions you assign to a person — for example, _Elder_, _Pioneer team lead_, or anything else you want to call it. A user can hold several roles, and gets the union of their permissions.
 
 You can keep things simple and stick to the built-in roles, or you can create your own roles when the built-ins don't fit how your congregation is organised.
 
@@ -11,18 +11,18 @@ You can keep things simple and stick to the built-in roles, or you can create yo
 
 These roles ship with every congregation. The system assigns and removes them automatically based on the publisher profile fields (publisher, baptized, anointed, elder, etc.) — you don't manage their membership by hand.
 
-| Role | Who gets it |
-|---|---|
-| Member | Anyone in the publisher list (publishers and ministry-school students alike) |
-| Ministry-school student | Someone in the publisher list who isn't yet declared a publisher |
-| Publisher | Anyone marked as a publisher |
-| Baptized | Publishers with a baptism date |
-| Brother | Anyone baptized whose profile is marked male |
-| Sister | Anyone baptized whose profile is marked female |
-| Anointed | Publishers marked as anointed |
-| Elder | Baptized males marked as elder |
-| Assistant servant | Baptized males marked as assistant servant |
-| Pioneer | Publishers serving as auxiliary or regular pioneers |
+| Role                    | Who gets it                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------- |
+| Member                  | Anyone in the publisher list (publishers and ministry-school students alike) |
+| Ministry-school student | Someone in the publisher list who isn't yet declared a publisher             |
+| Publisher               | Anyone marked as a publisher                                                 |
+| Baptized                | Publishers with a baptism date                                               |
+| Brother                 | Anyone baptized whose profile is marked male                                 |
+| Sister                  | Anyone baptized whose profile is marked female                               |
+| Anointed                | Publishers marked as anointed                                                |
+| Elder                   | Baptized males marked as elder                                               |
+| Assistant servant       | Baptized males marked as assistant servant                                   |
+| Pioneer                 | Publishers serving as auxiliary or regular pioneers                          |
 
 A few things worth noting about how membership is computed:
 
@@ -44,7 +44,7 @@ You can create as many roles of your own as you need. A custom role has:
 - Any combination of the permissions
 - The people who hold it — anyone in the congregation, with or without an account
 
-Typical examples: *Service committee*, *PR coordinator*, *Group overseer*. Whatever names match how your congregation actually works.
+Typical examples: _Service committee_, _PR coordinator_, _Group overseer_. Whatever names match how your congregation actually works.
 
 To create a role, use **Nouveau rôle** on the organigram — under a role of the chart, or outside it. Then pick what it allows in **Settings → Roles and permissions**. Responsables and adjoints are named in the role's panel on the organigram; a team's members are ticked in the **Équipes** tab.
 
@@ -55,17 +55,20 @@ A custom role is renamed, retyped or deleted from its panel (**Modifier**). Buil
 Permissions are grouped by area of the app. Most areas come in two flavours: **Viewer** (read-only) and **Manager** (full access). Holding a Manager permission already includes everything a Viewer permission would grant — you don't need to assign both.
 
 ### Display board
+
 - **Board Viewer** — open the board and read documents
 - **Board Uploader** — add new documents to the board, edit or delete versions of documents you uploaded
 - **Board Validator** — manage any board document (edit, delete, set visibility, highlight), manage sections and their visibility rules, add dynamic documents
 
 ### Territories
+
 - **Territories Viewer** — open the territory list, attributions, and statistics
 - **Territories Manager** — create, edit and delete territories, manage attributions, trigger the open-data sync
 - **Prospection Viewer** — open the building prospection screens
 - **Prospection Manager** — edit buildings and update prospection data
 
 ### Publishers
+
 - **Publisher Viewer** — open publisher profiles and group information
 - **Publisher Manager** — create, edit, deactivate publishers, manage groups
 - **Activity Viewer** — read the monthly activity reports and statistics, open the pioneers monitoring roster, and see the dashboard at-risk-pioneers widget
@@ -73,12 +76,14 @@ Permissions are grouped by area of the app. Most areas come in two flavours: **V
 - **Pioneer Goal Manager** — set the monthly hour goal per pioneer type and service year (Settings → Publishers)
 
 ### Emergency
+
 - **Emergency Info Viewer** — view any publisher's emergency information (DPA card, survival backpack, emergency contacts) across the whole congregation
 - **Emergency Info Manager** — edit any publisher's emergency information across the whole congregation
 
-> A **group responsible** (or deputy) can always view and edit the emergency information of the members of *their own group* — this is tied to their group responsibility, not to these permissions. The permissions above grant that same access **congregation-wide** (for a coordinator or secretary).
+> A **group responsible** (or deputy) can always view and edit the emergency information of the members of _their own group_ — this is tied to their group responsibility, not to these permissions. The permissions above grant that same access **congregation-wide** (for a coordinator or secretary).
 
 ### Programme & events
+
 - **Program Viewer** — open the events list, programmes, and templates
 - **Program Manager** — create, edit, delete, release, and un-release events; assign publishers; manage programme templates
 - **Absence Viewer** — view the congregation's absences (days off) list
@@ -86,12 +91,14 @@ Permissions are grouped by area of the app. Most areas come in two flavours: **V
 - **External Speaker Manager** — add, edit, archive speakers in the registry
 
 ### Settings
+
 - **Settings User Manager** — create, edit, deactivate users; assign roles to users
 - **Roles Viewer** — open the list of roles in the congregation
 - **Roles Manager** — create, edit, delete custom roles and choose which permissions they carry
 - **Permissions Manager** — adjust which permissions are attached to a role
 
 ### Admin
+
 - **Admin** — full access to everything in the congregation, plus congregation-wide settings (display name, configuration, event templates, pioneer goals). Bypasses every other permission check.
 
 Keep the **Admin** permission to a small handful of trusted users.

@@ -4,12 +4,12 @@
 
 Unitae uses three layers of tests, each with its own configuration and runner.
 
-| Type | Runner | Config | File pattern | Command |
-|------|--------|--------|--------------|---------|
-| Unit | Vitest | `vitest.config.ts` | `*.test.ts` (co-located) | `pnpm test:unit` |
-| Integration | Vitest | `app/tests/vitest.config.integration.ts` | `*.integration.test.ts` | `pnpm test:integration` |
-| E2E | Playwright | `app/tests/playwright.config.ts` | `app/tests/e2e/*.spec.ts` | `pnpm test:e2e` |
-| Boundaries | ESLint | `eslint.config.js` | — | `pnpm test:boundaries` |
+| Type        | Runner     | Config                                   | File pattern              | Command                 |
+| ----------- | ---------- | ---------------------------------------- | ------------------------- | ----------------------- |
+| Unit        | Vitest     | `vitest.config.ts`                       | `*.test.ts` (co-located)  | `pnpm test:unit`        |
+| Integration | Vitest     | `app/tests/vitest.config.integration.ts` | `*.integration.test.ts`   | `pnpm test:integration` |
+| E2E         | Playwright | `app/tests/playwright.config.ts`         | `app/tests/e2e/*.spec.ts` | `pnpm test:e2e`         |
+| Boundaries  | ESLint     | `eslint.config.js`                       | —                         | `pnpm test:boundaries`  |
 
 ## Commands
 
@@ -73,8 +73,7 @@ it('should throw NotFoundError when user does not exist', async () => {
 
 ```typescript
 vi.mock('~/i18n/paraglide/messages', () => ({
-  dashboard_urgent_territory_overdue: ({ number }: { number: string }) =>
-    `Territory ${number} — overdue`,
+  dashboard_urgent_territory_overdue: ({ number }: { number: string }) => `Territory ${number} — overdue`,
 }))
 ```
 
@@ -111,10 +110,10 @@ check lives in `app/tests/assert-test-database.ts` and runs from `setupFiles`.
 
 Both variables are checked, and they must name the same database:
 
-| Variable | Used by | Why it is checked |
-|---|---|---|
-| `DB_URL` | migration suites (a migration runs as the schema owner) | the obvious one |
-| `DB_RUNTIME_URL` | everything else, via `DB_RUNTIME_URL ?? DB_URL` | RLS is only exercised as the non-superuser role |
+| Variable         | Used by                                                 | Why it is checked                               |
+| ---------------- | ------------------------------------------------------- | ----------------------------------------------- |
+| `DB_URL`         | migration suites (a migration runs as the schema owner) | the obvious one                                 |
+| `DB_RUNTIME_URL` | everything else, via `DB_RUNTIME_URL ?? DB_URL`         | RLS is only exercised as the non-superuser role |
 
 `DB_RUNTIME_URL` is the one that bites. It is often exported from a shell profile and left
 pointing at the development database, so `DB_URL=…/unitae_test pnpm test:integration` looks safe

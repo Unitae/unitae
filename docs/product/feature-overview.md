@@ -4,7 +4,7 @@
 
 ## Dashboard
 
-The dashboard is the personal homepage every member sees after logging in. It is organized around intent: *who am I*, *what needs my attention*, and *what's the general state of things*.
+The dashboard is the personal homepage every member sees after logging in. It is organized around intent: _who am I_, _what needs my attention_, and _what's the general state of things_.
 
 - **Hero greeting** — Large personalized welcome with the member's name and current date, plus quick action buttons (plan absence, assign territory for managers)
 - **Urgent strip** — Conditional section surfacing up to 3 time-sensitive items: imminent assignments, overdue/due-soon territories, day-off conflicts, and unread documents — sorted by priority, hidden when nothing is urgent
@@ -22,7 +22,7 @@ See [Dashboard](dashboard.md) for details.
 The display board is a digital notice board where congregation administrators can share PDF documents and live data views with all members.
 
 - **Collapsible sections** — Organize documents into named sections with custom ordering; sections collapse/expand with persisted state
-- **Visibility scheduling** — Set *Visible from* and *Visible until* dates to control when documents appear
+- **Visibility scheduling** — Set _Visible from_ and _Visible until_ dates to control when documents appear
 - **Highlighting** — Pin important documents to a distinct "Featured" section at the top of the board
 - **Status badges** — New, Unread, and Updated badges on document thumbnails to communicate freshness at a glance
 - **View tracking** — See which members have viewed each document
@@ -38,14 +38,14 @@ See [Display Board](display-board.md) for details.
 Manage the congregation's geographic territories and track assignments to publishers.
 
 - **Personal territory view** — Every member can view their assigned territories at `/me/territories` with HTML entrance cards, PDF download, and interactive map — no special role required
-- **Unified search** — A single search input across every territory list handles publisher names, territory numbers, building addresses, postal codes, and neighbourhoods. Case- and accent-insensitive. Type an address (or `@Bastille`) and, with a Google Maps API key configured, the results are ranked by distance from that point — with a *Distance* column and a *Sans coordonnées* tail for territories with no geocoded address. See [Search and Filtering](territories.md#search-and-filtering)
+- **Unified search** — A single search input across every territory list handles publisher names, territory numbers, building addresses, postal codes, and neighbourhoods. Case- and accent-insensitive. Type an address (or `@Bastille`) and, with a Google Maps API key configured, the results are ranked by distance from that point — with a _Distance_ column and a _Sans coordonnées_ tail for territories with no geocoded address. See [Search and Filtering](territories.md#search-and-filtering)
 - **Territory types** — Door to door, Universities, Businesses, Phones, Hotels
 - **Map-driven territory editing** — When the instance serves a base map, managers edit a territory by clicking its entrances on the map (free, on the territory, on another one, added, removed — told apart by shape, not colour alone) with an in-place address search, grouping while zoomed out, and an atomic Save that audits each cross-territory reassignment
 - **Attributions** — Assign territories to publishers with start, end, and late dates
 - **Publishing campaigns** — Plan special drives (memorial invitations, convention campaigns) with dates, a territory scope, and configurable start/end behavior for ongoing assignments; while a campaign runs, assignments go into the campaign and a banner announces it. See [Publishing campaigns](territories.md#publishing-campaigns)
 - **Building prospection** — Maintain a database of individual buildings with address, entrance type, and prospection data
 - **Open data sync** — Automatically import building addresses from the French national address database — see [Open Data Sync](../self-hosting/open-data-sync.md)
-- **Maps** — Territory maps, the territory editor and *Créer en lot* on a base map served by the instance itself (no third-party service), light and dark; Google Maps only for PDF map pages and the address proximity search (optional, server side)
+- **Maps** — Territory maps, the territory editor and _Créer en lot_ on a base map served by the instance itself (no third-party service), light and dark; Google Maps only for PDF map pages and the address proximity search (optional, server side)
 - **Card overlays & perimeter** — Draw colored zones and a territory boundary that print on every territory card; useful for orienting publishers in unfamiliar areas
 - **Statistics** — Coverage metrics, attribution frequency, overdue rates, monthly evolution
 - **Exports** — S-13 report, PDF territory cards (with optional map page), CSV export
@@ -59,7 +59,7 @@ Track publisher profiles, organize them into groups, and record field service ac
 - **Profiles** — Personal information, publisher type (publisher, auxiliary pioneer, regular pioneer, etc.), appointment status
 - **Ministry-school students** — People who attend the school but aren't yet declared publishers appear in the same list and can be assigned to programme parts
 - **Field service groups** — Organize publishers into groups with a responsible and a deputy
-- **Activity tracking** — Monthly records of hours, studies, and pioneer service, under a dedicated *Activity* area with *Publishers* and *Pioneers* tabs
+- **Activity tracking** — Monthly records of hours, studies, and pioneer service, under a dedicated _Activity_ area with _Publishers_ and _Pioneers_ tabs
 - **Pioneer activity monitoring** — A service-year roster that measures each pioneer against a prorated hours goal, sorts them by risk (on track / at risk / behind), flags overdue reports, and surfaces pace, trend, projection, and "hours needed to finish" on the publisher's own profile — with an at-risk-pioneers widget on the dashboard and editable per-year goals in settings
 - **Emergency-preparedness information** — Record each publisher's DPA-card and survival-backpack status plus a list of emergency contacts, print whole-congregation or per-group emergency rosters, with group responsibles able to maintain their own group's data
 - **Reports** — Yearly activity Excel export, individual PDF reports, batch ZIP export, emergency rosters
@@ -145,7 +145,7 @@ Unitae includes several features to make the app feel responsive and polished:
 - **Unsaved changes warning** — Edit forms warn before navigating away with unsaved modifications
 - **Debounced search** — Live search-as-you-type with clear button on list pages (publishers, board sections, documents)
 - **Offline indicator** — Banner appears when the network connection drops
-- **Relative time** — Dates shown as *3 days ago* or *in 2 weeks* with absolute date on hover
+- **Relative time** — Dates shown as _3 days ago_ or _in 2 weeks_ with absolute date on hover
 - **Sticky table headers** — Column headers stay visible when scrolling long tables
 - **Persisted page size** — Table pagination remembers the preferred number of rows per page
 - **Entrance animations** — Subtle fade-in animations on page headers and dashboard cards

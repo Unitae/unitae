@@ -4,9 +4,9 @@ Complete reference for all configuration variables used by Unitae.
 
 ## Required
 
-| Variable | Description |
-|----------|-------------|
-| `DB_URL` | PostgreSQL connection string (e.g., `postgresql://user:pass@host:5432/dbname`) |
+| Variable                | Description                                                                                                                                                                                                                                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DB_URL`                | PostgreSQL connection string (e.g., `postgresql://user:pass@host:5432/dbname`)                                                                                                                                                                                                                                |
 | `UNITAE_SESSION_SECRET` | Cookie signing secret. Must be at least 32 characters — the app **refuses to boot in production** on a shorter value or the example placeholder. Also derives the encryption key for enrolled 2FA seeds. Supports rotation: comma-separate `new-secret,old-secret` (first entry is current). Keep this secret |
 
 ### Rotating the session secret
@@ -25,34 +25,34 @@ The first entry signs new cookies; every entry still validates existing cookies 
 
 ## Application
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `UNITAE_BASE_URL` | `http://localhost:<port>` | The address people reach the instance at (e.g., `https://unitae.example.com`). Links in emails and shared messages, the domain congregation subdomains hang from, and the default email sender all derive from it. Without it they point to the server itself (`http://localhost:8080` with the official images) and a warning is logged at start — set it on any instance people reach from another machine. It is never guessed from incoming requests: a forged `Host` header would send password-reset links elsewhere |
-| `UNITAE_COOKIE_DOMAIN` | — | Session cookie domain. Set in production to match your domain |
-| `UNITAE_MULTI_TENANT` | `false` | Enable multi-congregation mode. Set to `true` to allow multiple congregations |
-| `UNITAE_LOG_LEVEL` | `info` | Winston log level (`error`, `warn`, `info`, `debug`) |
-| `UNITAE_WEB_PORT` | — | HTTP server port. Read by `pnpm start`; falls back to `PORT`, then to `3000` if neither is set. The official Docker images set this to `8080`, which is what the rest of this doc assumes |
-| `UNITAE_TRUST_PROXY` | `loopback, linklocal, uniquelocal` | Which reverse proxies the app trusts for `X-Forwarded-Proto` / `X-Forwarded-Host`, in Express [`trust proxy`](https://expressjs.com/en/guide/behind-proxies.html) syntax: `true`, a hop count, or a comma-separated list of addresses, subnets and preset names. The default trusts a proxy on the same machine, Docker network or LAN. Set it only if your proxy reaches the app from another address, e.g. `100.64.0.0/10` for Tailscale. See [Reverse Proxy](getting-started.md#reverse-proxy-tls) |
-| `UNITAE_CRON_SECRET` | — | Bearer token for authenticating cron endpoint requests (`/cron/*`). When unset, all cron endpoints reject with 401 |
-| `UNITAE_WORKER_HEALTH_PORT` | `9090` | HTTP port for the background worker's health check endpoint |
+| Variable                    | Default                            | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| --------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `UNITAE_BASE_URL`           | `http://localhost:<port>`          | The address people reach the instance at (e.g., `https://unitae.example.com`). Links in emails and shared messages, the domain congregation subdomains hang from, and the default email sender all derive from it. Without it they point to the server itself (`http://localhost:8080` with the official images) and a warning is logged at start — set it on any instance people reach from another machine. It is never guessed from incoming requests: a forged `Host` header would send password-reset links elsewhere |
+| `UNITAE_COOKIE_DOMAIN`      | —                                  | Session cookie domain. Set in production to match your domain                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `UNITAE_MULTI_TENANT`       | `false`                            | Enable multi-congregation mode. Set to `true` to allow multiple congregations                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `UNITAE_LOG_LEVEL`          | `info`                             | Winston log level (`error`, `warn`, `info`, `debug`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `UNITAE_WEB_PORT`           | —                                  | HTTP server port. Read by `pnpm start`; falls back to `PORT`, then to `3000` if neither is set. The official Docker images set this to `8080`, which is what the rest of this doc assumes                                                                                                                                                                                                                                                                                                                                  |
+| `UNITAE_TRUST_PROXY`        | `loopback, linklocal, uniquelocal` | Which reverse proxies the app trusts for `X-Forwarded-Proto` / `X-Forwarded-Host`, in Express [`trust proxy`](https://expressjs.com/en/guide/behind-proxies.html) syntax: `true`, a hop count, or a comma-separated list of addresses, subnets and preset names. The default trusts a proxy on the same machine, Docker network or LAN. Set it only if your proxy reaches the app from another address, e.g. `100.64.0.0/10` for Tailscale. See [Reverse Proxy](getting-started.md#reverse-proxy-tls)                      |
+| `UNITAE_CRON_SECRET`        | —                                  | Bearer token for authenticating cron endpoint requests (`/cron/*`). When unset, all cron endpoints reject with 401                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `UNITAE_WORKER_HEALTH_PORT` | `9090`                             | HTTP port for the background worker's health check endpoint                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 ## Database
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DB_URL` | — | PostgreSQL connection string (required). Used for migrations and seed |
-| `DB_RUNTIME_URL` | — | **Non-superuser** connection string for the runtime — enables RLS enforcement. **Required in production**: the app refuses to boot when this is unset or points at a superuser / `BYPASSRLS` role (it would run with no database-level tenant isolation). Falls back to `DB_URL` only in development, with a warning. The Docker Compose stack defaults this to the `unitae_app` role. See [Row-Level Security](../development/row-level-security.md) |
-| `DB_POOL_MAX` | `10` | Maximum number of PostgreSQL connections in the pool |
+| Variable         | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ---------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DB_URL`         | —       | PostgreSQL connection string (required). Used for migrations and seed                                                                                                                                                                                                                                                                                                                                                                                 |
+| `DB_RUNTIME_URL` | —       | **Non-superuser** connection string for the runtime — enables RLS enforcement. **Required in production**: the app refuses to boot when this is unset or points at a superuser / `BYPASSRLS` role (it would run with no database-level tenant isolation). Falls back to `DB_URL` only in development, with a warning. The Docker Compose stack defaults this to the `unitae_app` role. See [Row-Level Security](../development/row-level-security.md) |
+| `DB_POOL_MAX`    | `10`    | Maximum number of PostgreSQL connections in the pool                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 The database connection is configured in `prisma.config.ts`, not in `schema.prisma`.
 
 ## Redis
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `REDIS_HOST` | `localhost` | Redis hostname. Set to `redis` when using Docker Compose |
-| `REDIS_PORT` | `6379` | Redis port |
-| `REDIS_PASSWORD` | — | Redis password. Required in production |
+| Variable         | Default     | Description                                              |
+| ---------------- | ----------- | -------------------------------------------------------- |
+| `REDIS_HOST`     | `localhost` | Redis hostname. Set to `redis` when using Docker Compose |
+| `REDIS_PORT`     | `6379`      | Redis port                                               |
+| `REDIS_PASSWORD` | —           | Redis password. Required in production                   |
 
 Redis is used for the BullMQ job queue and login rate limiting.
 
@@ -60,18 +60,18 @@ Redis is used for the BullMQ job queue and login rate limiting.
 
 Authentication rate limiting is backed by Redis (via a fail-fast `redisRateLimit` client). Login is keyed on the client IP plus an instance-wide global counter — **never** on the target email — so no one can lock out a specific account. All windows are 15 minutes.
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `LOGIN_RATE_LIMIT_IP_MAX` | `10` | Max failed login attempts per client IP per 15-minute window |
-| `LOGIN_RATE_LIMIT_GLOBAL_MAX` | `100` | Max failed login attempts instance-wide per 15-minute window |
-| `TWO_FACTOR_RATE_LIMIT_MAX` | `5` | Max two-factor challenge attempts per account per 15-minute window |
+| Variable                      | Default | Description                                                        |
+| ----------------------------- | ------- | ------------------------------------------------------------------ |
+| `LOGIN_RATE_LIMIT_IP_MAX`     | `10`    | Max failed login attempts per client IP per 15-minute window       |
+| `LOGIN_RATE_LIMIT_GLOBAL_MAX` | `100`   | Max failed login attempts instance-wide per 15-minute window       |
+| `TWO_FACTOR_RATE_LIMIT_MAX`   | `5`     | Max two-factor challenge attempts per account per 15-minute window |
 
 ## Email
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `RESEND_API_KEY` | — | [Resend](https://resend.com/) API key for sending emails. Without this, the app works but cannot send password reset emails or notifications |
-| `UNITAE_EMAIL_FROM` | `Unitae <noreply@` + the domain of `UNITAE_BASE_URL` + `>` | Default sender address for outgoing emails. Must match a verified domain in your Resend account |
+| Variable            | Default                                                    | Description                                                                                                                                  |
+| ------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RESEND_API_KEY`    | —                                                          | [Resend](https://resend.com/) API key for sending emails. Without this, the app works but cannot send password reset emails or notifications |
+| `UNITAE_EMAIL_FROM` | `Unitae <noreply@` + the domain of `UNITAE_BASE_URL` + `>` | Default sender address for outgoing emails. Must match a verified domain in your Resend account                                              |
 
 ## File Storage
 
@@ -79,27 +79,27 @@ By default, uploaded files are stored on the local filesystem. Set `S3_ENDPOINT`
 
 ### Local Filesystem (Default)
 
-| Variable | Default | Description |
-|----------|---------|-------------|
+| Variable              | Default           | Description                  |
+| --------------------- | ----------------- | ---------------------------- |
 | `UNITAE_STORAGE_PATH` | `content/uploads` | Directory for uploaded files |
 
 ### S3-Compatible Storage
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `S3_ENDPOINT` | — | S3-compatible endpoint URL. When set, enables S3 storage driver |
-| `S3_REGION` | `auto` | S3 region |
-| `S3_BUCKET` | `unitae` | S3 bucket name |
-| `S3_ACCESS_KEY` | — | S3 access key |
-| `S3_SECRET_KEY` | — | S3 secret key |
+| Variable        | Default  | Description                                                     |
+| --------------- | -------- | --------------------------------------------------------------- |
+| `S3_ENDPOINT`   | —        | S3-compatible endpoint URL. When set, enables S3 storage driver |
+| `S3_REGION`     | `auto`   | S3 region                                                       |
+| `S3_BUCKET`     | `unitae` | S3 bucket name                                                  |
+| `S3_ACCESS_KEY` | —        | S3 access key                                                   |
+| `S3_SECRET_KEY` | —        | S3 secret key                                                   |
 
 ## Maps
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `UNITAE_MAP_TILES` | — | The base map of every map on screen (*Mes territoires*, a territory's page, the territory editor, *Créer en lot*, the *Carte de l'assemblée* drawing): a Protomaps PMTiles file, as a path on the server, `s3://bucket/key` (a private bucket, read with the `S3_*` credentials above) or a public `https://` URL. The app serves its tiles itself. Without it those maps are hidden: the editor finds entrances by address and *Carte de l'assemblée* works through GeoJSON import and export. See [Maps](maps.md) |
-| `GOOGLE_MAPS_API_KEY` | — | Google Maps API key, used by the server only. Enables the map page of PDF exports and **proximity ranking in the territory/attribution search** (typing an address ranks the matching territories by distance) |
-| `GOOGLE_MAPS_MAP_ID` | — | Google Maps Map ID styling the PDF map page. Requires `GOOGLE_MAPS_API_KEY` |
+| Variable              | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| --------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `UNITAE_MAP_TILES`    | —       | The base map of every map on screen (_Mes territoires_, a territory's page, the territory editor, _Créer en lot_, the _Carte de l'assemblée_ drawing): a Protomaps PMTiles file, as a path on the server, `s3://bucket/key` (a private bucket, read with the `S3_*` credentials above) or a public `https://` URL. The app serves its tiles itself. Without it those maps are hidden: the editor finds entrances by address and _Carte de l'assemblée_ works through GeoJSON import and export. See [Maps](maps.md) |
+| `GOOGLE_MAPS_API_KEY` | —       | Google Maps API key, used by the server only. Enables the map page of PDF exports and **proximity ranking in the territory/attribution search** (typing an address ranks the matching territories by distance)                                                                                                                                                                                                                                                                                                      |
+| `GOOGLE_MAPS_MAP_ID`  | —       | Google Maps Map ID styling the PDF map page. Requires `GOOGLE_MAPS_API_KEY`                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 
 The API key needs the **Maps Static API** and the **Geocoding API** enabled in the Google Cloud Console. The Geocoding API powers the proximity search; geocoded addresses are cached in Redis for 90 days so repeat searches don't re-query the API.
 
@@ -107,9 +107,9 @@ When `GOOGLE_MAPS_API_KEY` is not set, the PDF map page is skipped and the proxi
 
 ## Open Data Sync
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `UNITAE_OPEN_DATA_ALLOWLIST` | — | Comma-separated extra hostnames allowed as BANO / open-address CSV sources, in addition to the built-in defaults (`bano.openstreetmap.fr`, `adresse.data.gouv.fr`, `data.gouv.fr`). This is an SSRF control: the territory open-data sync rejects any URL whose host is not allowlisted, and also rejects non-HTTPS URLs and non-standard ports. Set this only if you point the sync at a private mirror. See [Open Data Sync](open-data-sync.md) |
+| Variable                     | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `UNITAE_OPEN_DATA_ALLOWLIST` | —       | Comma-separated extra hostnames allowed as BANO / open-address CSV sources, in addition to the built-in defaults (`bano.openstreetmap.fr`, `adresse.data.gouv.fr`, `data.gouv.fr`). This is an SSRF control: the territory open-data sync rejects any URL whose host is not allowlisted, and also rejects non-HTTPS URLs and non-standard ports. Set this only if you point the sync at a private mirror. See [Open Data Sync](open-data-sync.md) |
 
 ## Security
 
@@ -117,8 +117,8 @@ The application sets security response headers (CSP, `X-Frame-Options`, `Referre
 
 The Content-Security-Policy is sent as `Content-Security-Policy-Report-Only`: it blocks nothing yet, and browsers POST what it would block to `/csp-report`. Each report becomes one `warn` log line with `"service":"csp-report"` and `"message":"CSP violation"` (directive, blocked URI, page, source file; query strings removed). Those lines are informational. A browser extension can cause them too; those reports are ignored.
 
-| Variable | Default | Description |
-|----------|---------|-------------|
+| Variable             | Default            | Description                                                                                                                                                                                                                                                                                                                                                         |
+| -------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `UNITAE_HSTS_HEADER` | `max-age=63072000` | Full `Strict-Transport-Security` header value. The default omits `includeSubDomains`/`preload` because the app can't know your subdomain topology and those directives are near-irreversible for the `max-age` window. Set the complete value (e.g. `max-age=63072000; includeSubDomains; preload`) when you control **every** subdomain of your registrable domain |
 
 ## Instance settings
@@ -129,16 +129,16 @@ The Content-Security-Policy is sent as `Content-Security-Policy-Report-Only`: it
 HOST_SETTINGS='{"branding":{"platformName":"Assemblées du Rhône","homeUrl":"https://assemblees-rhone.org"},"operator":{"name":"Assemblées du Rhône","privacyContact":"dpo@assemblees-rhone.org","privacyPolicyUrl":"https://assemblees-rhone.org/confidentialite"}}'
 ```
 
-| Key | Description |
-|-----|-------------|
-| `branding.homeUrl` | Your own site. A visitor who reaches an address with no congregation behind it (multi-tenant) is offered to go there. Without it, no button is shown |
-| `branding.platformName` | The name that button shows (« Aller sur Assemblées du Rhône »). Defaults to the host of `homeUrl` |
-| `operator.name` | Who runs the instance. The privacy page says the instance is run by them |
-| `operator.privacyContact` | The email address data-protection requests go to, shown on the privacy page |
-| `operator.privacyPolicyUrl` | Your own privacy policy. The privacy page announces it at the top and links to it: it complements Unitae's policy, which describes what the software does, rather than replacing it |
-| `operator.managedHosting` | Reserved for the managed hosting at unitae.app: shows its processor, subprocessors, billing retention and data transfers on the privacy page. Leave it out |
-| `support.url` | A support page, offered on the suspended-access page |
-| `billing.upgradeUrl`, `billing.portalUrl` | Subscription links (both or neither), for a hosting that bills congregations |
+| Key                                       | Description                                                                                                                                                                         |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `branding.homeUrl`                        | Your own site. A visitor who reaches an address with no congregation behind it (multi-tenant) is offered to go there. Without it, no button is shown                                |
+| `branding.platformName`                   | The name that button shows (« Aller sur Assemblées du Rhône »). Defaults to the host of `homeUrl`                                                                                   |
+| `operator.name`                           | Who runs the instance. The privacy page says the instance is run by them                                                                                                            |
+| `operator.privacyContact`                 | The email address data-protection requests go to, shown on the privacy page                                                                                                         |
+| `operator.privacyPolicyUrl`               | Your own privacy policy. The privacy page announces it at the top and links to it: it complements Unitae's policy, which describes what the software does, rather than replacing it |
+| `operator.managedHosting`                 | Reserved for the managed hosting at unitae.app: shows its processor, subprocessors, billing retention and data transfers on the privacy page. Leave it out                          |
+| `support.url`                             | A support page, offered on the suspended-access page                                                                                                                                |
+| `billing.upgradeUrl`, `billing.portalUrl` | Subscription links (both or neither), for a hosting that bills congregations                                                                                                        |
 
 A value that is not what its key expects — a link that is not an `http(s)` address, a contact that is not an email address — is ignored and reported once in the logs at start; the rest of the settings still apply.
 
@@ -146,16 +146,16 @@ A value that is not what its key expects — a link that is not an `http(s)` add
 
 These variables are used by `compose.yaml` for the PostgreSQL and Redis containers:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DB_USER` | `unitae` | PostgreSQL superuser (aliased to `POSTGRES_USER` in the container) |
-| `DB_PASSWORD` | — | PostgreSQL password (required, aliased to `POSTGRES_PASSWORD`) |
-| `DB_NAME` | `unitae` | PostgreSQL database name (aliased to `POSTGRES_DB`) |
-| `DB_RUNTIME_PASSWORD` | Value of `DB_PASSWORD` | Password for the `unitae_app` non-superuser role the app and worker connect as (RLS enforcement). **Set a different value from `DB_PASSWORD`**, so the web and worker containers never hold the superuser password. It is applied when the database is first created; on an existing database, change it with `ALTER ROLE unitae_app PASSWORD '…'` first (see [Getting Started](getting-started.md)). See [Row-Level Security](../development/row-level-security.md) |
-| `REDIS_PASSWORD` | — | Redis password (required) |
-| `UNITAE_WEB_IMAGE` | `ghcr.io/unitae/unitae:latest` | Docker image for the web service |
-| `UNITAE_WORKER_IMAGE` | `ghcr.io/unitae/unitae/worker:latest` | Docker image for the background worker service |
-| `UNITAE_MIGRATE_IMAGE` | `ghcr.io/unitae/unitae/migrate:latest` | Docker image for the database migration service. Runs `prisma migrate deploy` and exits |
+| Variable               | Default                                | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ---------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DB_USER`              | `unitae`                               | PostgreSQL superuser (aliased to `POSTGRES_USER` in the container)                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `DB_PASSWORD`          | —                                      | PostgreSQL password (required, aliased to `POSTGRES_PASSWORD`)                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `DB_NAME`              | `unitae`                               | PostgreSQL database name (aliased to `POSTGRES_DB`)                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `DB_RUNTIME_PASSWORD`  | Value of `DB_PASSWORD`                 | Password for the `unitae_app` non-superuser role the app and worker connect as (RLS enforcement). **Set a different value from `DB_PASSWORD`**, so the web and worker containers never hold the superuser password. It is applied when the database is first created; on an existing database, change it with `ALTER ROLE unitae_app PASSWORD '…'` first (see [Getting Started](getting-started.md)). See [Row-Level Security](../development/row-level-security.md) |
+| `REDIS_PASSWORD`       | —                                      | Redis password (required)                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `UNITAE_WEB_IMAGE`     | `ghcr.io/unitae/unitae:latest`         | Docker image for the web service                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `UNITAE_WORKER_IMAGE`  | `ghcr.io/unitae/unitae/worker:latest`  | Docker image for the background worker service                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `UNITAE_MIGRATE_IMAGE` | `ghcr.io/unitae/unitae/migrate:latest` | Docker image for the database migration service. Runs `prisma migrate deploy` and exits                                                                                                                                                                                                                                                                                                                                                                              |
 
 ## Development Defaults
 

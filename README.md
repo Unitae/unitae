@@ -17,11 +17,11 @@ Built by [MindsersIT](https://mindsers.it/) and available as a managed service a
 
 There are three ways to use Unitae:
 
-| | Best for |
-|---|---|
-| [**Managed hosting**](docs/managed-hosting/getting-started.md) | Sign up and start using immediately — zero setup |
-| [**Self-hosted**](docs/self-hosting/getting-started.md) | Run Unitae on your own server with Docker Compose or PM2 |
-| [**Development**](docs/development/getting-started.md) | Set up a local environment to contribute |
+|                                                                | Best for                                                 |
+| -------------------------------------------------------------- | -------------------------------------------------------- |
+| [**Managed hosting**](docs/managed-hosting/getting-started.md) | Sign up and start using immediately — zero setup         |
+| [**Self-hosted**](docs/self-hosting/getting-started.md)        | Run Unitae on your own server with Docker Compose or PM2 |
+| [**Development**](docs/development/getting-started.md)         | Set up a local environment to contribute                 |
 
 ## GDPR Compliance
 

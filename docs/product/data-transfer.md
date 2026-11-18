@@ -35,7 +35,7 @@ The archive contains all congregation data:
 
 ### Archive format
 
-The export produces a single `.unitae` file that bundles your congregation's data — and the uploaded documents too, when *Include files* is selected. Treat it as a self-contained backup: keep it somewhere safe, and import it back whenever you need to restore.
+The export produces a single `.unitae` file that bundles your congregation's data — and the uploaded documents too, when _Include files_ is selected. Treat it as a self-contained backup: keep it somewhere safe, and import it back whenever you need to restore.
 
 ## Import
 

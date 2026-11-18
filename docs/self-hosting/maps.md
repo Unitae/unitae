@@ -4,11 +4,11 @@ Unitae draws the territory maps itself: a quiet base map of streets and building
 congregation's numbered pins on top. The browser never calls a map service for it and nothing asks for consent. Until
 you configure a base map, these maps stay hidden.
 
-The base map shows on *Mes territoires* (a publisher's territory), on a territory's page, in the territory editor, in
-*Créer en lot* and on *Carte de l'assemblée*, where the zones and the perimeter are drawn. That last map reaches about
+The base map shows on _Mes territoires_ (a publisher's territory), on a territory's page, in the territory editor, in
+_Créer en lot_ and on _Carte de l'assemblée_, where the zones and the perimeter are drawn. That last map reaches about
 ten kilometres beyond the congregation's area, for whoever configures the territories, so a perimeter can be drawn wider
-than the placed buildings. Without a base map, the editor and *Créer en lot* find entrances by their address, and
-*Carte de l'assemblée* works through GeoJSON import and export.
+than the placed buildings. Without a base map, the editor and _Créer en lot_ find entrances by their address, and
+_Carte de l'assemblée_ works through GeoJSON import and export.
 
 Only the server still calls Google Maps, when `GOOGLE_MAPS_API_KEY` is set: the map page of PDF territory cards and the
 address proximity search (see [Environment Variables](environment-variables.md#maps)).

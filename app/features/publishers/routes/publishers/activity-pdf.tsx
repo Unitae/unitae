@@ -2,6 +2,7 @@ import { redirect } from 'react-router'
 import { toServiceYear } from '~/features/publishers/model/pioneer-pace'
 import { getPublisherById } from '~/features/publishers/server/publishers.server'
 import { PublisherActivityDocument } from '~/features/publishers/ui/PublisherActivityDocument'
+import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   currentAccountContext,
@@ -60,7 +61,7 @@ export function loader({ params, request, context }: Route.LoaderArgs) {
 
     if (!publisher) throw new NotFoundError('publisher', publisherId)
 
-    const filename = `S-21_F-${sanitizeFilename(publisher.firstname)}-${sanitizeFilename(publisher.lastname)}-${serviceYear}.pdf`
+    const filename = `${m.activity_pdf_form_filename()}-${sanitizeFilename(publisher.firstname)}-${sanitizeFilename(publisher.lastname)}-${serviceYear}.pdf`
 
     return renderPdfResponse(<PublisherActivityDocument publisher={publisher} serviceYear={serviceYear} />, filename)
   })

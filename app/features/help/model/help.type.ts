@@ -1,6 +1,6 @@
 import type { Permission } from '~/shared/types/permission'
 
-export const HELP_LOCALES = ['fr', 'en'] as const
+export const HELP_LOCALES = ['fr', 'en', 'pt-PT'] as const
 export type HelpLocale = (typeof HELP_LOCALES)[number]
 
 /** The articles a reader gets when their language has no folder of its own, as messages fall back to en.json. */
