@@ -120,6 +120,11 @@
             "height": 71,
             "captured": "2026-11-17"
         },
+        "organigram-role-panel": {
+            "width": 398,
+            "height": 633,
+            "captured": "2026-11-18"
+        },
         "pioneers-summary": {
             "width": 644,
             "height": 278,
@@ -140,10 +145,35 @@
             "height": 210,
             "captured": "2026-11-18"
         },
+        "settings-account-roles": {
+            "width": 599,
+            "height": 435,
+            "captured": "2026-11-18"
+        },
+        "settings-account-security": {
+            "width": 596,
+            "height": 397,
+            "captured": "2026-11-18"
+        },
+        "settings-audit-toolbar": {
+            "width": 600,
+            "height": 104,
+            "captured": "2026-11-18"
+        },
         "settings-bano": {
             "width": 509,
             "height": 208,
             "captured": "2026-11-17"
+        },
+        "settings-data-export": {
+            "width": 596,
+            "height": 385,
+            "captured": "2026-11-18"
+        },
+        "settings-new-user": {
+            "width": 446,
+            "height": 338,
+            "captured": "2026-11-18"
         },
         "settings-phone-switch": {
             "width": 473,
@@ -302,6 +332,11 @@
             "height": 71,
             "captured": "2026-11-17"
         },
+        "organigram-role-panel": {
+            "width": 398,
+            "height": 633,
+            "captured": "2026-11-18"
+        },
         "pioneers-summary": {
             "width": 644,
             "height": 278,
@@ -322,10 +357,35 @@
             "height": 210,
             "captured": "2026-11-18"
         },
+        "settings-account-roles": {
+            "width": 599,
+            "height": 415,
+            "captured": "2026-11-18"
+        },
+        "settings-account-security": {
+            "width": 596,
+            "height": 374,
+            "captured": "2026-11-18"
+        },
+        "settings-audit-toolbar": {
+            "width": 600,
+            "height": 104,
+            "captured": "2026-11-18"
+        },
         "settings-bano": {
             "width": 509,
             "height": 208,
             "captured": "2026-11-17"
+        },
+        "settings-data-export": {
+            "width": 596,
+            "height": 385,
+            "captured": "2026-11-18"
+        },
+        "settings-new-user": {
+            "width": 446,
+            "height": 318,
+            "captured": "2026-11-18"
         },
         "settings-phone-switch": {
             "width": 473,
@@ -484,6 +544,11 @@
             "height": 71,
             "captured": "2026-11-18"
         },
+        "organigram-role-panel": {
+            "width": 398,
+            "height": 633,
+            "captured": "2026-11-18"
+        },
         "pioneers-summary": {
             "width": 644,
             "height": 278,
@@ -504,9 +569,34 @@
             "height": 210,
             "captured": "2026-11-18"
         },
+        "settings-account-roles": {
+            "width": 599,
+            "height": 435,
+            "captured": "2026-11-18"
+        },
+        "settings-account-security": {
+            "width": 596,
+            "height": 397,
+            "captured": "2026-11-18"
+        },
+        "settings-audit-toolbar": {
+            "width": 600,
+            "height": 104,
+            "captured": "2026-11-18"
+        },
         "settings-bano": {
             "width": 509,
             "height": 208,
+            "captured": "2026-11-18"
+        },
+        "settings-data-export": {
+            "width": 596,
+            "height": 405,
+            "captured": "2026-11-18"
+        },
+        "settings-new-user": {
+            "width": 446,
+            "height": 338,
             "captured": "2026-11-18"
         },
         "settings-phone-switch": {

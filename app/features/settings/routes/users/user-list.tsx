@@ -1,6 +1,7 @@
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { redirect, useSearchParams } from 'react-router'
+import { HelpEntryButton } from '~/features/help'
 import { listUserAccounts } from '~/features/settings/server/user-accounts.queries'
 import { NewUserDialog } from '~/features/settings/ui/NewUserDialog'
 import { SettingsHeader } from '~/features/settings/ui/SettingsHeader'
@@ -14,6 +15,8 @@ import { SearchInput } from '~/shared/ui/SearchInput'
 import type { Route } from './+types/user-list'
 
 export const meta: Route.MetaFunction = () => [{ title: m.settings_users_meta_title() }]
+
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 const VIEWS = ['all', 'active', 'deactivated'] as const
 type View = (typeof VIEWS)[number]
@@ -66,6 +69,7 @@ export default function UserListPage({ loaderData }: Route.ComponentProps) {
     <div className="flex flex-col">
       <SettingsHeader
         title={m.settings_entry_users()}
+        help={<HelpEntryButton slug="invite-user" />}
         subtitle={m.settings_users_subtitle()}
         actions={
           canManage && (

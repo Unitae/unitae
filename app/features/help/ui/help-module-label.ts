@@ -9,6 +9,7 @@ const LABELS: Record<HelpModule, () => string> = {
   publishers: m.sidebar_publishers,
   groups: m.sidebar_publisher_groups,
   activity: m.sidebar_activity,
+  organigram: m.sidebar_assembly_organigram,
   programs: m.sidebar_programs,
   'external-speakers': m.sidebar_external_speakers,
   attendance: m.sidebar_attendance,

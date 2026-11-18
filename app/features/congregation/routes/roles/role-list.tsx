@@ -4,6 +4,7 @@ import { type BuiltInFilterKey, toggleSchema } from '~/features/congregation/sch
 import { loadTeamsPage, TEAMS_VIEWS } from '~/features/congregation/server/teams-page.queries'
 import type { TeamToggleResult } from '~/features/congregation/ui/TeamCell'
 import { TeamsScreen } from '~/features/congregation/ui/TeamsScreen'
+import { HelpEntryButton } from '~/features/help'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { holderOfMember } from '~/shared/domain/role-assignments.server'
@@ -15,6 +16,8 @@ import { getRoleDisplayName } from '~/shared/types/role'
 import type { Route } from './+types/role-list'
 
 export const meta: Route.MetaFunction = () => [{ title: m.teams_meta_title() }]
+
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
@@ -71,5 +74,5 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function TeamsRoute({ loaderData }: Route.ComponentProps) {
-  return <TeamsScreen {...loaderData} />
+  return <TeamsScreen {...loaderData} help={<HelpEntryButton slug="organigram" />} />
 }

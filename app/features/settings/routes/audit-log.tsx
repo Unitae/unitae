@@ -1,4 +1,5 @@
 import { SidePanel } from '@unitae/ui'
+import { HelpEntryButton } from '~/features/help'
 import { auditActionLabel } from '~/features/settings/model/audit-actions'
 import { auditDetails } from '~/features/settings/model/audit-details'
 import { auditEntityLabel } from '~/features/settings/model/audit-entities'
@@ -24,6 +25,8 @@ import { formatDateForInput } from '~/shared/utils/event-time'
 import type { Route } from './+types/audit-log'
 
 export const meta: Route.MetaFunction = () => [{ title: m.audit_log_meta_title() }]
+
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 /** The sizes the pagination offers; any other asks for the first. */
 const PAGE_SIZES = [25, 50, 100, 250, 500, 1000, 2000]
@@ -90,7 +93,11 @@ export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col">
-      <SettingsHeader title={m.settings_entry_audit()} subtitle={m.audit_log_subtitle()} />
+      <SettingsHeader
+        title={m.settings_entry_audit()}
+        help={<HelpEntryButton slug="audit-log" />}
+        subtitle={m.audit_log_subtitle()}
+      />
       <AuditLogToolbar count={count} period={period} from={from} to={to} today={today} />
       <div className="flex flex-wrap items-start gap-6">
         {/* The `list` container: beside the docked detail the table drops to its docked columns. */}

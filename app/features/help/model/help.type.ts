@@ -24,6 +24,7 @@ export const HELP_MODULES = [
   'publishers',
   'groups',
   'activity',
+  'organigram',
   'programs',
   'external-speakers',
   'attendance',

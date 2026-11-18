@@ -1,4 +1,5 @@
 import { Plus } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
@@ -8,13 +9,15 @@ interface OrgHeadingProps {
   canCreate: boolean
   /** « Nouveau rôle »: a link to the dialog, or what opens it here. */
   newRole: { to: string } | { onClick: () => void }
+  /** The page's « ? », beside the title on a phone; the top bar carries it from md. */
+  help?: ReactNode
 }
 
 /**
  * The organigram's title and subtitle. On a phone, « Nouveau rôle » is a « + » beside the title, as the shell's other
  * phone headers carry their action, instead of a full-width button under it; from md up it stays in the top bar.
  */
-export function OrgHeading({ canCreate, newRole }: OrgHeadingProps) {
+export function OrgHeading({ canCreate, newRole, help }: OrgHeadingProps) {
   return (
     <div className="flex items-start gap-3">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -33,6 +36,7 @@ export function OrgHeading({ canCreate, newRole }: OrgHeadingProps) {
             <Plus aria-hidden="true" />
           </Button>
         ))}
+      <div className="shrink-0 empty:hidden md:hidden">{help}</div>
     </div>
   )
 }

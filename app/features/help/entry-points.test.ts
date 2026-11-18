@@ -53,6 +53,14 @@ const PINS: Record<string, string | string[]> = {
   'features/publishers/routes/publishers/group.tsx': 'field-service-reports',
   'features/publishers/routes/activity/publisher-list.tsx': 'field-service-reports',
   'features/publishers/routes/activity/pioneers.tsx': 'pioneers',
+  'features/settings/routes/users/user-list.tsx': 'invite-user',
+  'features/settings/routes/users/account.tsx': 'give-rights',
+  'features/settings/routes/roles.tsx': 'give-rights',
+  'features/settings/routes/data/settings.tsx': 'congregation-data',
+  'features/settings/routes/audit-log.tsx': 'audit-log',
+  // The organigram's screens draw their own heading: the « ? » goes in the top bar, and beside the title on a phone.
+  'features/congregation/routes/roles/organigram.tsx': 'organigram',
+  'features/congregation/routes/roles/role-list.tsx': 'organigram',
 }
 
 // The routes with a loader matched above the pinned pages (see app/routes.ts).

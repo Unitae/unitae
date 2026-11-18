@@ -1,5 +1,5 @@
 import { Eye, Network, Plus } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import type { OrganigramPage } from '~/features/congregation/model/organigram-page.type'
 import { AdoptCommitteeDialog } from '~/features/congregation/ui/AdoptCommitteeDialog'
@@ -30,7 +30,14 @@ interface NewRole {
   parentId: number | null
 }
 
-export function OrganigramScreen({ page }: { page: OrganigramPage & { canManage: boolean } }) {
+export function OrganigramScreen({
+  page,
+  help,
+}: {
+  page: OrganigramPage & { canManage: boolean }
+  /** The page's « ? »: in the top bar from md, beside the title on a phone. */
+  help?: ReactNode
+}) {
   const { tree, panel, boardDocumentId, manage, canManage } = page
   const [params, setParams] = useSearchParams()
   const docked = useMediaQuery(DOCKED) === true
@@ -100,6 +107,7 @@ export function OrganigramScreen({ page }: { page: OrganigramPage & { canManage:
       <PageTopbar
         trail={[{ label: m.org_title() }]}
         className="mb-0"
+        help={help}
         actions={
           <>
             {boardDocumentId != null && (
@@ -119,7 +127,7 @@ export function OrganigramScreen({ page }: { page: OrganigramPage & { canManage:
           </>
         }
       >
-        <OrgHeading canCreate={canManage} newRole={{ onClick: openNewRole }} />
+        <OrgHeading canCreate={canManage} newRole={{ onClick: openNewRole }} help={help} />
       </PageTopbar>
 
       <RolesTabs />

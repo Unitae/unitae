@@ -1,4 +1,5 @@
 import { redirect } from 'react-router'
+import { HelpEntryButton } from '~/features/help'
 import { getOwnedDataTransferJob } from '~/features/settings/server/data-transfer.queries'
 import { dataTransferQueue } from '~/features/settings/server/data-transfer-queue.server'
 import { validateImport } from '~/features/settings/server/import-congregation.server'
@@ -12,6 +13,8 @@ import { handleDataAction, importStorageKey } from './_data-action.server'
 import type { Route } from './+types/settings'
 
 export const meta: Route.MetaFunction = () => [{ title: m.settings_data_meta_title() }]
+
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 function rightsOf(permissions: Set<Permission>) {
   // An import restores roles, permissions, accounts and assignments, so it can grant anything: admin only.
@@ -90,7 +93,11 @@ export default function DataPage({ loaderData }: Route.ComponentProps) {
   const { canExport, canImport, history, timeZone, exportJob, importJob, pending, expired } = loaderData
   return (
     <div className="flex max-w-4xl flex-col">
-      <SettingsHeader title={m.settings_entry_data()} subtitle={m.settings_data_subtitle()} />
+      <SettingsHeader
+        title={m.settings_entry_data()}
+        help={<HelpEntryButton slug="congregation-data" />}
+        subtitle={m.settings_data_subtitle()}
+      />
       <div className="flex flex-col">
         {canExport && <DataExportSection job={exportJob} history={history} timeZone={timeZone} />}
         {canImport && <DataImportSection job={importJob} pending={pending} expired={expired} />}

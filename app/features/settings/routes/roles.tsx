@@ -2,6 +2,7 @@ import { parseWithZod } from '@conform-to/zod/v4'
 import { Callout, SidePanel } from '@unitae/ui'
 import { useEffect } from 'react'
 import { data, Link, redirect, useFetcher, useSearchParams } from 'react-router'
+import { HelpEntryButton } from '~/features/help'
 import { editPermissionsSchema } from '~/features/settings/schemas/permissions.schema'
 import { listRolesForPermissions } from '~/features/settings/server/role-permissions.queries'
 import { peopleLabel, RoleList } from '~/features/settings/ui/RoleList'
@@ -30,6 +31,8 @@ import { okWithToast } from './_toast.server'
 import type { Route } from './+types/roles'
 
 export const meta: Route.MetaFunction = () => [{ title: m.settings_roles_meta_title() }]
+
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 /** Every right, under its category, in the categories' order. */
 function permissionCatalogue(): PermissionCategoryGroup[] {
@@ -131,6 +134,7 @@ export default function RolesPage({ loaderData }: Route.ComponentProps) {
     <div className="flex flex-col">
       <SettingsHeader
         title={m.settings_entry_roles()}
+        help={<HelpEntryButton slug="give-rights" />}
         subtitle={m.settings_roles_subtitle()}
         actions={
           canManageRoles && (

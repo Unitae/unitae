@@ -2,6 +2,7 @@ import { getFormProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod/v4'
 import { Status } from '@unitae/ui'
 import { data, redirect } from 'react-router'
+import { HelpEntryButton } from '~/features/help'
 import { editUserSchema } from '~/features/settings/schemas/user.schema'
 import { updateAccount } from '~/features/settings/server/update-account.server'
 import { getAccountPage } from '~/features/settings/server/user-accounts.queries'
@@ -34,6 +35,8 @@ import type { Route } from './+types/account'
 export const meta: Route.MetaFunction = ({ loaderData }) => [
   { title: loaderData ? m.settings_account_meta_title({ name: loaderData.name }) : m.settings_users_meta_title() },
 ]
+
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 export async function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
@@ -130,6 +133,7 @@ export default function AccountPage({ loaderData, actionData }: Route.ComponentP
     <div className="flex max-w-4xl flex-col">
       <SettingsHeader
         title={name}
+        help={<HelpEntryButton slug="give-rights" />}
         subtitle={page.email}
         titleBadge={state && <Status tone={state.tone}>{state.label}</Status>}
         trail={[{ label: m.settings_entry_users(), to: '/settings/users' }]}
