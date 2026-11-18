@@ -48,10 +48,10 @@ Use the US spelling **program** in English, never "programme". French keeps *pro
 | French | English | Portuguese (Portugal) |
 |---|---|---|
 | Vie chrétienne et ministère | Our Christian Life and Ministry (short: Life and Ministry Meeting) | Vida e Ministério Cristãos (Reunião Vida e Ministério) |
-| Joyaux de la Parole de Dieu / Applique-toi au ministère / Vie chrétienne | Treasures From God's Word / Apply Yourself to the Field Ministry / Living as Christians | Tesouros da Palavra de Deus / Faça Seu Melhor no Ministério / Nossa Vida Cristã |
-| Perles spirituelles | Spiritual Gems | Joias espirituais |
+| Joyaux de la Parole de Dieu / Applique-toi au ministère / Vie chrétienne | Treasures From God's Word / Apply Yourself to the Field Ministry / Living as Christians | Tesouros da Palavra de Deus / Empenhe-se no Ministério / Vida e Ministério Cristãos |
+| Perles spirituelles | Spiritual Gems | Pérolas espirituais |
 | Lecture de la Bible | Bible Reading | Leitura da Bíblia |
-| Engage la conversation / Entretiens l'intérêt / Fais des disciples / Explique tes croyances | Starting a Conversation / Following Up / Making Disciples / Explaining Your Beliefs | Inicie Conversas / Cultive o Interesse / Faça Discípulos / Explique as Suas Crenças |
+| Engage la conversation / Entretiens l'intérêt / Fais des disciples / Explique tes croyances | Starting a Conversation / Following Up / Making Disciples / Explaining Your Beliefs | Iniciar Conversas / Cultivar o Interesse / Fazer Discípulos / Explique as Suas Crenças |
 | Étude biblique de l'assemblée (conducteur, lecteur) | Congregation Bible Study (conductor, reader) | Estudo Bíblico de Congregação (dirigente, leitor) |
 | Paroles d'introduction / de conclusion | Opening Comments / Concluding Comments | Palavras Introdutórias / Comentários Finais |
 | président | chairman | presidente |

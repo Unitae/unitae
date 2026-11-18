@@ -69,8 +69,8 @@ A shot frames the elements its step names. Keep the crop narrow: the side panel 
 shrinks there. A shot can set its own window (`viewport`), narrower for a row or a title with its control, taller for
 a long form; `margin: -1` trims an element's own border line.
 
-Look at each new image before committing it, in all three languages: the English and Portuguese copies use the same
-demo data as the French capture, so a new screen can still show a French name.
+Look at each new image before committing it, in every language: the English copy translates the demo data a
+capture was made for, so a new screen can still show a French name.
 
 ## 4. Clean up
 

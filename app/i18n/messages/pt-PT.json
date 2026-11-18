@@ -649,7 +649,7 @@
                 "countPlural"
             ],
             "match": {
-                "countPlural=one": "{count} selecionados",
+                "countPlural=one": "{count} selecionado",
                 "countPlural=*": "{count} selecionados"
             }
         }
@@ -1162,7 +1162,7 @@
                 "countPlural"
             ],
             "match": {
-                "countPlural=one": "{count} selecionados",
+                "countPlural=one": "{count} selecionado",
                 "countPlural=*": "{count} selecionados"
             }
         }
@@ -1392,7 +1392,7 @@
                 "countPlural"
             ],
             "match": {
-                "countPlural=one": "de {count} esperados",
+                "countPlural=one": "de {count} esperado",
                 "countPlural=*": "de {count} esperados"
             }
         }
@@ -1459,7 +1459,7 @@
             ],
             "match": {
                 "countPlural=one": "{count} auxiliar",
-                "countPlural=*": "{count} auxiliar"
+                "countPlural=*": "{count} auxiliares"
             }
         }
     ],
@@ -1474,7 +1474,7 @@
             ],
             "match": {
                 "countPlural=one": "{count} especial",
-                "countPlural=*": "{count} especial"
+                "countPlural=*": "{count} especiais"
             }
         }
     ],
@@ -1956,7 +1956,7 @@
                 "countPlural"
             ],
             "match": {
-                "countPlural=one": "{count} selecionados",
+                "countPlural=one": "{count} selecionado",
                 "countPlural=*": "{count} selecionados"
             }
         }
@@ -1992,7 +1992,7 @@
                 "countPlural"
             ],
             "match": {
-                "countPlural=one": "Repor {count} programas publicados como rascunho",
+                "countPlural=one": "Repor {count} programa publicado como rascunho",
                 "countPlural=*": "Repor {count} programas publicados como rascunho"
             }
         }
@@ -2801,7 +2801,7 @@
             ],
             "match": {
                 "countPlural=one": "{count} novo",
-                "countPlural=*": "{count} novo"
+                "countPlural=*": "{count} novos"
             }
         }
     ],
@@ -3032,7 +3032,7 @@
                 "countPlural"
             ],
             "match": {
-                "countPlural=one": "{count} selecionados",
+                "countPlural=one": "{count} selecionado",
                 "countPlural=*": "{count} selecionados"
             }
         }
@@ -3316,7 +3316,7 @@
             ],
             "match": {
                 "countPlural=one": "{count} disponível",
-                "countPlural=*": "{count} disponível"
+                "countPlural=*": "{count} disponíveis"
             }
         }
     ],
@@ -4114,12 +4114,12 @@
     "role_desc_service_overseer": "Ancião que serve como superintendente do serviço",
     "seed_template_midweek": "Reunião de semana",
     "seed_template_weekend": "Reunião de fim de semana",
-    "seed_template_memorial": "Celebração",
+    "seed_template_memorial": "Memorial",
     "seed_template_day_off": "Ausência",
     "seed_template_freeform": "Outro evento",
     "seed_part_song_and_prayer": "Cântico e oração",
     "seed_part_discourse": "Discurso",
-    "seed_part_search_spiritual_pearls": "Joias espirituais",
+    "seed_part_search_spiritual_pearls": "Tesouros da Palavra de Deus",
     "seed_part_bible_reading": "Leitura da Bíblia",
     "seed_part_first_part": "1.ª parte",
     "seed_part_second_part": "2.ª parte",
@@ -4129,15 +4129,15 @@
     "seed_part_song_and_closing_prayer": "Cântico e oração final",
     "seed_part_public_discourse": "Discurso público",
     "seed_part_watchtower_study": "Estudo de A Sentinela",
-    "seed_part_memorial_discourse": "Discurso da Celebração",
-    "seed_part_prayer_bread": "Oração sobre o pão",
-    "seed_part_prayer_wine": "Oração sobre o vinho",
-    "seed_section_spiritual_gems": "Joias espirituais",
-    "seed_section_ministry": "Faça Seu Melhor no Ministério",
-    "seed_section_christian_life": "Nossa Vida Cristã",
+    "seed_part_memorial_discourse": "Discurso do Memorial",
+    "seed_part_prayer_bread": "Oração do pão",
+    "seed_part_prayer_wine": "Oração do vinho",
+    "seed_section_spiritual_gems": "Pérolas espirituais",
+    "seed_section_ministry": "Empenhe-se no Ministério",
+    "seed_section_christian_life": "Viver Como Cristãos",
     "seed_service_sound": "Áudio e vídeo",
     "seed_service_stage": "Palco",
-    "seed_service_reception": "Assistentes",
+    "seed_service_reception": "Indicadores",
     "seed_service_cleaning": "Limpeza",
     "seed_preset_prayer": "Oração",
     "seed_preset_chairman": "Presidente",
@@ -4626,7 +4626,7 @@
     "publishers_record_enrol_goal_help": "Vazio: o objetivo da congregação para cada ano de serviço.",
     "publishers_record_enrol_submit": "Registar",
     "publishers_record_enrol_submit_month": "Registar para {month}",
-    "publishers_record_enrol_delete": "Eliminar registo...",
+    "publishers_record_enrol_delete": "Eliminar registo…",
     "publishers_record_hours": "{count} h",
     "publishers_record_stop_title": "Terminar o serviço de pioneiro?",
     "publishers_record_stop_last_month": "Último mês de serviço",
@@ -4663,7 +4663,7 @@
             ],
             "match": {
                 "countPlural=one": "{count} planeada",
-                "countPlural=*": "{count} planeada"
+                "countPlural=*": "{count} planeadas"
             }
         }
     ],
@@ -5378,7 +5378,7 @@
                 "countPlural"
             ],
             "match": {
-                "countPlural=one": "Filtros, {count} ativos",
+                "countPlural=one": "Filtros, {count} ativo",
                 "countPlural=*": "Filtros, {count} ativos"
             }
         }
@@ -5559,7 +5559,7 @@
                 "countPlural"
             ],
             "match": {
-                "countPlural=one": "{count} inativos",
+                "countPlural=one": "{count} inativo",
                 "countPlural=*": "{count} inativos"
             }
         }
@@ -6985,7 +6985,7 @@
             ],
             "match": {
                 "countPlural=one": "{count} novo",
-                "countPlural=*": "{count} novo"
+                "countPlural=*": "{count} novos"
             }
         }
     ],
@@ -6999,7 +6999,7 @@
                 "countPlural"
             ],
             "match": {
-                "countPlural=one": "{count} alterados",
+                "countPlural=one": "{count} alterado",
                 "countPlural=*": "{count} alterados"
             }
         }
@@ -7014,8 +7014,8 @@
                 "countPlural"
             ],
             "match": {
-                "countPlural=one": "{count} mudaram de congregação",
-                "countPlural=*": "{count} mudou de congregação"
+                "countPlural=one": "{count} modou de congregação",
+                "countPlural=*": "{count} mudaram de congregação"
             }
         }
     ],
@@ -7029,7 +7029,7 @@
                 "countPlural"
             ],
             "match": {
-                "countPlural=one": "{count} retirados",
+                "countPlural=one": "{count} retirado",
                 "countPlural=*": "{count} retirados"
             }
         }
@@ -7407,7 +7407,7 @@
                 "countPlural"
             ],
             "match": {
-                "countPlural=one": "{count} retirados",
+                "countPlural=one": "{count} retirado",
                 "countPlural=*": "{count} retirados"
             }
         }
@@ -7528,8 +7528,8 @@
     "part_preset_preview_assignee_firstname": "João",
     "part_preset_preview_assistant": "Marcos Brown",
     "part_preset_preview_part_name": "Parte 1",
-    "part_preset_preview_section": "Faça Seu Melhor no Ministério",
-    "part_preset_preview_topic": "Iniciando conversas",
+    "part_preset_preview_section": "Empenhe-se no Ministério",
+    "part_preset_preview_topic": "Iniciar conversas",
     "part_preset_preview_date": "terça-feira, 3 de setembro",
     "part_preset_preview_time": "19:30",
     "part_preset_preview_event_name": "Reunião de semana",
@@ -7652,7 +7652,7 @@
                 "countPlural"
             ],
             "match": {
-                "countPlural=one": "de {count} realizadas",
+                "countPlural=one": "de {count} realizada",
                 "countPlural=*": "de {count} realizadas"
             }
         }
