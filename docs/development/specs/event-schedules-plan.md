@@ -24,7 +24,7 @@ decision of its own, only the technical choices listed in §1.
 | T9 | **A contract is two releases**: one image stops reading and writing the old shape, the next release's migration drops it. `Event.status` stops being written in PR 5, `TemplateResponsible` and the template items' `templateId` in PR 6, the kind-level weekday/hours/mark in PR 8, `Absence.legacyEventId` in PR 2. The items keep their `eventId`, held equal to their schedule's by a composite foreign key. | The migration runs while the previous image still serves. |
 | T10 | **`Event.origin`** (`job` / `manual` / `import`) replaces « null author » as the sign of a job-made meeting (PR 0). | Clearing an author (account deletion) must never turn a hand-made event into one a template move may delete. |
 | T11 | **One event per occurrence, by constraint**: `Event.occurrenceDay` and a unique index on (`recurrenceRuleId`, `occurrenceDay`) (PR 7). The job inserts with `ON CONFLICT DO NOTHING`; dedupe and moves key on the rule, never on the kind and the day. | Eight rules of one kind share weekdays; a day-keyed check would skip one rule's events and let a split delete another rule's meeting. |
-| T8 | **One archive version per PR that changes the format**: 2.16 (PR 0), 2.17 (PR 1), 2.18 (PR 3), 2.19 (PR 6: the board configuration's new shape, schedule template ids remapped), 2.20 (PR 7), 2.21 (PR 7b). Each previous version joins `SUPPORTED_ARCHIVE_VERSIONS` and has an import mapping. | Same rule as every bump so far. |
+| T8 | **One archive bump per PR that changes the format**, numbered in merge order from 2.16. Each previous version joins `SUPPORTED_ARCHIVE_VERSIONS` and has an import mapping, tested by importing an archive of that version kept as a fixture. | Same rule as every bump so far. |
 
 ## 2. Ground rules for every PR
 
@@ -52,25 +52,112 @@ decision of its own, only the technical choices listed in §1.
 - **Tenant tables.** Every new table carries `congregationId`, the standard RLS policy, and joins
   `TENANT_MODELS` in `scripts/check-tenant-scoping.ts`.
 
+## 2a. Testing: nothing that works today may stop working
+
+The refactor rewrites how every programme, duty, assignment and board document is stored and read.
+Existing documents and assignments must keep working through every PR, so the tests are written
+first and the refactor is held to them.
+
+**Invariants** — true before PR 0a, after every PR, and checked by tests:
+
+1. A published programme reads the same on the board, on screen and in the PDF: same events, parts,
+   duties, assignees, order, headings.
+2. Every assignment keeps its assignee, its assistant, its allowed roles and its conflict flag;
+   assigning, unassigning, publishing and unpublishing send the same notices to the same people, and
+   the links in notices already waiting still open the right page.
+3. Every board document keeps showing the same events with its stored configuration.
+4. Personal views read the same: dashboard (next meeting, open parts, my assignments, responsible
+   conflicts), calendar feed, publisher record, candidate facts and cadence, share messages.
+5. Absences block and flag exactly as before.
+6. An archive of any supported version imports to the same data.
+7. Attendance figures and exports are unchanged.
+
+**The reference suite (PR 0a).** A deterministic fixture congregation (`app/tests/fixtures/
+events-reference.ts`: fixed seed, fixed clock, built through today's service functions) covering
+two meeting kinds and the Mémorial, programmes published and draft, services, parts with assistants
+and external speakers, allowed roles, absences with conflicts, template responsibles of both scopes,
+empty meetings, counted meetings, and a board programme document per configuration (by date, by
+template, parts only, services only). Integration tests (`*.reference.integration.test.ts`) run the
+real readers on it and compare to committed reference files:
+
+- board: the builder's data for every document and the PDF read back with `tests/helpers/pdf-text.ts`
+  (the programme render gate already does this for layout; this pins content);
+- assignments: assign / unassign part and service, publish / unpublish single and bulk, the notices
+  queued (recipients, type, link), the conflict refusals and flags;
+- personal views: the dashboard readers, the ICS text of the feed, the record's engagements, candidate
+  facts, cadence, share message, external speakers' next visit;
+- archive: export of the fixture, then import into a fresh congregation, compared row by row.
+
+Reference files change only in a PR that changes behaviour on purpose, and only on the lines it
+names in its description. A refactor PR (1a–4e, 9, 10) leaves them untouched.
+
+**E2E before the refactor (PR 0a).** Today nothing covers absences, service assignment and
+publishing, or the board programme's content. New specs: `absences.spec.ts` (declare, list, delete,
+the conflict mark), `assignments.spec.ts` (assign a part and a service, the absence warning, publish,
+the board shows them, unpublish), `board-programme.spec.ts` (the programme document's text for a
+published week). Each later PR keeps them green and extends them for what it adds.
+
+**Data written in the old shape.** Every expand PR's migration test builds its fixture in the old
+shape (as the previous image writes it), runs the shipped SQL, then runs the reference readers on the
+result: the references must not change. The read-switch PRs run them on data written by the previous
+image's code paths and backfilled by the catch-up.
+
+**Upgrade rehearsal.** Before each migration PR merges, a script (`scripts/events-snapshot.ts`)
+dumps the invariants' outputs for every congregation of a scratch copy of the demo database, the
+migration and the new image run, and the dump is compared. Run on a production backup only if the
+operator decides to.
+
+**Per PR, always:** failing test first for every new service function and every regression (TDD);
+an integration test for every query and aggregate it touches; a migration test (before/after,
+idempotence, a re-run after old-shape writes, an unknown input, a collision); an RLS test for each new
+table (another congregation's rows invisible); E2E for each flow it adds or changes; the reference
+suite green and unchanged; the whole gate list of §2. Coverage does not go down.
+
 ## 3. Phasing at a glance
+
+Small PRs, one concern each, each deployed before the next migration merges. A PR touches at most
+about thirty non-test files; the read switch goes feature by feature.
 
 | PR | Content | Format | UI |
 |---|---|---|---|
-| 0 | Fixes found by the inventory | 2.16 | small |
-| 1 | Absences — expand | 2.17 | none |
+| 0a | **Safety net**: the reference suite and the missing E2E (§2a), against today's code | — | none |
+| 0b | Archive carries statuses and the board configuration | bump | none |
+| 0c | Pending notices on delete, whom to warn, apply-template, stale comments | — | none |
+| 0d | `Event.origin`; account deletion | bump | small |
+| 1a | Absences: table, backfill, dual write | — | none |
+| 1b | Absences: conflict readers switched | — | none |
+| 1c | Absences: lists, dashboard, feed, record switched; ownership follows the record | — | none |
+| 1d | Absences: archive | bump | none |
 | 2 | Absences — contract | — | none |
-| 3 | Schedules — expand | 2.18 | none |
+| 3a | Schedules: tables, backfill, dual write | — | none |
+| 3b | Schedules: archive | bump | none |
 | — | Design round A (event view, publishing, settings) | — | canvas |
-| 4 | Schedules — read switch | — | none visible |
-| 5 | Per-schedule publishing, event view, rights | — | yes |
-| 6 | Réglages: event kinds and schedule templates; board configuration | 2.19 | yes |
-| — | Design round B (rules, fields, list, calendar) | — | canvas |
-| 7 | Rules, custom fields, multi-day kinds, group and text assignees; demo | 2.20 | yes |
-| 7b | Event audiences (D35) | 2.21 | yes |
-| 8 | Redesigned list and weekly calendar | — | yes |
+| 4a | Read switch: catch-up migration; programme list, event view, share message, external speakers | — | none visible |
+| 4b | Read switch: assignments, conflicts, candidates, cadence, engagement | — | none visible |
+| 4c | Read switch: dashboard | — | none visible |
+| 4d | Read switch: board documents and links | — | none visible |
+| 4e | Read switch: notifications, calendar feed, account export | — | none visible |
+| 5a | Rights per schedule (server) | — | none |
+| 5b | Per-schedule publishing (server, routes, bulk) | — | small |
+| 5c | Event view, editor and creation form by schedule | — | yes |
+| 6a | Réglages: schedule templates | — | yes |
+| 6b | Réglages: event kinds | — | yes |
+| 6c | Board configuration per kind | bump | yes |
+| — | Design round B (rules, fields, audiences, list, calendar) | — | canvas |
+| 7a | Rules, the job by occurrence, « et les suivantes », « Arrêter la répétition » | bump | yes |
+| 7b | Custom fields | bump | yes |
+| 7c | Multi-day kinds | — | yes |
+| 7d | Group and text assignees, conductors inline | bump | yes |
+| 7e | Demo seed with the new kinds | — | none |
+| 7f | Event audiences (D35) | bump | yes |
+| 8a | Redesigned list | — | yes |
+| 8b | Weekly calendar | — | yes |
 | 9 | Schedules — contract | — | none |
 | 10 | Rule contract | — | none |
 | Doc 1–3 | Event documents: Liste d’évènements, Tableau, Semaine type | — | yes |
+
+The sections below describe each stage; a stage split above ships its parts in that order, each with
+its own tests.
 
 ## 4. PR 0 — Fixes found on the way
 
@@ -78,7 +165,7 @@ Bugs in today's code that would otherwise flow into the backfills, and the origi
 
 | Area | Change |
 |---|---|
-| Archive | `events.ndjson` carries `status` (export `export-congregation.server.ts`, import `import-events.server.ts`; pre-2.16 events import as today: `draft`, day-offs `released`). `board-dynamic-document-settings` carries `dynamicConfig` (export, `import-board.server.ts`), template ids remapped through the id map. 2.15 → 2.16. |
+| Archive | `events.ndjson` carries `status` (export `export-congregation.server.ts`, import `import-events.server.ts`; pre-2.16 events import as today: `draft`, day-offs `released`). `board-dynamic-document-settings` carries `dynamicConfig` (export, `import-board.server.ts`), template ids remapped through the id map. Bump. |
 | Notices | `deleteEvent` / `bulkDeleteEvents` (`delete-events.server.ts`) and `deletePartAssignment` / `deleteServicePartAssignment` (`event-parts.server.ts`) cancel the pending `assigned` notices of the items they delete, as `unreleaseEvent` and `removeProgrammes` do. `event-parts.server.ts` is exempt at 364 lines: the cancel goes through a helper in `notify-assignment.server.ts`. |
 | Whom to warn | `list-user-conflicts-in-range.server.ts` resolves a responsible role's people through the same rule as `resolveEffectiveRoleIds` (accounts holding it by hand or through a member seat), not `role.members.user` only. |
 | Apply template | `listApplicableTemplates` (`events-auth.server.ts`) never offers a system template: applying « day-off » turned a meeting into an absence. |
@@ -146,8 +233,8 @@ the rollout have no `Absence` row, and ones it deletes leave theirs behind — P
 the first and deletes the second (T7). The migration also re-runs PR 0's origin backfill for the empty
 meetings PR 0's predecessor created during that rollout.
 
-**Archive 2.17:** `absences.ndjson` (dates, note, `memberId`, `accountId` remapped); day-off events no
-longer exported. Import of ≤ 2.16 maps day-off events to absences through the same rule as the
+**Archive (bump):** `absences.ndjson` (dates, note, `memberId`, `accountId` remapped); day-off events no
+longer exported. Import of older archives maps day-off events to absences through the same rule as the
 migration (owner's record when it has one). `import-absences.server.ts`.
 
 **Other files:** `model/absence.ts` (window helpers keep their dates), `schemas/day-off.schema.ts`,
@@ -220,8 +307,8 @@ Size: `event-templates.server.ts` (327) splits into `template-items.server.ts` f
 `seed-templates.server.ts` (333) moves its data into `model/seed-templates.data.ts`;
 `event-status.server.ts` (307) moves `computeNotifyTargets` into `release-notifications.server.ts`.
 
-**Archive 2.18:** `schedule-templates.ndjson`, `kind-schedule-templates.ndjson`, `schedules.ndjson`;
-items carry `scheduleId` / `scheduleTemplateId`. Import of ≤ 2.17 runs the migration's rule in
+**Archive (bump):** `schedule-templates.ndjson`, `kind-schedule-templates.ndjson`, `schedules.ndjson`;
+items carry `scheduleId` / `scheduleTemplateId`. Import of older archives runs the migration's rule in
 TypeScript (`import-schedules.server.ts`), using the event statuses PR 0 started exporting (2.15 and
 older: all draft, as their import already does).
 
@@ -231,7 +318,7 @@ older: all draft, as their import already does).
 
 **Tests:** migration test (a template with parts only, services only, both, neither; responsibles
 with and without a service scope; a released and a draft event; idempotence; the partial unique
-index refusing a second programme); dual-write service tests; archive round-trip and a 2.17 import.
+index refusing a second programme); dual-write service tests; archive round-trip and an import of the previous version's fixture.
 
 ## 8. Design round A
 
@@ -337,7 +424,7 @@ both; `program-permissions.spec.ts` updated to the new rights.
   configuration PR 6 saves; stored configurations are never rewritten, the new shape is written on the
   next save. `ProgrammeConfigFields.tsx`,
   `dynamic-form.queries.ts`, `new-dynamic.tsx` (255: the config fields move out first),
-  `update-dynamic-document.server.ts`, `event-link.server.ts`. Archive 2.19: the new shape, schedule
+  `update-dynamic-document.server.ts`, `event-link.server.ts`. Archive (bump): the new shape, schedule
   template ids remapped on import; older configurations go through the same reader.
 - Seeded kinds stay the three of today (D25) with their two suggested schedule templates each.
 
@@ -396,7 +483,7 @@ settings form asks to set it « Non comptée » first; its counts stay (D23).
 **Conductors** (D33): the event form shows a kind's single duty schedule inline (« Conducteur(s) »),
 its duties filled in place; publishing it is the event's « Publier ».
 
-**Archive 2.20:** `recurrence-rules.ndjson`, `event-kind-fields.ndjson`, `event-field-values.ndjson`;
+**Archive (bump):** `recurrence-rules.ndjson`, `event-kind-fields.ndjson`, `event-field-values.ndjson`;
 events carry `recurrenceRuleId` and `changedOnce`; duties carry the group and text assignees.
 
 **Demo** (D26): « Semaine de nettoyage » by group, « Réunion pour la prédication » with eight rules
@@ -407,7 +494,7 @@ series and the job; the unique index refusing a second event for an occurrence; 
 rule's meeting on the same day; a split with an empty, a prepared and a counted meeting (D22); group notification targets; the
 CHECKs.
 
-## 13b. PR 7b — Event audiences
+## 13b. PR 7f — Event audiences
 
 - Migration `add_event_audience`: `EventAudience` (spec §5), CHECKs keeping « event or rule » and
   « group or person » exclusive, `congregationId`, RLS, `TENANT_MODELS`; refused on a counted kind.
@@ -423,7 +510,7 @@ CHECKs.
   « Par groupe ». PDFs are always rendered as for a reader without an account.
 - UI from design round B: an « Pour » field (Tout le monde · groupes · personnes) on the event and
   rule forms; a marker on restricted events in lists.
-- **Archive 2.21:** `event-audiences.ndjson`, groups and members remapped.
+- **Archive (bump):** `event-audiences.ndjson`, groups and members remapped.
 - **Tests:** the audience rows of spec §9 against every reader (a test helper lists the readers so a
   new one without the condition fails), the board collapse on screen and in the PDF, the CHECKs.
 
