@@ -2,6 +2,7 @@ import { type AttendanceKind, parseAttendanceKind } from '~/features/events/mode
 import { toServiceYear } from '~/features/publishers'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { addDays, dayOf, endOfDay, mondayOf, startOfDay } from '~/shared/utils/calendar-day'
+import { resolveAccountName } from '~/shared/utils/format-person-name'
 
 // Reads of meeting attendance. Writes live in attendance.aggregate.ts.
 
@@ -28,6 +29,9 @@ export interface AttendanceMeetingRow {
 // Events whose template counts attendance. Events without a template never do.
 const COUNTED = { attendanceKind: { not: 'none' } }
 
+// An account linked to a record keeps no name of its own: the record holds it (resolveAccountName).
+const PERSON = { firstname: true, lastname: true, member: { select: { firstname: true, lastname: true } } } as const
+
 const SELECT = {
   id: true,
   name: true,
@@ -38,17 +42,21 @@ const SELECT = {
     select: {
       inPerson: true,
       inPersonAt: true,
-      inPersonBy: { select: { firstname: true, lastname: true } },
+      inPersonBy: { select: PERSON },
       inPersonById: true,
       online: true,
       onlineAt: true,
-      onlineBy: { select: { firstname: true, lastname: true } },
+      onlineBy: { select: PERSON },
       onlineById: true,
     },
   },
 } as const
 
-type Person = { firstname: string | null; lastname: string | null } | null
+type Person = {
+  firstname: string | null
+  lastname: string | null
+  member: { firstname: string | null; lastname: string | null } | null
+} | null
 type EventRow = {
   id: number
   name: string
@@ -68,7 +76,9 @@ type EventRow = {
 }
 
 function nameOf(person: Person): string | null {
-  const name = [person?.firstname, person?.lastname].filter(Boolean).join(' ')
+  if (person == null) return null
+  const { firstname, lastname } = resolveAccountName(person)
+  const name = [firstname, lastname].filter(Boolean).join(' ')
   return name === '' ? null : name
 }
 

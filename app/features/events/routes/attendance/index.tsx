@@ -11,6 +11,7 @@ import {
 } from '~/features/events/server/attendance.queries'
 import { AttendanceEntryCard } from '~/features/events/ui/AttendanceEntryCard'
 import { AttendanceYearScreen } from '~/features/events/ui/AttendanceYearScreen'
+import { HelpEntryButton } from '~/features/help'
 import { toServiceYear } from '~/features/publishers'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
@@ -84,14 +85,25 @@ export function loader({ request, context }: Route.LoaderArgs) {
 export default function AttendancePage({ loaderData }: Route.ComponentProps) {
   if (loaderData.mode === 'year') {
     // Keyed by year: folded months, the view and the open meeting belong to the year they were chosen in.
-    return <AttendanceYearScreen key={loaderData.serviceYear} {...loaderData} now={new Date(loaderData.now)} />
+    return (
+      <AttendanceYearScreen
+        key={loaderData.serviceYear}
+        {...loaderData}
+        now={new Date(loaderData.now)}
+        help={<HelpEntryButton slug="attendance-s88" />}
+      />
+    )
   }
 
   const { meetings, next, viewer, now } = loaderData
   const locale = getLocale()
   return (
     <div className="flex max-w-xl flex-col gap-4">
-      <PageHeader title={m.attendance_page_title()} breadcrumbs={[{ label: m.attendance_page_title() }]} />
+      <PageHeader
+        title={m.attendance_page_title()}
+        breadcrumbs={[{ label: m.attendance_page_title() }]}
+        help={<HelpEntryButton slug="attendance-entry" />}
+      />
       {meetings.map(meeting => (
         <AttendanceEntryCard key={meeting.eventId} entry={meeting} viewer={{ ...viewer, now: new Date(now) }} />
       ))}
@@ -115,4 +127,6 @@ export default function AttendancePage({ loaderData }: Route.ComponentProps) {
   )
 }
 
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 export { RouteErrorBoundary as ErrorBoundary } from '~/shared/ui/RouteErrorBoundary'

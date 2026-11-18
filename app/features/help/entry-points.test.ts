@@ -4,8 +4,9 @@ import { describe, expect, it } from 'vitest'
 import { loadHelpArticles } from '~/features/help/server/help-content.server'
 
 // The authoritative wiring of the « ? » entry points: every page that shows one, and the article it opens. A new
-// entry point needs a line here; a removed one needs its line removed. The scan below enforces both directions.
-const PINS: Record<string, string> = {
+// entry point needs a line here; a removed one needs its line removed. The scan below enforces both directions. A page
+// whose header depends on the reader's rights lists one article per header.
+const PINS: Record<string, string | string[]> = {
   'features/events/routes/days-off/list.tsx': 'absences',
   'features/territories/routes/my-territories/list.tsx': 'my-territories',
   'features/territories/routes/territory/list.tsx': 'create-territory',
@@ -18,6 +19,10 @@ const PINS: Record<string, string> = {
   'features/authentication/routes/user/security.tsx': 'password',
   'features/notifications/routes/preferences.tsx': 'notifications',
   'features/authentication/routes/user/privacy.tsx': 'my-data',
+  'features/events/routes/programs/external-speakers/list.tsx': 'external-speakers',
+  'features/events/routes/programs/external-speakers/ours.tsx': 'external-speakers',
+  // Who may only enter attendance gets today's meetings; who may read it gets the service year and its exports.
+  'features/events/routes/attendance/index.tsx': ['attendance-entry', 'attendance-s88'],
 }
 
 // The routes with a loader matched above the pinned pages (see app/routes.ts).
@@ -60,9 +65,10 @@ describe('the « ? » entry points, wired from the app source', () => {
     expect([...scanned.keys()].sort()).toEqual(Object.keys(PINS).sort())
   })
 
-  for (const [file, slug] of Object.entries(PINS)) {
-    it(`opens « ${slug} » from ${file}`, () => {
-      expect([...(scanned.get(file) ?? [])]).toEqual([slug])
+  for (const [file, pinned] of Object.entries(PINS)) {
+    const slugs = [pinned].flat().sort()
+    it(`opens « ${slugs.join(' », « ')} » from ${file}`, () => {
+      expect([...(scanned.get(file) ?? [])].sort()).toEqual(slugs)
     })
   }
 
@@ -80,7 +86,7 @@ describe('the « ? » entry points, wired from the app source', () => {
   })
 
   it('opens only articles that ship in both languages', () => {
-    for (const slug of new Set(Object.values(PINS))) {
+    for (const slug of new Set(Object.values(PINS).flat())) {
       for (const locale of ['fr', 'en'] as const) {
         expect(ARTICLES.some(article => article.locale === locale && article.slug === slug)).toBe(true)
       }

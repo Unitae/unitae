@@ -8,6 +8,8 @@ const HTML_TAG = /<\/?[a-z][^>]*>/i
 // The first series, pinned: adding or removing an article is a deliberate change to this list.
 const SHIPPED_SLUGS = [
   'absences',
+  'attendance-entry',
+  'attendance-s88',
   'bano',
   'board-download',
   'board-read',
@@ -15,8 +17,10 @@ const SHIPPED_SLUGS = [
   'calendar-feed',
   'campaign-create',
   'create-territory',
+  'external-speakers',
   'language',
   'my-data',
+  'my-parts',
   'my-territories',
   'notifications',
   'password',
@@ -232,7 +236,18 @@ describe('loadHelpArticles: the articles as shipped', () => {
     expect(fr.get('bano')?.permission).toEqual(['CanConfigureTerritorySettings'])
     expect(fr.get('campaign-create')?.permission).toEqual(['CanManageTerritoryCampaigns'])
     expect(fr.get('prospection')?.permission).toEqual(['CanViewProspection'])
-    for (const slug of ['password', 'two-step-verification', 'calendar-feed', 'notifications', 'language', 'my-data']) {
+    expect(fr.get('external-speakers')?.permission).toEqual(['CanViewExternalSpeakers', 'CanManageExternalSpeakers'])
+    expect(fr.get('attendance-entry')?.permission).toEqual(['CanRecordAttendance', 'CanCorrectAttendance'])
+    expect(fr.get('attendance-s88')?.permission).toEqual(['CanViewAttendance'])
+    for (const slug of [
+      'my-parts',
+      'password',
+      'two-step-verification',
+      'calendar-feed',
+      'notifications',
+      'language',
+      'my-data',
+    ]) {
       expect(fr.get(slug)?.permission, slug).toBeNull()
     }
   })

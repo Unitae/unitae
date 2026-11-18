@@ -1,5 +1,5 @@
 import { Mic, Plus } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import type { SpeakerDirectory, SpeakerVisits } from '~/features/events/model/external-speaker.type'
 import {
@@ -98,7 +98,14 @@ function filtersFrom(params: URLSearchParams): SpeakerFilters {
   }
 }
 
-export function SpeakerDirectoryScreen({ page }: { page: SpeakerDirectoryPage }) {
+export function SpeakerDirectoryScreen({
+  page,
+  help,
+}: {
+  page: SpeakerDirectoryPage
+  /** The « ? » that opens this page's help article: in the top bar, and at the end of the title's row on a phone. */
+  help?: ReactNode
+}) {
   const { directory, visits, timezone, canManage } = page
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
@@ -241,6 +248,7 @@ export function SpeakerDirectoryScreen({ page }: { page: SpeakerDirectoryPage })
       <PageTopbar
         trail={[{ label: m.external_speakers_page_title() }]}
         className="mb-0"
+        help={help}
         actions={
           canManage && (
             <SpeakerCreateActions
@@ -250,12 +258,15 @@ export function SpeakerDirectoryScreen({ page }: { page: SpeakerDirectoryPage })
           )
         }
       >
-        <div className="flex flex-wrap items-baseline gap-x-2.5">
-          <h1 className="text-h1">{m.external_speakers_page_title()}</h1>
-          <span className="text-faint tabular-nums">
-            {m.external_speakers_count({ count: counts.onList })} ·{' '}
-            {m.external_speakers_congregations({ count: counts.congregations })}
-          </span>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-wrap items-baseline gap-x-2.5">
+            <h1 className="text-h1">{m.external_speakers_page_title()}</h1>
+            <span className="text-faint tabular-nums">
+              {m.external_speakers_count({ count: counts.onList })} ·{' '}
+              {m.external_speakers_congregations({ count: counts.congregations })}
+            </span>
+          </div>
+          <div className="-mr-2 shrink-0 empty:hidden md:hidden">{help}</div>
         </div>
       </PageTopbar>
       <SpeakerListsTabs received={counts.onList} ours={page.ourCount} />

@@ -1,5 +1,5 @@
 import { Download, Mic, Send, Users } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 import type { OurBrother, OurSpeakerListPage } from '~/features/events/model/our-speaker.type'
@@ -166,7 +166,14 @@ function OurListMain({
   )
 }
 
-export function OurSpeakerListScreen({ data }: { data: OurSpeakerListData }) {
+export function OurSpeakerListScreen({
+  data,
+  help,
+}: {
+  data: OurSpeakerListData
+  /** The « ? » that opens this page's help article: in the top bar, and at the end of the title's row on a phone. */
+  help?: ReactNode
+}) {
   const { page, canManage, canConfigure, timezone, congregationName } = data
   const [params, setParams] = useSearchParams()
   const docked = useMediaQuery(DOCKED) === true
@@ -254,6 +261,7 @@ export function OurSpeakerListScreen({ data }: { data: OurSpeakerListData }) {
       <PageTopbar
         trail={[{ label: m.external_speakers_page_title() }]}
         className="mb-0"
+        help={help}
         actions={
           onList.length > 0 && (
             <OurListActions
@@ -264,9 +272,12 @@ export function OurSpeakerListScreen({ data }: { data: OurSpeakerListData }) {
           )
         }
       >
-        <div className="flex flex-wrap items-baseline gap-x-2.5">
-          <h1 className="text-h1">{m.external_speakers_page_title()}</h1>
-          <span className="text-faint tabular-nums">{m.external_speakers_ours_count({ count: onList.length })}</span>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-wrap items-baseline gap-x-2.5">
+            <h1 className="text-h1">{m.external_speakers_page_title()}</h1>
+            <span className="text-faint tabular-nums">{m.external_speakers_ours_count({ count: onList.length })}</span>
+          </div>
+          <div className="-mr-2 shrink-0 empty:hidden md:hidden">{help}</div>
         </div>
       </PageTopbar>
       <SpeakerListsTabs received={data.receivedCount} ours={onList.length} />

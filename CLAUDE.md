@@ -446,8 +446,12 @@ A « ? » goes in the header's `help` slot (`<PageHeader help={<HelpEntryButton 
 | Mon compte › Sécurité | `/me/security` | `password` | none |
 | Mon compte › Notifications | `/me/notifications` | `notifications` | none |
 | Mon compte › Confidentialité | `/me/privacy` | `my-data` | none |
+| Orateurs extérieurs › Listes reçues | `/programs/external-speakers` | `external-speakers` | `CanViewExternalSpeakers, CanManageExternalSpeakers` |
+| Orateurs extérieurs › Notre liste | `/programs/external-speakers/ours` | `external-speakers` | `CanViewExternalSpeakers, CanManageExternalSpeakers` |
+| Assistance, today's meetings (enter only) | `/attendance` | `attendance-entry` | `CanRecordAttendance, CanCorrectAttendance` |
+| Assistance, service year | `/attendance` | `attendance-s88` | `CanViewAttendance` |
 
-Articles without a « ? » are reached from the index, the search and related links only: `two-step-verification` (none: the Sécurité page's « ? » opens `password`, which links to it), `phone-territories` and `bano` (`CanConfigureTerritorySettings`), `board-download` (`CanViewBoard`), `board-versions` (`CanReviewBoardDocuments, CanUploadBoardDocuments`: the document history on `/board/documents/:id/edit`, which an uploader opens on the documents they uploaded).
+Articles without a « ? » are reached from the index, the search and related links only: `my-parts` (none: a person's parts show on the home page, the board and in e-mails, none of them a page of their own), `two-step-verification` (none: the Sécurité page's « ? » opens `password`, which links to it), `phone-territories` and `bano` (`CanConfigureTerritorySettings`), `board-download` (`CanViewBoard`), `board-versions` (`CanReviewBoardDocuments, CanUploadBoardDocuments`: the document history on `/board/documents/:id/edit`, which an uploader opens on the documents they uploaded).
 
 Each module in `app/features/help/model/help.type.ts` (`HELP_MODULES`) groups its articles under the label of its entry: the sidebar label, or « Mon compte » for `account`, listed last. Articles are read as data: the body is rendered on the server with raw HTML disabled, so an article cannot inject markup.
 

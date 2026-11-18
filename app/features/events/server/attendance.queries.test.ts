@@ -80,6 +80,25 @@ describe('listServiceYearAttendance', () => {
     })
   })
 
+  it('names whoever entered a count from their record, where an account linked to one keeps its name', async () => {
+    mockDb.event.findMany.mockResolvedValue([
+      row({
+        attendance: {
+          ...row().attendance,
+          inPersonBy: { firstname: null, lastname: null, member: { firstname: 'Maxime', lastname: 'MENSAH' } },
+        },
+      }),
+    ])
+
+    const [meeting] = await listServiceYearAttendance(mockDb as never, {
+      congregationId: 1,
+      serviceYear: 2026,
+      timeZone: PARIS,
+    })
+
+    expect(meeting.inPersonBy).toBe('Maxime MENSAH')
+  })
+
   it('reads a meeting nobody has counted yet as two empty counts', async () => {
     mockDb.event.findMany.mockResolvedValue([row({ attendance: null })])
 
