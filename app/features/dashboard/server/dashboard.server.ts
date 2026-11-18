@@ -94,7 +94,8 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
         name: true,
         event: { select: { startDate: true } },
       },
-      orderBy: { event: { startDate: 'asc' } },
+      // Several parts of one meeting can clash with the same absence: the first in the programme is named.
+      orderBy: [{ event: { startDate: 'asc' } }, { order: 'asc' }, { id: 'asc' }],
       take: 1,
     }),
     db.eventServicePart.findMany({
@@ -108,7 +109,7 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
         name: true,
         event: { select: { startDate: true } },
       },
-      orderBy: { event: { startDate: 'asc' } },
+      orderBy: [{ event: { startDate: 'asc' } }, { order: 'asc' }, { id: 'asc' }],
       take: 1,
     }),
   ])
@@ -184,6 +185,7 @@ export async function getNextMeeting(db: TransactionClient, userId: number, cong
           name: true,
           assignee: { select: { id: true, firstname: true, lastname: true } },
         },
+        orderBy: [{ order: 'asc' }, { id: 'asc' }],
       },
     },
     orderBy: { startDate: 'asc' },

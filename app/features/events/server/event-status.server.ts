@@ -1,3 +1,4 @@
+import type { Prisma } from '~/database/generated/client'
 import { isAwaitingProgramme, programmeTemplate } from '~/features/events/model/empty-meetings'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { TEMPLATE_PROGRAMME_COUNT } from '~/features/events/server/give-programme.server'
@@ -63,9 +64,10 @@ const eventWithAssignmentsInclude = {
       hasConflict: true,
       assigneeId: true,
     },
+    orderBy: [{ order: 'asc' }, { id: 'asc' }],
   },
   template: { select: { key: true, ...TEMPLATE_PROGRAMME_COUNT } },
-}
+} satisfies Prisma.EventInclude
 
 type PartRow = { id: number; name: string; hasConflict: boolean; assigneeId: number | null; assistantId: number | null }
 type ServicePartRow = { id: number; name: string; hasConflict: boolean; assigneeId: number | null }

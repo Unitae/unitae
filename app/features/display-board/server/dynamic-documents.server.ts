@@ -1,3 +1,4 @@
+import type { Prisma } from '~/database/generated/client'
 import {
   type AvailableDynamicType,
   DynamicType,
@@ -38,6 +39,9 @@ export { parseProgrammeConfig }
  * An absence is an event of the « day-off » template, published the moment it is declared: no programme document
  * shows one, even when its configuration names that template — the form used to tick every template by default.
  */
+/** A meeting's services in the order its editor set; the id settles rows written before services had one. */
+const SERVICE_ORDER: Prisma.EventServicePartOrderByWithRelationInput[] = [{ order: 'asc' }, { id: 'asc' }]
+
 const NOT_AN_ABSENCE = { NOT: { template: { key: EventTemplateKey.DayOff } } }
 
 export function startOfCurrentMonth(): Date {
@@ -489,7 +493,9 @@ function fetchProgrammeByIds(
           externalSpeaker: { select: EXTERNAL_SPEAKER_LABEL_SELECT },
         },
       },
-      eventServiceParts: includeServices ? { include: { assignee: { select: userSelect } } } : false,
+      eventServiceParts: includeServices
+        ? { include: { assignee: { select: userSelect } }, orderBy: SERVICE_ORDER }
+        : false,
     },
     orderBy: { startDate: 'asc' },
   })
@@ -520,7 +526,9 @@ function fetchProgrammeByKey(
           externalSpeaker: { select: EXTERNAL_SPEAKER_LABEL_SELECT },
         },
       },
-      eventServiceParts: showServices ? { include: { assignee: { select: userSelect } } } : false,
+      eventServiceParts: showServices
+        ? { include: { assignee: { select: userSelect } }, orderBy: SERVICE_ORDER }
+        : false,
     },
     orderBy: { startDate: 'asc' },
   })

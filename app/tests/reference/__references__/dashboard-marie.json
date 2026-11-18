@@ -288,20 +288,20 @@
       },
       {
         "id": "<id>",
-        "name": "Nettoyage",
-        "assignee": {
-          "id": "<id>",
-          "firstname": "Paul",
-          "lastname": "MARTIN"
-        }
-      },
-      {
-        "id": "<id>",
         "name": "Préposés à l’accueil",
         "assignee": {
           "id": "<id>",
           "firstname": "Pierre",
           "lastname": "MOREAU"
+        }
+      },
+      {
+        "id": "<id>",
+        "name": "Nettoyage",
+        "assignee": {
+          "id": "<id>",
+          "firstname": "Paul",
+          "lastname": "MARTIN"
         }
       }
     ],
@@ -599,20 +599,20 @@
         },
         {
           "id": "<id>",
-          "name": "Nettoyage",
-          "assignee": {
-            "id": "<id>",
-            "firstname": "Paul",
-            "lastname": "MARTIN"
-          }
-        },
-        {
-          "id": "<id>",
           "name": "Préposés à l’accueil",
           "assignee": {
             "id": "<id>",
             "firstname": "Pierre",
             "lastname": "MOREAU"
+          }
+        },
+        {
+          "id": "<id>",
+          "name": "Nettoyage",
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Paul",
+            "lastname": "MARTIN"
           }
         }
       ],

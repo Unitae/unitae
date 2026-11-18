@@ -2,11 +2,9 @@
 // fixture's label for it — `<member:paul>`, `<event:midweek-2>` — read from the key that holds it (`assigneeId` is a
 // member, `eventId` an event); an id whose table the key does not say, or that the fixture never labelled, becomes
 // `<id>`. Ids inside links and keys get the same treatment, and database timestamps become `<time>`. Everything else
-// stays as returned, except `eventServiceParts`: the board readers fetch them with no ORDER BY, so they are sorted by
-// name.
+// stays as returned: lists keep the order the reader gave them, services included since they have an order of their own.
 
 const VOLATILE_KEYS = new Set(['createdAt', 'updatedAt', 'processedAt', 'debounceUntil'])
-const UNORDERED_KEYS = new Set(['eventServiceParts'])
 
 /** The table an id key points at. */
 const ID_TABLES: Record<string, string> = {
@@ -80,8 +78,7 @@ function normaliseText(value: string, key: string, labels: Labels): string {
 
 function normaliseList(value: unknown[], key: string, labels: Labels): unknown[] {
   if (ID_KEY.test(key)) return value.map(id => idLabel(id, ID_TABLES[key], labels))
-  const items = UNORDERED_KEYS.has(key) ? [...value].sort(byName) : value
-  return items.map(item => normalise(item, '', labels))
+  return value.map(item => normalise(item, '', labels))
 }
 
 /**
@@ -90,11 +87,6 @@ function normaliseList(value: unknown[], key: string, labels: Labels): unknown[]
  */
 export function compareText(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0
-}
-
-function byName(a: unknown, b: unknown): number {
-  const name = (item: unknown) => String((item as { name?: unknown } | null)?.name ?? '')
-  return compareText(name(a), name(b))
 }
 
 /** A reference file's content: stable JSON, two-space indented, ending with a newline. */

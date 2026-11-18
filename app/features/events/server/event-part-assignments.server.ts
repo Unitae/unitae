@@ -55,7 +55,7 @@ export function getEventProgramme(db: TransactionClient, eventId: number, congre
         include: {
           assignee: true,
         },
-        orderBy: { name: 'asc' },
+        orderBy: [{ order: 'asc' }, { id: 'asc' }],
       },
     },
   })

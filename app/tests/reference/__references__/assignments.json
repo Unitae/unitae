@@ -840,6 +840,7 @@
           "note": "",
           "hasConflict": false,
           "name": "Audio-vidéo",
+          "order": 0,
           "eventId": "<event:midweek-2>",
           "servicePartId": "<templateServicePart:midweek/service-sono>",
           "presetId": null,
@@ -881,6 +882,7 @@
           "note": "",
           "hasConflict": false,
           "name": "Estrade",
+          "order": 5,
           "eventId": "<event:midweek-2>",
           "servicePartId": "<templateServicePart:midweek/service-stage>",
           "presetId": null,
@@ -920,49 +922,9 @@
         {
           "id": "<id>",
           "note": "",
-          "hasConflict": false,
-          "name": "Nettoyage",
-          "eventId": "<event:midweek-2>",
-          "servicePartId": "<templateServicePart:midweek/service-cleaning>",
-          "presetId": null,
-          "assigneeId": "<member:paul>",
-          "createdAt": "<time>",
-          "updatedAt": "<time>",
-          "congregationId": "<id>",
-          "assignee": {
-            "id": "<id>",
-            "congregationId": "<id>",
-            "firstname": "Paul",
-            "lastname": "MARTIN",
-            "firstnameNormalized": "paul",
-            "lastnameNormalized": "martin",
-            "isMale": true,
-            "birthDate": "1980-01-01T00:00:00.000Z",
-            "phone": "",
-            "address": "",
-            "email": "",
-            "dpaCardUpToDate": false,
-            "survivalBackpackReady": false,
-            "isPublisher": true,
-            "baptismDate": "2000-01-01T00:00:00.000Z",
-            "isAnointed": false,
-            "isHelder": true,
-            "isServant": false,
-            "publisherGroupId": null,
-            "arrivedAt": null,
-            "lastPastoralVisitAt": null,
-            "leftAt": null,
-            "inactiveAt": null,
-            "anonymizedAt": null,
-            "createdAt": "<time>",
-            "updatedAt": "<time>"
-          }
-        },
-        {
-          "id": "<id>",
-          "note": "",
           "hasConflict": true,
           "name": "Préposés à l’accueil",
+          "order": 10,
           "eventId": "<event:midweek-2>",
           "servicePartId": "<templateServicePart:midweek/service-welcome>",
           "presetId": null,
@@ -988,6 +950,48 @@
             "baptismDate": "2000-01-01T00:00:00.000Z",
             "isAnointed": false,
             "isHelder": false,
+            "isServant": false,
+            "publisherGroupId": null,
+            "arrivedAt": null,
+            "lastPastoralVisitAt": null,
+            "leftAt": null,
+            "inactiveAt": null,
+            "anonymizedAt": null,
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        },
+        {
+          "id": "<id>",
+          "note": "",
+          "hasConflict": false,
+          "name": "Nettoyage",
+          "order": 15,
+          "eventId": "<event:midweek-2>",
+          "servicePartId": "<templateServicePart:midweek/service-cleaning>",
+          "presetId": null,
+          "assigneeId": "<member:paul>",
+          "createdAt": "<time>",
+          "updatedAt": "<time>",
+          "congregationId": "<id>",
+          "assignee": {
+            "id": "<id>",
+            "congregationId": "<id>",
+            "firstname": "Paul",
+            "lastname": "MARTIN",
+            "firstnameNormalized": "paul",
+            "lastnameNormalized": "martin",
+            "isMale": true,
+            "birthDate": "1980-01-01T00:00:00.000Z",
+            "phone": "",
+            "address": "",
+            "email": "",
+            "dpaCardUpToDate": false,
+            "survivalBackpackReady": false,
+            "isPublisher": true,
+            "baptismDate": "2000-01-01T00:00:00.000Z",
+            "isAnointed": false,
+            "isHelder": true,
             "isServant": false,
             "publisherGroupId": null,
             "arrivedAt": null,
@@ -1032,8 +1036,8 @@
       "services": [
         "Audio-vidéo clear",
         "Estrade clear",
-        "Nettoyage clear",
-        "Préposés à l’accueil clear"
+        "Préposés à l’accueil clear",
+        "Nettoyage clear"
       ]
     },
     "notices": []
@@ -1438,8 +1442,8 @@
       "services": [
         "Audio-vidéo clear",
         "Estrade clear",
-        "Nettoyage clear",
-        "Préposés à l’accueil clear"
+        "Préposés à l’accueil clear",
+        "Nettoyage clear"
       ]
     },
     "notices": []
@@ -1534,8 +1538,8 @@
       "services": [
         "Audio-vidéo clear",
         "Estrade clear",
-        "Nettoyage clear",
-        "Préposés à l’accueil clear"
+        "Préposés à l’accueil clear",
+        "Nettoyage clear"
       ]
     },
     "notices": []
