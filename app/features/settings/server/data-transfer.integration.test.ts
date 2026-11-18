@@ -1826,3 +1826,80 @@ describe('the order of services on import', () => {
     }
   })
 })
+
+// v2.18 carries each event's `origin`. An older archive has none: an event without an author and with nothing on it —
+// what an empty meeting was — comes back as the job's, so it still moves with its template; any other as « import ».
+describe('the origin of restored events', () => {
+  it('keeps a 2.18 archive’s origin and gives an older one’s by the migration’s rule', async () => {
+    const { importEvents, importEventParts, settleImportedEventOrigins } = await import('./import-events.server')
+    const cong = await testDb.congregation.create({
+      data: { name: `Origins ${ts}`, slug: `origins-${ts}`, active: true },
+    })
+    try {
+      const origins = await withScope(cong.id, async tx => {
+        const author = await tx.userAccount.create({
+          data: { email: `origins-${ts}@test.com`, password: 'x', congregationId: cong.id },
+        })
+        const idMap = new EntityIdMap()
+        idMap.set('user-accounts', 70, author.id)
+        const day = '2027-02-02T18:00:00.000Z'
+        const event = (id: number, name: string, extra: object = {}) => ({
+          id,
+          name,
+          description: '',
+          startDate: day,
+          endDate: day,
+          templateId: null,
+          createdById: null,
+          createdAt: day,
+          status: 'draft',
+          ...extra,
+        })
+        const zip = new JsZip()
+        const dataDir = zip.folder('data')!
+        dataDir.file(
+          'events.ndjson',
+          [
+            event(1, 'old, empty, no author'),
+            event(2, 'old, an author', { createdById: 70 }),
+            event(3, 'old, a part'),
+            event(4, 'new, made by hand', { origin: 'manual' }),
+            event(5, 'new, the job’s', { origin: 'job' }),
+            event(6, 'new, unknown', { origin: 'bogus' }),
+          ]
+            .map(row => `${JSON.stringify(row)}\n`)
+            .join(''),
+        )
+        dataDir.file(
+          'programme-part-assignments.ndjson',
+          `${JSON.stringify({
+            ...{ id: 1, topic: '', note: '', hasConflict: false, name: 'Cantique', section: '', track: '' },
+            ...{ order: 0, durationMin: null, eventId: 3, partId: null, assigneeId: null, assistantId: null },
+          })}\n`,
+        )
+
+        const withoutOrigin = await importEvents(zip, tx, idMap, cong.id)
+        await importEventParts(zip, tx, idMap, cong.id)
+        await settleImportedEventOrigins(tx, withoutOrigin, cong.id)
+
+        const rows = await tx.event.findMany({ select: { name: true, origin: true } })
+        return Object.fromEntries(rows.map(row => [row.name, row.origin]))
+      })
+
+      expect(origins).toEqual({
+        'old, empty, no author': 'job',
+        'old, an author': 'import',
+        'old, a part': 'import',
+        'new, made by hand': 'manual',
+        'new, the job’s': 'job',
+        'new, unknown': 'import',
+      })
+    } finally {
+      await withScope(cong.id, async tx => {
+        await tx.event.deleteMany({})
+        await tx.userAccount.deleteMany({})
+      })
+      await testDb.congregation.delete({ where: { id: cong.id } })
+    }
+  })
+})
