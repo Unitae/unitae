@@ -90,3 +90,37 @@ describe('importEventTemplates — attendance', () => {
     expect(warn).toHaveBeenCalled()
   })
 })
+
+describe('importEventTemplates — hours', () => {
+  // Before v2.16 the archive had no hours: every restored template fell back to 19:00 – 21:00, and the meetings
+  // created ahead took those hours.
+  it('restores the hours an archive carries, on an existing template and a new one', async () => {
+    db.eventTemplate.findFirst.mockResolvedValueOnce({ id: 30 }).mockResolvedValueOnce(null)
+    readNdjsonFile.mockResolvedValue([
+      template({ startTime: '19:30', endTime: '21:15' }),
+      template({ id: 4, key: 'weekend-meeting', startTime: '10:00', endTime: '11:45' }),
+    ])
+
+    await importEventTemplates({} as never, db as never, new EntityIdMap(), 1)
+
+    const updated = db.eventTemplate.update.mock.calls[0][0].data
+    const created = db.eventTemplate.create.mock.calls[0][0].data
+    expect([updated.startTime, updated.endTime, created.startTime, created.endTime]).toEqual([
+      '19:30',
+      '21:15',
+      '10:00',
+      '11:45',
+    ])
+  })
+
+  it('leaves an existing template’s hours alone when the archive has none (before v2.16)', async () => {
+    db.eventTemplate.findFirst.mockResolvedValue({ id: 30 })
+    readNdjsonFile.mockResolvedValue([template()])
+
+    await importEventTemplates({} as never, db as never, new EntityIdMap(), 1)
+
+    const [[{ data }]] = db.eventTemplate.update.mock.calls
+    expect(data).not.toHaveProperty('startTime')
+    expect(data).not.toHaveProperty('endTime')
+  })
+})

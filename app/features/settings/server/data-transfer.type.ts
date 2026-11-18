@@ -1,4 +1,4 @@
-export const ARCHIVE_VERSION = '2.15'
+export const ARCHIVE_VERSION = '2.16'
 
 // Older archive versions an import will still accept. v1.0 archives miss every
 // post-shipping feature table (custom roles, allowed-roles, external speakers,
@@ -55,6 +55,11 @@ export const ARCHIVE_VERSION = '2.15'
 // v2.15 adds meeting attendance: `attendance.ndjson` (each meeting's two counts and who entered them, keyed to its
 // event), and `programme-templates.ndjson` gains `attendanceKind`. Pre-2.15 archives import with no counts; an existing
 // template keeps its kind and a new one gets the default of its key, by the same rule as the migration.
+// v2.16 carries what a restore lost: `events.ndjson` gains `status` (published or draft),
+// `programme-templates.ndjson` gains `startTime` and `endTime`, and `board-dynamic-document-settings.ndjson` gains
+// `dynamicConfig` (which templates a programme document shows, read through the imported templates). Pre-2.16 events
+// import as drafts, templates keep their hours (a new one gets the defaults) and documents have no configuration, as
+// before.
 // v1.x archives are listed here so the import path reports
 // them with a warning rather than rejecting outright; a compatibility shim that
 // splits legacy `users.ndjson` is a deferred follow-up.
@@ -77,6 +82,7 @@ export const SUPPORTED_ARCHIVE_VERSIONS = [
   '2.13',
   '2.14',
   '2.15',
+  '2.16',
 ] as const
 
 export interface ManifestJson {

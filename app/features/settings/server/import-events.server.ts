@@ -1,5 +1,5 @@
 import type JsZip from 'jszip'
-import { EventTemplateKey } from '~/features/events'
+import { EventStatus, EventTemplateKey } from '~/features/events'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import type { EntityIdMap } from './data-transfer.type'
@@ -13,6 +13,8 @@ const logger = createLogger('import-events')
  *
  * A fresh congregation already has its first two months of empty meetings from seeding: the archive's meetings replace
  * them, and the recurring-events job starts again after the last imported one.
+ *
+ * Each event keeps the status it had (since v2.16); an archive without one imports it as a draft, as before.
  */
 export async function importEvents(
   zip: JsZip,
@@ -29,6 +31,8 @@ export async function importEvents(
     templateId: number | null
     createdById: number | null
     createdAt: string
+    // Since v2.16.
+    status?: string
   }>(zip, 'events')
   if (records.length === 0) return
 
@@ -69,6 +73,7 @@ export async function importEvents(
         endDate: new Date(record.endDate),
         templateId,
         createdById,
+        status: record.status === EventStatus.Released ? EventStatus.Released : EventStatus.Draft,
         congregationId,
       },
     })

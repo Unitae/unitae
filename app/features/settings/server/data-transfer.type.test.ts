@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ARCHIVE_VERSION, ENTITY_FILES, EntityIdMap } from './data-transfer.type'
+import { ARCHIVE_VERSION, ENTITY_FILES, EntityIdMap, SUPPORTED_ARCHIVE_VERSIONS } from './data-transfer.type'
 
 describe('EntityIdMap', () => {
   it('stores and retrieves a mapped ID', () => {
@@ -75,8 +75,12 @@ describe('EntityIdMap', () => {
 })
 
 describe('ARCHIVE_VERSION', () => {
-  it('is the current 2.15 schema version', () => {
-    expect(ARCHIVE_VERSION).toBe('2.15')
+  it('is the current 2.16 schema version', () => {
+    expect(ARCHIVE_VERSION).toBe('2.16')
+  })
+
+  it('still imports 2.15 archives', () => {
+    expect(SUPPORTED_ARCHIVE_VERSIONS).toContain('2.15')
   })
 })
 

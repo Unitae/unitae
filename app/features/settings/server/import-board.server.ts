@@ -1,6 +1,11 @@
 import type JsZip from 'jszip'
 import { Prisma } from '~/database/generated/client'
-import { isDynamicType, parseAppearance } from '~/features/display-board/index.server'
+import {
+  DynamicType,
+  isDynamicType,
+  parseAppearance,
+  parseProgrammeDynamicConfig,
+} from '~/features/display-board/index.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { buildStorageKey, uploadFile } from '~/shared/infra/file-storage.server'
 import type { EntityIdMap } from './data-transfer.type'
@@ -162,6 +167,13 @@ function importedAppearance(dynamicType: string, appearance: unknown) {
   return { ...parseAppearance(dynamicType, appearance) }
 }
 
+/**
+ * The board's dynamic documents. Each archived document is created, in its imported section, as the sections are:
+ * matching an existing one on its type and ref folded every programme document — they all have an empty ref — into
+ * the last one. The configuration travels since v2.16; a programme document's templates are read through the imported
+ * ones, and a template the archive did not bring leaves the list. Older archives carry none: the document imports
+ * with none, as before.
+ */
 export async function importBoardDynamicDocumentSettings(
   zip: JsZip,
   db: TransactionClient,
@@ -181,44 +193,43 @@ export async function importBoardDynamicDocumentSettings(
     showServices: boolean
     // Since v2.9.
     appearance?: unknown
+    // Since v2.16.
+    dynamicConfig?: unknown
   }>(zip, 'board-dynamic-document-settings')
 
   for (const record of records) {
     const sectionId = idMap.getOptional('board-sections', record.sectionId)
     if (!sectionId) continue
 
-    // Upsert by (congregationId, dynamicType, dynamicRef)
-    const existing = await db.boardDynamicDocumentSettings.findFirst({
-      where: { dynamicType: record.dynamicType, dynamicRef: record.dynamicRef, congregationId },
+    const created = await db.boardDynamicDocumentSettings.create({
+      data: {
+        title: record.title,
+        dynamicType: record.dynamicType,
+        dynamicRef: record.dynamicRef,
+        dynamicConfig: importedConfig(record.dynamicType, record.dynamicConfig, idMap),
+        sectionId,
+        order: record.order,
+        visibleFrom: record.visibleFrom ? new Date(record.visibleFrom) : null,
+        visibleUntil: record.visibleUntil ? new Date(record.visibleUntil) : null,
+        isHighlighted: record.isHighlighted,
+        showServices: record.showServices,
+        appearance: importedAppearance(record.dynamicType, record.appearance),
+        congregationId,
+      },
     })
-
-    const data = {
-      title: record.title,
-      sectionId,
-      order: record.order,
-      visibleFrom: record.visibleFrom ? new Date(record.visibleFrom) : null,
-      visibleUntil: record.visibleUntil ? new Date(record.visibleUntil) : null,
-      isHighlighted: record.isHighlighted,
-      showServices: record.showServices,
-      appearance: importedAppearance(record.dynamicType, record.appearance),
-    }
-
-    if (existing) {
-      await db.boardDynamicDocumentSettings.update({
-        where: { id_congregationId: { id: existing.id, congregationId } },
-        data,
-      })
-      idMap.set('board-dynamic-document-settings', record.id, existing.id)
-    } else {
-      const created = await db.boardDynamicDocumentSettings.create({
-        data: {
-          ...data,
-          dynamicType: record.dynamicType,
-          dynamicRef: record.dynamicRef,
-          congregationId,
-        },
-      })
-      idMap.set('board-dynamic-document-settings', record.id, created.id)
-    }
+    idMap.set('board-dynamic-document-settings', record.id, created.id)
   }
+}
+
+/** A document's configuration in the imported congregation: a programme's templates by their new ids. */
+function importedConfig(dynamicType: string, config: unknown, idMap: EntityIdMap): Prisma.InputJsonValue | undefined {
+  if (config == null) return undefined
+  if (dynamicType !== DynamicType.Programme) return config as Prisma.InputJsonValue
+  const programme = parseProgrammeDynamicConfig(config)
+  if (!programme) return undefined
+  const templates = programme.templates.flatMap(template => {
+    const templateId = idMap.getOptional('programme-templates', template.templateId)
+    return templateId == null ? [] : [{ ...template, templateId }]
+  })
+  return { ...programme, templates }
 }
