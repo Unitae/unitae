@@ -169,7 +169,7 @@ export function PublisherActivityDocument({ publisher, serviceYear }: PublisherA
         </Table>
 
         <View style={{ position: 'absolute', bottom: 20, left: 20, right: 20 }}>
-          <Text style={{ fontSize: 9 }}>S-21-F 11/23</Text>
+          <Text style={{ fontSize: 9 }}>{m.activity_pdf_form_name()} 11/23</Text>
         </View>
       </Page>
     </Document>
