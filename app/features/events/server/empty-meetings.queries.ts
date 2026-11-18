@@ -5,7 +5,7 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 import { addDays, dayOf, startOfDay } from '~/shared/utils/calendar-day'
 
 /**
- * An empty meeting the recurring-events job created ahead: its origin, no part, no service, no attendance. Every
+ * An empty meeting the recurring-events job created ahead: origin « job », no part, no service, no attendance. Every
  * recurring template has some; they are the only events that move with it, or go with it. Not its author: deleting an
  * account clears the author of what it made, which must never turn into something a template may move or delete.
  */

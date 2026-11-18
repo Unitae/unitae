@@ -8,8 +8,9 @@ import type { CongregationId, MemberId } from '~/shared/types/branded'
 const MAX_ASSIGNMENTS = 5
 
 /**
- * One meeting's assignments in the programme's order, so a record reads the same every time: the date sort below is
- * stable, so parts then services, each in theirs; the last assignment done keeps the first of a meeting's.
+ * One meeting's assignments in the programme's order, so a record reads the same every time. Coming ones: the date sort
+ * is stable, so parts then services, each in theirs. Last done: `keep` only replaces on a later date, so the meeting's
+ * first assignment wins.
  */
 const PROGRAMME_ORDER = [{ event: { startDate: 'asc' } }, { order: 'asc' }, { id: 'asc' }] as const satisfies (
   | Prisma.EventPartOrderByWithRelationInput
