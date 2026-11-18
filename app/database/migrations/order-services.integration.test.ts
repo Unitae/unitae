@@ -23,6 +23,7 @@ interface Orders {
   template: string[]
   otherTemplate: string[]
   event: string[]
+  otherEvent: string[]
   afterSecondRun: string[]
 }
 
@@ -51,6 +52,12 @@ function snapshot(): Promise<Orders> {
         for (const name of ['Sono', 'Accueil', 'Estrade']) {
           await tx.eventServicePart.create({ data: { name, eventId: event.id, congregationId } })
         }
+        const otherEvent = await tx.event.create({
+          data: { name: 'Week-end', startDate: day, endDate: day, templateId: other.id, congregationId },
+        })
+        for (const name of ['Zoom', 'Audio']) {
+          await tx.eventServicePart.create({ data: { name, eventId: otherEvent.id, congregationId } })
+        }
 
         const byOrder = async (model: 'template' | 'event', id: number) => {
           const rows =
@@ -73,6 +80,7 @@ function snapshot(): Promise<Orders> {
           template: await byOrder('template', template.id),
           otherTemplate: await byOrder('template', other.id),
           event: await byOrder('event', event.id),
+          otherEvent: await byOrder('event', otherEvent.id),
         }
         for (const statement of STATEMENTS) await tx.$executeRawUnsafe(statement)
         result = { ...first, afterSecondRun: await byOrder('template', template.id) }
@@ -100,12 +108,15 @@ describe('20261119090000_order_services', () => {
   })
 
   it('keeps each event’s services in the order they were created', async () => {
-    const { event } = await snapshot()
+    const { event, otherEvent } = await snapshot()
 
     expect(event).toEqual(['0 Sono', '5 Accueil', '10 Estrade'])
+    // Each event counts from 0 on its own.
+    expect(otherEvent).toEqual(['0 Zoom', '5 Audio'])
   })
 
-  it('changes nothing when run twice', async () => {
+  // Prisma runs it once; a second run only has to be harmless (the columns are added IF NOT EXISTS).
+  it('is harmless when run twice', async () => {
     const { template, afterSecondRun } = await snapshot()
 
     expect(afterSecondRun).toEqual(template)

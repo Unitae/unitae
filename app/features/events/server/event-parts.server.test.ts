@@ -526,6 +526,10 @@ describe('addServicePartAssignment', () => {
       99,
     )
 
+    // The last of this event's services, not of the congregation's.
+    expect(mockDb.eventServicePart.aggregate).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { eventId: 1, congregationId: 10 } }),
+    )
     expect(mockDb.eventServicePart.create).toHaveBeenCalledWith({
       data: { eventId: 1, name: 'Micros', congregationId: 10, order: 15 },
     })

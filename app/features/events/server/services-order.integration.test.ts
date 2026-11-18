@@ -22,7 +22,8 @@ function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promi
 }
 
 const { addServicePartAssignment, applyTemplateToEvent } = await import('./event-parts.server')
-const { upsertTemplateServicePart } = await import('./event-templates.server')
+const { getTemplateById, upsertTemplateServicePart } = await import('./event-templates.server')
+const { getEventProgramme } = await import('./event-part-assignments.server')
 const { duplicateTemplate } = await import('./duplicate-template.server')
 const { createMeetingProgramme } = await import('./create-meeting-programme.server')
 const { seedDefaultTemplates } = await import('./seed-templates.server')
@@ -44,12 +45,12 @@ beforeAll(async () => {
     ids.template = (
       await tx.eventTemplate.create({ data: { name: 'Semaine', key: `semaine-${ts}`, weekDay: 4, congregationId } })
     ).id
-    // An order the names and the ids do not follow: whoever copies them must read the order itself.
+    // An order the names and the ids do not follow, with uneven gaps: whoever copies them must copy the values.
     for (const [name, order] of [
-      ['Accueil', 10],
+      ['Accueil', 30],
       ['Sono', 0],
-      ['Nettoyage', 15],
-      ['Estrade', 5],
+      ['Nettoyage', 45],
+      ['Estrade', 12],
     ] as const) {
       await tx.templateServicePart.create({
         data: { name, key: name.toLowerCase(), order, templateId: ids.template, congregationId },
@@ -74,16 +75,19 @@ afterAll(async () => {
   await testDb.$disconnect()
 })
 
+const BY_ORDER = { orderBy: [{ order: 'asc' as const }, { id: 'asc' as const }], select: { name: true, order: true } }
+
+/** « order name » for each service: the values themselves, not only the sequence an id tie-break could produce. */
 function eventServices(tx: Tx, eventId: number) {
   return tx.eventServicePart
-    .findMany({ where: { eventId }, orderBy: [{ order: 'asc' }, { id: 'asc' }], select: { name: true } })
-    .then(rows => rows.map(row => row.name))
+    .findMany({ where: { eventId }, ...BY_ORDER })
+    .then(rows => rows.map(row => `${row.order} ${row.name}`))
 }
 
 function templateServices(tx: Tx, templateId: number) {
   return tx.templateServicePart
-    .findMany({ where: { templateId }, orderBy: [{ order: 'asc' }, { id: 'asc' }], select: { name: true } })
-    .then(rows => rows.map(row => row.name))
+    .findMany({ where: { templateId }, ...BY_ORDER })
+    .then(rows => rows.map(row => `${row.order} ${row.name}`))
 }
 
 function newEvent(tx: Tx, name: string, templateId: number | null = null) {
@@ -100,7 +104,7 @@ describe('the order of services', () => {
       return eventServices(tx, event.id)
     })
 
-    expect(names).toEqual(['Sono', 'Estrade', 'Accueil', 'Nettoyage'])
+    expect(names).toEqual(['0 Sono', '12 Estrade', '30 Accueil', '45 Nettoyage'])
   })
 
   it('copies the template’s order when a meeting gets its programme', async () => {
@@ -110,7 +114,7 @@ describe('the order of services', () => {
       return eventServices(tx, event.id)
     })
 
-    expect(names).toEqual(['Sono', 'Estrade', 'Accueil', 'Nettoyage'])
+    expect(names).toEqual(['0 Sono', '12 Estrade', '30 Accueil', '45 Nettoyage'])
   })
 
   it('puts a service added to an event after the ones it has', async () => {
@@ -125,7 +129,7 @@ describe('the order of services', () => {
       return eventServices(tx, event.id)
     })
 
-    expect(names).toEqual(['Sono', 'Estrade', 'Accueil', 'Nettoyage', 'Micros'])
+    expect(names).toEqual(['0 Sono', '12 Estrade', '30 Accueil', '45 Nettoyage', '50 Micros'])
   })
 
   it('puts a service added to a template last, and keeps its place when it is renamed', async () => {
@@ -133,13 +137,10 @@ describe('the order of services', () => {
       const template = await tx.eventTemplate.create({
         data: { name: 'Week-end', key: `weekend-${ts}`, congregationId: ids.cong },
       })
-      const sono = await upsertTemplateServicePart(
-        tx,
-        template.id,
-        { name: 'Sono', key: 'sono', allowedRoleIds: [] },
-        ids.cong,
-        ids.actor,
-      )
+      // Already there, at 10: a new service goes after it, not at 0 before it.
+      const sono = await tx.templateServicePart.create({
+        data: { name: 'Sono', key: 'sono', order: 10, templateId: template.id, congregationId: ids.cong },
+      })
       await upsertTemplateServicePart(
         tx,
         template.id,
@@ -157,7 +158,7 @@ describe('the order of services', () => {
       return templateServices(tx, template.id)
     })
 
-    expect(names).toEqual(['Audio-vidéo', 'Accueil'])
+    expect(names).toEqual(['10 Audio-vidéo', '15 Accueil'])
   })
 
   it('keeps the order in a duplicated template', async () => {
@@ -166,7 +167,32 @@ describe('the order of services', () => {
       return copy ? templateServices(tx, copy.id) : []
     })
 
-    expect(names).toEqual(['Sono', 'Estrade', 'Accueil', 'Nettoyage'])
+    expect(names).toEqual(['0 Sono', '12 Estrade', '30 Accueil', '45 Nettoyage'])
+  })
+
+  // Created in one order, ordered in another: a reader that sorted by id, by name, or not at all would show it.
+  it('shows the services in their order on the event and template pages', async () => {
+    const read = await withScope(ids.cong, async tx => {
+      const event = await newEvent(tx, 'Lecture')
+      for (const [name, order] of [
+        ['Nettoyage', 20],
+        ['Accueil', 10],
+        ['Zoom', 0],
+      ] as const) {
+        await tx.eventServicePart.create({ data: { name, order, eventId: event.id, congregationId: ids.cong } })
+      }
+      const page = await getEventProgramme(tx, event.id, ids.cong)
+      const template = await getTemplateById(tx, ids.template, ids.cong)
+      return {
+        event: page?.eventServiceParts.map(service => service.name),
+        template: template?.serviceParts.map(service => service.name),
+      }
+    })
+
+    expect(read).toEqual({
+      event: ['Zoom', 'Accueil', 'Nettoyage'],
+      template: ['Sono', 'Estrade', 'Accueil', 'Nettoyage'],
+    })
   })
 
   it('seeds the services of a new congregation in the order they are listed', async () => {

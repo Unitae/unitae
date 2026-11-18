@@ -346,6 +346,20 @@ describe('upsertTemplateServicePart', () => {
     expect(result).toEqual(newRole)
   })
 
+  it('puts a new service after the template’s last one', async () => {
+    vi.mocked(db.templateServicePart.aggregate).mockResolvedValue({ _max: { order: 10 } } as never)
+    vi.mocked(db.templateServicePart.create).mockResolvedValue({ id: 11 } as never)
+
+    await upsertTemplateServicePart(db, 4, { name: 'Accueil', key: 'accueil', allowedRoleIds: [] }, 1, 99)
+
+    expect(db.templateServicePart.aggregate).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { templateId: 4, congregationId: 1 } }),
+    )
+    expect(db.templateServicePart.create).toHaveBeenCalledWith({
+      data: { name: 'Accueil', key: 'accueil', order: 15, templateId: 4, congregationId: 1 },
+    })
+  })
+
   it('updates an existing service role when id is provided', async () => {
     const updatedRole = { id: 3, name: 'Updated' }
     vi.mocked(db.templateServicePart.update).mockResolvedValue(updatedRole as never)
