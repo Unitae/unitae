@@ -10,6 +10,12 @@ export interface UserConflictInRange {
   responsibleName: string | null
 }
 
+// One meeting's clashes in the programme's order: the date sort below is stable, so parts then services, each in theirs.
+const PROGRAMME_ORDER = [{ event: { startDate: 'asc' } }, { order: 'asc' }, { id: 'asc' }] as const satisfies (
+  | Prisma.EventPartOrderByWithRelationInput
+  | Prisma.EventServicePartOrderByWithRelationInput
+)[]
+
 // Shared between the two `findMany` calls so the query shape stays in sync.
 const eventWithResponsiblesSelect = {
   startDate: true,
@@ -68,6 +74,7 @@ export async function listUserConflictsInRange(
         name: true,
         event: { select: eventWithResponsiblesSelect },
       },
+      orderBy: PROGRAMME_ORDER,
     }),
     db.eventServicePart.findMany({
       where: {
@@ -79,6 +86,7 @@ export async function listUserConflictsInRange(
         name: true,
         event: { select: eventWithResponsiblesSelect },
       },
+      orderBy: PROGRAMME_ORDER,
     }),
   ])
 
