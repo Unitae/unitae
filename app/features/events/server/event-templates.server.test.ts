@@ -6,7 +6,7 @@ vi.mock('~/shared/infra/db.server', () => ({
     eventTemplate: { findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn(), create: vi.fn(), delete: vi.fn() },
     event: { count: vi.fn() },
     templatePart: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
-    templateServicePart: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
+    templateServicePart: { aggregate: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
     templateResponsible: { upsert: vi.fn(), deleteMany: vi.fn(), findFirst: vi.fn() },
     role: { findMany: vi.fn() },
     templatePartAllowedRole: { createMany: vi.fn() },
@@ -47,6 +47,7 @@ const auditModule = await import('~/shared/domain/audit.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
+  vi.mocked(db.templateServicePart.aggregate).mockResolvedValue({ _max: { order: null } } as never)
   vi.mocked(allowedRoles.setTemplatePartAllowedRoles).mockResolvedValue({ added: [], removed: [] })
   vi.mocked(allowedRoles.setTemplateServicePartAllowedRoles).mockResolvedValue({ added: [], removed: [] })
 })

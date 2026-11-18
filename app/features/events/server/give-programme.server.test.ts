@@ -38,7 +38,7 @@ const TEMPLATE = {
       allowedRoles: [{ roleId: 5, asKind: 'speaker' }],
     },
   ],
-  serviceParts: [{ id: 21, name: 'Accueil', allowedRoles: [] }],
+  serviceParts: [{ id: 21, name: 'Accueil', order: 0, allowedRoles: [] }],
 }
 
 beforeEach(() => {

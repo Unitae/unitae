@@ -1,3 +1,4 @@
+import type { Prisma } from '~/database/generated/client'
 import type { CreatedProgramme, CreationContext } from '~/features/events/server/programme-creation.server'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -27,7 +28,7 @@ export interface TemplateWithRelations {
     presetId: number | null
     allowedRoles: { roleId: number; asKind: string }[]
   }[]
-  serviceParts: { id: number; name: string; allowedRoles: { roleId: number }[] }[]
+  serviceParts: { id: number; name: string; order: number; allowedRoles: { roleId: number }[] }[]
 }
 
 /** The template counts isAwaitingProgramme needs: whether it has a programme to give. */
@@ -35,8 +36,8 @@ export const TEMPLATE_PROGRAMME_COUNT = { _count: { select: { parts: true, servi
 
 export const TEMPLATE_INCLUDE = {
   parts: { orderBy: { order: 'asc' }, include: { allowedRoles: true } },
-  serviceParts: { include: { allowedRoles: true } },
-} as const
+  serviceParts: { orderBy: [{ order: 'asc' }, { id: 'asc' }], include: { allowedRoles: true } },
+} satisfies Prisma.EventTemplateInclude
 
 /**
  * Locks template rows before reading which days already have their events: in id order, like the recurring-events job,
@@ -96,7 +97,7 @@ export async function giveProgramme(
 
   for (const service of template.serviceParts) {
     const assignment = await db.eventServicePart.create({
-      data: { eventId: event.id, servicePartId: service.id, name: service.name, congregationId },
+      data: { eventId: event.id, servicePartId: service.id, name: service.name, order: service.order, congregationId },
     })
     if (service.allowedRoles.length > 0) {
       await db.eventServicePartAllowedRole.createMany({

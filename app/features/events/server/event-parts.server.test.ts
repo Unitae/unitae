@@ -51,6 +51,7 @@ const mockDb = {
     update: vi.fn(),
   },
   eventServicePart: {
+    aggregate: vi.fn(),
     create: vi.fn(),
     delete: vi.fn(),
     deleteMany: vi.fn(),
@@ -83,6 +84,7 @@ beforeEach(() => {
   vi.mocked(allowedRoles.setServicePartAssignmentAllowedRoles).mockResolvedValue({ added: [], removed: [] })
   mockDb.attendance.findMany.mockResolvedValue([])
   mockDb.notificationEvent.updateMany.mockResolvedValue({ count: 0 })
+  mockDb.eventServicePart.aggregate.mockResolvedValue({ _max: { order: null } })
   mockDb.eventPart.deleteMany.mockResolvedValue({ count: 0 })
   mockDb.eventServicePart.deleteMany.mockResolvedValue({ count: 0 })
   mockDb.eventPart.findMany.mockResolvedValue([])
@@ -511,7 +513,22 @@ describe('addServicePartAssignment', () => {
     const result = await addServicePartAssignment(mockDb as never, data, 99)
 
     expect(result).toEqual(expected)
-    expect(mockDb.eventServicePart.create).toHaveBeenCalledWith({ data: createData })
+    expect(mockDb.eventServicePart.create).toHaveBeenCalledWith({ data: { ...createData, order: 0 } })
+  })
+
+  it('puts the service after the ones the event has', async () => {
+    mockDb.eventServicePart.aggregate.mockResolvedValue({ _max: { order: 10 } })
+    mockDb.eventServicePart.create.mockResolvedValue({ id: 2 })
+
+    await addServicePartAssignment(
+      mockDb as never,
+      { eventId: 1, name: 'Micros', allowedRoleIds: [], congregationId: 10 },
+      99,
+    )
+
+    expect(mockDb.eventServicePart.create).toHaveBeenCalledWith({
+      data: { eventId: 1, name: 'Micros', congregationId: 10, order: 15 },
+    })
   })
 })
 
