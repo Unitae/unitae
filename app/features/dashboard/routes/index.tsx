@@ -23,7 +23,7 @@ import { PageTopbar } from '~/shared/ui/PageTopbar'
 import type { Route } from './+types/index'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Accueil - Unitae' }]
+  return [{ title: m.sidebar_home() + ' - Unitae' }]
 }
 
 export async function loader({ context }: Route.LoaderArgs) {
