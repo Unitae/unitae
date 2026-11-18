@@ -309,6 +309,11 @@
             "height": 118,
             "captured": "2026-11-17"
         },
+        "activity-export": {
+            "width": 510,
+            "height": 494,
+            "captured": "2026-11-18"
+        },
         "attendance-entry-card": {
             "width": 346,
             "height": 244,
@@ -344,15 +349,35 @@
             "height": 769,
             "captured": "2026-11-17"
         },
+        "emergency-info": {
+            "width": 398,
+            "height": 476,
+            "captured": "2026-11-18"
+        },
         "external-speakers-update": {
             "width": 398,
             "height": 342,
+            "captured": "2026-11-18"
+        },
+        "field-service-report-panel": {
+            "width": 398,
+            "height": 528,
+            "captured": "2026-11-18"
+        },
+        "group-form": {
+            "width": 564,
+            "height": 405,
             "captured": "2026-11-18"
         },
         "my-territories-row": {
             "width": 808,
             "height": 71,
             "captured": "2026-11-17"
+        },
+        "pioneers-summary": {
+            "width": 644,
+            "height": 278,
+            "captured": "2026-11-18"
         },
         "programs-my-assignments": {
             "width": 744,
@@ -363,6 +388,11 @@
             "width": 231,
             "height": 43,
             "captured": "2026-11-17"
+        },
+        "publisher-departure": {
+            "width": 486,
+            "height": 210,
+            "captured": "2026-11-18"
         },
         "settings-bano": {
             "width": 509,
