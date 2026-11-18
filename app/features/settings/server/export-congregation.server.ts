@@ -550,6 +550,8 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
       export: () =>
         db.templateServicePart.findMany({
           select: { id: true, name: true, key: true, order: true, templateId: true, presetId: true },
+          // In order: an import creates them in file order, so services sharing an order keep theirs.
+          orderBy: [{ templateId: 'asc' }, { order: 'asc' }, { id: 'asc' }],
         }),
     },
     {
@@ -650,6 +652,7 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
             presetId: true,
             assigneeId: true,
           },
+          orderBy: [{ eventId: 'asc' }, { order: 'asc' }, { id: 'asc' }],
         }),
     },
     {

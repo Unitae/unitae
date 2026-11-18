@@ -62,8 +62,8 @@ export const ARCHIVE_VERSION = '2.17'
 // Pre-2.16 events import as drafts, templates keep their hours (a new one gets the defaults) and documents have no
 // configuration, as before.
 // v2.17 gives services an order: `programme-template-service-roles.ndjson` and
-// `programme-service-role-assignments.ndjson` gain `order`. Pre-2.17 services keep the order their file lists them in,
-// each template and each event counting from 0.
+// `programme-service-role-assignments.ndjson` gain `order`. Pre-2.17 services are numbered by their id in the archive
+// (the order they were created in, the migration's rule), each template and each event from 0 in steps of 5.
 // v1.x archives are listed here so the import path reports them with a warning rather than rejecting outright;
 // `migrateLegacyUsersNdjson` splits their `users.ndjson` before the import runs.
 export const SUPPORTED_ARCHIVE_VERSIONS = [

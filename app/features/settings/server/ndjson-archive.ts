@@ -27,3 +27,23 @@ export function writeNdjsonFile(zip: JsZip, name: string, records: object[]): vo
   const content = `${records.map(r => JSON.stringify(r)).join('\n')}\n`
   zip.file(`data/${name}.ndjson`, content)
 }
+
+/**
+ * The order of services from an archive written before they had one (pre-2.17): by their id in the archive — the order
+ * they were created in, the migration's rule — each parent counting from 0 in steps of 5. The file's own row order says
+ * nothing: the export had no ORDER BY, and an updated row moves in the table.
+ */
+export function fallbackServiceOrders<R extends { id: number }>(
+  records: R[],
+  parentOf: (record: R) => number,
+): Map<number, number> {
+  const orders = new Map<number, number>()
+  const next = new Map<number, number>()
+  for (const record of [...records].sort((a, b) => a.id - b.id)) {
+    const parent = parentOf(record)
+    const position = next.get(parent) ?? 0
+    next.set(parent, position + 1)
+    orders.set(record.id, position * 5)
+  }
+  return orders
+}

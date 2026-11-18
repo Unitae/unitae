@@ -9,7 +9,7 @@ import {
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import type { EntityIdMap } from './data-transfer.type'
-import { readNdjsonFile } from './ndjson-archive'
+import { fallbackServiceOrders, readNdjsonFile } from './ndjson-archive'
 
 const logger = createLogger('import-event-templates')
 
@@ -151,19 +151,16 @@ export async function importTemplateServiceParts(
     order?: number
   }>(zip, 'programme-template-service-roles')
 
-  // Pre-2.17 archives carry no order: each template's services keep the order the file lists them in.
-  const position = new Map<number, number>()
+  const fallback = fallbackServiceOrders(records, record => record.templateId)
   for (const record of records) {
     const templateId = idMap.getOptional('programme-templates', record.templateId)
     if (!templateId) continue
-    const index = position.get(templateId) ?? 0
-    position.set(templateId, index + 1)
 
     const created = await db.templateServicePart.create({
       data: {
         name: record.name,
         key: record.key,
-        order: record.order ?? index * 5,
+        order: record.order ?? fallback.get(record.id) ?? 0,
         templateId,
         presetId: idMap.getOptional('part-presets', record.presetId),
         congregationId,

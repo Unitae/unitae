@@ -3,7 +3,7 @@ import { EventStatus, EventTemplateKey } from '~/features/events'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import type { EntityIdMap } from './data-transfer.type'
-import { readNdjsonFile } from './ndjson-archive'
+import { fallbackServiceOrders, readNdjsonFile } from './ndjson-archive'
 
 const logger = createLogger('import-events')
 
@@ -171,20 +171,17 @@ export async function importEventServiceParts(
     order?: number
   }>(zip, 'programme-service-role-assignments')
 
-  // Pre-2.17 archives carry no order: each event's services keep the order the file lists them in.
-  const position = new Map<number, number>()
+  const fallback = fallbackServiceOrders(records, record => record.eventId)
   for (const record of records) {
     const eventId = idMap.getOptional('events', record.eventId)
     if (!eventId) continue
-    const index = position.get(eventId) ?? 0
-    position.set(eventId, index + 1)
 
     const created = await db.eventServicePart.create({
       data: {
         note: record.note,
         hasConflict: record.hasConflict,
         name: record.name,
-        order: record.order ?? index * 5,
+        order: record.order ?? fallback.get(record.id) ?? 0,
         eventId,
         servicePartId: idMap.getOptional('programme-template-service-roles', record.servicePartId),
         presetId: idMap.getOptional('part-presets', record.presetId),
