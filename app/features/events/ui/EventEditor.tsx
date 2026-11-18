@@ -94,6 +94,17 @@ export function EventEditor({
     )
   }
 
+  function handleServiceDragEnd(dragEvent: DragEndEvent) {
+    if (!dragEvent.over) return
+    const ids = event.eventServiceParts.map(service => service.id)
+    const reordered = reorderPartIds(ids, Number(dragEvent.active.id), Number(dragEvent.over.id))
+    if (reordered === ids) return
+    reorderFetcher.submit(
+      { orderedIds: reordered },
+      { method: 'POST', action: `/programs/events/${event.id}/reorder-services`, encType: 'application/json' },
+    )
+  }
+
   function handleDelete() {
     if (!deleteTarget) return
     const formData = new FormData()
@@ -188,6 +199,7 @@ export function EventEditor({
             onAddService={trigger => panel.request({ kind: 'service', id: null, trigger })}
             onEditService={(service, trigger) => panel.request({ kind: 'service', id: service.id, trigger })}
             onDeleteService={target => setDeleteTarget({ type: 'service', ...target })}
+            onDragEnd={handleServiceDragEnd}
           />
         </div>
 
