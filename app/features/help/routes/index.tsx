@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 import type { HelpArticle } from '~/features/help/model/help.type'
 import { visibleHelpArticles } from '~/features/help/model/help-access'
-import { helpLocaleFor, helpPagePath } from '~/features/help/model/help-links'
+import { helpArticlesIn, helpLocaleFor, helpPagePath } from '~/features/help/model/help-links'
 import { groupHelpArticlesByModule } from '~/features/help/model/help-modules'
 import { searchHelpArticles } from '~/features/help/model/search-help-articles'
 import { loadHelpArticles } from '~/features/help/server/help-content.server'
@@ -36,10 +36,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const reader = helpReaderFor(context.get(permissionsContext), context.get(currentAccountContext))
   const locale = helpLocaleFor(getLocale())
   const query = new URL(request.url).searchParams.get('q') ?? ''
-  const visible = visibleHelpArticles(
-    loadHelpArticles().filter(article => article.locale === locale),
-    reader,
-  )
+  const visible = visibleHelpArticles(helpArticlesIn(loadHelpArticles(), locale), reader)
 
   return {
     query,

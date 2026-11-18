@@ -115,10 +115,11 @@ Word both languages with the terms in [Translation Glossary](translation-glossar
 official congregation vocabulary (congregation, territory assignment, field service report…) in
 English and French.
 
-French and English always carry every key. In another language, a missing key falls back to the
-`en.json` value.
+Every language carries every key: a new or changed message goes into every `messages/<code>.json` in the
+same change, and `app/i18n/catalogue.test.ts` fails the build on a key a language lacks. Should one slip
+through, its readers see the `en.json` text, Paraglide's fallback, never a broken page.
 
-A change to a feature's help means editing both `<slug>.md` files in the same change. See
+A change to a feature's help means editing its `<slug>.md` in every language in the same change. See
 [Help Articles](#help-articles).
 
 ## Adding a Language
@@ -140,9 +141,14 @@ The « Aide » pages are not Paraglide messages. Their article bodies are Markdo
 `app/features/help/content/<locale>/<slug>.md`, one folder per language. Only the help's interface text (titles,
 buttons, the fallback line) is in the messages.
 
-- French and English always carry every article, under the same slug. Their frontmatter must match across the two:
-  `permission` (the same set, in any order), `module`, `order` and the `related` set. The loader refuses an article that breaks this, or that
-  relates to a missing article, so the build and the server start fail on it.
+- Every language carries every article, under the same slug, with the same frontmatter: `permission` (the same
+  set, in any order), `module`, `order` and the `related` set. The loader refuses an article that breaks this, or
+  that relates to a missing article, so the build and the server start fail on it.
+- French and English (`HELP_SOURCE_LOCALES`) must be complete and match each other for the help to load. Another
+  language may trail behind at runtime: an article it lacks, or one that no longer matches French and English (its
+  frontmatter, its captures, a capture it has no image for yet), is read in English, article by article
+  (`helpArticlesIn` in `app/features/help/model/help-links.ts`), and the server logs a warning for each one left out.
+  The shipped-set test still fails the build until the translation is brought up to date.
 - Word the articles with the [translation glossary](translation-glossary.md). French says « assemblée ».
 - Write Markdown only: raw HTML is escaped, not rendered.
 - A reader whose language has no folder gets the English articles, the same fallback as the messages
@@ -152,14 +158,15 @@ buttons, the fallback line) is in the messages.
 
 These run with the unit tests, so CI enforces them:
 
-- `app/features/help/server/help-content.server.test.ts`: every help article has its counterpart in the
-  other language, with the same permission, module, order and related set; every related slug exists;
-  a file is named after its slug; the shipped series is pinned.
+- `app/features/help/server/help-content.server.test.ts`: every help article has its counterpart in
+  every language, with the same permission, module, order and related set; every related slug exists;
+  a file is named after its slug; the shipped series is pinned in every language.
 - `app/features/help/entry-points.test.ts`: every « ? » in the app opens an article that ships in both
   languages, and the pages that show one are pinned.
-- `app/features/help/model/help-links.test.ts`: a language without articles reads the English ones.
-- `app/i18n/catalogue.test.ts`: French and English hold the same keys; another language holds only
-  keys English has, with the same placeholders; every plural ends with its `=*` form; no message is
+- `app/features/help/model/help-links.test.ts`: a language without articles reads the English ones, and
+  a language lacking one article reads that article in English.
+- `app/i18n/catalogue.test.ts`: every language holds exactly the keys English has, with the same
+  placeholders; every plural ends with its `=*` form; no message is
   empty, none writes an optional plural such as « (s) », and every key is used by some code.
 - `app/i18n/plural-messages.test.ts`: every plural message renders for 0, 1, 2, 5 and 21 in every
   language.

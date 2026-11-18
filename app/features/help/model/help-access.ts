@@ -1,4 +1,5 @@
 import { GROUP_LEADER, type HelpArticle, type HelpLocale } from '~/features/help/model/help.type'
+import { helpArticlesIn } from '~/features/help/model/help-links'
 import { Permission } from '~/shared/types/permission'
 
 /** Who is reading: their permissions, and whether they lead a field service group, which no permission says. */
@@ -29,6 +30,6 @@ export function visibleHelpArticles(articles: readonly HelpArticle[], reader: He
  * exists in both languages is listed once, since the « ? » picks the language itself.
  */
 export function visibleHelpSlugs(articles: readonly HelpArticle[], reader: HelpReader, locale: HelpLocale): string[] {
-  const inLocale = articles.filter(article => article.locale === locale)
+  const inLocale = helpArticlesIn(articles, locale)
   return [...new Set(visibleHelpArticles(inLocale, reader).map(({ slug }) => slug))]
 }

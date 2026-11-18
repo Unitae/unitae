@@ -110,4 +110,10 @@ describe('visibleHelpSlugs across the two languages', () => {
     expect(visibleHelpSlugs(BILINGUAL, readerWith(Permission.CanViewBoard), 'fr')).toEqual(['open', 'board'])
     expect(visibleHelpSlugs(BILINGUAL, readerWith(Permission.CanViewBoard), 'en')).toEqual(['open'])
   })
+
+  it('offers the English article where the reader’s language lacks it, so its « ? » still opens', () => {
+    const articles = [...BILINGUAL, { ...article('board', ['CanViewBoard']), locale: 'en' as const }]
+
+    expect(visibleHelpSlugs(articles, readerWith(Permission.CanViewBoard), 'pt-PT')).toEqual(['open', 'board'])
+  })
 })

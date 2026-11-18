@@ -3,8 +3,9 @@ import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 // The rules every message file follows, so a translation can be checked before it is merged:
-// French and English carry every key, another language only keys English has, with the same
-// placeholders, and every plural message ends with its catch-all form. No key outlives its code.
+// every language carries the keys English has, and only those, with the same placeholders, and every
+// plural message ends with its catch-all form. No key outlives its code. A key a translation lacks
+// still shows in English to its readers (Paraglide falls back to the base locale), but fails here.
 
 type Variant = { declarations: string[]; selectors: string[]; match: Record<string, string> }
 type Message = string | Variant[]
@@ -119,6 +120,10 @@ describe.each(translations.length > 0 ? translations : ['(none yet)'])('the %s t
     expect(Object.keys(messages).filter(key => !(key in en))).toEqual([])
   })
 
+  it('translates every key English has: its readers would see the English text instead', () => {
+    expect(Object.keys(en).filter(key => !(key in messages))).toEqual([])
+  })
+
   it('uses only the placeholders the English message offers', () => {
     const offenders = Object.entries(messages)
       .filter(([key, message]) => key in en && [...placeholders(message)].some(name => !inputs(en[key]).has(name)))
@@ -137,7 +142,7 @@ describe.each(translations.length > 0 ? translations : ['(none yet)'])('the %s t
     expect(Object.keys(messages).filter(key => lacksCatchAll(messages[key]))).toEqual([])
   })
 
-  it('leaves no message empty: a key not translated yet is left out, and English shows instead', () => {
+  it('leaves no message empty', () => {
     expect(Object.keys(messages).filter(key => texts(messages[key]).some(text => text.trim() === ''))).toEqual([])
   })
 })

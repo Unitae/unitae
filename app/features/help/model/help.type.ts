@@ -7,6 +7,12 @@ export type HelpLocale = (typeof HELP_LOCALES)[number]
 export const HELP_FALLBACK_LOCALE: HelpLocale = 'en'
 
 /**
+ * The languages the help is written in, which always carry every article. Another language may lack one: its readers
+ * get the English article, and the shipped-set test fails the build until it is translated.
+ */
+export const HELP_SOURCE_LOCALES: readonly HelpLocale[] = ['fr', 'en']
+
+/**
  * The areas of the app the articles are grouped under, in the order the sidebar lists them, then « Mon compte », which
  * the person's menu at the foot of the sidebar opens. Each one is named by the label of its entry, so the help speaks
  * the same words as the page it is about.

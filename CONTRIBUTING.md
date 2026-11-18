@@ -47,9 +47,10 @@ translate it.
    `order`, `related`), and add your code to `HELP_LOCALES` in `app/features/help/model/help.type.ts`.
    Until then, the help reads in English.
 
-The first pull request for a language must translate **every** message, so nobody sees a mix of
-languages. After that, new features may add English messages before they are translated: a message
-your file does not have yet shows in English.
+A pull request for a language must translate **every** message and help article, so nobody sees a mix
+of languages, and the tests fail on anything left out. After that, a change that adds or edits a
+message or a help article carries it in every language. If a translation slips through anyway, its
+readers see the English text rather than a broken page.
 
 ### Use the official words
 
