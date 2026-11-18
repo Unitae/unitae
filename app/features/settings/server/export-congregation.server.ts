@@ -549,7 +549,9 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
       name: 'programme-template-service-roles',
       export: () =>
         db.templateServicePart.findMany({
-          select: { id: true, name: true, key: true, templateId: true, presetId: true },
+          select: { id: true, name: true, key: true, order: true, templateId: true, presetId: true },
+          // In order: an import creates them in file order, so services sharing an order keep theirs.
+          orderBy: [{ templateId: 'asc' }, { order: 'asc' }, { id: 'asc' }],
         }),
     },
     {
@@ -644,11 +646,13 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
             note: true,
             hasConflict: true,
             name: true,
+            order: true,
             eventId: true,
             servicePartId: true,
             presetId: true,
             assigneeId: true,
           },
+          orderBy: [{ eventId: 'asc' }, { order: 'asc' }, { id: 'asc' }],
         }),
     },
     {

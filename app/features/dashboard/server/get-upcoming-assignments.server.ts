@@ -88,7 +88,7 @@ export async function getUpcomingAssignments(
     db.eventServicePart.findMany({
       where: { assigneeId: userId, event: eventFilter },
       select: { id: true, name: true, event: eventSelect },
-      orderBy: { event: { startDate: 'asc' } },
+      orderBy: [{ event: { startDate: 'asc' } }, { order: 'asc' }, { id: 'asc' }],
     }),
   ])
 

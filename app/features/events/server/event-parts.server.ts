@@ -171,7 +171,13 @@ export async function addServicePartAssignment(
   actorId: number,
 ) {
   const { allowedRoleIds, ...createData } = data
-  const assignment = await db.eventServicePart.create({ data: createData })
+  // After the services the event has: a new one goes last.
+  const last = await db.eventServicePart.aggregate({
+    where: { eventId: data.eventId, congregationId: data.congregationId },
+    _max: { order: true },
+  })
+  const order = last._max.order == null ? 0 : last._max.order + 5
+  const assignment = await db.eventServicePart.create({ data: { ...createData, order } })
 
   const diff = await setServicePartAssignmentAllowedRoles(db, assignment.id, allowedRoleIds, data.congregationId)
   if (diff.added.length > 0 || diff.removed.length > 0) {
@@ -298,7 +304,7 @@ export async function applyTemplateToEvent(
         orderBy: { order: 'asc' },
         include: { allowedRoles: true },
       },
-      serviceParts: { include: { allowedRoles: true } },
+      serviceParts: { orderBy: [{ order: 'asc' }, { id: 'asc' }], include: { allowedRoles: true } },
     },
   })
   if (!template) return null
@@ -342,7 +348,14 @@ export async function applyTemplateToEvent(
 
   for (const role of template.serviceParts) {
     const assignment = await db.eventServicePart.create({
-      data: { eventId, servicePartId: role.id, name: role.name, presetId: role.presetId, congregationId },
+      data: {
+        eventId,
+        servicePartId: role.id,
+        name: role.name,
+        presetId: role.presetId,
+        order: role.order,
+        congregationId,
+      },
     })
     if (role.allowedRoles.length > 0) {
       await db.eventServicePartAllowedRole.createMany({

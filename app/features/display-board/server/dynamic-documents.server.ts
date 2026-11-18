@@ -1,3 +1,4 @@
+import type { Prisma } from '~/database/generated/client'
 import {
   type AvailableDynamicType,
   DynamicType,
@@ -33,6 +34,9 @@ const PIONEER_TYPE_RANK: Record<string, number> = {
 
 export type { AvailableDynamicType, ProgrammeDynamicConfig }
 export { parseProgrammeConfig }
+
+/** A meeting's services in their order; the id settles ties, such as rows an older version wrote at 0. */
+const SERVICE_ORDER: Prisma.EventServicePartOrderByWithRelationInput[] = [{ order: 'asc' }, { id: 'asc' }]
 
 /**
  * An absence is an event of the « day-off » template, published the moment it is declared: no programme document
@@ -489,7 +493,9 @@ function fetchProgrammeByIds(
           externalSpeaker: { select: EXTERNAL_SPEAKER_LABEL_SELECT },
         },
       },
-      eventServiceParts: includeServices ? { include: { assignee: { select: userSelect } } } : false,
+      eventServiceParts: includeServices
+        ? { include: { assignee: { select: userSelect } }, orderBy: SERVICE_ORDER }
+        : false,
     },
     orderBy: { startDate: 'asc' },
   })
@@ -520,7 +526,9 @@ function fetchProgrammeByKey(
           externalSpeaker: { select: EXTERNAL_SPEAKER_LABEL_SELECT },
         },
       },
-      eventServiceParts: showServices ? { include: { assignee: { select: userSelect } } } : false,
+      eventServiceParts: showServices
+        ? { include: { assignee: { select: userSelect } }, orderBy: SERVICE_ORDER }
+        : false,
     },
     orderBy: { startDate: 'asc' },
   })

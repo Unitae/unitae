@@ -16,7 +16,7 @@ export async function duplicateTemplate(
         orderBy: { order: 'asc' },
         include: { allowedRoles: true },
       },
-      serviceParts: { include: { allowedRoles: true } },
+      serviceParts: { orderBy: [{ order: 'asc' }, { id: 'asc' }], include: { allowedRoles: true } },
     },
   })
   if (!source) return null
@@ -59,6 +59,7 @@ export async function duplicateTemplate(
         create: source.serviceParts.map(role => ({
           name: role.name,
           key: `${role.key}-copy-${Date.now()}`,
+          order: role.order,
           congregationId,
         })),
       },

@@ -9,7 +9,7 @@ import {
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import type { EntityIdMap } from './data-transfer.type'
-import { readNdjsonFile } from './ndjson-archive'
+import { fallbackServiceOrders, readNdjsonFile } from './ndjson-archive'
 
 const logger = createLogger('import-event-templates')
 
@@ -148,8 +148,10 @@ export async function importTemplateServiceParts(
     key: string
     templateId: number
     presetId?: number | null
+    order?: number
   }>(zip, 'programme-template-service-roles')
 
+  const fallback = fallbackServiceOrders(records, record => record.templateId)
   for (const record of records) {
     const templateId = idMap.getOptional('programme-templates', record.templateId)
     if (!templateId) continue
@@ -158,6 +160,7 @@ export async function importTemplateServiceParts(
       data: {
         name: record.name,
         key: record.key,
+        order: record.order ?? fallback.get(record.id) ?? 0,
         templateId,
         presetId: idMap.getOptional('part-presets', record.presetId),
         congregationId,

@@ -6,7 +6,7 @@ vi.mock('~/shared/infra/db.server', () => ({
     eventTemplate: { findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn(), create: vi.fn(), delete: vi.fn() },
     event: { count: vi.fn() },
     templatePart: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
-    templateServicePart: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
+    templateServicePart: { aggregate: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
     templateResponsible: { upsert: vi.fn(), deleteMany: vi.fn(), findFirst: vi.fn() },
     role: { findMany: vi.fn() },
     templatePartAllowedRole: { createMany: vi.fn() },
@@ -47,6 +47,7 @@ const auditModule = await import('~/shared/domain/audit.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
+  vi.mocked(db.templateServicePart.aggregate).mockResolvedValue({ _max: { order: null } } as never)
   vi.mocked(allowedRoles.setTemplatePartAllowedRoles).mockResolvedValue({ added: [], removed: [] })
   vi.mocked(allowedRoles.setTemplateServicePartAllowedRoles).mockResolvedValue({ added: [], removed: [] })
 })
@@ -343,6 +344,20 @@ describe('upsertTemplateServicePart', () => {
 
     const result = await upsertTemplateServicePart(db, 1, { name: 'Sono', key: 'sono', allowedRoleIds: [] }, 1, 99)
     expect(result).toEqual(newRole)
+  })
+
+  it('puts a new service after the template’s last one', async () => {
+    vi.mocked(db.templateServicePart.aggregate).mockResolvedValue({ _max: { order: 10 } } as never)
+    vi.mocked(db.templateServicePart.create).mockResolvedValue({ id: 11 } as never)
+
+    await upsertTemplateServicePart(db, 4, { name: 'Accueil', key: 'accueil', allowedRoleIds: [] }, 1, 99)
+
+    expect(db.templateServicePart.aggregate).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { templateId: 4, congregationId: 1 } }),
+    )
+    expect(db.templateServicePart.create).toHaveBeenCalledWith({
+      data: { name: 'Accueil', key: 'accueil', order: 15, templateId: 4, congregationId: 1 },
+    })
   })
 
   it('updates an existing service role when id is provided', async () => {

@@ -35,7 +35,7 @@ export function getTemplateById(db: TransactionClient, templateId: number, congr
     where: { id: templateId, congregationId },
     include: {
       parts: { orderBy: { order: 'asc' } },
-      serviceParts: { orderBy: { name: 'asc' } },
+      serviceParts: { orderBy: [{ order: 'asc' }, { id: 'asc' }] },
       responsibles: responsibleInclude,
     },
   })
@@ -193,6 +193,12 @@ export function deleteTemplatePart(db: TransactionClient, partId: number, congre
   })
 }
 
+/** After the template's services: a new one goes last. */
+async function nextTemplateServiceOrder(db: TransactionClient, templateId: number, congregationId: number) {
+  const last = await db.templateServicePart.aggregate({ where: { templateId, congregationId }, _max: { order: true } })
+  return last._max.order == null ? 0 : last._max.order + 5
+}
+
 export async function upsertTemplateServicePart(
   db: TransactionClient,
   templateId: number,
@@ -206,7 +212,13 @@ export async function upsertTemplateServicePart(
         data: { name: roleData.name, key: roleData.key },
       })
     : await db.templateServicePart.create({
-        data: { name: roleData.name, key: roleData.key, templateId, congregationId },
+        data: {
+          name: roleData.name,
+          key: roleData.key,
+          order: await nextTemplateServiceOrder(db, templateId, congregationId),
+          templateId,
+          congregationId,
+        },
       })
 
   const diff = await setTemplateServicePartAllowedRoles(db, servicePart.id, roleData.allowedRoleIds, congregationId)

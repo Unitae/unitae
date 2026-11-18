@@ -321,9 +321,10 @@ export async function seedDefaultTemplates(db: any, congregationId: number, loca
           })),
         },
         serviceParts: {
-          create: tpl.serviceParts.map(role => ({
+          create: tpl.serviceParts.map((role, index) => ({
             name: role.name,
             key: role.key,
+            order: index * 5,
             congregationId,
           })),
         },

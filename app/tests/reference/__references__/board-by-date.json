@@ -426,6 +426,7 @@
           "note": "",
           "hasConflict": false,
           "name": "Audio-vidéo",
+          "order": 0,
           "eventId": "<event:midweek-1>",
           "servicePartId": "<templateServicePart:midweek/service-sono>",
           "presetId": null,
@@ -445,6 +446,7 @@
           "note": "",
           "hasConflict": false,
           "name": "Estrade",
+          "order": 5,
           "eventId": "<event:midweek-1>",
           "servicePartId": "<templateServicePart:midweek/service-stage>",
           "presetId": null,
@@ -463,26 +465,8 @@
           "id": "<id>",
           "note": "",
           "hasConflict": false,
-          "name": "Nettoyage",
-          "eventId": "<event:midweek-1>",
-          "servicePartId": "<templateServicePart:midweek/service-cleaning>",
-          "presetId": null,
-          "assigneeId": "<member:paul>",
-          "createdAt": "<time>",
-          "updatedAt": "<time>",
-          "congregationId": "<id>",
-          "assignee": {
-            "id": "<id>",
-            "firstname": "Paul",
-            "lastname": "MARTIN",
-            "anonymizedAt": null
-          }
-        },
-        {
-          "id": "<id>",
-          "note": "",
-          "hasConflict": false,
           "name": "Préposés à l’accueil",
+          "order": 10,
           "eventId": "<event:midweek-1>",
           "servicePartId": "<templateServicePart:midweek/service-welcome>",
           "presetId": null,
@@ -494,6 +478,26 @@
             "id": "<id>",
             "firstname": "Pierre",
             "lastname": "MOREAU",
+            "anonymizedAt": null
+          }
+        },
+        {
+          "id": "<id>",
+          "note": "",
+          "hasConflict": false,
+          "name": "Nettoyage",
+          "order": 15,
+          "eventId": "<event:midweek-1>",
+          "servicePartId": "<templateServicePart:midweek/service-cleaning>",
+          "presetId": null,
+          "assigneeId": "<member:paul>",
+          "createdAt": "<time>",
+          "updatedAt": "<time>",
+          "congregationId": "<id>",
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Paul",
+            "lastname": "MARTIN",
             "anonymizedAt": null
           }
         }
@@ -699,6 +703,7 @@
           "note": "",
           "hasConflict": false,
           "name": "Audio-vidéo",
+          "order": 0,
           "eventId": "<event:weekend-1>",
           "servicePartId": "<templateServicePart:weekend/service-sono>",
           "presetId": null,
@@ -718,6 +723,7 @@
           "note": "",
           "hasConflict": false,
           "name": "Estrade",
+          "order": 5,
           "eventId": "<event:weekend-1>",
           "servicePartId": "<templateServicePart:weekend/service-stage>",
           "presetId": null,
@@ -736,26 +742,8 @@
           "id": "<id>",
           "note": "",
           "hasConflict": false,
-          "name": "Nettoyage",
-          "eventId": "<event:weekend-1>",
-          "servicePartId": "<templateServicePart:weekend/service-cleaning>",
-          "presetId": null,
-          "assigneeId": "<member:paul>",
-          "createdAt": "<time>",
-          "updatedAt": "<time>",
-          "congregationId": "<id>",
-          "assignee": {
-            "id": "<id>",
-            "firstname": "Paul",
-            "lastname": "MARTIN",
-            "anonymizedAt": null
-          }
-        },
-        {
-          "id": "<id>",
-          "note": "",
-          "hasConflict": false,
           "name": "Préposés à l’accueil",
+          "order": 10,
           "eventId": "<event:weekend-1>",
           "servicePartId": "<templateServicePart:weekend/service-welcome>",
           "presetId": null,
@@ -767,6 +755,26 @@
             "id": "<id>",
             "firstname": "Pierre",
             "lastname": "MOREAU",
+            "anonymizedAt": null
+          }
+        },
+        {
+          "id": "<id>",
+          "note": "",
+          "hasConflict": false,
+          "name": "Nettoyage",
+          "order": 15,
+          "eventId": "<event:weekend-1>",
+          "servicePartId": "<templateServicePart:weekend/service-cleaning>",
+          "presetId": null,
+          "assigneeId": "<member:paul>",
+          "createdAt": "<time>",
+          "updatedAt": "<time>",
+          "congregationId": "<id>",
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Paul",
+            "lastname": "MARTIN",
             "anonymizedAt": null
           }
         }

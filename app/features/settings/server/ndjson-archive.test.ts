@@ -1,6 +1,6 @@
 import JsZip from 'jszip'
 import { describe, expect, it } from 'vitest'
-import { readManifest, readNdjsonFile, writeNdjsonFile } from './ndjson-archive'
+import { fallbackServiceOrders, readManifest, readNdjsonFile, writeNdjsonFile } from './ndjson-archive'
 
 const MISSING_MANIFEST_PATTERN = /missing manifest\.json/
 
@@ -45,5 +45,21 @@ describe('writeNdjsonFile', () => {
     writeNdjsonFile(zip, 'members', [{ id: 1 }, { id: 2 }])
     const content = await zip.file('data/members.ndjson')?.async('string')
     expect(content).toBe('{"id":1}\n{"id":2}\n')
+  })
+})
+
+describe('fallbackServiceOrders', () => {
+  it('numbers each parent’s services by id, from 0 in steps of 5, whatever the file’s order', () => {
+    const records = [
+      { id: 7, eventId: 2 },
+      { id: 3, eventId: 1 },
+      { id: 5, eventId: 2 },
+      { id: 1, eventId: 1 },
+      { id: 9, eventId: 1 },
+    ]
+
+    const orders = fallbackServiceOrders(records, record => record.eventId)
+
+    expect(Object.fromEntries(orders)).toEqual({ 1: 0, 3: 5, 9: 10, 5: 0, 7: 5 })
   })
 })

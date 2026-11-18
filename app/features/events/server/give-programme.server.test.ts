@@ -38,7 +38,7 @@ const TEMPLATE = {
       allowedRoles: [{ roleId: 5, asKind: 'speaker' }],
     },
   ],
-  serviceParts: [{ id: 21, name: 'Accueil', allowedRoles: [] }],
+  serviceParts: [{ id: 21, name: 'Accueil', order: 20, allowedRoles: [] }],
 }
 
 beforeEach(() => {
@@ -59,7 +59,7 @@ describe('giveProgramme', () => {
       data: [{ eventPartId: 700, roleId: 5, asKind: 'speaker', congregationId: 7 }],
     })
     expect(db.eventServicePart.create.mock.calls[0]?.[0]).toMatchObject({
-      data: { eventId: 55, servicePartId: 21, name: 'Accueil' },
+      data: { eventId: 55, servicePartId: 21, name: 'Accueil', order: 20 },
     })
   })
 

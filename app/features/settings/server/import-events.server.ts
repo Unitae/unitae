@@ -3,7 +3,7 @@ import { EventStatus, EventTemplateKey } from '~/features/events'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import type { EntityIdMap } from './data-transfer.type'
-import { readNdjsonFile } from './ndjson-archive'
+import { fallbackServiceOrders, readNdjsonFile } from './ndjson-archive'
 
 const logger = createLogger('import-events')
 
@@ -168,8 +168,10 @@ export async function importEventServiceParts(
     servicePartId: number | null
     presetId?: number | null
     assigneeId: number | null
+    order?: number
   }>(zip, 'programme-service-role-assignments')
 
+  const fallback = fallbackServiceOrders(records, record => record.eventId)
   for (const record of records) {
     const eventId = idMap.getOptional('events', record.eventId)
     if (!eventId) continue
@@ -179,6 +181,7 @@ export async function importEventServiceParts(
         note: record.note,
         hasConflict: record.hasConflict,
         name: record.name,
+        order: record.order ?? fallback.get(record.id) ?? 0,
         eventId,
         servicePartId: idMap.getOptional('programme-template-service-roles', record.servicePartId),
         presetId: idMap.getOptional('part-presets', record.presetId),

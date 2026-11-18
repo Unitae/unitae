@@ -1712,3 +1712,117 @@ describe('template responsible scope on import', () => {
     }
   })
 })
+
+// v2.17 carries each service's `order`. An older archive has none, and its rows come in no particular order (the export
+// had no ORDER BY): its services come back by their id in the archive — the order they were created in, the migration's
+// rule — each template and each event counting from 0 in steps of 5.
+describe('the order of services on import', () => {
+  let runs = 0
+  async function importServices(lines: { templates: object[]; events: object[] }) {
+    runs += 1
+    const { importTemplateServiceParts } = await import('./import-event-templates.server')
+    const { importEventServiceParts } = await import('./import-events.server')
+    const cong = await testDb.congregation.create({
+      data: { name: `Services order ${ts}`, slug: `services-order-${ts}-${runs}`, active: true },
+    })
+    try {
+      return await withScope(cong.id, async tx => {
+        const template = await tx.eventTemplate.create({
+          data: { name: 'Semaine', key: `services-order-${ts}-${runs}`, congregationId: cong.id },
+        })
+        const day = new Date('2026-11-19T17:00:00Z')
+        const event = await tx.event.create({
+          data: { name: 'Réunion', startDate: day, endDate: day, congregationId: cong.id },
+        })
+        const idMap = new EntityIdMap()
+        idMap.set('programme-templates', 1, template.id)
+        idMap.set('events', 1, event.id)
+
+        const zip = new JsZip()
+        const dataDir = zip.folder('data')!
+        const ndjson = (rows: object[]) => rows.map(row => `${JSON.stringify(row)}\n`).join('')
+        dataDir.file('programme-template-service-roles.ndjson', ndjson(lines.templates))
+        dataDir.file('programme-service-role-assignments.ndjson', ndjson(lines.events))
+
+        await importTemplateServiceParts(zip, tx, idMap, cong.id)
+        await importEventServiceParts(zip, tx, idMap, cong.id)
+
+        const byOrder = { orderBy: [{ order: 'asc' as const }, { id: 'asc' as const }], select: { name: true } }
+        return {
+          template: (await tx.templateServicePart.findMany(byOrder)).map(row => row.name),
+          event: (await tx.eventServicePart.findMany(byOrder)).map(row => row.name),
+        }
+      })
+    } finally {
+      await withScope(cong.id, async tx => {
+        await tx.event.deleteMany({})
+        await tx.eventTemplate.deleteMany({})
+      })
+      await testDb.congregation.delete({ where: { id: cong.id } })
+    }
+  }
+
+  const service = (id: number, name: string, order?: number) => ({
+    template: { id, name, key: name.toLowerCase(), templateId: 1, ...(order == null ? {} : { order }) },
+    event: {
+      id,
+      name,
+      note: '',
+      hasConflict: false,
+      eventId: 1,
+      servicePartId: null,
+      assigneeId: null,
+      ...(order == null ? {} : { order }),
+    },
+  })
+
+  it('keeps the order a 2.17 archive carries', async () => {
+    const rows = [service(1, 'Accueil', 10), service(2, 'Sono', 0), service(3, 'Estrade', 5)]
+
+    const imported = await importServices({ templates: rows.map(r => r.template), events: rows.map(r => r.event) })
+
+    expect(imported).toEqual({ template: ['Sono', 'Estrade', 'Accueil'], event: ['Sono', 'Estrade', 'Accueil'] })
+  })
+
+  it('restores an older archive’s services in the order they were created, whatever the file’s order', async () => {
+    // Sono was updated after the others, so the table, and the export, listed it last.
+    const rows = [service(2, 'Accueil'), service(3, 'Estrade'), service(1, 'Sono')]
+
+    const imported = await importServices({ templates: rows.map(r => r.template), events: rows.map(r => r.event) })
+
+    expect(imported).toEqual({ template: ['Sono', 'Accueil', 'Estrade'], event: ['Sono', 'Accueil', 'Estrade'] })
+  })
+
+  it('numbers an older archive’s services in steps of 5', async () => {
+    const { importTemplateServiceParts } = await import('./import-event-templates.server')
+    const cong = await testDb.congregation.create({
+      data: { name: `Services steps ${ts}`, slug: `services-steps-${ts}`, active: true },
+    })
+    try {
+      const orders = await withScope(cong.id, async tx => {
+        const template = await tx.eventTemplate.create({
+          data: { name: 'Semaine', key: `services-steps-${ts}`, congregationId: cong.id },
+        })
+        const idMap = new EntityIdMap()
+        idMap.set('programme-templates', 1, template.id)
+        const zip = new JsZip()
+        zip
+          .folder('data')!
+          .file(
+            'programme-template-service-roles.ndjson',
+            [service(9, 'Estrade'), service(4, 'Sono')].map(r => `${JSON.stringify(r.template)}\n`).join(''),
+          )
+        await importTemplateServiceParts(zip, tx, idMap, cong.id)
+        const rows = await tx.templateServicePart.findMany({
+          orderBy: { order: 'asc' },
+          select: { name: true, order: true },
+        })
+        return rows.map(row => `${row.order} ${row.name}`)
+      })
+      expect(orders).toEqual(['0 Sono', '5 Estrade'])
+    } finally {
+      await withScope(cong.id, tx => tx.eventTemplate.deleteMany({}))
+      await testDb.congregation.delete({ where: { id: cong.id } })
+    }
+  })
+})

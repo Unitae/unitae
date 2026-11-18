@@ -287,9 +287,10 @@ async function arrangeTemplates(congregationId: number, roleIds: Map<string, num
     })
     await prisma.templateServicePart.deleteMany({ where: { templateId: template.id } })
     const services = await prisma.templateServicePart.createManyAndReturn({
-      data: SERVICE_ROLES.map(service => ({
+      data: SERVICE_ROLES.map((service, index) => ({
         name: service.name,
         key: service.key,
+        order: index * 5,
         templateId: template.id,
         congregationId,
       })),
@@ -411,9 +412,10 @@ async function writeMeetings(
 
   const services = await prisma.eventServicePart.createManyAndReturn({
     data: meetings.flatMap((meeting, index) =>
-      meeting.services.map(service => ({
+      meeting.services.map((service, position) => ({
         name: serviceParts.get(service.templateService)?.name ?? '',
         servicePartId: service.templateService,
+        order: position * 5,
         eventId: events[index]?.id as number,
         assigneeId: memberId(service.assignee),
         congregationId,
