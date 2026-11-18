@@ -31,6 +31,9 @@ const MARC = 'marc.dupont@demo.unitae.app'
 const MAXIME = 'maxime.mensah@demo.unitae.app'
 // Maxime's publisher record: someone else's for MARC, whose own status he could not change.
 const MAXIME_RECORD = 100
+// Maxime's account, for the pages about an account; and a team of the organigram with people in it.
+const MAXIME_ACCOUNT = 83
+const AUDIO_VIDEO_ROLE = 64
 
 /** The nearest enclosing element that matches, e.g. the row around a button. */
 function closest(locator: Locator, xpathTest: string): Locator {
@@ -520,6 +523,75 @@ export const HELP_SHOTS: HelpShot[] = [
     frame: page => [sidePanel(page)],
     margin: -1,
     viewport: { width: 1600, height: 900 },
+  },
+  {
+    // invite-user: « Nouvel utilisateur » on Réglages › Utilisateurs.
+    id: 'settings-new-user',
+    account: MARC,
+    path: '/settings/users',
+    prepare: async (page, locale) => {
+      await page.getByRole('button', { name: m.settings_users_new_button({}, { locale }), exact: true }).click()
+      await page.getByRole('dialog').waitFor()
+    },
+    frame: page => [page.getByRole('dialog')],
+    margin: -1,
+  },
+  {
+    // give-rights: the « Rôles » section of an account.
+    id: 'settings-account-roles',
+    account: MARC,
+    path: `/settings/users/${MAXIME_ACCOUNT}`,
+    // The section's title and its first roles: the whole list runs to every role of the congregation.
+    frame: (page, locale) => [
+      page.getByText(m.settings_account_section_roles({}, { locale }), { exact: true }).first(),
+      section(page, m.settings_account_section_roles({}, { locale })).locator('label').nth(3),
+    ],
+    margin: 12,
+    viewport: { width: 1100, height: 1200 },
+  },
+  {
+    // reset-two-step: the « Sécurité » section of an account.
+    id: 'settings-account-security',
+    account: MARC,
+    path: `/settings/users/${MAXIME_ACCOUNT}`,
+    frame: (page, locale) => [section(page, m.settings_account_section_security({}, { locale }))],
+    margin: 10,
+    viewport: { width: 1100, height: 1400 },
+  },
+  {
+    // organigram: a team's panel, with its people and the search to name someone.
+    id: 'organigram-role-panel',
+    account: MARC,
+    path: `/congregation/roles/organigram?role=${AUDIO_VIDEO_ROLE}`,
+    prepare: settledPanel,
+    frame: page => [sidePanel(page)],
+    margin: -1,
+    viewport: { width: 1600, height: 900 },
+  },
+  {
+    // congregation-data: « Exporter » on Réglages › Import et export.
+    id: 'settings-data-export',
+    account: MARC,
+    path: '/settings/data',
+    frame: (page, locale) => [section(page, m.settings_data_export({}, { locale }))],
+    margin: 10,
+    viewport: { width: 1100 },
+  },
+  {
+    // audit-log: the bar above the journal: the search, the action, the period, the count.
+    id: 'settings-audit-toolbar',
+    account: MARC,
+    path: '/settings/audit-log',
+    // The smallest block holding the search and the period: the whole bar, with the count.
+    frame: (page, locale) => [
+      page
+        .locator('div:visible')
+        .filter({ has: page.getByPlaceholder(m.audit_log_search({}, { locale })) })
+        .filter({ has: page.getByText(m.audit_log_period_30d({}, { locale }), { exact: true }) })
+        .last(),
+    ],
+    margin: 12,
+    viewport: { width: 1100 },
   },
 ]
 

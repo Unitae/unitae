@@ -1,5 +1,5 @@
 import { ChevronDown, CircleAlert, CircleCheck, Plus } from 'lucide-react'
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import type { MatrixGroup, MatrixMember } from '~/features/congregation/model/role-matrix.type'
 import type { BuiltInFilterKey } from '~/features/congregation/schemas/role.schema'
@@ -107,6 +107,7 @@ export function TeamsScreen({
   views,
   view,
   canManage,
+  help,
 }: {
   groups: MatrixGroup[]
   members: MatrixMember[]
@@ -114,6 +115,8 @@ export function TeamsScreen({
   views: Record<BuiltInFilterKey, number>
   view: BuiltInFilterKey
   canManage: boolean
+  /** The page's « ? »: in the top bar from md, beside the title on a phone. */
+  help?: ReactNode
 }) {
   const [last, setLast] = useState<TeamToggleResult | null>(null)
   const body = { groups, members, counts, canManage, onResult: setLast }
@@ -123,6 +126,7 @@ export function TeamsScreen({
       <PageTopbar
         trail={[{ label: m.org_title(), to: '/congregation/roles/organigram' }, { label: m.org_tab_teams() }]}
         className="mb-0"
+        help={help}
         actions={
           canManage && (
             <Button asChild size="sm" className="max-md:hidden">
@@ -134,7 +138,7 @@ export function TeamsScreen({
           )
         }
       >
-        <OrgHeading canCreate={canManage} newRole={{ to: '/congregation/roles/organigram?new=1' }} />
+        <OrgHeading canCreate={canManage} newRole={{ to: '/congregation/roles/organigram?new=1' }} help={help} />
       </PageTopbar>
 
       <RolesTabs />

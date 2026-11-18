@@ -13,6 +13,7 @@ const SHIPPED_SLUGS = [
   'activity-exports',
   'attendance-entry',
   'attendance-s88',
+  'audit-log',
   'bano',
   'batch-territories',
   'board-add-pdf',
@@ -24,21 +25,26 @@ const SHIPPED_SLUGS = [
   'board-versions',
   'calendar-feed',
   'campaign-create',
+  'congregation-data',
   'create-territory',
   'emergency-roster',
   'external-speakers',
   'field-service-reports',
+  'give-rights',
   'groups',
+  'invite-user',
   'language',
   'my-data',
   'my-parts',
   'my-territories',
   'notifications',
+  'organigram',
   'password',
   'phone-territories',
   'pioneers',
   'prospection',
   'publisher-arrivals-departures',
+  'reset-two-step',
   'split-territory',
   'territories-settings',
   'territory-attributions',
@@ -372,6 +378,12 @@ describe('loadHelpArticles: the articles as shipped', () => {
     expect(fr.get('board-dynamic')?.permission).toEqual(['CanManageDynamicBoardDocuments'])
     expect(fr.get('board-sections')?.permission).toEqual(['CanConfigureBoardSections', 'CanOrganiseBoardDocuments'])
     expect(fr.get('board-reads')?.permission).toEqual(['CanReviewBoardDocuments'])
+    expect(fr.get('invite-user')?.permission).toEqual(['CanManageUsers', 'CanManagePublishers'])
+    expect(fr.get('give-rights')?.permission).toEqual(['CanManageUsers', 'CanConfigurePermissions'])
+    expect(fr.get('organigram')?.permission).toEqual(['CanManageRoles'])
+    expect(fr.get('congregation-data')?.permission).toEqual(['CanExportCongregationData', 'CanImportCongregationData'])
+    expect(fr.get('audit-log')?.permission).toEqual(['CanConfigureCongregation'])
+    expect(fr.get('reset-two-step')?.permission).toEqual(['CanManageUsers'])
     expect(fr.get('territory-stats')?.permission).toEqual(['CanManageTerritories'])
     for (const slug of [
       'my-parts',

@@ -1,6 +1,7 @@
 import { redirect } from 'react-router'
 import { loadOrganigramPage } from '~/features/congregation/server/organigram-page.queries'
 import { OrganigramScreen } from '~/features/congregation/ui/OrganigramScreen'
+import { HelpEntryButton } from '~/features/help'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
@@ -8,6 +9,8 @@ import { organigramRefusal, runOrganigramAction } from './_organigram-action.ser
 import type { Route } from './+types/organigram'
 
 export const meta: Route.MetaFunction = () => [{ title: m.org_meta_title() }]
+
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
@@ -45,5 +48,5 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function OrganigramRoute({ loaderData }: Route.ComponentProps) {
-  return <OrganigramScreen page={loaderData} />
+  return <OrganigramScreen page={loaderData} help={<HelpEntryButton slug="organigram" />} />
 }
