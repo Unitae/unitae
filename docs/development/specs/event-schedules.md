@@ -1,7 +1,8 @@
 # Spec: Event schedules — programmes and duty schedules, each published on its own
 
 **Status:** Draft — direction agreed with the author; design level. Meeting attendance has shipped
-([Meeting Attendance](../meeting-attendance.md)); the file-by-file implementation plan comes next.
+([Meeting Attendance](../meeting-attendance.md)); the implementation plan is
+[event-schedules-plan.md](./event-schedules-plan.md).
 **Author:** Nathanaël Cherrier
 **Feature area:** `features/events` (events, templates, programmes, absences) + `features/dashboard` +
 `features/display-board` + `features/settings` (templates, data transfer)
@@ -67,7 +68,7 @@ to filter out.
 | D7 | **Templates describe schedules, not events.** One template per schedule (« Programme de la réunion de semaine », « Services », « Nettoyage »…), each with **one responsible role**. There is no whole-event responsible any more. |
 | D8 | Publishing respects the template's rights: a responsible may publish the schedules of their template only; bulk publish acts only on the selected schedules the person may publish and says how many it skipped. |
 | D9 | **At most one programme schedule per event**; duty schedules are unlimited. |
-| D10 | Absences stay owned by a **user account**, as today. |
+| D10 | ~~Absences stay owned by a user account.~~ Superseded by D27. |
 | D11 | Event kinds and shared schedule templates (§5): confirmed. |
 | D12 | Creating events by hand (single day or series): the schedules suggested by the kind are **pre-selected** in the creation form and can be unticked — today's « create a programme » keeps creating it in one step. Recurring events stay empty meetings (§5.1a). To revisit with usage. |
 | D13 | A duty is assigned to a **person, a publisher group or free text** (another congregation, an outside body). |
@@ -81,6 +82,13 @@ to filter out.
 | D21 | **One-time change**: an event created by a rule can be changed on its own (time, place, any field) or deleted, without touching the rule; a later rule change never overwrites it. |
 | D22 | **« Cette réunion et les suivantes » keeps the rule shipped with attendance**: empty meetings move by themselves; prepared ones are offered (« Déplacer aussi les N réunions préparées »), and their assignees are told; a meeting with attendance counts never moves. |
 | D23 | **Attendance only on one-day kinds**: a kind lasting several days is always « Non comptée » (`attendanceKind = 'none'`). |
+| D24 | **A duty assigned to a group** notifies the group's overseer and assistant (e-mail; push later); every member of the group sees it on the dashboard (« Mes prochaines affectations ») and in their calendar feed. No absence conflict and no cadence for a group or text assignee. |
+| D25 | New congregations get the **same three seeded kinds** as today (midweek meeting, weekend meeting, Mémorial); congregations add the others. |
+| D26 | The **demo seed** shows the new kinds (cleaning weeks by group, field service meetings, public witnessing) from the PR that ships rules, fields and group assignees. |
+| D27 | **An absence belongs to the person**: the publisher record when the account has one, the account otherwise. It follows the record when an account is unlinked or linked; deleting an account deletes only its absences without a record. Events an account prepared keep their schedules and lose only their author. |
+| D28 | **Event-level rights** (no whole-event responsible, D7): « Gérer les programmes » everywhere; a responsible of a schedule template the kind suggests may create events of that kind (its suggested schedules created as drafts), change their date, hours, fields and kind, and delete one that has no schedule but theirs. |
+| D29 | **The board's programme document** is configured per event kind with the schedule templates it shows, the suggested ones ticked by default. |
+| D30 | **No « Fusionner »** for schedule templates: a congregation points its kinds at one template and deletes the other. |
 
 ## 4. Current implementation (verified)
 
@@ -199,7 +207,9 @@ model EventDuty {                   // today's EventServicePart, with a wider as
 }
 
 model Absence {                     // « Mes absences »
-  id, accountId (owner, D10), startDate, endDate, note?, congregationId
+  id, startDate, endDate, note, congregationId
+  memberId?                         // D27 — the person, when the account has a record
+  accountId?                        // who entered it; the owner when there is no record
 }
 ```
 
@@ -268,8 +278,8 @@ today.
 
 ### 5.5 Absences
 
-- `Absence` keeps today's semantics: owned by an account (D10), resolved to a member through the account
-  for conflicts. Conflict checks, candidate facts, engagement and personal assignments read `Absence`
+- `Absence` belongs to the person (D27): the record when there is one, read directly for conflicts,
+  the account otherwise. Conflict checks, candidate facts, engagement and personal assignments read `Absence`
   instead of filtering day-off events.
 - The `day-off` system template disappears once nothing writes day-off events.
 
@@ -341,7 +351,7 @@ previous image working on the new schema.
      templates are **not** merged automatically — the congregation can merge them afterwards;
    - per event: a programme schedule if it has parts, a « Services » schedule if it has service parts,
      each with `status` copied from the event;
-   - per recurring template: one repetition rule (its weekday and times, `validFrom` = its first event's
+   - per recurring template (in its own expand step, plan PR 7): one repetition rule (its weekday and times, `validFrom` = its first event's
      day, open-ended), carrying over its `generatedUntil`; existing events link to it by weekday — the
      empty meetings created ahead included — none marked `changedOnce`;
    - `attendanceKind` stays where it is (the template becomes the kind); the D23 CHECK is added with
@@ -359,7 +369,7 @@ previous image working on the new schema.
    is extended to run the old and the new path together.
 3. **Schedules — switch reads.** Every reader moves to schedules and per-schedule status; per-schedule
    publishing becomes available in the UI.
-4. **Contract.** Drop `Event.status`, the parts' and duties' direct `eventId`, `TemplateResponsible`,
+4. **Contract**, in two PRs (plan PR 9 for schedules, PR 10 for the kind rename and the rules). Drop `Event.status`, the parts' and duties' direct `eventId`, `TemplateResponsible`,
    the old template relations and the kind-level `generatedUntil`, rename the event kind table, once
    the image from step 3 is the one running. The kind's row stays the lock for its rules. (A table
    named `EventKind` existed until July 2026 and was dropped; nothing of it remains.)
@@ -372,13 +382,20 @@ refreshed and deployed before each contract step — including readers of `Event
 
 | PR | Content |
 |---|---|
+| 0 | Fixes found on the way (archive statuses and board configuration, pending notices, account deletion…) |
 | 1 | Absences: table, backfill, dual write, readers switched |
 | 2 | Absences contract: day-off events and template removed |
 | 3 | Schedules expand: tables, backfill, dual write; archive format |
-| 4 | Schedules read switch + UI: programme list, event view, per-schedule publishing, event kinds and schedule templates in settings |
-| 4b | Custom fields, repetition rules (« Répéter chaque semaine », validity dates, « cette réunion seulement » / « et les suivantes »), multi-day kinds, group and text assignees |
-| 4c | Weekly calendar view; redesigned list |
-| 5 | Schedules contract |
+| 4 | Schedules read switch (no visible change) |
+| 5 | Per-schedule publishing, event view, rights (D28) |
+| 6 | Réglages: event kinds and schedule templates; board configuration (D29) |
+| 7 | Rules, custom fields, multi-day kinds, group and text assignees; demo (D26) |
+| 8 | Redesigned list and weekly calendar |
+| 9 | Schedules contract |
+| 10 | Kind rename and rule contract |
+
+Design rounds on the canvas come before PR 5 and before PR 7. File by file:
+[event-schedules-plan.md](./event-schedules-plan.md).
 
 Each PR is followed by a deploy before the next one's migration ships.
 

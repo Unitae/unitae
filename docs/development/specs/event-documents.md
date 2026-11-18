@@ -118,7 +118,8 @@ the layout. Plain paragraphs and lists, no formatting beyond that.
 | 2 | Tableau |
 | 3 | Semaine type |
 
-After event schedules' custom fields, rules and group assignees have landed.
+After event schedules' custom fields, rules and group assignees have landed (plan PR 7); see
+[event-schedules-plan.md](./event-schedules-plan.md) §17.
 
 ## 7. Open questions
 
