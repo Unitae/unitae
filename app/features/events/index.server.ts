@@ -1,5 +1,6 @@
 // Public server-only surface of the events feature.
 
+export { AccountHasAbsencesError, releaseAccountEvents } from './server/account-events.server'
 export { type LastWeekMeeting, listLastWeekAttendance, listMeetingsUnderWay } from './server/attendance.queries'
 export { getNextDaysOffs } from './server/days-off.server'
 export { deleteTemplate } from './server/delete-template.server'

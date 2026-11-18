@@ -1,4 +1,4 @@
-import { AccountHasAbsencesError } from '~/features/settings/server/delete-account.server'
+import { AccountHasAbsencesError } from '~/features/events/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import { LastAdminError } from '~/shared/auth/permissions.server'
 import { OwnAccountError } from '~/shared/domain/account-protection.server'

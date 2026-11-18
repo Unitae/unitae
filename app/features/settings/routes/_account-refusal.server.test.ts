@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { AccountHasAbsencesError } from '~/features/settings/server/delete-account.server'
+import { AccountHasAbsencesError } from '~/features/events/index.server'
 import { LastAdminError } from '~/shared/auth/permissions.server'
 import { OwnAccountError } from '~/shared/domain/account-protection.server'
 import { GrantBeyondActorError } from '~/shared/domain/role-grant-limits.server'

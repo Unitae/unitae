@@ -8,6 +8,9 @@ vi.mock('~/shared/domain/audit.server', () => ({
   audit: vi.fn(),
 }))
 vi.mock('~/shared/infra/db.server', () => ({ unscopedDb: { auditLog: { create: vi.fn() } } }))
+vi.mock('~/features/events/index.server', () => ({
+  releaseAccountEvents: vi.fn(async () => ({ absencesDeleted: [], eventsUnattributed: 0 })),
+}))
 vi.mock('~/shared/auth/permissions.server', () => ({ requireNotLastAdmin: vi.fn(), isAccountAdmin: vi.fn() }))
 
 const ADMIN = new Set(['can-do-anything'])
@@ -21,14 +24,10 @@ const { isAccountAdmin } = await import('~/shared/auth/permissions.server')
 
 const mockDb = {
   userAccount: { findFirst: vi.fn(), delete: vi.fn() },
-  event: { count: vi.fn(), deleteMany: vi.fn(), updateMany: vi.fn() },
 }
 
 beforeEach(() => {
   vi.resetAllMocks()
-  mockDb.event.count.mockResolvedValue(0)
-  mockDb.event.deleteMany.mockResolvedValue({ count: 0 })
-  mockDb.event.updateMany.mockResolvedValue({ count: 0 })
 })
 
 describe('deleteAccount', () => {
@@ -68,7 +67,7 @@ describe('deleteAccount', () => {
         actorId: 99,
         entityType: 'UserAccount',
         entityId: 1,
-        metadata: { email: 'a@b.test', memberId: 42, absencesDeleted: 0 },
+        metadata: { email: 'a@b.test', memberId: 42, absencesDeleted: [], eventsUnattributed: 0 },
       }),
     )
   })

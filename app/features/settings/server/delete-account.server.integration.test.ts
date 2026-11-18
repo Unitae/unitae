@@ -23,7 +23,10 @@ function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promi
   })
 }
 
-const { deleteAccount, AccountHasAbsencesError } = await import('./delete-account.server')
+const { deleteAccount } = await import('./delete-account.server')
+const { AccountHasAbsencesError, countMeetingsToMove, deleteTemplate, moveEmptyMeetings } = await import(
+  '~/features/events/index.server'
+)
 const { Permission } = await import('~/shared/types/permission')
 
 const ADMIN = new Set<string>([Permission.CanDoAnything])
@@ -130,5 +133,32 @@ describe('deleteAccount and the events the account created', () => {
 
     expect(result.memberId).not.toBeNull()
     expect(await eventsOf([meetingId])).toEqual([{ id: meetingId, createdById: null, origin: 'manual' }])
+  })
+
+  // The bug this guards: an event without an author used to read as the job's. Once their accounts are gone, the
+  // hand-made meetings above have none — they must still not move with their template, nor go with it.
+  it('leaves the meetings the deleted accounts made where they are when their template changes day or goes', async () => {
+    const ctx = { congregationId: ids.cong, timeZone: 'Europe/Paris', now: new Date('2027-01-01T09:00:00Z') }
+    const before = await withScope(ids.cong, tx =>
+      tx.event.findMany({ where: { templateId: ids.meetingTemplate, createdById: null }, select: { id: true } }),
+    )
+    expect(before.length).toBeGreaterThan(0)
+
+    await withScope(ids.cong, tx =>
+      tx.eventTemplate.update({ where: { id: ids.meetingTemplate }, data: { weekDay: 4 } }),
+    )
+    const toMove = await withScope(ids.cong, tx => countMeetingsToMove(tx, ids.meetingTemplate, ctx))
+    const moved = await withScope(ids.cong, tx =>
+      moveEmptyMeetings(tx, ids.meetingTemplate, { ...ctx, actorId: ids.admin }),
+    )
+    const removal = await withScope(ids.cong, tx => deleteTemplate(tx, ids.meetingTemplate, ids.cong, ids.admin))
+
+    expect(toMove).toBe(0)
+    expect(moved).toEqual({ moved: 0, removed: 0 })
+    expect(removal).toMatchObject({ ok: false, reason: 'in-use' })
+    const after = await withScope(ids.cong, tx =>
+      tx.event.findMany({ where: { id: { in: before.map(event => event.id) } }, select: { startDate: true } }),
+    )
+    expect(after.map(event => event.startDate)).toEqual(before.map(() => DAY))
   })
 })
