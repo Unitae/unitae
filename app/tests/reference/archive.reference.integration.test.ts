@@ -16,13 +16,12 @@ import { normalise, reference } from '~/tests/fixtures/reference-normalise'
 
 // The congregation exported, then imported into a new, empty one (as the data-transfer round trip does): what the
 // archive carries for meetings, and what the new congregation reads after the import, with its ids labelled as the
-// fixture's so both references say who holds what. Today's archive drops the events' status and the board documents'
-// configuration, and the four programme documents, which share a type and an empty ref, fold into one on import — so
-// every programme comes back a draft and the board shows nothing. Pinned as it is; the fix changes this on purpose.
+// fixture's so both references say who holds what — statuses, programmes and board documents included.
 
 vi.setConfig({ testTimeout: 180_000, hookTimeout: 240_000 })
 
 const IMPORTED_LOGIN = /^imported-/
+const GENERATED_UNTIL = /\s*"generatedUntil": [^\n]*\n/g
 
 /** The archive files about meetings: what the schedules refactor rewrites. */
 const MEETING_FILES = [
@@ -285,6 +284,28 @@ async function labelsOfImport(congregationId: number): Promise<Map<string, strin
   return labels
 }
 
+/** What each board document of a congregation reads, in the board's order. */
+function readDocuments(congregationId: number) {
+  return withScope(congregationId, async db => {
+    const settings = await db.boardDynamicDocumentSettings.findMany({
+      where: { congregationId },
+      orderBy: { order: 'asc' },
+    })
+    const documents: { title: string; data: unknown }[] = []
+    for (const document of settings) {
+      documents.push({
+        title: document.title,
+        data: await getDynamicDocumentData(db, document.dynamicType, document.dynamicRef, congregationId, {
+          showServices: document.showServices,
+          dynamicConfig: document.dynamicConfig,
+          attendance: { timeZone: REFERENCE_TIMEZONE, now: REFERENCE_NOW },
+        }),
+      })
+    }
+    return documents
+  })
+}
+
 describe('the archive', () => {
   it('carries the same meetings, and a new congregation reads them back', async () => {
     const exported = await exportArchive(fixture.congregationId)
@@ -304,27 +325,23 @@ describe('the archive', () => {
     const imported = await labelsOfImport(targetId)
 
     const reimported = await exportArchive(targetId)
-    const programmeDocuments = await withScope(targetId, async db => {
-      const settings = await db.boardDynamicDocumentSettings.findMany({
-        where: { congregationId: targetId },
-        orderBy: { order: 'asc' },
-      })
-      // Known defect, pinned on purpose: the import matches documents on (type, ref), every programme document has an
-      // empty ref, so the four fold into the last one.
-      expect(settings).toHaveLength(1)
-      const documents: { title: string; data: unknown }[] = []
-      for (const document of settings) {
-        documents.push({
-          title: document.title,
-          data: await getDynamicDocumentData(db, document.dynamicType, document.dynamicRef, targetId, {
-            showServices: document.showServices,
-            dynamicConfig: document.dynamicConfig,
-            attendance: { timeZone: REFERENCE_TIMEZONE, now: REFERENCE_NOW },
-          }),
-        })
-      }
-      return documents
-    })
+    const programmeDocuments = await readDocuments(targetId)
+    // All four, though they share a type and an empty ref.
+    expect(programmeDocuments.map(document => document.title)).toEqual([
+      'Programme by-date',
+      'Programme by-template',
+      'Programme midweek-parts',
+      'Programme weekend-services',
+    ])
+    // And each reads in the new congregation what it reads in the old one — but for the templates' recurring mark,
+    // which the import resets on purpose so the daily job starts again after the archive's last meeting.
+    const originals = await readDocuments(fixture.congregationId)
+    const withoutMark = (text: string) => text.replace(GENERATED_UNTIL, '')
+    for (const [index, document] of programmeDocuments.entries()) {
+      expect(withoutMark(reference(document.data, imported)), document.title).toBe(
+        withoutMark(reference(originals[index].data, fixture.labels)),
+      )
+    }
     const statuses = await withScope(targetId, db =>
       db.event.groupBy({
         by: ['status'],
