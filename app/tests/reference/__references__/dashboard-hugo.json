@@ -658,6 +658,7 @@
         "status": "released",
         "templateId": "<template:day-off>",
         "createdById": "<account:hugo>",
+        "origin": "manual",
         "createdAt": "<time>",
         "updatedAt": "<time>",
         "congregationId": "<id>"
