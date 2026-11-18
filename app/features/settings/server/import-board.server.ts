@@ -8,8 +8,11 @@ import {
 } from '~/features/display-board/index.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { buildStorageKey, uploadFile } from '~/shared/infra/file-storage.server'
+import { createLogger } from '~/shared/infra/logger.server'
 import type { EntityIdMap } from './data-transfer.type'
 import { readNdjsonFile } from './ndjson-archive'
+
+const logger = createLogger('import-board')
 
 export async function importBoardSections(
   zip: JsZip,
@@ -168,11 +171,13 @@ function importedAppearance(dynamicType: string, appearance: unknown) {
 }
 
 /**
- * The board's dynamic documents. Each archived document is created, in its imported section, as the sections are:
- * matching an existing one on its type and ref folded every programme document — they all have an empty ref — into
- * the last one. The configuration travels since v2.16; a programme document's templates are read through the imported
- * ones, and a template the archive did not bring leaves the list. Older archives carry none: the document imports
- * with none, as before.
+ * The board's dynamic documents. They have no natural key — several programme documents share a type and an empty
+ * ref — so each archived document is created in its imported section, like the sections themselves, never matched to
+ * an existing one: importing into a congregation that already has documents adds to them.
+ *
+ * The configuration travels from v2.16 on: a programme's templates are re-pointed at the imported ones, a template the
+ * archive did not bring leaves the list, and a configuration that no longer parses is dropped whole — both said in the
+ * log. An older archive carries none, and the document imports without one.
  */
 export async function importBoardDynamicDocumentSettings(
   zip: JsZip,
@@ -206,7 +211,7 @@ export async function importBoardDynamicDocumentSettings(
         title: record.title,
         dynamicType: record.dynamicType,
         dynamicRef: record.dynamicRef,
-        dynamicConfig: importedConfig(record.dynamicType, record.dynamicConfig, idMap),
+        dynamicConfig: importedConfig(record, idMap, congregationId),
         sectionId,
         order: record.order,
         visibleFrom: record.visibleFrom ? new Date(record.visibleFrom) : null,
@@ -222,14 +227,34 @@ export async function importBoardDynamicDocumentSettings(
 }
 
 /** A document's configuration in the imported congregation: a programme's templates by their new ids. */
-function importedConfig(dynamicType: string, config: unknown, idMap: EntityIdMap): Prisma.InputJsonValue | undefined {
+function importedConfig(
+  record: { title: string; dynamicType: string; dynamicConfig?: unknown },
+  idMap: EntityIdMap,
+  congregationId: number,
+): Prisma.InputJsonValue | undefined {
+  const config = record.dynamicConfig
   if (config == null) return undefined
-  if (dynamicType !== DynamicType.Programme) return config as Prisma.InputJsonValue
+  if (record.dynamicType !== DynamicType.Programme) return config as Prisma.InputJsonValue
   const programme = parseProgrammeDynamicConfig(config)
-  if (!programme) return undefined
+  if (!programme) {
+    logger.warn('Unreadable programme configuration: document imported without one', {
+      congregationId,
+      title: record.title,
+    })
+    return undefined
+  }
   const templates = programme.templates.flatMap(template => {
     const templateId = idMap.getOptional('programme-templates', template.templateId)
     return templateId == null ? [] : [{ ...template, templateId }]
   })
+  const dropped = programme.templates.length - templates.length
+  if (dropped > 0) {
+    // A template deleted in the source congregation: its id fetched nothing there either.
+    const log = templates.length === 0 ? logger.warn : logger.info
+    log(`Programme document lost ${dropped} template(s) the archive does not carry`, {
+      congregationId,
+      title: record.title,
+    })
+  }
   return { ...programme, templates }
 }

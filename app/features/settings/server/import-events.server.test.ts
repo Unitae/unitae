@@ -82,7 +82,7 @@ describe('importEvents', () => {
     expect(db.event.create).toHaveBeenCalledTimes(1)
   })
 
-  // Since v2.16 the archive says whether each programme was published: a restore no longer turns them all into drafts.
+  // Before v2.16 every restored programme came back a draft.
   it('keeps each event published or draft as the archive says', async () => {
     readNdjsonFile.mockResolvedValue([record({ status: 'released' }), record({ id: 2, status: 'draft' })])
 
@@ -97,6 +97,18 @@ describe('importEvents', () => {
     await importEvents({} as never, db as never, idMap(), 1)
 
     expect(db.event.create.mock.calls.map(([{ data }]) => data.status)).toEqual(['draft', 'draft'])
+  })
+
+  it('says how many events had a status it did not know, never for an archive with none', async () => {
+    readNdjsonFile.mockResolvedValue([
+      record(),
+      record({ id: 2, status: 'archived' }),
+      record({ id: 3, status: 'draft' }),
+    ])
+
+    await importEvents({} as never, db as never, idMap(), 1)
+
+    expect(warn).toHaveBeenCalledTimes(1)
   })
 
   it('leaves everything alone when the archive has no events', async () => {

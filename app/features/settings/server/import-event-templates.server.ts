@@ -51,7 +51,7 @@ export async function importEventTemplates(
     color?: string
     /** From archive 2.15 on. */
     attendanceKind?: string
-    /** From archive 2.16 on: before, a restored template fell back to the default hours. */
+    /** From archive 2.16 on. An older archive has none: an existing template keeps its hours, a new one the default. */
     startTime?: string
     endTime?: string
   }>(zip, 'programme-templates')

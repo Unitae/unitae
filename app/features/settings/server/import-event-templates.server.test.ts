@@ -92,8 +92,8 @@ describe('importEventTemplates — attendance', () => {
 })
 
 describe('importEventTemplates — hours', () => {
-  // Before v2.16 the archive had no hours: every restored template fell back to 19:00 – 21:00, and the meetings
-  // created ahead took those hours.
+  // Before v2.16 the archive had no hours: a restored template kept the hours the congregation it landed in already
+  // had (the seeded ones) or got the default 19:00 – 21:00, and the meetings created ahead took those hours.
   it('restores the hours an archive carries, on an existing template and a new one', async () => {
     db.eventTemplate.findFirst.mockResolvedValueOnce({ id: 30 }).mockResolvedValueOnce(null)
     readNdjsonFile.mockResolvedValue([
@@ -120,6 +120,17 @@ describe('importEventTemplates — hours', () => {
     await importEventTemplates({} as never, db as never, new EntityIdMap(), 1)
 
     const [[{ data }]] = db.eventTemplate.update.mock.calls
+    expect(data).not.toHaveProperty('startTime')
+    expect(data).not.toHaveProperty('endTime')
+  })
+
+  it('gives a new template from an archive without hours the default ones', async () => {
+    db.eventTemplate.findFirst.mockResolvedValue(null)
+    readNdjsonFile.mockResolvedValue([template({ key: 'field-service' })])
+
+    await importEventTemplates({} as never, db as never, new EntityIdMap(), 1)
+
+    const [[{ data }]] = db.eventTemplate.create.mock.calls
     expect(data).not.toHaveProperty('startTime')
     expect(data).not.toHaveProperty('endTime')
   })
