@@ -155,6 +155,33 @@ describe('assembleHelpArticles: the invariants across the two languages', () => 
     expect(() => assembleHelpArticles({ 'content/fr/a.md': articleFile('a') })).toThrow('both languages')
   })
 
+  it('refuses an article missing in French or in English, the two the help is written in', () => {
+    const sources = { 'content/fr/a.md': articleFile('a'), 'content/pt-PT/a.md': articleFile('a') }
+
+    expect(() => assembleHelpArticles(sources)).toThrow('both languages')
+  })
+
+  // A translation may trail behind: its readers get the English article, and the shipped-set test fails the build.
+  it('accepts an article another language lacks, so the help still loads', () => {
+    const sources = { 'content/fr/a.md': articleFile('a'), 'content/en/a.md': articleFile('a') }
+
+    expect(assembleHelpArticles(sources).map(({ locale, slug }) => `${locale}/${slug}`)).toEqual(['en/a', 'fr/a'])
+  })
+
+  it('accepts a related article that another language reads in English', () => {
+    const sources = {
+      ...pair('a', { related: ['b'] }),
+      'content/fr/b.md': articleFile('b'),
+      'content/en/b.md': articleFile('b'),
+    }
+
+    expect(
+      assembleHelpArticles(sources)
+        .filter(({ locale }) => locale === 'pt-PT')
+        .map(({ slug }) => slug),
+    ).toEqual(['a'])
+  })
+
   it('refuses a permission that differs between the languages', () => {
     const sources = {
       'content/fr/a.md': articleFile('a', { permission: 'CanViewBoard' }),
@@ -231,6 +258,7 @@ describe('assembleHelpArticles: the invariants across the two languages', () => 
 describe('loadHelpArticles: the articles as shipped', () => {
   const ARTICLES = loadHelpArticles()
 
+  // The loader lets a language trail behind (its readers fall back to English); the build does not.
   it('ships the first series in every language, and only that series', () => {
     for (const locale of HELP_LOCALES) {
       expect(

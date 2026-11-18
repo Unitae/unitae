@@ -1,4 +1,10 @@
-import { HELP_LOCALES, type HelpArticle, type HelpLocale } from '~/features/help/model/help.type'
+import {
+  HELP_FALLBACK_LOCALE,
+  HELP_LOCALES,
+  HELP_SOURCE_LOCALES,
+  type HelpArticle,
+  type HelpLocale,
+} from '~/features/help/model/help.type'
 import { HELP_CAPTURE_SCHEME, type HelpCaptureManifest, helpImagesIn } from '~/features/help/model/help-captures'
 import { HelpArticleFormatError, parseHelpArticle } from '~/features/help/model/parse-help-article'
 import { HELP_CAPTURES } from '~/features/help/server/help-captures.server'
@@ -12,10 +18,11 @@ const NO_CAPTURES: HelpCaptureManifest = { fr: {}, en: {}, 'pt-PT': {} }
 
 /**
  * Turns a set of article files, keyed by their path `…/<locale>/<slug>.md`, into the articles, and checks what must
- * hold across them: a file is named after its slug and lives in a known language folder; each slug exists in both
- * languages with the same permission, module, order, related set and captures; every related slug exists and is not
- * the article itself; every image is a described capture its language has. Any breach is a
- * {@link HelpArticleFormatError}.
+ * hold across them: a file is named after its slug and lives in a known language folder; each slug exists in French
+ * and English, and in every language that has it, with the same permission, module, order, related set and captures;
+ * every related slug exists, in the article's language or in English, and is not the article itself; every image is a
+ * described capture its language has. Any breach is a {@link HelpArticleFormatError}. Another language may lack an
+ * article: its readers get the English one, and only the shipped-set test fails on it.
  */
 export function assembleHelpArticles(
   sources: Record<string, string>,
@@ -47,9 +54,7 @@ export function assembleHelpArticles(
   for (const article of articles) {
     checkRelated(article, articles)
     checkCaptures(article, captures)
-    for (const locale of HELP_LOCALES) {
-      if (locale !== article.locale) checkCounterpart(article, articleInLocale(articles, locale, article.slug))
-    }
+    checkCounterparts(article, articles)
   }
 
   return articles.sort((a, b) => a.locale.localeCompare(b.locale) || a.order - b.order || a.slug.localeCompare(b.slug))
@@ -59,12 +64,23 @@ function articleInLocale(articles: readonly HelpArticle[], locale: HelpLocale, s
   return articles.find(candidate => candidate.locale === locale && candidate.slug === slug)
 }
 
+/** Checks the article against itself in every other language that has it, and in French and English, which must. */
+function checkCounterparts(article: HelpArticle, articles: readonly HelpArticle[]): void {
+  for (const locale of HELP_LOCALES) {
+    if (locale === article.locale) continue
+    const counterpart = articleInLocale(articles, locale, article.slug)
+    if (counterpart != null || HELP_SOURCE_LOCALES.includes(locale)) checkCounterpart(article, counterpart)
+  }
+}
+
 function checkRelated(article: HelpArticle, articles: readonly HelpArticle[]): void {
   for (const related of article.related) {
     if (related === article.slug) {
       throw new HelpArticleFormatError(`Help article « ${article.slug} » lists itself as related.`)
     }
-    if (articleInLocale(articles, article.locale, related) == null) {
+    const readable =
+      articleInLocale(articles, article.locale, related) ?? articleInLocale(articles, HELP_FALLBACK_LOCALE, related)
+    if (readable == null) {
       throw new HelpArticleFormatError(
         `Help article « ${article.slug} » relates to « ${related} », which does not exist.`,
       )

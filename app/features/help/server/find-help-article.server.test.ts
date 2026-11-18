@@ -32,6 +32,19 @@ const ARTICLES = [
 ]
 
 describe('findHelpArticle', () => {
+  it('reads in English an article the reader’s language lacks, with its related articles', () => {
+    const articles = [
+      article({ slug: 'groups', locale: 'en', related: ['absences'] }),
+      article({ slug: 'absences', locale: 'en' }),
+      article({ slug: 'absences', locale: 'pt-PT' }),
+    ]
+
+    const result = findHelpArticle(articles, 'groups', 'pt-PT', readerWith())
+
+    expect(result.kind === 'found' && `${result.article.locale}/${result.article.slug}`).toBe('en/groups')
+    expect(result.kind === 'found' && result.related.map(({ locale }) => locale)).toEqual(['pt-PT'])
+  })
+
   it('returns an article the reader may open, with its related articles they may open too', () => {
     const result = findHelpArticle(ARTICLES, 'open', 'fr', readerWith(Permission.CanConfigureTerritorySettings))
 

@@ -1,5 +1,6 @@
 import type { HelpArticle, HelpLocale } from '~/features/help/model/help.type'
 import { canReadHelpArticle, type HelpReader } from '~/features/help/model/help-access'
+import { helpArticlesIn } from '~/features/help/model/help-links'
 
 export type HelpArticleLookup =
   | { kind: 'found'; article: HelpArticle; related: HelpArticle[] }
@@ -8,7 +9,7 @@ export type HelpArticleLookup =
   | { kind: 'missing' }
 
 /**
- * Looks an article up by slug in the reader's language. Refuses one the reader may not open, and
+ * Looks an article up by slug in the reader's language, or in English when that language lacks it. Refuses one the reader may not open, and
  * lists as related only the articles the reader may open.
  */
 export function findHelpArticle(
@@ -17,7 +18,7 @@ export function findHelpArticle(
   locale: HelpLocale,
   reader: HelpReader,
 ): HelpArticleLookup {
-  const inLocale = articles.filter(article => article.locale === locale)
+  const inLocale = helpArticlesIn(articles, locale)
   const article = inLocale.find(candidate => candidate.slug === slug)
   if (!article) return { kind: 'missing' }
   if (!canReadHelpArticle(article, reader)) return { kind: 'forbidden' }
