@@ -1,3 +1,4 @@
+import { HelpEntryButton } from '~/features/help'
 import { getGroups } from '~/features/publishers/index.server'
 import { countActiveWorkingTerritories } from '~/features/territories/server/active-working-territories.server'
 import { aggregateAttributionStatsForWindow } from '~/features/territories/server/aggregate-attribution-stats.server'
@@ -51,6 +52,8 @@ import type { Route } from './+types/index'
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.stats_meta_title() }]
 }
+
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
@@ -249,6 +252,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
     <div className="flex flex-col gap-6">
       <PageHeader
         title={m.stats_title()}
+        help={<HelpEntryButton slug="territory-stats" />}
         subtitle={m.stats_subtitle()}
         breadcrumbs={[{ label: m.sidebar_statistics() }]}
         actions={<S13ExportButton theocraticYear={theocraticYear} />}

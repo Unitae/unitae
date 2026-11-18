@@ -1,5 +1,6 @@
 import { MapIcon } from 'lucide-react'
 import { useSearchParams } from 'react-router'
+import { HelpEntryButton } from '~/features/help'
 import {
   type AssignableView,
   assignableCounts,
@@ -37,6 +38,8 @@ import type { Route } from './+types/territories'
 const FILTER_PARAMS = ['search', 'type', 'zip', 'access', 'pmr']
 
 export const meta: Route.MetaFunction = () => [{ title: m.attributions_new_meta_title() }]
+
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
@@ -108,6 +111,7 @@ export default function AssignTerritory({ loaderData }: Route.ComponentProps) {
     <div data-sticky-content="" className="flex flex-col gap-4">
       <PageHeader
         title={m.attributions_assign_title()}
+        help={<HelpEntryButton slug="territory-attributions" />}
         subtitle={m.attributions_assign_subtitle()}
         breadcrumbs={[
           loaderData.canViewAttributions

@@ -27,9 +27,11 @@ export const HELP_MODULES = [
   'programs',
   'external-speakers',
   'attendance',
+  'attributions',
   'campaigns',
   'territories',
   'prospection',
+  'statistics',
   'settings',
   'account',
 ] as const

@@ -1,6 +1,7 @@
 import { parseWithZod } from '@conform-to/zod/v4'
 import { useCallback, useState } from 'react'
 import { data, useSearchParams } from 'react-router'
+import { HelpEntryButton } from '~/features/help'
 import { getPhoneTerritoryActive } from '~/features/settings/index.server'
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { parseFilters } from '~/features/territories/routes/api/entrances-in-bbox-params'
@@ -39,6 +40,8 @@ const KINDS = [
   TerritoryKindKey.Univ,
   TerritoryKindKey.Hotel,
 ]
+
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 export const meta: Route.MetaFunction = () => [{ title: m.split_tool_meta_title() }]
 
@@ -133,9 +136,11 @@ export default function SplitToolPage({ loaderData }: Route.ComponentProps) {
     <div>
       <PageTopbar
         className="mb-3 md:mb-0"
+        help={<HelpEntryButton slug="batch-territories" />}
         trail={[{ label: m.sidebar_territories(), to: '/territories' }, { label: m.split_tool_heading() }]}
       />
       <TerritoryBatchCreator
+        help={<HelpEntryButton slug="batch-territories" />}
         key={loaderData.kind}
         kind={loaderData.kind}
         kinds={loaderData.kinds}

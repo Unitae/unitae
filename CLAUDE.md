@@ -37,7 +37,7 @@ Core features: territory management with building prospection, publisher activit
 9. **TypeScript strict mode** — Never use `any`; always define proper interfaces
 10. **Mutations to aggregate-owned entities go through the aggregate** — `Member`, `Attribution`, and `PioneerEnrolment` invariants live in `*.aggregate.ts` / `*.policy.ts` files (see `AGGREGATE_MODELS` in `scripts/check-aggregate-boundaries.ts` for the enforced list). Direct `db.member.update`/`db.attribution.create` outside those files fails `pnpm test:aggregate-boundaries`.
 11. **Follow TDD when the architecture-conventions doc requires it** — for new service functions (`app/features/*/server/`) and bug regressions, **write the failing test first**, run it, **watch it fail**, then implement. Do not author the test and the code in the same save. See [Architecture Conventions › TDD Discipline](docs/development/architecture-conventions.md#tdd-discipline) — colocation is enforced by `pnpm test:service-test-coverage`, coverage floor by the vitest threshold.
-12. **Review the help when a feature changes** — creating or changing a feature means re-reading its help articles in the same change, not later. Articles live in `app/features/help/content/{fr,en}/<slug>.md`, one per task, and follow the permission of their feature (see the table under [In-app help](#in-app-help)). A feature with no article yet gets one, or a reviewed reason why not. A change to a screen an article captures means retaking that capture (`pnpm build:help-captures --only <id>`, see `scripts/help-captures/README.md`).
+12. **Review the help when a feature changes** — creating or changing a feature means re-reading its help articles in the same change, not later. Articles live in `app/features/help/content/{fr,en,pt-PT}/<slug>.md`, one per task, in every language, and follow the permission of their feature (see the table under [In-app help](#in-app-help)). A feature with no article yet gets one, or a reviewed reason why not. A change to a screen an article captures means retaking that capture (`pnpm build:help-captures --only <id>`, see `scripts/help-captures/README.md`).
 
 ### After Making Changes
 
@@ -426,17 +426,22 @@ LOGIN_RATE_LIMIT_GLOBAL_MAX="100"      # Max failed login attempts instance-wide
 
 ## In-app help
 
-« Aide » (`/help`, from the account menu) ships with the app, in French and English. The articles are Markdown files in `app/features/help/content/{fr,en}/`, one per task, with a frontmatter block: `slug`, `title`, `summary`, `module`, `permission`, `keywords`, `related`, `order`. `permission` is the name of the `Permission` member the feature needs, several comma-separated when the feature opens to any of them, or `none`. `GroupLeader` among them opens the article to a group's overseer and assistant too, who hold no right for their group (`helpReaderFor` reads it from the account's record). A reader without it never sees the article, nor its search hits or links, and no permission is ever changed to show help.
+« Aide » (`/help`, from the account menu) ships with the app, in French, English and European Portuguese. The articles are Markdown files in `app/features/help/content/{fr,en,pt-PT}/`, one per task, with a frontmatter block: `slug`, `title`, `summary`, `module`, `permission`, `keywords`, `related`, `order`. `permission` is the name of the `Permission` member the feature needs, several comma-separated when the feature opens to any of them, or `none`. `GroupLeader` among them opens the article to a group's overseer and assistant too, who hold no right for their group (`helpReaderFor` reads it from the account's record). A reader without it never sees the article, nor its search hits or links, and no permission is ever changed to show help.
 
-A « ? » goes in the header's `help` slot (`<PageHeader help={<HelpEntryButton slug="…" />} />`, or `SettingsHeader`), which puts it at the far right of the top bar and at the end of the title's row on a phone. Its page and every layout with a loader above it export `skipRevalidationForHelpPanel as shouldRevalidate` from `~/features/help`, so opening the panel fetches the article only. A page that writes its own `shouldRevalidate` starts it with `if (onlyHelpPanelChanged(args)) return false`. The publisher record draws its own title row (`RecordHeader`), so it takes the « ? » twice: in `PageTopbar`'s `help` and in `RecordHeader`'s, which shows on a phone only.
+A « ? » goes in the header's `help` slot (`<PageHeader help={<HelpEntryButton slug="…" />} />`, or `SettingsHeader`), which puts it at the far right of the top bar and at the end of the title's row on a phone. Its page and every layout with a loader above it export `skipRevalidationForHelpPanel as shouldRevalidate` from `~/features/help`, so opening the panel fetches the article only. A page that writes its own `shouldRevalidate` starts it with `if (onlyHelpPanelChanged(args)) return false`. The publisher record draws its own title row (`RecordHeader`), so it takes the « ? » twice: in `PageTopbar`'s `help` and in `RecordHeader`'s, which shows on a phone only. The territory editor and « Créer en lot » do the same: `TerritoryEditor` and `TerritoryBatchCreator` take a `help` for their column's title row.
 
-`app/features/help/entry-points.test.ts` is the authoritative wiring: it scans the app source for every `<HelpEntryButton slug="…" />` and fails unless each one is pinned there and ships in both languages. Keep this table in step with it.
+`app/features/help/entry-points.test.ts` is the authoritative wiring: it scans the app source for every `<HelpEntryButton slug="…" />` and fails unless each one is pinned there and ships in every language. Keep this table in step with it.
 
 | « ? » on | Route | Opens | Permission |
 |---|---|---|---|
 | Mes absences | `/me/days-off` | `absences` | none |
 | Mes territoires | `/me/territories` | `my-territories` | none |
-| Territoires | `/territories` | `create-territory` | `CanManageTerritories` |
+| Territoires, new territory | `/territories`, `/territories/territory/new` | `create-territory` | `CanManageTerritories` |
+| A territory's page | `/territories/territory/:id/view` | `territory-card` | `CanViewTerritories` |
+| Modifier a territory | `/territories/territory/:id/edit` | `split-territory` | `CanManageTerritories` |
+| Créer en lot | `/territories/buildings/split-territories` | `batch-territories` | `CanPlanTerritorySplits` |
+| Attributions, Attribuer un territoire | `/territories/attributions`, `/territories/attributions/new/available-territories` | `territory-attributions` | `CanManageTerritoryAttributions` |
+| Statistiques | `/territories/stats` | `territory-stats` | `CanManageTerritories` |
 | Tableau d’affichage | `/board` | `board-read` | `CanViewBoard` |
 | Campagnes | `/territories/attributions/campaigns` | `campaign-create` | `CanManageTerritoryCampaigns` |
 | Prospection | `/territories/buildings` | `prospection` | `CanViewProspection` |
