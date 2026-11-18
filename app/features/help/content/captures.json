@@ -55,10 +55,30 @@
             "height": 43,
             "captured": "2026-11-17"
         },
+        "board-dynamic-types": {
+            "width": 210,
+            "height": 47,
+            "captured": "2026-11-17"
+        },
+        "board-pdf-display": {
+            "width": 728,
+            "height": 327,
+            "captured": "2026-11-18"
+        },
         "board-read-filter": {
             "width": 248,
             "height": 108,
             "captured": "2026-11-17"
+        },
+        "board-reads-panel": {
+            "width": 398,
+            "height": 754,
+            "captured": "2026-11-18"
+        },
+        "board-section-menu": {
+            "width": 830,
+            "height": 175,
+            "captured": "2026-11-18"
         },
         "board-versions-history": {
             "width": 684,
@@ -217,10 +237,30 @@
             "height": 43,
             "captured": "2026-11-17"
         },
+        "board-dynamic-types": {
+            "width": 710,
+            "height": 291,
+            "captured": "2026-11-18"
+        },
+        "board-pdf-display": {
+            "width": 728,
+            "height": 327,
+            "captured": "2026-11-18"
+        },
         "board-read-filter": {
             "width": 233,
             "height": 108,
             "captured": "2026-11-17"
+        },
+        "board-reads-panel": {
+            "width": 398,
+            "height": 754,
+            "captured": "2026-11-18"
+        },
+        "board-section-menu": {
+            "width": 830,
+            "height": 175,
+            "captured": "2026-11-18"
         },
         "board-versions-history": {
             "width": 684,
@@ -379,9 +419,29 @@
             "height": 43,
             "captured": "2026-11-18"
         },
+        "board-dynamic-types": {
+            "width": 710,
+            "height": 291,
+            "captured": "2026-11-18"
+        },
+        "board-pdf-display": {
+            "width": 728,
+            "height": 327,
+            "captured": "2026-11-18"
+        },
         "board-read-filter": {
             "width": 249,
             "height": 108,
+            "captured": "2026-11-18"
+        },
+        "board-reads-panel": {
+            "width": 398,
+            "height": 754,
+            "captured": "2026-11-18"
+        },
+        "board-section-menu": {
+            "width": 830,
+            "height": 175,
             "captured": "2026-11-18"
         },
         "board-versions-history": {

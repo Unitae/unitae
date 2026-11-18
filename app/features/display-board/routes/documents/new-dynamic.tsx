@@ -12,6 +12,7 @@ import { isSectionOfCongregation } from '~/features/display-board/server/documen
 import { listDynamicChoices, loadDynamicForm } from '~/features/display-board/server/dynamic-form.queries'
 import { BOARD_WEB_FONTS_HREF } from '~/features/display-board/ui/dynamic/board-web-fonts'
 import { DynamicDocumentForm } from '~/features/display-board/ui/forms/DynamicDocumentForm'
+import { HelpEntryButton } from '~/features/help'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -30,6 +31,8 @@ import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import type { Route } from './+types/new-dynamic'
 
 export const meta: Route.MetaFunction = () => [{ title: `${m.board_new_dynamic_title()} - Unitae` }]
+
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 export const links: Route.LinksFunction = () => [{ rel: 'stylesheet', href: BOARD_WEB_FONTS_HREF }]
 
@@ -154,6 +157,7 @@ export default function NewDynamicDocumentPage({ loaderData, actionData }: Route
       <>
         <PageHeader
           title={m.board_new_dynamic_title()}
+          help={<HelpEntryButton slug="board-dynamic" />}
           subtitle={m.board_new_dynamic_subtitle()}
           breadcrumbs={[...trail, { label: m.board_new_dynamic_title() }]}
         />
@@ -168,6 +172,7 @@ export default function NewDynamicDocumentPage({ loaderData, actionData }: Route
       <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={TYPES[document.type].title()}
+        help={<HelpEntryButton slug="board-dynamic" />}
         breadcrumbs={[
           ...trail,
           { label: m.board_new_dynamic_title(), to: '/board/documents/new-dynamic' },

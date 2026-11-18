@@ -19,6 +19,18 @@ const PINS: Record<string, string | string[]> = {
   'features/territories/routes/attributions/territories.tsx': 'territory-attributions',
   'features/territories/routes/stats/index.tsx': 'territory-stats',
   'features/display-board/routes/index.tsx': 'board-read',
+  // « Gérer le tableau » serves several rights: the « ? » opens the task of the first one the reader holds.
+  'features/display-board/routes/documents/list.tsx': [
+    'board-add-pdf',
+    'board-dynamic',
+    'board-sections',
+    'board-reads',
+  ],
+  'features/display-board/routes/documents/new.tsx': 'board-add-pdf',
+  'features/display-board/routes/documents/new-dynamic.tsx': 'board-dynamic',
+  'features/display-board/routes/dynamic/edit.tsx': 'board-dynamic',
+  'features/display-board/routes/sections/new.tsx': 'board-sections',
+  'features/display-board/routes/sections/edit.tsx': 'board-sections',
   'features/territories/routes/campaigns/list.tsx': 'campaign-create',
   'features/territories/routes/prospection/list.tsx': 'prospection',
   'features/settings/routes/territories/settings.tsx': 'territories-settings',
@@ -55,7 +67,8 @@ const LAYOUTS_ABOVE_ENTRY_POINTS = [
 
 const APP_ROOT = resolve(import.meta.dirname, '../..')
 const ENTRY_POINT = /HelpEntryButton slug="([a-z0-9-]+)"/g
-const HELP_SLOT = /help=\{<HelpEntryButton slug="/
+// The slot holds the button, or a component of the page (`…Help`) choosing between buttons by the reader's rights.
+const HELP_SLOT = /help=\{<(?:HelpEntryButton slug="|[A-Z]\w*Help\b)/
 const PANEL_REVALIDATION = 'export { skipRevalidationForHelpPanel as shouldRevalidate }'
 // A page that decides its own revalidation asks the same question first.
 const OWN_REVALIDATION =

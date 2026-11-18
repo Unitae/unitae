@@ -9,6 +9,7 @@ import { loadSectionForm } from '~/features/display-board/server/section-form.qu
 import { setSectionVisibilityRoles } from '~/features/display-board/server/section-visibility.server'
 import { SectionForm } from '~/features/display-board/ui/forms/SectionForm'
 import { DeleteSectionDialog } from '~/features/display-board/ui/manage/DeleteSectionDialog'
+import { HelpEntryButton } from '~/features/help'
 import * as m from '~/i18n/paraglide/messages'
 import {
   currentAccountContext,
@@ -29,6 +30,8 @@ import type { Route } from './+types/edit'
 export const meta: Route.MetaFunction = ({ loaderData }) => [
   { title: `${loaderData?.section?.name ?? m.board_sections_edit_meta_title()} - Unitae` },
 ]
+
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
@@ -54,6 +57,7 @@ export default function EditSectionPage({ loaderData, actionData }: Route.Compon
       <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={section.name}
+        help={<HelpEntryButton slug="board-sections" />}
         breadcrumbs={[
           { label: m.board_page_title(), to: '/board' },
           { label: m.sidebar_board_manage(), to: '/board/documents' },

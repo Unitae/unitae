@@ -15,6 +15,7 @@ import {
 import { FileValidationError, validateBoardFile } from '~/features/display-board/server/file-validation.server'
 import { thumbnailQueue } from '~/features/display-board/server/thumbnail-queue.server'
 import { PdfDocumentForm } from '~/features/display-board/ui/forms/PdfDocumentForm'
+import { HelpEntryButton } from '~/features/help'
 import { notify } from '~/features/notifications/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -35,6 +36,8 @@ import { handleAppError } from '~/shared/utils/handle-app-error.server'
 import type { Route } from './+types/new'
 
 export const meta: Route.MetaFunction = () => [{ title: `${m.board_form_new_title()} - Unitae` }]
+
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
@@ -79,6 +82,7 @@ export default function NewDocumentPage({ loaderData, actionData }: Route.Compon
       <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.board_form_new_title()}
+        help={<HelpEntryButton slug="board-add-pdf" />}
         breadcrumbs={[
           { label: m.board_page_title(), to: '/board' },
           { label: m.sidebar_board_manage(), to: '/board/documents' },

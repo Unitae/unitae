@@ -17,6 +17,7 @@ import {
 } from '~/features/display-board/ui/manage/manage-list'
 import { itemKey, type ManageRights } from '~/features/display-board/ui/manage/manage-rights'
 import { ReadsPanel } from '~/features/display-board/ui/manage/ReadsPanel'
+import { HelpEntryButton } from '~/features/help'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -33,6 +34,8 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import type { Route } from './+types/list'
 
 export const meta: Route.MetaFunction = () => [{ title: `${m.sidebar_board_manage()} - Unitae` }]
+
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 const READS_PARAM = /^(pdf|dynamic)-(\d+)$/
 
@@ -108,6 +111,7 @@ export default function ManageBoardPage({ loaderData }: Route.ComponentProps) {
     <>
       <PageHeader
         title={m.sidebar_board_manage()}
+        help={<ManageHelp rights={rights} />}
         titleBadge={
           <span className="text-base text-faint tabular-nums">
             {m.board_manage_count_documents({ count: total })} ·{' '}
@@ -233,4 +237,12 @@ export default function ManageBoardPage({ loaderData }: Route.ComponentProps) {
       </div>
     </>
   )
+}
+
+/** The page serves several rights: its « ? » opens the task of the first one the reader holds. */
+function ManageHelp({ rights }: { rights: ManageRights }) {
+  if (rights.canUpload) return <HelpEntryButton slug="board-add-pdf" />
+  if (rights.canManageDynamic) return <HelpEntryButton slug="board-dynamic" />
+  if (rights.canConfigureSections || rights.canOrganise) return <HelpEntryButton slug="board-sections" />
+  return <HelpEntryButton slug="board-reads" />
 }
