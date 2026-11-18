@@ -209,3 +209,28 @@ export async function notifyAssignment(
     },
   })
 }
+
+/**
+ * Cancels the assignment notices still waiting for these parts and services: they are going, or going back to a
+ * draft, and nobody should be told about them. Returns how many were cancelled. Never runs an empty `in: []`, which a
+ * refactor could turn into every pending notice of the congregation.
+ */
+export async function cancelPendingAssignmentNotices(
+  db: TransactionClient,
+  congregationId: number,
+  { partIds, serviceIds }: { partIds: number[]; serviceIds: number[] },
+): Promise<number> {
+  if (partIds.length === 0 && serviceIds.length === 0) return 0
+  const result = await db.notificationEvent.updateMany({
+    where: {
+      congregationId,
+      status: 'pending',
+      OR: [
+        { entityType: 'EventPart', entityId: { in: partIds } },
+        { entityType: 'EventServicePart', entityId: { in: serviceIds } },
+      ],
+    },
+    data: { status: 'cancelled', processedAt: new Date() },
+  })
+  return result.count
+}

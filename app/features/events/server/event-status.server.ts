@@ -8,7 +8,7 @@ import { withScope } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { assertCanRelease, EVENT_STATUS_ERRORS } from './event-status.policy'
 import { PROGRAMME_ASSIGNMENT_TYPE } from './notifications.server'
-import { buildAssignmentContext, notifyAssignment } from './notify-assignment.server'
+import { buildAssignmentContext, cancelPendingAssignmentNotices, notifyAssignment } from './notify-assignment.server'
 
 const logger = createLogger('event-status')
 
@@ -267,25 +267,8 @@ export async function unreleaseEvent(
   const partIds = event.eventParts.map(p => p.id)
   const serviceIds = event.eventServiceParts.map(s => s.id)
 
-  // Skip the notificationEvent updateMany entirely when there are no
-  // assignments — an empty `in: []` matches nothing under Prisma today, but
-  // depending on that contract is brittle: one refactor and we'd cancel
-  // every pending notification in the congregation.
-  let cancelledCount = 0
-  if (partIds.length > 0 || serviceIds.length > 0) {
-    const result = await db.notificationEvent.updateMany({
-      where: {
-        congregationId,
-        status: 'pending',
-        OR: [
-          { entityType: 'EventPart', entityId: { in: partIds } },
-          { entityType: 'EventServicePart', entityId: { in: serviceIds } },
-        ],
-      },
-      data: { status: 'cancelled', processedAt: new Date() },
-    })
-    cancelledCount = result.count
-  }
+  // Nobody is told about assignments on a programme going back to a draft.
+  const cancelledCount = await cancelPendingAssignmentNotices(db, congregationId, { partIds, serviceIds })
 
   await auditInTransaction(db, {
     action: AuditAction.EventUnreleased,

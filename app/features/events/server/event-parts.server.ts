@@ -3,6 +3,7 @@ import {
   setPartAssignmentAllowedRoles,
   setServicePartAssignmentAllowedRoles,
 } from '~/features/events/server/allowed-roles.server'
+import { cancelPendingAssignmentNotices } from '~/features/events/server/notify-assignment.server'
 import { AuditAction, audit, auditInTransaction } from '~/shared/domain/audit.server'
 import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -153,12 +154,10 @@ export async function addPartAssignment(
   return assignment
 }
 
-export function deletePartAssignment(db: TransactionClient, id: number, congregationId: number) {
-  return db.eventPart.delete({
-    where: {
-      id_congregationId: { id, congregationId },
-    },
-  })
+/** Removes a part, with the notices still waiting for it. */
+export async function deletePartAssignment(db: TransactionClient, id: number, congregationId: number) {
+  await cancelPendingAssignmentNotices(db, congregationId, { partIds: [id], serviceIds: [] })
+  return db.eventPart.delete({ where: { id_congregationId: { id, congregationId } } })
 }
 
 export async function addServicePartAssignment(
@@ -254,12 +253,10 @@ export async function updateServicePartAssignment(
   return assignment
 }
 
-export function deleteServicePartAssignment(db: TransactionClient, id: number, congregationId: number) {
-  return db.eventServicePart.delete({
-    where: {
-      id_congregationId: { id, congregationId },
-    },
-  })
+/** Removes a service, with the notices still waiting for it. */
+export async function deleteServicePartAssignment(db: TransactionClient, id: number, congregationId: number) {
+  await cancelPendingAssignmentNotices(db, congregationId, { partIds: [], serviceIds: [id] })
+  return db.eventServicePart.delete({ where: { id_congregationId: { id, congregationId } } })
 }
 
 /**

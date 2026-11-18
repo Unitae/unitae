@@ -1,4 +1,5 @@
 import { EventStatus } from '~/features/events/model/event-status.type'
+import { cancelPendingAssignmentNotices } from '~/features/events/server/notify-assignment.server'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -29,26 +30,7 @@ async function eventsWithCounts(db: TransactionClient, ids: number[], congregati
 async function removeProgrammes(db: TransactionClient, ids: number[], congregationId: number, actorId: number) {
   if (ids.length === 0) return
   const where = { eventId: { in: ids }, congregationId }
-  const [parts, services] = await Promise.all([
-    db.eventPart.findMany({ where, select: { id: true } }),
-    db.eventServicePart.findMany({ where, select: { id: true } }),
-  ])
-  const partIds = parts.map(part => part.id)
-  const serviceIds = services.map(service => service.id)
-  // Never an empty `in: []`: one refactor and it would cancel every pending notice of the congregation.
-  if (partIds.length > 0 || serviceIds.length > 0) {
-    await db.notificationEvent.updateMany({
-      where: {
-        congregationId,
-        status: 'pending',
-        OR: [
-          { entityType: 'EventPart', entityId: { in: partIds } },
-          { entityType: 'EventServicePart', entityId: { in: serviceIds } },
-        ],
-      },
-      data: { status: 'cancelled', processedAt: new Date() },
-    })
-  }
+  await cancelNoticesOf(db, ids, congregationId)
   await db.eventPart.deleteMany({ where })
   await db.eventServicePart.deleteMany({ where })
   await db.event.updateMany({ where: { id: { in: ids }, congregationId }, data: { status: EventStatus.Draft } })
@@ -63,11 +45,25 @@ async function removeProgrammes(db: TransactionClient, ids: number[], congregati
   }
 }
 
+/** Cancels the notices still waiting for the parts and services of these events, before they go. */
+async function cancelNoticesOf(db: TransactionClient, eventIds: number[], congregationId: number) {
+  const where = { eventId: { in: eventIds }, congregationId }
+  const [parts, services] = await Promise.all([
+    db.eventPart.findMany({ where, select: { id: true } }),
+    db.eventServicePart.findMany({ where, select: { id: true } }),
+  ])
+  await cancelPendingAssignmentNotices(db, congregationId, {
+    partIds: parts.map(part => part.id),
+    serviceIds: services.map(service => service.id),
+  })
+}
+
 export async function bulkDeleteEvents(db: TransactionClient, ids: number[], congregationId: number, actorId: number) {
   if (ids.length === 0) return { count: 0, emptied: 0 }
 
   const kept = await eventsWithCounts(db, ids, congregationId)
   const toDelete = ids.filter(id => !kept.has(id))
+  if (toDelete.length > 0) await cancelNoticesOf(db, toDelete, congregationId)
   const result =
     toDelete.length > 0 ? await db.event.deleteMany({ where: { id: { in: toDelete }, congregationId } }) : { count: 0 }
 
@@ -100,6 +96,7 @@ export async function deleteEvent(
     await removeProgrammes(db, [id], congregationId, actorId)
     return { kept: true }
   }
+  await cancelNoticesOf(db, [id], congregationId)
   await db.event.delete({ where: { id_congregationId: { id, congregationId } } })
   await auditInTransaction(db, {
     action: AuditAction.EventDeleted,
