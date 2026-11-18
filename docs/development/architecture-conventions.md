@@ -1,23 +1,23 @@
 # Architecture Conventions
 
-Structural rules for how the Unitae codebase is organized. Orthogonal to [Coding Conventions](coding-conventions.md), which covers style and service-layer mechanics; this doc covers *where files live*, *what each file is allowed to do*, and *how features interact*.
+Structural rules for how the Unitae codebase is organized. Orthogonal to [Coding Conventions](coding-conventions.md), which covers style and service-layer mechanics; this doc covers _where files live_, _what each file is allowed to do_, and _how features interact_.
 
-This document is **part target state, part current rule**. The migration is tracked in waves on the `refactor/architecture-conventions` branch. Sections labelled *target* describe the destination; sections without that label apply today.
+This document is **part target state, part current rule**. The migration is tracked in waves on the `refactor/architecture-conventions` branch. Sections labelled _target_ describe the destination; sections without that label apply today.
 
 ## Migration Status
 
-| Wave | Scope | Status |
-|---|---|---|
-| 0 | This doc + CLAUDE.md updates | ✅ landed |
-| 1 | 4 production bug fixes (TDD-first) | ✅ landed |
-| 2 | lefthook + file-size CI guard | ✅ landed |
-| 3 | Feature `index.ts` boundaries + cross-feature import lint | ✅ landed |
-| 4 | Split mega-files | ✅ landed |
-| 5 | Three aggregates + CQRS-lite lint enforcement | ✅ landed |
-| 6 | Constants files + `any` triage + client/server barrel split | ✅ landed |
-| 7 | TDD rollout + coverage backfill + colocation check | ✅ landed |
-| 8 | Stress-case fixes (name/phone validation, anonymization gaps, timezone context, retention cron) | ✅ landed |
-| 9 | Delivery-metrics script | ✅ landed |
+| Wave | Scope                                                                                           | Status    |
+| ---- | ----------------------------------------------------------------------------------------------- | --------- |
+| 0    | This doc + CLAUDE.md updates                                                                    | ✅ landed |
+| 1    | 4 production bug fixes (TDD-first)                                                              | ✅ landed |
+| 2    | lefthook + file-size CI guard                                                                   | ✅ landed |
+| 3    | Feature `index.ts` boundaries + cross-feature import lint                                       | ✅ landed |
+| 4    | Split mega-files                                                                                | ✅ landed |
+| 5    | Three aggregates + CQRS-lite lint enforcement                                                   | ✅ landed |
+| 6    | Constants files + `any` triage + client/server barrel split                                     | ✅ landed |
+| 7    | TDD rollout + coverage backfill + colocation check                                              | ✅ landed |
+| 8    | Stress-case fixes (name/phone validation, anonymization gaps, timezone context, retention cron) | ✅ landed |
+| 9    | Delivery-metrics script                                                                         | ✅ landed |
 
 Update this table when a wave merges.
 
@@ -51,7 +51,7 @@ An **aggregate** is a single file that owns all mutations to a domain entity (or
 
 ### What counts as an invariant
 
-> An **invariant** is a rule whose violation produces incorrect domain state — orphaned role assignments, overlapping attributions, a member assigned a role they're not eligible for. Audit logging, structured logging, and metrics are *not* invariants; they're cross-cutting concerns handled separately (by `audit()`, `createLogger()`, etc.) and verified by lint/tests, not by aggregates.
+> An **invariant** is a rule whose violation produces incorrect domain state — orphaned role assignments, overlapping attributions, a member assigned a role they're not eligible for. Audit logging, structured logging, and metrics are _not_ invariants; they're cross-cutting concerns handled separately (by `audit()`, `createLogger()`, etc.) and verified by lint/tests, not by aggregates.
 
 ### When to introduce an aggregate
 
@@ -79,15 +79,15 @@ Promote a policy to an aggregate when a third writer appears or when the rule se
 
 ### Current aggregates and policies
 
-| Name | Kind | Location | Reason |
-|---|---|---|---|
-| `Member` | aggregate | `app/features/publishers/server/member.aggregate.ts` | 12 mutation sites route through it so `syncBuiltInRoleAssignments` fires after every identity-flag change |
-| `Attribution` | aggregate | `app/features/territories/server/attribution.aggregate.ts` | State machine (assigned → returned → archived) + layer-aware overlap invariant (one active per publisher × territory time-window, scoped regular vs campaign) + campaign-mode and occupied-territory guards; pause/resume and the bulk campaign transitions live in `attribution-pause.aggregate.ts` |
-| `Campaign` | aggregate | `app/features/territories/server/campaign.aggregate.ts` | CRUD + one-active window-overlap invariant + lifecycle stamps (`activatedAt`/`endedAt`) + delete guards (active, referenced by history); cross-aggregate start/end/scope transitions orchestrated by `campaign-lifecycle.workflow.ts` |
-| `PioneerEnrolment` | aggregate | `app/features/publishers/server/pioneer-enrolment.aggregate.ts` | Open → close lifecycle + non-overlap invariant (no two of a member's stints share a month) + end-bounds-paired invariant |
-| `EventPart` | policy | `app/features/events/server/event-part.policy.ts` | Eligibility + distinctness + day-off + external-speaker rules shared by `assignPart` and `assignServicePart` |
+| Name               | Kind      | Location                                                        | Reason                                                                                                                                                                                                                                                                                               |
+| ------------------ | --------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Member`           | aggregate | `app/features/publishers/server/member.aggregate.ts`            | 12 mutation sites route through it so `syncBuiltInRoleAssignments` fires after every identity-flag change                                                                                                                                                                                            |
+| `Attribution`      | aggregate | `app/features/territories/server/attribution.aggregate.ts`      | State machine (assigned → returned → archived) + layer-aware overlap invariant (one active per publisher × territory time-window, scoped regular vs campaign) + campaign-mode and occupied-territory guards; pause/resume and the bulk campaign transitions live in `attribution-pause.aggregate.ts` |
+| `Campaign`         | aggregate | `app/features/territories/server/campaign.aggregate.ts`         | CRUD + one-active window-overlap invariant + lifecycle stamps (`activatedAt`/`endedAt`) + delete guards (active, referenced by history); cross-aggregate start/end/scope transitions orchestrated by `campaign-lifecycle.workflow.ts`                                                                |
+| `PioneerEnrolment` | aggregate | `app/features/publishers/server/pioneer-enrolment.aggregate.ts` | Open → close lifecycle + non-overlap invariant (no two of a member's stints share a month) + end-bounds-paired invariant                                                                                                                                                                             |
+| `EventPart`        | policy    | `app/features/events/server/event-part.policy.ts`               | Eligibility + distinctness + day-off + external-speaker rules shared by `assignPart` and `assignServicePart`                                                                                                                                                                                         |
 
-**`PioneerEnrolment` ↔ `Member.type` sync.** `Member.type` stays the synced cache that drives `syncBuiltInRoleAssignments`; the enrolment **workflow** (`pioneer-enrolment.workflow.ts`), not the aggregate, keeps it in step — keyed on the stint's *shape*, not its type. Opening an **ongoing** stint (permanent / special / missionary / permanent auxiliary) sets `Member.type`; closing or removing the last ongoing stint reverts it to `Normal`. A **single-month** (monthly) auxiliary enrolment deliberately leaves `Member.type = Normal` — a one-month sign-up must not flip the standing type, and its status is read from the enrolment record, never from `Member.type`.
+**`PioneerEnrolment` ↔ `Member.type` sync.** `Member.type` stays the synced cache that drives `syncBuiltInRoleAssignments`; the enrolment **workflow** (`pioneer-enrolment.workflow.ts`), not the aggregate, keeps it in step — keyed on the stint's _shape_, not its type. Opening an **ongoing** stint (permanent / special / missionary / permanent auxiliary) sets `Member.type`; closing or removing the last ongoing stint reverts it to `Normal`. A **single-month** (monthly) auxiliary enrolment deliberately leaves `Member.type = Normal` — a one-month sign-up must not flip the standing type, and its status is read from the enrolment record, never from `Member.type`.
 
 ### Aggregate contract
 
@@ -146,10 +146,11 @@ Aggregates get both unit and integration tests:
 vi.mock('~/shared/infra/db.server')
 
 test('updateFlags throws when isMale is null but a male-only role is being assigned', () => {
-  vi.mocked(db.member.findFirst).mockResolvedValue({ id: 1, isMale: null, /* ... */ })
+  vi.mocked(db.member.findFirst).mockResolvedValue({ id: 1, isMale: null /* ... */ })
 
-  expect(memberAggregate.updateFlags(db, 1, congregationId, actorId, { roleId: ELDER_ROLE_ID }))
-    .rejects.toThrow(InvariantError)
+  expect(memberAggregate.updateFlags(db, 1, congregationId, actorId, { roleId: ELDER_ROLE_ID })).rejects.toThrow(
+    InvariantError,
+  )
 })
 
 // member.aggregate.integration.test.ts  (slow — covers sync side-effect)
@@ -193,11 +194,11 @@ catch (err) {
 
 Within each feature, **writes go through `*.aggregate.ts` files; reads go through `*.queries.ts` (or unsuffixed `<feature>.server.ts`) files**. Both share the same Postgres database — no separate datastore, no event bus, no eventual consistency.
 
-| File suffix | Allowed | Forbidden |
-|---|---|---|
-| `*.aggregate.ts` | mutations on the primary model; precondition lookups; `_assert*` invariant helpers; `audit()`; `syncBuiltInRoleAssignments` | UI / report queries (`findMany`, paginated lists, joined projections for views) |
-| `*.queries.ts`, `*.policy.ts`, or `{feature}.server.ts` | all read operations; pagination; aggregation; joins for UI | `create`, `update`, `updateMany`, `delete`, `deleteMany`, `upsert` |
-| Other `*.server.ts` (single-purpose) | one of the above sets, picked by the file's purpose | the other set |
+| File suffix                                             | Allowed                                                                                                                     | Forbidden                                                                       |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `*.aggregate.ts`                                        | mutations on the primary model; precondition lookups; `_assert*` invariant helpers; `audit()`; `syncBuiltInRoleAssignments` | UI / report queries (`findMany`, paginated lists, joined projections for views) |
+| `*.queries.ts`, `*.policy.ts`, or `{feature}.server.ts` | all read operations; pagination; aggregation; joins for UI                                                                  | `create`, `update`, `updateMany`, `delete`, `deleteMany`, `upsert`              |
+| Other `*.server.ts` (single-purpose)                    | one of the above sets, picked by the file's purpose                                                                         | the other set                                                                   |
 
 This gives the navigability benefit of CQRS — a contributor or AI agent knows from the file name whether they're looking at a mutation or a query — without the synchronization cost of full CQRS.
 
@@ -205,7 +206,7 @@ This gives the navigability benefit of CQRS — a contributor or AI agent knows 
 
 - **Not full CQRS.** No separate read database. No event bus. No projection lag. A query reads the row right after the aggregate wrote it.
 - **Not Event Sourcing.** Current state is the source of truth. `AuditLog` is a side-record, not a replay log.
-- **Not a hard constraint on read shape.** Queries can be as ad-hoc as the UI needs — sorting, filtering, joining, paginating. The constraint is *what they don't do* (mutate).
+- **Not a hard constraint on read shape.** Queries can be as ad-hoc as the UI needs — sorting, filtering, joining, paginating. The constraint is _what they don't do_ (mutate).
 
 ### Migration of existing files
 
@@ -259,7 +260,7 @@ server/
 
 The verb-noun pattern makes service functions discoverable by file name alone. An agent asked "where is the code that links a user account to a member?" finds `link-account-to-member.server.ts` without reading any contents.
 
-Aggregate-owned mutations (see [CQRS-lite split](#cqrs-lite-readwrite-split-within-a-feature)) live inside `<entity>.aggregate.ts` — one file per aggregate, action verbs as exported functions (`setLifecycle`, `updateIdentity`). The verb-noun-per-file rule doesn't apply *inside* the aggregate; the file itself is the unit.
+Aggregate-owned mutations (see [CQRS-lite split](#cqrs-lite-readwrite-split-within-a-feature)) live inside `<entity>.aggregate.ts` — one file per aggregate, action verbs as exported functions (`setLifecycle`, `updateIdentity`). The verb-noun-per-file rule doesn't apply _inside_ the aggregate; the file itself is the unit.
 
 **Grab-bag (grandfathered, not for new files)**
 
@@ -316,14 +317,14 @@ React Router's `dot-server` bundler plugin fails on any client-reachable import 
 
 Files have soft (CI warning) and hard (CI failure) line limits.
 
-| File pattern | Soft | Hard |
-|---|---|---|
+| File pattern                                                   | Soft      | Hard      |
+| -------------------------------------------------------------- | --------- | --------- |
 | `*.server.ts`, `*.aggregate.ts`, `*.queries.ts`, `*.policy.ts` | 200 lines | 350 lines |
-| Route `*.tsx` (in `app/features/*/routes/`) | 150 lines | 300 lines |
-| Component `*.tsx` (in `ui/` or `shared/ui/`) | 200 lines | 400 lines |
-| `*.test.ts`, `*.integration.test.ts`, `*.spec.ts` | exempt | exempt |
-| Generated code (`app/database/generated/`) | exempt | exempt |
-| Migration SQL | exempt | exempt |
+| Route `*.tsx` (in `app/features/*/routes/`)                    | 150 lines | 300 lines |
+| Component `*.tsx` (in `ui/` or `shared/ui/`)                   | 200 lines | 400 lines |
+| `*.test.ts`, `*.integration.test.ts`, `*.spec.ts`              | exempt    | exempt    |
+| Generated code (`app/database/generated/`)                     | exempt    | exempt    |
+| Migration SQL                                                  | exempt    | exempt    |
 
 The budget exists to enforce a principle: a service file should hold one concept; a route file should orchestrate, not implement; a component file should render one piece of UI. When a file approaches the hard limit, the right answer is almost always to split it into smaller files with clear responsibilities — not to compress the existing code.
 
@@ -342,7 +343,7 @@ Test-Driven Development applies to **two situations**, not the whole codebase:
 ### Required
 
 - **New service functions** (in `app/features/*/server/`) — write the test first. The test describes the contract (inputs, outputs, errors thrown). Implementing to a written test forces a small, well-defined surface.
-- **Bug regressions** — when fixing any bug, write a failing test reproducing the bug *before* writing the fix. The test stays as a regression guard.
+- **Bug regressions** — when fixing any bug, write a failing test reproducing the bug _before_ writing the fix. The test stays as a regression guard.
 
 ### Encouraged
 
@@ -354,7 +355,7 @@ Test-Driven Development applies to **two situations**, not the whole codebase:
 
 ### Test style
 
-Black-box: assert on what a function returns or throws. Don't assert on internal call counts unless that delegation *is* the contract (e.g., "ensures `congregationId` is passed to the DB query"). See [Coding Conventions › Testing](coding-conventions.md#testing). For aggregate test examples, see [Aggregate Doctrine › Aggregate testing](#aggregate-testing).
+Black-box: assert on what a function returns or throws. Don't assert on internal call counts unless that delegation _is_ the contract (e.g., "ensures `congregationId` is passed to the DB query"). See [Coding Conventions › Testing](coding-conventions.md#testing). For aggregate test examples, see [Aggregate Doctrine › Aggregate testing](#aggregate-testing).
 
 ### Enforcement (Wave 7)
 
@@ -369,8 +370,8 @@ Colocation catches "no test at all"; the threshold catches "weak test that exerc
 
 The rules above are unchanged from the human contract. They are written down here explicitly so agents don't optimise past the fail-observation step:
 
-- When you add a new service function under `app/features/*/server/`, **write the test first**. Run it. Watch it fail (module not found, missing export, or wrong return). *Then* write the implementation. Never author test + code in the same file save.
-- When you fix a bug, **write a failing test that reproduces the bug first**. Run it. Watch it fail with the observable symptom. *Then* fix the source. The test stays as a regression guard.
+- When you add a new service function under `app/features/*/server/`, **write the test first**. Run it. Watch it fail (module not found, missing export, or wrong return). _Then_ write the implementation. Never author test + code in the same file save.
+- When you fix a bug, **write a failing test that reproduces the bug first**. Run it. Watch it fail with the observable symptom. _Then_ fix the source. The test stays as a regression guard.
 - Neither step ("write test", "watch fail") is optional. Skipping the fail-observation makes the test worthless as a change signal.
 - If the TDD rules don't apply (route glue, migration, script, one-line constant), say so in the PR body when creating the file. Don't add it to `EXEMPT_FILES` without a written justification adjacent to the entry.
 
@@ -384,7 +385,7 @@ pre-commit:
   parallel: true
   commands:
     lint:
-      glob: '*.{ts,tsx,js,jsx,json}'
+      glob: "*.{ts,tsx,js,jsx,json}"
       run: pnpm biome check --staged {staged_files}
     unit-tests:
       run: pnpm test:unit --changed
@@ -440,14 +441,14 @@ pnpm test:dora-metrics -- --json             # JSON to stdout instead of writing
 
 Requires `git` and `gh auth login` for the current repo. Output lands in `reports/dora/` (gitignored). The current week is usually still in flight, so the default target is the ISO week ending BEFORE `now`.
 
-> **Disclaimer**: these are *proxies*, not the canonical [DORA metrics](https://dora.dev). True Change Failure Rate and MTTR require production-incident tracking that we don't have yet. The proxies are useful for spotting trends; don't read them as absolute industry benchmarks.
+> **Disclaimer**: these are _proxies_, not the canonical [DORA metrics](https://dora.dev). True Change Failure Rate and MTTR require production-incident tracking that we don't have yet. The proxies are useful for spotting trends; don't read them as absolute industry benchmarks.
 
-| Proxy | Definition | Caveat |
-|---|---|---|
-| **Deploy frequency** | Count of pushes to `main` per week | Each push deploys per the CD workflow, so this is real deploy frequency |
-| **Lead time for changes** | Median of (PR merge timestamp − first commit timestamp) per week | Underestimates lead time when commits sit unmerged for a long time without surfacing as PRs |
-| **Fix-to-feat ratio** | Count of `fix:` commits / count of `feat:` commits in the window | A proxy for CFR. Not the same — most `fix:` commits patch bugs introduced long before any recent `feat:` deploy. Use trends, not absolutes |
-| **Hotfix turnaround** | Median time between a `feat:` and the first `fix:` referencing it (via issue or commit body) | Proxy for MTTR. Only catches fixes that explicitly reference the feature; silent regressions are invisible |
+| Proxy                     | Definition                                                                                   | Caveat                                                                                                                                     |
+| ------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Deploy frequency**      | Count of pushes to `main` per week                                                           | Each push deploys per the CD workflow, so this is real deploy frequency                                                                    |
+| **Lead time for changes** | Median of (PR merge timestamp − first commit timestamp) per week                             | Underestimates lead time when commits sit unmerged for a long time without surfacing as PRs                                                |
+| **Fix-to-feat ratio**     | Count of `fix:` commits / count of `feat:` commits in the window                             | A proxy for CFR. Not the same — most `fix:` commits patch bugs introduced long before any recent `feat:` deploy. Use trends, not absolutes |
+| **Hotfix turnaround**     | Median time between a `feat:` and the first `fix:` referencing it (via issue or commit body) | Proxy for MTTR. Only catches fixes that explicitly reference the feature; silent regressions are invisible                                 |
 
 ### Ownership and response
 

@@ -33,10 +33,10 @@ RLS moves the isolation guarantee from the application layer down to the databas
 
 RLS policies are bypassed by PostgreSQL superusers. To make RLS effective, the application uses **two database roles**:
 
-| Role | Superuser | Used by | Purpose |
-|------|-----------|---------|---------|
-| `unitae` | Yes | Migrations, seed, backup | Schema changes (DDL), `pg_dump` |
-| `unitae_app` | No | Web server, worker | Runtime queries — RLS is enforced |
+| Role         | Superuser | Used by                  | Purpose                           |
+| ------------ | --------- | ------------------------ | --------------------------------- |
+| `unitae`     | Yes       | Migrations, seed, backup | Schema changes (DDL), `pg_dump`   |
+| `unitae_app` | No        | Web server, worker       | Runtime queries — RLS is enforced |
 
 The application reads `DB_RUNTIME_URL` for the runtime connection. If not set, it falls back to `DB_URL` (for backwards compatibility with single-role setups, but RLS will not be enforced if the role is a superuser).
 
@@ -59,10 +59,10 @@ CREATE POLICY tenant_isolation ON "Member" FOR ALL
 
 **Behavior:**
 
-| `app.congregation_id` | Rows visible | When |
-|------------------------|-------------|------|
-| Not set / empty | All rows | Login, setup, health check |
-| Set to a value | Only rows matching that congregation | Normal authenticated requests |
+| `app.congregation_id` | Rows visible                         | When                          |
+| --------------------- | ------------------------------------ | ----------------------------- |
+| Not set / empty       | All rows                             | Login, setup, health check    |
+| Set to a value        | Only rows matching that congregation | Normal authenticated requests |
 
 The `true` parameter in `current_setting(...)` makes it return `NULL` instead of throwing an error when the variable is not set. `NULLIF(..., '')` converts empty strings to `NULL`, so both cases are handled by the single `IS NULL` check.
 

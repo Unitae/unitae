@@ -83,31 +83,31 @@ The worker processes five job queues: territory data sync, email notifications, 
 
 ### Run
 
-| Command | Description |
-|---------|-------------|
-| `pnpm start:dev` | Development server with HMR |
+| Command             | Description                                                                      |
+| ------------------- | -------------------------------------------------------------------------------- |
+| `pnpm start:dev`    | Development server with HMR                                                      |
 | `pnpm start:worker` | Multi-queue background worker (sync, email, thumbnail, data transfer, retention) |
-| `pnpm start:emails` | Email template dev server |
+| `pnpm start:emails` | Email template dev server                                                        |
 
 ### Build
 
-| Command | Description |
-|---------|-------------|
-| `pnpm build` | Production build |
+| Command             | Description                |
+| ------------------- | -------------------------- |
+| `pnpm build`        | Production build           |
 | `pnpm build:format` | Format and lint with Biome |
 
 ### Test
 
-| Command | Description |
-|---------|-------------|
-| `pnpm test:unit` | Run unit tests |
-| `pnpm test:unit:watch` | Run tests in watch mode |
-| `pnpm test:unit:coverage` | Run tests with coverage |
-| `pnpm test:integration` | Run integration tests (requires running PostgreSQL and `DB_RUNTIME_URL`) |
-| `pnpm test:e2e` | Run E2E tests with Playwright (requires running app) |
-| `pnpm test:e2e:headed` | Run E2E tests with browser visible |
-| `pnpm test:lint` | Check linting only |
-| `pnpm test:typecheck` | Generate types + TypeScript check |
+| Command                   | Description                                                              |
+| ------------------------- | ------------------------------------------------------------------------ |
+| `pnpm test:unit`          | Run unit tests                                                           |
+| `pnpm test:unit:watch`    | Run tests in watch mode                                                  |
+| `pnpm test:unit:coverage` | Run tests with coverage                                                  |
+| `pnpm test:integration`   | Run integration tests (requires running PostgreSQL and `DB_RUNTIME_URL`) |
+| `pnpm test:e2e`           | Run E2E tests with Playwright (requires running app)                     |
+| `pnpm test:e2e:headed`    | Run E2E tests with browser visible                                       |
+| `pnpm test:lint`          | Check linting only                                                       |
+| `pnpm test:typecheck`     | Generate types + TypeScript check                                        |
 
 ## Before Submitting a PR
 

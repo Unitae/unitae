@@ -8,7 +8,7 @@ Opening the board requires the **Board Viewer** permission. Members without it c
 
 ## Board View
 
-The main board page shows all visible documents organized by section. A page header displays the title and quick-access buttons to the management pages: validators see both the *Manage sections* and *Manage documents* buttons; uploaders see only the *Manage documents* button (their entry point to the upload form).
+The main board page shows all visible documents organized by section. A page header displays the title and quick-access buttons to the management pages: validators see both the _Manage sections_ and _Manage documents_ buttons; uploaders see only the _Manage documents_ button (their entry point to the upload form).
 
 ### Highlighted Section
 
@@ -25,11 +25,11 @@ Each section can be **collapsed or expanded** by clicking its heading. Collapse 
 
 Document cards display a **status badge** on the thumbnail area to communicate freshness. Only one badge is shown at a time, with this priority:
 
-| Priority | Badge | Style | Condition |
-|----------|-------|-------|-----------|
-| 1 | "Updated" | Blue (info) | PDF has been replaced and the user already viewed a previous version |
-| 2 | "New" | Solid teal | Document was created within the last 48 hours and the user has not viewed it |
-| 3 | "Unread" | Outlined teal | Document has not been viewed by the user |
+| Priority | Badge     | Style         | Condition                                                                    |
+| -------- | --------- | ------------- | ---------------------------------------------------------------------------- |
+| 1        | "Updated" | Blue (info)   | PDF has been replaced and the user already viewed a previous version         |
+| 2        | "New"     | Solid teal    | Document was created within the last 48 hours and the user has not viewed it |
+| 3        | "Unread"  | Outlined teal | Document has not been viewed by the user                                     |
 
 ### Document Cards
 
@@ -103,7 +103,7 @@ Documents outside their visibility window are not shown on the board. This lets 
 
 ### Highlighting
 
-Important documents can be featured on the board using the *Feature this document on the board* option. Featured documents appear in the "Featured" section at the top of the board with a distinct visual container.
+Important documents can be featured on the board using the _Feature this document on the board_ option. Featured documents appear in the "Featured" section at the top of the board with a distinct visual container.
 
 **Required permission**: Board Validator or Admin
 
@@ -139,9 +139,9 @@ Each dynamic document has its own look, chosen on its edit page and applied both
 - **Typeface** — Fira Sans, Atkinson Hyperlegible (designed for readers with low vision) or Source Serif.
 - **Accent colour** — one of nine colours for the labels (responsable, adjoint, posts). Each reads at 4.5:1 or better on white and prints as a mid grey in black and white.
 - **Layout** — from the document's own list:
-  - Field service groups: *directory* (two columns of groups), *columns* (one column per group, landscape) or *bands* (one band per group, its people across three columns). The responsable and the adjoint appear in the group's head only, never again in its list.
-  - Organigram: *by overseer* (the committee, then each post's services) or *posts in columns* (the committee's three posts side by side, their services beneath).
-  - Pioneers: *sections* (one per pioneer type) or *columns* (the types side by side).
+  - Field service groups: _directory_ (two columns of groups), _columns_ (one column per group, landscape) or _bands_ (one band per group, its people across three columns). The responsable and the adjoint appear in the group's head only, never again in its list.
+  - Organigram: _by overseer_ (the committee, then each post's services) or _posts in columns_ (the committee's three posts side by side, their services beneath).
+  - Pioneers: _sections_ (one per pioneer type) or _columns_ (the types side by side).
   - Programmes have a single layout.
 
 The choices are curated so every combination stays legible pinned up and printed: there is no free colour, size or font. A document never given a look uses Fira Sans, teal and its first layout.
@@ -162,12 +162,12 @@ For PDFs, the unread badge disappears once a member opens the document. For dyna
 
 ## Permissions summary
 
-| Permission | What it grants on the board |
-|---|---|
-| Board Viewer | Open the board, read documents (filtered by section visibility) |
-| Board Uploader | Everything Viewer grants, plus: upload new documents, and on documents they uploaded — edit title/section/file, delete, view and restore versions. **Cannot** set the visibility window or highlight a document |
-| Board Validator | Everything Uploader grants, plus: edit/delete any document, manage sections and their visibility, set the visibility window, highlight, and add/configure dynamic documents |
-| Admin | Everything |
+| Permission      | What it grants on the board                                                                                                                                                                                     |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Board Viewer    | Open the board, read documents (filtered by section visibility)                                                                                                                                                 |
+| Board Uploader  | Everything Viewer grants, plus: upload new documents, and on documents they uploaded — edit title/section/file, delete, view and restore versions. **Cannot** set the visibility window or highlight a document |
+| Board Validator | Everything Uploader grants, plus: edit/delete any document, manage sections and their visibility, set the visibility window, highlight, and add/configure dynamic documents                                     |
+| Admin           | Everything                                                                                                                                                                                                      |
 
 Whether an uploader counts as the "owner" of a document depends on whether the system has recorded them as the original uploader. Documents that pre-date this tracking have no recorded uploader and can only be edited by validators.
 

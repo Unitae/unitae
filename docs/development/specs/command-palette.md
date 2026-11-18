@@ -27,8 +27,8 @@ The Cmd+K palette (`app/shared/ui/CommandPalette.tsx`) today is a hand-rolled di
 list of ~20 module pages; the input filters it with `label.includes()`. It cannot answer the
 question a user actually has when they hit ⌘K:
 
-> "Take me to *territory 12* / *this publisher* / *that building* / *this event* — or just let me
-> *create* one — without clicking through the nav."
+> "Take me to _territory 12_ / _this publisher_ / _that building_ / _this event_ — or just let me
+> _create_ one — without clicking through the nav."
 
 It has **no search** (can't find a specific entity), **no depth** (can't reach a settings
 sub-section), and **no actions** (can't create or log out). For a congregation with hundreds of
@@ -39,7 +39,7 @@ territories/publishers, navigating the nav tree by hand is the only option.
 **Goals**
 
 - Turn ⌘K into a real command palette with three capabilities, **all strictly role-gated**:
-  **navigation** (top-level *and* deep links), **search** (live, server-side, across territories, my
+  **navigation** (top-level _and_ deep links), **search** (live, server-side, across territories, my
   attributions, publishers, buildings, events, documents), and **actions** (quick-create, session/UI,
   contextual on a found entity).
 - **Role gating is the hard invariant:** a user without a module's permission must never see its
@@ -52,11 +52,11 @@ territories/publishers, navigating the nav tree by hand is the only option.
 
 - **Inline entity mutations** from the palette (e.g. "mark returned" / "assign" without leaving the
   palette). v1 contextual actions **navigate** to the entity's action page; true in-palette mutations
-  need confirmation/undo UX + CSRF-safe forms and are deferred. *(Decision: out of scope for v1.)*
-- Migrating to the `cmdk` library. *(Decision: keep hand-rolled + add ARIA.)*
+  need confirmation/undo UX + CSRF-safe forms and are deferred. _(Decision: out of scope for v1.)_
+- Migrating to the `cmdk` library. _(Decision: keep hand-rolled + add ARIA.)_
 - Fuzzy-ranking library, `pg_trgm` GIN substring indexing, match-substring highlighting.
 - Unifying the sidebar's gating with the palette's into a single source (they stay separate; this
-  spec only unifies the *palette's* own entries).
+  spec only unifies the _palette's_ own entries).
 - Changing any schema, or any read/write behavior of the searched entities.
 
 ## 3. Users & job-to-be-done
@@ -85,7 +85,7 @@ can do here", never a listing of features I can't access.
 
 - **Territories / buildings:** `applySearchFilter` is **private**; only
   `computeFilters(params: URLSearchParams)` is exported from `territory-filters.server.ts` /
-  `building-filters.server.ts`. A *same-feature* search fn can call
+  `building-filters.server.ts`. A _same-feature_ search fn can call
   `computeFilters(new URLSearchParams({ search: q }))` — with only `search` set it returns exactly the
   diacritics-aware search `OR` (number / normalized street / attributee name). Reuse **this**.
 - **Publishers:** `getPublishersWithGroup` is **not exported** and matches non-normalized
@@ -134,11 +134,11 @@ Set — stated explicitly to avoid ambiguity).
   { kind:'action'; run } | { kind:'form'; formTo; method })`. `keywords` powers matching beyond the
   label ("params retention" → congregation settings).
 - `buildStaticCommands(bag)` returns:
-  - **Navigation** — the current items **plus deep links**, each gated by the *same guard the route
-    uses* (enumerate & mirror; note `canManageSettings` maps to `Permission.Admin`): `/settings/general`,
+  - **Navigation** — the current items **plus deep links**, each gated by the _same guard the route
+    uses_ (enumerate & mirror; note `canManageSettings` maps to `Permission.Admin`): `/settings/general`,
     `/settings/territories`, `/settings/map`, `/settings/publishers`, `/settings/templates`,
     `/settings/audit-log`, `/settings/data`, `/settings/roles`, plus existing module sub-sections.
-  - **Actions — quick-create** (navigate, gated by the *manage* permission): New territory
+  - **Actions — quick-create** (navigate, gated by the _manage_ permission): New territory
     `/territories/new`, New attribution `/territories/attributions/new`, New building
     `/territories/buildings/new`, New event, New user `/settings/users/new`, New role
     `/congregation/roles/organigram?new=1`, Upload document `/board/documents/new`.
@@ -189,16 +189,16 @@ selection = best-ranked row. `command-list.ts` (pure, tested): filter/rank/flatt
 active-id → index; light relevance (exact/prefix beats substring).
 
 **Ordering (query-state dependent).**
-- *Empty query:* Recents → Quick actions → primary Navigation shortlist → one-line hint "Tapez pour
+- _Empty query:_ Recents → Quick actions → primary Navigation shortlist → one-line hint "Tapez pour
   rechercher territoires, publicateurs, immeubles, événements…". No search groups.
-- *Active query:* live entity groups **first** (Territoires, Mes attributions, Publicateurs, Immeubles,
+- _Active query:_ live entity groups **first** (Territoires, Mes attributions, Publicateurs, Immeubles,
   Événements, Documents), then a single "Aller à / Actions" block of matching static entries.
 
 **State matrix (explicit).**
 - `q < min` → empty-state content; never "Aucun résultat".
 - Debounce pending → keep previous results (no flash).
 - In-flight → `Loader2` spinner at the input's right; **do not clear** existing results; per-group
-  skeletons only on the *first* query.
+  skeletons only on the _first_ query.
 - Zero results but static matches → show static, suppress empty search groups.
 - Zero everywhere → single "Aucun résultat pour «{q}»" + `SearchX` + hint.
 - **Error / network failure** → static commands keep working; a quiet "Recherche indisponible" line
@@ -215,7 +215,7 @@ programmatically via ⌘K). Manual VoiceOver pass (no component tests — see §
 opaque group headers. Header vs sublabel differentiated (`text-[11px] uppercase tracking-wider` vs
 `text-xs text-muted-foreground truncate`); groups separated by `mt-2 first:mt-0`, at most one
 `border-t` between the static and live blocks. **Selected ≠ hover** — because `accent` and `muted` are
-the *same* token, the keyboard-active row gets `data-[selected=true]:bg-accent` **+ a left marker**
+the _same_ token, the keyboard-active row gets `data-[selected=true]:bg-accent` **+ a left marker**
 `border-l-2 border-primary`, hover gets `hover:bg-accent/50`; hover-selection is suppressed during
 keyboard nav until the mouse moves. Two-line rows: `flex flex-col min-w-0` + `truncate` both lines,
 icon `shrink-0 self-start`. Per-type icons on results. Log out uses `hover:text-destructive` (**not**
@@ -288,7 +288,7 @@ import); any client `index.ts` must stay free of server re-exports (`test:server
 ## 9. Permissions
 
 Reuses existing `Permission` values only; **no new permission**. View-gating map in §5.2. Quick-create
-actions gated by the corresponding *manager* permission; session/UI actions ungated (available to any
+actions gated by the corresponding _manager_ permission; session/UI actions ungated (available to any
 authenticated user).
 
 ## 10. Phasing

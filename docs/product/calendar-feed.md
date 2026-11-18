@@ -16,8 +16,8 @@ The feed contains all future events plus events from the last three months. Anyt
 
 The link is created and managed in **My account → Profile → Calendar**:
 
-1. Click *Create my link* the first time. Unitae creates a private URL.
-2. Click *Copy* to put the URL on your clipboard.
+1. Click _Create my link_ the first time. Unitae creates a private URL.
+2. Click _Copy_ to put the URL on your clipboard.
 3. Paste it into your calendar app:
    - **Apple Calendar** — File → New Calendar Subscription → paste the URL
    - **Google Calendar** — Other calendars → From URL → paste the URL

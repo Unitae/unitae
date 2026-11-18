@@ -115,9 +115,7 @@
                 "input total",
                 "local totalPlural = total: plural"
             ],
-            "selectors": [
-                "totalPlural"
-            ],
+            "selectors": ["totalPlural"],
             "match": {
                 "totalPlural=one": "de {total} resultado",
                 "totalPlural=*": "de {total} resultados"
@@ -197,13 +195,8 @@
     "suspended_logout": "Terminar sessão",
     "trial_banner_days_left": [
         {
-            "declarations": [
-                "input days",
-                "local daysPlural = days: plural"
-            ],
-            "selectors": [
-                "daysPlural"
-            ],
+            "declarations": ["input days", "local daysPlural = days: plural"],
+            "selectors": ["daysPlural"],
             "match": {
                 "daysPlural=one": "Período de avaliação: falta {days} dia, até {date}.",
                 "daysPlural=*": "Período de avaliação: faltam {days} dias, até {date}."
@@ -323,10 +316,7 @@
                 "local countExact = count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countExact",
-                "countPlural"
-            ],
+            "selectors": ["countExact", "countPlural"],
             "match": {
                 "countExact=1, countPlural=*": "Contém um documento.",
                 "countExact=*, countPlural=one": "Contém {count} documento.",
@@ -359,10 +349,7 @@
                 "local countExact = count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countExact",
-                "countPlural"
-            ],
+            "selectors": ["countExact", "countPlural"],
             "match": {
                 "countExact=1, countPlural=*": "Uma pessoa vai conseguir ver esta secção.",
                 "countExact=*, countPlural=one": "{count} pessoa vai conseguir ver esta secção.",
@@ -421,9 +408,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} reunião anterior",
                 "countPlural=*": "{count} reuniões anteriores"
@@ -444,9 +429,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} nome",
                 "countPlural=*": "{count} nomes"
@@ -464,9 +447,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Ajudante",
                 "countPlural=*": "Ajudantes"
@@ -479,9 +460,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Equipa",
                 "countPlural=*": "Equipas"
@@ -585,9 +564,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} por ler",
                 "countPlural=*": "{count} por ler"
@@ -645,9 +622,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} selecionado",
                 "countPlural=*": "{count} selecionados"
@@ -690,9 +665,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} versão",
                 "countPlural=*": "{count} versões"
@@ -735,10 +708,7 @@
                 "local countExact = count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countExact",
-                "countPlural"
-            ],
+            "selectors": ["countExact", "countPlural"],
             "match": {
                 "countExact=1, countPlural=*": "Já há um documento nesse lugar.",
                 "countExact=*, countPlural=one": "Já há {count} documento nesse lugar.",
@@ -807,9 +777,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} documento prestes a expirar",
                 "countPlural=*": "{count} documentos prestes a expirar"
@@ -842,9 +810,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Índice · {count} secção",
                 "countPlural=*": "Índice · {count} secções"
@@ -1008,9 +974,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Este modelo ainda está a ser usado por {count} evento e não pode ser eliminado.",
                 "countPlural=*": "Este modelo ainda está a ser usado por {count} eventos e não pode ser eliminado."
@@ -1158,9 +1122,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} selecionado",
                 "countPlural=*": "{count} selecionados"
@@ -1180,9 +1142,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} publicador transferido para {group}",
                 "countPlural=*": "{count} publicadores transferidos para {group}"
@@ -1195,9 +1155,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} publicador retirado do respetivo grupo",
                 "countPlural=*": "{count} publicadores retirados dos respetivos grupos"
@@ -1254,13 +1212,8 @@
     "publishers_record_activity": "Atividade",
     "publishers_record_reports_filed": [
         {
-            "declarations": [
-                "input due",
-                "local duePlural = due: plural"
-            ],
-            "selectors": [
-                "duePlural"
-            ],
+            "declarations": ["input due", "local duePlural = due: plural"],
+            "selectors": ["duePlural"],
             "match": {
                 "duePlural=one": "{filed} de {due} relatório",
                 "duePlural=*": "{filed} de {due} relatórios"
@@ -1388,9 +1341,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "de {count} esperado",
                 "countPlural=*": "de {count} esperados"
@@ -1406,9 +1357,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} não pregaram este mês",
                 "countPlural=*": "{count} não pregaram este mês"
@@ -1424,9 +1373,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} pioneiro",
                 "countPlural=*": "{count} pioneiros"
@@ -1439,9 +1386,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} pioneiro regular",
                 "countPlural=*": "{count} pioneiros regulares"
@@ -1454,9 +1399,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} auxiliar",
                 "countPlural=*": "{count} auxiliares"
@@ -1469,9 +1412,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} especial",
                 "countPlural=*": "{count} especiais"
@@ -1484,9 +1425,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} missionário",
                 "countPlural=*": "{count} missionários"
@@ -1580,9 +1519,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Exportar {count} registo",
                 "countPlural=*": "Exportar {count} registos"
@@ -1647,9 +1584,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} dia",
                 "countPlural=*": "{count} dias"
@@ -1663,9 +1598,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} designação durante esta ausência",
                 "countPlural=*": "{count} designações durante esta ausência"
@@ -1695,9 +1628,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} designação coincide com esses dias",
                 "countPlural=*": "{count} designações coincidem com esses dias"
@@ -1721,9 +1652,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} conflito de ausência a resolver: {names}",
                 "countPlural=*": "{count} conflitos de ausência a resolver: {names}"
@@ -1740,9 +1669,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} ausência",
                 "countPlural=*": "{count} ausências"
@@ -1755,9 +1682,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} designação a verificar",
                 "countPlural=*": "{count} designações a verificar"
@@ -1777,9 +1702,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} ausência",
                 "countPlural=*": "{count} ausências"
@@ -1793,9 +1716,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} a verificar",
                 "countPlural=*": "{count} a verificar"
@@ -1832,9 +1753,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} programa",
                 "countPlural=*": "{count} programas"
@@ -1847,9 +1766,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} sem programa",
                 "countPlural=*": "{count} sem programa"
@@ -1862,9 +1779,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} rascunho",
                 "countPlural=*": "{count} rascunhos"
@@ -1900,9 +1815,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} pessoa ausente",
                 "countPlural=*": "{count} pessoas ausentes"
@@ -1915,9 +1828,7 @@
                 "input total",
                 "local totalPlural = total: plural"
             ],
-            "selectors": [
-                "totalPlural"
-            ],
+            "selectors": ["totalPlural"],
             "match": {
                 "totalPlural=one": "{filled}/{total} parte",
                 "totalPlural=*": "{filled}/{total} partes"
@@ -1930,9 +1841,7 @@
                 "input total",
                 "local totalPlural = total: plural"
             ],
-            "selectors": [
-                "totalPlural"
-            ],
+            "selectors": ["totalPlural"],
             "match": {
                 "totalPlural=one": "{filled}/{total} serviço",
                 "totalPlural=*": "{filled}/{total} serviços"
@@ -1952,9 +1861,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} selecionado",
                 "countPlural=*": "{count} selecionados"
@@ -1971,9 +1878,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Publicar {count} rascunho",
                 "countPlural=*": "Publicar {count} rascunhos"
@@ -1988,9 +1893,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Repor {count} programa publicado como rascunho",
                 "countPlural=*": "Repor {count} programas publicados como rascunho"
@@ -2003,9 +1906,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} evento eliminado.",
                 "countPlural=*": "{count} eventos eliminados."
@@ -2018,9 +1919,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} reunião mantida para preservar a assistência: o programa foi removido.",
                 "countPlural=*": "{count} reuniões mantidas para preservar a assistência: os programas foram removidos."
@@ -2034,9 +1933,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Eliminar {count} programa?",
                 "countPlural=*": "Eliminar {count} programas?"
@@ -2049,9 +1946,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "As partes e os serviços são eliminados com o programa, juntamente com as designações já feitas.",
                 "countPlural=*": "As partes e os serviços são eliminados com os programas, juntamente com as designações já feitas."
@@ -2065,9 +1960,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Eliminar {count}",
                 "countPlural=*": "Eliminar {count}"
@@ -2091,9 +1984,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} evento publicado.",
                 "countPlural=*": "{count} eventos publicados."
@@ -2106,9 +1997,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} reunião sem programa não foi publicada.",
                 "countPlural=*": "{count} reuniões sem programa não foram publicadas."
@@ -2121,9 +2010,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} evento com conflito de ausência não pôde ser publicado.",
                 "countPlural=*": "{count} eventos com conflitos de ausência não puderam ser publicados."
@@ -2137,9 +2024,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} evento não pôde ser publicado devido a um erro técnico.",
                 "countPlural=*": "{count} eventos não puderam ser publicados devido a um erro técnico."
@@ -2152,9 +2037,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} evento não foi encontrado. Atualize a página.",
                 "countPlural=*": "{count} eventos não foram encontrados. Atualize a página."
@@ -2168,9 +2051,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} evento reposto como rascunho.",
                 "countPlural=*": "{count} eventos repostos como rascunho."
@@ -2183,9 +2064,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} evento não pôde ser reposto como rascunho devido a um erro técnico.",
                 "countPlural=*": "{count} eventos não puderam ser repostos como rascunho devido a um erro técnico."
@@ -2211,9 +2090,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} parte",
                 "countPlural=*": "{count} partes"
@@ -2226,9 +2103,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} serviço",
                 "countPlural=*": "{count} serviços"
@@ -2252,9 +2127,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} semana",
                 "countPlural=*": "{count} semanas"
@@ -2282,9 +2155,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} programa",
                 "countPlural=*": "{count} programas"
@@ -2298,9 +2169,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} já existe",
                 "countPlural=*": "{count} já existem"
@@ -2313,9 +2182,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} data ignorada",
                 "countPlural=*": "{count} datas ignoradas"
@@ -2342,9 +2209,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Criar {count} programa",
                 "countPlural=*": "Criar {count} programas"
@@ -2370,9 +2235,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} programa criado como rascunho.",
                 "countPlural=*": "{count} programas criados como rascunho."
@@ -2397,9 +2260,7 @@
                 "input total",
                 "local totalPlural = total: plural"
             ],
-            "selectors": [
-                "totalPlural"
-            ],
+            "selectors": ["totalPlural"],
             "match": {
                 "totalPlural=one": "{count} de {total} designação atribuída",
                 "totalPlural=*": "{count} de {total} designações atribuídas"
@@ -2412,9 +2273,7 @@
                 "input total",
                 "local totalPlural = total: plural"
             ],
-            "selectors": [
-                "totalPlural"
-            ],
+            "selectors": ["totalPlural"],
             "match": {
                 "totalPlural=one": "{count} de {total} serviço preenchido",
                 "totalPlural=*": "{count} de {total} serviços preenchidos"
@@ -2489,9 +2348,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} parte",
                 "countPlural=*": "{count} partes"
@@ -2555,9 +2412,7 @@
                 "input total",
                 "local totalPlural = total: plural"
             ],
-            "selectors": [
-                "totalPlural"
-            ],
+            "selectors": ["totalPlural"],
             "match": {
                 "totalPlural=one": "{count} das últimas {total} vezes",
                 "totalPlural=*": "{count} das últimas {total} vezes"
@@ -2602,9 +2457,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} telefone",
                 "countPlural=*": "{count} telefones"
@@ -2617,9 +2470,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} habitação",
                 "countPlural=*": "{count} habitações"
@@ -2632,9 +2483,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} estabelecimento comercial",
                 "countPlural=*": "{count} estabelecimentos comerciais"
@@ -2647,9 +2496,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} hotel",
                 "countPlural=*": "{count} hotéis"
@@ -2662,9 +2509,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} entrada",
                 "countPlural=*": "{count} entradas"
@@ -2684,9 +2529,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} habitação",
                 "countPlural=*": "{count} habitações"
@@ -2699,9 +2542,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} número de telefone",
                 "countPlural=*": "{count} números de telefone"
@@ -2714,9 +2555,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} endereço",
                 "countPlural=*": "{count} endereços"
@@ -2729,9 +2568,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} profissional",
                 "countPlural=*": "{count} profissionais"
@@ -2754,9 +2591,7 @@
                 "input total",
                 "local totalPlural = total: plural"
             ],
-            "selectors": [
-                "totalPlural"
-            ],
+            "selectors": ["totalPlural"],
             "match": {
                 "totalPlural=one": "A mostrar alguns dos {total} endereços. Aumente o zoom para ver mais.",
                 "totalPlural=*": "A mostrar alguns dos {total} endereços. Aumente o zoom para ver mais."
@@ -2796,9 +2631,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} novo",
                 "countPlural=*": "{count} novos"
@@ -2811,9 +2644,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} em falta",
                 "countPlural=*": "{count} em falta"
@@ -2855,9 +2686,7 @@
                 "input months",
                 "local monthsPlural = months: plural"
             ],
-            "selectors": [
-                "monthsPlural"
-            ],
+            "selectors": ["monthsPlural"],
             "match": {
                 "monthsPlural=one": "Levantamento feito há mais de {months} mês ou nunca, ou com informações contraditórias. A duração é definida em Definições › Territórios.",
                 "monthsPlural=*": "Levantamento feito há mais de {months} meses ou nunca, ou com informações contraditórias. A duração é definida em Definições › Territórios."
@@ -2907,9 +2736,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} habitação",
                 "countPlural=*": "{count} habitações"
@@ -2923,9 +2750,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} telefone",
                 "countPlural=*": "{count} telefones"
@@ -2939,9 +2764,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} loja",
                 "countPlural=*": "{count} lojas"
@@ -2957,9 +2780,7 @@
                 "input months",
                 "local monthsPlural = months: plural"
             ],
-            "selectors": [
-                "monthsPlural"
-            ],
+            "selectors": ["monthsPlural"],
             "match": {
                 "monthsPlural=one": "Analisado há {months} mês",
                 "monthsPlural=*": "Analisado há {months} meses"
@@ -2985,9 +2806,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} edifício",
                 "countPlural=*": "{count} edifícios"
@@ -3010,9 +2829,7 @@
                 "input total",
                 "local totalPlural = total: plural"
             ],
-            "selectors": [
-                "totalPlural"
-            ],
+            "selectors": ["totalPlural"],
             "match": {
                 "totalPlural=one": "{position} de {total} novos",
                 "totalPlural=*": "{position} de {total} novos"
@@ -3028,9 +2845,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} selecionado",
                 "countPlural=*": "{count} selecionados"
@@ -3046,9 +2861,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Desativar {count}",
                 "countPlural=*": "Desativar {count}"
@@ -3061,9 +2874,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Desativar {count} edifício?",
                 "countPlural=*": "Desativar {count} edifícios?"
@@ -3078,9 +2889,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Este {count} edifício deixará de contar entre os edifícios ativos. O levantamento e as notas serão mantidos; pode reativá-lo.",
                 "countPlural=*": "Estes {count} edifícios deixarão de contar entre os edifícios ativos. Os levantamentos e as notas serão mantidos; pode reativá-los."
@@ -3093,9 +2902,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} edifício desativado.",
                 "countPlural=*": "{count} edifícios desativados."
@@ -3161,9 +2968,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} estabelecimento comercial está disponível para o ministério: {labels}.",
                 "countPlural=*": "{count} estabelecimentos comerciais estão disponíveis para o ministério: {labels}."
@@ -3212,9 +3017,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} habitação",
                 "countPlural=*": "{count} habitações"
@@ -3227,9 +3030,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} telefone",
                 "countPlural=*": "{count} telefones"
@@ -3242,9 +3043,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} entrada",
                 "countPlural=*": "{count} entradas"
@@ -3278,9 +3077,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} alteração por guardar",
                 "countPlural=*": "{count} alterações por guardar"
@@ -3311,9 +3108,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} disponível",
                 "countPlural=*": "{count} disponíveis"
@@ -3327,9 +3122,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} sem localização",
                 "countPlural=*": "{count} sem localização"
@@ -3345,9 +3138,7 @@
                 "input total",
                 "local totalPlural = total: plural"
             ],
-            "selectors": [
-                "totalPlural"
-            ],
+            "selectors": ["totalPlural"],
             "match": {
                 "totalPlural=one": "{visible} de {total} apresentados aqui",
                 "totalPlural=*": "{visible} de {total} apresentados aqui"
@@ -3373,9 +3164,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "e mais {count}",
                 "countPlural=*": "e mais {count}"
@@ -3423,9 +3212,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} vez",
                 "countPlural=*": "{count} vezes"
@@ -3450,9 +3237,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} território sem designações durante o período:",
                 "countPlural=*": "{count} territórios sem designações durante o período:"
@@ -3500,9 +3285,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} território",
                 "countPlural=*": "{count} territórios"
@@ -3515,9 +3298,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} designação em curso",
                 "countPlural=*": "{count} designações em curso"
@@ -3545,9 +3326,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} entrada",
                 "countPlural=*": "{count} entradas"
@@ -3563,9 +3342,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} edifício sem dados demográficos",
                 "countPlural=*": "{count} edifícios sem dados demográficos"
@@ -3609,9 +3386,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} número de telefone",
                 "countPlural=*": "{count} números de telefone"
@@ -3624,9 +3399,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} profissional",
                 "countPlural=*": "{count} profissionais"
@@ -3672,9 +3445,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} território",
                 "countPlural=*": "{count} territórios"
@@ -3687,9 +3458,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "+ {count} rua",
                 "countPlural=*": "+ {count} ruas"
@@ -3725,9 +3494,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} habitação",
                 "countPlural=*": "{count} habitações"
@@ -3740,9 +3507,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} telefone",
                 "countPlural=*": "{count} telefones"
@@ -3755,9 +3520,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} estabelecimento comercial",
                 "countPlural=*": "{count} estabelecimentos comerciais"
@@ -3770,9 +3533,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} entrada",
                 "countPlural=*": "{count} entradas"
@@ -3823,9 +3584,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} documento do quadro de anúncios vai expirar nas próximas 48 horas:",
                 "countPlural=*": "{count} documentos do quadro de anúncios vão expirar nas próximas 48 horas:"
@@ -3880,9 +3639,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} mês registado",
                 "countPlural=*": "{count} meses registados"
@@ -3923,9 +3680,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Mais {count} cujo serviço terminou este ano.",
                 "countPlural=*": "Mais {count} cujo serviço terminou este ano."
@@ -3983,9 +3738,7 @@
                 "input total",
                 "local totalPlural = total: plural"
             ],
-            "selectors": [
-                "totalPlural"
-            ],
+            "selectors": ["totalPlural"],
             "match": {
                 "totalPlural=one": "{met} de {total} mês",
                 "totalPlural=*": "{met} de {total} meses"
@@ -3998,9 +3751,7 @@
                 "input total",
                 "local totalPlural = total: plural"
             ],
-            "selectors": [
-                "totalPlural"
-            ],
+            "selectors": ["totalPlural"],
             "match": {
                 "totalPlural=one": "de {total} mês",
                 "totalPlural=*": "de {total} meses"
@@ -4014,9 +3765,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} pioneiro atrasado",
                 "countPlural=*": "{count} pioneiros atrasados"
@@ -4186,9 +3935,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} documento por ler no quadro de anúncios",
                 "countPlural=*": "{count} documentos por ler no quadro de anúncios"
@@ -4270,13 +4017,8 @@
     "publishers_enrolment_removed_success": "Modalidade eliminada.",
     "publishers_enrolment_goal_suffix": [
         {
-            "declarations": [
-                "input goal",
-                "local goalPlural = goal: plural"
-            ],
-            "selectors": [
-                "goalPlural"
-            ],
+            "declarations": ["input goal", "local goalPlural = goal: plural"],
+            "selectors": ["goalPlural"],
             "match": {
                 "goalPlural=one": "requisito de {goal} hora",
                 "goalPlural=*": "requisito de {goal} horas"
@@ -4329,9 +4071,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Este tipo ainda é usado em {count} parte do programa.",
                 "countPlural=*": "Este tipo ainda é usado em {count} partes do programa."
@@ -4370,9 +4110,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} item a tratar",
                 "countPlural=*": "{count} itens a tratar"
@@ -4388,9 +4126,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} relatório em falta — {month}",
                 "countPlural=*": "{count} relatórios em falta — {month}"
@@ -4411,9 +4147,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} publicador",
                 "countPlural=*": "{count} publicadores"
@@ -4512,9 +4246,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "O registo será anonimizado em {date}, daqui a {count} mês, a menos que regresse antes dessa data.",
                 "countPlural=*": "O registo será anonimizado em {date}, daqui a {count} meses, a menos que regresse antes dessa data."
@@ -4546,9 +4278,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} ano",
                 "countPlural=*": "{count} anos"
@@ -4570,9 +4300,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} designação futura",
                 "countPlural=*": "{count} designações futuras"
@@ -4589,9 +4317,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} dia",
                 "countPlural=*": "{count} dias"
@@ -4639,9 +4365,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} parte",
                 "countPlural=*": "{count} partes"
@@ -4658,9 +4382,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} planeada",
                 "countPlural=*": "{count} planeadas"
@@ -4681,9 +4403,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} dia",
                 "countPlural=*": "{count} dias"
@@ -4711,9 +4431,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "dia",
                 "countPlural=*": "dias"
@@ -4740,9 +4458,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "atribuído há {count} dia",
                 "countPlural=*": "atribuído há {count} dias"
@@ -4797,9 +4513,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Depois de devolvidos, os territórios da campanha ficam em descanso durante {count} dia antes de serem atribuídos novamente.",
                 "countPlural=*": "Depois de devolvidos, os territórios da campanha ficam em descanso durante {count} dias antes de serem atribuídos novamente."
@@ -4815,9 +4529,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "o território ainda atribuído para a campanha ({count}) será devolvido",
                 "countPlural=*": "os {count} territórios ainda atribuídos para a campanha serão devolvidos"
@@ -4831,9 +4543,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "o território atribuído para a campanha ({count}) continuará com o publicador",
                 "countPlural=*": "os {count} territórios atribuídos para a campanha continuarão com os publicadores"
@@ -4847,9 +4557,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "a designação em pausa ({count}) será retomada",
                 "countPlural=*": "as {count} designações em pausa serão retomadas"
@@ -4863,9 +4571,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "a designação ({count}) continuará em pausa",
                 "countPlural=*": "as {count} designações continuarão em pausa"
@@ -4879,9 +4585,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "a designação em pausa ({count}) será devolvida",
                 "countPlural=*": "as {count} designações em pausa serão devolvidas"
@@ -4894,9 +4598,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "os territórios da campanha ficam em descanso durante {count} dia",
                 "countPlural=*": "os territórios da campanha ficam em descanso durante {count} dias"
@@ -4936,9 +4638,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} território",
                 "countPlural=*": "{count} territórios"
@@ -5004,13 +4704,8 @@
     "campaigns_form_end_action_close_desc": "Devolvidos definitivamente. Os territórios entram então em período de descanso.",
     "campaigns_form_dates_length_hint": [
         {
-            "declarations": [
-                "input days",
-                "local daysPlural = days: plural"
-            ],
-            "selectors": [
-                "daysPlural"
-            ],
+            "declarations": ["input days", "local daysPlural = days: plural"],
+            "selectors": ["daysPlural"],
             "match": {
                 "daysPlural=one": "{days} dia, incluindo o último.",
                 "daysPlural=*": "{days} dias, incluindo o último."
@@ -5029,9 +4724,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "uma vez este ano",
                 "countPlural=*": "{count} vezes este ano"
@@ -5077,9 +4770,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Devolver até {date} · dentro de {count} dia",
                 "countPlural=*": "Devolver até {date} · dentro de {count} dias"
@@ -5113,9 +4804,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Devolver em {date}: {count} dia, conforme as definições da congregação. Pode alterar a data depois na designação.",
                 "countPlural=*": "Devolver em {date}: {count} dias, conforme as definições da congregação. Pode alterar a data depois na designação."
@@ -5165,9 +4854,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} território",
                 "countPlural=*": "{count} territórios"
@@ -5184,9 +4871,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Depois, fica em descanso durante {count} dia: volta a estar disponível em {date}.",
                 "countPlural=*": "Depois, fica em descanso durante {count} dias: volta a estar disponível em {date}."
@@ -5225,9 +4910,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Nunca foi atribuído. A sua entrada ({count}) ficará disponível para outro território.",
                 "countPlural=*": "Nunca foi atribuído. As suas entradas ({count}) ficarão disponíveis para outro território."
@@ -5247,9 +4930,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} habitação",
                 "countPlural=*": "{count} habitações"
@@ -5270,9 +4951,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "atribuído {count} vez",
                 "countPlural=*": "atribuído {count} vezes"
@@ -5289,9 +4968,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} dia",
                 "countPlural=*": "{count} dias"
@@ -5306,9 +4983,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} designação",
                 "countPlural=*": "{count} designações"
@@ -5321,9 +4996,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Mostrar a {count} mais antiga",
                 "countPlural=*": "Mostrar as {count} mais antigas"
@@ -5339,9 +5012,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} mês",
                 "countPlural=*": "{count} meses"
@@ -5358,9 +5029,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} semana",
                 "countPlural=*": "{count} semanas"
@@ -5374,9 +5043,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Filtros, {count} ativo",
                 "countPlural=*": "Filtros, {count} ativos"
@@ -5394,9 +5061,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Nada foi guardado: {count} entrada já faz parte de outros territórios ({list}).",
                 "countPlural=*": "Nada foi guardado: {count} entradas já fazem parte de outros territórios ({list})."
@@ -5421,9 +5086,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} entrada",
                 "countPlural=*": "{count} entradas"
@@ -5436,9 +5099,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} rua",
                 "countPlural=*": "{count} ruas"
@@ -5474,9 +5135,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} alteração",
                 "countPlural=*": "{count} alterações"
@@ -5540,9 +5199,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} publicador",
                 "countPlural=*": "{count} publicadores"
@@ -5555,9 +5212,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} inativo",
                 "countPlural=*": "{count} inativos"
@@ -5570,9 +5225,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} em falta",
                 "countPlural=*": "{count} em falta"
@@ -5585,9 +5238,7 @@
                 "input total",
                 "local totalPlural = total: plural"
             ],
-            "selectors": [
-                "totalPlural"
-            ],
+            "selectors": ["totalPlural"],
             "match": {
                 "totalPlural=one": "{filed} de {total} relatório",
                 "totalPlural=*": "{filed} de {total} relatórios"
@@ -5602,9 +5253,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} publicador não pertence a nenhum grupo.",
                 "countPlural=*": "{count} publicadores não pertencem a nenhum grupo."
@@ -5629,9 +5278,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} publicador após guardar",
                 "countPlural=*": "{count} publicadores após guardar"
@@ -5646,9 +5293,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "O publicador ({count}) ficará sem grupo; pode atribuí-lo a outro. O relatório será mantido.",
                 "countPlural=*": "Os publicadores ({count}) ficarão sem grupo; pode atribuí-los a outro. Os relatórios serão mantidos."
@@ -5814,9 +5459,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Ao guardar, a designação de {names} termina no fim deste mês.",
                 "countPlural=*": "Ao guardar, as designações de {names} terminam no fim deste mês."
@@ -5841,9 +5484,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} semana",
                 "countPlural=*": "{count} semanas"
@@ -5856,9 +5497,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "≈ {count} mês",
                 "countPlural=*": "≈ {count} meses"
@@ -5871,9 +5510,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} ano",
                 "countPlural=*": "{count} anos"
@@ -5904,9 +5541,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} ponto",
                 "countPlural=*": "{count} pontos"
@@ -5996,9 +5631,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} pessoa",
                 "countPlural=*": "{count} pessoas"
@@ -6060,9 +5693,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} permissão",
                 "countPlural=*": "{count} permissões"
@@ -6080,9 +5711,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} administrador. A aplicação não permite que fique sem nenhum.",
                 "countPlural=*": "{count} administradores. A aplicação não permite que fique sem nenhum."
@@ -6106,9 +5735,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} parte",
                 "countPlural=*": "{count} partes"
@@ -6121,9 +5748,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} serviço",
                 "countPlural=*": "{count} serviços"
@@ -6147,9 +5772,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} próxima reunião não corresponde ao dia e horário do modelo.",
                 "countPlural=*": "{count} próximas reuniões não correspondem ao dia e horário do modelo."
@@ -6163,9 +5786,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Transferir a próxima reunião",
                 "countPlural=*": "Transferir as {count} próximas reuniões"
@@ -6178,9 +5799,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} reunião transferida.",
                 "countPlural=*": "{count} reuniões transferidas."
@@ -6193,9 +5812,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} reunião eliminada: já havia uma nessa semana.",
                 "countPlural=*": "{count} reuniões eliminadas: já havia uma nessas semanas."
@@ -6209,9 +5826,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Modelo de programa · usado por {count} programa",
                 "countPlural=*": "Modelo de programa · usado por {count} programas"
@@ -6242,9 +5857,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Usado por {count} programa: não pode ser eliminado.",
                 "countPlural=*": "Usado por {count} programas: não pode ser eliminado."
@@ -6267,9 +5880,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Usado por {count} parte",
                 "countPlural=*": "Usado por {count} partes"
@@ -6297,9 +5908,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} conta com endereço provisório (placeholder.unitae.app) ignorada: nunca iniciou sessão.",
                 "countPlural=*": "{count} contas com endereço provisório (placeholder.unitae.app) ignoradas: nunca iniciaram sessão."
@@ -6411,9 +6020,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} ação",
                 "countPlural=*": "{count} ações"
@@ -6468,9 +6075,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "+ {count} membro",
                 "countPlural=*": "+ {count} membros"
@@ -6545,9 +6150,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} pessoa perderá esta função e os direitos que concede.",
                 "countPlural=*": "{count} pessoas perderão esta função e os direitos que concede."
@@ -6565,9 +6168,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} parte de um programa futuro",
                 "countPlural=*": "{count} partes de programas futuros"
@@ -6588,9 +6189,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} pessoa",
                 "countPlural=*": "{count} pessoas"
@@ -6610,9 +6209,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} direito copiado",
                 "countPlural=*": "{count} direitos copiados"
@@ -6657,9 +6254,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} membro",
                 "countPlural=*": "{count} membros"
@@ -6674,9 +6269,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} função",
                 "countPlural=*": "{count} funções"
@@ -6724,9 +6317,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} orador",
                 "countPlural=*": "{count} oradores"
@@ -6739,9 +6330,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} congregação",
                 "countPlural=*": "{count} congregações"
@@ -6804,9 +6393,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} visita",
                 "countPlural=*": "{count} visitas"
@@ -6849,9 +6436,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} discurso agendado será libertado: {dates}. A parte voltará a indicar “Por preencher”.",
                 "countPlural=*": "{count} discursos agendados serão libertados: {dates}. As partes voltarão a indicar “Por preencher”."
@@ -6865,9 +6450,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} visita anterior continuará nos programas como “{label}”, sem o nome do irmão.",
                 "countPlural=*": "{count} visitas anteriores continuarão nos programas como “{label}”, sem o nome do irmão."
@@ -6923,9 +6506,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Lidos em {file}: {count} orador.",
                 "countPlural=*": "Lidos em {file}: {count} oradores."
@@ -6980,9 +6561,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} novo",
                 "countPlural=*": "{count} novos"
@@ -6995,9 +6574,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} alterado",
                 "countPlural=*": "{count} alterados"
@@ -7010,9 +6587,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} modou de congregação",
                 "countPlural=*": "{count} mudaram de congregação"
@@ -7025,9 +6600,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} retirado",
                 "countPlural=*": "{count} retirados"
@@ -7040,9 +6613,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} por verificar",
                 "countPlural=*": "{count} por verificar"
@@ -7161,9 +6732,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} orador, com o coordenador e o coordenador do discurso público no início",
                 "countPlural=*": "{count} oradores, com o coordenador e o coordenador do discurso público no início"
@@ -7177,9 +6746,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Enviar {count} e-mail",
                 "countPlural=*": "Enviar {count} e-mails"
@@ -7194,9 +6761,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "A nossa lista foi enviada a {count} congregação.",
                 "countPlural=*": "A nossa lista foi enviada a {count} congregações."
@@ -7214,9 +6779,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Registar {count} congregação",
                 "countPlural=*": "Registar {count} congregações"
@@ -7229,9 +6792,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "A nossa lista foi registada como enviada a {count} congregação.",
                 "countPlural=*": "A nossa lista foi registada como enviada a {count} congregações."
@@ -7247,9 +6808,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Lista de {date} · {count} irmão",
                 "countPlural=*": "Lista de {date} · {count} irmãos"
@@ -7284,9 +6843,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} irmão na nossa lista",
                 "countPlural=*": "{count} irmãos na nossa lista"
@@ -7299,9 +6856,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Candidatos: {count} irmão da função de organigrama {role}.",
                 "countPlural=*": "Candidatos: {count} irmãos da função de organigrama {role}."
@@ -7328,9 +6883,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} documento",
                 "countPlural=*": "{count} documentos"
@@ -7343,9 +6896,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} secção",
                 "countPlural=*": "{count} secções"
@@ -7358,9 +6909,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} entrada",
                 "countPlural=*": "{count} entradas"
@@ -7373,9 +6922,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} rua",
                 "countPlural=*": "{count} ruas"
@@ -7388,9 +6935,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} território adicionado",
                 "countPlural=*": "{count} territórios adicionados"
@@ -7403,9 +6948,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} retirado",
                 "countPlural=*": "{count} retirados"
@@ -7418,9 +6961,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} consta da nossa lista.",
                 "countPlural=*": "{count} constam da nossa lista."
@@ -7433,9 +6974,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} linha antiga de utilizador dividida",
                 "countPlural=*": "{count} linhas antigas de utilizador divididas"
@@ -7448,9 +6987,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} registo",
                 "countPlural=*": "{count} registos"
@@ -7463,9 +7000,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} conta",
                 "countPlural=*": "{count} contas"
@@ -7478,9 +7013,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} dia",
                 "countPlural=*": "{count} dias"
@@ -7603,9 +7136,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} de 2 números introduzidos",
                 "countPlural=*": "{count} de 2 números introduzidos"
@@ -7648,9 +7179,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "de {count} realizada",
                 "countPlural=*": "de {count} realizadas"
@@ -7667,9 +7196,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} por completar",
                 "countPlural=*": "{count} por completar"
@@ -7708,9 +7235,7 @@
                 "input count",
                 "local countPlural = count: plural"
             ],
-            "selectors": [
-                "countPlural"
-            ],
+            "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "{count} reunião registada",
                 "countPlural=*": "{count} reuniões registadas"

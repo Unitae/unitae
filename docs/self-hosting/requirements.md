@@ -7,10 +7,10 @@ Minimum resources needed to run Unitae in a production-ready environment.
 ### Single Congregation
 
 | Resource | Minimum | Recommended |
-|----------|---------|-------------|
-| CPU | 1 vCPU | 2 vCPU |
-| RAM | 1 GB | 2 GB |
-| Disk | 10 GB | 20 GB+ |
+| -------- | ------- | ----------- |
+| CPU      | 1 vCPU  | 2 vCPU      |
+| RAM      | 1 GB    | 2 GB        |
+| Disk     | 10 GB   | 20 GB+      |
 
 Disk usage grows primarily from uploaded PDF documents (board, territory exports). Plan storage based on your expected document volume.
 
@@ -19,10 +19,10 @@ Disk usage grows primarily from uploaded PDF documents (board, territory exports
 For multi-tenant deployments, scale resources based on the number of active congregations:
 
 | Resource | Small (2-5 congregations) | Medium (5-20 congregations) |
-|----------|--------------------------|----------------------------|
-| CPU | 2 vCPU | 4 vCPU |
-| RAM | 2 GB | 4 GB |
-| Disk | 20 GB | 50 GB+ |
+| -------- | ------------------------- | --------------------------- |
+| CPU      | 2 vCPU                    | 4 vCPU                      |
+| RAM      | 2 GB                      | 4 GB                        |
+| Disk     | 20 GB                     | 50 GB+                      |
 
 ## Software
 

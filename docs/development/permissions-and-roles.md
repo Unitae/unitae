@@ -17,16 +17,16 @@ Roles are the **only** carrier of a permission. The former `CongregationUserPerm
 
 ## Where things live
 
-| Concern | Path |
-|---|---|
-| Permission enum (source of truth) | `app/shared/types/permission.ts` |
-| Built-in role keys + auto-assignment predicates | `app/shared/domain/built-in-roles.server.ts` |
-| Custom role CRUD (create/update/delete, permission sync, user assignment) | `app/shared/domain/roles.server.ts` |
-| Effective-permission resolver | `app/shared/auth/permissions.server.ts` |
-| Auth middleware that runs the resolver | `app/shared/auth/middleware.server.ts` |
-| Typed contexts (`currentAccountContext`, `congregationContext`, `permissionsContext`) | `app/shared/auth/route-context.server.ts` |
-| Role admin UI | `app/features/congregation/routes/roles/` |
-| User assignment UI | settings — see `app/features/settings/` |
+| Concern                                                                               | Path                                         |
+| ------------------------------------------------------------------------------------- | -------------------------------------------- |
+| Permission enum (source of truth)                                                     | `app/shared/types/permission.ts`             |
+| Built-in role keys + auto-assignment predicates                                       | `app/shared/domain/built-in-roles.server.ts` |
+| Custom role CRUD (create/update/delete, permission sync, user assignment)             | `app/shared/domain/roles.server.ts`          |
+| Effective-permission resolver                                                         | `app/shared/auth/permissions.server.ts`      |
+| Auth middleware that runs the resolver                                                | `app/shared/auth/middleware.server.ts`       |
+| Typed contexts (`currentAccountContext`, `congregationContext`, `permissionsContext`) | `app/shared/auth/route-context.server.ts`    |
+| Role admin UI                                                                         | `app/features/congregation/routes/roles/`    |
+| User assignment UI                                                                    | settings — see `app/features/settings/`      |
 
 Database schema is in `app/database/schema.prisma`. The relevant tables are `Permission`, `Role`, `RolePermission`, `MemberRoleAssignment` (every role of a person with a record: identity roles, and given roles with their seat) and `UserRoleAssignment` (roles of an account without a record, and `admin`).
 
@@ -54,7 +54,7 @@ Defined by `BUILT_IN_ROLE_KEYS` in `app/shared/domain/built-in-roles.server.ts`:
 - `anointed` — publisher + baptized + `isAnointed`
 - `elder` — baptized male + `isHelder`
 - `assistant-servant` — baptized male + `isServant`
-- `pioneer` — publisher + baptized + `type` is any pioneer type (i.e. not `normal` — permanent, auxiliary, special, or missionary). Compared against the `PublisherType` enum *names* the Prisma client returns, not the `@map`-ed DB strings
+- `pioneer` — publisher + baptized + `type` is any pioneer type (i.e. not `normal` — permanent, auxiliary, special, or missionary). Compared against the `PublisherType` enum _names_ the Prisma client returns, not the `@map`-ed DB strings
 
 Membership is computed from `Member` flags (`isPublisher`, `type`, `isMale`, `baptismDate`, `isAnointed`, `isHelder`, `isServant`, `leftAt`) by `BUILT_IN_ROLE_PREDICATES`. After any change to those fields, call `syncBuiltInRoleAssignments(db, memberId, congregationId, actorId)` — it diffs the desired vs current `MemberRoleAssignment` rows and audits the change. When `Member.leftAt` is set, every predicate evaluates to `false`, so soft-leaving a member drops every identity role automatically.
 
@@ -62,12 +62,12 @@ Membership is computed from `Member` flags (`isPublisher`, `type`, `isMale`, `ba
 
 Lifecycle transitions on `Member` and the optional 1:1 `UserAccount` link emit dedicated audit actions (in addition to whatever `syncBuiltInRoleAssignments` records):
 
-| Action key | Service | When |
-|---|---|---|
-| `MemberLeft` (`member.left`) | `setMemberLeft` | A Member is marked as having left. Identity-role assignments are dropped via the role-sync diff; if the Member has a linked `UserAccount`, every `UserRoleAssignment` (custom/management roles) on that account is dropped too — leaving means losing access. |
-| `MemberReturned` (`member.returned`) | `setMemberReturned` | `leftAt` is cleared. Identity roles are re-attached from the still-intact flags; management roles on the linked account are NOT restored — they must be re-granted explicitly. |
-| `AccountLinkedToMember` (`account.linked_to_member`) | `linkAccountToMember` | A login is added to an existing Member. A `UserAccount` row is created with an empty password, a fresh `PasswordResetToken` is generated, and the caller is expected to send the reset email. Throws `ConflictError` on duplicate email or pre-existing link. |
-| `AccountUnlinkedFromMember` (`account.unlinked_from_member`) | `unlinkAccountFromMember` | The linked `UserAccount` is deleted. Tokens, permissions, and management role assignments cascade via FK `onDelete`. The Member row stays in place. |
+| Action key                                                   | Service                   | When                                                                                                                                                                                                                                                          |
+| ------------------------------------------------------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MemberLeft` (`member.left`)                                 | `setMemberLeft`           | A Member is marked as having left. Identity-role assignments are dropped via the role-sync diff; if the Member has a linked `UserAccount`, every `UserRoleAssignment` (custom/management roles) on that account is dropped too — leaving means losing access. |
+| `MemberReturned` (`member.returned`)                         | `setMemberReturned`       | `leftAt` is cleared. Identity roles are re-attached from the still-intact flags; management roles on the linked account are NOT restored — they must be re-granted explicitly.                                                                                |
+| `AccountLinkedToMember` (`account.linked_to_member`)         | `linkAccountToMember`     | A login is added to an existing Member. A `UserAccount` row is created with an empty password, a fresh `PasswordResetToken` is generated, and the caller is expected to send the reset email. Throws `ConflictError` on duplicate email or pre-existing link. |
+| `AccountUnlinkedFromMember` (`account.unlinked_from_member`) | `unlinkAccountFromMember` | The linked `UserAccount` is deleted. Tokens, permissions, and management role assignments cascade via FK `onDelete`. The Member row stays in place.                                                                                                           |
 
 Domain invariants are enforced at the database level via CHECK constraints on `Member`: a servant cannot also be an elder, anointed requires baptism, pioneer requires baptism, elder/servant require baptism + male. Code that would violate these throws on `INSERT`/`UPDATE`.
 
@@ -95,16 +95,16 @@ Release and un-release actions do **not** get their own permission. They share t
 - **Template responsible** — the user set as `EventTemplate.responsible` can release/un-release events generated from that template (mirrors the existing edit + delete carve-out)
 - **Admin** — everything (expanded from `Permission.Admin`)
 
-The route handlers (`programs/events/release.tsx`, `unrelease.tsx`, `bulk-release.tsx`, `bulk-unrelease.tsx`) run authorization in Phase 1 of a two-phase pattern: a small scoped tx checks `canManageAnyProgram` and (for bulk) filters submitted IDs through `filterToManageableEventIds`. Phase 2 runs the mutation per-event via `withScope` and — for release only — fires the notifications *outside* the release tx (see [notifications.md](notifications.md#event-part-dispatch-gate)).
+The route handlers (`programs/events/release.tsx`, `unrelease.tsx`, `bulk-release.tsx`, `bulk-unrelease.tsx`) run authorization in Phase 1 of a two-phase pattern: a small scoped tx checks `canManageAnyProgram` and (for bulk) filters submitted IDs through `filterToManageableEventIds`. Phase 2 runs the mutation per-event via `withScope` and — for release only — fires the notifications _outside_ the release tx (see [notifications.md](notifications.md#event-part-dispatch-gate)).
 
 Bulk routes are hardened against cross-tenant probes: `filterToManageableEventIds` runs a `congregationId`-scoped `findMany` even for managers, so IDs from another tenant are silently dropped and logged as `warn` for triage. Non-manager drops (freeform events, unauthorized templates, cross-tenant IDs) are logged at `info` with counters split by reason.
 
 ## Emergency-information access (group-scoped)
 
-Emergency-preparedness info (`features/publishers`) is the second place — after the activity *entry* form (`canManageMyGroupActivity`) — where access is **unioned from a global permission and a group scope**, and the pattern is worth calling out because it does *not* fit the pure permission model.
+Emergency-preparedness info (`features/publishers`) is the second place — after the activity _entry_ form (`canManageMyGroupActivity`) — where access is **unioned from a global permission and a group scope**, and the pattern is worth calling out because it does _not_ fit the pure permission model.
 
 - **Global** — two ordinary permissions, `EmergencyInfoViewer` and `EmergencyInfoManager`, granted through roles. Congregation-wide.
-- **Scoped, no permission entry** — a member who is the `responsibleFor` / `deputyFor` a group may view *and* edit the emergency info of members **of that group**. This is derived from group responsibility, not from any `Permission`, so it grants no role-editable entry.
+- **Scoped, no permission entry** — a member who is the `responsibleFor` / `deputyFor` a group may view _and_ edit the emergency info of members **of that group**. This is derived from group responsibility, not from any `Permission`, so it grants no role-editable entry.
 
 The decision lives in pure functions in `app/features/publishers/model/emergency-access.ts` (`canViewEmergencyInfo` / `canManageEmergencyInfo`), which take `{ hasViewer, hasManager, myResponsibleGroupId, myDeputyGroupId, targetGroupId }`. Route loaders/actions (`routes/publishers/emergency.tsx`, the two `emergency-roster*` routes) resolve the caller's group responsibility off `currentAccountContext` (already eager-loaded) and re-check server-side. Because the scope isn't a permission, a group responsible who holds no publisher permission has no in-app nav entry to the roster today — they reach it via the per-group roster link on the group page.
 
@@ -113,11 +113,11 @@ The decision lives in pure functions in `app/features/publishers/model/emergency
 Three kinds of role exist, and the difference that matters is **who attaches them**, not
 the `isBuiltIn` flag — that flag only answers "can this be renamed or deleted".
 
-| Kind | Keys | `isBuiltIn` | Attaches to | Managed by |
-|---|---|---|---|---|
-| Identity | `BUILT_IN_ROLE_KEYS` (`member`, `publisher`, `elder`, …) | `true` | `Member` | `syncBuiltInRoleAssignments`, from Member flags |
-| System | `SYSTEM_ROLE_KEYS` (`admin`) | `true` | `UserAccount` | granted by hand |
-| Custom | whatever an admin creates | `false` | `Member` (or `UserAccount` for an account without a record) | granted by hand |
+| Kind     | Keys                                                     | `isBuiltIn` | Attaches to                                                 | Managed by                                      |
+| -------- | -------------------------------------------------------- | ----------- | ----------------------------------------------------------- | ----------------------------------------------- |
+| Identity | `BUILT_IN_ROLE_KEYS` (`member`, `publisher`, `elder`, …) | `true`      | `Member`                                                    | `syncBuiltInRoleAssignments`, from Member flags |
+| System   | `SYSTEM_ROLE_KEYS` (`admin`)                             | `true`      | `UserAccount`                                               | granted by hand                                 |
+| Custom   | whatever an admin creates                                | `false`     | `Member` (or `UserAccount` for an account without a record) | granted by hand                                 |
 
 Both lists live in `app/shared/domain/built-in-roles.server.ts`, alongside
 `isIdentityRoleKey()` — prefer that helper over reading `isBuiltIn` when the question is
@@ -128,7 +128,7 @@ Two consequences are easy to get wrong:
 - **`syncBuiltInRoleAssignments` selects by key list, not by `isBuiltIn`.** A role with no
   predicate is treated as "not desired" and its assignment deleted, so matching on the flag
   would silently strip `admin` on the next Member sync.
-- **Hand-given means custom *or* system.** `handGivenRole()` filters on
+- **Hand-given means custom _or_ system.** `handGivenRole()` filters on
   `isBuiltIn: false OR key IN SYSTEM_ROLE_KEYS`; filtering on the flag alone makes `admin`
   impossible to grant through the UI.
 

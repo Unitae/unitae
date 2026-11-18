@@ -23,9 +23,9 @@ Every authenticated member can view their own assigned territories at `/me/terri
 The personal list shows all territories currently attributed to the member as a card grid:
 
 - **Territory number** and **type badge** (color-coded)
-- **Quantity label** — e.g., *42 households*, *12 phones*, *8 businesses*
+- **Quantity label** — e.g., _42 households_, _12 phones_, _8 businesses_
 - **Status badge** — On time / due soon / overdue
-- **Assignment indicators** — A pill with a phone icon appears for *Phones* assignments, and an assignment that belongs to a campaign shows the **campaign's name** with a megaphone icon (see [Publishing campaigns](#publishing-campaigns)); the two are independent, so a phone assignment inside a campaign shows both. *Door to door* — the default — shows no extra indicator. This mirrors the watermark on the printed territory card.
+- **Assignment indicators** — A pill with a phone icon appears for _Phones_ assignments, and an assignment that belongs to a campaign shows the **campaign's name** with a megaphone icon (see [Publishing campaigns](#publishing-campaigns)); the two are independent, so a phone assignment inside a campaign shows both. _Door to door_ — the default — shows no extra indicator. This mirrors the watermark on the printed territory card.
 - **Due date** — Displayed as relative time
 - **PDF download** — Download the territory card directly from the list
 
@@ -34,19 +34,19 @@ The personal list shows all territories currently attributed to the member as a 
 Clicking a territory opens a detail page with two tabs:
 
 - **Territory** — Address cards adapted to the territory type:
-  - *Door to door / Universities*: address, access sequence (intercom → keypad → doorbell), household count, open-morning and mailbox flags, notes
-  - *Phones*: address, phone count, notes
-  - *Businesses*: address, shop type label, notes
+  - _Door to door / Universities_: address, access sequence (intercom → keypad → doorbell), household count, open-morning and mailbox flags, notes
+  - _Phones_: address, phone count, notes
+  - _Businesses_: address, shop type label, notes
   - PDF download button for offline use
 - **Map** — The territory's entrances as numbered pins (the numbers of the list) on the base map the instance serves (when it has one and the congregation turned the map on). Pointing at an entrance raises its pins; picking one opens its card on the map. Nothing asks for consent: no third-party service is called. Without a base map the list takes the whole width. See [Maps](../self-hosting/maps.md).
 
-Assignment info (start date, return date with relative time, status, the *Phones* method pill and the campaign-name pill when applicable) is shown above the tabs.
+Assignment info (start date, return date with relative time, status, the _Phones_ method pill and the campaign-name pill when applicable) is shown above the tabs.
 
 Members only ever see territories they currently have an active assignment for.
 
 ## Search and Filtering
 
-Every territory list page — the main territory list, the attribution list, the *Available territories* picker shown when assigning a new territory, the prospection list, and the split-tool — shares the same search and filter row.
+Every territory list page — the main territory list, the attribution list, the _Available territories_ picker shown when assigning a new territory, the prospection list, and the split-tool — shares the same search and filter row.
 
 ### One search box, several intents
 
@@ -57,7 +57,7 @@ A single search input recognises what you type:
 - **An address or part of one** — `12 rue de la Paix`, `Rue Mouffetard`, `75011`. Matches the building's number, street, and postal code.
 - **A neighbourhood or place** — `Bastille`, `Montparnasse`. Treated as a place hint when long enough or when prefixed with `@`.
 
-You can also force the *place* interpretation explicitly by prefixing your query with `@`, for example `@Bastille`. Useful for very short place names that would otherwise be read as a publisher name.
+You can also force the _place_ interpretation explicitly by prefixing your query with `@`, for example `@Bastille`. Useful for very short place names that would otherwise be read as a publisher name.
 
 The little ⓘ button next to the search input opens a quick-reference popover with these examples.
 
@@ -65,22 +65,22 @@ The little ⓘ button next to the search input opens a quick-reference popover w
 
 When you type an address or a place name and a Google Maps API key is configured, Unitae resolves the location and **ranks the matching territories by distance** from that point:
 
-- A confirmation banner shows the resolved address ("Résultats à proximité de 12 Rue de la Paix, 75002 Paris"). If Google returns several possibilities, up to two *Did you mean?* chips appear so you can pick another match in one click. The same banner has an *Effacer la proximité* link to drop the geographic ranking and return to the default sort.
+- A confirmation banner shows the resolved address ("Résultats à proximité de 12 Rue de la Paix, 75002 Paris"). If Google returns several possibilities, up to two _Did you mean?_ chips appear so you can pick another match in one click. The same banner has an _Effacer la proximité_ link to drop the geographic ranking and return to the default sort.
 - A **Distance** column appears with the distance to each territory, right-aligned and formatted in metres or kilometres depending on locale.
-- Territories whose addresses haven't been geo-coded yet are pushed below the ranked rows behind a *Sans coordonnées* divider, so you can still see them but won't mistake them for "the closest". On pages past the boundary, a banner at the top of the table reminds you that you're browsing the un-coord tail.
-- A **sort selector** lets you switch to *Proximité* from the page's usual orders. Proximity is preselected the moment Google returns a result.
+- Territories whose addresses haven't been geo-coded yet are pushed below the ranked rows behind a _Sans coordonnées_ divider, so you can still see them but won't mistake them for "the closest". On pages past the boundary, a banner at the top of the table reminds you that you're browsing the un-coord tail.
+- A **sort selector** lets you switch to _Proximité_ from the page's usual orders. Proximity is preselected the moment Google returns a result.
 
 Geocoded addresses are cached for 90 days — repeating the same search doesn't re-query the API. When no API key is configured, proximity ranking is silently disabled, and a small warning banner explains the fallback (text-only search still works).
 
 ### Active filter chips
 
-Whenever you apply a filter (type, postal code, access type, group, status, search, etc.), the current value appears as a chip above the filter row. Each chip shows `Label : value` and a ✕ to drop *just* that filter. The chip body is not clickable — only the ✕ is — so accidentally scanning the row doesn't wipe a filter.
+Whenever you apply a filter (type, postal code, access type, group, status, search, etc.), the current value appears as a chip above the filter row. Each chip shows `Label : value` and a ✕ to drop _just_ that filter. The chip body is not clickable — only the ✕ is — so accidentally scanning the row doesn't wipe a filter.
 
-A trailing *Tout effacer* chip clears every filter (including the current page) and returns the list to its default view.
+A trailing _Tout effacer_ chip clears every filter (including the current page) and returns the list to its default view.
 
 ### Mobile
 
-On phones, the *Filtres avancés* button collapses the secondary Selects (postal code, type, access, etc.) so the search input and Submit button stay prominent. A chevron rotates when the panel opens to make the state obvious.
+On phones, the _Filtres avancés_ button collapses the secondary Selects (postal code, type, access, etc.) so the search input and Submit button stay prominent. A chevron rotates when the panel opens to make the state obvious.
 
 ## Admin Territory View
 
@@ -90,35 +90,35 @@ Cards, top to bottom:
 
 - **Information** — Territory number, type, and the right kind of quantity for that type (households / phones / businesses / hotels / campuses).
 - **Notes** — Only shown when the territory has notes; gets its own card so longer notes stay readable.
-- **Entrances** — One row per address. Each row shows the address and a kind-appropriate label (shop type for *Businesses* territories, household count elsewhere) and links to the building detail in a new tab.
-- **Current assignment** — Either an empty state with an *Assign this territory* button, or the current assignment shown with the publisher's initials, name and dates, and a progress bar tracking how much of the loan period has elapsed (the bar turns red when overdue). Edit and cancel buttons appear for managers.
+- **Entrances** — One row per address. Each row shows the address and a kind-appropriate label (shop type for _Businesses_ territories, household count elsewhere) and links to the building detail in a new tab.
+- **Current assignment** — Either an empty state with an _Assign this territory_ button, or the current assignment shown with the publisher's initials, name and dates, and a progress bar tracking how much of the loan period has elapsed (the bar turns red when overdue). Edit and cancel buttons appear for managers.
 - **History** — Table of past assignments with publisher name, start/end dates, duration, and type — or a friendly empty state when there is no history yet.
 
-The page header carries previous/next arrows to step through territories of the same type ordered by number, a *Download PDF* button, and (for managers) an *Edit* button. The current filters from the list page are preserved as you navigate: list → view → edit → view → list keeps your selected type, postal code, and search visible.
+The page header carries previous/next arrows to step through territories of the same type ordered by number, a _Download PDF_ button, and (for managers) an _Edit_ button. The current filters from the list page are preserved as you navigate: list → view → edit → view → list keeps your selected type, postal code, and search visible.
 
 ## Territory Editor
 
-When the instance serves a base map (`UNITAE_MAP_TILES`, see [Maps](../self-hosting/maps.md)), the territory edit page opens with a map beside the territory's column: its entrances, the free ones and those of the other territories of the same type, loaded as you move the map. On a phone, *Carte* and *Entrées* take the screen in turn. Without a base map, the column offers an address search instead (number, street or postcode), so the editor stays fully usable.
+When the instance serves a base map (`UNITAE_MAP_TILES`, see [Maps](../self-hosting/maps.md)), the territory edit page opens with a map beside the territory's column: its entrances, the free ones and those of the other territories of the same type, loaded as you move the map. On a phone, _Carte_ and _Entrées_ take the screen in turn. Without a base map, the column offers an address search instead (number, street or postcode), so the editor stays fully usable.
 
 ### Map markers
 
 Each entrance is a dot. Its state shows by shape and icon, not by colour alone; clicking a dot opens its card with the one action that fits.
 
-| Dot | Meaning | On its card |
-|---|---|---|
-| **Filled, with a check** | On this territory | Remove it |
-| **Filled, with a plus and a ring** | Will be added when you save | Undo |
-| **Dashed circle** | Free — on no territory of this type | Add it |
-| **Small grey dot** | On another territory of the same type | Take it, with what that territory will hold afterwards |
-| **Red ring with an ×** | Will be removed when you save | Undo |
+| Dot                                | Meaning                               | On its card                                            |
+| ---------------------------------- | ------------------------------------- | ------------------------------------------------------ |
+| **Filled, with a check**           | On this territory                     | Remove it                                              |
+| **Filled, with a plus and a ring** | Will be added when you save           | Undo                                                   |
+| **Dashed circle**                  | Free — on no territory of this type   | Add it                                                 |
+| **Small grey dot**                 | On another territory of the same type | Take it, with what that territory will hold afterwards |
+| **Red ring with an ×**             | Will be removed when you save         | Undo                                                   |
 
 Red is reserved for "this will be removed", so you always know what is destructive.
 
 ### Tools around the map
 
 - **Address search** (top-left) — Type a number, street, or postal code to find an entrance on the map. Use ↑/↓ to highlight a suggestion and Enter to jump to it.
-- **Status** (under the search) — A spinner while entrances load, a hint when there are too many to show at once, and a *Retry* button if a load fails. Creating a territory, a line says to click a free entrance.
-- **Zoom and *Recentrer*** (top-right) — *Recentrer* brings the territory back into view.
+- **Status** (under the search) — A spinner while entrances load, a hint when there are too many to show at once, and a _Retry_ button if a load fails. Creating a territory, a line says to click a free entrance.
+- **Zoom and _Recentrer_** (top-right) — _Recentrer_ brings the territory back into view.
 - **Legend** (bottom-left, on a wide screen) — What each dot means.
 - **Grouping** — Zoomed out, nearby entrances become a disc with their count; click it to zoom in. From the street level on, each entrance shows alone.
 - **Outline** — The territory's shape, drawn around its entrances as you add and remove them.
@@ -126,15 +126,15 @@ Red is reserved for "this will be removed", so you always know what is destructi
 
 ### Pending changes
 
-Map clicks build up in the right-side panel (additions, removals, reassignments) until you click *Save*. Saving applies everything in one shot — partial saves are not possible. The address list on the right also shows the same pending state inline (a *Pending addition* / *Pending removal* / *From territory #N* badge), so the saved list and the pending panel always agree.
+Map clicks build up in the right-side panel (additions, removals, reassignments) until you click _Save_. Saving applies everything in one shot — partial saves are not possible. The address list on the right also shows the same pending state inline (a _Pending addition_ / _Pending removal_ / _From territory #N_ badge), so the saved list and the pending panel always agree.
 
-If you change your mind, each row has its own undo. You can also revert a whole section, or all pending changes at once with the *Revert all* link at the top of the panel.
+If you change your mind, each row has its own undo. You can also revert a whole section, or all pending changes at once with the _Revert all_ link at the top of the panel.
 
 Every cross-territory reassignment is recorded in the audit log so you can later trace who moved which address and when.
 
 ### Addresses without coordinates
 
-Some addresses may not have geographic coordinates yet (for example if the address sync from open data has not run). They cannot appear on the map, so the editor lists them in a collapsible *Addresses without coordinates* section in the right panel. You can still remove them from the territory from there.
+Some addresses may not have geographic coordinates yet (for example if the address sync from open data has not run). They cannot appear on the map, so the editor lists them in a collapsible _Addresses without coordinates_ section in the right panel. You can still remove them from the territory from there.
 
 ## Assignments
 
@@ -152,22 +152,22 @@ An **assignment** is when a territory is given to a publisher for a period of ti
 
 ### Assignment types
 
-The *Assignment type* field is the **method** of working the territory:
+The _Assignment type_ field is the **method** of working the territory:
 
 - **Door to door** — Standard territory assignment
 - **Phones** — Phone witnessing assignment
 
 Campaign membership is a separate, orthogonal layer: an assignment belongs to a campaign when it is created while that campaign is active (see [Publishing campaigns](#publishing-campaigns)). A campaign assignment shows the campaign's name with a megaphone icon; since method and campaign are independent, a phone assignment inside a campaign shows both indicators.
 
-The assignment type is surfaced in three places so the publisher always knows how to approach the territory: as a watermark on the printed territory card, as a pill (with a phone or megaphone icon) on the publisher's `/me/territories` list cards, and again on the territory detail page. *Door to door* is the default and shows no extra indicator in any of these places.
+The assignment type is surfaced in three places so the publisher always knows how to approach the territory: as a watermark on the printed territory card, as a pill (with a phone or megaphone icon) on the publisher's `/me/territories` list cards, and again on the territory detail page. _Door to door_ is the default and shows no extra indicator in any of these places.
 
 ## Publishing campaigns
 
 A **campaign** is a special preaching drive run over a defined period — a memorial invitation
 campaign, a convention invitation, a special-edition tract. Campaigns are managed by territory
-managers (*TerritoriesManager*) from the attributions page: the **Campagnes** button next to
-*Attribuer un territoire* opens the campaign list (a table of name, dates, scope, and status —
-*à venir*, *en cours*, or *terminée*). Publishers never configure campaigns; they see the banner
+managers (_TerritoriesManager_) from the attributions page: the **Campagnes** button next to
+_Attribuer un territoire_ opens the campaign list (a table of name, dates, scope, and status —
+_à venir_, _en cours_, or _terminée_). Publishers never configure campaigns; they see the banner
 and work their campaign assignments like any other.
 
 ### Planning a campaign
@@ -176,21 +176,21 @@ A campaign has a name, optional notes, a **start and end date** (both inclusive 
 the campaign's last day; the form shows the resulting length), an optional **post-campaign rest
 period**, and an optional **scope**.
 
-The scope is picked in a two-panel transfer list (*Disponibles | Sélectionnés*) with search and
+The scope is picked in a two-panel transfer list (_Disponibles | Sélectionnés_) with search and
 bulk add/remove — click a territory to move it across. **No territory selected means the whole
 territory of the local congregation.** The scope can be edited while the campaign runs: territories
 added to an active campaign's scope go through the start behavior at that moment, removed ones go
 through the end behavior.
 
 Two option groups, presented as choice cards with their consequences spelled out, define how the
-campaign interacts with ongoing regular assignments. A live summary (*Aperçu du déroulement*)
+campaign interacts with ongoing regular assignments. A live summary (_Aperçu du déroulement_)
 restates the chosen behavior before saving.
 
 **At start** (« Attributions régulières en cours ») — applies to open regular assignments in scope:
 
 - **Suspendre** (default) — they are paused: the publisher keeps the territory, its due date is
   frozen, and the territory becomes assignable within the campaign. An optional toggle
-  (*Réattribuer automatiquement*) immediately re-assigns each paused publisher's territory to the
+  (_Réattribuer automatiquement_) immediately re-assigns each paused publisher's territory to the
   same publisher as a campaign assignment.
 - **Clôturer** — they are returned immediately; the territories become assignable within the
   campaign, and after the campaign the rotation starts from scratch.
@@ -201,7 +201,7 @@ restates the chosen behavior before saving.
 
 - **Clôturer automatiquement les attributions de campagne** (default on) — still-open campaign
   assignments are returned when the campaign ends.
-- For the assignments the campaign paused (shown only with *Suspendre*): **Reprendre** (default —
+- For the assignments the campaign paused (shown only with _Suspendre_): **Reprendre** (default —
   each publisher gets their territory back, with the due date pushed back by the time spent
   paused), **Laisser suspendues** (to be released manually), or **Clôturer**.
 
@@ -217,15 +217,15 @@ While a campaign is active, **campaign mode** is on for the whole territories mo
   availability picker and the new-assignment form show a campaign notice, the method choice is
   replaced by the campaign badge, and new assignments belong to the campaign.
 - **A territory being actively worked stays out of the campaign**: any open, unpaused assignment
-  blocks campaign assignment. Paused and returned assignments free the territory — so *Suspendre*
-  and *Clôturer* free their territories, while *Laisser hors campagne* keeps them occupied.
+  blocks campaign assignment. Paused and returned assignments free the territory — so _Suspendre_
+  and _Clôturer_ free their territories, while _Laisser hors campagne_ keeps them occupied.
 - **Regular rest windows don't gate campaign work**: a territory resting from door-to-door or phone
-  work is assignable in the campaign. Only territories recently worked *in a campaign* keep resting
-  (see below). Paused territories show an *En pause* badge in the picker so the manager sees why the
+  work is assignable in the campaign. Only territories recently worked _in a campaign_ keep resting
+  (see below). Paused territories show an _En pause_ badge in the picker so the manager sees why the
   ground is available.
-- A **banner** on the territories pages and on *Mes territoires* announces the campaign — amber
+- A **banner** on the territories pages and on _Mes territoires_ announces the campaign — amber
   with the date range (and a management link) for managers, a shorter encouraging version for
-  publishers, and a blue *à venir* variant for a scheduled campaign (or *démarre aujourd'hui* when
+  publishers, and a blue _à venir_ variant for a scheduled campaign (or _démarre aujourd'hui_ when
   its start day has arrived). The banner is dismissible per campaign for the current session and
   never shows on the campaign-management pages themselves.
 
@@ -244,19 +244,19 @@ is active at a time** — campaigns with overlapping date windows are rejected �
 future campaigns can be scheduled freely.
 
 **Paused assignments** are still held by their publisher but leave the working lists (with an
-opt-in *Afficher les territoires suspendus* toggle on *Mes territoires*), stop accruing lateness,
-and show a grey *En pause* badge in the attribution list. A manager can release one early with the
+opt-in _Afficher les territoires suspendus_ toggle on _Mes territoires_), stop accruing lateness,
+and show a grey _En pause_ badge in the attribution list. A manager can release one early with the
 row's **Reprendre** action — the due date is pushed back by the time spent paused. Each campaign
-only ever resumes the assignments *it* paused: leftovers kept paused by an earlier campaign are
+only ever resumes the assignments _it_ paused: leftovers kept paused by an earlier campaign are
 never touched by a later one.
 
 The attribution list opens sorted by **Retard**: territories whose holder has left come first, since nobody will bring
 them back, then the others by due date, most overdue first, and the paused ones last, since their clock is frozen.
-*Sortie*, *Numéro* and, after an address search, *Proximité* remain available.
+_Sortie_, _Numéro_ and, after an address search, _Proximité_ remain available.
 
 The campaign page shows the campaign's status, its configured behavior in prose, its scope, and the
 **territories worked** during the campaign — who holds each one, checkout and return dates, and the
-**percentage of the scope covered** — with an *Attribuer un territoire* shortcut while the campaign
+**percentage of the scope covered** — with an _Attribuer un territoire_ shortcut while the campaign
 is active. Rows link to the assignment; territory numbers link to the territory.
 
 After the campaign, its territories rest for the campaign's **rest period** (15 days when unset)
@@ -290,17 +290,17 @@ Each building record includes:
 
 ### The prospection page
 
-*Territoires › Prospection* lists the buildings, 50 per page, on the same search and filter row as the other territory lists (postcode, contents, access, position). Five views sit next to the search, each with its count:
+_Territoires › Prospection_ lists the buildings, 50 per page, on the same search and filter row as the other territory lists (postcode, contents, access, position). Five views sit next to the search, each with its count:
 
-| View | Holds |
-|---|---|
-| **Actifs** (default) | Every active building |
-| **À vérifier** | Buildings to look at again, with every reason: never surveyed (created by hand), surveyed longer ago than the validity set in *Réglages › Territoires*, homes or phones to count, a way in to specify, active outside the territory for over 3 months, inactive inside it for over twice the validity |
-| **Nouveaux** | Listed by the last BANO sync and never surveyed |
-| **Manquants** | Active buildings the BANO listed before and its last sync did not: check on site, deactivate the ones that no longer exist. Buildings created by hand never show here |
-| **Tous** | Every building |
+| View                 | Holds                                                                                                                                                                                                                                                                                                 |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Actifs** (default) | Every active building                                                                                                                                                                                                                                                                                 |
+| **À vérifier**       | Buildings to look at again, with every reason: never surveyed (created by hand), surveyed longer ago than the validity set in _Réglages › Territoires_, homes or phones to count, a way in to specify, active outside the territory for over 3 months, inactive inside it for over twice the validity |
+| **Nouveaux**         | Listed by the last BANO sync and never surveyed                                                                                                                                                                                                                                                       |
+| **Manquants**        | Active buildings the BANO listed before and its last sync did not: check on site, deactivate the ones that no longer exist. Buildings created by hand never show here                                                                                                                                 |
+| **Tous**             | Every building                                                                                                                                                                                                                                                                                        |
 
-A building sits in at most one of the three work lists (*Manquants*, then *Nouveaux*, then *À vérifier*). The order is by address — numbers as they are read, 2 before 10 — by oldest survey, or by most recently added.
+A building sits in at most one of the three work lists (_Manquants_, then _Nouveaux_, then _À vérifier_). The order is by address — numbers as they are read, 2 before 10 — by oldest survey, or by most recently added.
 
 ### Open Data Sync
 
@@ -308,29 +308,29 @@ For congregations in France, building addresses can be automatically imported fr
 
 ## Split Tool
 
-The split tool helps administrators create new territories from prospected building data. It groups building entrances by type and lets you select which ones to include in a new territory. It opens from **Créer en lot** in the top bar of *Territoires*, for whoever may plan territory splits.
+The split tool helps administrators create new territories from prospected building data. It groups building entrances by type and lets you select which ones to include in a new territory. It opens from **Créer en lot** in the top bar of _Territoires_, for whoever may plan territory splits.
 
 ### Available categories
 
-| Category | Selects entrances with |
-|----------|----------------------|
+| Category         | Selects entrances with                                     |
+| ---------------- | ---------------------------------------------------------- |
 | **Door to door** | Intercom, doorbell, or early-opening access code entrances |
-| **Businesses** | Commercial building entrances |
-| **Universities** | Campus or university entrances |
-| **Phones** | Buildings with phone numbers or late-opening access codes |
-| **Hotels** | Hotel entrances |
+| **Businesses**   | Commercial building entrances                              |
+| **Universities** | Campus or university entrances                             |
+| **Phones**       | Buildings with phone numbers or late-opening access codes  |
+| **Hotels**       | Hotel entrances                                            |
 
-The *Phones* category is only visible if phone territories are enabled in settings.
+The _Phones_ category is only visible if phone territories are enabled in settings.
 
 ### Workflow
 
-*Créer en lot* is the bulk counterpart of *Nouveau territoire*: the same screen, built from the territory editor's pieces, that chains territories.
+_Créer en lot_ is the bulk counterpart of _Nouveau territoire_: the same screen, built from the territory editor's pieces, that chains territories.
 
-1. Open **Créer en lot** from the top bar of *Territoires*.
+1. Open **Créer en lot** from the top bar of _Territoires_.
 2. Choose the type in the column; each shows how many free entrances it has. The map shows those free entrances.
 3. Narrow the work with the filters (postcode, way in, street): they decide both the map's entrances and the counts, so several people can split at the same time, each a part.
 4. Click the free entrances of the next territory (or add, from the column, the free entrances no map can show). The column lists them by street with the territory's content.
-5. **Créer T16** creates the territory with the suggested number (it can be changed) and checks the plan's territory limit. The page stays: the selection starts again, the next number is suggested, and *Créés ici* lists the territories made during the visit.
+5. **Créer T16** creates the territory with the suggested number (it can be changed) and checks the plan's territory limit. The page stays: the selection starts again, the next number is suggested, and _Créés ici_ lists the territories made during the visit.
 
 If someone else took one of the chosen entrances, or the number, in the meantime, the creation is refused and says so; the selection stays. Without a base map, the entrances are found by number, street or postcode.
 
@@ -355,11 +355,11 @@ A single visual language is shared across every on-screen map:
 
 ## Carte de l'assemblée
 
-Open *Settings → Carte de l'assemblée* to define how your assembly's preaching territory is drawn on every printed territory card. The page hosts two related things:
+Open _Settings → Carte de l'assemblée_ to define how your assembly's preaching territory is drawn on every printed territory card. The page hosts two related things:
 
 ### Perimeter
 
-A single shape that traces the **complete preaching territory of the assembly**. Whenever an address is added or imported into Unitae, Unitae checks whether it falls inside this perimeter and tags the building as *inside* or *outside* the assembly's territory. That flag is what the prospection module uses to decide which addresses to send publishers to.
+A single shape that traces the **complete preaching territory of the assembly**. Whenever an address is added or imported into Unitae, Unitae checks whether it falls inside this perimeter and tags the building as _inside_ or _outside_ the assembly's territory. That flag is what the prospection module uses to decide which addresses to send publishers to.
 
 If you don't draw any zones (see below), the perimeter itself is shown as a light gray outline on every printed territory card, so a publisher can still see where their territory sits inside the assembly.
 
@@ -369,7 +369,7 @@ Named, colored shapes that **subdivide your assembly's territory** — for examp
 
 ### Editing the map
 
-The page shows the instance's base map, reaching about ten kilometres beyond the congregation's area so the perimeter can be drawn wider than the placed buildings. To create a zone or the perimeter, click *Draw*, then click on the map to place each corner; click the first corner (or press Enter) to close the shape, *Annuler le dernier point* takes the last corner back, and Escape starts over. A line in the map recalls this while you draw. To change an existing shape, click *Modifier la forme* on its row: drag a corner to move it, click a middle point to add one, right-click a corner to remove it. The other shapes fade while one is drawn or reshaped. To rename a zone or change its color, click *Renommer / changer la couleur* and pick from the palette (or use the custom color picker).
+The page shows the instance's base map, reaching about ten kilometres beyond the congregation's area so the perimeter can be drawn wider than the placed buildings. To create a zone or the perimeter, click _Draw_, then click on the map to place each corner; click the first corner (or press Enter) to close the shape, _Annuler le dernier point_ takes the last corner back, and Escape starts over. A line in the map recalls this while you draw. To change an existing shape, click _Modifier la forme_ on its row: drag a corner to move it, click a middle point to add one, right-click a corner to remove it. The other shapes fade while one is drawn or reshaped. To rename a zone or change its color, click _Renommer / changer la couleur_ and pick from the palette (or use the custom color picker).
 
 Every delete action (a zone, or the perimeter) asks for confirmation first. If you're in the middle of drawing or editing and click somewhere that would lose your work, Unitae warns you before throwing it away.
 
@@ -403,13 +403,13 @@ Statistics follow the **theocratic year** (September to August).
 
 ## Permissions
 
-| Permission | Can do |
-|---|---|
-| Territories Viewer | View territory list, assignments, and statistics |
+| Permission          | Can do                                                                                                                                                                    |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Territories Viewer  | View territory list, assignments, and statistics                                                                                                                          |
 | Territories Manager | Create, edit, and delete territories. Manage assignments. Trigger open-data sync. Cross-territory reassignments performed in the map editor are recorded in the audit log |
-| Prospection Viewer | View building prospection data |
-| Prospection Manager | Edit buildings, update prospection data, manage building status |
-| Admin | Everything |
+| Prospection Viewer  | View building prospection data                                                                                                                                            |
+| Prospection Manager | Edit buildings, update prospection data, manage building status                                                                                                           |
+| Admin               | Everything                                                                                                                                                                |
 
 See [Roles and Permissions](roles-and-permissions.md) for the full list of permissions across all features.
 

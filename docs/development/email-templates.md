@@ -85,6 +85,7 @@ Most notification emails go through the `notify()` pipeline (debounce, cancellat
 The `notify()` pipeline path:
 
 1. Business logic calls `notify()` from a service function:
+
    ```typescript
    await notify(db, {
      type: 'board.document.created',

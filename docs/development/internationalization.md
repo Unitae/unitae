@@ -54,9 +54,9 @@ Messages use the Inlang message format in JSON:
 
 ```json
 {
-  "greeting": "Bonjour {name}",
-  "error_limit_reached": "Limite atteinte pour {resource}.",
-  "doc_link": "{#link to=|/docs|}Lire la documentation{/link}"
+    "greeting": "Bonjour {name}",
+    "error_limit_reached": "Limite atteinte pour {resource}.",
+    "doc_link": "{#link to=|/docs|}Lire la documentation{/link}"
 }
 ```
 

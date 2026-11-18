@@ -8,7 +8,7 @@
 - [ ] Nouvelle fonctionnalité
 - [ ] Refactoring (pas de changement fonctionnel)
 - [ ] Documentation
-- [ ] Autre : ___
+- [ ] Autre : \_\_\_
 
 ## Checklist
 

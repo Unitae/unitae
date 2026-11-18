@@ -4,7 +4,7 @@
 
 Unitae has an event-driven notification system with debouncing, cancellation, and role-based recipient resolution. Notifications are triggered by business logic, buffered in PostgreSQL, and delivered as emails via the BullMQ email queue.
 
-**Feature-owned definitions.** Each notification type is declared by the *feature that owns the domain event* — territories owns `territory.sync.completed`, display-board owns `board.document.*`, and so on. The notifications feature is a pipeline: it aggregates definitions into a central registry, handles debounce/cancellation/preferences, and delivers emails. It does not know about any specific notification's payload or template.
+**Feature-owned definitions.** Each notification type is declared by the _feature that owns the domain event_ — territories owns `territory.sync.completed`, display-board owns `board.document.*`, and so on. The notifications feature is a pipeline: it aggregates definitions into a central registry, handles debounce/cancellation/preferences, and delivers emails. It does not know about any specific notification's payload or template.
 
 ## Architecture
 
@@ -81,28 +81,28 @@ Failure handling (worker side):
 
 ### Pipeline (notifications feature — infrastructure)
 
-| File | Purpose |
-|------|---------|
-| `app/features/notifications/model/notification-definition.ts` | `NotificationTypeDefinition<T>` interface + `defineNotificationType` helper |
-| `app/features/notifications/server/registry.server.ts` | Central registry — one-line-per-feature aggregation |
-| `app/features/notifications/server/notification-types.server.ts` | Derived routing config map |
-| `app/features/notifications/server/notify.server.ts` | `notify()` entry point |
-| `app/features/notifications/server/flush-settled.server.ts` | Cron batch processor for debounced events |
-| `app/features/notifications/server/resolve-recipients.server.ts` | Role-based recipient lookup + preference filtering |
-| `app/features/notifications/server/preferences.server.ts` | User opt-in/opt-out management |
-| `app/features/notifications/server/preference-categories.server.ts` | Derives preferences UI shape from the registry |
-| `app/features/notifications/server/render-notification-email.server.tsx` | Registry lookup + delegates to `def.renderEmail` |
-| `app/features/notifications/server/handle-notification-email.server.ts` | Digest/instant worker plumbing |
-| `app/features/notifications/server/cleanup.server.ts` | Cleanup of old notification events |
-| `app/features/notifications/routes/preferences.tsx` | Preference toggle UI |
+| File                                                                     | Purpose                                                                     |
+| ------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| `app/features/notifications/model/notification-definition.ts`            | `NotificationTypeDefinition<T>` interface + `defineNotificationType` helper |
+| `app/features/notifications/server/registry.server.ts`                   | Central registry — one-line-per-feature aggregation                         |
+| `app/features/notifications/server/notification-types.server.ts`         | Derived routing config map                                                  |
+| `app/features/notifications/server/notify.server.ts`                     | `notify()` entry point                                                      |
+| `app/features/notifications/server/flush-settled.server.ts`              | Cron batch processor for debounced events                                   |
+| `app/features/notifications/server/resolve-recipients.server.ts`         | Role-based recipient lookup + preference filtering                          |
+| `app/features/notifications/server/preferences.server.ts`                | User opt-in/opt-out management                                              |
+| `app/features/notifications/server/preference-categories.server.ts`      | Derives preferences UI shape from the registry                              |
+| `app/features/notifications/server/render-notification-email.server.tsx` | Registry lookup + delegates to `def.renderEmail`                            |
+| `app/features/notifications/server/handle-notification-email.server.ts`  | Digest/instant worker plumbing                                              |
+| `app/features/notifications/server/cleanup.server.ts`                    | Cleanup of old notification events                                          |
+| `app/features/notifications/routes/preferences.tsx`                      | Preference toggle UI                                                        |
 
 ### Definitions (consumer features — one file each)
 
-| File | Types owned |
-|------|-------------|
+| File                                                         | Types owned                                         |
+| ------------------------------------------------------------ | --------------------------------------------------- |
 | `app/features/display-board/server/notifications.server.tsx` | `board.document.{created,updated,deleted,expiring}` |
-| `app/features/events/server/notifications.server.tsx` | `programme.assignment.{assigned,unassigned}` |
-| `app/features/territories/server/notifications.server.tsx` | `territory.sync.completed` |
+| `app/features/events/server/notifications.server.tsx`        | `programme.assignment.{assigned,unassigned}`        |
+| `app/features/territories/server/notifications.server.tsx`   | `territory.sync.completed`                          |
 
 Templates live alongside definitions under `app/features/<feature>/emails/`.
 
@@ -123,14 +123,14 @@ await notify(db, {
 })
 ```
 
-| Field | Description |
-|-------|-------------|
-| `type` | Must exist in `NOTIFICATION_REGISTRY` |
-| `entityType` | Prisma model name (for grouping / debounceKey) |
-| `entityId` | Resource ID |
-| `congregationId` | Tenant ID |
-| `actorId` | User who triggered the event (optional) |
-| `payload` | Event-specific data, serialized to JSON (optional) — must match the definition's Zod schema |
+| Field            | Description                                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------- |
+| `type`           | Must exist in `NOTIFICATION_REGISTRY`                                                       |
+| `entityType`     | Prisma model name (for grouping / debounceKey)                                              |
+| `entityId`       | Resource ID                                                                                 |
+| `congregationId` | Tenant ID                                                                                   |
+| `actorId`        | User who triggered the event (optional)                                                     |
+| `payload`        | Event-specific data, serialized to JSON (optional) — must match the definition's Zod schema |
 
 The function is fire-and-forget — failures are logged but never block the calling operation.
 
@@ -138,7 +138,7 @@ The function is fire-and-forget — failures are logged but never block the call
 
 `programme.assignment.{assigned,unassigned}` (event-part notifications — the type strings kept the legacy `programme.assignment.*` name so pending `NotificationEvent` rows survive the model rename) are **whitelist-gated on `Event.status === 'released'`** in `notify-assignment.server.ts` (`dispatchAssignmentDiffs`). Assignments on a draft event never call `notify()` — no `NotificationEvent` row is created, no debounce is armed, nothing shows up in the queue.
 
-When a manager releases an event, `fireReleaseNotifications` (`app/features/events/server/event-status.server.ts`) iterates every current part / service-part assignee and calls `notifyAssignment` for each — the *same* code path that runs during a live edit, so the debounce, cancellation, and preference filter all apply uniformly. Un-releasing the event calls `unreleaseEvent`, which marks every `pending` `NotificationEvent` row targeting the event's assignments as `cancelled`.
+When a manager releases an event, `fireReleaseNotifications` (`app/features/events/server/event-status.server.ts`) iterates every current part / service-part assignee and calls `notifyAssignment` for each — the _same_ code path that runs during a live edit, so the debounce, cancellation, and preference filter all apply uniformly. Un-releasing the event calls `unreleaseEvent`, which marks every `pending` `NotificationEvent` row targeting the event's assignments as `cancelled`.
 
 The gate is a **whitelist, not a blacklist**: the code checks `status === Released`, not `status !== Draft`. If we ever introduce a third status (e.g. `archived`), the safe default is "don't notify". Un-release wins over release only by not running — assignments made on a draft are silent by construction, so the release-time re-fire is the single source of "you were assigned" emails.
 
@@ -229,7 +229,7 @@ const myTypeDef = defineNotificationType({
     someId: z.number().int().positive(),
     someName: z.string(),
   }),
-  subject: (payload) => m.email_my_subject({ name: payload.someName }),
+  subject: payload => m.email_my_subject({ name: payload.someName }),
   renderEmail: ({ payload, recipient, congregation }) => (
     <MyTemplate
       email={recipient.email}
@@ -271,7 +271,7 @@ import { myfeatureNotifications } from '~/features/<feature>/index.server'
 const definitions: NotificationTypeDefinition<unknown>[] = [
   ...boardNotifications,
   ...territoryNotifications,
-  ...myfeatureNotifications,   // ← added
+  ...myfeatureNotifications, // ← added
 ]
 ```
 
