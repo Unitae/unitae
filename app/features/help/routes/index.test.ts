@@ -31,6 +31,7 @@ describe('the /help index loader', () => {
     expect(groupedSlugs(result.groups)).toEqual([
       'my-territories',
       'absences',
+      'my-parts',
       'password',
       'two-step-verification',
       'calendar-feed',

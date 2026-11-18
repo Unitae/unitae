@@ -4,6 +4,7 @@ import { externalSpeakerIntentSchema } from '~/features/events/schemas/external-
 import { getSpeakerVisits, listSpeakerDirectory } from '~/features/events/server/external-speakers.queries'
 import { countOurList } from '~/features/events/server/our-speakers.queries'
 import { SpeakerDirectoryScreen } from '~/features/events/ui/SpeakerDirectoryScreen'
+import { HelpEntryButton } from '~/features/help'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -82,7 +83,10 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function ExternalSpeakersPage({ loaderData }: Route.ComponentProps) {
-  return <SpeakerDirectoryScreen page={loaderData} />
+  return <SpeakerDirectoryScreen page={loaderData} help={<HelpEntryButton slug="external-speakers" />} />
 }
+
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 export { RouteErrorBoundary as ErrorBoundary } from '~/shared/ui/RouteErrorBoundary'

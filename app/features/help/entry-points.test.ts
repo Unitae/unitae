@@ -18,6 +18,9 @@ const PINS: Record<string, string> = {
   'features/authentication/routes/user/security.tsx': 'password',
   'features/notifications/routes/preferences.tsx': 'notifications',
   'features/authentication/routes/user/privacy.tsx': 'my-data',
+  'features/events/routes/programs/external-speakers/list.tsx': 'external-speakers',
+  'features/events/routes/programs/external-speakers/ours.tsx': 'external-speakers',
+  'features/events/routes/attendance/index.tsx': 'attendance',
 }
 
 // The routes with a loader matched above the pinned pages (see app/routes.ts).

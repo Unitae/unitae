@@ -1,6 +1,6 @@
 import { PeriodStepper, SidePanel } from '@unitae/ui'
 import { Download, Eye } from 'lucide-react'
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import { Link } from 'react-router'
 
 import type { AttendanceEntry, AttendanceViewer } from '~/features/events/model/attendance-entry'
@@ -41,6 +41,8 @@ interface AttendanceYearScreenProps {
   canManageTemplates: boolean
   /** The service years the export dialog offers, newest first. */
   exportYears: number[]
+  /** The « ? » that opens this page's help article, in the header's help slot. */
+  help?: ReactNode
 }
 
 const yearLabel = (serviceYear: number) => `${serviceYear}–${serviceYear + 1}`
@@ -81,6 +83,7 @@ export function AttendanceYearScreen(props: AttendanceYearScreenProps) {
     <PageHeader
       title={m.attendance_page_title()}
       breadcrumbs={[{ label: m.attendance_page_title() }]}
+      help={props.help}
       actions={
         counting && (
           <Button variant="outline" size="sm" onClick={() => setExporting(true)}>
