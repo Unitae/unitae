@@ -91,6 +91,17 @@ export function TemplateEditor({
     )
   }
 
+  function handleServiceDragEnd(dragEvent: DragEndEvent) {
+    if (!dragEvent.over) return
+    const ids = services.map(service => service.id)
+    const reordered = reorderPartIds(ids, Number(dragEvent.active.id), Number(dragEvent.over.id))
+    if (reordered === ids) return
+    reorderFetcher.submit(
+      { orderedIds: reordered },
+      { method: 'POST', action: `/settings/templates/${templateId}/reorder-services`, encType: 'application/json' },
+    )
+  }
+
   function handleDelete() {
     if (!deleteTarget) return
     const formData = new FormData()
@@ -151,6 +162,7 @@ export function TemplateEditor({
             onAddService={trigger => panel.request({ kind: 'service', id: null, trigger })}
             onEditService={(service, trigger) => panel.request({ kind: 'service', id: service.id, trigger })}
             onDeleteService={target => setDeleteTarget({ type: 'service', ...target })}
+            onDragEnd={handleServiceDragEnd}
           />
         </div>
 

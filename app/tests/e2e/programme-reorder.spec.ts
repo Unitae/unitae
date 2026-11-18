@@ -12,6 +12,8 @@ const EVENT_REORDER_URL_RE = /\/programs\/events\/\d+\/reorder-parts(\.data)?$/
 const TEMPLATE_URL_RE = /\/settings\/templates\/\d+$/
 const NOT_FOUND_RE = /404|page introuvable/i
 const DRAGGABLE_RE = /draggable item (\d+)/i
+// The programme's panel: the services below it are sortable too, in their own panel.
+const PROGRAMME_PANEL = 'Programme spirituel'
 
 test.describe('Programme parts drag-drop reorder (regression: #134)', () => {
   test.beforeEach(async ({ page }) => {
@@ -33,7 +35,7 @@ test.describe('Programme parts drag-drop reorder (regression: #134)', () => {
     await firstTemplateLink.click()
     await expect(page).toHaveURL(TEMPLATE_URL_RE)
 
-    const sortableRows = page.locator('[data-sortable]')
+    const sortableRows = page.getByRole('region', { name: PROGRAMME_PANEL }).locator('[data-sortable]')
     await sortableRows
       .first()
       .waitFor({ timeout: 5000 })
@@ -44,7 +46,11 @@ test.describe('Programme parts drag-drop reorder (regression: #134)', () => {
     const responsePromise = page.waitForResponse(r => REORDER_PARTS_RE.test(r.url()) && r.request().method() === 'POST')
 
     const announcement = page.getByRole('status').filter({ hasText: DRAGGABLE_RE })
-    await page.locator('button[aria-roledescription="sortable"]').first().focus()
+    await page
+      .getByRole('region', { name: PROGRAMME_PANEL })
+      .locator('button[aria-roledescription="sortable"]')
+      .first()
+      .focus()
     await page.keyboard.press('Space')
     await expect(announcement).toHaveText(DRAGGABLE_RE)
     const activeId = (await announcement.textContent())?.match(DRAGGABLE_RE)?.[1]
@@ -59,7 +65,10 @@ test.describe('Programme parts drag-drop reorder (regression: #134)', () => {
     await expect(page.getByText(NOT_FOUND_RE)).toHaveCount(0)
 
     await page.reload()
-    const rowsAfter = await page.locator('[data-sortable]').allTextContents()
+    const rowsAfter = await page
+      .getByRole('region', { name: PROGRAMME_PANEL })
+      .locator('[data-sortable]')
+      .allTextContents()
     expect(rowsAfter[0]).toBe(rowsBefore[1])
     expect(rowsAfter[1]).toBe(rowsBefore[0])
   })
@@ -69,7 +78,7 @@ test.describe('Programme parts drag-drop reorder (regression: #134)', () => {
     await page.goto(`/programs/events/${REORDER_EVENT_ID}/edit`)
     await page.waitForLoadState('networkidle')
 
-    const sortableRows = page.locator('[data-sortable]')
+    const sortableRows = page.getByRole('region', { name: PROGRAMME_PANEL }).locator('[data-sortable]')
     const rowsBefore = await sortableRows.allTextContents()
     if (rowsBefore.length < 2) test.skip()
 
@@ -78,7 +87,11 @@ test.describe('Programme parts drag-drop reorder (regression: #134)', () => {
     // dnd-kit announces each step of a keyboard drag in a live region (its default English wording): drop only once
     // it says the part is over another one, or Space lands before the move has registered.
     const announcement = page.getByRole('status').filter({ hasText: DRAGGABLE_RE })
-    await page.locator('button[aria-roledescription="sortable"]').first().focus()
+    await page
+      .getByRole('region', { name: PROGRAMME_PANEL })
+      .locator('button[aria-roledescription="sortable"]')
+      .first()
+      .focus()
     await page.keyboard.press('Space')
     await expect(announcement).toHaveText(DRAGGABLE_RE)
     const activeId = (await announcement.textContent())?.match(DRAGGABLE_RE)?.[1]
@@ -93,7 +106,10 @@ test.describe('Programme parts drag-drop reorder (regression: #134)', () => {
     await expect(page.getByText(NOT_FOUND_RE)).toHaveCount(0)
 
     await page.reload()
-    const rowsAfter = await page.locator('[data-sortable]').allTextContents()
+    const rowsAfter = await page
+      .getByRole('region', { name: PROGRAMME_PANEL })
+      .locator('[data-sortable]')
+      .allTextContents()
     expect(rowsAfter[0]).toBe(rowsBefore[1])
     expect(rowsAfter[1]).toBe(rowsBefore[0])
   })

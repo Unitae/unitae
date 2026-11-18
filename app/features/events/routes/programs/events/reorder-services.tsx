@@ -1,0 +1,48 @@
+import { redirect } from 'react-router'
+import { canEditEvent } from '~/features/events/server/events-auth.server'
+import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
+import { reorderServiceAssignments } from '~/features/events/server/reorder-services.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { Permission } from '~/shared/types/permission'
+import { requireParamId } from '~/shared/utils/params.server'
+
+import type { Route } from './+types/reorder-services'
+
+export function loader({ params }: Route.LoaderArgs) {
+  const eventId = requireParamId(params.eventId, '/programs')
+  throw redirect(`/programs/events/${eventId}`)
+}
+
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(currentAccountContext)
+  const eventId = requireParamId(params.eventId, '/programs')
+
+  const { orderedIds } = (await request.json()) as { orderedIds: number[] }
+  if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+    return { ok: false }
+  }
+
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
+    const can = (role: Permission) => permissions.has(role)
+    const event = await findProgrammeEvent(db, eventId, congregationId)
+    if (!event) throw redirect('/programs')
+
+    if (
+      !(await canEditEvent(
+        db,
+        can,
+        currentUser.id,
+        event.templateId ?? null,
+        congregationId,
+        Permission.CanAssignProgramParts,
+      ))
+    ) {
+      throw redirect('/programs')
+    }
+
+    const done = await reorderServiceAssignments(db, congregationId, eventId, orderedIds)
+    return { ok: done }
+  })
+}
