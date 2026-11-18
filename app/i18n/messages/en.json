@@ -4209,7 +4209,7 @@
     "publishers_form_anointed": "Is one of the anointed",
     "publishers_form_nomination_none": "None",
     "publishers_form_pioneer_hint": "An enrollment is saved at once, apart from this form.",
-    "publishers_form_pioneer_where": "Enrol them, correct an enrollment or stop the service from the Pioneer service section of their record.",
+    "publishers_form_pioneer_where": "Enroll them, correct an enrollment or stop the service from the Pioneer service section of their record.",
     "publishers_form_pioneer_open": "Open the pioneer service",
     "publishers_form_error_firstname": "Enter their first name.",
     "publishers_form_error_lastname": "Enter their last name.",
@@ -4352,7 +4352,7 @@
     "publishers_record_enrol_goal_help": "Empty: the congregation’s goal for each service year.",
     "publishers_record_enrol_submit": "Enrol",
     "publishers_record_enrol_submit_month": "Enrol for {month}",
-    "publishers_record_enrol_delete": "Delete the enrolment…",
+    "publishers_record_enrol_delete": "Delete the enrollment…",
     "publishers_record_hours": "{count} h",
     "publishers_record_stop_title": "Stop the pioneer service?",
     "publishers_record_stop_last_month": "Last month of service",
@@ -5450,9 +5450,9 @@
     "settings_publishers_goals_note": "Only the rows you change are saved; the others follow the default value.",
     "settings_publishers_goals_hours_label": "Hours per month, {type}",
     "settings_publishers_continuous_title": "Continuous auxiliary pioneer",
-    "settings_publishers_continuous_hint": "An enrollment with no end date, besides the one-month enrolments.",
+    "settings_publishers_continuous_hint": "An enrollment with no end date, besides the one-month enrollments.",
     "settings_publishers_continuous_label": "Offer enrollment as a continuous auxiliary pioneer",
-    "settings_publishers_continuous_description": "On the publisher record. Turning it off ends the current enrolments.",
+    "settings_publishers_continuous_description": "On the publisher record. Turning it off ends the current enrollments.",
     "settings_publishers_continuous_stops": [
         {
             "declarations": [
@@ -5462,7 +5462,7 @@
             "selectors": ["countPlural"],
             "match": {
                 "countPlural=one": "Saving ends {names}’s enrollment at the end of this month.",
-                "countPlural=*": "Saving ends the enrolments of {names} at the end of this month."
+                "countPlural=*": "Saving ends the enrollments of {names} at the end of this month."
             }
         }
     ],
