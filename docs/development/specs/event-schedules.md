@@ -93,6 +93,7 @@ to filter out.
 | D32 | **« Arrêter la répétition »** from any event of a rule: the rule ends the day before; empty meetings after it are deleted, prepared ones are offered for deletion, ones with counts stay. |
 | D33 | **Conductors are duties**, shown inline: a field service meeting's duty schedule « Conducteurs » holds one or two duties, and the event form shows it as « Conducteur(s) », so conductors keep notices, absence checks and their feed. |
 | D34 | **A rule can carry its own name**: a rule named « Prédication par groupe », with no place and no conductor, creates events of that name, and « Semaine type » prints the name in its cell. No separate note. |
+| D35 | **An event can have an audience**: everyone (default), or one or more publisher groups and/or chosen people. It is a **restriction**: only the audience, the event's assignees and the people who prepare programmes ever see it. Per-group meetings are one rule per group in the same slot (a rule's audience is copied onto its events). On the board a signed-in reader sees their own group's event in its cell; paper and other readers see one collapsed cell « Par groupe » (§5.3a). |
 
 ## 4. Current implementation (verified)
 
@@ -190,8 +191,15 @@ model EventKindScheduleTemplate {   // which schedule templates an event kind st
   eventKindId, scheduleTemplateId, order
 }
 
+model EventAudience {               // D35 — empty for an event for everyone
+  eventId? | recurrenceRuleId?      // exactly one: the event's audience, or the rule's (copied on create)
+  groupId? | memberId?              // exactly one: a publisher group, or a person
+  congregationId                    // + RLS, like every tenant table
+}
+
 model Event {                       // anything on the calendar, one day or several (D14)
   id, name, description, startDate, endDate, eventKindId?, createdById?, congregationId
+  audience     EventAudience[]      // D35 — none = everyone
   origin       String               // 'job' | 'manual' | 'import' — who created it; the empty-meeting
                                     // test reads this, never a null author
   recurrenceRuleId Int?             // SetNull: a deleted rule leaves its events
@@ -277,6 +285,23 @@ today.
   exports, and the programme's « Assistance la semaine passée » line. A meeting whose programme is a
   draft still takes place. The programme list and the calendar show events without a published
   schedule to the people who prepare them, as the list shows « Pas encore de programme » today.
+### 5.3a Audience
+
+- An event with an audience (D35) is visible only to: the members of its groups, its chosen people,
+  the assignees of its schedules (a conductor from another group sees the meeting they lead), and the
+  people who prepare programmes (« Gérer », « Attribuer », « Publier les programmes », and the
+  responsibles of its schedules). Everyone else never receives it: not in lists, the calendar, the
+  dashboard, the feed, notifications, search, or by its address (the event page refuses it).
+- One rule applies everywhere: a single `visibleTo(viewer)` condition on events, used by every reader,
+  exactly like « has a published schedule ». A person's groups are read at the time of reading, so
+  moving to another group moves the meetings they see.
+- Board and printed sheets: a document shows a reader the events they may see. Where a slot holds
+  only events the reader may not see, and at least one of them is for a group, the cell reads
+  « Par groupe » — never a place, a name or a conductor. Events for chosen people only are left out.
+  Paper and readers without an account get the collapsed form.
+- Attendance and the S-88 are unaffected: counted kinds are meetings for everyone; an audience on a
+  counted kind is refused.
+
 - Who may publish a schedule: holders of « Publier les programmes » (every schedule, D3), or holders of
   its template's responsible role (that template's schedules only, D8) — today's
   `filterToManageableEventIds` rule, applied per schedule.
@@ -341,7 +366,7 @@ Like a calendar application, an event that comes from a rule offers two ways to 
 | Attendance | Page, side panel, S-88 and spreadsheet exports read `attendanceKind` from the event kind instead of the template; nothing else changes. « Pas de réunion » weeks are computed from the events of a kind's rules, as from a template's run today. |
 | Board | Programme document as §5.3; event links resolve through published schedules. The « Assistance la semaine passée » line reads last week's events of counted kinds, published or not. |
 | Notifications | Assignment notices fire on publishing a schedule, for its assignees. |
-| Calendar feed | Assignments from published schedules. |
+| Calendar feed | Assignments from published schedules, and events of the person's audiences (D35). |
 | Absences | « Mes absences », absence list, conflicts read `Absence`. |
 | Data transfer | New files (`schedules`, `template-schedules`, `absences`); parts and duties reference a schedule; import of older archives maps one programme schedule + one « Services » duty schedule per event and template, and day-off events to absences. Archive version bump. |
 | Demo seed | Generates schedules and absences in the new shape. |
@@ -450,6 +475,10 @@ Each PR is followed by a deploy before the next one's migration ships.
 - **Attendance:** deleting a schedule, or bulk-deleting programmes, never takes counts; attendance
   surfaces list events of counted kinds without a published schedule; a multi-day kind refuses an
   attendance kind (D23).
+- **Audience:** an event for a group is invisible to a member of another group in every reader
+  (list, calendar, dashboard, feed, board, search, event page) and visible to its members, its
+  assignees and the people who prepare programmes; the board collapses the slot to « Par groupe »
+  on paper; a person moved to another group sees the other group's meetings at once.
 - **Occurrences:** two rules of one kind on the same weekday each create their events; the unique
   index refuses a second event for an occurrence; a split never deletes another rule's meeting.
 - **Rules:** validity respected (no event before `validFrom` or after `validUntil`); « et les suivantes »

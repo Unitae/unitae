@@ -87,6 +87,10 @@ the masthead « À jour au … » like the other board documents.
 - Built from the **rules in force today**, not from dated events — the sheet describes an ordinary
   week. A cell with only a label (« Prédication par groupe ») is a rule with its own name and no
   place or conductor (event schedules D34): the cell prints the name.
+- **Meetings per group** (event schedules D35): one rule per group in the same slot, each with that
+  group as audience. A signed-in reader sees their own group's meeting in the cell (« Votre groupe »);
+  paper and other readers see one collapsed cell « Par groupe ». Events for chosen people only are
+  left off the sheet.
 - **Changes to come** (event schedules D20): a rule starting within the document's horizon appears in
   its cell under the current one, marked « à partir du 1er déc. »; one that ends is marked
   « jusqu’au 30 nov. ».

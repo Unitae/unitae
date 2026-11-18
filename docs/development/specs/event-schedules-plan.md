@@ -1,7 +1,7 @@
 # Implementation plan: event schedules and event documents
 
 **Status:** Draft — implementation plan for [event schedules](./event-schedules.md) and
-[event documents](./event-documents.md). Decisions D1–D34 are in the spec; the plan adds no product
+[event documents](./event-documents.md). Decisions D1–D35 are in the spec; the plan adds no product
 decision of its own, only the technical choices listed in §1.
 **Author:** Nathanaël Cherrier
 **Related:** [Meeting Attendance](../meeting-attendance.md), [Data Transfer](../data-transfer.md),
@@ -24,7 +24,7 @@ decision of its own, only the technical choices listed in §1.
 | T9 | **A contract is two releases**: one image stops reading and writing the old shape, the next release's migration drops it. `Event.status` stops being written in PR 5, `TemplateResponsible` and the template items' `templateId` in PR 6, the kind-level weekday/hours/mark in PR 8, `Absence.legacyEventId` in PR 2. The items keep their `eventId`, held equal to their schedule's by a composite foreign key. | The migration runs while the previous image still serves. |
 | T10 | **`Event.origin`** (`job` / `manual` / `import`) replaces « null author » as the sign of a job-made meeting (PR 0). | Clearing an author (account deletion) must never turn a hand-made event into one a template move may delete. |
 | T11 | **One event per occurrence, by constraint**: `Event.occurrenceDay` and a unique index on (`recurrenceRuleId`, `occurrenceDay`) (PR 7). The job inserts with `ON CONFLICT DO NOTHING`; dedupe and moves key on the rule, never on the kind and the day. | Eight rules of one kind share weekdays; a day-keyed check would skip one rule's events and let a split delete another rule's meeting. |
-| T8 | **One archive version per PR that changes the format**: 2.16 (PR 0), 2.17 (PR 1), 2.18 (PR 3), 2.19 (PR 6: the board configuration's new shape, schedule template ids remapped), 2.20 (PR 7). Each previous version joins `SUPPORTED_ARCHIVE_VERSIONS` and has an import mapping. | Same rule as every bump so far. |
+| T8 | **One archive version per PR that changes the format**: 2.16 (PR 0), 2.17 (PR 1), 2.18 (PR 3), 2.19 (PR 6: the board configuration's new shape, schedule template ids remapped), 2.20 (PR 7), 2.21 (PR 7b). Each previous version joins `SUPPORTED_ARCHIVE_VERSIONS` and has an import mapping. | Same rule as every bump so far. |
 
 ## 2. Ground rules for every PR
 
@@ -66,6 +66,7 @@ decision of its own, only the technical choices listed in §1.
 | 6 | Réglages: event kinds and schedule templates; board configuration | 2.19 | yes |
 | — | Design round B (rules, fields, list, calendar) | — | canvas |
 | 7 | Rules, custom fields, multi-day kinds, group and text assignees; demo | 2.20 | yes |
+| 7b | Event audiences (D35) | 2.21 | yes |
 | 8 | Redesigned list and weekly calendar | — | yes |
 | 9 | Schedules — contract | — | none |
 | 10 | Rule contract | — | none |
@@ -405,6 +406,26 @@ and their fields, « Témoignage public » with its points by group.
 series and the job; the unique index refusing a second event for an occurrence; a split beside another
 rule's meeting on the same day; a split with an empty, a prepared and a counted meeting (D22); group notification targets; the
 CHECKs.
+
+## 13b. PR 7b — Event audiences
+
+- Migration `add_event_audience`: `EventAudience` (spec §5), CHECKs keeping « event or rule » and
+  « group or person » exclusive, `congregationId`, RLS, `TENANT_MODELS`; refused on a counted kind.
+- **One visibility rule** (TDD): `events/server/event-visibility.server.ts` exports the condition
+  « for everyone, or the viewer is in its audience, or assigned on it, or prepares programmes » and
+  combines it with « has a published schedule ». Every event reader of Appendix A takes it — lists,
+  calendar, event view (refuses an address the viewer may not see), dashboard, feed, notifications
+  (an assignee is always in), cadence and facts, board builders, search — in one commit per feature.
+- Rules carry an audience copied onto the events they create; changing it with « … et les suivantes »
+  applies to the moved events, « Cette réunion seulement » to one.
+- Board: the builders return, per slot, the reader's visible events and a collapsed marker when the
+  slot holds only hidden group events; `ProgrammeView`, the documents' views and PDFs render
+  « Par groupe ». PDFs are always rendered as for a reader without an account.
+- UI from design round B: an « Pour » field (Tout le monde · groupes · personnes) on the event and
+  rule forms; a marker on restricted events in lists.
+- **Archive 2.21:** `event-audiences.ndjson`, groups and members remapped.
+- **Tests:** the audience rows of spec §9 against every reader (a test helper lists the readers so a
+  new one without the condition fails), the board collapse on screen and in the PDF, the CHECKs.
 
 ## 14. PR 8 — Redesigned list and weekly calendar
 
