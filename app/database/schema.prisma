@@ -1031,6 +1031,9 @@ model Event {
   // an account is deleted.
   createdBy   UserAccount? @relation("createdBy", fields: [createdById], references: [id], onDelete: Restrict)
   createdById Int?
+  // Who created it: the recurring-events job (« job »), a person (« manual ») or a restore (« import »). Only the
+  // job's empty meetings move with their template or go with it; the author only says who prepared it.
+  origin      String       @default("manual")
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
