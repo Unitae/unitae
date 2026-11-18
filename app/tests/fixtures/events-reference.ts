@@ -352,6 +352,42 @@ async function fillServices(
   }
 }
 
+/** The label of every part and service: its meeting's label and its place in it (`midweek-2/part-3`). */
+export async function itemLabels(fixture: ReferenceCongregation): Promise<Map<string, string>> {
+  const { congregationId } = fixture
+  const event = (id: number) => fixture.labels.get(`event:${id}`) ?? 'event-?'
+  const labels = new Map<string, string>()
+  await withScope(congregationId, async db => {
+    const parts = await db.eventPart.findMany({
+      where: { congregationId },
+      select: { id: true, eventId: true, order: true },
+    })
+    for (const part of parts) labels.set(`EventPart:${part.id}`, `${event(part.eventId)}/part-${part.order}`)
+    const services = await db.eventServicePart.findMany({
+      where: { congregationId },
+      select: { id: true, eventId: true, name: true },
+    })
+    for (const service of services) {
+      labels.set(`EventServicePart:${service.id}`, `${event(service.eventId)}/service-${service.name}`)
+    }
+  })
+  return labels
+}
+
+/** A map keyed by ids as an object keyed by the fixture's labels for that table. */
+export function byLabel<V>(
+  fixture: ReferenceCongregation,
+  table: string,
+  entries: Map<number, V> | Record<number, V>,
+): Record<string, V> {
+  const pairs = entries instanceof Map ? [...entries] : Object.entries(entries).map(([k, v]) => [Number(k), v] as const)
+  return Object.fromEntries(
+    pairs
+      .map(([id, value]) => [fixture.labels.get(`${table}:${id}`) ?? `${table}:?`, value] as const)
+      .sort(([a], [b]) => a.localeCompare(b)),
+  )
+}
+
 /** Deletes everything the fixture wrote, children first; the congregation's built-in rows go with it. */
 export async function deleteReferenceCongregation(congregationId: number) {
   await withScope(congregationId, async db => {

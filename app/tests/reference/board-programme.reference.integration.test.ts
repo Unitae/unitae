@@ -68,7 +68,7 @@ describe.each(DOCUMENTS)('the programme document « %s »', name => {
     const data = await readDocument(name)
 
     expect(data?.type).toBe(DynamicType.Programme)
-    await expect(reference(data)).toMatchFileSnapshot(`./__references__/board-${name}.json`)
+    await expect(reference(data, fixture.labels)).toMatchFileSnapshot(`./__references__/board-${name}.json`)
   })
 
   it('prints the same sheet', async () => {

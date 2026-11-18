@@ -1,0 +1,202 @@
+{
+  "upcoming": {
+    "claire": [],
+    "hugo": [],
+    "jean": [
+      {
+        "key": "part-<id>",
+        "partName": "2e partie",
+        "eventId": "<id>",
+        "eventName": "Réunion de semaine",
+        "eventStartDate": "2027-03-09T18:00:00.000Z"
+      },
+      {
+        "key": "part-<id>",
+        "partName": "2e partie",
+        "eventId": "<id>",
+        "eventName": "Réunion de semaine",
+        "eventStartDate": "2027-03-09T18:00:00.000Z"
+      }
+    ],
+    "luc": [
+      {
+        "key": "part-<id>",
+        "partName": "Perles spirituelles",
+        "eventId": "<id>",
+        "eventName": "Réunion de semaine",
+        "eventStartDate": "2027-03-09T18:00:00.000Z"
+      },
+      {
+        "key": "part-<id>",
+        "partName": "3e partie",
+        "eventId": "<id>",
+        "eventName": "Réunion de semaine",
+        "eventStartDate": "2027-03-09T18:00:00.000Z"
+      },
+      {
+        "key": "part-<id>",
+        "partName": "Étude biblique de l’assemblée",
+        "eventId": "<id>",
+        "eventName": "Réunion de semaine",
+        "eventStartDate": "2027-03-09T18:00:00.000Z"
+      },
+      {
+        "key": "service-<id>",
+        "partName": "Audio-vidéo",
+        "eventId": "<id>",
+        "eventName": "Réunion de semaine",
+        "eventStartDate": "2027-03-09T18:00:00.000Z"
+      },
+      {
+        "key": "part-<id>",
+        "partName": "Cantique",
+        "eventId": "<id>",
+        "eventName": "Réunion du week-end",
+        "eventStartDate": "2027-03-13T09:00:00.000Z"
+      }
+    ],
+    "marc": [
+      {
+        "key": "part-<id>",
+        "partName": "Cantique et prière de conclusion",
+        "eventId": "<id>",
+        "eventName": "Réunion de semaine",
+        "eventStartDate": "2027-03-09T18:00:00.000Z"
+      },
+      {
+        "key": "service-<id>",
+        "partName": "Estrade",
+        "eventId": "<id>",
+        "eventName": "Réunion de semaine",
+        "eventStartDate": "2027-03-09T18:00:00.000Z"
+      },
+      {
+        "key": "part-<id>",
+        "partName": "Cantique et prière de conclusion",
+        "eventId": "<id>",
+        "eventName": "Réunion du week-end",
+        "eventStartDate": "2027-03-13T09:00:00.000Z"
+      },
+      {
+        "key": "service-<id>",
+        "partName": "Estrade",
+        "eventId": "<id>",
+        "eventName": "Réunion du week-end",
+        "eventStartDate": "2027-03-13T09:00:00.000Z"
+      }
+    ],
+    "marie": [],
+    "paul": [
+      {
+        "key": "part-<id>",
+        "partName": "Cantique et prière",
+        "eventId": "<id>",
+        "eventName": "Réunion de semaine",
+        "eventStartDate": "2027-03-09T18:00:00.000Z"
+      },
+      {
+        "key": "part-<id>",
+        "partName": "Discours",
+        "eventId": "<id>",
+        "eventName": "Réunion de semaine",
+        "eventStartDate": "2027-03-09T18:00:00.000Z"
+      },
+      {
+        "key": "part-<id>",
+        "partName": "1re partie",
+        "eventId": "<id>",
+        "eventName": "Réunion de semaine",
+        "eventStartDate": "2027-03-09T18:00:00.000Z"
+      },
+      {
+        "key": "part-<id>",
+        "partName": "1re partie",
+        "eventId": "<id>",
+        "eventName": "Réunion de semaine",
+        "eventStartDate": "2027-03-09T18:00:00.000Z"
+      },
+      {
+        "key": "service-<id>",
+        "partName": "Nettoyage",
+        "eventId": "<id>",
+        "eventName": "Réunion de semaine",
+        "eventStartDate": "2027-03-09T18:00:00.000Z"
+      }
+    ],
+    "pierre": [
+      {
+        "key": "part-<id>",
+        "partName": "Lecture de la Bible",
+        "eventId": "<id>",
+        "eventName": "Réunion de semaine",
+        "eventStartDate": "2027-03-09T18:00:00.000Z"
+      },
+      {
+        "key": "part-<id>",
+        "partName": "Cantique",
+        "eventId": "<id>",
+        "eventName": "Réunion de semaine",
+        "eventStartDate": "2027-03-09T18:00:00.000Z"
+      },
+      {
+        "key": "part-<id>",
+        "partName": "Cantique et prière de conclusion",
+        "eventId": "<id>",
+        "eventName": "Réunion de semaine",
+        "eventStartDate": "2027-03-09T18:00:00.000Z"
+      },
+      {
+        "key": "service-<id>",
+        "partName": "Préposés à l’accueil",
+        "eventId": "<id>",
+        "eventName": "Réunion de semaine",
+        "eventStartDate": "2027-03-09T18:00:00.000Z"
+      },
+      {
+        "key": "part-<id>",
+        "partName": "Étude de La Tour de Garde",
+        "eventId": "<id>",
+        "eventName": "Réunion du week-end",
+        "eventStartDate": "2027-03-13T09:00:00.000Z"
+      }
+    ]
+  },
+  "absences": {
+    "claire": [],
+    "hugo": [
+      {
+        "id": "<id>",
+        "startDate": "2027-03-14T23:00:00.000Z",
+        "endDate": "2027-03-17T22:59:00.000Z"
+      }
+    ],
+    "jean": [],
+    "luc": [],
+    "marc": [],
+    "marie": [],
+    "paul": [],
+    "pierre": []
+  },
+  "last": {
+    "jean": {
+      "partName": "2e partie",
+      "date": "2027-03-09T18:00:00.000Z"
+    },
+    "luc": {
+      "partName": "Cantique",
+      "date": "2027-03-13T09:00:00.000Z"
+    },
+    "marc": {
+      "partName": "Cantique et prière de conclusion",
+      "date": "2027-03-13T09:00:00.000Z"
+    },
+    "paul": {
+      "partName": "Cantique et prière",
+      "date": "2027-03-13T09:00:00.000Z"
+    },
+    "pierre": {
+      "partName": "Étude de La Tour de Garde",
+      "date": "2027-03-13T09:00:00.000Z"
+    }
+  }
+}

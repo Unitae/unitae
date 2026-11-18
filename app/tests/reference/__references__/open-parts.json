@@ -1,0 +1,34 @@
+{
+  "all": [
+    {
+      "eventId": "<id>",
+      "name": "Mémorial",
+      "startDate": "2027-03-22T18:00:00.000Z",
+      "isDraft": true,
+      "count": 5
+    },
+    {
+      "eventId": "<id>",
+      "name": "Réunion de semaine",
+      "startDate": "2027-03-23T18:00:00.000Z",
+      "isDraft": true,
+      "count": 12
+    },
+    {
+      "eventId": "<id>",
+      "name": "Réunion du week-end",
+      "startDate": "2027-03-27T09:00:00.000Z",
+      "isDraft": true,
+      "count": 5
+    }
+  ],
+  "midweekOnly": [
+    {
+      "eventId": "<id>",
+      "name": "Réunion de semaine",
+      "startDate": "2027-03-23T18:00:00.000Z",
+      "isDraft": true,
+      "count": 12
+    }
+  ]
+}

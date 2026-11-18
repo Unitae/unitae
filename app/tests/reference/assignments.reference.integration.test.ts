@@ -16,13 +16,14 @@ import {
 import {
   buildReferenceCongregation,
   deleteReferenceCongregation,
+  itemLabels,
   REFERENCE_NOW,
   REFERENCE_TIMEZONE,
   type ReferenceCongregation,
   referenceDb,
   withScope,
 } from '~/tests/fixtures/events-reference'
-import { reference } from '~/tests/fixtures/reference-normalise'
+import { reference, relabelLinks } from '~/tests/fixtures/reference-normalise'
 
 // Assigning, unassigning, publishing and unpublishing, step by step, the way the routes chain the service functions:
 // what each step returns, the conflict flags it leaves, and every notice it queues — to whom, for what, with which
@@ -46,10 +47,6 @@ vi.mock('~/shared/infra/email-queue.server', () => ({
     },
   },
 }))
-
-const DOCUMENT_LINK = /\/board\/dynamic\/(\d+)/
-const EVENT_PARAM = /eventId=(\d+)/
-const EVENT_PAGE = /\/programs\/events\/(\d+)/
 
 let fixture: ReferenceCongregation
 let lastNoticeId = 0
@@ -75,42 +72,17 @@ async function latestNoticeId(): Promise<number> {
   return last?.id ?? 0
 }
 
-/** The label of a part or service: its meeting's label and its place in it. */
-async function itemLabels(): Promise<Map<string, string>> {
-  const labels = new Map<string, string>()
-  await withScope(fixture.congregationId, async db => {
-    const parts = await db.eventPart.findMany({
-      where: { congregationId: fixture.congregationId },
-      select: { id: true, eventId: true, order: true },
-      orderBy: [{ eventId: 'asc' }, { order: 'asc' }, { id: 'asc' }],
-    })
-    for (const part of parts) labels.set(`EventPart:${part.id}`, `${eventLabel(part.eventId)}/part-${part.order}`)
-    const services = await db.eventServicePart.findMany({
-      where: { congregationId: fixture.congregationId },
-      select: { id: true, eventId: true, name: true },
-    })
-    for (const service of services) {
-      labels.set(`EventServicePart:${service.id}`, `${eventLabel(service.eventId)}/service-${service.name}`)
-    }
-  })
-  return labels
-}
-
 function eventLabel(id: number): string {
   return fixture.labels.get(`event:${id}`) ?? `event-?`
 }
 
 function linkLabel(link: unknown): unknown {
-  if (typeof link !== 'string') return link
-  return link
-    .replace(DOCUMENT_LINK, (_, id) => `/board/dynamic/<${fixture.labels.get(`document:${id}`) ?? '?'}>`)
-    .replace(EVENT_PARAM, (_, id) => `eventId=<${eventLabel(Number(id))}>`)
-    .replace(EVENT_PAGE, (_, id) => `/programs/events/<${eventLabel(Number(id))}>`)
+  return typeof link === 'string' ? relabelLinks(link, fixture.labels) : link
 }
 
 /** Every notice queued since the last call, in the order queued: delayed ones first, then instant ones. */
 async function newNotices() {
-  const items = await itemLabels()
+  const items = await itemLabels(fixture)
   const sent = instant.splice(0).map(job => {
     const payload = JSON.parse(job.payload) as Record<string, unknown>
     return {
@@ -145,7 +117,7 @@ async function newNotices() {
 
 /** The statuses of every notice so far, by entity: what unpublishing cancels. */
 async function noticeStatuses() {
-  const items = await itemLabels()
+  const items = await itemLabels(fixture)
   const rows = await withScope(fixture.congregationId, db =>
     db.notificationEvent.findMany({ where: { congregationId: fixture.congregationId }, orderBy: { id: 'asc' } }),
   )
@@ -316,6 +288,6 @@ describe('assignments, publishing and their notices', () => {
   })
 
   it('matches the reference', async () => {
-    await expect(reference(journal)).toMatchFileSnapshot('./__references__/assignments.json')
+    await expect(reference(journal, fixture.labels)).toMatchFileSnapshot('./__references__/assignments.json')
   })
 })

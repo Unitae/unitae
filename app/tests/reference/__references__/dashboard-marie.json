@@ -1,0 +1,638 @@
+{
+  "nextMeeting": {
+    "id": "<id>",
+    "templateId": "<id>",
+    "name": "Réunion de semaine",
+    "startDate": "2027-03-09T18:00:00.000Z",
+    "endDate": "2027-03-09T19:45:00.000Z",
+    "template": {
+      "name": "Réunion de semaine",
+      "color": "#3b82f6"
+    },
+    "eventParts": [
+      {
+        "id": "<id>",
+        "name": "Cantique et prière",
+        "section": "",
+        "track": "",
+        "trackOrder": null,
+        "durationMin": null,
+        "hasConflict": false,
+        "topic": "",
+        "order": 1,
+        "speakerLabel": null,
+        "readerLabel": null,
+        "assignee": {
+          "id": "<id>",
+          "firstname": "Paul",
+          "lastname": "MARTIN"
+        },
+        "assistant": null,
+        "externalSpeaker": null,
+        "viewerRole": null
+      },
+      {
+        "id": "<id>",
+        "name": "Discours",
+        "section": "Perles spirituelles",
+        "track": "",
+        "trackOrder": null,
+        "durationMin": null,
+        "hasConflict": false,
+        "topic": "Sujet de référence",
+        "order": 2,
+        "speakerLabel": null,
+        "readerLabel": null,
+        "assignee": {
+          "id": "<id>",
+          "firstname": "Paul",
+          "lastname": "MARTIN"
+        },
+        "assistant": null,
+        "externalSpeaker": null,
+        "viewerRole": null
+      },
+      {
+        "id": "<id>",
+        "name": "Perles spirituelles",
+        "section": "Perles spirituelles",
+        "track": "",
+        "trackOrder": null,
+        "durationMin": null,
+        "hasConflict": false,
+        "topic": "",
+        "order": 3,
+        "speakerLabel": null,
+        "readerLabel": null,
+        "assignee": {
+          "id": "<id>",
+          "firstname": "Luc",
+          "lastname": "BERNARD"
+        },
+        "assistant": null,
+        "externalSpeaker": null,
+        "viewerRole": null
+      },
+      {
+        "id": "<id>",
+        "name": "Lecture de la Bible",
+        "section": "Perles spirituelles",
+        "track": "",
+        "trackOrder": null,
+        "durationMin": null,
+        "hasConflict": false,
+        "topic": "",
+        "order": 4,
+        "speakerLabel": null,
+        "readerLabel": null,
+        "assignee": {
+          "id": "<id>",
+          "firstname": "Pierre",
+          "lastname": "MOREAU"
+        },
+        "assistant": null,
+        "externalSpeaker": null,
+        "viewerRole": null
+      },
+      {
+        "id": "<id>",
+        "name": "1re partie",
+        "section": "Appliquons-nous au ministère",
+        "track": "",
+        "trackOrder": null,
+        "durationMin": null,
+        "hasConflict": false,
+        "topic": "",
+        "order": 5,
+        "speakerLabel": null,
+        "readerLabel": null,
+        "assignee": {
+          "id": "<id>",
+          "firstname": "Paul",
+          "lastname": "MARTIN"
+        },
+        "assistant": null,
+        "externalSpeaker": null,
+        "viewerRole": null
+      },
+      {
+        "id": "<id>",
+        "name": "2e partie",
+        "section": "Appliquons-nous au ministère",
+        "track": "",
+        "trackOrder": null,
+        "durationMin": null,
+        "hasConflict": false,
+        "topic": "",
+        "order": 6,
+        "speakerLabel": null,
+        "readerLabel": null,
+        "assignee": {
+          "id": "<id>",
+          "firstname": "Jean",
+          "lastname": "DURAND"
+        },
+        "assistant": null,
+        "externalSpeaker": null,
+        "viewerRole": null
+      },
+      {
+        "id": "<id>",
+        "name": "3e partie",
+        "section": "Appliquons-nous au ministère",
+        "track": "",
+        "trackOrder": null,
+        "durationMin": null,
+        "hasConflict": false,
+        "topic": "",
+        "order": 7,
+        "speakerLabel": null,
+        "readerLabel": null,
+        "assignee": {
+          "id": "<id>",
+          "firstname": "Luc",
+          "lastname": "BERNARD"
+        },
+        "assistant": null,
+        "externalSpeaker": null,
+        "viewerRole": null
+      },
+      {
+        "id": "<id>",
+        "name": "Cantique",
+        "section": "",
+        "track": "",
+        "trackOrder": null,
+        "durationMin": null,
+        "hasConflict": false,
+        "topic": "",
+        "order": 8,
+        "speakerLabel": null,
+        "readerLabel": null,
+        "assignee": {
+          "id": "<id>",
+          "firstname": "Pierre",
+          "lastname": "MOREAU"
+        },
+        "assistant": null,
+        "externalSpeaker": null,
+        "viewerRole": null
+      },
+      {
+        "id": "<id>",
+        "name": "1re partie",
+        "section": "Vie chrétienne",
+        "track": "",
+        "trackOrder": null,
+        "durationMin": null,
+        "hasConflict": false,
+        "topic": "",
+        "order": 9,
+        "speakerLabel": null,
+        "readerLabel": null,
+        "assignee": {
+          "id": "<id>",
+          "firstname": "Paul",
+          "lastname": "MARTIN"
+        },
+        "assistant": null,
+        "externalSpeaker": null,
+        "viewerRole": null
+      },
+      {
+        "id": "<id>",
+        "name": "2e partie",
+        "section": "Vie chrétienne",
+        "track": "",
+        "trackOrder": null,
+        "durationMin": null,
+        "hasConflict": false,
+        "topic": "",
+        "order": 10,
+        "speakerLabel": null,
+        "readerLabel": null,
+        "assignee": {
+          "id": "<id>",
+          "firstname": "Jean",
+          "lastname": "DURAND"
+        },
+        "assistant": null,
+        "externalSpeaker": null,
+        "viewerRole": null
+      },
+      {
+        "id": "<id>",
+        "name": "Étude biblique de l’assemblée",
+        "section": "Vie chrétienne",
+        "track": "",
+        "trackOrder": null,
+        "durationMin": null,
+        "hasConflict": false,
+        "topic": "",
+        "order": 11,
+        "speakerLabel": null,
+        "readerLabel": null,
+        "assignee": {
+          "id": "<id>",
+          "firstname": "Luc",
+          "lastname": "BERNARD"
+        },
+        "assistant": null,
+        "externalSpeaker": null,
+        "viewerRole": null
+      },
+      {
+        "id": "<id>",
+        "name": "Cantique et prière de conclusion",
+        "section": "",
+        "track": "",
+        "trackOrder": null,
+        "durationMin": null,
+        "hasConflict": false,
+        "topic": "",
+        "order": 12,
+        "speakerLabel": null,
+        "readerLabel": null,
+        "assignee": {
+          "id": "<id>",
+          "firstname": "Pierre",
+          "lastname": "MOREAU"
+        },
+        "assistant": {
+          "id": "<id>",
+          "firstname": "Marc",
+          "lastname": "PETIT"
+        },
+        "externalSpeaker": null,
+        "viewerRole": null
+      }
+    ],
+    "eventServiceParts": [
+      {
+        "id": "<id>",
+        "name": "Audio-vidéo",
+        "assignee": {
+          "id": "<id>",
+          "firstname": "Luc",
+          "lastname": "BERNARD"
+        }
+      },
+      {
+        "id": "<id>",
+        "name": "Estrade",
+        "assignee": {
+          "id": "<id>",
+          "firstname": "Marc",
+          "lastname": "PETIT"
+        }
+      },
+      {
+        "id": "<id>",
+        "name": "Nettoyage",
+        "assignee": {
+          "id": "<id>",
+          "firstname": "Paul",
+          "lastname": "MARTIN"
+        }
+      },
+      {
+        "id": "<id>",
+        "name": "Préposés à l’accueil",
+        "assignee": {
+          "id": "<id>",
+          "firstname": "Pierre",
+          "lastname": "MOREAU"
+        }
+      }
+    ],
+    "userPartIds": [],
+    "userServicePartIds": [],
+    "link": "/board/dynamic/<midweek-parts>/viewer?eventId=<midweek-1>"
+  },
+  "nextMeetingForViewer": {
+    "meeting": {
+      "id": "<id>",
+      "templateId": "<id>",
+      "name": "Réunion de semaine",
+      "startDate": "2027-03-09T18:00:00.000Z",
+      "endDate": "2027-03-09T19:45:00.000Z",
+      "template": {
+        "name": "Réunion de semaine",
+        "color": "#3b82f6"
+      },
+      "eventParts": [
+        {
+          "id": "<id>",
+          "name": "Cantique et prière",
+          "section": "",
+          "track": "",
+          "trackOrder": null,
+          "durationMin": null,
+          "hasConflict": false,
+          "topic": "",
+          "order": 1,
+          "speakerLabel": null,
+          "readerLabel": null,
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Paul",
+            "lastname": "MARTIN"
+          },
+          "assistant": null,
+          "externalSpeaker": null,
+          "viewerRole": null
+        },
+        {
+          "id": "<id>",
+          "name": "Discours",
+          "section": "Perles spirituelles",
+          "track": "",
+          "trackOrder": null,
+          "durationMin": null,
+          "hasConflict": false,
+          "topic": "Sujet de référence",
+          "order": 2,
+          "speakerLabel": null,
+          "readerLabel": null,
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Paul",
+            "lastname": "MARTIN"
+          },
+          "assistant": null,
+          "externalSpeaker": null,
+          "viewerRole": null
+        },
+        {
+          "id": "<id>",
+          "name": "Perles spirituelles",
+          "section": "Perles spirituelles",
+          "track": "",
+          "trackOrder": null,
+          "durationMin": null,
+          "hasConflict": false,
+          "topic": "",
+          "order": 3,
+          "speakerLabel": null,
+          "readerLabel": null,
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Luc",
+            "lastname": "BERNARD"
+          },
+          "assistant": null,
+          "externalSpeaker": null,
+          "viewerRole": null
+        },
+        {
+          "id": "<id>",
+          "name": "Lecture de la Bible",
+          "section": "Perles spirituelles",
+          "track": "",
+          "trackOrder": null,
+          "durationMin": null,
+          "hasConflict": false,
+          "topic": "",
+          "order": 4,
+          "speakerLabel": null,
+          "readerLabel": null,
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Pierre",
+            "lastname": "MOREAU"
+          },
+          "assistant": null,
+          "externalSpeaker": null,
+          "viewerRole": null
+        },
+        {
+          "id": "<id>",
+          "name": "1re partie",
+          "section": "Appliquons-nous au ministère",
+          "track": "",
+          "trackOrder": null,
+          "durationMin": null,
+          "hasConflict": false,
+          "topic": "",
+          "order": 5,
+          "speakerLabel": null,
+          "readerLabel": null,
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Paul",
+            "lastname": "MARTIN"
+          },
+          "assistant": null,
+          "externalSpeaker": null,
+          "viewerRole": null
+        },
+        {
+          "id": "<id>",
+          "name": "2e partie",
+          "section": "Appliquons-nous au ministère",
+          "track": "",
+          "trackOrder": null,
+          "durationMin": null,
+          "hasConflict": false,
+          "topic": "",
+          "order": 6,
+          "speakerLabel": null,
+          "readerLabel": null,
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Jean",
+            "lastname": "DURAND"
+          },
+          "assistant": null,
+          "externalSpeaker": null,
+          "viewerRole": null
+        },
+        {
+          "id": "<id>",
+          "name": "3e partie",
+          "section": "Appliquons-nous au ministère",
+          "track": "",
+          "trackOrder": null,
+          "durationMin": null,
+          "hasConflict": false,
+          "topic": "",
+          "order": 7,
+          "speakerLabel": null,
+          "readerLabel": null,
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Luc",
+            "lastname": "BERNARD"
+          },
+          "assistant": null,
+          "externalSpeaker": null,
+          "viewerRole": null
+        },
+        {
+          "id": "<id>",
+          "name": "Cantique",
+          "section": "",
+          "track": "",
+          "trackOrder": null,
+          "durationMin": null,
+          "hasConflict": false,
+          "topic": "",
+          "order": 8,
+          "speakerLabel": null,
+          "readerLabel": null,
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Pierre",
+            "lastname": "MOREAU"
+          },
+          "assistant": null,
+          "externalSpeaker": null,
+          "viewerRole": null
+        },
+        {
+          "id": "<id>",
+          "name": "1re partie",
+          "section": "Vie chrétienne",
+          "track": "",
+          "trackOrder": null,
+          "durationMin": null,
+          "hasConflict": false,
+          "topic": "",
+          "order": 9,
+          "speakerLabel": null,
+          "readerLabel": null,
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Paul",
+            "lastname": "MARTIN"
+          },
+          "assistant": null,
+          "externalSpeaker": null,
+          "viewerRole": null
+        },
+        {
+          "id": "<id>",
+          "name": "2e partie",
+          "section": "Vie chrétienne",
+          "track": "",
+          "trackOrder": null,
+          "durationMin": null,
+          "hasConflict": false,
+          "topic": "",
+          "order": 10,
+          "speakerLabel": null,
+          "readerLabel": null,
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Jean",
+            "lastname": "DURAND"
+          },
+          "assistant": null,
+          "externalSpeaker": null,
+          "viewerRole": null
+        },
+        {
+          "id": "<id>",
+          "name": "Étude biblique de l’assemblée",
+          "section": "Vie chrétienne",
+          "track": "",
+          "trackOrder": null,
+          "durationMin": null,
+          "hasConflict": false,
+          "topic": "",
+          "order": 11,
+          "speakerLabel": null,
+          "readerLabel": null,
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Luc",
+            "lastname": "BERNARD"
+          },
+          "assistant": null,
+          "externalSpeaker": null,
+          "viewerRole": null
+        },
+        {
+          "id": "<id>",
+          "name": "Cantique et prière de conclusion",
+          "section": "",
+          "track": "",
+          "trackOrder": null,
+          "durationMin": null,
+          "hasConflict": false,
+          "topic": "",
+          "order": 12,
+          "speakerLabel": null,
+          "readerLabel": null,
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Pierre",
+            "lastname": "MOREAU"
+          },
+          "assistant": {
+            "id": "<id>",
+            "firstname": "Marc",
+            "lastname": "PETIT"
+          },
+          "externalSpeaker": null,
+          "viewerRole": null
+        }
+      ],
+      "eventServiceParts": [
+        {
+          "id": "<id>",
+          "name": "Audio-vidéo",
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Luc",
+            "lastname": "BERNARD"
+          }
+        },
+        {
+          "id": "<id>",
+          "name": "Estrade",
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Marc",
+            "lastname": "PETIT"
+          }
+        },
+        {
+          "id": "<id>",
+          "name": "Nettoyage",
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Paul",
+            "lastname": "MARTIN"
+          }
+        },
+        {
+          "id": "<id>",
+          "name": "Préposés à l’accueil",
+          "assignee": {
+            "id": "<id>",
+            "firstname": "Pierre",
+            "lastname": "MOREAU"
+          }
+        }
+      ],
+      "userPartIds": [],
+      "userServicePartIds": [],
+      "link": "/board/dynamic/<midweek-parts>/viewer?eventId=<midweek-1>"
+    },
+    "showCard": true,
+    "canAct": false,
+    "link": "/programs/events/<midweek-1>"
+  },
+  "upcomingAssignments": [],
+  "conflictingAssignments": null,
+  "upcomingAbsences": {
+    "upcoming": [],
+    "shouldNudge": true
+  },
+  "responsibleConflicts": {
+    "count": 0,
+    "absenteeNames": [],
+    "totalAbsenteesCount": 0
+  }
+}

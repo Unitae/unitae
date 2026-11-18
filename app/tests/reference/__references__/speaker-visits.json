@@ -1,0 +1,12 @@
+{
+  "upcoming": [
+    {
+      "eventId": "<id>",
+      "date": "2027-03-13T09:00:00.000Z",
+      "partName": "Discours public",
+      "topic": "Sujet de référence",
+      "status": "released"
+    }
+  ],
+  "past": []
+}
