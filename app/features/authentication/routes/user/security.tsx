@@ -20,6 +20,7 @@ import { verifyTwoFactorChallenge } from '~/features/authentication/server/verif
 import type { PasswordResult } from '~/features/authentication/ui/PasswordDialog'
 import { SecuritySettings } from '~/features/authentication/ui/SecuritySettings'
 import type { TwoFactorResult } from '~/features/authentication/ui/TwoFactorDialogs'
+import { HelpEntryButton } from '~/features/help'
 import * as m from '~/i18n/paraglide/messages'
 import { congregationContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
@@ -27,6 +28,9 @@ import { AccountPage } from '~/shared/ui/AccountPage'
 import type { Route } from './+types/security'
 
 const SECRET_FIELDS = ['password', 'new_password', 'new_password_confirm']
+
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: `${m.account_section_security()} - Unitae` }]
@@ -40,7 +44,11 @@ export async function loader({ context }: Route.LoaderArgs) {
 
 export default function SecurityPage({ loaderData }: Route.ComponentProps) {
   return (
-    <AccountPage title={m.account_section_security()} subtitle={m.account_security_subtitle()}>
+    <AccountPage
+      help={<HelpEntryButton slug="password" />}
+      title={m.account_section_security()}
+      subtitle={m.account_security_subtitle()}
+    >
       <SecuritySettings twoFactorSince={loaderData.twoFactorSince} timezone={loaderData.timezone} />
     </AccountPage>
   )

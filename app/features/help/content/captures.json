@@ -5,6 +5,36 @@
             "height": 47,
             "captured": "2026-11-17"
         },
+        "account-calendar-create": {
+            "width": 520,
+            "height": 181,
+            "captured": "2026-11-17"
+        },
+        "account-data": {
+            "width": 520,
+            "height": 301,
+            "captured": "2026-11-17"
+        },
+        "account-notifications": {
+            "width": 520,
+            "height": 232,
+            "captured": "2026-11-17"
+        },
+        "account-password-row": {
+            "width": 484,
+            "height": 117,
+            "captured": "2026-11-17"
+        },
+        "account-preferences": {
+            "width": 486,
+            "height": 329,
+            "captured": "2026-11-17"
+        },
+        "account-two-step-row": {
+            "width": 484,
+            "height": 118,
+            "captured": "2026-11-17"
+        },
         "board-download-button": {
             "width": 130,
             "height": 43,
@@ -60,6 +90,36 @@
         "absences-new": {
             "width": 182,
             "height": 47,
+            "captured": "2026-11-17"
+        },
+        "account-calendar-create": {
+            "width": 520,
+            "height": 181,
+            "captured": "2026-11-17"
+        },
+        "account-data": {
+            "width": 520,
+            "height": 278,
+            "captured": "2026-11-17"
+        },
+        "account-notifications": {
+            "width": 520,
+            "height": 232,
+            "captured": "2026-11-17"
+        },
+        "account-password-row": {
+            "width": 484,
+            "height": 94,
+            "captured": "2026-11-17"
+        },
+        "account-preferences": {
+            "width": 486,
+            "height": 283,
+            "captured": "2026-11-17"
+        },
+        "account-two-step-row": {
+            "width": 484,
+            "height": 118,
             "captured": "2026-11-17"
         },
         "board-download-button": {

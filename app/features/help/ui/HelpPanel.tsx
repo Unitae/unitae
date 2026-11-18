@@ -95,7 +95,8 @@ function OpenHelpPanel({ slug }: { slug: string }) {
   return (
     <Sheet open onOpenChange={next => !next && close()}>
       <SheetContent className="sm:max-w-md">
-        <SheetHeader>
+        {/* An article's title runs to two lines: it keeps clear of the close button in the corner. */}
+        <SheetHeader className="pr-16">
           <SheetTitle>{title}</SheetTitle>
           {summary && <SheetDescription>{summary}</SheetDescription>}
         </SheetHeader>

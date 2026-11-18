@@ -7,8 +7,9 @@ export type HelpLocale = (typeof HELP_LOCALES)[number]
 export const HELP_FALLBACK_LOCALE: HelpLocale = 'en'
 
 /**
- * The areas of the app the articles are grouped under, in the order the sidebar lists them. Each one is named by
- * the sidebar's own label, so the help speaks the same words as the page it is about.
+ * The areas of the app the articles are grouped under, in the order the sidebar lists them, then « Mon compte », which
+ * the person's menu at the foot of the sidebar opens. Each one is named by the label of its entry, so the help speaks
+ * the same words as the page it is about.
  */
 export const HELP_MODULES = [
   'my-territories',
@@ -18,6 +19,7 @@ export const HELP_MODULES = [
   'territories',
   'prospection',
   'settings',
+  'account',
 ] as const
 export type HelpModule = (typeof HELP_MODULES)[number]
 

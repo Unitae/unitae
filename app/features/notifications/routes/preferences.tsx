@@ -1,6 +1,7 @@
 import { parseWithZod } from '@conform-to/zod/v4'
 import { Panel, SectionHeading } from '@unitae/ui'
 import { data, useFetcher } from 'react-router'
+import { HelpEntryButton } from '~/features/help'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { AccountPage } from '~/shared/ui/AccountPage'
@@ -13,6 +14,9 @@ import { reachableNotificationTypes } from '../server/preference-reach.server'
 import { getUserPreferences, togglePreference } from '../server/preferences.server'
 
 import type { Route } from './+types/preferences'
+
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: `${m.account_section_notifications()} - Unitae` }]
@@ -66,7 +70,11 @@ export default function NotificationPreferencesPage({ loaderData }: Route.Compon
   const { email, categories } = loaderData
 
   return (
-    <AccountPage title={m.account_section_notifications()} subtitle={m.account_notifications_subtitle({ email })}>
+    <AccountPage
+      help={<HelpEntryButton slug="notifications" />}
+      title={m.account_section_notifications()}
+      subtitle={m.account_notifications_subtitle({ email })}
+    >
       {categories.length === 0 ? (
         <p className="text-muted-foreground text-sm">{m.account_notifications_empty()}</p>
       ) : (

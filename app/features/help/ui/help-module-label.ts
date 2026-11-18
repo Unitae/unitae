@@ -1,8 +1,9 @@
 import type { HelpModule } from '~/features/help/model/help.type'
 import * as m from '~/i18n/paraglide/messages'
 
-// Each module is named by the sidebar entry it belongs to, so the help uses the words the page shows.
+// Each module is named by the sidebar or menu entry it belongs to, so the help uses the words the page shows.
 const LABELS: Record<HelpModule, () => string> = {
+  account: m.account_title,
   absences: m.sidebar_my_absences,
   board: m.sidebar_board,
   'my-territories': m.sidebar_my_territories,
