@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { redirect } from 'react-router'
+import { HelpEntryButton } from '~/features/help'
 import { toServiceYear } from '~/features/publishers'
 import { earliestDeparture } from '~/features/publishers/model/departure-date'
 import { reportAccess } from '~/features/publishers/model/group-activity-access'
@@ -125,10 +126,12 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
             retentionMonths={DEFAULT_RETENTION_MONTHS}
           />
         }
+        help={<HelpEntryButton slug="publisher-arrivals-departures" />}
       >
         <RecordHeader
           record={record}
           pioneerLabel={loaderData.activity ? pioneerProfileLabel(loaderData.activity) : null}
+          help={<HelpEntryButton slug="publisher-arrivals-departures" />}
         />
       </PageTopbar>
       <RecordQuickContacts record={record} />
@@ -201,3 +204,6 @@ const EMPTY_OPTIONS = {
   rates: { 'monthly-aux': 0, 'permanent-aux': 0, permanent: 0, special: 0, missionary: 0 },
   hidePermanentAuxiliary: true,
 }
+
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'

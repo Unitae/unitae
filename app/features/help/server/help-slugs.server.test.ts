@@ -1,8 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { HelpArticle } from '~/features/help/model/help.type'
+import type { HelpReader } from '~/features/help/model/help-access'
 import { HelpArticleFormatError } from '~/features/help/model/parse-help-article'
 import { helpSlugsFor } from '~/features/help/server/help-slugs.server'
 import { Permission } from '~/shared/types/permission'
+
+/** A reader holding these permissions and leading no group. */
+function readerWith(...permissions: Permission[]): HelpReader {
+  return { permissions: new Set(permissions), leadsGroup: false }
+}
 
 function article(
   locale: HelpArticle['locale'],
@@ -33,12 +39,12 @@ const ARTICLES = [
 
 describe('helpSlugsFor', () => {
   it('lists the slugs the reader may open in their language, each once', () => {
-    expect(helpSlugsFor(new Set(), 'fr', () => ARTICLES)).toEqual(['open'])
-    expect(helpSlugsFor(new Set([Permission.CanConfigureTerritorySettings]), 'fr', () => ARTICLES)).toEqual([
+    expect(helpSlugsFor(readerWith(), 'fr', () => ARTICLES)).toEqual(['open'])
+    expect(helpSlugsFor(readerWith(Permission.CanConfigureTerritorySettings), 'fr', () => ARTICLES)).toEqual([
       'open',
       'bano',
     ])
-    expect(helpSlugsFor(new Set(), 'en', () => ARTICLES)).toEqual(['open', 'only-english'])
+    expect(helpSlugsFor(readerWith(), 'en', () => ARTICLES)).toEqual(['open', 'only-english'])
   })
 
   it('gives no slugs and reports the error when the articles are malformed, so the layout keeps working', () => {
@@ -47,7 +53,7 @@ describe('helpSlugsFor', () => {
       throw new HelpArticleFormatError('Help article « x » has no frontmatter block.')
     }
 
-    expect(helpSlugsFor(new Set(), 'fr', broken, report)).toEqual([])
+    expect(helpSlugsFor(readerWith(), 'fr', broken, report)).toEqual([])
     expect(report).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('frontmatter') }))
   })
 
@@ -56,6 +62,6 @@ describe('helpSlugsFor', () => {
       throw new TypeError('not a help problem')
     }
 
-    expect(() => helpSlugsFor(new Set(), 'fr', unexpected, vi.fn())).toThrow(TypeError)
+    expect(() => helpSlugsFor(readerWith(), 'fr', unexpected, vi.fn())).toThrow(TypeError)
   })
 })

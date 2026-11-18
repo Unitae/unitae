@@ -3,7 +3,11 @@ import { Permission } from '~/shared/types/permission'
 
 // The article loader, as the page and the side panel both read it.
 const permissionsContext = Symbol('permissionsContext')
-vi.mock('~/shared/auth/route-context.server', () => ({ permissionsContext }))
+const currentAccountContext = Symbol('currentAccountContext')
+vi.mock('~/shared/auth/route-context.server', () => ({ permissionsContext, currentAccountContext }))
+
+// An account whose record leads no group.
+const ACCOUNT = { member: null }
 
 vi.mock('~/i18n/paraglide/runtime', async importOriginal => ({
   ...(await importOriginal<typeof import('~/i18n/paraglide/runtime')>()),
@@ -13,7 +17,11 @@ vi.mock('~/i18n/paraglide/runtime', async importOriginal => ({
 const { loader } = await import('./article')
 
 function run(slug: string, permissions: ReadonlySet<Permission>) {
-  const context = { get: (key: symbol) => (key === permissionsContext ? permissions : undefined) }
+  const values = new Map<symbol, unknown>([
+    [permissionsContext, permissions],
+    [currentAccountContext, ACCOUNT],
+  ])
+  const context = { get: (key: symbol) => values.get(key) }
   return loader({ params: { slug }, context } as never)
 }
 

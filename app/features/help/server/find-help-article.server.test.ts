@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { HelpArticle } from '~/features/help/model/help.type'
+import type { HelpReader } from '~/features/help/model/help-access'
 import { findHelpArticle } from '~/features/help/server/find-help-article.server'
 import { Permission } from '~/shared/types/permission'
+
+/** A reader holding these permissions and leading no group. */
+function readerWith(...permissions: Permission[]): HelpReader {
+  return { permissions: new Set(permissions), leadsGroup: false }
+}
 
 function article(overrides: Partial<HelpArticle> & Pick<HelpArticle, 'slug'>): HelpArticle {
   return {
@@ -27,7 +33,7 @@ const ARTICLES = [
 
 describe('findHelpArticle', () => {
   it('returns an article the reader may open, with its related articles they may open too', () => {
-    const result = findHelpArticle(ARTICLES, 'open', 'fr', new Set([Permission.CanConfigureTerritorySettings]))
+    const result = findHelpArticle(ARTICLES, 'open', 'fr', readerWith(Permission.CanConfigureTerritorySettings))
 
     expect(result.kind).toBe('found')
     if (result.kind !== 'found') return
@@ -36,26 +42,26 @@ describe('findHelpArticle', () => {
   })
 
   it('leaves out related articles the reader may not open, and the ones that do not exist', () => {
-    const result = findHelpArticle(ARTICLES, 'open', 'fr', new Set())
+    const result = findHelpArticle(ARTICLES, 'open', 'fr', readerWith())
 
     expect(result.kind === 'found' && result.related).toEqual([])
   })
 
   it('refuses an article whose permission the reader does not hold, without revealing it', () => {
-    expect(findHelpArticle(ARTICLES, 'phone', 'fr', new Set([Permission.CanViewBoard]))).toEqual({ kind: 'forbidden' })
+    expect(findHelpArticle(ARTICLES, 'phone', 'fr', readerWith(Permission.CanViewBoard))).toEqual({ kind: 'forbidden' })
   })
 
   it('reports an unknown slug as missing', () => {
-    expect(findHelpArticle(ARTICLES, 'nope', 'fr', new Set())).toEqual({ kind: 'missing' })
+    expect(findHelpArticle(ARTICLES, 'nope', 'fr', readerWith())).toEqual({ kind: 'missing' })
   })
 
   it('looks only in the asked language', () => {
-    const granted = new Set([Permission.CanViewProspection])
+    const granted = readerWith(Permission.CanViewProspection)
 
     expect(findHelpArticle(ARTICLES, 'prospection', 'en', granted)).toMatchObject({
       kind: 'found',
       article: { locale: 'en' },
     })
-    expect(findHelpArticle(ARTICLES.slice(0, 2), 'open', 'en', new Set())).toEqual({ kind: 'missing' })
+    expect(findHelpArticle(ARTICLES.slice(0, 2), 'open', 'en', readerWith())).toEqual({ kind: 'missing' })
   })
 })

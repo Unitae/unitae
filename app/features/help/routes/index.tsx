@@ -5,11 +5,12 @@ import { helpLocaleFor, helpPagePath } from '~/features/help/model/help-links'
 import { groupHelpArticlesByModule } from '~/features/help/model/help-modules'
 import { searchHelpArticles } from '~/features/help/model/search-help-articles'
 import { loadHelpArticles } from '~/features/help/server/help-content.server'
+import { helpReaderFor } from '~/features/help/server/help-reader.server'
 import { HelpFallback } from '~/features/help/ui/HelpFallback'
 import { helpModuleLabel } from '~/features/help/ui/help-module-label'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
-import { permissionsContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext } from '~/shared/auth/route-context.server'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -32,12 +33,12 @@ export const meta: Route.MetaFunction = () => [{ title: m.help_meta_title() }]
 
 // Only the articles the reader may see are listed, grouped or searched: the rest does not exist for them.
 export function loader({ request, context }: Route.LoaderArgs) {
-  const permissions = context.get(permissionsContext)
+  const reader = helpReaderFor(context.get(permissionsContext), context.get(currentAccountContext))
   const locale = helpLocaleFor(getLocale())
   const query = new URL(request.url).searchParams.get('q') ?? ''
   const visible = visibleHelpArticles(
     loadHelpArticles().filter(article => article.locale === locale),
-    permissions,
+    reader,
   )
 
   return {

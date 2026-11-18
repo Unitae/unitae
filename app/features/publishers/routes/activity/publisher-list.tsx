@@ -2,6 +2,7 @@ import { PeriodStepper } from '@unitae/ui'
 import { Download, Users } from 'lucide-react'
 import { useState } from 'react'
 import { redirect, type ShouldRevalidateFunctionArgs, useSearchParams } from 'react-router'
+import { HelpEntryButton, onlyHelpPanelChanged } from '~/features/help'
 import {
   ACTIVITY_FILTER_PARAM_NAMES,
   filterPublisherActivities,
@@ -45,7 +46,10 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.activity_list_meta_title() }]
 }
 
-export function shouldRevalidate({ currentUrl, nextUrl, defaultShouldRevalidate }: ShouldRevalidateFunctionArgs) {
+export function shouldRevalidate(args: ShouldRevalidateFunctionArgs) {
+  const { currentUrl, nextUrl, defaultShouldRevalidate } = args
+  // Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+  if (onlyHelpPanelChanged(args)) return false
   if (currentUrl.pathname !== nextUrl.pathname) return defaultShouldRevalidate
 
   const clientOnlyChange = ACTIVITY_FILTER_PARAM_NAMES.some(name => {
@@ -172,6 +176,7 @@ export default function ActivityReports({ loaderData }: Route.ComponentProps) {
     <PageHeader
       title={m.activity_page_title()}
       breadcrumbs={[{ label: m.activity_page_title() }]}
+      help={<HelpEntryButton slug="field-service-reports" />}
       actions={
         <Button variant="ghost" onClick={() => setExportOpen(true)} className="max-sm:hidden">
           <Download />

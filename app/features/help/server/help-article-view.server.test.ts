@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { HelpArticle } from '~/features/help/model/help.type'
+import type { HelpReader } from '~/features/help/model/help-access'
 import { helpArticleView } from '~/features/help/server/help-article-view.server'
 import { Permission } from '~/shared/types/permission'
+
+/** A reader holding these permissions and leading no group. */
+function readerWith(...permissions: Permission[]): HelpReader {
+  return { permissions: new Set(permissions), leadsGroup: false }
+}
 
 const ARTICLES: HelpArticle[] = [
   {
@@ -32,7 +38,7 @@ const ARTICLES: HelpArticle[] = [
 
 describe('helpArticleView', () => {
   it('draws an article the reader may open, its body rendered and its related articles they may open', () => {
-    const view = helpArticleView(ARTICLES, 'prospection', 'fr', new Set([Permission.CanViewProspection]))
+    const view = helpArticleView(ARTICLES, 'prospection', 'fr', readerWith(Permission.CanViewProspection))
 
     expect(view).toEqual({
       kind: 'found',
@@ -46,20 +52,20 @@ describe('helpArticleView', () => {
   })
 
   it('escapes raw HTML in the body', () => {
-    const view = helpArticleView(ARTICLES, 'prospection', 'fr', new Set([Permission.CanViewProspection]))
+    const view = helpArticleView(ARTICLES, 'prospection', 'fr', readerWith(Permission.CanViewProspection))
 
     expect(view.kind === 'found' && view.html).not.toContain('<b>brut</b>')
   })
 
   it('refuses an article the reader may not open, with no title in the answer', () => {
-    expect(helpArticleView(ARTICLES, 'prospection', 'fr', new Set())).toStrictEqual({
+    expect(helpArticleView(ARTICLES, 'prospection', 'fr', readerWith())).toStrictEqual({
       kind: 'forbidden',
       slug: 'prospection',
     })
   })
 
   it('answers missing for an unknown slug', () => {
-    expect(helpArticleView(ARTICLES, 'inconnu', 'fr', new Set())).toStrictEqual({
+    expect(helpArticleView(ARTICLES, 'inconnu', 'fr', readerWith())).toStrictEqual({
       kind: 'missing',
       slug: 'inconnu',
     })

@@ -1,6 +1,6 @@
 import type { ShouldRevalidateFunctionArgs } from 'react-router'
 import { describe, expect, it } from 'vitest'
-import { skipRevalidationForHelpPanel } from '~/features/help/model/help-revalidation'
+import { onlyHelpPanelChanged, skipRevalidationForHelpPanel } from '~/features/help/model/help-revalidation'
 
 function args(current: string, next: string, extra: Partial<ShouldRevalidateFunctionArgs> = {}) {
   return {
@@ -53,5 +53,23 @@ describe('skipRevalidationForHelpPanel', () => {
     expect(
       skipRevalidationForHelpPanel(args('/territories?q=12', '/territories?q=13', { defaultShouldRevalidate: false })),
     ).toBe(false)
+  })
+})
+
+// For a page that decides its own revalidation: true only when the navigation changes nothing but the panel.
+describe('onlyHelpPanelChanged', () => {
+  it('is true when the panel opens or closes', () => {
+    expect(onlyHelpPanelChanged(args('/groups/3/view', '/groups/3/view?help=field-service-reports'))).toBe(true)
+    expect(onlyHelpPanelChanged(args('/groups/3/view?help=field-service-reports', '/groups/3/view'))).toBe(true)
+  })
+
+  it('is false when another parameter changes with it, on another page, or for a form sent', () => {
+    expect(onlyHelpPanelChanged(args('/publishers/activity', '/publishers/activity?month=3&help=pioneers'))).toBe(false)
+    expect(onlyHelpPanelChanged(args('/publishers/activity', '/groups?help=groups'))).toBe(false)
+    expect(onlyHelpPanelChanged(args('/groups', '/groups?help=groups', { formMethod: 'POST' }))).toBe(false)
+  })
+
+  it('is false when the panel stays as it was', () => {
+    expect(onlyHelpPanelChanged(args('/groups?help=groups', '/groups?help=groups'))).toBe(false)
   })
 })

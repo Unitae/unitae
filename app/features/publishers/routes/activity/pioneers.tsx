@@ -1,7 +1,7 @@
 import { PeriodStepper } from '@unitae/ui'
 import { Target } from 'lucide-react'
 import { Link, redirect, type ShouldRevalidateFunctionArgs } from 'react-router'
-
+import { HelpEntryButton, onlyHelpPanelChanged } from '~/features/help'
 import { toServiceYear } from '~/features/publishers'
 import { getPioneerActivitySummary } from '~/features/publishers/index.server'
 import { ActivityViewSwitch } from '~/features/publishers/ui/ActivityViewSwitch'
@@ -23,8 +23,11 @@ import type { Route } from './+types/pioneers'
 export const meta: Route.MetaFunction = () => [{ title: m.pioneers_meta_title() }]
 
 // The roster is loaded once per service year; risk/type/group/search filtering is
-// client-side, so only a change to `sy` should refetch.
-export function shouldRevalidate({ currentUrl, nextUrl, defaultShouldRevalidate }: ShouldRevalidateFunctionArgs) {
+// client-side, so only a change to `sy` should refetch. Opening, closing or swapping the « ? » article changes only
+// `?help=`: the page keeps its data.
+export function shouldRevalidate(args: ShouldRevalidateFunctionArgs) {
+  const { currentUrl, nextUrl, defaultShouldRevalidate } = args
+  if (onlyHelpPanelChanged(args)) return false
   if (currentUrl.pathname !== nextUrl.pathname) return defaultShouldRevalidate
   return currentUrl.searchParams.get('sy') !== nextUrl.searchParams.get('sy')
 }
@@ -57,6 +60,7 @@ export default function PioneersRoster({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={m.activity_page_title()}
         breadcrumbs={[{ label: m.activity_page_title() }]}
+        help={<HelpEntryButton slug="pioneers" />}
         actions={
           canSetGoals && (
             <Button asChild variant="ghost">

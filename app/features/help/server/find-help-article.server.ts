@@ -1,6 +1,5 @@
 import type { HelpArticle, HelpLocale } from '~/features/help/model/help.type'
-import { canReadHelpArticle } from '~/features/help/model/help-access'
-import type { Permission } from '~/shared/types/permission'
+import { canReadHelpArticle, type HelpReader } from '~/features/help/model/help-access'
 
 export type HelpArticleLookup =
   | { kind: 'found'; article: HelpArticle; related: HelpArticle[] }
@@ -9,23 +8,23 @@ export type HelpArticleLookup =
   | { kind: 'missing' }
 
 /**
- * Looks an article up by slug in the reader's language. Refuses one whose permission the reader does not hold, and
+ * Looks an article up by slug in the reader's language. Refuses one the reader may not open, and
  * lists as related only the articles the reader may open.
  */
 export function findHelpArticle(
   articles: readonly HelpArticle[],
   slug: string,
   locale: HelpLocale,
-  permissions: ReadonlySet<Permission>,
+  reader: HelpReader,
 ): HelpArticleLookup {
   const inLocale = articles.filter(article => article.locale === locale)
   const article = inLocale.find(candidate => candidate.slug === slug)
   if (!article) return { kind: 'missing' }
-  if (!canReadHelpArticle(article, permissions)) return { kind: 'forbidden' }
+  if (!canReadHelpArticle(article, reader)) return { kind: 'forbidden' }
 
   const related = article.related
     .map(relatedSlug => inLocale.find(candidate => candidate.slug === relatedSlug))
-    .filter((candidate): candidate is HelpArticle => candidate != null && canReadHelpArticle(candidate, permissions))
+    .filter((candidate): candidate is HelpArticle => candidate != null && canReadHelpArticle(candidate, reader))
 
   return { kind: 'found', article, related }
 }

@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import type { HelpArticle } from '~/features/help/model/help.type'
-import { canReadHelpArticle, visibleHelpArticles, visibleHelpSlugs } from '~/features/help/model/help-access'
+import {
+  canReadHelpArticle,
+  type HelpReader,
+  visibleHelpArticles,
+  visibleHelpSlugs,
+} from '~/features/help/model/help-access'
 import { Permission } from '~/shared/types/permission'
+
+/** A reader holding these permissions and leading no group. */
+function readerWith(...permissions: Permission[]): HelpReader {
+  return { permissions: new Set(permissions), leadsGroup: false }
+}
 
 function article(slug: string, permission: HelpArticle['permission']): HelpArticle {
   return {
@@ -26,40 +36,62 @@ const ARTICLES = [
 
 describe('canReadHelpArticle', () => {
   it('lets anyone read an article that needs no permission', () => {
-    expect(canReadHelpArticle(article('open', null), new Set())).toBe(true)
+    expect(canReadHelpArticle(article('open', null), readerWith())).toBe(true)
   })
 
   it('lets a reader read an article only when they hold its permission', () => {
     const prospection = article('prospection', ['CanViewProspection'])
 
-    expect(canReadHelpArticle(prospection, new Set([Permission.CanViewBoard]))).toBe(false)
-    expect(canReadHelpArticle(prospection, new Set([Permission.CanViewProspection]))).toBe(true)
+    expect(canReadHelpArticle(prospection, readerWith(Permission.CanViewBoard))).toBe(false)
+    expect(canReadHelpArticle(prospection, readerWith(Permission.CanViewProspection))).toBe(true)
   })
 
   it('lets a reader read an article with several permissions when they hold any one of them', () => {
     const versions = article('versions', ['CanReviewBoardDocuments', 'CanUploadBoardDocuments'])
 
-    expect(canReadHelpArticle(versions, new Set([Permission.CanUploadBoardDocuments]))).toBe(true)
-    expect(canReadHelpArticle(versions, new Set([Permission.CanReviewBoardDocuments]))).toBe(true)
-    expect(canReadHelpArticle(versions, new Set([Permission.CanViewBoard]))).toBe(false)
+    expect(canReadHelpArticle(versions, readerWith(Permission.CanUploadBoardDocuments))).toBe(true)
+    expect(canReadHelpArticle(versions, readerWith(Permission.CanReviewBoardDocuments))).toBe(true)
+    expect(canReadHelpArticle(versions, readerWith(Permission.CanViewBoard))).toBe(false)
+  })
+})
+
+describe('canReadHelpArticle for a feature that leading a group opens', () => {
+  const reports = article('group-reports', ['CanRecordActivity', 'GroupLeader'])
+
+  it('lets a group overseer or assistant read it without any permission', () => {
+    expect(canReadHelpArticle(reports, { permissions: new Set(), leadsGroup: true })).toBe(true)
+  })
+
+  it('lets a reader who holds one of its permissions read it without leading a group', () => {
+    expect(canReadHelpArticle(reports, readerWith(Permission.CanRecordActivity))).toBe(true)
+  })
+
+  it('refuses it to a reader who neither leads a group nor holds its permissions', () => {
+    expect(canReadHelpArticle(reports, readerWith(Permission.CanViewPublishers))).toBe(false)
+  })
+
+  it('does not open an article without GroupLeader to a group leader', () => {
+    expect(canReadHelpArticle(article('board', ['CanViewBoard']), { permissions: new Set(), leadsGroup: true })).toBe(
+      false,
+    )
   })
 })
 
 describe('visibleHelpArticles', () => {
   it('keeps only the articles the reader may see, in their order', () => {
-    const visible = visibleHelpArticles(ARTICLES, new Set([Permission.CanViewBoard]))
+    const visible = visibleHelpArticles(ARTICLES, readerWith(Permission.CanViewBoard))
 
     expect(visible.map(({ slug }) => slug)).toEqual(['open', 'board'])
   })
 
   it('shows a reader without any permission only the articles that need none', () => {
-    expect(visibleHelpArticles(ARTICLES, new Set()).map(({ slug }) => slug)).toEqual(['open'])
+    expect(visibleHelpArticles(ARTICLES, readerWith()).map(({ slug }) => slug)).toEqual(['open'])
   })
 })
 
 describe('visibleHelpSlugs', () => {
   it('lists the slugs the reader may open, for the « ? » entry points', () => {
-    expect(visibleHelpSlugs(ARTICLES, new Set([Permission.CanViewProspection]), 'fr')).toEqual(['open', 'prospection'])
+    expect(visibleHelpSlugs(ARTICLES, readerWith(Permission.CanViewProspection), 'fr')).toEqual(['open', 'prospection'])
   })
 })
 
@@ -71,11 +103,11 @@ describe('visibleHelpSlugs across the two languages', () => {
   ]
 
   it('lists a slug shared by both languages once, for the asked language', () => {
-    expect(visibleHelpSlugs(BILINGUAL, new Set(), 'en')).toEqual(['open'])
+    expect(visibleHelpSlugs(BILINGUAL, readerWith(), 'en')).toEqual(['open'])
   })
 
   it('follows the asked language for the gated articles too', () => {
-    expect(visibleHelpSlugs(BILINGUAL, new Set([Permission.CanViewBoard]), 'fr')).toEqual(['open', 'board'])
-    expect(visibleHelpSlugs(BILINGUAL, new Set([Permission.CanViewBoard]), 'en')).toEqual(['open'])
+    expect(visibleHelpSlugs(BILINGUAL, readerWith(Permission.CanViewBoard), 'fr')).toEqual(['open', 'board'])
+    expect(visibleHelpSlugs(BILINGUAL, readerWith(Permission.CanViewBoard), 'en')).toEqual(['open'])
   })
 })

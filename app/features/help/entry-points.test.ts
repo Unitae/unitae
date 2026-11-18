@@ -23,6 +23,16 @@ const PINS: Record<string, string | string[]> = {
   'features/events/routes/programs/external-speakers/ours.tsx': 'external-speakers',
   // Who may only enter attendance gets today's meetings; who may read it gets the service year and its exports.
   'features/events/routes/attendance/index.tsx': ['attendance-entry', 'attendance-s88'],
+  'features/publishers/routes/publishers/publisher-list.tsx': 'publisher-arrivals-departures',
+  'features/publishers/routes/publishers/new-publisher.tsx': 'publisher-arrivals-departures',
+  'features/publishers/routes/publishers/publisher.tsx': 'publisher-arrivals-departures',
+  'features/publishers/routes/publishers/group-list.tsx': 'groups',
+  'features/publishers/routes/publishers/new-group.tsx': 'groups',
+  'features/publishers/routes/publishers/edit-group.tsx': 'groups',
+  // « Mon groupe » too: its overseer and assistant enter the group's reports from it.
+  'features/publishers/routes/publishers/group.tsx': 'field-service-reports',
+  'features/publishers/routes/activity/publisher-list.tsx': 'field-service-reports',
+  'features/publishers/routes/activity/pioneers.tsx': 'pioneers',
 }
 
 // The routes with a loader matched above the pinned pages (see app/routes.ts).
@@ -39,6 +49,9 @@ const APP_ROOT = resolve(import.meta.dirname, '../..')
 const ENTRY_POINT = /HelpEntryButton slug="([a-z0-9-]+)"/g
 const HELP_SLOT = /help=\{<HelpEntryButton slug="/
 const PANEL_REVALIDATION = 'export { skipRevalidationForHelpPanel as shouldRevalidate }'
+// A page that decides its own revalidation asks the same question first.
+const OWN_REVALIDATION =
+  /export function shouldRevalidate\(args: ShouldRevalidateFunctionArgs\) \{\n(?:.*\n){0,3}?.*if \(onlyHelpPanelChanged\(args\)\) return false/
 const ARTICLES = loadHelpArticles()
 
 function scanEntryPoints(): Map<string, Set<string>> {
@@ -81,7 +94,8 @@ describe('the « ? » entry points, wired from the app source', () => {
   // One route that reloads is enough to send the request: the page and every layout above it keep their data.
   it('keeps the page data when the panel opens, on each page and every layout above it', () => {
     for (const file of [...Object.keys(PINS), ...LAYOUTS_ABOVE_ENTRY_POINTS]) {
-      expect(readFileSync(resolve(APP_ROOT, file), 'utf8'), file).toContain(PANEL_REVALIDATION)
+      const source = readFileSync(resolve(APP_ROOT, file), 'utf8')
+      expect(source.includes(PANEL_REVALIDATION) || OWN_REVALIDATION.test(source), file).toBe(true)
     }
   })
 

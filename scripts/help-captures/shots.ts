@@ -29,6 +29,8 @@ export interface HelpShot {
 // An admin, for the pages that manage; and a publisher who holds territories, for Mes territoires.
 const MARC = 'marc.dupont@demo.unitae.app'
 const MAXIME = 'maxime.mensah@demo.unitae.app'
+// Maxime's publisher record: someone else's for MARC, whose own status he could not change.
+const MAXIME_RECORD = 100
 
 /** The nearest enclosing element that matches, e.g. the row around a button. */
 function closest(locator: Locator, xpathTest: string): Locator {
@@ -297,4 +299,101 @@ export const HELP_SHOTS: HelpShot[] = [
     frame: page => [page.getByRole('dialog')],
     margin: -1,
   },
+  {
+    // field-service-reports: on a group's page, « Saisir » on the row of a publisher with no report opens it beside
+    // the list.
+    id: 'field-service-report-panel',
+    account: MARC,
+    path: '/groups',
+    prepare: async (page, locale) => {
+      await page.locator('a[href$="/view"]').first().click()
+      await page.waitForURL(url => url.pathname.endsWith('/view'))
+      await page
+        .getByRole('button', { name: m.activity_row_enter({}, { locale }), exact: true })
+        .first()
+        .click()
+      await settledPanel(page)
+    },
+    frame: page => [sidePanel(page)],
+    margin: -1,
+    // The docked panel needs the room: at 1280 px it runs past the window's edge.
+    viewport: { width: 1600, height: 900 },
+  },
+  {
+    // pioneers: « Les pionniers en chiffres » at the top of the Pionniers view.
+    id: 'pioneers-summary',
+    account: MARC,
+    path: '/publishers/activity/pioneers',
+    frame: (page, locale) => [page.getByLabel(m.pioneers_summary_label({}, { locale }), { exact: true })],
+    viewport: { width: 900 },
+  },
+  {
+    // publisher-arrivals-departures: the record's « … » menu › « A quitté l’assemblée… » says what becomes of the record.
+    // The date field below is left out: a bare date input takes the capture browser's format, not the reader's.
+    id: 'publisher-departure',
+    account: MARC,
+    path: `/publishers/${MAXIME_RECORD}/view`,
+    prepare: async (page, locale) => {
+      await page.getByRole('button', { name: m.publishers_record_more_actions({ name: '' }, { locale }) }).click()
+      await page.getByRole('menuitem', { name: m.publishers_record_menu_left({}, { locale }) }).click()
+      await page.getByRole('dialog').waitFor()
+    },
+    frame: page => [page.getByRole('dialog').getByRole('heading'), page.getByRole('dialog').getByRole('list')],
+    margin: 12,
+  },
+  {
+    // groups: a group's form, its name and address, then its overseer and assistant.
+    id: 'group-form',
+    account: MARC,
+    path: '/groups',
+    prepare: async page => {
+      await page.locator('a[href$="/view"]').first().click()
+      await page.waitForURL(url => url.pathname.endsWith('/view'))
+      await page.locator('a[href$="/edit"]').first().click()
+      await page.waitForURL(url => url.pathname.endsWith('/edit'))
+    },
+    frame: (page, locale) => [
+      section(page, m.groups_form_section_group({}, { locale })),
+      section(page, m.groups_form_section_leaders({}, { locale })),
+    ],
+    // Narrow enough that each section's fields go under its title, so the crop reads in the help panel.
+    viewport: { width: 820, height: 1000 },
+  },
+  {
+    // emergency-roster: the record's « Urgence » block, « Modifier » opens the emergency information beside it.
+    id: 'emergency-info',
+    account: MARC,
+    path: `/publishers/${MAXIME_RECORD}/view`,
+    prepare: async (page, locale) => {
+      await page.getByRole('button', { name: m.publishers_emergency_edit_link({}, { locale }), exact: true }).click()
+      await settledPanel(page)
+    },
+    frame: page => [sidePanel(page)],
+    margin: -1,
+    viewport: { width: 1600, height: 900 },
+  },
+  {
+    // activity-exports: « Exporter » on the Activité page, its format, service year and scope.
+    id: 'activity-export',
+    account: MARC,
+    path: '/publishers/activity',
+    prepare: async (page, locale) => {
+      await page.getByRole('button', { name: m.activity_export_button({}, { locale }), exact: true }).click()
+      await page.getByRole('dialog').waitFor()
+    },
+    frame: page => [page.getByRole('dialog')],
+    margin: -1,
+  },
 ]
+
+/** Waits for the docked side panel to finish sliding in: framed before, the crop would cut its right side. */
+async function settledPanel(page: Page): Promise<void> {
+  const panel = sidePanel(page)
+  await panel.waitFor()
+  await panel.evaluate(element => Promise.all(element.getAnimations({ subtree: true }).map(({ finished }) => finished)))
+}
+
+/** The docked side panel that a row or a block opens: labelled by its title, unlike the page's other asides. */
+function sidePanel(page: Page): Locator {
+  return page.locator('aside[aria-labelledby]')
+}

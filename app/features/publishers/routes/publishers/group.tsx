@@ -2,6 +2,7 @@ import { ProgressBar, SectionHeading } from '@unitae/ui'
 import { Pencil, Siren, UsersRound } from 'lucide-react'
 import { useState } from 'react'
 import { Link, redirect } from 'react-router'
+import { HelpEntryButton } from '~/features/help'
 import { formatActivityMonth } from '~/features/publishers/model/activity-months'
 import { canViewEmergencyInfo } from '~/features/publishers/model/emergency-access'
 import { canCorrectAnyActivity, canManageGroupActivity } from '~/features/publishers/model/group-activity-access'
@@ -176,6 +177,7 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
     // The marker lets the app shell stop clipping as a scroll container, so the docked panel can stick.
     <div data-sticky-content="" className="flex flex-col gap-6">
       <PageHeader
+        help={<HelpEntryButton slug="field-service-reports" />}
         title={formatGroupName(group.name)}
         breadcrumbs={[...groupsCrumb, { label: formatGroupName(group.name) }]}
         meta={
@@ -273,3 +275,6 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
     </div>
   )
 }
+
+// Opening, closing or swapping the « ? » article changes only `?help=`: the page keeps its data.
+export { skipRevalidationForHelpPanel as shouldRevalidate } from '~/features/help'

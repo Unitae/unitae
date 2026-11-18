@@ -1,4 +1,11 @@
-import { HELP_MODULES, type HelpArticle, type HelpLocale, type HelpModule } from '~/features/help/model/help.type'
+import {
+  GROUP_LEADER,
+  HELP_MODULES,
+  type HelpAccess,
+  type HelpArticle,
+  type HelpLocale,
+  type HelpModule,
+} from '~/features/help/model/help.type'
 import { Permission } from '~/shared/types/permission'
 
 /** Raised when an article file breaks the format. The tests run it over every shipped article, so it never ships. */
@@ -20,7 +27,7 @@ const KNOWN_KEYS: readonly string[] = [...REQUIRED_KEYS, 'keywords', 'related']
  * Reads one article file: a frontmatter block of `key: value` lines between two `---` lines, then the Markdown body.
  * Values are taken whole, after the first colon. Lists (`keywords`, `related`) are comma-separated and may be empty.
  * The permission is the name of a `Permission` member, several of them comma-separated (any one opens the article),
- * or `none`. A key may appear once, and only the known keys.
+ * `GroupLeader` among them when leading a group opens the feature too, or `none`. A key may appear once, and only the known keys.
  */
 export function parseHelpArticle(source: string, locale: HelpLocale): HelpArticle {
   const { fields, body } = splitFrontmatter(source)
@@ -88,14 +95,14 @@ function readPermission(value: string, slug: string): HelpArticle['permission'] 
   if (value === 'none') return null
   const names = readList(value)
   for (const name of names) {
-    if (!Object.keys(Permission).includes(name)) {
+    if (name !== GROUP_LEADER && !Object.keys(Permission).includes(name)) {
       throw new HelpArticleFormatError(`Help article « ${slug} » names an unknown permission « ${name} ».`)
     }
   }
   if (new Set(names).size !== names.length) {
     throw new HelpArticleFormatError(`Help article « ${slug} » lists a permission twice.`)
   }
-  return names as (keyof typeof Permission)[]
+  return names as HelpAccess[]
 }
 
 function isHelpModule(value: string): value is HelpModule {
