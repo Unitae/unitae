@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/infra/logger.server', () => ({
   default: { info: vi.fn() },
+  createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
 }))
 
 vi.mock('~/features/events/server/allowed-roles.server', () => ({
@@ -81,6 +82,7 @@ beforeEach(() => {
   vi.mocked(allowedRoles.setPartAssignmentAllowedRoles).mockResolvedValue({ added: [], removed: [] })
   vi.mocked(allowedRoles.setServicePartAssignmentAllowedRoles).mockResolvedValue({ added: [], removed: [] })
   mockDb.attendance.findMany.mockResolvedValue([])
+  mockDb.notificationEvent.updateMany.mockResolvedValue({ count: 0 })
   mockDb.eventPart.deleteMany.mockResolvedValue({ count: 0 })
   mockDb.eventServicePart.deleteMany.mockResolvedValue({ count: 0 })
   mockDb.eventPart.findMany.mockResolvedValue([])

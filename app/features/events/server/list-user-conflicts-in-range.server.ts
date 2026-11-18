@@ -32,6 +32,8 @@ const eventWithResponsiblesSelect = {
                   },
                 },
               },
+              // Roles given by hand sit on publisher records since 2.12, not on accounts.
+              memberAssignments: { select: { member: { select: { firstname: true, lastname: true } } } },
             },
           },
         },
@@ -91,7 +93,8 @@ export async function listUserConflictsInRange(
 }
 
 // This line exists so an absentee knows who to reach, so it resolves through the responsible
-// role to the people actually seated in it rather than naming the role. A role with nobody in
+// role to the people actually seated in it — on an account or on a publisher record, as permissions
+// resolve them — rather than naming the role. A role with nobody in
 // it falls back to the role's own name: "contact the Responsable VCM" is still more use than
 // the generic no-responsible line, and it hints at the gap the settings page warns about.
 // Names are deterministically ordered so the modal reads the same across renders.
@@ -100,7 +103,10 @@ function resolveResponsibleName(template: EventWithResponsibles['template']): st
   if (responsibles.length === 0) return null
 
   const names = responsibles
-    .flatMap(r => r.role.members.map(seat => accountDisplayName(seat.user)))
+    .flatMap(r => [
+      ...r.role.members.map(seat => accountDisplayName(seat.user)),
+      ...r.role.memberAssignments.map(seat => accountDisplayName(seat.member)),
+    ])
     .filter(name => name.length > 0)
 
   if (names.length === 0) {

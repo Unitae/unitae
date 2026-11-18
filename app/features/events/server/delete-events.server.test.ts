@@ -28,6 +28,7 @@ beforeEach(() => {
   mockDb.eventServicePart.deleteMany.mockResolvedValue({ count: 0 })
   mockDb.eventPart.findMany.mockResolvedValue([])
   mockDb.eventServicePart.findMany.mockResolvedValue([])
+  mockDb.notificationEvent.updateMany.mockResolvedValue({ count: 0 })
 })
 
 describe('bulkDeleteEvents', () => {

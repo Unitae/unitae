@@ -135,8 +135,6 @@
       }
     },
     "applicableTemplates": [
-      "day-off",
-      "freeform",
       "memorial",
       "midweek",
       "weekend"

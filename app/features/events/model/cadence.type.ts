@@ -26,7 +26,7 @@ export type PartSlot = 'assignee' | 'assistant'
 // rotation panel. Kept as one named type so the wire shape stays in
 // sync across every card that consumes it — adding a field only changes here.
 export type CadencePayload = {
-  // False when there is no template to anchor on (freeform event) or the
+  // False when there is no template to anchor on (an event without one, which only old imports leave) or the
   // anchor assignment was not found. Cards hide the whole cadence panel when
   // this is false — with it true, the panel still renders even if past +
   // future are both empty (that is the first-timer / template-rollout case).

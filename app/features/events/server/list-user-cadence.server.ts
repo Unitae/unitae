@@ -32,8 +32,8 @@ type Options = {
 // Also reports `hasHistory`: whether the user was ever on the matching slot
 // on any past event of the same template — used to distinguish first-timers
 // from overdue candidates who did the slot before the visible window.
-// Freeform events (templateId=null) short-circuit — they have no recurrence
-// to display.
+// An event without a template (only old imports leave one) short-circuits — there is no recurrence to display.
+// Freeform events have a template of their own, the freeform one.
 export async function listUserCadence(
   db: TransactionClient,
   { userId, event, congregationId, partName, partSection, slot, pastCount, futureCount }: Options,

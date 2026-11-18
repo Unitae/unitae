@@ -124,6 +124,11 @@ beforeAll(async () => {
     })
     templateOtherId = otherTpl.id
 
+    // The system templates: applying « day-off » would turn the event into someone's absence.
+    for (const key of ['day-off', 'freeform']) {
+      await tx.eventTemplate.create({ data: { name: key, key, congregationId: primaryCongId } })
+    }
+
     // The delegation now runs through a role: the template points at «Responsable», and Rose
     // is seated in it. Pat holds a role too — just not that one — so "refused" cannot pass
     // for the trivial reason of holding no roles at all.
@@ -305,7 +310,7 @@ describe('canEditEvent (integration)', () => {
 describe('listApplicableTemplates (integration)', () => {
   // Applying a template moves the event onto it, and who may edit an event follows its template: the list offers
   // only the templates whose events the caller may edit, so applying one never hands the event to someone else.
-  it('lists every template of the congregation for a programme manager, by name', async () => {
+  it('lists every template of the congregation for a programme manager, by name — never a system one', async () => {
     const result = await withScope(primaryCongId, tx =>
       listApplicableTemplates(tx, allowOnly(Permission.CanManagePrograms), managerId, primaryCongId),
     )

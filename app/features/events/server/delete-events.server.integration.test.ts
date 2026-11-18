@@ -23,6 +23,7 @@ function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promi
 }
 
 const { bulkDeleteEvents, deleteEvent } = await import('./delete-events.server')
+const { deletePartAssignment, deleteServicePartAssignment } = await import('./event-parts.server')
 
 const ts = Date.now()
 let congregationId: number
@@ -32,7 +33,9 @@ let templateId: number
 interface Meeting {
   eventId: number
   partId: number
+  serviceId: number
   noticeId: number
+  serviceNoticeId: number
 }
 
 /** A published meeting with one part, one service and a pending notice for its part; counts as given. */
@@ -43,7 +46,7 @@ function meeting(counts: { inPerson: number | null; online: number | null } | nu
       data: { name: 'Réunion', templateId, startDate: day, endDate: day, status: 'released', congregationId },
     })
     const part = await tx.eventPart.create({ data: { eventId: event.id, name: 'Discours', congregationId } })
-    await tx.eventServicePart.create({ data: { eventId: event.id, name: 'Accueil', congregationId } })
+    const service = await tx.eventServicePart.create({ data: { eventId: event.id, name: 'Accueil', congregationId } })
     const notice = await tx.notificationEvent.create({
       data: {
         type: 'part_assigned',
@@ -53,8 +56,23 @@ function meeting(counts: { inPerson: number | null; online: number | null } | nu
         congregationId,
       },
     })
+    const serviceNotice = await tx.notificationEvent.create({
+      data: {
+        type: 'part_assigned',
+        entityType: 'EventServicePart',
+        entityId: service.id,
+        debounceKey: `service-${service.id}`,
+        congregationId,
+      },
+    })
     if (counts) await tx.attendance.create({ data: { eventId: event.id, ...counts, congregationId } })
-    return { eventId: event.id, partId: part.id, noticeId: notice.id }
+    return {
+      eventId: event.id,
+      partId: part.id,
+      serviceId: service.id,
+      noticeId: notice.id,
+      serviceNoticeId: serviceNotice.id,
+    }
   })
 }
 
@@ -100,6 +118,7 @@ const state = (m: Meeting) =>
     parts: await tx.eventPart.count({ where: { eventId: m.eventId } }),
     services: await tx.eventServicePart.count({ where: { eventId: m.eventId } }),
     notice: await tx.notificationEvent.findFirst({ where: { id: m.noticeId }, select: { status: true } }),
+    serviceNotice: await tx.notificationEvent.findFirst({ where: { id: m.serviceNoticeId }, select: { status: true } }),
     audits: (await tx.auditLog.findMany({ where: { entityType: 'Event', entityId: m.eventId } })).map(a => a.action),
   }))
 
@@ -147,5 +166,37 @@ describe('deleteEvent', () => {
     const kept = await state(half)
     expect(kept.event).toEqual({ status: 'draft' })
     expect(kept.attendance).toMatchObject({ inPerson: 98 })
+  })
+})
+
+// A notice still waiting for an item that no longer exists would e-mail someone about a part they no longer have.
+describe('the notices still waiting when a programme goes', () => {
+  it('are cancelled when the meeting is deleted', async () => {
+    const plain = await meeting(null)
+
+    await withScope(congregationId, tx => deleteEvent(tx, plain.eventId, congregationId, actorId))
+
+    const after = await state(plain)
+    expect([after.notice, after.serviceNotice]).toEqual([{ status: 'cancelled' }, { status: 'cancelled' }])
+  })
+
+  it('are cancelled when meetings are deleted in bulk', async () => {
+    const plain = await meeting(null)
+
+    await withScope(congregationId, tx => bulkDeleteEvents(tx, [plain.eventId], congregationId, actorId))
+
+    const after = await state(plain)
+    expect([after.notice, after.serviceNotice]).toEqual([{ status: 'cancelled' }, { status: 'cancelled' }])
+  })
+
+  it('are cancelled with the one part or service removed from a programme, and only theirs', async () => {
+    const kept = await meeting(null)
+
+    await withScope(congregationId, tx => deletePartAssignment(tx, kept.partId, congregationId))
+    expect((await state(kept)).notice).toEqual({ status: 'cancelled' })
+    expect((await state(kept)).serviceNotice).toEqual({ status: 'pending' })
+
+    await withScope(congregationId, tx => deleteServicePartAssignment(tx, kept.serviceId, congregationId))
+    expect((await state(kept)).serviceNotice).toEqual({ status: 'cancelled' })
   })
 })

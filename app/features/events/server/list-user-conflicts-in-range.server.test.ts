@@ -64,6 +64,7 @@ describe('listUserConflictsInRange', () => {
                   key: 'responsable-vcm',
                   name: 'Responsable VCM',
                   members: [{ user: { firstname: 'Jean', lastname: 'Dupont', member: null } }],
+                  memberAssignments: [],
                 },
               },
             ],
@@ -103,6 +104,7 @@ describe('listUserConflictsInRange', () => {
                       },
                     },
                   ],
+                  memberAssignments: [],
                 },
               },
             ],
@@ -170,6 +172,7 @@ describe('listUserConflictsInRange', () => {
                     { user: { firstname: 'Zoé', lastname: 'Petit', member: null } },
                     { user: { firstname: 'Alain', lastname: 'Roux', member: null } },
                   ],
+                  memberAssignments: [],
                 },
               },
             ],
@@ -183,6 +186,37 @@ describe('listUserConflictsInRange', () => {
     expect(result[0].responsibleName).toBe('Alain Roux, Zoé Petit')
   })
 
+  // Since roles given by hand moved onto publisher records (2.12), most holders sit there, not on an account.
+  it('names the holders seated through their publisher record too, once each', async () => {
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
+      {
+        name: 'Discours public',
+        event: {
+          startDate: new Date(2026, 6, 5),
+          template: {
+            responsibles: [
+              {
+                role: {
+                  key: 'elder',
+                  name: null,
+                  members: [{ user: { firstname: 'Paul', lastname: 'MARTIN', member: null } }],
+                  memberAssignments: [
+                    { member: { firstname: 'Jean', lastname: 'DURAND' } },
+                    { member: { firstname: 'Paul', lastname: 'MARTIN' } },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      },
+    ] as never)
+
+    const result = await listUserConflictsInRange(db, 5000, new Date(2026, 6, 1), new Date(2026, 6, 10))
+
+    expect(result[0].responsibleName).toBe('Jean DURAND, Paul MARTIN')
+  })
+
   // A responsible role nobody is seated in. Naming the role still beats the generic
   // no-responsible line: it tells the absentee which post to chase, and it makes the gap
   // visible instead of silently reading as "no responsible assigned".
@@ -193,7 +227,9 @@ describe('listUserConflictsInRange', () => {
         event: {
           startDate: new Date(2026, 6, 5),
           template: {
-            responsibles: [{ role: { key: 'responsable-vcm', name: 'Responsable VCM', members: [] } }],
+            responsibles: [
+              { role: { key: 'responsable-vcm', name: 'Responsable VCM', members: [], memberAssignments: [] } },
+            ],
           },
         },
       },

@@ -1,3 +1,4 @@
+import { SYSTEM_TEMPLATE_KEYS } from '~/features/events/model/event-template.type'
 import { ResponsibilityScope, scopesCovering } from '~/features/events/model/responsibility-scope.type'
 import { isTemplateResponsible } from '~/features/events/server/event-templates.server'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
@@ -78,11 +79,17 @@ export async function listApplicableTemplates(
   userId: number,
   congregationId: number,
 ): Promise<{ id: number; name: string }[]> {
-  let where: { congregationId: number; id?: { in: number[] } } = { congregationId }
+  // Never a system template: applying « day-off » would turn the event into someone's absence, and neither has parts
+  // to bring.
+  const notSystem = { key: { notIn: [...SYSTEM_TEMPLATE_KEYS] } }
+  let where: { congregationId: number; key: typeof notSystem.key; id?: { in: number[] } } = {
+    congregationId,
+    ...notSystem,
+  }
   if (!can(Permission.CanManagePrograms)) {
     const ids = await getResponsibleTemplateIds(db, userId, congregationId)
     if (ids.length === 0) return []
-    where = { congregationId, id: { in: ids } }
+    where = { ...where, id: { in: ids } }
   }
   return db.eventTemplate.findMany({ where, select: { id: true, name: true }, orderBy: { name: 'asc' } })
 }
@@ -202,7 +209,8 @@ export async function canManageAnyProgram(
 // Narrows a bulk-selection of event ids to the ones the caller is authorised
 // to mutate. ProgramManager sees every event in the congregation;
 // non-managers see only events whose template they are the responsible for
-// (freeform events, templateId null, are always manager-only). Shared by
+// (freeform events belong to the freeform template, which no role is responsible for, and events without a
+// template — only old imports leave them — are manager-only too). Shared by
 // every bulk route (release, unrelease, delete) so the auth surface stays
 // consistent.
 //
@@ -251,18 +259,18 @@ export async function filterToManageableEventIds(
   const allowed = events.filter(e => e.templateId != null && responsibleSet.has(e.templateId)).map(e => e.id)
 
   // For non-managers, distinguish three drop reasons so support can tell
-  // "cross-tenant/stale id" apart from "freeform event manager-only" apart
+  // "cross-tenant/stale id" apart from "an event without a template, manager-only" apart
   // from "you are not the responsible for this template".
-  const droppedFreeform = events.filter(e => e.templateId == null).length
+  const droppedWithoutTemplate = events.filter(e => e.templateId == null).length
   const droppedUnauthorized = events.filter(e => e.templateId != null && !responsibleSet.has(e.templateId)).length
-  if (droppedCrossTenant > 0 || droppedFreeform > 0 || droppedUnauthorized > 0) {
+  if (droppedCrossTenant > 0 || droppedWithoutTemplate > 0 || droppedUnauthorized > 0) {
     logger.info('filterToManageableEventIds: dropped ids on non-manager path', {
       userId,
       congregationId,
       submitted: eventIds.length,
       allowed: allowed.length,
       droppedCrossTenant,
-      droppedFreeform,
+      droppedWithoutTemplate,
       droppedUnauthorized,
     })
   }
