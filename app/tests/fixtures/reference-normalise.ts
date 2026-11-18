@@ -2,7 +2,7 @@
 // fixture's label for it — `<member:paul>`, `<event:midweek-2>` — read from the key that holds it (`assigneeId` is a
 // member, `eventId` an event); an id whose table the key does not say, or that the fixture never labelled, becomes
 // `<id>`. Ids inside links and keys get the same treatment, and database timestamps become `<time>`. Everything else
-// stays as returned: lists keep the order the reader gave them, services included since they have an order of their own.
+// stays as returned: lists keep the order the reader gave them, services included since every reader orders them.
 
 const VOLATILE_KEYS = new Set(['createdAt', 'updatedAt', 'processedAt', 'debounceUntil'])
 

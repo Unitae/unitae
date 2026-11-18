@@ -35,13 +35,13 @@ const PIONEER_TYPE_RANK: Record<string, number> = {
 export type { AvailableDynamicType, ProgrammeDynamicConfig }
 export { parseProgrammeConfig }
 
+/** A meeting's services in their order; the id settles ties, such as rows an older version wrote at 0. */
+const SERVICE_ORDER: Prisma.EventServicePartOrderByWithRelationInput[] = [{ order: 'asc' }, { id: 'asc' }]
+
 /**
  * An absence is an event of the « day-off » template, published the moment it is declared: no programme document
  * shows one, even when its configuration names that template — the form used to tick every template by default.
  */
-/** A meeting's services in the order its editor set; the id settles rows written before services had one. */
-const SERVICE_ORDER: Prisma.EventServicePartOrderByWithRelationInput[] = [{ order: 'asc' }, { id: 'asc' }]
-
 const NOT_AN_ABSENCE = { NOT: { template: { key: EventTemplateKey.DayOff } } }
 
 export function startOfCurrentMonth(): Date {

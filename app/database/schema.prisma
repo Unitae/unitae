@@ -1113,7 +1113,7 @@ model TemplateServicePart {
   id   Int    @id @default(autoincrement())
   name String
   key  String
-  // Where it sits in the template's services, set by dragging; new programmes copy it.
+  // Where it sits in the template's services: a new one goes last; new programmes copy it.
   order Int @default(0)
 
   template   EventTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
@@ -1306,7 +1306,7 @@ model EventServicePart {
 
   // Inline field (copied from template service part on generation, or set manually)
   name String @default("")
-  // Where it sits in the event's services, set by dragging; copied from the template's on generation.
+  // Where it sits in the event's services: copied from the template's on generation, a new one goes last.
   order Int @default(0)
 
   event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)

@@ -171,7 +171,7 @@ export async function addServicePartAssignment(
   actorId: number,
 ) {
   const { allowedRoleIds, ...createData } = data
-  // After the services the event has: a new one goes last until someone drags it.
+  // After the services the event has: a new one goes last.
   const last = await db.eventServicePart.aggregate({
     where: { eventId: data.eventId, congregationId: data.congregationId },
     _max: { order: true },

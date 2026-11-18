@@ -94,7 +94,8 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
         name: true,
         event: { select: { startDate: true } },
       },
-      // Several parts of one meeting can clash with the same absence: the first in the programme is named.
+      // Several parts or services of one meeting can clash with the same absence: the first in the programme is named,
+      // here and in the services query below.
       orderBy: [{ event: { startDate: 'asc' } }, { order: 'asc' }, { id: 'asc' }],
       take: 1,
     }),

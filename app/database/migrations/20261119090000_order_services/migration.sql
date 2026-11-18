@@ -1,8 +1,10 @@
--- Services get an order of their own, set by dragging them, as parts already have: on templates (the order new
--- programmes start with) and on events (that meeting only). No change in what anyone may do; until now services had no
--- order, and the board printed them as the database returned them.
+-- Services get an order of their own, as parts have: on templates (the order new programmes start with) and on events
+-- (that meeting only). No change in what anyone may do; until now services had no order, and the board printed them as
+-- the database returned them.
 --
--- 1. The columns. Rows the previous image writes during the rollout get 0 and sort first by id until the next drag.
+-- 1. The columns. Rows the previous image writes during the rollout get 0: a service it adds to an existing programme or
+--    template sits after the first one (ties go by id) rather than last, and a programme it creates whole keeps
+--    creation order.
 ALTER TABLE "TemplateServicePart" ADD COLUMN IF NOT EXISTS "order" INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE "EventServicePart" ADD COLUMN IF NOT EXISTS "order" INTEGER NOT NULL DEFAULT 0;
 

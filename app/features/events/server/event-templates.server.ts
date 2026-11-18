@@ -193,7 +193,7 @@ export function deleteTemplatePart(db: TransactionClient, partId: number, congre
   })
 }
 
-/** After the template's services: a new one goes last until someone drags it. */
+/** After the template's services: a new one goes last. */
 async function nextTemplateServiceOrder(db: TransactionClient, templateId: number, congregationId: number) {
   const last = await db.templateServicePart.aggregate({ where: { templateId, congregationId }, _max: { order: true } })
   return last._max.order == null ? 0 : last._max.order + 5
