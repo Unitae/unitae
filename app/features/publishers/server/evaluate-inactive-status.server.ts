@@ -13,7 +13,7 @@ export interface EvaluateInactiveStatusParams {
   trigger: EvaluateInactiveStatusTrigger
   /**
    * The post-mutation state of the activity row that triggered this evaluation.
-   * Used to detect an "hours arrived" event that should silently clear an
+   * Used to detect a "preached again" report that should silently clear an
    * existing inactive flag. Omit for deletions.
    */
   triggeringActivity?: { isPublisher: boolean; hours: number | null } | null
@@ -34,7 +34,7 @@ interface ActivityRow {
  *   1. Start at the newest report. If it's not a missed-preach entry, streak = 0.
  *   2. Walk backward one calendar month at a time.
  *      - A month with a missed-preach report counts.
- *      - A month with an hours report ends the walk.
+ *      - A month with a preached report ends the walk.
  *      - A month with no record counts ONLY if a missed report exists at some
  *        older month (gap-fill between two missed records); otherwise the walk
  *        ends. Nothing is filled before the publisher's oldest missed record.
@@ -43,9 +43,9 @@ interface ActivityRow {
  *      itself still displays as irregular (they filed a missed report that
  *      month); the badge flips starting the following month.
  *
- * Clear rule: only fires when an hours report arrives (isPublisher=true &&
- * hours>0) via create/update. Deletions never clear — see the inline comment on
- * the trigger semantics.
+ * Clear rule: only fires when a report says they preached (isPublisher=true,
+ * whatever the hours: publishers report none) via create/update. Deletions
+ * never clear — see the inline comment on the trigger semantics.
  *
  * No-ops when the member has left or isn't a publisher (those states already
  * exclude them from the relevant surfaces).
@@ -58,7 +58,7 @@ interface ActivityRow {
  *   - `setMemberLeft`, `make-student`, and `togglePublisherStatus` do NOT
  *     clear `inactiveAt`. Rationale: if the member returns later (via
  *     `mark-as-returned` or a re-promotion to publisher), restoring their
- *     prior inactive state preserves history. A subsequent hours report will
+ *     prior inactive state preserves history. A subsequent preached report will
  *     clear it through the normal path.
  *   - The UI subordinates inactive to left: the `LifecycleAction` component
  *     in `publisher.tsx` only renders `InactiveToggle` when
@@ -77,7 +77,7 @@ export async function evaluateInactiveStatus(
   if (member == null) return
   if (member.leftAt != null || !member.isPublisher) return
 
-  if (member.inactiveAt != null && isHoursReport(params.triggeringActivity)) {
+  if (member.inactiveAt != null && isPreachedReport(params.triggeringActivity)) {
     await clearInactive(db, params)
     return
   }
@@ -98,8 +98,9 @@ export async function evaluateInactiveStatus(
   await setInactive(db, params, streakOnset)
 }
 
-function isHoursReport(activity: EvaluateInactiveStatusParams['triggeringActivity']): boolean {
-  return activity?.isPublisher === true && (activity.hours ?? 0) > 0
+// Publishers report whether they preached, not hours: only pioneers count them, so the hours cannot be the sign.
+function isPreachedReport(activity: EvaluateInactiveStatusParams['triggeringActivity']): boolean {
+  return activity?.isPublisher === true
 }
 
 function isMissedPreachReport(activity: { isPublisher: boolean; hours: number | null }): boolean {

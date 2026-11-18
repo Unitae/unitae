@@ -383,6 +383,28 @@ describe('evaluateInactiveStatus', () => {
     expect(mockDb.publisherActivity.findMany).not.toHaveBeenCalled()
   })
 
+  it('clears inactive when a publisher who reports no hours says they preached', async () => {
+    mockDb.member.findUnique.mockResolvedValue({
+      inactiveAt: new Date('2026-01-01'),
+      isPublisher: true,
+      leftAt: null,
+    })
+    mockDb.member.findFirst.mockResolvedValue({ id: publisherId, inactiveAt: new Date('2026-01-01') })
+
+    await evaluateInactiveStatus(mockDb as never, {
+      publisherId,
+      congregationId,
+      actorId,
+      trigger: 'activity-created',
+      triggeringActivity: preached(2026, 6, 0),
+    })
+
+    expect(mockDb.member.update).toHaveBeenCalledWith({
+      where: { id_congregationId: { id: publisherId, congregationId } },
+      data: { inactiveAt: null },
+    })
+  })
+
   it('keeps inactive when a 0-hour report arrives on an already-inactive publisher', async () => {
     mockDb.member.findUnique.mockResolvedValue({
       inactiveAt: new Date('2026-01-01'),

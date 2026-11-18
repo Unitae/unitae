@@ -71,7 +71,7 @@ const SIX_MONTHS = [
 ]
 
 describe('publisher activity mutations → evaluator (integration)', () => {
-  it('auto-flags inactive after 6 consecutive missed-preach reports and clears it on the next hours report', async () => {
+  it('auto-flags inactive after 6 consecutive missed-preach reports and clears it on the next report where they preached', async () => {
     const publisher = await withScope(congregationId, tx =>
       tx.member.create({
         data: { firstname: 'Subject', lastname: `Streak ${ts}`, isPublisher: true, congregationId },
@@ -119,7 +119,7 @@ describe('publisher activity mutations → evaluator (integration)', () => {
     const after6 = await withScope(congregationId, tx => tx.member.findUniqueOrThrow({ where: { id: publisher.id } }))
     expect(after6.inactiveAt).toBeInstanceOf(Date)
 
-    // Hours report arrives — auto-clear fires silently.
+    // They preached: a publisher reports no hours, and the auto-clear still fires silently.
     await withScope(congregationId, db =>
       createPublisherActivity(db, {
         publisherId: publisher.id,
@@ -127,7 +127,7 @@ describe('publisher activity mutations → evaluator (integration)', () => {
         year: 2026,
         type: PublisherType.Normal,
         isPublisher: true,
-        hours: 4,
+        hours: 0,
         studies: 1,
         notes: '',
         congregationId,
