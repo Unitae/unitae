@@ -90,7 +90,7 @@ export default function AttendancePage({ loaderData }: Route.ComponentProps) {
         key={loaderData.serviceYear}
         {...loaderData}
         now={new Date(loaderData.now)}
-        help={<HelpEntryButton slug="attendance" />}
+        help={<HelpEntryButton slug="attendance-s88" />}
       />
     )
   }
@@ -102,7 +102,7 @@ export default function AttendancePage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={m.attendance_page_title()}
         breadcrumbs={[{ label: m.attendance_page_title() }]}
-        help={<HelpEntryButton slug="attendance" />}
+        help={<HelpEntryButton slug="attendance-entry" />}
       />
       {meetings.map(meeting => (
         <AttendanceEntryCard key={meeting.eventId} entry={meeting} viewer={{ ...viewer, now: new Date(now) }} />

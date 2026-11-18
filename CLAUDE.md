@@ -448,7 +448,8 @@ A « ? » goes in the header's `help` slot (`<PageHeader help={<HelpEntryButton 
 | Mon compte › Confidentialité | `/me/privacy` | `my-data` | none |
 | Orateurs extérieurs › Listes reçues | `/programs/external-speakers` | `external-speakers` | `CanViewExternalSpeakers, CanManageExternalSpeakers` |
 | Orateurs extérieurs › Notre liste | `/programs/external-speakers/ours` | `external-speakers` | `CanViewExternalSpeakers, CanManageExternalSpeakers` |
-| Assistance | `/attendance` | `attendance` | `CanRecordAttendance, CanCorrectAttendance, CanViewAttendance` |
+| Assistance, today's meetings (enter only) | `/attendance` | `attendance-entry` | `CanRecordAttendance, CanCorrectAttendance` |
+| Assistance, service year | `/attendance` | `attendance-s88` | `CanViewAttendance` |
 
 Articles without a « ? » are reached from the index, the search and related links only: `my-parts` (none: a person's parts show on the home page, the board and in e-mails, none of them a page of their own), `two-step-verification` (none: the Sécurité page's « ? » opens `password`, which links to it), `phone-territories` and `bano` (`CanConfigureTerritorySettings`), `board-download` (`CanViewBoard`), `board-versions` (`CanReviewBoardDocuments, CanUploadBoardDocuments`: the document history on `/board/documents/:id/edit`, which an uploader opens on the documents they uploaded).
 
