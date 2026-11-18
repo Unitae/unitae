@@ -1,6 +1,7 @@
 import { EventOrigin } from '~/features/events/model/event-origin.type'
 import { SYSTEM_TEMPLATE_KEYS } from '~/features/events/model/event-template.type'
 import { daysOnWeekday, programmeKey } from '~/features/events/model/programme-dates'
+import { EMPTY_MEETING } from '~/features/events/server/empty-meetings.queries'
 import {
   giveProgramme,
   lockTemplates,
@@ -136,7 +137,8 @@ function hasProgramme(template: TemplateWithRelations): boolean {
 
 /** Deletes an empty meeting created ahead on a day the series passes on purpose. */
 async function removeEmptyMeeting(db: TransactionClient, eventId: number, ctx: CreationContext) {
-  await db.event.deleteMany({ where: { id: eventId, congregationId: ctx.congregationId } })
+  // Checked again in the query: only the job's empty meeting goes, whatever the caller read.
+  await db.event.deleteMany({ where: { id: eventId, congregationId: ctx.congregationId, ...EMPTY_MEETING } })
   await auditInTransaction(db, {
     action: AuditAction.EventDeleted,
     congregationId: ctx.congregationId,
@@ -161,8 +163,8 @@ async function fillMeeting(
 ): Promise<CreatedProgramme> {
   const eventId = event.id
   if (event.origin !== EventOrigin.Job) {
-    // Made by hand: its name and hours stay. Whoever fills it prepares it when nobody is named — its author's account
-    // may have gone — as « Créer le programme » does.
+    // Not the job's (made by hand or restored): its name and hours stay. Whoever fills it prepares it when nobody is
+    // named — its author's account may have gone — as « Créer le programme » does.
     if (event.createdById == null) {
       await db.event.update({
         where: { id_congregationId: { id: eventId, congregationId: ctx.congregationId } },
@@ -243,7 +245,7 @@ function hasParts(event: EventState): boolean {
 }
 
 /**
- * An empty meeting the recurring-events job created ahead (EMPTY_MEETING): its origin, no programme, no attendance. Only
+ * An empty meeting the recurring-events job created ahead (EMPTY_MEETING): origin « job », no programme, no attendance. Only
  * those may be deleted when a series passes their day — one someone made or prepared, or one with counts, stays.
  */
 function isEmptyMeeting(event: EventState): boolean {

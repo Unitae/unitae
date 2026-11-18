@@ -31,6 +31,7 @@ const MEETING = {
   templateId: 270,
   startDate: new Date('2026-11-19T23:30:00Z'),
   createdById: null,
+  origin: 'job',
   _count: { eventParts: 0, eventServiceParts: 0 },
 }
 

@@ -47,11 +47,14 @@ export async function createMeetingProgramme(
   if (template.parts.length === 0 && template.serviceParts.length === 0) return null
   if (event._count.eventParts > 0 || event._count.eventServiceParts > 0) throw new ProgrammeExistsError(event.id)
 
-  // Whoever gives it its programme prepares it; a meeting the job made is theirs from then on.
+  // Whoever gives it its programme prepares it when nobody is named; a meeting the job made is no longer the job's.
   if (event.createdById == null || event.origin === EventOrigin.Job) {
     await db.event.update({
       where: { id_congregationId: { id: event.id, congregationId } },
-      data: { createdById: event.createdById ?? ctx.actorId, origin: EventOrigin.Manual },
+      data: {
+        createdById: event.createdById ?? ctx.actorId,
+        ...(event.origin === EventOrigin.Job && { origin: EventOrigin.Manual }),
+      },
     })
   }
   return giveProgramme(db, template, event.id, dayOf(event.startDate, ctx.timezone), ctx, { reused: true })

@@ -168,8 +168,28 @@ describe('bare events, edge cases', () => {
       CTX,
     )
 
-    expect(db.event.deleteMany).toHaveBeenCalledWith({ where: { id: 55, congregationId: 7 } })
+    expect(db.event.deleteMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({ id: 55, congregationId: 7, origin: 'job' }),
+    })
     expect(db.eventPart.create).not.toHaveBeenCalled()
+    expect(result).toMatchObject({ created: [], skipped: 1 })
+  })
+
+  // Made by hand, its author's account since deleted: empty and without an author, but not the job's to delete.
+  it('leaves a hand-made meeting on a day the series passes on purpose', async () => {
+    vi.mocked(db.eventTemplate.findMany).mockResolvedValue([WITH_PART] as never)
+    vi.mocked(db.event.findMany).mockResolvedValue([
+      { id: 55, templateId: 270, startDate: new Date('2026-11-19T23:00:00Z'), ...BARE, origin: 'manual' },
+    ] as never)
+    recordEvents()
+
+    const result = await createProgrammeSeries(
+      db,
+      { templateIds: [270], from: '2026-11-16', to: '2026-11-22', skip: ['270:2026-11-19'] },
+      CTX,
+    )
+
+    expect(db.event.deleteMany).not.toHaveBeenCalled()
     expect(result).toMatchObject({ created: [], skipped: 1 })
   })
 

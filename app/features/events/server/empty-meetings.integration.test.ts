@@ -133,6 +133,29 @@ const days = () =>
   )
 
 describe('empty meetings against the database', () => {
+  // Made by hand, its author's account since deleted: « Créer le programme » names whoever prepares it, keeps its day.
+  it('names whoever gives a hand-made meeting without an author its programme, leaving it where it is', async () => {
+    const day = tuesday('2027-01-12')
+    const id = await withScope(congregationId, async tx => {
+      const meeting = await tx.event.create({
+        data: { name: 'Réunion déplacée', templateId, status: 'draft', origin: 'manual', congregationId, ...day },
+      })
+      await createMeetingProgramme(tx, meeting.id, { congregationId, timezone: PARIS, actorId })
+      return meeting.id
+    })
+
+    const prepared = await withScope(congregationId, tx =>
+      tx.event.findFirst({ where: { id }, select: { name: true, startDate: true, createdById: true, origin: true } }),
+    )
+    expect(prepared).toEqual({
+      name: 'Réunion déplacée',
+      startDate: day.startDate,
+      createdById: actorId,
+      origin: 'manual',
+    })
+    await withScope(congregationId, tx => tx.event.delete({ where: { id } }))
+  })
+
   it('makes a meeting the job created someone’s once they move it by hand', async () => {
     const id = await withScope(congregationId, async tx => {
       const meeting = await tx.event.create({
