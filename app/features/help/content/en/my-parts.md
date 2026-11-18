@@ -1,7 +1,7 @@
 ---
 
 slug: my-parts
-title: Where do I see my meeting parts?
+title: Where do I see my meeting assignments?
 summary: On the home page, by e-mail and in your calendar, as soon as the program is published.
 module: programs
 permission: none
@@ -10,7 +10,7 @@ related: calendar-feed, notifications, absences
 order: 1
 ---
 
-Your parts and services show as soon as the meeting’s program is published. While it is a draft, nothing appears.
+Your assignments, parts and services alike, show as soon as the meeting’s program is published. While it is a draft, nothing appears.
 
 ## On the home page
 

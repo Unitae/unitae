@@ -1,7 +1,7 @@
 ---
 
 slug: my-parts
-title: Où voir mes parties aux réunions ?
+title: Où voir mes attributions aux réunions ?
 summary: Sur l’accueil, par e-mail et dans votre agenda, dès que le programme est publié.
 module: programs
 permission: none
@@ -10,7 +10,7 @@ related: calendar-feed, notifications, absences
 order: 1
 ---
 
-Vos parties et vos services s’affichent dès que le programme de la réunion est publié. Tant qu’il est en brouillon, rien n’apparaît.
+Vos attributions, parties comme services, s’affichent dès que le programme de la réunion est publié. Tant qu’il est en brouillon, rien n’apparaît.
 
 ## Sur l’accueil
 
