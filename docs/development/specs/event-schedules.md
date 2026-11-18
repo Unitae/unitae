@@ -89,6 +89,10 @@ to filter out.
 | D28 | **Event-level rights** (no whole-event responsible, D7): « Gérer les programmes » everywhere; a responsible of a schedule template the kind suggests may create events of that kind (its suggested schedules created as drafts), change their date, hours, fields and kind, and delete one that has no schedule but theirs. |
 | D29 | **The board's programme document** is configured per event kind with the schedule templates it shows, the suggested ones ticked by default. |
 | D30 | **No « Fusionner »** for schedule templates: a congregation points its kinds at one template and deletes the other. |
+| D31 | **Strict D7 in the backfill**: a template that had both a programme and a service responsible gives its « Services » schedule template to the service responsible alone; the programme responsible no longer fills or publishes those duties. Said in the release notes. |
+| D32 | **« Arrêter la répétition »** from any event of a rule: the rule ends the day before; empty meetings after it are deleted, prepared ones are offered for deletion, ones with counts stay. |
+| D33 | **Conductors are duties**, shown inline: a field service meeting's duty schedule « Conducteurs » holds one or two duties, and the event form shows it as « Conducteur(s) », so conductors keep notices, absence checks and their feed. |
+| D34 | **A rule can carry its own name**: a rule named « Prédication par groupe », with no place and no conductor, creates events of that name, and « Semaine type » prints the name in its cell. No separate note. |
 
 ## 4. Current implementation (verified)
 
@@ -103,12 +107,12 @@ to filter out.
   `generatedUntil`, the high-water mark of its recurring events. `isRecurring` is kept equal to
   `weekDay != null`.
 - **Publication** is `releaseEvent` / `unreleaseEvent` (`events/server/event-status.server.ts`), which
-  compute notification targets from both part lists at once. About 26 files read `Event.status`
+  compute notification targets from both part lists at once. About 40 files read `Event.status`
   (dashboard queries, board documents and links, programme list, conflicts, share messages, cadence).
   Attendance deliberately ignores it: the dashboard card, the attendance page, its exports and the
   programme's « last week » line read every event of a counted template, draft or not.
-- **Items:** `eventParts` / `eventPart.*` appear in ~25–29 files, `eventServiceParts` /
-  `eventServicePart.*` in ~18–22.
+- **Items:** `eventParts` / `eventPart.*` appear in ~60 files, `eventServiceParts` /
+  `eventServicePart.*` in ~50.
 - **Meetings created ahead** ([Meeting Attendance](../meeting-attendance.md)): a daily job
   (`extendRecurringEvents`) keeps every recurring template's events created two months ahead as
   **empty meetings** — no author, no part, no service, no attendance (`EMPTY_MEETING`,
@@ -129,7 +133,9 @@ to filter out.
 - **Deletion** (`delete-events.server.ts`): an event without counts is deleted; an event with counts
   only loses its parts and services and goes back to draft (D6), its attendance intact.
 - **Absences:** day-off events, owned through `Event.createdBy` (an account, resolved to a member
-  through `createdBy.memberId`); ~17 files reference the `day-off` template key.
+  through `createdBy.memberId`); ~17 files reference the `day-off` template key, and ~14 routes reach it through
+  `PROGRAMME_EVENT`. The `freeform` template backs « Autre évènement » and becomes a kind of that name,
+  with no suggested schedules and no rules.
 - **Board:** `ProgrammeView` renders an event's parts, then its services in two foldable columns, and
   the « Assistance la semaine passée » line when the congregation turned it on.
 - **Archive:** version 2.15; events, templates, parts, service parts and attendance are separate
@@ -156,24 +162,28 @@ model EventKind {                   // today's EventTemplate, minus its content 
   events                    Event[]
 }
 
-model EventKindField {              // D15 — a custom field of a kind
+// Every table below carries `congregationId` and the standard RLS policy, like every tenant table.
+
+model EventKindField {              // D15 — a custom field of a kind (removed → its values go, Cascade)
   id, eventKindId, name, type ('text' | 'longText' | 'choice' | 'link'), options String[], order
   showOnDocuments Boolean @default(true)   // board documents, screen and print alike
 }
 
-model RecurrenceRule {              // D16 — « Répéter chaque semaine »
+model RecurrenceRule {              // D16 — « Répéter chaque semaine »; Cascade from its kind
   id, eventKindId, weekDay, startTime, endTime
+  name           String?            // D34 — the events' name when set, else the kind's
   fieldValues    Json               // copied onto each event it creates (place, format…)
   validFrom      String             // D20 — local day `YYYY-MM-DD`, inclusive
   validUntil     String?            // D20 — null = open-ended
-  generatedUntil String?            // today's template high-water mark, now per rule
+  generatedUntil String?            // today's template high-water mark, now per rule; a split's new
+                                    // rule inherits the old one's
 }
 
 model ScheduleTemplate {            // one per schedule, shared by any event kind
   id, name, kind ('programme' | 'duty')
   responsibleRole Role?             // ONE responsible (D7): may fill and publish schedules made from it
   parts  TemplatePart[]             // kind = programme
-  duties TemplateDuty[]             // kind = duty (today's TemplateServicePart)
+  duties TemplateServicePart[]      // kind = duty; the table keeps its name (plan T1)
 }
 
 model EventKindScheduleTemplate {   // which schedule templates an event kind starts with, in order
@@ -181,7 +191,12 @@ model EventKindScheduleTemplate {   // which schedule templates an event kind st
 }
 
 model Event {                       // anything on the calendar, one day or several (D14)
-  id, name, description, startDate, endDate, eventKindId?, recurrenceRuleId?, createdById?, congregationId
+  id, name, description, startDate, endDate, eventKindId?, createdById?, congregationId
+  origin       String               // 'job' | 'manual' | 'import' — who created it; the empty-meeting
+                                    // test reads this, never a null author
+  recurrenceRuleId Int?             // SetNull: a deleted rule leaves its events
+  occurrenceDay    String?          // the rule's day this event stands for, kept when it is moved once;
+                                    // unique (recurrenceRuleId, occurrenceDay) — one event per occurrence
   changedOnce Boolean @default(false) // D21 — edited on its own; later rule changes leave it alone
   fieldValues EventFieldValue[]     // D15
   schedules   Schedule[]
@@ -195,11 +210,11 @@ model Schedule {                    // one schedule of one event
   id, eventId (onDelete: Cascade), scheduleTemplateId? (onDelete: SetNull), name, kind, order
   status  String @default("draft")  // 'draft' | 'published' — per schedule
   parts   EventPart[]               // kind = programme
-  duties  EventDuty[]               // kind = duty (today's EventServicePart)
+  duties  EventServicePart[]        // kind = duty; the table keeps its name (plan T1)
   // at most one programme schedule per event (D9): partial unique index on (eventId) where kind = 'programme'
 }
 
-model EventDuty {                   // today's EventServicePart, with a wider assignee (D13)
+model EventServicePart {            // the duty, with a wider assignee (D13); group deleted → open
   // exactly one of these, or none (open): a CHECK keeps them exclusive
   assigneeId      Int?              // Member
   assigneeGroupId Int?              // PublisherGroup
@@ -219,7 +234,7 @@ model Absence {                     // « Mes absences »
 |---|---|---|
 | Cleaning by group | « Semaine de nettoyage », 7 days, one weekly rule | duty schedule « Nettoyage », duty assigned to a **group** |
 | Public witnessing points | « Témoignage public », weekend, one weekly rule | duty schedule whose duties are the points, each assigned to a **group** |
-| Field service meetings | « Réunion pour la prédication », **eight weekly rules** | fields « Lieu », « Format »; duty schedule « Conducteurs » (one or two people) |
+| Field service meetings | « Réunion pour la prédication », **eight weekly rules** (and named rules such as « Prédication par groupe », D34) | fields « Lieu », « Format »; duty schedule « Conducteurs », one or two duties shown inline (D33) |
 | Theocratic events | circuit assembly, convention (multi-day), pioneer meeting, visit week, special talk, Mémorial | field « Lieu » |
 | Shared-building events | one kind per kind of event | fields « Concerne », « Salle », « Modifications » (free text until G is designed) |
 
@@ -235,7 +250,8 @@ model Absence {                     // « Mes absences »
 
 ### 5.1a Empty meetings
 
-Today's `EMPTY_MEETING` becomes: **no author, no schedule, no attendance, not `changedOnce`**, and no
+Today's `EMPTY_MEETING` becomes: **created by the job (`origin = 'job'`), no schedule, no attendance,
+not `changedOnce`**, and no
 field value other than the ones its rule copied. It stays the single definition of what may be moved,
 re-anchored or deleted without asking — on a rule change (§5.6), a time zone change, a series passing
 the day, or the kind's deletion — and what a creation fills instead of duplicating: adding the kind's
@@ -290,11 +306,12 @@ Like a calendar application, an event that comes from a rule offers two ways to 
 - **« Cette réunion seulement »** (D21): the change applies to this event, which is marked
   `changedOnce`. Deleting one occurrence is the same: it is gone and never recreated (high-water mark).
   A date beyond the 2-month horizon can be created early by hand to change it; the job sees an event
-  of that rule on that day and leaves it.
+  of that occurrence (`occurrenceDay`) and leaves it.
 - **« Cette réunion et les suivantes »** (D20, D22): the current rule gets `validUntil` = the day
   before, a new rule starts on that day with the new values. The future events of the old rule from
   that day on that were not `changedOnce` go to the new rule, each to the new weekday within its own
-  week, with its times and field values — so a deleted week stays deleted. What moves is today's
+  week, with the new rule's times and field values — so a deleted week stays deleted. The new rule
+  inherits the old one's `generatedUntil`, so no passed week comes back. What moves is today's
   « Déplacer les N réunions à venir » rule, extended to prepared meetings:
   - **empty meetings** (§5.1a) move by themselves; one whose week already has its meeting on the new
     day is deleted;
@@ -303,7 +320,11 @@ Like a calendar application, an event that comes from a rule offers two ways to 
     told (the notice the assignment change already sends). Left, they stay where they are, linked to
     the old rule, and are marked `changedOnce`;
   - **a meeting with attendance counts never moves**, even on the day the rule is split.
-- The job creates events only inside each rule's validity.
+- **« Arrêter la répétition »** (D32): the rule gets `validUntil` = the day before; after it, empty
+  meetings are deleted, prepared ones are offered for deletion, ones with counts stay.
+- The job creates events only inside each rule's validity, one per occurrence (the unique index).
+- A kind's duration or attendance cannot change into a combination D23 forbids: a counted kind is set
+  to « Non comptée » before it lasts several days; its counts stay.
 
 ## 6. Behaviour by surface
 
@@ -337,23 +358,30 @@ Like a calendar application, an event that comes from a rule offers two ways to 
 ## 7. Migration (expand / contract, several releases)
 
 The migration is applied before the running image is replaced, so every step must leave the
-previous image working on the new schema.
+previous image working on the new schema. A **contract** is therefore always two releases: one image
+stops reading and writing the old shape, and only the next release's migration drops it. The last
+release before a contract's drop is the rollback point; an archive export is taken before it.
 
 1. **Absences.** Create `Absence`; backfill from day-off events; the new image writes both, reads
    `Absence`. Next release: stop writing day-off events, delete them and the `day-off` template.
 2. **Schedules — expand.** Create `ScheduleTemplate`, `EventKindScheduleTemplate` and `Schedule`;
-   `EventTemplate` becomes the event kind (renamed at the contract step); add a nullable `scheduleId`
+   `EventTemplate` becomes the event kind (the Prisma model is renamed with `@@map("EventTemplate")`;
+   the table keeps its name); add a nullable `scheduleId`
    to parts and duties and a nullable `scheduleTemplateId` to their template counterparts. Backfill:
    - per existing template: a `programme` schedule template « Programme — <name> » holding its parts,
      responsible = the `programme` scope role; a `duty` schedule template « Services — <name> » holding
-     its service parts, responsible = the `service` scope role (falling back to the `programme` role,
-     which covers services today); both linked as the kind's suggestions. Identical « Services »
-     templates are **not** merged automatically — the congregation can merge them afterwards;
+     its service parts, responsible = the `service` scope role (falling back to the `programme` role
+     only when there is none — D31); both linked as the kind's suggestions. Identical « Services »
+     templates are **not** merged (D30);
    - per event: a programme schedule if it has parts, a « Services » schedule if it has service parts,
-     each with `status` copied from the event;
-   - per recurring template (in its own expand step, plan PR 7): one repetition rule (its weekday and times, `validFrom` = its first event's
-     day, open-ended), carrying over its `generatedUntil`; existing events link to it by weekday — the
-     empty meetings created ahead included — none marked `changedOnce`;
+     each with `status` copied from the event; a re-run attaches to the event's existing schedule of the
+     same template instead of creating one, and the event's status wins where they disagree (it is
+     the previous image's last word);
+   - per recurring template (in its own expand step, plan PR 7): one repetition rule (its weekday and
+     times, `validFrom` = its first event's day, or today without one; open-ended), carrying over its
+     `generatedUntil`; its events on the template's weekday link to it with their `occurrenceDay`, the
+     empty meetings included; those whose hours differ from the template's are marked `changedOnce`;
+     events on another weekday stay unlinked;
    - `attendanceKind` stays where it is (the template becomes the kind); the D23 CHECK is added with
      the duration, which every existing kind starts at 1;
    - duties keep their person assignee (`assigneeId`); group and text assignees start empty.
@@ -365,18 +393,23 @@ previous image working on the new schema.
    day. Until the contract step, the new image therefore keeps both: it locks the **kind's row** (today's
    template row, which covers all its rules) before creating any event of the kind — job, series or
    move — and raises the template's `generatedUntil` along with each rule's mark, so an old worker
-   still running never refills a day the new one passed. `recurring-events-race.integration.test.ts`
+   still running never refills a day the new one passed; it reads the greater of the two marks, so a
+   day the old worker passed is never refilled either; and a split of a kind's only rule also writes
+   the template's weekday and hours, so the old worker follows the current rule. `recurring-events-race.integration.test.ts`
    is extended to run the old and the new path together.
 3. **Schedules — switch reads.** Every reader moves to schedules and per-schedule status; per-schedule
    publishing becomes available in the UI.
-4. **Contract**, in two PRs (plan PR 9 for schedules, PR 10 for the kind rename and the rules). Drop `Event.status`, the parts' and duties' direct `eventId`, `TemplateResponsible`,
-   the old template relations and the kind-level `generatedUntil`, rename the event kind table, once
-   the image from step 3 is the one running. The kind's row stays the lock for its rules. (A table
-   named `EventKind` existed until July 2026 and was dropped; nothing of it remains.)
+4. **Contract.** Each image stops using what the next drops (plan §2): `Event.status` stops being
+   written in plan PR 5, `TemplateResponsible` and the template items' `templateId` in PR 6, the
+   kind-level weekday, hours and `generatedUntil` in PR 8. Plan PR 9 drops the first three, PR 10 the
+   last. The items keep their `eventId`, held equal to their schedule's by a composite foreign key
+   (`scheduleId`, `eventId`) → `Schedule(id, eventId)`. The kind's row stays the lock for its rules.
 
 Any other service that reads these tables through its own copy of the schema must have that copy
-refreshed and deployed before each contract step — including readers of `Event.createdById`, whose
-« null = created by the job » meaning must survive the absences contract, and of `Attendance`.
+refreshed and deployed before each contract step — including readers that take a null
+`Event.createdById` to mean « created by the job » (`origin` says it from plan PR 0 on), and readers of
+`Attendance`. A congregation archive of version 2.15 or older carries no status: restoring it imports
+every programme as a draft.
 
 ## 8. Phasing
 
@@ -417,6 +450,8 @@ Each PR is followed by a deploy before the next one's migration ships.
 - **Attendance:** deleting a schedule, or bulk-deleting programmes, never takes counts; attendance
   surfaces list events of counted kinds without a published schedule; a multi-day kind refuses an
   attendance kind (D23).
+- **Occurrences:** two rules of one kind on the same weekday each create their events; the unique
+  index refuses a second event for an occurrence; a split never deletes another rule's meeting.
 - **Rules:** validity respected (no event before `validFrom` or after `validUntil`); « et les suivantes »
   splits the rule, moves the empty meetings, offers the prepared ones and never moves one with counts
   (D22); a one-time change survives a later rule
