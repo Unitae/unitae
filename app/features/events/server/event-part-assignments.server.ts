@@ -1,5 +1,4 @@
 import { EventStatus } from '~/features/events/model/event-status.type'
-import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import {
   getPartAssignmentAllowedRoleIds,
   getServicePartAssignmentAllowedRoleIds,
@@ -253,10 +252,9 @@ export async function unassignServicePart(db: TransactionClient, assignmentId: n
   return { assignment, previousAssigneeId: existing.assigneeId }
 }
 
-// The `memberId` here is Member.id. Day-off events store the creator's
-// UserAccount.id in Event.createdById, so we join through
-// Event.createdBy.memberId to resolve the absence back to the same Member
-// that carries assignments (assigneeId / assistantId reference Member).
+// `memberId` is Member.id, the id assignments carry (assigneeId / assistantId). An absence declared from an account
+// without a record has memberId null and never matches: such an account holds no assignments. The record is the one
+// the row was written with; linking an account to a record, by hand or by a restore, moves its rows.
 export async function checkDayOffConflict(
   db: TransactionClient,
   memberId: number,
@@ -264,15 +262,10 @@ export async function checkDayOffConflict(
   endDate: Date,
   congregationId: number,
 ): Promise<boolean> {
-  const conflictingDayOff = await db.event.findFirst({
-    where: {
-      congregationId,
-      createdBy: { memberId },
-      template: { key: EventTemplateKey.DayOff },
-      startDate: { lte: endDate },
-      endDate: { gte: startDate },
-    },
+  const conflictingAbsence = await db.absence.findFirst({
+    where: { congregationId, memberId, startDate: { lte: endDate }, endDate: { gte: startDate } },
+    select: { id: true },
   })
 
-  return conflictingDayOff != null
+  return conflictingAbsence != null
 }

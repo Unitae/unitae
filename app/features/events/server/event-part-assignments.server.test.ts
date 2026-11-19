@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { EventTemplateKey } from '~/features/events/model/event-template.type'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     event: { findFirst: vi.fn(), findMany: vi.fn() },
+    absence: { findFirst: vi.fn() },
     eventPart: { findFirst: vi.fn(), findMany: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
     eventServicePart: {
       findFirst: vi.fn(),
@@ -44,33 +44,29 @@ beforeEach(() => {
 
 describe('checkDayOffConflict', () => {
   it('returns true when a day-off overlaps', async () => {
-    vi.mocked(db.event.findFirst).mockResolvedValue({ id: 1 } as never)
+    vi.mocked(db.absence.findFirst).mockResolvedValue({ id: 1 } as never)
     const result = await checkDayOffConflict(db, 1, new Date(2026, 3, 14), new Date(2026, 3, 14), 1)
     expect(result).toBe(true)
   })
 
   it('returns false when no day-off overlaps', async () => {
-    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.absence.findFirst).mockResolvedValue(null as never)
     const result = await checkDayOffConflict(db, 1, new Date(2026, 3, 14), new Date(2026, 3, 14), 1)
     expect(result).toBe(false)
   })
 
-  // Regression pin — the ID passed in is a Member.id (all call sites resolve
-  // participants via Member); day-off events store the creator's UserAccount.id
-  // in Event.createdById. Filtering by `createdBy: { memberId }` is the only
-  // shape that correctly joins the two. A prior version filtered by
-  // `createdById: memberId` which silently returned no results whenever the
-  // member's linked account.id differed from the member.id.
-  it('joins day-offs through Event.createdBy.memberId (not createdById)', async () => {
-    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+  // Regression pin — the ID passed in is a Member.id (all call sites resolve participants via Member), and an absence
+  // belongs to that record. A prior version matched it against the declaring account's id, which silently found nothing
+  // whenever the account's id differed from the record's.
+  it("finds absences by the person's record (not the declaring account)", async () => {
+    vi.mocked(db.absence.findFirst).mockResolvedValue(null as never)
     const memberId = 5000
 
     await checkDayOffConflict(db, memberId, new Date(2026, 3, 14), new Date(2026, 3, 14), 1)
 
-    const firstCall = vi.mocked(db.event.findFirst).mock.calls[0][0]
-    const where = firstCall?.where as Record<string, unknown>
-    expect(where.createdBy).toEqual({ memberId })
-    expect(where).not.toHaveProperty('createdById')
+    const where = vi.mocked(db.absence.findFirst).mock.calls[0][0]?.where as Record<string, unknown>
+    expect(where.memberId).toBe(memberId)
+    expect(where).not.toHaveProperty('accountId')
   })
 })
 
@@ -86,7 +82,7 @@ describe('assignPart', () => {
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
-    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.absence.findFirst).mockResolvedValue(null as never)
     vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1 } as never)
 
     await assignPart(db, 1, 5, null, null, 'Topic', 1)
@@ -106,7 +102,7 @@ describe('assignPart', () => {
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
-    vi.mocked(db.event.findFirst).mockResolvedValue({ id: 99 } as never) // day-off found
+    vi.mocked(db.absence.findFirst).mockResolvedValue({ id: 99 } as never) // day-off found
     vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
 
     const result = await assignPart(db, 1, 5, null, null, 'Topic', 1)
@@ -126,7 +122,7 @@ describe('assignPart', () => {
     // the day-off checks rather than short-circuiting on eligibility.
     vi.mocked(allowedRoles.resolveEligibleUserIds).mockResolvedValue([5, 7])
     // Speaker check: no day-off. Assistant check: day-off found.
-    vi.mocked(db.event.findFirst)
+    vi.mocked(db.absence.findFirst)
       .mockResolvedValueOnce(null as never)
       .mockResolvedValueOnce({ id: 99 } as never)
     vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1 } as never)
@@ -142,7 +138,7 @@ describe('assignPart', () => {
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
-    vi.mocked(db.event.findFirst).mockResolvedValue(null as never) // no day-off
+    vi.mocked(db.absence.findFirst).mockResolvedValue(null as never) // no day-off
     vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
 
     const result = await assignPart(db, 1, 5, null, null, 'Topic', 1)
@@ -159,7 +155,7 @@ describe('assignPart', () => {
       id: 1,
       event: { status: 'released', startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
-    vi.mocked(db.event.findFirst).mockResolvedValue({ id: 99 } as never) // day-off found
+    vi.mocked(db.absence.findFirst).mockResolvedValue({ id: 99 } as never) // day-off found
 
     const result = await assignPart(db, 1, 5, null, null, 'Topic', 1)
 
@@ -174,7 +170,7 @@ describe('assignPart', () => {
     } as never)
     vi.mocked(allowedRoles.resolveEligibleUserIds).mockResolvedValue([5, 7])
     // Speaker: no day-off. Reader: day-off found.
-    vi.mocked(db.event.findFirst)
+    vi.mocked(db.absence.findFirst)
       .mockResolvedValueOnce(null as never)
       .mockResolvedValueOnce({ id: 99 } as never)
 
@@ -189,7 +185,7 @@ describe('assignPart', () => {
       id: 1,
       event: { status: 'draft', startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
-    vi.mocked(db.event.findFirst).mockResolvedValue({ id: 99 } as never)
+    vi.mocked(db.absence.findFirst).mockResolvedValue({ id: 99 } as never)
     vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
 
     const result = await assignPart(db, 1, 5, null, null, 'Topic', 1)
@@ -209,7 +205,7 @@ describe('assignPart', () => {
       assistantId: 9,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
-    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.absence.findFirst).mockResolvedValue(null as never)
     vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
 
     const result = await assignPart(db, 1, 5, null, null, 'Topic', 1)
@@ -223,7 +219,7 @@ describe('assignPart', () => {
       assistantId: null,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
-    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.absence.findFirst).mockResolvedValue(null as never)
     vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
 
     const result = await assignPart(db, 1, 5, null, null, 'Topic', 1)
@@ -263,7 +259,7 @@ describe('assignPart', () => {
     // Reader fetch (asKind: 'reader')  → restrictive list, eligible = [42]
     vi.mocked(allowedRoles.getPartAssignmentAllowedRoleIds).mockResolvedValueOnce([]).mockResolvedValueOnce([99])
     vi.mocked(allowedRoles.resolveEligibleUserIds).mockResolvedValueOnce([5]).mockResolvedValueOnce([42])
-    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.absence.findFirst).mockResolvedValue(null as never)
 
     const result = await assignPart(db, 1, 5, 7, null, 'Topic', 1)
     expect(result).toHaveProperty('error')
@@ -324,7 +320,7 @@ describe('assignPart', () => {
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
-    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.absence.findFirst).mockResolvedValue(null as never)
     vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1 } as never)
 
     await assignPart(db, 1, 5, null, null, 'Topic', 1, 12)
@@ -352,7 +348,7 @@ describe('assignPart', () => {
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
-    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.absence.findFirst).mockResolvedValue(null as never)
     vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1 } as never)
 
     await assignPart(db, 1, 5, null, null, 'Topic', 1, null)
@@ -366,7 +362,7 @@ describe('assignPart', () => {
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
-    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.absence.findFirst).mockResolvedValue(null as never)
     vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1 } as never)
 
     await assignPart(db, 1, 5, null, null, 'Topic', 1)
@@ -385,7 +381,7 @@ describe('assignPart', () => {
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
-    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.absence.findFirst).mockResolvedValue(null as never)
     vi.mocked(allowedRoles.resolveEligibleUserIds).mockResolvedValue([5])
 
     const result = await assignPart(db, 1, 5, 5, null, 'Topic', 1)
@@ -407,7 +403,7 @@ describe('assignServicePart', () => {
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
-    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.absence.findFirst).mockResolvedValue(null as never)
     vi.mocked(db.eventServicePart.update).mockResolvedValue({ id: 1 } as never)
 
     await assignServicePart(db, 1, 5, 1)
@@ -425,7 +421,7 @@ describe('assignServicePart', () => {
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
-    vi.mocked(db.event.findFirst).mockResolvedValue({ id: 99 } as never)
+    vi.mocked(db.absence.findFirst).mockResolvedValue({ id: 99 } as never)
     vi.mocked(db.eventServicePart.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
 
     const result = await assignServicePart(db, 1, 5, 1)
@@ -440,7 +436,7 @@ describe('assignServicePart', () => {
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
-    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.absence.findFirst).mockResolvedValue(null as never)
     vi.mocked(db.eventServicePart.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
 
     const result = await assignServicePart(db, 1, 5, 1)
@@ -455,7 +451,7 @@ describe('assignServicePart', () => {
       id: 1,
       event: { status: 'released', startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
-    vi.mocked(db.event.findFirst).mockResolvedValue({ id: 99 } as never)
+    vi.mocked(db.absence.findFirst).mockResolvedValue({ id: 99 } as never)
 
     const result = await assignServicePart(db, 1, 5, 1)
 
@@ -468,7 +464,7 @@ describe('assignServicePart', () => {
       id: 1,
       event: { status: 'draft', startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
-    vi.mocked(db.event.findFirst).mockResolvedValue({ id: 99 } as never)
+    vi.mocked(db.absence.findFirst).mockResolvedValue({ id: 99 } as never)
     vi.mocked(db.eventServicePart.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
 
     const result = await assignServicePart(db, 1, 5, 1)
@@ -484,7 +480,7 @@ describe('assignServicePart', () => {
       assigneeId: 8,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
-    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.absence.findFirst).mockResolvedValue(null as never)
     vi.mocked(db.eventServicePart.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
 
     const result = await assignServicePart(db, 1, 5, 1)
@@ -497,7 +493,7 @@ describe('assignServicePart', () => {
       assigneeId: null,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
-    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.absence.findFirst).mockResolvedValue(null as never)
     vi.mocked(db.eventServicePart.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
 
     const result = await assignServicePart(db, 1, 5, 1)

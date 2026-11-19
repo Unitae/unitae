@@ -41,7 +41,7 @@ export async function refreshConflictFlags(
 
   // Fetch every affected row up front rather than per event. The previous shape issued
   // one parts query, one services query and two absence lookups PER EVENT PER ROW, so a
-  // single day-off edit could fan out into dozens of round trips.
+  // single absence edit could fan out into dozens of round trips.
   const parts = await db.eventPart.findMany({
     where: {
       eventId: { in: eventIds },
@@ -79,37 +79,35 @@ export async function refreshConflictFlags(
   const windowStart = overlappingEvents.reduce((min, e) => (e.startDate < min ? e.startDate : min), startDate)
   const windowEnd = overlappingEvents.reduce((max, e) => (e.endDate > max ? e.endDate : max), endDate)
 
-  const dayOffs =
+  const absences =
     participantIds.size === 0
       ? []
-      : await db.event.findMany({
+      : await db.absence.findMany({
           where: {
             congregationId,
-            template: { key: EventTemplateKey.DayOff },
-            createdBy: { memberId: { in: [...participantIds] } },
+            memberId: { in: [...participantIds] },
             startDate: { lte: windowEnd },
             endDate: { gte: windowStart },
           },
-          // Absences resolve to a Member through Event.createdBy — see checkDayOffConflict.
-          select: { startDate: true, endDate: true, createdBy: { select: { memberId: true } } },
+          select: { startDate: true, endDate: true, memberId: true },
         })
 
-  const dayOffsByMember = new Map<number, { start: number; end: number }[]>()
-  for (const dayOff of dayOffs) {
-    const absentMemberId = dayOff.createdBy?.memberId
+  const absencesByMember = new Map<number, { start: number; end: number }[]>()
+  for (const absence of absences) {
+    const absentMemberId = absence.memberId
     if (absentMemberId == null) continue
-    const ranges = dayOffsByMember.get(absentMemberId) ?? []
-    ranges.push({ start: dayOff.startDate.getTime(), end: dayOff.endDate.getTime() })
-    dayOffsByMember.set(absentMemberId, ranges)
+    const ranges = absencesByMember.get(absentMemberId) ?? []
+    ranges.push({ start: absence.startDate.getTime(), end: absence.endDate.getTime() })
+    absencesByMember.set(absentMemberId, ranges)
   }
 
   const eventById = new Map(overlappingEvents.map(event => [event.id, event]))
 
   // Mirrors checkDayOffConflict's SQL predicate exactly:
-  // dayOff.startDate <= event.endDate AND dayOff.endDate >= event.startDate.
+  // absence.startDate <= event.endDate AND absence.endDate >= event.startDate.
   function isAbsent(participantId: number | null, eventId: number): boolean {
     if (participantId == null) return false
-    const ranges = dayOffsByMember.get(participantId)
+    const ranges = absencesByMember.get(participantId)
     if (ranges == null) return false
     const event = eventById.get(eventId)
     if (event == null) return false

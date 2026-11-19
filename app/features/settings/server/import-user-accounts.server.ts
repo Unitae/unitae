@@ -133,6 +133,13 @@ export async function importUserAccounts(
             ...(record.locale !== undefined && { locale: record.locale }),
           },
         })
+        // Its absences are the person's: they follow the record the archive gives the account, as linking it by hand does.
+        if (existing.memberId !== newMemberId) {
+          await db.absence.updateMany({
+            where: { accountId: existing.id, congregationId },
+            data: { memberId: newMemberId },
+          })
+        }
         idMap.set('user-accounts', record.id, existing.id)
       } else {
         logger.warn(`Skipping account ${record.email}: exists in another congregation`, { congregationId })

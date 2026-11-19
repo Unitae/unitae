@@ -2007,3 +2007,63 @@ describe('restored absences', () => {
     }
   })
 })
+
+// A restore can link an existing account to a record from the archive. Its absences are the person's: their rows move
+// to that record, as when an account is linked by hand, so conflicts keep following them.
+describe('an existing account linked to a record by a restore', () => {
+  it('moves the account’s absences to the record the archive gives it', async () => {
+    const { importUserAccounts } = await import('./import-user-accounts.server')
+    const cong = await testDb.congregation.create({
+      data: { name: `Relinked ${ts}`, slug: `relinked-${ts}`, active: true },
+    })
+    try {
+      const result = await withScope(cong.id, async tx => {
+        const account = await tx.userAccount.create({
+          data: { email: `relinked-${ts}@test.com`, password: 'x', congregationId: cong.id },
+        })
+        // Declared before the restore, from an account without a record.
+        await tx.absence.create({
+          data: { startDate: new Date(), endDate: new Date(), accountId: account.id, congregationId: cong.id },
+        })
+        const member = await tx.member.create({
+          data: { firstname: 'Paul', lastname: 'MARTIN', congregationId: cong.id },
+        })
+        const idMap = new EntityIdMap()
+        idMap.set('members', 5, member.id)
+        const zip = new JsZip()
+        zip.folder('data')!.file(
+          'user-accounts.ndjson',
+          `${JSON.stringify({
+            id: 50,
+            email: `relinked-${ts}@test.com`,
+            firstname: null,
+            lastname: null,
+            active: true,
+            memberId: 5,
+            emailVerifiedAt: null,
+            anonymizedAt: null,
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          })}\n`,
+        )
+
+        await importUserAccounts(zip, tx, idMap, cong.id)
+
+        const absence = await tx.absence.findFirstOrThrow({
+          where: { accountId: account.id },
+          select: { memberId: true },
+        })
+        return { memberId: absence.memberId, expected: member.id }
+      })
+
+      expect(result.memberId).toBe(result.expected)
+    } finally {
+      await withScope(cong.id, async tx => {
+        await tx.absence.deleteMany({})
+        await tx.userAccount.deleteMany({})
+        await tx.member.deleteMany({})
+      })
+      await testDb.congregation.delete({ where: { id: cong.id } })
+    }
+  })
+})

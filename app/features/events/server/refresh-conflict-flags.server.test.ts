@@ -4,6 +4,7 @@ import { EventTemplateKey } from '~/features/events/model/event-template.type'
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     event: { findMany: vi.fn() },
+    absence: { findMany: vi.fn() },
     eventPart: { findMany: vi.fn(), updateMany: vi.fn() },
     eventServicePart: { findMany: vi.fn(), updateMany: vi.fn() },
   },
@@ -17,29 +18,20 @@ beforeEach(() => {
 })
 
 describe('refreshConflictFlags', () => {
-  // `db.event.findMany` now serves two distinct queries: the overlapping-events lookup and
-  // the single batched absence lookup. Route on the day-off template filter, exactly as the
-  // real shapes differ, so one mock can stand in for both.
+  // The overlapping events come from `db.event.findMany`, the absences from `db.absence.findMany` in one batched query.
   //
   // `absentMemberIds` are the members who HAVE an overlapping absence. Their stub absence
-  // spans a deliberately wide range so it overlaps every event in the fixture — matching the
-  // old per-(member, event) stub, which reported a conflict regardless of the event's dates.
+  // spans a deliberately wide range so it overlaps every event in the fixture.
   function stubEventsAndAbsences(events: unknown[], absentMemberIds: number[]) {
     const absent = new Set(absentMemberIds)
+    vi.mocked(db.event.findMany).mockResolvedValue(events as never)
     // biome-ignore lint/suspicious/noExplicitAny: mock signature needs to match Prisma's generated overloads
-    vi.mocked(db.event.findMany).mockImplementation(((args: any) => {
-      const where = args?.where ?? {}
-      if (where.template?.key !== EventTemplateKey.DayOff) return Promise.resolve(events)
-
-      const requested = (where.createdBy?.memberId?.in ?? []) as number[]
+    vi.mocked(db.absence.findMany).mockImplementation(((args: any) => {
+      const requested = (args?.where?.memberId?.in ?? []) as number[]
       return Promise.resolve(
         requested
           .filter(id => absent.has(id))
-          .map(id => ({
-            startDate: new Date(2000, 0, 1),
-            endDate: new Date(2100, 0, 1),
-            createdBy: { memberId: id },
-          })),
+          .map(id => ({ startDate: new Date(2000, 0, 1), endDate: new Date(2100, 0, 1), memberId: id })),
       )
     }) as never)
   }
@@ -121,13 +113,14 @@ describe('refreshConflictFlags', () => {
 
     await refreshConflictFlags(db, 5, new Date(2026, 3, 13), new Date(2026, 3, 16), 1)
 
-    // Exactly two event.findMany calls: overlapping events, then all absences at once.
-    const calls = vi.mocked(db.event.findMany).mock.calls
-    expect(calls).toHaveLength(2)
+    // One events query, then all absences at once.
+    expect(vi.mocked(db.event.findMany).mock.calls).toHaveLength(1)
+    const calls = vi.mocked(db.absence.findMany).mock.calls
+    expect(calls).toHaveLength(1)
 
-    // …and that second call asks for every distinct participant in one `in` clause.
-    const absenceWhere = calls[1][0]?.where as { createdBy?: { memberId?: { in?: number[] } } }
-    expect([...(absenceWhere.createdBy?.memberId?.in ?? [])].sort()).toEqual([5, 6, 7])
+    // …asking for every distinct participant in one `in` clause.
+    const absenceWhere = calls[0][0]?.where as { memberId?: { in?: number[] } }
+    expect([...(absenceWhere.memberId?.in ?? [])].sort()).toEqual([5, 6, 7])
 
     // The per-row outcome still respects each row's own participants.
     expect(
@@ -149,19 +142,13 @@ describe('refreshConflictFlags', () => {
   // a regression there would mark every event conflicted once any absence existed.
   it('only flags the events an absence actually overlaps', async () => {
     // Absence covers 14 Apr only; event 1 is on the 14th, event 2 on the 20th.
-    // biome-ignore lint/suspicious/noExplicitAny: mock signature needs to match Prisma's generated overloads
-    vi.mocked(db.event.findMany).mockImplementation(((args: any) => {
-      const where = args?.where ?? {}
-      if (where.template?.key !== EventTemplateKey.DayOff) {
-        return Promise.resolve([
-          { id: 1, startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
-          { id: 2, startDate: new Date(2026, 3, 20), endDate: new Date(2026, 3, 20) },
-        ])
-      }
-      return Promise.resolve([
-        { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14), createdBy: { memberId: 5 } },
-      ])
-    }) as never)
+    vi.mocked(db.event.findMany).mockResolvedValue([
+      { id: 1, startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+      { id: 2, startDate: new Date(2026, 3, 20), endDate: new Date(2026, 3, 20) },
+    ] as never)
+    vi.mocked(db.absence.findMany).mockResolvedValue([
+      { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14), memberId: 5 },
+    ] as never)
     vi.mocked(db.eventPart.findMany).mockResolvedValue([
       { id: 100, eventId: 1, assigneeId: 5, assistantId: null },
       { id: 101, eventId: 2, assigneeId: 5, assistantId: null },

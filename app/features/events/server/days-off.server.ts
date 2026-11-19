@@ -65,8 +65,8 @@ export async function createDayOff(
       status: EventStatus.Released,
     },
   })
-  // Written twice while the readers still read the event: the day-off event, and its Absence row (the person's record
-  // when the account has one).
+  // Written twice until the events are dropped: the conflict readers use the Absence row (the person's record when the
+  // account has one), while the lists, the delete and account deletion still go through the day-off event.
   await db.absence.create({
     data: { startDate, endDate, memberId, accountId, legacyEventId: event.id, congregationId },
   })

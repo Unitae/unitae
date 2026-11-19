@@ -12,9 +12,8 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
-import { createDayOff } from '~/features/events/server/days-off.server'
+import { createDayOff, deleteDayOff } from '~/features/events/server/days-off.server'
 import { releaseEvent } from '~/features/events/server/event-status.server'
-import { refreshConflictFlags } from '~/features/events/server/refresh-conflict-flags.server'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -177,32 +176,25 @@ describe('refreshConflictFlags co-participant preservation (integration)', () =>
     // Then Alice adds and immediately removes an absence, refreshing for her.
     // A refresh keyed on Alice must NOT clear the flag that Bob's absence
     // still legitimately owns.
+    // Through the real paths, so her absence is written and removed as « Mes absences » does: both refresh for her.
     await withScope(congId, async tx => {
-      const template = await tx.eventTemplate.findFirstOrThrow({
-        where: { key: 'day-off', congregationId: congId },
-      })
       const aliceAccount = await tx.userAccount.findFirstOrThrow({
         where: { memberId: aliceId, congregationId: congId },
       })
-      await tx.event.create({
-        data: {
-          name: `Alice absence ${congId}`,
-          templateId: template.id,
-          startDate: new Date('2027-08-10T00:00:00Z'),
-          endDate: new Date('2027-08-11T00:00:00Z'),
-          createdById: aliceAccount.id,
-          congregationId: congId,
-          status: 'released',
-        },
-      })
-      await tx.event.deleteMany({ where: { name: `Alice absence ${congId}`, congregationId: congId } })
-      await refreshConflictFlags(
+      const absence = await createDayOff(
         tx,
+        aliceAccount.id,
         aliceId,
         new Date('2027-08-10T00:00:00Z'),
         new Date('2027-08-11T00:00:00Z'),
         congId,
       )
+      await deleteDayOff(tx, {
+        eventId: absence?.id as number,
+        accountId: aliceAccount.id,
+        memberId: aliceId,
+        congregationId: congId,
+      })
     })
 
     const still = await withScope(congId, tx =>
