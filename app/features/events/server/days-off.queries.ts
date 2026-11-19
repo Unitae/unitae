@@ -1,3 +1,4 @@
+import type { Prisma } from '~/database/generated/client'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import type { AssignKind } from '~/features/events/model/reassign'
 import { absencesOf } from '~/features/events/server/absences.queries'
@@ -49,7 +50,6 @@ export async function listMyAbsences(
 export interface AbsenceAssignment {
   kind: AssignKind
   /** The part's or the service's id, from its own table. */
-  /** The Absence row's id: the delete goes by it. */
   id: number
   name: string
   eventId: number
@@ -72,6 +72,13 @@ export interface CongregationAbsence {
   lastname: string | null
   conflicts: AbsenceAssignment[]
 }
+
+// The programme's order: a meeting's parts, then its services (the stable sort by date below keeps them so), each in
+// their order — never whatever order the table returns them in.
+const PROGRAMME_ORDER = [{ event: { startDate: 'asc' } }, { order: 'asc' }, { id: 'asc' }] as const satisfies (
+  | Prisma.EventPartOrderByWithRelationInput
+  | Prisma.EventServicePartOrderByWithRelationInput
+)[]
 
 const overlaps = (event: { startDate: Date; endDate: Date }, absence: { startDate: Date; endDate: Date }) =>
   event.startDate <= absence.endDate && event.endDate >= absence.startDate
@@ -122,10 +129,12 @@ export async function listCongregationAbsences(
         OR: [{ assigneeId: { in: memberIds } }, { assistantId: { in: memberIds } }],
       },
       select: { id: true, name: true, assigneeId: true, assistantId: true, event },
+      orderBy: PROGRAMME_ORDER,
     }),
     db.eventServicePart.findMany({
       where: { congregationId, hasConflict: true, event: span, assigneeId: { in: memberIds } },
       select: { id: true, name: true, assigneeId: true, event },
+      orderBy: PROGRAMME_ORDER,
     }),
   ])
   const slots = [
