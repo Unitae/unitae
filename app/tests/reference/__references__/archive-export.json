@@ -796,6 +796,18 @@
       "origin": "job"
     }
   ],
+  "absences": [
+    {
+      "id": "<id>",
+      "startDate": "2027-03-14T23:00:00.000Z",
+      "endDate": "2027-03-17T22:59:00.000Z",
+      "note": "",
+      "memberId": "<member:hugo>",
+      "accountId": "<account:hugo>",
+      "legacyEventId": "<id>",
+      "createdAt": "<time>"
+    }
+  ],
   "attendance": [
     {
       "eventId": "<event:memorial-1>",
