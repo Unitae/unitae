@@ -8,6 +8,7 @@ vi.mock('~/shared/domain/audit.server', () => ({
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     event: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), delete: vi.fn() },
+    absence: { create: vi.fn(), deleteMany: vi.fn() },
     eventTemplate: { findFirst: vi.fn() },
     eventPart: { updateMany: vi.fn() },
     eventServicePart: { updateMany: vi.fn() },
@@ -22,6 +23,8 @@ beforeEach(() => {
   vi.resetAllMocks()
   // Default: no overlapping programme events for conflict refresh
   vi.mocked(db.event.findMany).mockResolvedValue([] as never)
+  vi.mocked(db.absence.create).mockResolvedValue({} as never)
+  vi.mocked(db.absence.deleteMany).mockResolvedValue({ count: 0 } as never)
 })
 
 describe('createDayOff', () => {
@@ -170,6 +173,8 @@ describe('deleteDayOff', () => {
 
     expect(result).toBeNull()
     expect(db.event.delete).not.toHaveBeenCalled()
+    // Nor its Absence row: the two copies stay together.
+    expect(db.absence.deleteMany).not.toHaveBeenCalled()
   })
 
   it('records the deletion in the audit trail', async () => {

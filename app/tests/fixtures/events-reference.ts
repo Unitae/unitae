@@ -536,6 +536,7 @@ export async function deleteReferenceCongregation(congregationId: number) {
     await db.boardDynamicDocumentSettings.deleteMany({ where })
     await db.boardSectionVisibilityRole.deleteMany({ where })
     await db.boardSection.deleteMany({ where })
+    await db.absence.deleteMany({ where })
     await db.attendance.deleteMany({ where })
     await db.eventServicePartAllowedRole.deleteMany({ where })
     await db.eventPartAllowedRole.deleteMany({ where })

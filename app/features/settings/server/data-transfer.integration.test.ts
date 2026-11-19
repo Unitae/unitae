@@ -1923,3 +1923,87 @@ describe('the origin of restored events', () => {
     }
   })
 })
+
+// While absences are written twice, a restored absence gets its Absence row too: the readers move to that table before
+// the archive carries it. Its owner's record when the restored account has one, as the migration does.
+describe('restored absences', () => {
+  it('gives each restored day-off its Absence row, with the owner’s record', async () => {
+    const { importEvents } = await import('./import-events.server')
+    const cong = await testDb.congregation.create({
+      data: { name: `Restored absences ${ts}`, slug: `restored-absences-${ts}`, active: true },
+    })
+    try {
+      const rows = await withScope(cong.id, async tx => {
+        const dayOff = await tx.eventTemplate.create({
+          data: { name: 'Absence', key: 'day-off', congregationId: cong.id },
+        })
+        const member = await tx.member.create({
+          data: { firstname: 'Paul', lastname: 'MARTIN', congregationId: cong.id },
+        })
+        const withRecord = await tx.userAccount.create({
+          data: { email: `paul-restored-${ts}@test.com`, password: 'x', memberId: member.id, congregationId: cong.id },
+        })
+        const withoutRecord = await tx.userAccount.create({
+          data: { email: `sans-restored-${ts}@test.com`, password: 'x', congregationId: cong.id },
+        })
+        const idMap = new EntityIdMap()
+        idMap.set('programme-templates', 9, dayOff.id)
+        idMap.set('user-accounts', 70, withRecord.id)
+        idMap.set('user-accounts', 71, withoutRecord.id)
+        const absence = (id: number, createdById: number) => ({
+          id,
+          name: 'Absence',
+          description: 'Vacances',
+          startDate: '2027-05-03T00:00:00.000Z',
+          endDate: '2027-05-07T23:59:00.000Z',
+          templateId: 9,
+          createdById,
+          createdAt: '2027-04-01T08:00:00.000Z',
+          status: 'released',
+          origin: 'manual',
+        })
+        const zip = new JsZip()
+        zip
+          .folder('data')!
+          .file('events.ndjson', [absence(1, 70), absence(2, 71)].map(row => `${JSON.stringify(row)}\n`).join(''))
+
+        await importEvents(zip, tx, idMap, cong.id)
+
+        return {
+          ids: { member: member.id, withRecord: withRecord.id, withoutRecord: withoutRecord.id },
+          absences: await tx.absence.findMany({
+            select: { note: true, memberId: true, accountId: true, startDate: true, legacyEventId: true },
+            orderBy: { accountId: 'asc' },
+          }),
+          events: await tx.event.findMany({ select: { id: true }, orderBy: { id: 'asc' } }),
+        }
+      })
+
+      expect(rows.absences).toEqual([
+        {
+          note: 'Vacances',
+          memberId: rows.ids.member,
+          accountId: rows.ids.withRecord,
+          startDate: new Date('2027-05-03T00:00:00.000Z'),
+          legacyEventId: rows.events[0].id,
+        },
+        {
+          note: 'Vacances',
+          memberId: null,
+          accountId: rows.ids.withoutRecord,
+          startDate: new Date('2027-05-03T00:00:00.000Z'),
+          legacyEventId: rows.events[1].id,
+        },
+      ])
+    } finally {
+      await withScope(cong.id, async tx => {
+        await tx.absence.deleteMany({})
+        await tx.event.deleteMany({})
+        await tx.eventTemplate.deleteMany({})
+        await tx.userAccount.deleteMany({})
+        await tx.member.deleteMany({})
+      })
+      await testDb.congregation.delete({ where: { id: cong.id } })
+    }
+  })
+})

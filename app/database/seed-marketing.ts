@@ -79,6 +79,8 @@ async function cleanCongregationData(congregationId: number) {
   await prisma.templateResponsible.deleteMany({ where })
   await prisma.templateServicePart.deleteMany({ where })
   await prisma.templatePart.deleteMany({ where })
+  // Before the events and the accounts: an Absence row names its account (Restrict), not its event.
+  await prisma.absence.deleteMany({ where })
   await prisma.event.deleteMany({ where })
   await prisma.eventTemplate.deleteMany({ where })
   // After the parts that point at them, before the congregation itself: the FK to Congregation restricts.
@@ -664,7 +666,7 @@ async function main() {
   const dayOff = await prisma.eventTemplate.findFirstOrThrow({
     where: { key: EventTemplateKey.DayOff, congregationId },
   })
-  await prisma.event.createMany({
+  const absenceEvents = await prisma.event.createManyAndReturn({
     data: absences.map(absence => ({
       name: absence.name,
       startDate: absence.start,
@@ -673,6 +675,18 @@ async function main() {
       // Match production: an absence skips the release workflow.
       status: 'released',
       createdById: accounts.get(absence.person) as number,
+      congregationId,
+    })),
+    select: { id: true },
+  })
+  // Written twice, as createDayOff does while the readers move over: the day-off event, and its Absence row.
+  await prisma.absence.createMany({
+    data: absences.map((absence, index) => ({
+      startDate: absence.start,
+      endDate: absence.end,
+      memberId: members[absence.person] as number,
+      accountId: accounts.get(absence.person) as number,
+      legacyEventId: absenceEvents[index]?.id as number,
       congregationId,
     })),
   })

@@ -59,6 +59,7 @@ export async function importEvents(
   // services and counts are in. One whose origin this version does not know stays « import ».
   let unknownOrigin = 0
   const withoutOrigin: number[] = []
+  const recordOf = new Map<number, number | null>()
   for (const record of records) {
     const templateId = idMap.getOptional('programme-templates', record.templateId)
     const createdById = idMap.getOptional('user-accounts', record.createdById)
@@ -84,6 +85,9 @@ export async function importEvents(
     idMap.set('events', record.id, created.id)
     if (record.origin == null) withoutOrigin.push(created.id)
     else if (!isEventOrigin(record.origin)) unknownOrigin++
+    if (createdById != null && templateId != null && templateId === dayOff?.id) {
+      await writeAbsenceOf(db, { eventId: created.id, accountId: createdById, record, congregationId }, recordOf)
+    }
   }
   if (unknownOrigin > 0) {
     logger.warn(`Imported ${unknownOrigin} event(s) with an unknown origin as restored`, { congregationId })
@@ -95,6 +99,47 @@ export async function importEvents(
     logger.warn(`Skipped ${ownerless} absence(s) whose owner was not imported`, { congregationId })
   }
   return withoutOrigin
+}
+
+/**
+ * A restored absence's Absence row, written alongside its event while the readers move over: its owner's record when
+ * the restored account has one, as the migration does. `recordOf` keeps each account's record once looked up.
+ */
+async function writeAbsenceOf(
+  db: TransactionClient,
+  {
+    eventId,
+    accountId,
+    record,
+    congregationId,
+  }: {
+    eventId: number
+    accountId: number
+    record: { startDate: string; endDate: string; description: string; createdAt: string }
+    congregationId: number
+  },
+  recordOf: Map<number, number | null>,
+): Promise<void> {
+  if (!recordOf.has(accountId)) {
+    // Restored earlier in the same import: missing, the restore is broken — fail rather than mis-own the absence.
+    const account = await db.userAccount.findFirstOrThrow({
+      where: { id: accountId, congregationId },
+      select: { memberId: true },
+    })
+    recordOf.set(accountId, account.memberId)
+  }
+  await db.absence.create({
+    data: {
+      startDate: new Date(record.startDate),
+      endDate: new Date(record.endDate),
+      note: record.description ?? '',
+      memberId: recordOf.get(accountId) ?? null,
+      accountId,
+      legacyEventId: eventId,
+      createdAt: new Date(record.createdAt),
+      congregationId,
+    },
+  })
 }
 
 /**

@@ -4,6 +4,7 @@ const { releaseAccountEvents, AccountHasAbsencesError } = await import('./accoun
 
 const db = {
   event: { findMany: vi.fn(), deleteMany: vi.fn(), updateMany: vi.fn() },
+  absence: { deleteMany: vi.fn() },
 }
 
 const ABSENCE = { id: 31, startDate: new Date('2027-01-12T00:00:00Z'), endDate: new Date('2027-01-14T22:59:00Z') }
@@ -13,6 +14,7 @@ beforeEach(() => {
   db.event.findMany.mockResolvedValue([])
   db.event.deleteMany.mockResolvedValue({ count: 0 })
   db.event.updateMany.mockResolvedValue({ count: 0 })
+  db.absence.deleteMany.mockResolvedValue({ count: 0 })
 })
 
 describe('releaseAccountEvents', () => {
@@ -39,6 +41,7 @@ describe('releaseAccountEvents', () => {
     )
     expect(db.event.deleteMany).not.toHaveBeenCalled()
     expect(db.event.updateMany).not.toHaveBeenCalled()
+    expect(db.absence.deleteMany).not.toHaveBeenCalled()
   })
 
   it('only clears the author of an account linked to a record without absences', async () => {

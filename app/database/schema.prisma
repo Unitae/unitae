@@ -160,6 +160,7 @@ model Congregation {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  absences Absence[]
 }
 
 // A person currently part of this congregation. Holds identity, demographics,
@@ -261,6 +262,7 @@ model Member {
   @@index([congregationId, leftAt])
   @@index([congregationId, firstnameNormalized])
   @@index([congregationId, lastnameNormalized])
+  absences Absence[]
 }
 
 // A person to contact about a Member in an emergency — either to get
@@ -357,6 +359,7 @@ model UserAccount {
   updatedAt DateTime @updatedAt
 
   @@unique([id, congregationId])
+  absences Absence[]
 }
 
 model Permission {
@@ -1614,6 +1617,35 @@ model NotificationPreference {
 
   @@unique([userId, notificationType, congregationId])
   @@unique([id, congregationId])
+}
+
+/// An absence: the days a person is away, so nobody assigns them a part then. It belongs to the person — their record
+/// when the account that declared it had one when it was written, the account otherwise (CHECK: one of the two). Written alongside the
+/// day-off event it was copied from until the readers move over and the events are dropped (legacyEventId).
+model Absence {
+  id        Int      @id @default(autoincrement())
+  // Copied as stored: legacy rows sit at midnight UTC (app/features/events/model/absence.ts).
+  startDate DateTime
+  endDate   DateTime
+  note      String   @default("")
+
+  member    Member?      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  memberId  Int?
+  // Who declared it; the owner when there is no record. Restrict: deleting an account lets go of its absences first.
+  account   UserAccount? @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  accountId Int?
+
+  legacyEventId Int? @unique
+
+  createdAt DateTime @default(now())
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
+  @@unique([id, congregationId])
+  @@index([congregationId, startDate])
+  @@index([memberId])
+  @@index([accountId])
 }
 
 // The two counts of one meeting, entered while it runs: in the hall, and by videoconference (Zoom and phone together, as

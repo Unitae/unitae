@@ -124,6 +124,7 @@ async function provisionCongregation(suffix: string) {
 afterAll(async () => {
   for (const congId of createdCongIds) {
     await testDb.eventPart.deleteMany({ where: { congregationId: congId } })
+    await testDb.absence.deleteMany({ where: { congregationId: congId } })
     await testDb.event.deleteMany({ where: { congregationId: congId } })
     await testDb.eventTemplate.deleteMany({ where: { congregationId: congId } })
     await testDb.userAccount.deleteMany({ where: { congregationId: congId } })
