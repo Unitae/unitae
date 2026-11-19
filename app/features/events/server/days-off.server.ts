@@ -4,7 +4,6 @@ import { absencesOf } from '~/features/events/server/absences.queries'
 import { refreshConflictFlags } from '~/features/events/server/refresh-conflict-flags.server'
 import * as m from '~/i18n/paraglide/messages'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
-import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 /** The absences of the account's person still to come or under way, soonest first: by their record when they have one. */
@@ -46,32 +45,33 @@ export async function createDayOff(
     return null
   }
 
-  // The day-off template is what keeps this event out of the programme: programme readers leave out events by
-  // `template.key = 'day-off'`, so one written without it would show as an empty meeting. Fail loudly on a
-  // mis-provisioned tenant instead of a silent success flash.
+  // The day-off template is what keeps the event out of the programme: programme readers leave out events by
+  // `template.key = 'day-off'`. Once the day-off events and their template are dropped, the absence is written alone —
+  // never an event without the template, which would show as an empty meeting.
   const dayOffTemplate = await db.eventTemplate.findFirst({
     where: { key: EventTemplateKey.DayOff, congregationId },
   })
-  if (!dayOffTemplate) throw new NotFoundError('Day-off template')
-
-  const event = await db.event.create({
-    data: {
-      template: { connect: { id: dayOffTemplate.id } },
-      startDate,
-      endDate,
-      createdBy: { connect: { id: accountId } },
-      name: m.seed_template_day_off(),
-      congregation: { connect: { id: congregationId } },
-      // Days-off never go through the release workflow — they must be visible
-      // to the conflict pipeline immediately.
-      status: EventStatus.Released,
-    },
-  })
+  const event =
+    dayOffTemplate == null
+      ? null
+      : await db.event.create({
+          data: {
+            template: { connect: { id: dayOffTemplate.id } },
+            startDate,
+            endDate,
+            createdBy: { connect: { id: accountId } },
+            name: m.seed_template_day_off(),
+            congregation: { connect: { id: congregationId } },
+            // Days-off never go through the release workflow — they must be visible
+            // to the conflict pipeline immediately.
+            status: EventStatus.Released,
+          },
+        })
   // Written twice until the events are dropped: the lists, the feed, the conflict checks and the archive read the
   // Absence row (the person's record when the account has one). Deleting an absence takes its event; deleting the
   // account finds its day-offs by their event and drops them, leaving the rows on the record (releaseAccountEvents).
   const absence = await db.absence.create({
-    data: { startDate, endDate, memberId, accountId, legacyEventId: event.id, congregationId },
+    data: { startDate, endDate, memberId, accountId, legacyEventId: event?.id ?? null, congregationId },
   })
 
   if (memberId != null) {
@@ -86,8 +86,8 @@ export async function createDayOff(
     entityType: 'Absence',
     entityId: absence.id,
   })
-  // The event, and the row an absence is deleted by.
-  return { ...event, absenceId: absence.id }
+  // The row the absence is deleted by, and its day-off event while there are any.
+  return { absenceId: absence.id, eventId: event?.id ?? null }
 }
 
 /**

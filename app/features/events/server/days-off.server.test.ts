@@ -54,8 +54,8 @@ describe('createDayOff', () => {
     vi.mocked(db.event.create).mockResolvedValue(fakeEvent as never)
 
     const result = await createDayOff(db, 1, 1, new Date(2025, 3, 8), new Date(2025, 3, 10), 1)
-    // The event, and the row the absence is deleted by.
-    expect(result).toEqual({ ...fakeEvent, absenceId: 900 })
+    // The row the absence is deleted by, and its event.
+    expect(result).toEqual({ absenceId: 900, eventId: 1 })
   })
 
   // Days-off events are not part of the draft/released workflow — they must go
@@ -79,17 +79,21 @@ describe('createDayOff', () => {
     vi.mocked(db.event.create).mockResolvedValue(fakeEvent as never)
 
     const result = await createDayOff(db, 1, 1, sameDate, sameDate, 1)
-    // The event, and the row the absence is deleted by.
-    expect(result).toEqual({ ...fakeEvent, absenceId: 900 })
+    expect(result).toEqual({ absenceId: 900, eventId: 2 })
   })
 
-  it('throws NotFoundError when the day-off system template is missing', async () => {
+  // The day-off events and their template are being dropped: without the template the absence is written alone, so
+  // declaring one keeps working on both sides of that migration. With no event, nothing can show as an empty meeting.
+  it('writes the absence alone when there is no day-off template', async () => {
     vi.mocked(db.eventTemplate.findFirst).mockResolvedValue(null as never)
 
-    await expect(createDayOff(db, 1, 1, new Date(2025, 3, 8), new Date(2025, 3, 10), 1)).rejects.toThrow(
-      'Day-off template',
-    )
+    const result = await createDayOff(db, 1, 1, new Date(2025, 3, 8), new Date(2025, 3, 10), 1)
+
+    expect(result).toEqual({ absenceId: 900, eventId: null })
     expect(db.event.create).not.toHaveBeenCalled()
+    expect(db.absence.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ memberId: 1, accountId: 1, legacyEventId: null }),
+    })
   })
 
   it('connects the event to the day-off template when it exists', async () => {
