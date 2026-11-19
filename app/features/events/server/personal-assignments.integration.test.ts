@@ -95,6 +95,17 @@ beforeAll(async () => {
       },
     })
     evergreenId = dayOff.id
+    // Written twice, as createDayOff does: the day-off event and its Absence row on Alice's record.
+    await tx.absence.create({
+      data: {
+        startDate: dayOff.startDate,
+        endDate: dayOff.endDate,
+        memberId: aliceMemberId,
+        accountId: aliceId,
+        legacyEventId: dayOff.id,
+        congregationId: congAId,
+      },
+    })
 
     await tx.eventPart.create({
       data: {
@@ -170,6 +181,7 @@ afterAll(async () => {
   await testDb.eventServicePart.deleteMany({
     where: { congregationId: { in: [congAId, congBId] } },
   })
+  await testDb.absence.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })
   await testDb.event.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })
   await testDb.eventTemplate.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })
   await testDb.userAccount.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })

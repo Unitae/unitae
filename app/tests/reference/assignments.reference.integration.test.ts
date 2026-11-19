@@ -292,7 +292,8 @@ async function declareAbsence(person: string, first: string, last: string): Prom
   )
   if (!absence) throw new Error(`could not declare ${person}’s absence`)
   fixture.labels.set(`event:${absence.id}`, `absence-${person}`)
-  return absence.id
+  // An absence is deleted by its row.
+  return absence.absenceId
 }
 
 function flags(event: Awaited<ReturnType<typeof programme>>) {
@@ -372,7 +373,7 @@ describe('assignments, publishing and their notices', () => {
     await step('Pierre removes his absence', async () => {
       const removed = await scoped(db =>
         deleteDayOff(db, {
-          eventId: pierreAbsence,
+          absenceId: pierreAbsence,
           accountId: fixture.account('pierre'),
           memberId: member('pierre'),
           congregationId: fixture.congregationId,

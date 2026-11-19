@@ -89,9 +89,9 @@ describe('findUpcomingAssignmentsForMember', () => {
 })
 
 describe('findUpcomingAbsencesForMember', () => {
-  it('queries day-off events created by the member linked account', async () => {
+  it('reads the member’s absences by their record', async () => {
     const db = {
-      event: {
+      absence: {
         findMany: vi
           .fn()
           .mockResolvedValue([{ id: 20, startDate: new Date(2026, 8, 10), endDate: new Date(2026, 8, 14) }]),
@@ -101,9 +101,9 @@ describe('findUpcomingAbsencesForMember', () => {
     const absences = await findUpcomingAbsencesForMember(db as never, MEMBER_ID, CONGREGATION_ID, NOW)
 
     expect(absences).toEqual([{ id: 20, startDate: new Date(2026, 8, 10), endDate: new Date(2026, 8, 14) }])
-    const where = db.event.findMany.mock.calls[0][0].where
+    const where = db.absence.findMany.mock.calls[0][0].where
     expect(where.congregationId).toBe(CONGREGATION_ID)
-    expect(where.createdBy).toEqual({ member: { id: MEMBER_ID } })
+    expect(where.memberId).toBe(MEMBER_ID)
   })
 })
 
@@ -139,11 +139,11 @@ describe('findLastAssignmentsForMembers', () => {
 describe('findNextAbsencesForMembers', () => {
   it('keeps each member’s earliest absence still to come or under way', async () => {
     const db = {
-      event: {
+      absence: {
         findMany: vi.fn().mockResolvedValue([
-          { startDate: new Date(2026, 7, 21), endDate: new Date(2026, 7, 25), createdBy: { member: { id: 4 } } },
-          { startDate: new Date(2026, 9, 1), endDate: new Date(2026, 9, 8), createdBy: { member: { id: 4 } } },
-          { startDate: new Date(2026, 8, 3), endDate: new Date(2026, 8, 4), createdBy: { member: { id: 5 } } },
+          { startDate: new Date(2026, 7, 21), endDate: new Date(2026, 7, 25), memberId: 4 },
+          { startDate: new Date(2026, 9, 1), endDate: new Date(2026, 9, 8), memberId: 4 },
+          { startDate: new Date(2026, 8, 3), endDate: new Date(2026, 8, 4), memberId: 5 },
         ]),
       },
     }

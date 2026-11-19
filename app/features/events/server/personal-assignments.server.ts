@@ -1,6 +1,6 @@
-import type { Event, EventPart, EventServicePart } from '~/database/generated/client'
+import type { Absence, Event, EventPart, EventServicePart } from '~/database/generated/client'
 import { EventStatus } from '~/features/events/model/event-status.type'
-import { EventTemplateKey } from '~/features/events/model/event-template.type'
+import { absencesOf } from '~/features/events/server/absences.queries'
 import * as m from '~/i18n/paraglide/messages'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -19,9 +19,8 @@ type PartWithEvent = EventPart & { event: Event }
 type ServicePartWithEvent = EventServicePart & { event: Event }
 
 /**
- * `userId` is a UserAccount id. Days-off events are account-bound (createdById),
- * while event parts and service roles are member-bound (assigneeId/assistantId),
- * so we resolve the linked member id internally.
+ * `userId` is a UserAccount id. Event parts and service roles are member-bound (assigneeId/assistantId), and so are
+ * absences when the account has a record (by the account otherwise), so we resolve the linked member id internally.
  */
 export async function getPersonalAssignments(
   db: TransactionClient,
@@ -55,12 +54,9 @@ export async function getPersonalAssignments(
           include: { event: true },
         })
       : Promise.resolve([]),
-    db.event.findMany({
-      where: {
-        createdById: userId,
-        template: { key: EventTemplateKey.DayOff },
-        startDate: { gte: since },
-      },
+    db.absence.findMany({
+      where: { congregationId, ...absencesOf({ accountId: userId, memberId }), startDate: { gte: since } },
+      orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
     }),
   ])
 
@@ -111,16 +107,19 @@ function servicePartAssignmentToItem(assignment: ServicePartWithEvent): Personal
   }
 }
 
-function dayOffToItem(event: Event): PersonalCalendarItem {
+function dayOffToItem(absence: Absence): PersonalCalendarItem {
   return {
-    uid: `day-off-${event.id}`,
+    // A subscriber's calendar knows an absence by its event's identifier: kept while the row has its event, so an
+    // existing entry is not replaced by a copy.
+    uid: absence.legacyEventId != null ? `day-off-${absence.legacyEventId}` : `absence-${absence.id}`,
     kind: 'day-off',
     summary: m.calendar_feed_day_off_summary(),
     description: '',
-    start: event.startDate,
-    end: addOneDay(event.endDate),
+    start: absence.startDate,
+    end: addOneDay(absence.endDate),
     allDay: true,
-    updatedAt: event.updatedAt,
+    // Absences are never edited: declared is last changed.
+    updatedAt: absence.createdAt,
   }
 }
 
