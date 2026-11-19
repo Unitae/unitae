@@ -651,17 +651,8 @@
     "upcoming": [
       {
         "id": "<id>",
-        "name": "Absence",
-        "description": "",
         "startDate": "2027-03-14T23:00:00.000Z",
-        "endDate": "2027-03-17T22:59:00.000Z",
-        "status": "released",
-        "templateId": "<template:day-off>",
-        "createdById": "<account:hugo>",
-        "origin": "manual",
-        "createdAt": "<time>",
-        "updatedAt": "<time>",
-        "congregationId": "<id>"
+        "endDate": "2027-03-17T22:59:00.000Z"
       }
     ],
     "shouldNudge": false
