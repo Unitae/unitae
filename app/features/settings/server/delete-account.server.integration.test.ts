@@ -143,7 +143,7 @@ describe('deleteAccount and the events the account created', () => {
     expect(await absencesOfRecord(memberId)).toEqual([{ accountId: null, legacyEventId: absenceId }])
   })
 
-  // A day-off written without its row (by a version before the absences table) is not lost with its event.
+  // A day-off the previous image wrote alone during the rollout is not lost with its event.
   it('gives the record a row for a day-off that had none before deleting the account', async () => {
     const { accountId, memberId, absenceId } = await account('Sans-ligne', { record: true, absence: true })
     await withScope(ids.cong, tx => tx.absence.deleteMany({ where: { legacyEventId: absenceId } }))
@@ -178,6 +178,19 @@ describe('deleteAccount and the events the account created', () => {
 
     expect(await absencesOf(accountId)).toBe(0)
     expect(await absencesOfRecord(memberId)).toEqual([{ accountId: null, legacyEventId: 999_999_999 }])
+  })
+
+  // Declared while the account was being linked, a row can be on no record: it is the person's too, and moves there.
+  it('moves a row on no record onto the record before deleting the account', async () => {
+    const { accountId, memberId } = await account('Sans-fiche-encore', { record: true, absence: false })
+    await withScope(ids.cong, tx =>
+      tx.absence.create({ data: { startDate: DAY, endDate: DAY, accountId, congregationId: ids.cong } }),
+    )
+
+    await remove(accountId)
+
+    expect(await absencesOf(accountId)).toBe(0)
+    expect(await absencesOfRecord(memberId)).toEqual([{ accountId: null, legacyEventId: null }])
   })
 
   it('deletes an account linked to a record without absences, clearing its author', async () => {
