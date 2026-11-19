@@ -166,6 +166,17 @@ describe('the demo roles', () => {
       }
     }
   })
+
+  // The territory servant is a role of his own in the demo: as a group overseer too, his login would show both.
+  it('never gives the territory service to a group overseer', () => {
+    const overseers = demo.groups.map(group => group.responsible)
+    for (let seed = 1; seed <= 30; seed++) {
+      const holders = assignRoleHolders(new Random(seed), demo.people, NOW, [demo.admin], overseers)
+      for (const key of holders.get('territoires') ?? []) {
+        expect(overseers, `seed ${seed}`).not.toContain(key)
+      }
+    }
+  })
 })
 
 describe('the demo territory', () => {

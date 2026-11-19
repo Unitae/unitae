@@ -23,6 +23,7 @@ import { uploadFile } from '../../shared/infra/file-storage.server'
 import type { PrismaClient } from '../generated/client'
 import { type BoardSection, boardDocuments } from './board'
 import { boardPdf } from './board-pdf'
+import { rankDemoPublishers } from './demo-publisher'
 import { generateAttributions, generatePioneers, generateReports } from './history'
 import {
   classifyParts,
@@ -582,11 +583,13 @@ export async function seedDemoCongregation(
     `  ✓ ${members.length} people (${accounts.size} logins), ${people.groups.length} groups, ${reports.length} reports`,
   )
 
-  const holders = assignRoleHolders(random, people.people, now, [
-    people.admin,
-    people.secretary,
-    people.serviceOverseer,
-  ])
+  const holders = assignRoleHolders(
+    random,
+    people.people,
+    now,
+    [people.admin, people.secretary, people.serviceOverseer],
+    people.groups.map(group => group.responsible),
+  )
   const roleIds = await writeRoles(prisma, congregationId, people, accounts, members, holders)
   log(`  ✓ ${CUSTOM_ROLES.length} congregation roles`)
 
@@ -755,7 +758,7 @@ export async function seedDemoCongregation(
 async function busiestPublisher(
   prisma: PrismaClient,
   congregationId: number,
-  demo: { people: Congregation; members: number[] },
+  demo: { people: Congregation; members: number[]; holders: Map<string, number[]> },
   now: Date,
 ): Promise<number | undefined> {
   const candidates = demo.people.people.filter(
@@ -768,7 +771,8 @@ async function busiestPublisher(
       !person.goesInactive &&
       !person.anonymized,
   )
-  const ids = candidates.map(person => demo.members[person.key] as number)
+  const memberOf = (key: number) => demo.members[key] as number
+  const ids = candidates.map(person => memberOf(person.key))
   const [parts, territories] = await Promise.all([
     prisma.eventPart.groupBy({
       by: ['assigneeId'],
@@ -782,17 +786,18 @@ async function busiestPublisher(
   ])
   const coming = new Map(parts.map(row => [row.assigneeId, row._count._all]))
   const holding = new Set(territories.map(row => row.publisherId))
-  const score = (person: (typeof candidates)[number]) => {
-    const id = demo.members[person.key] as number
-    return (holding.has(id) ? 1000 : 0) + (coming.get(id) ?? 0)
-  }
-  return [...candidates].sort((a, b) => score(b) - score(a) || a.key - b.key)[0]?.key
+  const keys = candidates.map(person => person.key)
+  return rankDemoPublishers(keys, {
+    prospection: new Set(demo.holders.get('prospection') ?? []),
+    holding: new Set(keys.filter(key => holding.has(memberOf(key)))),
+    coming: new Map(keys.map(key => [key, coming.get(memberOf(key)) ?? 0])),
+  })[0]
 }
 
 /**
  * The person each demo role signs in as: the committee's coordinator and secretary, the elder in charge of the midweek
- * meeting, the territory servant, a group overseer who holds none of those roles, and the busiest publisher. Each gets a
- * login if he has none; the map is kept in the `demoAccounts` setting.
+ * meeting, the territory servant (never a group overseer), a group overseer who holds none of those roles, and the
+ * busiest publisher of the prospection team. Each gets a login if he has none; the map is kept in `demoAccounts`.
  */
 async function writeDemoLogins(
   prisma: PrismaClient,
