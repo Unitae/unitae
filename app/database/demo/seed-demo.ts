@@ -1,10 +1,11 @@
 // The demo congregation, written into any congregation: the marketing seed's (`seed-marketing.ts`, for the
-// captures and local QA) and, later, the copies a visitor opens. Generated, not copied: its proportions follow a real
+// captures and local QA) and the copies a visitor opens (`seedPendingDemoCopies`). Generated, not copied: its proportions follow a real
 // congregation of about 110 publishers (`profile.ts`), its people, streets and dates are invented, and everything is
 // relative to `now` and drawn from a fixed seed, so two runs on the same day write the same congregation.
 import { randomBytes, scrypt } from 'node:crypto'
 import { DEMO_ACCOUNTS_SETTING, DEMO_ROLES, type DemoRole } from '../../features/demo/model/demo-role'
 import {
+  DEMO_SHARED_BOARD_PREFIX,
   deleteBoardFile,
   saveBoardFile,
   saveThumbnailFile,
@@ -87,8 +88,8 @@ export async function cleanCongregationData(prisma: PrismaClient, congregationId
     ...(await prisma.boardDocument.findMany({ where, select: { uri: true, thumbnailUri: true } })),
     ...(await prisma.boardDocumentVersion.findMany({ where, select: { uri: true, thumbnailUri: true } })),
   ].flatMap(file => [file.uri, file.thumbnailUri])
-  // The files every demo copy shares stay: other copies point at them.
-  for (const key of new Set(boardFiles)) if (key && !key.startsWith(SHARED_BOARD_PREFIX)) await deleteBoardFile(key)
+  // deleteBoardFile keeps the files every demo copy shares.
+  for (const key of new Set(boardFiles)) if (key) await deleteBoardFile(key)
   await prisma.boardDocumentVersion.deleteMany({ where })
   await prisma.boardDocument.deleteMany({ where })
   await prisma.boardSectionVisibilityRole.deleteMany({ where })
@@ -424,10 +425,10 @@ async function writeBoard(
       let thumbnailUri: string | null
       if (board.sharedFiles) {
         // Every copy points at the same files, rewritten in place: deleting a copy leaves nothing behind.
-        uri = `${SHARED_BOARD_PREFIX}/${index}-${order}.pdf`
+        uri = `${DEMO_SHARED_BOARD_PREFIX}/${index}-${order}.pdf`
         await uploadFile(uri, await pdf.arrayBuffer(), 'application/pdf')
         const thumbnail = await generateThumbnail(uri)
-        thumbnailUri = thumbnail ? `${SHARED_BOARD_PREFIX}/${index}-${order}.thumb.png` : null
+        thumbnailUri = thumbnail ? `${DEMO_SHARED_BOARD_PREFIX}/${index}-${order}.thumb.png` : null
         if (thumbnail && thumbnailUri) await uploadFile(thumbnailUri, thumbnail, 'image/png')
       } else {
         uri = await saveBoardFile(congregationId, new File([pdf], 'document.pdf', { type: 'application/pdf' }))
@@ -516,7 +517,7 @@ function shortName(name: string): string {
 export interface SeedDemoOptions {
   /** The day the demo is built around. */
   now?: Date
-  /** Added to every login's address (`marc.dupont+x7k2p@…`): a login's address is unique across congregations. */
+  /** Added to every login's address (`marc.dupont+demo-x7k2p@…`, the copy's slug): a login's address is unique across congregations. */
   emailSuffix?: string
   /** Where progress lines go; nowhere by default. */
   log?: (line: string) => void
@@ -525,8 +526,6 @@ export interface SeedDemoOptions {
   /** Point the board's documents at files every copy shares (`demo-shared/board/…`), never deleted with a copy. */
   sharedBoardFiles?: boolean
 }
-
-const SHARED_BOARD_PREFIX = 'demo-shared/board'
 
 /**
  * Fills an empty congregation with the demo: people and logins (password `demo1234`), groups, roles, territories,
@@ -564,7 +563,9 @@ export async function seedDemoCongregation(
     })),
   })
 
-  const password = await hashPassword('demo1234')
+  // A visitor's copy is entered through its one-time link only: its logins get a password nobody knows, or anyone who
+  // saw a copy's address could sign in with the marketing demo's.
+  const password = await hashPassword(options.demoLogins ? randomBytes(24).toString('base64url') : 'demo1234')
   const { members, accounts } = await writePeople(
     prisma,
     congregationId,
@@ -790,7 +791,7 @@ async function busiestPublisher(
 
 /**
  * The person each demo role signs in as: the committee's coordinator and secretary, the elder in charge of the midweek
- * meeting, the territory servant, a group overseer outside the committee, and the busiest publisher. Each gets a
+ * meeting, the territory servant, a group overseer who holds none of those roles, and the busiest publisher. Each gets a
  * login if he has none; the map is kept in the `demoAccounts` setting.
  */
 async function writeDemoLogins(
@@ -808,7 +809,7 @@ async function writeDemoLogins(
   const publisher = await busiestPublisher(prisma, congregationId, demo, login.now)
   const programmes = holders.get('responsable-vcm')?.[0]
   const territories = holders.get('territoires')?.[0]
-  // Elders with other roles lead groups too: the overseer is someone else's group, so each role is its own login.
+  // Elders with another role often lead a group too: the first group led by none of them, so each role is its own login.
   const taken = new Set([people.admin, people.secretary, people.serviceOverseer, programmes, territories])
   const overseer = people.groups.find(group => !taken.has(group.responsible))?.responsible
   const persons: Record<DemoRole, number | undefined> = {

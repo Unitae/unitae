@@ -21,10 +21,11 @@ describe('seedPendingDemoCopies', () => {
   it('fills each copy not yet ready, then marks it ready', async () => {
     db.congregation.findMany.mockResolvedValue([{ id: 31, name: 'Démo', slug: 'demo-x7k2p' }] as never)
 
-    await expect(seedPendingDemoCopies(NOW)).resolves.toBe(1)
+    await expect(seedPendingDemoCopies(NOW)).resolves.toEqual({ seeded: 1, failed: 0 })
 
+    // Never a copy already past its expiry: the control plane is deleting it.
     expect(db.congregation.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { demoExpiresAt: { not: null }, demoReadyAt: null } }),
+      expect.objectContaining({ where: { demoExpiresAt: { gt: NOW }, demoReadyAt: null } }),
     )
     expect(seedDemoCongregation).toHaveBeenCalledWith(
       unscopedDb,
@@ -37,19 +38,20 @@ describe('seedPendingDemoCopies', () => {
   it('does nothing when demo mode is off', async () => {
     vi.stubEnv('UNITAE_DEMO', '')
 
-    await expect(seedPendingDemoCopies(NOW)).resolves.toBe(0)
+    await expect(seedPendingDemoCopies(NOW)).resolves.toEqual({ seeded: 0, failed: 0 })
     expect(db.congregation.findMany).not.toHaveBeenCalled()
   })
 
-  it('leaves a copy whose seed failed not ready, and goes on with the next', async () => {
+  it('expires a copy whose seed failed, so the control plane replaces it, and goes on with the next', async () => {
     db.congregation.findMany.mockResolvedValue([
       { id: 31, name: 'Démo', slug: 'demo-aaaaa' },
       { id: 32, name: 'Démo', slug: 'demo-bbbbb' },
     ] as never)
     vi.mocked(seedDemoCongregation).mockRejectedValueOnce(new Error('boom'))
 
-    await expect(seedPendingDemoCopies(NOW)).resolves.toBe(1)
-    expect(db.congregation.update).toHaveBeenCalledTimes(1)
+    await expect(seedPendingDemoCopies(NOW)).resolves.toEqual({ seeded: 1, failed: 1 })
+    // A half-filled copy can't be seeded again: it goes, and a fresh one takes its place.
+    expect(db.congregation.update).toHaveBeenCalledWith({ where: { id: 31 }, data: { demoExpiresAt: NOW } })
     expect(db.congregation.update).toHaveBeenCalledWith({ where: { id: 32 }, data: { demoReadyAt: NOW } })
   })
 })

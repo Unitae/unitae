@@ -9,6 +9,7 @@ function fakeDb() {
   return {
     demoSignInToken: { updateMany: vi.fn(), findUnique: vi.fn() },
     setting: { findFirst: vi.fn() },
+    userAccount: { findFirst: vi.fn() },
   }
 }
 
@@ -55,9 +56,25 @@ describe('consumeDemoSignInToken', () => {
 describe('demoAccountFor', () => {
   it('reads the login a role signs in as', async () => {
     db.setting.findFirst.mockResolvedValue({ value: JSON.stringify({ secretary: 412, publisher: 418 }) })
+    db.userAccount.findFirst.mockResolvedValue({ id: 412 })
 
     await expect(demoAccountFor(db as unknown as TransactionClient, 7, 'secretary')).resolves.toBe(412)
-    expect(db.setting.findFirst).toHaveBeenCalledWith({ where: { key: 'demoAccounts', congregationId: 7 } })
+  })
+
+  it('refuses a login that isn’t this copy’s, whatever the setting says', async () => {
+    db.setting.findFirst.mockResolvedValue({ value: JSON.stringify({ secretary: 412 }) })
+    db.userAccount.findFirst.mockResolvedValue(null)
+
+    await expect(demoAccountFor(db as unknown as TransactionClient, 7, 'secretary')).resolves.toBeNull()
+    expect(db.userAccount.findFirst).toHaveBeenCalledWith({
+      where: { id: 412, congregationId: 7 },
+      select: { id: true },
+    })
+  })
+
+  it('reads no login from a setting that isn’t an object', async () => {
+    db.setting.findFirst.mockResolvedValue({ value: 'null' })
+    await expect(demoAccountFor(db as unknown as TransactionClient, 7, 'secretary')).resolves.toBeNull()
   })
 
   it('gives nothing for a congregation the demo seed hasn’t filled, or a setting it can’t read', async () => {

@@ -14,5 +14,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  return Response.json({ ok: true, seeded: await seedPendingDemoCopies() })
+  const { seeded, failed } = await seedPendingDemoCopies()
+  // Every copy failing is a fault to notice (the job fails), not « nothing to do ».
+  return Response.json({ ok: failed === 0, seeded, failed }, { status: failed > 0 && seeded === 0 ? 500 : 200 })
 }

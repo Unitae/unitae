@@ -1,8 +1,9 @@
 // A demo copy while a visitor uses it (docs/development/specs/demo-mode.md): its expiry, pushed by activity, and the
 // role the signed-in login stands for.
 
-import { DEMO_ACCOUNTS_SETTING, DEMO_ROLES, type DemoRole } from '~/features/demo/model/demo-role'
+import { DEMO_ROLES, type DemoRole } from '~/features/demo/model/demo-role'
 import { isDemoModeEnabled, nextDemoExpiry } from '~/features/demo/server/demo-mode.server'
+import { readDemoAccounts } from '~/features/demo/server/demo-sign-in.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 
@@ -29,12 +30,6 @@ export async function demoRoleOf(
   congregationId: number,
   accountId: number,
 ): Promise<DemoRole | null> {
-  const setting = await db.setting.findFirst({ where: { key: DEMO_ACCOUNTS_SETTING, congregationId } })
-  if (!setting) return null
-  try {
-    const accounts = JSON.parse(setting.value) as Partial<Record<DemoRole, unknown>>
-    return DEMO_ROLES.find(role => accounts[role] === accountId) ?? null
-  } catch {
-    return null
-  }
+  const accounts = await readDemoAccounts(db, congregationId)
+  return DEMO_ROLES.find(role => accounts[role] === accountId) ?? null
 }

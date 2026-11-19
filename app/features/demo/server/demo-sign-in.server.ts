@@ -3,6 +3,7 @@
 import { DEMO_ACCOUNTS_SETTING, type DemoRole, isDemoRole } from '~/features/demo/model/demo-role'
 import { hashToken } from '~/shared/auth/crypto.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import logger from '~/shared/infra/logger.server'
 
 /**
  * Spends a sign-in token and gives the role it opens, or `null` when it's unknown, used, expired, another copy's, or
@@ -25,19 +26,39 @@ export async function consumeDemoSignInToken(
   return isDemoRole(row?.role) ? row.role : null
 }
 
-/** The login a role signs in as in this copy, as the demo seed recorded it. */
+/**
+ * The copy's role logins, as the demo seed recorded them in the `demoAccounts` setting: numeric values only. Empty
+ * when there's none, or when it can't be read (logged: the seed writes it, so that's corrupt data).
+ */
+export async function readDemoAccounts(
+  db: TransactionClient,
+  congregationId: number,
+): Promise<Partial<Record<DemoRole, number>>> {
+  const setting = await db.setting.findFirst({ where: { key: DEMO_ACCOUNTS_SETTING, congregationId } })
+  if (!setting) return {}
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(setting.value)
+  } catch (error) {
+    logger.error('Demo accounts setting unreadable', { congregationId, error })
+    return {}
+  }
+  if (typeof parsed !== 'object' || parsed === null) return {}
+  const accounts: Partial<Record<DemoRole, number>> = {}
+  for (const [role, account] of Object.entries(parsed)) {
+    if (isDemoRole(role) && typeof account === 'number') accounts[role] = account
+  }
+  return accounts
+}
+
+/** The login a role signs in as in this copy, checked to be this copy's own. */
 export async function demoAccountFor(
   db: TransactionClient,
   congregationId: number,
   role: DemoRole,
 ): Promise<number | null> {
-  const setting = await db.setting.findFirst({ where: { key: DEMO_ACCOUNTS_SETTING, congregationId } })
-  if (!setting) return null
-  try {
-    const accounts = JSON.parse(setting.value) as Partial<Record<DemoRole, unknown>>
-    const account = accounts[role]
-    return typeof account === 'number' ? account : null
-  } catch {
-    return null
-  }
+  const account = (await readDemoAccounts(db, congregationId))[role]
+  if (account == null) return null
+  const login = await db.userAccount.findFirst({ where: { id: account, congregationId }, select: { id: true } })
+  return login?.id ?? null
 }

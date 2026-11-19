@@ -11,18 +11,21 @@ const logger = createLogger('demo')
 const PER_RUN = 5
 
 /**
- * Seeds every copy that isn't ready yet, a few per run, and marks each ready once its seed finished. A copy whose seed
- * failed stays not ready, so it's never handed to a visitor; the control plane deletes it with the expired ones.
+ * Seeds every copy that isn't ready yet, a few per run, and marks each ready once its seed finished. A seed that fails
+ * leaves a half-filled copy, which can't be seeded again: it's marked expired, so the control plane deletes it on its
+ * next run and creates a fresh one. Copies already past their expiry are left alone: the control plane is deleting
+ * them.
  */
-export async function seedPendingDemoCopies(now: Date = new Date()): Promise<number> {
-  if (!isDemoModeEnabled()) return 0
+export async function seedPendingDemoCopies(now: Date = new Date()): Promise<{ seeded: number; failed: number }> {
+  if (!isDemoModeEnabled()) return { seeded: 0, failed: 0 }
   const pending = await unscopedDb.congregation.findMany({
-    where: { demoExpiresAt: { not: null }, demoReadyAt: null },
+    where: { demoExpiresAt: { gt: now }, demoReadyAt: null },
     select: { id: true, name: true, slug: true },
     orderBy: { id: 'asc' },
     take: PER_RUN,
   })
   let seeded = 0
+  let failed = 0
   for (const copy of pending) {
     try {
       // The slug is unique: suffixed with it, the copy's login addresses are too.
@@ -35,8 +38,10 @@ export async function seedPendingDemoCopies(now: Date = new Date()): Promise<num
       await unscopedDb.congregation.update({ where: { id: copy.id }, data: { demoReadyAt: now } })
       seeded++
     } catch (error) {
-      logger.error(`Demo copy ${copy.id} could not be seeded`, { error })
+      failed++
+      logger.error(`Demo copy ${copy.id} could not be seeded: expired, to be replaced`, { error })
+      await unscopedDb.congregation.update({ where: { id: copy.id }, data: { demoExpiresAt: now } })
     }
   }
-  return seeded
+  return { seeded, failed }
 }

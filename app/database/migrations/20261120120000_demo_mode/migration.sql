@@ -22,8 +22,8 @@ CREATE INDEX "DemoSignInToken_congregationId_idx" ON "DemoSignInToken"("congrega
 ALTER TABLE "DemoSignInToken" ADD CONSTRAINT "DemoSignInToken_congregationId_fkey" FOREIGN KEY ("congregationId") REFERENCES "Congregation"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- Row-Level Security — same shape as every other tenant-scoped table (CASE form guards the ::int cast against an empty
--- string on a pooled connection, see 20260426000000_fix_rls_policy_cast_safety). The link is read before any session,
--- unscoped, like the other sign-in tokens.
+-- string on a pooled connection, see 20260426000000_fix_rls_policy_cast_safety). The hosted service's control plane
+-- writes a token unscoped; /demo/enter spends it scoped to the host's congregation, before any session exists.
 ALTER TABLE "DemoSignInToken" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "DemoSignInToken" FORCE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON "DemoSignInToken" FOR ALL

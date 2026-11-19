@@ -20,7 +20,7 @@ const PUBLISHER_TYPE = {
   PionnierAuxiliaires: PublisherType.PionnierAuxiliaires,
 }
 
-/** A login's address, made unique to its congregation by a suffix: `marc.dupont+x7k2p@demo.unitae.app`. */
+/** A login's address, made unique to its congregation by a suffix: `marc.dupont+demo-x7k2p@demo.unitae.app` (the copy's slug). */
 export function loginEmail(email: string, suffix?: string): string {
   return suffix ? email.replace('@', `+${suffix}@`) : email
 }
