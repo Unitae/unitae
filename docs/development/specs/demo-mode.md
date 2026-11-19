@@ -63,8 +63,9 @@ A copy's logins get a password nobody knows: the one-time link is the only way i
    (`marc.dupont+demo-x7k2p@demo.unitae.app`). It takes about 4 seconds (measured on the marketing seed). With
    `demoLogins`, it records the login of each role in the `demoAccounts` setting: the coordinator, the secretary, the
    elder in charge of the midweek meeting, the territory servant (never a group overseer: the seed keeps them
-   apart), a group overseer who holds none of those roles, and a publisher of the « Prospection » team with a territory
-   in hand and the most coming assignments, each a login of their own, verified and
+   apart), a group overseer who holds none of those roles, and a publisher or pioneer who already signs in and
+   holds no role nor group (a sister, in the demo: every brother with a login serves somewhere), with a territory in
+   hand and the most coming assignments, each a login of their own, verified and
    consented. With `sharedBoardFiles`, the board's documents point at the shared files.
 3. **Schema**: `Congregation.demoExpiresAt` and `demoReadyAt`; `DemoSignInToken` (hashed token, congregation, role,
    expiry, used at), with the tenant RLS policy.

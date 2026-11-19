@@ -763,8 +763,11 @@ async function busiestPublisher(
 ): Promise<number | undefined> {
   const candidates = demo.people.people.filter(
     person =>
-      person.isMale &&
+      // A brother or a sister: in the demo, every brother with a login serves somewhere.
       person.baptismDate != null &&
+      // One who already signs in: a young publisher without an address would get a login with an empty one.
+      person.hasAccount &&
+      person.email !== '' &&
       !person.isHelder &&
       !person.isServant &&
       person.leftAt == null &&
@@ -788,7 +791,11 @@ async function busiestPublisher(
   const holding = new Set(territories.map(row => row.publisherId))
   const keys = candidates.map(person => person.key)
   return rankDemoPublishers(keys, {
-    prospection: new Set(demo.holders.get('prospection') ?? []),
+    // No role, and no group to lead or assist either.
+    roles: new Set([
+      ...[...demo.holders.values()].flat(),
+      ...demo.people.groups.flatMap(group => [group.responsible, group.deputy ?? []].flat()),
+    ]),
     holding: new Set(keys.filter(key => holding.has(memberOf(key)))),
     coming: new Map(keys.map(key => [key, coming.get(memberOf(key)) ?? 0])),
   })[0]
@@ -797,7 +804,7 @@ async function busiestPublisher(
 /**
  * The person each demo role signs in as: the committee's coordinator and secretary, the elder in charge of the midweek
  * meeting, the territory servant (never a group overseer), a group overseer who holds none of those roles, and the
- * busiest publisher of the prospection team. Each gets a login if he has none; the map is kept in `demoAccounts`.
+ * busiest publisher holding no role. Each gets a login if he has none; the map is kept in `demoAccounts`.
  */
 async function writeDemoLogins(
   prisma: PrismaClient,

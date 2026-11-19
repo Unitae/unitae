@@ -177,6 +177,32 @@ describe('the demo roles', () => {
       }
     }
   })
+
+  // The demo's publisher login: a plain publisher or pioneer who signs in already and holds no role.
+  it('leaves publishers with a login and no role, for the demo to sign in as', () => {
+    const holders = assignRoleHolders(
+      new Random(7),
+      demo.people,
+      NOW,
+      [demo.admin],
+      demo.groups.map(g => g.responsible),
+    )
+    const busy = new Set([
+      ...[...holders.values()].flat(),
+      ...demo.groups.flatMap(group => [group.responsible, group.deputy ?? []].flat()),
+    ])
+    const free = demo.people.filter(
+      person =>
+        person.baptismDate != null &&
+        person.hasAccount &&
+        person.email !== '' &&
+        !person.isHelder &&
+        !person.isServant &&
+        person.leftAt == null &&
+        !busy.has(person.key),
+    )
+    expect(free.length).toBeGreaterThan(5)
+  })
 })
 
 describe('the demo territory', () => {
