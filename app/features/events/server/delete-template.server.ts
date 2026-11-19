@@ -20,9 +20,9 @@ export async function deleteTemplate(
   })
   if (!template) return { ok: false, reason: 'not-found' }
 
-  // System templates (day-off, freeform) back domain concepts looked up by
-  // key at runtime — createDayOff / createFreeformEvent would break if the row
-  // disappeared. Same guard as updateTemplate / duplicateTemplate.
+  // System templates (day-off, freeform) back domain concepts looked up by key at runtime: until the day-off events are
+  // dropped, they are told apart from the programme by their template, and an event that lost it would show as an
+  // empty meeting. Same guard as updateTemplate / duplicateTemplate.
   if (isSystemTemplate(template.key)) return { ok: false, reason: 'system' }
 
   // Event.templateId is ON DELETE SET NULL: deleting a template still linked to

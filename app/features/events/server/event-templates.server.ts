@@ -57,11 +57,9 @@ export async function updateTemplate(
   congregationId: number,
   actorId: number,
 ) {
-  // System templates (day-off, freeform) back domain concepts referenced by
-  // key. Renaming, restructuring, or rescheduling them would silently break
-  // the createDayOff / createFreeformEvent lookups. The settings UI already
-  // presents them as read-only except for the colour swatch; this is the
-  // belt-and-suspenders check on the writer.
+  // System templates (day-off, freeform) back domain concepts referenced by key: the day-off events are told apart from
+  // the programme by theirs until they are dropped, and createFreeformEvent looks its own up. The settings UI already
+  // presents them as read-only except for the colour swatch; this is the belt-and-suspenders check on the writer.
   const existing = await db.eventTemplate.findFirst({
     where: { id: templateId, congregationId },
     select: {
