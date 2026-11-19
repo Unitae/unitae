@@ -23,7 +23,7 @@ import { uploadFile } from '../../shared/infra/file-storage.server'
 import type { PrismaClient } from '../generated/client'
 import { type BoardSection, boardDocuments } from './board'
 import { boardPdf } from './board-pdf'
-import { rankDemoPublishers } from './demo-publisher'
+import { pickStudentPart, rankDemoPublishers } from './demo-publisher'
 import { generateAttributions, generatePioneers, generateReports } from './history'
 import {
   classifyParts,
@@ -802,6 +802,39 @@ async function busiestPublisher(
 }
 
 /**
+ * The demo's publisher holds no role, and in the demo the sisters who do have no coming part: she takes the student's
+ * place in a demonstration of the next three weeks given to a sister, so her home page lists an assignment. Nothing
+ * when she already has one then, or when every demonstration falls in one of her absences.
+ */
+async function giveStudentPart(prisma: PrismaClient, congregationId: number, memberId: number, now: Date) {
+  // The home page lists the next four weeks of released programmes; a copy lives a day at most once seeded.
+  const soon = new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000)
+  const coming = { event: { startDate: { gte: now, lte: soon }, status: 'released' } }
+  const already = await prisma.eventPart.count({
+    where: { congregationId, ...coming, OR: [{ assigneeId: memberId }, { assistantId: memberId }] },
+  })
+  if (already > 0) return
+  const [parts, absences] = await Promise.all([
+    prisma.eventPart.findMany({
+      where: {
+        congregationId,
+        ...coming,
+        preset: { key: PartPresetKey.SchoolDemonstration },
+        assignee: { isMale: false },
+        assistantId: { not: memberId },
+      },
+      select: { id: true, event: { select: { startDate: true, status: true } } },
+    }),
+    prisma.absence.findMany({ where: { congregationId, memberId }, select: { startDate: true, endDate: true } }),
+  ])
+  const id = pickStudentPart(
+    parts.map(part => ({ id: part.id, startDate: part.event.startDate, published: part.event.status === 'released' })),
+    absences,
+  )
+  if (id != null) await prisma.eventPart.update({ where: { id }, data: { assigneeId: memberId } })
+}
+
+/**
  * The person each demo role signs in as: the committee's coordinator and secretary, the elder in charge of the midweek
  * meeting, the territory servant (never a group overseer), a group overseer who holds none of those roles, and the
  * busiest publisher holding no role. Each gets a login if he has none; the map is kept in `demoAccounts`.
@@ -871,5 +904,6 @@ async function writeDemoLogins(
       consentVersion: CONSENT_VERSION,
     })),
   })
+  if (publisher != null) await giveStudentPart(prisma, congregationId, demo.members[publisher] as number, login.now)
   return logins
 }
