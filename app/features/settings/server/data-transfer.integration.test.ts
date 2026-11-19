@@ -594,6 +594,8 @@ async function exportToZip(
 
 async function importFromZip(buffer: Buffer, congregationId: number): Promise<void> {
   const mod = await import('./import-congregation.server')
+  const { importAbsences } = await import('./import-absences.server')
+  const { importAttendance } = await import('./import-attendance.server')
 
   const zip = await JsZip.loadAsync(buffer)
   const idMap = new EntityIdMap()
@@ -639,8 +641,8 @@ async function importFromZip(buffer: Buffer, congregationId: number): Promise<vo
     await mod.importTemplateServicePartAllowedRoles(zip, db, idMap, congregationId)
     await mod.importTemplateResponsibles(zip, db, idMap, congregationId)
     const withoutOrigin = await mod.importEvents(zip, db, idMap, congregationId)
-    await (await import('./import-absences.server')).importAbsences(zip, db, idMap, congregationId)
-    await (await import('./import-attendance.server')).importAttendance(zip, db, idMap, congregationId)
+    await importAbsences(zip, db, idMap, congregationId)
+    await importAttendance(zip, db, idMap, congregationId)
     await mod.importEventParts(zip, db, idMap, congregationId)
     await mod.importEventPartAllowedRoles(zip, db, idMap, congregationId)
     await mod.importEventServiceParts(zip, db, idMap, congregationId)
@@ -1896,7 +1898,7 @@ describe('the origin of restored events', () => {
           `${JSON.stringify({ eventId: 8, inPerson: 40, inPersonById: null, inPersonAt: null, online: null, onlineById: null, onlineAt: null })}\n`,
         )
 
-        // In runImport's order: the events, their counts, parts and services, then the origins left to decide.
+        // In runImport's order (no absences file here): the events, their counts, parts and services, then the origins.
         const withoutOrigin = await importEvents(zip, tx, idMap, cong.id)
         await importAttendance(zip, tx, idMap, cong.id)
         await importEventParts(zip, tx, idMap, cong.id)
@@ -2046,13 +2048,15 @@ describe('restored absences from a 2.19 archive', () => {
         const absence = (id: number, owner: object) => ({ id, ...when, note: '', createdAt: declared, ...owner })
         const zip = new JsZip()
         const dataDir = zip.folder('data')!
-        dataDir.file('events.ndjson', `${JSON.stringify(event)}\n`)
+        // The second day-off has no Absence row behind it (a version before the absences table wrote it): its absence
+        // comes back from the event.
+        dataDir.file('events.ndjson', `${JSON.stringify(event)}\n${JSON.stringify({ ...event, id: 2 })}\n`)
         dataDir.file(
           'absences.ndjson',
           [
             // Its day-off came too: written once, not again from the event.
             absence(1, { memberId: 50, accountId: 70, legacyEventId: 1 }),
-            // Its account was deleted before the export, its event with it: the record keeps it.
+            // Its account and event did not come (skipped by this restore, or an earlier one): the record keeps it.
             absence(2, { memberId: 50, accountId: null, legacyEventId: null }),
             absence(3, { memberId: null, accountId: 71, legacyEventId: null }),
             // Nobody it could belong to came with the archive.
@@ -2066,7 +2070,7 @@ describe('restored absences from a 2.19 archive', () => {
         await importEvents(zip, tx, idMap, cong.id)
         await importAbsences(zip, tx, idMap, cong.id)
 
-        const restoredEvent = await tx.event.findFirstOrThrow({ select: { id: true } })
+        const [restoredEvent, uncovered] = await tx.event.findMany({ select: { id: true }, orderBy: { id: 'asc' } })
         const absences = await tx.absence.findMany({
           select: { memberId: true, accountId: true, legacyEventId: true, createdAt: true },
           orderBy: { id: 'asc' },
@@ -2076,11 +2080,19 @@ describe('restored absences from a 2.19 archive', () => {
           withRecord: withRecord.id,
           withoutRecord: withoutRecord.id,
           restoredEvent,
+          uncovered,
           absences,
         }
       })
 
       expect(rows.absences).toEqual([
+        // Rebuilt from its day-off, written first, while the events are read.
+        {
+          memberId: rows.member,
+          accountId: rows.withRecord,
+          legacyEventId: rows.uncovered.id,
+          createdAt: new Date('2027-04-01T08:00:00.000Z'),
+        },
         {
           memberId: rows.member,
           accountId: rows.withRecord,

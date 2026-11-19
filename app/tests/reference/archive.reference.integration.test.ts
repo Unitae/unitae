@@ -33,6 +33,7 @@ const MEETING_FILES = [
   'programme-template-service-role-allowed-roles',
   'programme-template-responsibles',
   'events',
+  'absences',
   'attendance',
   'programme-part-assignments',
   'programme-part-assignment-allowed-roles',
@@ -103,6 +104,8 @@ async function zipOf(files: Record<string, unknown[]>): Promise<JsZip> {
 /** The `runImport` steps that meetings and the board depend on, in `runImport`'s order. Keep the order in step. */
 async function importArchive(zip: JsZip, congregationId: number) {
   const mod = await import('~/features/settings/server/import-congregation.server')
+  const { importAbsences } = await import('~/features/settings/server/import-absences.server')
+  const { importAttendance } = await import('~/features/settings/server/import-attendance.server')
   const idMap = new EntityIdMap()
   const permissions = await referenceDb.permission.findMany({ select: { id: true, key: true } })
   const permissionKeyToId = new Map(permissions.map(permission => [permission.key, permission.id]))
@@ -126,18 +129,8 @@ async function importArchive(zip: JsZip, congregationId: number) {
     await mod.importTemplateServicePartAllowedRoles(zip, db, idMap, congregationId)
     await mod.importTemplateResponsibles(zip, db, idMap, congregationId)
     const withoutOrigin = await mod.importEvents(zip, db, idMap, congregationId)
-    await (await import('~/features/settings/server/import-absences.server')).importAbsences(
-      zip,
-      db,
-      idMap,
-      congregationId,
-    )
-    await (await import('~/features/settings/server/import-attendance.server')).importAttendance(
-      zip,
-      db,
-      idMap,
-      congregationId,
-    )
+    await importAbsences(zip, db, idMap, congregationId)
+    await importAttendance(zip, db, idMap, congregationId)
     await mod.importEventParts(zip, db, idMap, congregationId)
     await mod.importEventPartAllowedRoles(zip, db, idMap, congregationId)
     await mod.importEventServiceParts(zip, db, idMap, congregationId)
@@ -343,14 +336,18 @@ function withoutMark(data: unknown): unknown {
   return JSON.parse(JSON.stringify(data, (key, value) => (key === 'generatedUntil' ? undefined : value)))
 }
 
-/** An archive as a version before 2.16 wrote it: no event status, no template hours, no document configuration. */
+/**
+ * An archive as a version before 2.16 wrote it: no event status, no template hours, no document configuration — and no
+ * absences file (2.19), so its absences come back from their day-off events.
+ */
 function asBefore216(files: Record<string, unknown[]>): Record<string, unknown[]> {
   const without = (name: string, keys: string[]) =>
     (files[name] ?? []).map(line =>
       Object.fromEntries(Object.entries(line as object).filter(([key]) => !keys.includes(key))),
     )
+  const { absences: _absences, ...rest } = files
   return {
-    ...files,
+    ...rest,
     events: without('events', ['status']),
     'programme-templates': without('programme-templates', ['startTime', 'endTime']),
     'board-dynamic-document-settings': without('board-dynamic-document-settings', ['dynamicConfig']),
@@ -432,6 +429,10 @@ describe('the archive', () => {
         select: { title: true, dynamicConfig: true },
         orderBy: [{ order: 'asc' }, { id: 'asc' }],
       }),
+      absences: await db.absence.findMany({
+        where: { congregationId: olderTargetId },
+        select: { memberId: true, legacyEventId: true },
+      }),
     }))
 
     expect(after.statuses).toEqual([{ _count: 19, status: 'draft' }])
@@ -440,5 +441,7 @@ describe('the archive', () => {
     )
     expect(after.configurations).toHaveLength(4)
     expect(after.configurations.every(document => document.dynamicConfig === null)).toBe(true)
+    // No absences file: Hugo's absence comes back from his day-off, on his record.
+    expect(after.absences).toEqual([{ memberId: expect.any(Number), legacyEventId: expect.any(Number) }])
   })
 })
