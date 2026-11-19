@@ -21,7 +21,9 @@ The mode is off unless `UNITAE_DEMO=true`. It isn't meant for self-hosted instan
 A copy can hold anything a visitor types, and a screenshot of it can't be prevented. Every screen says it's a demo:
 
 - a banner on every page, on a phone too, which can't be closed: « Démo — données inventées », the role, « changer de
-  rôle », « créer votre assemblée »;
+  rôle », « créer votre assemblée ». Its link to registration carries `?from=demo&role=…`, so the hosted site counts
+  the congregations the demo brought. Three minutes after the visitor's first page (counted in the tab's session
+  storage), it adds « Ça vous convient ? Créez votre assemblée : 14 jours d’essai gratuit, sans carte bancaire. »;
 - « Démo — données inventées » in the top corner of every page of every PDF it prints: each `<Page>` carries a
   `PdfDemoMark`, which prints only when `renderPdfResponse` or `renderPdfBuffer` is called with `{ demo: true }`, as
   every PDF route does for a copy. The board's shared PDFs carry it too. Visitors can't upload, so a copy holds no
