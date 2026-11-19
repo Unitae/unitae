@@ -47,6 +47,7 @@ import { join, relative, sep } from 'node:path'
 // mirroring how check-aggregate-boundaries.ts hardcodes AGGREGATE_MODELS.
 export const TENANT_MODELS = [
   'member',
+  'absence',
   'userAccount',
   'role',
   'rolePermission',
