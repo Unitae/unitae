@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('~/features/events/index.server', () => ({ getTemplateById: vi.fn(), listPartPresets: vi.fn() }))
+vi.mock('~/features/events/index.server', async () => ({
+  EMPTY_MEETING: (await import('~/features/events/server/empty-meetings.queries')).EMPTY_MEETING,
+  getTemplateById: vi.fn(),
+  listPartPresets: vi.fn(),
+}))
 vi.mock('~/shared/domain/roles.server', () => ({ listRoles: vi.fn(), listDelegatableRoles: vi.fn() }))
 vi.mock('~/shared/auth/permissions.server', () => ({ findMembersWithAnyRole: vi.fn() }))
 

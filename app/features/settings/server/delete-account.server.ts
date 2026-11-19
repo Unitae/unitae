@@ -1,3 +1,4 @@
+import { releaseAccountEvents } from '~/features/events/index.server'
 import { requireNotLastAdmin } from '~/shared/auth/permissions.server'
 import { assertMayActOnAccount } from '~/shared/domain/account-protection.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
@@ -11,6 +12,8 @@ import type { AccountId } from '~/shared/types/branded'
  * Member row is preserved — the person stays in the congregation, they just
  * lose their login. Tokens, permissions, and `UserRoleAssignment` rows
  * cascade via FK `onDelete`.
+ *
+ * The events it created are let go of first (releaseAccountEvents): an account with a record and absences is refused.
  *
  * For anonymization (keep the row, scrub PII) call `anonymizeAccount` instead.
  * This service is the destructive variant.
@@ -32,6 +35,8 @@ export async function deleteAccount(
   await assertMayActOnAccount({ accountId, actorId, congregationId, actorPermissions, action: 'delete' })
   await requireNotLastAdmin(accountId, congregationId)
 
+  const released = await releaseAccountEvents(db, { id: accountId, memberId: account.memberId }, congregationId)
+
   await db.userAccount.delete({ where: { id_congregationId: { id: accountId, congregationId } } })
 
   audit({
@@ -40,7 +45,7 @@ export async function deleteAccount(
     actorId,
     entityType: 'UserAccount',
     entityId: accountId,
-    metadata: { email: account.email, memberId: account.memberId },
+    metadata: { email: account.email, memberId: account.memberId, ...released },
   })
 
   return { accountId, memberId: account.memberId }

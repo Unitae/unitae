@@ -577,7 +577,8 @@
         "templateId": "<template:day-off>",
         "createdById": "<account:hugo>",
         "createdAt": "<time>",
-        "status": "released"
+        "status": "released",
+        "origin": "manual"
       },
       {
         "id": "<id>",
@@ -588,7 +589,8 @@
         "templateId": "<template:memorial>",
         "createdById": "<account:admin>",
         "createdAt": "<time>",
-        "status": "draft"
+        "status": "draft",
+        "origin": "manual"
       },
       {
         "id": "<id>",
@@ -599,7 +601,8 @@
         "templateId": "<template:midweek>",
         "createdById": "<account:admin>",
         "createdAt": "<time>",
-        "status": "released"
+        "status": "released",
+        "origin": "manual"
       },
       {
         "id": "<id>",
@@ -610,7 +613,8 @@
         "templateId": "<template:midweek>",
         "createdById": "<account:admin>",
         "createdAt": "<time>",
-        "status": "draft"
+        "status": "draft",
+        "origin": "manual"
       },
       {
         "id": "<id>",
@@ -621,7 +625,8 @@
         "templateId": "<template:midweek>",
         "createdById": "<account:admin>",
         "createdAt": "<time>",
-        "status": "draft"
+        "status": "draft",
+        "origin": "manual"
       },
       {
         "id": "<id>",
@@ -632,7 +637,8 @@
         "templateId": "<template:midweek>",
         "createdById": null,
         "createdAt": "<time>",
-        "status": "draft"
+        "status": "draft",
+        "origin": "job"
       },
       {
         "id": "<id>",
@@ -643,7 +649,8 @@
         "templateId": "<template:midweek>",
         "createdById": null,
         "createdAt": "<time>",
-        "status": "draft"
+        "status": "draft",
+        "origin": "job"
       },
       {
         "id": "<id>",
@@ -654,7 +661,8 @@
         "templateId": "<template:midweek>",
         "createdById": null,
         "createdAt": "<time>",
-        "status": "draft"
+        "status": "draft",
+        "origin": "job"
       },
       {
         "id": "<id>",
@@ -665,7 +673,8 @@
         "templateId": "<template:midweek>",
         "createdById": null,
         "createdAt": "<time>",
-        "status": "draft"
+        "status": "draft",
+        "origin": "job"
       },
       {
         "id": "<id>",
@@ -676,7 +685,8 @@
         "templateId": "<template:midweek>",
         "createdById": null,
         "createdAt": "<time>",
-        "status": "draft"
+        "status": "draft",
+        "origin": "job"
       },
       {
         "id": "<id>",
@@ -687,7 +697,8 @@
         "templateId": "<template:weekend>",
         "createdById": null,
         "createdAt": "<time>",
-        "status": "draft"
+        "status": "draft",
+        "origin": "job"
       },
       {
         "id": "<id>",
@@ -698,7 +709,8 @@
         "templateId": "<template:weekend>",
         "createdById": "<account:admin>",
         "createdAt": "<time>",
-        "status": "released"
+        "status": "released",
+        "origin": "manual"
       },
       {
         "id": "<id>",
@@ -709,7 +721,8 @@
         "templateId": "<template:weekend>",
         "createdById": "<account:admin>",
         "createdAt": "<time>",
-        "status": "draft"
+        "status": "draft",
+        "origin": "manual"
       },
       {
         "id": "<id>",
@@ -720,7 +733,8 @@
         "templateId": "<template:weekend>",
         "createdById": "<account:admin>",
         "createdAt": "<time>",
-        "status": "draft"
+        "status": "draft",
+        "origin": "manual"
       },
       {
         "id": "<id>",
@@ -731,7 +745,8 @@
         "templateId": "<template:weekend>",
         "createdById": null,
         "createdAt": "<time>",
-        "status": "draft"
+        "status": "draft",
+        "origin": "job"
       },
       {
         "id": "<id>",
@@ -742,7 +757,8 @@
         "templateId": "<template:weekend>",
         "createdById": null,
         "createdAt": "<time>",
-        "status": "draft"
+        "status": "draft",
+        "origin": "job"
       },
       {
         "id": "<id>",
@@ -753,7 +769,8 @@
         "templateId": "<template:weekend>",
         "createdById": null,
         "createdAt": "<time>",
-        "status": "draft"
+        "status": "draft",
+        "origin": "job"
       },
       {
         "id": "<id>",
@@ -764,7 +781,8 @@
         "templateId": "<template:weekend>",
         "createdById": null,
         "createdAt": "<time>",
-        "status": "draft"
+        "status": "draft",
+        "origin": "job"
       },
       {
         "id": "<id>",
@@ -775,7 +793,8 @@
         "templateId": "<template:weekend>",
         "createdById": null,
         "createdAt": "<time>",
-        "status": "draft"
+        "status": "draft",
+        "origin": "job"
       }
     ],
     "attendance": [
@@ -2356,6 +2375,7 @@
             "status": "released",
             "templateId": "<template:midweek>",
             "createdById": "<account:admin>",
+            "origin": "manual",
             "createdAt": "<time>",
             "updatedAt": "<time>",
             "congregationId": "<id>",
@@ -2858,6 +2878,7 @@
             "status": "released",
             "templateId": "<template:weekend>",
             "createdById": "<account:admin>",
+            "origin": "manual",
             "createdAt": "<time>",
             "updatedAt": "<time>",
             "congregationId": "<id>",
@@ -3161,6 +3182,7 @@
             "status": "released",
             "templateId": "<template:midweek>",
             "createdById": "<account:admin>",
+            "origin": "manual",
             "createdAt": "<time>",
             "updatedAt": "<time>",
             "congregationId": "<id>",
@@ -3663,6 +3685,7 @@
             "status": "released",
             "templateId": "<template:weekend>",
             "createdById": "<account:admin>",
+            "origin": "manual",
             "createdAt": "<time>",
             "updatedAt": "<time>",
             "congregationId": "<id>",
@@ -3966,6 +3989,7 @@
             "status": "released",
             "templateId": "<template:midweek>",
             "createdById": "<account:admin>",
+            "origin": "manual",
             "createdAt": "<time>",
             "updatedAt": "<time>",
             "congregationId": "<id>",
@@ -4407,6 +4431,7 @@
             "status": "released",
             "templateId": "<template:weekend>",
             "createdById": "<account:admin>",
+            "origin": "manual",
             "createdAt": "<time>",
             "updatedAt": "<time>",
             "congregationId": "<id>",

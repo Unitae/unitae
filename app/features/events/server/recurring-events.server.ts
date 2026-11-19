@@ -1,6 +1,8 @@
+import { EventOrigin } from '~/features/events/model/event-origin.type'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { SYSTEM_TEMPLATE_KEYS } from '~/features/events/model/event-template.type'
 import { planRecurringEvents } from '~/features/events/model/recurring-events'
+import { EMPTY_MEETING } from '~/features/events/server/empty-meetings.queries'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
@@ -19,7 +21,8 @@ interface MeetingTemplate {
 
 /**
  * Creates empty meetings of a template on the given local days: its name and hours in the congregation's zone, draft,
- * no author — a meeting nobody has prepared yet. Shared by the job and by a series that starts beyond the horizon.
+ * no author, origin « job » — a meeting nobody has prepared yet. Shared by the job and by a series that starts beyond
+ * the horizon.
  */
 export async function createEmptyMeetings(
   db: TransactionClient,
@@ -36,6 +39,7 @@ export async function createEmptyMeetings(
       endDate: combineLocalDateTime(day, template.endTime, timeZone),
       status: EventStatus.Draft,
       createdById: null,
+      origin: EventOrigin.Job,
       congregationId,
     })),
   })
@@ -146,10 +150,7 @@ export async function reanchorEmptyMeetings(
   const meetings = await db.event.findMany({
     where: {
       congregationId,
-      createdById: null,
-      eventParts: { none: {} },
-      eventServiceParts: { none: {} },
-      attendance: { is: null },
+      ...EMPTY_MEETING,
       templateId: { not: null },
       startDate: { gte: input.now },
     },

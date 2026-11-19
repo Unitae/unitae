@@ -52,7 +52,7 @@ describe('deleteTemplate', () => {
     const result = await deleteTemplate(db, 7, 1, 9)
 
     const empty = {
-      createdById: null,
+      origin: 'job',
       eventParts: { none: {} },
       eventServiceParts: { none: {} },
       attendance: { is: null },

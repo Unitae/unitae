@@ -69,7 +69,7 @@ describe('importEvents', () => {
     expect(db.event.deleteMany).toHaveBeenCalledWith({
       where: {
         congregationId: 1,
-        createdById: null,
+        origin: 'job',
         eventParts: { none: {} },
         eventServiceParts: { none: {} },
         attendance: { is: null },

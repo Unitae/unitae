@@ -10,6 +10,7 @@
       "status": "released",
       "templateId": "<template:midweek>",
       "createdById": "<account:admin>",
+      "origin": "manual",
       "createdAt": "<time>",
       "updatedAt": "<time>",
       "congregationId": "<id>",

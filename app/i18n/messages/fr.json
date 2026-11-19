@@ -5587,6 +5587,7 @@
     "settings_user_admin_only": "Le compte d’un administrateur se gère par un administrateur.",
     "settings_user_own_account": "Vous ne pouvez pas faire cela sur votre propre compte : demandez-le à un autre gestionnaire.",
     "settings_user_last_admin": "C’est le dernier administrateur de l’assemblée : donnez d’abord le rôle à quelqu’un d’autre.",
+    "settings_user_has_absences": "Ce compte a des absences : elles restent avec la personne, il ne peut pas être supprimé pour l’instant.",
     "settings_users_views": "Comptes",
     "settings_users_view_all": "Tous",
     "settings_users_view_active": "Actifs",

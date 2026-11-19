@@ -177,14 +177,14 @@ describe('updateEvent', () => {
 
   // A meeting created ahead that someone moves for one week is theirs now: the template's « Déplacer les réunions à
   // venir » never sends it back, and the recurring-events job's clean-ups leave it alone.
-  it('makes whoever moves a meeting nobody created its author, and leaves an author in place', async () => {
+  it('makes whoever moves a meeting the job created its author, and leaves an author in place', async () => {
     mockDb.event.update.mockResolvedValue({ id: 2 })
 
     await updateEvent(mockDb as never, 2, 10, { startDate: new Date('2026-11-17T18:00:00Z') }, 99)
 
     expect(mockDb.event.updateMany).toHaveBeenCalledWith({
-      where: { id: 2, congregationId: 10, createdById: null },
-      data: { createdById: 99 },
+      where: { id: 2, congregationId: 10, origin: 'job' },
+      data: { origin: 'manual', createdById: 99 },
     })
   })
 

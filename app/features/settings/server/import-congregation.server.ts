@@ -45,6 +45,7 @@ import {
   importEventServicePartAllowedRoles,
   importEventServiceParts,
   importEvents,
+  settleImportedEventOrigins,
 } from './import-events.server'
 import * as speakers from './import-external-speakers.server'
 import { importPartPresets } from './import-part-presets.server'
@@ -151,9 +152,8 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
   const zip = await JsZip.loadAsync(buffer)
   const manifest = await readManifest(zip)
 
-  // v1.x → v2.0 shim: split legacy users.ndjson into members + user-accounts
-  // so the rest of runImport reads the v2.0 layout. Idempotent if the
-  // archive is already v2.0.
+  // v1.x → v2.0 shim: split legacy users.ndjson into members + user-accounts so the rest of runImport reads the v2.0
+  // layout. Idempotent if the archive is already v2.0.
   const shimWarnings = await migrateLegacyUsersNdjson(zip, manifest.version)
   if (shimWarnings.length > 0) {
     logger.info(`Imported legacy v${manifest.version} archive`, { congregationId, warnings: shimWarnings })
@@ -263,8 +263,7 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
       await importAttributions(zip, db, idMap, congregationId)
       await progress()
 
-      // Before the template parts and event parts, which carry a presetId that
-      // resolves through the map this fills.
+      // Before the template and event parts: their presetId resolves through the map this fills.
       await importPartPresets(zip, db, idMap, congregationId)
       await progress()
 
@@ -286,7 +285,7 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
       await importTemplateResponsibles(zip, db, idMap, congregationId)
       await progress()
 
-      await importEvents(zip, db, idMap, congregationId)
+      const withoutOrigin = await importEvents(zip, db, idMap, congregationId)
       await importAttendance(zip, db, idMap, congregationId)
       await progress()
 
@@ -297,6 +296,7 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
       await progress()
 
       await importEventServiceParts(zip, db, idMap, congregationId)
+      await settleImportedEventOrigins(db, withoutOrigin, congregationId)
       await progress()
 
       await importEventServicePartAllowedRoles(zip, db, idMap, congregationId)

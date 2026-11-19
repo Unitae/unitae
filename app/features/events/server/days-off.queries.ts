@@ -106,7 +106,8 @@ export async function listCongregationAbsences(
     orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
   })
   // Absences belong to the account that declared them; the person away is its member, when it has one. A day-off
-  // always has that account (Event.createdBy is Restrict); only events made by the recurring job have none.
+  // always has that account (Event.createdBy is Restrict, and deleting an account takes its absences with it or is
+  // refused); events without an author are never absences.
   const absences = rows.flatMap(({ createdBy, createdAt, ...row }) =>
     createdBy == null
       ? []

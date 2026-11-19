@@ -1,5 +1,5 @@
 import { findResponsible, ResponsibilityScope } from '~/features/events'
-import { getTemplateById, listPartPresets } from '~/features/events/index.server'
+import { EMPTY_MEETING, getTemplateById, listPartPresets } from '~/features/events/index.server'
 import { findMembersWithAnyRole } from '~/shared/auth/permissions.server'
 import { listDelegatableRoles, listRoles } from '~/shared/domain/roles.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -69,7 +69,7 @@ export async function getTemplatePage(
       where: {
         templateId,
         congregationId,
-        NOT: { createdById: null, eventParts: { none: {} }, eventServiceParts: { none: {} }, attendance: { is: null } },
+        NOT: EMPTY_MEETING,
       },
     }),
     listRoles(db, congregationId),

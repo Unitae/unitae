@@ -1,5 +1,6 @@
 import type JsZip from 'jszip'
-import { EventStatus, EventTemplateKey } from '~/features/events'
+import { EventOrigin, EventStatus, EventTemplateKey, isEventOrigin } from '~/features/events'
+import { EMPTY_MEETING } from '~/features/events/index.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import type { EntityIdMap } from './data-transfer.type'
@@ -22,7 +23,7 @@ export async function importEvents(
   db: TransactionClient,
   idMap: EntityIdMap,
   congregationId: number,
-): Promise<void> {
+): Promise<number[]> {
   const records = await readNdjsonFile<{
     id: number
     name: string
@@ -34,8 +35,10 @@ export async function importEvents(
     createdAt: string
     // Since v2.16.
     status?: string
+    // Since v2.18.
+    origin?: string
   }>(zip, 'events')
-  if (records.length === 0) return
+  if (records.length === 0) return []
 
   const dayOff = await db.eventTemplate.findFirst({
     where: { key: EventTemplateKey.DayOff, congregationId },
@@ -46,18 +49,16 @@ export async function importEvents(
   // replace them all — never one with attendance — and every template's mark is reset, so the recurring-events job
   // starts again after the last imported meeting, on the archive's own weekdays.
   await db.event.deleteMany({
-    where: {
-      congregationId,
-      createdById: null,
-      eventParts: { none: {} },
-      eventServiceParts: { none: {} },
-      attendance: { is: null },
-    },
+    where: { congregationId, ...EMPTY_MEETING },
   })
   await db.eventTemplate.updateMany({ where: { congregationId }, data: { generatedUntil: null } })
 
   let ownerless = 0
   let unknownStatus = 0
+  // Restored from an archive without origins (before v2.18): settleImportedEventOrigins decides them once their parts,
+  // services and counts are in. One whose origin this version does not know stays « import ».
+  let unknownOrigin = 0
+  const withoutOrigin: number[] = []
   for (const record of records) {
     const templateId = idMap.getOptional('programme-templates', record.templateId)
     const createdById = idMap.getOptional('user-accounts', record.createdById)
@@ -76,10 +77,16 @@ export async function importEvents(
         templateId,
         createdById,
         status: importedStatus(record.status, () => unknownStatus++),
+        origin: isEventOrigin(record.origin) ? record.origin : EventOrigin.Import,
         congregationId,
       },
     })
     idMap.set('events', record.id, created.id)
+    if (record.origin == null) withoutOrigin.push(created.id)
+    else if (!isEventOrigin(record.origin)) unknownOrigin++
+  }
+  if (unknownOrigin > 0) {
+    logger.warn(`Imported ${unknownOrigin} event(s) with an unknown origin as restored`, { congregationId })
   }
   if (unknownStatus > 0) {
     logger.warn(`Imported ${unknownStatus} event(s) with an unknown status as drafts`, { congregationId })
@@ -87,6 +94,32 @@ export async function importEvents(
   if (ownerless > 0) {
     logger.warn(`Skipped ${ownerless} absence(s) whose owner was not imported`, { congregationId })
   }
+  return withoutOrigin
+}
+
+/**
+ * The origin of events an archive did not give one (before v2.18), by the migration's rule, once their parts, services
+ * and counts are in: one without an author and with nothing on it was an empty meeting, the job's — it still moves with
+ * its template. The others stay « import ».
+ */
+export async function settleImportedEventOrigins(
+  db: TransactionClient,
+  eventIds: number[],
+  congregationId: number,
+): Promise<void> {
+  if (eventIds.length === 0) return
+  await db.event.updateMany({
+    where: {
+      id: { in: eventIds },
+      congregationId,
+      origin: EventOrigin.Import,
+      createdById: null,
+      eventParts: { none: {} },
+      eventServiceParts: { none: {} },
+      attendance: { is: null },
+    },
+    data: { origin: EventOrigin.Job },
+  })
 }
 
 /** The status an event takes: the archive's when this version knows it, a draft otherwise. */

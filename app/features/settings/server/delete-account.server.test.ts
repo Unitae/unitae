@@ -8,6 +8,9 @@ vi.mock('~/shared/domain/audit.server', () => ({
   audit: vi.fn(),
 }))
 vi.mock('~/shared/infra/db.server', () => ({ unscopedDb: { auditLog: { create: vi.fn() } } }))
+vi.mock('~/features/events/index.server', () => ({
+  releaseAccountEvents: vi.fn(async () => ({ absencesDeleted: [], eventsUnattributed: 0 })),
+}))
 vi.mock('~/shared/auth/permissions.server', () => ({ requireNotLastAdmin: vi.fn(), isAccountAdmin: vi.fn() }))
 
 const ADMIN = new Set(['can-do-anything'])
@@ -64,7 +67,7 @@ describe('deleteAccount', () => {
         actorId: 99,
         entityType: 'UserAccount',
         entityId: 1,
-        metadata: { email: 'a@b.test', memberId: 42 },
+        metadata: { email: 'a@b.test', memberId: 42, absencesDeleted: [], eventsUnattributed: 0 },
       }),
     )
   })

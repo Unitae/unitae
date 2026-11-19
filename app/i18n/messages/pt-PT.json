@@ -5587,6 +5587,7 @@
     "settings_user_admin_only": "A conta de um administrador tem de ser gerida por um administrador.",
     "settings_user_own_account": "Não pode fazer isto na sua própria conta: peça a outro responsável.",
     "settings_user_last_admin": "É o último administrador da congregação: atribua primeiro essa função a outra pessoa.",
+    "settings_user_has_absences": "Esta conta tem ausências: ficam com a pessoa, por isso não pode ser eliminada por agora.",
     "settings_users_views": "Contas",
     "settings_users_view_all": "Todos",
     "settings_users_view_active": "Ativo",
