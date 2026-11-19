@@ -72,19 +72,21 @@ afterAll(async () => {
   await testDb.$disconnect()
 })
 
-const absenceOf = (eventId: number) =>
+const absenceOf = (absenceId: number) =>
   withScope(ids.cong, tx =>
     tx.absence.findFirst({
-      where: { legacyEventId: eventId },
+      where: { id: absenceId },
       select: { startDate: true, endDate: true, memberId: true, accountId: true, congregationId: true },
     }),
   )
 
-describe('an absence written twice', () => {
-  it('writes the event and its Absence row, with the person’s record', async () => {
-    const event = await withScope(ids.cong, tx => createDayOff(tx, ids.account, ids.member, START, END, ids.cong))
+describe('an absence', () => {
+  it('is written as its Absence row alone, with the person’s record', async () => {
+    const before = await withScope(ids.cong, tx => tx.event.count())
+    const created = await withScope(ids.cong, tx => createDayOff(tx, ids.account, ids.member, START, END, ids.cong))
 
-    expect(await absenceOf(event?.eventId as number)).toEqual({
+    expect(await withScope(ids.cong, tx => tx.event.count())).toBe(before)
+    expect(await absenceOf(created?.absenceId as number)).toEqual({
       startDate: START,
       endDate: END,
       memberId: ids.member,
@@ -94,32 +96,31 @@ describe('an absence written twice', () => {
   })
 
   it('keeps the account as the owner when it has no record', async () => {
-    const event = await withScope(ids.cong, tx =>
+    const created = await withScope(ids.cong, tx =>
       createDayOff(tx, ids.accountWithoutRecord, null, START, END, ids.cong),
     )
 
-    expect(await absenceOf(event?.eventId as number)).toMatchObject({
+    expect(await absenceOf(created?.absenceId as number)).toMatchObject({
       memberId: null,
       accountId: ids.accountWithoutRecord,
     })
   })
 
-  it('deletes the event and its Absence row together', async () => {
-    const event = await withScope(ids.cong, tx => createDayOff(tx, ids.account, ids.member, START, END, ids.cong))
-    const eventId = event?.eventId as number
-    expect(await absenceOf(eventId)).not.toBeNull()
+  it('is deleted by its row', async () => {
+    const created = await withScope(ids.cong, tx => createDayOff(tx, ids.account, ids.member, START, END, ids.cong))
+    const absenceId = created?.absenceId as number
+    expect(await absenceOf(absenceId)).not.toBeNull()
 
     await withScope(ids.cong, tx =>
       deleteDayOff(tx, {
-        absenceId: event?.absenceId as number,
+        absenceId,
         accountId: ids.account,
         memberId: ids.member,
         congregationId: ids.cong,
       }),
     )
 
-    expect(await absenceOf(eventId)).toBeNull()
-    expect(await withScope(ids.cong, tx => tx.event.findFirst({ where: { id: eventId } }))).toBeNull()
+    expect(await absenceOf(absenceId)).toBeNull()
   })
 
   it('never shows another congregation’s absences, nor writes into them', async () => {
@@ -173,7 +174,6 @@ describe('an absence written twice', () => {
         return { created, row, flagged, events, cancelled, cleared, left: await tx.absence.count() }
       })
 
-      expect(outcome.created?.eventId).toBeNull()
       expect(outcome.row).toEqual({ legacyEventId: null })
       expect(outcome.events).toBe(0)
       // The absence flags the part the person holds during it, and cancelling it clears the flag.

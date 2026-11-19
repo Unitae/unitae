@@ -14,7 +14,7 @@ import type { AccountId } from '~/shared/types/branded'
  * cascade via FK `onDelete`.
  *
  * Its events and Absence rows are let go of first (releaseAccountEvents): a record's absences stay on the record
- * without the account; its day-off events go and its other events lose their author.
+ * without the account, an account without a record takes its absences with it, and its events lose their author.
  *
  * For anonymization (keep the row, scrub PII) call `anonymizeAccount` instead.
  * This service is the destructive variant.

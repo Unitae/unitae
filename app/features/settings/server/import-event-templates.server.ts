@@ -2,6 +2,7 @@ import type JsZip from 'jszip'
 import {
   type AttendanceKind,
   defaultAttendanceKind,
+  EventTemplateKey,
   isAttendanceKind,
   RESPONSIBILITY_SCOPES,
   ResponsibilityScope,
@@ -57,6 +58,9 @@ export async function importEventTemplates(
   }>(zip, 'programme-templates')
 
   for (const record of records) {
+    // An archive from before the day-off events were dropped has their template: it is not restored, and its events
+    // come back as absences only (importEvents).
+    if (record.key === EventTemplateKey.DayOff) continue
     const kind = archivedKind(record.attendanceKind, record.key, congregationId)
     const existing = await db.eventTemplate.findFirst({ where: { key: record.key, congregationId } })
     if (existing) {

@@ -11,9 +11,11 @@ const logger = createLogger('import-events')
 
 /**
  * Events. An event whose author is not in the archive (or was skipped) keeps going without one, as the events the
- * recurring-events job creates do; a day-off cannot — nothing else says whose it is — so it is skipped, and counted.
- * From 2.19 that loses only the event: its absence comes from the absences file as long as its person came. Before,
- * the absence goes with it.
+ * recurring-events job creates do.
+ *
+ * An archive from before the day-off events were dropped still has them: they are not restored, only their absences —
+ * from the absences file (2.19 on), or from the day-off's author when the file does not cover it. One the file does not
+ * cover and whose author did not come is skipped and counted: nothing else says whose it is, so its absence is lost.
  *
  * A fresh congregation already has its first two months of empty meetings from seeding: the archive's meetings replace
  * them, and the recurring-events job starts again after the last imported one.
@@ -43,11 +45,13 @@ export async function importEvents(
   }>(zip, 'events')
   if (records.length === 0) return []
 
-  const dayOff = await db.eventTemplate.findFirst({
-    where: { key: EventTemplateKey.DayOff, congregationId },
-    select: { id: true },
-  })
-  if (!dayOff) logger.warn('No day-off template: absences without their owner cannot be told apart', { congregationId })
+  // The archive's own day-off templates (an archive from before the day-off events were dropped): their events are
+  // absences, restored as Absence rows only — the template is not restored either (importEventTemplates).
+  const dayOffTemplates = new Set(
+    (await readNdjsonFile<{ id: number; key: string }>(zip, 'programme-templates'))
+      .filter(template => template.key === EventTemplateKey.DayOff)
+      .map(template => template.id),
+  )
   // A fresh congregation already has empty meetings from seeding, on the seeded weekdays. The archive's meetings
   // replace them all — never one with attendance — and every template's mark is reset, so the recurring-events job
   // starts again after the last imported meeting, on the archive's own weekdays.
@@ -70,8 +74,16 @@ export async function importEvents(
   for (const record of records) {
     const templateId = idMap.getOptional('programme-templates', record.templateId)
     const createdById = idMap.getOptional('user-accounts', record.createdById)
-    if (createdById == null && templateId != null && templateId === dayOff?.id) {
-      ownerless++
+    if (record.templateId != null && dayOffTemplates.has(record.templateId)) {
+      // A day-off: its absence comes from the absences file when the archive has one that covers it, else from its
+      // author — nothing else says whose it is.
+      if (coveredDayOffs?.has(record.id)) continue
+      if (createdById == null) {
+        ownerless++
+        continue
+      }
+      if (coveredDayOffs != null) rebuilt++
+      await writeAbsenceOf(db, { accountId: createdById, record, congregationId }, recordOf)
       continue
     }
 
@@ -92,10 +104,6 @@ export async function importEvents(
     idMap.set('events', record.id, created.id)
     if (record.origin == null) withoutOrigin.push(created.id)
     else if (!isEventOrigin(record.origin)) unknownOrigin++
-    if (createdById != null && templateId != null && templateId === dayOff?.id && !coveredDayOffs?.has(record.id)) {
-      if (coveredDayOffs != null) rebuilt++
-      await writeAbsenceOf(db, { eventId: created.id, accountId: createdById, record, congregationId }, recordOf)
-    }
   }
   if (unknownOrigin > 0) {
     logger.warn(`Imported ${unknownOrigin} event(s) with an unknown origin as restored`, { congregationId })
@@ -104,12 +112,8 @@ export async function importEvents(
     logger.warn(`Imported ${unknownStatus} event(s) with an unknown status as drafts`, { congregationId })
   }
   if (ownerless > 0) {
-    logger.warn(
-      coveredDayOffs == null
-        ? `Skipped ${ownerless} absence(s) whose owner was not imported`
-        : `Skipped ${ownerless} day-off event(s) whose author was not imported (their absences come from absences.ndjson)`,
-      { congregationId },
-    )
+    // Counted only when nothing else had them: the absences file did not cover these day-offs.
+    logger.warn(`Skipped ${ownerless} absence(s) whose owner was not imported`, { congregationId })
   }
   if (rebuilt > 0) {
     logger.warn(`Rebuilt ${rebuilt} absence(s) from day-off events the absences file did not carry`, { congregationId })
@@ -118,18 +122,17 @@ export async function importEvents(
 }
 
 /**
- * A restored absence's Absence row from its day-off event — for an archive before 2.19, or a day-off its absences file
- * does not cover: its owner's record when the restored account has one, as the migration does. `recordOf` keeps each account's record once looked up.
+ * A restored absence's Absence row from its archived day-off event — for an archive before 2.19, or a day-off its
+ * absences file does not cover: its owner's record when the restored account has one, as the migration does. The event
+ * itself is not restored. `recordOf` keeps each account's record once looked up.
  */
 async function writeAbsenceOf(
   db: TransactionClient,
   {
-    eventId,
     accountId,
     record,
     congregationId,
   }: {
-    eventId: number
     accountId: number
     record: { startDate: string; endDate: string; description: string; createdAt: string }
     congregationId: number
@@ -151,7 +154,6 @@ async function writeAbsenceOf(
       note: record.description ?? '',
       memberId: recordOf.get(accountId) ?? null,
       accountId,
-      legacyEventId: eventId,
       createdAt: new Date(record.createdAt),
       congregationId,
     },

@@ -35,7 +35,7 @@ export async function unlinkAccountFromMember(
   // Taking a login away deletes the account: the same rules as deleting it from Réglages.
   await assertMayActOnAccount({ accountId, actorId, congregationId, actorPermissions, action: 'delete' })
   await requireNotLastAdmin(accountId, congregationId)
-  // The record keeps its absences (their day-off events go); the login's other events lose their author.
+  // The record keeps its absences, without the login; the login's events lose their author.
   const released = await releaseAccountEvents(db, { id: accountId, memberId }, congregationId)
   await db.userAccount.delete({ where: { id_congregationId: { id: accountId, congregationId } } })
 

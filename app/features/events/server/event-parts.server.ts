@@ -20,7 +20,7 @@ export async function createFreeformEvent(
     congregationId: number
   },
 ) {
-  // Same reasoning as createDayOff: freeform events are identified by
+  // Freeform events are identified by
   // `template.key = 'freeform'`. A null templateId here silently drops the
   // event from cadence, board links, and the events list.
   const freeformTemplate = await db.eventTemplate.findFirst({
