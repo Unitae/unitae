@@ -32,6 +32,7 @@ export async function runExport(job: Job<ExportJobData>): Promise<string> {
 
     for (const step of steps) {
       const lines = await step.export()
+      // Written even when empty: a restore tells a newer archive by a file being there (archivedAbsenceEvents).
       const ndjson = lines.map(line => JSON.stringify(line)).join('\n')
       dataDir.file(`${step.name}.ndjson`, ndjson + (lines.length > 0 ? '\n' : ''))
       entityCounts[step.name] = lines.length
@@ -584,6 +585,25 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
             status: true,
             origin: true,
           },
+        }),
+    },
+    {
+      // memberId is the person's record (null when the declaring account had none), accountId who declared it — the
+      // owner when there is no record — and legacyEventId the day-off event the row was copied from.
+      name: 'absences',
+      export: () =>
+        db.absence.findMany({
+          select: {
+            id: true,
+            startDate: true,
+            endDate: true,
+            note: true,
+            memberId: true,
+            accountId: true,
+            legacyEventId: true,
+            createdAt: true,
+          },
+          orderBy: { id: 'asc' },
         }),
     },
     {

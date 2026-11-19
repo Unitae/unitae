@@ -4,13 +4,16 @@ import { EMPTY_MEETING } from '~/features/events/index.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import type { EntityIdMap } from './data-transfer.type'
+import { archivedAbsenceEvents } from './import-absences.server'
 import { fallbackServiceOrders, readNdjsonFile } from './ndjson-archive'
 
 const logger = createLogger('import-events')
 
 /**
  * Events. An event whose author is not in the archive (or was skipped) keeps going without one, as the events the
- * recurring-events job creates do; an absence cannot — its author is the person away — so it is skipped, and counted.
+ * recurring-events job creates do; a day-off cannot — nothing else says whose it is — so it is skipped, and counted.
+ * From 2.19 that loses only the event: its absence comes from the absences file as long as its person came. Before,
+ * the absence goes with it.
  *
  * A fresh congregation already has its first two months of empty meetings from seeding: the archive's meetings replace
  * them, and the recurring-events job starts again after the last imported one.
@@ -53,6 +56,10 @@ export async function importEvents(
   })
   await db.eventTemplate.updateMany({ where: { congregationId }, data: { generatedUntil: null } })
 
+  // From 2.19 the absences come from their own file (importAbsences); a day-off it does not cover, and every day-off of
+  // an older archive, gets its absence from its author.
+  const coveredDayOffs = await archivedAbsenceEvents(zip)
+  let rebuilt = 0
   let ownerless = 0
   let unknownStatus = 0
   // Restored from an archive without origins (before v2.18): settleImportedEventOrigins decides them once their parts,
@@ -85,7 +92,8 @@ export async function importEvents(
     idMap.set('events', record.id, created.id)
     if (record.origin == null) withoutOrigin.push(created.id)
     else if (!isEventOrigin(record.origin)) unknownOrigin++
-    if (createdById != null && templateId != null && templateId === dayOff?.id) {
+    if (createdById != null && templateId != null && templateId === dayOff?.id && !coveredDayOffs?.has(record.id)) {
+      if (coveredDayOffs != null) rebuilt++
       await writeAbsenceOf(db, { eventId: created.id, accountId: createdById, record, congregationId }, recordOf)
     }
   }
@@ -96,14 +104,22 @@ export async function importEvents(
     logger.warn(`Imported ${unknownStatus} event(s) with an unknown status as drafts`, { congregationId })
   }
   if (ownerless > 0) {
-    logger.warn(`Skipped ${ownerless} absence(s) whose owner was not imported`, { congregationId })
+    logger.warn(
+      coveredDayOffs == null
+        ? `Skipped ${ownerless} absence(s) whose owner was not imported`
+        : `Skipped ${ownerless} day-off event(s) whose author was not imported (their absences come from absences.ndjson)`,
+      { congregationId },
+    )
+  }
+  if (rebuilt > 0) {
+    logger.warn(`Rebuilt ${rebuilt} absence(s) from day-off events the absences file did not carry`, { congregationId })
   }
   return withoutOrigin
 }
 
 /**
- * A restored absence's Absence row, written alongside its event until the events are dropped: its owner's record when
- * the restored account has one, as the migration does. `recordOf` keeps each account's record once looked up.
+ * A restored absence's Absence row from its day-off event — for an archive before 2.19, or a day-off its absences file
+ * does not cover: its owner's record when the restored account has one, as the migration does. `recordOf` keeps each account's record once looked up.
  */
 async function writeAbsenceOf(
   db: TransactionClient,
