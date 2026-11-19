@@ -79,6 +79,8 @@ async function cleanCongregationData(congregationId: number) {
   await prisma.templateResponsible.deleteMany({ where })
   await prisma.templateServicePart.deleteMany({ where })
   await prisma.templatePart.deleteMany({ where })
+  // Before the events and the accounts: an Absence row names its account (Restrict), not its event.
+  await prisma.absence.deleteMany({ where })
   await prisma.event.deleteMany({ where })
   await prisma.eventTemplate.deleteMany({ where })
   // After the parts that point at them, before the congregation itself: the FK to Congregation restricts.
@@ -677,7 +679,7 @@ async function main() {
     })),
     select: { id: true },
   })
-  // Written twice, as createDayOff does while the readers move over: the absence of its own, the person's.
+  // Written twice, as createDayOff does while the readers move over: the day-off event, and its Absence row.
   await prisma.absence.createMany({
     data: absences.map((absence, index) => ({
       startDate: absence.start,
