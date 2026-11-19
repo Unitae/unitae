@@ -82,21 +82,20 @@ export async function refreshConflictFlags(
   const dayOffs =
     participantIds.size === 0
       ? []
-      : await db.event.findMany({
+      : await db.absence.findMany({
           where: {
             congregationId,
-            template: { key: EventTemplateKey.DayOff },
-            createdBy: { memberId: { in: [...participantIds] } },
+            memberId: { in: [...participantIds] },
             startDate: { lte: windowEnd },
             endDate: { gte: windowStart },
           },
-          // Absences resolve to a Member through Event.createdBy — see checkDayOffConflict.
-          select: { startDate: true, endDate: true, createdBy: { select: { memberId: true } } },
+          // An absence belongs to the person's record — see checkDayOffConflict.
+          select: { startDate: true, endDate: true, memberId: true },
         })
 
   const dayOffsByMember = new Map<number, { start: number; end: number }[]>()
   for (const dayOff of dayOffs) {
-    const absentMemberId = dayOff.createdBy?.memberId
+    const absentMemberId = dayOff.memberId
     if (absentMemberId == null) continue
     const ranges = dayOffsByMember.get(absentMemberId) ?? []
     ranges.push({ start: dayOff.startDate.getTime(), end: dayOff.endDate.getTime() })

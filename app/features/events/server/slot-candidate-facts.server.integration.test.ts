@@ -128,13 +128,24 @@ beforeAll(async () => {
       data: { name: 'Sono', eventId: lastSummer.id, assigneeId: members.sono, congregationId },
     })
 
-    await tx.event.create({
+    // Written twice, as createDayOff does: the day-off event and its Absence row, the person's.
+    const absence = await tx.event.create({
       data: {
         name: 'Absence',
         templateId: dayOff.id,
         startDate: new Date('2026-11-10T00:00:00Z'),
         endDate: new Date('2026-11-16T23:59:00Z'),
         createdById: awayAccount.id,
+        congregationId,
+      },
+    })
+    await tx.absence.create({
+      data: {
+        startDate: absence.startDate,
+        endDate: absence.endDate,
+        memberId: members.away,
+        accountId: awayAccount.id,
+        legacyEventId: absence.id,
         congregationId,
       },
     })
@@ -146,6 +157,7 @@ afterAll(async () => {
     await withScope(congregationId, async tx => {
       await tx.eventServicePart.deleteMany({})
       await tx.eventPart.deleteMany({})
+      await tx.absence.deleteMany({})
       await tx.event.deleteMany({})
       await tx.externalSpeaker.deleteMany({})
       await tx.eventTemplate.deleteMany({})

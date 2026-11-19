@@ -1,4 +1,3 @@
-import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import { normalize, type PartSlot } from '~/features/events/server/cadence-shared.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -107,20 +106,19 @@ async function absencesOverEvent(
   event: Options['event'],
   congregationId: number,
 ): Promise<SlotCandidateFacts['absences']> {
-  const rows = await db.event.findMany({
+  const rows = await db.absence.findMany({
     where: {
       congregationId,
-      template: { key: EventTemplateKey.DayOff },
       startDate: { lte: event.endDate },
       endDate: { gte: event.startDate },
-      createdBy: { memberId: { not: null } },
+      memberId: { not: null },
     },
-    orderBy: { startDate: 'asc' },
-    select: { startDate: true, endDate: true, createdBy: { select: { memberId: true } } },
+    orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
+    select: { startDate: true, endDate: true, memberId: true },
   })
   const absences: SlotCandidateFacts['absences'] = {}
   for (const row of rows) {
-    const memberId = row.createdBy?.memberId
+    const memberId = row.memberId
     if (memberId != null && absences[memberId] == null) {
       absences[memberId] = { startDate: row.startDate.toISOString(), endDate: row.endDate.toISOString() }
     }
