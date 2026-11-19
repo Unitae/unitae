@@ -20,6 +20,7 @@ import {
 } from '~/shared/auth/route-context.server'
 import { getHostSettings } from '~/shared/domain/host-settings.server'
 import { getTrialBanner } from '~/shared/domain/trial-banner.server'
+import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { AppLayout } from '~/shared/ui/AppLayout'
 import { OutsideAppError } from '~/shared/ui/OutsideAppError'
@@ -49,16 +50,20 @@ const notFoundForVisitors: Route.MiddlewareFunction = async ({ request, pattern 
 }
 
 /**
- * A visitor's demo copy turns away files, changes to the login itself, invitations and the congregation's archive
- * (docs/development/specs/demo-mode.md): back to the page, with the reason. Runs for actions too, after `requireAuth`
- * has resolved the congregation.
+ * A visitor's demo copy (docs/development/specs/demo-mode.md), on every request after `requireAuth` has resolved the
+ * congregation, client-side navigation included: it turns away files, changes to the logins, invitations and the
+ * congregation's archive, back to the page with the reason; and it pushes the copy's expiry, an hour on.
  */
 const demoCopyGuard: Route.MiddlewareFunction = async ({ request, context }, next) => {
-  if (isDemoCongregation(context.get(congregationContext)) && refusedInDemoCopy(request)) {
+  const congregation = context.get(congregationContext)
+  if (!isDemoCongregation(congregation)) return next()
+  if (await refusedInDemoCopy(request)) {
     const session = await getSession(request.headers.get('Cookie'))
     session.flash('error', m.demo_refused())
     throw redirect(sameOriginPath(request), { headers: { 'Set-Cookie': await commitSession(session) } })
   }
+  // Best effort: a failed push costs the copy an hour at worst, never the page.
+  await touchDemoCopy(congregation).catch(error => logger.warn('Demo copy expiry not pushed', { error }))
   return next()
 }
 
@@ -118,7 +123,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   // Reading the sidebar cookie here keeps a collapsed sidebar collapsed
   // across full page loads.
   const sidebarOpen = readSidebarOpenFromCookie(request.headers.get('Cookie'))
-  // A visitor's demo copy: each request pushes its expiry, and the banner says who they are.
+  // A visitor's demo copy: the banner says who they are (the middleware pushes its expiry).
   const demo = isDemoCongregation(congregation)
     ? {
         role: await withScopeFromContext(context, (db, congregationId) =>
@@ -127,7 +132,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         registerUrl: getHostSettings().demo?.registerUrl ?? null,
       }
     : null
-  if (demo) await touchDemoCopy(congregation)
 
   return data(
     {

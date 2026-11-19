@@ -6,13 +6,19 @@ function submit(path: string, init: RequestInit = {}) {
 }
 
 describe('what a demo copy refuses', () => {
-  it('refuses every file upload: board documents, versions, speaker lists, imports', () => {
+  it('refuses every file upload: board documents, versions, speaker lists, imports', async () => {
     const body = new FormData()
     body.set('file', new File(['%PDF'], 'a.pdf', { type: 'application/pdf' }))
-    expect(refusedInDemoCopy(submit('/board/documents/new', { body }))).toBe(true)
+    expect(await refusedInDemoCopy(submit('/board/documents/new', { body }))).toBe(true)
+    // Any multipart body, whatever its case: the upload parser accepts them all.
+    const mixed = submit('/board/documents/new', {
+      headers: { 'Content-Type': 'Multipart/Mixed; boundary=x' },
+      body: 'x',
+    })
+    expect(await refusedInDemoCopy(mixed)).toBe(true)
   })
 
-  it('refuses changing the login itself, inviting, and the congregation’s archive', () => {
+  it('refuses changing the login itself, inviting, and the congregation’s archive', async () => {
     for (const path of [
       '/me/security',
       '/settings/users/new',
@@ -23,13 +29,34 @@ describe('what a demo copy refuses', () => {
       '/publishers/18/link-login',
       '/settings/data',
     ]) {
-      expect(refusedInDemoCopy(submit(path, { body: new URLSearchParams({ intent: 'x' }) })), path).toBe(true)
+      expect(await refusedInDemoCopy(submit(path, { body: new URLSearchParams({ intent: 'x' }) })), path).toBe(true)
     }
   })
 
-  it('lets everything else through: assigning, reporting, attributing, reading', () => {
-    expect(refusedInDemoCopy(submit('/programs/12', { body: new URLSearchParams({ intent: 'assign' }) }))).toBe(false)
-    expect(refusedInDemoCopy(submit('/settings/users/412/export-data'))).toBe(false)
-    expect(refusedInDemoCopy(new Request('https://demo-x7k2p.example.com/me/security'))).toBe(false)
+  it('refuses them the same when the page submits them with JavaScript, to the path’s .data address', async () => {
+    for (const path of ['/me/security.data', '/settings/users/412.data', '/settings/data.data']) {
+      expect(await refusedInDemoCopy(submit(path, { body: new URLSearchParams({ intent: 'x' }) })), path).toBe(true)
+    }
+  })
+
+  it('refuses the actions that would take a role’s own login away', async () => {
+    for (const path of ['/settings/users/412/anonymize', '/publishers/18/unlink-login', '/password/412/invalidate']) {
+      expect(await refusedInDemoCopy(submit(path, { body: new URLSearchParams({ intent: 'x' }) })), path).toBe(true)
+    }
+  })
+
+  it('refuses sending « Notre liste », which would mail the addresses a visitor typed', async () => {
+    const send = submit('/programs/external-speakers/ours.data', { body: new URLSearchParams({ intent: 'send' }) })
+    expect(await refusedInDemoCopy(send)).toBe(true)
+    const save = submit('/programs/external-speakers/ours', { body: new URLSearchParams({ intent: 'save-talks' }) })
+    expect(await refusedInDemoCopy(save)).toBe(false)
+  })
+
+  it('lets everything else through: assigning, reporting, attributing, reading', async () => {
+    expect(await refusedInDemoCopy(submit('/programs/12', { body: new URLSearchParams({ intent: 'assign' }) }))).toBe(
+      false,
+    )
+    expect(await refusedInDemoCopy(submit('/settings/users/412/export-data'))).toBe(false)
+    expect(await refusedInDemoCopy(new Request('https://demo-x7k2p.example.com/me/security'))).toBe(false)
   })
 })
