@@ -7,6 +7,7 @@ const mockDb = {
   attribution: { findMany: vi.fn() },
   publisherGroup: { findFirst: vi.fn() },
   event: { findMany: vi.fn() },
+  absence: { findMany: vi.fn() },
   boardDocumentView: { findMany: vi.fn() },
   boardDocumentVersion: { findMany: vi.fn() },
   consentRecord: { findMany: vi.fn() },
@@ -72,6 +73,13 @@ describe('exportAccountData', () => {
       deputyId: null,
     } as never)
     mockDb.event.findMany.mockResolvedValue([] as never)
+    const absence = {
+      startDate: new Date('2027-01-04'),
+      endDate: new Date('2027-01-08'),
+      note: '',
+      createdAt: new Date('2026-12-01'),
+    }
+    mockDb.absence.findMany.mockResolvedValue([absence] as never)
     const readAt = new Date('2026-11-08T09:00:00Z')
     mockDb.boardDocumentView.findMany.mockResolvedValue([
       { viewedAt: readAt, document: { title: 'Lettre', type: 'pdf', createdAt: new Date('2026-11-01') } },
@@ -108,8 +116,33 @@ describe('exportAccountData', () => {
     expect(result.publisherActivities).toHaveLength(1)
     expect(result.attributions).toHaveLength(1)
     expect(result.publisherGroup).not.toBeNull()
-    expect(result.exportVersion).toBe('2.0')
+    expect(result.exportVersion).toBe('2.1')
     expect(result.exportDate).toBeDefined()
+    // The person's absences, by their record: those declared from a login since deleted are theirs too.
+    expect(result.absences).toEqual([absence])
+    expect(mockDb.absence.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { congregationId: 42, memberId: 7 } }),
+    )
+  })
+
+  it('exports the absences of an account without a record by the account', async () => {
+    mockDb.userAccount.findUnique.mockResolvedValue({ memberId: null } as never)
+    for (const table of [
+      mockDb.rolePermission,
+      mockDb.event,
+      mockDb.absence,
+      mockDb.boardDocumentView,
+      mockDb.boardDocumentVersion,
+      mockDb.consentRecord,
+    ]) {
+      table.findMany.mockResolvedValue([] as never)
+    }
+
+    await exportAccountData(mockDb as never, 1, 42)
+
+    expect(mockDb.absence.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { congregationId: 42, accountId: 1, memberId: null } }),
+    )
   })
 
   // Regression: the select still asked for Member.type, dropped with the pioneer enrolments. The client rejected
@@ -130,6 +163,7 @@ describe('exportAccountData', () => {
     for (const table of [
       mockDb.rolePermission,
       mockDb.event,
+      mockDb.absence,
       mockDb.boardDocumentView,
       mockDb.boardDocumentVersion,
       mockDb.consentRecord,

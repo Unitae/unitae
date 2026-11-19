@@ -3,8 +3,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 
 // « Retirer la connexion » on a record deletes the login, by the same rules as deleting it from Réglages: it must not
-// end in a foreign-key error on the events the login created. A record's absences are the person's, so a login whose
-// record has some is refused; its other events lose their author and stay what they were.
+// end in a foreign-key error on the events the login created. A record's absences are the person's, so they stay on
+// the record without the login; its other events lose their author and stay what they were.
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -23,7 +23,6 @@ function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promi
 }
 
 const { unlinkAccountFromMember } = await import('./unlink-account-from-member.server')
-const { AccountHasAbsencesError } = await import('~/features/events/index.server')
 const { Permission } = await import('~/shared/types/permission')
 
 const ADMIN = new Set<string>([Permission.CanDoAnything])
@@ -82,6 +81,12 @@ function personWithLogin(name: string, { absence }: { absence: boolean }) {
         data: { name, startDate: DAY, endDate: DAY, templateId, createdById: accountId, congregationId },
       })
     const absenceId = absence ? (await event(ids.dayOffTemplate)).id : null
+    // Written twice, as createDayOff does: the event and its Absence row.
+    if (absenceId != null) {
+      await tx.absence.create({
+        data: { startDate: DAY, endDate: DAY, memberId, accountId, legacyEventId: absenceId, congregationId },
+      })
+    }
     const meetingId = (await event(ids.meetingTemplate)).id
     return { memberId, accountId, absenceId, meetingId }
   })
@@ -101,11 +106,16 @@ describe('unlinkAccountFromMember and the events the login created', () => {
     expect(await event(meetingId)).toEqual({ createdById: null, origin: 'manual' })
   })
 
-  it('refuses a login whose record has absences, changing nothing', async () => {
+  // Taking the login away leaves the person's absences with them: on the record, without the login.
+  it('removes a login whose record has absences, which stay on the record', async () => {
     const { memberId, accountId, absenceId, meetingId } = await personWithLogin('Absent', { absence: true })
 
-    await expect(unlink(memberId)).rejects.toBeInstanceOf(AccountHasAbsencesError)
-    expect(await event(absenceId as number)).toEqual({ createdById: accountId, origin: 'manual' })
-    expect(await event(meetingId)).toEqual({ createdById: accountId, origin: 'manual' })
+    expect(await unlink(memberId)).toEqual({ accountId, email: `Absent-${ts}@test.com` })
+    expect(await event(absenceId as number)).toBeNull()
+    expect(await event(meetingId)).toEqual({ createdById: null, origin: 'manual' })
+    const absences = await withScope(ids.cong, tx =>
+      tx.absence.findMany({ where: { memberId }, select: { accountId: true, legacyEventId: true } }),
+    )
+    expect(absences).toEqual([{ accountId: null, legacyEventId: absenceId }])
   })
 })

@@ -68,8 +68,8 @@ export async function createDayOff(
     },
   })
   // Written twice until the events are dropped: the lists, the feed, the conflict checks and the archive read the
-  // Absence row (the person's record when the account has one); account deletion still goes through the event, and
-  // deleting either one takes the other.
+  // Absence row (the person's record when the account has one). Deleting an absence takes its event; deleting the
+  // account finds its day-offs by their event and drops them, leaving the rows on the record (releaseAccountEvents).
   const absence = await db.absence.create({
     data: { startDate, endDate, memberId, accountId, legacyEventId: event.id, congregationId },
   })

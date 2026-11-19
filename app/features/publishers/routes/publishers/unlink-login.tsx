@@ -1,12 +1,12 @@
 import { redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { AccountHasAbsencesError } from '~/features/events/index.server'
 import { unlinkAccountFromMember } from '~/features/publishers/server/unlink-account-from-member.server'
 import * as m from '~/i18n/paraglide/messages'
+import { LastAdminError } from '~/shared/auth/permissions.server'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { OwnAccountError } from '~/shared/domain/account-protection.server'
 import { GrantBeyondActorError } from '~/shared/domain/role-grant-limits.server'
-import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
+import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { MemberId } from '~/shared/types/branded'
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
@@ -16,10 +16,10 @@ export function loader() {
   throw redirect('/publishers')
 }
 
-function unlinkRefusal(error: OwnAccountError | GrantBeyondActorError | ConflictError): string {
+// Each refusal by name: another one would otherwise read as the last administrator's.
+function unlinkRefusal(error: OwnAccountError | GrantBeyondActorError | LastAdminError): string {
   if (error instanceof OwnAccountError) return m.settings_user_own_account()
   if (error instanceof GrantBeyondActorError) return m.settings_user_admin_only()
-  if (error instanceof AccountHasAbsencesError) return m.settings_user_has_absences()
   return m.settings_user_last_admin()
 }
 
@@ -44,7 +44,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       if (
         error instanceof OwnAccountError ||
         error instanceof GrantBeyondActorError ||
-        error instanceof ConflictError
+        error instanceof LastAdminError
       ) {
         return { refused: unlinkRefusal(error) }
       }

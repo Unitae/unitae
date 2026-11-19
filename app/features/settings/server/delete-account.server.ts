@@ -13,8 +13,8 @@ import type { AccountId } from '~/shared/types/branded'
  * lose their login. Tokens, permissions, and `UserRoleAssignment` rows
  * cascade via FK `onDelete`.
  *
- * The events and Absence rows it created are let go of first (releaseAccountEvents): an account with a record and
- * absences is refused.
+ * Its events and Absence rows are let go of first (releaseAccountEvents): a record's absences stay on the record
+ * without the account; its day-off events go and its other events lose their author.
  *
  * For anonymization (keep the row, scrub PII) call `anonymizeAccount` instead.
  * This service is the destructive variant.

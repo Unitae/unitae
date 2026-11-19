@@ -1,4 +1,3 @@
-import { AccountHasAbsencesError } from '~/features/events/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import { LastAdminError } from '~/shared/auth/permissions.server'
 import { OwnAccountError } from '~/shared/domain/account-protection.server'
@@ -9,6 +8,5 @@ export function accountRefusal(error: unknown): string | null {
   if (error instanceof OwnAccountError) return m.settings_user_own_account()
   if (error instanceof LastAdminError) return m.settings_user_last_admin()
   if (error instanceof GrantBeyondActorError) return m.settings_user_admin_only()
-  if (error instanceof AccountHasAbsencesError) return m.settings_user_has_absences()
   return null
 }

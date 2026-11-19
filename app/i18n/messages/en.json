@@ -5588,7 +5588,6 @@
     "settings_user_admin_only": "An administrator’s account is handled by an administrator.",
     "settings_user_own_account": "You cannot do this to your own account: ask another manager.",
     "settings_user_last_admin": "This is the congregation’s last administrator: give the role to someone else first.",
-    "settings_user_has_absences": "This account has absences: they stay with the person, so it cannot be deleted for now.",
     "settings_users_views": "Accounts",
     "settings_users_view_all": "All",
     "settings_users_view_active": "Active",
