@@ -2,6 +2,7 @@ import * as m from '~/i18n/paraglide/messages'
 
 /** What each kind of object the audit log names is called, by the model name the audit row stores. */
 const ENTITY_LABEL: Record<string, () => string> = {
+  Absence: m.audit_log_entity_absence,
   Attribution: m.audit_log_entity_attribution,
   BoardDocument: m.audit_log_entity_board_document,
   BoardDynamicDocumentSettings: m.audit_log_entity_dynamic_document,
