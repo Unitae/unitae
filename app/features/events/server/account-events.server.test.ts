@@ -32,15 +32,19 @@ beforeEach(() => {
 })
 
 describe('releaseAccountEvents', () => {
+  // Every row goes, with its event or without one (written alone when the congregation has no day-off template), and
+  // the audit trail lists them all.
   it('deletes the absences of an account without a record and clears its author elsewhere', async () => {
+    const alone = { id: 6, startDate: new Date('2027-02-01T00:00:00Z'), endDate: new Date('2027-02-02T22:59:00Z') }
     db.event.findMany.mockResolvedValue([ABSENCE])
     db.event.deleteMany.mockResolvedValue({ count: 1 })
     db.event.updateMany.mockResolvedValue({ count: 2 })
+    db.absence.findMany.mockResolvedValue([{ id: 5, startDate: ABSENCE.startDate, endDate: ABSENCE.endDate }, alone])
 
     const released = await releaseAccountEvents(db as never, { id: 7, memberId: null }, 10)
 
     expect(released).toEqual({
-      absencesDeleted: [{ id: 31, startDate: ABSENCE.startDate, endDate: ABSENCE.endDate }],
+      absencesDeleted: [{ id: 5, startDate: ABSENCE.startDate, endDate: ABSENCE.endDate }, alone],
       absencesKept: 0,
       eventsUnattributed: 2,
     })

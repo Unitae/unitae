@@ -3,7 +3,7 @@ import { refreshConflictFlags } from '~/features/events/server/refresh-conflict-
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export interface ReleasedAccountEvents {
-  /** The day-off events deleted with an account that has no record, for the audit trail. */
+  /** The absences deleted with an account that has no record (their rows), for the audit trail. */
   absencesDeleted: { id: number; startDate: Date; endDate: Date }[]
   /** How many absences stayed on the record, now without the account (0 for an account without one). */
   absencesKept: number
@@ -38,9 +38,17 @@ export async function releaseAccountEvents(
   if (dayOffs.length > 0) {
     await db.event.deleteMany({ where: { congregationId, id: { in: dayOffs.map(dayOff => dayOff.id) } } })
   }
-  if (account.memberId == null) {
-    // Every Absence row still naming the account (accountId is Restrict): those of the absences just deleted, and any
-    // whose event went without them.
+  // Every Absence row still naming the account (accountId is Restrict), with an event or without one — a row written
+  // alone, when the congregation has no day-off template. Read first, for the audit trail.
+  const absencesDeleted =
+    account.memberId == null
+      ? await db.absence.findMany({
+          where: { congregationId, accountId: account.id },
+          select: { id: true, startDate: true, endDate: true },
+          orderBy: { id: 'asc' },
+        })
+      : []
+  if (absencesDeleted.length > 0) {
     await db.absence.deleteMany({ where: { congregationId, accountId: account.id } })
   }
   const unattributed = await db.event.updateMany({
@@ -48,8 +56,7 @@ export async function releaseAccountEvents(
     data: { createdById: null },
   })
   return {
-    absencesDeleted:
-      account.memberId == null ? dayOffs.map(({ id, startDate, endDate }) => ({ id, startDate, endDate })) : [],
+    absencesDeleted,
     absencesKept,
     eventsUnattributed: unattributed.count,
   }

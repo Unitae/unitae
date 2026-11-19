@@ -84,7 +84,7 @@ describe('an absence written twice', () => {
   it('writes the event and its Absence row, with the person’s record', async () => {
     const event = await withScope(ids.cong, tx => createDayOff(tx, ids.account, ids.member, START, END, ids.cong))
 
-    expect(await absenceOf(event?.id as number)).toEqual({
+    expect(await absenceOf(event?.eventId as number)).toEqual({
       startDate: START,
       endDate: END,
       memberId: ids.member,
@@ -98,12 +98,15 @@ describe('an absence written twice', () => {
       createDayOff(tx, ids.accountWithoutRecord, null, START, END, ids.cong),
     )
 
-    expect(await absenceOf(event?.id as number)).toMatchObject({ memberId: null, accountId: ids.accountWithoutRecord })
+    expect(await absenceOf(event?.eventId as number)).toMatchObject({
+      memberId: null,
+      accountId: ids.accountWithoutRecord,
+    })
   })
 
   it('deletes the event and its Absence row together', async () => {
     const event = await withScope(ids.cong, tx => createDayOff(tx, ids.account, ids.member, START, END, ids.cong))
-    const eventId = event?.id as number
+    const eventId = event?.eventId as number
     expect(await absenceOf(eventId)).not.toBeNull()
 
     await withScope(ids.cong, tx =>
@@ -133,5 +136,60 @@ describe('an absence written twice', () => {
     expect(ours).toBeGreaterThan(0)
     expect(seen).toBe(ours)
     await expect(intrusion).rejects.toThrow()
+  })
+
+  // Once the day-off events and their template are dropped: declaring and cancelling an absence keep working, with the
+  // Absence row alone.
+  it('declares and cancels an absence with no day-off template, as a row alone', async () => {
+    const congregationId = (
+      await testDb.congregation.create({
+        data: { name: `Days off bare ${ts}`, slug: `days-off-bare-${ts}`, active: true },
+      })
+    ).id
+    try {
+      const outcome = await withScope(congregationId, async tx => {
+        const member = await tx.member.create({ data: { firstname: 'Paul', lastname: 'MARTIN', congregationId } })
+        const account = await tx.userAccount.create({
+          data: { email: `paul-bare-${ts}@test.com`, password: 'x', memberId: member.id, congregationId },
+        })
+        // A published meeting during the absence, with a part the person holds.
+        const meeting = await tx.event.create({
+          data: { name: 'Réunion', startDate: START, endDate: START, status: 'released', congregationId },
+        })
+        const part = await tx.eventPart.create({
+          data: { name: 'Lecture', eventId: meeting.id, assigneeId: member.id, congregationId },
+        })
+        const created = await createDayOff(tx, account.id, member.id, START, END, congregationId)
+        const row = await tx.absence.findFirst({ where: { id: created?.absenceId }, select: { legacyEventId: true } })
+        const flagged = (await tx.eventPart.findFirstOrThrow({ where: { id: part.id } })).hasConflict
+        const events = await tx.event.count({ where: { id: { not: meeting.id } } })
+        const cancelled = await deleteDayOff(tx, {
+          absenceId: created?.absenceId as number,
+          accountId: account.id,
+          memberId: member.id,
+          congregationId,
+        })
+        const cleared = !(await tx.eventPart.findFirstOrThrow({ where: { id: part.id } })).hasConflict
+        return { created, row, flagged, events, cancelled, cleared, left: await tx.absence.count() }
+      })
+
+      expect(outcome.created?.eventId).toBeNull()
+      expect(outcome.row).toEqual({ legacyEventId: null })
+      expect(outcome.events).toBe(0)
+      // The absence flags the part the person holds during it, and cancelling it clears the flag.
+      expect(outcome.flagged).toBe(true)
+      expect(outcome.cleared).toBe(true)
+      expect(outcome.cancelled).toMatchObject({ startDate: START, endDate: END })
+      expect(outcome.left).toBe(0)
+    } finally {
+      await withScope(congregationId, async tx => {
+        await tx.absence.deleteMany({})
+        await tx.event.deleteMany({})
+        await tx.userAccount.deleteMany({})
+        await tx.member.deleteMany({})
+      })
+      await testDb.auditLog.deleteMany({ where: { congregationId } })
+      await testDb.congregation.deleteMany({ where: { id: congregationId } })
+    }
   })
 })
