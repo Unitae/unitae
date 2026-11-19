@@ -1,11 +1,11 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 
-// Deleting an account must not end in a foreign-key error on the events it created. Its absences go with it when it
-// has no record: they belong to nobody else. An account linked to a record keeps them, so it is refused until they can
-// be handed to the record. Its other events lose their author and stay what they were: a hand-made event never becomes
-// an empty meeting a template may move or delete.
+// Deleting an account: its absences go with it when it has no record, since they belong to nobody else, and stay on the
+// record when it has one. Its events lose their author and stay what they were: a hand-made event never becomes an
+// empty meeting a template may move or delete. The audit trail counts the events it let go of.
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -185,6 +185,14 @@ describe('deleteAccount and the events the account created', () => {
 
     expect(result.memberId).not.toBeNull()
     expect(await eventsOf([meetingId])).toEqual([{ id: meetingId, createdById: null, origin: 'manual' }])
+    // The database would clear the author too (SetNull): the deletion clears it itself, to count it for the audit trail.
+    await flushPendingAuditWrites()
+    const audit = await testDb.auditLog.findFirst({
+      where: { congregationId: ids.cong, action: 'account.deleted', entityId: accountId },
+      select: { metadata: true },
+    })
+    // Stored as JSON text.
+    expect(JSON.parse(String(audit?.metadata))).toMatchObject({ eventsUnattributed: 1 })
   })
 
   // The bug this guards: an event without an author used to read as the job's. Once their accounts are gone, the

@@ -133,7 +133,7 @@ describe('20261116120000_add_meeting_attendance', () => {
     expect(message).toMatch(KIND_CHECK)
   })
 
-  // What deleting the account does to the author is 20261122090000_event_author_set_null's (SetNull since).
+  // What deleting the account does to the author is checked by event-author-set-null.integration.test.ts.
   it('makes an event’s author optional', async () => {
     const rows = await testDb.$queryRaw<{ is_nullable: string }[]>`
       SELECT is_nullable FROM information_schema.columns WHERE table_name = 'Event' AND column_name = 'createdById'`
