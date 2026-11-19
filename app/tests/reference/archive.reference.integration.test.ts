@@ -450,6 +450,7 @@ describe('the archive', () => {
 
     // Hugo's day-off is not restored as an event, nor its template: an absence is its row alone.
     expect(after.statuses).toEqual([{ _count: 18, status: 'draft' }])
+    expect(after.hours.map(template => template.key)).not.toContain('day-off')
     expect(new Set(after.hours.map(template => `${template.startTime}–${template.endTime}`))).toEqual(
       new Set(['19:00–21:00']),
     )

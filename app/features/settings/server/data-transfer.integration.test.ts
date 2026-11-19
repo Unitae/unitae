@@ -1939,9 +1939,7 @@ describe('restored absences', () => {
     })
     try {
       const rows = await withScope(cong.id, async tx => {
-        const dayOff = await tx.eventTemplate.create({
-          data: { name: 'Absence', key: 'day-off', congregationId: cong.id },
-        })
+        // No day-off template here: a congregation has none since they were dropped.
         const member = await tx.member.create({
           data: { firstname: 'Paul', lastname: 'MARTIN', congregationId: cong.id },
         })
@@ -1952,7 +1950,6 @@ describe('restored absences', () => {
           data: { email: `sans-restored-${ts}@test.com`, password: 'x', congregationId: cong.id },
         })
         const idMap = new EntityIdMap()
-        idMap.set('programme-templates', 9, dayOff.id)
         idMap.set('user-accounts', 70, withRecord.id)
         idMap.set('user-accounts', 71, withoutRecord.id)
         const absence = (id: number, createdById: number) => ({
@@ -2025,9 +2022,7 @@ describe('restored absences from a 2.19 archive', () => {
     })
     try {
       const rows = await withScope(cong.id, async tx => {
-        const dayOff = await tx.eventTemplate.create({
-          data: { name: 'Absence', key: 'day-off', congregationId: cong.id },
-        })
+        // No day-off template here: a congregation has none since they were dropped.
         const member = await tx.member.create({
           data: { firstname: 'Paul', lastname: 'MARTIN', congregationId: cong.id },
         })
@@ -2038,7 +2033,6 @@ describe('restored absences from a 2.19 archive', () => {
           data: { email: `sans-file-${ts}@test.com`, password: 'x', congregationId: cong.id },
         })
         const idMap = new EntityIdMap()
-        idMap.set('programme-templates', 9, dayOff.id)
         idMap.set('members', 50, member.id)
         idMap.set('user-accounts', 70, withRecord.id)
         idMap.set('user-accounts', 71, withoutRecord.id)
