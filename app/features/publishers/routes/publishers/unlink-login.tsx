@@ -1,6 +1,5 @@
 import { redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { AccountHasAbsencesError } from '~/features/events/index.server'
 import { unlinkAccountFromMember } from '~/features/publishers/server/unlink-account-from-member.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -19,7 +18,6 @@ export function loader() {
 function unlinkRefusal(error: OwnAccountError | GrantBeyondActorError | ConflictError): string {
   if (error instanceof OwnAccountError) return m.settings_user_own_account()
   if (error instanceof GrantBeyondActorError) return m.settings_user_admin_only()
-  if (error instanceof AccountHasAbsencesError) return m.settings_user_has_absences()
   return m.settings_user_last_admin()
 }
 
