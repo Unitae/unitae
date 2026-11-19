@@ -337,19 +337,32 @@ function withoutMark(data: unknown): unknown {
 }
 
 /**
- * An archive as a version before 2.16 wrote it: no event status, no template hours, no document configuration — and no
- * absences file (2.19), so its absences come back from their day-off events.
+ * An archive as a version before 2.16 wrote it: no event status, no template hours, no document configuration — and its
+ * absences as day-off events of a day-off template, with no absences file (2.19), so they come back from those events.
  */
 function asBefore216(files: Record<string, unknown[]>): Record<string, unknown[]> {
   const without = (name: string, keys: string[]) =>
     (files[name] ?? []).map(line =>
       Object.fromEntries(Object.entries(line as object).filter(([key]) => !keys.includes(key))),
     )
-  const { absences: _absences, ...rest } = files
+  const { absences = [], ...rest } = files
+  const dayOff = { id: 999_999, name: 'Absence', key: 'day-off', description: '', weekDay: null, isRecurring: false }
+  const dayOffs = (
+    absences as { id: number; startDate: string; endDate: string; note: string; accountId: number }[]
+  ).map(absence => ({
+    id: 999_000 + absence.id,
+    name: 'Absence',
+    description: absence.note,
+    startDate: absence.startDate,
+    endDate: absence.endDate,
+    templateId: dayOff.id,
+    createdById: absence.accountId,
+    createdAt: absence.startDate,
+  }))
   return {
     ...rest,
-    events: without('events', ['status']),
-    'programme-templates': without('programme-templates', ['startTime', 'endTime']),
+    events: [...without('events', ['status']), ...dayOffs],
+    'programme-templates': [...without('programme-templates', ['startTime', 'endTime']), dayOff],
     'board-dynamic-document-settings': without('board-dynamic-document-settings', ['dynamicConfig']),
   }
 }
@@ -435,13 +448,14 @@ describe('the archive', () => {
       }),
     }))
 
-    expect(after.statuses).toEqual([{ _count: 19, status: 'draft' }])
+    // Hugo's day-off is not restored as an event, nor its template: an absence is its row alone.
+    expect(after.statuses).toEqual([{ _count: 18, status: 'draft' }])
     expect(new Set(after.hours.map(template => `${template.startTime}–${template.endTime}`))).toEqual(
       new Set(['19:00–21:00']),
     )
     expect(after.configurations).toHaveLength(4)
     expect(after.configurations.every(document => document.dynamicConfig === null)).toBe(true)
-    // No absences file: Hugo's absence comes back from his day-off, on his record.
-    expect(after.absences).toEqual([{ memberId: expect.any(Number), legacyEventId: expect.any(Number) }])
+    // No absences file: Hugo's absence comes back from his day-off, on his record, without the event.
+    expect(after.absences).toEqual([{ memberId: expect.any(Number), legacyEventId: null }])
   })
 })

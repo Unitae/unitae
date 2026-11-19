@@ -5,7 +5,7 @@ METHOD:PUBLISH
 NAME:Unitae — hugo
 X-WR-CALNAME:Unitae — hugo
 BEGIN:VEVENT
-UID:day-off-<id>@reference.test
+UID:absence-<id>@reference.test
 SEQUENCE:1804064400
 DTSTAMP:20270303T090000Z
 DTSTART;VALUE=DATE:20270314
