@@ -142,7 +142,7 @@ describe('the dynamic document PDF loader', () => {
     expect(response.status).toBe(200)
     expect(builtSheet().data).toMatchObject({ type: DynamicType.Programme, events, config })
     expect(builtSheet().options).toMatchObject({ title: 'Réunions', congregationName: 'Assemblée de Lyon' })
-    expect(renderPdfResponse).toHaveBeenCalledWith(SHEET, 'réunions.pdf')
+    expect(renderPdfResponse).toHaveBeenCalledWith(SHEET, 'réunions.pdf', { demo: false })
   })
 
   it('prints this month and the next of the programme, on the congregation’s clock', async () => {
@@ -231,7 +231,7 @@ describe('the dynamic document PDF loader', () => {
 
     await download()
 
-    expect(renderPdfResponse).toHaveBeenCalledWith(SHEET, 'programme.pdf')
+    expect(renderPdfResponse).toHaveBeenCalledWith(SHEET, 'programme.pdf', { demo: false })
   })
 
   it('refuses a document whose data cannot be read, such as an unknown type', async () => {
@@ -275,7 +275,7 @@ describe('the dynamic document PDF loader', () => {
     expect(builtSheet().data).toEqual(data)
     expect(builtSheet().appearance).toEqual({ typeface: 'fira', accent: 'teal', layout: expect.any(String) })
     expect(builtSheet().options).toMatchObject({ title: 'Mon Document' })
-    expect(renderPdfResponse).toHaveBeenCalledWith(SHEET, 'mon document.pdf')
+    expect(renderPdfResponse).toHaveBeenCalledWith(SHEET, 'mon document.pdf', { demo: false })
   })
 
   it.each([
@@ -292,7 +292,7 @@ describe('the dynamic document PDF loader', () => {
 
     await download()
 
-    expect(renderPdfResponse).toHaveBeenCalledWith(expect.anything(), expected)
+    expect(renderPdfResponse).toHaveBeenCalledWith(expect.anything(), expected, { demo: false })
   })
 
   it('prints the sheet in the look and layout chosen for the document', async () => {

@@ -2,6 +2,7 @@ import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import type { ReportFigures, ReportMonth } from '~/features/events/model/attendance-report'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
+import { PdfDemoMark } from '~/shared/ui/pdf-demo-mark'
 import { PDF_SERIF_FAMILY, registerPdfFonts } from '~/shared/ui/pdf-fonts'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 
@@ -131,6 +132,7 @@ export function AttendanceRecordDocument({ years }: AttendanceRecordDocumentProp
         <Text style={styles.formReference} fixed>
           {m.attendance_record_form_reference()}
         </Text>
+        <PdfDemoMark />
       </Page>
     </Document>
   )

@@ -2,7 +2,13 @@ import { redirect } from 'react-router'
 import { getPublishersWithEmergencyInfo } from '~/features/publishers/server/emergency.queries'
 import { EmergencyRosterDocument } from '~/features/publishers/ui/EmergencyRosterDocument'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
+import { isDemoCongregation } from '~/shared/domain/demo-mode.server'
 import { renderPdfResponse } from '~/shared/infra/pdf.server'
 import { Permission } from '~/shared/types/permission'
 
@@ -22,6 +28,7 @@ export function loader({ context }: Route.LoaderArgs) {
     return renderPdfResponse(
       <EmergencyRosterDocument title={m.publishers_emergency_roster_all_groups()} publishers={publishers} />,
       'urgences.pdf',
+      { demo: isDemoCongregation(context.get(congregationContext)) },
     )
   })
 }

@@ -1,5 +1,6 @@
 import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import * as m from '~/i18n/paraglide/messages'
+import { PdfDemoMark } from '~/shared/ui/pdf-demo-mark'
 import { PDF_FONT_FAMILY, registerPdfFonts } from '~/shared/ui/pdf-fonts'
 
 registerPdfFonts()
@@ -78,6 +79,7 @@ export function EmergencyRosterDocument({ title, publishers }: EmergencyRosterDo
             )}
           </View>
         ))}
+        <PdfDemoMark />
       </Page>
     </Document>
   )

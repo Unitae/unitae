@@ -1,5 +1,6 @@
-import { Document, Page, pdf, StyleSheet, Text, type TextProps, View } from '@react-pdf/renderer'
-import { createElement as h, type ReactNode } from 'react'
+import { Document, type DocumentProps, Page, pdf, StyleSheet, Text, type TextProps, View } from '@react-pdf/renderer'
+import { createElement as h, type ReactElement, type ReactNode } from 'react'
+import { PdfDemoContext, PdfDemoMark } from '~/shared/ui/pdf-demo-mark'
 import type { BoardBlock, BoardDocumentSeed } from './board'
 
 const INK = '#1d222b'
@@ -59,19 +60,28 @@ function block(item: BoardBlock, index: number): ReactNode {
   )
 }
 
-/** A board document as a congregation prints it: an A4 page with its name, the title and the text. */
-export function boardPdf(congregation: string, document: BoardDocumentSeed): Promise<Blob> {
+/**
+ * A board document as a congregation prints it: an A4 page with its name, the title and the text. A visitor's demo
+ * copy shows it with « Démo » in the corner, like every PDF a copy prints.
+ */
+export function boardPdf(congregation: string, document: BoardDocumentSeed, { demo = false } = {}): Promise<Blob> {
   return pdf(
     h(
-      Document,
-      { title: document.title },
+      PdfDemoContext.Provider,
+      { value: demo },
       h(
-        Page,
-        { size: 'A4', style: styles.page },
-        line(styles.congregation, congregation),
-        line(styles.title, document.title),
-        ...document.blocks.map(block),
+        Document,
+        { title: document.title },
+        h(
+          Page,
+          { size: 'A4', style: styles.page },
+          line(styles.congregation, congregation),
+          line(styles.title, document.title),
+          ...document.blocks.map(block),
+          // The demo congregation is French.
+          h(PdfDemoMark, { locale: 'fr' }),
+        ),
       ),
-    ),
+    ) as ReactElement<DocumentProps>,
   ).toBlob()
 }

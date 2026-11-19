@@ -2,7 +2,13 @@ import { redirect } from 'react-router'
 import { getTerritoriesExportData } from '~/features/territories/server/territories-export-data.server'
 import { TerritoryAttributionDocument } from '~/features/territories/ui/TerritoryAttributionDocument'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
+import { isDemoCongregation } from '~/shared/domain/demo-mode.server'
 import logger from '~/shared/infra/logger.server'
 import { renderPdfResponse } from '~/shared/infra/pdf.server'
 import { Permission } from '~/shared/types/permission'
@@ -36,6 +42,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     return renderPdfResponse(
       <TerritoryAttributionDocument year={Number(params.year)} territories={territories} />,
       `S-13_F-${params.year}.pdf`,
+      { demo: isDemoCongregation(context.get(congregationContext)) },
     )
   })
 }

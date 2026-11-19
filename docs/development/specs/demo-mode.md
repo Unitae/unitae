@@ -22,8 +22,10 @@ A copy can hold anything a visitor types, and a screenshot of it can't be preven
 
 - a banner on every page, on a phone too, which can't be closed: « Démo — données inventées », the role, « changer de
   rôle », « créer votre assemblée »;
-- « Démo » in the header of every PDF and printed document (not built yet: it needs a library to stamp the rendered
-  PDFs);
+- « Démo — données inventées » in the top corner of every page of every PDF it prints: each `<Page>` carries a
+  `PdfDemoMark`, which prints only when `renderPdfResponse` or `renderPdfBuffer` is called with `{ demo: true }`, as
+  every PDF route does for a copy. The board's shared PDFs carry it too. Visitors can't upload, so a copy holds no
+  other PDF;
 - the congregation's data is invented, and the control plane names it « Assemblée de démonstration ».
 
 ## What a copy refuses

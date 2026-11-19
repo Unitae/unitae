@@ -420,7 +420,7 @@ async function writeBoard(
     const row = await prisma.boardSection.create({ data: { name: section.name, order: index + 1, congregationId } })
     sections.push(row.id)
     for (const [order, document] of section.documents.entries()) {
-      const pdf = await boardPdf(board.congregation, document)
+      const pdf = await boardPdf(board.congregation, document, { demo: board.sharedFiles })
       let uri: string
       let thumbnailUri: string | null
       if (board.sharedFiles) {
