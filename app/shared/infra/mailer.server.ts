@@ -25,7 +25,8 @@ export function isEmailConfigured(): boolean {
 }
 
 /**
- * Sends an email, throwing when Resend refuses it.
+ * Sends an email, throwing when Resend refuses it. Recipients at the demo's invented domains (below) are dropped first;
+ * with no real recipient left it sends nothing and returns `null`.
  *
  * `mailer.emails.send` resolves on API-level rejections (unverified sending
  * domain, malformed `from`, rate limit) and reports them through the `error`
@@ -35,14 +36,20 @@ export function isEmailConfigured(): boolean {
  * a thrown error to mark the event `failed` and to trigger the BullMQ retry.
  */
 export async function sendEmail(options: CreateEmailOptions): Promise<CreateEmailResponseSuccess | null> {
-  const to = deliverable(options.to)
-  // Every recipient invented (the demo's people and speakers): nothing to send.
+  const cc = options.cc === undefined ? [] : deliverable(options.cc)
+  const bcc = options.bcc === undefined ? [] : deliverable(options.bcc)
+  // The main recipient invented but a copy real (a coordinator in copy of a placeholder address): the copy becomes
+  // the recipient, rather than losing a message the caller reports as sent.
+  const listed = deliverable(options.to)
+  const promoted = listed.length === 0
+  const to = promoted ? cc : listed
+  // Nobody real left (the demo's people and speakers): nothing to send.
   if (to.length === 0) return null
   const { data, error } = await mailer.emails.send({
     ...options,
     to,
-    ...(options.cc === undefined ? {} : { cc: deliverable(options.cc) }),
-    ...(options.bcc === undefined ? {} : { bcc: deliverable(options.bcc) }),
+    ...(options.cc === undefined ? {} : { cc: promoted ? [] : cc }),
+    ...(options.bcc === undefined ? {} : { bcc }),
   } as CreateEmailOptions)
 
   if (error) {

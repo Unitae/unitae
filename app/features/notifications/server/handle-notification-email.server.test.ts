@@ -62,6 +62,7 @@ const CONGREGATION = {
   locale: 'en',
   timezone: 'UTC',
   suspendedAt: null,
+  demoExpiresAt: null,
 }
 
 beforeEach(() => {
@@ -440,6 +441,48 @@ describe('handleDigestEmail — transient mailer failures partition per event', 
         data: expect.objectContaining({ status: 'failed' }),
       }),
     )
+  })
+})
+
+// A visitor's demo copy holds whatever addresses they typed (docs/development/specs/demo-mode.md): it never mails
+// anyone, whatever triggered the notification.
+describe('demo copies are gated out of the pipeline', () => {
+  const COPY = { ...CONGREGATION, demoExpiresAt: new Date('2026-11-20T11:00:00Z') }
+
+  it('handleInstantEmail: does not send', async () => {
+    vi.mocked(resolveCongregation).mockResolvedValue(COPY as never)
+
+    await handleInstantEmail({
+      type: 'notification-instant',
+      congregationId: 42,
+      notificationType: 'board.document.deleted',
+      recipientId: null,
+      recipientRole: 'board-validator',
+      payload: JSON.stringify({ title: 'Removed doc' }),
+    })
+
+    expect(sendEmail).not.toHaveBeenCalled()
+  })
+
+  it('handleDigestEmail: does not send', async () => {
+    vi.mocked(resolveCongregation).mockResolvedValue(COPY as never)
+
+    await handleDigestEmail({
+      type: 'notification-digest',
+      congregationId: 42,
+      recipientId: 0,
+      events: [
+        {
+          type: 'board.document.created',
+          entityType: 'BoardDocument',
+          entityId: 100,
+          payload: JSON.stringify({ title: 'Doc A', documentId: 100 }),
+        },
+      ],
+      notificationEventIds: [11],
+    })
+
+    expect(sendEmail).not.toHaveBeenCalled()
   })
 })
 

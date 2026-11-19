@@ -72,6 +72,14 @@ describe('sendEmail to the demo’s invented addresses', () => {
     expect(sendMock).toHaveBeenCalledWith(expect.objectContaining({ to: ['real@test.org'], cc: [] }))
   })
 
+  it('sends to a real copy when only the main recipient is invented', async () => {
+    sendMock.mockResolvedValue({ data: { id: 'msg_2' }, error: null })
+
+    await sendEmail({ ...PAYLOAD, to: 'paul.orateur@example.org', cc: ['coordinator@test.org'] } as never)
+
+    expect(sendMock).toHaveBeenCalledWith(expect.objectContaining({ to: ['coordinator@test.org'], cc: [] }))
+  })
+
   it('reads an address written with a name', async () => {
     await expect(sendEmail({ ...PAYLOAD, to: 'Marc Dupont <marc@demo.unitae.app>' } as never)).resolves.toBeNull()
     expect(sendMock).not.toHaveBeenCalled()
