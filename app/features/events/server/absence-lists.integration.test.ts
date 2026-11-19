@@ -27,6 +27,8 @@ const { listMyAbsences, listCongregationAbsences, congregationHasAbsences } = aw
 const { getNextDaysOffs, deleteDayOff } = await import('./days-off.server')
 const { findUpcomingAbsencesForMember, findNextAbsencesForMembers } = await import('./member-engagement.queries')
 const { getPersonalAssignments } = await import('./personal-assignments.server')
+const { createDayOff } = await import('./days-off.server')
+const { releaseAccountEvents } = await import('./account-events.server')
 
 const ts = Date.now()
 const ids = {
@@ -235,5 +237,52 @@ describe('the lists of absences and the absences table', () => {
       tx.absence.findMany({ where: { id: { in: [ids.leaRow, ids.marieRow, ids.samRow] } }, select: { id: true } }),
     )
     expect(left.map(row => row.id).sort((a, b) => a - b)).toEqual([ids.marieRow, ids.leaRow].sort((a, b) => a - b))
+  })
+
+  // An absence is the person's: once the login it was declared from is deleted, it stays in every list, and a new
+  // login given the record finds it in « Mes absences » and can cancel it.
+  it('keeps a record’s absences in every list after its login is deleted, for a new login too', async () => {
+    const start = day('2027-08-02')
+    const end = day('2027-08-06')
+    const { leon, firstLogin } = await read(async tx => {
+      const leon = (
+        await tx.member.create({ data: { firstname: 'Léon', lastname: 'BLANC', congregationId: ids.cong } })
+      ).id
+      const firstLogin = (
+        await tx.userAccount.create({
+          data: { email: `leon-1-${ts}@test.com`, password: 'x', memberId: leon, congregationId: ids.cong },
+        })
+      ).id
+      await createDayOff(tx, firstLogin, leon, start, end, ids.cong)
+      return { leon, firstLogin }
+    })
+    await read(async tx => {
+      await releaseAccountEvents(tx, { id: firstLogin, memberId: leon }, ids.cong)
+      await tx.userAccount.delete({ where: { id_congregationId: { id: firstLogin, congregationId: ids.cong } } })
+    })
+    const secondLogin = await read(
+      async tx =>
+        (
+          await tx.userAccount.create({
+            data: { email: `leon-2-${ts}@test.com`, password: 'x', memberId: leon, congregationId: ids.cong },
+          })
+        ).id,
+    )
+
+    const congregation = await read(tx =>
+      listCongregationAbsences(tx, { congregationId: ids.cong, from: start, to: end }),
+    )
+    const mine = await read(tx =>
+      listMyAbsences(tx, { accountId: secondLogin, memberId: leon, congregationId: ids.cong, now: NOW }),
+    )
+    expect(congregation.map(({ memberId, firstname }) => ({ memberId, firstname }))).toEqual([
+      { memberId: leon, firstname: 'Léon' },
+    ])
+    expect(mine.map(({ startDate, endDate }) => ({ startDate, endDate }))).toEqual([{ startDate: start, endDate: end }])
+
+    const cancelled = await read(tx =>
+      deleteDayOff(tx, { absenceId: mine[0].id, accountId: secondLogin, memberId: leon, congregationId: ids.cong }),
+    )
+    expect(cancelled).toMatchObject({ startDate: start })
   })
 })

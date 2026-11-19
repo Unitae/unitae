@@ -9,7 +9,7 @@ vi.mock('~/shared/domain/audit.server', () => ({
 }))
 vi.mock('~/shared/infra/db.server', () => ({ unscopedDb: { auditLog: { create: vi.fn() } } }))
 vi.mock('~/features/events/index.server', () => ({
-  releaseAccountEvents: vi.fn(async () => ({ absencesDeleted: [], eventsUnattributed: 0 })),
+  releaseAccountEvents: vi.fn(async () => ({ absencesDeleted: [], absencesKept: 2, eventsUnattributed: 0 })),
 }))
 vi.mock('~/shared/auth/permissions.server', async () => {
   const { ConflictError } = await import('~/shared/errors/app-error.server')
@@ -106,7 +106,7 @@ describe('unlinkAccountFromMember', () => {
         actorId: 99,
         entityType: 'UserAccount',
         entityId: 42,
-        metadata: { memberId: 1, email: 'a@b.test', eventsUnattributed: 0 },
+        metadata: { memberId: 1, email: 'a@b.test', absencesKept: 2, eventsUnattributed: 0 },
       }),
     )
   })
