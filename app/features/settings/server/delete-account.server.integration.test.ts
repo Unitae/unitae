@@ -59,6 +59,7 @@ beforeAll(async () => {
 afterAll(async () => {
   if (ids.cong) {
     await withScope(ids.cong, async tx => {
+      await tx.absence.deleteMany({})
       await tx.event.deleteMany({})
       await tx.eventTemplate.deleteMany({})
       await tx.userRoleAssignment.deleteMany({})
@@ -89,6 +90,12 @@ async function account(name: string, { record, absence }: { record: boolean; abs
         data: { name, startDate: DAY, endDate: DAY, templateId, createdById: accountId, congregationId, ...extra },
       })
     const absenceId = absence ? (await event(ids.dayOffTemplate, { status: 'released' })).id : null
+    // Written twice, as createDayOff does: the event and its Absence row.
+    if (absenceId != null) {
+      await tx.absence.create({
+        data: { startDate: DAY, endDate: DAY, memberId, accountId, legacyEventId: absenceId, congregationId },
+      })
+    }
     const meetingId = (await event(ids.meetingTemplate)).id
     return { accountId, absenceId, meetingId }
   })
@@ -96,6 +103,8 @@ async function account(name: string, { record, absence }: { record: boolean; abs
 
 const remove = (accountId: number) =>
   withScope(ids.cong, tx => deleteAccount(tx, accountId as never, ids.cong, ids.admin, ADMIN))
+
+const absencesOf = (accountId: number) => withScope(ids.cong, tx => tx.absence.count({ where: { accountId } }))
 
 const eventsOf = (eventIds: (number | null)[]) =>
   withScope(ids.cong, tx =>
@@ -114,6 +123,7 @@ describe('deleteAccount and the events the account created', () => {
     const left = await withScope(ids.cong, tx => tx.userAccount.findFirst({ where: { id: accountId } }))
     expect(left).toBeNull()
     expect(await eventsOf([absenceId, meetingId])).toEqual([{ id: meetingId, createdById: null, origin: 'manual' }])
+    expect(await absencesOf(accountId)).toBe(0)
   })
 
   it('refuses an account linked to a record that has absences, changing nothing', async () => {
@@ -124,6 +134,7 @@ describe('deleteAccount and the events the account created', () => {
     const left = await withScope(ids.cong, tx => tx.userAccount.findFirst({ where: { id: accountId } }))
     expect(left).not.toBeNull()
     expect(await eventsOf([absenceId, meetingId])).toHaveLength(2)
+    expect(await absencesOf(accountId)).toBe(1)
   })
 
   it('deletes an account linked to a record without absences, clearing its author', async () => {

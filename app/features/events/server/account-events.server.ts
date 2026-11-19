@@ -39,6 +39,9 @@ export async function releaseAccountEvents(
   if (absences.length > 0) {
     await db.event.deleteMany({ where: { congregationId, id: { in: absences.map(absence => absence.id) } } })
   }
+  // The Absence rows still naming the account (accountId is Restrict): those of the absences just deleted, or — for an
+  // account with a record, which has none left — rows whose event a previous version deleted without them.
+  await db.absence.deleteMany({ where: { congregationId, accountId: account.id } })
   const unattributed = await db.event.updateMany({
     where: { congregationId, createdById: account.id },
     data: { createdById: null },
