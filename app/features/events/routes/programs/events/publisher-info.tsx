@@ -1,4 +1,4 @@
-import { EventTemplateKey } from '~/features/events/model/event-template.type'
+import { listAbsencesOverRange } from '~/features/events/server/absences.queries'
 import type { PartSlot } from '~/features/events/server/cadence-shared.server'
 import { mayReadSlotFacts } from '~/features/events/server/events-auth.server'
 import { listUserSameEventAssignments } from '~/features/events/server/list-user-same-event-assignments.server'
@@ -56,24 +56,12 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
     // Publisher profile
     const user = await db.member.findFirst({
       where: { id: userId, congregationId },
-      include: { publisherGroup: true, account: { select: { id: true } }, pioneerEnrolments: true },
+      include: { publisherGroup: true, pioneerEnrolments: true },
     })
     if (!user) return Response.json(null)
 
-    // Days-off overlapping this event — created by the publisher's account
-    const accountId = user.account?.id
-    const daysOff = accountId
-      ? await db.event.findMany({
-          where: {
-            congregationId,
-            createdById: accountId,
-            template: { key: EventTemplateKey.DayOff },
-            startDate: { lte: event.endDate },
-            endDate: { gte: event.startDate },
-          },
-          select: { id: true, startDate: true, endDate: true },
-        })
-      : []
+    // The publisher's absences over this event, read as the list of people to pick from reads them.
+    const daysOff = await listAbsencesOverRange(db, userId, event.startDate, event.endDate, congregationId)
 
     const sameEventAssignments = await listUserSameEventAssignments(db, {
       userId,
