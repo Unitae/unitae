@@ -23,6 +23,8 @@ const STATEMENTS = readFileSync(
 class Rollback extends Error {}
 
 interface Snapshot {
+  /** How many absences the congregation has: a duplicate would not show in `absences`, which is keyed by case. */
+  count: number
   /** Each absence by the name of the fixture case it stands for, with its record, account and event. */
   absences: Record<string, { memberId: number | null; accountId: number | null; legacyEventId: number | null }>
   /** The events left, by name. */
@@ -35,8 +37,8 @@ interface Result {
   ids: Record<string, number>
   first: Snapshot
   second: Snapshot
-  /** The other congregation's day-off templates and events after both runs. */
-  otherCongregation: { templates: number; events: number }
+  /** The other congregation's day-off templates, events and absences after both runs. */
+  otherCongregation: { templates: number; events: number; absences: number }
 }
 
 let memo: Promise<Result> | undefined
@@ -66,6 +68,7 @@ function snapshot(): Promise<Result> {
           tx.event.create({
             data: {
               name,
+              description: name,
               startDate: day(iso),
               endDate: day(iso),
               status: 'released',
@@ -105,6 +108,22 @@ function snapshot(): Promise<Result> {
         ids.withPart = (await event('with part', dayOff.id, account.id, '2027-01-25')).id
         await row('with part', { memberId: member.id, accountId: account.id, legacyEventId: ids.withPart })
         await tx.eventPart.create({ data: { name: 'Lecture', eventId: ids.withPart, congregationId } })
+        // The same with a service, and with attendance counts.
+        for (const [name, iso] of [
+          ['with service', '2027-02-01'],
+          ['with attendance', '2027-02-08'],
+        ] as const) {
+          ids[name] = (await event(name, dayOff.id, account.id, iso)).id
+          await row(name, { memberId: member.id, accountId: account.id, legacyEventId: ids[name] })
+        }
+        await tx.eventServicePart.create({ data: { name: 'Sono', eventId: ids['with service'], congregationId } })
+        await tx.attendance.create({ data: { eventId: ids['with attendance'], inPerson: 40, congregationId } })
+        // Written alone by an older version, by an account without a record: its absence is the account's.
+        const loner = await tx.userAccount.create({
+          data: { email: `sans-${stamp}@test.com`, password: 'x', congregationId },
+        })
+        ids.loner = loner.id
+        ids.lonerDayOff = (await event('uncopied without record', dayOff.id, loner.id, '2027-02-15')).id
         // A meeting: not an absence.
         await event('meeting', meetingTemplate.id, account.id, '2027-01-12')
 
@@ -146,9 +165,8 @@ function snapshot(): Promise<Result> {
           const events = await tx.event.findMany({ where: { congregationId }, select: { name: true } })
           const templates = await tx.eventTemplate.findMany({ where: { congregationId }, select: { key: true } })
           return {
-            absences: Object.fromEntries(
-              absences.map(({ note, ...rest }) => [note === '' ? 'uncopied' : note, rest] as const),
-            ),
+            count: absences.length,
+            absences: Object.fromEntries(absences.map(({ note, ...rest }) => [note, rest] as const)),
             events: events.map(e => e.name).sort(),
             templates: templates.map(t => (t.key === 'day-off' ? 'day-off' : 'meeting')).sort(),
           }
@@ -162,6 +180,7 @@ function snapshot(): Promise<Result> {
         const otherCongregation = {
           templates: await tx.eventTemplate.count({ where: { congregationId: otherId, key: 'day-off' } }),
           events: await tx.event.count({ where: { congregationId: otherId } }),
+          absences: await tx.absence.count({ where: { congregationId: otherId } }),
         }
         result = { ids, first, second, otherCongregation }
         throw new Rollback()
@@ -206,18 +225,52 @@ describe('20261121090000_drop_day_off_events', () => {
   })
 
   it('deletes the day-off events and their template, and leaves the meeting', async () => {
-    const { first } = await snapshot()
+    const { ids, first } = await snapshot()
 
-    // The day-off with a part is left as it is, with its template: deleting it would take the part.
-    expect(first.events).toEqual(['meeting', 'with part'])
+    // A day-off with a part, a service or attendance is left as it is, with its template: deleting it would take them.
+    expect(first.events).toEqual(['meeting', 'with attendance', 'with part', 'with service'])
     expect(first.templates).toEqual(['day-off', 'meeting'])
-    expect(first.absences['with part']).toBeDefined()
+    expect(first.absences['with part']).toEqual({
+      memberId: ids.member,
+      accountId: ids.account,
+      legacyEventId: ids.withPart,
+    })
+    // Every absence, and no more: the authorless day-off left none.
+    expect(first.count).toBe(9)
+    expect(Object.keys(first.absences)).not.toContain('authorless')
+  })
+
+  it('copies a day-off by an account without a record onto the account', async () => {
+    const { ids, first } = await snapshot()
+
+    expect(first.absences['uncopied without record']).toEqual({
+      memberId: null,
+      accountId: ids.loner,
+      legacyEventId: ids.lonerDayOff,
+    })
   })
 
   it('deletes another congregation’s day-off events and template too, keeping its absence', async () => {
     const { otherCongregation } = await snapshot()
 
-    expect(otherCongregation).toEqual({ templates: 0, events: 0 })
+    expect(otherCongregation).toEqual({ templates: 0, events: 0, absences: 1 })
+  })
+
+  // A table added later that cascades from Event would be deleted with a day-off that has rows in it, unless guarded.
+  it('guards every table that cascades from an event', async () => {
+    const cascading = await testDb.$queryRaw<{ table_name: string }[]>`
+      SELECT DISTINCT tc.table_name
+      FROM information_schema.table_constraints tc
+      JOIN information_schema.referential_constraints rc ON rc.constraint_name = tc.constraint_name
+      JOIN information_schema.constraint_column_usage ccu ON ccu.constraint_name = tc.constraint_name
+      WHERE tc.constraint_type = 'FOREIGN KEY' AND ccu.table_name = 'Event' AND rc.delete_rule = 'CASCADE'
+        AND tc.table_name <> 'Event'`
+    const sql = STATEMENTS.join(';')
+
+    expect(cascading.length).toBeGreaterThan(0)
+    for (const { table_name } of cascading) {
+      expect(sql, table_name).toContain(`NOT EXISTS (SELECT 1 FROM "${table_name}"`)
+    }
   })
 
   it('changes nothing when run twice', async () => {
