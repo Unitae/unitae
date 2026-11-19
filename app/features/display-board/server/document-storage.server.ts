@@ -26,7 +26,12 @@ export function getBoardFileBuffer(key: string): Promise<Buffer | null> {
   return getFileBuffer(key)
 }
 
+/** Where every demo copy's board files live, shared by all the copies (docs/development/specs/demo-mode.md). */
+export const DEMO_SHARED_BOARD_PREFIX = 'demo-shared/board'
+
+/** Deletes a board file, except one the demo copies share: other copies still point at it. */
 export async function deleteBoardFile(key: string): Promise<void> {
+  if (key.startsWith(`${DEMO_SHARED_BOARD_PREFIX}/`)) return
   await deleteFileFromStorage(key)
 }
 
