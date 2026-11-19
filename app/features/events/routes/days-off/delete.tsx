@@ -22,7 +22,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const session = await getSession(request.headers.get('Cookie'))
 
   return withScopeFromContext(context, async db => {
-    // Only the caller's own absence goes; anything else, absence or not, is left as it is.
+    // Only the caller's own absence goes; another person's, or an id that is no absence, is left as it is.
     const deleted = await deleteDayOff(db, {
       absenceId,
       accountId: currentUser.id,

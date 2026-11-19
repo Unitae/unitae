@@ -93,7 +93,7 @@ function DeleteAbsence({ id, period, length }: { id: number; period: string; len
         </p>
         <AlertDialogFooter>
           <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-          <Form method="post" action={`/me/days-off/${id}/delete`}>
+          <Form method="post" action={`/me/days-off/absences/${id}/delete`}>
             <SubmitButton variant="destructive" className="w-full">
               {m.days_off_delete_submit()}
             </SubmitButton>

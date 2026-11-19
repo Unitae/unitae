@@ -8,7 +8,7 @@ vi.mock('~/shared/domain/audit.server', () => ({
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     event: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), delete: vi.fn(), deleteMany: vi.fn() },
-    absence: { create: vi.fn(), findFirst: vi.fn(), delete: vi.fn(), deleteMany: vi.fn() },
+    absence: { create: vi.fn(), findFirst: vi.fn(), deleteMany: vi.fn() },
     eventTemplate: { findFirst: vi.fn() },
     eventPart: { updateMany: vi.fn() },
     eventServicePart: { updateMany: vi.fn() },
@@ -156,7 +156,7 @@ describe('deleteDayOff', () => {
           ? absence
           : null,
       )) as never)
-    vi.mocked(db.absence.delete).mockResolvedValue(absence as never)
+    vi.mocked(db.absence.deleteMany).mockResolvedValue({ count: 1 } as never)
     vi.mocked(db.event.deleteMany).mockResolvedValue({ count: 1 } as never)
   }
 
@@ -171,8 +171,11 @@ describe('deleteDayOff', () => {
     })
 
     expect(result).toEqual(absence)
-    expect(db.absence.delete).toHaveBeenCalledWith({ where: { id_congregationId: { id: 42, congregationId: 1 } } })
-    expect(db.event.deleteMany).toHaveBeenCalledWith({ where: { id: 77, congregationId: 1 } })
+    expect(db.absence.deleteMany).toHaveBeenCalledWith({ where: { id: 42, congregationId: 1 } })
+    // Its day-off event only, never whatever event the id might name.
+    expect(db.event.deleteMany).toHaveBeenCalledWith({
+      where: { id: 77, congregationId: 1, template: { key: 'day-off' } },
+    })
   })
 
   it("refuses someone else's absence", async () => {
@@ -181,9 +184,25 @@ describe('deleteDayOff', () => {
     const result = await deleteDayOff(db, { absenceId: 42, accountId: 99, memberId: 5, congregationId: 1 })
 
     expect(result).toBeNull()
-    expect(db.absence.delete).not.toHaveBeenCalled()
+    expect(db.absence.deleteMany).not.toHaveBeenCalled()
     // Nor its event: the two copies stay together.
     expect(db.event.deleteMany).not.toHaveBeenCalled()
+  })
+
+  it('answers as for no absence when it is gone between the lookup and the delete', async () => {
+    ownAbsenceLookup()
+    vi.mocked(db.absence.deleteMany).mockResolvedValue({ count: 0 } as never)
+
+    const result = await deleteDayOff(db, {
+      absenceId: 42,
+      accountId: ACCOUNT_ID,
+      memberId: MEMBER_ID,
+      congregationId: 1,
+    })
+
+    expect(result).toBeNull()
+    expect(db.event.deleteMany).not.toHaveBeenCalled()
+    expect(auditInTransaction).not.toHaveBeenCalled()
   })
 
   it('records the deletion in the audit trail', async () => {
@@ -211,8 +230,6 @@ describe('deleteDayOff', () => {
   it('skips refreshConflictFlags when memberId is null', async () => {
     ownAbsenceLookup()
 
-    // An account without a record deletes its own absences by its account.
-    vi.mocked(db.absence.findFirst).mockResolvedValue(absence as never)
     await deleteDayOff(db, { absenceId: 42, accountId: ACCOUNT_ID, memberId: null, congregationId: 1 })
 
     expect(db.event.findMany).not.toHaveBeenCalled()

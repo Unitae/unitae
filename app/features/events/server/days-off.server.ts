@@ -46,11 +46,9 @@ export async function createDayOff(
     return null
   }
 
-  // Day-offs are identified everywhere by `template.key = 'day-off'`. If the
-  // system template is missing (mis-provisioned tenant), writing the event
-  // with a null templateId would create a ghost row invisible to every
-  // downstream query — including the /me/days-off delete guard. Fail loudly
-  // so ops sees the incident instead of a silent success flash.
+  // The day-off template is what keeps this event out of the programme: programme readers leave out events by
+  // `template.key = 'day-off'`, so one written without it would show as an empty meeting. Fail loudly on a
+  // mis-provisioned tenant instead of a silent success flash.
   const dayOffTemplate = await db.eventTemplate.findFirst({
     where: { key: EventTemplateKey.DayOff, congregationId },
   })
@@ -69,8 +67,9 @@ export async function createDayOff(
       status: EventStatus.Released,
     },
   })
-  // Written twice until the events are dropped: every reader uses the Absence row (the person's record when the account
-  // has one); the event is still deleted with it, and account deletion still goes through it.
+  // Written twice until the events are dropped: the lists, the feed and the conflict checks read the Absence row (the
+  // person's record when the account has one); account deletion and backups still go through the event, and deleting
+  // either one takes the other.
   const absence = await db.absence.create({
     data: { startDate, endDate, memberId, accountId, legacyEventId: event.id, congregationId },
   })
@@ -110,9 +109,14 @@ export async function deleteDayOff(
   })
   if (absence == null) return null
 
-  await db.absence.delete({ where: { id_congregationId: { id: absence.id, congregationId } } })
+  // A second delete of the same absence (a double click, another tab) finds it gone and answers as for no absence.
+  const { count } = await db.absence.deleteMany({ where: { id: absence.id, congregationId } })
+  if (count === 0) return null
   if (absence.legacyEventId != null) {
-    await db.event.deleteMany({ where: { id: absence.legacyEventId, congregationId } })
+    // Its day-off event only: legacyEventId has no foreign key, so it is never trusted to name a programme event.
+    await db.event.deleteMany({
+      where: { id: absence.legacyEventId, congregationId, template: { key: EventTemplateKey.DayOff } },
+    })
   }
 
   if (memberId != null) {
