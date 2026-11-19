@@ -532,6 +532,7 @@ Detailed guides are in `docs/development/`:
 | `internationalization.md` | Paraglide setup, message keys, locale handling |
 | `translation-glossary.md` | Official EN/FR congregation vocabulary every message must use |
 | `notifications.md` | Notification events, preferences, flush worker |
+| `meeting-attendance.md` | Attendance counts and rights, meetings created ahead, empty meetings, programme deletion |
 | `data-transfer.md` | Congregation import/export and archive format |
 | `email-templates.md` | React Email templates, per-feature colocation |
 
