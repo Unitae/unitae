@@ -25,7 +25,7 @@ Unitae is licensed under [AGPL-3.0](../resources/licensing.md). All application 
 
 #### How development is funded
 
-Unitae follows the model pioneered by [Ghost](https://ghost.org/): 100% of the code is open source, and development is funded through a managed hosting service at [unitae.app](https://unitae.app). The community can contribute to everything, inspect the code, and self-host freely — while MindsersIT sustains active development through the hosted offering.
+Unitae follows the model pioneered by [Ghost](https://ghost.org/): 100% of the code is open source, and development is funded through a managed hosting service at [unitae.app](https://www.unitae.app). The community can contribute to everything, inspect the code, and self-host freely — while MindsersIT sustains active development through the hosted offering.
 
 ### Self-Hosting Without Compromise
 

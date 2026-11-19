@@ -1,6 +1,6 @@
 # Self-Hosting vs unitae.app
 
-Unitae can be self-hosted on your own infrastructure or used through the managed hosting service at [unitae.app](https://unitae.app). Both options run the exact same open-source code — the difference is who manages the infrastructure.
+Unitae can be self-hosted on your own infrastructure or used through the managed hosting service at [unitae.app](https://www.unitae.app). Both options run the exact same open-source code — the difference is who manages the infrastructure.
 
 ## Comparison
 
@@ -39,7 +39,7 @@ Unitae can be self-hosted on your own infrastructure or used through the managed
 
 ### From Self-Hosted to unitae.app
 
-Contact the MindsersIT team through [unitae.app](https://unitae.app) for migration assistance.
+Contact the MindsersIT team through [unitae.app](https://www.unitae.app) for migration assistance.
 
 ### From unitae.app to Self-Hosted
 

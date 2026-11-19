@@ -29,7 +29,7 @@ Feature deep dives:
 
 The fastest way to get started — no server to manage.
 
-- [Get started with managed hosting](managed-hosting/getting-started.md) — Sign up at unitae.app
+- [Get started with managed hosting](managed-hosting/getting-started.md) — Sign up at [unitae.app](https://www.unitae.app)
 - [Self-Hosting vs Managed Hosting](managed-hosting/self-hosting-vs-managed.md) — Compare your options
 
 ### Self-host Unitae
