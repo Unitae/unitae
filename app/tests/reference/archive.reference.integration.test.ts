@@ -126,7 +126,18 @@ async function importArchive(zip: JsZip, congregationId: number) {
     await mod.importTemplateServicePartAllowedRoles(zip, db, idMap, congregationId)
     await mod.importTemplateResponsibles(zip, db, idMap, congregationId)
     const withoutOrigin = await mod.importEvents(zip, db, idMap, congregationId)
-    await mod.importAttendance(zip, db, idMap, congregationId)
+    await (await import('~/features/settings/server/import-absences.server')).importAbsences(
+      zip,
+      db,
+      idMap,
+      congregationId,
+    )
+    await (await import('~/features/settings/server/import-attendance.server')).importAttendance(
+      zip,
+      db,
+      idMap,
+      congregationId,
+    )
     await mod.importEventParts(zip, db, idMap, congregationId)
     await mod.importEventPartAllowedRoles(zip, db, idMap, congregationId)
     await mod.importEventServiceParts(zip, db, idMap, congregationId)

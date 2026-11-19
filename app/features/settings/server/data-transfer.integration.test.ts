@@ -639,7 +639,8 @@ async function importFromZip(buffer: Buffer, congregationId: number): Promise<vo
     await mod.importTemplateServicePartAllowedRoles(zip, db, idMap, congregationId)
     await mod.importTemplateResponsibles(zip, db, idMap, congregationId)
     const withoutOrigin = await mod.importEvents(zip, db, idMap, congregationId)
-    await mod.importAttendance(zip, db, idMap, congregationId)
+    await (await import('./import-absences.server')).importAbsences(zip, db, idMap, congregationId)
+    await (await import('./import-attendance.server')).importAttendance(zip, db, idMap, congregationId)
     await mod.importEventParts(zip, db, idMap, congregationId)
     await mod.importEventPartAllowedRoles(zip, db, idMap, congregationId)
     await mod.importEventServiceParts(zip, db, idMap, congregationId)
@@ -679,6 +680,8 @@ describe('Export/Import round-trip', () => {
     expect(entityCounts['pioneer-goals']).toBe(1)
     expect(entityCounts.events).toBe(1)
     expect(entityCounts.attendance).toBe(1)
+    // Written even with none: its presence tells a 2.19 archive's restore to take the absences from it.
+    expect(entityCounts.absences).toBe(0)
     expect(entityCounts['board-sections']).toBe(1)
     expect(entityCounts['board-documents']).toBe(1)
     expect(entityCounts['consent-records']).toBe(1)
@@ -1924,10 +1927,10 @@ describe('the origin of restored events', () => {
   })
 })
 
-// While absences are written twice, a restored absence gets its Absence row too: the readers move to that table before
-// the archive carries it. Its owner's record when the restored account has one, as the migration does.
+// An archive before 2.19 has no absences file: a restored day-off gets its Absence row from its author, the owner's
+// record when the restored account has one, as the migration does. From 2.19 the rows come from absences.ndjson.
 describe('restored absences', () => {
-  it('gives each restored day-off its Absence row, with the owner’s record', async () => {
+  it('gives each restored day-off of an older archive its Absence row, with the owner’s record', async () => {
     const { importEvents } = await import('./import-events.server')
     const cong = await testDb.congregation.create({
       data: { name: `Restored absences ${ts}`, slug: `restored-absences-${ts}`, active: true },
@@ -1993,6 +1996,108 @@ describe('restored absences', () => {
           accountId: rows.ids.withoutRecord,
           startDate: new Date('2027-05-03T00:00:00.000Z'),
           legacyEventId: rows.events[1].id,
+        },
+      ])
+    } finally {
+      await withScope(cong.id, async tx => {
+        await tx.absence.deleteMany({})
+        await tx.event.deleteMany({})
+        await tx.eventTemplate.deleteMany({})
+        await tx.userAccount.deleteMany({})
+        await tx.member.deleteMany({})
+      })
+      await testDb.congregation.delete({ where: { id: cong.id } })
+    }
+  })
+})
+
+describe('restored absences from a 2.19 archive', () => {
+  it('takes each absence from the absences file, once, with its person, account and event when they came', async () => {
+    const { importEvents } = await import('./import-events.server')
+    const { importAbsences } = await import('./import-absences.server')
+    const cong = await testDb.congregation.create({
+      data: { name: `Absences file ${ts}`, slug: `absences-file-${ts}`, active: true },
+    })
+    try {
+      const rows = await withScope(cong.id, async tx => {
+        const dayOff = await tx.eventTemplate.create({
+          data: { name: 'Absence', key: 'day-off', congregationId: cong.id },
+        })
+        const member = await tx.member.create({
+          data: { firstname: 'Paul', lastname: 'MARTIN', congregationId: cong.id },
+        })
+        const withRecord = await tx.userAccount.create({
+          data: { email: `paul-file-${ts}@test.com`, password: 'x', memberId: member.id, congregationId: cong.id },
+        })
+        const withoutRecord = await tx.userAccount.create({
+          data: { email: `sans-file-${ts}@test.com`, password: 'x', congregationId: cong.id },
+        })
+        const idMap = new EntityIdMap()
+        idMap.set('programme-templates', 9, dayOff.id)
+        idMap.set('members', 50, member.id)
+        idMap.set('user-accounts', 70, withRecord.id)
+        idMap.set('user-accounts', 71, withoutRecord.id)
+        const when = { startDate: '2027-05-03T00:00:00.000Z', endDate: '2027-05-07T23:59:00.000Z' }
+        const declared = '2027-04-01T08:00:00.000Z'
+        const event = {
+          ...{ id: 1, name: 'Absence', description: '', ...when, templateId: 9, createdById: 70 },
+          ...{ createdAt: declared, status: 'released', origin: 'manual' },
+        }
+        const absence = (id: number, owner: object) => ({ id, ...when, note: '', createdAt: declared, ...owner })
+        const zip = new JsZip()
+        const dataDir = zip.folder('data')!
+        dataDir.file('events.ndjson', `${JSON.stringify(event)}\n`)
+        dataDir.file(
+          'absences.ndjson',
+          [
+            // Its day-off came too: written once, not again from the event.
+            absence(1, { memberId: 50, accountId: 70, legacyEventId: 1 }),
+            // Its account was deleted before the export, its event with it: the record keeps it.
+            absence(2, { memberId: 50, accountId: null, legacyEventId: null }),
+            absence(3, { memberId: null, accountId: 71, legacyEventId: null }),
+            // Nobody it could belong to came with the archive.
+            absence(4, { memberId: 51, accountId: 72, legacyEventId: null }),
+          ]
+            .map(row => `${JSON.stringify(row)}\n`)
+            .join(''),
+        )
+
+        // In runImport's order.
+        await importEvents(zip, tx, idMap, cong.id)
+        await importAbsences(zip, tx, idMap, cong.id)
+
+        const restoredEvent = await tx.event.findFirstOrThrow({ select: { id: true } })
+        const absences = await tx.absence.findMany({
+          select: { memberId: true, accountId: true, legacyEventId: true, createdAt: true },
+          orderBy: { id: 'asc' },
+        })
+        return {
+          member: member.id,
+          withRecord: withRecord.id,
+          withoutRecord: withoutRecord.id,
+          restoredEvent,
+          absences,
+        }
+      })
+
+      expect(rows.absences).toEqual([
+        {
+          memberId: rows.member,
+          accountId: rows.withRecord,
+          legacyEventId: rows.restoredEvent.id,
+          createdAt: new Date('2027-04-01T08:00:00.000Z'),
+        },
+        {
+          memberId: rows.member,
+          accountId: null,
+          legacyEventId: null,
+          createdAt: new Date('2027-04-01T08:00:00.000Z'),
+        },
+        {
+          memberId: null,
+          accountId: rows.withoutRecord,
+          legacyEventId: null,
+          createdAt: new Date('2027-04-01T08:00:00.000Z'),
         },
       ])
     } finally {

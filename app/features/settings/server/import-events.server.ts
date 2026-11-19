@@ -4,6 +4,7 @@ import { EMPTY_MEETING } from '~/features/events/index.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import type { EntityIdMap } from './data-transfer.type'
+import { archiveCarriesAbsences } from './import-absences.server'
 import { fallbackServiceOrders, readNdjsonFile } from './ndjson-archive'
 
 const logger = createLogger('import-events')
@@ -53,6 +54,8 @@ export async function importEvents(
   })
   await db.eventTemplate.updateMany({ where: { congregationId }, data: { generatedUntil: null } })
 
+  // From 2.19 the absences come from their own file (importAbsences); before, each day-off's author says whose it is.
+  const absencesFromEvents = !archiveCarriesAbsences(zip)
   let ownerless = 0
   let unknownStatus = 0
   // Restored from an archive without origins (before v2.18): settleImportedEventOrigins decides them once their parts,
@@ -85,7 +88,7 @@ export async function importEvents(
     idMap.set('events', record.id, created.id)
     if (record.origin == null) withoutOrigin.push(created.id)
     else if (!isEventOrigin(record.origin)) unknownOrigin++
-    if (createdById != null && templateId != null && templateId === dayOff?.id) {
+    if (absencesFromEvents && createdById != null && templateId != null && templateId === dayOff?.id) {
       await writeAbsenceOf(db, { eventId: created.id, accountId: createdById, record, congregationId }, recordOf)
     }
   }
@@ -102,7 +105,7 @@ export async function importEvents(
 }
 
 /**
- * A restored absence's Absence row, written alongside its event until the events are dropped: its owner's record when
+ * A restored absence's Absence row, from an archive before 2.19 (which has no absences file): its owner's record when
  * the restored account has one, as the migration does. `recordOf` keeps each account's record once looked up.
  */
 async function writeAbsenceOf(

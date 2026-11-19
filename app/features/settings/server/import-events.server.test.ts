@@ -11,7 +11,13 @@ const { EntityIdMap } = await import('./data-transfer.type')
 const db = {
   eventTemplate: { findFirst: vi.fn(), updateMany: vi.fn() },
   event: { create: vi.fn(), deleteMany: vi.fn() },
+  userAccount: { findFirstOrThrow: vi.fn() },
+  absence: { create: vi.fn() },
 }
+
+/** An archive with the absences file (2.19 on) or without (before). */
+const archive = (withAbsences: boolean) =>
+  ({ file: (name: string) => (withAbsences && name === 'data/absences.ndjson' ? {} : null) }) as never
 
 function record(overrides: Record<string, unknown> = {}) {
   return {
@@ -46,7 +52,7 @@ describe('importEvents', () => {
   it('keeps a meeting whose author is not in the archive, without an author', async () => {
     readNdjsonFile.mockResolvedValue([record({ createdById: 8 }), record({ id: 2, createdById: null })])
 
-    await importEvents({} as never, db as never, idMap(), 1)
+    await importEvents(archive(false), db as never, idMap(), 1)
 
     expect(db.event.create.mock.calls.map(([{ data }]) => data.createdById)).toEqual([null, null])
   })
@@ -54,7 +60,7 @@ describe('importEvents', () => {
   it('still skips an absence without its owner, and says so', async () => {
     readNdjsonFile.mockResolvedValue([record({ templateId: 9, createdById: 8 })])
 
-    await importEvents({} as never, db as never, idMap(), 1)
+    await importEvents(archive(false), db as never, idMap(), 1)
 
     expect(db.event.create).not.toHaveBeenCalled()
     expect(warn).toHaveBeenCalled()
@@ -64,7 +70,7 @@ describe('importEvents', () => {
   it('clears the empty seeded meetings — never one with counts — and lets the job start again after the archive', async () => {
     readNdjsonFile.mockResolvedValue([record()])
 
-    await importEvents({} as never, db as never, idMap(), 1)
+    await importEvents(archive(false), db as never, idMap(), 1)
 
     expect(db.event.deleteMany).toHaveBeenCalledWith({
       where: {
@@ -86,7 +92,7 @@ describe('importEvents', () => {
   it('keeps each event published or draft as the archive says', async () => {
     readNdjsonFile.mockResolvedValue([record({ status: 'released' }), record({ id: 2, status: 'draft' })])
 
-    await importEvents({} as never, db as never, idMap(), 1)
+    await importEvents(archive(false), db as never, idMap(), 1)
 
     expect(db.event.create.mock.calls.map(([{ data }]) => data.status)).toEqual(['released', 'draft'])
   })
@@ -94,7 +100,7 @@ describe('importEvents', () => {
   it('imports an event as a draft when the archive has no status (before v2.16) or one it does not know', async () => {
     readNdjsonFile.mockResolvedValue([record(), record({ id: 2, status: 'archived' })])
 
-    await importEvents({} as never, db as never, idMap(), 1)
+    await importEvents(archive(false), db as never, idMap(), 1)
 
     expect(db.event.create.mock.calls.map(([{ data }]) => data.status)).toEqual(['draft', 'draft'])
   })
@@ -106,15 +112,37 @@ describe('importEvents', () => {
       record({ id: 3, status: 'draft' }),
     ])
 
-    await importEvents({} as never, db as never, idMap(), 1)
+    await importEvents(archive(false), db as never, idMap(), 1)
 
     expect(warn).toHaveBeenCalledTimes(1)
+  })
+
+  // Before 2.19 the archive has no absences file: each day-off's author says whose absence it is.
+  it('rebuilds an absence from its day-off for an archive without the absences file', async () => {
+    readNdjsonFile.mockResolvedValue([record({ templateId: 9 })])
+    db.userAccount.findFirstOrThrow.mockResolvedValue({ memberId: 40 })
+
+    await importEvents(archive(false), db as never, idMap(), 1)
+
+    expect(db.absence.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ memberId: 40, accountId: 70, legacyEventId: 500 }),
+    })
+  })
+
+  // From 2.19 the absences come from their own file (importAbsences), which also has those whose event is gone.
+  it('leaves the absences to their own file when the archive has it', async () => {
+    readNdjsonFile.mockResolvedValue([record({ templateId: 9 })])
+
+    await importEvents(archive(true), db as never, idMap(), 1)
+
+    expect(db.event.create).toHaveBeenCalled()
+    expect(db.absence.create).not.toHaveBeenCalled()
   })
 
   it('leaves everything alone when the archive has no events', async () => {
     readNdjsonFile.mockResolvedValue([])
 
-    await importEvents({} as never, db as never, idMap(), 1)
+    await importEvents(archive(false), db as never, idMap(), 1)
 
     expect(db.event.deleteMany).not.toHaveBeenCalled()
     expect(db.eventTemplate.updateMany).not.toHaveBeenCalled()

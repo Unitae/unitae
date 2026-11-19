@@ -75,12 +75,12 @@ describe('EntityIdMap', () => {
 })
 
 describe('ARCHIVE_VERSION', () => {
-  it('is the current 2.18 schema version', () => {
-    expect(ARCHIVE_VERSION).toBe('2.18')
+  it('is the current 2.19 schema version', () => {
+    expect(ARCHIVE_VERSION).toBe('2.19')
   })
 
-  it('still imports 2.17 archives', () => {
-    expect(SUPPORTED_ARCHIVE_VERSIONS).toContain('2.17')
+  it('still imports 2.18 archives', () => {
+    expect(SUPPORTED_ARCHIVE_VERSIONS).toContain('2.18')
   })
 })
 
@@ -94,6 +94,13 @@ describe('ENTITY_FILES', () => {
     expect(ENTITY_FILES).toContain('member-role-assignments')
     expect(ENTITY_FILES).toContain('territories')
     expect(ENTITY_FILES).toContain('board-documents')
+  })
+
+  it('has absences after the records, accounts and events they point at', () => {
+    const at = (file: EntityFile) => ENTITY_FILES.indexOf(file)
+    expect(at('absences')).toBeGreaterThan(at('members'))
+    expect(at('absences')).toBeGreaterThan(at('user-accounts'))
+    expect(at('absences')).toBeGreaterThan(at('events'))
   })
 
   it('has attendance after the events it belongs to and the accounts that entered it', () => {

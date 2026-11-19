@@ -587,6 +587,25 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
         }),
     },
     {
+      // The person away (their record, or the account that declared it when it has none), the declaring account and
+      // the day-off event the row was copied from.
+      name: 'absences',
+      export: () =>
+        db.absence.findMany({
+          select: {
+            id: true,
+            startDate: true,
+            endDate: true,
+            note: true,
+            memberId: true,
+            accountId: true,
+            legacyEventId: true,
+            createdAt: true,
+          },
+          orderBy: { id: 'asc' },
+        }),
+    },
+    {
       name: 'attendance',
       export: () =>
         db.attendance.findMany({
