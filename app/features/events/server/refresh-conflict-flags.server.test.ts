@@ -21,8 +21,7 @@ describe('refreshConflictFlags', () => {
   // The overlapping events come from `db.event.findMany`, the absences from `db.absence.findMany` in one batched query.
   //
   // `absentMemberIds` are the members who HAVE an overlapping absence. Their stub absence
-  // spans a deliberately wide range so it overlaps every event in the fixture — matching the
-  // old per-(member, event) stub, which reported a conflict regardless of the event's dates.
+  // spans a deliberately wide range so it overlaps every event in the fixture.
   function stubEventsAndAbsences(events: unknown[], absentMemberIds: number[]) {
     const absent = new Set(absentMemberIds)
     vi.mocked(db.event.findMany).mockResolvedValue(events as never)

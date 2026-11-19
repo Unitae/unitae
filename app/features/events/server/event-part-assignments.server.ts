@@ -252,8 +252,9 @@ export async function unassignServicePart(db: TransactionClient, assignmentId: n
   return { assignment, previousAssigneeId: existing.assigneeId }
 }
 
-// The `memberId` here is Member.id, the one that carries assignments (assigneeId / assistantId reference Member): an
-// absence belongs to that record. One declared from an account without a record is nobody's assignment to block.
+// `memberId` is Member.id, the id assignments carry (assigneeId / assistantId). An absence declared from an account
+// without a record has memberId null and never matches: such an account holds no assignments. The record is the one
+// the row was written with; linking an account to a record, by hand or by a restore, moves its rows.
 export async function checkDayOffConflict(
   db: TransactionClient,
   memberId: number,

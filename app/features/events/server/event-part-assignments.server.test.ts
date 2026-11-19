@@ -58,7 +58,7 @@ describe('checkDayOffConflict', () => {
   // Regression pin — the ID passed in is a Member.id (all call sites resolve participants via Member), and an absence
   // belongs to that record. A prior version matched it against the declaring account's id, which silently found nothing
   // whenever the account's id differed from the record's.
-  it('finds absences by the person’s record (not the declaring account)', async () => {
+  it("finds absences by the person's record (not the declaring account)", async () => {
     vi.mocked(db.absence.findFirst).mockResolvedValue(null as never)
     const memberId = 5000
 
