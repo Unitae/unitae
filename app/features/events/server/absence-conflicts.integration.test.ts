@@ -3,8 +3,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 
 // The conflict readers read absences from their own table, by the person's record: whether someone is away when they
-// are assigned, the conflict flags on their assignments, and what the list of people to pick from says. An absence
-// row is enough; the day-off event written alongside it no longer counts on its own.
+// are assigned (checkDayOffConflict), the conflict flags on their assignments (refreshConflictFlags), and the absences
+// named in the list of people to pick from (listSlotCandidateFacts). An absence row is enough; a day-off event without
+// one, as the previous image writes during a rollout, no longer counts on its own — the later catch-up copies those.
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -27,7 +28,7 @@ const { refreshConflictFlags } = await import('./refresh-conflict-flags.server')
 const { listSlotCandidateFacts } = await import('./slot-candidate-facts.server')
 
 const ts = Date.now()
-const ids = { cong: 0, paul: 0, marie: 0, meeting: 0, paulPart: 0, mariePart: 0, service: 0 }
+const ids = { cong: 0, other: 0, stranger: 0, paul: 0, marie: 0, meeting: 0, paulPart: 0, mariePart: 0, service: 0 }
 const MEETING_START = new Date('2027-06-08T17:00:00Z')
 const MEETING_END = new Date('2027-06-08T19:00:00Z')
 const AWAY_START = new Date('2027-06-07T00:00:00Z')
@@ -54,7 +55,7 @@ beforeAll(async () => {
     ids.paul = paul.member
     ids.marie = marie.member
 
-    // Paul: an absence row only. Marie: a day-off event only, as the previous version wrote during the rollout.
+    // Paul: an absence row only. Marie: a day-off event only, as the previous image writes during a rollout.
     await tx.absence.create({
       data: {
         startDate: AWAY_START,
@@ -85,16 +86,48 @@ beforeAll(async () => {
         data: { name: 'Lecture', eventId: meeting.id, assigneeId: paul.member, congregationId },
       })
     ).id
+    // Flagged already: a day-off event alone must clear it, not merely leave the default.
     ids.mariePart = (
       await tx.eventPart.create({
-        data: { name: 'Prière', eventId: meeting.id, assigneeId: marie.member, congregationId },
+        data: { name: 'Prière', eventId: meeting.id, assigneeId: marie.member, hasConflict: true, congregationId },
       })
     ).id
+    // Declared from an account without a record: nobody's assignment to block, nobody to name.
+    const withoutRecord = await tx.userAccount.create({
+      data: { email: `sans-${ts}@test.com`, password: 'x', congregationId },
+    })
+    await tx.absence.create({
+      data: { startDate: AWAY_START, endDate: AWAY_END, accountId: withoutRecord.id, congregationId },
+    })
     ids.service = (await tx.eventServicePart.create({ data: { name: 'Sono', eventId: meeting.id, congregationId } })).id
+  })
+  // Another congregation, with someone away over the same days.
+  ids.other = (
+    await testDb.congregation.create({
+      data: { name: `Elsewhere ${ts}`, slug: `absence-elsewhere-${ts}`, active: true },
+    })
+  ).id
+  await withScope(ids.other, async tx => {
+    const congregationId = ids.other
+    ids.stranger = (await tx.member.create({ data: { firstname: 'Jean', lastname: 'AILLEURS', congregationId } })).id
+    const account = await tx.userAccount.create({
+      data: { email: `ailleurs-${ts}@test.com`, password: 'x', memberId: ids.stranger, congregationId },
+    })
+    await tx.absence.create({
+      data: { startDate: AWAY_START, endDate: AWAY_END, memberId: ids.stranger, accountId: account.id, congregationId },
+    })
   })
 })
 
 afterAll(async () => {
+  if (ids.other) {
+    await withScope(ids.other, async tx => {
+      await tx.absence.deleteMany({})
+      await tx.userAccount.deleteMany({})
+      await tx.member.deleteMany({})
+    })
+    await testDb.congregation.deleteMany({ where: { id: ids.other } })
+  }
   if (ids.cong) {
     await withScope(ids.cong, async tx => {
       await tx.absence.deleteMany({})
@@ -110,14 +143,16 @@ afterAll(async () => {
 
 describe('the conflict readers and the absences table', () => {
   it('says someone is away from their absence row', async () => {
-    const [paul, marie] = await withScope(ids.cong, tx =>
+    const [paul, marie, stranger] = await withScope(ids.cong, tx =>
       Promise.all([
         checkDayOffConflict(tx, ids.paul, MEETING_START, MEETING_END, ids.cong),
         checkDayOffConflict(tx, ids.marie, MEETING_START, MEETING_END, ids.cong),
+        // Someone of another congregation, asked about in this one.
+        checkDayOffConflict(tx, ids.stranger, MEETING_START, MEETING_END, ids.cong),
       ]),
     )
 
-    expect({ paul, marie }).toEqual({ paul: true, marie: false })
+    expect({ paul, marie, stranger }).toEqual({ paul: true, marie: false, stranger: false })
   })
 
   it('flags the assignments an absence row covers', async () => {
@@ -144,6 +179,7 @@ describe('the conflict readers and the absences table', () => {
       }),
     )
 
+    // Only Paul: not Marie's lone event, not the absence without a record, not the other congregation's.
     expect(facts.absences).toEqual({
       [ids.paul]: { startDate: AWAY_START.toISOString(), endDate: AWAY_END.toISOString() },
     })

@@ -128,8 +128,8 @@ beforeAll(async () => {
       data: { name: 'Sono', eventId: lastSummer.id, assigneeId: members.sono, congregationId },
     })
 
-    // Written twice, as createDayOff does: the day-off event and its Absence row, the person's.
-    const absence = await tx.event.create({
+    // Written twice, as createDayOff does: the day-off event and its Absence row on the person's record.
+    const dayOffEvent = await tx.event.create({
       data: {
         name: 'Absence',
         templateId: dayOff.id,
@@ -141,11 +141,11 @@ beforeAll(async () => {
     })
     await tx.absence.create({
       data: {
-        startDate: absence.startDate,
-        endDate: absence.endDate,
+        startDate: dayOffEvent.startDate,
+        endDate: dayOffEvent.endDate,
         memberId: members.away,
         accountId: awayAccount.id,
-        legacyEventId: absence.id,
+        legacyEventId: dayOffEvent.id,
         congregationId,
       },
     })
