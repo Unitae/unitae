@@ -6,17 +6,15 @@ import {
   getDynamicDocumentData,
   listAvailableDynamicTypes,
 } from '~/features/display-board/server/dynamic-documents.server'
-import { EventTemplateKey } from '~/features/events'
 import { getTemplates } from '~/features/events/index.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 /** An existing document by its id, or a new one of a type, under the title its form starts from. */
 export type DynamicFormTarget = { id: number } | { type: string; ref: string | null; title: string }
 
-/** The templates a programme can show: never the absence one — an absence is no meeting to post. */
-async function programmeTemplates(db: TransactionClient, congregationId: number) {
-  const templates = await getTemplates(db, congregationId)
-  return templates.filter(template => template.key !== EventTemplateKey.DayOff)
+/** The templates a programme can show: every one of the congregation. */
+function programmeTemplates(db: TransactionClient, congregationId: number) {
+  return getTemplates(db, congregationId)
 }
 
 /** A new programme lists every template, with its parts and its services, grouped by date. */

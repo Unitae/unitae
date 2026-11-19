@@ -1,6 +1,6 @@
 // Intentional cross-feature import: dashboard aggregates data from events and the board for the overview
 import { listBoardItems, resolveProgrammeLink } from '~/features/display-board/index.server'
-import { EventStatus, EventTemplateKey } from '~/features/events'
+import { EventStatus } from '~/features/events'
 import { getNextDaysOffs } from '~/features/events/index.server'
 import { TWO_WEEKS_MS } from '~/shared/constants/limits'
 import { DASHBOARD_RECENT_ITEMS_LIMIT } from '~/shared/constants/pagination'
@@ -143,10 +143,6 @@ export async function getNextMeeting(db: TransactionClient, userId: number, cong
   const event = await db.event.findFirst({
     where: {
       startDate: { gte: now },
-      // NOT: { template: {...} } instead of template: { key: { not } } — the
-      // second form inner-joins through template and silently drops null-
-      // template rows, which older legacy events might still carry.
-      NOT: { template: { key: EventTemplateKey.DayOff } },
       // Publisher-facing dashboard — drafts must stay hidden.
       status: EventStatus.Released,
     },

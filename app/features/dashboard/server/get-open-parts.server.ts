@@ -1,4 +1,4 @@
-import { EventStatus, EventTemplateKey } from '~/features/events'
+import { EventStatus } from '~/features/events'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -28,8 +28,6 @@ export async function getOpenParts(
     where: {
       congregationId,
       startDate: { gte: now, lt: new Date(now.getTime() + days * DAY_MS) },
-      // NOT on the relation keeps untemplated events, which a template filter would drop.
-      NOT: { template: { key: EventTemplateKey.DayOff } },
       ...(templateIds != null ? { templateId: { in: templateIds } } : {}),
     },
     select: {

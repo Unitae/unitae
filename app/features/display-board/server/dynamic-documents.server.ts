@@ -13,7 +13,7 @@ import {
 } from '~/features/display-board/server/organigram-document.server'
 // Cross-feature import via the events barrel (deep-importing another
 // feature's model directly is forbidden by the boundaries lint rule).
-import { EventStatus, EventTemplateKey } from '~/features/events'
+import { EventStatus } from '~/features/events'
 import { type LastWeekMeeting, listLastWeekAttendance } from '~/features/events/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
@@ -37,12 +37,6 @@ export { parseProgrammeConfig }
 
 /** A meeting's services in their order; the id settles ties, such as rows an older version wrote at 0. */
 const SERVICE_ORDER: Prisma.EventServicePartOrderByWithRelationInput[] = [{ order: 'asc' }, { id: 'asc' }]
-
-/**
- * An absence is an event of the « day-off » template, published the moment it is declared: no programme document
- * shows one, even when its configuration names that template — the form used to tick every template by default.
- */
-const NOT_AN_ABSENCE = { NOT: { template: { key: EventTemplateKey.DayOff } } }
 
 export function startOfCurrentMonth(): Date {
   const now = new Date()
@@ -199,7 +193,6 @@ export async function getContentVersion(
             templateId: { in: templateIds },
             startDate: { gte: fromDate },
             status: EventStatus.Released,
-            ...NOT_AN_ABSENCE,
           },
           orderBy: { updatedAt: 'desc' },
           select: { updatedAt: true },
@@ -211,7 +204,6 @@ export async function getContentVersion(
               templateId: { in: templateIds },
               startDate: { gte: fromDate },
               status: EventStatus.Released,
-              ...NOT_AN_ABSENCE,
             },
           },
           orderBy: { updatedAt: 'desc' },
@@ -230,7 +222,6 @@ export async function getContentVersion(
             template: { key: dynamicRef },
             startDate: { gte: fromDate },
             status: EventStatus.Released,
-            ...NOT_AN_ABSENCE,
           },
           orderBy: { updatedAt: 'desc' },
           select: { updatedAt: true },
@@ -242,7 +233,6 @@ export async function getContentVersion(
               template: { key: dynamicRef },
               startDate: { gte: fromDate },
               status: EventStatus.Released,
-              ...NOT_AN_ABSENCE,
             },
           },
           orderBy: { updatedAt: 'desc' },
@@ -302,7 +292,6 @@ export async function getDynamicPreview(
         ...templateFilter,
         startDate: { gte: new Date() },
         status: EventStatus.Released,
-        ...NOT_AN_ABSENCE,
       },
       orderBy: { startDate: 'asc' },
       select: { startDate: true },
@@ -481,7 +470,6 @@ function fetchProgrammeByIds(
       templateId: { in: templateIds },
       startDate: { gte: fromDate },
       status: EventStatus.Released,
-      ...NOT_AN_ABSENCE,
     },
     include: {
       template: true,
@@ -515,7 +503,6 @@ function fetchProgrammeByKey(
       template: { key: templateKey },
       startDate: { gte: fromDate },
       status: EventStatus.Released,
-      ...NOT_AN_ABSENCE,
     },
     include: {
       eventParts: {

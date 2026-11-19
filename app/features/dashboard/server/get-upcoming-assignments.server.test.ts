@@ -51,7 +51,7 @@ describe('getUpcomingAssignments', () => {
   })
 
   // The card is a forward view: only released events between now and four
-  // weeks out, and never day-off pseudo-events. Parts match the member as
+  // weeks out. Parts match the member as
   // either the speaker (assignee) or the assistant (assistant).
   it('scopes the part query to my released events within the four-week window', async () => {
     await getUpcomingAssignments(db, 100, CONGREGATION_ID, NOW)
@@ -61,7 +61,6 @@ describe('getUpcomingAssignments', () => {
     expect(where.event).toEqual({
       status: 'released',
       startDate: { gte: NOW, lte: FOUR_WEEKS_LATER },
-      NOT: { template: { key: 'day-off' } },
     })
   })
 
@@ -73,7 +72,6 @@ describe('getUpcomingAssignments', () => {
     expect(where.event).toEqual({
       status: 'released',
       startDate: { gte: NOW, lte: FOUR_WEEKS_LATER },
-      NOT: { template: { key: 'day-off' } },
     })
   })
 
