@@ -374,7 +374,6 @@ async function labelSeededRows(db: TransactionClient, congregationId: number, la
     [EventTemplateKey.MidweekMeeting, 'midweek'],
     [EventTemplateKey.WeekendMeeting, 'weekend'],
     [EventTemplateKey.Memorial, 'memorial'],
-    [EventTemplateKey.DayOff, 'day-off'],
     [EventTemplateKey.Freeform, 'freeform'],
   ])
   const all = await db.eventTemplate.findMany({

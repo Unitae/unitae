@@ -19,7 +19,7 @@ export const createTemplateSchema = z.object({
   endTime: z.string().regex(TIME_REGEX).default('21:00'),
 })
 
-// System templates (day-off, freeform) render a read-only info card whose
+// System templates (freeform) render a read-only info card whose
 // only editable field is the colour swatch; the form only submits intent +
 // color. Requiring name / start / end here would 400 that submission and
 // silently drop the colour save. The service layer treats undefined as

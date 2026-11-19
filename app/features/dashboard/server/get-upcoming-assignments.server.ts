@@ -1,5 +1,5 @@
 import { resolveProgrammeLink } from '~/features/display-board/index.server'
-import { EventStatus, EventTemplateKey, partPresetReaderLabel, partPresetSpeakerLabel } from '~/features/events'
+import { EventStatus, partPresetReaderLabel, partPresetSpeakerLabel } from '~/features/events'
 import { FOUR_WEEKS_MS } from '~/shared/constants/limits'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -55,12 +55,10 @@ export async function getUpcomingAssignments(
 ): Promise<UpcomingAssignment[]> {
   const horizon = new Date(now.getTime() + FOUR_WEEKS_MS)
 
-  // Drafts stay off the publisher-facing dashboard; day-off pseudo-events
-  // carry no parts but are excluded defensively for parity with getNextMeeting.
+  // Drafts stay off the publisher-facing dashboard.
   const eventFilter = {
     status: EventStatus.Released,
     startDate: { gte: now, lte: horizon },
-    NOT: { template: { key: EventTemplateKey.DayOff } },
   }
   const eventSelect = { select: { id: true, templateId: true, name: true, startDate: true } }
 

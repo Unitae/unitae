@@ -6,8 +6,7 @@ import { combineLocalDateTime } from '~/shared/utils/event-time'
  * A meeting waiting for its programme: an event with neither parts nor services yet, of a template that has some to
  * give it — created ahead by the recurring-events job, or emptied when its programme was deleted but its attendance
  * kept. The programmes list says « Pas encore de programme » instead of a draft status, and it cannot be published.
- * « Autre évènement », absences and a template with nothing to give never wait for one: their events are published as
- * they are.
+ * « Autre évènement » and a template with nothing to give never wait for one: their events are published as they are.
  */
 export function isAwaitingProgramme(event: {
   parts: number

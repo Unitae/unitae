@@ -46,7 +46,7 @@ describe('extendRecurringEvents', () => {
     expect(where).toEqual({
       congregationId: 1,
       weekDay: { not: null },
-      key: { notIn: ['day-off', 'freeform'] },
+      key: { notIn: ['freeform'] },
     })
     // In id order, like series creation, so the two never wait on each other in a cycle.
     expect(orderBy).toEqual({ id: 'asc' })

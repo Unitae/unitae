@@ -76,7 +76,7 @@ describe('handleTemplateAction', () => {
 
   it('refuses anything but its colour on a built-in template', async () => {
     const result = await handleTemplateAction(
-      dbWith('day-off'),
+      dbWith('freeform'),
       4,
       form({ intent: 'delete-part', partId: '11' }),
       MANAGER,
@@ -172,7 +172,7 @@ describe('handleTemplateAction', () => {
   })
 
   it('never moves the meetings of a built-in template', async () => {
-    await handleTemplateAction(dbWith('day-off'), 4, form({ intent: 'move-meetings' }), MANAGER)
+    await handleTemplateAction(dbWith('freeform'), 4, form({ intent: 'move-meetings' }), MANAGER)
     expect(writes).toEqual([])
   })
 

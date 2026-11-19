@@ -81,7 +81,7 @@ describe.each([
   })
 
   it('never reorders a system template', async () => {
-    state.templateKey = 'day-off'
+    state.templateKey = 'freeform'
 
     expect(await post(action, [Permission.CanManageProgramTemplates], { orderedIds: [2, 1] })).toEqual({ ok: false })
     expect(state.written).toEqual([])
