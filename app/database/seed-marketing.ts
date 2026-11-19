@@ -664,7 +664,7 @@ async function main() {
   const dayOff = await prisma.eventTemplate.findFirstOrThrow({
     where: { key: EventTemplateKey.DayOff, congregationId },
   })
-  await prisma.event.createMany({
+  const absenceEvents = await prisma.event.createManyAndReturn({
     data: absences.map(absence => ({
       name: absence.name,
       startDate: absence.start,
@@ -673,6 +673,18 @@ async function main() {
       // Match production: an absence skips the release workflow.
       status: 'released',
       createdById: accounts.get(absence.person) as number,
+      congregationId,
+    })),
+    select: { id: true },
+  })
+  // Written twice, as createDayOff does while the readers move over: the absence of its own, the person's.
+  await prisma.absence.createMany({
+    data: absences.map((absence, index) => ({
+      startDate: absence.start,
+      endDate: absence.end,
+      memberId: members[absence.person] as number,
+      accountId: accounts.get(absence.person) as number,
+      legacyEventId: absenceEvents[index]?.id as number,
       congregationId,
     })),
   })
