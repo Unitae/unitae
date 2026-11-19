@@ -7315,5 +7315,19 @@
     "attendance_export_year": "Ano de serviço",
     "attendance_export_generating": "A preparar o ficheiro…",
     "attendance_export_error_redirected": "Já não tem acesso aos dados da assistência.",
-    "attendance_export_error_generic": "A exportação falhou. Tente novamente."
+    "attendance_export_error_generic": "A exportação falhou. Tente novamente.",
+    "demo_banner_label": "Demonstração — dados inventados",
+    "demo_banner_as": "Está como: {role}",
+    "demo_banner_switch": "Mudar de função",
+    "demo_banner_register": "Criar a sua congregação",
+    "demo_role_coordinator": "Coordenador do corpo de anciãos",
+    "demo_role_secretary": "Secretário",
+    "demo_role_programmes": "Superintendente da Reunião Vida e Ministério",
+    "demo_role_territories": "Servo de territórios",
+    "demo_role_group_overseer": "Superintendente de grupo",
+    "demo_role_publisher": "Publicador",
+    "demo_expired_title": "Esta ligação de demonstração já não é válida",
+    "demo_expired_message": "Uma ligação de demonstração abre uma só vez, no prazo de um minuto, e uma demonstração é apagada após uma hora sem atividade.",
+    "demo_expired_new": "Abrir uma nova demonstração",
+    "demo_refused": "Não disponível na demonstração."
 }

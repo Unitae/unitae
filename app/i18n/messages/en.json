@@ -7315,5 +7315,19 @@
     "attendance_export_year": "Service year",
     "attendance_export_generating": "Preparing the file…",
     "attendance_export_error_redirected": "You no longer have access to attendance.",
-    "attendance_export_error_generic": "The export failed. Try again."
+    "attendance_export_error_generic": "The export failed. Try again.",
+    "demo_banner_label": "Demo — invented data",
+    "demo_banner_as": "You are: {role}",
+    "demo_banner_switch": "Change role",
+    "demo_banner_register": "Create your congregation",
+    "demo_role_coordinator": "Coordinator of the body of elders",
+    "demo_role_secretary": "Secretary",
+    "demo_role_programmes": "Life and Ministry meeting overseer",
+    "demo_role_territories": "Territory servant",
+    "demo_role_group_overseer": "Group overseer",
+    "demo_role_publisher": "Publisher",
+    "demo_expired_title": "This demo link no longer works",
+    "demo_expired_message": "A demo link opens once, within a minute, and a demo is deleted after an hour without use.",
+    "demo_expired_new": "Open a new demo",
+    "demo_refused": "Not available in the demo."
 }

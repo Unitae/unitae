@@ -7315,5 +7315,19 @@
     "attendance_export_year": "Année de service",
     "attendance_export_generating": "Préparation du fichier…",
     "attendance_export_error_redirected": "Vous n’avez plus accès à l’assistance.",
-    "attendance_export_error_generic": "L’export a échoué. Réessayez."
+    "attendance_export_error_generic": "L’export a échoué. Réessayez.",
+    "demo_banner_label": "Démo — données inventées",
+    "demo_banner_as": "Vous êtes : {role}",
+    "demo_banner_switch": "Changer de rôle",
+    "demo_banner_register": "Créer votre assemblée",
+    "demo_role_coordinator": "Coordinateur du collège des anciens",
+    "demo_role_secretary": "Secrétaire",
+    "demo_role_programmes": "Responsable de la réunion Vie chrétienne et ministère",
+    "demo_role_territories": "Préposé aux territoires",
+    "demo_role_group_overseer": "Responsable de groupe",
+    "demo_role_publisher": "Proclamateur",
+    "demo_expired_title": "Ce lien de démo n’est plus valable",
+    "demo_expired_message": "Un lien de démo s’ouvre une fois, dans la minute, et une démo est supprimée après une heure sans activité.",
+    "demo_expired_new": "Ouvrir une nouvelle démo",
+    "demo_refused": "Pas disponible dans la démo."
 }

@@ -54,6 +54,30 @@ describe('sendEmail', () => {
   })
 })
 
+describe('sendEmail to the demo’s invented addresses', () => {
+  // The demo's people live at demo.unitae.app and its visiting speakers at example.org: invented addresses, which
+  // would bounce and still cost sending quota. Nothing leaves for them, whoever triggers the e-mail.
+  it('sends nothing when every recipient is invented', async () => {
+    await expect(
+      sendEmail({ ...PAYLOAD, to: ['marc.dupont+x7k2p@demo.unitae.app', 'paul.orateur@example.org'] } as never),
+    ).resolves.toBeNull()
+    expect(sendMock).not.toHaveBeenCalled()
+  })
+
+  it('sends to the real recipients only', async () => {
+    sendMock.mockResolvedValue({ data: { id: 'msg_1' }, error: null })
+
+    await sendEmail({ ...PAYLOAD, to: ['marc.dupont@demo.unitae.app', 'real@test.org'], cc: 'x@example.com' } as never)
+
+    expect(sendMock).toHaveBeenCalledWith(expect.objectContaining({ to: ['real@test.org'], cc: [] }))
+  })
+
+  it('reads an address written with a name', async () => {
+    await expect(sendEmail({ ...PAYLOAD, to: 'Marc Dupont <marc@demo.unitae.app>' } as never)).resolves.toBeNull()
+    expect(sendMock).not.toHaveBeenCalled()
+  })
+})
+
 describe('isEmailConfigured', () => {
   it('says whether this installation can send e-mail at all: only with a Resend key', () => {
     vi.stubEnv('RESEND_API_KEY', 're_sentinel')

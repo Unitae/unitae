@@ -1,6 +1,6 @@
 import { Kbd } from '@unitae/ui'
 import { Search } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 import { Outlet } from 'react-router'
 import type { TrialBannerInfo } from '~/shared/domain/trial-status'
 import { AppSidebar, type AppSidebarPermissions } from '~/shared/ui/AppSidebar'
@@ -23,6 +23,8 @@ interface AppLayoutProps {
   userName: string
   /** The congregation's SaaS trial, when it is in one: shown as a banner above every page. */
   trial?: TrialBannerInfo | null
+  /** A demo copy's banner (docs/development/specs/demo-mode.md), above every page; drawn by the layout. */
+  demoBanner?: ReactNode
   /** Initial sidebar state, read from the persistence cookie by the layout loader. */
   sidebarOpen?: boolean
   /** Drawn in place of the page: the error a page threw, inside the shell. */
@@ -42,6 +44,7 @@ export function AppLayout({
   congregationName,
   userName,
   trial = null,
+  demoBanner = null,
   sidebarOpen = true,
   children,
   helpPanel,
@@ -74,6 +77,7 @@ export function AppLayout({
       <SidebarInset className="group/inset">
         <NavigationProgress />
         <OfflineBanner />
+        {demoBanner}
         <TrialBanner trial={trial} />
         <MobileHeader congregationName={congregationName} userName={userName} onSearchClick={shell.openSearch} />
         {/* Brings a collapsed sidebar back on pages without a top bar; a page's

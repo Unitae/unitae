@@ -3,6 +3,7 @@
 // congregation of about 110 publishers (`profile.ts`), its people, streets and dates are invented, and everything is
 // relative to `now` and drawn from a fixed seed, so two runs on the same day write the same congregation.
 import { randomBytes, scrypt } from 'node:crypto'
+import { DEMO_ACCOUNTS_SETTING, DEMO_ROLES, type DemoRole } from '../../features/demo/model/demo-role'
 import {
   deleteBoardFile,
   saveBoardFile,
@@ -15,7 +16,9 @@ import { normalizeCongregationName } from '../../features/events/model/speaker-c
 import { seedDefaultTemplates } from '../../features/events/server/seed-templates.server'
 import { seedBuiltInTerritoryKinds } from '../../features/territories/server/territory-kinds.server'
 import { syncBuiltInRoleAssignments } from '../../shared/domain/built-in-roles.server'
+import { CONSENT_VERSION, ConsentPurpose } from '../../shared/domain/consent.server'
 import { ensureAdminRole, placeDefaultOrganigram, seedBuiltInRoles } from '../../shared/domain/setup.server'
+import { uploadFile } from '../../shared/infra/file-storage.server'
 import type { PrismaClient } from '../generated/client'
 import { type BoardSection, boardDocuments } from './board'
 import { boardPdf } from './board-pdf'
@@ -36,7 +39,7 @@ import { generateArea } from './places'
 import { CUSTOM_ROLES, MEETINGS, SERVICE_ROLES, SETTINGS } from './profile'
 import { Random } from './random'
 import { assignRoleHolders } from './roles'
-import { writeArea, writeAttributions, writeHistory, writePeople } from './write'
+import { loginEmail, writeArea, writeAttributions, writeHistory, writePeople } from './write'
 
 /** The demo's random seed: change it for another congregation of the same shape. */
 const SEED = 20261110
@@ -84,7 +87,8 @@ export async function cleanCongregationData(prisma: PrismaClient, congregationId
     ...(await prisma.boardDocument.findMany({ where, select: { uri: true, thumbnailUri: true } })),
     ...(await prisma.boardDocumentVersion.findMany({ where, select: { uri: true, thumbnailUri: true } })),
   ].flatMap(file => [file.uri, file.thumbnailUri])
-  for (const key of new Set(boardFiles)) if (key) await deleteBoardFile(key)
+  // The files every demo copy shares stay: other copies point at them.
+  for (const key of new Set(boardFiles)) if (key && !key.startsWith(SHARED_BOARD_PREFIX)) await deleteBoardFile(key)
   await prisma.boardDocumentVersion.deleteMany({ where })
   await prisma.boardDocument.deleteMany({ where })
   await prisma.boardSectionVisibilityRole.deleteMany({ where })
@@ -407,7 +411,7 @@ async function writeBoard(
   prisma: PrismaClient,
   congregationId: number,
   templateIds: Record<MeetingKind, number>,
-  board: { sections: BoardSection[]; congregation: string; uploadedById: number; now: Date },
+  board: { sections: BoardSection[]; congregation: string; uploadedById: number; now: Date; sharedFiles?: boolean },
 ) {
   const sections: number[] = []
   let documents = 0
@@ -416,9 +420,20 @@ async function writeBoard(
     sections.push(row.id)
     for (const [order, document] of section.documents.entries()) {
       const pdf = await boardPdf(board.congregation, document)
-      const uri = await saveBoardFile(congregationId, new File([pdf], 'document.pdf', { type: 'application/pdf' }))
-      const thumbnail = await generateThumbnail(uri)
-      const thumbnailUri = thumbnail ? await saveThumbnailFile(congregationId, thumbnail) : null
+      let uri: string
+      let thumbnailUri: string | null
+      if (board.sharedFiles) {
+        // Every copy points at the same files, rewritten in place: deleting a copy leaves nothing behind.
+        uri = `${SHARED_BOARD_PREFIX}/${index}-${order}.pdf`
+        await uploadFile(uri, await pdf.arrayBuffer(), 'application/pdf')
+        const thumbnail = await generateThumbnail(uri)
+        thumbnailUri = thumbnail ? `${SHARED_BOARD_PREFIX}/${index}-${order}.thumb.png` : null
+        if (thumbnail && thumbnailUri) await uploadFile(thumbnailUri, thumbnail, 'image/png')
+      } else {
+        uri = await saveBoardFile(congregationId, new File([pdf], 'document.pdf', { type: 'application/pdf' }))
+        const thumbnail = await generateThumbnail(uri)
+        thumbnailUri = thumbnail ? await saveThumbnailFile(congregationId, thumbnail) : null
+      }
       const createdAt = new Date(board.now.getTime() - document.age * 24 * 60 * 60 * 1000)
       await prisma.boardDocument.create({
         data: {
@@ -505,7 +520,13 @@ export interface SeedDemoOptions {
   emailSuffix?: string
   /** Where progress lines go; nowhere by default. */
   log?: (line: string) => void
+  /** Record which login each demo role signs in as (a visitor's copy), creating one where the person has none. */
+  demoLogins?: boolean
+  /** Point the board's documents at files every copy shares (`demo-shared/board/…`), never deleted with a copy. */
+  sharedBoardFiles?: boolean
 }
+
+const SHARED_BOARD_PREFIX = 'demo-shared/board'
 
 /**
  * Fills an empty congregation with the demo: people and logins (password `demo1234`), groups, roles, territories,
@@ -705,8 +726,133 @@ export async function seedDemoCongregation(
     congregation: congregation.name,
     uploadedById: adminAccount,
     now,
+    sharedFiles: options.sharedBoardFiles,
   })
   log(`  ✓ ${sections.length} board sections, ${documents} documents with their PDF`)
 
+  if (options.demoLogins) {
+    const logins = await writeDemoLogins(
+      prisma,
+      congregationId,
+      { people, holders, members, accounts },
+      {
+        password,
+        emailSuffix: options.emailSuffix,
+        now,
+      },
+    )
+    log(`  ✓ demo logins for ${Object.keys(logins).length} roles`)
+  }
+
   return { accounts, people, holders }
+}
+
+/**
+ * The publisher a visitor tries the demo as: a baptized brother with no appointment, with a territory in hand and the
+ * most coming assignments, so his dashboard shows what a publisher gets.
+ */
+async function busiestPublisher(
+  prisma: PrismaClient,
+  congregationId: number,
+  demo: { people: Congregation; members: number[] },
+  now: Date,
+): Promise<number | undefined> {
+  const candidates = demo.people.people.filter(
+    person =>
+      person.isMale &&
+      person.baptismDate != null &&
+      !person.isHelder &&
+      !person.isServant &&
+      person.leftAt == null &&
+      !person.goesInactive &&
+      !person.anonymized,
+  )
+  const ids = candidates.map(person => demo.members[person.key] as number)
+  const [parts, territories] = await Promise.all([
+    prisma.eventPart.groupBy({
+      by: ['assigneeId'],
+      where: { congregationId, assigneeId: { in: ids }, event: { startDate: { gte: now } } },
+      _count: { _all: true },
+    }),
+    prisma.attribution.findMany({
+      where: { congregationId, publisherId: { in: ids }, endDate: null },
+      select: { publisherId: true },
+    }),
+  ])
+  const coming = new Map(parts.map(row => [row.assigneeId, row._count._all]))
+  const holding = new Set(territories.map(row => row.publisherId))
+  const score = (person: (typeof candidates)[number]) => {
+    const id = demo.members[person.key] as number
+    return (holding.has(id) ? 1000 : 0) + (coming.get(id) ?? 0)
+  }
+  return [...candidates].sort((a, b) => score(b) - score(a) || a.key - b.key)[0]?.key
+}
+
+/**
+ * The person each demo role signs in as: the committee's coordinator and secretary, the elder in charge of the midweek
+ * meeting, the territory servant, a group overseer outside the committee, and the busiest publisher. Each gets a
+ * login if he has none; the map is kept in the `demoAccounts` setting.
+ */
+async function writeDemoLogins(
+  prisma: PrismaClient,
+  congregationId: number,
+  demo: {
+    people: Congregation
+    holders: Map<string, number[]>
+    members: number[]
+    accounts: Map<number, number>
+  },
+  login: { password: string; emailSuffix?: string; now: Date },
+): Promise<Record<DemoRole, number>> {
+  const { people, holders } = demo
+  const publisher = await busiestPublisher(prisma, congregationId, demo, login.now)
+  const programmes = holders.get('responsable-vcm')?.[0]
+  const territories = holders.get('territoires')?.[0]
+  // Elders with other roles lead groups too: the overseer is someone else's group, so each role is its own login.
+  const taken = new Set([people.admin, people.secretary, people.serviceOverseer, programmes, territories])
+  const overseer = people.groups.find(group => !taken.has(group.responsible))?.responsible
+  const persons: Record<DemoRole, number | undefined> = {
+    coordinator: people.admin,
+    secretary: people.secretary,
+    programmes,
+    territories,
+    'group-overseer': overseer,
+    publisher,
+  }
+  const logins = {} as Record<DemoRole, number>
+  for (const role of DEMO_ROLES) {
+    const person = persons[role]
+    if (person == null) throw new Error(`The demo has nobody for the role ${role}`)
+    let account = demo.accounts.get(person)
+    if (account == null) {
+      const seed = people.people[person] as (typeof people.people)[number]
+      const row = await prisma.userAccount.create({
+        data: {
+          memberId: demo.members[person] as number,
+          email: loginEmail(seed.email, login.emailSuffix),
+          password: login.password,
+          active: true,
+          emailVerifiedAt: login.now,
+          congregationId,
+        },
+        select: { id: true },
+      })
+      account = row.id
+      demo.accounts.set(person, account)
+    }
+    logins[role] = account
+  }
+  // The banner names a visitor's role from their login: two roles on one login would name the wrong one.
+  if (new Set(Object.values(logins)).size !== DEMO_ROLES.length) throw new Error('Two demo roles share a login')
+  await prisma.setting.create({ data: { key: DEMO_ACCOUNTS_SETTING, value: JSON.stringify(logins), congregationId } })
+  // The data is invented and nobody's: signing in shouldn't stop on the consent page.
+  await prisma.consentRecord.createMany({
+    data: Object.values(logins).map(userId => ({
+      userId,
+      congregationId,
+      purpose: ConsentPurpose.DataProcessing,
+      consentVersion: CONSENT_VERSION,
+    })),
+  })
+  return logins
 }

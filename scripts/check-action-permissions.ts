@@ -95,6 +95,8 @@ export const ALLOWLIST: Record<string, string> = {
   'app/features/events/routes/days-off/new.tsx': "records the caller's own absence",
   'app/features/events/routes/days-off/delete.tsx': "deletes the caller's own absence (ownership checked)",
   'app/shell/consent.tsx': "records the caller's own consent",
+  'app/features/demo/routes/switch-role.tsx':
+    'demo copies only (404 elsewhere): every login there is invented, and any visitor may try each role',
   'app/shell/csp-report.tsx': 'anonymous browser CSP violation reports, written to the log only',
   'app/shell/not-found.tsx': 'answers unmatched submissions with a 404',
 }

@@ -20,27 +20,38 @@ A copy can hold anything a visitor types, and a screenshot of it can't be preven
 
 - a banner on every page, on a phone too, which can't be closed: « Démo — données inventées », the role, « changer de
   rôle », « créer votre assemblée »;
-- « Démo » in the header of every PDF and printed document;
+- « Démo » in the header of every PDF and printed document (not built yet: it needs a library to stamp the rendered
+  PDFs);
 - the congregation's data is invented, and its name says it's a demo.
 
 ## What a copy refuses
 
 When a congregation is a demo copy (`Congregation.demoExpiresAt` set) and the mode is on:
 
-- no e-mail leaves the app;
-- no PDF upload, no import;
-- no password, two-step verification, e-mail address or account change, no invitation, no account deletion;
-- the rest works, exports included: the data is invented.
+- no e-mail leaves for the demo's invented addresses (`@demo.unitae.app`, and the reserved `example.*` domains its
+  speakers use): `sendEmail` drops them, in every installation;
+- no submission carrying a file: board documents and their versions, speaker lists, imports;
+- no change to a login (`/me/security`), no invitation or login created, no account deleted or reset, no congregation
+  archive in or out (`/settings/data`);
+- the rest works, the documents' PDFs included: the data is invented.
+
+A refused submission goes back to its page with « Pas disponible dans la démo » (`refusedInDemoCopy`, run by the
+signed-in layout's middleware).
 
 ## Pieces
 
-1. **The seed as a function**: `seedDemoCongregation(prisma, congregation, { now, emailSuffix, log })` in
+1. **The links back to the hosted site**: `HOST_SETTINGS.demo.registerUrl` (« créer votre assemblée ») and
+   `HOST_SETTINGS.demo.demoUrl` (an expired link's « ouvrir une nouvelle démo »).
+2. **The seed as a function**: `seedDemoCongregation(prisma, congregation, { now, emailSuffix, log })` in
    `app/database/demo/seed-demo.ts`. The marketing seed (`pnpm db:seed:marketing`) uses it for its congregation; a copy
    uses it with a suffix that keeps its logins' addresses unique (`marc.dupont+x7k2p@demo.unitae.app`). It takes
-   about 4 seconds.
-2. **Schema**: `Congregation.demoExpiresAt` and `demoReadyAt`; `DemoSignInToken` (hashed token, congregation, role,
+   about 4 seconds. With `demoLogins`, it records the login of each role in the `demoAccounts` setting: the
+   coordinator, the secretary, the elder in charge of the midweek meeting, the territory servant, a group overseer
+   who holds none of those, and the publisher with a territory in hand and the most coming assignments, each a login
+   of their own. With `sharedBoardFiles`, the board's documents point at files every copy shares (`demo-shared/`).
+3. **Schema**: `Congregation.demoExpiresAt` and `demoReadyAt`; `DemoSignInToken` (hashed token, congregation, role,
    expiry, used at).
-3. **The guards and the banner** above.
-4. **Entry**: `/demo/enter?token=…` checks a one-time token (a minute, single use, for that congregation) and signs
+4. **The guards and the banner** above.
+5. **Entry**: `/demo/enter?token=…` checks a one-time token (a minute, single use, for that congregation) and signs
    the visitor in as the copy's account for the role; « changer de rôle » does the same for another role; each request
    pushes the expiry (written at most once a minute); `/cron/demo-seed` fills the copies not yet seeded.

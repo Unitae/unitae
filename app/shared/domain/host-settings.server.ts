@@ -19,6 +19,13 @@ export interface HostSettings {
     /** The instance's own site: where a visitor who reached no congregation is offered to go. */
     homeUrl?: string
   }
+  /** Demo mode's links back to the hosted site (docs/development/specs/demo-mode.md). */
+  demo?: {
+    /** Where « créer votre assemblée » leads from a demo copy. */
+    registerUrl?: string
+    /** Where a visitor whose demo link has expired opens a new one. */
+    demoUrl?: string
+  }
   /** Who runs the instance, for the privacy page. */
   operator?: {
     name?: string
@@ -50,6 +57,7 @@ const SECTIONS = {
   billing: { fields: { portalUrl: isWebAddress, upgradeUrl: isWebAddress }, allOrNothing: true },
   support: { fields: { url: isWebAddress }, allOrNothing: true },
   branding: { fields: { platformName: isText, homeUrl: isWebAddress }, allOrNothing: false },
+  demo: { fields: { registerUrl: isWebAddress, demoUrl: isWebAddress }, allOrNothing: false },
   operator: {
     fields: { name: isText, privacyContact: isEmail, privacyPolicyUrl: isWebAddress, managedHosting: isTrue },
     allOrNothing: false,

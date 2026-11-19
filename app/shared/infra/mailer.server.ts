@@ -35,7 +35,15 @@ export function isEmailConfigured(): boolean {
  * a thrown error to mark the event `failed` and to trigger the BullMQ retry.
  */
 export async function sendEmail(options: CreateEmailOptions): Promise<CreateEmailResponseSuccess | null> {
-  const { data, error } = await mailer.emails.send(options)
+  const to = deliverable(options.to)
+  // Every recipient invented (the demo's people and speakers): nothing to send.
+  if (to.length === 0) return null
+  const { data, error } = await mailer.emails.send({
+    ...options,
+    to,
+    ...(options.cc === undefined ? {} : { cc: deliverable(options.cc) }),
+    ...(options.bcc === undefined ? {} : { bcc: deliverable(options.bcc) }),
+  } as CreateEmailOptions)
 
   if (error) {
     // ErrorResponse carries `message` in practice, but it is typed loosely
@@ -45,4 +53,22 @@ export async function sendEmail(options: CreateEmailOptions): Promise<CreateEmai
   }
 
   return data
+}
+
+// The demo congregation's people live at demo.unitae.app and its visiting speakers at example.org (docs/development/
+// specs/demo-mode.md): invented addresses, which would bounce and still cost sending quota. The example domains are
+// reserved for documentation (RFC 2606) and never deliver anyway.
+const INVENTED_DOMAINS = ['demo.unitae.app', 'example.org', 'example.com', 'example.net']
+const NAMED_ADDRESS = /<([^>]+)>/
+
+function deliverable(recipients: string | string[]): string[] {
+  return (Array.isArray(recipients) ? recipients : [recipients]).filter(recipient => {
+    // « Marc Dupont <marc@…> » as well as « marc@… ».
+    const address = recipient.match(NAMED_ADDRESS)?.[1] ?? recipient
+    const domain = address
+      .slice(address.lastIndexOf('@') + 1)
+      .trim()
+      .toLowerCase()
+    return !INVENTED_DOMAINS.includes(domain)
+  })
 }
