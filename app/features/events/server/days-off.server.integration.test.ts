@@ -49,9 +49,9 @@ beforeAll(async () => {
         ids.member = member.id
         ids.account = account.id
         ids.accountWithoutRecord = withoutRecord.id
-      } else {
-        await createDayOff(tx, account.id, member.id, START, END, congregationId)
       }
+      // One absence each before any test: the isolation test reads both sides.
+      await createDayOff(tx, account.id, member.id, START, END, congregationId)
     })
   }
 })
@@ -104,6 +104,7 @@ describe('an absence written twice', () => {
   it('deletes the event and its Absence row together', async () => {
     const event = await withScope(ids.cong, tx => createDayOff(tx, ids.account, ids.member, START, END, ids.cong))
     const eventId = event?.id as number
+    expect(await absenceOf(eventId)).not.toBeNull()
 
     await withScope(ids.cong, tx =>
       deleteDayOff(tx, { eventId, accountId: ids.account, memberId: ids.member, congregationId: ids.cong }),
@@ -113,11 +114,19 @@ describe('an absence written twice', () => {
     expect(await withScope(ids.cong, tx => tx.event.findFirst({ where: { id: eventId } }))).toBeNull()
   })
 
-  it('never shows another congregation’s absences', async () => {
-    const seen = await withScope(ids.cong, tx => tx.absence.findMany({ select: { congregationId: true } }))
+  it('never shows another congregation’s absences, nor writes into them', async () => {
+    const ours = await withScope(ids.cong, tx => tx.absence.count({ where: { congregationId: ids.cong } }))
+    const seen = await withScope(ids.cong, tx => tx.absence.count())
     const theirs = await withScope(ids.other, tx => tx.absence.count())
+    const intrusion = withScope(ids.cong, tx =>
+      tx.absence.create({
+        data: { startDate: START, endDate: END, accountId: ids.account, congregationId: ids.other },
+      }),
+    )
 
     expect(theirs).toBe(1)
-    expect(seen.every(row => row.congregationId === ids.cong)).toBe(true)
+    expect(ours).toBeGreaterThan(0)
+    expect(seen).toBe(ours)
+    await expect(intrusion).rejects.toThrow()
   })
 })

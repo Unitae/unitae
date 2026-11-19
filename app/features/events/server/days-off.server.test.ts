@@ -173,6 +173,8 @@ describe('deleteDayOff', () => {
 
     expect(result).toBeNull()
     expect(db.event.delete).not.toHaveBeenCalled()
+    // Nor its Absence row: the two copies stay together.
+    expect(db.absence.deleteMany).not.toHaveBeenCalled()
   })
 
   it('records the deletion in the audit trail', async () => {

@@ -63,7 +63,7 @@ function snapshot() {
         const ids: Record<string, number> = {
           // The previous image's job, during the rollout: empty, no author, never written since.
           rolloutJob: await insert('rollout job', inWindow, inWindow),
-          // Older than the window: 0d's own backfill already decided it.
+          // Older than the window: 20261119120000_add_event_origin's own backfill already decided it.
           beforeWindow: await insert('before the window', before, before),
           // Made by hand in the window, its author's account deleted since: clearing the author was a write.
           authorCleared: await insert('author cleared', inWindow, new Date(inWindow.getTime() + 3_600_000)),

@@ -33,6 +33,8 @@ interface Result {
   ids: Record<string, number>
   first: AbsenceRow[]
   second: AbsenceRow[]
+  /** The other congregation's rows after both runs, by event: its own absence, and nothing for the stray one. */
+  otherCongregation: { legacyEventId: number | null; congregationId: number }[]
   ownerlessRefused: boolean
 }
 
@@ -61,7 +63,13 @@ function snapshot(): Promise<Result> {
         const withoutRecord = await tx.userAccount.create({
           data: { email: `sans-${stamp}@test.com`, password: 'x', congregationId },
         })
-        const event = (templateId: number, createdById: number, day: string, description = '') =>
+        const event = (
+          templateId: number,
+          createdById: number | null,
+          day: string,
+          description = '',
+          inCongregation = congregationId,
+        ) =>
           tx.event.create({
             data: {
               name: 'Absence',
@@ -72,15 +80,31 @@ function snapshot(): Promise<Result> {
               templateId,
               createdById,
               createdAt: new Date('2026-10-01T08:00:00Z'),
-              congregationId,
+              congregationId: inCongregation,
             },
           })
+        // Another congregation, with its own absence template and one genuine absence.
+        const otherId = (
+          await tx.congregation.create({ data: { name: `${stamp}-b`, slug: `${stamp}-b`, active: true } })
+        ).id
+        const otherDayOff = await tx.eventTemplate.create({
+          data: { name: 'Absence', key: 'day-off', congregationId: otherId },
+        })
+        const otherAccount = await tx.userAccount.create({
+          data: { email: `autre-${stamp}@test.com`, password: 'x', congregationId: otherId },
+        })
 
         const ids: Record<string, number> = {
           withRecord: (await event(dayOff.id, withRecord.id, '2027-01-04', 'Vacances')).id,
           withoutRecord: (await event(dayOff.id, withoutRecord.id, '2027-01-11')).id,
           meeting: (await event(meeting.id, withRecord.id, '2027-01-12')).id,
           copied: (await event(dayOff.id, withRecord.id, '2027-02-01')).id,
+          // No author: it would break the CHECK, so it is left out (no path leaves one today).
+          noAuthor: (await event(dayOff.id, null, '2027-02-08')).id,
+          // An event of this congregation pointing at the other one's absence template: not an absence here.
+          stray: (await event(otherDayOff.id, withRecord.id, '2027-02-15')).id,
+          otherAbsence: (await event(otherDayOff.id, otherAccount.id, '2027-02-22', '', otherId)).id,
+          otherCongregation: otherId,
           member: member.id,
           withRecordAccount: withRecord.id,
           withoutRecordAccount: withoutRecord.id,
@@ -131,7 +155,11 @@ function snapshot(): Promise<Result> {
           await tx.$executeRawUnsafe('ROLLBACK TO SAVEPOINT ownerless')
         }
 
-        result = { ids, first, second, ownerlessRefused }
+        const otherCongregation = await tx.absence.findMany({
+          where: { legacyEventId: { in: [ids.stray, ids.otherAbsence] } },
+          select: { legacyEventId: true, congregationId: true },
+        })
+        result = { ids, first, second, otherCongregation, ownerlessRefused }
         throw new Rollback()
       })
     } catch (error) {
@@ -197,5 +225,19 @@ describe('20261120090000_add_absences', () => {
              (SELECT COUNT(*) FROM pg_policies p WHERE p.tablename = 'Absence' AND p.policyname = 'tenant_isolation') AS policies
       FROM pg_class c WHERE c.relname = 'Absence'`
     expect(rows).toEqual([{ forced: true, policies: 1n }])
+  })
+
+  it('leaves out an absence without an author, and an event pointing at another congregation’s template', async () => {
+    const { ids, second } = await snapshot()
+    const copied = second.map(row => row.legacyEventId)
+
+    expect(copied).not.toContain(ids.noAuthor)
+    expect(copied).not.toContain(ids.stray)
+  })
+
+  it('copies the other congregation’s absence under that congregation', async () => {
+    const { ids, otherCongregation } = await snapshot()
+
+    expect(otherCongregation).toEqual([{ legacyEventId: ids.otherAbsence, congregationId: ids.otherCongregation }])
   })
 })

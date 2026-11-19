@@ -137,6 +137,31 @@ describe('deleteAccount and the events the account created', () => {
     expect(await absencesOf(accountId)).toBe(1)
   })
 
+  // An Absence row whose event a previous version deleted without it still names the account (Restrict).
+  it('deletes an account linked to a record whose only absence row lost its event', async () => {
+    const { accountId } = await account('Reste', { record: true, absence: false })
+    await withScope(ids.cong, async tx => {
+      const { memberId } = await tx.userAccount.findFirstOrThrow({
+        where: { id: accountId },
+        select: { memberId: true },
+      })
+      await tx.absence.create({
+        data: {
+          startDate: DAY,
+          endDate: DAY,
+          memberId,
+          accountId,
+          legacyEventId: 999_999_999,
+          congregationId: ids.cong,
+        },
+      })
+    })
+
+    await remove(accountId)
+
+    expect(await absencesOf(accountId)).toBe(0)
+  })
+
   it('deletes an account linked to a record without absences, clearing its author', async () => {
     const { accountId, meetingId } = await account('Fiche-sans-absence', { record: true, absence: false })
 
