@@ -1968,9 +1968,10 @@ describe('restored absences', () => {
           origin: 'manual',
         })
         const zip = new JsZip()
-        zip
-          .folder('data')!
-          .file('events.ndjson', [absence(1, 70), absence(2, 71)].map(row => `${JSON.stringify(row)}\n`).join(''))
+        const dataDir = zip.folder('data')!
+        // The archive's own day-off template: what tells its day-offs apart.
+        dataDir.file('programme-templates.ndjson', `${JSON.stringify({ id: 9, name: 'Absence', key: 'day-off' })}\n`)
+        dataDir.file('events.ndjson', [absence(1, 70), absence(2, 71)].map(row => `${JSON.stringify(row)}\n`).join(''))
 
         await importEvents(zip, tx, idMap, cong.id)
 
@@ -1984,20 +1985,22 @@ describe('restored absences', () => {
         }
       })
 
+      // An absence is its row alone: the day-off events are not restored.
+      expect(rows.events).toEqual([])
       expect(rows.absences).toEqual([
         {
           note: 'Vacances',
           memberId: rows.ids.member,
           accountId: rows.ids.withRecord,
           startDate: new Date('2027-05-03T00:00:00.000Z'),
-          legacyEventId: rows.events[0].id,
+          legacyEventId: null,
         },
         {
           note: 'Vacances',
           memberId: null,
           accountId: rows.ids.withoutRecord,
           startDate: new Date('2027-05-03T00:00:00.000Z'),
-          legacyEventId: rows.events[1].id,
+          legacyEventId: null,
         },
       ])
     } finally {
@@ -2048,6 +2051,7 @@ describe('restored absences from a 2.19 archive', () => {
         const absence = (id: number, owner: object) => ({ id, ...when, note: '', createdAt: declared, ...owner })
         const zip = new JsZip()
         const dataDir = zip.folder('data')!
+        dataDir.file('programme-templates.ndjson', `${JSON.stringify({ id: 9, name: 'Absence', key: 'day-off' })}\n`)
         // The second day-off has no Absence row behind it (a version before the absences table wrote it): its absence
         // comes back from the event.
         dataDir.file('events.ndjson', `${JSON.stringify(event)}\n${JSON.stringify({ ...event, id: 2 })}\n`)
@@ -2070,7 +2074,7 @@ describe('restored absences from a 2.19 archive', () => {
         await importEvents(zip, tx, idMap, cong.id)
         await importAbsences(zip, tx, idMap, cong.id)
 
-        const [restoredEvent, uncovered] = await tx.event.findMany({ select: { id: true }, orderBy: { id: 'asc' } })
+        const events = await tx.event.count()
         const absences = await tx.absence.findMany({
           select: { memberId: true, accountId: true, legacyEventId: true, createdAt: true },
           orderBy: { id: 'asc' },
@@ -2079,24 +2083,25 @@ describe('restored absences from a 2.19 archive', () => {
           member: member.id,
           withRecord: withRecord.id,
           withoutRecord: withoutRecord.id,
-          restoredEvent,
-          uncovered,
+          events,
           absences,
         }
       })
 
+      // No day-off event comes back; neither row names one.
+      expect(rows.events).toBe(0)
       expect(rows.absences).toEqual([
         // Rebuilt from its day-off, written first, while the events are read.
         {
           memberId: rows.member,
           accountId: rows.withRecord,
-          legacyEventId: rows.uncovered.id,
+          legacyEventId: null,
           createdAt: new Date('2027-04-01T08:00:00.000Z'),
         },
         {
           memberId: rows.member,
           accountId: rows.withRecord,
-          legacyEventId: rows.restoredEvent.id,
+          legacyEventId: null,
           createdAt: new Date('2027-04-01T08:00:00.000Z'),
         },
         {
