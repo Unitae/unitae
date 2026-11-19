@@ -14,6 +14,22 @@ const REFUSED_PATHS = [
 
 // A page's JavaScript submits to the path's `.data` address (`/me/security.data`), which reaches the server as is.
 const DATA_SUFFIX = /\.data$/
+const REPEATED_SLASHES = /\/{2,}/g
+
+/**
+ * The path as the router matches it: escapes decoded, any case, slashes collapsed, without the `.data` suffix. Matching
+ * the raw path would let `/ME/Security` or `/me%2Fsecurity` reach a page the guard means to refuse.
+ */
+function routedPath(request: Request): string {
+  const raw = new URL(request.url).pathname
+  let decoded: string
+  try {
+    decoded = decodeURIComponent(raw)
+  } catch {
+    decoded = raw
+  }
+  return decoded.toLowerCase().replace(REPEATED_SLASHES, '/').replace(DATA_SUFFIX, '')
+}
 
 /** Submissions refused by what they do, not by their path: the page posts several intents to one route. */
 const REFUSED_INTENTS: { path: RegExp; intents: string[] }[] = [
@@ -29,7 +45,7 @@ const REFUSED_INTENTS: { path: RegExp; intents: string[] }[] = [
 export async function refusedInDemoCopy(request: Request): Promise<boolean> {
   if (request.method === 'GET' || request.method === 'HEAD') return false
   if (request.headers.get('Content-Type')?.toLowerCase().startsWith('multipart/')) return true
-  const path = new URL(request.url).pathname.replace(DATA_SUFFIX, '')
+  const path = routedPath(request)
   if (REFUSED_PATHS.some(pattern => pattern.test(path))) return true
   const rule = REFUSED_INTENTS.find(each => each.path.test(path))
   if (!rule) return false

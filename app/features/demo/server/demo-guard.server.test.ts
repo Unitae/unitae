@@ -39,6 +39,12 @@ describe('what a demo copy refuses', () => {
     }
   })
 
+  it('refuses a path written otherwise that the router still matches: case, escapes, doubled slashes', async () => {
+    for (const path of ['/ME/Security', '/me%2Fsecurity', '//settings//users/new', '/Settings/Data.data']) {
+      expect(await refusedInDemoCopy(submit(path, { body: new URLSearchParams({ intent: 'x' }) })), path).toBe(true)
+    }
+  })
+
   it('refuses the actions that would take a role’s own login away', async () => {
     for (const path of ['/settings/users/412/anonymize', '/publishers/18/unlink-login', '/password/412/invalidate']) {
       expect(await refusedInDemoCopy(submit(path, { body: new URLSearchParams({ intent: 'x' }) })), path).toBe(true)
