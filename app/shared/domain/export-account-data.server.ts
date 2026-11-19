@@ -9,6 +9,7 @@ export interface UserDataExport {
   attributions: Record<string, unknown>[]
   publisherGroup: Record<string, unknown> | null
   eventsCreated: Record<string, unknown>[]
+  absences: Record<string, unknown>[]
   boardDocumentsViewed: Record<string, unknown>[]
   boardDocumentVersionUploads: Record<string, unknown>[]
   consentRecords: Record<string, unknown>[]
@@ -74,7 +75,7 @@ export async function exportAccountData(
 
   const memberId = account.memberId
 
-  const [permissions, events, documentsViewed, documentVersionUploads, consentRecords] = await Promise.all([
+  const [permissions, events, absences, documentsViewed, documentVersionUploads, consentRecords] = await Promise.all([
     // Permissions reach an account through the roles it holds, or the roles its
     // linked Member holds. The export reports what was granted, so `admin` is
     // listed as itself rather than expanded into the full enum.
@@ -100,6 +101,13 @@ export async function exportAccountData(
         template: { select: { name: true, key: true } },
         createdAt: true,
       },
+      orderBy: { startDate: 'desc' },
+    }),
+    // The person's absences: by their record when the account has one — including those declared from a login since
+    // deleted, which stay on the record — by the account otherwise (the rule the absence lists follow).
+    db.absence.findMany({
+      where: memberId != null ? { congregationId, memberId } : { congregationId, accountId: userId, memberId: null },
+      select: { startDate: true, endDate: true, note: true, createdAt: true },
       orderBy: { startDate: 'desc' },
     }),
     // When each read happened, where it is known: reads recorded before dates were kept carry none.
@@ -175,7 +183,7 @@ export async function exportAccountData(
 
   return {
     exportDate: new Date().toISOString(),
-    exportVersion: '2.0',
+    exportVersion: '2.1',
     user: account,
     permissions: [...new Set(permissions.map(p => p.permission.key))].map(key => ({ key })),
     publisherActivities: activities,
@@ -189,6 +197,7 @@ export async function exportAccountData(
     })),
     publisherGroup: group,
     eventsCreated: events,
+    absences,
     boardDocumentsViewed: documentsViewed,
     boardDocumentVersionUploads: documentVersionUploads.map(v => ({
       documentTitle: v.document.title,
