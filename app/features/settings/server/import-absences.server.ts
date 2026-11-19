@@ -36,9 +36,9 @@ function dateOf(value: unknown): Date | null {
 
 /**
  * Absences (archive 2.19 on), after the records, the accounts and the events. Each keeps its person: the record when it
- * came with the archive, the account that declared it otherwise. The account and the day-off event are kept when they
- * came too, and dropped otherwise — an account skipped because its e-mail belongs to another congregation leaves its
- * absences with the record. One whose record and account both did not come is dropped, and so is one whose dates do
+ * came with the archive, the account that declared it otherwise. The account is kept when it came too, dropped otherwise
+ * — an account skipped because its e-mail belongs to another congregation leaves its absences with the record. The
+ * day-off events are no longer restored, so a restored absence names none. One whose record and account both did not come is dropped, and so is one whose dates do
  * not read (only a hand-edited archive has them); both are counted.
  */
 export async function importAbsences(

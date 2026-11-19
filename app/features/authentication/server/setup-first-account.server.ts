@@ -47,8 +47,8 @@ export async function setupFirstAccount(
     },
   })
 
-  // Create default programme templates (including the system day-off and
-  // freeform templates) inside a scoped transaction so PostgreSQL RLS allows
+  // Create default programme templates (including the system freeform
+  // template) inside a scoped transaction so PostgreSQL RLS allows
   // the inserts. The admin role belongs here too: Role, RolePermission and
   // UserRoleAssignment are all RLS-scoped, unlike the direct grant this replaced.
   await withScope(congregation.id, async scopedDb => {

@@ -14,8 +14,8 @@ const logger = createLogger('import-events')
  * recurring-events job creates do.
  *
  * An archive from before the day-off events were dropped still has them: they are not restored, only their absences —
- * from the absences file (2.19 on), or from the day-off's author when the file does not cover it. One whose author did
- * not come is skipped, and counted: from 2.19 that loses nothing the absences file does not have.
+ * from the absences file (2.19 on), or from the day-off's author when the file does not cover it. One the file does not
+ * cover and whose author did not come is skipped and counted: nothing else says whose it is, so its absence is lost.
  *
  * A fresh congregation already has its first two months of empty meetings from seeding: the archive's meetings replace
  * them, and the recurring-events job starts again after the last imported one.

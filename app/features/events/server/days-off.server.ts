@@ -22,7 +22,7 @@ export async function getNextDaysOffs(
   })
 }
 
-// `accountId` is who declared it. `memberId` (null for an account without a record — administrators, circuit overseers)
+// `accountId` is who declared it, and its owner when `memberId` is null. `memberId` (null for an account without a record — administrators, circuit overseers)
 // makes the Absence row the person's and drives refreshConflictFlags; when it's null there can be no assignments to
 // conflict, so the refresh is skipped.
 export async function createDayOff(

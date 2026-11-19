@@ -17,8 +17,7 @@ async function main() {
   await seedPermissions(prisma)
 
   // Single-tenant installations: pre-create a default congregation with its
-  // programme templates (which include the system `day-off` and `freeform`
-  // templates). In multi-tenant mode, congregations are created through the
+  // programme templates (which include the system `freeform` template). In multi-tenant mode, congregations are created through the
   // /register flow (registerCongregation), which already seeds templates for
   // each new tenant.
   if (process.env.UNITAE_MULTI_TENANT !== 'true') {

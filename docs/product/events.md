@@ -59,7 +59,7 @@ Release is **blocked** when the event has unresolved absence conflicts. A toast 
 
 **Un-releasing** an event returns it to draft: it disappears from the board, calendar feeds, and dashboard cards, and any not-yet-sent assignment email is cancelled. Publishers who already received the notification before un-release keep it — Unitae doesn't send a follow-up "never mind" email.
 
-Days-off events are **not part of this workflow**. Publisher absences always take effect immediately (otherwise conflict detection would miss them).
+Absences are not events and have no release workflow: they take effect the moment they are declared, so conflict detection sees them at once.
 
 Release and un-release are available:
 
@@ -84,7 +84,6 @@ Event kinds are congregation-defined categories used to visually distinguish eve
 
 - A **color bar** on the left edge of each event card reflects its kind
 - Kinds are optional — events with no kind show no color bar
-- The built-in **Absence** kind is reserved for days off and is not shown in user-facing kind selectors
 
 Kinds can be assigned to events in two ways:
 - **On the template** — all events generated from that template inherit the kind automatically

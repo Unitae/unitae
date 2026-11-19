@@ -1030,14 +1030,12 @@ model Event {
   attendance        Attendance?
 
   // Who prepared it: null for a meeting the job created that nobody has prepared yet, or once its author's account is
-  // deleted (releaseAccountEvents clears it first). A day-off always has one: the account that declared it, by which
-  // account deletion still finds its absences until the events are dropped (the absence's owner is on its Absence row).
-  // onDelete is written out because an optional relation defaults to SetNull, which would orphan those day-offs.
+  // deleted (releaseAccountEvents clears it first). onDelete is written out: an optional relation would default to
+  // SetNull.
   createdBy   UserAccount? @relation("createdBy", fields: [createdById], references: [id], onDelete: Restrict)
   createdById Int?
   // Who created it: the recurring-events job (« job »), a person (« manual ») or a restore (« import »). Only the
-  // job's empty meetings move with their template or go with it; the author says who prepared it (for a day-off, who
-  // declared it).
+  // job's empty meetings move with their template or go with it; the author says who prepared it.
   origin      String       @default("manual")
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -1620,8 +1618,7 @@ model NotificationPreference {
 }
 
 /// An absence: the days a person is away, so nobody assigns them a part then. It belongs to the person — their record
-/// when the account that declared it had one when it was written, the account otherwise (CHECK: one of the two). Written alongside the
-/// day-off event it was copied from until the events are dropped (legacyEventId); every list reads this row.
+/// when the declaring account had one, the account otherwise (CHECK: one of the two). Every list reads this row.
 model Absence {
   id        Int      @id @default(autoincrement())
   // Copied as stored: legacy rows sit at midnight UTC (app/features/events/model/absence.ts).
@@ -1635,6 +1632,8 @@ model Absence {
   account   UserAccount? @relation(fields: [accountId], references: [id], onDelete: Restrict)
   accountId Int?
 
+  // The id of the day-off event an older row was copied from (the events are dropped): no foreign key; the calendar
+  // feed keeps its identifier while a row carries it.
   legacyEventId Int? @unique
 
   createdAt DateTime @default(now())
