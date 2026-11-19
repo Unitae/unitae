@@ -75,6 +75,11 @@ export async function linkMemberToAccount(
   })
   // The roles given to the login now belong to the person: they move onto the record.
   await moveGivenRolesOntoRecord(db, account.id, member.id, params.congregationId)
+  // So do the absences it declared without a record, as its day-off events follow it through the account.
+  await db.absence.updateMany({
+    where: { accountId: account.id, congregationId: params.congregationId, memberId: null },
+    data: { memberId: member.id },
+  })
 
   audit({
     action: AuditAction.AccountLinkedToMember,

@@ -66,6 +66,8 @@ export async function bulkDeleteEvents(db: TransactionClient, ids: number[], con
   if (toDelete.length > 0) await cancelNoticesOf(db, toDelete, congregationId)
   const result =
     toDelete.length > 0 ? await db.event.deleteMany({ where: { id: { in: toDelete }, congregationId } }) : { count: 0 }
+  // An absence's event among them takes its Absence row (written alongside it, no foreign key) with it.
+  if (toDelete.length > 0) await db.absence.deleteMany({ where: { legacyEventId: { in: toDelete }, congregationId } })
 
   // auditInTransaction (not audit) so the audit rows roll back with the
   // delete if the surrounding tx aborts. Matches release/unrelease. One row
@@ -98,6 +100,7 @@ export async function deleteEvent(
   }
   await cancelNoticesOf(db, [id], congregationId)
   await db.event.delete({ where: { id_congregationId: { id, congregationId } } })
+  await db.absence.deleteMany({ where: { legacyEventId: id, congregationId } })
   await auditInTransaction(db, {
     action: AuditAction.EventDeleted,
     congregationId,

@@ -28,6 +28,7 @@ const mockDb = {
   // The roles given to the login, moved onto the new record.
   userRoleAssignment: { findMany: vi.fn(), deleteMany: vi.fn() },
   memberRoleAssignment: { upsert: vi.fn() },
+  absence: { updateMany: vi.fn() },
 }
 // biome-ignore lint/suspicious/noExplicitAny: partial mocked transaction client
 const dbCast = mockDb as any
@@ -37,6 +38,7 @@ const { linkMemberToAccount } = await import('./link-member-to-account.server')
 beforeEach(() => {
   vi.resetAllMocks()
   mockDb.userRoleAssignment.findMany.mockResolvedValue([])
+  mockDb.absence.updateMany.mockResolvedValue({ count: 0 })
 })
 
 const baseParams = {
@@ -69,6 +71,19 @@ describe('linkMemberToAccount', () => {
   it('throws ConflictError when the account is already linked to a Member', async () => {
     mockDb.userAccount.findFirst.mockResolvedValue({ id: 5, memberId: 77, firstname: 'A', lastname: 'B' })
     await expect(linkMemberToAccount(dbCast, baseCongregation, baseParams)).rejects.toThrow(ConflictError)
+  })
+
+  // The absences the login declared before it had a record are the person's from now on, like its day-off events.
+  it('gives the record the absences the login declared without one', async () => {
+    mockDb.userAccount.findFirst.mockResolvedValue({ id: 5, memberId: null, firstname: 'A', lastname: 'B' })
+    mockCreateDirect.mockResolvedValue({ id: 10 })
+
+    await linkMemberToAccount(dbCast, baseCongregation, baseParams)
+
+    expect(mockDb.absence.updateMany).toHaveBeenCalledWith({
+      where: { accountId: 5, congregationId: 42, memberId: null },
+      data: { memberId: 10 },
+    })
   })
 
   it('checks the members limit before creating the member', async () => {

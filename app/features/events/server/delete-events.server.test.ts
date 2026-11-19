@@ -18,6 +18,7 @@ const mockDb = {
   eventServicePart: { deleteMany: vi.fn(), findMany: vi.fn() },
   attendance: { findMany: vi.fn() },
   notificationEvent: { updateMany: vi.fn() },
+  absence: { deleteMany: vi.fn() },
   $queryRaw: vi.fn(),
 }
 
@@ -39,6 +40,10 @@ describe('bulkDeleteEvents', () => {
 
     expect(mockDb.event.deleteMany).toHaveBeenCalledWith({
       where: { id: { in: [1, 2, 3] }, congregationId: 42 },
+    })
+    // An absence's event among them takes its Absence row with it: the two copies never drift.
+    expect(mockDb.absence.deleteMany).toHaveBeenCalledWith({
+      where: { legacyEventId: { in: [1, 2, 3] }, congregationId: 42 },
     })
   })
 
@@ -176,6 +181,7 @@ describe('deleteEvent', () => {
     expect(mockDb.event.delete).toHaveBeenCalledWith({
       where: { id_congregationId: { id: 3, congregationId: 10 } },
     })
+    expect(mockDb.absence.deleteMany).toHaveBeenCalledWith({ where: { legacyEventId: 3, congregationId: 10 } })
     expect(vi.mocked(auditModule.auditInTransaction)).toHaveBeenCalledWith(
       mockDb,
       expect.objectContaining({ action: 'event.deleted', entityId: 3, actorId: 7 }),
