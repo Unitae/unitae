@@ -34,7 +34,10 @@ RUN pnpm prune --prod
 FROM base AS runtime
 LABEL org.opencontainers.image.title="unitae" \
       org.opencontainers.image.description="Unitae web server" \
-      org.opencontainers.image.licenses="AGPL-3.0-only"
+      org.opencontainers.image.licenses="AGPL-3.0-only" \
+      org.opencontainers.image.url="https://www.unitae.app" \
+      org.opencontainers.image.documentation="https://www.unitae.app/self-hosting" \
+      org.opencontainers.image.source="https://github.com/Unitae/unitae"
 ENV NODE_ENV=production
 ENV UNITAE_WEB_PORT=8080
 RUN addgroup -g 1001 -S unitae && \
@@ -53,7 +56,10 @@ CMD ["sh", "-c", "PORT=${UNITAE_WEB_PORT:-3000} node server.js"]
 FROM base-worker AS worker
 LABEL org.opencontainers.image.title="unitae-worker" \
       org.opencontainers.image.description="Unitae background job processor" \
-      org.opencontainers.image.licenses="AGPL-3.0-only"
+      org.opencontainers.image.licenses="AGPL-3.0-only" \
+      org.opencontainers.image.url="https://www.unitae.app" \
+      org.opencontainers.image.documentation="https://www.unitae.app/self-hosting" \
+      org.opencontainers.image.source="https://github.com/Unitae/unitae"
 ENV NODE_ENV=production
 RUN addgroup -g 1001 -S unitae && \
     adduser -u 1001 -S unitae -G unitae -s /sbin/nologin -H
@@ -74,7 +80,10 @@ CMD ["node_modules/.bin/tsx", "./app/workers/worker.server.ts"]
 FROM base AS migrate
 LABEL org.opencontainers.image.title="unitae-migrate" \
       org.opencontainers.image.description="Unitae database migration runner" \
-      org.opencontainers.image.licenses="AGPL-3.0-only"
+      org.opencontainers.image.licenses="AGPL-3.0-only" \
+      org.opencontainers.image.url="https://www.unitae.app" \
+      org.opencontainers.image.documentation="https://www.unitae.app/self-hosting" \
+      org.opencontainers.image.source="https://github.com/Unitae/unitae"
 ENV NODE_ENV=production
 RUN addgroup -g 1001 -S unitae && \
     adduser -u 1001 -S unitae -G unitae -s /sbin/nologin -H

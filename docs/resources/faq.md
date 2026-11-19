@@ -4,7 +4,7 @@
 
 ### Is Unitae free?
 
-Yes. Unitae is open source under AGPL-3.0. You can self-host it for free with no feature restrictions. [unitae.app](https://unitae.app) offers paid [managed hosting](../managed-hosting/getting-started.md) for those who prefer not to manage their own infrastructure.
+Yes. Unitae is open source under AGPL-3.0. You can self-host it for free with no feature restrictions. [unitae.app](https://www.unitae.app) offers paid [managed hosting](../managed-hosting/getting-started.md) for those who prefer not to manage their own infrastructure.
 
 ### Who builds Unitae?
 

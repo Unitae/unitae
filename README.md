@@ -2,7 +2,9 @@
 
 Open-source web application for managing Jehovah's Witnesses congregations. Manage territories, track publisher activity, share documents, and organize congregation life.
 
-Built by [MindsersIT](https://mindsers.it/) and available as a managed service at [unitae.app](https://unitae.app).
+Built by [MindsersIT](https://mindsers.it/) and available as a managed service at [unitae.app](https://www.unitae.app).
+
+**Website:** [www.unitae.app](https://www.unitae.app) · [Features](https://www.unitae.app/features) · [Self-hosting guide](https://www.unitae.app/self-hosting) · [Documentation](docs/README.md)
 
 ## Features
 
@@ -38,7 +40,7 @@ Unitae processes religious affiliation data (special category data under GDPR Ar
 - **Deletion ledger** — Tracks anonymization operations for backup reconciliation
 - **Tenant isolation** — PostgreSQL Row-Level Security ensures strict data separation between congregations
 
-For the managed hosting service at [unitae.app](https://unitae.app), MindsersIT acts as data processor and provides a Data Processing Agreement (DPA) to each congregation.
+For the managed hosting service at [unitae.app](https://www.unitae.app), MindsersIT acts as data processor and provides a Data Processing Agreement (DPA) to each congregation.
 
 Self-hosted instances are under the sole responsibility of the deploying entity — MindsersIT has no processor role since no data transits through its systems.
 

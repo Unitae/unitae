@@ -1,6 +1,6 @@
 # Using unitae.app
 
-The quickest way to get started with Unitae is the managed hosting service at [unitae.app](https://unitae.app), operated by MindsersIT.
+The quickest way to get started with Unitae is the managed hosting service at [unitae.app](https://www.unitae.app), operated by MindsersIT.
 
 ## What You Get
 
@@ -12,7 +12,7 @@ The quickest way to get started with Unitae is the managed hosting service at [u
 
 ## Getting Started
 
-1. Visit [unitae.app](https://unitae.app)
+1. Visit [unitae.app](https://www.unitae.app)
 2. Create an account and register your congregation
 3. Start using Unitae immediately — territories, publishers, board, and all features are ready
 
@@ -24,7 +24,7 @@ unitae.app runs the exact same open-source code as the self-hosted version. Ther
 
 ## Pricing
 
-Visit [unitae.app](https://unitae.app) for current pricing and plan details.
+See [unitae.app/pricing](https://www.unitae.app/pricing) for current pricing and plan details.
 
 ## Already Self-Hosting?
 
