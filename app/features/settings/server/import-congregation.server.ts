@@ -71,7 +71,7 @@ import { importCongregationUserPermissions, importMembers, importUserAccounts } 
 import { migrateLegacyUsersNdjson } from './migrate-legacy-users-ndjson.server'
 import { readManifest } from './ndjson-archive'
 
-// Per-entity importers re-exported for the integration tests (absences and attendance: from their own modules).
+// Importers re-exported for the integration tests; importAbsences and importAttendance are imported from their own.
 export {
   importAuditLogs,
   importConsentRecords,

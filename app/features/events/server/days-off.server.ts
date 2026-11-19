@@ -67,9 +67,9 @@ export async function createDayOff(
       status: EventStatus.Released,
     },
   })
-  // Written twice until the events are dropped: the lists, the feed and the conflict checks read the Absence row (the
-  // person's record when the account has one); account deletion and backups still go through the event, and deleting
-  // either one takes the other.
+  // Written twice until the events are dropped: the lists, the feed, the conflict checks and the archive read the
+  // Absence row (the person's record when the account has one); account deletion still goes through the event, and
+  // deleting either one takes the other.
   const absence = await db.absence.create({
     data: { startDate, endDate, memberId, accountId, legacyEventId: event.id, congregationId },
   })

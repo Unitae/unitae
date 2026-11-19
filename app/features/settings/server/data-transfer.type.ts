@@ -67,10 +67,11 @@ export const ARCHIVE_VERSION = '2.19'
 // v2.18 carries who created each event: `events.ndjson` gains `origin` (`job`, `manual` or `import`). A pre-2.18
 // event without an author and with nothing on it comes back as the job's, by the migration's rule; any other as
 // `import`, and so does one whose origin this version does not know.
-// v2.19 carries the absences themselves: `absences.ndjson` (dates, note, the person's record or the account that
-// declared it, the declaring account, the day-off event it was copied from, when it was declared). A restore takes
-// the absences from it, including those whose event or account is gone. Pre-2.19 archives have no such file: each
-// absence comes back from its day-off event, owned by its author's record when the account has one, as before.
+// v2.19 carries the absences themselves: `absences.ndjson` (dates, note, `memberId` — the person's record, when there
+// is one — `accountId` — who declared it, the owner when there is no record — the day-off event it was copied from,
+// `createdAt`). A restore takes the absences from it, keeping one whose account or event did not come as long as its
+// person did; a day-off the file does not cover still gets its absence from its author. Pre-2.19 archives have no such
+// file: each absence comes back from its day-off event, owned by its author's record when the account has one.
 // v1.x archives are listed here so the import path reports them with a warning rather than rejecting outright;
 // `migrateLegacyUsersNdjson` splits their `users.ndjson` before the import runs.
 export const SUPPORTED_ARCHIVE_VERSIONS = [
