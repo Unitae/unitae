@@ -1,6 +1,7 @@
 import { SYSTEM_TEMPLATE_KEYS } from '~/features/events/model/event-template.type'
 import { ResponsibilityScope, scopesCovering } from '~/features/events/model/responsibility-scope.type'
 import { isTemplateResponsible } from '~/features/events/server/event-templates.server'
+import { PROGRAMME_EVENT } from '~/features/events/server/programme-event.queries'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
@@ -232,11 +233,13 @@ export async function filterToManageableEventIds(
   if (eventIds.length === 0) return []
 
   const holdsRequiredCapability = can(required)
+  // Never an absence: the programme list does not offer one, and these actions would publish, unpublish or delete
+  // someone's absence.
   const events = await db.event.findMany({
-    where: { id: { in: eventIds }, congregationId },
+    where: { id: { in: eventIds }, congregationId, ...PROGRAMME_EVENT },
     select: { id: true, templateId: true },
   })
-  // Cross-tenant / stale ids: submitted but not present in this congregation.
+  // Cross-tenant / stale ids, or absences: submitted but not a programme of this congregation.
   const droppedCrossTenant = eventIds.length - events.length
 
   if (holdsRequiredCapability) {

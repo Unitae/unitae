@@ -46,6 +46,7 @@ const allowOnly = (allowed: Permission) => (p: Permission) => p === allowed
 const {
   assignmentBelongsToEvent,
   canEditEvent,
+  filterToManageableEventIds,
   getResponsibleTemplateIds,
   canManageAnyProgram,
   listApplicableTemplates,
@@ -682,5 +683,36 @@ describe('mayReadSlotFacts (integration)', () => {
       }),
     )
     expect(result).toBe(true)
+  })
+})
+
+// The programme list's bulk actions — publish, unpublish, delete — take the ids the request posts. The list never offers
+// an absence, so none may go through, however the request is written: a manager would otherwise delete or unpublish
+// someone's absence.
+describe('filterToManageableEventIds and absences (integration)', () => {
+  it('never lets an absence through, even for a programme manager', async () => {
+    const absenceId = await withScope(primaryCongId, async tx => {
+      const dayOff = await tx.eventTemplate.findFirstOrThrow({ where: { key: 'day-off' } })
+      const day = new Date('2027-01-12T00:00:00Z')
+      return (
+        await tx.event.create({
+          data: {
+            name: 'Absence',
+            startDate: day,
+            endDate: day,
+            status: 'released',
+            templateId: dayOff.id,
+            createdById: plainId,
+            congregationId: primaryCongId,
+          },
+        })
+      ).id
+    })
+
+    const allowed = await withScope(primaryCongId, tx =>
+      filterToManageableEventIds(tx, allowAll, [absenceId, ownedEventId], managerId, primaryCongId),
+    )
+
+    expect(allowed).toEqual([ownedEventId])
   })
 })
