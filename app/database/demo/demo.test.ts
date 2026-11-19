@@ -17,6 +17,7 @@ import { generateArea } from './places'
 import { CUSTOM_ROLES, PEOPLE, TERRITORIES } from './profile'
 import { Random } from './random'
 import { assignRoleHolders } from './roles'
+import { loginEmail } from './write'
 
 const NOW = new Date(2026, 10, 10, 12)
 const DAY = 24 * 60 * 60 * 1000
@@ -512,5 +513,15 @@ describe('the demo board', () => {
       expect(find(board, title), title).toBeDefined()
       expect(JSON.stringify(find(later, title)), title).not.toBe(JSON.stringify(find(board, title)))
     }
+  })
+})
+
+describe('a copy’s logins', () => {
+  it('take a suffix that keeps their address unique across congregations', () => {
+    expect(loginEmail('marc.dupont@demo.unitae.app', 'x7k2p')).toBe('marc.dupont+x7k2p@demo.unitae.app')
+  })
+
+  it('keep their address when there is no suffix: the marketing seed’s congregation', () => {
+    expect(loginEmail('marc.dupont@demo.unitae.app')).toBe('marc.dupont@demo.unitae.app')
   })
 })
