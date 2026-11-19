@@ -1,7 +1,7 @@
 // Fills the demo copies the control plane creates (docs/development/specs/demo-mode.md). Run by /cron/demo-seed.
 
 import { seedDemoCongregation } from '~/database/demo/seed-demo'
-import { isDemoModeEnabled } from '~/features/demo/server/demo-mode.server'
+import { isDemoModeEnabled } from '~/shared/domain/demo-mode.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 

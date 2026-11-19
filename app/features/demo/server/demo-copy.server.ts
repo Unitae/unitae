@@ -2,8 +2,8 @@
 // role the signed-in login stands for.
 
 import { DEMO_ROLES, type DemoRole } from '~/features/demo/model/demo-role'
-import { isDemoModeEnabled, nextDemoExpiry } from '~/features/demo/server/demo-mode.server'
 import { readDemoAccounts } from '~/features/demo/server/demo-sign-in.server'
+import { isDemoModeEnabled, nextDemoExpiry } from '~/shared/domain/demo-mode.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 
