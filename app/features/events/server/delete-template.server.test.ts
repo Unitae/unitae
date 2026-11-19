@@ -78,7 +78,7 @@ describe('deleteTemplate', () => {
   it('refuses to delete a system template', async () => {
     vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({
       key: 'freeform',
-      name: 'Jour de congé',
+      name: 'Autre événement',
       _count: { events: 0 },
     } as never)
 

@@ -4,9 +4,9 @@ const DIACRITICS = /\p{Diacritic}/gu
 const NOT_KEY = /[^a-z0-9]+/g
 const EDGES = /^-+|-+$/g
 
-// A built-in key means something to the app — a system template, a meeting the recurring job creates — whether or not
-// the congregation has that template: the day-off one is gone everywhere, and a template that took its key would be
-// locked as a system one, its events kept out of the programme.
+// A built-in key means something to the app — a system template, a meeting the recurring job creates, the day-off key a
+// restore reads as absences — whether or not the congregation has that template. A template that took the day-off key
+// would be dropped on a restore, and its meetings come back as absences (importEventTemplates, importEvents).
 const BUILT_IN_KEYS: readonly string[] = Object.values(EventTemplateKey)
 
 /**

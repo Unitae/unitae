@@ -106,9 +106,9 @@ export function TemplateTable({ rows }: { rows: TemplateRow[] }) {
 }
 
 /**
- * The templates the app needs for its own concepts (absences, one-off events): only their colour changes. Their rows
- * use the table's columns: an absence lasts one or more days and each person creates their own; a one-off event is
- * dated by whoever creates it, with its own name and hours.
+ * The templates the app needs for its own concepts — today the freeform one, for one-off events: only their colour
+ * changes. A one-off event is dated by whoever creates it, with its own name and hours; nobody is responsible for it, so
+ * the last column stays empty (the table keeps the congregation's columns).
  */
 export function BuiltInTemplates({ rows }: { rows: TemplateRow[] }) {
   if (rows.length === 0) return null

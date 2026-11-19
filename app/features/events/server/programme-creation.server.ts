@@ -43,8 +43,8 @@ export class ProgrammeExistsError extends ConflictError {
   }
 }
 
-// Absences and freeform events have templates of their own, which no programme may be created from: an « Absence »
-// created here would read as its author being away that day.
+// The freeform template has nothing for a programme to copy, and its events are made one at a time: no programme is
+// created from a system template.
 const NOT_A_SYSTEM_TEMPLATE = { notIn: [...SYSTEM_TEMPLATE_KEYS] }
 
 /**

@@ -286,16 +286,7 @@ describe('refreshConflictFlags', () => {
     expect(where).not.toHaveProperty('templateId')
   })
 
-  // Day-off events themselves are just date ranges — they have no part or
-  // service assignments. Iterating over them is wasted work and semantically
-  // odd (a day-off isn't a programme event that can conflict with itself).
-  //
-  // The filter must use `NOT: { template: { key: 'day-off' } }` (not
-  // `template: { key: { not: 'day-off' } }`): Prisma's relational filter
-  // inner-joins through `template`, so the second form silently drops
-  // events whose templateId is null — a shape legacy imports and older
-  // data may still carry.
-  // A filter through `template` would inner-join it and drop the events without one.
+  // No template filter here: one through `template` would inner-join it and drop the events that have none.
   it('looks at every overlapping event, with or without a template', async () => {
     vi.mocked(db.event.findMany).mockResolvedValue([] as never)
 

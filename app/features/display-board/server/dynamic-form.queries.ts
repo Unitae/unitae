@@ -12,11 +12,6 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 /** An existing document by its id, or a new one of a type, under the title its form starts from. */
 export type DynamicFormTarget = { id: number } | { type: string; ref: string | null; title: string }
 
-/** The templates a programme can show: every one of the congregation. */
-function programmeTemplates(db: TransactionClient, congregationId: number) {
-  return getTemplates(db, congregationId)
-}
-
 /** A new programme lists every template, with its parts and its services, grouped by date. */
 function defaultProgrammeConfig(templates: { id: number }[]): Prisma.JsonValue {
   return { templates: templates.map(t => ({ templateId: t.id, parts: true, services: true })), groupBy: 'date' }
@@ -41,7 +36,8 @@ export async function loadDynamicForm(
 
   const [sections, templates, highlightedOthers] = await Promise.all([
     listSectionChoices(db, congregationId),
-    type === DynamicType.Programme ? programmeTemplates(db, congregationId) : [],
+    // The templates a programme can show: every one of the congregation, the freeform one included.
+    type === DynamicType.Programme ? getTemplates(db, congregationId) : [],
     countHighlighted(db, congregationId, existing ? { kind: 'dynamic', id: existing.id } : undefined),
   ])
   const document = existing

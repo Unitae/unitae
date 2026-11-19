@@ -235,7 +235,7 @@ export async function filterToManageableEventIds(
     where: { id: { in: eventIds }, congregationId },
     select: { id: true, templateId: true },
   })
-  // Cross-tenant / stale ids: submitted but not a programme of this congregation.
+  // Cross-tenant / stale ids: submitted but not an event of this congregation.
   const droppedCrossTenant = eventIds.length - events.length
 
   if (holdsRequiredCapability) {

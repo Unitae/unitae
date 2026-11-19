@@ -2,8 +2,9 @@ export enum EventTemplateKey {
   MidweekMeeting = 'midweek-meeting',
   WeekendMeeting = 'weekend-meeting',
   Memorial = 'memorial',
-  // No congregation has this template any more (absences are rows of their own): only an archive from before that
-  // carries it, and a new template never takes the key.
+  // The template absences were events of, before they got a table of their own; the drop migration deleted it wherever
+  // no event with a part, service or attendance kept it. The key stays: an older archive carries it (its events restore
+  // as absences), and templateKey keeps a new template off it.
   DayOff = 'day-off',
   Freeform = 'freeform',
 }
