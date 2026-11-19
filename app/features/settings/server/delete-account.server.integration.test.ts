@@ -130,6 +130,20 @@ describe('deleteAccount and the events the account created', () => {
     expect(await absencesOf(accountId)).toBe(0)
   })
 
+  // A congregation without the day-off template writes an absence as its row alone: it goes with the account too.
+  it('deletes an account without a record whose absence has no event', async () => {
+    const { accountId } = await account('Sans-evenement', { record: false, absence: false })
+    await withScope(ids.cong, tx =>
+      tx.absence.create({ data: { startDate: DAY, endDate: DAY, accountId, congregationId: ids.cong } }),
+    )
+
+    await remove(accountId)
+
+    const left = await withScope(ids.cong, tx => tx.userAccount.findFirst({ where: { id: accountId } }))
+    expect(left).toBeNull()
+    expect(await absencesOf(accountId)).toBe(0)
+  })
+
   // The absences are the person's: they stay on the record, without the account; only their day-off events go.
   it('deletes an account linked to a record, keeping its absences on the record', async () => {
     const { accountId, memberId, absenceId, meetingId } = await account('Avec-fiche', { record: true, absence: true })
