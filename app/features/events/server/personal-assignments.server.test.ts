@@ -51,8 +51,8 @@ describe('getPersonalAssignments', () => {
     const db = makeDb({
       daysOff: [
         { id: 5, startDate, endDate, legacyEventId: 900, createdAt: new Date('2026-04-01T00:00:00Z') },
-        // No event behind it any more.
-        { id: 6, startDate, endDate, legacyEventId: null, createdAt: new Date('2026-04-01T00:00:00Z') },
+        // Written without an event, declared later.
+        { id: 6, startDate, endDate, legacyEventId: null, createdAt: new Date('2026-04-03T00:00:00Z') },
       ],
     })
 
@@ -65,6 +65,11 @@ describe('getPersonalAssignments', () => {
     expect(items[0].end.getUTCDate()).toBe(13)
     // A subscriber knows an absence by its event's identifier while it has one.
     expect(items.map(item => item.uid)).toEqual(['day-off-900', 'absence-6'])
+    // Never edited: each one's last change is its declaration.
+    expect(items.map(item => item.updatedAt)).toEqual([
+      new Date('2026-04-01T00:00:00Z'),
+      new Date('2026-04-03T00:00:00Z'),
+    ])
   })
 
   it('distinguishes part assignee from assistant in UID and kind', async () => {

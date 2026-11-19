@@ -4,7 +4,7 @@ import { PrismaClient } from '~/database/generated/client'
 
 // The lists of absences read their own table, by the person: their record when they have one, the account that
 // declared them otherwise. « Mes absences », the congregation's list, the dashboard, the publisher record and the
-// calendar feed all show Absence rows; a day-off event without one (as the previous image writes during a rollout)
+// calendar feed all show Absence rows; a day-off event without one (as an image from before the absences table writes during the rollout)
 // no longer shows on its own, and an absence is deleted by its row.
 
 const adapter = new PrismaPg({
@@ -29,7 +29,18 @@ const { findUpcomingAbsencesForMember, findNextAbsencesForMembers } = await impo
 const { getPersonalAssignments } = await import('./personal-assignments.server')
 
 const ts = Date.now()
-const ids = { cong: 0, paul: 0, paulAccount: 0, samAccount: 0, paulRow: 0, samRow: 0, dualRow: 0, dualEvent: 0 }
+const ids = {
+  cong: 0,
+  paul: 0,
+  paulAccount: 0,
+  samAccount: 0,
+  paulRow: 0,
+  samRow: 0,
+  dualRow: 0,
+  dualEvent: 0,
+  marieRow: 0,
+  leaRow: 0,
+}
 const NOW = new Date('2027-05-01T08:00:00Z')
 const DECLARED = new Date('2027-04-20T10:00:00Z')
 const day = (iso: string) => new Date(`${iso}T00:00:00Z`)
@@ -80,7 +91,7 @@ beforeAll(async () => {
       })
     ).id
     ids.dualRow = (await row(day('2027-06-01'), day('2027-06-02'), paul, { legacyEventId: ids.dualEvent })).id
-    // An event only, as the previous image writes during a rollout: no longer shown.
+    // An event only, as an image from before the absences table writes during the rollout: no longer shown.
     await tx.event.create({
       data: {
         name: 'Absence',
@@ -94,6 +105,19 @@ beforeAll(async () => {
     })
     // Over already: not among the ones to come.
     await row(day('2027-04-01'), day('2027-04-02'), paul)
+    // Two other people, away in July (past the range the congregation's list is read over): Marie with a record, Léa
+    // without one.
+    const marie = (await tx.member.create({ data: { firstname: 'Marie', lastname: 'ROUX', congregationId } })).id
+    const marieAccount = (
+      await tx.userAccount.create({
+        data: { email: `marie-lists-${ts}@test.com`, password: 'x', memberId: marie, congregationId },
+      })
+    ).id
+    const leaAccount = (
+      await tx.userAccount.create({ data: { email: `lea-lists-${ts}@test.com`, password: 'x', congregationId } })
+    ).id
+    ids.marieRow = (await row(day('2027-07-05'), day('2027-07-06'), { memberId: marie, accountId: marieAccount })).id
+    ids.leaRow = (await row(day('2027-07-12'), day('2027-07-13'), { memberId: null, accountId: leaAccount })).id
   })
 })
 
@@ -158,10 +182,18 @@ describe('the lists of absences and the absences table', () => {
     expect(list.get(ids.paul as never)).toEqual({ startDate: day('2027-05-10'), endDate: day('2027-05-12') })
   })
 
+  it('gives the dashboard of an account without a record its own absences', async () => {
+    const dashboard = await read(tx => getNextDaysOffs(tx, ids.samAccount, ids.cong, NOW))
+
+    expect(dashboard.map(absence => absence.id)).toEqual([ids.samRow])
+  })
+
   it('puts the absences in the calendar feed, keeping the identifier a subscriber already has', async () => {
     const items = await read(tx => getPersonalAssignments(tx, ids.paulAccount, ids.cong, day('2027-05-01')))
     const uids = items.filter(item => item.kind === 'day-off').map(item => item.uid)
 
+    // Distinct ids, or the second identifier could not tell the event's id from the row's.
+    expect(ids.dualEvent).not.toBe(ids.dualRow)
     expect(uids).toEqual([`absence-${ids.paulRow}`, `day-off-${ids.dualEvent}`])
   })
 
@@ -185,5 +217,23 @@ describe('the lists of absences and the absences table', () => {
       event: await tx.event.findFirst({ where: { id: ids.dualEvent } }),
     }))
     expect(left).toEqual({ row: null, event: null })
+  })
+
+  it('refuses another person’s absence, whoever asks, and lets an account without a record delete its own', async () => {
+    const del = (absenceId: number, accountId: number, memberId: number | null) =>
+      read(tx => deleteDayOff(tx, { absenceId, accountId, memberId, congregationId: ids.cong }))
+
+    // Without a record: not another such account's. With one: neither another record's nor a record-less one.
+    expect(await del(ids.leaRow, ids.samAccount, null)).toBeNull()
+    expect(await del(ids.marieRow, ids.paulAccount, ids.paul)).toBeNull()
+    expect(await del(ids.samRow, ids.paulAccount, ids.paul)).toBeNull()
+    expect(await del(ids.samRow, ids.samAccount, null)).toMatchObject({ startDate: day('2027-05-20') })
+    // Asked twice, as from a second tab: the absence is already gone.
+    expect(await del(ids.samRow, ids.samAccount, null)).toBeNull()
+
+    const left = await read(tx =>
+      tx.absence.findMany({ where: { id: { in: [ids.leaRow, ids.marieRow, ids.samRow] } }, select: { id: true } }),
+    )
+    expect(left.map(row => row.id).sort((a, b) => a - b)).toEqual([ids.marieRow, ids.leaRow].sort((a, b) => a - b))
   })
 })
