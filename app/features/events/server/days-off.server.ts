@@ -1,24 +1,28 @@
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { EventTemplateKey } from '~/features/events/model/event-template.type'
+import { absencesOf } from '~/features/events/server/absences.queries'
 import { refreshConflictFlags } from '~/features/events/server/refresh-conflict-flags.server'
 import * as m from '~/i18n/paraglide/messages'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
-export function getNextDaysOffs(db: TransactionClient, userId: number, congregationId: number) {
-  return db.event.findMany({
+/** The absences of the account's person still to come or under way, soonest first: by their record when they have one. */
+export async function getNextDaysOffs(
+  db: TransactionClient,
+  userId: number,
+  congregationId: number,
+  now: Date = new Date(),
+) {
+  const account = await db.userAccount.findFirst({ where: { id: userId, congregationId }, select: { memberId: true } })
+  return db.absence.findMany({
     where: {
       congregationId,
-      createdBy: { id: userId },
-      template: {
-        key: EventTemplateKey.DayOff,
-      },
-      OR: [{ startDate: { lte: new Date() }, endDate: { gte: new Date() } }, { endDate: { gte: new Date() } }],
+      ...absencesOf({ accountId: userId, memberId: account?.memberId ?? null }),
+      endDate: { gte: now },
     },
-    orderBy: {
-      startDate: 'asc',
-    },
+    select: { id: true, startDate: true, endDate: true },
+    orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
   })
 }
 
@@ -42,11 +46,9 @@ export async function createDayOff(
     return null
   }
 
-  // Day-offs are identified everywhere by `template.key = 'day-off'`. If the
-  // system template is missing (mis-provisioned tenant), writing the event
-  // with a null templateId would create a ghost row invisible to every
-  // downstream query — including the /me/days-off delete guard. Fail loudly
-  // so ops sees the incident instead of a silent success flash.
+  // The day-off template is what keeps this event out of the programme: programme readers leave out events by
+  // `template.key = 'day-off'`, so one written without it would show as an empty meeting. Fail loudly on a
+  // mis-provisioned tenant instead of a silent success flash.
   const dayOffTemplate = await db.eventTemplate.findFirst({
     where: { key: EventTemplateKey.DayOff, congregationId },
   })
@@ -65,9 +67,10 @@ export async function createDayOff(
       status: EventStatus.Released,
     },
   })
-  // Written twice until the events are dropped: the conflict readers use the Absence row (the person's record when the
-  // account has one), while the lists, the delete and account deletion still go through the day-off event.
-  await db.absence.create({
+  // Written twice until the events are dropped: the lists, the feed and the conflict checks read the Absence row (the
+  // person's record when the account has one); account deletion and backups still go through the event, and deleting
+  // either one takes the other.
+  const absence = await db.absence.create({
     data: { startDate, endDate, memberId, accountId, legacyEventId: event.id, congregationId },
   })
 
@@ -80,48 +83,52 @@ export async function createDayOff(
     action: AuditAction.DayOffCreated,
     congregationId,
     actorId: accountId,
-    entityType: 'Event',
-    entityId: event.id,
+    entityType: 'Absence',
+    entityId: absence.id,
   })
-  return event
+  // The event, and the row an absence is deleted by.
+  return { ...event, absenceId: absence.id }
 }
 
 /**
- * Deletes one of the caller's own absences. Anything else answers null and stays: another person's
- * absence, and any event that is not an absence, such as a programme event the caller created.
+ * Deletes one of the caller's own absences, by its row, with the day-off event written alongside it when there is one.
+ * Anything else answers null and stays: another person's absence, or no absence at all.
  */
 export async function deleteDayOff(
   db: TransactionClient,
   {
-    eventId,
+    absenceId,
     accountId,
     memberId,
     congregationId,
-  }: { eventId: number; accountId: number; memberId: number | null; congregationId: number },
+  }: { absenceId: number; accountId: number; memberId: number | null; congregationId: number },
 ) {
-  const own = await db.event.findFirst({
-    where: { id: eventId, congregationId, createdById: accountId, template: { key: EventTemplateKey.DayOff } },
-    select: { id: true },
+  const absence = await db.absence.findFirst({
+    where: { id: absenceId, congregationId, ...absencesOf({ accountId, memberId }) },
+    select: { id: true, startDate: true, endDate: true, legacyEventId: true },
   })
-  if (own == null) return null
+  if (absence == null) return null
 
-  await db.absence.deleteMany({ where: { legacyEventId: eventId, congregationId } })
-  const event = await db.event.delete({
-    where: {
-      id_congregationId: { id: eventId, congregationId },
-    },
-  })
+  // A second delete of the same absence (a double click, another tab) finds it gone and answers as for no absence.
+  const { count } = await db.absence.deleteMany({ where: { id: absence.id, congregationId } })
+  if (count === 0) return null
+  if (absence.legacyEventId != null) {
+    // Its day-off event only: legacyEventId has no foreign key, so it is never trusted to name a programme event.
+    await db.event.deleteMany({
+      where: { id: absence.legacyEventId, congregationId, template: { key: EventTemplateKey.DayOff } },
+    })
+  }
 
   if (memberId != null) {
-    await refreshConflictFlags(db, memberId, event.startDate, event.endDate, congregationId)
+    await refreshConflictFlags(db, memberId, absence.startDate, absence.endDate, congregationId)
   }
 
   await auditInTransaction(db, {
     action: AuditAction.DayOffDeleted,
     congregationId,
     actorId: accountId,
-    entityType: 'Event',
-    entityId: event.id,
+    entityType: 'Absence',
+    entityId: absence.id,
   })
-  return event
+  return absence
 }

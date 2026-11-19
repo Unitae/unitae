@@ -12,6 +12,7 @@ vi.mock('~/features/events/server/list-user-conflicts-in-range.server', () => ({
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     event: { findMany: vi.fn(), findFirst: vi.fn() },
+    absence: { findMany: vi.fn(), findFirst: vi.fn() },
     eventPart: { findMany: vi.fn() },
     eventServicePart: { findMany: vi.fn() },
   },
@@ -32,7 +33,7 @@ beforeEach(() => {
 
 describe('listMyAbsences', () => {
   it('gives each upcoming absence the assignments that fall during it', async () => {
-    vi.mocked(db.event.findMany).mockResolvedValue([current, later] as never)
+    vi.mocked(db.absence.findMany).mockResolvedValue([current, later] as never)
     conflicts.rows = [
       {
         eventDate: new Date('2026-11-12T18:00:00Z'),
@@ -51,7 +52,7 @@ describe('listMyAbsences', () => {
   })
 
   it('asks for the assignments of the whole span at once', async () => {
-    vi.mocked(db.event.findMany).mockResolvedValue([current, later] as never)
+    vi.mocked(db.absence.findMany).mockResolvedValue([current, later] as never)
 
     await listMyAbsences(db, { accountId: 12, memberId: 5, congregationId: 1, now: NOW })
 
@@ -59,7 +60,7 @@ describe('listMyAbsences', () => {
   })
 
   it('looks for no assignment for an account without a member, which cannot hold any', async () => {
-    vi.mocked(db.event.findMany).mockResolvedValue([current] as never)
+    vi.mocked(db.absence.findMany).mockResolvedValue([current] as never)
 
     const result = await listMyAbsences(db, { accountId: 12, memberId: null, congregationId: 1, now: NOW })
 
@@ -72,10 +73,10 @@ describe('listCongregationAbsences', () => {
   const FROM = new Date('2026-11-08T23:00:00Z')
   const TO = new Date('2026-12-31T22:59:59.999Z')
   const declared = new Date('2026-11-02T10:00:00Z')
-  const account = (memberId: number | null, firstname: string, lastname: string) => ({
-    firstname: `${firstname} (compte)`,
-    lastname: `${lastname} (compte)`,
+  // The person away: their record when they have one, and the account that declared the absence.
+  const owner = (memberId: number | null, firstname: string, lastname: string) => ({
     member: memberId == null ? null : { id: memberId, firstname, lastname },
+    account: { firstname: `${firstname} (compte)`, lastname: `${lastname} (compte)` },
   })
   const meeting = (id: number, startDate: string, templateId: number | null = 4, status = 'released') => ({
     id,
@@ -85,13 +86,13 @@ describe('listCongregationAbsences', () => {
     status,
   })
   // Élodie (member 5) is away 10–13 Nov; Paul (member 7) 21 Dec – 3 Jan.
-  const elodie = { ...current, createdAt: declared, createdBy: account(5, 'Élodie', 'Martin') }
-  const paul = { ...later, createdAt: declared, createdBy: account(7, 'Paul', 'Roux') }
+  const elodie = { ...current, createdAt: declared, ...owner(5, 'Élodie', 'Martin') }
+  const paul = { ...later, createdAt: declared, ...owner(7, 'Paul', 'Roux') }
 
   // Regression: the page offered people by member id and filtered absences by the account that declared them, so
   // picking someone matched nobody. An absence now names its person by their member record.
   it('names the person away by their member record, not by the account that declared the absence', async () => {
-    vi.mocked(db.event.findMany).mockResolvedValue([elodie] as never)
+    vi.mocked(db.absence.findMany).mockResolvedValue([elodie] as never)
     vi.mocked(db.eventPart.findMany).mockResolvedValue([])
     vi.mocked(db.eventServicePart.findMany).mockResolvedValue([])
 
@@ -102,7 +103,7 @@ describe('listCongregationAbsences', () => {
 
   // Whether its programme is published already: red once people rely on it, orange while it is a draft.
   it('gives each absence the flagged assignments of its own person that fall during it', async () => {
-    vi.mocked(db.event.findMany).mockResolvedValue([elodie, paul] as never)
+    vi.mocked(db.absence.findMany).mockResolvedValue([elodie, paul] as never)
     vi.mocked(db.eventPart.findMany).mockResolvedValue([
       {
         id: 12,
@@ -171,7 +172,7 @@ describe('listCongregationAbsences', () => {
 
   // The old page ran two queries per absence.
   it('reads the flagged assignments of everyone away in one query per kind', async () => {
-    vi.mocked(db.event.findMany).mockResolvedValue([elodie, paul] as never)
+    vi.mocked(db.absence.findMany).mockResolvedValue([elodie, paul] as never)
     vi.mocked(db.eventPart.findMany).mockResolvedValue([])
     vi.mocked(db.eventServicePart.findMany).mockResolvedValue([])
 
@@ -182,9 +183,7 @@ describe('listCongregationAbsences', () => {
   })
 
   it('looks for no assignment when nobody away has a member, which alone can hold one', async () => {
-    vi.mocked(db.event.findMany).mockResolvedValue([
-      { ...elodie, createdBy: account(null, 'Admin', 'Compte') },
-    ] as never)
+    vi.mocked(db.absence.findMany).mockResolvedValue([{ ...elodie, ...owner(null, 'Admin', 'Compte') }] as never)
 
     const [absence] = await listCongregationAbsences(db, { congregationId: 1, from: FROM, to: TO })
 

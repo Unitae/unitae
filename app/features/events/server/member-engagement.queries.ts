@@ -73,26 +73,17 @@ function toAssignment(part: { name: string; event: { id: number; name: string; s
   }
 }
 
-/**
- * Upcoming day-off periods of a member, resolved through their linked login
- * account (day-off events are account-created). Members without an account
- * simply have none.
- */
+/** The absences of a member still to come or under way, soonest first. */
 export function findUpcomingAbsencesForMember(
   db: TransactionClient,
   memberId: MemberId,
   congregationId: CongregationId,
   now: Date = new Date(),
 ): Promise<MemberAbsence[]> {
-  return db.event.findMany({
-    where: {
-      congregationId,
-      template: { key: EventTemplateKey.DayOff },
-      createdBy: { member: { id: memberId } },
-      endDate: { gte: now },
-    },
+  return db.absence.findMany({
+    where: { congregationId, memberId, endDate: { gte: now } },
     select: { id: true, startDate: true, endDate: true },
-    orderBy: { startDate: 'asc' },
+    orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
   })
 }
 
@@ -157,10 +148,7 @@ export interface NextAbsence {
   endDate: Date | null
 }
 
-/**
- * Each member's earliest day-off period still to come or under way, for the publisher list. Day-off
- * events are account-created, so members without a login never appear.
- */
+/** Each member's earliest absence still to come or under way, for the publisher list. */
 export async function findNextAbsencesForMembers(
   db: TransactionClient,
   memberIds: MemberId[],
@@ -170,18 +158,13 @@ export async function findNextAbsencesForMembers(
   const next = new Map<MemberId, NextAbsence>()
   if (memberIds.length === 0) return next
 
-  const absences = await db.event.findMany({
-    where: {
-      congregationId,
-      template: { key: EventTemplateKey.DayOff },
-      createdBy: { member: { id: { in: memberIds } } },
-      endDate: { gte: now },
-    },
-    select: { startDate: true, endDate: true, createdBy: { select: { member: { select: { id: true } } } } },
-    orderBy: { startDate: 'asc' },
+  const absences = await db.absence.findMany({
+    where: { congregationId, memberId: { in: memberIds }, endDate: { gte: now } },
+    select: { startDate: true, endDate: true, memberId: true },
+    orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
   })
   for (const absence of absences) {
-    const memberId = absence.createdBy?.member?.id
+    const memberId = absence.memberId
     if (memberId == null || next.has(memberId as MemberId)) continue
     next.set(memberId as MemberId, { startDate: absence.startDate, endDate: absence.endDate })
   }

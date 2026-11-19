@@ -102,7 +102,7 @@ export async function importEvents(
 }
 
 /**
- * A restored absence's Absence row, written alongside its event while the readers move over: its owner's record when
+ * A restored absence's Absence row, written alongside its event until the events are dropped: its owner's record when
  * the restored account has one, as the migration does. `recordOf` keeps each account's record once looked up.
  */
 async function writeAbsenceOf(

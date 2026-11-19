@@ -107,7 +107,12 @@ describe('an absence written twice', () => {
     expect(await absenceOf(eventId)).not.toBeNull()
 
     await withScope(ids.cong, tx =>
-      deleteDayOff(tx, { eventId, accountId: ids.account, memberId: ids.member, congregationId: ids.cong }),
+      deleteDayOff(tx, {
+        absenceId: event?.absenceId as number,
+        accountId: ids.account,
+        memberId: ids.member,
+        congregationId: ids.cong,
+      }),
     )
 
     expect(await absenceOf(eventId)).toBeNull()

@@ -8,7 +8,7 @@ function makeDb(rows: { parts?: unknown[]; serviceParts?: unknown[]; daysOff?: u
     userAccount: { findUnique: vi.fn().mockResolvedValue({ memberId: rows.memberId ?? 42 }) },
     eventPart: { findMany: vi.fn().mockResolvedValue(rows.parts ?? []) },
     eventServicePart: { findMany: vi.fn().mockResolvedValue(rows.serviceParts ?? []) },
-    event: { findMany: vi.fn().mockResolvedValue(rows.daysOff ?? []) },
+    absence: { findMany: vi.fn().mockResolvedValue(rows.daysOff ?? []) },
   } as never
 }
 
@@ -39,13 +39,10 @@ describe('getPersonalAssignments', () => {
       event: { startDate: { gte: since }, status: 'released' },
     })
 
-    const eventsCall = (db as never as { event: { findMany: { mock: { calls: unknown[][] } } } }).event.findMany.mock
-      .calls[0][0] as { where: Record<string, unknown> }
-    expect(eventsCall.where).toMatchObject({
-      createdById: 42,
-      template: { key: 'day-off' },
-      startDate: { gte: since },
-    })
+    // The person's absences: by their record (42 here), the account's when there is none.
+    const absencesCall = (db as never as { absence: { findMany: { mock: { calls: unknown[][] } } } }).absence.findMany
+      .mock.calls[0][0] as { where: Record<string, unknown> }
+    expect(absencesCall.where).toMatchObject({ congregationId: 7, memberId: 42, startDate: { gte: since } })
   })
 
   it('marks days off as all-day events with end-date shifted by one day', async () => {
@@ -53,24 +50,26 @@ describe('getPersonalAssignments', () => {
     const endDate = new Date('2026-04-12T00:00:00Z')
     const db = makeDb({
       daysOff: [
-        {
-          id: 5,
-          name: 'Absence',
-          startDate,
-          endDate,
-          updatedAt: new Date('2026-04-01T00:00:00Z'),
-        },
+        { id: 5, startDate, endDate, legacyEventId: 900, createdAt: new Date('2026-04-01T00:00:00Z') },
+        // Written without an event, declared later.
+        { id: 6, startDate, endDate, legacyEventId: null, createdAt: new Date('2026-04-03T00:00:00Z') },
       ],
     })
 
     const items = await getPersonalAssignments(db, 42, 7, since)
 
-    expect(items).toHaveLength(1)
+    expect(items).toHaveLength(2)
     expect(items[0].kind).toBe('day-off')
     expect(items[0].allDay).toBe(true)
     expect(items[0].start).toEqual(startDate)
     expect(items[0].end.getUTCDate()).toBe(13)
-    expect(items[0].uid).toBe('day-off-5')
+    // A subscriber knows an absence by its event's identifier while it has one.
+    expect(items.map(item => item.uid)).toEqual(['day-off-900', 'absence-6'])
+    // Never edited: each one's last change is its declaration.
+    expect(items.map(item => item.updatedAt)).toEqual([
+      new Date('2026-04-01T00:00:00Z'),
+      new Date('2026-04-03T00:00:00Z'),
+    ])
   })
 
   it('distinguishes part assignee from assistant in UID and kind', async () => {

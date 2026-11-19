@@ -18,3 +18,12 @@ export function listAbsencesOverRange(
     orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
   })
 }
+
+/**
+ * Whose absences these are, as a where clause: the person's record when they have one, otherwise the account that
+ * declared them. Reading by the record alone misses nothing: giving an account a record moves its record-less
+ * absences onto it (linkMemberToAccount, the accounts import).
+ */
+export function absencesOf(person: { accountId: number; memberId: number | null }) {
+  return person.memberId != null ? { memberId: person.memberId } : { accountId: person.accountId, memberId: null }
+}

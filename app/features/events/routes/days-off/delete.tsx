@@ -18,13 +18,13 @@ export function loader(_args: Route.LoaderArgs) {
 export async function action({ request, params, context }: Route.ActionArgs) {
   const currentUser = context.get(currentAccountContext)
   const { timezone } = context.get(congregationContext)
-  const eventId = requireParamId(params.eventId, '/me/days-off')
+  const absenceId = requireParamId(params.absenceId, '/me/days-off')
   const session = await getSession(request.headers.get('Cookie'))
 
   return withScopeFromContext(context, async db => {
-    // Only the caller's own absence goes; anything else, absence or not, is left as it is.
+    // Only the caller's own absence goes; another person's, or an id that is no absence, is left as it is.
     const deleted = await deleteDayOff(db, {
-      eventId,
+      absenceId,
       accountId: currentUser.id,
       memberId: currentUser.member?.id ?? null,
       congregationId: currentUser.congregationId,

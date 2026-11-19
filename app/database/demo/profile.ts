@@ -117,7 +117,7 @@ export const MEETINGS = {
   /** Public talks given by a visiting speaker. */
   externalTalkRate: 0.73,
   externalSpeakers: 39,
-  /** Absences (day-off events) per login that has any, and their length in days. */
+  /** Absences per login that has any, and their length in days. */
   absenceAccountsRate: 0.6,
   absencesPerAccount: { 10: 1, 25: 2, 50: 4, 75: 8, 90: 13 } satisfies Percentiles,
   absenceDays: { 10: 2, 25: 2, 50: 5, 75: 14, 90: 24 } satisfies Percentiles,

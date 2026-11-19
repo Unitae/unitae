@@ -73,6 +73,7 @@
     "audit_log_action_event_released": "Programa publicado",
     "audit_log_action_event_unreleased": "Programa retirado",
     "audit_log_action_event_deleted": "Programa eliminado",
+    "audit_log_entity_absence": "Ausência",
     "audit_log_entity_event": "Programa",
     "audit_log_group_events": "Programas",
     "audit_log_entity_user": "Conta",

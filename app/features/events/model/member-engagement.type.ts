@@ -8,7 +8,7 @@ export interface MemberAssignment {
   eventStartDate: Date
 }
 
-/** An upcoming day-off period of a member. */
+/** An upcoming absence of a member. */
 export interface MemberAbsence {
   id: number
   startDate: Date | null

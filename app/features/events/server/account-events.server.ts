@@ -4,8 +4,8 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 
 /**
  * Refused: the account is linked to a record and has absences. They are the person's, not the login's: an
- * administrator cannot delete someone else's absences, and the readers still read the day-off events the account
- * owns, so the account stays until the events are dropped — their Absence rows already name the record.
+ * administrator cannot delete someone else's absences. Their Absence rows already name the record, but the day-off
+ * events (createdBy) and Absence.accountId still point at the account, so it stays until the events are dropped.
  */
 export class AccountHasAbsencesError extends ConflictError {}
 

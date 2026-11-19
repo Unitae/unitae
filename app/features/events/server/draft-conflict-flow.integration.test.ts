@@ -190,7 +190,7 @@ describe('refreshConflictFlags co-participant preservation (integration)', () =>
         congId,
       )
       await deleteDayOff(tx, {
-        eventId: absence?.id as number,
+        absenceId: absence?.absenceId as number,
         accountId: aliceAccount.id,
         memberId: aliceId,
         congregationId: congId,
