@@ -1029,10 +1029,10 @@ model Event {
   eventServiceParts EventServicePart[]
   attendance        Attendance?
 
-  // Who prepared it: null for a meeting the job created that nobody has prepared yet, or once its author's account is
-  // deleted (releaseAccountEvents clears it first). onDelete is written out: an optional relation would default to
-  // SetNull.
-  createdBy   UserAccount? @relation("createdBy", fields: [createdById], references: [id], onDelete: Restrict)
+  // Who prepared it: null for a meeting the job created that nobody has prepared yet, a restored event whose author did
+  // not come, or once its author's account is deleted. `origin` says who created it, so losing the author changes
+  // nothing else: SetNull.
+  createdBy   UserAccount? @relation("createdBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdById Int?
   // Who created it: the recurring-events job (« job »), a person (« manual ») or a restore (« import »). Only the
   // job's empty meetings move with their template or go with it; the author says who prepared it.

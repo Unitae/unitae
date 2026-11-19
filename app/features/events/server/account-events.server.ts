@@ -12,8 +12,9 @@ export interface ReleasedAccountEvents {
 
 /**
  * Lets go of the events an account created, and of its Absence rows, before the account is deleted (from Réglages, or
- * by taking a login away from a record): `Event.createdBy` and `Absence.accountId` are Restrict, so the account could
- * not go otherwise.
+ * by taking a login away from a record): `Absence.accountId` is Restrict, so the account could not go otherwise. Its
+ * events would lose their author with it anyway (`Event.createdBy` is SetNull); clearing it here counts them for the
+ * audit trail.
  *
  * Its absences go with an account that has no record — nobody else is away on them, and they flagged no assignment,
  * since absences flag through the record. An account with a record leaves its absences on the record, which every list
