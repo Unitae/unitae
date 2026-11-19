@@ -5,10 +5,11 @@ vi.mock('./ndjson-archive', () => ({ readNdjsonFile: (...args: unknown[]) => rea
 const warn = vi.fn()
 vi.mock('~/shared/infra/logger.server', () => ({ createLogger: () => ({ warn, info: vi.fn() }) }))
 
-const { archiveCarriesAbsences, importAbsences } = await import('./import-absences.server')
+const { archivedAbsenceEvents, importAbsences } = await import('./import-absences.server')
 const { EntityIdMap } = await import('./data-transfer.type')
 
 const db = { absence: { createMany: vi.fn() } }
+const SKIPPED_TWO_OWNERLESS = /^Skipped 2 absence\(s\) whose person/
 
 function row(overrides: Record<string, unknown> = {}) {
   return {
@@ -37,12 +38,20 @@ beforeEach(() => {
   vi.resetAllMocks()
 })
 
-describe('archiveCarriesAbsences', () => {
-  it('tells a 2.19 archive, which has the file even when empty, from an older one', () => {
-    const zip = (has: boolean) => ({ file: (name: string) => (has && name === 'data/absences.ndjson' ? {} : null) })
+describe('archivedAbsenceEvents', () => {
+  const zip = (has: boolean) => ({ file: (name: string) => (has && name === 'data/absences.ndjson' ? {} : null) })
 
-    expect(archiveCarriesAbsences(zip(true) as never)).toBe(true)
-    expect(archiveCarriesAbsences(zip(false) as never)).toBe(false)
+  it('gives the day-off events a 2.19 archive’s absences cover, even when there are none', async () => {
+    readNdjsonFile.mockResolvedValueOnce([row({ legacyEventId: 3 }), row({ id: 2, legacyEventId: null })])
+    readNdjsonFile.mockResolvedValueOnce([])
+
+    expect(await archivedAbsenceEvents(zip(true) as never)).toEqual(new Set([3]))
+    expect(await archivedAbsenceEvents(zip(true) as never)).toEqual(new Set())
+  })
+
+  it('gives nothing for an older archive, which has no absences file', async () => {
+    expect(await archivedAbsenceEvents(zip(false) as never)).toBeNull()
+    expect(readNdjsonFile).not.toHaveBeenCalled()
   })
 })
 
@@ -70,7 +79,7 @@ describe('importAbsences', () => {
 
   it('keeps an absence whose account or event did not come, as long as someone is away on it', async () => {
     readNdjsonFile.mockResolvedValue([
-      // The person's record, the account gone (deleted before the export, or skipped).
+      // The person's record, the account not restored (its e-mail belongs to another congregation).
       row({ id: 1, accountId: null, legacyEventId: null }),
       row({ id: 2, accountId: 9, legacyEventId: 4 }),
       // An account without a record.
@@ -96,7 +105,23 @@ describe('importAbsences', () => {
     await importAbsences({} as never, db as never, idMap(), 1)
 
     expect(db.absence.createMany).not.toHaveBeenCalled()
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('2'), { congregationId: 1 })
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(SKIPPED_TWO_OWNERLESS), {
+      congregationId: 1,
+    })
+  })
+
+  // Only a hand-edited archive has them: a date that does not read, a missing one, or an end before the start.
+  it('drops an absence whose dates do not read, and says so', async () => {
+    readNdjsonFile.mockResolvedValue([
+      row({ startDate: 'garbage' }),
+      row({ id: 2, endDate: null }),
+      row({ id: 3, startDate: '2027-05-09T00:00:00.000Z' }),
+    ])
+
+    await importAbsences({} as never, db as never, idMap(), 1)
+
+    expect(db.absence.createMany).not.toHaveBeenCalled()
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('and 3 whose dates did not read'), { congregationId: 1 })
   })
 
   it('reads a note that is missing as none', async () => {

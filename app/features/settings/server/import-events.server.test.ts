@@ -19,6 +19,13 @@ const db = {
 const archive = (withAbsences: boolean) =>
   ({ file: (name: string) => (withAbsences && name === 'data/absences.ndjson' ? {} : null) }) as never
 
+/** The archive's files: its events, and the day-off events its absences cover. */
+function files(events: unknown[], absenceEvents: number[] = []) {
+  readNdjsonFile.mockImplementation((_zip: unknown, name: string) =>
+    Promise.resolve(name === 'absences' ? absenceEvents.map(legacyEventId => ({ legacyEventId })) : events),
+  )
+}
+
 function record(overrides: Record<string, unknown> = {}) {
   return {
     id: 1,
@@ -57,7 +64,7 @@ describe('importEvents', () => {
     expect(db.event.create.mock.calls.map(([{ data }]) => data.createdById)).toEqual([null, null])
   })
 
-  it('still skips an absence without its owner, and says so', async () => {
+  it('skips a day-off whose author did not come, and says so (an archive without the absences file loses its absence)', async () => {
     readNdjsonFile.mockResolvedValue([record({ templateId: 9, createdById: 8 })])
 
     await importEvents(archive(false), db as never, idMap(), 1)
@@ -131,12 +138,32 @@ describe('importEvents', () => {
 
   // From 2.19 the absences come from their own file (importAbsences), which also has those whose event is gone.
   it('leaves the absences to their own file when the archive has it', async () => {
-    readNdjsonFile.mockResolvedValue([record({ templateId: 9 })])
+    files([record({ templateId: 9 })], [1])
 
     await importEvents(archive(true), db as never, idMap(), 1)
 
     expect(db.event.create).toHaveBeenCalled()
     expect(db.absence.create).not.toHaveBeenCalled()
+  })
+
+  // A day-off with no Absence row behind it (written by a version before the absences table) is in the events file
+  // only: its absence still comes back, from its author, and the log says so.
+  it('rebuilds the absence of a day-off the absences file does not cover', async () => {
+    files([record({ templateId: 9 }), record({ id: 2, templateId: 9 })], [1])
+    db.userAccount.findFirstOrThrow.mockResolvedValue({ memberId: 40 })
+
+    await importEvents(archive(true), db as never, idMap(), 1)
+
+    expect(db.absence.create).toHaveBeenCalledTimes(1)
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('Rebuilt 1 absence'), { congregationId: 1 })
+  })
+
+  it('says a day-off without its author loses only its event when the absences file has its absence', async () => {
+    files([record({ templateId: 9, createdById: 8 })], [1])
+
+    await importEvents(archive(true), db as never, idMap(), 1)
+
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('day-off event(s) whose author'), { congregationId: 1 })
   })
 
   it('leaves everything alone when the archive has no events', async () => {
