@@ -152,26 +152,39 @@ describe('an absence written twice', () => {
         const account = await tx.userAccount.create({
           data: { email: `paul-bare-${ts}@test.com`, password: 'x', memberId: member.id, congregationId },
         })
+        // A published meeting during the absence, with a part the person holds.
+        const meeting = await tx.event.create({
+          data: { name: 'Réunion', startDate: START, endDate: START, status: 'released', congregationId },
+        })
+        const part = await tx.eventPart.create({
+          data: { name: 'Lecture', eventId: meeting.id, assigneeId: member.id, congregationId },
+        })
         const created = await createDayOff(tx, account.id, member.id, START, END, congregationId)
         const row = await tx.absence.findFirst({ where: { id: created?.absenceId }, select: { legacyEventId: true } })
-        const events = await tx.event.count()
+        const flagged = (await tx.eventPart.findFirstOrThrow({ where: { id: part.id } })).hasConflict
+        const events = await tx.event.count({ where: { id: { not: meeting.id } } })
         const cancelled = await deleteDayOff(tx, {
           absenceId: created?.absenceId as number,
           accountId: account.id,
           memberId: member.id,
           congregationId,
         })
-        return { created, row, events, cancelled, left: await tx.absence.count() }
+        const cleared = !(await tx.eventPart.findFirstOrThrow({ where: { id: part.id } })).hasConflict
+        return { created, row, flagged, events, cancelled, cleared, left: await tx.absence.count() }
       })
 
       expect(outcome.created?.eventId).toBeNull()
       expect(outcome.row).toEqual({ legacyEventId: null })
       expect(outcome.events).toBe(0)
+      // The absence flags the part the person holds during it, and cancelling it clears the flag.
+      expect(outcome.flagged).toBe(true)
+      expect(outcome.cleared).toBe(true)
       expect(outcome.cancelled).toMatchObject({ startDate: START, endDate: END })
       expect(outcome.left).toBe(0)
     } finally {
       await withScope(congregationId, async tx => {
         await tx.absence.deleteMany({})
+        await tx.event.deleteMany({})
         await tx.userAccount.deleteMany({})
         await tx.member.deleteMany({})
       })

@@ -5,6 +5,9 @@ vi.mock('~/shared/domain/audit.server', () => ({
   auditInTransaction: vi.fn().mockResolvedValue({}),
 }))
 
+const warn = vi.fn()
+vi.mock('~/shared/infra/logger.server', () => ({ createLogger: () => ({ warn, info: vi.fn() }) }))
+
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     event: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), delete: vi.fn(), deleteMany: vi.fn() },
@@ -94,6 +97,14 @@ describe('createDayOff', () => {
     expect(db.absence.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ memberId: 1, accountId: 1, legacyEventId: null }),
     })
+    // The rest of a declaration still happens: the record's assignments are flagged, the declaration recorded.
+    expect(db.event.findMany).toHaveBeenCalled()
+    expect(auditInTransaction).toHaveBeenCalledWith(
+      db,
+      expect.objectContaining({ action: 'day_off.created', entityType: 'Absence', entityId: 900 }),
+    )
+    // Until the events are dropped, a congregation without the template was set up wrong: the log says so.
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('No day-off template'), { congregationId: 1 })
   })
 
   it('connects the event to the day-off template when it exists', async () => {

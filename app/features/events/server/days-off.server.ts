@@ -5,6 +5,9 @@ import { refreshConflictFlags } from '~/features/events/server/refresh-conflict-
 import * as m from '~/i18n/paraglide/messages'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { createLogger } from '~/shared/infra/logger.server'
+
+const logger = createLogger('days-off')
 
 /** The absences of the account's person still to come or under way, soonest first: by their record when they have one. */
 export async function getNextDaysOffs(
@@ -51,6 +54,8 @@ export async function createDayOff(
   const dayOffTemplate = await db.eventTemplate.findFirst({
     where: { key: EventTemplateKey.DayOff, congregationId },
   })
+  // Until the events are dropped, a congregation without the template was set up wrong: said, but not refused.
+  if (dayOffTemplate == null) logger.warn('No day-off template: absence written without its event', { congregationId })
   const event =
     dayOffTemplate == null
       ? null
@@ -69,7 +74,7 @@ export async function createDayOff(
         })
   // Written twice until the events are dropped: the lists, the feed, the conflict checks and the archive read the
   // Absence row (the person's record when the account has one). Deleting an absence takes its event; deleting the
-  // account finds its day-offs by their event and drops them, leaving the rows on the record (releaseAccountEvents).
+  // account drops its day-off events and lets go of its rows (releaseAccountEvents).
   const absence = await db.absence.create({
     data: { startDate, endDate, memberId, accountId, legacyEventId: event?.id ?? null, congregationId },
   })
