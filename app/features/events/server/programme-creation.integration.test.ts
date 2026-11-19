@@ -29,7 +29,6 @@ let congId: number
 let accountId: number
 let midweekId: number
 let memorialId: number
-let dayOffId: number
 
 const ctx = () => ({ congregationId: congId, timezone: MARTINIQUE, actorId: accountId })
 
@@ -60,10 +59,6 @@ beforeAll(async () => {
       data: { name: 'Mémorial', key: `memorial-${ts}`, isRecurring: false, congregationId: congId },
     })
     memorialId = memorial.id
-    const dayOff = await tx.eventTemplate.create({
-      data: { name: 'Absence', key: 'day-off', isRecurring: false, congregationId: congId },
-    })
-    dayOffId = dayOff.id
     // Thursday 19 November, 19:00 in Martinique: already Friday in UTC. A programme already prepared — it has a part —
     // unlike an empty meeting created ahead, which a series fills.
     await tx.event.create({
@@ -136,11 +131,5 @@ describe('programme creation west of UTC (integration)', () => {
 
     const event = await testDb.event.findUniqueOrThrow({ where: { id: created.id }, select: { startDate: true } })
     expect(event.startDate.toISOString()).toBe('2027-03-23T23:00:00.000Z')
-  })
-
-  it('never creates a programme from the absence template', async () => {
-    await expect(
-      withScope(congId, tx => createProgrammeOnDay(tx, { templateId: dayOffId, day: '2027-01-14' }, ctx())),
-    ).rejects.toThrow()
   })
 })

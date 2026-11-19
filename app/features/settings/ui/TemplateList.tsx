@@ -1,6 +1,6 @@
 import { Panel, Tag } from '@unitae/ui'
 import { Link } from 'react-router'
-import { dayLabel, EventTemplateKey } from '~/features/events'
+import { dayLabel } from '~/features/events'
 import * as m from '~/i18n/paraglide/messages'
 import { getRoleDisplayName } from '~/shared/types/role'
 import { openRowOnClick } from '~/shared/ui/row-click'
@@ -125,18 +125,15 @@ export function BuiltInTemplates({ rows }: { rows: TemplateRow[] }) {
         <Columns />
         <tbody>
           {rows.map(row => {
-            const dayOff = row.key === EventTemplateKey.DayOff
-            const happens = dayOff ? m.settings_templates_day_off_when() : m.settings_templates_one_time()
+            const happens = m.settings_templates_one_time()
             return (
               <tr key={row.id} onClick={openRowOnClick} className={rowClass}>
                 <TemplateName row={row} when={happens} />
                 <td className={`${cellClass} ${wideOnly} truncate text-muted-foreground`}>{happens}</td>
                 <td className={`${cellClass} ${wideOnly} truncate text-muted-foreground`}>
-                  {!dayOff && m.settings_templates_freeform_content()}
+                  {m.settings_templates_freeform_content()}
                 </td>
-                <td className={`${cellClass} ${wideOnly} truncate text-faint`}>
-                  {dayOff && m.settings_templates_day_off_content()}
-                </td>
+                <td className={`${cellClass} ${wideOnly} truncate text-faint`} />
               </tr>
             )
           })}

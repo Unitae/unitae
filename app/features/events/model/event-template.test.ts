@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { EventTemplateKey, isSystemTemplate } from './event-template.type'
 
 describe('isSystemTemplate', () => {
-  it('recognises the day-off template', () => {
-    expect(isSystemTemplate(EventTemplateKey.DayOff)).toBe(true)
+  // No congregation has a day-off template any more: the key is no system template's.
+  it('does not take the day-off key for a system template', () => {
+    expect(isSystemTemplate(EventTemplateKey.DayOff)).toBe(false)
   })
 
   it('recognises the freeform template', () => {

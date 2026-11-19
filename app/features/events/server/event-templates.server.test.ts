@@ -153,7 +153,7 @@ describe('updateTemplate', () => {
   })
 
   it('never lets a system template count attendance', async () => {
-    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({ key: 'day-off', attendanceKind: 'none' } as never)
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({ key: 'freeform', attendanceKind: 'none' } as never)
 
     const result = await updateTemplate(db, 1, { attendanceKind: 'weekend' }, 1, 9)
 
@@ -161,12 +161,12 @@ describe('updateTemplate', () => {
     expect(db.eventTemplate.update).not.toHaveBeenCalled()
   })
 
-  // System templates back domain concepts — the day-off writer looks them up
+  // System templates back domain concepts — createFreeformEvent looks them up
   // by `key`, so renaming or restructuring them from the settings UI would
   // silently break the feature. The server enforces that even if the form
   // POSTs a full payload, only the colour lands on the row.
   it('only writes the colour on system templates', async () => {
-    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({ key: 'day-off' } as never)
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({ key: 'freeform' } as never)
     vi.mocked(db.eventTemplate.update).mockResolvedValue({ id: 1 } as never)
 
     await updateTemplate(

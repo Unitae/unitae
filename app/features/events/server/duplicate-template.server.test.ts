@@ -37,8 +37,8 @@ describe('duplicateTemplate', () => {
   it('returns null when the source is a system template', async () => {
     vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({
       id: 1,
-      key: 'day-off',
-      name: 'Absence',
+      key: 'freeform',
+      name: 'Autre événement',
       parts: [],
       serviceParts: [],
     } as never)

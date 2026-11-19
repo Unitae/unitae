@@ -12,7 +12,7 @@ export interface ProgrammeCreationData {
 /**
  * What the creation page needs: the templates programmes can be created from (all of them, or `templateIds` for
  * someone responsible for a few), each with the day of its latest programme, and the programmes to come of those
- * templates, so that the page can say which days already have theirs. Never the absence or freeform templates.
+ * templates, so that the page can say which days already have theirs. Never the freeform template.
  */
 export async function getProgrammeCreationData(
   db: TransactionClient,
