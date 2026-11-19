@@ -80,15 +80,11 @@ function personWithLogin(name: string, { absence }: { absence: boolean }) {
       tx.event.create({
         data: { name, startDate: DAY, endDate: DAY, templateId, createdById: accountId, congregationId },
       })
-    const absenceId = absence ? (await event(ids.dayOffTemplate)).id : null
-    // Written twice, as createDayOff does: the event and its Absence row.
-    if (absenceId != null) {
-      await tx.absence.create({
-        data: { startDate: DAY, endDate: DAY, memberId, accountId, legacyEventId: absenceId, congregationId },
-      })
+    if (absence) {
+      await tx.absence.create({ data: { startDate: DAY, endDate: DAY, memberId, accountId, congregationId } })
     }
     const meetingId = (await event(ids.meetingTemplate)).id
-    return { memberId, accountId, absenceId, meetingId }
+    return { memberId, accountId, meetingId }
   })
 }
 
@@ -108,14 +104,13 @@ describe('unlinkAccountFromMember and the events the login created', () => {
 
   // Taking the login away leaves the person's absences with them: on the record, without the login.
   it('removes a login whose record has absences, which stay on the record', async () => {
-    const { memberId, accountId, absenceId, meetingId } = await personWithLogin('Absent', { absence: true })
+    const { memberId, accountId, meetingId } = await personWithLogin('Absent', { absence: true })
 
     expect(await unlink(memberId)).toEqual({ accountId, email: `Absent-${ts}@test.com` })
-    expect(await event(absenceId as number)).toBeNull()
     expect(await event(meetingId)).toEqual({ createdById: null, origin: 'manual' })
     const absences = await withScope(ids.cong, tx =>
       tx.absence.findMany({ where: { memberId }, select: { accountId: true, legacyEventId: true } }),
     )
-    expect(absences).toEqual([{ accountId: null, legacyEventId: absenceId }])
+    expect(absences).toEqual([{ accountId: null, legacyEventId: null }])
   })
 })
