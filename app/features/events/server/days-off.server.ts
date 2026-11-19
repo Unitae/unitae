@@ -65,6 +65,10 @@ export async function createDayOff(
       status: EventStatus.Released,
     },
   })
+  // Written twice while the readers still read the event: the absence of its own, the person's.
+  await db.absence.create({
+    data: { startDate, endDate, memberId, accountId, legacyEventId: event.id, congregationId },
+  })
 
   if (memberId != null) {
     await refreshConflictFlags(db, memberId, startDate, endDate, congregationId)
@@ -100,6 +104,7 @@ export async function deleteDayOff(
   })
   if (own == null) return null
 
+  await db.absence.deleteMany({ where: { legacyEventId: eventId, congregationId } })
   const event = await db.event.delete({
     where: {
       id_congregationId: { id: eventId, congregationId },
