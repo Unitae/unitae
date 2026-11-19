@@ -1619,15 +1619,12 @@ model NotificationPreference {
   @@unique([id, congregationId])
 }
 
-// The two counts of one meeting, entered while it runs: in the hall, and by videoconference (Zoom and phone together, as
-// the branch report counts them). Null = not entered yet, never 0; the meeting counts in averages only once both are
-// set. Each count keeps who entered or last changed it.
 /// An absence: the days a person is away, so nobody assigns them a part then. It belongs to the person — their record
-/// when the account that declared it has one, the account otherwise (CHECK: one of the two). Written alongside the
+/// when the account that declared it had one when it was written, the account otherwise (CHECK: one of the two). Written alongside the
 /// day-off event it was copied from until the readers move over and the events are dropped (legacyEventId).
 model Absence {
   id        Int      @id @default(autoincrement())
-  // Copied as stored: legacy rows sit at midnight UTC (model/absence.ts).
+  // Copied as stored: legacy rows sit at midnight UTC (app/features/events/model/absence.ts).
   startDate DateTime
   endDate   DateTime
   note      String   @default("")
@@ -1651,6 +1648,9 @@ model Absence {
   @@index([accountId])
 }
 
+// The two counts of one meeting, entered while it runs: in the hall, and by videoconference (Zoom and phone together, as
+// the branch report counts them). Null = not entered yet, never 0; the meeting counts in averages only once both are
+// set. Each count keeps who entered or last changed it.
 model Attendance {
   id Int @id @default(autoincrement())
 

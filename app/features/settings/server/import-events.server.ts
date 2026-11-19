@@ -121,11 +121,12 @@ async function writeAbsenceOf(
   recordOf: Map<number, number | null>,
 ): Promise<void> {
   if (!recordOf.has(accountId)) {
-    const account = await db.userAccount.findFirst({
+    // Restored earlier in the same import: missing, the restore is broken — fail rather than mis-own the absence.
+    const account = await db.userAccount.findFirstOrThrow({
       where: { id: accountId, congregationId },
       select: { memberId: true },
     })
-    recordOf.set(accountId, account?.memberId ?? null)
+    recordOf.set(accountId, account.memberId)
   }
   await db.absence.create({
     data: {

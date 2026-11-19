@@ -4,20 +4,22 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 
 /**
  * Refused: the account is linked to a record and has absences. They are the person's, not the login's: an
- * administrator cannot delete someone else's absences, so the account stays until it can hand them to its record.
+ * administrator cannot delete someone else's absences, and the readers still read the day-off events the account
+ * owns, so the account stays until the events are dropped — their Absence rows already name the record.
  */
 export class AccountHasAbsencesError extends ConflictError {}
 
 export interface ReleasedAccountEvents {
-  /** The absences deleted with an account that has no record, for the audit trail. */
+  /** The day-off events deleted with an account that has no record, for the audit trail. */
   absencesDeleted: { id: number; startDate: Date; endDate: Date }[]
   /** How many of its other events lost their author. */
   eventsUnattributed: number
 }
 
 /**
- * Lets go of the events an account created, before the account is deleted (from Réglages, or by taking a login away
- * from a record): `Event.createdBy` is Restrict, so the account could not go otherwise.
+ * Lets go of the events an account created, and of its Absence rows, before the account is deleted (from Réglages, or
+ * by taking a login away from a record): `Event.createdBy` and `Absence.accountId` are Restrict, so the account could
+ * not go otherwise.
  *
  * Its absences go with an account that has no record — nobody else is away on them, and they flagged no assignment,
  * since absences flag through the record. An account with a record and absences is refused (AccountHasAbsencesError).
@@ -39,8 +41,8 @@ export async function releaseAccountEvents(
   if (absences.length > 0) {
     await db.event.deleteMany({ where: { congregationId, id: { in: absences.map(absence => absence.id) } } })
   }
-  // The Absence rows still naming the account (accountId is Restrict): those of the absences just deleted, or — for an
-  // account with a record, which has none left — rows whose event a previous version deleted without them.
+  // Every Absence row still naming the account (accountId is Restrict): those of the absences just deleted, and any
+  // whose event went without them (the previous version, during the rollout).
   await db.absence.deleteMany({ where: { congregationId, accountId: account.id } })
   const unattributed = await db.event.updateMany({
     where: { congregationId, createdById: account.id },

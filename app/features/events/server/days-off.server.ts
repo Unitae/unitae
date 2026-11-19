@@ -22,10 +22,10 @@ export function getNextDaysOffs(db: TransactionClient, userId: number, congregat
   })
 }
 
-// `accountId` writes Event.createdBy. `memberId` (nullable — admin / circuit
-// overseer accounts with no linked member) is what refreshConflictFlags needs
-// to reconcile assignments; when it's null there can be no assignments to
-// conflict, so we skip the refresh entirely.
+// `accountId` writes Event.createdBy and Absence.accountId. `memberId` (null for
+// an account without a record — administrators, circuit overseers) makes the
+// Absence row the person's and drives refreshConflictFlags; when it's null
+// there can be no assignments to conflict, so the refresh is skipped.
 export async function createDayOff(
   db: TransactionClient,
   accountId: number,
@@ -65,7 +65,8 @@ export async function createDayOff(
       status: EventStatus.Released,
     },
   })
-  // Written twice while the readers still read the event: the absence of its own, the person's.
+  // Written twice while the readers still read the event: the day-off event, and its Absence row (the person's record
+  // when the account has one).
   await db.absence.create({
     data: { startDate, endDate, memberId, accountId, legacyEventId: event.id, congregationId },
   })

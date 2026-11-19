@@ -6,7 +6,8 @@
 -- their template. Its backfill cannot simply run again: since then, deleting an account clears the author of what it
 -- made, and a hand-made event left without an author looks the same.
 --
--- Only events that are all of: no author, nothing on them (no part, no service, no attendance), of a template, still
+-- Only events that are all of: no author, nothing on them (no part, no service, no attendance), of a template (the job
+-- only creates those), still
 -- « manual », created after that migration finished, and never written since (`updatedAt` within seconds of
 -- `createdAt`) — clearing an author is a write, so a hand-made event whose account went keeps « manual ».
 UPDATE "Event" AS event
