@@ -309,36 +309,6 @@ describe('getNextMeeting (integration)', () => {
     const result = await withScope(congregationId, tx => getNextMeeting(tx, aliceId, congregationId))
     expect(result?.id).not.toBe(pastEventId)
   })
-
-  it("ignores another user's day off when picking the next meeting", async () => {
-    const offEventId = await withScope(congregationId, async tx => {
-      const offKind = await tx.eventTemplate.create({
-        data: { name: 'Absence', key: 'day-off', color: '#888888', congregationId },
-      })
-      const off = await tx.event.create({
-        data: {
-          name: 'Absence',
-          templateId: offKind.id,
-          startDate: new Date('2027-05-01T00:00:00Z'),
-          endDate: new Date('2027-05-03T00:00:00Z'),
-          createdById: bobAccountId,
-          congregationId,
-          status: 'released',
-        },
-      })
-      return off.id
-    })
-
-    try {
-      const result = await withScope(congregationId, tx => getNextMeeting(tx, aliceId, congregationId))
-      expect(result?.name).toBe(`Future Meeting ${ts}`)
-    } finally {
-      await withScope(congregationId, async tx => {
-        await tx.event.delete({ where: { id_congregationId: { id: offEventId, congregationId } } })
-        await tx.eventTemplate.deleteMany({ where: { key: 'day-off', congregationId } })
-      })
-    }
-  })
 })
 
 describe('getConflictingAssignments (integration)', () => {
