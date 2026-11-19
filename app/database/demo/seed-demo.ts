@@ -845,7 +845,11 @@ async function writeDemoLogins(
   // The banner names a visitor's role from their login: two roles on one login would name the wrong one.
   if (new Set(Object.values(logins)).size !== DEMO_ROLES.length) throw new Error('Two demo roles share a login')
   await prisma.setting.create({ data: { key: DEMO_ACCOUNTS_SETTING, value: JSON.stringify(logins), congregationId } })
-  // The data is invented and nobody's: signing in shouldn't stop on the consent page.
+  // Signing in as a role goes straight in: no address to verify, no consent to give. The data is invented and nobody's.
+  await prisma.userAccount.updateMany({
+    where: { id: { in: Object.values(logins) }, emailVerifiedAt: null },
+    data: { emailVerifiedAt: login.now },
+  })
   await prisma.consentRecord.createMany({
     data: Object.values(logins).map(userId => ({
       userId,
