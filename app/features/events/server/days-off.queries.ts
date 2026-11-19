@@ -8,6 +8,7 @@ import {
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export interface MyAbsence {
+  /** The Absence row's id: the delete goes by it. */
   id: number
   startDate: Date
   endDate: Date
@@ -48,6 +49,7 @@ export async function listMyAbsences(
 export interface AbsenceAssignment {
   kind: AssignKind
   /** The part's or the service's id, from its own table. */
+  /** The Absence row's id: the delete goes by it. */
   id: number
   name: string
   eventId: number
@@ -59,6 +61,7 @@ export interface AbsenceAssignment {
 }
 
 export interface CongregationAbsence {
+  /** The Absence row's id: the delete goes by it. */
   id: number
   startDate: Date
   endDate: Date

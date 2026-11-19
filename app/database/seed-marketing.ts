@@ -679,7 +679,7 @@ async function main() {
     })),
     select: { id: true },
   })
-  // Written twice, as createDayOff does while the readers move over: the day-off event, and its Absence row.
+  // Written twice, as createDayOff does until the events are dropped: the day-off event, and its Absence row.
   await prisma.absence.createMany({
     data: absences.map((absence, index) => ({
       startDate: absence.start,

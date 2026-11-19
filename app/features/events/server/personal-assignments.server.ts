@@ -109,8 +109,8 @@ function servicePartAssignmentToItem(assignment: ServicePartWithEvent): Personal
 
 function dayOffToItem(absence: Absence): PersonalCalendarItem {
   return {
-    // A subscriber's calendar knows an absence by its event's identifier: kept while the row has its event, so an
-    // existing entry is not replaced by a copy.
+    // A subscriber's calendar knows an absence by its event's id: kept while the row carries one, so an existing entry
+    // is not replaced by a copy. A row without one gets its own prefix, which cannot clash with an event's id.
     uid: absence.legacyEventId != null ? `day-off-${absence.legacyEventId}` : `absence-${absence.id}`,
     kind: 'day-off',
     summary: m.calendar_feed_day_off_summary(),
@@ -118,7 +118,7 @@ function dayOffToItem(absence: Absence): PersonalCalendarItem {
     start: absence.startDate,
     end: addOneDay(absence.endDate),
     allDay: true,
-    // Absences are never edited: declared is last changed.
+    // Absences are never edited, so their declaration is their last change.
     updatedAt: absence.createdAt,
   }
 }
