@@ -160,6 +160,82 @@
         "attendanceKind": "weekend"
       }
     ],
+    "schedule-templates": [
+      {
+        "id": "<id>",
+        "name": "Mémorial",
+        "key": null,
+        "kind": "programme",
+        "responsibleRoleId": null
+      },
+      {
+        "id": "<id>",
+        "name": "Réunion de semaine",
+        "key": null,
+        "kind": "programme",
+        "responsibleRoleId": "<id>"
+      },
+      {
+        "id": "<id>",
+        "name": "Réunion du week-end",
+        "key": null,
+        "kind": "programme",
+        "responsibleRoleId": null
+      },
+      {
+        "id": "<id>",
+        "name": null,
+        "key": "services",
+        "kind": "duty",
+        "responsibleRoleId": "<id>"
+      },
+      {
+        "id": "<id>",
+        "name": null,
+        "key": "services",
+        "kind": "duty",
+        "responsibleRoleId": "<id>"
+      },
+      {
+        "id": "<id>",
+        "name": null,
+        "key": "services",
+        "kind": "duty",
+        "responsibleRoleId": null
+      }
+    ],
+    "kind-schedule-templates": [
+      {
+        "eventKindId": "<id>",
+        "scheduleTemplateId": "<id>",
+        "order": 0
+      },
+      {
+        "eventKindId": "<id>",
+        "scheduleTemplateId": "<id>",
+        "order": 0
+      },
+      {
+        "eventKindId": "<id>",
+        "scheduleTemplateId": "<id>",
+        "order": 0
+      },
+      {
+        "eventKindId": "<id>",
+        "scheduleTemplateId": "<id>",
+        "order": 1
+      },
+      {
+        "eventKindId": "<id>",
+        "scheduleTemplateId": "<id>",
+        "order": 1
+      },
+      {
+        "eventKindId": "<id>",
+        "scheduleTemplateId": "<id>",
+        "order": 1
+      }
+    ],
     "programme-template-parts": [
       {
         "id": "<id>",
@@ -171,7 +247,8 @@
         "durationMin": null,
         "allowExternalSpeaker": true,
         "templateId": "<template:midweek>",
-        "presetId": null
+        "presetId": null,
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -183,7 +260,8 @@
         "durationMin": null,
         "allowExternalSpeaker": true,
         "templateId": "<template:midweek>",
-        "presetId": "<preset:midweek-talk>"
+        "presetId": "<preset:midweek-talk>",
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -195,7 +273,8 @@
         "durationMin": null,
         "allowExternalSpeaker": true,
         "templateId": "<template:midweek>",
-        "presetId": null
+        "presetId": null,
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -207,7 +286,8 @@
         "durationMin": null,
         "allowExternalSpeaker": true,
         "templateId": "<template:midweek>",
-        "presetId": "<preset:midweek-talk>"
+        "presetId": "<preset:midweek-talk>",
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -219,7 +299,8 @@
         "durationMin": null,
         "allowExternalSpeaker": true,
         "templateId": "<template:midweek>",
-        "presetId": null
+        "presetId": null,
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -231,7 +312,8 @@
         "durationMin": 5,
         "allowExternalSpeaker": false,
         "templateId": "<template:midweek>",
-        "presetId": "<preset:prayer>"
+        "presetId": "<preset:prayer>",
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -243,7 +325,8 @@
         "durationMin": 5,
         "allowExternalSpeaker": false,
         "templateId": "<template:memorial>",
-        "presetId": "<preset:prayer>"
+        "presetId": "<preset:prayer>",
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -255,7 +338,8 @@
         "durationMin": 5,
         "allowExternalSpeaker": false,
         "templateId": "<template:weekend>",
-        "presetId": "<preset:prayer>"
+        "presetId": "<preset:prayer>",
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -267,7 +351,8 @@
         "durationMin": 5,
         "allowExternalSpeaker": false,
         "templateId": "<template:memorial>",
-        "presetId": "<preset:prayer>"
+        "presetId": "<preset:prayer>",
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -279,7 +364,8 @@
         "durationMin": 5,
         "allowExternalSpeaker": false,
         "templateId": "<template:midweek>",
-        "presetId": "<preset:prayer>"
+        "presetId": "<preset:prayer>",
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -291,7 +377,8 @@
         "durationMin": 5,
         "allowExternalSpeaker": false,
         "templateId": "<template:weekend>",
-        "presetId": "<preset:prayer>"
+        "presetId": "<preset:prayer>",
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -303,7 +390,8 @@
         "durationMin": 5,
         "allowExternalSpeaker": false,
         "templateId": "<template:weekend>",
-        "presetId": null
+        "presetId": null,
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -315,7 +403,8 @@
         "durationMin": 5,
         "allowExternalSpeaker": false,
         "templateId": "<template:midweek>",
-        "presetId": null
+        "presetId": null,
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -327,7 +416,8 @@
         "durationMin": 45,
         "allowExternalSpeaker": true,
         "templateId": "<template:memorial>",
-        "presetId": null
+        "presetId": null,
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -339,7 +429,8 @@
         "durationMin": 30,
         "allowExternalSpeaker": true,
         "templateId": "<template:weekend>",
-        "presetId": "<preset:public-talk>"
+        "presetId": "<preset:public-talk>",
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -351,7 +442,8 @@
         "durationMin": 10,
         "allowExternalSpeaker": true,
         "templateId": "<template:midweek>",
-        "presetId": "<preset:midweek-talk>"
+        "presetId": "<preset:midweek-talk>",
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -363,7 +455,8 @@
         "durationMin": 4,
         "allowExternalSpeaker": false,
         "templateId": "<template:midweek>",
-        "presetId": "<preset:bible-reading>"
+        "presetId": "<preset:bible-reading>",
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -375,7 +468,8 @@
         "durationMin": 10,
         "allowExternalSpeaker": false,
         "templateId": "<template:midweek>",
-        "presetId": "<preset:midweek-talk>"
+        "presetId": "<preset:midweek-talk>",
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -387,7 +481,8 @@
         "durationMin": null,
         "allowExternalSpeaker": false,
         "templateId": "<template:memorial>",
-        "presetId": "<preset:prayer>"
+        "presetId": "<preset:prayer>",
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -399,7 +494,8 @@
         "durationMin": null,
         "allowExternalSpeaker": false,
         "templateId": "<template:memorial>",
-        "presetId": "<preset:prayer>"
+        "presetId": "<preset:prayer>",
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -411,7 +507,8 @@
         "durationMin": 30,
         "allowExternalSpeaker": false,
         "templateId": "<template:midweek>",
-        "presetId": "<preset:congregation-bible-study>"
+        "presetId": "<preset:congregation-bible-study>",
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -423,7 +520,8 @@
         "durationMin": 60,
         "allowExternalSpeaker": false,
         "templateId": "<template:weekend>",
-        "presetId": "<preset:watchtower-study>"
+        "presetId": "<preset:watchtower-study>",
+        "scheduleTemplateId": "<id>"
       }
     ],
     "programme-template-part-allowed-roles": [
@@ -440,7 +538,8 @@
         "key": "sono",
         "order": 0,
         "templateId": "<template:memorial>",
-        "presetId": null
+        "presetId": null,
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -448,7 +547,8 @@
         "key": "sono",
         "order": 0,
         "templateId": "<template:midweek>",
-        "presetId": null
+        "presetId": null,
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -456,7 +556,8 @@
         "key": "sono",
         "order": 0,
         "templateId": "<template:weekend>",
-        "presetId": null
+        "presetId": null,
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -464,7 +565,8 @@
         "key": "stage",
         "order": 5,
         "templateId": "<template:memorial>",
-        "presetId": null
+        "presetId": null,
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -472,7 +574,8 @@
         "key": "stage",
         "order": 5,
         "templateId": "<template:midweek>",
-        "presetId": null
+        "presetId": null,
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -480,7 +583,8 @@
         "key": "stage",
         "order": 5,
         "templateId": "<template:weekend>",
-        "presetId": null
+        "presetId": null,
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -488,7 +592,8 @@
         "key": "cleaning",
         "order": 15,
         "templateId": "<template:memorial>",
-        "presetId": null
+        "presetId": null,
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -496,7 +601,8 @@
         "key": "cleaning",
         "order": 15,
         "templateId": "<template:midweek>",
-        "presetId": null
+        "presetId": null,
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -504,7 +610,8 @@
         "key": "cleaning",
         "order": 15,
         "templateId": "<template:weekend>",
-        "presetId": null
+        "presetId": null,
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -512,7 +619,8 @@
         "key": "welcome",
         "order": 10,
         "templateId": "<template:memorial>",
-        "presetId": null
+        "presetId": null,
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -520,7 +628,8 @@
         "key": "welcome",
         "order": 10,
         "templateId": "<template:midweek>",
-        "presetId": null
+        "presetId": null,
+        "scheduleTemplateId": "<id>"
       },
       {
         "id": "<id>",
@@ -528,7 +637,8 @@
         "key": "welcome",
         "order": 10,
         "templateId": "<template:weekend>",
-        "presetId": null
+        "presetId": null,
+        "scheduleTemplateId": "<id>"
       }
     ],
     "programme-template-service-role-allowed-roles": [
@@ -813,6 +923,148 @@
         "onlineAt": "2027-03-03T09:00:00.000Z"
       }
     ],
+    "schedules": [
+      {
+        "id": "<id>",
+        "eventId": "<event:memorial-1>",
+        "scheduleTemplateId": "<id>",
+        "name": "Mémorial",
+        "key": null,
+        "kind": "programme",
+        "order": 0,
+        "status": "draft"
+      },
+      {
+        "id": "<id>",
+        "eventId": "<event:memorial-1>",
+        "scheduleTemplateId": "<id>",
+        "name": null,
+        "key": "services",
+        "kind": "duty",
+        "order": 1,
+        "status": "draft"
+      },
+      {
+        "id": "<id>",
+        "eventId": "<event:midweek-1>",
+        "scheduleTemplateId": "<id>",
+        "name": "Réunion de semaine",
+        "key": null,
+        "kind": "programme",
+        "order": 0,
+        "status": "published"
+      },
+      {
+        "id": "<id>",
+        "eventId": "<event:midweek-1>",
+        "scheduleTemplateId": "<id>",
+        "name": null,
+        "key": "services",
+        "kind": "duty",
+        "order": 1,
+        "status": "published"
+      },
+      {
+        "id": "<id>",
+        "eventId": "<event:midweek-2>",
+        "scheduleTemplateId": "<id>",
+        "name": "Réunion de semaine",
+        "key": null,
+        "kind": "programme",
+        "order": 0,
+        "status": "draft"
+      },
+      {
+        "id": "<id>",
+        "eventId": "<event:midweek-2>",
+        "scheduleTemplateId": "<id>",
+        "name": null,
+        "key": "services",
+        "kind": "duty",
+        "order": 1,
+        "status": "draft"
+      },
+      {
+        "id": "<id>",
+        "eventId": "<event:midweek-3>",
+        "scheduleTemplateId": "<id>",
+        "name": "Réunion de semaine",
+        "key": null,
+        "kind": "programme",
+        "order": 0,
+        "status": "draft"
+      },
+      {
+        "id": "<id>",
+        "eventId": "<event:midweek-3>",
+        "scheduleTemplateId": "<id>",
+        "name": null,
+        "key": "services",
+        "kind": "duty",
+        "order": 1,
+        "status": "draft"
+      },
+      {
+        "id": "<id>",
+        "eventId": "<event:weekend-1>",
+        "scheduleTemplateId": "<id>",
+        "name": "Réunion du week-end",
+        "key": null,
+        "kind": "programme",
+        "order": 0,
+        "status": "published"
+      },
+      {
+        "id": "<id>",
+        "eventId": "<event:weekend-1>",
+        "scheduleTemplateId": "<id>",
+        "name": null,
+        "key": "services",
+        "kind": "duty",
+        "order": 1,
+        "status": "published"
+      },
+      {
+        "id": "<id>",
+        "eventId": "<event:weekend-2>",
+        "scheduleTemplateId": "<id>",
+        "name": "Réunion du week-end",
+        "key": null,
+        "kind": "programme",
+        "order": 0,
+        "status": "draft"
+      },
+      {
+        "id": "<id>",
+        "eventId": "<event:weekend-2>",
+        "scheduleTemplateId": "<id>",
+        "name": null,
+        "key": "services",
+        "kind": "duty",
+        "order": 1,
+        "status": "draft"
+      },
+      {
+        "id": "<id>",
+        "eventId": "<event:weekend-3>",
+        "scheduleTemplateId": "<id>",
+        "name": "Réunion du week-end",
+        "key": null,
+        "kind": "programme",
+        "order": 0,
+        "status": "draft"
+      },
+      {
+        "id": "<id>",
+        "eventId": "<event:weekend-3>",
+        "scheduleTemplateId": "<id>",
+        "name": null,
+        "key": "services",
+        "kind": "duty",
+        "order": 1,
+        "status": "draft"
+      }
+    ],
     "programme-part-assignments": [
       {
         "id": "<id>",
@@ -831,7 +1083,8 @@
         "assigneeId": "<member:paul>",
         "assistantId": null,
         "allowExternalSpeaker": true,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -850,7 +1103,8 @@
         "assigneeId": "<member:paul>",
         "assistantId": null,
         "allowExternalSpeaker": true,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -869,7 +1123,8 @@
         "assigneeId": null,
         "assistantId": null,
         "allowExternalSpeaker": true,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -888,7 +1143,8 @@
         "assigneeId": "<member:paul>",
         "assistantId": null,
         "allowExternalSpeaker": true,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -907,7 +1163,8 @@
         "assigneeId": "<member:paul>",
         "assistantId": null,
         "allowExternalSpeaker": true,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -926,7 +1183,8 @@
         "assigneeId": null,
         "assistantId": null,
         "allowExternalSpeaker": true,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -945,7 +1203,8 @@
         "assigneeId": "<member:jean>",
         "assistantId": null,
         "allowExternalSpeaker": true,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -964,7 +1223,8 @@
         "assigneeId": "<member:jean>",
         "assistantId": null,
         "allowExternalSpeaker": true,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -983,7 +1243,8 @@
         "assigneeId": null,
         "assistantId": null,
         "allowExternalSpeaker": true,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1002,7 +1263,8 @@
         "assigneeId": "<member:jean>",
         "assistantId": null,
         "allowExternalSpeaker": true,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1021,7 +1283,8 @@
         "assigneeId": "<member:jean>",
         "assistantId": null,
         "allowExternalSpeaker": true,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1040,7 +1303,8 @@
         "assigneeId": null,
         "assistantId": null,
         "allowExternalSpeaker": true,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1059,7 +1323,8 @@
         "assigneeId": "<member:luc>",
         "assistantId": null,
         "allowExternalSpeaker": true,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1078,7 +1343,8 @@
         "assigneeId": "<member:luc>",
         "assistantId": null,
         "allowExternalSpeaker": true,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1097,7 +1363,8 @@
         "assigneeId": null,
         "assistantId": null,
         "allowExternalSpeaker": true,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1116,7 +1383,8 @@
         "assigneeId": null,
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1135,7 +1403,8 @@
         "assigneeId": "<member:pierre>",
         "assistantId": "<member:marc>",
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1154,7 +1423,8 @@
         "assigneeId": null,
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1173,7 +1443,8 @@
         "assigneeId": null,
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1192,7 +1463,8 @@
         "assigneeId": "<member:paul>",
         "assistantId": "<member:marc>",
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1211,7 +1483,8 @@
         "assigneeId": "<member:paul>",
         "assistantId": "<member:marc>",
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1230,7 +1503,8 @@
         "assigneeId": null,
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1249,7 +1523,8 @@
         "assigneeId": null,
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1268,7 +1543,8 @@
         "assigneeId": null,
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1287,7 +1563,8 @@
         "assigneeId": "<member:paul>",
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1306,7 +1583,8 @@
         "assigneeId": "<member:paul>",
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1325,7 +1603,8 @@
         "assigneeId": "<member:paul>",
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1344,7 +1623,8 @@
         "assigneeId": "<member:paul>",
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1363,7 +1643,8 @@
         "assigneeId": null,
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1382,7 +1663,8 @@
         "assigneeId": "<member:luc>",
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1401,7 +1683,8 @@
         "assigneeId": "<member:luc>",
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1420,7 +1703,8 @@
         "assigneeId": null,
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1439,7 +1723,8 @@
         "assigneeId": "<member:pierre>",
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1458,7 +1743,8 @@
         "assigneeId": null,
         "assistantId": null,
         "allowExternalSpeaker": true,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1477,7 +1763,8 @@
         "assigneeId": null,
         "assistantId": null,
         "allowExternalSpeaker": true,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1496,7 +1783,8 @@
         "assigneeId": null,
         "assistantId": null,
         "allowExternalSpeaker": true,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1515,7 +1803,8 @@
         "assigneeId": null,
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1534,7 +1823,8 @@
         "assigneeId": "<member:pierre>",
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1553,7 +1843,8 @@
         "assigneeId": null,
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1572,7 +1863,8 @@
         "assigneeId": "<member:luc>",
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1591,7 +1883,8 @@
         "assigneeId": "<member:luc>",
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1610,7 +1903,8 @@
         "assigneeId": null,
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1629,7 +1923,8 @@
         "assigneeId": null,
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1648,7 +1943,8 @@
         "assigneeId": null,
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1667,7 +1963,8 @@
         "assigneeId": "<member:luc>",
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1686,7 +1983,8 @@
         "assigneeId": "<member:luc>",
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1705,7 +2003,8 @@
         "assigneeId": null,
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1724,7 +2023,8 @@
         "assigneeId": "<member:pierre>",
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1743,7 +2043,8 @@
         "assigneeId": "<member:hugo>",
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1762,7 +2063,8 @@
         "assigneeId": "<member:hugo>",
         "assistantId": "<member:marc>",
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1781,7 +2083,8 @@
         "assigneeId": "<member:hugo>",
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1800,7 +2103,8 @@
         "assigneeId": "<member:hugo>",
         "assistantId": null,
         "allowExternalSpeaker": false,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1819,7 +2123,8 @@
         "assigneeId": null,
         "assistantId": null,
         "allowExternalSpeaker": true,
-        "externalSpeakerId": "<speaker:rousseau>"
+        "externalSpeakerId": "<speaker:rousseau>",
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1838,7 +2143,8 @@
         "assigneeId": "<member:paul>",
         "assistantId": null,
         "allowExternalSpeaker": true,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1857,7 +2163,8 @@
         "assigneeId": "<member:paul>",
         "assistantId": null,
         "allowExternalSpeaker": true,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1876,7 +2183,8 @@
         "assigneeId": "<member:paul>",
         "assistantId": null,
         "allowExternalSpeaker": true,
-        "externalSpeakerId": null
+        "externalSpeakerId": null,
+        "scheduleId": "<id>"
       }
     ],
     "programme-part-assignment-allowed-roles": [
@@ -1906,7 +2214,8 @@
         "eventId": "<event:memorial-1>",
         "servicePartId": "<templateServicePart:memorial/service-sono>",
         "presetId": null,
-        "assigneeId": null
+        "assigneeId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1917,7 +2226,8 @@
         "eventId": "<event:midweek-1>",
         "servicePartId": "<templateServicePart:midweek/service-sono>",
         "presetId": null,
-        "assigneeId": "<member:luc>"
+        "assigneeId": "<member:luc>",
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1928,7 +2238,8 @@
         "eventId": "<event:midweek-2>",
         "servicePartId": "<templateServicePart:midweek/service-sono>",
         "presetId": null,
-        "assigneeId": "<member:luc>"
+        "assigneeId": "<member:luc>",
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1939,7 +2250,8 @@
         "eventId": "<event:midweek-3>",
         "servicePartId": "<templateServicePart:midweek/service-sono>",
         "presetId": null,
-        "assigneeId": null
+        "assigneeId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1950,7 +2262,8 @@
         "eventId": "<event:weekend-1>",
         "servicePartId": "<templateServicePart:weekend/service-sono>",
         "presetId": null,
-        "assigneeId": "<member:luc>"
+        "assigneeId": "<member:luc>",
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1961,7 +2274,8 @@
         "eventId": "<event:weekend-2>",
         "servicePartId": "<templateServicePart:weekend/service-sono>",
         "presetId": null,
-        "assigneeId": "<member:luc>"
+        "assigneeId": "<member:luc>",
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1972,7 +2286,8 @@
         "eventId": "<event:weekend-3>",
         "servicePartId": "<templateServicePart:weekend/service-sono>",
         "presetId": null,
-        "assigneeId": null
+        "assigneeId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1983,7 +2298,8 @@
         "eventId": "<event:memorial-1>",
         "servicePartId": "<templateServicePart:memorial/service-stage>",
         "presetId": null,
-        "assigneeId": null
+        "assigneeId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -1994,7 +2310,8 @@
         "eventId": "<event:midweek-1>",
         "servicePartId": "<templateServicePart:midweek/service-stage>",
         "presetId": null,
-        "assigneeId": "<member:marc>"
+        "assigneeId": "<member:marc>",
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -2005,7 +2322,8 @@
         "eventId": "<event:midweek-2>",
         "servicePartId": "<templateServicePart:midweek/service-stage>",
         "presetId": null,
-        "assigneeId": "<member:marc>"
+        "assigneeId": "<member:marc>",
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -2016,7 +2334,8 @@
         "eventId": "<event:midweek-3>",
         "servicePartId": "<templateServicePart:midweek/service-stage>",
         "presetId": null,
-        "assigneeId": null
+        "assigneeId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -2027,7 +2346,8 @@
         "eventId": "<event:weekend-1>",
         "servicePartId": "<templateServicePart:weekend/service-stage>",
         "presetId": null,
-        "assigneeId": "<member:marc>"
+        "assigneeId": "<member:marc>",
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -2038,7 +2358,8 @@
         "eventId": "<event:weekend-2>",
         "servicePartId": "<templateServicePart:weekend/service-stage>",
         "presetId": null,
-        "assigneeId": "<member:marc>"
+        "assigneeId": "<member:marc>",
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -2049,7 +2370,8 @@
         "eventId": "<event:weekend-3>",
         "servicePartId": "<templateServicePart:weekend/service-stage>",
         "presetId": null,
-        "assigneeId": null
+        "assigneeId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -2060,7 +2382,8 @@
         "eventId": "<event:memorial-1>",
         "servicePartId": "<templateServicePart:memorial/service-cleaning>",
         "presetId": null,
-        "assigneeId": null
+        "assigneeId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -2071,7 +2394,8 @@
         "eventId": "<event:midweek-1>",
         "servicePartId": "<templateServicePart:midweek/service-cleaning>",
         "presetId": null,
-        "assigneeId": "<member:paul>"
+        "assigneeId": "<member:paul>",
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -2082,7 +2406,8 @@
         "eventId": "<event:midweek-2>",
         "servicePartId": "<templateServicePart:midweek/service-cleaning>",
         "presetId": null,
-        "assigneeId": "<member:paul>"
+        "assigneeId": "<member:paul>",
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -2093,7 +2418,8 @@
         "eventId": "<event:midweek-3>",
         "servicePartId": "<templateServicePart:midweek/service-cleaning>",
         "presetId": null,
-        "assigneeId": null
+        "assigneeId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -2104,7 +2430,8 @@
         "eventId": "<event:weekend-1>",
         "servicePartId": "<templateServicePart:weekend/service-cleaning>",
         "presetId": null,
-        "assigneeId": "<member:paul>"
+        "assigneeId": "<member:paul>",
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -2115,7 +2442,8 @@
         "eventId": "<event:weekend-2>",
         "servicePartId": "<templateServicePart:weekend/service-cleaning>",
         "presetId": null,
-        "assigneeId": "<member:paul>"
+        "assigneeId": "<member:paul>",
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -2126,7 +2454,8 @@
         "eventId": "<event:weekend-3>",
         "servicePartId": "<templateServicePart:weekend/service-cleaning>",
         "presetId": null,
-        "assigneeId": null
+        "assigneeId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -2137,7 +2466,8 @@
         "eventId": "<event:memorial-1>",
         "servicePartId": "<templateServicePart:memorial/service-welcome>",
         "presetId": null,
-        "assigneeId": null
+        "assigneeId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -2148,7 +2478,8 @@
         "eventId": "<event:midweek-1>",
         "servicePartId": "<templateServicePart:midweek/service-welcome>",
         "presetId": null,
-        "assigneeId": "<member:pierre>"
+        "assigneeId": "<member:pierre>",
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -2159,7 +2490,8 @@
         "eventId": "<event:midweek-3>",
         "servicePartId": "<templateServicePart:midweek/service-welcome>",
         "presetId": null,
-        "assigneeId": null
+        "assigneeId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -2170,7 +2502,8 @@
         "eventId": "<event:weekend-1>",
         "servicePartId": "<templateServicePart:weekend/service-welcome>",
         "presetId": null,
-        "assigneeId": "<member:pierre>"
+        "assigneeId": "<member:pierre>",
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -2181,7 +2514,8 @@
         "eventId": "<event:weekend-2>",
         "servicePartId": "<templateServicePart:weekend/service-welcome>",
         "presetId": null,
-        "assigneeId": "<member:hugo>"
+        "assigneeId": "<member:hugo>",
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -2192,7 +2526,8 @@
         "eventId": "<event:weekend-3>",
         "servicePartId": "<templateServicePart:weekend/service-welcome>",
         "presetId": null,
-        "assigneeId": null
+        "assigneeId": null,
+        "scheduleId": "<id>"
       },
       {
         "id": "<id>",
@@ -2203,7 +2538,8 @@
         "eventId": "<event:midweek-2>",
         "servicePartId": "<templateServicePart:midweek/service-welcome>",
         "presetId": null,
-        "assigneeId": "<member:hugo>"
+        "assigneeId": "<member:hugo>",
+        "scheduleId": "<id>"
       }
     ],
     "programme-service-role-assignment-allowed-roles": [
