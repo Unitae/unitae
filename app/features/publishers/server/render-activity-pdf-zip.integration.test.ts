@@ -5,7 +5,8 @@ import { createTestCongregation, createTestUser } from '~/tests/factories'
 import { buildActivityPdfZip, getPublishersWithYearActivities } from './render-activity-pdf-zip.server'
 
 vi.mock('@react-pdf/renderer', () => ({
-  pdf: () => ({ toBuffer: () => Promise.resolve(Buffer.from('fake-pdf')) }),
+  // The export renders through the shared renderer, which reads a blob after warming the registered fonts.
+  pdf: () => ({ toBlob: () => Promise.resolve(new Blob(['fake-pdf'])) }),
   Document: ({ children }: { children: unknown }) => children,
   Page: ({ children }: { children: unknown }) => children,
   View: ({ children }: { children: unknown }) => children,
@@ -13,7 +14,7 @@ vi.mock('@react-pdf/renderer', () => ({
   Svg: ({ children }: { children: unknown }) => children,
   Polygon: () => null,
   StyleSheet: { create: <T>(s: T) => s },
-  Font: { register: () => undefined },
+  Font: { register: () => undefined, getRegisteredFonts: () => ({}) },
 }))
 
 const TRANSACTION_ERROR_RE = /transaction/i
