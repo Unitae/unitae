@@ -178,6 +178,24 @@ describe('importEvents', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('Rebuilt 1 absence'), { congregationId: 1 })
   })
 
+  // A 2.20 absences file names no event: it holds every absence, so a day-off left in place is not rebuilt beside it.
+  it('rebuilds nothing beside a 2.20 absences file', async () => {
+    files([record({ templateId: 9 })])
+    readNdjsonFile.mockImplementation((_zip: unknown, name: string) =>
+      Promise.resolve(
+        name === 'absences'
+          ? [{ id: 1 }]
+          : name === 'programme-templates'
+            ? [{ id: 9, key: 'day-off' }]
+            : [record({ templateId: 9 })],
+      ),
+    )
+
+    await importEvents(archive(true), db as never, idMap(), 1)
+
+    expect(db.absence.create).not.toHaveBeenCalled()
+  })
+
   it('says so when a day-off neither has its author nor is covered by the absences file', async () => {
     files([record({ templateId: 9, createdById: 8 })], [2])
 

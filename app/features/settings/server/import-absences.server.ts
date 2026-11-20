@@ -13,19 +13,23 @@ interface AbsenceRecord {
   note?: string
   memberId: number | null
   accountId: number | null
-  legacyEventId: number | null
+  // 2.19 archives only: the day-off event the row was copied from.
+  legacyEventId?: number | null
   createdAt: string
 }
 
 /**
- * The archive ids of the day-off events its absences file covers, or null for an archive without one (before 2.19; the
- * export writes the file even when there are none). A day-off it does not cover — written by a version before the
- * absences table, or an absences file emptied by hand — still gets its absence from the event.
+ * Which of the archive's day-off events its absences file covers, or null for an archive without one (before 2.19; the
+ * export writes the file even when there are none). A 2.19 file covers the events its rows name; a day-off it does not
+ * cover — written by a version before the absences table, or a file emptied by hand — still gets its absence from the
+ * event. From 2.20 the rows name no event: the file holds every absence, so it covers every day-off.
  */
-export async function archivedAbsenceEvents(zip: JsZip): Promise<Set<number> | null> {
+export async function archivedAbsenceEvents(zip: JsZip): Promise<{ covers: (eventId: number) => boolean } | null> {
   if (zip.file('data/absences.ndjson') == null) return null
   const records = await readNdjsonFile<Pick<AbsenceRecord, 'legacyEventId'>>(zip, 'absences')
-  return new Set(records.flatMap(record => (record.legacyEventId == null ? [] : [record.legacyEventId])))
+  if (records.some(record => !('legacyEventId' in record))) return { covers: () => true }
+  const named = new Set(records.flatMap(record => (record.legacyEventId == null ? [] : [record.legacyEventId])))
+  return { covers: eventId => named.has(eventId) }
 }
 
 function dateOf(value: unknown): Date | null {
