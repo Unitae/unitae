@@ -1,11 +1,12 @@
--- Events get schedules: a programme (at most one per event) and duty schedules, each made from a schedule template that
--- names its responsible role. No change in what anyone sees or may do: every reader still reads the items through their
--- event, the status on the event and the responsibles on the template, and the new image writes both shapes until the
--- readers move over.
+-- Events get schedules: a programme (at most one per event) and duty schedules, each made from its event's template's
+-- schedule template when there is one, which names its responsible role. No change in what anyone sees or may do: every
+-- reader still reads the items through their event, the status on the event and the responsibles on the template, and
+-- the new image writes both shapes until the readers move over.
 --
--- During the rollout the previous image keeps serving: it writes items without a schedule and statuses on events only.
--- The next release's migration runs this backfill again for what it wrote (it is idempotent: a re-run reuses what
--- exists, and the event's status wins where the two disagree).
+-- During the rollout the previous image keeps serving, writing the old shape only. The next release's migration runs
+-- this backfill again for what it wrote: new templates, events and items, a changed responsible or template name, a
+-- template applied to an event, a deleted template, a status changed. A re-run creates nothing twice, and the event's
+-- status wins where the two disagree.
 --
 -- No language is stored: a programme schedule template takes its template's name, which the congregation wrote; a duty
 -- one has no name and the key 'services', which the catalogue names. A schedule copies its template's name and key, or
@@ -58,6 +59,11 @@ ALTER TABLE "Schedule" DROP CONSTRAINT IF EXISTS "Schedule_kind_check";
 ALTER TABLE "Schedule" ADD CONSTRAINT "Schedule_kind_check" CHECK ("kind" IN ('programme', 'duty'));
 ALTER TABLE "Schedule" DROP CONSTRAINT IF EXISTS "Schedule_status_check";
 ALTER TABLE "Schedule" ADD CONSTRAINT "Schedule_status_check" CHECK ("status" IN ('draft', 'published'));
+-- Named, or named by the catalogue through its key: never neither.
+ALTER TABLE "ScheduleTemplate" DROP CONSTRAINT IF EXISTS "ScheduleTemplate_label_check";
+ALTER TABLE "ScheduleTemplate" ADD CONSTRAINT "ScheduleTemplate_label_check" CHECK ("name" IS NOT NULL OR "key" IS NOT NULL);
+ALTER TABLE "Schedule" DROP CONSTRAINT IF EXISTS "Schedule_label_check";
+ALTER TABLE "Schedule" ADD CONSTRAINT "Schedule_label_check" CHECK ("name" IS NOT NULL OR "key" IS NOT NULL);
 
 ALTER TABLE "EventPart" ADD COLUMN IF NOT EXISTS "scheduleId" INTEGER;
 ALTER TABLE "EventServicePart" ADD COLUMN IF NOT EXISTS "scheduleId" INTEGER;
@@ -140,7 +146,14 @@ CREATE POLICY tenant_isolation ON "Schedule" FOR ALL
     END
   );
 
--- 2. Per template other than freeform, a programme schedule template when it has parts and a duty one when it has
+-- 2. A schedule template no template suggests any more goes: its template was deleted by the previous image (the
+--    links cascade, the schedule templates do not). Its schedules keep their items and lose it (SetNull).
+DELETE FROM "ScheduleTemplate" AS scheduleTemplate
+WHERE NOT EXISTS (
+  SELECT 1 FROM "EventKindScheduleTemplate" AS link WHERE link."scheduleTemplateId" = scheduleTemplate."id"
+);
+
+-- 3. Per template other than freeform, a programme schedule template when it has parts and a duty one when it has
 --    services, both suggested by it, programme first. One that already has its schedule template of that kind is left
 --    as it is: a re-run creates nothing twice. The ids are drawn first so that each new row is linked to its template
 --    in the same statement.
@@ -184,7 +197,7 @@ INSERT INTO "EventKindScheduleTemplate" ("eventKindId", "scheduleTemplateId", "o
 SELECT source."templateId", source."scheduleTemplateId", 1, source."congregationId"
 FROM source JOIN created ON created."id" = source."scheduleTemplateId";
 
--- 3. Their responsible role, from the template's responsibles: the programme one for the programme; for the duties the
+-- 4. Their responsible role, from the template's responsibles: the programme one for the programme; for the duties the
 --    service one, else the programme one — never both (D31). A re-run brings a changed responsible across.
 UPDATE "ScheduleTemplate" AS scheduleTemplate
 SET "responsibleRoleId" = chosen."roleId", "updatedAt" = CURRENT_TIMESTAMP
@@ -202,7 +215,15 @@ FROM (
 WHERE scheduleTemplate."id" = chosen."scheduleTemplateId"
   AND scheduleTemplate."responsibleRoleId" IS DISTINCT FROM chosen."roleId";
 
--- 4. The template's items join its schedule template of their kind.
+-- A programme schedule template carries its template's name: a re-run brings a rename across.
+UPDATE "ScheduleTemplate" AS scheduleTemplate
+SET "name" = template."name", "updatedAt" = CURRENT_TIMESTAMP
+FROM "EventKindScheduleTemplate" AS link
+JOIN "EventTemplate" AS template ON template."id" = link."eventKindId"
+WHERE scheduleTemplate."id" = link."scheduleTemplateId" AND scheduleTemplate."kind" = 'programme'
+  AND scheduleTemplate."name" IS DISTINCT FROM template."name";
+
+-- 5. The template's items join its schedule template of their kind.
 UPDATE "TemplatePart" AS part
 SET "scheduleTemplateId" = link."scheduleTemplateId"
 FROM "EventKindScheduleTemplate" AS link
@@ -217,7 +238,29 @@ JOIN "ScheduleTemplate" AS scheduleTemplate
   ON scheduleTemplate."id" = link."scheduleTemplateId" AND scheduleTemplate."kind" = 'duty'
 WHERE link."eventKindId" = service."templateId" AND service."scheduleTemplateId" IS NULL;
 
--- 5. Per event with parts, its programme schedule; per event with services, its duty schedule. Made from its template's
+-- 6. An event's schedule follows its event's template: made from that template's schedule template of its kind, or from
+--    none (with the catalogue's key) when it has none. A re-run brings across a template applied to the event.
+UPDATE "Schedule" AS schedule
+SET "scheduleTemplateId" = made."id", "name" = made."name", "key" = made."key", "updatedAt" = CURRENT_TIMESTAMP
+FROM (
+  SELECT existing."id" AS "scheduleId", target."id", target."name",
+         CASE WHEN target."id" IS NOT NULL THEN target."key"
+              WHEN existing."kind" = 'programme' THEN 'programme' ELSE 'services' END AS "key"
+  FROM "Schedule" AS existing
+  JOIN "Event" AS event ON event."id" = existing."eventId"
+  LEFT JOIN LATERAL (
+    SELECT scheduleTemplate."id", scheduleTemplate."name", scheduleTemplate."key"
+    FROM "EventKindScheduleTemplate" AS link
+    JOIN "ScheduleTemplate" AS scheduleTemplate
+      ON scheduleTemplate."id" = link."scheduleTemplateId" AND scheduleTemplate."kind" = existing."kind"
+    WHERE link."eventKindId" = event."templateId"
+    ORDER BY link."order", scheduleTemplate."id"
+    LIMIT 1
+  ) AS target ON true
+) AS made
+WHERE schedule."id" = made."scheduleId" AND schedule."scheduleTemplateId" IS DISTINCT FROM made."id";
+
+-- 7. Per event with parts, its programme schedule; per event with services, its duty schedule. Made from its template's
 --    schedule template of that kind when there is one; the status is the event's. An event that already has one of
 --    that kind keeps it: a re-run creates nothing twice. The items are what decides, not the template: an event with
 --    parts gets its programme even when its template has none to make it from.
@@ -255,7 +298,7 @@ LEFT JOIN LATERAL (
 WHERE EXISTS (SELECT 1 FROM "EventServicePart" AS service WHERE service."eventId" = event."id")
   AND NOT EXISTS (SELECT 1 FROM "Schedule" AS schedule WHERE schedule."eventId" = event."id" AND schedule."kind" = 'duty');
 
--- 6. The event's items join its schedule of their kind (the first duty schedule, while an event has only one).
+-- 8. The event's items join its schedule of their kind (the first duty schedule, while an event has only one).
 UPDATE "EventPart" AS part
 SET "scheduleId" = schedule."id"
 FROM "Schedule" AS schedule
@@ -271,7 +314,7 @@ SET "scheduleId" = (
 WHERE service."scheduleId" IS NULL
   AND EXISTS (SELECT 1 FROM "Schedule" AS schedule WHERE schedule."eventId" = service."eventId" AND schedule."kind" = 'duty');
 
--- 7. Every schedule takes its event's status: the previous image's last word wins where they disagree.
+-- 9. Every schedule takes its event's status: the previous image's last word wins where they disagree.
 UPDATE "Schedule" AS schedule
 SET "status" = CASE WHEN event."status" = 'released' THEN 'published' ELSE 'draft' END, "updatedAt" = CURRENT_TIMESTAMP
 FROM "Event" AS event

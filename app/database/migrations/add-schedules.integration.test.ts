@@ -18,7 +18,7 @@ const ALL_STATEMENTS = readFileSync(join(import.meta.dirname, '20261124090000_ad
   .map(statement => statement.trim())
   .filter(statement => statement.length > 0)
 // The backfill's statements: the data writes, after the DDL.
-const DATA_WRITE = /^(WITH|INSERT|UPDATE)\b/
+const DATA_WRITE = /^(WITH|INSERT|UPDATE|DELETE)\b/
 const BACKFILL = ALL_STATEMENTS.filter(statement => DATA_WRITE.test(statement))
 
 class Rollback extends Error {}
@@ -118,6 +118,9 @@ function snapshot(): Promise<Result> {
         // The freeform template never gets schedule templates, even with items.
         const freeform = await template('Autre évènement', 'freeform')
         await part(freeform.id, 0)
+        // A template the previous image deletes between the two runs.
+        const temporary = await template('Temporaire')
+        await part(temporary.id, 0)
 
         const event = (templateId: number, day: string, status: string) =>
           tx.event.create({
@@ -246,6 +249,10 @@ function snapshot(): Promise<Result> {
           }
         }
 
+        // Made from the weekend template at the first run; the previous image gives it the midweek one before the second.
+        const switched = await event(weekend.id, '2027-01-17', 'draft')
+        await eventPart(switched.id)
+
         for (const statement of BACKFILL) await tx.$executeRawUnsafe(statement)
         const first = await read()
 
@@ -261,7 +268,10 @@ function snapshot(): Promise<Result> {
           data: { roleId: programmeRole.id },
         })
         await tx.event.update({ where: { id: released.id }, data: { status: 'draft' } })
-        Object.assign(ids, { late: late.id })
+        await tx.event.update({ where: { id: switched.id }, data: { templateId: midweek.id } })
+        await tx.eventTemplate.update({ where: { id: weekend.id }, data: { name: 'Réunion publique' } })
+        await tx.eventTemplate.delete({ where: { id: temporary.id } })
+        Object.assign(ids, { late: late.id, switched: switched.id })
 
         for (const statement of BACKFILL) await tx.$executeRawUnsafe(statement)
         const second = await read()
@@ -380,7 +390,8 @@ describe('20261124090000_add_schedules', () => {
   it('creates nothing twice on a re-run and takes in what the previous image wrote meanwhile', async () => {
     const { ids, first, second } = await snapshot()
 
-    expect(second.scheduleTemplateCount).toBe(first.scheduleTemplateCount)
+    // The deleted template's one, nothing else.
+    expect(second.scheduleTemplateCount).toBe(first.scheduleTemplateCount - 1)
     // The new event's two schedules, nothing else.
     expect(second.scheduleCount).toBe(first.scheduleCount + 2)
     expect(second.itemsWithoutSchedule).toBe(0)
@@ -391,6 +402,18 @@ describe('20261124090000_add_schedules', () => {
     ])
     // The changed service responsible reaches the duties.
     expect(second.scheduleTemplates[ids.midweek][1].responsibleRoleId).toBe(ids.programmeRole)
+  })
+
+  it('follows a rename, a template applied to an event and a deleted template on a re-run', async () => {
+    const { ids, first, second } = await snapshot()
+
+    expect(first.schedules[ids.switched]).toMatchObject([
+      { kind: 'programme', name: 'Réunion de week-end', madeFrom: { templateId: ids.weekend } },
+    ])
+    expect(second.schedules[ids.switched]).toMatchObject([
+      { kind: 'programme', name: 'Réunion de semaine', madeFrom: { templateId: ids.midweek, kind: 'programme' } },
+    ])
+    expect(second.scheduleTemplates[ids.weekend]).toMatchObject([{ kind: 'programme', name: 'Réunion publique' }])
   })
 
   it("lets the event's status win where the previous image changed it", async () => {
@@ -411,7 +434,8 @@ describe('20261124090000_add_schedules', () => {
     const firstBackfill = ALL_STATEMENTS.indexOf(BACKFILL[0])
     const index = ALL_STATEMENTS.findIndex(statement => statement.includes('"Schedule_programme_eventId_key"'))
 
-    expect(BACKFILL.length).toBeGreaterThan(5)
+    // Every data write of the file, none skipped by the split: a new step changes this count on purpose.
+    expect(BACKFILL).toHaveLength(13)
     expect(index).toBeGreaterThan(-1)
     expect(index).toBeLessThan(firstBackfill)
   })
