@@ -41,12 +41,23 @@ beforeEach(() => {
 describe('archivedAbsenceEvents', () => {
   const zip = (has: boolean) => ({ file: (name: string) => (has && name === 'data/absences.ndjson' ? {} : null) })
 
-  it('gives the day-off events a 2.19 archive’s absences cover, even when there are none', async () => {
+  it('covers the day-off events a 2.19 archive’s absences name, and only those', async () => {
     readNdjsonFile.mockResolvedValueOnce([row({ legacyEventId: 3 }), row({ id: 2, legacyEventId: null })])
     readNdjsonFile.mockResolvedValueOnce([])
 
-    expect(await archivedAbsenceEvents(zip(true) as never)).toEqual(new Set([3]))
-    expect(await archivedAbsenceEvents(zip(true) as never)).toEqual(new Set())
+    const named = await archivedAbsenceEvents(zip(true) as never)
+    expect([named?.covers(3), named?.covers(4)]).toEqual([true, false])
+    // A file with no absence covers nothing.
+    expect((await archivedAbsenceEvents(zip(true) as never))?.covers(3)).toBe(false)
+  })
+
+  // From 2.20 the rows name no event (the field is gone): the file has every absence the archive holds, so it covers
+  // every day-off — one the drop migration left in place is not rebuilt beside its row.
+  it('covers every day-off for a 2.20 archive, whose absences name no event', async () => {
+    const { legacyEventId: _gone, ...without } = row()
+    readNdjsonFile.mockResolvedValueOnce([without])
+
+    expect((await archivedAbsenceEvents(zip(true) as never))?.covers(3)).toBe(true)
   })
 
   it('gives nothing for an older archive, which has no absences file', async () => {
@@ -69,7 +80,6 @@ describe('importAbsences', () => {
           note: 'Vacances',
           memberId: 50,
           accountId: 70,
-          legacyEventId: 30,
           createdAt: new Date('2027-04-01T08:00:00.000Z'),
           congregationId: 1,
         },
@@ -83,7 +93,7 @@ describe('importAbsences', () => {
 
     await importAbsences({} as never, db as never, idMap(), 1)
 
-    expect(db.absence.createMany.mock.calls[0][0].data[0].legacyEventId).toBeNull()
+    expect(db.absence.createMany.mock.calls[0][0].data[0]).not.toHaveProperty('legacyEventId')
   })
 
   it('keeps an absence whose account or event did not come, as long as someone is away on it', async () => {
@@ -98,10 +108,10 @@ describe('importAbsences', () => {
     await importAbsences({} as never, db as never, idMap(), 1)
 
     const data = db.absence.createMany.mock.calls[0][0].data
-    expect(data.map((d: Record<string, unknown>) => [d.memberId, d.accountId, d.legacyEventId])).toEqual([
-      [50, null, null],
-      [50, null, null],
-      [null, 80, 30],
+    expect(data.map((d: Record<string, unknown>) => [d.memberId, d.accountId])).toEqual([
+      [50, null],
+      [50, null],
+      [null, 80],
     ])
   })
 

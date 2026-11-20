@@ -1,4 +1,4 @@
-export const ARCHIVE_VERSION = '2.19'
+export const ARCHIVE_VERSION = '2.20'
 
 // Older archive versions an import will still accept. v1.0 archives miss every
 // post-shipping feature table (custom roles, allowed-roles, external speakers,
@@ -74,6 +74,8 @@ export const ARCHIVE_VERSION = '2.19'
 // file: each absence comes back from its day-off event, owned by its author's record when the account has one. Since the
 // day-off events and their template were dropped, a restore brings neither back from an older archive: it tells a
 // day-off by the archive's own template key and restores its absence only.
+// v2.20 drops `legacyEventId` from `absences.ndjson`: no day-off event is left for it to name. A 2.19 archive still
+// carries it, and a restore reads it to know which of that archive's day-offs the absences file covers.
 // v1.x archives are listed here so the import path reports them with a warning rather than rejecting outright;
 // `migrateLegacyUsersNdjson` splits their `users.ndjson` before the import runs.
 export const SUPPORTED_ARCHIVE_VERSIONS = [
@@ -99,6 +101,7 @@ export const SUPPORTED_ARCHIVE_VERSIONS = [
   '2.17',
   '2.18',
   '2.19',
+  '2.20',
 ] as const
 
 export interface ManifestJson {

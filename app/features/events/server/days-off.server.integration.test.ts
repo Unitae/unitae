@@ -2,8 +2,8 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 
-// While the readers still read the day-off events, an absence is written twice, in one transaction: the event, and its
-// Absence row — the person's record when the account has one. Deleting it removes both.
+// An absence is its Absence row alone, owned by the person's record when the account has one and by the account
+// otherwise; cancelling it deletes that row.
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -161,7 +161,7 @@ describe('an absence', () => {
           data: { name: 'Lecture', eventId: meeting.id, assigneeId: member.id, congregationId },
         })
         const created = await createDayOff(tx, account.id, member.id, START, END, congregationId)
-        const row = await tx.absence.findFirst({ where: { id: created?.absenceId }, select: { legacyEventId: true } })
+        const row = await tx.absence.findFirst({ where: { id: created?.absenceId }, select: { memberId: true } })
         const flagged = (await tx.eventPart.findFirstOrThrow({ where: { id: part.id } })).hasConflict
         const events = await tx.event.count({ where: { id: { not: meeting.id } } })
         const cancelled = await deleteDayOff(tx, {
@@ -174,7 +174,7 @@ describe('an absence', () => {
         return { created, row, flagged, events, cancelled, cleared, left: await tx.absence.count() }
       })
 
-      expect(outcome.row).toEqual({ legacyEventId: null })
+      expect(outcome.row).toMatchObject({ memberId: expect.any(Number) })
       expect(outcome.events).toBe(0)
       // The absence flags the part the person holds during it, and cancelling it clears the flag.
       expect(outcome.flagged).toBe(true)

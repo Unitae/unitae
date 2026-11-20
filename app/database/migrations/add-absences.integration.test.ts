@@ -109,32 +109,17 @@ function snapshot(): Promise<Result> {
           withRecordAccount: withRecord.id,
           withoutRecordAccount: withoutRecord.id,
         }
-        // Copied already, with a note of its own: a run neither doubles nor overwrites it.
-        await tx.absence.create({
-          data: {
-            startDate: new Date('2027-02-01T00:00:00Z'),
-            endDate: new Date('2027-02-01T23:59:00Z'),
-            note: 'déjà là',
-            accountId: withRecord.id,
-            legacyEventId: ids.copied,
-            congregationId,
-          },
-        })
+        // Copied already, with a note of its own: a run neither doubles nor overwrites it. legacyEventId is out of the
+        // client (@ignore): this test reads and writes it in SQL, as the migration does.
+        await tx.$executeRaw`
+          INSERT INTO "Absence" ("startDate", "endDate", "note", "accountId", "legacyEventId", "congregationId")
+          VALUES ('2027-02-01T00:00:00Z', '2027-02-01T23:59:00Z', 'déjà là', ${withRecord.id}, ${ids.copied},
+                  ${congregationId})`
 
         const read = () =>
-          tx.absence.findMany({
-            where: { congregationId },
-            select: {
-              legacyEventId: true,
-              startDate: true,
-              endDate: true,
-              note: true,
-              memberId: true,
-              accountId: true,
-              createdAt: true,
-            },
-            orderBy: { legacyEventId: 'asc' },
-          })
+          tx.$queryRaw<AbsenceRow[]>`
+            SELECT "legacyEventId", "startDate", "endDate", "note", "memberId", "accountId", "createdAt"
+            FROM "Absence" WHERE "congregationId" = ${congregationId} ORDER BY "legacyEventId" ASC`
 
         for (const statement of STATEMENTS) await tx.$executeRawUnsafe(statement)
         const first = await read()
@@ -155,10 +140,9 @@ function snapshot(): Promise<Result> {
           await tx.$executeRawUnsafe('ROLLBACK TO SAVEPOINT ownerless')
         }
 
-        const otherCongregation = await tx.absence.findMany({
-          where: { legacyEventId: { in: [ids.stray, ids.otherAbsence] } },
-          select: { legacyEventId: true, congregationId: true },
-        })
+        const otherCongregation = await tx.$queryRaw<{ legacyEventId: number | null; congregationId: number }[]>`
+          SELECT "legacyEventId", "congregationId" FROM "Absence"
+          WHERE "legacyEventId" IN (${ids.stray}, ${ids.otherAbsence})`
         result = { ids, first, second, otherCongregation, ownerlessRefused }
         throw new Rollback()
       })

@@ -41,10 +41,8 @@ describe('bulkDeleteEvents', () => {
     expect(mockDb.event.deleteMany).toHaveBeenCalledWith({
       where: { id: { in: [1, 2, 3] }, congregationId: 42 },
     })
-    // An absence's event among them takes its Absence row with it: the two copies never drift.
-    expect(mockDb.absence.deleteMany).toHaveBeenCalledWith({
-      where: { legacyEventId: { in: [1, 2, 3] }, congregationId: 42 },
-    })
+    // No event is an absence: deleting events touches no Absence row.
+    expect(mockDb.absence.deleteMany).not.toHaveBeenCalled()
   })
 
   // Governance: the same auditInTransaction pattern release/unrelease use.
@@ -181,7 +179,7 @@ describe('deleteEvent', () => {
     expect(mockDb.event.delete).toHaveBeenCalledWith({
       where: { id_congregationId: { id: 3, congregationId: 10 } },
     })
-    expect(mockDb.absence.deleteMany).toHaveBeenCalledWith({ where: { legacyEventId: 3, congregationId: 10 } })
+    expect(mockDb.absence.deleteMany).not.toHaveBeenCalled()
     expect(vi.mocked(auditModule.auditInTransaction)).toHaveBeenCalledWith(
       mockDb,
       expect.objectContaining({ action: 'event.deleted', entityId: 3, actorId: 7 }),

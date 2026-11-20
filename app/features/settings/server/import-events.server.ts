@@ -77,7 +77,7 @@ export async function importEvents(
     if (record.templateId != null && dayOffTemplates.has(record.templateId)) {
       // A day-off: its absence comes from the absences file when the archive has one that covers it, else from its
       // author — nothing else says whose it is.
-      if (coveredDayOffs?.has(record.id)) continue
+      if (coveredDayOffs?.covers(record.id)) continue
       if (createdById == null) {
         ownerless++
         continue
