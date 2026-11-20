@@ -2,6 +2,7 @@ import {
   setTemplatePartAllowedRoles,
   setTemplateServicePartAllowedRoles,
 } from '~/features/events/server/allowed-roles.server'
+import { syncTemplateScheduleTemplates } from '~/features/events/server/schedule-templates.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
@@ -54,6 +55,7 @@ export async function upsertTemplatePart(
     : await db.templatePart.create({
         data: { ...baseData, templateId, congregationId },
       })
+  await syncTemplateScheduleTemplates(db, templateId, congregationId)
 
   const noChange = { added: [] as number[], removed: [] as number[] }
   const speakerDiff = partData.allowedSpeakerRoleIds
@@ -117,6 +119,7 @@ export async function upsertTemplateServicePart(
           congregationId,
         },
       })
+  await syncTemplateScheduleTemplates(db, templateId, congregationId)
 
   const diff = await setTemplateServicePartAllowedRoles(db, servicePart.id, roleData.allowedRoleIds, congregationId)
 

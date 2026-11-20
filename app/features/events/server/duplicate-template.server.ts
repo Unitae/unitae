@@ -1,4 +1,5 @@
 import { isSystemTemplate } from '~/features/events/model/event-template.type'
+import { syncTemplateScheduleTemplates } from '~/features/events/server/schedule-templates.server'
 import * as m from '~/i18n/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -101,6 +102,7 @@ export async function duplicateTemplate(
     })
   }
 
+  await syncTemplateScheduleTemplates(db, duplicated.id, congregationId)
   audit({
     action: AuditAction.TemplateDuplicated,
     congregationId,

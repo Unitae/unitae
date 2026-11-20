@@ -1,4 +1,5 @@
 import { getDefaultTemplates, type Locale } from '~/features/events/model/seed-templates.data'
+import { syncTemplateScheduleTemplates } from '~/features/events/server/schedule-templates.server'
 import { seedDefaultPartPresets } from './seed-part-presets.server'
 
 // biome-ignore lint/suspicious/noExplicitAny: accepts both PrismaClient and unscoped db
@@ -21,7 +22,7 @@ export async function seedDefaultTemplates(db: any, congregationId: number, loca
 
     if (existing) continue
 
-    await db.eventTemplate.create({
+    const created = await db.eventTemplate.create({
       data: {
         name: tpl.name,
         key: tpl.key,
@@ -55,5 +56,6 @@ export async function seedDefaultTemplates(db: any, congregationId: number, loca
         },
       },
     })
+    await syncTemplateScheduleTemplates(db, created.id, congregationId)
   }
 }

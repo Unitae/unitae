@@ -1,6 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { dayOf } from '~/shared/utils/calendar-day'
 
+// Schedules are written beside the items (plan PR 3); their own tests cover them.
+vi.mock('~/features/events/server/schedules.server', () => ({
+  alignEventSchedules: vi.fn(),
+  attachEventItems: vi.fn(),
+  deleteEventSchedules: vi.fn(),
+  eventScheduleId: vi.fn(),
+  setEventSchedulesStatus: vi.fn(),
+}))
+vi.mock('~/features/events/server/schedule-templates.server', () => ({
+  deleteTemplateScheduleTemplates: vi.fn(),
+  syncTemplateScheduleTemplates: vi.fn(),
+}))
+
 vi.mock('~/shared/domain/audit.server', () => ({
   AuditAction: { EventCreated: 'event.created' },
   auditInTransaction: vi.fn().mockResolvedValue({}),

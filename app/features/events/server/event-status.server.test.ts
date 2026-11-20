@@ -2,6 +2,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuditAction } from '~/shared/domain/audit.server'
 import { EVENT_STATUS_ERRORS } from './event-status.policy'
 
+// Schedules are written beside the items (plan PR 3); their own tests cover them.
+vi.mock('~/features/events/server/schedules.server', () => ({
+  alignEventSchedules: vi.fn(),
+  attachEventItems: vi.fn(),
+  deleteEventSchedules: vi.fn(),
+  eventScheduleId: vi.fn(),
+  setEventSchedulesStatus: vi.fn(),
+}))
+vi.mock('~/features/events/server/schedule-templates.server', () => ({
+  deleteTemplateScheduleTemplates: vi.fn(),
+  syncTemplateScheduleTemplates: vi.fn(),
+}))
+
 vi.mock('~/shared/infra/db.server', () => {
   const unscopedDb = {
     event: { findFirst: vi.fn(), update: vi.fn() },

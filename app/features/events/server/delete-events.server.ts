@@ -1,5 +1,6 @@
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { cancelPendingAssignmentNotices } from '~/features/events/server/notify-assignment.server'
+import { deleteEventSchedules } from '~/features/events/server/schedules.server'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -33,6 +34,7 @@ async function removeProgrammes(db: TransactionClient, ids: number[], congregati
   await cancelNoticesOf(db, ids, congregationId)
   await db.eventPart.deleteMany({ where })
   await db.eventServicePart.deleteMany({ where })
+  await deleteEventSchedules(db, ids, congregationId)
   await db.event.updateMany({ where: { id: { in: ids }, congregationId }, data: { status: EventStatus.Draft } })
   for (const id of ids) {
     await auditInTransaction(db, {

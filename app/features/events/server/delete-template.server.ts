@@ -1,5 +1,6 @@
 import { isSystemTemplate } from '~/features/events/model/event-template.type'
 import { EMPTY_MEETING } from '~/features/events/server/empty-meetings.queries'
+import { deleteTemplateScheduleTemplates } from '~/features/events/server/schedule-templates.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -33,6 +34,7 @@ export async function deleteTemplate(
   // The empty meetings go first, or they would be orphaned like any other event. Then parts, serviceParts,
   // responsibles and their allowed-role rows all cascade (onDelete: Cascade) from the template FK.
   await db.event.deleteMany({ where: { templateId, congregationId, ...EMPTY_MEETING } })
+  await deleteTemplateScheduleTemplates(db, templateId, congregationId)
   await db.eventTemplate.delete({
     where: { id_congregationId: { id: templateId, congregationId } },
   })

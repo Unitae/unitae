@@ -1,10 +1,12 @@
 import { EventOrigin } from '~/features/events/model/event-origin.type'
 import { EventTemplateKey } from '~/features/events/model/event-template.type'
+import { ScheduleKind } from '~/features/events/model/schedule.type'
 import {
   setPartAssignmentAllowedRoles,
   setServicePartAssignmentAllowedRoles,
 } from '~/features/events/server/allowed-roles.server'
 import { cancelPendingAssignmentNotices } from '~/features/events/server/notify-assignment.server'
+import { eventScheduleId } from '~/features/events/server/schedules.server'
 import { AuditAction, audit, auditInTransaction } from '~/shared/domain/audit.server'
 import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -144,7 +146,8 @@ export async function addPartAssignment(
   actorId: number,
 ) {
   const { allowedSpeakerRoleIds, allowedReaderRoleIds, ...createData } = data
-  const assignment = await db.eventPart.create({ data: createData })
+  const scheduleId = await eventScheduleId(db, data.eventId, ScheduleKind.Programme, data.congregationId)
+  const assignment = await db.eventPart.create({ data: { ...createData, scheduleId } })
 
   await writePartAllowedRoles(
     db,
@@ -180,7 +183,8 @@ export async function addServicePartAssignment(
     _max: { order: true },
   })
   const order = last._max.order == null ? 0 : last._max.order + 5
-  const assignment = await db.eventServicePart.create({ data: { ...createData, order } })
+  const scheduleId = await eventScheduleId(db, data.eventId, ScheduleKind.Duty, data.congregationId)
+  const assignment = await db.eventServicePart.create({ data: { ...createData, order, scheduleId } })
 
   const diff = await setServicePartAssignmentAllowedRoles(db, assignment.id, allowedRoleIds, data.congregationId)
   if (diff.added.length > 0 || diff.removed.length > 0) {

@@ -1,6 +1,7 @@
 import type { AttendanceKind } from '~/features/events/model/attendance-kind.type'
 import { isSystemTemplate } from '~/features/events/model/event-template.type'
 import { ResponsibilityScope, scopesCovering } from '~/features/events/model/responsibility-scope.type'
+import { syncTemplateScheduleTemplates } from '~/features/events/server/schedule-templates.server'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -94,6 +95,8 @@ export async function updateTemplate(
         : {}),
     },
   })
+  // Its programme schedule template carries its name.
+  if (changed.name != null) await syncTemplateScheduleTemplates(db, templateId, congregationId)
   audit({
     action: AuditAction.TemplateUpdated,
     congregationId,
@@ -112,14 +115,14 @@ export async function updateTemplate(
  * and their tests keep meaning what they meant; the service pickers pass
  * `ResponsibilityScope.Service` explicitly.
  */
-export function setTemplateResponsible(
+export async function setTemplateResponsible(
   db: TransactionClient,
   templateId: number,
   roleId: number,
   congregationId: number,
   scope: ResponsibilityScope = ResponsibilityScope.Programme,
 ) {
-  return db.templateResponsible.upsert({
+  const responsible = await db.templateResponsible.upsert({
     where: {
       templateId_scope_congregationId: { templateId, scope, congregationId },
     },
@@ -131,17 +134,22 @@ export function setTemplateResponsible(
       congregationId,
     },
   })
+  // Its schedule templates name their responsible role too.
+  await syncTemplateScheduleTemplates(db, templateId, congregationId)
+  return responsible
 }
 
-export function removeTemplateResponsible(
+export async function removeTemplateResponsible(
   db: TransactionClient,
   templateId: number,
   congregationId: number,
   scope: ResponsibilityScope = ResponsibilityScope.Programme,
 ) {
-  return db.templateResponsible.deleteMany({
+  const removed = await db.templateResponsible.deleteMany({
     where: { templateId, scope, congregationId },
   })
+  await syncTemplateScheduleTemplates(db, templateId, congregationId)
+  return removed
 }
 
 /**

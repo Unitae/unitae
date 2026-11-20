@@ -1,5 +1,7 @@
 import type { Prisma } from '~/database/generated/client'
+import { ScheduleKind } from '~/features/events/model/schedule.type'
 import type { CreatedProgramme, CreationContext } from '~/features/events/server/programme-creation.server'
+import { eventScheduleId } from '~/features/events/server/schedules.server'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -62,10 +64,16 @@ export async function giveProgramme(
 ): Promise<CreatedProgramme> {
   const { congregationId } = ctx
   const event = { id: eventId }
+  // Each item goes into the event's schedule of its kind, made from the template's.
+  const programmeId =
+    template.parts.length > 0 ? await eventScheduleId(db, eventId, ScheduleKind.Programme, congregationId) : null
+  const dutiesId =
+    template.serviceParts.length > 0 ? await eventScheduleId(db, eventId, ScheduleKind.Duty, congregationId) : null
   for (const part of template.parts) {
     const assignment = await db.eventPart.create({
       data: {
         eventId: event.id,
+        scheduleId: programmeId,
         partId: part.id,
         name: part.name,
         section: part.section,
@@ -97,7 +105,14 @@ export async function giveProgramme(
 
   for (const service of template.serviceParts) {
     const assignment = await db.eventServicePart.create({
-      data: { eventId: event.id, servicePartId: service.id, name: service.name, order: service.order, congregationId },
+      data: {
+        eventId: event.id,
+        scheduleId: dutiesId,
+        servicePartId: service.id,
+        name: service.name,
+        order: service.order,
+        congregationId,
+      },
     })
     if (service.allowedRoles.length > 0) {
       await db.eventServicePartAllowedRole.createMany({
