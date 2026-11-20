@@ -241,6 +241,8 @@ afterAll(async () => {
       await tx.userRoleAssignment.deleteMany({})
       await tx.role.deleteMany({})
       await tx.userAccount.deleteMany({})
+      // A failed assertion skips a test's own cleanup: the deputies' record would then hold the congregation (Restrict).
+      await tx.member.deleteMany({})
     })
   }
   await testDb.congregation.deleteMany({ where: { id: { in: [primaryCongId, otherCongId] } } })
