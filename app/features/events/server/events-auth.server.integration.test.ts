@@ -445,6 +445,80 @@ describe('handover through the role (integration)', () => {
   })
 })
 
+// A schedule's responsible role (plan PR 3 onwards) must keep this: a role is held by its leader and by its deputies
+// (« adjoints »), and both answer for its templates, whether the seat is on the account or on the publisher record.
+describe('deputies of the responsible role (integration)', () => {
+  it('count as responsible beside the leader, through an account seat or a record seat', async () => {
+    const people = await withScope(primaryCongId, async tx => {
+      const account = (name: string, memberId?: number) =>
+        tx.userAccount.create({
+          data: {
+            email: `auth-${name}-${ts}@test.com`,
+            password: 'hashed',
+            firstname: name,
+            active: true,
+            congregationId: primaryCongId,
+            ...(memberId == null ? {} : { memberId }),
+          },
+        })
+      const record = await tx.member.create({
+        data: { firstname: 'Denis', lastname: 'DEPUTY', congregationId: primaryCongId },
+      })
+      return {
+        leader: await account('leader'),
+        accountDeputy: await account('account-deputy'),
+        recordDeputy: await account('record-deputy', record.id),
+        recordId: record.id,
+      }
+    })
+    const role = await withScope(primaryCongId, tx =>
+      tx.role.create({
+        data: { key: `deputies-${ts}`, name: 'Responsable sono', isSinglePerson: true, congregationId: primaryCongId },
+      }),
+    )
+    const template = await withScope(primaryCongId, tx =>
+      tx.eventTemplate.create({
+        data: { name: 'Deputies Template', key: `deputies-tpl-${ts}`, congregationId: primaryCongId },
+      }),
+    )
+    await withScope(primaryCongId, async tx => {
+      await tx.userRoleAssignment.createMany({
+        data: [
+          { userId: people.leader.id, roleId: role.id, kind: 'leader', congregationId: primaryCongId },
+          { userId: people.accountDeputy.id, roleId: role.id, kind: 'deputy', congregationId: primaryCongId },
+        ],
+      })
+      await tx.memberRoleAssignment.create({
+        data: { memberId: people.recordId, roleId: role.id, kind: 'deputy', congregationId: primaryCongId },
+      })
+      await tx.templateResponsible.create({
+        data: { templateId: template.id, roleId: role.id, congregationId: primaryCongId },
+      })
+    })
+
+    for (const person of [people.leader, people.accountDeputy, people.recordDeputy]) {
+      expect(
+        await withScope(primaryCongId, tx => canEditEvent(tx, allowNone, person.id, template.id, primaryCongId)),
+      ).toBe(true)
+      expect(await withScope(primaryCongId, tx => getResponsibleTemplateIds(tx, person.id, primaryCongId))).toContain(
+        template.id,
+      )
+    }
+
+    await withScope(primaryCongId, async tx => {
+      await tx.templateResponsible.deleteMany({ where: { templateId: template.id } })
+      await tx.eventTemplate.deleteMany({ where: { id: template.id } })
+      await tx.userRoleAssignment.deleteMany({ where: { roleId: role.id } })
+      await tx.memberRoleAssignment.deleteMany({ where: { roleId: role.id } })
+      await tx.role.deleteMany({ where: { id: role.id } })
+      await tx.userAccount.deleteMany({
+        where: { id: { in: [people.leader.id, people.accountDeputy.id, people.recordDeputy.id] } },
+      })
+      await tx.member.deleteMany({ where: { id: people.recordId } })
+    })
+  })
+})
+
 describe('responsibility scope (integration)', () => {
   it('lets the service responsible act on the service parts of their template', async () => {
     const result = await withScope(primaryCongId, tx =>
