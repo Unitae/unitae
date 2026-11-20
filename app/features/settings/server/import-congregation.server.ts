@@ -59,6 +59,7 @@ import {
   updateMemberPublisherGroups,
 } from './import-publishers.server'
 import { importMemberRoleAssignments, importUserRoleAssignments } from './import-role-assignments.server'
+import { importSchedules } from './import-schedules.server'
 import {
   importAttributions,
   importTerritories,
@@ -300,6 +301,10 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
       await progress()
 
       await importEventServicePartAllowedRoles(zip, db, idMap, congregationId)
+      await progress()
+
+      // After the templates, their responsibles, the events and their items: an archive carries no schedules yet.
+      await importSchedules(db, congregationId)
       await progress()
 
       await importBoardSections(zip, db, idMap, congregationId)

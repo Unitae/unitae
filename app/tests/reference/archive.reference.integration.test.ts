@@ -140,6 +140,7 @@ async function importArchive(zip: JsZip, congregationId: number) {
       congregationId,
     )
     await mod.importEventServicePartAllowedRoles(zip, db, idMap, congregationId)
+    await (await import('~/features/settings/server/import-schedules.server')).importSchedules(db, congregationId)
     await mod.importBoardSections(zip, db, idMap, congregationId)
     await mod.importBoardDynamicDocumentSettings(zip, db, idMap, congregationId)
   })
