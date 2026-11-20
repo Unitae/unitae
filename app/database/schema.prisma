@@ -1,6 +1,8 @@
 generator client {
-  provider = "prisma-client"
-  output   = "./generated"
+  provider        = "prisma-client"
+  output          = "./generated"
+  // For the one partial unique index (Schedule: one programme per event), so that `migrate diff` knows it.
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
@@ -147,6 +149,9 @@ model Congregation {
   eventParts                      EventPart[]
   eventServiceParts               EventServicePart[]
   templateResponsibles            TemplateResponsible[]
+  scheduleTemplates               ScheduleTemplate[]
+  eventKindScheduleTemplates      EventKindScheduleTemplate[]
+  schedules                       Schedule[]
   templatePartAllowedRoles        TemplatePartAllowedRole[]
   eventPartAllowedRoles           EventPartAllowedRole[]
   templateServicePartAllowedRoles TemplateServicePartAllowedRole[]
@@ -386,13 +391,14 @@ model Role {
   members           UserRoleAssignment[]
   memberAssignments MemberRoleAssignment[]
 
-  allowedForTemplateParts        TemplatePartAllowedRole[]
-  allowedForEventParts           EventPartAllowedRole[]
-  allowedForTemplateServiceParts TemplateServicePartAllowedRole[]
-  allowedForEventServiceParts    EventServicePartAllowedRole[]
-  allowedForBoardSections        BoardSectionVisibilityRole[]
-  allowedForTerritoryKinds       TerritoryKindAllowedRole[]
-  templateResponsibilities       TemplateResponsible[]            @relation("templateResponsible")
+  allowedForTemplateParts          TemplatePartAllowedRole[]
+  allowedForEventParts             EventPartAllowedRole[]
+  allowedForTemplateServiceParts   TemplateServicePartAllowedRole[]
+  allowedForEventServiceParts      EventServicePartAllowedRole[]
+  allowedForBoardSections          BoardSectionVisibilityRole[]
+  allowedForTerritoryKinds         TerritoryKindAllowedRole[]
+  templateResponsibilities         TemplateResponsible[]            @relation("templateResponsible")
+  scheduleTemplateResponsibilities ScheduleTemplate[]               @relation("scheduleTemplateResponsible")
 
   // Organigram: reporting structure, and nothing else.
   //
@@ -1034,6 +1040,9 @@ model Event {
 
   eventParts        EventPart[]
   eventServiceParts EventServicePart[]
+  // Its programme and duty schedules, each published on its own. Written beside `status` and the items' `eventId`
+  // until the readers move to them.
+  schedules         Schedule[]
   attendance        Attendance?
 
   // Who prepared it: null for a meeting the job created that nobody has prepared yet, a restored event whose author did
@@ -1073,10 +1082,12 @@ model EventTemplate {
   // day in the events model, never a timestamp read through the zone helpers.
   generatedUntil String?
 
-  parts        TemplatePart[]
-  serviceParts TemplateServicePart[]
-  events       Event[]               @relation("templateEvents")
-  responsibles TemplateResponsible[]
+  parts             TemplatePart[]
+  serviceParts      TemplateServicePart[]
+  events            Event[]                     @relation("templateEvents")
+  responsibles      TemplateResponsible[]
+  // The schedule templates its events start with, in order: the event kind's suggestions (plan T2: this row is the kind).
+  scheduleTemplates EventKindScheduleTemplate[]
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
@@ -1111,6 +1122,10 @@ model TemplatePart {
   preset   PartPreset? @relation(fields: [presetId], references: [id], onDelete: SetNull)
   presetId Int?
 
+  // The schedule template it belongs to. Written beside `templateId` until the readers move to schedule templates.
+  scheduleTemplate   ScheduleTemplate? @relation(fields: [scheduleTemplateId], references: [id], onDelete: SetNull)
+  scheduleTemplateId Int?
+
   eventParts   EventPart[]
   allowedRoles TemplatePartAllowedRole[]
 
@@ -1120,6 +1135,7 @@ model TemplatePart {
   @@unique([id, congregationId])
   @@index([templateId])
   @@index([presetId])
+  @@index([scheduleTemplateId])
 }
 
 model TemplateServicePart {
@@ -1135,6 +1151,10 @@ model TemplateServicePart {
   preset   PartPreset? @relation(fields: [presetId], references: [id], onDelete: SetNull)
   presetId Int?
 
+  // The schedule template it belongs to. Written beside `templateId` until the readers move to schedule templates.
+  scheduleTemplate   ScheduleTemplate? @relation(fields: [scheduleTemplateId], references: [id], onDelete: SetNull)
+  scheduleTemplateId Int?
+
   eventServiceParts EventServicePart[]
   allowedRoles      TemplateServicePartAllowedRole[]
 
@@ -1144,6 +1164,7 @@ model TemplateServicePart {
   @@unique([id, congregationId])
   @@index([templateId])
   @@index([presetId])
+  @@index([scheduleTemplateId])
 }
 
 model EventPart {
@@ -1167,6 +1188,10 @@ model EventPart {
 
   event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   eventId Int
+
+  // The event's programme schedule. Through (scheduleId, eventId), so the schedule is always one of this event's.
+  schedule   Schedule? @relation(fields: [scheduleId, eventId], references: [id, eventId], onDelete: Cascade)
+  scheduleId Int?
 
   part   TemplatePart? @relation(fields: [partId], references: [id], onDelete: SetNull)
   partId Int?
@@ -1202,6 +1227,7 @@ model EventPart {
   @@index([eventId])
   @@index([partId])
   @@index([presetId])
+  @@index([scheduleId])
 }
 
 model ExternalSpeaker {
@@ -1325,6 +1351,10 @@ model EventServicePart {
   event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   eventId Int
 
+  // The event's duty schedule. Through (scheduleId, eventId), so the schedule is always one of this event's.
+  schedule   Schedule? @relation(fields: [scheduleId, eventId], references: [id, eventId], onDelete: Cascade)
+  scheduleId Int?
+
   servicePart   TemplateServicePart? @relation(fields: [servicePartId], references: [id], onDelete: SetNull)
   servicePartId Int?
 
@@ -1346,6 +1376,7 @@ model EventServicePart {
   @@index([eventId])
   @@index([servicePartId])
   @@index([presetId])
+  @@index([scheduleId])
 }
 
 // What a programme part *is*, and what it *can do* — a talk, a Sujet, a
@@ -1481,6 +1512,96 @@ model EventServicePartAllowedRole {
 // whole-event delegation the feature shipped with; 'service' delegates only
 // the service parts, because the sound/attendant rota and the spiritual
 // programme are filled in by different brothers.
+// What one schedule of an event holds — a programme's parts or a duty schedule's duties — and who answers for it.
+// Shared: any event kind may suggest it (EventKindScheduleTemplate). Until the readers move over, each template has at
+// most one of each kind, written beside its own items.
+model ScheduleTemplate {
+  id   Int     @id @default(autoincrement())
+  // Null: the catalogue's label for `key` (« Services »). No language is stored: a programme takes its template's
+  // name, which the congregation wrote.
+  name String?
+  key  String?
+  // 'programme' | 'duty'. Constrained in SQL by ScheduleTemplate_kind_check.
+  kind String
+
+  // Its holders fill and publish the schedules made from it: every seat of the role, the leader and the deputies alike.
+  responsibleRole   Role? @relation("scheduleTemplateResponsible", fields: [responsibleRoleId], references: [id], onDelete: SetNull)
+  responsibleRoleId Int?
+
+  parts        TemplatePart[]
+  serviceParts TemplateServicePart[]
+  eventKinds   EventKindScheduleTemplate[]
+  schedules    Schedule[]
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([id, congregationId])
+  @@index([congregationId])
+  @@index([responsibleRoleId])
+}
+
+// The schedule templates an event kind suggests, in order.
+model EventKindScheduleTemplate {
+  id Int @id @default(autoincrement())
+
+  // The event kind: today's EventTemplate row, which becomes the kind in place (plan T2).
+  eventKind   EventTemplate @relation(fields: [eventKindId], references: [id], onDelete: Cascade)
+  eventKindId Int
+
+  scheduleTemplate   ScheduleTemplate @relation(fields: [scheduleTemplateId], references: [id], onDelete: Cascade)
+  scheduleTemplateId Int
+
+  order Int @default(0)
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
+  @@unique([eventKindId, scheduleTemplateId])
+  @@unique([id, congregationId])
+  @@index([scheduleTemplateId])
+}
+
+// One schedule of one event: its programme (at most one per event) or a duty schedule, each published on its own.
+model Schedule {
+  id Int @id @default(autoincrement())
+
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId Int
+
+  scheduleTemplate   ScheduleTemplate? @relation(fields: [scheduleTemplateId], references: [id], onDelete: SetNull)
+  scheduleTemplateId Int?
+
+  // Copied from its template when made from one; otherwise null, with `key` 'programme' or 'services' for the catalogue.
+  name   String?
+  key    String?
+  // 'programme' | 'duty'. Constrained in SQL by Schedule_kind_check.
+  kind   String
+  order  Int     @default(0)
+  // 'draft' | 'published'. Constrained in SQL by Schedule_status_check.
+  status String  @default("draft")
+
+  parts        EventPart[]
+  serviceParts EventServicePart[]
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // The items' composite foreign key points here, so an item's schedule is always one of its event's.
+  @@unique([id, eventId])
+  @@unique([id, congregationId])
+  // At most one programme per event (D9).
+  @@unique([eventId], map: "Schedule_programme_eventId_key", where: raw("kind = 'programme'"))
+  @@index([eventId])
+  @@index([scheduleTemplateId])
+}
+
 model TemplateResponsible {
   id Int @id @default(autoincrement())
 
