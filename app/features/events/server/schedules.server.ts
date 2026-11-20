@@ -47,12 +47,14 @@ export async function eventScheduleId(
   kind: ScheduleKind,
   congregationId: number,
 ): Promise<number> {
-  const existing = await db.schedule.findFirst({
-    where: { eventId, kind, congregationId },
-    orderBy: [{ order: 'asc' }, { id: 'asc' }],
-    select: { id: true },
-  })
-  if (existing) return existing.id
+  const existing = await findEventSchedule(db, eventId, kind, congregationId)
+  if (existing) return existing
+
+  // Two writers giving the event its first item of a kind at the same moment would each make a schedule: the event's
+  // row is locked, then looked at again, so the second one takes the first one's.
+  await db.$queryRaw`SELECT "id" FROM "Event" WHERE "id" = ${eventId} AND "congregationId" = ${congregationId} FOR UPDATE`
+  const madeMeanwhile = await findEventSchedule(db, eventId, kind, congregationId)
+  if (madeMeanwhile) return madeMeanwhile
 
   const event = await db.event.findFirst({
     where: { id: eventId, congregationId },
@@ -70,6 +72,20 @@ export async function eventScheduleId(
     },
   })
   return created.id
+}
+
+async function findEventSchedule(
+  db: TransactionClient,
+  eventId: number,
+  kind: ScheduleKind,
+  congregationId: number,
+): Promise<number | null> {
+  const schedule = await db.schedule.findFirst({
+    where: { eventId, kind, congregationId },
+    orderBy: [{ order: 'asc' }, { id: 'asc' }],
+    select: { id: true },
+  })
+  return schedule?.id ?? null
 }
 
 /** Points the event's schedules at its template's schedule templates, by kind: after the event changed template. */

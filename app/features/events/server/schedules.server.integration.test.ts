@@ -181,6 +181,54 @@ describe('eventScheduleId', () => {
   })
 })
 
+describe('eventScheduleId at the same moment', () => {
+  it('gives an event one schedule of a kind when two writers ask for it together', async () => {
+    const stamp = `race-${process.pid}-${globalThis.performance.now().toString().replace('.', '')}`
+    const congregationId = (await testDb.congregation.create({ data: { name: stamp, slug: stamp, active: true } })).id
+    const scoped = <T>(fn: (db: TransactionClient) => Promise<T>) =>
+      testDb.$transaction(async tx => {
+        await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(congregationId)}'`)
+        return fn(tx as unknown as TransactionClient)
+      })
+    try {
+      const eventId = await scoped(async db => {
+        const template = await db.eventTemplate.create({ data: { name: 'Réunion', key: stamp, congregationId } })
+        const event = await db.event.create({
+          data: {
+            name: 'Réunion',
+            startDate: new Date('2027-03-02T17:00:00Z'),
+            endDate: new Date('2027-03-02T19:00:00Z'),
+            templateId: template.id,
+            congregationId,
+          },
+        })
+        return event.id
+      })
+
+      const ids = await Promise.all(
+        [1, 2].map(() =>
+          scoped(async db => {
+            const id = await eventScheduleId(db, eventId, ScheduleKind.Duty, congregationId)
+            // Holds the transaction open a moment, as a write that follows would.
+            await db.$executeRawUnsafe('SELECT pg_sleep(0.2)')
+            return id
+          }),
+        ),
+      )
+
+      expect(ids[0]).toBe(ids[1])
+      expect(await scoped(db => db.schedule.count({ where: { eventId } }))).toBe(1)
+    } finally {
+      await scoped(async db => {
+        await db.schedule.deleteMany({ where: { congregationId } })
+        await db.event.deleteMany({ where: { congregationId } })
+        await db.eventTemplate.deleteMany({ where: { congregationId } })
+      })
+      await testDb.congregation.delete({ where: { id: congregationId } })
+    }
+  })
+})
+
 describe('alignEventSchedules', () => {
   it("points an event's schedules at its new template's, by kind, and lets go of a kind it has none of", async () => {
     await inCongregation(async ({ db, congregationId, template, event, scheduleTemplateOf, schedules }) => {
