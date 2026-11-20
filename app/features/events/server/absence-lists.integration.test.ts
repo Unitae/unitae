@@ -92,7 +92,7 @@ beforeAll(async () => {
         },
       })
     ).id
-    ids.dualRow = (await row(day('2027-06-01'), day('2027-06-02'), paul, { legacyEventId: ids.dualEvent })).id
+    ids.dualRow = (await row(day('2027-06-01'), day('2027-06-02'), paul)).id
     // An event only, as an image from before the absences table writes during the rollout: no longer shown.
     await tx.event.create({
       data: {
@@ -194,9 +194,7 @@ describe('the lists of absences and the absences table', () => {
     const items = await read(tx => getPersonalAssignments(tx, ids.paulAccount, ids.cong, day('2027-05-01')))
     const uids = items.filter(item => item.kind === 'day-off').map(item => item.uid)
 
-    // Distinct ids, or the second identifier could not tell the event's id from the row's.
-    expect(ids.dualEvent).not.toBe(ids.dualRow)
-    expect(uids).toEqual([`absence-${ids.paulRow}`, `day-off-${ids.dualEvent}`])
+    expect(uids).toEqual([`absence-${ids.paulRow}`, `absence-${ids.dualRow}`])
   })
 
   it('deletes an absence by its row, and only the person’s own', async () => {

@@ -78,10 +78,12 @@ function snapshot(): Promise<Result> {
               congregationId,
             },
           })
+        // legacyEventId is out of the client (@ignore): written and read in SQL, as the migration does.
         const row = (name: string, data: { memberId?: number; accountId?: number; legacyEventId?: number }) =>
-          tx.absence.create({
-            data: { startDate: day('2027-01-04'), endDate: day('2027-01-05'), note: name, congregationId, ...data },
-          })
+          tx.$executeRaw`
+            INSERT INTO "Absence" ("startDate", "endDate", "note", "memberId", "accountId", "legacyEventId", "congregationId")
+            VALUES (${day('2027-01-04')}, ${day('2027-01-05')}, ${name}, ${data.memberId ?? null}, ${data.accountId ?? null},
+                    ${data.legacyEventId ?? null}, ${congregationId})`
         // An id no event has any more: what deleting an event leaves.
         const goneEventId = async () => {
           const gone = await event('gone', meetingTemplate.id, null, '2027-01-01')
@@ -147,21 +149,14 @@ function snapshot(): Promise<Result> {
             congregationId: otherId,
           },
         })
-        await tx.absence.create({
-          data: {
-            startDate: day('2027-02-01'),
-            endDate: day('2027-02-01'),
-            accountId: otherAccount.id,
-            legacyEventId: otherEvent.id,
-            congregationId: otherId,
-          },
-        })
+        await tx.$executeRaw`
+          INSERT INTO "Absence" ("startDate", "endDate", "accountId", "legacyEventId", "congregationId")
+          VALUES (${day('2027-02-01')}, ${day('2027-02-01')}, ${otherAccount.id}, ${otherEvent.id}, ${otherId})`
 
         const read = async (): Promise<Snapshot> => {
-          const absences = await tx.absence.findMany({
-            where: { congregationId },
-            select: { note: true, memberId: true, accountId: true, legacyEventId: true },
-          })
+          const absences = await tx.$queryRaw<
+            { note: string; memberId: number | null; accountId: number | null; legacyEventId: number | null }[]
+          >`SELECT "note", "memberId", "accountId", "legacyEventId" FROM "Absence" WHERE "congregationId" = ${congregationId}`
           const events = await tx.event.findMany({ where: { congregationId }, select: { name: true } })
           const templates = await tx.eventTemplate.findMany({ where: { congregationId }, select: { key: true } })
           return {

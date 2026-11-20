@@ -109,8 +109,8 @@ describe('unlinkAccountFromMember and the events the login created', () => {
     expect(await unlink(memberId)).toEqual({ accountId, email: `Absent-${ts}@test.com` })
     expect(await event(meetingId)).toEqual({ createdById: null, origin: 'manual' })
     const absences = await withScope(ids.cong, tx =>
-      tx.absence.findMany({ where: { memberId }, select: { accountId: true, legacyEventId: true } }),
+      tx.absence.findMany({ where: { memberId }, select: { accountId: true } }),
     )
-    expect(absences).toEqual([{ accountId: null, legacyEventId: null }])
+    expect(absences).toEqual([{ accountId: null }])
   })
 })

@@ -4,8 +4,8 @@ import { PrismaClient } from '~/database/generated/client'
 
 // The conflict readers read absences from their own table, by the person's record: whether someone is away when they
 // are assigned (checkDayOffConflict), the conflict flags on their assignments (refreshConflictFlags), and the absences
-// named in the list of people to pick from (listSlotCandidateFacts). An absence row is enough; a day-off event without
-// one, as the previous image writes during a rollout, no longer counts on its own — the later catch-up copies those.
+// named in the list of people to pick from (listSlotCandidateFacts). An absence row is enough; a bare day-off event
+// (none exists since the day-off events were dropped) counts for nothing.
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -55,7 +55,7 @@ beforeAll(async () => {
     ids.paul = paul.member
     ids.marie = marie.member
 
-    // Paul: an absence row only. Marie: a day-off event only, as the previous image writes during a rollout.
+    // Paul: an absence row only. Marie: a bare day-off event, which counts for nothing.
     await tx.absence.create({
       data: {
         startDate: AWAY_START,

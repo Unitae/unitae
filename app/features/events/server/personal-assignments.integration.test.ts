@@ -26,6 +26,7 @@ let congBId: number
 let aliceId: number
 let bobId: number
 let evergreenId: number
+let absenceId: number
 let foreignAssignmentId: number
 
 beforeAll(async () => {
@@ -95,17 +96,18 @@ beforeAll(async () => {
       },
     })
     evergreenId = dayOff.id
-    // Written twice, as createDayOff does: the day-off event and its Absence row on Alice's record.
-    await tx.absence.create({
-      data: {
-        startDate: dayOff.startDate,
-        endDate: dayOff.endDate,
-        memberId: aliceMemberId,
-        accountId: aliceId,
-        legacyEventId: dayOff.id,
-        congregationId: congAId,
-      },
-    })
+    // Alice's absence, on her record (the day-off event above is what an older version wrote with it).
+    absenceId = (
+      await tx.absence.create({
+        data: {
+          startDate: dayOff.startDate,
+          endDate: dayOff.endDate,
+          memberId: aliceMemberId,
+          accountId: aliceId,
+          congregationId: congAId,
+        },
+      })
+    ).id
 
     await tx.eventPart.create({
       data: {
@@ -201,7 +203,7 @@ describe('getPersonalAssignments', () => {
 
     const dayOff = items.find(i => i.kind === 'day-off')
     expect(dayOff).toBeDefined()
-    expect(dayOff?.uid).toBe(`day-off-${evergreenId}`)
+    expect(dayOff?.uid).toBe(`absence-${absenceId}`)
     expect(dayOff?.allDay).toBe(true)
 
     const part = items.find(i => i.kind === 'programme-part')

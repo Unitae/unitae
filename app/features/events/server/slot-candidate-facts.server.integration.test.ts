@@ -128,7 +128,7 @@ beforeAll(async () => {
       data: { name: 'Sono', eventId: lastSummer.id, assigneeId: members.sono, congregationId },
     })
 
-    // Written twice, as createDayOff does: the day-off event and its Absence row on the person's record.
+    // An absence on the person's record, with the day-off event an older version wrote alongside it.
     const dayOffEvent = await tx.event.create({
       data: {
         name: 'Absence',
@@ -145,7 +145,6 @@ beforeAll(async () => {
         endDate: dayOffEvent.endDate,
         memberId: members.away,
         accountId: awayAccount.id,
-        legacyEventId: dayOffEvent.id,
         congregationId,
       },
     })
