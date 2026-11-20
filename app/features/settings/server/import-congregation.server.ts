@@ -13,8 +13,6 @@ import { getFileBuffer } from '~/shared/infra/file-storage.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { EntityIdMap } from './data-transfer.type'
 import type { DataTransferJobData } from './data-transfer-queue.server'
-import { importAbsences } from './import-absences.server'
-import { importAttendance } from './import-attendance.server'
 import { importAuditLogs, importConsentRecords, importDataDeletionRecords } from './import-audit-consent.server'
 import {
   importBoardDocuments,
@@ -32,24 +30,8 @@ import {
   importTerritoryEntranceLinks,
 } from './import-buildings.server'
 import { importRolePermissions, importRoles, importSettings } from './import-configuration.server'
-import {
-  importEventTemplates,
-  importTemplatePartAllowedRoles,
-  importTemplateParts,
-  importTemplateResponsibles,
-  importTemplateServicePartAllowedRoles,
-  importTemplateServiceParts,
-} from './import-event-templates.server'
-import {
-  importEventPartAllowedRoles,
-  importEventParts,
-  importEventServicePartAllowedRoles,
-  importEventServiceParts,
-  importEvents,
-  settleImportedEventOrigins,
-} from './import-events.server'
 import * as speakers from './import-external-speakers.server'
-import { importPartPresets } from './import-part-presets.server'
+import { importMeetings } from './import-meetings.server'
 import {
   importEmergencyContacts,
   importPioneerEnrolments,
@@ -59,7 +41,6 @@ import {
   updateMemberPublisherGroups,
 } from './import-publishers.server'
 import { importMemberRoleAssignments, importUserRoleAssignments } from './import-role-assignments.server'
-import { importSchedules } from './import-schedules.server'
 import {
   importAttributions,
   importTerritories,
@@ -263,49 +244,7 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
       await importAttributions(zip, db, idMap, congregationId)
       await progress()
 
-      // Before the template and event parts: their presetId resolves through the map this fills.
-      await importPartPresets(zip, db, idMap, congregationId)
-      await progress()
-
-      await importEventTemplates(zip, db, idMap, congregationId)
-      await progress()
-
-      await importTemplateParts(zip, db, idMap, congregationId)
-      await progress()
-
-      await importTemplatePartAllowedRoles(zip, db, idMap, congregationId)
-      await progress()
-
-      await importTemplateServiceParts(zip, db, idMap, congregationId)
-      await progress()
-
-      await importTemplateServicePartAllowedRoles(zip, db, idMap, congregationId)
-      await progress()
-
-      await importTemplateResponsibles(zip, db, idMap, congregationId)
-      await progress()
-
-      const withoutOrigin = await importEvents(zip, db, idMap, congregationId)
-      await importAbsences(zip, db, idMap, congregationId)
-      await importAttendance(zip, db, idMap, congregationId)
-      await progress()
-
-      await importEventParts(zip, db, idMap, congregationId)
-      await progress()
-
-      await importEventPartAllowedRoles(zip, db, idMap, congregationId)
-      await progress()
-
-      await importEventServiceParts(zip, db, idMap, congregationId)
-      await settleImportedEventOrigins(db, withoutOrigin, congregationId)
-      await progress()
-
-      await importEventServicePartAllowedRoles(zip, db, idMap, congregationId)
-      await progress()
-
-      // After the templates, their responsibles, the events and their items: an archive carries no schedules yet.
-      await importSchedules(db, congregationId)
-      await progress()
+      await importMeetings(zip, db, idMap, congregationId, progress)
 
       await importBoardSections(zip, db, idMap, congregationId)
       await progress()
