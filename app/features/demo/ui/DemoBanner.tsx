@@ -53,8 +53,8 @@ function useNudgeDue(): boolean {
 }
 
 /**
- * On every page of a demo copy, and it can't be closed: it says the data is
- * invented, who the visitor is, lets them switch role, and leads to creating a congregation, asking after a few minutes whether the demo suits them.
+ * On every page of a demo copy, and it can't be closed: it says the data is invented, who the visitor is, lets them
+ * switch role, and leads to creating a congregation, asking after a few minutes whether the demo suits them.
  */
 export function DemoBanner({ demo }: { demo: { role: DemoRole | null; registerUrl: string | null } | null }) {
   const nudge = useNudgeDue()

@@ -29,6 +29,7 @@ import {
   requirePermission,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import { isDemoCongregation } from '~/shared/domain/demo-mode.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { useDebouncedValue } from '~/shared/ui/hooks/use-debounced-value'
@@ -57,7 +58,9 @@ export function loader({ params, request, context }: Route.LoaderArgs) {
   requirePermission(permissions, Permission.CanViewBoard)
 
   const currentUser = context.get(currentAccountContext)
-  const { timezone, displayName: congregationName } = context.get(congregationContext)
+  const congregation = context.get(congregationContext)
+  const { timezone, displayName: congregationName } = congregation
+  const demo = isDemoCongregation(congregation)
 
   const dynamicId = requireParamId(params.dynamicId, '/board')
 
@@ -122,6 +125,7 @@ export function loader({ params, request, context }: Route.LoaderArgs) {
       // « À jour au … », worded as the sheet words it.
       asOf: formatEventDate(now, timezone, getLocale(), { day: 'numeric', month: 'long', year: 'numeric' }),
       reader,
+      demo,
     }
   })
 }
@@ -139,6 +143,7 @@ export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) 
     now,
     asOf,
     reader,
+    demo,
   } = loaderData
 
   const [searchOpen, setSearchOpen] = useState(false)
@@ -205,6 +210,10 @@ export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) 
             viewWidth(data?.type, appearance?.layout),
           )}
         >
+          {/* A demo copy's sheet printed from the browser says so, as its PDF does; the banner doesn't print. */}
+          {demo && (
+            <p className="m-0 hidden text-right font-semibold text-[8pt] print:block">{m.demo_banner_label()}</p>
+          )}
           <BoardMasthead
             level="h1"
             congregationName={congregationName}
