@@ -104,8 +104,7 @@ async function zipOf(files: Record<string, unknown[]>): Promise<JsZip> {
 /** The `runImport` steps that meetings and the board depend on, in `runImport`'s order. Keep the order in step. */
 async function importArchive(zip: JsZip, congregationId: number) {
   const mod = await import('~/features/settings/server/import-congregation.server')
-  const { importAbsences } = await import('~/features/settings/server/import-absences.server')
-  const { importAttendance } = await import('~/features/settings/server/import-attendance.server')
+  const { importMeetings } = await import('~/features/settings/server/import-meetings.server')
   const idMap = new EntityIdMap()
   const permissions = await referenceDb.permission.findMany({ select: { id: true, key: true } })
   const permissionKeyToId = new Map(permissions.map(permission => [permission.key, permission.id]))
@@ -121,26 +120,8 @@ async function importArchive(zip: JsZip, congregationId: number) {
     await mod.updateMemberPublisherGroups(zip, db, idMap, congregationId)
     await mod.importSpeakerCongregations(zip, db, idMap, congregationId)
     await mod.importExternalSpeakers(zip, db, idMap, congregationId)
-    await mod.importPartPresets(zip, db, idMap, congregationId)
-    await mod.importEventTemplates(zip, db, idMap, congregationId)
-    await mod.importTemplateParts(zip, db, idMap, congregationId)
-    await mod.importTemplatePartAllowedRoles(zip, db, idMap, congregationId)
-    await mod.importTemplateServiceParts(zip, db, idMap, congregationId)
-    await mod.importTemplateServicePartAllowedRoles(zip, db, idMap, congregationId)
-    await mod.importTemplateResponsibles(zip, db, idMap, congregationId)
-    const withoutOrigin = await mod.importEvents(zip, db, idMap, congregationId)
-    await importAbsences(zip, db, idMap, congregationId)
-    await importAttendance(zip, db, idMap, congregationId)
-    await mod.importEventParts(zip, db, idMap, congregationId)
-    await mod.importEventPartAllowedRoles(zip, db, idMap, congregationId)
-    await mod.importEventServiceParts(zip, db, idMap, congregationId)
-    await (await import('~/features/settings/server/import-events.server')).settleImportedEventOrigins(
-      db,
-      withoutOrigin,
-      congregationId,
-    )
-    await mod.importEventServicePartAllowedRoles(zip, db, idMap, congregationId)
-    await (await import('~/features/settings/server/import-schedules.server')).importSchedules(db, congregationId)
+    // The meeting steps as runImport runs them, in their own module: never a copy that could drift.
+    await importMeetings(zip, db, idMap, congregationId, async () => undefined)
     await mod.importBoardSections(zip, db, idMap, congregationId)
     await mod.importBoardDynamicDocumentSettings(zip, db, idMap, congregationId)
   })

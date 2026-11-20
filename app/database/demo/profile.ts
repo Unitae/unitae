@@ -157,6 +157,12 @@ export interface CustomRole {
 }
 
 /** The congregation's own roles: the speaker and reader lists, then the services of the organigram. */
+/** The roles responsible for each meeting's programme and for its duties. */
+export const DEMO_RESPONSIBLES: Record<'midweek' | 'weekend', { programme: string; service: string }> = {
+  midweek: { programme: 'responsable-vcm', service: 'responsable-programmes-services' },
+  weekend: { programme: 'coordinateur-discours-publics', service: 'responsable-programmes-services' },
+}
+
 export const CUSTOM_ROLES: CustomRole[] = [
   { key: 'rpp', name: 'RPP', parent: null, holders: 18, eligibility: 'brother' },
   { key: 'prieres-publiques', name: 'Prières publiques', parent: null, holders: 23, eligibility: 'brother' },

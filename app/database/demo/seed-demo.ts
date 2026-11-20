@@ -40,7 +40,7 @@ import {
 } from './meetings'
 import { type Congregation, generateCongregation } from './people'
 import { generateArea } from './places'
-import { CUSTOM_ROLES, MEETINGS, SERVICE_ROLES, SETTINGS } from './profile'
+import { CUSTOM_ROLES, DEMO_RESPONSIBLES, MEETINGS, SERVICE_ROLES, SETTINGS } from './profile'
 import { Random } from './random'
 import { assignRoleHolders } from './roles'
 import { loginEmail, writeArea, writeAttributions, writeHistory, writePeople } from './write'
@@ -221,12 +221,6 @@ async function writeRoles(
   await prisma.userRoleAssignment.createMany({ data: onLogin, skipDuplicates: true })
   await prisma.memberRoleAssignment.createMany({ data: onRecord, skipDuplicates: true })
   return ids
-}
-
-/** The roles responsible for each meeting's programme and for its duties. */
-const DEMO_RESPONSIBLES: Record<MeetingKind, { programme: string; service: string }> = {
-  midweek: { programme: 'responsable-vcm', service: 'responsable-programmes-services' },
-  weekend: { programme: 'coordinateur-discours-publics', service: 'responsable-programmes-services' },
 }
 
 /**

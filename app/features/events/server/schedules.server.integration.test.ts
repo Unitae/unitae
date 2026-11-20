@@ -2,6 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { ScheduleKind } from '~/features/events/model/schedule.type'
+import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 const adapter = new PrismaPg({
@@ -162,7 +163,9 @@ describe('eventScheduleId', () => {
       expect(await schedules(other)).toMatchObject([
         { kind: 'programme', name: null, key: 'programme', scheduleTemplateId: null },
       ])
-      expect(await schedules(orphan)).toMatchObject([{ kind: 'programme', key: 'programme' }])
+      expect(await schedules(orphan)).toMatchObject([
+        { kind: 'programme', name: null, key: 'programme', scheduleTemplateId: null },
+      ])
     })
   })
 
@@ -309,18 +312,59 @@ describe('attachEventItems', () => {
   })
 })
 
+describe('attachEventItems on schedules that exist', () => {
+  it('puts unattached items into the schedule the event has, and realigns every status on the event', async () => {
+    await inCongregation(async ({ db, congregationId, template, event, schedules }) => {
+      const midweek = await template('Réunion de semaine', { parts: 1, services: 1 })
+      const taken = await event(midweek, 'draft')
+      const given = await event(midweek, 'released')
+      // Out of step, as the previous image leaves them: published on a draft event, a draft on a released one.
+      const takenProgramme = await eventScheduleId(db, taken, ScheduleKind.Programme, congregationId)
+      await eventScheduleId(db, given, ScheduleKind.Duty, congregationId)
+      await db.schedule.updateMany({ where: { eventId: taken }, data: { status: 'published' } })
+      await db.schedule.updateMany({ where: { eventId: given }, data: { status: 'draft' } })
+      await db.eventPart.create({ data: { eventId: taken, name: 'Discours', congregationId } })
+
+      await attachEventItems(db, [taken, given], congregationId)
+
+      expect(await schedules(taken)).toEqual([expect.objectContaining({ id: takenProgramme, status: 'draft' })])
+      expect(await db.eventPart.findMany({ where: { eventId: taken }, select: { scheduleId: true } })).toEqual([
+        { scheduleId: takenProgramme },
+      ])
+      expect((await schedules(given)).map(schedule => schedule.status)).toEqual(['published'])
+    })
+  })
+})
+
+describe('eventScheduleId on an event that is not there', () => {
+  it("refuses another congregation's event and makes nothing", async () => {
+    await inCongregation(async ({ db, congregationId, template, event }) => {
+      const foreign = await event(await template('Réunion', { parts: 1 }))
+      await db.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(congregationId + 1_000_000)}'`)
+
+      await expect(eventScheduleId(db, foreign, ScheduleKind.Programme, congregationId + 1_000_000)).rejects.toThrow(
+        NotFoundError,
+      )
+      await db.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(congregationId)}'`)
+      expect(await db.schedule.count({ where: { eventId: foreign } })).toBe(0)
+    })
+  })
+})
+
 describe('deleteEventSchedules', () => {
-  it('deletes the events schedules and leaves the events', async () => {
+  it("deletes the events' schedules with the items inside, and leaves the events", async () => {
     await inCongregation(async ({ db, congregationId, template, event, schedules }) => {
       const midweek = await template('Réunion de semaine', { parts: 1 })
       const gone = await event(midweek)
       const kept = await event(midweek)
-      await eventScheduleId(db, gone, ScheduleKind.Programme, congregationId)
+      const goneSchedule = await eventScheduleId(db, gone, ScheduleKind.Programme, congregationId)
       await eventScheduleId(db, kept, ScheduleKind.Programme, congregationId)
+      await db.eventPart.create({ data: { eventId: gone, scheduleId: goneSchedule, name: 'Discours', congregationId } })
 
       await deleteEventSchedules(db, [gone], congregationId)
 
       expect(await schedules(gone)).toEqual([])
+      expect(await db.eventPart.count({ where: { eventId: gone } })).toBe(0)
       expect(await schedules(kept)).toHaveLength(1)
       expect(await db.event.count({ where: { id: gone } })).toBe(1)
     })

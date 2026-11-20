@@ -272,4 +272,21 @@ describe('deleteTemplateScheduleTemplates', () => {
       ])
     })
   })
+
+  it('keeps a schedule template another template suggests too', async () => {
+    await inCongregation(async ({ db, congregationId, template, part }) => {
+      const midweek = await template('Réunion de semaine')
+      await part(midweek)
+      const other = await template('Réunion spéciale')
+      await syncTemplateScheduleTemplates(db, midweek, congregationId)
+      const shared = await db.eventKindScheduleTemplate.findFirstOrThrow({ where: { eventKindId: midweek } })
+      await db.eventKindScheduleTemplate.create({
+        data: { eventKindId: other, scheduleTemplateId: shared.scheduleTemplateId, order: 0, congregationId },
+      })
+
+      await deleteTemplateScheduleTemplates(db, midweek, congregationId)
+
+      expect(await db.scheduleTemplate.count({ where: { id: shared.scheduleTemplateId } })).toBe(1)
+    })
+  })
 })
