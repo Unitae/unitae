@@ -216,6 +216,7 @@ export async function importEventParts(
     assistantId: number | null
     allowExternalSpeaker?: boolean
     externalSpeakerId?: number | null
+    scheduleId?: number | null
   }>(zip, 'programme-part-assignments')
 
   for (const record of records) {
@@ -242,6 +243,8 @@ export async function importEventParts(
         assistantId: idMap.getOptional('members', record.assistantId),
         allowExternalSpeaker: record.allowExternalSpeaker ?? false,
         externalSpeakerId: idMap.getOptional('external-speakers', record.externalSpeakerId),
+        // Absent before 2.21: settleImportedSchedules gives it its schedule.
+        scheduleId: idMap.getOptional('schedules', record.scheduleId),
         congregationId,
       },
     })
@@ -265,6 +268,7 @@ export async function importEventServiceParts(
     presetId?: number | null
     assigneeId: number | null
     order?: number
+    scheduleId?: number | null
   }>(zip, 'programme-service-role-assignments')
 
   const fallback = fallbackServiceOrders(records, record => record.eventId)
@@ -282,6 +286,7 @@ export async function importEventServiceParts(
         servicePartId: idMap.getOptional('programme-template-service-roles', record.servicePartId),
         presetId: idMap.getOptional('part-presets', record.presetId),
         assigneeId: idMap.getOptional('members', record.assigneeId),
+        scheduleId: idMap.getOptional('schedules', record.scheduleId),
         congregationId,
       },
     })

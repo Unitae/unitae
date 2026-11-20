@@ -522,6 +522,24 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
         }),
     },
     {
+      // A schedule's content and who answers for it; before the template items, which name it (2.21).
+      name: 'schedule-templates',
+      export: () =>
+        db.scheduleTemplate.findMany({
+          select: { id: true, name: true, key: true, kind: true, responsibleRoleId: true },
+          orderBy: { id: 'asc' },
+        }),
+    },
+    {
+      // Which schedule templates each template suggests, in order (2.21).
+      name: 'kind-schedule-templates',
+      export: () =>
+        db.eventKindScheduleTemplate.findMany({
+          select: { eventKindId: true, scheduleTemplateId: true, order: true },
+          orderBy: [{ eventKindId: 'asc' }, { order: 'asc' }],
+        }),
+    },
+    {
       name: 'programme-template-parts',
       export: () =>
         db.templatePart.findMany({
@@ -536,6 +554,7 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
             allowExternalSpeaker: true,
             templateId: true,
             presetId: true,
+            scheduleTemplateId: true,
           },
         }),
     },
@@ -550,7 +569,15 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
       name: 'programme-template-service-roles',
       export: () =>
         db.templateServicePart.findMany({
-          select: { id: true, name: true, key: true, order: true, templateId: true, presetId: true },
+          select: {
+            id: true,
+            name: true,
+            key: true,
+            order: true,
+            templateId: true,
+            presetId: true,
+            scheduleTemplateId: true,
+          },
           // In order: an import creates them in file order, so services sharing an order keep theirs.
           orderBy: [{ templateId: 'asc' }, { order: 'asc' }, { id: 'asc' }],
         }),
@@ -621,6 +648,24 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
         }),
     },
     {
+      // Each event's schedules, each with its own status; before the event items, which name them (2.21).
+      name: 'schedules',
+      export: () =>
+        db.schedule.findMany({
+          select: {
+            id: true,
+            eventId: true,
+            scheduleTemplateId: true,
+            name: true,
+            key: true,
+            kind: true,
+            order: true,
+            status: true,
+          },
+          orderBy: [{ eventId: 'asc' }, { order: 'asc' }, { id: 'asc' }],
+        }),
+    },
+    {
       name: 'programme-part-assignments',
       export: () =>
         db.eventPart.findMany({
@@ -642,6 +687,7 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
             assistantId: true,
             allowExternalSpeaker: true,
             externalSpeakerId: true,
+            scheduleId: true,
           },
         }),
     },
@@ -671,6 +717,7 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
             servicePartId: true,
             presetId: true,
             assigneeId: true,
+            scheduleId: true,
           },
           orderBy: [{ eventId: 'asc' }, { order: 'asc' }, { id: 'asc' }],
         }),

@@ -27,6 +27,8 @@ const MATCHED_FULLY = new Set(['member', 'template', 'event', 'eventPart', 'even
 const MEETING_FILES = [
   'part-presets',
   'programme-templates',
+  'schedule-templates',
+  'kind-schedule-templates',
   'programme-template-parts',
   'programme-template-part-allowed-roles',
   'programme-template-service-roles',
@@ -35,6 +37,7 @@ const MEETING_FILES = [
   'events',
   'absences',
   'attendance',
+  'schedules',
   'programme-part-assignments',
   'programme-part-assignment-allowed-roles',
   'programme-service-role-assignments',
@@ -124,6 +127,14 @@ async function importArchive(zip: JsZip, congregationId: number) {
     await importMeetings(zip, db, idMap, congregationId, async () => undefined)
     await mod.importBoardSections(zip, db, idMap, congregationId)
     await mod.importBoardDynamicDocumentSettings(zip, db, idMap, congregationId)
+  })
+}
+
+/** Restored parts and services that no schedule holds. */
+function itemsWithoutSchedule(congregationId: number) {
+  return withScope(congregationId, async db => {
+    const where = { congregationId, scheduleId: null }
+    return (await db.eventPart.count({ where })) + (await db.eventServicePart.count({ where }))
   })
 }
 
@@ -327,7 +338,13 @@ function asBefore216(files: Record<string, unknown[]>): Record<string, unknown[]
     (files[name] ?? []).map(line =>
       Object.fromEntries(Object.entries(line as object).filter(([key]) => !keys.includes(key))),
     )
-  const { absences = [], ...rest } = files
+  const {
+    absences = [],
+    'schedule-templates': _scheduleTemplates,
+    'kind-schedule-templates': _kindScheduleTemplates,
+    schedules: _schedules,
+    ...rest
+  } = files
   const dayOff = { id: 999_999, name: 'Absence', key: 'day-off', description: '', weekDay: null, isRecurring: false }
   const dayOffs = (
     absences as { id: number; startDate: string; endDate: string; note: string; accountId: number }[]
@@ -346,6 +363,11 @@ function asBefore216(files: Record<string, unknown[]>): Record<string, unknown[]
     events: [...without('events', ['status']), ...dayOffs],
     'programme-templates': [...without('programme-templates', ['startTime', 'endTime']), dayOff],
     'board-dynamic-document-settings': without('board-dynamic-document-settings', ['dynamicConfig']),
+    // No schedules before 2.21: the files go, and the items name none.
+    'programme-template-parts': without('programme-template-parts', ['scheduleTemplateId']),
+    'programme-template-service-roles': without('programme-template-service-roles', ['scheduleTemplateId']),
+    'programme-part-assignments': without('programme-part-assignments', ['scheduleId']),
+    'programme-service-role-assignments': without('programme-service-role-assignments', ['scheduleId']),
   }
 }
 
@@ -397,6 +419,8 @@ describe('the archive', () => {
     await expect(
       reference({ archive: meetingFiles(reimported, imported), eventStatuses: statuses, programmeDocuments }, imported),
     ).toMatchFileSnapshot('./__references__/archive-after-import.json')
+    // Every restored item in the schedule the archive put it in: none left for the settle step to make.
+    expect(await itemsWithoutSchedule(targetId)).toBe(0)
   })
 
   it('from before v2.16 imports as it always did: drafts, default hours, no configuration', async () => {
@@ -432,6 +456,13 @@ describe('the archive', () => {
 
     // Hugo's day-off is not restored as an event, nor its template: an absence is its row alone.
     expect(after.statuses).toEqual([{ _count: 18, status: 'draft' }])
+    // No schedules in the archive: the restore gives them by the migration's rule, drafts like their events.
+    expect(await itemsWithoutSchedule(olderTargetId)).toBe(0)
+    expect(
+      await withScope(olderTargetId, db =>
+        db.schedule.groupBy({ by: ['status'], where: { congregationId: olderTargetId }, _count: true }),
+      ),
+    ).toEqual([{ _count: 14, status: 'draft' }])
     expect(after.hours.map(template => template.key)).not.toContain('day-off')
     expect(new Set(after.hours.map(template => `${template.startTime}–${template.endTime}`))).toEqual(
       new Set(['19:00–21:00']),

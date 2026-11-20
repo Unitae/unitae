@@ -1,7 +1,10 @@
 import { PrismaPg } from '@prisma/adapter-pg'
+import JsZip from 'jszip'
 import { afterAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { EntityIdMap } from './data-transfer.type'
+import { writeNdjsonFile } from './ndjson-archive'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -10,7 +13,8 @@ const adapter = new PrismaPg({
 })
 const testDb = new PrismaClient({ adapter })
 
-const { importSchedules } = await import('./import-schedules.server')
+const { importEventSchedules, importKindScheduleTemplates, importScheduleTemplates, settleImportedSchedules } =
+  await import('./import-schedules.server')
 
 class Rollback extends Error {}
 
@@ -18,77 +22,243 @@ afterAll(async () => {
   await testDb.$disconnect()
 })
 
-describe('importSchedules', () => {
-  it("gives a restored congregation's templates and events the schedules the migration gives live ones", async () => {
-    let outcome: unknown
-    try {
-      await testDb.$transaction(async tx => {
-        const stamp = `is-${process.pid}-${globalThis.performance.now().toString().replace('.', '')}`
-        const congregationId = (await tx.congregation.create({ data: { name: stamp, slug: stamp, active: true } })).id
-        await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(congregationId)}'`)
-        const role = await tx.role.create({ data: { key: `${stamp}-r`, name: 'Responsable', congregationId } })
-        const template = await tx.eventTemplate.create({ data: { name: 'Réunion', key: stamp, congregationId } })
-        await tx.templatePart.create({ data: { name: 'Discours', order: 0, templateId: template.id, congregationId } })
-        await tx.templateServicePart.create({
-          data: { name: 'Sono', key: `${stamp}-s`, templateId: template.id, congregationId },
-        })
-        await tx.templateResponsible.create({ data: { templateId: template.id, roleId: role.id, congregationId } })
-        const event = (status: string) =>
-          tx.event.create({
-            data: {
-              name: 'Réunion',
-              startDate: new Date('2027-05-04T17:00:00Z'),
-              endDate: new Date('2027-05-04T19:00:00Z'),
-              status,
-              templateId: template.id,
-              congregationId,
-            },
-          })
-        const released = await event('released')
-        const empty = await event('draft')
-        await tx.eventPart.create({ data: { eventId: released.id, name: 'Discours', congregationId } })
-        await tx.eventServicePart.create({ data: { eventId: released.id, name: 'Sono', congregationId } })
+interface Restored {
+  db: TransactionClient
+  congregationId: number
+  roleId: number
+  templateId: number
+  releasedId: number
+  emptyId: number
+}
 
-        await importSchedules(tx as unknown as TransactionClient, congregationId)
-
-        outcome = {
-          scheduleTemplates: await tx.scheduleTemplate.findMany({
-            select: { kind: true, name: true, key: true, responsibleRoleId: true },
-            orderBy: { id: 'asc' },
-          }),
-          schedules: await tx.schedule.findMany({
-            select: {
-              eventId: true,
-              kind: true,
-              status: true,
-              _count: { select: { parts: true, serviceParts: true } },
-            },
-            orderBy: { order: 'asc' },
-          }),
-          templateItemsWithout:
-            (await tx.templatePart.count({ where: { scheduleTemplateId: null } })) +
-            (await tx.templateServicePart.count({ where: { scheduleTemplateId: null } })),
-          emptyId: empty.id,
-          releasedId: released.id,
-          roleId: role.id,
-        }
-        throw new Rollback()
+/**
+ * A congregation as the earlier import steps leave it: a role, a template with a part, a service and its responsible,
+ * a released event with a part and a service and an empty draft one, all written without schedules. Rolled back.
+ */
+async function restored(fn: (state: Restored) => Promise<void>) {
+  try {
+    await testDb.$transaction(async tx => {
+      const stamp = `is-${process.pid}-${globalThis.performance.now().toString().replace('.', '')}`
+      const congregationId = (await tx.congregation.create({ data: { name: stamp, slug: stamp, active: true } })).id
+      await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(congregationId)}'`)
+      const role = await tx.role.create({ data: { key: `${stamp}-r`, name: 'Responsable', congregationId } })
+      const template = await tx.eventTemplate.create({ data: { name: 'Réunion', key: stamp, congregationId } })
+      await tx.templatePart.create({ data: { name: 'Discours', order: 0, templateId: template.id, congregationId } })
+      await tx.templateServicePart.create({
+        data: { name: 'Sono', key: `${stamp}-s`, templateId: template.id, congregationId },
       })
-    } catch (error) {
-      if (!(error instanceof Rollback)) throw error
-    }
+      await tx.templateResponsible.create({ data: { templateId: template.id, roleId: role.id, congregationId } })
+      const event = (status: string) =>
+        tx.event.create({
+          data: {
+            name: 'Réunion',
+            startDate: new Date('2027-05-04T17:00:00Z'),
+            endDate: new Date('2027-05-04T19:00:00Z'),
+            status,
+            templateId: template.id,
+            congregationId,
+          },
+        })
+      const released = await event('released')
+      const empty = await event('draft')
+      await tx.eventPart.create({ data: { eventId: released.id, name: 'Discours', congregationId } })
+      await tx.eventServicePart.create({ data: { eventId: released.id, name: 'Sono', congregationId } })
+      await fn({
+        db: tx as unknown as TransactionClient,
+        congregationId,
+        roleId: role.id,
+        templateId: template.id,
+        releasedId: released.id,
+        emptyId: empty.id,
+      })
+      throw new Rollback()
+    })
+  } catch (error) {
+    if (!(error instanceof Rollback)) throw error
+  }
+}
 
-    const { releasedId, roleId } = outcome as { releasedId: number; roleId: number }
-    expect(outcome).toMatchObject({
-      scheduleTemplates: [
+const schedulesOf = (db: TransactionClient) =>
+  db.schedule.findMany({
+    select: {
+      eventId: true,
+      kind: true,
+      name: true,
+      key: true,
+      status: true,
+      scheduleTemplateId: true,
+      _count: { select: { parts: true, serviceParts: true } },
+    },
+    orderBy: { order: 'asc' },
+  })
+
+describe('importing the schedules of a 2.21 archive', () => {
+  it('creates its schedule templates, their links and the schedules, through the archive ids', async () => {
+    await restored(async ({ db, congregationId, roleId, templateId, releasedId }) => {
+      const zip = new JsZip()
+      writeNdjsonFile(zip, 'schedule-templates', [
+        { id: 11, name: 'Vie et ministère', key: null, kind: 'programme', responsibleRoleId: 1 },
+        { id: 12, name: null, key: 'services', kind: 'duty', responsibleRoleId: null },
+      ])
+      writeNdjsonFile(zip, 'kind-schedule-templates', [
+        { eventKindId: 2, scheduleTemplateId: 11, order: 0 },
+        { eventKindId: 2, scheduleTemplateId: 12, order: 1 },
+        // A link whose template did not come: left out.
+        { eventKindId: 99, scheduleTemplateId: 12, order: 0 },
+      ])
+      writeNdjsonFile(zip, 'schedules', [
+        {
+          id: 21,
+          eventId: 3,
+          scheduleTemplateId: 11,
+          name: 'Vie et ministère',
+          key: null,
+          kind: 'programme',
+          order: 0,
+          status: 'published',
+        },
+        {
+          id: 22,
+          eventId: 3,
+          scheduleTemplateId: null,
+          name: null,
+          key: 'services',
+          kind: 'duty',
+          order: 1,
+          status: 'published',
+        },
+        // A schedule whose event did not come: left out.
+        {
+          id: 23,
+          eventId: 98,
+          scheduleTemplateId: 11,
+          name: null,
+          key: 'programme',
+          kind: 'programme',
+          order: 0,
+          status: 'draft',
+        },
+      ])
+      const idMap = new EntityIdMap()
+      idMap.set('roles', 1, roleId)
+      idMap.set('programme-templates', 2, templateId)
+      idMap.set('events', 3, releasedId)
+
+      await importScheduleTemplates(zip, db, idMap, congregationId)
+      await importKindScheduleTemplates(zip, db, idMap, congregationId)
+      await importEventSchedules(zip, db, idMap, congregationId)
+
+      const programme = idMap.getOptional('schedule-templates', 11)
+      expect(
+        await db.scheduleTemplate.findMany({
+          select: { id: true, name: true, key: true, kind: true, responsibleRoleId: true },
+          orderBy: { id: 'asc' },
+        }),
+      ).toEqual([
+        { id: programme, name: 'Vie et ministère', key: null, kind: 'programme', responsibleRoleId: roleId },
+        {
+          id: idMap.getOptional('schedule-templates', 12),
+          name: null,
+          key: 'services',
+          kind: 'duty',
+          responsibleRoleId: null,
+        },
+      ])
+      expect(await db.eventKindScheduleTemplate.count()).toBe(2)
+      expect(await schedulesOf(db)).toMatchObject([
+        { eventId: releasedId, kind: 'programme', status: 'published', scheduleTemplateId: programme },
+        { eventId: releasedId, kind: 'duty', status: 'published', scheduleTemplateId: null, key: 'services' },
+      ])
+      expect(idMap.getOptional('schedules', 21)).toBeDefined()
+      expect(idMap.getOptional('schedules', 23)).toBeNull()
+    })
+  })
+
+  it('leaves alone what the archive covered and gives a schedule to the items that came without one', async () => {
+    await restored(async ({ db, congregationId, releasedId }) => {
+      // A template and an event the archive covered whole: its schedule template named otherwise than the template,
+      // and the event's programme published while the event is a draft — a restore keeps both as they came.
+      const covered = await db.eventTemplate.create({ data: { name: 'Mémorial', key: 'covered', congregationId } })
+      const named = await db.scheduleTemplate.create({
+        data: {
+          name: 'Commémoration',
+          kind: 'programme',
+          congregationId,
+          eventKinds: { create: { eventKindId: covered.id, order: 0, congregationId } },
+        },
+      })
+      await db.templatePart.create({
+        data: { name: 'Discours', order: 0, templateId: covered.id, scheduleTemplateId: named.id, congregationId },
+      })
+      const day = await db.event.create({
+        data: {
+          name: 'Mémorial',
+          startDate: new Date('2027-04-12T17:00:00Z'),
+          endDate: new Date('2027-04-12T19:00:00Z'),
+          status: 'draft',
+          templateId: covered.id,
+          congregationId,
+        },
+      })
+      const kept = await db.schedule.create({
+        data: {
+          eventId: day.id,
+          scheduleTemplateId: named.id,
+          kind: 'programme',
+          name: 'Commémoration',
+          status: 'published',
+          congregationId,
+        },
+      })
+      await db.eventPart.create({ data: { eventId: day.id, scheduleId: kept.id, name: 'Discours', congregationId } })
+      const zip = new JsZip()
+      writeNdjsonFile(zip, 'schedules', [])
+
+      await settleImportedSchedules(zip, db, congregationId)
+
+      expect(await db.scheduleTemplate.findUnique({ where: { id: named.id }, select: { name: true } })).toEqual({
+        name: 'Commémoration',
+      })
+      expect(await db.schedule.findMany({ where: { eventId: day.id }, select: { id: true, status: true } })).toEqual([
+        { id: kept.id, status: 'published' },
+      ])
+      // The restored event whose items came without a schedule gets them, with its status.
+      expect(
+        await db.schedule.findMany({
+          where: { eventId: releasedId },
+          select: { kind: true, status: true },
+          orderBy: { order: 'asc' },
+        }),
+      ).toEqual([
+        { kind: 'programme', status: 'published' },
+        { kind: 'duty', status: 'published' },
+      ])
+    })
+  })
+})
+
+describe('settling the schedules of an archive that carries none (2.20 and older)', () => {
+  it('gives the restored templates and events the schedules the migration gives live ones', async () => {
+    await restored(async ({ db, congregationId, roleId, releasedId }) => {
+      await settleImportedSchedules(new JsZip(), db, congregationId)
+
+      expect(
+        await db.scheduleTemplate.findMany({
+          select: { kind: true, name: true, key: true, responsibleRoleId: true },
+          orderBy: { id: 'asc' },
+        }),
+      ).toEqual([
         { kind: 'programme', name: 'Réunion', key: null, responsibleRoleId: roleId },
         { kind: 'duty', name: null, key: 'services', responsibleRoleId: roleId },
-      ],
-      schedules: [
+      ])
+      expect(await schedulesOf(db)).toMatchObject([
         { eventId: releasedId, kind: 'programme', status: 'published', _count: { parts: 1, serviceParts: 0 } },
         { eventId: releasedId, kind: 'duty', status: 'published', _count: { parts: 0, serviceParts: 1 } },
-      ],
-      templateItemsWithout: 0,
+      ])
+      expect(
+        (await db.templatePart.count({ where: { scheduleTemplateId: null } })) +
+          (await db.templateServicePart.count({ where: { scheduleTemplateId: null } })),
+      ).toBe(0)
     })
   })
 })

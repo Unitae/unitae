@@ -115,6 +115,7 @@ export async function importTemplateParts(
     allowExternalSpeaker: boolean
     templateId: number
     presetId?: number | null
+    scheduleTemplateId?: number | null
   }>(zip, 'programme-template-parts')
 
   for (const record of records) {
@@ -133,6 +134,8 @@ export async function importTemplateParts(
         templateId,
         // Absent in pre-2.5 archives, which resolves to null.
         presetId: idMap.getOptional('part-presets', record.presetId),
+        // Absent before 2.21: settleImportedSchedules gives it its schedule template.
+        scheduleTemplateId: idMap.getOptional('schedule-templates', record.scheduleTemplateId),
         congregationId,
       },
     })
@@ -153,6 +156,7 @@ export async function importTemplateServiceParts(
     templateId: number
     presetId?: number | null
     order?: number
+    scheduleTemplateId?: number | null
   }>(zip, 'programme-template-service-roles')
 
   const fallback = fallbackServiceOrders(records, record => record.templateId)
@@ -167,6 +171,7 @@ export async function importTemplateServiceParts(
         order: record.order ?? fallback.get(record.id) ?? 0,
         templateId,
         presetId: idMap.getOptional('part-presets', record.presetId),
+        scheduleTemplateId: idMap.getOptional('schedule-templates', record.scheduleTemplateId),
         congregationId,
       },
     })
