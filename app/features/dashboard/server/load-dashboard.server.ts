@@ -50,7 +50,8 @@ interface DashboardContext {
     } | null
   }
   permissions: ReadonlySet<Permission>
-  congregation: { id: number; timezone: string }
+  /** `demo`: a visitor's demo copy, which shows no « Premiers pas » (it refuses /me/security, and is filled already). */
+  congregation: { id: number; timezone: string; demo?: boolean }
 }
 
 /**
@@ -64,7 +65,7 @@ export async function loadDashboard(db: TransactionClient, context: DashboardCon
   const congregationId = congregation.id
   const memberId = account.member?.id ?? null
   const local = zonedNow(congregation.timezone, now)
-  const dismissed = account.onboardingDismissedAt != null
+  const dismissed = account.onboardingDismissedAt != null || congregation.demo === true
 
   const safe = async <T>(label: string, run: () => Promise<T>): Promise<T | null> => {
     try {
@@ -183,7 +184,7 @@ export async function loadDashboard(db: TransactionClient, context: DashboardCon
     activity: reportProgress == null ? null : { progress: reportProgress, pioneers },
     roll,
     group,
-    setup: setupFor(visibility, adminSetup, account),
+    setup: dismissed ? null : setupFor(visibility, adminSetup, account),
     // The meetings under way, each with its attendance card; none outside a meeting.
     attendance:
       attendanceMeetings == null || attendanceMeetings.length === 0

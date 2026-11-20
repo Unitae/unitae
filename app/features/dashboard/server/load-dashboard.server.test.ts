@@ -236,5 +236,19 @@ describe('loadDashboard', () => {
       const dismissed = account({}, { onboardingDismissedAt: new Date() })
       expect((await load([Permission.CanViewBoard, Permission.CanViewPublishers], dismissed)).setup).toBeNull()
     })
+
+    // A demo copy refuses /me/security and is filled already: nothing to set up there.
+    it('never opens in a demo copy', async () => {
+      vi.mocked(getOnboardingProgress).mockResolvedValue({
+        steps: { ownRecord: true, publishers: true, groups: false, logins: true, territories: false },
+        complete: false,
+      })
+      const result = await loadDashboard(db, {
+        account: account(),
+        permissions: new Set(Object.values(Permission)),
+        congregation: { ...congregation, demo: true },
+      })
+      expect(result.setup).toBeNull()
+    })
   })
 })
