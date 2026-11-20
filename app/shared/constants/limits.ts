@@ -20,7 +20,7 @@ export const IMPORT_TX_MAX_WAIT_MS = 30 * 1000
 export const GEOCODER_CACHE_TTL_SECONDS = 60 * 60 * 24 * 90
 
 // Progress / thresholds
-// Must equal the number of progress() calls in runImport; the last 5% is
+// Must equal the number of progress() calls in runImport (with importMeetings'); the last 5% is
 // reserved for finalization + audit writes after the transaction commits.
 export const IMPORT_TOTAL_STEPS = 46
 export const IMPORT_PROGRESS_CAP = 95
