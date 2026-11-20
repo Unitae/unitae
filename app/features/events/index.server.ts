@@ -7,17 +7,12 @@ export { deleteTemplate } from './server/delete-template.server'
 export { duplicateTemplate } from './server/duplicate-template.server'
 export { countMeetingsToMove, EMPTY_MEETING } from './server/empty-meetings.queries'
 export {
-  deleteTemplatePart,
-  deleteTemplateServicePart,
   getTemplateById,
   getTemplates,
   isTemplateResponsible,
   removeTemplateResponsible,
-  reorderTemplateParts,
   setTemplateResponsible,
   updateTemplate,
-  upsertTemplatePart,
-  upsertTemplateServicePart,
 } from './server/event-templates.server'
 export { getResponsibleTemplateIds, templateItemBelongsToTemplate } from './server/events-auth.server'
 export {
@@ -38,4 +33,11 @@ export { extendRecurringEvents, reanchorEmptyMeetings } from './server/recurring
 export { reorderTemplateServices } from './server/reorder-services.server'
 export { PART_PRESET_COUNT, seedDefaultPartPresets } from './server/seed-part-presets.server'
 export { seedDefaultTemplates } from './server/seed-templates.server'
+export {
+  deleteTemplatePart,
+  deleteTemplateServicePart,
+  reorderTemplateParts,
+  upsertTemplatePart,
+  upsertTemplateServicePart,
+} from './server/template-items.server'
 export { saveTemplateResponsibles, type TemplateResponsibles } from './server/template-responsibles.server'

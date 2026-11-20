@@ -7,8 +7,8 @@ import {
   updatePartAssignment,
   updateServicePartAssignment,
 } from '~/features/events/server/event-parts.server'
-import { upsertTemplatePart, upsertTemplateServicePart } from '~/features/events/server/event-templates.server'
 import { createProgrammeOnDay } from '~/features/events/server/programme-creation.server'
+import { upsertTemplatePart, upsertTemplateServicePart } from '~/features/events/server/template-items.server'
 import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 
 const adapter = new PrismaPg({
