@@ -1639,10 +1639,6 @@ model Absence {
   account   UserAccount? @relation(fields: [accountId], references: [id], onDelete: Restrict)
   accountId Int?
 
-  // The id of the day-off event an older row was copied from. The app no longer reads or writes it; @ignore keeps it out
-  // of the client's default selects, so a later migration can drop the column once no deployed version selects it.
-  legacyEventId Int? @unique @ignore
-
   createdAt DateTime @default(now())
 
   congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
