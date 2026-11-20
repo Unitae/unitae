@@ -50,9 +50,9 @@ describe('getPersonalAssignments', () => {
     const endDate = new Date('2026-04-12T00:00:00Z')
     const db = makeDb({
       daysOff: [
-        { id: 5, startDate, endDate, legacyEventId: 900, createdAt: new Date('2026-04-01T00:00:00Z') },
-        // Written without an event, declared later.
-        { id: 6, startDate, endDate, legacyEventId: null, createdAt: new Date('2026-04-03T00:00:00Z') },
+        { id: 5, startDate, endDate, createdAt: new Date('2026-04-01T00:00:00Z') },
+        // Declared later.
+        { id: 6, startDate, endDate, createdAt: new Date('2026-04-03T00:00:00Z') },
       ],
     })
 
@@ -63,8 +63,8 @@ describe('getPersonalAssignments', () => {
     expect(items[0].allDay).toBe(true)
     expect(items[0].start).toEqual(startDate)
     expect(items[0].end.getUTCDate()).toBe(13)
-    // A subscriber knows an absence by its event's identifier while it has one.
-    expect(items.map(item => item.uid)).toEqual(['day-off-900', 'absence-6'])
+    // Each absence by its own identifier.
+    expect(items.map(item => item.uid)).toEqual(['absence-5', 'absence-6'])
     // Never edited: each one's last change is its declaration.
     expect(items.map(item => item.updatedAt)).toEqual([
       new Date('2026-04-01T00:00:00Z'),

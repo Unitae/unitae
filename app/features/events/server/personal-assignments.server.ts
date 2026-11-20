@@ -109,9 +109,9 @@ function servicePartAssignmentToItem(assignment: ServicePartWithEvent): Personal
 
 function dayOffToItem(absence: Absence): PersonalCalendarItem {
   return {
-    // A subscriber's calendar knows an absence by its event's id: kept while the row carries one, so an existing entry
-    // is not replaced by a copy. A row without one gets its own prefix, which cannot clash with an event's id.
-    uid: absence.legacyEventId != null ? `day-off-${absence.legacyEventId}` : `absence-${absence.id}`,
+    // Its own prefix: it cannot clash with an event's id. An absence copied from a day-off event used to keep that
+    // event's id here; a subscribed calendar replaces such an entry once.
+    uid: `absence-${absence.id}`,
     kind: 'day-off',
     summary: m.calendar_feed_day_off_summary(),
     description: '',
