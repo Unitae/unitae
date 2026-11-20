@@ -35,7 +35,7 @@ export type CongregationInfo = {
   suspendedAt: Date | null
   suspendedReason: string | null
   trialEndsAt: Date | null
-  // A visitor's demo copy when set (docs/development/specs/demo-mode.md); null for every real congregation.
+  // A visitor's demo copy when set; null for every real congregation.
   demoExpiresAt: Date | null
   demoReadyAt: Date | null
   // Present only once the congregation has been through Stripe checkout — used to show the billing

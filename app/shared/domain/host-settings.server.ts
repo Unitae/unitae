@@ -19,7 +19,7 @@ export interface HostSettings {
     /** The instance's own site: where a visitor who reached no congregation is offered to go. */
     homeUrl?: string
   }
-  /** Demo mode's links back to the hosted site (docs/development/specs/demo-mode.md). */
+  /** Demo mode's links back to the hosted site. */
   demo?: {
     /** Where « créer votre assemblée » leads from a demo copy. */
     registerUrl?: string

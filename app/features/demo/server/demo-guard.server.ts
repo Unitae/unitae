@@ -1,4 +1,4 @@
-// What a demo copy refuses (docs/development/specs/demo-mode.md): files, the login itself, inviting, and the
+// What a demo copy refuses: files, the login itself, inviting, and the
 // congregation's archive. Everything else works, on invented data.
 
 /** Changing, creating or removing a login, inviting someone, or moving the congregation's data in or out. */

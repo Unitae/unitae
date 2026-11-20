@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
 
 /**
  * « Démo — données inventées » in the top corner of every page printed from a demo copy, which can hold anything a
- * visitor typed (docs/development/specs/demo-mode.md). Every `<Page>` of a document carries one; it prints nothing
+ * visitor typed. Every `<Page>` of a document carries one; it prints nothing
  * for a real congregation. `locale` is for a PDF rendered outside a request, where the reader's language isn't set.
  */
 export function PdfDemoMark({ locale }: { locale?: Locale }) {

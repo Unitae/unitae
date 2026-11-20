@@ -50,7 +50,7 @@ const notFoundForVisitors: Route.MiddlewareFunction = async ({ request, pattern 
 }
 
 /**
- * A visitor's demo copy (docs/development/specs/demo-mode.md), on every request after `requireAuth` has resolved the
+ * A visitor's demo copy, on every request after `requireAuth` has resolved the
  * congregation, client-side navigation included: it turns away files, changes to the logins, invitations and the
  * congregation's archive, back to the page with the reason; and it pushes the copy's expiry, an hour on.
  */

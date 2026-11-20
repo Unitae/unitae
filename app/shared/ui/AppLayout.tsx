@@ -23,7 +23,7 @@ interface AppLayoutProps {
   userName: string
   /** The congregation's SaaS trial, when it is in one: shown as a banner above every page. */
   trial?: TrialBannerInfo | null
-  /** A demo copy's banner (docs/development/specs/demo-mode.md), above every page; drawn by the layout. */
+  /** A demo copy's banner, above every page; drawn by the layout. */
   demoBanner?: ReactNode
   /** Initial sidebar state, read from the persistence cookie by the layout loader. */
   sidebarOpen?: boolean

@@ -444,7 +444,7 @@ describe('handleDigestEmail — transient mailer failures partition per event', 
   })
 })
 
-// A visitor's demo copy holds whatever addresses they typed (docs/development/specs/demo-mode.md): it never mails
+// A visitor's demo copy holds whatever addresses they typed: it never mails
 // anyone, whatever triggered the notification.
 describe('demo copies are gated out of the pipeline', () => {
   const COPY = { ...CONGREGATION, demoExpiresAt: new Date('2026-11-20T11:00:00Z') }

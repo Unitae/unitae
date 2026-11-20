@@ -101,7 +101,7 @@ model Congregation {
   stripeCustomerId     String?
   stripeSubscriptionId String?
 
-  // A visitor's demo copy (docs/development/specs/demo-mode.md): deleted by the control plane once this passes, pushed
+  // A visitor's demo copy: deleted by the control plane once this passes, pushed
   // an hour further by each request. Null for every real congregation.
   demoExpiresAt DateTime?
   // When the demo seed finished filling the copy: until then it isn't handed to a visitor.
@@ -1683,7 +1683,7 @@ model Attendance {
   @@index([congregationId])
 }
 
-// A one-time link into a demo copy, as the role it names (docs/development/specs/demo-mode.md). Only the hash is kept:
+// A one-time link into a demo copy, as the role it names. Only the hash is kept:
 // the raw token travels in the link once. Written by the control plane, used once by /demo/enter.
 model DemoSignInToken {
   id        Int       @id @default(autoincrement())

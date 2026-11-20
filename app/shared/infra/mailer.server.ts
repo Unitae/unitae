@@ -62,9 +62,9 @@ export async function sendEmail(options: CreateEmailOptions): Promise<CreateEmai
   return data
 }
 
-// The demo congregation's people live at demo.unitae.app and its visiting speakers at example.org (docs/development/
-// specs/demo-mode.md): invented addresses, which would bounce and still cost sending quota. The example domains are
-// reserved for documentation (RFC 2606) and never deliver anyway.
+// The demo congregation's people live at demo.unitae.app and its visiting speakers at example.org: invented
+// addresses, which would bounce and still cost sending quota. The example domains are reserved for documentation (RFC
+// 2606) and never deliver anyway.
 const INVENTED_DOMAINS = ['demo.unitae.app', 'example.org', 'example.com', 'example.net']
 const NAMED_ADDRESS = /<([^>]+)>/
 

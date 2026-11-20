@@ -20,7 +20,7 @@ import type { Route } from './+types/enter'
 export const meta: Route.MetaFunction = () => [{ title: `${m.demo_expired_title()} - Unitae` }]
 
 /**
- * The one-time link into a demo copy (docs/development/specs/demo-mode.md): signs the visitor in as the role the link
+ * The one-time link into a demo copy: signs the visitor in as the role the link
  * names, then opens the dashboard. A link that's used or expired, or for a copy that's expired or already deleted,
  * shows the expired page with the way to open a new demo. Each refusal logs its reason, never the token.
  */

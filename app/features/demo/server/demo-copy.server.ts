@@ -1,4 +1,4 @@
-// A demo copy while a visitor uses it (docs/development/specs/demo-mode.md): its expiry, pushed by activity, and the
+// A demo copy while a visitor uses it: its expiry, pushed by activity, and the
 // role the signed-in login stands for.
 
 import { DEMO_ROLES, type DemoRole } from '~/features/demo/model/demo-role'

@@ -38,7 +38,7 @@ type EventSendResult = 'delivered' | 'permanent-failure'
 // on resend tooling). The send LOOP itself never throws; the trailing
 // updateMany can throw (DB blip) and would trigger a BullMQ retry, but by
 // then all sends have already happened, so this is the one uncovered edge.
-// A visitor's demo copy holds whatever addresses they typed (docs/development/specs/demo-mode.md): it never mails
+// A visitor's demo copy holds whatever addresses they typed: it never mails
 // anyone. Judged on the copy itself, not on the demo mode's flag, so no setting can turn it into a relay.
 function isDemoCopy(congregation: Pick<CongregationInfo, 'demoExpiresAt'>, congregationId: number): boolean {
   if (congregation.demoExpiresAt == null) return false

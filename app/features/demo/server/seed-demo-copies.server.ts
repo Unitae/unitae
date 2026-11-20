@@ -1,4 +1,4 @@
-// Fills the demo copies the control plane creates (docs/development/specs/demo-mode.md). Run by /cron/demo-seed.
+// Fills the demo copies the control plane creates. Run by /cron/demo-seed.
 
 import { seedDemoCongregation } from '~/database/demo/seed-demo'
 import { isDemoModeEnabled } from '~/shared/domain/demo-mode.server'

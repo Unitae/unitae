@@ -1,4 +1,4 @@
-// Demo mode (docs/development/specs/demo-mode.md): whether it's on, whether a congregation is a visitor's copy, and how
+// Demo mode: whether it's on, whether a congregation is a visitor's copy, and how
 // long a copy lives.
 
 const MINUTE = 60 * 1000

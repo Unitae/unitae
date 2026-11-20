@@ -1,4 +1,4 @@
-// The roles a visitor can try the demo as (docs/development/specs/demo-mode.md). Client-safe: the banner lists them.
+// The roles a visitor can try the demo as. Client-safe: the banner lists them.
 
 export const DEMO_ROLES = [
   'coordinator',

@@ -1,4 +1,4 @@
--- Demo mode (docs/development/specs/demo-mode.md): a congregation can be a visitor's short-lived demo copy, entered
+-- Demo mode: a congregation can be a visitor's short-lived demo copy, entered
 -- through a one-time link. Additive only: every existing congregation keeps both columns null.
 
 ALTER TABLE "Congregation" ADD COLUMN "demoExpiresAt" TIMESTAMP(3),
