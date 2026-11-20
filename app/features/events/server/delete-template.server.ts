@@ -1,5 +1,7 @@
 import { isSystemTemplate } from '~/features/events/model/event-template.type'
 import { EMPTY_MEETING } from '~/features/events/server/empty-meetings.queries'
+import { lockTemplates } from '~/features/events/server/give-programme.server'
+import { deleteTemplateScheduleTemplates } from '~/features/events/server/schedule-templates.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -30,9 +32,13 @@ export async function deleteTemplate(
   // 20260720* migration series had to repair. Refuse rather than orphan.
   if (template._count.events > 0) return { ok: false, reason: 'in-use', eventCount: template._count.events }
 
+  // The template's row is locked before its meetings', the order of every path that writes both.
+  await lockTemplates(db, [templateId], congregationId)
   // The empty meetings go first, or they would be orphaned like any other event. Then parts, serviceParts,
-  // responsibles and their allowed-role rows all cascade (onDelete: Cascade) from the template FK.
+  // responsibles and their allowed-role rows all cascade (onDelete: Cascade) from the template FK. Its schedule templates
+  // do not (an event kind's suggestions are meant to be shared): the ones only it suggests are deleted with it.
   await db.event.deleteMany({ where: { templateId, congregationId, ...EMPTY_MEETING } })
+  await deleteTemplateScheduleTemplates(db, templateId, congregationId)
   await db.eventTemplate.delete({
     where: { id_congregationId: { id: templateId, congregationId } },
   })

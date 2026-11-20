@@ -14,6 +14,8 @@ import { generateThumbnail } from '../../features/display-board/server/thumbnail
 import { EventTemplateKey } from '../../features/events/model/event-template.type'
 import { PartPresetKey } from '../../features/events/model/part-preset.type'
 import { normalizeCongregationName } from '../../features/events/model/speaker-congregation-name'
+import { syncTemplateScheduleTemplates } from '../../features/events/server/schedule-templates.server'
+import { attachEventItems } from '../../features/events/server/schedules.server'
 import { seedDefaultTemplates } from '../../features/events/server/seed-templates.server'
 import { seedBuiltInTerritoryKinds } from '../../features/territories/server/territory-kinds.server'
 import { syncBuiltInRoleAssignments } from '../../shared/domain/built-in-roles.server'
@@ -38,7 +40,7 @@ import {
 } from './meetings'
 import { type Congregation, generateCongregation } from './people'
 import { generateArea } from './places'
-import { CUSTOM_ROLES, MEETINGS, SERVICE_ROLES, SETTINGS } from './profile'
+import { CUSTOM_ROLES, DEMO_RESPONSIBLES, MEETINGS, SERVICE_ROLES, SETTINGS } from './profile'
 import { Random } from './random'
 import { assignRoleHolders } from './roles'
 import { loginEmail, writeArea, writeAttributions, writeHistory, writePeople } from './write'
@@ -67,9 +69,11 @@ export async function cleanCongregationData(prisma: PrismaClient, congregationId
   await prisma.eventPartAllowedRole.deleteMany({ where })
   await prisma.eventServicePart.deleteMany({ where })
   await prisma.eventPart.deleteMany({ where })
+  await prisma.schedule.deleteMany({ where })
   await prisma.templateServicePartAllowedRole.deleteMany({ where })
   await prisma.templatePartAllowedRole.deleteMany({ where })
   await prisma.templateResponsible.deleteMany({ where })
+  await prisma.scheduleTemplate.deleteMany({ where })
   await prisma.templateServicePart.deleteMany({ where })
   await prisma.templatePart.deleteMany({ where })
   // Before the events and the accounts: an Absence row names its account (Restrict), not its event.
@@ -296,6 +300,25 @@ async function arrangeTemplates(prisma: PrismaClient, congregationId: number, ro
         ]
       }),
     })
+    // Who prepares each meeting's programme, and who its duties: as the congregation's organigram names them.
+    const responsibles = DEMO_RESPONSIBLES[kind]
+    await prisma.templateResponsible.createMany({
+      data: [
+        {
+          templateId: template.id,
+          roleId: roleIds.get(responsibles.programme) as number,
+          scope: 'programme',
+          congregationId,
+        },
+        {
+          templateId: template.id,
+          roleId: roleIds.get(responsibles.service) as number,
+          scope: 'service',
+          congregationId,
+        },
+      ],
+    })
+    await syncTemplateScheduleTemplates(prisma, template.id, congregationId)
     specs.push({
       kind,
       parts: parts.map((part, index) => ({ id: part.id, kind: kinds[index] as PartKind })),
@@ -402,7 +425,9 @@ async function writeMeetings(
         .map(role => ({ eventServicePartId: service.id, roleId: role.roleId, congregationId })),
     ),
   })
-  return events.map(event => event.id)
+  const eventIds = events.map(event => event.id)
+  await attachEventItems(prisma, eventIds, congregationId)
+  return eventIds
 }
 
 /**

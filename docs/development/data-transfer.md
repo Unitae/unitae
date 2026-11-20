@@ -49,6 +49,8 @@ Other entities are inserted as-is; the import flow reassigns primary keys and st
 
 Imported rows get fresh database identities. The `EntityIdMap` (defined in `data-transfer.type.ts`) tracks the mapping from source ID → new ID per entity type so that foreign-key references in subsequent steps are rewritten. Anything that holds a reference to an exported entity must look itself up in the map, not in the raw NDJSON.
 
+An archive carries no schedules or schedule templates yet: once the templates, their responsibles, the events and their items are in, `importSchedules` (`import-schedules.server.ts`) gives them theirs by the `add_schedules` migration's rule, so restoring an archive gives what migrating live data gives.
+
 ## Background processing
 
 Both export and import run as BullMQ jobs through the `data-transfer` queue (`data-transfer-queue.server.ts`). Progress (0–100) is updated via `job.updateProgress` and read by the import and export page while the job runs. The handler lives in `app/features/settings/jobs/handle-data-transfer-work.server.ts`.

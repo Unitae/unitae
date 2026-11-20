@@ -1,3 +1,6 @@
+import { ScheduleKind } from '~/features/events/model/schedule.type'
+import { syncTemplateScheduleTemplates } from '~/features/events/server/schedule-templates.server'
+import { alignEventSchedules, eventScheduleId } from '~/features/events/server/schedules.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 
@@ -21,17 +24,26 @@ export async function applyTemplateToEvent(
   })
   if (!template) return null
 
+  // The template's schedule templates first, which locks its row: a template before an event, as every path does.
+  await syncTemplateScheduleTemplates(db, templateId, congregationId)
   await db.event.update({
     where: {
       id_congregationId: { id: eventId, congregationId },
     },
     data: { templateId },
   })
+  // Its schedules follow it onto the new template, and the template's items go into them.
+  await alignEventSchedules(db, eventId, congregationId)
+  const programmeId =
+    template.parts.length > 0 ? await eventScheduleId(db, eventId, ScheduleKind.Programme, congregationId) : null
+  const dutiesId =
+    template.serviceParts.length > 0 ? await eventScheduleId(db, eventId, ScheduleKind.Duty, congregationId) : null
 
   for (const part of template.parts) {
     const assignment = await db.eventPart.create({
       data: {
         eventId,
+        scheduleId: programmeId,
         partId: part.id,
         name: part.name,
         section: part.section,
@@ -62,6 +74,7 @@ export async function applyTemplateToEvent(
     const assignment = await db.eventServicePart.create({
       data: {
         eventId,
+        scheduleId: dutiesId,
         servicePartId: role.id,
         name: role.name,
         presetId: role.presetId,

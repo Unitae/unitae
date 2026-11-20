@@ -14,7 +14,7 @@ import {
 import { FEMALE_FIRST_NAMES, MALE_FIRST_NAMES } from './names'
 import { generateCongregation } from './people'
 import { generateArea } from './places'
-import { CUSTOM_ROLES, PEOPLE, TERRITORIES } from './profile'
+import { CUSTOM_ROLES, DEMO_RESPONSIBLES, PEOPLE, TERRITORIES } from './profile'
 import { Random } from './random'
 import { assignRoleHolders } from './roles'
 import { loginEmail } from './write'
@@ -155,6 +155,14 @@ describe('the demo emergency contacts', () => {
 })
 
 describe('the demo roles', () => {
+  it('names as responsible of each meeting roles the demo has', () => {
+    const keys = new Set(CUSTOM_ROLES.map(role => role.key))
+    for (const [meeting, responsibles] of Object.entries(DEMO_RESPONSIBLES)) {
+      expect(keys.has(responsibles.programme), `${meeting} programme: ${responsibles.programme}`).toBe(true)
+      expect(keys.has(responsibles.service), `${meeting} duties: ${responsibles.service}`).toBe(true)
+    }
+  })
+
   it('gives a role held by one person to a brother: it reads as his to run', () => {
     const soleHolderRoles = CUSTOM_ROLES.filter(role => role.single || role.holders === 1)
     for (let seed = 1; seed <= 30; seed++) {

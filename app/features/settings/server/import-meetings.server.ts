@@ -1,0 +1,79 @@
+import type JsZip from 'jszip'
+import type { TransactionClient } from '~/shared/infra/db.server'
+import type { EntityIdMap } from './data-transfer.type'
+import { importAbsences } from './import-absences.server'
+import { importAttendance } from './import-attendance.server'
+import {
+  importEventTemplates,
+  importTemplatePartAllowedRoles,
+  importTemplateParts,
+  importTemplateResponsibles,
+  importTemplateServicePartAllowedRoles,
+  importTemplateServiceParts,
+} from './import-event-templates.server'
+import {
+  importEventPartAllowedRoles,
+  importEventParts,
+  importEventServicePartAllowedRoles,
+  importEventServiceParts,
+  importEvents,
+  settleImportedEventOrigins,
+} from './import-events.server'
+import { importPartPresets } from './import-part-presets.server'
+import { importSchedules } from './import-schedules.server'
+
+/**
+ * The meeting steps of runImport, in their order: part presets, templates and their items and responsibles, events with
+ * their absences, counts and items, then their schedules. `progress` is runImport's, called after each step (IMPORT_TOTAL_STEPS counts them).
+ */
+export async function importMeetings(
+  zip: JsZip,
+  db: TransactionClient,
+  idMap: EntityIdMap,
+  congregationId: number,
+  progress: () => Promise<void>,
+) {
+  // Before the template and event parts: their presetId resolves through the map this fills.
+  await importPartPresets(zip, db, idMap, congregationId)
+  await progress()
+
+  await importEventTemplates(zip, db, idMap, congregationId)
+  await progress()
+
+  await importTemplateParts(zip, db, idMap, congregationId)
+  await progress()
+
+  await importTemplatePartAllowedRoles(zip, db, idMap, congregationId)
+  await progress()
+
+  await importTemplateServiceParts(zip, db, idMap, congregationId)
+  await progress()
+
+  await importTemplateServicePartAllowedRoles(zip, db, idMap, congregationId)
+  await progress()
+
+  await importTemplateResponsibles(zip, db, idMap, congregationId)
+  await progress()
+
+  const withoutOrigin = await importEvents(zip, db, idMap, congregationId)
+  await importAbsences(zip, db, idMap, congregationId)
+  await importAttendance(zip, db, idMap, congregationId)
+  await progress()
+
+  await importEventParts(zip, db, idMap, congregationId)
+  await progress()
+
+  await importEventPartAllowedRoles(zip, db, idMap, congregationId)
+  await progress()
+
+  await importEventServiceParts(zip, db, idMap, congregationId)
+  await settleImportedEventOrigins(db, withoutOrigin, congregationId)
+  await progress()
+
+  await importEventServicePartAllowedRoles(zip, db, idMap, congregationId)
+  await progress()
+
+  // After the templates, their responsibles, the events and their items: an archive carries no schedules yet.
+  await importSchedules(db, congregationId)
+  await progress()
+}

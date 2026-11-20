@@ -2,6 +2,7 @@ import type { Prisma } from '~/database/generated/client'
 import { isAwaitingProgramme, programmeTemplate } from '~/features/events/model/empty-meetings'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { TEMPLATE_PROGRAMME_COUNT } from '~/features/events/server/give-programme.server'
+import { setEventSchedulesStatus } from '~/features/events/server/schedules.server'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import { ConflictError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -113,6 +114,7 @@ export async function releaseEvent(
     where: { id_congregationId: { id: eventId, congregationId } },
     data: { status: EventStatus.Released },
   })
+  await setEventSchedulesStatus(db, [eventId], EventStatus.Released, congregationId)
 
   // auditInTransaction (not audit) so the audit row is written on the same
   // client as the release flip and rolls back with it.
@@ -216,6 +218,7 @@ export async function unreleaseEvent(
     where: { id_congregationId: { id: eventId, congregationId } },
     data: { status: EventStatus.Draft },
   })
+  await setEventSchedulesStatus(db, [eventId], EventStatus.Draft, congregationId)
 
   const partIds = event.eventParts.map(p => p.id)
   const serviceIds = event.eventServiceParts.map(s => s.id)

@@ -31,6 +31,8 @@ export { getPartPresetById, listPartPresets, listPartPresetsForSettings } from '
 export { createPartPreset, deletePartPreset, updatePartPreset } from './server/part-presets.server'
 export { extendRecurringEvents, reanchorEmptyMeetings } from './server/recurring-events.server'
 export { reorderTemplateServices } from './server/reorder-services.server'
+export { syncTemplateScheduleTemplates } from './server/schedule-templates.server'
+export { attachEventItems } from './server/schedules.server'
 export { PART_PRESET_COUNT, seedDefaultPartPresets } from './server/seed-part-presets.server'
 export { seedDefaultTemplates } from './server/seed-templates.server'
 export {

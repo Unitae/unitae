@@ -24,6 +24,9 @@ vi.mock('~/shared/infra/db.server', () => ({
   withScope: vi.fn((_id: number, fn: (db: unknown) => Promise<unknown>) => fn(scopedDb)),
 }))
 
+// The seeded templates' schedule templates are the events feature's to test.
+vi.mock('~/features/events/server/schedule-templates.server', () => ({ syncTemplateScheduleTemplates: vi.fn() }))
+
 const extendRecurringEvents = vi.fn()
 vi.mock('~/features/events/server/recurring-events.server', () => ({
   extendRecurringEvents: (...args: unknown[]) => extendRecurringEvents(...args),

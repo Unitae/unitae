@@ -28,6 +28,9 @@ vi.mock('~/shared/infra/logger.server', () => ({
   createLogger: () => ({ error: vi.fn(), warn: vi.fn(), info: vi.fn() }),
 }))
 
+// The seeded templates' schedule templates are the events feature's to test.
+vi.mock('~/features/events/server/schedule-templates.server', () => ({ syncTemplateScheduleTemplates: vi.fn() }))
+
 const extendRecurringEvents = vi.fn()
 vi.mock('~/features/events/server/recurring-events.server', () => ({
   extendRecurringEvents: (...args: unknown[]) => extendRecurringEvents(...args),
