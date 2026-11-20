@@ -152,6 +152,8 @@ export interface CustomRole {
   holders: number
   eligibility: Eligibility
   permissions?: string[]
+  /** Never held by a group overseer: the demo signs in as its holder, whose pages must show this role alone. */
+  notGroupOverseer?: boolean
 }
 
 /** The congregation's own roles: the speaker and reader lists, then the services of the organigram. */
@@ -205,6 +207,7 @@ export const CUSTOM_ROLES: CustomRole[] = [
     parent: 'service-overseer',
     holders: 1,
     eligibility: 'brother',
+    notGroupOverseer: true,
     permissions: [
       'can-configure-territory-settings',
       'can-manage-buildings',

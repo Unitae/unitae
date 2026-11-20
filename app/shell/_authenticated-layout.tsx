@@ -1,12 +1,15 @@
 import { useEffect } from 'react'
-import { data } from 'react-router'
+import { data, redirect } from 'react-router'
 import { toast } from 'sonner'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { DemoBanner } from '~/features/demo'
+import { demoRoleOf, isDemoCongregation, refusedInDemoCopy, touchDemoCopy } from '~/features/demo/index.server'
 import { HelpAccessProvider, HelpPanel } from '~/features/help'
 import { helpReaderFor, visibleHelpSlugsFor } from '~/features/help/index.server'
 import { helpLocaleFor } from '~/features/help/model/help-links'
 import { settingsLinksFor } from '~/features/settings'
 import { loadSettingsAccess } from '~/features/settings/index.server'
+import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { requireAuth } from '~/shared/auth/middleware.server'
 import {
@@ -15,7 +18,9 @@ import {
   permissionsContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import { getHostSettings } from '~/shared/domain/host-settings.server'
 import { getTrialBanner } from '~/shared/domain/trial-banner.server'
+import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { AppLayout } from '~/shared/ui/AppLayout'
 import { OutsideAppError } from '~/shared/ui/OutsideAppError'
@@ -44,6 +49,36 @@ const notFoundForVisitors: Route.MiddlewareFunction = async ({ request, pattern 
   return next()
 }
 
+/**
+ * A visitor's demo copy, on every request after `requireAuth` has resolved the
+ * congregation, client-side navigation included: it turns away files, changes to the logins, invitations and the
+ * congregation's archive, back to the page with the reason; and it pushes the copy's expiry, an hour on.
+ */
+const demoCopyGuard: Route.MiddlewareFunction = async ({ request, context }, next) => {
+  const congregation = context.get(congregationContext)
+  if (!isDemoCongregation(congregation)) return next()
+  if (await refusedInDemoCopy(request)) {
+    const session = await getSession(request.headers.get('Cookie'))
+    session.flash('error', m.demo_refused())
+    throw redirect(sameOriginPath(request), { headers: { 'Set-Cookie': await commitSession(session) } })
+  }
+  // Best effort: a failed push costs the copy an hour at worst, never the page.
+  await touchDemoCopy(congregation).catch(error => logger.warn('Demo copy expiry not pushed', { error }))
+  return next()
+}
+
+/** The page the visitor submitted from, on this site; the dashboard otherwise. */
+function sameOriginPath(request: Request): string {
+  const referer = request.headers.get('Referer')
+  if (!referer) return '/'
+  try {
+    const url = new URL(referer)
+    return url.origin === new URL(request.url).origin ? `${url.pathname}${url.search}` : '/'
+  } catch {
+    return '/'
+  }
+}
+
 export const middleware: Route.MiddlewareFunction[] = [
   notFoundForVisitors,
   requireAuth([
@@ -70,6 +105,7 @@ export const middleware: Route.MiddlewareFunction[] = [
     Permission.CanManageRoles,
     Permission.CanConfigurePermissions,
   ]),
+  demoCopyGuard,
 ]
 
 export async function loader({ request, context }: Route.LoaderArgs) {
@@ -87,6 +123,15 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   // Reading the sidebar cookie here keeps a collapsed sidebar collapsed
   // across full page loads.
   const sidebarOpen = readSidebarOpenFromCookie(request.headers.get('Cookie'))
+  // A visitor's demo copy: the banner says who they are (the middleware pushes its expiry).
+  const demo = isDemoCongregation(congregation)
+    ? {
+        role: await withScopeFromContext(context, (db, congregationId) =>
+          demoRoleOf(db, congregationId, currentUser.id),
+        ),
+        registerUrl: getHostSettings().demo?.registerUrl ?? null,
+      }
+    : null
 
   return data(
     {
@@ -119,6 +164,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       },
       congregationName: congregation.displayName ?? congregation.name,
       userName: formatPersonName(resolveAccountName(currentUser), currentUser.email ?? ''),
+      demo,
       trial: getTrialBanner(congregation, {
         canSubscribe: can(Permission.CanConfigureCongregation),
         locale: getLocale(),
@@ -137,7 +183,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 }
 
 export default function AuthenticatedLayout({ loaderData }: Route.ComponentProps) {
-  const { permissions, congregationName, userName, trial, messages, sidebarOpen, helpSlugs } = loaderData
+  const { permissions, congregationName, userName, demo, trial, messages, sidebarOpen, helpSlugs } = loaderData
 
   useEffect(() => {
     if (messages.success) {
@@ -155,6 +201,7 @@ export default function AuthenticatedLayout({ loaderData }: Route.ComponentProps
         congregationName={congregationName}
         userName={userName}
         trial={trial}
+        demoBanner={<DemoBanner demo={demo} />}
         sidebarOpen={sidebarOpen}
         helpPanel={<HelpPanel />}
       />
@@ -168,13 +215,14 @@ export default function AuthenticatedLayout({ loaderData }: Route.ComponentProps
  */
 export function ErrorBoundary({ loaderData }: Route.ErrorBoundaryProps) {
   if (loaderData == null) return <OutsideAppError />
-  const { permissions, congregationName, userName, trial, sidebarOpen } = loaderData
+  const { permissions, congregationName, userName, demo, trial, sidebarOpen } = loaderData
   return (
     <AppLayout
       permissions={permissions}
       congregationName={congregationName}
       userName={userName}
       trial={trial}
+      demoBanner={<DemoBanner demo={demo} />}
       sidebarOpen={sidebarOpen}
     >
       <RouteErrorBoundary />

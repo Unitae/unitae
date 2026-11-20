@@ -35,6 +35,9 @@ export type CongregationInfo = {
   suspendedAt: Date | null
   suspendedReason: string | null
   trialEndsAt: Date | null
+  // A visitor's demo copy when set; null for every real congregation.
+  demoExpiresAt: Date | null
+  demoReadyAt: Date | null
   // Present only once the congregation has been through Stripe checkout — used to show the billing
   // portal link only to congregations that actually have a Stripe customer (the portal returns 410
   // otherwise: trial / never subscribed).
@@ -89,6 +92,8 @@ export async function findCongregation(congregationId: number): Promise<Congrega
     suspendedAt: congregation.suspendedAt,
     suspendedReason: congregation.suspendedReason,
     trialEndsAt: congregation.trialEndsAt,
+    demoExpiresAt: congregation.demoExpiresAt,
+    demoReadyAt: congregation.demoReadyAt,
     stripeCustomerId: congregation.stripeCustomerId,
   }
 }

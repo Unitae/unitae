@@ -20,6 +20,11 @@ const PUBLISHER_TYPE = {
   PionnierAuxiliaires: PublisherType.PionnierAuxiliaires,
 }
 
+/** A login's address, made unique to its congregation by a suffix: `marc.dupont+demo-x7k2p@demo.unitae.app` (the copy's slug). */
+export function loginEmail(email: string, suffix?: string): string {
+  return suffix ? email.replace('@', `+${suffix}@`) : email
+}
+
 /** Members, then the logins of those who have one; `inactiveAt` comes from the report history. */
 export async function writePeople(
   prisma: PrismaClient,
@@ -27,6 +32,8 @@ export async function writePeople(
   people: PersonSeed[],
   inactiveAt: Map<number, Date>,
   password: string,
+  /** Added to each login's address: a login's address is unique across congregations. */
+  emailSuffix?: string,
 ): Promise<Pick<Written, 'members' | 'accounts'>> {
   const rows = await prisma.member.createManyAndReturn({
     data: people.map(person => ({
@@ -62,7 +69,7 @@ export async function writePeople(
   const accountRows = await prisma.userAccount.createManyAndReturn({
     data: withLogin.map(person => ({
       memberId: members[person.key] as number,
-      email: person.email,
+      email: loginEmail(person.email, emailSuffix),
       password,
       active: true,
       emailVerifiedAt: person.verified ? person.createdAt : null,

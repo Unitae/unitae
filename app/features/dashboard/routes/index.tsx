@@ -18,6 +18,7 @@ import {
   permissionsContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import { isDemoCongregation } from '~/shared/domain/demo-mode.server'
 import { PageTopbar } from '~/shared/ui/PageTopbar'
 
 import type { Route } from './+types/index'
@@ -34,7 +35,11 @@ export async function loader({ context }: Route.LoaderArgs) {
     loadDashboard(db, {
       account,
       permissions,
-      congregation: { id: account.congregationId, timezone: congregation.timezone },
+      congregation: {
+        id: account.congregationId,
+        timezone: congregation.timezone,
+        demo: isDemoCongregation(congregation),
+      },
     }),
   )
   const creations = dashboardCreations(dashboardVisibility({ permissions, member: account.member }), permissions)

@@ -1,10 +1,10 @@
-import { pdf } from '@react-pdf/renderer'
 import JsZip from 'jszip'
 import pLimit from 'p-limit'
 import type { Member, PublisherActivity } from '~/database/generated/client'
 import { ENROLMENT_PERIOD_SELECT, type EnrolmentPeriod } from '~/features/publishers/model/pioneer-enrolment'
 import { PublisherActivityDocument } from '~/features/publishers/ui/PublisherActivityDocument'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { renderPdfBuffer } from '~/shared/infra/pdf.server'
 
 type PublisherWithActivities = Member & { activities: PublisherActivity[]; pioneerEnrolments: EnrolmentPeriod[] }
 
@@ -45,15 +45,17 @@ export async function getPublishersWithYearActivities(
 export async function buildActivityPdfZip(
   publishers: PublisherWithActivities[],
   serviceYear: number,
+  { demo = false }: { demo?: boolean } = {},
 ): Promise<ArrayBuffer> {
   const zip = new JsZip()
   const limit = pLimit(4)
   await Promise.all(
     publishers.map(publisher =>
       limit(async () => {
-        const buffer = await pdf(
+        const buffer = await renderPdfBuffer(
           <PublisherActivityDocument publisher={publisher} serviceYear={serviceYear} />,
-        ).toBuffer()
+          { demo },
+        )
         zip.file(`${publisher.firstname}-${publisher.lastname}.pdf`, buffer)
       }),
     ),

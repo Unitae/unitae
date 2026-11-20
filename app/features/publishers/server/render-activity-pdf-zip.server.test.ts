@@ -7,15 +7,9 @@ vi.mock('~/shared/infra/db.server', () => ({
   },
 }))
 
-const toBuffer = vi.fn().mockResolvedValue(Buffer.from('fake-pdf'))
-vi.mock('@react-pdf/renderer', () => ({
-  pdf: vi.fn(() => ({ toBuffer })),
-  Document: vi.fn(({ children }: { children: unknown }) => children),
-  Page: vi.fn(({ children }: { children: unknown }) => children),
-  View: vi.fn(({ children }: { children: unknown }) => children),
-  Text: vi.fn(({ children }: { children: unknown }) => children),
-  StyleSheet: { create: vi.fn((s: unknown) => s) },
-  Font: { register: vi.fn() },
+const renderPdfBuffer = vi.fn()
+vi.mock('~/shared/infra/pdf.server', () => ({
+  renderPdfBuffer: (...args: unknown[]) => renderPdfBuffer(...args),
 }))
 
 vi.mock('~/shared/auth/sanitize-account.server', () => ({
@@ -31,7 +25,7 @@ const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
-  toBuffer.mockResolvedValue(Buffer.from('fake-pdf'))
+  renderPdfBuffer.mockResolvedValue(Buffer.from('fake-pdf'))
   vi.mocked(db.member.findMany).mockResolvedValue([] as never)
 })
 
@@ -53,12 +47,11 @@ describe('getPublishersWithYearActivities', () => {
   })
 
   it('does not touch the PDF engine — it is purely a DB read', async () => {
-    const { pdf } = await import('@react-pdf/renderer')
     vi.mocked(db.member.findMany).mockResolvedValue([{ id: 1, firstname: 'Jean', lastname: 'Dupont' }] as never)
 
     await getPublishersWithYearActivities(db, 1, 2025)
 
-    expect(pdf).not.toHaveBeenCalled()
+    expect(renderPdfBuffer).not.toHaveBeenCalled()
   })
 
   it('adds a publisherGroupId constraint when groupId is provided', async () => {
@@ -102,7 +95,7 @@ describe('buildActivityPdfZip', () => {
     const buffer = await buildActivityPdfZip(publishers as never, 2025)
 
     expect(buffer).toBeInstanceOf(ArrayBuffer)
-    expect(toBuffer).toHaveBeenCalledTimes(2)
+    expect(renderPdfBuffer).toHaveBeenCalledTimes(2)
   })
 
   it('writes one entry per publisher named "{firstname}-{lastname}.pdf"', async () => {
@@ -119,16 +112,27 @@ describe('buildActivityPdfZip', () => {
   })
 
   it('passes the requested service year to every document', async () => {
-    const { pdf } = await import('@react-pdf/renderer')
     // Only the threading is proven here; the sheet layout for a given year is covered by
     // service-year-activity-rows.test.ts.
     const publishers = [{ id: 1, firstname: 'Aubeline', lastname: 'Martin', activities: [] }]
 
     await buildActivityPdfZip(publishers as never, 2024)
 
-    expect(pdf).toHaveBeenCalledTimes(1)
-    const element = vi.mocked(pdf).mock.calls[0][0] as unknown as { props: Record<string, unknown> }
+    expect(renderPdfBuffer).toHaveBeenCalledTimes(1)
+    const element = renderPdfBuffer.mock.calls[0][0] as { props: Record<string, unknown> }
     expect(element.props).toMatchObject({ serviceYear: 2024 })
+  })
+
+  // A visitor's demo copy: every record in the archive says it's a demo.
+  it('marks every document when the archive comes from a demo copy', async () => {
+    const publishers = [
+      { id: 1, firstname: 'Alice', lastname: 'Martin', activities: [] },
+      { id: 2, firstname: 'Bob', lastname: 'Durand', activities: [] },
+    ]
+
+    await buildActivityPdfZip(publishers as never, 2025, { demo: true })
+
+    expect(renderPdfBuffer.mock.calls.map(call => call[1])).toEqual([{ demo: true }, { demo: true }])
   })
 
   it('does not query the database', async () => {

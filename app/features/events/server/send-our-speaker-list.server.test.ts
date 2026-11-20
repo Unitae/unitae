@@ -68,6 +68,7 @@ const congregation = {
   timezone: 'Europe/Paris',
   locale: 'fr',
   emailFrom: 'Les Lilas <noreply@exemple.fr>',
+  demoExpiresAt: null,
 }
 
 const email = {
@@ -100,6 +101,16 @@ describe('sendOurSpeakerList', () => {
     // Congregation 3 has no address; congregation 4 was not chosen.
     expect(outcome.sent.map(each => each.speakerCongregationId)).toEqual([1, 2])
     expect(outcome.failed).toEqual([])
+  })
+
+  // A visitor's demo copy holds whatever addresses they typed: it never mails anyone.
+  it('sends nothing from a demo copy', async () => {
+    const copy = { ...congregation, demoExpiresAt: new Date('2026-11-20T11:00:00Z') }
+    const outcome = await sendOurSpeakerList(page, copy, email, { spacingMs: 0 })
+
+    expect(sendEmail).not.toHaveBeenCalled()
+    expect(outcome.sent).toEqual([])
+    expect(outcome.failed.map(each => each.speakerCongregationId)).toEqual([1, 2])
   })
 
   it('copies their coordinators only when asked', async () => {

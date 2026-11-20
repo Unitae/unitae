@@ -25,7 +25,8 @@ export function isEmailConfigured(): boolean {
 }
 
 /**
- * Sends an email, throwing when Resend refuses it.
+ * Sends an email, throwing when Resend refuses it. Recipients at the demo's invented domains (below) are dropped first;
+ * with no real recipient left it sends nothing and returns `null`.
  *
  * `mailer.emails.send` resolves on API-level rejections (unverified sending
  * domain, malformed `from`, rate limit) and reports them through the `error`
@@ -35,7 +36,21 @@ export function isEmailConfigured(): boolean {
  * a thrown error to mark the event `failed` and to trigger the BullMQ retry.
  */
 export async function sendEmail(options: CreateEmailOptions): Promise<CreateEmailResponseSuccess | null> {
-  const { data, error } = await mailer.emails.send(options)
+  const cc = options.cc === undefined ? [] : deliverable(options.cc)
+  const bcc = options.bcc === undefined ? [] : deliverable(options.bcc)
+  // The main recipient invented but a copy real (a coordinator in copy of a placeholder address): the copy becomes
+  // the recipient, rather than losing a message the caller reports as sent.
+  const listed = deliverable(options.to)
+  const promoted = listed.length === 0
+  const to = promoted ? cc : listed
+  // Nobody real left (the demo's people and speakers): nothing to send.
+  if (to.length === 0) return null
+  const { data, error } = await mailer.emails.send({
+    ...options,
+    to,
+    ...(options.cc === undefined ? {} : { cc: promoted ? [] : cc }),
+    ...(options.bcc === undefined ? {} : { bcc }),
+  } as CreateEmailOptions)
 
   if (error) {
     // ErrorResponse carries `message` in practice, but it is typed loosely
@@ -45,4 +60,22 @@ export async function sendEmail(options: CreateEmailOptions): Promise<CreateEmai
   }
 
   return data
+}
+
+// The demo congregation's people live at demo.unitae.app and its visiting speakers at example.org: invented
+// addresses, which would bounce and still cost sending quota. The example domains are reserved for documentation (RFC
+// 2606) and never deliver anyway.
+const INVENTED_DOMAINS = ['demo.unitae.app', 'example.org', 'example.com', 'example.net']
+const NAMED_ADDRESS = /<([^>]+)>/
+
+function deliverable(recipients: string | string[]): string[] {
+  return (Array.isArray(recipients) ? recipients : [recipients]).filter(recipient => {
+    // « Marc Dupont <marc@…> » as well as « marc@… ».
+    const address = recipient.match(NAMED_ADDRESS)?.[1] ?? recipient
+    const domain = address
+      .slice(address.lastIndexOf('@') + 1)
+      .trim()
+      .toLowerCase()
+    return !INVENTED_DOMAINS.includes(domain)
+  })
 }

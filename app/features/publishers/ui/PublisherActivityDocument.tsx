@@ -5,6 +5,7 @@ import { buildServiceYearActivityRows } from '~/features/publishers/model/servic
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { PublisherType } from '~/shared/types/publisher-type'
+import { PdfDemoMark } from '~/shared/ui/pdf-demo-mark'
 import { PDF_FONT_FAMILY, PDF_SERIF_FAMILY, registerPdfFonts } from '~/shared/ui/pdf-fonts'
 
 registerPdfFonts()
@@ -171,6 +172,7 @@ export function PublisherActivityDocument({ publisher, serviceYear }: PublisherA
         <View style={{ position: 'absolute', bottom: 20, left: 20, right: 20 }}>
           <Text style={{ fontSize: 9 }}>{m.activity_pdf_form_name()}</Text>
         </View>
+        <PdfDemoMark />
       </Page>
     </Document>
   )

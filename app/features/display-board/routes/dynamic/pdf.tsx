@@ -16,6 +16,7 @@ import {
   requirePermission,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import { isDemoCongregation } from '~/shared/domain/demo-mode.server'
 import logger from '~/shared/infra/logger.server'
 import { renderPdfResponse, sanitizeFilename } from '~/shared/infra/pdf.server'
 import { Permission } from '~/shared/types/permission'
@@ -95,6 +96,7 @@ export function loader({ params, request, context }: Route.LoaderArgs) {
     return renderPdfResponse(
       sheet,
       `${sanitizeFilename(title.toLowerCase()) || sanitizeFilename(FALLBACK_FILENAMES[data.type]().toLowerCase())}.pdf`,
+      { demo: isDemoCongregation(context.get(congregationContext)) },
     )
   })
 }

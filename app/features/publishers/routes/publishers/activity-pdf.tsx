@@ -9,6 +9,7 @@ import {
   permissionsContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import { isDemoCongregation } from '~/shared/domain/demo-mode.server'
 import { NotFoundError } from '~/shared/errors/app-error.server'
 import logger from '~/shared/infra/logger.server'
 import { renderPdfResponse, sanitizeFilename } from '~/shared/infra/pdf.server'
@@ -63,6 +64,8 @@ export function loader({ params, request, context }: Route.LoaderArgs) {
 
     const filename = `${m.activity_pdf_form_filename()}-${sanitizeFilename(publisher.firstname)}-${sanitizeFilename(publisher.lastname)}-${serviceYear}.pdf`
 
-    return renderPdfResponse(<PublisherActivityDocument publisher={publisher} serviceYear={serviceYear} />, filename)
+    return renderPdfResponse(<PublisherActivityDocument publisher={publisher} serviceYear={serviceYear} />, filename, {
+      demo: isDemoCongregation(context.get(congregationContext)),
+    })
   })
 }

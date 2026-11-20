@@ -9,13 +9,15 @@ const MEMBER_ID = 1164
 const OTHER_MEMBER_ID = 2210
 const TERRITORY_ID = 33
 
-const { currentAccountContext, permissionsContext, holder } = vi.hoisted(() => ({
+const { congregationContext, currentAccountContext, permissionsContext, holder } = vi.hoisted(() => ({
+  congregationContext: Symbol('congregationContext'),
   currentAccountContext: Symbol('currentAccountContext'),
   permissionsContext: Symbol('permissionsContext'),
   holder: { memberId: 0 },
 }))
 
 vi.mock('~/shared/auth/route-context.server', () => ({
+  congregationContext,
   currentAccountContext,
   permissionsContext,
   withScopeFromContext: (_context: unknown, fn: (db: unknown) => unknown) => fn({}),
@@ -56,6 +58,7 @@ const context = {
   get: (key: unknown) => {
     if (key === currentAccountContext) return { id: ACCOUNT_ID, congregationId: 42, member: { id: MEMBER_ID } }
     if (key === permissionsContext) return new Set()
+    if (key === congregationContext) return { demoExpiresAt: null }
     return undefined
   },
 }

@@ -59,10 +59,10 @@ export async function buildOurSpeakerListPdf(
  */
 export function renderOurSpeakerListPdf(
   page: OurSpeakerListPage,
-  options: { congregationName: string; timezone: string; locale: string; now: Date },
+  options: { congregationName: string; timezone: string; locale: string; now: Date; demo?: boolean },
 ): Promise<{ filename: string; content: Buffer; count: number }> {
   return runWithLocale(isLocale(options.locale) ? options.locale : DEFAULT_LOCALE, async () => {
     const { document, filename, count } = await buildOurSpeakerListPdf(page, options)
-    return { filename, count, content: await renderPdfBuffer(document) }
+    return { filename, count, content: await renderPdfBuffer(document, { demo: options.demo }) }
   })
 }

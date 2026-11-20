@@ -4,6 +4,7 @@ import { BOARD_TYPEFACE_FAMILY, type BoardTypeface } from '~/features/display-bo
 import { type BoardPerson, formatBoardPersonName } from '~/features/display-board/model/board-roster'
 import { ENTRY_RULE, MASTHEAD, SHEET_MARGIN, type SheetOrientation } from '~/features/display-board/model/sheet-page'
 import * as m from '~/i18n/paraglide/messages'
+import { PdfDemoMark } from '~/shared/ui/pdf-demo-mark'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 
 // What every printable board sheet shares, so they read as one set: the page, the palette, the
@@ -87,6 +88,7 @@ export function BoardPdfPage({
           fixed
           render={({ pageNumber, totalPages }) => (totalPages > 1 ? `${pageNumber} / ${totalPages}` : '')}
         />
+        <PdfDemoMark />
       </Page>
     </AccentContext.Provider>
   )

@@ -9,6 +9,7 @@ import { TerritoryAttributionKind } from '~/features/territories/model/territory
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 import type { Entrance } from '~/shared/types/entrance'
+import { PdfDemoMark } from '~/shared/ui/pdf-demo-mark'
 import { registerPdfFonts } from '~/shared/ui/pdf-fonts'
 
 const publicDir = path.join(process.cwd(), 'public')
@@ -174,6 +175,7 @@ export function TerritoryDocument({
           </Text>
         </View>
         <DocumentWaterMark type={attributionType} isCampaign={attributionCampaign} />
+        <PdfDemoMark />
       </Page>
       {showMapPage && googleMapKey != null && (
         <Page size={{ width: 270, height: 425 }} style={styles.map}>
@@ -192,6 +194,7 @@ export function TerritoryDocument({
             <Image src={path.join(publicDir, 'marker-google.jpg')} style={{ height: 20 }} />
             <Text>{m.territory_doc_map_position()}</Text>
           </View>
+          <PdfDemoMark />
         </Page>
       )}
     </Document>

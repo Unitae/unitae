@@ -17,6 +17,7 @@ import { generateArea } from './places'
 import { CUSTOM_ROLES, PEOPLE, TERRITORIES } from './profile'
 import { Random } from './random'
 import { assignRoleHolders } from './roles'
+import { loginEmail } from './write'
 
 const NOW = new Date(2026, 10, 10, 12)
 const DAY = 24 * 60 * 60 * 1000
@@ -164,6 +165,43 @@ describe('the demo roles', () => {
         }
       }
     }
+  })
+
+  // The territory servant is a role of his own in the demo: as a group overseer too, his login would show both.
+  it('never gives the territory service to a group overseer', () => {
+    const overseers = demo.groups.map(group => group.responsible)
+    for (let seed = 1; seed <= 30; seed++) {
+      const holders = assignRoleHolders(new Random(seed), demo.people, NOW, [demo.admin], overseers)
+      for (const key of holders.get('territoires') ?? []) {
+        expect(overseers, `seed ${seed}`).not.toContain(key)
+      }
+    }
+  })
+
+  // The demo's publisher login: a plain publisher or pioneer who signs in already and holds no role.
+  it('leaves publishers with a login and no role, for the demo to sign in as', () => {
+    const holders = assignRoleHolders(
+      new Random(7),
+      demo.people,
+      NOW,
+      [demo.admin],
+      demo.groups.map(g => g.responsible),
+    )
+    const busy = new Set([
+      ...[...holders.values()].flat(),
+      ...demo.groups.flatMap(group => [group.responsible, group.deputy ?? []].flat()),
+    ])
+    const free = demo.people.filter(
+      person =>
+        person.baptismDate != null &&
+        person.hasAccount &&
+        person.email !== '' &&
+        !person.isHelder &&
+        !person.isServant &&
+        person.leftAt == null &&
+        !busy.has(person.key),
+    )
+    expect(free.length).toBeGreaterThan(5)
   })
 })
 
@@ -512,5 +550,15 @@ describe('the demo board', () => {
       expect(find(board, title), title).toBeDefined()
       expect(JSON.stringify(find(later, title)), title).not.toBe(JSON.stringify(find(board, title)))
     }
+  })
+})
+
+describe('a copy’s logins', () => {
+  it('take a suffix that keeps their address unique across congregations', () => {
+    expect(loginEmail('marc.dupont@demo.unitae.app', 'x7k2p')).toBe('marc.dupont+x7k2p@demo.unitae.app')
+  })
+
+  it('keep their address when there is no suffix: the marketing seed’s congregation', () => {
+    expect(loginEmail('marc.dupont@demo.unitae.app')).toBe('marc.dupont@demo.unitae.app')
   })
 })

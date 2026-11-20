@@ -9,6 +9,7 @@ import {
   OUR_LIST_TEXT_SIZE,
 } from '~/features/events/model/our-speaker-sheet'
 import * as m from '~/i18n/paraglide/messages'
+import { PdfDemoMark } from '~/shared/ui/pdf-demo-mark'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 
 // « Notre liste » as the other congregations receive it: our congregation and the day, the two people to call
@@ -189,6 +190,7 @@ export function OurSpeakerListDocument({ sheet }: { sheet: OurSpeakerListSheet }
           <SheetText>{m.external_speakers_pdf_footer({ name: congregationName, date: sheet.date })}</SheetText>
           <SheetText render={({ pageNumber, totalPages }) => (totalPages > 1 ? `${pageNumber} / ${totalPages}` : '')} />
         </View>
+        <PdfDemoMark />
       </Page>
     </Document>
   )

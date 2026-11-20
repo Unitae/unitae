@@ -6,7 +6,13 @@ import { getPerimeterPaths } from '~/features/territories/server/perimeter.serve
 import { showPhoneOnTerritoryCard } from '~/features/territories/server/territory-pdf.server'
 import { TerritoryDocument } from '~/features/territories/ui/TerritoryDocument'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
+import { isDemoCongregation } from '~/shared/domain/demo-mode.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { ForbiddenError } from '~/shared/errors/app-error.server'
 import { renderPdfResponse, sanitizeFilename } from '~/shared/infra/pdf.server'
@@ -72,6 +78,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
         attributionCampaign={currentAttribution?.campaignId != null}
       />,
       filename,
+      { demo: isDemoCongregation(context.get(congregationContext)) },
     )
   })
 }

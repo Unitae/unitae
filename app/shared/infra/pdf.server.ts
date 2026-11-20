@@ -1,7 +1,8 @@
 import type { DocumentProps } from '@react-pdf/renderer'
 import { Font, pdf } from '@react-pdf/renderer'
-import type { ReactElement } from 'react'
+import { createElement, type ReactElement } from 'react'
 import logger from '~/shared/infra/logger.server'
+import { PdfDemoContext } from '~/shared/ui/pdf-demo-mark'
 
 export function sanitizeFilename(s: string): string {
   return s.replace(/[/\\?%*:|"<>]/g, '_').slice(0, 50)
@@ -62,18 +63,36 @@ async function warmRegisteredFonts() {
   }
 }
 
+interface RenderPdfOptions {
+  /** Printed for a visitor's demo copy: each page's `PdfDemoMark` says so. */
+  demo?: boolean
+}
+
+function render(document: ReactElement<DocumentProps>, { demo = false }: RenderPdfOptions): Promise<Blob> {
+  // The provider draws nothing: the document stays the root of what's laid out.
+  const root = createElement(PdfDemoContext.Provider, { value: demo }, document) as ReactElement<DocumentProps>
+  return pdf(root).toBlob()
+}
+
 /** The PDF as bytes, for an attachment: laid out after the same font warm-up as a download. */
-export async function renderPdfBuffer(document: ReactElement<DocumentProps>): Promise<Buffer> {
+export async function renderPdfBuffer(
+  document: ReactElement<DocumentProps>,
+  options: RenderPdfOptions = {},
+): Promise<Buffer> {
   await warmRegisteredFonts()
-  const blob = await pdf(document).toBlob()
+  const blob = await render(document, options)
   return Buffer.from(await blob.arrayBuffer())
 }
 
-export async function renderPdfResponse(document: ReactElement<DocumentProps>, filename: string): Promise<Response> {
+export async function renderPdfResponse(
+  document: ReactElement<DocumentProps>,
+  filename: string,
+  options: RenderPdfOptions = {},
+): Promise<Response> {
   let blob: Blob
   try {
     await warmRegisteredFonts()
-    blob = await pdf(document).toBlob()
+    blob = await render(document, options)
   } catch (error) {
     logger.error('PDF rendering failed', { error })
     return new Response('PDF generation failed', { status: 500 })

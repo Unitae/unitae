@@ -99,6 +99,7 @@ export const TENANT_MODELS = [
   'consentRecord',
   'notificationEvent',
   'notificationPreference',
+  'demoSignInToken',
 ] as const
 
 const SCOPED_METHODS = [

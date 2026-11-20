@@ -1,3 +1,4 @@
+import type { DemoHelpLimit } from '~/features/demo'
 import type { Permission } from '~/shared/types/permission'
 
 export const HELP_LOCALES = ['fr', 'en', 'pt-PT'] as const
@@ -79,6 +80,8 @@ export type HelpArticleView =
       module: HelpModule
       html: string
       related: { slug: string; title: string }[]
+      /** In a demo copy, what the copy refuses of this task (`demoHelpLimit` in the demo feature). */
+      demoLimit?: DemoHelpLimit | null
     }
   | { kind: 'forbidden'; slug: string }
   | { kind: 'missing'; slug: string }

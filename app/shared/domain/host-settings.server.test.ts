@@ -113,6 +113,15 @@ describe('getHostSettings', () => {
     expect(getHostSettings().operator?.managedHosting).toBe(true)
   })
 
+  it('keeps the demo’s links to the hosted site, each on its own', async () => {
+    process.env.HOST_SETTINGS = JSON.stringify({
+      demo: { registerUrl: 'https://site.example.com/register', demoUrl: 'not a link' },
+    })
+    const { getHostSettings } = await import('./host-settings.server')
+
+    expect(getHostSettings().demo).toEqual({ registerUrl: 'https://site.example.com/register' })
+  })
+
   it('drops the billing links when one of the two is not a web address', async () => {
     process.env.HOST_SETTINGS = JSON.stringify({
       billing: { portalUrl: 'https://billing.example.com', upgradeUrl: '/checkout' },

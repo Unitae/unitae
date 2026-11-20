@@ -19,7 +19,7 @@ export type OurListOutcome =
 
 interface OurListContext {
   actorId: number
-  congregation: Pick<CongregationInfo, 'displayName' | 'timezone' | 'locale' | 'emailFrom'>
+  congregation: Pick<CongregationInfo, 'displayName' | 'timezone' | 'locale' | 'emailFrom' | 'demoExpiresAt'>
   withScope: <T>(fn: (db: TransactionClient, congregationId: number) => Promise<T>) => Promise<T>
 }
 

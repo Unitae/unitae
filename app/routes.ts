@@ -1,6 +1,7 @@
 import { index, layout, prefix, type RouteConfig, route } from '@react-router/dev/routes'
 
 import { authenticationRoutes } from './features/authentication/authentication.routes'
+import { demoEntryRoutes, demoRoutes } from './features/demo/demo.routes'
 import { attendanceRoutes } from './features/events/attendance.routes'
 import { daysOffRoutes } from './features/events/days-off.routes'
 import { programsRoutes } from './features/events/programs.routes'
@@ -19,8 +20,10 @@ export default [
   route('cron/retention', 'shell/cron.retention.tsx'),
   route('cron/board-expirations', 'shell/cron.board-expirations.tsx'),
   route('cron/process-notifications', 'shell/cron.process-notifications.tsx'),
+  route('cron/demo-seed', 'shell/cron.demo-seed.tsx'),
   route('feed/:token/calendar.ics', 'features/events/routes/calendar-feed.ics.tsx'),
   ...authenticationRoutes,
+  ...demoEntryRoutes,
   route('map-fonts/:fontstack/:range', 'shell/map-fonts.tsx'),
   route('', 'shell/_authenticated-layout.tsx', [
     index('features/dashboard/routes/index.tsx'),
@@ -177,6 +180,7 @@ export default [
       ]),
     ]),
     ...helpRoutes,
+    ...demoRoutes,
     ...programsRoutes,
     ...attendanceRoutes,
     ...territoryManagementRoutes,

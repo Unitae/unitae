@@ -29,7 +29,7 @@ const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 export async function sendOurSpeakerList(
   page: OurSpeakerListPage,
-  congregation: Pick<CongregationInfo, 'displayName' | 'timezone' | 'locale' | 'emailFrom'>,
+  congregation: Pick<CongregationInfo, 'displayName' | 'timezone' | 'locale' | 'emailFrom' | 'demoExpiresAt'>,
   email: OurListEmail,
   options: { now?: Date; spacingMs?: number } = {},
 ): Promise<{ sent: OurListRecipient[]; failed: OurListRecipient[] }> {
@@ -39,6 +39,8 @@ export async function sendOurSpeakerList(
     recipient => chosen.has(recipient.speakerCongregationId) && recipient.responsibleEmail.trim() !== '',
   )
   if (recipients.length === 0) return { sent: [], failed: [] }
+  // A visitor's demo copy holds whatever addresses they typed: it never mails anyone.
+  if (congregation.demoExpiresAt != null) return { sent: [], failed: recipients }
 
   const { filename, content } = await renderOurSpeakerListPdf(page, {
     congregationName: congregation.displayName,

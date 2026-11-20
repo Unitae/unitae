@@ -7,6 +7,7 @@ import {
   permissionsContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import { isDemoCongregation } from '~/shared/domain/demo-mode.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import type { Route } from './+types/ours-pdf'
@@ -30,6 +31,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     timezone: congregation.timezone,
     locale: congregation.locale,
     now: new Date(),
+    demo: isDemoCongregation(congregation),
   })
   return new Response(new Uint8Array(content), {
     headers: {

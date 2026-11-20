@@ -101,7 +101,14 @@ model Congregation {
   stripeCustomerId     String?
   stripeSubscriptionId String?
 
+  // A visitor's demo copy: deleted by the control plane once this passes, pushed
+  // an hour further by each request. Null for every real congregation.
+  demoExpiresAt DateTime?
+  // When the demo seed finished filling the copy: until then it isn't handed to a visitor.
+  demoReadyAt   DateTime?
+
   userAccounts                 UserAccount[]
+  demoSignInTokens             DemoSignInToken[]
   members                      Member[]
   memberRoleAssignments        MemberRoleAssignment[]
   territories                  Territory[]
@@ -158,9 +165,9 @@ model Congregation {
   territoryCardOverlays TerritoryCardOverlay[]
   territoryPerimeter    TerritoryPerimeter?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  absences Absence[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  absences  Absence[]
 }
 
 // A person currently part of this congregation. Holds identity, demographics,
@@ -255,14 +262,14 @@ model Member {
   // On the list of speakers we send to other congregations, when he gives public talks there.
   ourSpeaker        OurSpeaker?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  absences  Absence[]
 
   @@unique([id, congregationId])
   @@index([congregationId, leftAt])
   @@index([congregationId, firstnameNormalized])
   @@index([congregationId, lastnameNormalized])
-  absences Absence[]
 }
 
 // A person to contact about a Member in an emergency — either to get
@@ -355,11 +362,11 @@ model UserAccount {
   notificationPreferences NotificationPreference[]
   buildingSyncs           BuildingSync[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  absences  Absence[]
 
   @@unique([id, congregationId])
-  absences Absence[]
 }
 
 model Permission {
@@ -1116,11 +1123,11 @@ model TemplatePart {
 }
 
 model TemplateServicePart {
-  id   Int    @id @default(autoincrement())
-  name String
-  key  String
+  id    Int    @id @default(autoincrement())
+  name  String
+  key   String
   // Where it sits in the template's services: a new one goes last; new programmes copy it.
-  order Int @default(0)
+  order Int    @default(0)
 
   template   EventTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   templateId Int
@@ -1311,9 +1318,9 @@ model EventServicePart {
   hasConflict Boolean @default(false)
 
   // Inline field (copied from template service part on generation, or set manually)
-  name String @default("")
+  name  String @default("")
   // Where it sits in the event's services: copied from the template's on generation, a new one goes last.
-  order Int @default(0)
+  order Int    @default(0)
 
   event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   eventId Int
@@ -1673,5 +1680,22 @@ model Attendance {
   congregationId Int
 
   @@unique([id, congregationId])
+  @@index([congregationId])
+}
+
+// A one-time link into a demo copy, as the role it names. Only the hash is kept:
+// the raw token travels in the link once. Written by the control plane, used once by /demo/enter.
+model DemoSignInToken {
+  id        Int       @id @default(autoincrement())
+  token     String    @unique
+  // One of DEMO_ROLES (app/features/demo/model/demo-role.ts).
+  role      String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
   @@index([congregationId])
 }

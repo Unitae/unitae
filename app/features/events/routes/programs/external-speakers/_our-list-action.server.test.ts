@@ -22,7 +22,13 @@ const withScope = <T>(fn: (db: TransactionClient, congregationId: number) => Pro
 }
 const context = {
   actorId: 99,
-  congregation: { displayName: 'Les Lilas', timezone: 'Europe/Paris', locale: 'fr', emailFrom: 'x <noreply@x.fr>' },
+  congregation: {
+    displayName: 'Les Lilas',
+    timezone: 'Europe/Paris',
+    locale: 'fr',
+    emailFrom: 'x <noreply@x.fr>',
+    demoExpiresAt: null,
+  },
   withScope,
 }
 const recipient = (id: number) => ({ speakerCongregationId: id, name: `Assemblée ${id}` })

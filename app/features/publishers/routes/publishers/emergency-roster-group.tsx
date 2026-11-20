@@ -2,7 +2,13 @@ import { redirect } from 'react-router'
 import { canViewEmergencyInfo } from '~/features/publishers/model/emergency-access'
 import { getPublishersWithEmergencyInfo } from '~/features/publishers/server/emergency.queries'
 import { EmergencyRosterDocument } from '~/features/publishers/ui/EmergencyRosterDocument'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
+import { isDemoCongregation } from '~/shared/domain/demo-mode.server'
 import { renderPdfResponse, sanitizeFilename } from '~/shared/infra/pdf.server'
 import { Permission } from '~/shared/types/permission'
 import { formatGroupName } from '~/shared/utils/format-group-name'
@@ -35,6 +41,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     return renderPdfResponse(
       <EmergencyRosterDocument title={formatGroupName(group.name)} publishers={publishers} />,
       `urgences-${sanitizeFilename(group.name)}.pdf`,
+      { demo: isDemoCongregation(context.get(congregationContext)) },
     )
   })
 }

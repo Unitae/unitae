@@ -38,8 +38,17 @@ type EventSendResult = 'delivered' | 'permanent-failure'
 // on resend tooling). The send LOOP itself never throws; the trailing
 // updateMany can throw (DB blip) and would trigger a BullMQ retry, but by
 // then all sends have already happened, so this is the one uncovered edge.
+// A visitor's demo copy holds whatever addresses they typed: it never mails
+// anyone. Judged on the copy itself, not on the demo mode's flag, so no setting can turn it into a relay.
+function isDemoCopy(congregation: Pick<CongregationInfo, 'demoExpiresAt'>, congregationId: number): boolean {
+  if (congregation.demoExpiresAt == null) return false
+  logger.info('Notification suppressed: demo copy', { congregationId })
+  return true
+}
+
 export async function handleDigestEmail(data: Extract<EmailJobData, { type: 'notification-digest' }>): Promise<void> {
   const congregation = await resolveCongregation(data.congregationId)
+  if (isDemoCopy(congregation, data.congregationId)) return
   if (congregation.suspendedAt) {
     // Suspended tenants must not send email. Rows stay in whatever status
     // flush-settled set them to — suspension is an account-level gate, not a
@@ -96,6 +105,7 @@ export async function handleDigestEmail(data: Extract<EmailJobData, { type: 'not
 
 export async function handleInstantEmail(data: Extract<EmailJobData, { type: 'notification-instant' }>): Promise<void> {
   const congregation = await resolveCongregation(data.congregationId)
+  if (isDemoCopy(congregation, data.congregationId)) return
   if (congregation.suspendedAt) {
     // Same account-level gate as handleDigestEmail. No DB row exists for
     // instant notifications (they bypass NotificationEvent) — nothing to

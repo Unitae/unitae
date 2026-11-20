@@ -106,4 +106,11 @@ describe('read + delete wrappers', () => {
     await deleteBoardFile('key')
     expect(mockDeleteFileFromStorage).toHaveBeenCalledWith('key')
   })
+
+  // Every demo copy's board points at the same files: a visitor deleting a document in theirs must not take the PDF
+  // away from the others.
+  it('deleteBoardFile keeps the files the demo copies share', async () => {
+    await deleteBoardFile('demo-shared/board/0-1.pdf')
+    expect(mockDeleteFileFromStorage).not.toHaveBeenCalled()
+  })
 })

@@ -4,7 +4,13 @@ import {
   getPublishersWithYearActivities,
 } from '~/features/publishers/server/render-activity-pdf-zip.server'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
+import { isDemoCongregation } from '~/shared/domain/demo-mode.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 
@@ -51,7 +57,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     getPublishersWithYearActivities(db, currentUser.congregationId, year, { groupId, publisherIds }),
   )
 
-  const file = await buildActivityPdfZip(publishers, year)
+  const file = await buildActivityPdfZip(publishers, year, {
+    demo: isDemoCongregation(context.get(congregationContext)),
+  })
 
   const today = new Date()
   return new Response(file, {
