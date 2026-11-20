@@ -781,7 +781,6 @@
         "note": "",
         "memberId": "<member:hugo>",
         "accountId": "<account:hugo>",
-        "legacyEventId": null,
         "createdAt": "<time>"
       }
     ],
