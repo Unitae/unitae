@@ -134,7 +134,7 @@ export async function importTemplateParts(
         templateId,
         // Absent in pre-2.5 archives, which resolves to null.
         presetId: idMap.getOptional('part-presets', record.presetId),
-        // Absent before 2.21: settleImportedSchedules gives it its schedule template.
+        // Null before 2.21, or when its schedule template did not come: settleImportedSchedules gives it one.
         scheduleTemplateId: idMap.getOptional('schedule-templates', record.scheduleTemplateId),
         congregationId,
       },

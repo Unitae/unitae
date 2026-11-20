@@ -5,6 +5,7 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import type { EntityIdMap } from './data-transfer.type'
 import { archivedAbsenceEvents } from './import-absences.server'
+import { scheduleOfItem } from './import-schedules.server'
 import { fallbackServiceOrders, readNdjsonFile } from './ndjson-archive'
 
 const logger = createLogger('import-events')
@@ -243,8 +244,9 @@ export async function importEventParts(
         assistantId: idMap.getOptional('members', record.assistantId),
         allowExternalSpeaker: record.allowExternalSpeaker ?? false,
         externalSpeakerId: idMap.getOptional('external-speakers', record.externalSpeakerId),
-        // Absent before 2.21: settleImportedSchedules gives it its schedule.
-        scheduleId: idMap.getOptional('schedules', record.scheduleId),
+        // Null before 2.21, or when its schedule did not come or is not one of this event's programmes:
+        // settleImportedSchedules gives it one.
+        scheduleId: scheduleOfItem(idMap, record.scheduleId, eventId, 'programme'),
         congregationId,
       },
     })
@@ -286,7 +288,7 @@ export async function importEventServiceParts(
         servicePartId: idMap.getOptional('programme-template-service-roles', record.servicePartId),
         presetId: idMap.getOptional('part-presets', record.presetId),
         assigneeId: idMap.getOptional('members', record.assigneeId),
-        scheduleId: idMap.getOptional('schedules', record.scheduleId),
+        scheduleId: scheduleOfItem(idMap, record.scheduleId, eventId, 'duty'),
         congregationId,
       },
     })

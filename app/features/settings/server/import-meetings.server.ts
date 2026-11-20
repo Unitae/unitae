@@ -50,7 +50,7 @@ export async function importMeetings(
   await importScheduleTemplates(zip, db, idMap, congregationId)
   await progress()
 
-  await importKindScheduleTemplates(zip, db, idMap, congregationId)
+  const mergedTemplateIds = await importKindScheduleTemplates(zip, db, idMap, congregationId)
   await progress()
 
   await importTemplateParts(zip, db, idMap, congregationId)
@@ -90,7 +90,7 @@ export async function importMeetings(
   await importEventServicePartAllowedRoles(zip, db, idMap, congregationId)
   await progress()
 
-  // After the templates, their responsibles, the events and their items.
-  await settleImportedSchedules(zip, db, congregationId)
+  // Last: it finds the items that came without a schedule, so every item must be in.
+  await settleImportedSchedules(zip, db, congregationId, mergedTemplateIds)
   await progress()
 }
