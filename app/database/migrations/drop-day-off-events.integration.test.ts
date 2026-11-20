@@ -53,6 +53,12 @@ function snapshot(): Promise<Result> {
     let result: Result | undefined
     try {
       await testDb.$transaction(async tx => {
+        // 20261123090000_drop_absence_legacy_event_id dropped the column this migration writes: a stand-in, with its
+        // unique index (ON CONFLICT targets it), for this rolled-back transaction only. A no-op where it still exists.
+        await tx.$executeRawUnsafe('ALTER TABLE "Absence" ADD COLUMN IF NOT EXISTS "legacyEventId" INTEGER')
+        await tx.$executeRawUnsafe(
+          'CREATE UNIQUE INDEX IF NOT EXISTS "Absence_legacyEventId_key" ON "Absence"("legacyEventId")',
+        )
         const stamp = `drop-day-off-${process.pid}-${globalThis.performance.now().toString().replace('.', '')}`
         const congregationId = (await tx.congregation.create({ data: { name: stamp, slug: stamp, active: true } })).id
         const dayOff = await tx.eventTemplate.create({ data: { name: 'Absence', key: 'day-off', congregationId } })
