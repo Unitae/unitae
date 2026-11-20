@@ -315,6 +315,8 @@ today.
 - Each schedule template has **one** responsible role (D7): holders may fill and publish the schedules
   made from it, on every event. Today's `programme`/`service` scopes and the « programme covers
   services » asymmetry (`scopesCovering`) disappear.
+- A role's holders are **every seat** of it: its leader and its deputies (« adjoints »), whether the seat is
+  on the account or on the publisher record — as for today's template responsibles, whose test pins it.
 - Congregation-wide permissions cover every schedule (D3). No new permission key.
 
 ### 5.5 Absences
@@ -393,9 +395,9 @@ release before a contract's drop is the rollback point; an archive export is tak
    `EventTemplate` becomes the event kind (the Prisma model is renamed with `@@map("EventTemplate")`;
    the table keeps its name); add a nullable `scheduleId`
    to parts and duties and a nullable `scheduleTemplateId` to their template counterparts. Backfill:
-   - per existing template: a `programme` schedule template « Programme — <name> » holding its parts,
-     responsible = the `programme` scope role; a `duty` schedule template « Services — <name> » holding
-     its service parts, responsible = the `service` scope role (falling back to the `programme` role
+   - per existing template: a `programme` schedule template named with the template's own name holding its
+     parts, responsible = the `programme` scope role; a `duty` schedule template with no name and the key
+     `services` (the catalogue names it « Services »; no language is stored) holding its service parts, responsible = the `service` scope role (falling back to the `programme` role
      only when there is none — D31); both linked as the kind's suggestions. Identical « Services »
      templates are **not** merged (D30);
    - per event: a programme schedule if it has parts, a « Services » schedule if it has service parts,

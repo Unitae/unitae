@@ -272,6 +272,10 @@ missing (shipped in PR 1).
 
 ## 7. PR 3 — Schedules, expand
 
+**Shipped** in three PRs: making room (#589: the file splits, and a test that a deputy of a responsible role
+is responsible), the tables, backfill and dual write (#590), the archive (2.21, #592). What shipped differs
+from the first draft below on the points marked « Shipped: ».
+
 **Schema and migration** `add_schedules`:
 
 - `ScheduleTemplate` (`id`, `name?`, `key?` (null name → the catalogue's label for the key), `kind` `programme` | `duty` (CHECK), `responsibleRoleId?` →
@@ -283,18 +287,22 @@ missing (shipped in PR 1).
 - Nullable `scheduleId` on `EventPart` and `EventServicePart`, with a composite foreign key
   (`scheduleId`, `eventId`) → `Schedule(id, eventId)` (Cascade), so an item's event is always its
   schedule's; nullable `scheduleTemplateId` on `TemplatePart` and `TemplateServicePart`.
-- Drop `Absence.legacyEventId` (PR 2's image no longer writes it).
+- ~~Drop `Absence.legacyEventId`~~ Shipped: done with PR 2's contract (#587, #588).
 
 Backfill (spec §7 step 2, minus rules — T6):
 
-- per template other than freeform: « Programme — <name> » if it has parts, responsible = its
+- per template other than freeform: a programme schedule template if it has parts, responsible = its
   `programme` responsible; « Services — <name> » if it has service parts, responsible = its `service`
   responsible, else its `programme` one (D31: never both); both linked as suggestions, programme first. Template items
   get their `scheduleTemplateId`.
 - per event: a programme schedule if it has parts, a « Services » schedule if it has service parts,
   `status` = `published` when the event is `released`; items get their `scheduleId`.
 - Re-runnable: an event's existing schedule of the same template (or key) is reused, never doubled;
-  where an event's status and its schedules disagree, the event's status wins (T7).
+  where an event's status and its schedules disagree, the event's status wins (T7). Shipped: a re-run also
+  brings across a template renamed, a template applied to an event (its schedules move onto that
+  template's) and a template deleted (its orphaned schedule templates go). A CHECK keeps a name or a key on
+  every schedule and schedule template; a partial unique index holds one programme per event (Prisma's
+  `partialIndexes` preview feature).
 - No language is stored (the built-in roles' rule): a backfilled programme schedule template takes
   the template's own name, which the congregation wrote; a backfilled duty one gets `name` null and
   `key` `services`, and the UI shows « Services » / « Services » from the catalogue until someone
@@ -311,12 +319,21 @@ Size: `event-templates.server.ts` (327) splits into `template-items.server.ts` f
 `seed-templates.server.ts` (333) moves its data into `model/seed-templates.data.ts`;
 `event-status.server.ts` (307) moves `computeNotifyTargets` into `release-notifications.server.ts`.
 
-**Archive (bump):** `schedule-templates.ndjson`, `kind-schedule-templates.ndjson`, `schedules.ndjson`;
+**Archive (bump, 2.21):** `schedule-templates.ndjson`, `kind-schedule-templates.ndjson`, `schedules.ndjson`;
 items carry `scheduleId` / `scheduleTemplateId`. Import of older archives runs the migration's rule in
-TypeScript (`import-schedules.server.ts`), using the event statuses PR 0 started exporting (2.15 and
+TypeScript (`import-schedules.server.ts`, `settleImportedSchedules`, which for a 2.21 archive only gives a
+schedule to items that came without one), using the event statuses PR 0 started exporting (2.15 and
 older: all draft, as their import already does).
 
 **Demo:** the seed sets responsibles on its templates (it sets none today) and writes schedules.
+
+Shipped: the dual write also covers a programme removed from a meeting that keeps its counts (its
+schedules go), a template renamed (its programme schedule template follows) and a template deleted (its
+schedule templates go). Two writers making the same schedule or schedule template at once share one: the
+event's or the template's row is locked, a template's before an event's, the order series and moves use.
+The app's `CLAUDE.md` names the call each writer makes. The demo's templates name responsibles from its
+organigram. The upgrade rehearsal is `scripts/events-snapshot.ts` (§2a): run before #590 merged, « The
+same. » apart from the new column.
 
 **Previous image:** writes items without schedules and statuses on events only; PR 4 catches up.
 
@@ -336,7 +353,11 @@ numbered on the board; PR 5 starts on the user's go.
 1. Migration `catch_up_schedules`: the whole PR 3 backfill again, idempotently (T7) — templates
    created during the rollout get their schedule templates, responsible changes reach
    `responsibleRoleId`, items without `scheduleId` get their schedule, statuses are realigned (the
-   event's status wins). `scheduleId` stays nullable until PR 9 makes it required.
+   event's status wins). `scheduleId` stays nullable until PR 9 makes it required. It also realigns
+   what PR 3's image cannot: deleting a role leaves a duty schedule template without its responsible
+   where D31 falls back to the programme one (`deleteRole` lives in `shared/` and cannot call the events
+   feature). Before this PR merges, any other service that seeds a congregation's templates must write
+   their schedule templates too, or congregations it creates afterwards keep none.
 2. Every reader of items and status reads schedules: the ~40 status readers and ~60 + ~50 item readers
    listed in Appendix A, grouped into commits by feature — events (lists, view, cadence,
    conflicts, candidates, share message, engagement, feed, notifications), dashboard (next meeting,
