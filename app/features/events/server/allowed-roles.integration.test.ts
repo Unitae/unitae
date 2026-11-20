@@ -2,13 +2,10 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { resolveEligibleUserIds } from '~/features/events/server/allowed-roles.server'
-import {
-  applyTemplateToEvent,
-  updatePartAssignment,
-  updateServicePartAssignment,
-} from '~/features/events/server/event-parts.server'
-import { upsertTemplatePart, upsertTemplateServicePart } from '~/features/events/server/event-templates.server'
+import { applyTemplateToEvent } from '~/features/events/server/apply-template.server'
+import { updatePartAssignment, updateServicePartAssignment } from '~/features/events/server/event-parts.server'
 import { createProgrammeOnDay } from '~/features/events/server/programme-creation.server'
+import { upsertTemplatePart, upsertTemplateServicePart } from '~/features/events/server/template-items.server'
 import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 
 const adapter = new PrismaPg({

@@ -10,10 +10,10 @@ import {
   updatePartSchema,
   updateServiceSchema,
 } from '~/features/events/schemas/program-edit.schema'
+import { applyTemplateToEvent } from '~/features/events/server/apply-template.server'
 import {
   addPartAssignment,
   addServicePartAssignment,
-  applyTemplateToEvent,
   deletePartAssignment,
   deleteServicePartAssignment,
   type UpdateEventFields,

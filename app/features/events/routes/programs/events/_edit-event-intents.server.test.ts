@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('~/features/events/server/event-parts.server', () => ({
   addPartAssignment: vi.fn(),
   addServicePartAssignment: vi.fn(),
-  applyTemplateToEvent: vi.fn(),
   deletePartAssignment: vi.fn(),
   deleteServicePartAssignment: vi.fn(),
   updateEvent: vi.fn(),
@@ -11,8 +10,10 @@ vi.mock('~/features/events/server/event-parts.server', () => ({
   updateServicePartAssignment: vi.fn(),
 }))
 
+vi.mock('~/features/events/server/apply-template.server', () => ({ applyTemplateToEvent: vi.fn() }))
+
 const { handleEditIntent } = await import('./_edit-event-intents.server')
-const { applyTemplateToEvent } = await import('~/features/events/server/event-parts.server')
+const { applyTemplateToEvent } = await import('~/features/events/server/apply-template.server')
 
 const db = {} as Parameters<typeof handleEditIntent>[2]
 const EVENT_ID = 31

@@ -10,23 +10,13 @@ import { createLogger } from '~/shared/infra/logger.server'
 import { assertCanRelease, EVENT_STATUS_ERRORS } from './event-status.policy'
 import { PROGRAMME_ASSIGNMENT_TYPE } from './notifications.server'
 import { buildAssignmentContext, cancelPendingAssignmentNotices, notifyAssignment } from './notify-assignment.server'
+import { computeNotifyTargets, type NotifyTarget } from './release-notifications.server'
 
 const logger = createLogger('event-status')
 
 export type ReleaseNotificationContext = {
   locale: string
   timezone: string
-}
-
-// Descriptor for a single publisher who needs the "you are assigned"
-// notification when the event flips to released. Computed from the event
-// under the release tx and fired OUTSIDE the tx by fireReleaseNotifications.
-export type NotifyTarget = {
-  entityType: 'EventPart' | 'EventServicePart'
-  entityId: number
-  assignmentName: string
-  memberId: number
-  role: 'speaker' | 'reader' | 'servant'
 }
 
 type EventWithStatus = {
@@ -68,45 +58,6 @@ const eventWithAssignmentsInclude = {
   },
   template: { select: { key: true, ...TEMPLATE_PROGRAMME_COUNT } },
 } satisfies Prisma.EventInclude
-
-type PartRow = { id: number; name: string; hasConflict: boolean; assigneeId: number | null; assistantId: number | null }
-type ServicePartRow = { id: number; name: string; hasConflict: boolean; assigneeId: number | null }
-
-function computeNotifyTargets(parts: PartRow[], services: ServicePartRow[]): NotifyTarget[] {
-  const targets: NotifyTarget[] = []
-  for (const part of parts) {
-    if (part.assigneeId != null) {
-      targets.push({
-        entityType: 'EventPart',
-        entityId: part.id,
-        assignmentName: part.name,
-        memberId: part.assigneeId,
-        role: 'speaker',
-      })
-    }
-    if (part.assistantId != null) {
-      targets.push({
-        entityType: 'EventPart',
-        entityId: part.id,
-        assignmentName: part.name,
-        memberId: part.assistantId,
-        role: 'reader',
-      })
-    }
-  }
-  for (const service of services) {
-    if (service.assigneeId != null) {
-      targets.push({
-        entityType: 'EventServicePart',
-        entityId: service.id,
-        assignmentName: service.name,
-        memberId: service.assigneeId,
-        role: 'servant',
-      })
-    }
-  }
-  return targets
-}
 
 // Tx-only half of the release flow. State flip + audit happen on the tx
 // client; notification enqueue is DEFERRED to fireReleaseNotifications so a

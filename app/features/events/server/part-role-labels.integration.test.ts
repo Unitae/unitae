@@ -8,8 +8,8 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { applyTemplateToEvent } from '~/features/events/server/apply-template.server'
 import { duplicateTemplate } from '~/features/events/server/duplicate-template.server'
-import { applyTemplateToEvent } from '~/features/events/server/event-parts.server'
 import { createProgrammeSeries } from '~/features/events/server/programme-creation.server'
 import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 

@@ -19,7 +19,7 @@ function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promi
 }
 
 const { reorderPartAssignments } = await import('./event-parts.server')
-const { reorderTemplateParts } = await import('./event-templates.server')
+const { reorderTemplateParts } = await import('./template-items.server')
 
 const ts = Date.now()
 let congregationId: number
