@@ -75,6 +75,10 @@ describe('EntityIdMap', () => {
 })
 
 describe('ARCHIVE_VERSION', () => {
+  it('accepts the version it writes', () => {
+    expect(SUPPORTED_ARCHIVE_VERSIONS).toContain(ARCHIVE_VERSION)
+  })
+
   it('is the current 2.21 schema version', () => {
     expect(ARCHIVE_VERSION).toBe('2.21')
   })

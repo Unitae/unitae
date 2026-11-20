@@ -130,7 +130,7 @@ async function importArchive(zip: JsZip, congregationId: number) {
   })
 }
 
-/** Restored parts and services that no schedule holds. */
+/** How many restored parts and services no schedule holds. */
 function itemsWithoutSchedule(congregationId: number) {
   return withScope(congregationId, async db => {
     const where = { congregationId, scheduleId: null }
@@ -419,7 +419,7 @@ describe('the archive', () => {
     await expect(
       reference({ archive: meetingFiles(reimported, imported), eventStatuses: statuses, programmeDocuments }, imported),
     ).toMatchFileSnapshot('./__references__/archive-after-import.json')
-    // Every restored item in the schedule the archive put it in: none left for the settle step to make.
+    // No restored item is left without a schedule (which one is the archive's, the snapshot above pins).
     expect(await itemsWithoutSchedule(targetId)).toBe(0)
   })
 

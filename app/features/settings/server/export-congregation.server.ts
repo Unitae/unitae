@@ -522,7 +522,7 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
         }),
     },
     {
-      // A schedule's content and who answers for it; before the template items, which name it (2.21).
+      // Name or catalogue key, kind and responsible role of each schedule template (2.21).
       name: 'schedule-templates',
       export: () =>
         db.scheduleTemplate.findMany({
@@ -648,7 +648,7 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
         }),
     },
     {
-      // Each event's schedules, each with its own status; before the event items, which name them (2.21).
+      // Each event's schedules, each with its own status (2.21).
       name: 'schedules',
       export: () =>
         db.schedule.findMany({

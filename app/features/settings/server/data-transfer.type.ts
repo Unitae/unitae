@@ -76,8 +76,8 @@ export const ARCHIVE_VERSION = '2.21'
 // day-off by the archive's own template key and restores its absence only.
 // v2.20 drops `legacyEventId` from `absences.ndjson`: no day-off event is left for it to name. A 2.19 archive still
 // carries it, and a restore reads it to know which of that archive's day-offs the absences file covers.
-// v2.21 carries the schedules: `schedule-templates.ndjson` (a programme's or a duty schedule's content and its
-// responsible role), `kind-schedule-templates.ndjson` (which ones each template suggests, in order) and `schedules.ndjson`
+// v2.21 carries the schedules: `schedule-templates.ndjson` (each one's name or catalogue key, kind and responsible
+// role), `kind-schedule-templates.ndjson` (which ones each template suggests, in order) and `schedules.ndjson`
 // (each event's, with its own status); the four item files name theirs (`scheduleTemplateId`, `scheduleId`). A 2.20 or
 // older archive carries none, and a restore gives them by the add_schedules migration's rule.
 // v1.x archives are listed here so the import path reports them with a warning rather than rejecting outright;
