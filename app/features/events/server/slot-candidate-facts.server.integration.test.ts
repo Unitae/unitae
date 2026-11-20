@@ -128,7 +128,7 @@ beforeAll(async () => {
       data: { name: 'Sono', eventId: lastSummer.id, assigneeId: members.sono, congregationId },
     })
 
-    // An absence on the person's record, with the day-off event an older version wrote alongside it.
+    // An absence on the person's record, and a leftover day-off event on the same days, which must not count twice.
     const dayOffEvent = await tx.event.create({
       data: {
         name: 'Absence',

@@ -2051,7 +2051,7 @@ describe('restored absences from a 2.19 archive', () => {
           'absences.ndjson',
           [
             // Its day-off came too: written once, not again from the event.
-            absence(1, { memberId: 50, accountId: 70, legacyEventId: 1 }),
+            absence(1, { memberId: 50, accountId: 70, legacyEventId: 1, note: 'du fichier' }),
             // Its account and event did not come (skipped by this restore, or an earlier one): the record keeps it.
             absence(2, { memberId: 50, accountId: null, legacyEventId: null }),
             absence(3, { memberId: null, accountId: 71, legacyEventId: null }),
@@ -2068,7 +2068,7 @@ describe('restored absences from a 2.19 archive', () => {
 
         const events = await tx.event.count()
         const absences = await tx.absence.findMany({
-          select: { memberId: true, accountId: true, createdAt: true },
+          select: { note: true, memberId: true, accountId: true, createdAt: true },
           orderBy: { id: 'asc' },
         })
         return {
@@ -2083,27 +2083,22 @@ describe('restored absences from a 2.19 archive', () => {
       // No day-off event comes back; neither row names one.
       expect(rows.events).toBe(0)
       expect(rows.absences).toEqual([
-        // Rebuilt from its day-off, written first, while the events are read.
+        // Rebuilt from its uncovered day-off, written first, while the events are read.
         {
+          note: '',
           memberId: rows.member,
           accountId: rows.withRecord,
           createdAt: new Date('2027-04-01T08:00:00.000Z'),
         },
+        // From the file, its covered day-off not rebuilt beside it.
         {
+          note: 'du fichier',
           memberId: rows.member,
           accountId: rows.withRecord,
           createdAt: new Date('2027-04-01T08:00:00.000Z'),
         },
-        {
-          memberId: rows.member,
-          accountId: null,
-          createdAt: new Date('2027-04-01T08:00:00.000Z'),
-        },
-        {
-          memberId: null,
-          accountId: rows.withoutRecord,
-          createdAt: new Date('2027-04-01T08:00:00.000Z'),
-        },
+        { note: '', memberId: rows.member, accountId: null, createdAt: new Date('2027-04-01T08:00:00.000Z') },
+        { note: '', memberId: null, accountId: rows.withoutRecord, createdAt: new Date('2027-04-01T08:00:00.000Z') },
       ])
     } finally {
       await withScope(cong.id, async tx => {

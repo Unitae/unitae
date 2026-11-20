@@ -4,8 +4,8 @@ import { PrismaClient } from '~/database/generated/client'
 
 // The lists of absences read their own table, by the person: their record when they have one, the account that
 // declared them otherwise. « Mes absences », the congregation's list, the dashboard, the publisher record and the
-// calendar feed all show Absence rows; a day-off event without one (as an image from before the absences table writes during the rollout)
-// no longer shows on its own, and an absence is deleted by its row.
+// calendar feed all show Absence rows; a day-off event without one (only an older version wrote those) shows nowhere
+// on its own, and an absence is deleted by its row.
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -78,7 +78,7 @@ beforeAll(async () => {
     // A row only: shown everywhere.
     ids.paulRow = (await row(day('2027-05-10'), day('2027-05-12'), paul)).id
     ids.samRow = (await row(day('2027-05-20'), day('2027-05-21'), { memberId: null, accountId: ids.samAccount })).id
-    // Written both ways, as createDayOff does.
+    // A row, and a day-off event on the same days left by an older version: the lists show the row, once.
     ids.dualEvent = (
       await tx.event.create({
         data: {
@@ -93,7 +93,7 @@ beforeAll(async () => {
       })
     ).id
     ids.dualRow = (await row(day('2027-06-01'), day('2027-06-02'), paul)).id
-    // An event only, as an image from before the absences table writes during the rollout: no longer shown.
+    // An event only, as an older version wrote one: shown nowhere.
     await tx.event.create({
       data: {
         name: 'Absence',
@@ -190,7 +190,7 @@ describe('the lists of absences and the absences table', () => {
     expect(dashboard.map(absence => absence.id)).toEqual([ids.samRow])
   })
 
-  it('puts the absences in the calendar feed, keeping the identifier a subscriber already has', async () => {
+  it('puts the absences in the calendar feed, each under its own row id', async () => {
     const items = await read(tx => getPersonalAssignments(tx, ids.paulAccount, ids.cong, day('2027-05-01')))
     const uids = items.filter(item => item.kind === 'day-off').map(item => item.uid)
 

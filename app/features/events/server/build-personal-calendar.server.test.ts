@@ -20,7 +20,7 @@ const sampleItems: PersonalCalendarItem[] = [
     updatedAt: new Date('2026-04-01T00:00:00Z'),
   },
   {
-    uid: 'day-off-3',
+    uid: 'absence-3',
     kind: 'day-off',
     summary: 'Absence',
     description: '',
@@ -53,7 +53,7 @@ describe('buildPersonalCalendarIcs', () => {
     const eventCount = ics.match(VEVENT_BEGIN)?.length ?? 0
     expect(eventCount).toBe(2)
     expect(ics).toContain('UID:programme-part-assignee-10@unitae.test')
-    expect(ics).toContain('UID:day-off-3@unitae.test')
+    expect(ics).toContain('UID:absence-3@unitae.test')
   })
 
   it('emits all-day events as VALUE=DATE', () => {

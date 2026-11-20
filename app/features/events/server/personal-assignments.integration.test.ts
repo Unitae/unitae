@@ -96,7 +96,7 @@ beforeAll(async () => {
       },
     })
     evergreenId = dayOff.id
-    // Alice's absence, on her record (the day-off event above is what an older version wrote with it).
+    // Alice's absence, on her record, and a leftover day-off event on the same days, which must not show twice.
     absenceId = (
       await tx.absence.create({
         data: {

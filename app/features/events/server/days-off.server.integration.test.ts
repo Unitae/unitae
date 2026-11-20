@@ -2,8 +2,8 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 
-// An absence is its Absence row alone — the person's record when the account has one, the account otherwise — and is
-// deleted by it.
+// An absence is its Absence row alone, owned by the person's record when the account has one and by the account
+// otherwise; cancelling it deletes that row.
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -174,7 +174,7 @@ describe('an absence', () => {
         return { created, row, flagged, events, cancelled, cleared, left: await tx.absence.count() }
       })
 
-      expect(outcome.row).not.toBeNull()
+      expect(outcome.row).toMatchObject({ memberId: expect.any(Number) })
       expect(outcome.events).toBe(0)
       // The absence flags the part the person holds during it, and cancelling it clears the flag.
       expect(outcome.flagged).toBe(true)

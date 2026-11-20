@@ -137,6 +137,7 @@ describe('deleteAccount and the events the account created', () => {
     expect(await absencesOfRecord(memberId)).toEqual([{ accountId: null }])
   })
 
+  // Declared while the account was being linked, a row can be on no record: it is the person's too, and moves there.
   it('moves a row on no record onto the record before deleting the account', async () => {
     const { accountId, memberId } = await account('Sans-fiche-encore', { record: true, absence: false })
     await withScope(ids.cong, tx =>
