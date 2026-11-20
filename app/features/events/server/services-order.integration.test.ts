@@ -21,7 +21,8 @@ function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promi
   })
 }
 
-const { addServicePartAssignment, applyTemplateToEvent } = await import('./event-parts.server')
+const { addServicePartAssignment } = await import('./event-parts.server')
+const { applyTemplateToEvent } = await import('./apply-template.server')
 const { getTemplateById } = await import('./event-templates.server')
 const { upsertTemplateServicePart } = await import('./template-items.server')
 const { getEventProgramme } = await import('./event-part-assignments.server')
