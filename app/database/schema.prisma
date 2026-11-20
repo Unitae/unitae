@@ -1189,7 +1189,8 @@ model EventPart {
   event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   eventId Int
 
-  // The event's programme schedule. Through (scheduleId, eventId), so the schedule is always one of this event's.
+  // The event's programme schedule. Through (scheduleId, eventId), so the schedule is always one of this event's. Null on
+  // a row the previous image wrote, until the next release's backfill.
   schedule   Schedule? @relation(fields: [scheduleId, eventId], references: [id, eventId], onDelete: Cascade)
   scheduleId Int?
 
@@ -1351,7 +1352,8 @@ model EventServicePart {
   event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   eventId Int
 
-  // The event's duty schedule. Through (scheduleId, eventId), so the schedule is always one of this event's.
+  // The event's duty schedule. Through (scheduleId, eventId), so the schedule is always one of this event's. Null on a
+  // row the previous image wrote, until the next release's backfill.
   schedule   Schedule? @relation(fields: [scheduleId, eventId], references: [id, eventId], onDelete: Cascade)
   scheduleId Int?
 
@@ -1503,28 +1505,20 @@ model EventServicePartAllowedRole {
   @@index([congregationId])
 }
 
-// Delegation of a template's events to a role, so its holders can run the
-// programme without a congregation-wide permission. Always a Role and never a
-// person: a handover is then one edit on the organigram, not one per template.
-//
-// A template carries at most one row per `scope` — see
-// app/features/events/model/responsibility-scope.type.ts. 'programme' is the
-// whole-event delegation the feature shipped with; 'service' delegates only
-// the service parts, because the sound/attendant rota and the spiritual
-// programme are filled in by different brothers.
 // What one schedule of an event holds — a programme's parts or a duty schedule's duties — and who answers for it.
-// Shared: any event kind may suggest it (EventKindScheduleTemplate). Until the readers move over, each template has at
-// most one of each kind, written beside its own items.
+// Shared: any event kind may suggest it (EventKindScheduleTemplate). Until the readers move over, the writers keep each
+// template to one of each kind (nothing in the database says so), written beside its own items.
 model ScheduleTemplate {
   id   Int     @id @default(autoincrement())
-  // Null: the catalogue's label for `key` (« Services »). No language is stored: a programme takes its template's
-  // name, which the congregation wrote.
+  // Null: the catalogue's label for `key` (« Services »); never both (ScheduleTemplate_label_check). No language is
+  // stored: a programme takes its template's name, which the congregation wrote.
   name String?
   key  String?
   // 'programme' | 'duty'. Constrained in SQL by ScheduleTemplate_kind_check.
   kind String
 
-  // Its holders fill and publish the schedules made from it: every seat of the role, the leader and the deputies alike.
+  // Copied from the template's responsibles (D31) until the readers move over; then its holders, every seat of the role
+  // (the leader and the deputies alike), fill and publish the schedules made from it.
   responsibleRole   Role? @relation("scheduleTemplateResponsible", fields: [responsibleRoleId], references: [id], onDelete: SetNull)
   responsibleRoleId Int?
 
@@ -1576,6 +1570,7 @@ model Schedule {
   scheduleTemplateId Int?
 
   // Copied from its template when made from one; otherwise null, with `key` 'programme' or 'services' for the catalogue.
+  // Never both null (Schedule_label_check).
   name   String?
   key    String?
   // 'programme' | 'duty'. Constrained in SQL by Schedule_kind_check.
@@ -1602,6 +1597,15 @@ model Schedule {
   @@index([scheduleTemplateId])
 }
 
+// Delegation of a template's events to a role, so its holders can run the
+// programme without a congregation-wide permission. Always a Role and never a
+// person: a handover is then one edit on the organigram, not one per template.
+//
+// A template carries at most one row per `scope` — see
+// app/features/events/model/responsibility-scope.type.ts. 'programme' is the
+// whole-event delegation the feature shipped with; 'service' delegates only
+// the service parts, because the sound/attendant rota and the spiritual
+// programme are filled in by different brothers.
 model TemplateResponsible {
   id Int @id @default(autoincrement())
 
