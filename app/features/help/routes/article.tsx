@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { demoHelpLimit } from '~/features/demo'
 import type { HelpArticleView } from '~/features/help/model/help.type'
 import { helpLocaleFor, helpPagePath } from '~/features/help/model/help-links'
 import { helpArticleView } from '~/features/help/server/help-article-view.server'
@@ -7,7 +8,8 @@ import { helpReaderFor } from '~/features/help/server/help-reader.server'
 import { HelpArticleBody } from '~/features/help/ui/HelpArticleBody'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
-import { currentAccountContext, permissionsContext } from '~/shared/auth/route-context.server'
+import { congregationContext, currentAccountContext, permissionsContext } from '~/shared/auth/route-context.server'
+import { isDemoCongregation } from '~/shared/domain/demo-mode.server'
 import { logger } from '~/shared/infra/logger.server'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -27,7 +29,9 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
 export function loader({ params, context }: Route.LoaderArgs): HelpArticleView {
   try {
     const reader = helpReaderFor(context.get(permissionsContext), context.get(currentAccountContext))
-    return helpArticleView(loadHelpArticles(), params.slug, helpLocaleFor(getLocale()), reader)
+    const view = helpArticleView(loadHelpArticles(), params.slug, helpLocaleFor(getLocale()), reader)
+    if (view.kind !== 'found' || !isDemoCongregation(context.get(congregationContext))) return view
+    return { ...view, demoLimit: demoHelpLimit(view.slug) }
   } catch (error) {
     logger.error(`In-app help article « ${params.slug} » could not be read: ${String(error)}`)
     return { kind: 'error', slug: params.slug }

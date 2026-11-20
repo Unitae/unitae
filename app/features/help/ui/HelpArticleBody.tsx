@@ -2,6 +2,7 @@ import { Callout } from '@unitae/ui'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 
+import type { DemoHelpLimit } from '~/features/demo'
 import type { HelpArticleView } from '~/features/help/model/help.type'
 import { capturePressed, HelpCaptureDialog, type OpenedCapture } from '~/features/help/ui/HelpCaptureDialog'
 import { HelpFallback } from '~/features/help/ui/HelpFallback'
@@ -12,6 +13,15 @@ import * as m from '~/i18n/paraglide/messages'
 // step's text in a paragraph: its first one takes no margin, so the steps keep the spacing of a list without one.
 const BODY =
   '[&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-lg [&_img]:border [&_img]:border-border [&_li>p:first-child]:mt-0 text-sm leading-relaxed text-foreground [&_h2]:mt-6 [&_h2]:mb-1 [&_h2]:font-semibold [&_h2]:text-base [&_h2]:text-foreground [&_p]:mt-3 [&_ol]:mt-3 [&_ol]:list-decimal [&_ol]:space-y-2 [&_ol]:pl-5 [&_ul]:mt-3 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-5 [&_strong]:font-semibold [&_a]:text-brand-text [&_a]:underline [&_a]:underline-offset-2 [&_code]:rounded-sm [&_code]:bg-subtle [&_code]:px-1 [&_code]:text-[0.85em]'
+
+/** In a demo copy, what an article's task can't do there, said above its steps. */
+const DEMO_LIMIT_NOTICE: Record<DemoHelpLimit, () => string> = {
+  unavailable: m.help_demo_unavailable,
+  'no-upload': m.help_demo_no_upload,
+  'no-upload-no-send': m.help_demo_no_upload_no_send,
+  'no-account-page': m.help_demo_no_account_page,
+  'no-email': m.help_demo_no_email,
+}
 
 /**
  * The reading part of an article, shared by its page and the side panel. The page or the panel draws the title and
@@ -60,6 +70,7 @@ export function HelpArticleBody({
 
   return (
     <div className="flex flex-col gap-5">
+      {view.demoLimit && <Callout tone="info" title={DEMO_LIMIT_NOTICE[view.demoLimit]()} />}
       <div
         ref={body}
         className={BODY}

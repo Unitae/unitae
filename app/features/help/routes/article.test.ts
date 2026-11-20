@@ -4,7 +4,12 @@ import { Permission } from '~/shared/types/permission'
 // The article loader, as the page and the side panel both read it.
 const permissionsContext = Symbol('permissionsContext')
 const currentAccountContext = Symbol('currentAccountContext')
-vi.mock('~/shared/auth/route-context.server', () => ({ permissionsContext, currentAccountContext }))
+const congregationContext = Symbol('congregationContext')
+vi.mock('~/shared/auth/route-context.server', () => ({
+  permissionsContext,
+  currentAccountContext,
+  congregationContext,
+}))
 
 // An account whose record leads no group.
 const ACCOUNT = { member: null }
@@ -16,10 +21,11 @@ vi.mock('~/i18n/paraglide/runtime', async importOriginal => ({
 
 const { loader } = await import('./article')
 
-function run(slug: string, permissions: ReadonlySet<Permission>) {
+function run(slug: string, permissions: ReadonlySet<Permission>, demoExpiresAt: Date | null = null) {
   const values = new Map<symbol, unknown>([
     [permissionsContext, permissions],
     [currentAccountContext, ACCOUNT],
+    [congregationContext, { demoExpiresAt }],
   ])
   const context = { get: (key: symbol) => values.get(key) }
   return loader({ params: { slug }, context } as never)
@@ -42,5 +48,17 @@ describe('the article loader', () => {
     const view = await run('board-versions', new Set([Permission.CanReviewBoardDocuments]))
 
     expect(view).toMatchObject({ kind: 'found', slug: 'board-versions', module: 'board' })
+    expect(view).not.toHaveProperty('demoLimit')
+  })
+
+  it('says in a demo copy what the copy refuses of the task', async () => {
+    vi.stubEnv('UNITAE_DEMO', 'true')
+    try {
+      const view = await run('board-versions', new Set([Permission.CanReviewBoardDocuments]), new Date())
+
+      expect(view).toMatchObject({ kind: 'found', demoLimit: 'no-upload' })
+    } finally {
+      vi.unstubAllEnvs()
+    }
   })
 })
