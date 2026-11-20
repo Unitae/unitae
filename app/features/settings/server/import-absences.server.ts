@@ -70,7 +70,6 @@ export async function importAbsences(
         note: record.note ?? '',
         memberId,
         accountId,
-        legacyEventId: idMap.getOptional('events', record.legacyEventId),
         createdAt: dateOf(record.createdAt) ?? new Date(),
         congregationId,
       },

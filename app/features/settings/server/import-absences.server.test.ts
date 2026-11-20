@@ -69,7 +69,6 @@ describe('importAbsences', () => {
           note: 'Vacances',
           memberId: 50,
           accountId: 70,
-          legacyEventId: 30,
           createdAt: new Date('2027-04-01T08:00:00.000Z'),
           congregationId: 1,
         },
@@ -83,7 +82,7 @@ describe('importAbsences', () => {
 
     await importAbsences({} as never, db as never, idMap(), 1)
 
-    expect(db.absence.createMany.mock.calls[0][0].data[0].legacyEventId).toBeNull()
+    expect(db.absence.createMany.mock.calls[0][0].data[0]).not.toHaveProperty('legacyEventId')
   })
 
   it('keeps an absence whose account or event did not come, as long as someone is away on it', async () => {
@@ -98,10 +97,10 @@ describe('importAbsences', () => {
     await importAbsences({} as never, db as never, idMap(), 1)
 
     const data = db.absence.createMany.mock.calls[0][0].data
-    expect(data.map((d: Record<string, unknown>) => [d.memberId, d.accountId, d.legacyEventId])).toEqual([
-      [50, null, null],
-      [50, null, null],
-      [null, 80, 30],
+    expect(data.map((d: Record<string, unknown>) => [d.memberId, d.accountId])).toEqual([
+      [50, null],
+      [50, null],
+      [null, 80],
     ])
   })
 

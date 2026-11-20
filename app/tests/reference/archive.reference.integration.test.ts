@@ -444,7 +444,7 @@ describe('the archive', () => {
       }),
       absences: await db.absence.findMany({
         where: { congregationId: olderTargetId },
-        select: { memberId: true, legacyEventId: true },
+        select: { memberId: true },
       }),
     }))
 
@@ -457,6 +457,6 @@ describe('the archive', () => {
     expect(after.configurations).toHaveLength(4)
     expect(after.configurations.every(document => document.dynamicConfig === null)).toBe(true)
     // No absences file: Hugo's absence comes back from his day-off, on his record, without the event.
-    expect(after.absences).toEqual([{ memberId: expect.any(Number), legacyEventId: null }])
+    expect(after.absences).toEqual([{ memberId: expect.any(Number) }])
   })
 })

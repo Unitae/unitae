@@ -589,7 +589,7 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
     },
     {
       // memberId is the person's record (null when the declaring account had none), accountId who declared it — the
-      // owner when there is no record — and legacyEventId the day-off event the row was copied from.
+      // owner when there is no record.
       name: 'absences',
       export: () =>
         db.absence.findMany({
@@ -600,7 +600,6 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
             note: true,
             memberId: true,
             accountId: true,
-            legacyEventId: true,
             createdAt: true,
           },
           orderBy: { id: 'asc' },

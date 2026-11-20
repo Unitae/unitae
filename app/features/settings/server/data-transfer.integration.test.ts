@@ -1975,7 +1975,7 @@ describe('restored absences', () => {
         return {
           ids: { member: member.id, withRecord: withRecord.id, withoutRecord: withoutRecord.id },
           absences: await tx.absence.findMany({
-            select: { note: true, memberId: true, accountId: true, startDate: true, legacyEventId: true },
+            select: { note: true, memberId: true, accountId: true, startDate: true },
             orderBy: { accountId: 'asc' },
           }),
           events: await tx.event.findMany({ select: { id: true }, orderBy: { id: 'asc' } }),
@@ -1990,14 +1990,12 @@ describe('restored absences', () => {
           memberId: rows.ids.member,
           accountId: rows.ids.withRecord,
           startDate: new Date('2027-05-03T00:00:00.000Z'),
-          legacyEventId: null,
         },
         {
           note: 'Vacances',
           memberId: null,
           accountId: rows.ids.withoutRecord,
           startDate: new Date('2027-05-03T00:00:00.000Z'),
-          legacyEventId: null,
         },
       ])
     } finally {
@@ -2070,7 +2068,7 @@ describe('restored absences from a 2.19 archive', () => {
 
         const events = await tx.event.count()
         const absences = await tx.absence.findMany({
-          select: { memberId: true, accountId: true, legacyEventId: true, createdAt: true },
+          select: { memberId: true, accountId: true, createdAt: true },
           orderBy: { id: 'asc' },
         })
         return {
@@ -2089,25 +2087,21 @@ describe('restored absences from a 2.19 archive', () => {
         {
           memberId: rows.member,
           accountId: rows.withRecord,
-          legacyEventId: null,
           createdAt: new Date('2027-04-01T08:00:00.000Z'),
         },
         {
           memberId: rows.member,
           accountId: rows.withRecord,
-          legacyEventId: null,
           createdAt: new Date('2027-04-01T08:00:00.000Z'),
         },
         {
           memberId: rows.member,
           accountId: null,
-          legacyEventId: null,
           createdAt: new Date('2027-04-01T08:00:00.000Z'),
         },
         {
           memberId: null,
           accountId: rows.withoutRecord,
-          legacyEventId: null,
           createdAt: new Date('2027-04-01T08:00:00.000Z'),
         },
       ])

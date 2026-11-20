@@ -102,9 +102,7 @@ const absencesOf = (accountId: number) => withScope(ids.cong, tx => tx.absence.c
 
 /** A record's absences, as every list reads them. */
 const absencesOfRecord = (memberId: number | null) =>
-  withScope(ids.cong, tx =>
-    tx.absence.findMany({ where: { memberId: memberId ?? -1 }, select: { accountId: true, legacyEventId: true } }),
-  )
+  withScope(ids.cong, tx => tx.absence.findMany({ where: { memberId: memberId ?? -1 }, select: { accountId: true } }))
 
 const eventsOf = (eventIds: (number | null)[]) =>
   withScope(ids.cong, tx =>
@@ -136,36 +134,9 @@ describe('deleteAccount and the events the account created', () => {
     const left = await withScope(ids.cong, tx => tx.userAccount.findFirst({ where: { id: accountId } }))
     expect(left).toBeNull()
     expect(await eventsOf([meetingId])).toEqual([{ id: meetingId, createdById: null, origin: 'manual' }])
-    expect(await absencesOfRecord(memberId)).toEqual([{ accountId: null, legacyEventId: null }])
+    expect(await absencesOfRecord(memberId)).toEqual([{ accountId: null }])
   })
 
-  // An Absence row whose event a previous version deleted without it still names the account (Restrict).
-  it('deletes an account linked to a record whose only absence row lost its event, keeping the row', async () => {
-    const { accountId, memberId } = await account('Reste', { record: true, absence: false })
-    await withScope(ids.cong, async tx => {
-      const { memberId } = await tx.userAccount.findFirstOrThrow({
-        where: { id: accountId },
-        select: { memberId: true },
-      })
-      await tx.absence.create({
-        data: {
-          startDate: DAY,
-          endDate: DAY,
-          memberId,
-          accountId,
-          legacyEventId: 999_999_999,
-          congregationId: ids.cong,
-        },
-      })
-    })
-
-    await remove(accountId)
-
-    expect(await absencesOf(accountId)).toBe(0)
-    expect(await absencesOfRecord(memberId)).toEqual([{ accountId: null, legacyEventId: 999_999_999 }])
-  })
-
-  // Declared while the account was being linked, a row can be on no record: it is the person's too, and moves there.
   it('moves a row on no record onto the record before deleting the account', async () => {
     const { accountId, memberId } = await account('Sans-fiche-encore', { record: true, absence: false })
     await withScope(ids.cong, tx =>
@@ -175,7 +146,7 @@ describe('deleteAccount and the events the account created', () => {
     await remove(accountId)
 
     expect(await absencesOf(accountId)).toBe(0)
-    expect(await absencesOfRecord(memberId)).toEqual([{ accountId: null, legacyEventId: null }])
+    expect(await absencesOfRecord(memberId)).toEqual([{ accountId: null }])
   })
 
   it('deletes an account linked to a record without absences, clearing its author', async () => {
